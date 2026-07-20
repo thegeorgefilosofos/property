@@ -1670,21 +1670,32 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
                   const prothesmia=(e:CalEvent)=> (e.status==='paid'||e.status==='cancelled')?'Ολοκληρωμένο':isOverdue(e)?'Εκπρόθεσμο':'Εντός προθεσμίας'
                   const cols:XlsxCol[]=[
                     {header:'Ημερομηνία',kind:'date',width:13},
-                    {header:'Έτος',kind:'int',width:7},
+                    {header:'Ημέρα',width:11},
                     {header:'Μήνας',width:12},
+                    {header:'Έτος',kind:'year',width:8},
                     {header:'Κατηγορία',width:18},
-                    {header:'Τίτλος',width:42},
-                    {header:'Ποσό (€)',kind:'eur',width:13},
+                    {header:'Τίτλος',width:44},
+                    {header:'Ποσό',kind:'eur',width:14},
                     {header:'Κατάσταση',width:13},
                     {header:'Προθεσμία',width:16},
                   ]
-                  const toRow=(e:CalEvent)=>{ const d=new Date(e.event_date+'T00:00:00'); return [d,d.getFullYear(),MON[d.getMonth()],CATEGORIES[e.category]?.label||e.category,e.title,(e.amount||null),STATUSES[e.status]?.label||e.status,prothesmia(e)] }
-                  const all=[...filtered].sort((a,b)=>a.event_date.localeCompare(b.event_date))
+                  const WD=['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο']
+                  const toRow=(e:CalEvent)=>{ const d=new Date(e.event_date+'T00:00:00'); return [d,WD[d.getDay()],MON[d.getMonth()],d.getFullYear(),CATEGORIES[e.category]?.label||e.category,e.title,(e.amount||null),STATUSES[e.status]?.label||e.status,prothesmia(e)] }
+                  // Ταξινόμηση: χρονολογικά (κύριο) και δευτερευόντως με τη λογική σειρά
+                  // κατηγοριών της εφαρμογής — καθαρή, προβλέψιμη ακολουθία.
+                  const CAT_ORDER=Object.keys(CATEGORIES)
+                  const catRank=(e:CalEvent)=>{ const i=CAT_ORDER.indexOf(e.category); return i<0?99:i }
+                  const all=[...filtered].sort((a,b)=> a.event_date.localeCompare(b.event_date) || catRank(a)-catRank(b))
+                  const curYear=athensNow().getFullYear()
+                  const cur=all.filter(e=>new Date(e.event_date+'T00:00:00').getFullYear()===curYear)
                   const overdue=all.filter(e=>prothesmia(e)==='Εκπρόθεσμο'), upcoming=all.filter(e=>prothesmia(e)==='Εντός προθεσμίας')
-                  const sheets:XlsxSheet[]=[{name:'Ατζέντα',columns:cols,rows:all.map(toRow)}]
+                  // Πρώτο (προεπιλεγμένο) φύλλο: μόνο το τρέχον έτος. Ακολουθεί το πλήρες
+                  // αρχείο και τα φύλλα εκπρόθεσμων/επερχόμενων.
+                  const sheets:XlsxSheet[]=[{name:`Ατζέντα ${curYear}`,columns:cols,rows:cur.map(toRow)}]
+                  if(all.length>cur.length) sheets.push({name:'Όλα τα έτη',columns:cols,rows:all.map(toRow)})
                   if(overdue.length) sheets.push({name:'Εκπρόθεσμα',columns:cols,rows:overdue.map(toRow)})
                   if(upcoming.length) sheets.push({name:'Επερχόμενα',columns:cols,rows:upcoming.map(toRow)})
-                  downloadXlsx(`atzenta_${new Date().toISOString().slice(0,10)}`,sheets)
+                  downloadXlsx(`atzenta_${curYear}`,sheets)
                   setShowMenu(false)
                 }},
                 {label:'Εκτύπωση', icon:<Printer size={15}/>, on:()=>{printCalendar();setShowMenu(false)}},

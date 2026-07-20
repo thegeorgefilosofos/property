@@ -566,9 +566,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           { label: 'Πληρωμένοι',    value: fe(calc.totalPaid, 0),     sub: bills.filter(b => b.paid).length + ' λογαριασμοί',  neg: false },
           { label: 'Μέσο Μηνιαίο',  value: fe(calc.avgMonthly, 0),    sub: 'βάσει ιστορικού',                                  neg: false },
         ].map((k, i) => (
-          <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+          <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: k.neg ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 6 }}>{k.value}</div>
+            <div className="po-fig" data-tone={k.neg ? 'negative' : undefined} style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 6 }}>{k.value}</div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{k.sub}</div>
           </div>
         ))}
@@ -738,7 +738,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   const c = cat(b.category);
                   const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
                   return (
-                    <div key={b.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
+                    <div key={b.id} className="po-fig-card" tabIndex={0} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
                       <button onClick={() => togglePaid(b.id)} style={{ width: 22, height: 22, borderRadius: T.radius.badge, border: `2px solid ${b.paid ? 'var(--accent)' : 'var(--border-default)'}`, background: b.paid ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {b.paid && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
                       </button>
@@ -760,7 +760,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           {b.notes && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>· {b.notes}</span>}
                         </div>
                       </div>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: b.paid ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(b.amount, 2)}</span>
+                      <span className="po-fig" data-tone={b.paid ? undefined : 'accent'} style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(b.amount, 2)}</span>
                       {!b.paid && (
                         <button onClick={() => togglePaid(b.id)} style={{ fontSize: 10, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600 }}>
                           Πληρώθηκε
@@ -914,7 +914,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                 const c = colors[a.type];
                 return (
                   <div key={i} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.dot, flexShrink: 0, marginTop: 4 }}/>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 4 }}/>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: c.color, marginBottom: 3, fontFamily: T.font.sans }}>{a.title}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{a.body}</div>
@@ -932,13 +932,13 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           {secHdr('Smart Insights')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 12, marginBottom: 20 }}>
             {[
-              { label: 'Πάγια ανά τετραγωνικό / μήνα',  value: calc.totalMonthly > 0 ? `${(calc.totalMonthly / 35).toFixed(2)} € ανά τετραγωνικό` : '—', sub: 'Μέσος όρος αγοράς ~3.50 € ανά τετραγωνικό', color: calc.totalMonthly > 0 && (calc.totalMonthly / 35) > 3.50 ? 'var(--negative)' : 'var(--positive)' },
-              { label: 'Μέσο Μηνιαίο',           value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—',             sub: 'βάσει ιστορικού',            color: 'var(--text-primary)'   },
-              { label: 'Ακριβότερος μήνας',       value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', sub: MONTHS_GR[calc.historyTotals.indexOf(Math.max(...calc.historyTotals))] || '—', color: 'var(--negative)' },
-              { label: 'Εκκρεμείς',               value: calc.overdue.length > 0 ? `${calc.overdue.length} λογ/σμοί` : 'Εντάξει', sub: calc.totalUnpaid > 0 ? `${calc.totalUnpaid.toFixed(2)} €` : 'Καμία εκκρεμότητα', color: calc.overdue.length > 0 ? 'var(--negative)' : 'var(--positive)' },
+              { label: 'Πάγια ανά τετραγωνικό / μήνα',  value: calc.totalMonthly > 0 ? `${(calc.totalMonthly / 35).toFixed(2)} € ανά τετραγωνικό` : '—', sub: 'Μέσος όρος αγοράς ~3.50 € ανά τετραγωνικό', tone: calc.totalMonthly > 0 && (calc.totalMonthly / 35) > 3.50 ? 'negative' : 'positive' as string | undefined },
+              { label: 'Μέσο Μηνιαίο',           value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—',             sub: 'βάσει ιστορικού',            tone: undefined as string | undefined },
+              { label: 'Ακριβότερος μήνας',       value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', sub: MONTHS_GR[calc.historyTotals.indexOf(Math.max(...calc.historyTotals))] || '—', tone: 'negative' as string | undefined },
+              { label: 'Εκκρεμείς',               value: calc.overdue.length > 0 ? `${calc.overdue.length} λογ/σμοί` : 'Εντάξει', sub: calc.totalUnpaid > 0 ? `${calc.totalUnpaid.toFixed(2)} €` : 'Καμία εκκρεμότητα', tone: calc.overdue.length > 0 ? 'negative' : 'positive' as string | undefined },
             ].map((k, i) => (
-              <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{k.value}</div>
+              <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
+                <div className="po-fig" data-tone={k.tone} style={{ fontSize: 17, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{k.value}</div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, fontFamily: T.font.sans }}>{k.label}</div>
                 <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>
               </div>
@@ -954,15 +954,15 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             const overBudget = budget > 0 && c.monthly > budget;
             return (
               <div key={c.value} style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <div className="po-fig-card" tabIndex={0} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{c.label}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {budget > 0 && <span title="προϋπολογισμός" style={{ fontSize: 9, color: overBudget ? 'var(--negative)' : 'var(--positive)', fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget, 0)}</span>}
+                    {budget > 0 && <span title="προϋπολογισμός" className="po-fig" data-tone={overBudget ? 'negative' : 'positive'} style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget, 0)}</span>}
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.monthly, 0)}/μήνα</span>
-                    {c.benchmark > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', width: 50, textAlign: 'right' as const }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
+                    {c.benchmark > 0 && <span className="po-fig" data-tone={isHigh ? 'negative' : pct < -10 ? 'positive' : undefined} style={{ fontSize: 10, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', width: 50, textAlign: 'right' as const }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
                     {c.benchmark > 0 && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', width: 60, fontFamily: T.font.sans }}>μέσος όρος {fe(c.benchmark, 0)}</span>}
                   </div>
                 </div>
@@ -1003,9 +1003,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <div style={{ height: 6, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' }}/>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+            <div className="po-fig-card" tabIndex={0} style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
               <span>Ιαν</span>
-              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{pct.toFixed(0)}% του έτους</span>
+              <span className="po-fig" data-tone="accent" style={{ fontWeight: 600 }}>{pct.toFixed(0)}% του έτους</span>
               <span>Δεκ</span>
             </div>
           </div>
@@ -1030,7 +1030,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               {CATEGORIES.filter(c => c.value !== 'other').map(c => {
                 const rowTotal = history[c.value]?.reduce((s, v) => s + (parseFloat(v) || 0), 0) || 0;
                 return (
-                  <tr key={c.value}>
+                  <tr key={c.value} className="po-fig-card" tabIndex={0}>
                     <td style={{ padding: '4px 8px', fontSize: 10, borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' as const }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{c.label}</span>
@@ -1046,16 +1046,16 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                         />
                       </td>
                     ))}
-                    <td style={{ padding: '4px 8px', fontWeight: 700, color: rowTotal > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderBottom: '1px solid var(--border-subtle)', textAlign: 'right', fontSize: 11 }}>
+                    <td className="po-fig" data-tone={rowTotal > 0 ? 'accent' : undefined} style={{ padding: '4px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderBottom: '1px solid var(--border-subtle)', textAlign: 'right', fontSize: 11 }}>
                       {rowTotal > 0 ? fe(rowTotal, 0) : '—'}
                     </td>
                   </tr>
                 );
               })}
-              <tr style={{ background: 'var(--bg-elevated)' }}>
+              <tr className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)' }}>
                 <td style={{ padding: 8, fontWeight: 700, fontSize: 11, fontFamily: T.font.sans }}>Σύνολο</td>
                 {calc.historyTotals.map((t, i) => (
-                  <td key={i} style={{ padding: '5px 2px', fontWeight: 700, color: t > 0 ? (t > calc.avgMonthly * 1.2 ? 'var(--negative)' : 'var(--positive)') : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', fontSize: 10 }}>
+                  <td key={i} className="po-fig" data-tone={t > 0 ? (t > calc.avgMonthly * 1.2 ? 'negative' : 'positive') : undefined} style={{ padding: '5px 2px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', fontSize: 10 }}>
                     {t > 0 ? Math.round(t) : '—'}
                   </td>
                 ))}
@@ -1068,12 +1068,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginTop: 16 }}>
           {[
-            { label: 'Μέσο Μηνιαίο', value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—', color: 'var(--text-primary)' },
-            { label: 'Ακριβότερος',  value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', color: 'var(--negative)' },
-            { label: 'Φθηνότερος',   value: calc.historyTotals.filter(t => t > 0).length > 0 ? `${Math.round(Math.min(...calc.historyTotals.filter(t => t > 0)))} €` : '—', color: 'var(--positive)' },
+            { label: 'Μέσο Μηνιαίο', value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—', tone: undefined as string | undefined },
+            { label: 'Ακριβότερος',  value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', tone: 'negative' as string | undefined },
+            { label: 'Φθηνότερος',   value: calc.historyTotals.filter(t => t > 0).length > 0 ? `${Math.round(Math.min(...calc.historyTotals.filter(t => t > 0)))} €` : '—', tone: 'positive' as string | undefined },
           ].map((k, i) => (
-            <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+            <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
+              <div className="po-fig" data-tone={k.tone} style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
               <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, marginTop: 2, fontFamily: T.font.sans }}>{k.label}</div>
             </div>
           ))}
@@ -1102,12 +1102,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   {dayBills.map(b => {
                     const c = cat(b.category);
                     return (
-                      <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                      <div key={b.id} className="po-fig-card" tabIndex={0} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontSize: 11, color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: b.paid ? 'line-through' : 'none', fontFamily: T.font.sans }}>{b.name}</span>
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: b.paid ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(b.amount, 2)}</span>
+                          <span className="po-fig" data-tone={b.paid ? undefined : 'accent'} style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(b.amount, 2)}</span>
                           <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 3, background: b.paid ? 'var(--bg-elevated)' : 'rgba(197,34,31,0.1)', color: b.paid ? 'var(--text-tertiary)' : 'var(--negative)', fontFamily: T.font.sans }}>{b.paid ? 'Πληρώθηκε' : 'ΕΚΚΡΕΜΕΣ'}</span>
                         </div>
                       </div>

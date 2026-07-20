@@ -231,7 +231,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           const on = hoverPct === v.id;
 
           if (editing) return (
-            <div key={v.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 16, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
+            <div key={v.id} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 16, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{v.name ? 'Επεξεργασία κουμπαρά' : 'Νέος κουμπαράς'}</div>
               {(() => {
                 const knownBank = BANK_RATES.find(b => b.name === v.bank);
@@ -294,7 +294,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                       <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
                     )}
                     {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
-                    {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{feAuto(yearly, 0)}</strong> / έτος</div>}
+                    {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>+{feAuto(yearly, 0)}</strong> / έτος</div>}
                   </div>
                 );
               })()}
@@ -310,7 +310,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           // Πλήρες πλακίδιο 3D & clickable: κλικ οπουδήποτε ανοίγει την επεξεργασία (μετονομασία,
           // στόχος, ποσό, ημερομηνία, τράπεζα). Στο πέρασμα κέρσορα σηκώνεται και τα νούμερα γίνονται γαλάζια.
           return (
-            <div key={v.id} role="button" tabIndex={0} aria-label={`Επεξεργασία: ${v.name || 'Κουμπαράς'}`}
+            <div key={v.id} className="po-fig-card" role="button" tabIndex={0} aria-label={`Επεξεργασία: ${v.name || 'Κουμπαράς'}`}
               onClick={() => setEditId(v.id)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditId(v.id); } }}
               onMouseEnter={() => setHoverPct(v.id)} onMouseLeave={() => setHoverPct(null)}
@@ -332,7 +332,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 {done
                   ? <span style={{ color: 'var(--text-tertiary)' }}>Έτοιμος</span>
                   : overdue
-                    ? <span style={{ color: 'var(--negative)', fontWeight: 600 }}>απαιτούνται {feAuto(plan.remaining, 0)} τώρα</span>
+                    ? <span className="po-fig" data-tone="negative" style={{ fontWeight: 600 }}>απαιτούνται {feAuto(plan.remaining, 0)} τώρα</span>
                     : v.due && plan.requiredMonthly > 0
                       ? <span style={{ color: 'var(--text-tertiary)' }}>{feAuto(plan.requiredMonthly, 0)}/μήνα έως {monthLabel(v.due)}</span>
                       : plan.remaining > 0
