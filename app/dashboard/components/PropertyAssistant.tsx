@@ -105,13 +105,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else { setHasIdentity(false); }
   }, []);
 
-  // Άνοιγμα από εξωτερικό σημείο εισόδου (π.χ. κουμπί «Βοηθός» στο header).
-  useEffect(() => {
-    const openIt = () => setOpen(true);
-    window.addEventListener('po:open-assistant', openIt);
-    return () => window.removeEventListener('po:open-assistant', openIt);
-  }, []);
-
   // Κλείσιμο με κλικ εκτός πάνελ (χωρίς να χρειάζεται το «×»). Δεν κλείνει όταν
   // επεξεργάζεσαι ταυτότητα ή όταν «ακούει», για να μη χαθεί η ενέργεια.
   useEffect(() => {
@@ -922,7 +915,22 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const fabDrag = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const justDragged = useRef(false);
   useEffect(() => {
-    try { const s = localStorage.getItem('pa_fab_pos'); if (s) setFabPos(JSON.parse(s)); } catch { /* ignore */ }
+    // Φόρτωσε την αποθηκευμένη θέση, ΑΛΛΑ μόνο αν χωράει ολόκληρο το κουμπί μέσα
+    // στην τρέχουσα οθόνη. Αλλιώς (άλλο μέγεθος παραθύρου/οθόνη, χαλασμένη τιμή)
+    // αγνόησέ την ώστε το πλωτό να επιστρέψει στη σταθερή κάτω-δεξιά θέση.
+    try {
+      const s = localStorage.getItem('pa_fab_pos');
+      if (!s) return;
+      const p = JSON.parse(s) as { x: number; y: number };
+      const m = 8;
+      const inView = typeof window !== 'undefined'
+        && Number.isFinite(p?.x) && Number.isFinite(p?.y)
+        && p.x >= m && p.y >= m
+        && p.x <= window.innerWidth - FAB - m
+        && p.y <= window.innerHeight - FAB - m;
+      if (inView) setFabPos(p);
+      else localStorage.removeItem('pa_fab_pos');
+    } catch { /* ignore */ }
   }, []);
   useEffect(() => {
     if (!fabPos || dragging) return;
