@@ -49,12 +49,12 @@ export default function RentROIReport({
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
         <style>
-          ${brandRootVars(branding)}
+          :root{--accent:#111;--accent-text:#fff}
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             font-family: 'Inter', sans-serif;
             background: #fff;
-            color: #1a1a2e;
+            color: #111;
             font-size: 11px;
             line-height: 1.5;
           }
@@ -67,43 +67,31 @@ export default function RentROIReport({
             align-items: flex-start;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 2px solid ${accent};
+            border-bottom: 2px solid #111;
           }
           .logo {
             font-family: 'Inter', sans-serif;
             font-size: 20px;
             font-weight: 700;
-            color: ${accent};
+            color: #111;
             letter-spacing: -0.3px;
           }
-          .logo span { color: var(--accent); }
+          .logo span { color: #111; }
           .meta { text-align: right; font-size: 10px; color: #666; font-family: 'Inter', sans-serif; }
-          .meta-title { font-family: 'Inter', sans-serif; font-weight: 500; color: #1a1a2e; font-size: 13px; margin-bottom: 2px; }
+          .meta-title { font-family: 'Inter', sans-serif; font-weight: 700; color: #111; font-size: 13px; margin-bottom: 2px; }
 
           /* Section */
           .section { margin-bottom: 20px; }
           .section-title {
             font-family: 'Inter', sans-serif;
             font-size: 10px;
-            font-weight: 500;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--accent);
+            letter-spacing: 0.08em;
+            color: #374151;
             margin-bottom: 10px;
             padding-bottom: 4px;
-            border-bottom: 1px solid #e8eaed;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          }
-          .section-title::before {
-            content: '';
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: var(--accent);
-            flex-shrink: 0;
+            border-bottom: 1px solid #d1d5db;
           }
 
           /* KPI grids */
@@ -111,7 +99,7 @@ export default function RentROIReport({
           .kpi-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
           .kpi {
             background: #f8f9fa;
-            border: 1px solid #e8eaed;
+            border: 1px solid #d1d5db;
             border-radius: 8px;
             padding: 10px 12px;
           }
@@ -131,13 +119,13 @@ export default function RentROIReport({
           }
           .kpi-sub { font-size: 9px; color: #9aa0a6; margin-top: 2px; font-family: 'Inter', sans-serif; }
 
-          /* Colors */
-          .positive { color: #137333; }
-          .negative { color: #c5221f; }
-          .warning { color: #b45309; }
-          .accent { color: var(--accent); }
-          .gold { color: var(--accent); }
-          .muted { color: #5f6368; }
+          /* Colors (monochrome) */
+          .positive { color: #111; }
+          .negative { color: #111; }
+          .warning { color: #111; }
+          .accent { color: #111; }
+          .gold { color: #111; }
+          .muted { color: #6b7280; }
 
           /* Stat rows */
           .row {
@@ -155,34 +143,34 @@ export default function RentROIReport({
 
           /* Info banners */
           .info-box {
-            background: #e8f0fe;
-            border-left: 3px solid #1a73e8;
-            border-radius: 0 6px 6px 0;
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
             padding: 8px 12px;
             font-size: 10px;
-            color: #1a73e8;
+            color: #374151;
             margin-top: 8px;
             line-height: 1.5;
             font-family: 'Inter', sans-serif;
           }
           .warning-box {
-            background: #fef7e0;
-            border-left: 3px solid #b45309;
-            border-radius: 0 6px 6px 0;
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
             padding: 8px 12px;
             font-size: 10px;
-            color: #b45309;
+            color: #374151;
             margin-top: 8px;
             line-height: 1.5;
             font-family: 'Inter', sans-serif;
           }
           .success-box {
-            background: #e6f4ea;
-            border-left: 3px solid #137333;
-            border-radius: 0 6px 6px 0;
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
             padding: 8px 12px;
             font-size: 10px;
-            color: #137333;
+            color: #374151;
             margin-top: 8px;
             line-height: 1.5;
             font-family: 'Inter', sans-serif;
@@ -201,12 +189,12 @@ export default function RentROIReport({
           /* Scenario boxes */
           .scenario-box { border-radius: 8px; padding: 12px; }
           .sell-box {
-            background: #fce8e6;
-            border-left: 3px solid #c5221f;
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
           }
           .hold-box {
-            background: #e6f4ea;
-            border-left: 3px solid #137333;
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
           }
           .box-title {
             font-family: 'Inter', sans-serif;
@@ -218,7 +206,7 @@ export default function RentROIReport({
           /* Progress bar */
           .bar-track {
             height: 5px;
-            background: #e8eaed;
+            background: #e5e7eb;
             border-radius: 3px;
             overflow: hidden;
             margin-top: 8px;
@@ -241,7 +229,7 @@ export default function RentROIReport({
             padding: 12px 20px;
             background: #f8f9fa;
             border-radius: 10px;
-            border: 1px solid #e8eaed;
+            border: 1px solid #d1d5db;
           }
 
           /* Footer */
@@ -271,6 +259,7 @@ export default function RentROIReport({
       <body>
         <div class="page">
 
+          <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
           <!-- Header -->
           <div class="header">
             <div>
@@ -291,7 +280,7 @@ export default function RentROIReport({
             <div class="score-card">
               <div class="score-block">
                 <div class="score-big ${calc.totalScore >= 70 ? 'positive' : calc.totalScore >= 50 ? 'warning' : 'negative'}">${esc(calc.totalScore)}</div>
-                <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:500;color:${calc.totalScore >= 70 ? '#137333' : calc.totalScore >= 50 ? '#b45309' : '#c5221f'}">${esc(calc.scoreLabel)}</div>
+                <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:#111">${esc(calc.scoreLabel)}</div>
                 <div style="font-size:9px;color:#9aa0a6;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:0.5px">βαθμολογία / 100</div>
               </div>
               <div class="kpi-grid" style="margin-bottom:0;">
@@ -321,10 +310,10 @@ export default function RentROIReport({
             <div class="two-col">
               <div>
                 <div class="row"><span class="row-label">Ακαθάριστο Ενοίκιο / έτος</span><span class="row-value positive">${esc(fe(calc.annual))}</span></div>
-                ${calc.reduction > 0 ? `<div class="row"><span class="row-label">Έκπτωση Ηλεκτρονικής Πληρωμής</span><span class="row-value accent">-${esc(fe(calc.reduction))}</span></div>` : ''}
-                <div class="row"><span class="row-label">Δαπάνες Ακινήτου</span><span class="row-value warning">-${esc(fe(calc.totalExp))}</span></div>
+                ${calc.reduction > 0 ? `<div class="row"><span class="row-label">Έκπτωση Ηλεκτρονικής Πληρωμής</span><span class="row-value accent">−${esc(fe(calc.reduction))}</span></div>` : ''}
+                <div class="row"><span class="row-label">Δαπάνες Ακινήτου</span><span class="row-value warning">−${esc(fe(calc.totalExp))}</span></div>
                 <div class="row"><span class="row-label">Καθαρό Εισόδημα (προ φόρου)</span><span class="row-value accent bold">${esc(fe(calc.netIncome))}</span></div>
-                <div class="row"><span class="row-label">Φόρος Εισοδήματος</span><span class="row-value negative">-${esc(fe(calc.tax))}</span></div>
+                <div class="row"><span class="row-label">Φόρος Εισοδήματος</span><span class="row-value negative">−${esc(fe(calc.tax))}</span></div>
                 <div class="row"><span class="row-label">Καθαρό Εισόδημα (μετά φόρου)</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${esc(fe(calc.afterTax))}</span></div>
                 <div class="row"><span class="row-label">Καθαρό / Μήνα</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${esc(fe(calc.afterTax / 12))}</span></div>
               </div>
@@ -420,7 +409,7 @@ export default function RentROIReport({
               <div class="kpi"><div class="kpi-value positive">${esc(fe(scen.mcP50))}</div><div class="kpi-label">Πιθανότερη Απόδοση (P50)</div></div>
             </div>
             <div class="bar-track">
-              <div class="bar-fill" style="width:${esc(scen.mcPositive)}%;background:${scen.mcPositive >= 70 ? '#137333' : scen.mcPositive >= 50 ? '#b45309' : '#c5221f'};"></div>
+              <div class="bar-fill" style="width:${esc(scen.mcPositive)}%;background:#111;"></div>
             </div>
           </div>` : ''}
 

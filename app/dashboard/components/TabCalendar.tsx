@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner, feAuto } from '@/components/Theme'
-import { downloadCsv, csvEur, csvDate } from './exportCsv'
+import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
   Calendar, List, BarChart2, Check, FileText,
@@ -1662,7 +1662,42 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
                 {label:'Συνδρομή σε ζωντανό ημερολόγιο', icon:<CalendarPlus size={15}/>, on:openSubscribe},
                 {label:'Λήψη αρχείου .ics', icon:<Download size={15}/>, on:()=>{exportICal();setShowMenu(false)}},
                 {label:'Εισαγωγή από .ics', icon:<CalendarDays size={15}/>, on:()=>{importRef.current?.click()}},
-                {label:'Εξαγωγή σε Excel/CSV', icon:<FileText size={15}/>, on:()=>{downloadCsv(`imerologio_${new Date().toISOString().slice(0,10)}`,['Ημερομηνία','Τίτλος','Κατηγορία','Ποσό (€)','Κατάσταση'],[...filtered].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map(e=>[csvDate(e.event_date),e.title,CATEGORIES[e.category]?.label||e.category,csvEur(e.amount),STATUSES[e.status]?.label||e.status]));setShowMenu(false)}},
+                {label:'Εξαγωγή σε Excel', icon:<FileText size={15}/>, on:()=>{
+                  // Καθαρός, φιλτραρίσιμος πίνακας: κάθε πεδίο σε δικό του κελί, αριθμοί
+                  // ως αριθμοί (2 δεκαδικά), στήλες Έτος/Μήνας/Προθεσμία για φιλτράρισμα,
+                  // και ξεχωριστά φύλλα «Εκπρόθεσμα»/«Επερχόμενα».
+                  const MON=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
+                  const prothesmia=(e:CalEvent)=> (e.status==='paid'||e.status==='cancelled')?'Ολοκληρωμένο':isOverdue(e)?'Εκπρόθεσμο':'Εντός προθεσμίας'
+                  const cols:XlsxCol[]=[
+                    {header:'Ημερομηνία',kind:'date',width:13},
+                    {header:'Ημέρα',width:11},
+                    {header:'Μήνας',width:12},
+                    {header:'Έτος',kind:'year',width:8},
+                    {header:'Κατηγορία',width:18},
+                    {header:'Τίτλος',width:44},
+                    {header:'Ποσό',kind:'eur',width:14},
+                    {header:'Κατάσταση',width:13},
+                    {header:'Προθεσμία',width:16},
+                  ]
+                  const WD=['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο']
+                  const toRow=(e:CalEvent)=>{ const d=new Date(e.event_date+'T00:00:00'); return [d,WD[d.getDay()],MON[d.getMonth()],d.getFullYear(),CATEGORIES[e.category]?.label||e.category,e.title,(e.amount||null),STATUSES[e.status]?.label||e.status,prothesmia(e)] }
+                  // Ταξινόμηση: χρονολογικά (κύριο) και δευτερευόντως με τη λογική σειρά
+                  // κατηγοριών της εφαρμογής — καθαρή, προβλέψιμη ακολουθία.
+                  const CAT_ORDER=Object.keys(CATEGORIES)
+                  const catRank=(e:CalEvent)=>{ const i=CAT_ORDER.indexOf(e.category); return i<0?99:i }
+                  const all=[...filtered].sort((a,b)=> a.event_date.localeCompare(b.event_date) || catRank(a)-catRank(b))
+                  const curYear=athensNow().getFullYear()
+                  const cur=all.filter(e=>new Date(e.event_date+'T00:00:00').getFullYear()===curYear)
+                  const overdue=all.filter(e=>prothesmia(e)==='Εκπρόθεσμο'), upcoming=all.filter(e=>prothesmia(e)==='Εντός προθεσμίας')
+                  // Πρώτο (προεπιλεγμένο) φύλλο: μόνο το τρέχον έτος. Ακολουθεί το πλήρες
+                  // αρχείο και τα φύλλα εκπρόθεσμων/επερχόμενων.
+                  const sheets:XlsxSheet[]=[{name:`Ατζέντα ${curYear}`,columns:cols,rows:cur.map(toRow)}]
+                  if(all.length>cur.length) sheets.push({name:'Όλα τα έτη',columns:cols,rows:all.map(toRow)})
+                  if(overdue.length) sheets.push({name:'Εκπρόθεσμα',columns:cols,rows:overdue.map(toRow)})
+                  if(upcoming.length) sheets.push({name:'Επερχόμενα',columns:cols,rows:upcoming.map(toRow)})
+                  downloadXlsx(`atzenta_${curYear}`,sheets)
+                  setShowMenu(false)
+                }},
                 {label:'Εκτύπωση', icon:<Printer size={15}/>, on:()=>{printCalendar();setShowMenu(false)}},
               ] as {label:string;icon:React.ReactNode;on:()=>void}[]).map(it=>(
                 <button key={it.label} onClick={it.on} style={{ display:'flex', alignItems:'center', gap:10, width:'100%', padding:'9px 12px', border:'none', background:'transparent', cursor:'pointer', textAlign:'left', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", borderRadius:8, transition:'background 0.12s' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>

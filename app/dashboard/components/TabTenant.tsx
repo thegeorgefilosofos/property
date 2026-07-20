@@ -17,7 +17,7 @@ import {
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
-import { reportAccent, brandName, brandContactLine, useReportBranding } from '@/lib/reportBranding';
+import { reportAccent, brandName, brandContactLine, useReportBranding, brandLogoImg } from '@/lib/reportBranding';
 import { rentalIncomeTax, effectiveRentalRate, RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax';
 import { whatsappLink, viberLink } from '@/lib/clients/messages';
 import { normalizePhone } from '@/lib/clients/clients';
@@ -525,43 +525,55 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
   const selectStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,fontFamily:T.font.sans,outline:'none',cursor:'pointer'};
 
   const genLetter=()=>{
-    const accent = reportAccent(branding);
     const today_str=new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'});
+    const accent = reportAccent(branding);
     const w=window.open('','_blank','width=820,height=760');
     if(!w){alert('Επίτρεψε τα popups');return;}
     w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>Αναπροσαρμογή Μισθώματος</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Inter',sans-serif;max-width:740px;margin:48px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.8}
-      .header{border-bottom:2px solid ${accent};padding-bottom:16px;margin-bottom:28px}
-      h1{font-size:22px;font-weight:500;color:${accent};margin-bottom:4px}
-      .sub{font-size:11px;color:#5f6368}
+      body{font-family:'Inter',system-ui,sans-serif;max-width:740px;margin:0 auto;padding:40px;color:#111;background:#fff;font-size:13px;line-height:1.8;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:28px}
+      .brand{display:flex;align-items:center;gap:11px}
+      .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+      h1{font-size:18px;font-weight:700;color:#111;letter-spacing:-.01em}
+      .sub{font-size:11px;color:#6b7280;margin-top:2px}
       table{width:100%;border-collapse:collapse;margin:20px 0}
-      th,td{padding:12px 16px;border:1px solid #e8eaed;font-size:13px}
-      th{background:#f8f9fa;font-weight:500;text-align:left}
-      .highlight{background:#e6f4ea;font-weight:700;color:#137333}
+      th,td{padding:12px 16px;border:1px solid #d1d5db;font-size:13px;color:#374151}
+      th{background:#f8f9fa;font-weight:600;text-align:left;color:#111}
+      td.r{text-align:right;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;color:#111;white-space:nowrap}
+      tr.highlight td{background:#f8f9fa;font-weight:700;color:#111}
       .signatures{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:72px}
-      .sig{border-top:1px solid #dadce0;padding-top:10px;font-size:11px;color:#5f6368}
-      .footer{margin-top:40px;font-size:10px;color:#9aa0a6;text-align:center;border-top:1px solid #f0f0f0;padding-top:12px}
-      @media print{body{margin:20px;padding:24px}}
+      .sig{border-top:1px solid #d1d5db;padding-top:10px;font-size:11px;color:#6b7280}
+      .footer{margin-top:40px;font-size:10px;color:#6b7280;text-align:center;border-top:1px solid #d1d5db;padding-top:12px}
+      @media print{body{margin:0;padding:24px}@page{margin:16mm}}
     </style></head><body>
-    <div class="header"><h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>
-    <div class="sub">Βάσει Δείκτη Τιμών Καταναλωτή (ΔΤΚ) ${esc(yr)}${branding?.companyName ? ', '+brandName(branding) : ', Property OS'}</div></div>
+    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
+    <div class="header">
+      <div class="brand">
+        ${brandLogoImg(branding,34)||`<div class="mark">P</div>`}
+        <div>
+          <h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>
+          <div class="sub">Βάσει Δείκτη Τιμών Καταναλωτή (ΔΤΚ) ${esc(yr)}${branding?.companyName ? ' · '+brandName(branding) : ' · Property OS'}</div>
+        </div>
+      </div>
+      <div class="sub" style="text-align:right;white-space:nowrap">${esc(today_str)}</div>
+    </div>
     <p style="margin-bottom:8px"><strong>Ημερομηνία:</strong> ${esc(today_str)}</p>
     <p style="margin-bottom:20px">Προς: <strong>${esc(tenant.full_name)}</strong>${tenant.afm?'&nbsp;&nbsp;|&nbsp;&nbsp;ΑΦΜ: <strong>'+esc(tenant.afm)+'</strong>':''}</p>
     <p style="margin-bottom:16px;line-height:1.7">Σας γνωστοποιούμε ότι, βάσει του Δείκτη Τιμών Καταναλωτή (ΔΤΚ) έτους <strong>${esc(yr)}</strong>, όπως ανακοινώθηκε από την ΕΛΣΤΑΤ, το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:</p>
     <table>
-      <tr><th>Στοιχείο</th><th>Αξία</th></tr>
-      <tr><td>Τρέχον Μηνιαίο Μίσθωμα</td><td>${esc(fmtE(rent))}</td></tr>
-      <tr><td>ΔΤΚ ${esc(yr)} (ΕΛΣΤΑΤ)</td><td>+${esc(pct.toFixed(1))}%</td></tr>
-      <tr><td>Αύξηση Μισθώματος</td><td>+${esc(fmtE(diff))}</td></tr>
-      <tr class="highlight"><td><strong>Νέο Μηνιαίο Μίσθωμα</strong></td><td><strong>${esc(fmtE(newRent))}</strong></td></tr>
+      <tr><th>Στοιχείο</th><th style="text-align:right">Αξία</th></tr>
+      <tr><td>Τρέχον Μηνιαίο Μίσθωμα</td><td class="r">${esc(fmtE(rent))}</td></tr>
+      <tr><td>ΔΤΚ ${esc(yr)} (ΕΛΣΤΑΤ)</td><td class="r">+${esc(pct.toFixed(2))}%</td></tr>
+      <tr><td>Αύξηση Μισθώματος</td><td class="r">+${esc(fmtE(diff))}</td></tr>
+      <tr class="highlight"><td><strong>Νέο Μηνιαίο Μίσθωμα</strong></td><td class="r"><strong>${esc(fmtE(newRent))}</strong></td></tr>
     </table>
-    <p style="font-size:12px;color:#5f6368;margin-top:16px">Η αναπροσαρμογή ισχύει από την επόμενη μισθωτική περίοδο μετά την κοινοποίηση της παρούσας ειδοποίησης.</p>
+    <p style="font-size:12px;color:#6b7280;margin-top:16px">Η αναπροσαρμογή ισχύει από την επόμενη μισθωτική περίοδο μετά την κοινοποίηση της παρούσας ειδοποίησης.</p>
     <div class="signatures">
-      <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Εκμισθωτής</p><p style="height:40px"></p><p>Υπογραφή / Σφραγίδα</p></div>
-      <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p>${tenant.afm?'<p>ΑΦΜ: '+esc(tenant.afm)+'</p>':''}</div>
+      <div class="sig"><p style="font-weight:600;margin-bottom:4px;color:#111">Ο Εκμισθωτής</p><p style="height:40px"></p><p>Υπογραφή / Σφραγίδα</p></div>
+      <div class="sig"><p style="font-weight:600;margin-bottom:4px;color:#111">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p>${tenant.afm?'<p>ΑΦΜ: '+esc(tenant.afm)+'</p>':''}</div>
     </div>
     <div class="footer">Έγγραφο δημιουργήθηκε μέσω ${branding?.companyName ? brandName(branding) : 'Property OS'}${brandContactLine(branding) ? ' · '+brandContactLine(branding) : ''}, Για νομικές υποθέσεις συμβουλευτείτε δικηγόρο</div>
     </body></html>`);
@@ -966,29 +978,34 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const monthLabel=(p:RentPayment)=>`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`;
 
   const printReceipt=(p:RentPayment)=>{
-    const accent=reportAccent(branding);
     const w=window.open('','_blank','width=820,height=760'); if(!w){alert('Επίτρεψε τα popups');return;}
     const paidDate=p.paid_date?new Date(p.paid_date+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):'—';
+    const accent = reportAccent(branding);
     const landlord=branding?.companyName?brandName(branding):'Property OS';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>Απόδειξη Ενοικίου ${esc(num)}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:40px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.7}
-      .header{border-bottom:2px solid ${accent};padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
-      h1{font-size:20px;font-weight:600;color:${accent}}
-      .sub{font-size:11px;color:#5f6368;margin-top:4px}
-      .num{font-size:11px;color:#5f6368;text-align:right}
+      body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:0 auto;padding:40px;color:#111;background:#fff;font-size:13px;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .header{border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+      .brand{display:flex;align-items:center;gap:11px}
+      .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
+      h1{font-size:19px;font-weight:700;color:#111;letter-spacing:-.01em}
+      .sub{font-size:11px;color:#6b7280;margin-top:2px}
+      .num{font-size:11px;color:#6b7280;text-align:right;white-space:nowrap}
       table{width:100%;border-collapse:collapse;margin:18px 0}
-      th,td{padding:11px 14px;border:1px solid #e8eaed;font-size:13px;text-align:left}
-      th{background:#f8f9fa;font-weight:600;width:42%}
-      .amount{background:#e6f4ea;font-weight:700;color:#137333;font-size:15px}
+      th,td{padding:11px 14px;border:1px solid #d1d5db;font-size:13px;text-align:left;color:#374151}
+      th{background:#f8f9fa;font-weight:600;width:42%;color:#111}
+      tr.amount th,tr.amount td{background:#f8f9fa;font-weight:700;color:#111;font-size:15px}
+      tr.amount td{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
       .sign{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:64px}
-      .sig{border-top:1px solid #dadce0;padding-top:10px;font-size:11px;color:#5f6368}
-      .footer{margin-top:36px;font-size:10px;color:#9aa0a6;text-align:center;border-top:1px solid #f0f0f0;padding-top:12px}
-      @media print{body{margin:20px;padding:24px}}
+      .sig{border-top:1px solid #d1d5db;padding-top:10px;font-size:11px;color:#6b7280}
+      .footer{margin-top:36px;font-size:10px;color:#6b7280;text-align:center;border-top:1px solid #d1d5db;padding-top:12px}
+      @media print{body{margin:0;padding:24px}@page{margin:16mm}}
     </style></head><body>
-    <div class="header"><div><h1>Απόδειξη Είσπραξης Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div><div class="num">Αρ. ${esc(num)}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
+    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
+    <div class="header"><div class="brand">${brandLogoImg(branding,34)||`<div class="mark">P</div>`}<div><h1>Απόδειξη Είσπραξης Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div></div><div class="num">Αρ. ${esc(num)}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
     <table>
       <tr><th>Εκμισθωτής</th><td>${esc(landlord)}</td></tr>
       <tr><th>Μισθωτής</th><td>${esc(p.tenant_id?tenant.full_name:'')}${tenant.afm?' &nbsp;·&nbsp; ΑΦΜ '+esc(tenant.afm):''}</td></tr>
@@ -998,8 +1015,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
       <tr><th>Ημερομηνία πληρωμής</th><td>${esc(paidDate)}</td></tr>
       <tr class="amount"><th>Ποσό</th><td>${esc(p.amount.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2}))} €</td></tr>
     </table>
-    <p style="font-size:12px;color:#5f6368;margin-top:12px">Η παρούσα βεβαιώνει την είσπραξη του ανωτέρω ποσού για το μηνιαίο μίσθωμα της αναφερόμενης περιόδου.</p>
-    <div class="sign"><div class="sig"><p style="font-weight:600;margin-bottom:4px">Ο Εκμισθωτής</p><p style="height:36px"></p><p>Υπογραφή</p></div><div class="sig"><p style="font-weight:600;margin-bottom:4px">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p></div></div>
+    <p style="font-size:12px;color:#6b7280;margin-top:12px">Η παρούσα βεβαιώνει την είσπραξη του ανωτέρω ποσού για το μηνιαίο μίσθωμα της αναφερόμενης περιόδου.</p>
+    <div class="sign"><div class="sig"><p style="font-weight:600;margin-bottom:4px;color:#111">Ο Εκμισθωτής</p><p style="height:36px"></p><p>Υπογραφή</p></div><div class="sig"><p style="font-weight:600;margin-bottom:4px;color:#111">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p></div></div>
     <div class="footer">Έγγραφο μέσω ${esc(landlord)}${brandContactLine(branding)?' · '+esc(brandContactLine(branding)):''}</div>
     </body></html>`);
     w.document.close();setTimeout(()=>w.print(),700);
@@ -1024,35 +1041,39 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
 
   // ── Μηνιαία κατάσταση προς τον μισθωτή: «Τι περιλαμβάνει / τι χρεώνεται» ──
   const printStatement=(p:RentPayment)=>{
-    const accent=reportAccent(branding);
     const w=window.open('','_blank','width=820,height=760'); if(!w){alert('Επίτρεψε τα popups');return;}
     const landlord=branding?.companyName?brandName(branding):'Property OS';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     const base=p.base_rent!=null?p.base_rent:tenantBaseRent(tenant);
+    const accent = reportAccent(branding);
     const lines=tenantServiceLines(tenant);
     const svcTotal=lines.reduce((a,l)=>a+l.amount,0);
     const total=p.amount!=null?p.amount:base+svcTotal;
     const money=(n:number)=>`${(n||0).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
-    const svcRows=lines.length?lines.map(l=>`<tr><td>${esc(l.label)}</td><td class="r">${esc(money(l.amount))}</td></tr>`).join(''):`<tr><td colspan="2" style="color:#9aa0a6">Καμία επιπλέον υπηρεσία</td></tr>`;
+    const svcRows=lines.length?lines.map(l=>`<tr><td>${esc(l.label)}</td><td class="r">${esc(money(l.amount))}</td></tr>`).join(''):`<tr><td colspan="2" style="color:#6b7280">Καμία επιπλέον υπηρεσία</td></tr>`;
     w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>Μηνιαία Κατάσταση ${esc(num)}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:40px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.7}
-      .header{border-bottom:2px solid ${accent};padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
-      h1{font-size:20px;font-weight:600;color:${accent}}
-      .sub{font-size:11px;color:#5f6368;margin-top:4px}
-      .num{font-size:11px;color:#5f6368;text-align:right}
-      h2{font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:#5f6368;margin:22px 0 8px;font-weight:600}
+      body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:0 auto;padding:40px;color:#111;background:#fff;font-size:13px;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .header{border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+      .brand{display:flex;align-items:center;gap:11px}
+      .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
+      h1{font-size:19px;font-weight:700;color:#111;letter-spacing:-.01em}
+      .sub{font-size:11px;color:#6b7280;margin-top:2px}
+      .num{font-size:11px;color:#6b7280;text-align:right;white-space:nowrap}
+      h2{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;margin:22px 0 8px;font-weight:700;padding-bottom:7px;border-bottom:1px solid #111}
       table{width:100%;border-collapse:collapse;margin:6px 0}
-      td{padding:10px 14px;border:1px solid #e8eaed;font-size:13px}
-      td.r{text-align:right;font-variant-numeric:tabular-nums;width:38%}
-      tr.base td{background:#f8f9fa}
-      tr.total td{background:#e6f4ea;font-weight:700;color:#137333;font-size:15px}
-      .meta td:first-child{font-weight:600;width:42%;background:#f8f9fa}
-      .footer{margin-top:36px;font-size:10px;color:#9aa0a6;text-align:center;border-top:1px solid #f0f0f0;padding-top:12px}
-      @media print{body{margin:20px;padding:24px}}
+      td{padding:10px 14px;border:1px solid #d1d5db;font-size:13px;color:#374151}
+      td.r{text-align:right;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;width:38%;color:#111;white-space:nowrap}
+      tr.base td{background:#f8f9fa;color:#111}
+      tr.total td{background:#f8f9fa;font-weight:700;color:#111;font-size:15px}
+      .meta td:first-child{font-weight:600;width:42%;background:#f8f9fa;color:#111}
+      .footer{margin-top:36px;font-size:10px;color:#6b7280;text-align:center;border-top:1px solid #d1d5db;padding-top:12px}
+      @media print{body{margin:0;padding:24px}@page{margin:16mm}}
     </style></head><body>
-    <div class="header"><div><h1>Μηνιαία Κατάσταση Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div><div class="num">Περίοδος ${esc(monthLabel(p))}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
+    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
+    <div class="header"><div class="brand">${brandLogoImg(branding,34)||`<div class="mark">P</div>`}<div><h1>Μηνιαία Κατάσταση Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div></div><div class="num">Περίοδος ${esc(monthLabel(p))}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
     <table class="meta">
       <tr><td>Μισθωτής</td><td>${esc(tenant.full_name||'—')}${tenant.afm?' &nbsp;·&nbsp; ΑΦΜ '+esc(tenant.afm):''}</td></tr>
       ${propLabel()?`<tr><td>Ακίνητο</td><td>${esc(propLabel())}</td></tr>`:''}
@@ -1064,8 +1085,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
       ${svcRows}
       <tr class="total"><td>Σύνολο μηνός</td><td class="r">${esc(money(total))}</td></tr>
     </table>
-    ${tenant.rent_iban?`<p style="font-size:12px;color:#5f6368;margin-top:16px">Πληρωμή σε IBAN <strong>${esc(tenant.rent_iban)}</strong> (${esc(landlordName)}).</p>`:''}
-    <p style="font-size:11px;color:#9aa0a6;margin-top:8px">Η παρούσα κατάσταση είναι ενημερωτική και αναλύει το μηνιαίο ποσό της δόσης σε βασικό ενοίκιο και υπηρεσίες.</p>
+    ${tenant.rent_iban?`<p style="font-size:12px;color:#6b7280;margin-top:16px">Πληρωμή σε IBAN <strong>${esc(tenant.rent_iban)}</strong> (${esc(landlordName)}).</p>`:''}
+    <p style="font-size:11px;color:#6b7280;margin-top:8px">Η παρούσα κατάσταση είναι ενημερωτική και αναλύει το μηνιαίο ποσό της δόσης σε βασικό ενοίκιο και υπηρεσίες.</p>
     <div class="footer">Έγγραφο μέσω ${esc(landlord)}${brandContactLine(branding)?' · '+esc(brandContactLine(branding)):''}</div>
     </body></html>`);
     w.document.close();setTimeout(()=>w.print(),700);

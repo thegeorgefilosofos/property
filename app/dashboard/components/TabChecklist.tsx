@@ -478,6 +478,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
 function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | null) {
   const accent = reportAccent(branding)
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
+  const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
   const done = items.filter(i => i.status === 'done').length
   const totalEst = items.reduce((s, i) => s + (i.estimated_cost || 0), 0)
   const totalAct = items.reduce((s, i) => s + (i.actual_cost || 0), 0)
@@ -487,8 +488,8 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
   const grouped: Record<string, ChecklistItem[]> = {}
   items.forEach(i => { if (!grouped[i.category]) grouped[i.category] = []; grouped[i.category].push(i) })
 
-  const kpiHtml = (val: string, lbl: string, color: string) =>
-    `<div class="kpi"><div class="kpi-v" style="color:${color}">${esc(val)}</div><div class="kpi-l">${esc(lbl)}</div></div>`
+  const kpiHtml = (val: string, lbl: string) =>
+    `<div class="kpi"><div class="kpi-v">${esc(val)}</div><div class="kpi-l">${esc(lbl)}</div></div>`
 
   const groupSections = CATEGORIES.filter(c => grouped[c.id]?.length).map(cat => {
     const grpDone = grouped[cat.id].filter(i => i.status === 'done').length
@@ -498,35 +499,34 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
       const od = isOverdue(item.due_date, item.status)
       return `<tr>
         <td style="width:18px;padding:7px 8px;vertical-align:middle">
-          <div style="width:14px;height:14px;border:2px solid ${item.status==='done'?'#34a853':'#dadce0'};border-radius:3px;background:${item.status==='done'?'#34a853':'#fff'};display:flex;align-items:center;justify-content:center">
+          <div style="width:14px;height:14px;border:2px solid ${item.status==='done'?'#111':'#d1d5db'};border-radius:3px;background:${item.status==='done'?'#111':'#fff'};display:flex;align-items:center;justify-content:center">
             ${item.status==='done'?'<svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>':''}
           </div>
         </td>
         <td style="padding:7px 8px">
-          <div style="font-size:11px;color:${item.status==='done'?'#9aa0a6':'#202124'};text-decoration:${item.status==='done'?'line-through':'none'}">${esc(item.description)}</div>
-          ${item.assigned_contact_name?`<div style="font-size:9px;color:#9aa0a6;margin-top:2px">${esc(item.assigned_contact_name)}</div>`:''}
-          ${(item._tags||[]).length>0?`<div style="margin-top:3px">${(item._tags||[]).map(t=>`<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:#f1f3f4;font-size:8px;color:#5f6368;margin-right:3px">${esc(t)}</span>`).join('')}</div>`:''}
+          <div style="font-size:11px;color:${item.status==='done'?'#9aa0a6':'#111'};text-decoration:${item.status==='done'?'line-through':'none'}">${esc(item.description)}</div>
+          ${item.assigned_contact_name?`<div style="font-size:9px;color:#6b7280;margin-top:2px">${esc(item.assigned_contact_name)}</div>`:''}
+          ${(item._tags||[]).length>0?`<div style="margin-top:3px">${(item._tags||[]).map(t=>`<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:#f8f9fa;border:1px solid #d1d5db;font-size:8px;color:#374151;margin-right:3px">${esc(t)}</span>`).join('')}</div>`:''}
         </td>
-        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${pri.bg.replace('rgba','rgba').replace('0.1','0.15')};color:${pri.color}">${esc(pri.label)}</span></td>
-        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${sm.bg.replace('0.1','0.15')};color:${sm.color}">${esc(sm.label)}</span></td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Inter', sans-serif;font-size:10px;color:${od?'#ea4335':'#5f6368'}">${item.due_date?esc(fmtDate(item.due_date)):'—'}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Inter', sans-serif;font-size:10px;color:#1a1a2e">${item.estimated_cost>0?item.estimated_cost.toLocaleString('el-GR')+'€':'—'}</td>
+        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:#f8f9fa;border:1px solid #d1d5db;color:#111">${esc(pri.label)}</span></td>
+        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:#f8f9fa;border:1px solid #d1d5db;color:#111">${esc(sm.label)}</span></td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Inter', sans-serif;font-size:10px;font-weight:${od?600:400};color:${od?'#111':'#6b7280'}">${item.due_date?esc(fmtDate(item.due_date)):'—'}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-size:10px;color:#111">${item.estimated_cost>0?esc(eur(item.estimated_cost)):'—'}</td>
       </tr>`
     }).join('')
     return `
       <div class="sec">
-        <div class="g-header" style="border-left:4px solid ${cat.dot}">
+        <div class="g-header" style="border-left:3px solid #111">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="display:flex;align-items:center;gap:8px">
-              <div style="width:8px;height:8px;border-radius:50%;background:${cat.dot}"></div>
-              <strong style="color:${cat.dot}">${esc(cat.label)}</strong>
-              <span style="font-size:9px;color:#5f6368">${grpDone}/${grouped[cat.id].length} ολοκλ.</span>
+              <strong style="color:#111">${esc(cat.label)}</strong>
+              <span style="font-size:9px;color:#6b7280">${grpDone}/${grouped[cat.id].length} ολοκλ.</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:60px;height:4px;background:#e8eaed;border-radius:2px;overflow:hidden">
-                <div style="height:100%;width:${grpPct}%;background:${grpPct===100?'#34a853':cat.dot};border-radius:2px"></div>
+              <div style="width:60px;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden">
+                <div style="height:100%;width:${grpPct}%;background:#111;border-radius:2px"></div>
               </div>
-              <span style="font-size:10px;font-weight:700;color:${cat.dot}">${grpPct}%</span>
+              <span style="font-size:10px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums">${grpPct}%</span>
             </div>
           </div>
         </div>
@@ -552,48 +552,48 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
 <style>
 ${brandRootVars(branding)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;background:#fff;color:#111;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{padding:28px 32px;max-width:940px;margin:0 auto}
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid ${accent}}
-.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:${accent}}.logo span{color:var(--accent)}
-.logo-s{font-size:10px;color:#5f6368;margin-top:2px}
-.meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
-.meta-d{font-size:10px;color:#5f6368;margin-top:3px}
-.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:${accent};margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
-.sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:2px solid #111}
+.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#111}.logo span{color:#111}
+.logo-s{font-size:10px;color:#6b7280;margin-top:2px}
+.meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#111}
+.meta-d{font-size:10px;color:#6b7280;margin-top:3px}
+.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#374151;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #111}
 .sec{margin-bottom:20px}
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
-.kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:10px 12px}
-.kpi-v{font-family:'Inter', sans-serif;font-size:16px;font-weight:700;margin-bottom:3px}
-.kpi-l{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368}
-.progress-bar{height:8px;background:#e8eaed;border-radius:4px;overflow:hidden;margin-bottom:16px}
+.kpi{background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}
+.kpi-v{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;color:#111;margin-bottom:3px}
+.kpi-l{font-family:'Inter',sans-serif;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280}
+.progress-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-bottom:16px}
 .progress-fill{height:100%;border-radius:4px;transition:width 0s}
-.g-header{padding:9px 14px;margin-bottom:0;background:#f8f9fa;border-radius:6px 6px 0 0;border:1px solid #e8eaed;border-bottom:none}
+.g-header{padding:9px 14px;margin-bottom:0;background:#f8f9fa;border-radius:6px 6px 0 0;border:1px solid #d1d5db;border-bottom:none}
 table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:16px}
-th{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;padding:6px 8px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa;border:1px solid #e8eaed}
-td{border:1px solid #f1f3f4;vertical-align:middle;color:#3c4043}
+th{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;padding:6px 8px;border-bottom:2px solid #d1d5db;text-align:left;background:#f8f9fa;border:1px solid #d1d5db}
+td{border:1px solid #e5e7eb;vertical-align:middle;color:#374151}
 tr:nth-child(even) td{background:#fafafa}
-.footer{margin-top:24px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;font-size:9px;color:#9aa0a6}
+.footer{margin-top:24px;padding-top:10px;border-top:1px solid #d1d5db;display:flex;justify-content:space-between;font-size:9px;color:#6b7280}
 @media print{.page{padding:18px 22px}}
 </style></head><body><div class="page">
+<div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
 <div class="hdr">
-  <div>${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}<div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
+  <div>${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:7px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px">P</div><div class="logo">Property OS</div></div>`}<div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
   <div class="meta-r"><div class="meta-title">Εκκρεμότητες Ακινήτου</div><div class="meta-d">${esc(today)}</div></div>
 </div>
 <div class="sec">
   <div class="sec-title">Σύνοψη</div>
   <div class="kpi-row">
-    ${kpiHtml(String(items.length), 'Σύνολο εργασιών', '#1a73e8')}
-    ${kpiHtml(String(done), 'Ολοκληρωμένα', '#34a853')}
-    ${kpiHtml(String(items.length - done), 'Εκκρεμή', '#ea4335')}
-    ${kpiHtml(String(overdue), 'Ληγμένα', '#ea4335')}
-    ${kpiHtml(totalEst > 0 ? totalEst.toLocaleString('el-GR') + '€' : '—', 'Εκτιμώμενο', '#5f6368')}
-    ${kpiHtml(totalAct > 0 ? totalAct.toLocaleString('el-GR') + '€' : '—', 'Πραγματικό', '#b45309')}
+    ${kpiHtml(String(items.length), 'Σύνολο εργασιών')}
+    ${kpiHtml(String(done), 'Ολοκληρωμένα')}
+    ${kpiHtml(String(items.length - done), 'Εκκρεμή')}
+    ${kpiHtml(String(overdue), 'Ληγμένα')}
+    ${kpiHtml(totalEst > 0 ? eur(totalEst) : '—', 'Εκτιμώμενο')}
+    ${kpiHtml(totalAct > 0 ? eur(totalAct) : '—', 'Πραγματικό')}
   </div>
-  <div style="display:flex;justify-content:space-between;font-size:10px;color:#5f6368;margin-bottom:5px">
-    <span>Συνολική Πρόοδος</span><span style="font-weight:700;color:${pct===100?'#34a853':'#1a73e8'}">${pct}%</span>
+  <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b7280;margin-bottom:5px">
+    <span>Συνολική Πρόοδος</span><span style="font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums">${pct}%</span>
   </div>
-  <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'#34a853':'#1a73e8'}"></div></div>
+  <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#111"></div></div>
 </div>
 <div class="sec">
   <div class="sec-title">Αναλυτικά ανά Κατηγορία</div>
@@ -659,18 +659,18 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 .page{max-width:900px;margin:0 auto;padding:28px 36px}
 
 /* Header */
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:3px solid ${accent}}
-.logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:${accent}}.logo span{color:var(--accent)}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:2px solid #111}
+.logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:#111}.logo span{color:#111}
 .logo-sub{font-size:10px;color:#5f6368;margin-top:2px}
 .hdr-right{text-align:right}
 .hdr-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:500;color:#202124}
 .hdr-meta{font-size:10px;color:#5f6368;margin-top:4px}
-.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:'Inter',sans-serif;margin-top:6px;background:${type==='checkin'?'#e6f4ea':'#fce8e6'};color:${type==='checkin'?'#137333':'#c5221f'}}
+.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:'Inter',sans-serif;margin-top:6px;background:#f8f9fa;border:1px solid #d1d5db;color:#111}
 
 /* Sections */
 .sec{margin-bottom:20px;border:1px solid #e8eaed;border-radius:10px;overflow:hidden;break-inside:avoid}
-.sec-hdr{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#f8f9fa;border-bottom:1px solid #e8eaed;border-left:3px solid ${accent}}
-.sec-num{width:26px;height:26px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;flex-shrink:0;letter-spacing:0}
+.sec-hdr{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#f8f9fa;border-bottom:1px solid #e5e7eb;border-left:3px solid #111}
+.sec-num{width:26px;height:26px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;flex-shrink:0;letter-spacing:0}
 .sec-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#202124}
 .sec-body{padding:14px 16px}
 
@@ -680,14 +680,14 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 .field-row{display:flex;flex-direction:column;gap:4px}
 .field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;font-family:'Inter',sans-serif}
 .field-val{min-height:30px;border-bottom:2px solid #dadce0;padding:4px 0 3px;font-size:12px;color:#202124;font-family:'Inter', sans-serif;letter-spacing:0.02em}
-.field-val.prefilled{color:#1a73e8;font-weight:500;border-bottom-color:#1a73e8}
+.field-val.prefilled{color:#111;font-weight:600;border-bottom-color:#111}
 .field-area{min-height:56px;border:1px solid #e8eaed;border-radius:6px;padding:8px;margin-top:4px;background:#fafafa}
 
 /* Checkbox rows */
 .check-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid #f1f3f4}
 .check-row:last-child{border-bottom:none}
 .cb{width:16px;height:16px;border:2px solid #dadce0;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
-.cb-done{background:#34a853;border-color:#34a853}
+.cb-done{background:#111;border-color:#111}
 .check-label{font-size:12px;color:#3c4043;flex:1;line-height:1.4}
 
 /* Room table */
@@ -704,14 +704,14 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 .meter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .meter-card{border:1px solid #e8eaed;border-radius:8px;padding:12px;background:#fafafa}
 .meter-title{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;margin-bottom:8px}
-.meter-val{font-size:22px;font-weight:700;color:#202124;border-bottom:3px solid #1a73e8;padding-bottom:6px;margin-bottom:6px;font-family:'Inter', sans-serif;min-height:36px;letter-spacing:-0.5px}
+.meter-val{font-size:22px;font-weight:700;color:#111;border-bottom:3px solid #111;padding-bottom:6px;margin-bottom:6px;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:36px;letter-spacing:-0.5px}
 .meter-unit{font-size:9px;color:#9aa0a6;font-family:'Inter',sans-serif}
 .meter-serial{font-size:10px;color:#5f6368;margin-top:8px;border-top:1px solid #e8eaed;padding-top:6px}
 
 /* Key tracking */
 .key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .key-card{border:1px solid #e8eaed;border-radius:8px;padding:10px;text-align:center}
-.key-num{font-size:26px;font-weight:700;color:#1a73e8;font-family:'Inter', sans-serif;min-height:38px;border-bottom:2px solid #1a73e8;margin-bottom:8px;letter-spacing:-1px}
+.key-num{font-size:26px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:38px;border-bottom:2px solid #111;margin-bottom:8px;letter-spacing:-1px}
 .key-label{font-size:10px;color:#5f6368;font-family:'Inter',sans-serif}
 
 /* Appliance table */
@@ -726,7 +726,7 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 .task-row:last-child{border-bottom:none}
 .task-row.done .task-label{text-decoration:line-through;color:#9aa0a6}
 .task-cb{width:16px;height:16px;border:1.5px solid #dadce0;border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center}
-.task-cb-done{background:#34a853;border-color:#34a853}
+.task-cb-done{background:#111;border-color:#111}
 .task-label{flex:1;font-size:12px;color:#3c4043}
 .task-contact{font-size:10px;color:#5f6368;background:#f1f3f4;padding:1px 7px;border-radius:20px;white-space:nowrap}
 
@@ -738,7 +738,7 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 /* Signatures */
 .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:12px}
 .sig-block{border-top:2px solid #202124;padding-top:10px}
-.sig-role{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#1a73e8;font-family:'Inter',sans-serif;margin-bottom:18px}
+.sig-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#374151;font-family:'Inter',sans-serif;margin-bottom:18px}
 .sig-line{border-bottom:2px solid #202124;margin-bottom:10px;height:48px}
 .sig-detail{font-size:10px;color:#5f6368;margin-bottom:4px}
 
@@ -746,18 +746,19 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 .commons-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .commons-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f3f4}
 .commons-row:last-child{border-bottom:none}
-.commons-dot{width:8px;height:8px;border-radius:50%;background:#1a73e8;flex-shrink:0}
+.commons-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0}
 .commons-label{font-size:12px;color:#3c4043;flex:1}
 .commons-val{font-size:11px;border-bottom:1px solid #dadce0;min-width:80px;padding-bottom:2px;font-family:'Inter', sans-serif}
 
 /* Footer */
 .footer{margin-top:28px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aa0a6}
-.notice{background:#e8f0fe;border:1px solid #a8c7fa;border-radius:8px;padding:10px 16px;font-size:10px;color:#1a1c4b;margin-bottom:20px;display:flex;align-items:flex-start;gap:8px}
+.notice{background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 16px;font-size:10px;color:#374151;margin-bottom:20px;display:flex;align-items:flex-start;gap:8px}
 
 @media print{.sec{break-inside:avoid}.page{padding:18px 24px}}
 </style></head><body>
 <div class="page">
 
+<div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
 <div class="hdr">
   <div>
     ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
@@ -770,7 +771,7 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
   </div>
 </div>
 
-<div class="notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Αυτό το πρωτόκολλο αποτελεί νομικά δεσμευτικό αποδεικτικό παράδοσης/παραλαβής ακινήτου. Κρατήστε αντίγραφο και οι δύο πλευρές. Εκτυπώστε σε 2 αντίτυπα.</span></div>
+<div class="notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Αυτό το πρωτόκολλο αποτελεί νομικά δεσμευτικό αποδεικτικό παράδοσης/παραλαβής ακινήτου. Κρατήστε αντίγραφο και οι δύο πλευρές. Εκτυπώστε σε 2 αντίτυπα.</span></div>
 
 ${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων', `
   <div class="field-grid">
@@ -781,7 +782,7 @@ ${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
     <div style="background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:12px">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#1a73e8;margin-bottom:8px">Ιδιοκτήτης</div>
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#374151;margin-bottom:8px">Ιδιοκτήτης</div>
       <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', '')}</div>
       <div class="field-grid">
         ${fieldRow('ΑΦΜ', '')}
@@ -789,7 +790,7 @@ ${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων
       </div>
     </div>
     <div style="background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:12px">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#34a853;margin-bottom:8px">Ενοικιαστής</div>
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#374151;margin-bottom:8px">Ενοικιαστής</div>
       <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', `<span class="${tenantName !== '______________________________' ? 'prefilled' : ''}">${esc(tenantName)}</span>`)}</div>
       <div class="field-grid">
         ${fieldRow('ΑΦΜ', `<span class="${tenantAfm !== '______________________________' ? 'prefilled' : ''}">${esc(tenantAfm)}</span>`)}
@@ -1169,7 +1170,6 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
             const cat = getCat(item.category)
             return (
               <div key={item.id} onClick={() => onEdit(item)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 6, cursor: 'pointer' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
                 <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, fontFamily: T.font.sans }}>{item.description}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
               </div>

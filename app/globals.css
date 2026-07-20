@@ -633,6 +633,10 @@ body {
 .po-onbstep-chev { color: var(--text-tertiary); opacity: 0; transform: translateX(-5px); transition: opacity 0.16s cubic-bezier(0.2,0,0,1), transform 0.16s cubic-bezier(0.2,0,0,1); }
 .po-onbstep:hover .po-onbstep-chev, .po-onbstep:focus-visible .po-onbstep-chev { opacity: 1; transform: translateX(0); }
 @media (hover: none) { .po-onbstep-chev { opacity: 0.5; transform: none; } }
+
+/* 3D, «ζωντανό» κουτί: ανασηκώνεται και βαθαίνει στο hover/focus — αντιδρά. */
+.po-lift { transition: transform 0.16s cubic-bezier(0.2,0,0,1), box-shadow 0.16s cubic-bezier(0.2,0,0,1); }
+.po-lift:hover, .po-lift:focus-visible { transform: translateY(-2px); box-shadow: var(--highlight-inset), 0 14px 28px -16px color-mix(in srgb, var(--text-primary) 55%, transparent); }
 .kpi-label {
   font-family: 'Inter', sans-serif;
   font-size: 10px;
@@ -1377,12 +1381,8 @@ body {
   border-bottom: 1px solid var(--border-subtle);
   text-transform: uppercase;
 }
-.section-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
+/* Χωρίς τελείες αριστερά από τις επικεφαλίδες — καθαρές, ήσυχες ενότητες. */
+.section-dot { display: none; }
 
 /* Utility grids — ρευστά ώστε να «σπάνε» σε κινητό χωρίς οριζόντια κύλιση */
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }

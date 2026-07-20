@@ -36,29 +36,31 @@ interface BillsData {
   historyTotals: number[];
 }
 
+// Ασπρόμαυρο: όλες οι κατηγορίες χρησιμοποιούν ουδέτερο σκούρο γκρι για τα
+// τετραγωνάκια/μπάρες — καμία χρωματική διάκριση (επίσημο λογιστικό ύφος).
 const CAT: Record<string, { label: string; color: string }> = {
-  electricity: { label: 'Ρεύμα',                 color: '#b45309' },
-  common:      { label: 'Κοινόχρηστα',            color: '#4f46e5' },
-  internet:    { label: 'Internet',                color: '#1d4ed8' },
-  water:       { label: 'Νερό',                   color: '#0e7490' },
-  gas:         { label: 'Αέριο / Θέρμανση',       color: '#b91c1c' },
-  insurance:   { label: 'Ασφάλεια',               color: '#047857' },
-  security:    { label: 'Security / Συναγερμός',   color: '#c2410c' },
-  streaming:   { label: 'Streaming',               color: '#be185d' },
-  enfia:       { label: 'ΕΝΦΙΑ',                  color: '#475569' },
-  dimotika:    { label: 'Δημοτικά Τέλη',          color: '#64748b' },
-  taxes:       { label: 'Φόροι',                  color: '#475569' },
-  cleaning:    { label: 'Καθαρισμός',              color: '#4d7c0f' },
-  garden:      { label: 'Κήπος',                  color: '#15803d' },
-  pool:        { label: 'Πισίνα',                 color: '#0369a1' },
-  elevator:    { label: 'Ανελκυστήρας',           color: '#7c3aed' },
-  ac_service:  { label: 'Σέρβις Κλιματιστικού',    color: '#0284c7' },
-  renovation:  { label: 'Ανακαίνιση',             color: '#a16207' },
-  pest:        { label: 'Απεντόμωση',             color: '#57534e' },
-  other:       { label: 'Άλλο',                   color: '#64748b' },
+  electricity: { label: 'Ρεύμα',                 color: '#374151' },
+  common:      { label: 'Κοινόχρηστα',            color: '#374151' },
+  internet:    { label: 'Internet',                color: '#374151' },
+  water:       { label: 'Νερό',                   color: '#374151' },
+  gas:         { label: 'Αέριο / Θέρμανση',       color: '#374151' },
+  insurance:   { label: 'Ασφάλεια',               color: '#374151' },
+  security:    { label: 'Security / Συναγερμός',   color: '#374151' },
+  streaming:   { label: 'Streaming',               color: '#374151' },
+  enfia:       { label: 'ΕΝΦΙΑ',                  color: '#374151' },
+  dimotika:    { label: 'Δημοτικά Τέλη',          color: '#374151' },
+  taxes:       { label: 'Φόροι',                  color: '#374151' },
+  cleaning:    { label: 'Καθαρισμός',              color: '#374151' },
+  garden:      { label: 'Κήπος',                  color: '#374151' },
+  pool:        { label: 'Πισίνα',                 color: '#374151' },
+  elevator:    { label: 'Ανελκυστήρας',           color: '#374151' },
+  ac_service:  { label: 'Σέρβις Κλιματιστικού',    color: '#374151' },
+  renovation:  { label: 'Ανακαίνιση',             color: '#374151' },
+  pest:        { label: 'Απεντόμωση',             color: '#374151' },
+  other:       { label: 'Άλλο',                   color: '#374151' },
 };
 
-const catOf = (v: string) => CAT[v] || { label: v, color: '#64748b' };
+const catOf = (v: string) => CAT[v] || { label: v, color: '#374151' };
 const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 const MONTHS_SH   = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -106,8 +108,8 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
       const c        = catOf(b.category);
       const dl       = b.due_date ? daysTo(b.due_date) : null;
       const isOd     = dl !== null && dl < 0 && !b.paid;
-      const stBg     = b.paid ? '#e8f3ec' : isOd ? '#fbe9e7' : '#fdf6e3';
-      const stColor  = b.paid ? '#1e6b3a' : isOd ? '#b3261e' : '#8a6d1a';
+      const stBg     = '#f3f4f6';
+      const stColor  = '#374151';
       const stText   = b.paid ? 'Πληρώθηκε' : isOd ? 'Ληξιπρόθεσμος' : 'Εκκρεμεί';
       return `
         <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
@@ -116,7 +118,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
               <span style="width:8px;height:8px;border-radius:2px;background:${c.color};display:inline-block"></span>${c.label}
             </span>
           </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#111827;font-size:10.5px">
+          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#111;font-size:10.5px">
             ${esc(b.name)}
             ${b.notes ? `<div style="font-weight:400;font-size:9px;color:#6b7280;margin-top:2px">${esc(b.notes)}</div>` : ''}
           </td>
@@ -124,12 +126,12 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
             ${esc(b.period) || (b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—')}
           </td>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:center">
-            <span style="font-size:9px;font-weight:600;padding:2px 8px;border-radius:4px;background:${b.recurring ? '#eef2ff' : '#f1f5f9'};color:${b.recurring ? '#3730a3' : '#475569'}">${b.recurring ? 'Πάγιο' : 'Εφάπαξ'}</span>
+            <span style="font-size:9px;font-weight:600;padding:2px 8px;border-radius:4px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db">${b.recurring ? 'Πάγιο' : 'Εφάπαξ'}</span>
           </td>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:center">
-            <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:4px;background:${stBg};color:${stColor}">${stText}</span>
+            <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:4px;background:${stBg};color:${stColor};border:1px solid #d1d5db">${stText}</span>
           </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:700;text-align:right;font-family:'Roboto Mono',monospace;font-size:11px;color:#111827;white-space:nowrap">${fe(b.amount)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:700;text-align:right;font-family:'Roboto Mono',monospace;font-size:11px;color:#111;white-space:nowrap">${fe(b.amount)}</td>
         </tr>`;
     };
 
@@ -143,7 +145,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
         <tbody>${bills.map((b, i) => billRow(b, i)).join('')}</tbody>
         <tfoot><tr>
           <td colspan="5" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#334155;border-top:2px solid #cbd5e1">${sumLabel}</td>
-          <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111827;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(sum)}</td>
+          <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(sum)}</td>
         </tr></tfoot>
       </table>`;
 
@@ -153,12 +155,12 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
       return `
         <tr>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed">
-            <span style="display:inline-flex;align-items:center;gap:8px;font-size:10.5px;color:#111827;font-weight:600">
+            <span style="display:inline-flex;align-items:center;gap:8px;font-size:10.5px;color:#111;font-weight:600">
               <span style="width:10px;height:10px;border-radius:3px;background:${v.color};display:inline-block"></span>${v.label}
             </span>
             <span style="font-size:9px;color:#94a3b8;margin-left:6px">(${v.count} ${v.count === 1 ? 'λογαριασμός' : 'λογαριασμοί'})</span>
           </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;font-weight:700;font-family:'Roboto Mono',monospace;color:#111827;font-size:11px;white-space:nowrap">${fe(v.monthly)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;font-weight:700;font-family:'Roboto Mono',monospace;color:#111;font-size:11px;white-space:nowrap">${fe(v.monthly)}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;color:#64748b;font-family:'Roboto Mono',monospace;font-size:10px;white-space:nowrap">${fe(v.monthly * 12)}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;width:34%">
             <div style="display:flex;align-items:center;gap:10px">
@@ -174,16 +176,16 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
     // ── Επερχόμενες λήξεις 30 ημερών ───────────────────────────────────────
     const dueSoonRow = (b: BillEntry) => {
       const dl = daysTo(b.due_date!);
-      const urgency = dl <= 3 ? '#b3261e' : dl <= 7 ? '#b45309' : '#475569';
+      const urgency = '#111';
       return `
         <tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#111827;font-size:10.5px">${esc(b.name)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#111;font-size:10.5px">${esc(b.name)}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-size:10px;color:#475569">${catOf(b.category).label}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-size:10px;color:#475569;white-space:nowrap">${new Date(b.due_date!).toLocaleDateString('el-GR', { day: '2-digit', month: 'short' })}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:center">
             <span style="font-size:9.5px;font-weight:700;color:${urgency}">${dl === 0 ? 'ΣΗΜΕΡΑ' : `σε ${dl} ημ.`}</span>
           </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;font-size:11px;color:#111827;white-space:nowrap">${fe(b.amount)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;font-size:11px;color:#111;white-space:nowrap">${fe(b.amount)}</td>
         </tr>`;
     };
 
@@ -193,21 +195,21 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
       const pct   = val / maxH;
       const isCur = i === currentMonth;
       const barH  = Math.max(pct * 64, val > 0 ? 4 : 1);
-      const color = isCur ? 'var(--accent)' : val > data.avgMonthly * 1.2 ? '#b3261e' : '#1e3a5f';
+      const color = isCur ? '#111' : '#9ca3af';
       return `
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0">
-          <div style="font-size:8.5px;font-family:'Roboto Mono',monospace;color:${isCur ? '#8a6508' : '#64748b'};font-weight:${isCur ? '700' : '400'};white-space:nowrap">${val > 0 ? fe(val, 0) : ''}</div>
+          <div style="font-size:8.5px;font-family:'Roboto Mono',monospace;color:${isCur ? '#111' : '#6b7280'};font-weight:${isCur ? '700' : '400'};white-space:nowrap">${val > 0 ? fe(val, 0) : ''}</div>
           <div style="width:70%;display:flex;align-items:flex-end;height:64px">
             <div style="width:100%;height:${barH}px;background:${color};border-radius:3px 3px 0 0"></div>
           </div>
-          <div style="font-size:9px;color:${isCur ? '#8a6508' : '#94a3b8'};font-weight:${isCur ? '700' : '400'}">${m}</div>
+          <div style="font-size:9px;color:${isCur ? '#111' : '#94a3b8'};font-weight:${isCur ? '700' : '400'}">${m}</div>
         </div>`;
     }).join('');
 
     // ── KPI κάρτα ──────────────────────────────────────────────────────────
-    const kpi = (label: string, value: string, sub: string, accent = '#111827') => `
-      <div style="border:1px solid #e2e8f0;border-radius:10px;padding:13px 15px;background:#ffffff">
-        <div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;margin-bottom:6px">${label}</div>
+    const kpi = (label: string, value: string, sub: string, accent = '#111') => `
+      <div style="border:1px solid #d1d5db;border-radius:10px;padding:13px 15px;background:#ffffff">
+        <div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;margin-bottom:6px">${label}</div>
         <div style="font-size:19px;font-weight:700;color:${accent};font-family:'Roboto Mono',monospace;line-height:1">${value}</div>
         <div style="font-size:9px;color:#94a3b8;margin-top:5px">${sub}</div>
       </div>`;
@@ -221,10 +223,10 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
-    ${brandRootVars(branding)}
+    :root{--accent:#111;--accent-text:#fff}
     *{box-sizing:border-box;margin:0;padding:0}
     html{background:#eef1f5}
-    body{font-family:'Inter',sans-serif;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{font-family:'Inter',sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     @page{size:A4;margin:16mm 14mm 18mm 14mm}
     .sheet{max-width:820px;margin:0 auto;padding:28px;background:#fff}
     @media print{
@@ -236,31 +238,32 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
     table{width:100%;border-collapse:collapse}
     thead{display:table-header-group}   /* επανάληψη κεφαλίδας σε κάθε σελίδα */
     tr{break-inside:avoid;page-break-inside:avoid}
-    th{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;padding:8px 12px;background:#f4f6f9;border-bottom:2px solid #dbe1e8;text-align:left}
-    .card{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;background:#fff;break-inside:avoid;page-break-inside:avoid}
-    .section-title{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:#111827;padding:13px 18px;border-bottom:1px solid #e8eaed;background:#fff}
-    .section-title .bar{width:4px;height:16px;border-radius:2px;background:var(--accent);flex-shrink:0}
-    .muted{color:#94a3b8;font-weight:500;letter-spacing:0;text-transform:none;font-size:9.5px;margin-left:auto}
+    th{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280;padding:8px 12px;background:#f4f6f9;border-bottom:2px solid #d1d5db;text-align:left}
+    .card{border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin-bottom:16px;background:#fff;break-inside:avoid;page-break-inside:avoid}
+    .section-title{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:#374151;padding:13px 18px;border-bottom:1px solid #111;background:#fff}
+    .section-title .bar{width:4px;height:16px;border-radius:2px;background:#111;flex-shrink:0}
+    .muted{color:#6b7280;font-weight:500;letter-spacing:0;text-transform:none;font-size:9.5px;margin-left:auto}
   </style>
 </head>
 <body>
 <div class="sheet">
 
+  <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
   <!-- Κουμπί εκτύπωσης (δεν εκτυπώνεται) -->
   <div class="no-print" style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px">
-    <button onclick="window.print()" style="background:#111827;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">
+    <button onclick="window.print()" style="background:#111;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">
       Εκτύπωση / Αποθήκευση PDF
     </button>
   </div>
 
   <!-- ═══ Κεφαλίδα εγγράφου ═══ -->
   <div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px">
-    <div style="background:#111827;color:#fff;padding:22px 26px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+    <div style="background:#111;color:#fff;padding:22px 26px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
       <div>
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
-          <span style="width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block"></span>
+          <span style="width:10px;height:10px;border-radius:2px;background:#fff;display:inline-block"></span>
           ${brandLogoImg(branding, 20)}
-          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:#d9b24a">${branding?.companyName ? brandName(branding) : 'Property OS'}</span>
+          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:#fff">${branding?.companyName ? brandName(branding) : 'Property OS'}</span>
         </div>
         <div style="font-size:23px;font-weight:800;letter-spacing:-0.02em;line-height:1.15">${esc(data.propertyName)}</div>
         <div style="font-size:12px;color:#9ca3af;margin-top:4px">${esc(data.propertyAddress)}</div>
@@ -275,22 +278,22 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
     <!-- Executive Summary -->
     <div style="padding:16px 20px;background:#fafbfc">
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-        ${kpi('Μηνιαίο Κόστος', fe(data.totalMonthly), 'τρέχοντα πάγια / μήνα', '#8a6508')}
+        ${kpi('Μηνιαίο Κόστος', fe(data.totalMonthly), 'τρέχοντα πάγια / μήνα')}
         ${kpi('Ετήσια Προβολή', fe(data.totalAnnual), 'εκτίμηση 12μήνου')}
         ${kpi('Μέσος Όρος ' + year, fe(data.avgMonthly), 'ανά μήνα με δεδομένα')}
-        ${kpi('Εξοφλημένοι', paidPct + '%', paidBills.length + ' από ' + data.bills.length + ' λογαριασμούς', overdue.length > 0 ? '#b3261e' : '#1e6b3a')}
+        ${kpi('Εξοφλημένοι', paidPct + '%', paidBills.length + ' από ' + data.bills.length + ' λογαριασμούς')}
       </div>
 
       ${overdue.length > 0 ? `
-      <div style="margin-top:12px;background:#fbe9e7;border:1px solid #f1c3bd;border-radius:8px;padding:10px 15px;font-size:11px;color:#8c1d18">
+      <div style="margin-top:12px;background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 15px;font-size:11px;color:#111">
         <strong>Απαιτείται ενέργεια:</strong> ${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'} συνολικού ύψους <strong style="font-family:'Roboto Mono',monospace">${fe(overdue.reduce((s, b) => s + b.amount, 0))}</strong>.
       </div>` : `
-      <div style="margin-top:12px;background:#e8f3ec;border:1px solid #bfdec9;border-radius:8px;padding:10px 15px;font-size:11px;color:#1e6b3a">
+      <div style="margin-top:12px;background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 15px;font-size:11px;color:#374151">
         Κανένας ληξιπρόθεσμος λογαριασμός κατά την ημερομηνία έκδοσης.
       </div>`}
       ${topCategory ? `
-      <div style="margin-top:8px;font-size:10px;color:#64748b;padding:0 2px">
-        Μεγαλύτερη κατηγορία δαπάνης: <strong style="color:#334155">${topCategory.label}</strong>, ${fe(topCategory.monthly)}/μήνα (${data.totalMonthly > 0 ? Math.round((topCategory.monthly / data.totalMonthly) * 100) : 0}% του συνόλου).
+      <div style="margin-top:8px;font-size:10px;color:#6b7280;padding:0 2px">
+        Μεγαλύτερη κατηγορία δαπάνης: <strong style="color:#111">${topCategory.label}</strong>, ${fe(topCategory.monthly)}/μήνα (${data.totalMonthly > 0 ? Math.round((topCategory.monthly / data.totalMonthly) * 100) : 0}% του συνόλου).
       </div>` : ''}
     </div>
   </div>
@@ -298,14 +301,14 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
   <!-- ═══ 1. Εκκρεμείς & Ληξιπρόθεσμοι ═══ -->
   ${unpaidBills.length > 0 ? `
   <div class="card">
-    <div class="section-title"><span class="bar" style="background:#b3261e"></span>1. Εκκρεμείς &amp; Ληξιπρόθεσμοι <span class="muted">${unpaidBills.length} ${unpaidBills.length === 1 ? 'λογαριασμός' : 'λογαριασμοί'}</span></div>
+    <div class="section-title"><span class="bar"></span>1. Εκκρεμείς &amp; Ληξιπρόθεσμοι <span class="muted">${unpaidBills.length} ${unpaidBills.length === 1 ? 'λογαριασμός' : 'λογαριασμοί'}</span></div>
     ${billsTable(unpaidBills, 'Σύνολο εκκρεμών οφειλών', unpaidSum)}
   </div>` : ''}
 
   <!-- ═══ 2. Επερχόμενες λήξεις 30 ημερών ═══ -->
   ${dueSoon30.length > 0 ? `
   <div class="card">
-    <div class="section-title"><span class="bar" style="background:#b45309"></span>2. Επερχόμενες Λήξεις, Επόμενες 30 Ημέρες <span class="muted">προγραμματισμός πληρωμών</span></div>
+    <div class="section-title"><span class="bar"></span>2. Επερχόμενες Λήξεις, Επόμενες 30 Ημέρες <span class="muted">προγραμματισμός πληρωμών</span></div>
     <table>
       <thead><tr>
         <th>Λογαριασμός</th><th style="width:20%">Κατηγορία</th><th style="width:13%">Λήξη</th>
@@ -314,7 +317,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
       <tbody>${dueSoon30.map(dueSoonRow).join('')}</tbody>
       <tfoot><tr>
         <td colspan="4" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#334155;border-top:2px solid #cbd5e1">Σύνολο επόμενων 30 ημερών</td>
-        <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111827;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(dueSoon30.reduce((s, b) => s + b.amount, 0))}</td>
+        <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(dueSoon30.reduce((s, b) => s + b.amount, 0))}</td>
       </tr></tfoot>
     </table>
   </div>` : ''}
@@ -331,7 +334,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
       <tbody>${catEntries.map(catRow).join('')}</tbody>
       <tfoot><tr>
         <td style="padding:9px 12px;font-size:10px;font-weight:700;color:#334155;border-top:2px solid #cbd5e1">Σύνολο πάγιων</td>
-        <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111827;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(data.totalMonthly)}</td>
+        <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(data.totalMonthly)}</td>
         <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:10.5px;color:#64748b;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(data.totalAnnual)}</td>
         <td style="border-top:2px solid #cbd5e1"></td>
       </tr></tfoot>
@@ -347,12 +350,12 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
         ${histBars}
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
-        <div style="font-size:10px;color:#64748b">Μέσος όρος: <strong style="color:#1e3a5f;font-family:'Roboto Mono',monospace">${fe(data.avgMonthly)}</strong>/μήνα</div>
-        ${maxMonth ? `<div style="font-size:10px;color:#64748b">Ακριβότερος μήνας: <strong style="color:#b3261e;font-family:'Roboto Mono',monospace">${MONTHS_SH[maxMonth.i]}, ${fe(maxMonth.v)}</strong></div>` : '<div></div>'}
-        ${minMonth ? `<div style="font-size:10px;color:#64748b">Οικονομικότερος: <strong style="color:#1e6b3a;font-family:'Roboto Mono',monospace">${MONTHS_SH[minMonth.i]}, ${fe(minMonth.v)}</strong></div>` : '<div></div>'}
+        <div style="font-size:10px;color:#6b7280">Μέσος όρος: <strong style="color:#111;font-family:'Roboto Mono',monospace">${fe(data.avgMonthly)}</strong>/μήνα</div>
+        ${maxMonth ? `<div style="font-size:10px;color:#6b7280">Ακριβότερος μήνας: <strong style="color:#111;font-family:'Roboto Mono',monospace">${MONTHS_SH[maxMonth.i]}, ${fe(maxMonth.v)}</strong></div>` : '<div></div>'}
+        ${minMonth ? `<div style="font-size:10px;color:#6b7280">Οικονομικότερος: <strong style="color:#111;font-family:'Roboto Mono',monospace">${MONTHS_SH[minMonth.i]}, ${fe(minMonth.v)}</strong></div>` : '<div></div>'}
       </div>
-      <div style="margin-top:10px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:9px;color:#94a3b8">
-        Χρωματισμός ράβδων: σκούρο μπλε = κανονικός μήνας · κόκκινο = πάνω από +20% του μέσου όρου · χρυσό = τρέχων μήνας.
+      <div style="margin-top:10px;padding:8px 12px;background:#f8f9fa;border:1px solid #d1d5db;border-radius:6px;font-size:9px;color:#6b7280">
+        Οι ράβδοι απεικονίζουν το μηνιαίο κόστος· ο τρέχων μήνας εμφανίζεται με έντονη μαύρη ράβδο.
       </div>
     </div>
   </div>` : ''}
@@ -360,7 +363,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
   <!-- ═══ 5. Πληρωμένοι ═══ -->
   ${paidBills.length > 0 ? `
   <div class="card">
-    <div class="section-title"><span class="bar" style="background:#1e6b3a"></span>5. Πληρωμένοι Λογαριασμοί <span class="muted">${paidBills.length} ${paidBills.length === 1 ? 'εγγραφή' : 'εγγραφές'}</span></div>
+    <div class="section-title"><span class="bar"></span>5. Πληρωμένοι Λογαριασμοί <span class="muted">${paidBills.length} ${paidBills.length === 1 ? 'εγγραφή' : 'εγγραφές'}</span></div>
     ${billsTable(paidBills, 'Σύνολο εξοφλημένων', paidSum)}
   </div>` : ''}
 

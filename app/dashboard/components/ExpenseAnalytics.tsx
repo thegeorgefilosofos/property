@@ -50,7 +50,6 @@ const cardStyle: React.CSSProperties = {
 
 const SectionLabel = ({ label }: { label: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-    <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', display: 'inline-block', flexShrink: 0 }} />
     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
       {label}
     </span>
@@ -182,8 +181,8 @@ function filterByPeriod(expenses: Expense[], period: Period): Expense[] {
 // ─── KPI (ουδέτερος αριθμός· χρώμα μόνο ως διακριτικό σήμα εξοικονόμησης) ───
 function KPICard({ label, value, hint, positive = false }: { label: string; value: string; hint?: string; positive?: boolean }) {
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '14px 16px', minWidth: 0 }}>
-      <div style={{ fontSize: 17, fontWeight: 700, color: positive ? 'var(--positive)' : 'var(--text-primary)', ...num(0), marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+    <div className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '14px 16px', minWidth: 0 }}>
+      <div className="po-fig" data-tone={positive ? 'positive' : undefined} style={{ fontSize: 17, fontWeight: 700, ...num(0), marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
       <div style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' as const, fontFamily: "'Inter', sans-serif", lineHeight: 1.3 }}>{label}</div>
       {hint && <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif", marginTop: 3 }}>{hint}</div>}
     </div>
@@ -310,7 +309,6 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       {/* Header + περίοδος */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', display: 'inline-block' }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Inter', sans-serif" }}>
             Ανάλυση δαπανών
           </span>
@@ -402,7 +400,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
           <MonthBars data={stats.monthlyData} labels={stats.monthlyLabels} currentIdx={11} height={132} />
         </div>
 
-        <div style={cardStyle}>
+        <div className="po-fig-card" tabIndex={0} style={cardStyle}>
           <SectionLabel label="Τρόποι πληρωμής" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {Object.entries(stats.byPayment).sort(([, a], [, b]) => b - a).slice(0, 6).map(([m, amt], i) => {
@@ -425,7 +423,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             {stats.totalCashback > 0 && (
               <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>Επιστροφή χρημάτων (cashback)</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--positive)', ...num(0) }}>{fmtEur(stats.totalCashback)}</span>
+                <span className="po-fig" data-tone="positive" style={{ fontSize: 12, fontWeight: 600, ...num(0) }}>{fmtEur(stats.totalCashback)}</span>
               </div>
             )}
           </div>

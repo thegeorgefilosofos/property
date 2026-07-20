@@ -25,7 +25,6 @@ import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
-import AIInsights from './components/AIInsights';
 import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
@@ -57,7 +56,7 @@ interface Property {
   insurance_expiry: string | null; pea_class: string | null; year_built: number | null;
   atak: string | null; floor: number | string | null; heating: string | null;
   parking_spaces: number | null; storage_sqm: number | null; bedrooms: number | null;
-  rental_mode: string | null; client_id: string | null;
+  rental_mode: string | null; client_id: string | null; co_owners: string[] | null;
   notes: string | null; status_detail: string | null; created_at: string;
 }
 interface Expense  { id:string; amount:number; date:string; category:string; description:string; }
@@ -496,10 +495,17 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
         <button onClick={()=>printPropertyStatement({
-          propName: prop.name, address: prop.address||undefined,
+          propName: prop.name, address: prop.address||undefined, postalCode: prop.postal_code||undefined,
           propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
           status: STATUS_LABELS[prop.status_detail||'']||undefined, year, propValue: propValue||undefined,
-          sqm: prop.sqm||undefined, monthlyRent: rent, annualRent, grossYield, netYield,
+          objValue: prop.obj_value!=null?Number(prop.obj_value):undefined, enfia: prop.enfia!=null?Number(prop.enfia):undefined,
+          sqm: prop.sqm||undefined, bedrooms: prop.bedrooms!=null?prop.bedrooms:undefined,
+          floor: prop.floor!=null?prop.floor:undefined, yearBuilt: prop.year_built!=null?prop.year_built:undefined,
+          energyClass: prop.pea_class||undefined, atak: prop.atak||undefined,
+          ownership: prop.ownership!=null?Number(prop.ownership):undefined,
+          coOwners: Array.isArray(prop.co_owners)?prop.co_owners:undefined,
+          shortTerm: prop.rental_mode==='short_term'||prop.status_detail==='seasonal',
+          monthlyRent: rent, annualRent, grossYield, netYield,
           expensesYTD: totalExpYTD, categories: catEntries, branding,
         })}
           style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:700,cursor:'pointer'}}
@@ -549,15 +555,6 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
 
       {prefs.showSmartTips && <SmartSuggestions userId={userId} propertyId={prop.id} />}
-
-      {prefs.showSmartTips && (
-        <AIInsights ctx={{
-          propName: prop.name, propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
-          address: prop.address||undefined, value: propValue||undefined, sqm: prop.sqm||undefined,
-          monthlyRent: rent, grossYield, netYield, expensesYTD: totalExpYTD, annualRent,
-          daysToLeaseEnd: daysToExpiry, status: STATUS_LABELS[prop.status_detail||'']||undefined,
-        }}/>
-      )}
 
       <div className="grid-main">
         <div className="card">
@@ -684,14 +681,14 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             const estTax = Math.round(rentalIncomeTax(annualRent));
             const net = annualRent - annualizedExp - estTax;
             return [
-            { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--text-primary)' },
-            { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp), color:'var(--text-primary)' },
-            { label:'Εκτιμώμενος Φόρος Ενοικίου', value:fmtEur(estTax), color:'var(--text-primary)' },
-            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), color:net>=0?'var(--positive)':'var(--negative)' },
-            { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true, title:'Απόδοση (yield): καθαρό ετήσιο έσοδο ως ποσοστό της αξίας του ακινήτου' },
-          ]; })().map((k,i) => { const acc=(k as any).accent; return (
-            <div key={i} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
+            { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent) },
+            { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp) },
+            { label:'Εκτιμώμενος Φόρος Ενοικίου', value:fmtEur(estTax) },
+            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), tone:net>=0?'positive':'negative' },
+            { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, tone:'accent', title:'Απόδοση (yield): καθαρό ετήσιο έσοδο ως ποσοστό της αξίας του ακινήτου' },
+          ]; })().map((k,i) => { const tone=(k as any).tone; return (
+            <div key={i} className="po-fig-card po-lift" tabIndex={0} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,boxShadow:'var(--highlight-inset), 0 8px 20px -16px color-mix(in srgb, var(--text-primary) 45%, transparent)'}}>
+              <div className="po-fig" data-tone={tone} style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
             </div>
           );})}
