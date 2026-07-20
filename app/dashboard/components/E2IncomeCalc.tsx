@@ -179,7 +179,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
       <div style={cardGap}>
         {sectionTitle('Αναλυτική Κατάσταση Ε2 (για λογιστή)')}
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6, marginBottom: 14 }}>
-          Κατέβασε προσυμπληρωμένο αρχείο Excel για το έτος {e2Year}, με τη δομή του επίσημου εντύπου Ε2 (Πίνακας I με την αρίθμηση στηλών της ΑΑΔΕ), μία γραμμή ανά ακίνητο, φύλλο «Οδηγίες συμπλήρωσης» και σύνοψη Ε1. Έτοιμο να το αντιγράψει ο λογιστής στο myAADE.
+          Κατέβασε προσυμπληρωμένο αρχείο Excel για το έτος {e2Year}, με τη δομή του επίσημου εντύπου Ε2 (Πίνακας I με την αρίθμηση στηλών της ΑΑΔΕ), μία γραμμή ανά ακίνητο, φύλλο «Οδηγίες συμπλήρωσης» και σύνοψη Ε1. Έτοιμο να το συμπληρώσει ο λογιστής στο myAADE.
         </div>
         <Btn variant="primary" onClick={async () => { const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (Excel)</Btn>
         <div style={{ marginTop: 16, fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
