@@ -459,7 +459,7 @@ function QRCodeModal({ contact, onClose }: { contact: Contact; onClose: () => vo
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 320, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <QrCode size={28} color="var(--accent)" style={{ margin: '0 auto 12px' }} />
         <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>QR Επαφής</h3>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 22 }}>Σκάναρε για να αποθηκεύσεις τα στοιχεία</p>
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 22 }}>Σάρωσε για να αποθηκεύσεις τα στοιχεία</p>
         <div style={{ padding: 12, background: '#ffffff', borderRadius: 16, border: '1px solid var(--border-subtle)', display: 'inline-block', marginBottom: 16 }}>
           <img src={qrUrl} alt="QR" style={{ width: 190, height: 190, borderRadius: 4, display: 'block' }} />
         </div>
@@ -1615,7 +1615,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <Btn variant="ghost" onClick={() => downloadVcf(contacts, 'epafes.vcf')}>Εξαγωγή vCard</Btn>
           <Btn variant="ghost" onClick={() => importRef.current?.click()}>{importing ? 'Εισαγωγή…' : 'Εισαγωγή'}</Btn>
           {supportsPicker && <Btn variant="ghost" onClick={pickFromPhone}>Από τηλέφωνο</Btn>}
-          <Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σκάναρε κάρτα'}</Btn>
+          <Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωσε κάρτα'}</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>
         </div> : undefined}
       />}
@@ -1758,7 +1758,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου."
           action={<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
             <ContactActionTile Icon={UserPlus} label="Νέα επαφή" sub="Χειροκίνητα" onClick={openAdd} primary />
-            <ContactActionTile Icon={Camera} label="Σκάναρε κάρτα" sub={scanning ? 'Ανάλυση…' : 'Με τεχνητή νοημοσύνη'} onClick={() => cardRef.current?.click()} />
+            <ContactActionTile Icon={Camera} label="Σάρωσε κάρτα" sub={scanning ? 'Ανάλυση…' : 'Με τεχνητή νοημοσύνη'} onClick={() => cardRef.current?.click()} />
             <ContactActionTile Icon={Upload} label="Εισαγωγή" sub={importing ? 'Εισαγωγή…' : 'vCard ή CSV'} onClick={() => importRef.current?.click()} />
             {supportsPicker && <ContactActionTile Icon={Users} label="Από τηλέφωνο" sub="Επιλογή επαφών" onClick={pickFromPhone} />}
           </div>}
