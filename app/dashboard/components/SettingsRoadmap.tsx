@@ -7,24 +7,13 @@
 // ψεύτικα «σύνδεσε». Μπαίνει μέσα σε υπάρχουσα Card, οπότε ξεκινά με διαχωριστικό.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState, CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn } from '@/components/Theme';
+import { T, Btn, Chip } from '@/components/Theme';
 
 const divider = { borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 16 } as const;
 
 type ChipTone = 'accent' | 'neutral';
-
-const chipStyle = (tone: ChipTone): CSSProperties =>
-  tone === 'accent'
-    ? { background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }
-    : { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' };
-
-const CHIP_BASE: CSSProperties = {
-  borderRadius: T.radius.pill, padding: '3px 10px', fontSize: 10, fontWeight: 700,
-  fontFamily: T.font.sans, whiteSpace: 'nowrap', letterSpacing: '0.02em', lineHeight: 1.4,
-  display: 'inline-flex', alignItems: 'center', gap: 6,
-};
 
 interface RoadItem { name: string; line: string; detail: string; chip: string; tone: ChipTone }
 
@@ -151,10 +140,10 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
                 Property OS Mobile
               </span>
-              <span style={{ ...CHIP_BASE, ...chipStyle('accent') }}>
+              <Chip tone="accent">
                 <span className="acc-live-dot accent" aria-hidden style={{ width: 6, height: 6, background: 'var(--accent)', display: 'inline-block' }} />
                 Σε ανάπτυξη
-              </span>
+              </Chip>
             </div>
 
             <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: '8px 0 0' }}>
@@ -164,8 +153,8 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
 
             {/* Platform chips */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              <span style={{ ...CHIP_BASE, ...chipStyle('neutral') }}>iOS</span>
-              <span style={{ ...CHIP_BASE, ...chipStyle('neutral') }}>Android</span>
+              <Chip tone="neutral">iOS</Chip>
+              <Chip tone="neutral">Android</Chip>
             </div>
 
             {/* CTA / επιβεβαιωμένο state */}
@@ -213,7 +202,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>{it.name}</span>
-                  <span style={{ ...CHIP_BASE, ...chipStyle(it.tone), flexShrink: 0 }}>{it.chip}</span>
+                  <Chip tone={it.tone}>{it.chip}</Chip>
                 </div>
 
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{it.line}</div>

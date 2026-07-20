@@ -15,7 +15,7 @@
 import { useState, type ReactNode } from 'react';
 import { PLANS, PLAN_ORDER, annualPerMonth, type PlanId } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile } from '@/lib/billing/entitlements';
-import { T, Card, SecHdr, Btn, TierBadge, feAuto } from '@/components/Theme';
+import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto } from '@/components/Theme';
 
 // ── Πίνακας δυνατοτήτων (μία πηγή, καθρεφτίζει τα entitlements) ─────────────
 type CellValue = boolean | string;
@@ -139,10 +139,10 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
                   </span>
                   {isCurrent ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', borderRadius: 100, padding: '3px 9px', fontSize: 9.5, fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                    <Chip tone="accent">
                       <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)' }} />
                       Το πλάνο σου
-                    </span>
+                    </Chip>
                   ) : locked ? (
                     <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex', flexShrink: 0 }}><LockGlyph /></span>
                   ) : null}
@@ -161,7 +161,7 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                     <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceAnnual)}/χρόνο</span>
                     {monthsFree > 0 && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 100, padding: '2px 8px', fontFamily: T.font.sans }}>περίπου {monthsFree} μήνες δωρεάν</span>
+                      <Chip tone="positive">περίπου {monthsFree} μήνες δωρεάν</Chip>
                     )}
                   </div>
                 )}
@@ -215,9 +215,7 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
                   }
                   return (
                     <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '13px 8px' }}>
-                      {gain ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, padding: '5px 10px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)' }}>{content}</span>
-                      ) : content}
+                      {content}
                     </div>
                   );
                 })}
@@ -228,7 +226,7 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
 
         {/* ── 4. Γραμμή εμπιστοσύνης ─────────────────────────────────────── */}
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 16 }}>
-          Χωρίς δέσμευση. Αλλάζεις ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
+          Χωρίς δέσμευση. Αναβαθμίζεις ή προσαρμόζεις όποτε θες, με ένα κλικ.
         </div>
         {/* ── 5. Διαφάνεια ΦΠΑ ───────────────────────────────────────────── */}
         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>

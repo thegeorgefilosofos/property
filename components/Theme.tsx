@@ -183,6 +183,19 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   );
 }
 
+// ═══ Chip, κανονική «pill» ετικέτα (mixed-case, σε αντίθεση με το uppercase Badge)
+// Ένα ενιαίο primitive για όλα τα chips των Ρυθμίσεων: ίδια γεωμετρία παντού
+// (padding/radius/μέγεθος/βάρος). Το gap:6 αφήνει μικρή τελεία/εικονίδιο να
+// καθίσει μέσα (π.χ. ο παλλόμενος live-dot). Το title περνά για tooltip.
+export function Chip({ children, tone = 'neutral', title }: { children: ReactNode; tone?: Tone; title?: string }) {
+  const tv = toneVars(tone);
+  return (
+    <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.pill, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.01em', lineHeight: 1.4 }}>
+      {children}
+    </span>
+  );
+}
+
 // ═══ TierBadge, εμβλήματα ιδιότητας (Ιδιώτης / Επαγγελματίας / Συνεργάτης) ══
 // Premium, minimal, μονοχρωματικά (accent + ουδέτερα): η διαφοροποίηση γίνεται
 // με σχήμα, βάρος, elevation και —μόνο για τον Συνεργάτη— διακριτικό gradient
@@ -248,9 +261,12 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
       {medallion}
-      <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
+      {/* Σταθερό πλάτος στήλης: το μετάλλιο και η ετικέτα «Ιδιότητα» δεν
+          μετακινούνται όταν αλλάζει η ιδιότητα· προσαρμόζεται μόνο η λέξη
+          (Ιδιώτης / Επαγγελματίας / Συνεργάτης). */}
+      <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15, minWidth: 104 }}>
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιότητα</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: cfg.text, fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>{cfg.label}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: cfg.text, fontFamily: T.font.sans, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{cfg.label}</span>
       </span>
     </span>
   );

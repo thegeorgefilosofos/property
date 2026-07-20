@@ -217,7 +217,9 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
 
   const editBtn = (onClick: () => void, disabled = false) => (
     <button onClick={onClick} disabled={disabled}
-      style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0 }}>
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.color = 'var(--accent)'; }}
+      onMouseLeave={e => { if (!disabled) e.currentTarget.style.color = 'var(--text-secondary)'; }}
+      style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-tertiary)' : 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0, transition: 'color 0.15s' }}>
       Αλλαγή
     </button>
   );
@@ -292,6 +294,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [compPlan, setCompPlan] = useState<string | null>(null);
   const [compUntil, setCompUntil] = useState<string | null>(null);
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
+  const [inOrg, setInOrg] = useState(false);
 
   // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
   const [s, setS] = useState<S>({});
@@ -308,6 +311,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const comparisonRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState('');
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [largeText, setLargeText] = useState(false);
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
@@ -318,6 +323,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       .then(({ data }) => setPartner(!!data));
     supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId)
       .then(({ count }) => setPropertyCount(count ?? 0));
+    supabase.from('organization_members').select('id').eq('user_id', userId).eq('status', 'active').limit(1)
+      .then(({ data }) => setInOrg((data?.length ?? 0) > 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -390,13 +397,28 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     if (!res.ok) setExportErr('Δεν ήταν δυνατή η εξαγωγή αυτή τη στιγμή. Δοκίμασε ξανά.');
   };
 
+  // Προσβασιμότητα: διάβασε τις αποθηκευμένες προτιμήσεις, εφάρμοσέ τες ζωντανά.
+  useEffect(() => {
+    try {
+      setReduceMotion(localStorage.getItem('po_reduce_motion') === '1');
+      setLargeText(localStorage.getItem('po_large_text') === '1');
+    } catch { /* ignore */ }
+  }, []);
+  const setA11y = (key: 'po_reduce_motion' | 'po_large_text', cls: string, v: boolean, setter: (b: boolean) => void) => {
+    setter(v);
+    try {
+      localStorage.setItem(key, v ? '1' : '0');
+      document.documentElement.classList.toggle(cls, v);
+    } catch { /* ignore */ }
+  };
+
   const PROFILE_OPTS: { v: ProfileType; title: string; sub: string }[] = [
     { v: 'individual', title: 'Ιδιώτης', sub: 'Ένα ή λίγα δικά μου ακίνητα. Απλό, καθαρό, χωρίς περιττά.' },
     { v: 'professional', title: 'Επαγγελματίας', sub: 'Πολλά ακίνητα. Χαρτοφυλάκιο, σύγκριση, εργαλεία διαχείρισης.' },
   ];
 
   return (
-    <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 760 }}>
+    <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 880, margin: '0 auto' }}>
 
       <PageTitle title="Λογαριασμός" sub="Ο λογαριασμός, η συνδρομή και οι προτιμήσεις σου." />
 
@@ -516,8 +538,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
       )}
 
-      {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (μόνο Επαγγελματίας) ─────────────────────── */}
-      {profileType === 'professional' && (
+      {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (Επαγγελματίας ή μέλος ομάδας) ───────────── */}
+      {(profileType === 'professional' || inOrg) && (
         <Card className="acc-section" style={{ animationDelay: '110ms' }}>
           <SecHdr label="Οργανισμός & Ομάδα" />
           <OrgTeam userId={userId} />
@@ -527,7 +549,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ (υψηλή αξία/συχνότητα, πάνω από την Εμφάνιση) ─── */}
       <Card className="acc-section" style={{ animationDelay: '140ms' }}>
         <SecHdr label="Ειδοποιήσεις" />
-        <NotificationSettings userId={userId} propertyId={propertyId} />
+        <NotificationSettings userId={userId} />
       </Card>
 
       {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
@@ -537,7 +559,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
         <SettingRow title="Νόμισμα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ευρώ (€)</span>} />
         <SettingRow title="Δεκαδικά στα ποσά" desc="Πλήθος δεκαδικών ψηφίων για την εμφάνιση χρηματικών ποσών."
-          control={<div style={{ width: 220 }}>
+          control={<div style={{ width: 264 }}>
             <CustomSelect value={prefs.decimals}
               onChange={v => updatePrefs({ decimals: v as AppPreferences['decimals'] })}
               options={[
@@ -545,6 +567,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                 { value: '2', label: 'Δύο δεκαδικά (1.234,56 €)' },
               ]} />
           </div>} />
+        <SettingRow title="Μειωμένη κίνηση" desc="Περιορίζει τα εφέ κίνησης σε όλη την εφαρμογή, για πιο ήρεμη εμπειρία."
+          control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
+        <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
+          control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
         <div style={{ height: 18, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
           {prefsSaved && (
             <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>

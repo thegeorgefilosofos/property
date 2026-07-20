@@ -3,8 +3,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // SecuritySettings, «Ασφάλεια». Πραγματικό, λειτουργικό block που μπαίνει BARE
 // μέσα σε υπάρχουσα Card (ο γονέας δίνει <Card><SecHdr label="Ασφάλεια" />…).
-// Τρία αληθινά εργαλεία: αλλαγή κωδικού, στοιχεία τρέχουσας σύνδεσης, καθολική
-// αποσύνδεση. Ίδια οπτική γλώσσα με το υπόλοιπο «Ρυθμίσεις» (σειρές, πεδία,
+// Τέσσερα αληθινά εργαλεία: αλλαγή κωδικού, επαλήθευση δύο βημάτων (2FA/TOTP
+// μέσω Supabase MFA), στοιχεία τρέχουσας σύνδεσης, καθολική αποσύνδεση.
+// Ίδια οπτική γλώσσα με το υπόλοιπο «Ρυθμίσεις» (σειρές, πεδία,
 // tokens). Χωρίς alert(), χωρίς ψεύτικα κουμπιά.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -24,6 +25,10 @@ const field: CSSProperties = {
 };
 const rowVal: CSSProperties = { fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, textAlign: 'right', overflowWrap: 'anywhere' };
 
+// ── Ελάχιστοι τοπικοί τύποι για τα αποτελέσματα του Supabase MFA ──────────
+interface MfaFactor { id: string; friendly_name?: string; factor_type: string; status: 'verified' | 'unverified' }
+type MfaState = 'loading' | 'off' | 'enrolling' | 'on';
+
 export default function SecuritySettings({ userId }: { userId: string }) {
   void userId;
   const supabase = createClient();
@@ -41,6 +46,15 @@ export default function SecuritySettings({ userId }: { userId: string }) {
   // Καθολική αποσύνδεση
   const [signingOut, setSigningOut] = useState(false);
 
+  // Επαλήθευση δύο βημάτων (2FA / TOTP)
+  const [mfaState, setMfaState] = useState<MfaState>('loading');
+  const [enrollFactor, setEnrollFactor] = useState<{ id: string; qr: string; secret: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [mfaErr, setMfaErr] = useState<string | null>(null);
+  const [mfaUnavailable, setMfaUnavailable] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -52,6 +66,126 @@ export default function SecuritySettings({ userId }: { userId: string }) {
     return () => { alive = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Ανίχνευση κατάστασης 2FA στο mount + καθάρισμα τυχόν εκκρεμών factors.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        if (error) throw error;
+        const totp = (data?.totp ?? []) as MfaFactor[];
+        // Καθάρισε ό,τι έμεινε «unverified» ώστε το enroll να μην σκάει αργότερα.
+        for (const f of totp) {
+          if (f.status === 'unverified') {
+            try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* αγνόησε */ }
+          }
+        }
+        if (!alive) return;
+        const active = totp.some(f => f.status === 'verified');
+        setMfaState(active ? 'on' : 'off');
+      } catch {
+        if (alive) setMfaState('off');
+      }
+    })();
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function startEnroll() {
+    setMfaBusy(true);
+    setMfaErr(null);
+    setMfaUnavailable(false);
+    try {
+      // Καθάρισε τυχόν εκκρεμείς factors, ώστε το enroll να μη βρει «factor already exists».
+      const { data: list } = await supabase.auth.mfa.listFactors();
+      const totp = (list?.totp ?? []) as MfaFactor[];
+      for (const f of totp) {
+        if (f.status === 'unverified') {
+          try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* αγνόησε */ }
+        }
+      }
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Property OS' });
+      if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (msg.includes('disabled') || msg.includes('not enabled') || msg.includes('unsupported') || msg.includes('mfa')) {
+          setMfaUnavailable(true);
+        } else {
+          setMfaErr('Κάτι πήγε στραβά. Δοκίμασε ξανά.');
+        }
+        return;
+      }
+      setEnrollFactor({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
+      setCode('');
+      setMfaState('enrolling');
+    } catch {
+      setMfaErr('Κάτι πήγε στραβά. Δοκίμασε ξανά.');
+    } finally {
+      setMfaBusy(false);
+    }
+  }
+
+  async function verifyCode() {
+    if (!enrollFactor) return;
+    if (code.length !== 6) {
+      setMfaErr('Ο κωδικός δεν είναι σωστός. Δοκίμασε ξανά.');
+      return;
+    }
+    setMfaBusy(true);
+    setMfaErr(null);
+    try {
+      const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: enrollFactor.id });
+      if (chErr || !ch) {
+        setMfaErr('Ο κωδικός δεν είναι σωστός. Δοκίμασε ξανά.');
+        return;
+      }
+      const { error } = await supabase.auth.mfa.verify({ factorId: enrollFactor.id, challengeId: ch.id, code });
+      if (error) {
+        setMfaErr('Ο κωδικός δεν είναι σωστός. Δοκίμασε ξανά.');
+        return;
+      }
+      setEnrollFactor(null);
+      setCode('');
+      setMfaState('on');
+    } catch {
+      setMfaErr('Ο κωδικός δεν είναι σωστός. Δοκίμασε ξανά.');
+    } finally {
+      setMfaBusy(false);
+    }
+  }
+
+  async function cancelEnroll() {
+    const pending = enrollFactor;
+    setEnrollFactor(null);
+    setCode('');
+    setMfaErr(null);
+    setMfaState('off');
+    if (pending) {
+      try { await supabase.auth.mfa.unenroll({ factorId: pending.id }); } catch { /* αγνόησε */ }
+    }
+  }
+
+  async function disableMfa() {
+    if (!confirmDisable) {
+      setConfirmDisable(true);
+      return;
+    }
+    setMfaBusy(true);
+    setMfaErr(null);
+    try {
+      const { data: list } = await supabase.auth.mfa.listFactors();
+      const totp = (list?.totp ?? []) as MfaFactor[];
+      for (const f of totp) {
+        try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* αγνόησε */ }
+      }
+      setMfaState('off');
+      setConfirmDisable(false);
+    } catch {
+      setMfaErr('Δεν ήταν δυνατή η απενεργοποίηση. Δοκίμασε ξανά.');
+    } finally {
+      setMfaBusy(false);
+    }
+  }
 
   async function savePassword() {
     if (newPass.length < 8) {
@@ -146,10 +280,118 @@ export default function SecuritySettings({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* 4. Τι έρχεται (μία τίμια γραμμή, όχι ψεύτικο control) */}
+      {/* 4. Επαλήθευση δύο βημάτων (2FA / TOTP) */}
+      <div style={group}>
+        <div style={subLabel}>Επαλήθευση δύο βημάτων</div>
+        <div style={desc}>Πρόσθεσε ένα δεύτερο επίπεδο ασφάλειας με εφαρμογή επαλήθευσης (authenticator).</div>
+
+        {mfaState === 'loading' && (
+          <div style={{ ...desc, marginTop: 12 }}>Έλεγχος κατάστασης…</div>
+        )}
+
+        {mfaUnavailable && (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 12, lineHeight: 1.5 }}>
+            Η επαλήθευση δύο βημάτων δεν είναι ενεργή για τον λογαριασμό ακόμη.
+          </div>
+        )}
+
+        {/* OFF: όφελος + «Ενεργοποίηση» */}
+        {mfaState === 'off' && !mfaUnavailable && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 12 }}>
+              Ακόμη κι αν κάποιος μάθει τον κωδικό σου, δεν θα μπορεί να συνδεθεί χωρίς τον προσωρινό κωδικό από την εφαρμογή σου.
+            </div>
+            <Btn variant="primary" onClick={startEnroll} disabled={mfaBusy}>
+              {mfaBusy ? 'Ενεργοποίηση…' : 'Ενεργοποίηση'}
+            </Btn>
+            {mfaErr && (
+              <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>
+            )}
+          </div>
+        )}
+
+        {/* ENROLLING: QR + secret + 6ψήφιος κωδικός */}
+        {mfaState === 'enrolling' && enrollFactor && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 10 }}>
+                1. Σκάναρε τον κωδικό QR με την εφαρμογή επαλήθευσης (π.χ. Google Authenticator, Authy)
+              </div>
+              <div style={{ display: 'inline-flex', padding: 10, background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-default)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={enrollFactor.qr} alt="QR" width={168} height={168} />
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 12, marginBottom: 6 }}>
+                ή καταχώρησε τον κωδικό χειροκίνητα
+              </div>
+              <div style={{ fontFamily: T.font.mono, fontSize: 13, color: 'var(--text-primary)', userSelect: 'all', wordBreak: 'break-all', padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner }}>
+                {enrollFactor.secret}
+              </div>
+            </div>
+            <div>
+              <label htmlFor="sec-mfa-code" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 8, display: 'block' }}>
+                2. Καταχώρησε τον 6ψήφιο κωδικό από την εφαρμογή
+              </label>
+              <input
+                id="sec-mfa-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code"
+                placeholder="123456"
+                value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                style={{ ...field, maxWidth: 200, fontFamily: T.font.mono, letterSpacing: '0.3em' }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                <Btn variant="primary" onClick={verifyCode} disabled={mfaBusy}>
+                  {mfaBusy ? 'Επιβεβαίωση…' : 'Επιβεβαίωση'}
+                </Btn>
+                <Btn variant="secondary" onClick={cancelEnroll} disabled={mfaBusy}>Άκυρο</Btn>
+              </div>
+              {mfaErr && (
+                <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ON: θετικό chip «Ενεργό» + απενεργοποίηση με διπλή επιβεβαίωση */}
+        {mfaState === 'on' && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: T.radius.pill, color: 'var(--positive)', background: 'color-mix(in srgb, var(--positive) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--positive) 40%, transparent)', fontFamily: T.font.sans }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
+                Ενεργό
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 12 }}>
+              Η επαλήθευση δύο βημάτων είναι ενεργή.
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Btn variant="secondary" onClick={disableMfa} disabled={mfaBusy}>
+                {mfaBusy ? 'Απενεργοποίηση…' : confirmDisable ? 'Επιβεβαίωση απενεργοποίησης' : 'Απενεργοποίηση'}
+              </Btn>
+              {confirmDisable && !mfaBusy && (
+                <button
+                  type="button" onClick={() => setConfirmDisable(false)}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-tertiary)', fontSize: 12, fontFamily: T.font.sans, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Ακύρωση
+                </button>
+              )}
+            </div>
+            {confirmDisable && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>
+                Ο λογαριασμός σου θα προστατεύεται μόνο με τον κωδικό πρόσβασης.
+              </div>
+            )}
+            {mfaErr && (
+              <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 5. Τι έρχεται (μία τίμια γραμμή, όχι ψεύτικο control) */}
       <div style={{ paddingTop: 13 }}>
         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-          Η επαλήθευση σε δύο βήματα (OTP) και η αναλυτική λίστα ενεργών συσκευών έρχονται σύντομα.
+          Η αναλυτική λίστα ενεργών συσκευών έρχεται σύντομα.
         </div>
       </div>
 

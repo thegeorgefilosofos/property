@@ -26,6 +26,7 @@ import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
+import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
@@ -534,6 +535,8 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
 
+      {prefs.showSmartTips && <SmartSuggestions userId={userId} propertyId={prop.id} />}
+
       {prefs.showSmartTips && (
         <AIInsights ctx={{
           propName: prop.name, propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
@@ -803,6 +806,15 @@ export default function Dashboard() {
   useEffect(() => {
     const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
     setKbdHint(mac ? '⌘K' : 'Ctrl K');
+  }, []);
+
+  // Προσβασιμότητα: εφαρμογή αποθηκευμένων προτιμήσεων σε όλη την εφαρμογή.
+  useEffect(() => {
+    try {
+      const r = document.documentElement;
+      if (localStorage.getItem('po_reduce_motion') === '1') r.classList.add('a11y-reduce-motion');
+      if (localStorage.getItem('po_large_text') === '1') r.classList.add('a11y-large-text');
+    } catch { /* ignore */ }
   }, []);
 
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette

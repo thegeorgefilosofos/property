@@ -1894,3 +1894,16 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
   .acc-live-dot::after { animation: none; }
   .acc-choice:hover { transform: none; }
 }
+
+/* ═══ Προσβασιμότητα (χειροκίνητες ρυθμίσεις από τον χρήστη) ═══════════════ */
+/* Μειωμένη κίνηση: σβήνει animations/transitions σε όλη την εφαρμογή. */
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+/* Μεγαλύτερο κείμενο: ήπια μεγέθυνση όλης της διεπαφής (zoom, px-agnostic). */
+html.a11y-large-text { zoom: 1.08; }
