@@ -191,7 +191,7 @@ export function printPropertyStatement(c: StatementCtx): void {
     <tbody>${catRows}</tbody>
   </table>
 
-  <div class="disc">${c.branding?.companyName ? esc(brandName(c.branding)) + ' · ' : ''}${disclaimer}</div>
+  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}</div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
 </div></body></html>`;
 
