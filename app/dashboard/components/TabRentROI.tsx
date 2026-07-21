@@ -20,6 +20,8 @@ import {
 } from '@/lib/market/greekMarket';
 import { incomeStatement, type TaxRegime } from '@/lib/accounting/statement';
 import { GLOSSARY as G } from '@/lib/market/glossary';
+import { useReportBranding } from '@/lib/reportBranding';
+import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc } from './reportPdf';
 
 // Αντιστοίχιση περιοχής → πλησιέστερη αναφορά βραχυχρόνιας (τα δεδομένα ST είναι ανά
 // ευρύτερη ζώνη, όχι ανά προάστιο). Δίνει ρεαλιστικά defaults (πληρότητα/τιμή) ανά περιοχή.
@@ -363,6 +365,7 @@ const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(
 
 export default function TabRentROI({ propertyId, userId, propertyValue, profileType = 'individual' }: Props) {
   const supabase = createClient();
+  const branding = useReportBranding(userId);
   const [loading, setLoading] = useState(true);
   const pro = profileType === 'professional';
 
@@ -601,9 +604,6 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   // Εξαγωγή επαγγελματικής αναφοράς PDF (μέσω παραθύρου εκτύπωσης· escape όλων των τιμών).
   const printReport = () => {
-    const w = window.open('', '_blank'); if (!w) return;
-    const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const d = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
     const name = pName.trim() || 'Ακίνητο';
     const num2 = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     // Παράγωγα μεγέθη κατάστασης αποτελεσμάτων.
@@ -611,131 +611,96 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     const afterTax = noi - annualTax;             // καθαρό αποτέλεσμα μετά τον φόρο
     const totalReturn = y.netYield + nAppr;       // ενδεικτική συνολική απόδοση
 
-    const kpi = (l: string, v: string, sub = '') => `<div class="kpi"><div class="kl">${esc(l)}</div><div class="kv">${esc(v)}</div>${sub ? `<div class="ks">${esc(sub)}</div>` : ''}</div>`;
-    const R = (l: string, v: string, cls = '') => `<tr class="${cls}"><td>${esc(l)}</td><td class="n">${esc(v)}</td></tr>`;
+    const R = reportRow;
 
-    const identity = `${esc(name)} · ${esc(regimeLabel)} · ${esc(term === 'short' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση')}${reg?.label ? ` · ${esc(reg.label)}` : ''}${pSqm ? ` · ${pSqm} τ.μ.` : ''} · ${esc(d)}`;
+    const identity = [name, regimeLabel, term === 'short' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση', reg?.label || '', pSqm ? `${pSqm} τ.μ.` : '']
+      .filter(Boolean).map(x => rEsc(String(x))).join(' · ');
 
     // Ανάλυση εσόδων–εξόδων (ετήσια).
     const incRows = [
-      R('Ακαθάριστα έσοδα (ετήσια)', fe(grossAnnual, 0)),
-      R('Λειτουργικά έξοδα ακινήτου', `−${fe(nOpex, 0)}`),
-      ...(term === 'short' && stCosts > 0 ? [R('Κόστη βραχυχρόνιας (πλατφόρμα, καθαρισμός, ΤΑΚΚ, τέλος παρεπιδημούντων)', `−${fe(stCosts, 0)}`)] : []),
-      R('Καθαρά λειτουργικά έσοδα (NOI)', fe(noi, 0), 'sub'),
-      R('Φόρος εισοδήματος', `−${fe(annualTax, 0)}`),
-      R('Καθαρό αποτέλεσμα μετά τον φόρο', fe(afterTax, 0), 'result'),
+      R('Ακαθάριστα έσοδα (ετήσια)', rEur(grossAnnual)),
+      R('Λειτουργικά έξοδα ακινήτου', rSigned(-nOpex)),
+      ...(term === 'short' && stCosts > 0 ? [R('Κόστη βραχυχρόνιας (πλατφόρμα, καθαρισμός, ΤΑΚΚ, τέλος παρεπιδημούντων)', rSigned(-stCosts))] : []),
+      R('Καθαρά λειτουργικά έσοδα (NOI)', rEur(noi), 'sub'),
+      R('Φόρος εισοδήματος', rSigned(-annualTax)),
+      R('Καθαρό αποτέλεσμα μετά τον φόρο', rEur(afterTax), 'result'),
     ].join('');
 
     // Δείκτες απόδοσης.
     const yieldRows = [
-      R('Μεικτή απόδοση', fp(y.grossYield)),
-      R('Καθαρή απόδοση', fp(y.netYield)),
-      R('Απόδοση μετά τον φόρο', fp(y.netYieldAfterTax)),
-      R('Εκτιμώμενη ετήσια ανατίμηση', fp(nAppr)),
-      R('Ενδεικτική συνολική απόδοση (καθαρή + ανατίμηση)', fp(totalReturn), 'sub'),
-      R('Βαθμός απόδοσης', `${grade.grade} (${grade.score}/100)`, 'strong'),
+      R('Μεικτή απόδοση', rPct(y.grossYield)),
+      R('Καθαρή απόδοση', rPct(y.netYield)),
+      R('Απόδοση μετά τον φόρο', rPct(y.netYieldAfterTax)),
+      R('Εκτιμώμενη ετήσια ανατίμηση', rPct(nAppr)),
+      R('Ενδεικτική συνολική απόδοση (καθαρή + ανατίμηση)', rPct(totalReturn), 'sub'),
+      R('Βαθμός απόδοσης', `${grade.grade} · ${grade.score}/100`, 'sub'),
     ].join('');
 
     const regionRows = term === 'short'
-      ? [['Το ακίνητό σου', fp(y.grossYield)], ['Τυπική βραχυχρόνια περιοχής', fp(stRef.grossYield)], ['Μακροχρόνια στην ίδια περιοχή', fp(reg?.grossYield || 0)]]
-      : [['Το ακίνητό σου', fp(y.grossYield)], [reg?.label || 'Περιοχή', fp(reg?.grossYield || 0)], ['Μέσος όρος Αθήνας', fp(ATHENS_AVG_GROSS_YIELD)], ['Εθνικός μέσος όρος', fp(GREECE_AVG_GROSS_YIELD)]];
+      ? [['Το ακίνητό σου', rPct(y.grossYield)], ['Τυπική βραχυχρόνια περιοχής', rPct(stRef.grossYield)], ['Μακροχρόνια στην ίδια περιοχή', rPct(reg?.grossYield || 0)]]
+      : [['Το ακίνητό σου', rPct(y.grossYield)], [reg?.label || 'Περιοχή', rPct(reg?.grossYield || 0)], ['Μέσος όρος Αθήνας', rPct(ATHENS_AVG_GROSS_YIELD)], ['Εθνικός μέσος όρος', rPct(GREECE_AVG_GROSS_YIELD)]];
 
     // Χρηματοδότηση & μόχλευση (μόνο επαγγελματικό προφίλ).
-    const finBlock = pro ? `<section class="sec"><h2>Χρηματοδότηση & μόχλευση</h2><table><tbody>
-        ${R('Ίδια κεφάλαια', fe(deal.equity, 0))}
-        ${R('Δάνειο', fe(deal.loan, 0))}
-        ${R('Ετήσια δόση δανείου', fe(deal.annualDebtService, 0))}
+    const finBlock = pro ? reportSection('Χρηματοδότηση & μόχλευση') + `<table><tbody>
+        ${R('Ίδια κεφάλαια', rEur(deal.equity))}
+        ${R('Δάνειο', rEur(deal.loan))}
+        ${R('Ετήσια δόση δανείου', rEur(deal.annualDebtService))}
         ${R('Δείκτης κάλυψης χρέους (DSCR)', Number.isFinite(deal.dscr) ? num2(deal.dscr) : '∞')}
-        ${R('Απόδοση ιδίων κεφαλαίων (cash-on-cash)', fp(lev.cashOnCash))}
-        ${R('Ετήσια ταμειακή ροή', fe(lev.cashFlow, 0))}
-        ${R('Εσωτερικός βαθμός απόδοσης (IRR)', Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : '—')}
-        ${R('Καθαρή παρούσα αξία (NPV)', fe(deal.npv, 0))}
+        ${R('Απόδοση ιδίων κεφαλαίων (cash-on-cash)', rPct(lev.cashOnCash))}
+        ${R('Ετήσια ταμειακή ροή', rEur(lev.cashFlow))}
+        ${R('Εσωτερικός βαθμός απόδοσης (IRR)', Number.isFinite(deal.irrPct) ? rPct(deal.irrPct) : '—')}
+        ${R('Καθαρή παρούσα αξία (NPV)', rEur(deal.npv))}
         ${R('Πολλαπλασιαστής ιδίων κεφαλαίων', `${num2(deal.equityMultiple)}×`)}
         ${R('Ορίζοντας κατοχής', `${parseInt(holdYears)} έτη`, 'sub')}
-      </tbody></table></section>` : '';
+      </tbody></table>` : '';
 
     // Ανάλυση ευαισθησίας (επαγγελματικό προφίλ).
-    const sensBlock = pro ? `<section class="sec"><h2>Ανάλυση ευαισθησίας</h2><table class="multi">
+    const sensBlock = pro ? reportSection('Ανάλυση ευαισθησίας') + `<table>
         <thead><tr><th>Σενάριο</th><th class="n">Συνολική απόδοση</th><th class="n">Απόδοση ιδίων</th><th class="n">Ταμειακή ροή</th></tr></thead>
-        <tbody>${scenarios.map(sc => `<tr><td>${esc(sc.label)} <span class="note">${esc(sc.note)}</span></td><td class="n">${esc(fp(sc.totalReturn))}</td><td class="n">${esc(fp(sc.roe))}</td><td class="n">${esc(fe(sc.cashFlow, 0))}</td></tr>`).join('')}</tbody>
-      </table></section>` : '';
+        <tbody>${scenarios.map(sc => `<tr><td>${rEsc(sc.label)} <span class="muted" style="font-size:10px">${rEsc(sc.note)}</span></td><td class="n">${rEsc(rPct(sc.totalReturn))}</td><td class="n">${rEsc(rPct(sc.roe))}</td><td class="n">${rEsc(rEur(sc.cashFlow))}</td></tr>`).join('')}</tbody>
+      </table>` : '';
 
     // Νεκρό σημείο πληρότητας (βραχυχρόνια).
-    const beBlock = (term === 'short' && breakEvenOcc !== null) ? `<section class="sec"><h2>Νεκρό σημείο πληρότητας</h2>
-        <p class="p">Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: <strong>${isFinite(breakEvenOcc) ? `${Math.min(100, breakEvenOcc).toFixed(0)}%` : 'μη εφικτή'}</strong>. Εκτιμώμενη πληρότητα εργαλείου: ${occEff.toFixed(0)}% · τιμή/νύχτα ${esc(fe(adrEff, 0))}.</p></section>` : '';
+    const beBlock = (term === 'short' && breakEvenOcc !== null) ? reportSection('Νεκρό σημείο πληρότητας')
+        + `<div class="note">Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: <strong>${isFinite(breakEvenOcc) ? rPct(Math.min(100, breakEvenOcc)) : 'μη εφικτή'}</strong>. Εκτιμώμενη πληρότητα εργαλείου: ${rPct(occEff)} · τιμή/νύχτα ${rEsc(rEur(adrEff))}.</div>` : '';
 
     // Παραδοχές & μεθοδολογία.
     const asmpItems = [
-      `Αξία ακινήτου: ${fe(nVal, 0)} (καταχώρηση ή εκτίμηση χρήστη)`,
-      term === 'short' ? `Έσοδα: εκτιμώμενη πληρότητα ${occEff.toFixed(0)}% × τιμή/νύχτα ${fe(adrEff, 0)}` : `Έσοδα: μηνιαίο ενοίκιο ${fe(nRent, 0)}`,
-      `Εκτιμώμενη ετήσια ανατίμηση: ${fp(nAppr)}`,
+      `Αξία ακινήτου: ${rEur(nVal)} (καταχώρηση ή εκτίμηση χρήστη)`,
+      term === 'short' ? `Έσοδα: εκτιμώμενη πληρότητα ${rPct(occEff)} × τιμή/νύχτα ${rEur(adrEff)}` : `Έσοδα: μηνιαίο ενοίκιο ${rEur(nRent)}`,
+      `Εκτιμώμενη ετήσια ανατίμηση: ${rPct(nAppr)}`,
       `Φορολογικό καθεστώς: ${regimeLabel}`,
-      ...(pro ? [`Χρηματοδότηση: LTV ${fp(parseFloat(ltv) || 0)}, επιτόκιο ${fp(parseFloat(loanRate) || 0)}, ορίζοντας ${parseInt(holdYears)} έτη`] : []),
+      ...(pro ? [`Χρηματοδότηση: LTV ${rPct(parseFloat(ltv) || 0)}, επιτόκιο ${rPct(parseFloat(loanRate) || 0)}, ορίζοντας ${parseInt(holdYears)} έτη`] : []),
       `Δεδομένα αναφοράς αγοράς: ${MARKET_DATA_ASOF}`,
-    ].map(t => `<li>${esc(t)}</li>`).join('');
+    ].map(t => `<li>${rEsc(t)}</li>`).join('');
 
     const disclaimer = `Η παρούσα αναφορά αποτελεί ενημερωτικό εργαλείο εκτίμησης. Οι υπολογισμοί βασίζονται στα στοιχεία που καταχώρησες και σε ενδεικτικά δημόσια δεδομένα αγοράς, και δεν συνιστούν επενδυτική, φορολογική ή νομική συμβουλή. Τα πραγματικά μεγέθη διαφέρουν ανά ακίνητο, όροφο, κατάσταση, θέση και συνθήκες αγοράς. Οι αποδόσεις των εναλλακτικών επενδύσεων είναι ιστορικές και δεν εγγυώνται μελλοντικά αποτελέσματα. Πριν από κάθε απόφαση, επιβεβαίωσε τα στοιχεία και συμβουλέψου εξειδικευμένο λογιστή ή σύμβουλο ακινήτων. Δεδομένα αγοράς: ${MARKET_DATA_ASOF}.`;
 
-    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Αναφορά απόδοσης · ${esc(name)}</title>
-      <style>
-        *{box-sizing:border-box}
-        body{font-family:Inter,system-ui,Arial,sans-serif;margin:0;color:#111;font-size:12.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        .page{max-width:760px;margin:0 auto;padding:40px}
-        .top{border-top:2px solid #111;padding-top:14px;display:flex;justify-content:space-between;align-items:baseline}
-        .brand{font-size:12px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:#111}
-        .asof{font-size:10.5px;color:#8a8f98}
-        h1{font-size:23px;font-weight:700;letter-spacing:-.01em;margin:12px 0 3px}
-        .sub{color:#6b7280;font-size:12px;margin-bottom:24px}
-        h2{font-size:13px;font-weight:700;letter-spacing:.01em;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid #111}
-        .sec{margin-top:26px;break-inside:avoid}
-        .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-        .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px}
-        .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98}
-        .kv{font-size:19px;font-weight:700;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-        .ks{font-size:10px;color:#8a8f98;margin-top:2px}
-        table{width:100%;border-collapse:collapse;font-size:12.5px}
-        td,th{padding:8px 4px;border-bottom:1px solid #eef0f2;text-align:left}
-        th{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:#8a8f98;font-weight:600;border-bottom:1px solid #d0d5dd}
-        td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-        td.n{font-weight:600}
-        tr.sub td{font-weight:700;background:#fafafa}
-        tr.strong td{font-weight:700}
-        tr.result td{font-weight:700;border-top:2px solid #111;border-bottom:none;padding-top:10px}
-        .note{color:#8a8f98;font-size:10px;font-weight:400}
-        .p{margin:0;font-size:12px;color:#374151}
-        ul.asmp{margin:0;padding-left:18px;font-size:11px;color:#4b5563}ul.asmp li{margin:3px 0}
-        .disc{margin-top:26px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#8a8f98;line-height:1.6}
-        .foot{margin-top:8px;font-size:9.5px;color:#aab0b8}
-        @media print{.page{padding:16mm 15mm}@page{margin:0}}
-      </style></head>
-      <body><div class="page">
-        <div class="top"><span class="brand">Property OS</span><span class="asof">Ημερομηνία έκδοσης · ${esc(d)}</span></div>
-        <h1>Αναφορά απόδοσης ακινήτου</h1>
-        <div class="sub">${identity}</div>
-
-        <div class="kpis">
-          ${kpi('Αξία ακινήτου', fe(nVal, 0))}
-          ${kpi(term === 'short' ? 'Ετήσια έσοδα' : 'Μηνιαίο ενοίκιο', term === 'short' ? fe(grossAnnual, 0) : fe(nRent, 0), term === 'short' ? 'εκτίμηση' : '')}
-          ${kpi('Μεικτή απόδοση', fp(y.grossYield))}
-          ${kpi('Καθαρή απόδοση', fp(y.netYield))}
-          ${kpi('Απόδοση μετά τον φόρο', fp(y.netYieldAfterTax))}
-          ${kpi('Βαθμός απόδοσης', `${grade.grade} (${grade.score}/100)`)}
-        </div>
-
-        <section class="sec"><h2>Ανάλυση εσόδων & εξόδων (ετήσια)</h2><table><tbody>${incRows}</tbody></table></section>
-        <section class="sec"><h2>Δείκτες απόδοσης</h2><table><tbody>${yieldRows}</tbody></table></section>
-        <section class="sec"><h2>Σύγκριση με την αγορά</h2><table><tbody>${regionRows.map(r => R(r[0], r[1])).join('')}</tbody></table></section>
-        ${finBlock}
-        ${sensBlock}
-        ${beBlock}
-        <section class="sec"><h2>Σύγκριση με εναλλακτικές επενδύσεις (${esc(cmpYears)} έτη, πραγματικές αποδόσεις)</h2>
-          <table><tbody>${compare.map(c => R(c.label, `${fe(c.futureValue, 0)} · ${fp(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table></section>
-        <section class="sec"><h2>Παραδοχές & μεθοδολογία</h2><ul class="asmp">${asmpItems}</ul></section>
-
-        <div class="disc">${esc(disclaimer)}</div>
-        <div class="foot">Πηγές: ${MARKET_SOURCES.map(s => esc(s.label)).join(' · ')}</div>
-      </div></body></html>`);
-    w.document.close(); w.focus(); w.print();
+    const html = reportHead(`Αναφορά απόδοσης · ${name}`)
+      + `<body><div class="page">`
+      + reportHeader(branding, 'Αναφορά απόδοσης')
+      + `<h1>Αναφορά απόδοσης ακινήτου</h1><div class="sub">${identity}</div>`
+      + reportSection('Σύνοψη')
+      + `<div class="kpis">`
+        + reportKpi('Αξία ακινήτου', rEur(nVal))
+        + reportKpi(term === 'short' ? 'Ετήσια έσοδα' : 'Μηνιαίο ενοίκιο', rEur(term === 'short' ? grossAnnual : nRent))
+        + reportKpi('Καθαρή απόδοση', rPct(y.netYield))
+        + reportKpi('Βαθμός απόδοσης', `${grade.grade} · ${grade.score}/100`)
+      + `</div>`
+      + reportSection('Ανάλυση εσόδων & εξόδων (ετήσια)') + `<table><tbody>${incRows}</tbody></table>`
+      + reportSection('Δείκτες απόδοσης') + `<table><tbody>${yieldRows}</tbody></table>`
+      + reportSection('Σύγκριση με την αγορά') + `<table><tbody>${regionRows.map(r => R(r[0], r[1])).join('')}</tbody></table>`
+      + finBlock
+      + sensBlock
+      + beBlock
+      + reportSection(`Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`)
+        + `<table><tbody>${compare.map(c => R(c.label, `${rEur(c.futureValue)} · ${rPct(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table>`
+      + reportSection('Παραδοχές & μεθοδολογία')
+        + `<ul style="margin:4px 0 0;padding-left:18px;font-size:11.5px;color:#4b5563;line-height:1.7">${asmpItems}</ul>`
+        + `<div class="note" style="font-size:10px;color:#8a8f98;margin-top:10px">Πηγές: ${MARKET_SOURCES.map(s => rEsc(s.label)).join(' · ')}</div>`
+      + reportDisclaimer(disclaimer, branding)
+      + `</div></body></html>`;
+    openReport(html);
   };
 
   if (loading) return <div style={{ padding: 40 }}><Spinner label="Φόρτωση αποδόσεων…" /></div>;
