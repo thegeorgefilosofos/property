@@ -4,10 +4,9 @@
 // (email_marketing_prefs.market_news). Διαβάζει τις 2 πιο πρόσφατες εγγραφές του
 // market_rates και στέλνει τις μεταβολές· αν δεν υπάρχει μεταβολή, δεν στέλνει.
 //
-// Ενεργοποίηση:
-//   supabase secrets set MARKET_DIGEST_CRON_SECRET=<τυχαίο>
-//   (RESEND_API_KEY / RESEND_FROM / APP_URL / SERVICE_ROLE υπάρχουν ήδη)
-//   supabase functions deploy send-market-digest
+// Ενεργοποίηση: κανένα χειροκίνητο μυστικό — το pg_cron καλεί με το service-role
+// key (Authorization: Bearer, από το vault) και η authorized() το δέχεται.
+// Προαιρετικά: RESEND_FROM (branded αποστολέας μετά την επαλήθευση domain).
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -21,6 +20,22 @@ const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
 const pct = (n: number | null | undefined) => n == null ? '—' : `${Number(n).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+
+// Εξουσιοδότηση cron (zero-config): δέχεται (α) το service-role key (Bearer),
+// (β) το προαιρετικό x-cron-secret env, ή (γ) το κοινό μυστικό cron από τη ΒΔ
+// (public.cron_secrets) — η κύρια, μηδενικής-ρύθμισης οδός. Το pg_cron στέλνει
+// την τιμή του πίνακα, το function την επαληθεύει με τον service-role client του.
+async function authorized(req: Request): Promise<boolean> {
+  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (SERVICE_KEY && bearer === SERVICE_KEY) return true
+  const header = req.headers.get('x-cron-secret') || ''
+  if (CRON_SECRET && header === CRON_SECRET) return true
+  if (header) {
+    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
+    if (data?.secret && header === data.secret) return true
+  }
+  return false
+}
 
 const METRICS: { key: string; label: string }[] = [
   { key: 'euribor_3m', label: 'Euribor 3 μηνών' },
@@ -72,8 +87,7 @@ async function listUsers(): Promise<{ id: string; email: string }[]> {
 }
 
 Deno.serve(async (req) => {
-  const cronHeader = req.headers.get('x-cron-secret') || ''
-  if (!CRON_SECRET || cronHeader !== CRON_SECRET) return json({ error: 'unauthorized' }, 401)
+  if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401)
   if (!RESEND_API_KEY) return json({ error: 'no_resend_key' }, 500)
 
   const { data: rows } = await supabase.from('market_rates')
