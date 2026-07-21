@@ -21,6 +21,9 @@ const MUTE = '#5f6368';
 const FAINT = '#80868b';
 const DEFAULT_APP = 'https://propertyos.gr';
 
+// Η φωνή του προϊόντος: το tagline της landing, υπογραφή σε ΚΑΘΕ email (ομοιομορφία + brand awareness).
+export const BRAND_TAGLINE = 'Το ακίνητό σου, υπό έλεγχο.';
+
 const esc = (v: unknown): string =>
   String(v ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c));
 
@@ -41,8 +44,12 @@ export const button = (label: string, url: string): string =>
   `<div style="text-align:center;margin:24px 0 8px;"><a href="${esc(url)}" style="display:inline-block;background:${ACCENT};color:#fff;text-decoration:none;padding:12px 26px;border-radius:100px;font-weight:700;font-size:14px;">${esc(label)} →</a></div>`;
 export const note = (html: string): string =>
   `<p style="margin:16px 0 0;font-size:12px;color:${MUTE};line-height:1.6;">${html}</p>`;
-export const greeting = (name?: string): string =>
-  p(`Γεια σου${name ? ` <b>${esc(name)}</b>` : ''},`);
+// Μόνο το μικρό όνομα (πιο ζεστό): «Μαρία Παπαδοπούλου» → «Μαρία».
+export const firstNameOf = (name?: string): string => (name || '').trim().split(/\s+/)[0] || '';
+export const greeting = (name?: string): string => {
+  const f = firstNameOf(name);
+  return p(`Γεια σου${f ? ` <b>${esc(f)}</b>` : ''},`);
+};
 
 // ── Το ΜΟΝΑΔΙΚΟ branded κέλυφος ──────────────────────────────────────────────
 export function emailShell(opts: {
@@ -62,11 +69,25 @@ export function emailShell(opts: {
       <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">Property OS</span>
     </div>
     <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:28px 26px;">${opts.bodyHtml}</div>
-    <p style="text-align:center;font-size:11px;color:${FAINT};margin:18px 0 4px;line-height:1.6;">${foot}</p>
+    <p style="text-align:center;font-size:12px;color:${ACCENT};font-weight:600;letter-spacing:.2px;margin:18px 0 5px;">${BRAND_TAGLINE}</p>
+    <p style="text-align:center;font-size:11px;color:${FAINT};margin:0 0 4px;line-height:1.6;">${foot}</p>
   </div></body></html>`;
 }
 
 export interface Ctx { name?: string; appUrl?: string; unsubUrl?: string }
+
+// Πλούσιο πλαίσιο εξατομίκευσης: ό,τι μοναδικό δεδομένο του χρήστη μπορεί να
+// μπει ζωντανά στο κείμενο (το γεμίζει η send-lifecycle-email ανά χρήστη).
+export interface Personal extends Ctx {
+  plan?: Plan;
+  properties?: number;       // πλήθος ακινήτων
+  propertyName?: string;     // όνομα (νέου) ακινήτου
+  collected?: number;        // εισπράξεις περιόδου, σε EUR
+  outstanding?: number;      // ανείσπρακτα, σε EUR
+  portfolioValue?: number;   // αξία χαρτοφυλακίου, σε EUR
+  days?: number;             // μέρες από την εγγραφή
+  assistantName?: string;    // όνομα βοηθού, αν έχει οριστεί
+}
 type Out = { subject: string; html: string };
 const app = (c: Ctx) => c.appUrl || DEFAULT_APP;
 
