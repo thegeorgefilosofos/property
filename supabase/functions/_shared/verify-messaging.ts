@@ -30,8 +30,23 @@ console.log('\n2) Adapters respect channel limits');
   ok(push.title.length <= 48 && push.body.length <= 140, 'push truncates title ≤48 and body ≤140');
   const v = renderViber(m, 'https://propertyos.gr/dashboard');
   ok(v.text.includes('\n') && v.action?.url === 'https://propertyos.gr/dashboard', 'viber carries title+body and a link action');
-  const w = renderWhatsApp(m, 'https://propertyos.gr/dashboard');
-  ok(w.text.startsWith('*') && w.text.includes('propertyos.gr'), 'whatsapp bolds the title and includes the link');
+  const w = renderWhatsApp(m, 'digest_obligations', 'https://propertyos.gr/dashboard');
+  const param = w.template.components[0].parameters[0].text;
+  ok(w.template.name === 'po_digest_obligations' && w.template.language.code === 'el', 'whatsapp emits a named el template');
+  ok(!/\n/.test(param) && param.includes('propertyos.gr'), 'whatsapp body param has no newlines and includes the link');
+  const wDirty = renderWhatsApp({ title: 'a*b_c', body: 'x~y`z' }, 'x');
+  ok(!/[*_~`]/.test(wDirty.template.components[0].parameters[0].text), 'whatsapp strips markdown control chars from user data');
+}
+
+console.log('\n2b) Privacy — no euro amounts or tenant/guest names in glanceable bodies');
+{
+  for (const key of ['subscription_receipt', 'tenant_rent_receipt', 'payout_received', 'monthly_statement']) {
+    const b = MSG[key](rich).body;
+    ok(!/€|\bΓιώργος\b|\b480\b|\b4\.?200\b/.test(b), `${key} body exposes no amount or tenant name (${b})`);
+  }
+  // whitespace-only names must not leak dangling articles or spaces
+  const wsp = { ...rich, guestName: '   ', tenantName: '  ', friendName: ' ' } as Personal;
+  ok(!/^\s/.test(MSG.checkin_today(wsp).body), 'whitespace guestName does not leave a leading space');
 }
 
 console.log('\n3) Channel selection never stacks — one delivery, one channel');

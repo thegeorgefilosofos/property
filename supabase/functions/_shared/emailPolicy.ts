@@ -108,6 +108,8 @@ const SET3 = new Set(P3_OPPORTUNITY);
 const SET5 = new Set(P5_SOFT);
 
 export function policyFor(copyId: string): Policy {
+  // A digest is itself a consolidated obligation — P2, morning, never re-folded.
+  if (copyId.startsWith('digest_')) return { priority: 2, category: 'obligation', slot: 'morning', standalone: true };
   if (SET1.has(copyId)) return { priority: 1, category: 'transactional', slot: 'immediate' };
   if (SET2.has(copyId)) return {
     priority: 2, category: 'obligation', slot: 'morning',
@@ -126,13 +128,29 @@ export function offsetMinutes(recipientKey: string): number {
   return Math.abs(h) % 22; // 0..21 minutes added on top of the slot
 }
 
+const pad = (n: number) => String(n).padStart(2, '0');
 function slotClock(slot: Slot, recipientKey: string): string {
   if (slot === 'immediate') return 'now';
   const [hh, mm] = SLOT_TIME[slot].split(':').map(Number);
   const total = hh * 60 + mm + offsetMinutes(recipientKey);
-  const H = Math.floor(total / 60), M = total % 60;
-  return `${String(H).padStart(2, '0')}:${String(M).padStart(2, '0')}`;
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
 }
+// Add minutes to an 'HH:MM' clock (used to spread several morning obligations).
+function addMinutes(clock: string, m: number): string {
+  if (clock === 'now') return clock;
+  const [h, mm] = clock.split(':').map(Number);
+  const t = h * 60 + mm + m;
+  return `${pad(Math.floor(t / 60) % 24)}:${pad(t % 60)}`;
+}
+// Sub-tier strength, so "one opportunity/lifecycle" picks the strongest, not the
+// oldest-queued. Higher wins. Unlisted → 1.
+const WEIGHT: Record<string, number> = {
+  winback_downgrade: 9, limit_reached: 9, reactivation_offer: 8, winback_offer: 8, trial_ending: 8,
+  value_left: 8, annual_discount: 7, upsell_to_professional: 7, upsell_to_individual: 7,
+  free_month_upgrade: 6, document_pack: 6, energy_savings: 6, insurance_enfia: 6, roi_proof: 6, occupancy_gap: 6,
+  loan_costs: 5, plan_comparison: 5, rent_benchmark_alert: 5, rate_alert: 4, market_digest: 3,
+};
+const weightOf = (id: string) => WEIGHT[id] ?? 1;
 
 // ── The planner ──────────────────────────────────────────────────────────────
 
@@ -166,8 +184,12 @@ export function planDeliveries(items: QueuedItem[], ctx: PlanContext): Plan {
   const rk = ctx.recipientKey;
   const deliveries: Delivery[] = [];
   const deferred: Deferred[] = [];
+  // Both counters start from what already went out (or is already scheduled) and
+  // grow together, so a day can never push the rolling week past its ceiling.
   let usedNonTx = ctx.sentTodayNonTx ?? 0;
-  const weekNonTx = ctx.sentThisWeekNonTx ?? 0;
+  let weekNonTx = ctx.sentThisWeekNonTx ?? 0;
+  const bump = () => { usedNonTx++; weekNonTx++; };
+  const roomToday = () => usedNonTx < CAPS.nonTxPerDay && weekNonTx < CAPS.nonTxPerWeek;
 
   const withPol = items.map(it => ({ it, pol: policyFor(it.copyId) }));
 
@@ -177,12 +199,15 @@ export function planDeliveries(items: QueuedItem[], ctx: PlanContext): Plan {
   }
 
   // 2) Obligations — consolidate same-day per digest group; standalone stay whole.
+  //    Several obligations are spread a few minutes apart, not stacked on one minute.
   const obligs = withPol.filter(x => x.pol.priority === 2);
+  let mIdx = 0;
+  const morningAt = () => addMinutes(slotClock('morning', rk), (mIdx++) * 6);
   const groups = new Map<string, string[]>();
   for (const { it, pol } of obligs) {
     if (pol.standalone) {
-      deliveries.push({ kind: 'send', copyId: it.copyId, at: slotClock('morning', rk), priority: 2, category: 'obligation' });
-      usedNonTx++;
+      deliveries.push({ kind: 'send', copyId: it.copyId, at: morningAt(), priority: 2, category: 'obligation' });
+      bump();
       continue;
     }
     const g = pol.digestGroup || 'obligations';
@@ -190,47 +215,39 @@ export function planDeliveries(items: QueuedItem[], ctx: PlanContext): Plan {
     groups.get(g)!.push(it.copyId);
   }
   for (const [g, keys] of groups) {
-    if (keys.length === 1) {
-      deliveries.push({ kind: 'send', copyId: keys[0], at: slotClock('morning', rk), priority: 2, category: 'obligation' });
-    } else {
-      deliveries.push({ kind: 'digest', copyId: `digest_${g}`, at: slotClock('morning', rk), priority: 2, category: 'obligation', bundles: keys });
-    }
-    usedNonTx++;
+    if (keys.length === 1) deliveries.push({ kind: 'send', copyId: keys[0], at: morningAt(), priority: 2, category: 'obligation' });
+    else deliveries.push({ kind: 'digest', copyId: `digest_${g}`, at: morningAt(), priority: 2, category: 'obligation', bundles: keys });
+    bump();
   }
 
-  const roomToday = () => usedNonTx < CAPS.nonTxPerDay && weekNonTx < CAPS.nonTxPerWeek;
-
-  // 3) Opportunity — at most one, the strongest, at midday.
-  const opps = withPol.filter(x => x.pol.priority === 3);
+  // 3) Opportunity — at most one, the STRONGEST, at midday.
+  const opps = withPol.filter(x => x.pol.priority === 3).sort((a, b) => weightOf(b.it.copyId) - weightOf(a.it.copyId));
   if (opps.length && !ctx.isAnniversary && roomToday()) {
-    const pick = opps[0];
-    deliveries.push({ kind: 'send', copyId: pick.it.copyId, at: slotClock('midday', rk), priority: 3, category: 'opportunity' });
-    usedNonTx++;
+    deliveries.push({ kind: 'send', copyId: opps[0].it.copyId, at: slotClock('midday', rk), priority: 3, category: 'opportunity' });
+    bump();
     for (const o of opps.slice(1)) deferred.push({ copyId: o.it.copyId, reason: 'opportunity_cap' });
   } else {
     for (const o of opps) deferred.push({ copyId: o.it.copyId, reason: ctx.isAnniversary ? 'anniversary_quiet' : 'opportunity_cap' });
   }
 
-  // 4) Lifecycle — at most one, in the evening. Anniversary email wins the slot.
+  // 4) Lifecycle — at most one, in the evening. Anniversary wins the slot, else strongest.
   const life = withPol.filter(x => x.pol.priority === 4);
   const anniv = life.find(x => x.it.copyId === 'anniversary');
-  const lifeOrdered = anniv ? [anniv, ...life.filter(x => x !== anniv)] : life;
+  const lifeOrdered = anniv ? [anniv, ...life.filter(x => x !== anniv)] : [...life].sort((a, b) => weightOf(b.it.copyId) - weightOf(a.it.copyId));
   if (lifeOrdered.length && roomToday()) {
-    const pick = lifeOrdered[0];
-    deliveries.push({ kind: 'send', copyId: pick.it.copyId, at: slotClock('evening', rk), priority: 4, category: 'lifecycle' });
-    usedNonTx++;
+    deliveries.push({ kind: 'send', copyId: lifeOrdered[0].it.copyId, at: slotClock('evening', rk), priority: 4, category: 'lifecycle' });
+    bump();
     for (const l of lifeOrdered.slice(1)) deferred.push({ copyId: l.it.copyId, reason: 'lifecycle_cap' });
   } else {
     for (const l of lifeOrdered) deferred.push({ copyId: l.it.copyId, reason: 'lifecycle_cap' });
   }
 
-  // 5) Soft — only if the day is otherwise quiet and never on an anniversary.
+  // 5) Soft — only if NOTHING else went out today (this run or earlier) and no anniversary.
   const soft = withPol.filter(x => x.pol.priority === 5);
-  const daysWasBusy = usedNonTx > (ctx.sentTodayNonTx ?? 0); // anything went out today
-  if (soft.length && !ctx.isAnniversary && !daysWasBusy && roomToday()) {
-    const pick = soft[0];
-    deliveries.push({ kind: 'send', copyId: pick.it.copyId, at: slotClock('late', rk), priority: 5, category: 'soft' });
-    usedNonTx++;
+  const dayHadAnything = usedNonTx > 0; // includes prior sends today + this run's obligations/opp/lifecycle
+  if (soft.length && !ctx.isAnniversary && !dayHadAnything && roomToday()) {
+    deliveries.push({ kind: 'send', copyId: soft[0].it.copyId, at: slotClock('late', rk), priority: 5, category: 'soft' });
+    bump();
     for (const s of soft.slice(1)) deferred.push({ copyId: s.it.copyId, reason: 'soft_cap' });
   } else {
     for (const s of soft) deferred.push({ copyId: s.it.copyId, reason: ctx.isAnniversary ? 'anniversary_quiet' : 'soft_cap' });
