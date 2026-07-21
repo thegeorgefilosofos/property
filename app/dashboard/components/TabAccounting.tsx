@@ -31,6 +31,7 @@ import { printAccountingReport, downloadOfficialAccountingReport, type ReconLite
 import { printRentCertificate, downloadOfficialRentCertificate } from './rentCertificate'
 import ReportBuilder from './ReportBuilder'
 import JournalExport from './JournalExport'
+import OwnerSplit from './OwnerSplit'
 import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
 import { Printer, ShieldCheck } from 'lucide-react'
 
@@ -76,6 +77,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const branding = useReportBranding(userId)
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false)
   const [journalOpen, setJournalOpen] = useState(false)
+  const [splitOpen, setSplitOpen] = useState(false)
   const [genOfficial, setGenOfficial] = useState(false)
   const [genOfficialCert, setGenOfficialCert] = useState(false)
   const [loading,setLoading] = useState(true)
@@ -415,6 +417,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <button onClick={officialReport} disabled={genOfficial} title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:genOfficial?'wait':'pointer', opacity:genOfficial?0.6:1, fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{if(!genOfficial){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><ShieldCheck size={14}/>{genOfficial?'Δημιουργία…':'Επίσημο PDF'}</button>
           <button onClick={()=>setReportBuilderOpen(true)} title="Σύνθεση προσαρμοσμένης αναφοράς χαρτοφυλακίου: περίοδος, ακίνητα και ενότητες → επαληθεύσιμο PDF" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>Σύνθεση αναφοράς</button>
           <button onClick={()=>setJournalOpen(true)} title="Λογιστικό ημερολόγιο (double-entry) για τον λογιστή — εξαγωγή CSV για Soft1, Epsilon, QuickBooks ή Xero, με ισοζύγιο & tie-out" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Ημερολόγιο λογιστή</button>
+          <button onClick={()=>setSplitOpen(true)} title="Κατανομή εσόδων/εξόδων σε συνιδιοκτήτες + διαχειριστική αμοιβή — καθαρό ανά ιδιοκτήτη & επίσημη κατάσταση κατανομής" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Κατανομή ιδιοκτητών</button>
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
             <button onClick={()=>setYear(y=>y-1)} aria-label="Προηγούμενο έτος" style={{ width:34, height:34, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><ChevronLeft size={17}/></button>
             <span style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", minWidth:60, textAlign:'center', fontVariantNumeric:'tabular-nums' }}>{year}</span>
@@ -868,6 +871,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {showBankImport&&<BankImport propertyId={propertyId} userId={userId} year={year} onClose={()=>setShowBankImport(false)} onDone={()=>setRefreshKey(k=>k+1)} />}
       <ReportBuilder open={reportBuilderOpen} onClose={()=>setReportBuilderOpen(false)} userId={userId} supabase={supabase} branding={branding} />
       <JournalExport open={journalOpen} onClose={()=>setJournalOpen(false)} userId={userId} supabase={supabase} />
+      <OwnerSplit open={splitOpen} onClose={()=>setSplitOpen(false)} userId={userId} supabase={supabase} branding={branding} />
     </div>
   )
 }
