@@ -114,8 +114,8 @@ export function printPropertyStatement(c: StatementCtx): void {
   table{width:100%;border-collapse:collapse;break-inside:avoid}
   .idt{table-layout:fixed}
   .idt td{padding:7px 14px 7px 0;font-size:12px;border-bottom:1px solid #f1f3f4;vertical-align:top}
-  .idt .k{color:#6b7280;font-size:11.5px;white-space:nowrap;width:17%}
-  .idt .v{color:#111;font-weight:600;width:33%}
+  .idt .k{color:#6b7280;font-size:11.5px;width:20%;padding-right:12px}
+  .idt .v{color:#111;font-weight:600;width:30%}
   .idt .vlast{padding-right:0}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}

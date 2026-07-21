@@ -92,7 +92,6 @@ export default function BankRatesAdmin({ onSaved, showToast }:{
     <div style={{border:'1px solid var(--border-subtle)',borderRadius:14,background:'var(--bg-surface)',overflow:'hidden'}}>
       {/* Κεφαλίδα — συμπτυσσόμενη */}
       <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'11px 14px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left' as const}}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
         <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif"}}>Διαχείριση επιτοκίων</span>
         <InfoDot text="Ορατό μόνο σε διαχειριστές. Διόρθωσε χειροκίνητα ένα επιτόκιο ή τρέξε αυτόματη επικαιροποίηση με έρευνα ιστού. Η ημερομηνία επιβεβαίωσης ενημερώνεται αυτόματα."/>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
