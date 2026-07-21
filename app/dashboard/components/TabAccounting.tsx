@@ -28,7 +28,7 @@ import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_
 import { useReportBranding } from '@/lib/reportBranding'
 import { exportAccountantBundle } from './accountantExport'
 import { printAccountingReport, downloadOfficialAccountingReport, type ReconLite } from './accountingReport'
-import { printRentCertificate } from './rentCertificate'
+import { printRentCertificate, downloadOfficialRentCertificate } from './rentCertificate'
 import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
 import { Printer, ShieldCheck } from 'lucide-react'
 
@@ -73,6 +73,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const supabase = createClient()
   const branding = useReportBranding(userId)
   const [genOfficial, setGenOfficial] = useState(false)
+  const [genOfficialCert, setGenOfficialCert] = useState(false)
   const [loading,setLoading] = useState(true)
   const [year,setYear] = useState(athensYear())
   // Η καρτέλα ακολουθεί το προφίλ (Ρυθμίσεις): ο ιδιώτης βλέπει απλή εικόνα, ο
@@ -299,6 +300,19 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const months = paid.map((p:any)=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
     const total = months.reduce((s,m)=>s+m.amount,0)
     printRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding })
+  }
+  // Επίσημο true-PDF της βεβαίωσης ενοικίου (ίδια δεδομένα με την εκτυπώσιμη), με
+  // αρ. εγγράφου & QR επαλήθευσης — καταχωρείται στο μητρώο εγγράφων.
+  async function officialRentCertificate(){
+    if(genOfficialCert) return
+    const paid = rent.filter((p:any)=>p.paid&&p.period_year===year).sort((a:any,b:any)=>(a.period_month||0)-(b.period_month||0))
+    const months = paid.map((p:any)=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
+    const total = months.reduce((s,m)=>s+m.amount,0)
+    setGenOfficialCert(true)
+    try {
+      await downloadOfficialRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding }, { supabase, userId })
+    } catch { alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
+    finally { setGenOfficialCert(false) }
   }
   // Υπογραφή από ΜΟΝΙΜΑ δεδομένα (όχι από επιλογές εμφάνισης όπως ιδιώτης/επιχείρηση,
   // ηλικία, ΕΦΚΑ), ώστε η «απόκλιση» να σημαίνει πραγματική αλλαγή σε ενοίκια/έξοδα.
@@ -812,7 +826,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </div>
           )}
           {rs.collectedTotal>0&&(
-            <button onClick={printCertificate} title="Ετήσια βεβαίωση καταβληθέντων ενοικίων (PDF) για τον μισθωτή" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', marginTop:12, borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={13}/>Βεβαίωση ενοικίου</button>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:12 }}>
+              <button onClick={printCertificate} title="Ετήσια βεβαίωση καταβληθέντων ενοικίων (PDF) για τον μισθωτή" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={13}/>Βεβαίωση ενοικίου</button>
+              <button onClick={officialRentCertificate} disabled={genOfficialCert} title="Επίσημο true-PDF βεβαίωσης ενοικίου με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:genOfficialCert?'wait':'pointer', opacity:genOfficialCert?0.6:1, fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{if(!genOfficialCert){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><ShieldCheck size={14}/>{genOfficialCert?'Δημιουργία…':'Επίσημο PDF'}</button>
+            </div>
           )}
         </div>
 

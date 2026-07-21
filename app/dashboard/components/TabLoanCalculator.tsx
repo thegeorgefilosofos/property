@@ -7,6 +7,11 @@ import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 import { Badge } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
+import { createClient } from '@/lib/supabase/client'
+import { useReportBranding } from '@/lib/reportBranding'
+import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport'
+import { issueDocument } from '@/lib/documents/issue'
+import { ShieldCheck } from 'lucide-react'
 import {
   BANKS, LOAN_TYPES, BORROWER_PROFILES, TAX_DATA,
   calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax,
@@ -480,6 +485,9 @@ const NATURAL_BORROWERS:BorrowerType[] = ['individual','young','family','senior'
 const BUSINESS_BORROWERS:BorrowerType[] = ['professional','company']
 
 export default function TabLoanCalculator({propertyId,userId,market,initial,applied,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange,profile='individual'}:Props) {
+  const supabase = createClient()
+  const branding = useReportBranding(userId)
+  const [genOfficial, setGenOfficial] = useState(false)
   const [loanAmount,  setLoanAmount]  = useState(initial?.loanAmount || '150000')
   const [propValue,   setPropValue]   = useState(initial?.propValue || '185000')
   const [sqm,         setSqm]         = useState(initial?.sqm || '80')
@@ -725,6 +733,54 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       + `</div></body></html>`
     openReport(html)
     showToast('Άνοιξε το παράθυρο εκτύπωσης PDF')
+  }
+
+  // ── Επίσημο true-PDF τοκοχρεολυσίου (vector PDF με αρ. εγγράφου & QR επαλήθευσης) ─
+  // Καταχωρείται στο μητρώο εγγράφων ώστε να είναι επαληθεύσιμο στο /verify/<id>.
+  // Η μηχανή σελιδοποιεί αυτόματα τον πλήρη πίνακα δόσεων σε πολλές σελίδες.
+  async function officialAmort(){
+    if(genOfficial) return
+    if(!amort.length){showToast('Δεν υπάρχουν δόσεις προς εξαγωγή');return}
+    const bankLabel = bankName || 'Μη καθορισμένη'
+    const termLabel = `${Y} έτη (${Y*12} δόσεις)`
+    const totalRepayment = LA+totalInt
+    setGenOfficial(true)
+    try {
+      const sections: PdfSection[] = [
+        { type:'kpis', title:'Σύνοψη δανείου', items:[
+          { label:'Ποσό δανείου', value:pEur(LA) },
+          { label:'Μηνιαία δόση', value:pEur(monthly) },
+          { label:'Σύνολο τόκων', value:pEur(totalInt) },
+          { label:'Συνολική αποπληρωμή', value:pEur(totalRepayment) },
+        ] },
+        { type:'rows', title:'Στοιχεία δανείου', rows:[
+          { label:'Τράπεζα', value:bankLabel },
+          { label:'Επιτόκιο', value:pPct(effRate) },
+          { label:'Διάρκεια', value:termLabel },
+        ] },
+        { type:'table', title:'Πίνακας τοκοχρεολυσίου',
+          head:['Δόση','Ημ/νία','Ποσό','Κεφάλαιο','Τόκος','Υπόλοιπο','Σωρ. τόκοι'],
+          align:['l','l','r','r','r','r','r'],
+          rows: amort.map(r=>{
+            const dt=installmentDate(r.month).toLocaleDateString('el-GR',{month:'2-digit',year:'numeric'})
+            return [String(r.month), dt, pEur(r.payment), pEur(r.principal), pEur(r.interest), pEur(r.balance), pEur(r.totalInterestPaid)]
+          }) },
+      ]
+      const issued = await issueDocument(supabase, {
+        userId, docType:'Πίνακας τοκοχρεολυσίου',
+        subject: bankLabel||'Δάνειο', period: termLabel,
+        summary:{ amount:LA, rate:effRate, totalInterest:totalInt },
+      })
+      const model: PdfReportModel = {
+        branding, docType:'Πίνακας τοκοχρεολυσίου', title:'Πίνακας τοκοχρεολυσίου',
+        subtitle:[bankLabel, termLabel].filter(Boolean).join(' · '),
+        meta:{ id:issued.id, issuedAt:issued.issuedAt, verifyUrl:issued.verifyUrl },
+        sections,
+        disclaimer:'Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.',
+      }
+      await generateReportPdf(model, 'Τοκοχρεολύσιο_'+(bankLabel||'δάνειο'))
+    } catch { alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
+    finally { setGenOfficial(false) }
   }
 
   return (
@@ -1215,6 +1271,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             Εκτύπωση / PDF
+          </button>
+          <button onClick={officialAmort} disabled={genOfficial} title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:genOfficial?'wait':'pointer',opacity:genOfficial?0.6:1}}>
+            <ShieldCheck size={15}/>
+            {genOfficial?'Δημιουργία…':'Επίσημο PDF'}
           </button>
           <button onClick={exportAmortCsv} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
