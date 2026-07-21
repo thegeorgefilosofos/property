@@ -76,7 +76,7 @@ export async function proxy(request: NextRequest) {
   // Το /privacy & /terms ΠΡΕΠΕΙ να είναι δημόσια (απαίτηση GDPR).
   const PUBLIC = new Set(["/", "/login", "/signup", "/privacy", "/terms"]);
   // Η πύλη ενοικιαστή (/portal/<token>) είναι δημόσια — πρόσβαση χωρίς login.
-  const isPublic = PUBLIC.has(pathname) || pathname.startsWith("/portal/") || pathname.startsWith("/verify/");
+  const isPublic = PUBLIC.has(pathname) || pathname.startsWith("/portal/") || pathname.startsWith("/verify/") || pathname.startsWith("/unsubscribe/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
