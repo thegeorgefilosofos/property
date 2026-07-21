@@ -29,6 +29,7 @@ import { useReportBranding } from '@/lib/reportBranding'
 import { exportAccountantBundle } from './accountantExport'
 import { printAccountingReport, downloadOfficialAccountingReport, type ReconLite } from './accountingReport'
 import { printRentCertificate, downloadOfficialRentCertificate } from './rentCertificate'
+import ReportBuilder from './ReportBuilder'
 import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
 import { Printer, ShieldCheck } from 'lucide-react'
 
@@ -72,6 +73,7 @@ function Check({ checked, onChange, label, hint, align='center' }:{ checked:bool
 export default function TabAccounting({ propertyId, userId, profileType='individual' }: { propertyId:string; userId:string; profileType?:'individual'|'professional' }) {
   const supabase = createClient()
   const branding = useReportBranding(userId)
+  const [reportBuilderOpen, setReportBuilderOpen] = useState(false)
   const [genOfficial, setGenOfficial] = useState(false)
   const [genOfficialCert, setGenOfficialCert] = useState(false)
   const [loading,setLoading] = useState(true)
@@ -409,6 +411,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <button onClick={()=>setShowBankImport(true)} title="Εισαγωγή τραπεζικής κίνησης (CSV) και αυτόματη αντιστοίχιση σε ενοίκια/έξοδα" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Landmark size={14}/>Τράπεζα</button>
           <button onClick={printReport} title="Λογιστική αναφορά (PDF) για τον λογιστή/τράπεζα" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={14}/>Αναφορά</button>
           <button onClick={officialReport} disabled={genOfficial} title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:genOfficial?'wait':'pointer', opacity:genOfficial?0.6:1, fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{if(!genOfficial){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><ShieldCheck size={14}/>{genOfficial?'Δημιουργία…':'Επίσημο PDF'}</button>
+          <button onClick={()=>setReportBuilderOpen(true)} title="Σύνθεση προσαρμοσμένης αναφοράς χαρτοφυλακίου: περίοδος, ακίνητα και ενότητες → επαληθεύσιμο PDF" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>Σύνθεση αναφοράς</button>
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
             <button onClick={()=>setYear(y=>y-1)} aria-label="Προηγούμενο έτος" style={{ width:34, height:34, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><ChevronLeft size={17}/></button>
             <span style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", minWidth:60, textAlign:'center', fontVariantNumeric:'tabular-nums' }}>{year}</span>
@@ -860,6 +863,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       </div>
 
       {showBankImport&&<BankImport propertyId={propertyId} userId={userId} year={year} onClose={()=>setShowBankImport(false)} onDone={()=>setRefreshKey(k=>k+1)} />}
+      <ReportBuilder open={reportBuilderOpen} onClose={()=>setReportBuilderOpen(false)} userId={userId} supabase={supabase} branding={branding} />
     </div>
   )
 }

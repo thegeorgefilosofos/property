@@ -1,0 +1,303 @@
+'use client';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ReportBuilder — ελαφρύς δημιουργός αναφορών: διάλεξε περίοδο + ακίνητα +
+// ενότητες και πάρε ένα επίσημο, επαληθεύσιμο true-PDF (μέσω lib/pdf/pdfReport,
+// με αρ. εγγράφου + QR). Αποθηκευμένα προφίλ (presets) στο localStorage ώστε η
+// ίδια αναφορά να ξαναβγαίνει με ένα κλικ κάθε μήνα/χρόνο.
+//
+// Τα δεδομένα αντλούνται μόνα τους (user_properties / rent_payments / expenses)
+// με βάση τα επιλεγμένα ακίνητα και την περίοδο· καμία εξάρτηση από MCP.
+// ═══════════════════════════════════════════════════════════════════════════
+import { useEffect, useMemo, useState } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { T, TT, Btn, Badge } from '@/components/Theme';
+import { issueDocument } from '@/lib/documents/issue';
+import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
+import type { ReportBranding } from '@/lib/reportBranding';
+
+interface Prop { id: string; name: string; address: string | null }
+interface RentRow { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid: boolean | null }
+interface ExpRow { property_id: string | null; date: string | null; amount: number | null; category: string | null }
+
+const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
+const SECTIONS = [
+  { key: 'summary', label: 'Σύνοψη (δείκτες)', hint: 'Έσοδα, εισπράξεις, δαπάνες, καθαρό' },
+  { key: 'byProperty', label: 'Ανά ακίνητο', hint: 'Εισπράξεις / δαπάνες / καθαρό ανά ακίνητο' },
+  { key: 'rent', label: 'Συμφωνία ενοικίων', hint: 'Αναμενόμενα / εισπραχθέντα ανά μήνα' },
+  { key: 'expenses', label: 'Δαπάνες ανά κατηγορία', hint: 'Σύνολα δαπανών ανά κατηγορία' },
+] as const;
+type SectionKey = typeof SECTIONS[number]['key'];
+
+const PRESET_KEY = 'po_report_presets_v1';
+interface Preset { name: string; month: number; sections: SectionKey[]; propIds: string[] }
+
+const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+export default function ReportBuilder({ open, onClose, userId, supabase, branding }: {
+  open: boolean; onClose: () => void; userId: string; supabase: SupabaseClient; branding?: ReportBranding | null;
+}) {
+  const nowYear = new Date().getFullYear();
+  const [props, setProps] = useState<Prop[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [year, setYear] = useState(nowYear);
+  const [month, setMonth] = useState(0);                 // 0 = όλο το έτος
+  const [propIds, setPropIds] = useState<Set<string>>(new Set());
+  const [sections, setSections] = useState<Set<SectionKey>>(new Set(['summary', 'byProperty', 'rent', 'expenses']));
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetName, setPresetName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    try { setPresets(JSON.parse(localStorage.getItem(PRESET_KEY) || '[]')); } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    supabase.from('user_properties').select('id,name,address').eq('user_id', userId).order('name')
+      .then(({ data }) => {
+        const ps = (data || []) as Prop[];
+        setProps(ps);
+        setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id)));
+        setLoading(false);
+      });
+  }, [open, userId, supabase]);
+
+  const savePresets = (list: Preset[]) => { setPresets(list); try { localStorage.setItem(PRESET_KEY, JSON.stringify(list)); } catch { /* ignore */ } };
+  const addPreset = () => {
+    const name = presetName.trim(); if (!name) return;
+    const p: Preset = { name, month, sections: [...sections], propIds: [...propIds] };
+    savePresets([...presets.filter(x => x.name !== name), p]); setPresetName('');
+  };
+  const applyPreset = (p: Preset) => {
+    setMonth(p.month); setSections(new Set(p.sections));
+    setPropIds(new Set(p.propIds.filter(id => props.some(pr => pr.id === id))));
+  };
+
+  const yearsAvail = useMemo(() => Array.from({ length: 7 }, (_, i) => nowYear - i), [nowYear]);
+  const selProps = useMemo(() => props.filter(p => propIds.has(p.id)), [props, propIds]);
+
+  const toggle = <X,>(set: Set<X>, v: X, setter: (s: Set<X>) => void) => { const n = new Set(set); n.has(v) ? n.delete(v) : n.add(v); setter(n); };
+
+  if (!open) return null;
+
+  const periodLabel = month === 0 ? `Έτος ${year}` : `${MONTHS[month - 1]} ${year}`;
+
+  const generate = async () => {
+    setErr('');
+    if (!selProps.length) { setErr('Διάλεξε τουλάχιστον ένα ακίνητο.'); return; }
+    if (!sections.size) { setErr('Διάλεξε τουλάχιστον μία ενότητα.'); return; }
+    setBusy(true);
+    try {
+      const ids = selProps.map(p => p.id);
+      const nameById = new Map(selProps.map(p => [p.id, p.name]));
+
+      // ── Άντληση δεδομένων περιόδου (RLS: μόνο του χρήστη) ──────────────────
+      let rentQ = supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid').in('property_id', ids).eq('period_year', year);
+      if (month > 0) rentQ = rentQ.eq('period_month', month);
+      const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
+      const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
+      const [{ data: rentData }, { data: expData }] = await Promise.all([
+        rentQ,
+        supabase.from('expenses').select('property_id,date,amount,category').in('property_id', ids).gte('date', from).lte('date', to),
+      ]);
+      const rents = (rentData || []) as RentRow[];
+      const exps = (expData || []) as ExpRow[];
+
+      // ── Συγκεντρωτικά ─────────────────────────────────────────────────────
+      const expected = rents.reduce((s, r) => s + num(r.amount), 0);
+      const collected = rents.reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0);
+      const outstanding = Math.max(0, expected - collected);
+      const expTotal = exps.reduce((s, e) => s + num(e.amount), 0);
+      const net = collected - expTotal;
+
+      const built: PdfSection[] = [];
+
+      if (sections.has('summary')) {
+        built.push({ type: 'kpis', title: 'Σύνοψη', items: [
+          { label: 'Αναμενόμενα ενοίκια', value: pEur(expected) },
+          { label: 'Εισπράχθηκαν', value: pEur(collected) },
+          { label: 'Δαπάνες', value: pEur(expTotal) },
+          { label: 'Καθαρό αποτέλεσμα', value: pSigned(net) },
+        ] });
+      }
+
+      if (sections.has('byProperty')) {
+        const rows = selProps.map(p => {
+          const c = rents.filter(r => r.property_id === p.id).reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0);
+          const e = exps.filter(x => x.property_id === p.id).reduce((s, x) => s + num(x.amount), 0);
+          return [p.name, pEur(c), pEur(e), pSigned(c - e)];
+        });
+        built.push({ type: 'table', title: 'Ανά ακίνητο', head: ['Ακίνητο', 'Εισπράχθηκαν', 'Δαπάνες', 'Καθαρό'], align: ['l', 'r', 'r', 'r'],
+          rows, result: ['Σύνολο', pEur(collected), pEur(expTotal), pSigned(net)] });
+      }
+
+      if (sections.has('rent')) {
+        // Ανά μήνα (ή μία γραμμή αν επιλεγμένος μήνας).
+        const months = month > 0 ? [month] : Array.from({ length: 12 }, (_, i) => i + 1);
+        const rows = months.map(m => {
+          const mr = rents.filter(r => r.period_month === m);
+          const exp = mr.reduce((s, r) => s + num(r.amount), 0);
+          const col = mr.reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0);
+          const status = exp === 0 ? '—' : col >= exp ? 'Πλήρης' : col > 0 ? 'Μερική' : 'Εκκρεμεί';
+          return [MONTHS[m - 1], `${pEur(col)} / ${pEur(exp)}`, status];
+        }).filter(r => r[1] !== `${pEur(0)} / ${pEur(0)}`);
+        built.push({ type: 'table', title: 'Συμφωνία ενοικίων', head: ['Περίοδος', 'Εισπράχθηκε / Αναμενόμενο', 'Κατάσταση'], align: ['l', 'r', 'r'],
+          rows: rows.length ? rows : [['—', `${pEur(0)} / ${pEur(0)}`, '—']],
+          result: ['Σύνολο', `${pEur(collected)} / ${pEur(expected)}`, outstanding > 0 ? `Ανείσπρακτα ${pEur(outstanding)}` : 'Πλήρης'] });
+      }
+
+      if (sections.has('expenses')) {
+        const byCat = new Map<string, number>();
+        for (const e of exps) { const k = e.category || 'Λοιπά'; byCat.set(k, (byCat.get(k) || 0) + num(e.amount)); }
+        const rows = [...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, pEur(v)]);
+        built.push({ type: 'table', title: 'Δαπάνες ανά κατηγορία', head: ['Κατηγορία', 'Ποσό'], align: ['l', 'r'],
+          rows: rows.length ? rows : [['—', pEur(0)]], result: ['Σύνολο', pEur(expTotal)] });
+      }
+
+      const subject = selProps.length === 1 ? selProps[0].name : `${selProps.length} ακίνητα`;
+      const issued = await issueDocument(supabase, {
+        userId, docType: 'Αναφορά χαρτοφυλακίου', subject, period: periodLabel,
+        summary: { properties: selProps.length, expected, collected, expenses: expTotal, net },
+      });
+
+      const model: PdfReportModel = {
+        branding: branding ?? null, docType: 'Αναφορά χαρτοφυλακίου',
+        title: selProps.length === 1 ? selProps[0].name : 'Αναφορά χαρτοφυλακίου',
+        subtitle: [periodLabel, selProps.length > 1 ? `${selProps.length} ακίνητα` : selProps[0].address].filter(Boolean).join(' · '),
+        meta: { id: issued.id, issuedAt: issued.issuedAt, verifyUrl: issued.verifyUrl, note: periodLabel },
+        sections: built,
+        disclaimer: 'Η αναφορά συντάχθηκε από τα καταχωρημένα στοιχεία εσόδων/εξόδων της περιόδου και προορίζεται για ενημερωτική χρήση.',
+      };
+      await generateReportPdf(model, `Αναφορά_${subject}_${periodLabel}`.replace(/\s+/g, '_'));
+      onClose();
+    } catch (e: any) {
+      setErr(e?.message || 'Αποτυχία δημιουργίας αναφοράς.');
+    } finally { setBusy(false); }
+  };
+
+  // ── Στυλ ───────────────────────────────────────────────────────────────────
+  const field: React.CSSProperties = {
+    height: 40, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)',
+    background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
+  };
+  const pill = (on: boolean): React.CSSProperties => ({
+    fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left',
+    border: `1px solid ${on ? 'var(--accent-border)' : 'var(--border-default)'}`,
+    background: on ? 'var(--accent-soft)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans,
+  });
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(720px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ ...TT.h2 }}>Δημιουργία αναφοράς</div>
+            <div style={{ ...TT.bodySm, marginTop: 1 }}>Περίοδος, ακίνητα & ενότητες → επίσημο, επαληθεύσιμο PDF</div>
+          </div>
+          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
+        </div>
+
+        <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {presets.length > 0 && (
+            <div>
+              <div style={{ ...TT.label, marginBottom: 8 }}>Αποθηκευμένα προφίλ</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {presets.map(p => (
+                  <span key={p.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 6px 4px 12px' }}>
+                    <button onClick={() => applyPreset(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{p.name}</button>
+                    <button onClick={() => savePresets(presets.filter(x => x.name !== p.name))} title="Διαγραφή" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '0 2px' }}>×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Περίοδος */}
+          <div>
+            <div style={{ ...TT.label, marginBottom: 8 }}>Περίοδος</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...field, minWidth: 110 }}>
+                {yearsAvail.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ ...field, minWidth: 150 }}>
+                <option value={0}>Όλο το έτος</option>
+                {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Ακίνητα */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ ...TT.label }}>Ακίνητα</div>
+              {props.length > 0 && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => setPropIds(new Set(props.map(p => p.id)))} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700 }}>Όλα</button>
+                  <button onClick={() => setPropIds(new Set())} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontWeight: 700 }}>Κανένα</button>
+                </div>
+              )}
+            </div>
+            {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? (
+              <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα ακόμη.</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 210px), 1fr))', gap: 8 }}>
+                {props.map(p => (
+                  <button key={p.id} onClick={() => toggle(propIds, p.id, setPropIds)} style={pill(propIds.has(p.id))}>
+                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Ενότητες */}
+          <div>
+            <div style={{ ...TT.label, marginBottom: 8 }}>Ενότητες</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
+              {SECTIONS.map(s => {
+                const on = sections.has(s.key);
+                return (
+                  <button key={s.key} onClick={() => toggle(sections, s.key, setSections)} style={{ ...pill(on), display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ width: 16, height: 16, marginTop: 1, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {on && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
+                    </span>
+                    <span>
+                      <span style={{ display: 'block', fontWeight: 700 }}>{s.label}</span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, fontWeight: 400 }}>{s.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Αποθήκευση προφίλ */}
+          <div>
+            <div style={{ ...TT.label, marginBottom: 8 }}>Αποθήκευση ως προφίλ (προαιρετικό)</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="π.χ. Μηνιαία σύνοψη" style={{ ...field, flex: 1 }} />
+              <Btn variant="secondary" onClick={addPreset} disabled={!presetName.trim()}>Αποθήκευση</Btn>
+            </div>
+          </div>
+
+          {err && <div style={{ fontSize: 12.5, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
+          <span style={{ ...TT.bodySm }}>{selProps.length} ακίν. · {periodLabel} · <Badge tone="neutral">επαληθεύσιμο PDF</Badge></span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
+            <Btn variant="primary" onClick={generate} disabled={busy || !selProps.length || !sections.size}>{busy ? 'Δημιουργία…' : 'Δημιουργία PDF'}</Btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
