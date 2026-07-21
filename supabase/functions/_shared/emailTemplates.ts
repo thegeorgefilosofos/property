@@ -157,7 +157,15 @@ export interface Personal extends Ctx {
   // Ενοποιημένα (digests): όταν πολλά μηνύματα της ίδιας μέρας συγχωνεύονται σε ένα,
   // ο scheduler περνά εδώ τη λίστα των θεμάτων (τίτλος + σύντομη λεπτομέρεια).
   digestItems?: Array<{ title: string; detail?: string }>;
+  // Φύλο παραλήπτη/ενοικιαστή (από το όνομα, βλ. gender.ts) ώστε το κείμενο να
+  // απευθύνεται σωστά· 'unknown' → ουδέτερη, πάντα ασφαλής διατύπωση.
+  gender?: 'male' | 'female' | 'unknown';
+  tenantGender?: 'male' | 'female' | 'unknown';
 }
+
+// Επιλογή σωστού τύπου ανά φύλο· άγνωστο → ουδέτερο (ασφαλές).
+export const gv = (g: 'male' | 'female' | 'unknown' | undefined, forms: { m: string; f: string; n: string }): string =>
+  g === 'male' ? forms.m : g === 'female' ? forms.f : forms.n;
 type Out = { subject: string; html: string };
 const app = (c: Ctx) => c.appUrl || DEFAULT_APP;
 

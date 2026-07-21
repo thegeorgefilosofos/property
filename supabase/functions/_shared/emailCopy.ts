@@ -16,7 +16,7 @@
 // 11) Ενίσχυση μετατροπής 12) Συμμόρφωση 13) Συνδρομή & Χρέωση
 // 14) Σχέσεις 15) Αξία & Εξοικονόμηση. Στρατηγική: docs/marketing/email-strategy.md.
 // ═══════════════════════════════════════════════════════════════════════════
-import { emailShell, eyebrow, h, p, bullets, button, greeting, note, heroStat, PLAN_LABEL, type Personal } from './emailTemplates.ts'
+import { emailShell, eyebrow, h, p, bullets, button, greeting, note, heroStat, gv, PLAN_LABEL, type Personal } from './emailTemplates.ts'
 
 const app = (c: Personal) => c.appUrl || 'https://propertyos.gr'
 const dash = (c: Personal) => `${app(c)}/dashboard`
@@ -284,9 +284,9 @@ export const ENGAGEMENT: Record<string, CopyFn> = {
   market_digest: (c) => ({
     subject: 'Τα επιτόκια αυτή την εβδομάδα',
     html: emailShell({
-      preheader: 'Euribor, ΕΚΤ και στεγαστικά, με μια ματιά.', unsubUrl: c.unsubUrl,
+      preheader: 'Ο δείκτης Euribor, η ΕΚΤ και τα στεγαστικά, με μια ματιά.', unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Δεδομένα αγοράς') + h('Πού κινούνται τα επιτόκια') + greeting(c.name)
-        + p('Κάθε εβδομάδα βλέπεις πού βρίσκονται τα Euribor, το επιτόκιο της ΕΚΤ και τα στεγαστικά, για να αξιολογείς δανεισμό ή αναχρηματοδότηση όποτε θες.')
+        + p('Κάθε εβδομάδα βλέπεις πού βρίσκεται <b>ο δείκτης Euribor</b>, το <b>επιτόκιο της ΕΚΤ</b> και τα <b>στεγαστικά επιτόκια</b>, για να αξιολογείς δανεισμό ή αναχρηματοδότηση όποτε θες.')
         + p('Η εικόνα αλλάζει γρήγορα. Μια ματιά την εβδομάδα σε κρατά μπροστά.')
         + button('Δες τα επιτόκια', dash(c))
         + note('Χρήσιμο για την αξιολόγηση δανείων και αποδόσεων στο Property OS.'),
@@ -981,8 +981,8 @@ export const OPERATIONS: Record<string, CopyFn> = {
     return { subject: 'Τακτοποίησε την εγγύηση', html: emailShell({
       preheader: 'Μια εκκρεμότητα που θέλει καθαρό κλείσιμο.', unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Εγγύηση') + h('Ώρα να τακτοποιηθεί η εγγύηση') + greeting(c.name)
-        + p(`Με τη λήξη της μίσθωσης${ref}, η εγγύηση${amt} χρειάζεται τακτοποίηση: επιστροφή στον ενοικιαστή ή συμψηφισμό με τυχόν οφειλές και ζημιές.`)
-        + p('Κατάγραψε την κίνηση, ώστε τα βιβλία σου να μένουν καθαρά και η σχέση με τον ενοικιαστή ξεκάθαρη.')
+        + p(`Με τη λήξη της μίσθωσης${ref}, η εγγύηση${amt} χρειάζεται τακτοποίηση: επιστροφή ${gv(c.tenantGender, { m: 'στον ενοικιαστή', f: 'στην ενοικιάστρια', n: 'στον μισθωτή' })} ή συμψηφισμό με τυχόν οφειλές και ζημιές.`)
+        + p(`Κατάγραψε την κίνηση, ώστε τα βιβλία σου να μένουν καθαρά και η σχέση ${gv(c.tenantGender, { m: 'με τον ενοικιαστή', f: 'με την ενοικιάστρια', n: 'με τον μισθωτή' })} ξεκάθαρη.`)
         + button('Δες την εγγύηση', dash(c))
         + note(NOTE.dataOwn),
     }) };
