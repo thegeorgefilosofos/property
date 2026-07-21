@@ -19,7 +19,7 @@ export const pEur = (n: number | null | undefined): string =>
 export const pSigned = (n: number | null | undefined): string =>
   ((n ?? 0) < 0 ? `−${pEur(Math.abs(n ?? 0))}` : pEur(n ?? 0));
 export const pPct = (n: number | null | undefined): string =>
-  `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+  `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 export const pDate = (d?: string | Date | null): string => {
   const t = d ? new Date(d) : new Date();
   return isNaN(t.getTime()) ? '' : t.toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });

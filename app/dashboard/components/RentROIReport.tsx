@@ -56,7 +56,7 @@ export default function RentROIReport({
       reportSection('Κατάσταση αποτελεσμάτων χρήσης (P&L)')
       + `<table><tbody>${plRows}</tbody></table>`
       + `<div class="kpis" style="margin-top:14px">`
-      + reportKpi('Απόσβεση', calc.payback > 0 ? `${calc.payback.toFixed(1)} χρ` : '—')
+      + reportKpi('Απόσβεση', calc.payback > 0 ? `${calc.payback.toLocaleString('el-GR', { maximumFractionDigits: 1 })} χρ` : '—')
       + reportKpi('Πραγματική απόδοση (με κόστη απόκτησης)', rPct(calc.trueYield))
       + reportKpi('Πραγματικός φορ. συντελεστής', rPct(calc.effectiveRate))
       + reportKpi('Breakeven / μήνα', rEur(calc.breakeven))
@@ -66,13 +66,14 @@ export default function RentROIReport({
         : '');
 
     // ── Σύγκριση με την αγορά ─────────────────────────────────────────────
+    const bpct = (v: unknown) => `${Number(v ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
     const benchBlock = bench
-      ? reportSection(`Σύγκριση με την αγορά · ${bench.market_label}`)
+      ? reportSection(`Σύγκριση με τον δείκτη αγοράς · ${bench.market_label}`)
         + `<table><thead><tr><th>Δείκτης</th><th class="n">Δικό σου</th><th class="np">Αναφορά</th></tr></thead><tbody>`
-        + `<tr><td>Μεικτή απόδοση</td><td class="n">${rEsc(rPct(calc.grossYield))}</td><td class="np">Αγορά ${rEsc(bench.market_gross)}%</td></tr>`
-        + `<tr><td>Καθαρή απόδοση</td><td class="n">${rEsc(rPct(calc.netYield))}</td><td class="np">Στόχος &gt;${rEsc(bench.target_net)}%</td></tr>`
-        + `<tr><td>Απόδοση έναντι EURIBOR</td><td class="n">+${rEsc(rPct(Math.max(calc.netYield - parseFloat(bench.euribor), 0)))}</td><td class="np">EURIBOR ${rEsc(bench.euribor)}%</td></tr>`
-        + `<tr><td>Σύγκριση με ETF</td><td class="n">${rEsc(calc.netYield >= parseFloat(bench.etf_return) ? 'Νικά ETF' : 'Κάτω ETF')}</td><td class="np">ETF ${rEsc(bench.etf_return)}%/έτος</td></tr>`
+        + `<tr><td>Μεικτή απόδοση</td><td class="n">${rEsc(rPct(calc.grossYield))}</td><td class="np">Αγορά ${rEsc(bpct(bench.market_gross))}</td></tr>`
+        + `<tr><td>Καθαρή απόδοση</td><td class="n">${rEsc(rPct(calc.netYield))}</td><td class="np">Στόχος &gt; ${rEsc(bpct(bench.target_net))}</td></tr>`
+        + `<tr><td>Απόδοση έναντι του δείκτη Euribor</td><td class="n">+${rEsc(rPct(Math.max(calc.netYield - parseFloat(bench.euribor), 0)))}</td><td class="np">Euribor ${rEsc(bpct(bench.euribor))}</td></tr>`
+        + `<tr><td>Σύγκριση με ETF</td><td class="n">${rEsc(calc.netYield >= parseFloat(bench.etf_return) ? 'Νικά ETF' : 'Κάτω ETF')}</td><td class="np">ETF ${rEsc(bpct(bench.etf_return))}/έτος</td></tr>`
         + `</tbody></table>`
       : '';
 
@@ -80,7 +81,7 @@ export default function RentROIReport({
     const loanBlock = calc.loanBal > 0
       ? reportSection('Ανάλυση δανείου')
         + `<div class="kpis">`
-        + reportKpi('DSCR · κάλυψη δανείου', `${calc.DSCR.toFixed(2)}x`)
+        + reportKpi('DSCR · κάλυψη δανείου', `${calc.DSCR.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`)
         + reportKpi('LTV · δάνειο / αξία', rPct(calc.LTV))
         + reportKpi('Ίδια κεφάλαια', rEur(calc.equity))
         + reportKpi('Ταμειακή ροή / μήνα', rSigned(calc.cfDebt / 12))
@@ -161,7 +162,7 @@ export default function RentROIReport({
         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
         <rect x="6" y="14" width="12" height="8" />
       </svg>
-      {printing ? 'Εκτύπωση...' : 'Εξαγωγή PDF'}
+      {printing ? 'Εκτύπωση…' : 'Εξαγωγή PDF'}
     </button>
   );
 }

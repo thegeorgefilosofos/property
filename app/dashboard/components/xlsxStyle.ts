@@ -16,7 +16,7 @@ export const FMT = {
   eur: '[$-408]#,##0.00" €";[$-408]-#,##0.00" €"',  // «1.234,56 €», αρνητικά με πρόσημο
   int: '[$-408]#,##0',
   dec2: '[$-408]#,##0.##',      // αριθμός με δεκαδικά μόνο όταν υπάρχουν (π.χ. τ.μ. 85,5)
-  pct: '[$-408]0.00"%"',        // «18,00%» — δύο δεκαδικά, ελληνικό κόμμα
+  pct: '[$-408]0.00" %"',       // «18,00 %» — δύο δεκαδικά, κενό πριν το σύμβολο, ελληνικό κόμμα
   date: 'dd/mm/yyyy',
 } as const;
 
@@ -54,9 +54,11 @@ export type Cell = { v?: string | number | Date; t?: string; z?: string; s?: obj
 // ΠΑΝΤΑ ελληνικά («60,00 €», «18,00%»), γράφουμε τα ποσά/ποσοστά ως κείμενο
 // προ-μορφοποιημένο με toLocaleString('el-GR') — ίδια εμφάνιση σε κάθε Excel.
 export const money = (n?: number | null) => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-export const moneySigned = (n?: number | null) => ((n ?? 0) < 0 ? `−${money(Math.abs(n ?? 0))}` : money(n ?? 0));
-export const percent = (n?: number | null) => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+export const moneySigned = (n?: number | null) => ((n ?? 0) < 0 ? `-${money(Math.abs(n ?? 0))}` : money(n ?? 0));
+export const percent = (n?: number | null) => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 export const intGr = (n?: number | null) => (n ?? 0).toLocaleString('el-GR');
+// τ.μ. / πλήθη με έως 2 δεκαδικά, χωρίς σύμβολο (π.χ. εμβαδόν 85,5)
+export const dec2 = (n?: number | null) => (n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 /** Ασφαλής εφαρμογή στυλ/τύπου/μορφής σε κελί (δημιουργεί το κελί αν λείπει). */
 export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial<Cell>): void {

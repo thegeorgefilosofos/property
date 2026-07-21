@@ -1,6 +1,6 @@
-import * as C from '../../../../../home/user/property/supabase/functions/_shared/emailCopy.ts'
-import { type Personal, type CopyFn } from '../../../../../home/user/property/supabase/functions/_shared/emailTemplates.ts'
-import { policyFor, SLOT_TIME } from '../../../../../home/user/property/supabase/functions/_shared/emailPolicy.ts'
+import * as C from '../../../supabase/functions/_shared/emailCopy.ts'
+import { type Personal, type CopyFn } from '../../../supabase/functions/_shared/emailTemplates.ts'
+import { policyFor, SLOT_TIME } from '../../../supabase/functions/_shared/emailPolicy.ts'
 import { writeFileSync } from 'node:fs'
 
 const PRIO_LABEL: Record<number, string> = { 1: 'Συναλλακτικό', 2: 'Υποχρέωση', 3: 'Ευκαιρία', 4: 'Ενημέρωση', 5: 'Προαιρετικό' }

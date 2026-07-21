@@ -44,8 +44,8 @@ export function adjustmentNoticeText(o: {
     : 'κατόπιν συμφωνίας των μερών';
   return `Προς τον/την μισθωτή${o.tenantName ? ` κ. ${o.tenantName}` : ''},\n\n`
     + `Σας γνωστοποιώ ότι, ${basis}, το μηνιαίο μίσθωμα του ακινήτου${o.address ? ` επί της οδού ${o.address}` : ''} `
-    + `αναπροσαρμόζεται από ${o.effectiveDate}. Το ισχύον μίσθωμα ανέρχεται σε ${o.res.currentRent.toLocaleString('el-GR', { minimumFractionDigits: 2 })} € και `
-    + `το νέο μηνιαίο μίσθωμα διαμορφώνεται σε ${o.res.newRent.toLocaleString('el-GR', { minimumFractionDigits: 2 })} € `
-    + `(μεταβολή ${o.res.pctApplied.toLocaleString('el-GR', { maximumFractionDigits: 2 })}%).\n\n`
+    + `αναπροσαρμόζεται από ${o.effectiveDate}. Το ισχύον μίσθωμα ανέρχεται σε ${o.res.currentRent.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € και `
+    + `το νέο μηνιαίο μίσθωμα διαμορφώνεται σε ${o.res.newRent.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € `
+    + `(μεταβολή ${o.res.pctApplied.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %).\n\n`
     + `Παρακαλώ όπως καταβάλλετε το νέο μίσθωμα από την ανωτέρω ημερομηνία. Η παρούσα επέχει θέση έγγραφης ειδοποίησης.`;
 }

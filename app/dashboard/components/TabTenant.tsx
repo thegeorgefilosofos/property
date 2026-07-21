@@ -16,7 +16,8 @@ import {
 } from './UIComponents';
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
-import { downloadCsv, csvEur, csvDate, type XlsxMode } from './exportCsv';
+import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
+import { money as csvEur } from './xlsxStyle';
 import { brandName, useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf';
 import { rentalIncomeTax, effectiveRentalRate, RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax';

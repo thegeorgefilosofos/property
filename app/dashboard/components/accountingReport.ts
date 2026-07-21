@@ -31,7 +31,7 @@ export interface AccountingReportCtx {
 // Χρήματα: δύο δεκαδικά + «€» (ελληνικό κόμμα). Αρνητικά με σφιχτό «−» (χωρίς κενό).
 const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
 const signed = (n: number) => (n < 0 ? `−${eur(Math.abs(n))}` : eur(n))
-const pct = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+const pct = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`
 const esc = (str: string) => String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] || ch))
 
 // Κοινό κείμενο disclaimer (ίδιο σε print & επίσημο PDF).

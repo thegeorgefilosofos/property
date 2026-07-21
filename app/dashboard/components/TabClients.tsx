@@ -13,6 +13,7 @@ import {
 } from '@/components/Theme';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UIComponents';
 import { downloadCsv } from './exportCsv';
+import { money, intGr } from './xlsxStyle';
 import ClientCompose from './ClientCompose';
 import {
   isValidAfm, stayNights, stayTotal, clientStats, normalizePhone,
@@ -679,8 +680,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         c.full_name, c.afm || '', c.phone || '', c.email || '',
         c.address || '', c.id_number || '', c.nationality || '', c.source || '',
         c.rating != null ? String(c.rating) : '', (c.tags || []).join(' | '), c.do_not_rent ? 'ΝΑΙ' : '',
-        String(st.stayCount), String(st.nights), String(Math.round(st.revenue)), String(Math.round(st.adr)),
-        st.avgRating != null ? String(st.avgRating) : '', st.lastVisit || '', st.damageTotal ? String(Math.round(st.damageTotal)) : '',
+        intGr(st.stayCount), intGr(st.nights), money(st.revenue), money(st.adr),
+        st.avgRating != null ? String(st.avgRating) : '', st.lastVisit || '', st.damageTotal ? money(st.damageTotal) : '',
         (propsByClient.get(c.id) || []).map(p => p.name).join(' | '),
       ];
     });
