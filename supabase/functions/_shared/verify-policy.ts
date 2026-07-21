@@ -1,6 +1,7 @@
 // Scenario tests for the email cadence policy. Run: npx tsx verify-policy.ts
 // Proves the anti-spam guarantees hold — above all the "ten emails on the 1st".
-import { planDeliveries, policyFor, SLOT_TIME, QUIET_END, QUIET_START } from './emailPolicy.ts';
+import { planDeliveries, policyFor, scheduleBatch, SLOT_TIME, QUIET_END, QUIET_START } from './emailPolicy.ts';
+import { DIGESTS } from './emailCopy.ts';
 
 let failed = 0;
 const ok = (cond: boolean, msg: string) => { if (!cond) { failed++; console.error('  ✗ ' + msg); } else console.log('  ✓ ' + msg); };
@@ -62,6 +63,29 @@ console.log('\n6) Policy sanity — every catalog key classifies');
   const some = ['welcome_free', 'dunning_final', 'energy_savings', 'monthly_statement', 'feedback_lottery'];
   ok(some.every(k => [1, 2, 3, 4, 5].includes(policyFor(k).priority)), 'known keys map to a tier');
   ok(policyFor('some_unlisted_key').priority === 4, 'unknown keys default to safe P4 lifecycle');
+}
+
+console.log('\n7) scheduleBatch maps DB rows → decisions + digest');
+{
+  const rows = [
+    { id: 1, copyId: 'tax_e2' }, { id: 2, copyId: 'tax_enfia' }, { id: 3, copyId: 'tax_installment' },
+    { id: 4, copyId: 'rate_alert' }, { id: 5, copyId: 'monthly_statement' }, { id: 6, copyId: 'feedback_lottery' },
+  ];
+  const { rows: decisions, digests } = scheduleBatch(rows, { recipientKey: 'x@y.gr' });
+  ok(digests.length === 1 && digests[0].copyId === 'digest_tax' && digests[0].memberIds.length === 3, 'the 3 tax rows become one digest_tax with 3 members');
+  ok(decisions.filter(d => d.viaDigest === 'digest_tax').length === 3, 'those rows are marked sent via the digest');
+  ok(decisions.some(d => d.id === 6 && d.action === 'defer'), 'the soft feedback row is deferred');
+  ok(decisions.length === rows.length, 'every row gets exactly one decision');
+}
+
+console.log('\n8) Digest templates render for real');
+{
+  const items = [{ title: 'Δόση φόρου', detail: 'έως 31/07' }, { title: 'ΕΝΦΙΑ Α΄ δόση', detail: 'έως 31/07' }];
+  for (const key of ['digest_obligations', 'digest_tax', 'digest_str_today']) {
+    const out = (DIGESTS as Record<string, (c: any) => { subject: string; html: string }>)[key]({ name: 'Μαρία', digestItems: items, appUrl: 'https://propertyos.gr' });
+    const bad = /—|undefined|NaN|\[object/.test(out.html) || !out.subject;
+    ok(!bad && out.html.includes('Δόση φόρου'), `${key} renders cleanly with its items`);
+  }
 }
 
 console.log('');

@@ -19,7 +19,7 @@ import {
   feedbackRequestEmail, mobileLaunchEmail, referralInviteEmail, upsellEmail,
   legislationUpdateEmail, seasonalCampaignEmail, type Plan, type Season, type Ctx, type Personal,
 } from '../_shared/emailTemplates.ts'
-import { CATALOG } from '../_shared/emailCopy.ts'
+import { CATALOG, DIGESTS } from '../_shared/emailCopy.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -86,10 +86,13 @@ Deno.serve(async (req) => {
     plan: params.plan, properties: params.properties, propertyName: params.propertyName,
     collected: params.collected, outstanding: params.outstanding, portfolioValue: params.portfolioValue,
     days: params.days, assistantName: params.assistantName,
+    digestItems: Array.isArray(params.digestItems) ? params.digestItems : undefined,
   }
 
-  // Προτεραιότητα στο επιμελημένο catalog (copyId)· αλλιώς τα lifecycle templates (event).
-  const tpl = (copyId && CATALOG[copyId]) ? CATALOG[copyId](personal) : render(event, personal, params)
+  // Προτεραιότητα στο επιμελημένο catalog (copyId), μετά τα ενοποιημένα (DIGESTS),
+  // αλλιώς τα lifecycle templates (event).
+  const byCopyId = { ...CATALOG, ...DIGESTS }
+  const tpl = (copyId && byCopyId[copyId]) ? byCopyId[copyId](personal) : render(event, personal, params)
   if (!tpl) return json({ error: 'unknown_email', event, copyId }, 400)
 
   try {

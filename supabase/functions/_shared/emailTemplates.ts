@@ -154,6 +154,9 @@ export interface Personal extends Ctx {
   cardLast4?: string;        // τελευταία ψηφία κάρτας
   marketRent?: number;       // μέσο ενοίκιο αγοράς, σε EUR
   sharePct?: number;         // ποσοστό συνιδιοκτησίας
+  // Ενοποιημένα (digests): όταν πολλά μηνύματα της ίδιας μέρας συγχωνεύονται σε ένα,
+  // ο scheduler περνά εδώ τη λίστα των θεμάτων (τίτλος + σύντομη λεπτομέρεια).
+  digestItems?: Array<{ title: string; detail?: string }>;
 }
 type Out = { subject: string; html: string };
 const app = (c: Ctx) => c.appUrl || DEFAULT_APP;
