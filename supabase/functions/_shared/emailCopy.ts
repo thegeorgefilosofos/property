@@ -16,7 +16,7 @@
 // 11) Ενίσχυση μετατροπής 12) Συμμόρφωση 13) Συνδρομή & Χρέωση
 // 14) Σχέσεις (ενοικιαστές & συνιδιοκτήτες). Στρατηγική: docs/marketing/email-strategy.md.
 // ═══════════════════════════════════════════════════════════════════════════
-import { emailShell, eyebrow, h, p, bullets, button, greeting, note, PLAN_LABEL, type Personal } from './emailTemplates.ts'
+import { emailShell, eyebrow, h, p, bullets, button, greeting, note, heroStat, PLAN_LABEL, type Personal } from './emailTemplates.ts'
 
 const app = (c: Personal) => c.appUrl || 'https://propertyos.gr'
 const dash = (c: Personal) => `${app(c)}/dashboard`
@@ -232,6 +232,7 @@ export const ONBOARDING: Record<string, CopyFn> = {
       html: emailShell({
         preheader: 'Δες τι έχεις ήδη οργανώσει.',
         unsubUrl: c.unsubUrl,
+        hero: has(c.collected) ? heroStat(eur(c.collected), 'εισπράξεις') : (has(c.properties) ? heroStat(`${c.properties}`, c.properties === 1 ? 'ακίνητο' : 'ακίνητα') : ''),
         bodyHtml: eyebrow('Σύνοψη') + h('Καλή αρχή') + greeting(c.name)
           + opening
           + p('Όσο πιο τακτικά κρατάς ενημερωμένα τα ακίνητά σου, τόσο πιο ακριβείς γίνονται οι προβλέψεις και οι αναφορές σου.')
@@ -252,6 +253,7 @@ export const ENGAGEMENT: Record<string, CopyFn> = {
       : p('Η συνολική εικόνα των εισπράξεων του μήνα σε περιμένει, τακτοποιημένη ανά ακίνητο.');
     return { subject: 'Η μηνιαία σου κατάσταση', html: emailShell({
       preheader: 'Οι εισπράξεις του μήνα, συνοπτικά.', unsubUrl: c.unsubUrl,
+      hero: has(c.collected) ? heroStat(eur(c.collected), 'εισπράχθηκαν τον μήνα') : '',
       bodyHtml: eyebrow('Μηνιαία κατάσταση') + h('Ο μήνας σου, συνοπτικά') + greeting(c.name)
         + line
         + p('Δες την πλήρη ανάλυση ανά ακίνητο και κατέβασε την επίσημη κατάσταση όποτε τη χρειαστείς.')
@@ -295,6 +297,7 @@ export const ENGAGEMENT: Record<string, CopyFn> = {
       : p('Η εικόνα του τριμήνου σε περιμένει: έσοδα, έξοδα και καθαρό αποτέλεσμα, ανά ακίνητο.');
     return { subject: 'Το τρίμηνό σου σε μία ματιά', html: emailShell({
       preheader: 'Έσοδα, έξοδα και απόδοση χαρτοφυλακίου.', unsubUrl: c.unsubUrl,
+      hero: has(c.collected) ? heroStat(eur(c.collected), 'έσοδα τριμήνου') : '',
       bodyHtml: eyebrow('Ανασκόπηση') + h('Τι έδειξε το τρίμηνο') + greeting(c.name)
         + line
         + p('Δες την πλήρη ανάλυση και σύγκρινε τα ακίνητά σου μεταξύ τους.')
@@ -490,7 +493,8 @@ export const UPSELL: Record<string, CopyFn> = {
     return { subject: `Πλήρωσε ετησίως και εξοικονόμησε ${pct}%`, html: emailShell({
       preheader: 'Ίδιο πλάνο, μικρότερο κόστος.',
       unsubUrl: c.unsubUrl,
-      bodyHtml: eyebrow('Ετήσια χρέωση') + h(`Εξοικονόμησε ${pct}% με την ετήσια συνδρομή`) + greeting(c.name)
+      hero: heroStat(`${pct}%`, 'εξοικονόμηση'),
+      bodyHtml: eyebrow('Ετήσια χρέωση') + h('Λιγότερο κόστος με την ετήσια συνδρομή') + greeting(c.name)
         + p(`Αν το Property OS έγινε μέρος της καθημερινότητάς σου, η ετήσια χρέωση σου χαρίζει <b>${pct}%</b> έκπτωση σε σχέση με τη μηνιαία. Ίδιες δυνατότητες, μικρότερο κόστος.`)
         + p('Το αλλάζεις με ένα κλικ και ισχύει από την επόμενη ανανέωση.')
         + button('Πέρνα σε ετήσια χρέωση', dash(c))
@@ -534,7 +538,8 @@ export const UPSELL: Record<string, CopyFn> = {
     return { subject: `Γύρνα με ${pct}% έκπτωση`, html: emailShell({
       preheader: 'Μια αφορμή για να ξαναρχίσεις.',
       unsubUrl: c.unsubUrl,
-      bodyHtml: eyebrow('Πρόσκληση επιστροφής') + h(`${pct}% έκπτωση για την επιστροφή σου`) + greeting(c.name)
+      hero: heroStat(`${pct}%`, 'έκπτωση'),
+      bodyHtml: eyebrow('Πρόσκληση επιστροφής') + h('Μια έκπτωση για την επιστροφή σου') + greeting(c.name)
         + p(`Μας έλειψες. Αν θέλεις να ξαναδώσεις στο Property OS μια θέση στη ρουτίνα σου, κρατάμε για σένα <b>${pct}%</b> έκπτωση στην αναβάθμιση.`)
         + p('Ο λογαριασμός σου είναι ακριβώς όπως τον άφησες, έτοιμος να συνεχίσεις.')
         + button(`Κλείσε το ${pct}%`, dash(c))
@@ -570,7 +575,8 @@ export const SEASONAL: Record<string, CopyFn> = {
     return { subject: `Black Friday: ${pct}% στο Property OS`, html: emailShell({
       preheader: 'Η μεγαλύτερη έκπτωση της χρονιάς.',
       unsubUrl: c.unsubUrl,
-      bodyHtml: eyebrow('Black Friday') + h(`${pct}% έκπτωση, μία φορά τον χρόνο`) + greeting(c.name)
+      hero: heroStat(`${pct}%`, 'έκπτωση'),
+      bodyHtml: eyebrow('Black Friday') + h('Μία φορά τον χρόνο') + greeting(c.name)
         + p(`Η μεγαλύτερη προσφορά μας είναι εδώ. Για περιορισμένο διάστημα, ξεκλείδωσε το πλήρες Property OS με <b>${pct}%</b> έκπτωση και μπες στη νέα χρονιά με τα ακίνητά σου σε τάξη.`)
         + button(`Κλείσε το ${pct}%`, dash(c))
         + note(NOTE.limited),
@@ -583,6 +589,7 @@ export const SEASONAL: Record<string, CopyFn> = {
     return { subject: `Cyber Monday: ${pct}%, μόνο σήμερα`, html: emailShell({
       preheader: 'Μία μέρα, μία ευκαιρία.',
       unsubUrl: c.unsubUrl,
+      hero: heroStat(`${pct}%`, 'έκπτωση'),
       bodyHtml: eyebrow('Cyber Monday') + h('Μία μέρα, μία ευκαιρία') + greeting(c.name)
         + p(`Αν περίμενες την κατάλληλη στιγμή, αυτή είναι. Μόνο σήμερα, το πλήρες Property OS με <b>${pct}%</b> έκπτωση.`)
         + button(`Κλείσε το ${pct}%`, dash(c))
@@ -596,6 +603,7 @@ export const SEASONAL: Record<string, CopyFn> = {
     return { subject: 'Κλείσε τη χρονιά με τα ακίνητά σου σε τάξη', html: emailShell({
       preheader: 'Ένα δώρο για τη νέα σου χρονιά.',
       unsubUrl: c.unsubUrl,
+      hero: heroStat(`${pct}%`, 'δώρο γιορτών'),
       bodyHtml: eyebrow('Χριστούγεννα') + h('Καλές γιορτές από το Property OS') + greeting(c.name)
         + p('Ευχαριστούμε που μας εμπιστεύτηκες τα ακίνητά σου φέτος. Σου ευχόμαστε γιορτές με ηρεμία και μια νέα χρονιά με καθαρά βιβλία.')
         + p(`Ως δώρο, ξεκλείδωσε το πλήρες Property OS με <b>${pct}%</b> έκπτωση και ξεκίνα τη χρονιά χωρίς εκκρεμότητες.`)
@@ -610,6 +618,7 @@ export const SEASONAL: Record<string, CopyFn> = {
     return { subject: 'Νέα χρονιά, καθαρά βιβλία', html: emailShell({
       preheader: 'Ξεκίνα τη χρονιά με καθαρά βιβλία.',
       unsubUrl: c.unsubUrl,
+      hero: heroStat(`${pct}%`, 'έκπτωση'),
       bodyHtml: eyebrow('Πρωτοχρονιά') + h('Μια καθαρή αρχή για τα ακίνητά σου') + greeting(c.name)
         + p('Η καλύτερη στιγμή για να βάλεις τα ακίνητά σου σε τάξη είναι η αρχή της χρονιάς. Έσοδα, έξοδα και φόροι, όλα από την πρώτη μέρα στη θέση τους.')
         + p(`Για να ξεκινήσεις δυναμικά, κρατάμε για σένα <b>${pct}%</b> έκπτωση στην αναβάθμιση.`)
@@ -624,6 +633,7 @@ export const SEASONAL: Record<string, CopyFn> = {
     return { subject: 'Μπες στη φορολογική σεζόν χωρίς άγχος', html: emailShell({
       preheader: 'Τα ενοίκιά σου, έτοιμα για το Ε2.',
       unsubUrl: c.unsubUrl,
+      hero: heroStat(`${pct}%`, 'έκπτωση'),
       bodyHtml: eyebrow('Φορολογική σεζόν') + h('Η δήλωση χωρίς τρέξιμο') + greeting(c.name)
         + p('Η περίοδος των δηλώσεων πλησιάζει. Με το Property OS, τα ενοίκια ανά ακίνητο συγκεντρώνονται μόνα τους και το Ε2 ετοιμάζεται χωρίς άγχος τελευταίας στιγμής.')
         + p(`Για τη σεζόν, ξεκλείδωσε τα φορολογικά εργαλεία με <b>${pct}%</b> έκπτωση.`)
@@ -638,6 +648,7 @@ export const SEASONAL: Record<string, CopyFn> = {
     return { subject: 'Η σεζόν των βραχυχρόνιων ξεκινά', html: emailShell({
       preheader: 'Κρατήσεις, έσοδα και ημερολόγιο σε ένα σημείο.',
       unsubUrl: c.unsubUrl,
+      hero: heroStat(`${pct}%`, 'έκπτωση'),
       bodyHtml: eyebrow('Καλοκαιρινή σεζόν') + h('Η σεζόν ξεκινά. Πάμε μαζί') + greeting(c.name)
         + p('Το καλοκαίρι φέρνει κρατήσεις, εναλλαγές επισκεπτών και έξοδα που τρέχουν. Το Property OS συγχρονίζει Airbnb και Booking, καταγράφει τα έσοδα και κρατά καθαρό το ημερολόγιό σου.')
         + p(`Μπες στη σεζόν οργανωμένα, με <b>${pct}%</b> έκπτωση στην αναβάθμιση.`)
@@ -850,7 +861,8 @@ export const WINBACK: Record<string, CopyFn> = {
     return { subject: `Μια αφορμή για να γυρίσεις: ${pct}% έκπτωση`, html: emailShell({
       preheader: 'Ξεκίνα ξανά με το πλήρες Property OS.',
       unsubUrl: c.unsubUrl,
-      bodyHtml: eyebrow('Καλωσόρισες πίσω') + h(`Κρατάμε για σένα ${pct}% έκπτωση`) + greeting(c.name)
+      hero: heroStat(`${pct}%`, 'έκπτωση'),
+      bodyHtml: eyebrow('Καλωσόρισες πίσω') + h('Ένα δώρο για την επιστροφή σου') + greeting(c.name)
         + p(`Ξέρουμε ότι η καθημερινότητα τρέχει. Αν θέλεις να ξαναβάλεις τα ακίνητά σου σε τάξη, κρατάμε για σένα <b>${pct}%</b> έκπτωση στην αναβάθμιση.`)
         + p('Ο λογαριασμός σου είναι έτοιμος, με όλα όσα άφησες στη θέση τους.')
         + button(`Κλείσε το ${pct}%`, dash(c))
@@ -1139,6 +1151,7 @@ export const SHORTTERM: Record<string, CopyFn> = {
       : p('Η σεζόν σου σε βραχυχρόνιες έκλεισε. Δες τη συνολική εικόνα, ανά ακίνητο και ανά μήνα.');
     return { subject: 'Ο απολογισμός της σεζόν σου', html: emailShell({
       preheader: 'Έσοδα, πληρότητα και αξιολογήσεις με μια ματιά.', unsubUrl: c.unsubUrl,
+      hero: has(c.occupancy) ? heroStat(`${c.occupancy}%`, 'πληρότητα σεζόν') : (has(c.collected) ? heroStat(eur(c.collected), 'έσοδα σεζόν') : ''),
       bodyHtml: eyebrow('Απολογισμός') + h('Πώς πήγε η σεζόν') + greeting(c.name)
         + line
         + p('Σύγκρινε με πέρσι, εντόπισε τους δυνατούς σου μήνες και προγραμμάτισε την επόμενη σεζόν από τώρα.')
@@ -1229,6 +1242,7 @@ export const PRODUCT: Record<string, CopyFn> = {
       : (has(c.properties) ? `<b>${plural(c.properties, 'ακίνητο', 'ακίνητα')}</b> υπό διαχείριση` : 'ένα σημαντικό ορόσημο');
     return { subject: 'Ένα ορόσημο που αξίζει αναγνώριση', html: emailShell({
       preheader: 'Μικρές κινήσεις, μεγάλα αποτελέσματα.', unsubUrl: c.unsubUrl,
+      hero: has(c.collected) ? heroStat(eur(c.collected), 'οργανωμένες εισπράξεις') : (has(c.properties) ? heroStat(`${c.properties}`, c.properties === 1 ? 'ακίνητο υπό διαχείριση' : 'ακίνητα υπό διαχείριση') : ''),
       bodyHtml: eyebrow('Ορόσημο') + h('Έφτασες κάπου που μετράει') + greeting(c.name)
         + p(`Μόλις πέρασες ${what} μέσα από το Property OS. Πίσω από αυτό το νούμερο κρύβονται ώρες που κέρδισες και εκκρεμότητες που δεν σε απασχόλησαν.`)
         + button('Δες την πρόοδό σου', dash(c))
@@ -1285,6 +1299,7 @@ export const CONVERSION: Record<string, CopyFn> = {
     const fallback = (!has(c.hoursSaved) && !has(c.collected)) ? p('Κάθε αυτόματη υπενθύμιση, κάθε έτοιμη αναφορά και κάθε καταχώρηση που δεν χρειάστηκε να κάνεις με το χέρι, είναι χρόνος που κέρδισες.') : '';
     return { subject: 'Πόσο σου απέδωσε το Property OS', html: emailShell({
       preheader: 'Ο χρόνος που κέρδισες, σε αριθμούς.', unsubUrl: c.unsubUrl,
+      hero: has(c.hoursSaved) ? heroStat(`${c.hoursSaved}`, 'ώρες που κέρδισες') : (has(c.collected) ? heroStat(eur(c.collected), 'οργανωμένες εισπράξεις') : ''),
       bodyHtml: eyebrow('Η αξία σου') + h('Ας δούμε τι κέρδισες') + greeting(c.name)
         + hrs + money + fallback
         + p('Με μια αναβάθμιση, αυτός ο χρόνος μεγαλώνει: περισσότεροι αυτοματισμοί, βαθύτερη ανάλυση, λιγότερος κόπος.')

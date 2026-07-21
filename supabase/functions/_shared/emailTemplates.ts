@@ -44,6 +44,14 @@ export const button = (label: string, url: string): string =>
   `<div style="text-align:center;margin:24px 0 8px;"><a href="${esc(url)}" style="display:inline-block;background:${ACCENT};color:#fff;text-decoration:none;padding:12px 26px;border-radius:100px;font-weight:700;font-size:14px;">${esc(label)} →</a></div>`;
 export const note = (html: string): string =>
   `<p style="margin:16px 0 0;font-size:12px;color:${MUTE};line-height:1.6;">${html}</p>`;
+// Οπτικό «ήρωας»: ένα μεγάλο νούμερο (ποσό, ποσοστό, πληρότητα). Email-safe (table +
+// inline styles, χωρίς εικόνες/SVG), δουλεύει παντού, με premium fintech αίσθηση.
+export const heroStat = (value: string, label: string): string =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:2px 0 20px;">`
+  + `<tr><td style="text-align:center;padding:2px 0 0;">`
+  + `<div style="font-size:40px;line-height:1;font-weight:800;color:${ACCENT};letter-spacing:-1px;">${esc(value)}</div>`
+  + `<div style="font-size:11.5px;color:${MUTE};text-transform:uppercase;letter-spacing:.09em;margin-top:8px;font-weight:600;">${esc(label)}</div>`
+  + `</td></tr></table>`;
 // Μόνο το μικρό όνομα (πιο ζεστό): «Μαρία Παπαδοπούλου» → «Μαρία».
 export const firstNameOf = (name?: string): string => (name || '').trim().split(/\s+/)[0] || '';
 export const greeting = (name?: string): string => {
@@ -53,7 +61,7 @@ export const greeting = (name?: string): string => {
 
 // ── Το ΜΟΝΑΔΙΚΟ branded κέλυφος ──────────────────────────────────────────────
 export function emailShell(opts: {
-  bodyHtml: string; preheader?: string; unsubUrl?: string; footerNote?: string;
+  bodyHtml: string; preheader?: string; unsubUrl?: string; footerNote?: string; hero?: string;
 }): string {
   const pre = opts.preheader
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(opts.preheader)}</div>`
@@ -68,7 +76,7 @@ export function emailShell(opts: {
       <div style="width:34px;height:34px;background:${ACCENT};border-radius:8px;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:800;font-size:17px;">P</span></div>
       <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">Property OS</span>
     </div>
-    <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:28px 26px;">${opts.bodyHtml}</div>
+    <div style="background:#fff;border:1px solid #e8eaed;border-top:3px solid ${ACCENT};border-radius:14px;padding:26px 26px 28px;">${opts.hero || ''}${opts.bodyHtml}</div>
     <p style="text-align:center;font-size:12px;color:${ACCENT};font-weight:600;letter-spacing:.2px;margin:18px 0 5px;">${BRAND_TAGLINE}</p>
     <p style="text-align:center;font-size:11px;color:${FAINT};margin:0 0 4px;line-height:1.6;">${foot}</p>
   </div></body></html>`;
