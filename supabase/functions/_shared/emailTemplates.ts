@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Property OS — Κοινή βιβλιοθήκη email templates (lifecycle + marketing).
+// Property OS · Κοινή βιβλιοθήκη email templates (lifecycle + marketing).
 //
 // ΜΙΑ πηγή αλήθειας για ΟΛΑ τα emails: ένα branded κέλυφος (P-logo header, λευκή
 // κάρτα, footer/απεγγραφή/colophon), τυποποιημένη τυπογραφία, καθαρό ασπρόμαυρο
@@ -171,51 +171,51 @@ const app = (c: Ctx) => c.appUrl || DEFAULT_APP;
 
 // ── LIFECYCLE ────────────────────────────────────────────────────────────────
 
-/** Καλωσόρισμα μετά την εγγραφή — segmented ανά πλάνο. */
+/** Καλωσόρισμα μετά την εγγραφή · segmented ανά πλάνο. */
 export function welcomeEmail(c: Ctx & { plan?: Plan }): Out {
   const plan = c.plan || 'free';
   const next: Record<Plan, string[]> = {
-    free: ['Πρόσθεσε το πρώτο σου ακίνητο σε 2 λεπτά.', 'Δες αυτόματα έσοδα, έξοδα και φόρους.', 'Δοκίμασε τον AI βοηθό για ό,τι σε απασχολεί.'],
+    free: ['Πρόσθεσε το πρώτο σου ακίνητο σε 2 λεπτά.', 'Δες αυτόματα έσοδα, έξοδα και φόρους.', 'Δες τι μπορεί να κάνει ο βοηθός σου για τα ακίνητα.'],
     individual: ['Κατέγραψε ακίνητα, ενοικιαστές και εισπράξεις.', 'Βγάλε επίσημες καταστάσεις & βεβαιώσεις ενοικίου.', 'Άφησε τις υπενθυμίσεις να τρέχουν μόνες τους.'],
     professional: ['Διαχειρίσου χαρτοφυλάκιο πολλών ακινήτων.', 'Branded αναφορές & μαζική επικοινωνία πελατών.', 'Λογιστικά, φόροι και ροές εργασίας σε ένα σημείο.'],
   };
   const body = eyebrow('Καλωσόρισες') + h('Ξεκίνα με το Property OS')
     + greeting(c.name)
-    + p(`Χαιρόμαστε που είσαι μαζί μας. Είσαι στο πλάνο <b>${PLAN_LABEL[plan]}</b> — να τα πρώτα βήματα για να πάρεις αξία από την πρώτη μέρα:`)
+    + p(`Χαιρόμαστε που είσαι μαζί μας. Είσαι στο πλάνο <b>${PLAN_LABEL[plan]}</b> · να τα πρώτα βήματα για να πάρεις αξία από την πρώτη μέρα:`)
     + bullets(next[plan])
     + button('Άνοιξε τον πίνακα', `${app(c)}/dashboard`)
     + note('Είμαστε εδώ για ό,τι χρειαστείς. Απάντησε απευθείας σε αυτό το email.');
   return { subject: 'Καλωσόρισες στο Property OS', html: emailShell({ bodyHtml: body, preheader: 'Τα πρώτα βήματα για να ξεκινήσεις.' }) };
 }
 
-/** Αναβάθμιση συνδρομής — ευχαριστία + τι ξεκλείδωσε. */
+/** Αναβάθμιση συνδρομής · ευχαριστία + τι ξεκλείδωσε. */
 export function planUpgradedEmail(c: Ctx & { plan: Plan }): Out {
   const perks: Record<Plan, string[]> = {
     free: ['Πρόσβαση στις βασικές λειτουργίες.'],
     individual: ['Απεριόριστες καταστάσεις & βεβαιώσεις ενοικίου.', 'Αυτόματες υπενθυμίσεις και ειδοποιήσεις.', 'Επίσημες, επαληθεύσιμες αναφορές PDF.'],
     professional: ['Χαρτοφυλάκιο πολλών ακινήτων χωρίς όριο.', 'Branded αναφορές & μαζικό email πελατών.', 'Προτεραιότητα στην υποστήριξη.'],
   };
-  const body = eyebrow('Αναβάθμιση') + h(`Είσαι πλέον ${PLAN_LABEL[c.plan]} 🎉`)
+  const body = eyebrow('Αναβάθμιση') + h(`Είσαι πλέον ${PLAN_LABEL[c.plan]}`)
     + greeting(c.name)
     + p('Ευχαριστούμε για την εμπιστοσύνη. Μόλις ξεκλείδωσες:')
     + bullets(perks[c.plan])
     + button('Δες τι νέο έχεις', `${app(c)}/dashboard`)
     + note('Η απόδειξη της συνδρομής σου είναι διαθέσιμη στις Ρυθμίσεις → Συνδρομή.');
-  return { subject: `Καλωσόρισες στο πλάνο ${PLAN_LABEL[c.plan]}`, html: emailShell({ bodyHtml: body, preheader: 'Ευχαριστούμε — να τι ξεκλείδωσες.' }) };
+  return { subject: `Καλωσόρισες στο πλάνο ${PLAN_LABEL[c.plan]}`, html: emailShell({ bodyHtml: body, preheader: 'Ευχαριστούμε · να τι ξεκλείδωσες.' }) };
 }
 
-/** Υποβάθμιση/λήξη συνδρομής — ευγενικό, χωρίς πίεση, με πόρτα επιστροφής. */
+/** Υποβάθμιση/λήξη συνδρομής · ευγενικό, χωρίς πίεση, με πόρτα επιστροφής. */
 export function planDowngradedEmail(c: Ctx & { plan: Plan }): Out {
   const body = eyebrow('Αλλαγή πλάνου') + h(`Το πλάνο σου είναι τώρα ${PLAN_LABEL[c.plan]}`)
     + greeting(c.name)
-    + p('Καταγράψαμε την αλλαγή στο πλάνο σου. Τα δεδομένα σου παραμένουν ασφαλή και δικά σου — τίποτα δεν χάνεται.')
+    + p('Καταγράψαμε την αλλαγή στο πλάνο σου. Τα δεδομένα σου παραμένουν ασφαλή και δικά σου · τίποτα δεν χάνεται.')
     + p('Αν κάτι δεν πήγε όπως περίμενες ή θέλεις να επιστρέψεις σε περισσότερες δυνατότητες, είμαστε ένα κλικ μακριά.')
     + button('Διαχείριση συνδρομής', `${app(c)}/dashboard`)
-    + note('Θα χαρούμε πολύ να ακούσουμε τη γνώμη σου — απάντησε και πες μας τι θα σε βοηθούσε.');
+    + note('Θα χαρούμε πολύ να ακούσουμε τη γνώμη σου · απάντησε και πες μας τι θα σε βοηθούσε.');
   return { subject: 'Ενημέρωση για τη συνδρομή σου', html: emailShell({ bodyHtml: body, preheader: 'Τα δεδομένα σου παραμένουν ασφαλή.' }) };
 }
 
-/** Προστέθηκε νέο ακίνητο — επιβεβαίωση + επόμενες κινήσεις. */
+/** Προστέθηκε νέο ακίνητο · επιβεβαίωση + επόμενες κινήσεις. */
 export function newPropertyEmail(c: Ctx & { propertyName: string }): Out {
   const body = eyebrow('Νέο ακίνητο') + h('Το ακίνητο προστέθηκε')
     + greeting(c.name)
@@ -225,14 +225,14 @@ export function newPropertyEmail(c: Ctx & { propertyName: string }): Out {
   return { subject: `Προστέθηκε: ${c.propertyName}`, html: emailShell({ bodyHtml: body, preheader: 'Ολοκλήρωσε τις ρυθμίσεις του ακινήτου.' }) };
 }
 
-/** Feedback μετά ~1 εβδομάδα χρήσης — ζεστό, σύντομο, χωρίς πίεση. */
+/** Feedback μετά ~1 εβδομάδα χρήσης · ζεστό, σύντομο, χωρίς πίεση. */
 export function feedbackRequestEmail(c: Ctx): Out {
   const body = eyebrow('Η γνώμη σου μετράει') + h('Πώς πάει μέχρι τώρα;')
     + greeting(c.name)
     + p('Πέρασε περίπου μία εβδομάδα με το Property OS. Θα εκτιμούσαμε πολύ 30 δευτερόλεπτα από τον χρόνο σου: τι σου άρεσε, τι σε δυσκόλεψε, τι λείπει;')
-    + p('Διαβάζουμε <b>κάθε</b> απάντηση — και χτίζουμε το προϊόν με βάση αυτά που μας λέτε.')
+    + p('Διαβάζουμε <b>κάθε</b> απάντηση · και χτίζουμε το προϊόν με βάση αυτά που μας λες.')
     + button('Πες μας τη γνώμη σου', `${app(c)}/dashboard`)
-    + note('Απλά απάντησε σε αυτό το email — φτάνει κατευθείαν σε εμάς.');
+    + note('Απλώς απάντησε σε αυτό το email · φτάνει κατευθείαν σε εμάς.');
   return { subject: 'Πώς σου φαίνεται το Property OS;', html: emailShell({ bodyHtml: body, preheader: '30 δευτερόλεπτα που μας βοηθούν πολύ.' }) };
 }
 
@@ -240,11 +240,11 @@ export function feedbackRequestEmail(c: Ctx): Out {
 export function mobileLaunchEmail(c: Ctx): Out {
   const body = eyebrow('Έρχεται') + h('Το Property OS στο κινητό σου')
     + greeting(c.name)
-    + p('Ετοιμάζουμε την εφαρμογή για κινητά — τα ακίνητά σου, οι εισπράξεις και οι ειδοποιήσεις στην τσέπη σου, όπου κι αν είσαι.')
+    + p('Ετοιμάζουμε την εφαρμογή για κινητά · τα ακίνητά σου, οι εισπράξεις και οι ειδοποιήσεις στην τσέπη σου, όπου κι αν είσαι.')
     + bullets(['Ειδοποιήσεις σε πραγματικό χρόνο.', 'Γρήγορη καταχώρηση εσόδων/εξόδων.', 'Σάρωση εγγράφων με ένα tap.'])
     + button('Μπες στη λίστα αναμονής', `${app(c)}/dashboard`)
     + note('Θα είσαι από τους πρώτους που θα ειδοποιήσουμε μόλις είναι έτοιμη.');
-  return { subject: 'Το Property OS έρχεται στο κινητό', html: emailShell({ bodyHtml: body, preheader: 'Μπες πρώτος στη λίστα αναμονής.' }) };
+  return { subject: 'Το Property OS έρχεται στο κινητό', html: emailShell({ bodyHtml: body, preheader: 'Μπες νωρίς στη λίστα αναμονής.' }) };
 }
 
 /** Πρόσκληση στο Referral program. */
@@ -270,20 +270,20 @@ export function upsellEmail(c: Ctx & { toPlan?: Plan; discountPct?: number; seas
         ? ['Απεριόριστα ακίνητα & branded αναφορές.', 'Μαζική επικοινωνία πελατών.', 'Προτεραιότητα στην υποστήριξη.']
         : ['Απεριόριστες καταστάσεις & βεβαιώσεις.', 'Αυτόματες υπενθυμίσεις πληρωμών.', 'Επίσημες αναφορές PDF με QR επαλήθευσης.'])
     + button(disc ? `Κλείσε το ${disc}%` : 'Αναβάθμισε τώρα', `${app(c)}/dashboard`)
-    + note(disc ? 'Η προσφορά ισχύει για περιορισμένο διάστημα.' : 'Ακύρωση όποτε θες — χωρίς δεσμεύσεις.');
-  const subj = disc ? `${disc}% έκπτωση${c.seasonLabel ? ` — ${c.seasonLabel}` : ''} στο Property OS` : `Αναβάθμισε στο πλάνο ${PLAN_LABEL[to]}`;
+    + note(disc ? 'Η προσφορά ισχύει για περιορισμένο διάστημα.' : 'Ακύρωση όποτε θες · χωρίς δεσμεύσεις.');
+  const subj = disc ? `${disc}% έκπτωση${c.seasonLabel ? ` · ${c.seasonLabel}` : ''} στο Property OS` : `Αναβάθμισε στο πλάνο ${PLAN_LABEL[to]}`;
   return { subject: subj, html: emailShell({ bodyHtml: body, preheader: disc ? `Ξεκλείδωσε το ${PLAN_LABEL[to]} με έκπτωση.` : 'Περισσότερος χρόνος, λιγότερος κόπος.' }) };
 }
 
-/** Ενημέρωση αλλαγής νομοθεσίας ακινήτων — brand awareness + χρησιμότητα. */
+/** Ενημέρωση αλλαγής νομοθεσίας ακινήτων · brand awareness + χρησιμότητα. */
 export function legislationUpdateEmail(c: Ctx & { headline: string; summaryHtml: string }): Out {
   const body = eyebrow('Νομοθεσία ακινήτων') + h(esc(c.headline))
     + greeting(c.name)
     + p(c.summaryHtml)
-    + p('Το Property OS ενημερώνεται συνεχώς ώστε τα ακίνητά σου να είναι <b>πάντα σε τάξη</b> — εύκολα, γρήγορα, σωστά. Τώρα είναι η καλύτερη στιγμή να το ελέγξεις.')
+    + p('Το Property OS ενημερώνεται συνεχώς ώστε τα ακίνητά σου να είναι <b>πάντα σε τάξη</b> · εύκολα, γρήγορα, σωστά. Τώρα είναι η καλύτερη στιγμή να το ελέγξεις.')
     + button('Βάλε το ακίνητό σου σε τάξη', `${app(c)}/dashboard`)
     + note('Ενημερωτικό, με επίσημες πηγές. Για την τελική εφαρμογή, επιβεβαίωσε με τον λογιστή σου ή στο myAADE/gov.gr.');
-  return { subject: `Property OS — ${c.headline}`, html: emailShell({ bodyHtml: body, preheader: 'Τι αλλάζει και τι πρέπει να κάνεις.' }) };
+  return { subject: `Property OS · ${c.headline}`, html: emailShell({ bodyHtml: body, preheader: 'Τι αλλάζει και τι πρέπει να κάνεις.' }) };
 }
 
 // ── ΕΠΟΧΙΚΕΣ ΚΑΜΠΑΝΙΕΣ ────────────────────────────────────────────────────────
@@ -295,7 +295,7 @@ export const SEASONS: Record<Season, { label: string; hook: string }> = {
   new_year:     { label: 'Πρωτοχρονιά',  hook: 'Νέα χρονιά, καθαρά βιβλία.' },
 };
 
-/** Εποχική καμπάνια (τυποποιημένη) — χτίζει πάνω στο upsell με εποχικό πλαίσιο. */
+/** Εποχική καμπάνια (τυποποιημένη) · χτίζει πάνω στο upsell με εποχικό πλαίσιο. */
 export function seasonalCampaignEmail(c: Ctx & { season: Season; toPlan?: Plan; discountPct?: number }): Out {
   const s = SEASONS[c.season];
   return upsellEmail({ ...c, seasonLabel: s.label, discountPct: c.discountPct ?? 20, toPlan: c.toPlan });
