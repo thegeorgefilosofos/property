@@ -17,8 +17,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   welcomeEmail, planUpgradedEmail, planDowngradedEmail, newPropertyEmail,
   feedbackRequestEmail, mobileLaunchEmail, referralInviteEmail, upsellEmail,
-  legislationUpdateEmail, seasonalCampaignEmail, type Plan, type Season, type Ctx,
+  legislationUpdateEmail, seasonalCampaignEmail, type Plan, type Season, type Ctx, type Personal,
 } from '../_shared/emailTemplates.ts'
+import { CATALOG } from '../_shared/emailCopy.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -66,21 +67,30 @@ Deno.serve(async (req) => {
   if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401)
   if (!RESEND_API_KEY) return json({ error: 'no_resend_key' }, 500)
 
-  let event = '', email = '', name = '', params: Record<string, any> = {}
+  let event = '', copyId = '', email = '', name = '', params: Record<string, any> = {}
   try {
     const b = await req.json()
     event = String(b?.event || '').trim()
+    copyId = String(b?.copyId || '').trim()   // κλειδί από το email catalog (emailCopy.CATALOG)
     email = String(b?.email || '').trim().toLowerCase()
     name = b?.name ? String(b.name).trim() : ''
     params = (b?.params && typeof b.params === 'object') ? b.params : {}
   } catch { return json({ error: 'bad_body' }, 400) }
 
-  if (!event) return json({ error: 'no_event' }, 400)
+  if (!event && !copyId) return json({ error: 'no_event' }, 400)
   if (!isEmail(email)) return json({ error: 'bad_email' }, 400)
 
-  const ctx: Ctx = { name: name || undefined, appUrl: APP_URL }
-  const tpl = render(event, ctx, params)
-  if (!tpl) return json({ error: 'unknown_event', event }, 400)
+  // Πλούσιο πλαίσιο εξατομίκευσης από τα params (όνομα, πλάνο και μοναδικά δεδομένα).
+  const personal: Personal = {
+    name: name || undefined, appUrl: APP_URL, unsubUrl: params.unsubUrl,
+    plan: params.plan, properties: params.properties, propertyName: params.propertyName,
+    collected: params.collected, outstanding: params.outstanding, portfolioValue: params.portfolioValue,
+    days: params.days, assistantName: params.assistantName,
+  }
+
+  // Προτεραιότητα στο επιμελημένο catalog (copyId)· αλλιώς τα lifecycle templates (event).
+  const tpl = (copyId && CATALOG[copyId]) ? CATALOG[copyId](personal) : render(event, personal, params)
+  if (!tpl) return json({ error: 'unknown_email', event, copyId }, 400)
 
   try {
     const res = await fetch('https://api.resend.com/emails', {

@@ -24,6 +24,7 @@ const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιο�
 const SECTIONS = [
   { key: 'summary', label: 'Σύνοψη (δείκτες)', hint: 'Έσοδα, εισπράξεις, δαπάνες, καθαρό' },
   { key: 'byProperty', label: 'Ανά ακίνητο', hint: 'Εισπράξεις / δαπάνες / καθαρό ανά ακίνητο' },
+  { key: 'charts', label: 'Γραφήματα (B&W)', hint: 'Εισπράξεις ανά μήνα & καθαρό ανά ακίνητο' },
   { key: 'rent', label: 'Συμφωνία ενοικίων', hint: 'Αναμενόμενα / εισπραχθέντα ανά μήνα' },
   { key: 'expenses', label: 'Δαπάνες ανά κατηγορία', hint: 'Σύνολα δαπανών ανά κατηγορία' },
 ] as const;
@@ -43,7 +44,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   const [year, setYear] = useState(nowYear);
   const [month, setMonth] = useState(0);                 // 0 = όλο το έτος
   const [propIds, setPropIds] = useState<Set<string>>(new Set());
-  const [sections, setSections] = useState<Set<SectionKey>>(new Set(['summary', 'byProperty', 'rent', 'expenses']));
+  const [sections, setSections] = useState<Set<SectionKey>>(new Set(['summary', 'byProperty', 'charts', 'rent', 'expenses']));
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -122,6 +123,26 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           { label: 'Δαπάνες', value: pEur(expTotal) },
           { label: 'Καθαρό αποτέλεσμα', value: pSigned(net) },
         ] });
+      }
+
+      if (sections.has('charts')) {
+        // Εισπράξεις ανά μήνα (μόνο σε πλήρες έτος) — ασπρόμαυρες ράβδοι.
+        if (month === 0) {
+          const monthly = Array.from({ length: 12 }, (_, m) => ({
+            label: MONTHS[m].slice(0, 3),
+            value: rents.filter(r => r.period_month === m + 1).reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0),
+          }));
+          if (monthly.some(d => d.value > 0)) built.push({ type: 'chart', title: 'Εισπράξεις ανά μήνα', chart: 'bars', data: monthly, unit: 'eur' });
+        }
+        // Καθαρό ανά ακίνητο (όταν >1 ακίνητο).
+        if (selProps.length > 1) {
+          const perProp = selProps.map(p => {
+            const c = rents.filter(r => r.property_id === p.id).reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0);
+            const e = exps.filter(x => x.property_id === p.id).reduce((s, x) => s + num(x.amount), 0);
+            return { label: p.name.length > 10 ? p.name.slice(0, 9) + '…' : p.name, value: c - e };
+          });
+          built.push({ type: 'chart', title: 'Καθαρό ανά ακίνητο', chart: 'bars', data: perProp, unit: 'eur' });
+        }
       }
 
       if (sections.has('byProperty')) {
