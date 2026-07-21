@@ -158,10 +158,10 @@ function headedTable(head: string[], rows: string[][], align?: ('l' | 'r')[], re
 
 // Συμπαγής ετικέτα τιμής για γραφήματα (μικρός χώρος): 1.2k, 45%, 320.
 function chartLabel(v: number, unit?: 'eur' | 'pct' | 'num'): string {
-  if (unit === 'pct') return `${(v ?? 0).toLocaleString('el-GR', { maximumFractionDigits: 1 })}%`;
+  if (unit === 'pct') return `${(v ?? 0).toLocaleString('el-GR', { maximumFractionDigits: 1 })} %`;
   const a = Math.abs(v);
   const s = a >= 1000 ? `${(v / 1000).toLocaleString('el-GR', { maximumFractionDigits: 1 })}k` : `${Math.round(v).toLocaleString('el-GR')}`;
-  return unit === 'eur' ? `${s}€` : s;
+  return unit === 'eur' ? `${s} €` : s;
 }
 
 // Ασπρόμαυρο διάγραμμα ράβδων (vector): μαύρη ράβδος σε ανοιχτόγκρι διαδρομή, με

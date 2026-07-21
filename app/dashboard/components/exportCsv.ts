@@ -57,5 +57,10 @@ export function downloadCsv(filename: string, headers: string[], rows: (string |
     : undefined;
   const base = filename.replace(/\.(csv|xlsx)$/i, '');
   const name = opts.mode === 'data' ? `${base} (δεδομένα)` : base;
-  downloadXlsx(name, [{ name: 'Δεδομένα', columns, rows: cleanRows, totalCols }], { mode: opts.mode });
+  // Επώνυμη «σφραγίδα»: κάθε εξαγωγή φέρει το Property OS και την ημερομηνία έκδοσης.
+  const issued = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  downloadXlsx(name, [{
+    name: 'Δεδομένα', title: 'Property OS', subtitle: `Εξαγωγή δεδομένων · Ημερομηνία έκδοσης: ${issued}`,
+    columns, rows: cleanRows, totalCols,
+  }], { mode: opts.mode });
 }
