@@ -61,9 +61,9 @@
 `tax_e2` · `tax_enfia` · `tax_installment` · `year_end` · `rent_pending` ·
 `dunning_1` · `dunning_2` · `dunning_final`
 
-### 3) Upsell & Conversion — μετατροπή (9)
+### 3) Upsell & Conversion — μετατροπή (10)
 Έναυσμα: έναρξη/λήξη δοκιμής, όριο πλάνου, ενεργός δωρεάν χρήστης. Στόχος: αναβάθμιση.
-`trial_started` · `upsell_to_individual` · `upsell_to_professional` · `limit_reached` ·
+`free_month_upgrade` · `trial_started` · `upsell_to_individual` · `upsell_to_professional` · `limit_reached` ·
 `value_left` · `annual_discount` · `trial_ending` · `winback_downgrade` · `reactivation_offer`
 
 ### 4) Εποχικές καμπάνιες — αιχμές πωλήσεων (6)
@@ -110,9 +110,9 @@
 `lease_declaration_reminder` (Δήλωση Μίσθωσης myAADE) · `str_registration_reminder`
 (ΑΜΑ βραχυχρόνιας) · `str_stay_tax` (τέλος διαμονής)
 
-### 13) Συνδρομή & Χρέωση (Billing) — έσοδα χωρίς διαρροές (2)
+### 13) Συνδρομή & Χρέωση (Billing) — έσοδα χωρίς διαρροές (1)
 Έναυσμα: κατάσταση κάρτας/συνδρομής. Συναλλακτικά. Στόχος: αποτροπή ακούσιας απώλειας.
-`card_expiring` · `renewal_reminder`
+`card_expiring` (η ανανέωση γίνεται σιωπηρά, χωρίς email, για αποφυγή downgrade)
 
 ### 14) Σχέσεις (ενοικιαστές & συνιδιοκτήτες) — two-sided αξία (3)
 Έναυσμα: καταχώρηση ενοικιαστή, είσπραξη, κλείσιμο περιόδου. Ουδέτερα ως προς το φύλο.
