@@ -43,17 +43,17 @@
 
 ---
 
-## 3. Τα 14 προγράμματα (93 emails)
+## 3. Τα 14 προγράμματα (95 emails)
 
 Κάθε πρόγραμμα είναι μια ξεχωριστή «ροή» με δικό της έναυσμα (trigger), τμήμα κοινού
 και δείκτη. Τα κλειδιά αντιστοιχούν στο `emailCopy.CATALOG` και καλούνται με `copyId`
 μέσα από τη function `send-lifecycle-email`.
 
-### 1) Onboarding & Activation — ενεργοποίηση (12)
+### 1) Onboarding & Activation — ενεργοποίηση (13)
 Έναυσμα: εγγραφή και πρώτες μέρες. Στόχος: πρώτο ακίνητο, πρώτη είσπραξη, πρώτη αναφορά.
 `welcome_free` · `welcome_individual` · `welcome_professional` · `verify_email` ·
 `add_first_property` · `first_property_success` · `connect_bank` · `connect_calendar` ·
-`tip_assistant` · `tip_reports` · `feedback_week1` · `recap_week2`
+`tip_assistant` · `voice_entry` · `tip_reports` · `feedback_week1` · `recap_week2`
 
 ### 2) Engagement & Retention — διατήρηση (12)
 Έναυσμα: περιοδικό (μηνιαίο/εβδομαδιαίο) + συμβάντα εισπράξεων. Στόχος: συνήθεια χρήσης.
@@ -95,10 +95,11 @@
 `checkin_today` · `checkout_today` · `cleaning_scheduled` · `occupancy_gap` ·
 `review_request` · `payout_received` · `str_season_recap`
 
-### 10) Προϊόν & Εξέλιξη (Product) — αφοσίωση (9)
+### 10) Προϊόν & Εξέλιξη (Product) — αφοσίωση (10)
 Έναυσμα: κυκλοφορίες, ορόσημα, περιοδικό. Στόχος: «διάλεξες προϊόν που εξελίσσεται».
-`feature_launch` · `assistant_upgraded` · `changelog_monthly` · `roadmap_preview` ·
-`anniversary` · `milestone_reached` · `nps_survey` · `best_practice_tip` · `webinar_invite`
+`feature_launch` · `assistant_upgraded` · `assistant_showcase` · `changelog_monthly` ·
+`roadmap_preview` · `anniversary` · `milestone_reached` · `nps_survey` ·
+`best_practice_tip` · `webinar_invite`
 
 ### 11) Ενίσχυση μετατροπής (Conversion) — αξία με απόδειξη (4)
 Έναυσμα: ενεργός δωρεάν χρήστης με αποδεδειγμένη αξία. Στόχος: αναβάθμιση με λογική ROI.
