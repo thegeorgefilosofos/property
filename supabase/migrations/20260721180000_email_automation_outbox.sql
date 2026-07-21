@@ -19,9 +19,14 @@ create table if not exists public.email_outbox (
   to_name       text,
   params        jsonb       not null default '{}'::jsonb,
   category      text        not null default 'marketing',  -- marketing | transactional | operational
+  -- Cadence policy (see _shared/emailPolicy.ts): the scheduler stamps these from
+  -- the copy_id so the drain can enforce hierarchy, daily caps and staggering.
+  priority      int         not null default 4,            -- 1 transactional … 5 soft
+  send_window   text,                                      -- morning | midday | evening | late | immediate
+  digest_group  text,                                      -- same-day obligations in one group merge into one email
   dedup_key     text        unique,                    -- e.g. 'welcome:<user_id>' → never sent twice
   scheduled_for timestamptz not null default now(),
-  status        text        not null default 'pending',    -- pending | sent | failed | skipped
+  status        text        not null default 'pending',    -- pending | sent | failed | skipped | deferred
   attempts      int         not null default 0,
   last_error    text,
   sent_at       timestamptz,

@@ -1,0 +1,240 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Email cadence policy — the anti-spam / send-time orchestration layer.
+//
+// The catalog (emailCopy.ts) says WHAT each email says. This module says WHEN it
+// is allowed to reach the recipient, so we never bombard: a user must not get ten
+// emails at 08:00 on the 1st of the month. Every copy_id is assigned a priority
+// tier, a category, a preferred time-of-day slot, and (for obligations) a digest
+// group. `planDeliveries()` is a pure function that takes everything queued for
+// one recipient on one day and returns a measured, staggered, deduplicated plan:
+// consolidate same-day obligations into a single digest, cap opportunities and
+// lifecycle to one each, spread them across morning/midday/evening, keep quiet
+// hours, and defer the overflow to later days.
+//
+// Pure and deterministic (the only "randomness" is a stable hash of the email),
+// so it is unit-testable and the edge scheduler can trust it. See
+// docs/marketing/cadence.md for the full strategy and verify-policy.ts for the
+// scenario tests (incl. the "ten emails on the 1st" case).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type Priority = 1 | 2 | 3 | 4 | 5;
+export type Category = 'transactional' | 'obligation' | 'opportunity' | 'lifecycle' | 'soft';
+export type Slot = 'immediate' | 'morning' | 'midday' | 'evening' | 'late';
+
+export interface Policy {
+  priority: Priority;
+  category: Category;
+  slot: Slot;
+  digestGroup?: string;   // same-day items in the same group merge into one email
+  standalone?: boolean;   // never merged into a digest (e.g. final dunning)
+}
+
+// Clock for each slot (local time, 24h). Quiet hours are outside [08:00, 21:00].
+export const SLOT_TIME: Record<Exclude<Slot, 'immediate'>, string> = {
+  morning: '08:30',
+  midday:  '12:30',
+  evening: '18:30',
+  late:    '19:45',
+};
+export const QUIET_START = 21; // no non-transactional sends at/after 21:00
+export const QUIET_END = 8;    //  or before 08:00 → deferred to next morning
+
+// Per-recipient daily & weekly ceilings for non-transactional email.
+export const CAPS = {
+  opportunityPerDay: 1,   // P3
+  lifecyclePerDay: 1,     // P4
+  softPerDay: 1,          // P5 (and only when nothing heavier went out)
+  nonTxPerDay: 3,         // hard ceiling across P2 digest + P3 + P4/P5
+  nonTxPerWeek: 5,        // rolling 7-day ceiling across P3+P4+P5
+};
+
+// ── Tier assignment ─────────────────────────────────────────────────────────
+// Explicit per copy_id so intent is auditable. Anything unlisted falls back to a
+// safe P4 lifecycle default (see policyFor).
+
+const P1_TRANSACTIONAL = [
+  'welcome_free', 'welcome_individual', 'welcome_professional', 'verify_email',
+  'first_property_success', 'trial_started',
+  'subscription_receipt', 'plan_changed', 'payment_failed', 'security_login', 'reply_ack',
+  'tenant_rent_receipt', 'payout_received', 'maintenance_completed',
+  'referral_reward', 'referral_friend_activated',
+];
+
+// Time-critical obligations. Same-day ones consolidate into one digest, except
+// the ones flagged standalone below.
+const P2_OBLIGATION = [
+  'rent_pending', 'dunning_1', 'dunning_2', 'dunning_final',
+  'tax_e2', 'tax_enfia', 'tax_installment',
+  'lease_ending', 'lease_renewal_prompt', 'deposit_reminder',
+  'insurance_expiring', 'certificate_expiring', 'inspection_due',
+  'utility_bill_due', 'appointment_reminder', 'appointment_missed', 'maintenance_scheduled',
+  'lease_declaration_reminder', 'str_registration_reminder', 'str_stay_tax',
+  'card_expiring', 'data_retention_notice',
+  'checkin_today', 'checkout_today', 'cleaning_scheduled',
+];
+
+// P3 — personalized opportunity / value. One per day, midday.
+const P3_OPPORTUNITY = [
+  'energy_savings', 'insurance_enfia', 'loan_costs', 'rate_alert', 'document_pack',
+  'free_month_upgrade', 'upsell_to_individual', 'upsell_to_professional',
+  'limit_reached', 'value_left', 'annual_discount', 'trial_ending',
+  'roi_proof', 'plan_comparison', 'rent_benchmark_alert', 'market_digest',
+  'occupancy_gap', 'reactivation_offer', 'winback_offer', 'winback_downgrade',
+];
+
+// P5 — soft / optional. Only when nothing heavier is going out; first to defer.
+const P5_SOFT = [
+  'roadmap_preview', 'nps_survey', 'feedback_lottery', 'best_practice_tip',
+  'webinar_invite', 'assistant_showcase', 'social_proof', 'churn_survey',
+  'tip_assistant', 'voice_entry', 'tip_reports', 'feedback_week1', 'recap_week2',
+];
+
+// Everything else (onboarding drip steps, monthly statement, product & seasonal
+// news, referral invites, relationship, winback nudges…) is P4 lifecycle.
+
+// Obligations that must never be folded into a shared digest.
+const STANDALONE = new Set(['dunning_final', 'payment_failed', 'data_retention_notice']);
+
+// Which digest a same-day obligation joins.
+function digestGroupFor(copyId: string): string {
+  if (['checkin_today', 'checkout_today', 'cleaning_scheduled'].includes(copyId)) return 'str_today';
+  if (['tax_e2', 'tax_enfia', 'tax_installment'].includes(copyId)) return 'tax';
+  return 'obligations';
+}
+
+const SET1 = new Set(P1_TRANSACTIONAL);
+const SET2 = new Set(P2_OBLIGATION);
+const SET3 = new Set(P3_OPPORTUNITY);
+const SET5 = new Set(P5_SOFT);
+
+export function policyFor(copyId: string): Policy {
+  if (SET1.has(copyId)) return { priority: 1, category: 'transactional', slot: 'immediate' };
+  if (SET2.has(copyId)) return {
+    priority: 2, category: 'obligation', slot: 'morning',
+    digestGroup: STANDALONE.has(copyId) ? undefined : digestGroupFor(copyId),
+    standalone: STANDALONE.has(copyId) || undefined,
+  };
+  if (SET3.has(copyId)) return { priority: 3, category: 'opportunity', slot: 'midday' };
+  if (SET5.has(copyId)) return { priority: 5, category: 'soft', slot: 'late' };
+  return { priority: 4, category: 'lifecycle', slot: 'evening' }; // default
+}
+
+// ── Deterministic per-recipient minute offset (spreads the fleet, not robotic) ─
+export function offsetMinutes(recipientKey: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < recipientKey.length; i++) { h ^= recipientKey.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h) % 22; // 0..21 minutes added on top of the slot
+}
+
+function slotClock(slot: Slot, recipientKey: string): string {
+  if (slot === 'immediate') return 'now';
+  const [hh, mm] = SLOT_TIME[slot].split(':').map(Number);
+  const total = hh * 60 + mm + offsetMinutes(recipientKey);
+  const H = Math.floor(total / 60), M = total % 60;
+  return `${String(H).padStart(2, '0')}:${String(M).padStart(2, '0')}`;
+}
+
+// ── The planner ──────────────────────────────────────────────────────────────
+
+export interface QueuedItem { copyId: string; params?: Record<string, unknown>; }
+
+export interface Delivery {
+  kind: 'send' | 'digest';
+  copyId: string;              // synthetic 'digest_<group>' for a digest
+  at: string;                  // clock time or 'now'
+  priority: Priority;
+  category: Category;
+  bundles?: string[];          // for a digest: the copy_ids folded in
+}
+export interface Deferred { copyId: string; reason: string; }
+export interface Plan { deliveries: Delivery[]; deferred: Deferred[]; }
+
+export interface PlanContext {
+  recipientKey: string;                 // stable per recipient (email/id) for staggering
+  sentTodayNonTx?: number;              // non-transactional already sent today
+  sentThisWeekNonTx?: number;           // rolling 7-day non-transactional count
+  isAnniversary?: boolean;              // birthday/anniversary → keep the day calm
+}
+
+/**
+ * Turn everything queued for one recipient on one day into a measured plan.
+ * Transactional always passes. Obligations consolidate + lead the morning.
+ * At most one opportunity and one lifecycle go out, spread across the day; soft
+ * only if room remains. Everything over the caps is deferred, not dropped.
+ */
+export function planDeliveries(items: QueuedItem[], ctx: PlanContext): Plan {
+  const rk = ctx.recipientKey;
+  const deliveries: Delivery[] = [];
+  const deferred: Deferred[] = [];
+  let usedNonTx = ctx.sentTodayNonTx ?? 0;
+  const weekNonTx = ctx.sentThisWeekNonTx ?? 0;
+
+  const withPol = items.map(it => ({ it, pol: policyFor(it.copyId) }));
+
+  // 1) Transactional — always, immediately, uncapped.
+  for (const { it, pol } of withPol.filter(x => x.pol.priority === 1)) {
+    deliveries.push({ kind: 'send', copyId: it.copyId, at: 'now', priority: 1, category: pol.category });
+  }
+
+  // 2) Obligations — consolidate same-day per digest group; standalone stay whole.
+  const obligs = withPol.filter(x => x.pol.priority === 2);
+  const groups = new Map<string, string[]>();
+  for (const { it, pol } of obligs) {
+    if (pol.standalone) {
+      deliveries.push({ kind: 'send', copyId: it.copyId, at: slotClock('morning', rk), priority: 2, category: 'obligation' });
+      usedNonTx++;
+      continue;
+    }
+    const g = pol.digestGroup || 'obligations';
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g)!.push(it.copyId);
+  }
+  for (const [g, keys] of groups) {
+    if (keys.length === 1) {
+      deliveries.push({ kind: 'send', copyId: keys[0], at: slotClock('morning', rk), priority: 2, category: 'obligation' });
+    } else {
+      deliveries.push({ kind: 'digest', copyId: `digest_${g}`, at: slotClock('morning', rk), priority: 2, category: 'obligation', bundles: keys });
+    }
+    usedNonTx++;
+  }
+
+  const roomToday = () => usedNonTx < CAPS.nonTxPerDay && weekNonTx < CAPS.nonTxPerWeek;
+
+  // 3) Opportunity — at most one, the strongest, at midday.
+  const opps = withPol.filter(x => x.pol.priority === 3);
+  if (opps.length && !ctx.isAnniversary && roomToday()) {
+    const pick = opps[0];
+    deliveries.push({ kind: 'send', copyId: pick.it.copyId, at: slotClock('midday', rk), priority: 3, category: 'opportunity' });
+    usedNonTx++;
+    for (const o of opps.slice(1)) deferred.push({ copyId: o.it.copyId, reason: 'opportunity_cap' });
+  } else {
+    for (const o of opps) deferred.push({ copyId: o.it.copyId, reason: ctx.isAnniversary ? 'anniversary_quiet' : 'opportunity_cap' });
+  }
+
+  // 4) Lifecycle — at most one, in the evening. Anniversary email wins the slot.
+  const life = withPol.filter(x => x.pol.priority === 4);
+  const anniv = life.find(x => x.it.copyId === 'anniversary');
+  const lifeOrdered = anniv ? [anniv, ...life.filter(x => x !== anniv)] : life;
+  if (lifeOrdered.length && roomToday()) {
+    const pick = lifeOrdered[0];
+    deliveries.push({ kind: 'send', copyId: pick.it.copyId, at: slotClock('evening', rk), priority: 4, category: 'lifecycle' });
+    usedNonTx++;
+    for (const l of lifeOrdered.slice(1)) deferred.push({ copyId: l.it.copyId, reason: 'lifecycle_cap' });
+  } else {
+    for (const l of lifeOrdered) deferred.push({ copyId: l.it.copyId, reason: 'lifecycle_cap' });
+  }
+
+  // 5) Soft — only if the day is otherwise quiet and never on an anniversary.
+  const soft = withPol.filter(x => x.pol.priority === 5);
+  const daysWasBusy = usedNonTx > (ctx.sentTodayNonTx ?? 0); // anything went out today
+  if (soft.length && !ctx.isAnniversary && !daysWasBusy && roomToday()) {
+    const pick = soft[0];
+    deliveries.push({ kind: 'send', copyId: pick.it.copyId, at: slotClock('late', rk), priority: 5, category: 'soft' });
+    usedNonTx++;
+    for (const s of soft.slice(1)) deferred.push({ copyId: s.it.copyId, reason: 'soft_cap' });
+  } else {
+    for (const s of soft) deferred.push({ copyId: s.it.copyId, reason: ctx.isAnniversary ? 'anniversary_quiet' : 'soft_cap' });
+  }
+
+  return { deliveries, deferred };
+}
