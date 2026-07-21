@@ -118,9 +118,9 @@ export function printPropertyStatement(c: StatementCtx): void {
   .idt .v{color:#111;font-weight:600;width:33%}
   .idt .vlast{padding-right:0}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px}
-  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;margin-bottom:7px}
-  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
+  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
+  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
   td{padding:8px 4px;text-align:left;font-size:12.5px;color:#374151}
   tbody tr td{border-bottom:1px solid #eef0f2}
   td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:#111}
