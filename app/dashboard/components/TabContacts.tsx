@@ -815,7 +815,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
     + kpis
     + preferredSection
     + groupSections
-    + reportDisclaimer('Ο κατάλογος δημιουργήθηκε από το Property OS και περιλαμβάνει τις καταχωρημένες επαφές του ακινήτου. Τα στοιχεία επικοινωνίας παρέχονται για ενημερωτική και οργανωτική χρήση.', branding)
+    + reportDisclaimer('Ο κατάλογος περιλαμβάνει τις καταχωρημένες επαφές του ακινήτου. Τα στοιχεία επικοινωνίας παρέχονται για ενημερωτική και οργανωτική χρήση.', branding)
     + `</div></body></html>`
 
   openReport(html)

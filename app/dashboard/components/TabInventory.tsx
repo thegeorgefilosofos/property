@@ -1794,7 +1794,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
       + `<table><tbody>${catRows}</tbody></table>`
       + reportSection('Αναλυτικός Κατάλογος')
       + `<table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th>Προέλευση</th><th class="n">Αξία Αγοράς</th><th class="n">Τρέχουσα</th><th class="n">Απόσβεση</th><th class="n">kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>${detailRows}</tbody></table>`
-      + reportDisclaimer('Η παρούσα απογραφή δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Οι τρέχουσες αξίες προκύπτουν από γραμμική απόσβεση βάσει της ωφέλιμης ζωής κάθε κατηγορίας και δεν αποτελούν επίσημη εκτίμηση. Η ασφαλιστέα αξία (+10%) είναι ενδεικτική.')
+      + reportDisclaimer('Η παρούσα απογραφή έχει ενημερωτικό χαρακτήρα. Οι τρέχουσες αξίες προκύπτουν από γραμμική απόσβεση βάσει της ωφέλιμης ζωής κάθε κατηγορίας και δεν αποτελούν επίσημη εκτίμηση. Η ασφαλιστέα αξία (+10%) είναι ενδεικτική.')
       + `</div></body></html>`
     openReport(html)
   }

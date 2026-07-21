@@ -92,7 +92,7 @@ export function printPropertyStatement(c: StatementCtx): void {
   const subtitle = [c.propType, c.sqm ? `${c.sqm} τ.μ.` : '', leaseType, c.status].filter(Boolean).map(x => esc(String(x))).join(' · ');
   const ownerShare = own != null && own < 100
     ? `<div class="note"><span class="muted">Αναλογία ιδιοκτήτη (${esc(pct(own))}):</span> έσοδα <strong class="tnum">${esc(eur(c.annualRent * own / 100))}</strong> · καθαρό αποτέλεσμα <strong class="tnum">${esc(signed(net * own / 100))}</strong></div>` : '';
-  const disclaimer = `Η παρούσα αναφορά δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${c.year} και την τεκμαρτή έκπτωση δαπανών 5% (μακροχρόνια μίσθωση φυσικού προσώπου)${c.shortTerm ? ', ενώ στη βραχυχρόνια προστίθενται κατά περίπτωση τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων' : ''}. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`;
+  const disclaimer = `Η παρούσα αναφορά έχει ενημερωτικό χαρακτήρα και δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${c.year} και την τεκμαρτή έκπτωση δαπανών 5% (μακροχρόνια μίσθωση φυσικού προσώπου)${c.shortTerm ? ', ενώ στη βραχυχρόνια προστίθενται κατά περίπτωση τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων' : ''}. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`;
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <title>Αναφορά ακινήτου · ${esc(c.propName)}</title>
@@ -118,9 +118,9 @@ export function printPropertyStatement(c: StatementCtx): void {
   .idt .v{color:#111;font-weight:600;width:33%}
   .idt .vlast{padding-right:0}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px}
-  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;margin-bottom:7px}
-  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
+  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
+  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
   td{padding:8px 4px;text-align:left;font-size:12.5px;color:#374151}
   tbody tr td{border-bottom:1px solid #eef0f2}
   td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:#111}
@@ -133,6 +133,8 @@ export function printPropertyStatement(c: StatementCtx): void {
   .note{margin-top:9px;font-size:11.5px;color:#374151;line-height:1.55}
   .tnum{font-variant-numeric:tabular-nums}
   .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
+  .colo{margin-top:10px;font-size:9.5px;letter-spacing:.02em;color:#9aa0a6}
+  .colo b{font-weight:700;color:#6b7280}
 </style></head>
 <body><div class="page">
   <div class="top">
@@ -191,7 +193,7 @@ export function printPropertyStatement(c: StatementCtx): void {
     <tbody>${catRows}</tbody>
   </table>
 
-  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}</div>
+  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>Property OS</b></div></div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
 </div></body></html>`;
 

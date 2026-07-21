@@ -31,9 +31,9 @@ export const REPORT_CSS = `
   .sub{color:#6b7280;font-size:12px;margin-bottom:6px}
   .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#111;margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid #111;break-after:avoid}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px}
-  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;margin-bottom:7px}
-  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
+  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
+  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
   table{width:100%;border-collapse:collapse;break-inside:avoid}
   td{padding:8px 4px;text-align:left;font-size:12.5px;color:#374151}
   tbody tr td{border-bottom:1px solid #eef0f2}
@@ -47,6 +47,8 @@ export const REPORT_CSS = `
   .note{margin-top:9px;font-size:11.5px;color:#374151;line-height:1.55}
   .tnum{font-variant-numeric:tabular-nums}
   .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
+  .colo{margin-top:10px;font-size:9.5px;letter-spacing:.02em;color:#9aa0a6}
+  .colo b{font-weight:700;color:#6b7280}
 `;
 
 /** <head> με γραμματοσειρά Inter + κοινό CSS. Το title μπαίνει ξεσκαρταρισμένο. */
@@ -87,7 +89,8 @@ export const reportKpi = (label: string, value: string): string =>
   `<div class="kpi"><div class="kl">${rEsc(label)}</div><div class="kv">${rEsc(value)}</div></div>`;
 
 export function reportDisclaimer(text: string, branding?: ReportBranding | null): string {
-  return `<div class="disc">${branding?.companyName ? brandName(branding) + ' · ' : ''}${rEsc(text)}</div>`;
+  return `<div class="disc">${branding?.companyName ? brandName(branding) + ' · ' : ''}${rEsc(text)}`
+    + `<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>Property OS</b></div></div>`;
 }
 
 /** Ανοίγει παράθυρο εκτύπωσης με το πλήρες HTML (auto-print). */

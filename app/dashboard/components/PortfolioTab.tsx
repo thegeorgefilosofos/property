@@ -219,7 +219,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       + `<div class="sub">Έσοδα &amp; δαπάνες ${rEsc(String(year))} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</div>`
       + reportSection('Ανάλυση ανά ακίνητο')
       + `<table><thead><tr><th>Ακίνητο</th><th class="n">Έσοδα</th><th class="n">Δαπάνες</th><th class="n">Καθαρό</th></tr></thead><tbody>${bodyRows}${totalRow}</tbody></table>`
-      + reportDisclaimer('Η παρούσα κατάσταση δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.')
+      + reportDisclaimer('Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.')
       + `</div></body></html>`;
     openReport(html);
   };
