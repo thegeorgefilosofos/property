@@ -106,7 +106,41 @@ export interface Personal extends Ctx {
   device?: string;           // συσκευή σύνδεσης
   location?: string;         // τοποθεσία σύνδεσης
   headline?: string;         // τίτλος (π.χ. νομοθεσία)
-  summaryText?: string;      // περίληψη (π.χ. νομοθεσία)
+  summaryText?: string;      // περίληψη (π.χ. νομοθεσία, changelog, roadmap)
+  // Λειτουργικά ακινήτου (operations)
+  leaseEndDate?: string;     // λήξη μίσθωσης
+  insurerName?: string;      // ασφαλιστική εταιρεία
+  policyEndDate?: string;    // λήξη ασφαλιστηρίου
+  certificateName?: string;  // όνομα πιστοποιητικού (π.χ. ΠΕΑ)
+  certificateEndDate?: string; // λήξη πιστοποιητικού
+  appointmentTitle?: string; // τίτλος ραντεβού/εκδήλωσης
+  appointmentDate?: string;  // ημερομηνία ραντεβού
+  appointmentTime?: string;  // ώρα ραντεβού
+  maintenanceTitle?: string; // περιγραφή εργασίας συντήρησης
+  maintenanceDate?: string;  // ημερομηνία συντήρησης
+  contractorName?: string;   // όνομα συνεργάτη/συνεργείου
+  billType?: string;         // είδος λογαριασμού (π.χ. ΔΕΗ, νερό)
+  billDueDate?: string;      // προθεσμία λογαριασμού
+  // Βραχυχρόνια μίσθωση (short-term operations)
+  guestName?: string;        // όνομα επισκέπτη
+  checkinDate?: string;      // ημερομηνία άφιξης
+  checkoutDate?: string;     // ημερομηνία αναχώρησης
+  cleaningDate?: string;     // ημερομηνία καθαρισμού
+  gapNights?: number;        // κενές νύχτες
+  gapFrom?: string;          // αρχή κενού διαστήματος
+  gapTo?: string;            // τέλος κενού διαστήματος
+  reviewsCount?: number;     // πλήθος αξιολογήσεων
+  rating?: number;           // μέση βαθμολογία
+  // Προϊόν / εξέλιξη / αξία (product, evolution, value)
+  featureName?: string;      // όνομα νέας δυνατότητας
+  featureBenefit?: string;   // όφελος νέας δυνατότητας
+  assistantSkill?: string;   // νέα ικανότητα του βοηθού
+  anniversaryYears?: number; // χρόνια συνεργασίας
+  hoursSaved?: number;       // ώρες που εξοικονομήθηκαν
+  // Συνδρομή / σχέσεις / benchmarking
+  cardLast4?: string;        // τελευταία ψηφία κάρτας
+  marketRent?: number;       // μέσο ενοίκιο αγοράς, σε EUR
+  sharePct?: number;         // ποσοστό συνιδιοκτησίας
 }
 type Out = { subject: string; html: string };
 const app = (c: Ctx) => c.appUrl || DEFAULT_APP;

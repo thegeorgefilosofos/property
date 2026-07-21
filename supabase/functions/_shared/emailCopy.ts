@@ -10,8 +10,11 @@
 //
 // Γλώσσα: επιμελημένα ελληνικά, ζεστός αλλά επαγγελματικός τόνος, χωρίς παύλες,
 // ουδέτερα ως προς το φύλο, με σωστούς εγκλιτικούς τόνους («το ακίνητό σου»).
-// Επτά φάσεις, 52 emails: 1) Onboarding 2) Engagement 3) Upsell 4) Εποχικά
-// 5) Συστάσεις 6) Lifecycle/Νομικά/Συναλλαγές 7) Επανενεργοποίηση.
+// Δεκατέσσερα προγράμματα, 93 emails: 1) Onboarding 2) Engagement 3) Upsell
+// 4) Εποχικά 5) Συστάσεις 6) Lifecycle/Νομικά/Συναλλαγές 7) Επανενεργοποίηση
+// 8) Λειτουργικά ακινήτου 9) Βραχυχρόνια μίσθωση 10) Προϊόν & Εξέλιξη
+// 11) Ενίσχυση μετατροπής 12) Συμμόρφωση 13) Συνδρομή & Χρέωση
+// 14) Σχέσεις (ενοικιαστές & συνιδιοκτήτες). Στρατηγική: docs/marketing/email-strategy.md.
 // ═══════════════════════════════════════════════════════════════════════════
 import { emailShell, eyebrow, h, p, bullets, button, greeting, note, PLAN_LABEL, type Personal } from './emailTemplates.ts'
 
@@ -31,6 +34,7 @@ const NOTE = {
   aade: 'Ενημερωτικά, με επίσημες πηγές. Οριστικοποίησε με τον λογιστή σου ή στο myAADE.',
   cancel: 'Ακύρωση όποτε θες, χωρίς δεσμεύσεις.',
   limited: 'Η προσφορά ισχύει για περιορισμένο διάστημα.',
+  legal: 'Ενημερωτικά. Για την τελική εφαρμογή, επιβεβαίωσε με τον λογιστή ή τον νομικό σου σύμβουλο.',
 }
 
 type Out = { subject: string; html: string }
@@ -46,7 +50,7 @@ export const ONBOARDING: Record<string, CopyFn> = {
       preheader: 'Εσύ βάζεις τα βασικά, το Property OS κάνει τα υπόλοιπα.',
       unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Καλωσόρισες') + h('Ας ξεκινήσουμε') + greeting(c.name)
-        + p('Χαιρόμαστε που είσαι εδώ. Από εδώ και πέρα, εσύ καταχωρείς τα βασικά και το Property OS κάνει τα υπόλοιπα: έσοδα, έξοδα, φόρους και υπενθυμίσεις, όλα σε ένα μέρος.')
+        + p('Από σήμερα, εσύ καταχωρείς τα βασικά και το Property OS κάνει τα υπόλοιπα: έσοδα, έξοδα, φόρους και υπενθυμίσεις, σε ένα μέρος.')
         + p('Τρία βήματα για να δεις την πρώτη σου εικόνα:')
         + bullets([
             'Πρόσθεσε το πρώτο σου ακίνητο. Θέλει δύο λεπτά.',
@@ -64,7 +68,7 @@ export const ONBOARDING: Record<string, CopyFn> = {
     html: emailShell({
       preheader: 'Εσύ κρατάς τον έλεγχο, εμείς τη δουλειά ρουτίνας.',
       unsubUrl: c.unsubUrl,
-      bodyHtml: eyebrow('Καλωσόρισες') + h('Καλωσόρισες') + greeting(c.name)
+      bodyHtml: eyebrow('Καλωσόρισες') + h('Ας τα τακτοποιήσουμε') + greeting(c.name)
         + p('Από σήμερα, τα ενοίκια, τα έξοδα και οι υποχρεώσεις σου ζουν σε ένα σημείο. Δεν χρειάζεται πια να ψάχνεις σε σημειώσεις, μηνύματα και αποδείξεις: εσύ κρατάς τον έλεγχο, το Property OS κάνει τη δουλειά ρουτίνας.')
         + p('Για να πάρεις αξία από την πρώτη μέρα:')
         + bullets([
@@ -106,7 +110,7 @@ export const ONBOARDING: Record<string, CopyFn> = {
       preheader: 'Ένα κλικ και ο λογαριασμός σου είναι έτοιμος.',
       bodyHtml: eyebrow('Ενεργοποίηση') + h('Ένα βήμα ακόμη') + greeting(c.name)
         + p('Για να ενεργοποιήσεις τον λογαριασμό σου και να κρατήσουμε ασφαλή τα δεδομένα σου, επιβεβαίωσε ότι αυτή η διεύθυνση είναι δική σου.')
-        + button('Επιβεβαίωση email', dash(c))
+        + button('Επιβεβαίωσε το email σου', dash(c))
         + note('Αν δεν έκανες εσύ την εγγραφή, αγνόησε αυτό το μήνυμα.'),
     }),
   }),
@@ -152,7 +156,7 @@ export const ONBOARDING: Record<string, CopyFn> = {
       bodyHtml: eyebrow('Αυτοματισμός') + h('Λιγότερη πληκτρολόγηση') + greeting(c.name)
         + p('Αντί να περνάς έσοδα και έξοδα ένα ένα, ανέβασε την κίνηση του λογαριασμού σου σε αρχείο. Το Property OS τη διαβάζει και την αντιστοιχίζει σε ενοίκια και δαπάνες.')
         + p('Εσύ απλώς επιβεβαιώνεις. Ό,τι δεν είναι σίγουρο, σου το επισημαίνουμε για να το ελέγξεις.')
-        + button('Εισαγωγή κινήσεων', dash(c))
+        + button('Ανέβασε τις κινήσεις σου', dash(c))
         + note('Τα δεδομένα σου είναι δικά σου. Δεν συνδεόμαστε με την τράπεζά σου χωρίς εσένα.'),
     }),
   }),
@@ -174,7 +178,7 @@ export const ONBOARDING: Record<string, CopyFn> = {
   tip_assistant: (c) => {
     const bot = c.assistantName ? `Ο βοηθός σου, ${esc(c.assistantName)},` : 'Ο βοηθός σου';
     return {
-      subject: 'Ρώτησε τον βοηθό σου, όπως θα ρωτούσες έναν άνθρωπο',
+      subject: 'Ο βοηθός σου ξέρει τα ακίνητά σου',
       html: emailShell({
         preheader: 'Από φόρους μέχρι αποδόσεις, με τα δικά σου δεδομένα.',
         unsubUrl: c.unsubUrl,
@@ -207,7 +211,7 @@ export const ONBOARDING: Record<string, CopyFn> = {
       preheader: 'Μισό λεπτό δικό σου, μεγάλη διαφορά για εμάς.',
       unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Η γνώμη σου') + h('Πες μας ειλικρινά') + greeting(c.name)
-        + p('Πέρασε περίπου μία εβδομάδα μαζί μας. Θα θέλαμε πολύ να μάθουμε τι σε βοήθησε, τι σε δυσκόλεψε και τι θα ήθελες να δεις.')
+        + p('Πέρασε μία εβδομάδα μαζί μας. Πες μας ειλικρινά: τι σε βοήθησε, τι σε δυσκόλεψε, τι λείπει.')
         + p('Διαβάζουμε κάθε απάντηση και χτίζουμε το Property OS πάνω σε αυτά που ακούμε από εσένα.')
         + button('Πες μας τη γνώμη σου', dash(c))
         + note('Μπορείς απλώς να απαντήσεις σε αυτό το μήνυμα. Φτάνει κατευθείαν σε εμάς.'),
@@ -273,9 +277,9 @@ export const ENGAGEMENT: Record<string, CopyFn> = {
   product_update: (c) => ({
     subject: 'Τι νέο έχει το Property OS',
     html: emailShell({
-      preheader: 'Οι τελευταίες προσθήκες, φτιαγμένες με βάση τη γνώμη σας.', unsubUrl: c.unsubUrl,
+      preheader: 'Οι τελευταίες προσθήκες, φτιαγμένες με βάση τη γνώμη σου.', unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Νέες δυνατότητες') + h('Φτιάξαμε κάτι για σένα') + greeting(c.name)
-        + p('Δουλεύουμε συνεχώς πάνω στο Property OS, με βάση αυτά που μας ζητάτε. Να οι τελευταίες προσθήκες που κάνουν τη δουλειά σου πιο εύκολη.')
+        + p('Δουλεύουμε συνεχώς πάνω στο Property OS, με βάση αυτά που μας ζητάς. Να οι τελευταίες προσθήκες που κάνουν τη δουλειά σου πιο εύκολη.')
         + button('Δες τι νέο υπάρχει', dash(c))
         + note('Λαμβάνεις αυτή την ενημέρωση ως χρήστης του Property OS.'),
     }),
@@ -318,9 +322,9 @@ export const ENGAGEMENT: Record<string, CopyFn> = {
     html: emailShell({
       preheader: 'Δες τι αναλογεί σε κάθε ακίνητο, χωρίς εκπλήξεις.', unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Φορολογικό ημερολόγιο') + h('Ο ΕΝΦΙΑ, χωρίς εκπλήξεις') + greeting(c.name)
-        + p('Το Property OS εκτιμά τον ΕΝΦΙΑ για κάθε ακίνητό σου και σου θυμίζει τις δόσεις, ώστε να μην έρχονται ξαφνικά.')
+        + p('Το Property OS σου δίνει μια ενδεικτική εκτίμηση του ΕΝΦΙΑ για κάθε ακίνητό σου και σου θυμίζει τις δόσεις, ώστε να μην έρχονται ξαφνικά.')
         + button('Δες τον ΕΝΦΙΑ', dash(c))
-        + note(NOTE.ahead),
+        + note(NOTE.aade),
     }),
   }),
 
@@ -434,7 +438,7 @@ export const UPSELL: Record<string, CopyFn> = {
     const proof = (has(c.properties) && c.properties >= 2)
       ? p(`Διαχειρίζεσαι <b>${plural(c.properties, 'ακίνητο', 'ακίνητα')}</b>. Όσο μεγαλώνει το χαρτοφυλάκιό σου, τόσο περισσότερο κερδίζεις από το πλάνο Επαγγελματία.`)
       : p('Καθώς το χαρτοφυλάκιό σου μεγαλώνει, το πλάνο Επαγγελματία σε κρατά μπροστά χωρίς επιπλέον κόπο.');
-    return { subject: 'Το χαρτοφυλάκιό σου μεγαλώνει. Ας κρατήσουμε τον ρυθμό', html: emailShell({
+    return { subject: 'Το χαρτοφυλάκιό σου μεγαλώνει', html: emailShell({
       preheader: 'Πολλά ακίνητα, επώνυμες αναφορές, μαζική επικοινωνία.',
       unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Πλάνο Επαγγελματία') + h('Φτιαγμένο για χαρτοφυλάκιο') + greeting(c.name)
@@ -483,10 +487,10 @@ export const UPSELL: Record<string, CopyFn> = {
   // 29. Έκπτωση ετήσιας χρέωσης
   annual_discount: (c) => {
     const pct = has(c.discountPct) ? c.discountPct : 20;
-    return { subject: `Πλήρωσε ετησίως και κράτησε ${pct}%`, html: emailShell({
+    return { subject: `Πλήρωσε ετησίως και εξοικονόμησε ${pct}%`, html: emailShell({
       preheader: 'Ίδιο πλάνο, μικρότερο κόστος.',
       unsubUrl: c.unsubUrl,
-      bodyHtml: eyebrow('Ετήσια χρέωση') + h(`Κράτησε ${pct}% με την ετήσια συνδρομή`) + greeting(c.name)
+      bodyHtml: eyebrow('Ετήσια χρέωση') + h(`Εξοικονόμησε ${pct}% με την ετήσια συνδρομή`) + greeting(c.name)
         + p(`Αν το Property OS έγινε μέρος της καθημερινότητάς σου, η ετήσια χρέωση σου χαρίζει <b>${pct}%</b> έκπτωση σε σχέση με τη μηνιαία. Ίδιες δυνατότητες, μικρότερο κόστος.`)
         + p('Το αλλάζεις με ένα κλικ και ισχύει από την επόμενη ανανέωση.')
         + button('Πέρνα σε ετήσια χρέωση', dash(c))
@@ -516,7 +520,7 @@ export const UPSELL: Record<string, CopyFn> = {
     html: emailShell({
       preheader: 'Τα δεδομένα σου σε περιμένουν, ακέραια.',
       unsubUrl: c.unsubUrl,
-      bodyHtml: eyebrow('Καλωσόρισες πίσω, όποτε θες') + h('Η πόρτα μένει ανοιχτή') + greeting(c.name)
+      bodyHtml: eyebrow('Καλωσόρισες πίσω') + h('Η πόρτα μένει ανοιχτή') + greeting(c.name)
         + p('Πέρασες σε πιο βασικό πλάνο, και το σεβόμαστε απόλυτα. Τα ακίνητα, οι εισπράξεις και το ιστορικό σου παραμένουν ακέραια και δικά σου.')
         + p('Αν κάποια στιγμή θελήσεις ξανά τις αυτόματες υπενθυμίσεις και τις επίσημες αναφορές, θα τα βρεις όλα εκεί που τα άφησες.')
         + button('Δες τα πλάνα', dash(c))
@@ -535,6 +539,24 @@ export const UPSELL: Record<string, CopyFn> = {
         + p('Ο λογαριασμός σου είναι ακριβώς όπως τον άφησες, έτοιμος να συνεχίσεις.')
         + button(`Κλείσε το ${pct}%`, dash(c))
         + note(NOTE.limited),
+    }) };
+  },
+
+  // 83. Έναρξη δοκιμαστικής περιόδου (ημέρα 0)
+  trial_started: (c) => {
+    const days = has(c.trialDaysLeft) ? plural(c.trialDaysLeft, 'μέρα', 'μέρες') : 'λίγες μέρες';
+    const planLine = c.plan ? ` <b>${PLAN_LABEL[c.plan]}</b>` : '';
+    return { subject: 'Η δοκιμή σου ξεκίνησε. Ας την αξιοποιήσουμε', html: emailShell({
+      preheader: 'Δες τι ξεκλείδωσες, όσο το έχεις.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Δοκιμή') + h('Καλή αρχή. Πάμε να δεις την αξία') + greeting(c.name)
+        + p(`Ξεκίνησες τη δοκιμή${planLine} και έχεις πλήρη πρόσβαση για ${days}. Είναι η καλύτερη στιγμή να δεις τι μπορεί να κάνει το Property OS για σένα.`)
+        + bullets([
+            'Άφησε τις αυτόματες υπενθυμίσεις να δουλέψουν για σένα.',
+            'Βγάλε μια επίσημη αναφορά ή κατάσταση.',
+            'Ρώτησε τον βοηθό σου κάτι για τα ακίνητά σου.',
+          ])
+        + button('Ξεκίνα από εδώ', dash(c))
+        + note('Χωρίς δέσμευση. Στο τέλος της δοκιμής, αποφασίζεις εσύ.'),
     }) };
   },
 }
@@ -617,7 +639,7 @@ export const SEASONAL: Record<string, CopyFn> = {
       preheader: 'Κρατήσεις, έσοδα και ημερολόγιο σε ένα σημείο.',
       unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Καλοκαιρινή σεζόν') + h('Η σεζόν ξεκινά. Πάμε μαζί') + greeting(c.name)
-        + p('Το καλοκαίρι φέρνει κρατήσεις, εναλλαγές ενοίκων και έξοδα που τρέχουν. Το Property OS συγχρονίζει Airbnb και Booking, καταγράφει τα έσοδα και κρατά καθαρό το ημερολόγιό σου.')
+        + p('Το καλοκαίρι φέρνει κρατήσεις, εναλλαγές επισκεπτών και έξοδα που τρέχουν. Το Property OS συγχρονίζει Airbnb και Booking, καταγράφει τα έσοδα και κρατά καθαρό το ημερολόγιό σου.')
         + p(`Μπες στη σεζόν οργανωμένα, με <b>${pct}%</b> έκπτωση στην αναβάθμιση.`)
         + button(`Ξεκίνα με ${pct}%`, dash(c))
         + note(NOTE.limited),
@@ -674,7 +696,7 @@ export const REFERRAL: Record<string, CopyFn> = {
 
   // 42. Ο προσκεκλημένος σου ενεργοποιήθηκε
   referral_friend_activated: (c) => {
-    const who = c.friendName ? esc(c.friendName) : 'Ο φίλος σου';
+    const who = c.friendName ? esc(c.friendName) : 'Ένα άτομο';
     const reward = c.rewardLabel ? ` Η ανταμοιβή σου, ${esc(c.rewardLabel)}, έρχεται.` : '';
     return { subject: 'Η σύστασή σου μόλις ενεργοποιήθηκε', html: emailShell({
       preheader: 'Καλά νέα από την πρόσκλησή σου.',
@@ -712,11 +734,11 @@ export const LIFECYCLE: Record<string, CopyFn> = {
 
   // 44. Επιβεβαίωση αλλαγής πλάνου
   plan_changed: (c) => {
-    const planLine = c.plan ? `<b>${PLAN_LABEL[c.plan]}</b>` : 'το νέο σου πλάνο';
+    const planSentence = c.plan ? `Το πλάνο σου είναι πλέον <b>${PLAN_LABEL[c.plan]}</b>.` : 'Το πλάνο σου μόλις ενημερώθηκε.';
     return { subject: 'Το πλάνο σου ενημερώθηκε', html: emailShell({
       preheader: 'Η αλλαγή καταχωρήθηκε.',
       bodyHtml: eyebrow('Αλλαγή πλάνου') + h('Η αλλαγή ολοκληρώθηκε') + greeting(c.name)
-        + p(`Το πλάνο σου είναι πλέον ${planLine}. Η αλλαγή ισχύει άμεσα και τα δεδομένα σου παραμένουν ακέραια.`)
+        + p(`${planSentence} Η αλλαγή ισχύει άμεσα και τα δεδομένα σου παραμένουν ακέραια.`)
         + p('Αν η αλλαγή δεν έγινε από εσένα, απάντησε σε αυτό το μήνυμα και θα το δούμε αμέσως.')
         + button('Δες τον λογαριασμό σου', dash(c))
         + note(NOTE.dataOwn),
@@ -741,7 +763,7 @@ export const LIFECYCLE: Record<string, CopyFn> = {
     const dv = c.device ? esc(c.device) : '';
     const loc = c.location ? esc(c.location) : '';
     const detail = (dv || loc)
-      ? p(`Σύνδεση${dv ? ` από <b>${dv}</b>` : ''}${loc ? `, ${loc}` : ''}.`)
+      ? p(`Σύνδεση${dv ? ` από <b>${dv}</b>` : ''}${loc ? `${dv ? ', ' : ' από '}${loc}` : ''}.`)
       : p('Καταγράψαμε μια νέα σύνδεση στον λογαριασμό σου.');
     return { subject: 'Νέα σύνδεση στον λογαριασμό σου', html: emailShell({
       preheader: 'Αν ήσουν εσύ, δεν χρειάζεται καμία ενέργεια.',
@@ -815,8 +837,8 @@ export const WINBACK: Record<string, CopyFn> = {
       preheader: 'Τίποτα δεν χάνεται. Είμαστε εδώ.',
       unsubUrl: c.unsubUrl,
       bodyHtml: eyebrow('Ακόμη εδώ για σένα') + h('Δεν σε ξεχάσαμε') + greeting(c.name)
-        + p('Πέρασαν κάποιοι μήνες από την τελευταία σου επίσκεψη. Θέλουμε απλώς να ξέρεις ότι τα δεδομένα σου παραμένουν ασφαλή και δικά σου, όποτε αποφασίσεις να επιστρέψεις.')
-        + p('Αν το Property OS δεν κάλυψε αυτό που χρειαζόσουν, θα θέλαμε πολύ να το ακούσουμε. Μας βοηθά να γίνουμε καλύτεροι.')
+        + p('Πέρασαν κάποιοι μήνες από την τελευταία σου επίσκεψη. Τα δεδομένα σου παραμένουν ασφαλή και δικά σου, όποτε αποφασίσεις να επιστρέψεις.')
+        + p('Αν κάτι δεν σε κάλυψε, πες μας το. Μας βοηθά να γίνουμε καλύτεροι.')
         + button('Ρίξε μια ματιά ξανά', dash(c))
         + note(NOTE.dataOwn),
     }),
@@ -849,9 +871,608 @@ export const WINBACK: Record<string, CopyFn> = {
         + note(NOTE.reply),
     }),
   }),
+
+  // 84. Χρονικά οριοθετημένη διατήρηση δεδομένων (βαθιά αδρανείς)
+  data_retention_notice: (c) => {
+    const when = c.deadlineDate ? ` έως τις <b>${esc(c.deadlineDate)}</b>` : ' σύντομα';
+    return { subject: 'Κράτησε τον λογαριασμό σου ενεργό', html: emailShell({
+      preheader: 'Μια κίνηση αρκεί για να μείνουν όλα ζωντανά.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ο λογαριασμός σου') + h('Ας κρατήσουμε τα δεδομένα σου ζωντανά') + greeting(c.name)
+        + p(`Έχεις καιρό να συνδεθείς. Για να κρατήσεις τον λογαριασμό και το ιστορικό σου ενεργά, μπες${when}. Ένα κλικ αρκεί.`)
+        + p('Τα δεδομένα σου παραμένουν δικά σου. Θέλουμε απλώς να είναι εκεί όποτε τα χρειαστείς.')
+        + button('Κράτησέ τα ενεργά', dash(c))
+        + note(NOTE.dataOwn),
+    }) };
+  },
 }
 
-// Ενιαίο ευρετήριο (52 emails, επτά φάσεις).
+// ── Φάση 8: Λειτουργικά ακινήτου (Operations) ────────────────────────────────
+// Ειδοποιήσεις που ενεργοποιούνται από τα δεδομένα του χρήστη: λήξεις, εγγυήσεις,
+// ραντεβού, συντήρηση, λογαριασμοί. Αποδεικνύουν ότι «το app δουλεύει για σένα».
+export const OPERATIONS: Record<string, CopyFn> = {
+
+  // 53. Πλησιάζει λήξη μίσθωσης
+  lease_ending: (c) => {
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    const when = c.leaseEndDate ? ` στις <b>${esc(c.leaseEndDate)}</b>` : ' σύντομα';
+    return { subject: c.propertyName ? `Λήγει η μίσθωση του «${esc(c.propertyName)}»` : 'Πλησιάζει λήξη μίσθωσης', html: emailShell({
+      preheader: 'Ώρα να αποφασίσεις ανανέωση ή αλλαγή.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Μίσθωση') + h('Μια μίσθωση πλησιάζει στη λήξη της') + greeting(c.name)
+        + p(`Η μίσθωση${ref} λήγει${when}. Είναι η κατάλληλη στιγμή να αποφασίσεις: ανανέωση με τους ίδιους όρους, αναπροσαρμογή ενοικίου ή αναζήτηση νέου ενοικιαστή.`)
+        + p('Το Property OS κρατά τους όρους, τις ημερομηνίες και το ιστορικό έτοιμα, ώστε να κινηθείς χωρίς τρέξιμο.')
+        + button('Δες τη μίσθωση', dash(c))
+        + note(NOTE.ahead),
+    }) };
+  },
+
+  // 54. Προτροπή ανανέωσης μίσθωσης
+  lease_renewal_prompt: (c) => {
+    const ref = c.propertyName ? ` για το «${esc(c.propertyName)}»` : '';
+    return { subject: 'Ώρα για ανανέωση μίσθωσης;', html: emailShell({
+      preheader: 'Αναπροσάρμοσε το ενοίκιο σωστά, με τον νόμο.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ανανέωση') + h('Ανανέωσε με σιγουριά') + greeting(c.name)
+        + p(`Αν σκέφτεσαι να ανανεώσεις τη μίσθωση${ref}, το Property OS σε βοηθά να υπολογίσεις την αναπροσαρμογή του ενοικίου με βάση τα ισχύοντα όρια και ετοιμάζει ένα σχέδιο ειδοποίησης προς τον ενοικιαστή, έτοιμο να το προσαρμόσεις και να το στείλεις.`)
+        + button('Ετοίμασε την ανανέωση', dash(c))
+        + note(NOTE.legal),
+    }) };
+  },
+
+  // 55. Τακτοποίηση εγγύησης (λήξη μίσθωσης)
+  deposit_reminder: (c) => {
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    const amt = has(c.amount) ? ` ύψους <b>${eur(c.amount)}</b>` : '';
+    return { subject: 'Τακτοποίησε την εγγύηση', html: emailShell({
+      preheader: 'Μια εκκρεμότητα που θέλει καθαρό κλείσιμο.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Εγγύηση') + h('Ώρα να τακτοποιηθεί η εγγύηση') + greeting(c.name)
+        + p(`Με τη λήξη της μίσθωσης${ref}, η εγγύηση${amt} χρειάζεται τακτοποίηση: επιστροφή στον ενοικιαστή ή συμψηφισμό με τυχόν οφειλές και ζημιές.`)
+        + p('Κατάγραψε την κίνηση, ώστε τα βιβλία σου να μένουν καθαρά και η σχέση με τον ενοικιαστή ξεκάθαρη.')
+        + button('Δες την εγγύηση', dash(c))
+        + note(NOTE.dataOwn),
+    }) };
+  },
+
+  // 56. Λήξη ασφαλιστηρίου ακινήτου
+  insurance_expiring: (c) => {
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    const who = c.insurerName ? ` με την ${esc(c.insurerName)}` : '';
+    const when = c.policyEndDate ? ` στις <b>${esc(c.policyEndDate)}</b>` : ' σύντομα';
+    return { subject: 'Λήγει η ασφάλεια του ακινήτου', html: emailShell({
+      preheader: 'Μην αφήσεις κενό στην κάλυψη.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ασφάλεια') + h('Η κάλυψή σου πλησιάζει στη λήξη') + greeting(c.name)
+        + p(`Το ασφαλιστήριο${ref}${who} λήγει${when}. Μια έγκαιρη ανανέωση κρατά το ακίνητό σου προστατευμένο, χωρίς κενό στην κάλυψη.`)
+        + button('Δες τη λήξη', dash(c))
+        + note(NOTE.ahead),
+    }) };
+  },
+
+  // 57. Λήξη πιστοποιητικού (π.χ. ΠΕΑ)
+  certificate_expiring: (c) => {
+    const name = c.certificateName ? esc(c.certificateName) : 'πιστοποιητικό';
+    const ref = c.propertyName ? ` για το «${esc(c.propertyName)}»` : '';
+    const when = c.certificateEndDate ? ` στις <b>${esc(c.certificateEndDate)}</b>` : ' σύντομα';
+    return { subject: `Λήγει το ${name}`, html: emailShell({
+      preheader: 'Ένα χαρτί που καλό είναι να ανανεωθεί εγκαίρως.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Πιστοποιητικά') + h('Ένα πιστοποιητικό θέλει ανανέωση') + greeting(c.name)
+        + p(`Το ${name}${ref} λήγει${when}. Αν σχεδιάζεις μίσθωση, πώληση ή ενεργειακή αναβάθμιση, καλό είναι να το ανανεώσεις εγκαίρως, ώστε να μη σε καθυστερήσει.`)
+        + button('Δες το ακίνητο', dash(c))
+        + note(NOTE.ahead),
+    }) };
+  },
+
+  // 58. Υπενθύμιση ραντεβού
+  appointment_reminder: (c) => {
+    const title = c.appointmentTitle ? esc(c.appointmentTitle) : 'ραντεβού';
+    const when = [c.appointmentDate && esc(c.appointmentDate), c.appointmentTime && esc(c.appointmentTime)].filter(Boolean).join(', ');
+    return { subject: `Υπενθύμιση: ${title}`, html: emailShell({
+      preheader: when ? `${when}.` : 'Ένα ραντεβού σε περιμένει.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ημερολόγιο') + h('Ένα ραντεβού πλησιάζει') + greeting(c.name)
+        + p(`<b>${title}</b>${when ? `, ${when}` : ''}. Το κρατάμε στο ημερολόγιό σου, ώστε να μη σου ξεφύγει.`)
+        + button('Δες το ημερολόγιο', dash(c))
+        + note('Χρειάζεσαι αλλαγή; Μπορείς να το μεταθέσεις με ένα κλικ.'),
+    }) };
+  },
+
+  // 59. Προγραμματισμένη συντήρηση
+  maintenance_scheduled: (c) => {
+    const title = c.maintenanceTitle ? esc(c.maintenanceTitle) : 'εργασία συντήρησης';
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    const when = c.maintenanceDate ? ` στις <b>${esc(c.maintenanceDate)}</b>` : '';
+    const who = c.contractorName ? ` Συνεργάτης: ${esc(c.contractorName)}.` : '';
+    return { subject: 'Προγραμματισμένη συντήρηση', html: emailShell({
+      preheader: 'Μια εργασία μπήκε στο ημερολόγιό σου.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Συντήρηση') + h('Μια εργασία είναι προγραμματισμένη') + greeting(c.name)
+        + p(`<b>${title}</b>${ref}${when}.${who}`)
+        + p('Θα σου θυμίσουμε λίγο πριν, ώστε να είναι όλα έτοιμα.')
+        + button('Δες τη συντήρηση', dash(c))
+        + note(NOTE.ahead),
+    }) };
+  },
+
+  // 60. Ολοκλήρωση συντήρησης
+  maintenance_completed: (c) => {
+    const title = c.maintenanceTitle ? esc(c.maintenanceTitle) : 'Η εργασία συντήρησης';
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    const amt = has(c.amount) ? ` Το κόστος, <b>${eur(c.amount)}</b>, καταγράφηκε ως έξοδο.` : '';
+    return { subject: 'Ολοκληρώθηκε η συντήρηση', html: emailShell({
+      preheader: 'Καταγράφηκε στο ιστορικό του ακινήτου.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Συντήρηση') + h('Η εργασία ολοκληρώθηκε') + greeting(c.name)
+        + p(`${title}${ref} ολοκληρώθηκε.${amt}`)
+        + p('Έμεινε καταγεγραμμένη στο ιστορικό του ακινήτου, για να έχεις πλήρη εικόνα όποτε τη χρειαστείς.')
+        + button('Δες το ιστορικό', dash(c))
+        + note(NOTE.official),
+    }) };
+  },
+
+  // 61. Ετήσιος έλεγχος ακινήτου
+  inspection_due: (c) => {
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : ' των ακινήτων σου';
+    return { subject: 'Ώρα για τον ετήσιο έλεγχο του ακινήτου', html: emailShell({
+      preheader: 'Μια ματιά σήμερα, λιγότερες εκπλήξεις αύριο.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Έλεγχος') + h('Ένας έλεγχος αξίζει τον κόπο') + greeting(c.name)
+        + p(`Πέρασε ένας χρόνος. Ένας σύντομος έλεγχος${ref}, για φθορές, ασφάλεια και μικροεπισκευές, προλαμβάνει μεγαλύτερα έξοδα και κρατά την αξία του ψηλά.`)
+        + button('Προγραμμάτισε έλεγχο', dash(c))
+        + note(NOTE.ahead),
+    }) };
+  },
+
+  // 62. Προθεσμία λογαριασμού κοινής ωφέλειας
+  utility_bill_due: (c) => {
+    const type = c.billType ? esc(c.billType) : '';
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    const amt = has(c.amount) ? ` ύψους <b>${eur(c.amount)}</b>` : '';
+    const when = c.billDueDate ? ` έως <b>${esc(c.billDueDate)}</b>` : '';
+    const lead = type ? `Ο λογαριασμός «${type}»` : 'Ο λογαριασμός';
+    return { subject: type ? `Πληρωμή: ${type}` : 'Υπενθύμιση πληρωμής λογαριασμού', html: emailShell({
+      preheader: 'Μια πληρωμή που καλό είναι να μη μείνει πίσω.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Λογαριασμοί') + h('Ένας λογαριασμός θέλει πληρωμή') + greeting(c.name)
+        + p(`${lead}${ref}${amt} λήγει${when}. Πλήρωσέ τον εγκαίρως και κατάγραψε το έξοδο, ώστε η εικόνα του ακινήτου να μένει ακριβής.`)
+        + button('Δες τον λογαριασμό', dash(c))
+        + note(NOTE.dataOwn),
+    }) };
+  },
+
+  // 82. Χαμένο ραντεβού (no-show)
+  appointment_missed: (c) => {
+    const title = c.appointmentTitle ? esc(c.appointmentTitle) : 'ραντεβού';
+    return { subject: 'Χαμένο ραντεβού. Ας το ξανακλείσουμε', html: emailShell({
+      preheader: 'Ένα κλικ για νέα ημερομηνία.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ημερολόγιο') + h('Ένα ραντεβού έμεινε στη μέση') + greeting(c.name)
+        + p(`Το ραντεβού «${title}» δεν πραγματοποιήθηκε. Δεν πειράζει. Κλείσε νέα ημερομηνία με ένα κλικ, ώστε να μη χαθεί η ευκαιρία.`)
+        + button('Κλείσε νέο ραντεβού', dash(c))
+        + note('Το κρατάμε στο ημερολόγιό σου μέχρι να βρεις χρόνο.'),
+    }) };
+  },
+}
+
+// ── Φάση 9: Βραχυχρόνια μίσθωση (Short-term operations) ───────────────────────
+export const SHORTTERM: Record<string, CopyFn> = {
+
+  // 63. Άφιξη επισκέπτη σήμερα
+  checkin_today: (c) => {
+    const g = c.guestName ? esc(c.guestName) : '';
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    const when = c.checkinDate ? ` (${esc(c.checkinDate)})` : '';
+    return { subject: 'Άφιξη επισκέπτη σήμερα', html: emailShell({
+      preheader: 'Όλα έτοιμα για την υποδοχή.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Βραχυχρόνια') + h('Έχεις άφιξη σήμερα') + greeting(c.name)
+        + p(`${g ? `Άφιξη: <b>${g}</b>` : 'Έχεις άφιξη'}${ref}${when}. Βεβαιώσου ότι το ακίνητο είναι έτοιμο, τα κλειδιά ή ο κωδικός διαθέσιμα και οι οδηγίες σταλμένες.`)
+        + button('Δες την κράτηση', dash(c))
+        + note('Καλή φιλοξενία. Μια καλή υποδοχή φέρνει καλές αξιολογήσεις.'),
+    }) };
+  },
+
+  // 64. Αναχώρηση επισκέπτη σήμερα
+  checkout_today: (c) => {
+    const g = c.guestName ? esc(c.guestName) : '';
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    return { subject: 'Αναχώρηση επισκέπτη σήμερα', html: emailShell({
+      preheader: 'Ώρα για καθαρισμό και επόμενη κράτηση.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Βραχυχρόνια') + h('Έχεις αναχώρηση σήμερα') + greeting(c.name)
+        + p(`${g ? `Αναχώρηση: <b>${g}</b>` : 'Έχεις αναχώρηση'}${ref}. Καλή στιγμή να προγραμματίσεις τον καθαρισμό, να ελέγξεις το ακίνητο και να ζητήσεις αξιολόγηση.`)
+        + button('Δες την κράτηση', dash(c))
+        + note('Ένας γρήγορος έλεγχος τώρα κρατά το ακίνητο έτοιμο για την επόμενη άφιξη.'),
+    }) };
+  },
+
+  // 65. Προγραμματισμένος καθαρισμός (turnover)
+  cleaning_scheduled: (c) => {
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    const when = c.cleaningDate ? ` στις <b>${esc(c.cleaningDate)}</b>` : '';
+    return { subject: 'Προγραμματισμένος καθαρισμός', html: emailShell({
+      preheader: 'Το ακίνητο έτοιμο για την επόμενη κράτηση.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Βραχυχρόνια') + h('Ο καθαρισμός είναι προγραμματισμένος') + greeting(c.name)
+        + p(`Ο καθαρισμός${ref}${when} είναι στο πρόγραμμα. Θα σου θυμίσουμε λίγο πριν, ώστε το ακίνητο να είναι πάντα έτοιμο για την επόμενη άφιξη.`)
+        + button('Δες το ημερολόγιο', dash(c))
+        + note(NOTE.ahead),
+    }) };
+  },
+
+  // 66. Κενές νύχτες, ευκαιρία πλήρωσης
+  occupancy_gap: (c) => {
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    const gap = has(c.gapNights) ? plural(c.gapNights, 'κενή νύχτα', 'κενές νύχτες') : 'κενές νύχτες';
+    const span = [c.gapFrom && esc(c.gapFrom), c.gapTo && esc(c.gapTo)].filter(Boolean).join(' έως ');
+    return { subject: 'Κενές νύχτες, ευκαιρία για πλήρωση', html: emailShell({
+      preheader: 'Μια μικρή προσαρμογή τιμής μπορεί να τις γεμίσει.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Πληρότητα') + h('Υπάρχει χώρος για πλήρωση') + greeting(c.name)
+        + p(`Εντοπίσαμε <b>${gap}</b>${ref}${span ? ` (${span})` : ''}. Μια στοχευμένη προσαρμογή τιμής ή μια μικρή προσφορά συχνά αρκεί για να γεμίσουν.`)
+        + p('Το Property OS σου προτείνει τιμή με βάση τη ζήτηση και τη σεζόν.')
+        + button('Δες τις προτάσεις τιμής', dash(c))
+        + note(NOTE.ahead),
+    }) };
+  },
+
+  // 67. Αίτημα αξιολόγησης μετά τη διαμονή
+  review_request: (c) => {
+    const g = c.guestName ? ` (${esc(c.guestName)})` : '';
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    return { subject: 'Ζήτα μια αξιολόγηση, όσο είναι φρέσκια', html: emailShell({
+      preheader: 'Οι καλές κριτικές φέρνουν τις επόμενες κρατήσεις.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Αξιολογήσεις') + h('Μια καλή κριτική αξίζει') + greeting(c.name)
+        + p(`Μια διαμονή${ref} μόλις ολοκληρώθηκε${g}. Όσο η εμπειρία είναι φρέσκια, μια ευγενική υπενθύμιση για αξιολόγηση φέρνει τα καλύτερα αποτελέσματα.`)
+        + button('Στείλε το αίτημα', dash(c))
+        + note('Οι αξιολογήσεις χτίζουν την κατάταξή σου και τις επόμενες κρατήσεις.'),
+    }) };
+  },
+
+  // 68. Είσπραξη από πλατφόρμα (payout)
+  payout_received: (c) => {
+    const ref = c.propertyName ? ` για το «${esc(c.propertyName)}»` : '';
+    const amt = has(c.amount) ? `<b>${eur(c.amount)}</b>` : 'Μια πληρωμή';
+    return { subject: 'Μπήκε μια πληρωμή από κράτηση', html: emailShell({
+      preheader: 'Καταγράφηκε στα έσοδά σου.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Εισπράξεις') + h('Μπήκε μια πληρωμή') + greeting(c.name)
+        + p(`${amt}${ref} καταγράφηκε ως έσοδο από βραχυχρόνια μίσθωση. Η εικόνα των εσόδων σου ενημερώθηκε αυτόματα.`)
+        + button('Δες τα έσοδα', dash(c))
+        + note(NOTE.official),
+    }) };
+  },
+
+  // 69. Απολογισμός σεζόν βραχυχρόνιων
+  str_season_recap: (c) => {
+    const bits: string[] = [];
+    if (has(c.collected)) bits.push(`έσοδα <b>${eur(c.collected)}</b>`);
+    if (has(c.occupancy)) bits.push(`πληρότητα <b>${c.occupancy}%</b>`);
+    if (has(c.reviewsCount)) bits.push(`<b>${plural(c.reviewsCount, 'αξιολόγηση', 'αξιολογήσεις')}</b>`);
+    const line = bits.length
+      ? p(`Η σεζόν έκλεισε με ${bits.join(', ')}${has(c.rating) ? ` και μέση βαθμολογία <b>${c.rating}</b>` : ''}.`)
+      : p('Η σεζόν σου σε βραχυχρόνιες έκλεισε. Δες τη συνολική εικόνα, ανά ακίνητο και ανά μήνα.');
+    return { subject: 'Ο απολογισμός της σεζόν σου', html: emailShell({
+      preheader: 'Έσοδα, πληρότητα και αξιολογήσεις με μια ματιά.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Απολογισμός') + h('Πώς πήγε η σεζόν') + greeting(c.name)
+        + line
+        + p('Σύγκρινε με πέρσι, εντόπισε τους δυνατούς σου μήνες και προγραμμάτισε την επόμενη σεζόν από τώρα.')
+        + button('Δες τον απολογισμό', dash(c))
+        + note('Τα δεδομένα της σεζόν σε βοηθούν να τιμολογήσεις σωστά την επόμενη.'),
+    }) };
+  },
+}
+
+// ── Φάση 10: Προϊόν & Εξέλιξη (Product, evolution, value) ─────────────────────
+// Ο πυρήνας της αφοσίωσης: δείχνουν έναν ζωντανό οργανισμό που δεν σταματά να
+// βελτιώνεται, ώστε ο χρήστης να νιώθει ότι διάλεξε προϊόν που εξελίσσεται.
+export const PRODUCT: Record<string, CopyFn> = {
+
+  // 70. Κυκλοφορία νέας δυνατότητας
+  feature_launch: (c) => {
+    const name = c.featureName ? esc(c.featureName) : 'Μια νέα δυνατότητα';
+    const benefit = c.featureBenefit ? p(esc(c.featureBenefit)) : '';
+    return { subject: c.featureName ? `Νέο: ${esc(c.featureName)}` : 'Κάτι νέο σε περιμένει', html: emailShell({
+      preheader: 'Φτιαγμένο για να σου γλιτώνει χρόνο.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Νέα δυνατότητα') + h(name) + greeting(c.name)
+        + p('Δεν σταματάμε να βελτιώνουμε το Property OS. Να η τελευταία προσθήκη, φτιαγμένη πάνω σε αυτά που ζητάς.')
+        + benefit
+        + button('Δοκίμασέ το τώρα', dash(c))
+        + note('Κάθε βελτίωση έρχεται χωρίς επιπλέον κόστος, ως μέρος του Property OS.'),
+    }) };
+  },
+
+  // 71. Αναβάθμιση του βοηθού
+  assistant_upgraded: (c) => {
+    const bot = c.assistantName ? `Ο βοηθός σου, ${esc(c.assistantName)},` : 'Ο βοηθός σου';
+    const skill = c.assistantSkill ? p(`Τι νέο μαθαίνει: ${esc(c.assistantSkill)}.`) : '';
+    return { subject: 'Ο βοηθός σου έγινε πιο έξυπνος', html: emailShell({
+      preheader: 'Πιο ακριβείς απαντήσεις, με τα δικά σου δεδομένα.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ο βοηθός σου') + h('Έμαθε κάτι καινούριο') + greeting(c.name)
+        + p(`${bot} μόλις αναβαθμίστηκε. Καταλαβαίνει καλύτερα τις ερωτήσεις σου και σου δίνει πιο ακριβείς, πιο χρήσιμες απαντήσεις για τα ακίνητά σου.`)
+        + skill
+        + button('Ρώτησε τον βοηθό σου', dash(c))
+        + note('Όσο περισσότερο τον χρησιμοποιείς, τόσο πιο χρήσιμος γίνεται.'),
+    }) };
+  },
+
+  // 72. Μηνιαίο changelog βελτιώσεων
+  changelog_monthly: (c) => {
+    const body = c.summaryText ? p(esc(c.summaryText)) : p('Αυτόν τον μήνα προσθέσαμε νέες δυνατότητες, φτιάξαμε λεπτομέρειες και κάναμε το Property OS πιο γρήγορο. Όλα με έναν στόχο: να σου γλιτώνουμε χρόνο.');
+    return { subject: 'Τι φτιάξαμε αυτόν τον μήνα', html: emailShell({
+      preheader: 'Οι βελτιώσεις του μήνα, με μια ματιά.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ενημέρωση προϊόντος') + h('Ένας μήνας βελτιώσεων') + greeting(c.name)
+        + p('Δουλεύουμε κάθε μέρα ώστε το Property OS να γίνεται καλύτερο. Να τι άλλαξε τον τελευταίο μήνα:')
+        + body
+        + button('Δες τι νέο υπάρχει', dash(c))
+        + note('Κάθε βελτίωση είναι ήδη διαθέσιμη, χωρίς επιπλέον κόστος.'),
+    }) };
+  },
+
+  // 73. Προεπισκόπηση roadmap
+  roadmap_preview: (c) => {
+    const body = c.summaryText ? p(esc(c.summaryText)) : p('Ετοιμάζουμε νέα εργαλεία για τη διαχείριση, τη λογιστική και τον βοηθό σου. Θέλουμε τη γνώμη σου, ώστε να χτίσουμε πρώτα αυτά που σε βοηθούν περισσότερο.');
+    return { subject: 'Τι ετοιμάζουμε στη συνέχεια', html: emailShell({
+      preheader: 'Μια ματιά σε αυτά που έρχονται.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Τι έρχεται') + h('Μια ματιά στο μέλλον του Property OS') + greeting(c.name)
+        + body
+        + p('Ποιο θα σε βοηθούσε πιο πολύ; Απάντησε σε αυτό το μήνυμα και θα το λάβουμε σοβαρά υπόψη.')
+        + button('Πες μας τη γνώμη σου', dash(c))
+        + note(NOTE.reply),
+    }) };
+  },
+
+  // 74. Επέτειος συνεργασίας
+  anniversary: (c) => {
+    const yrs = has(c.anniversaryYears) ? plural(c.anniversaryYears, 'χρόνο', 'χρόνια') : 'έναν χρόνο';
+    const proof = has(c.collected) ? p(`Μαζί οργανώσαμε <b>${eur(c.collected)}</b> σε εισπράξεις και αμέτρητες εκκρεμότητες που δεν χρειάστηκε να σε απασχολήσουν.`) : '';
+    return { subject: (has(c.anniversaryYears) && c.anniversaryYears > 1) ? `Κλείνουμε ${c.anniversaryYears} χρόνια μαζί` : 'Κλείνουμε έναν χρόνο μαζί', html: emailShell({
+      preheader: 'Ευχαριστούμε που μας εμπιστεύεσαι.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Επέτειος') + h((has(c.anniversaryYears) && c.anniversaryYears > 1) ? `${c.anniversaryYears} χρόνια μαζί` : 'Ένας χρόνος μαζί') + greeting(c.name)
+        + p(`Συμπληρώνεις ${yrs} με το Property OS, και θέλουμε απλώς να πούμε ένα ειλικρινές ευχαριστώ.`)
+        + proof
+        + p('Δεσμευόμαστε να συνεχίσουμε να βελτιωνόμαστε, ώστε τα ακίνητά σου να είναι πάντα υπό έλεγχο.')
+        + button('Δες τη χρονιά σου', dash(c))
+        + note('Είμαστε εδώ για τα επόμενα πολλά.'),
+    }) };
+  },
+
+  // 75. Επίτευξη οροσήμου
+  milestone_reached: (c) => {
+    const what = has(c.collected)
+      ? `<b>${eur(c.collected)}</b> σε οργανωμένες εισπράξεις`
+      : (has(c.properties) ? `<b>${plural(c.properties, 'ακίνητο', 'ακίνητα')}</b> υπό διαχείριση` : 'ένα σημαντικό ορόσημο');
+    return { subject: 'Ένα ορόσημο που αξίζει αναγνώριση', html: emailShell({
+      preheader: 'Μικρές κινήσεις, μεγάλα αποτελέσματα.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Ορόσημο') + h('Έφτασες κάπου που μετράει') + greeting(c.name)
+        + p(`Μόλις πέρασες ${what} μέσα από το Property OS. Πίσω από αυτό το νούμερο κρύβονται ώρες που κέρδισες και εκκρεμότητες που δεν σε απασχόλησαν.`)
+        + button('Δες την πρόοδό σου', dash(c))
+        + note('Κάθε καταχώρηση μετράει. Συνέχισε έτσι.'),
+    }) };
+  },
+
+  // 76. Έρευνα NPS
+  nps_survey: (c) => ({
+    subject: 'Θα μας πρότεινες σε έναν φίλο;',
+    html: emailShell({
+      preheader: 'Μισό λεπτό, μεγάλη αξία για εμάς.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Η γνώμη σου') + h('Μια ερώτηση, ειλικρινά') + greeting(c.name)
+        + p('Σε μια κλίμακα από το 0 ως το 10, πόσο πιθανό είναι να πρότεινες το Property OS σε κάποιον με ακίνητα;')
+        + p('Η απάντησή σου μας δείχνει πού τα πάμε καλά και πού έχουμε δρόμο ακόμη. Τη διαβάζουμε, μία μία.')
+        + button('Δώσε την απάντησή σου', dash(c))
+        + note(NOTE.reply),
+    }),
+  }),
+
+  // 77. Συμβουλή της εβδομάδας (αξία)
+  best_practice_tip: (c) => {
+    const tip = c.summaryText ? p(esc(c.summaryText)) : p('Κράτα ξεχωριστό λογαριασμό για κάθε ακίνητο. Έτσι, τα έσοδα και τα έξοδα ξεκαθαρίζουν μόνα τους και η φορολογική εικόνα βγαίνει με ακρίβεια.');
+    return { subject: c.headline ? esc(c.headline) : 'Η συμβουλή της εβδομάδας', html: emailShell({
+      preheader: 'Μια μικρή κίνηση με μεγάλη διαφορά.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Συμβουλή') + h(c.headline ? esc(c.headline) : 'Μια συμβουλή που πιάνει τόπο') + greeting(c.name)
+        + tip
+        + button('Εφάρμοσέ το στο Property OS', dash(c))
+        + note('Κάθε εβδομάδα, μια πρακτική ιδέα για να αξιοποιείς καλύτερα τα ακίνητά σου.'),
+    }) };
+  },
+
+  // 78. Πρόσκληση σε webinar
+  webinar_invite: (c) => {
+    const title = c.headline ? esc(c.headline) : 'Δωρεάν masterclass για ιδιοκτήτες ακινήτων';
+    const when = [c.appointmentDate && esc(c.appointmentDate), c.appointmentTime && esc(c.appointmentTime)].filter(Boolean).join(', ');
+    return { subject: 'Πρόσκληση σε δωρεάν masterclass', html: emailShell({
+      preheader: when ? `${when}. Κράτησε τη θέση σου.` : 'Πρακτική γνώση, χωρίς κόστος.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Εκδήλωση') + h(title) + greeting(c.name)
+        + p(`Σε προσκαλούμε σε μια δωρεάν, πρακτική συνάντηση για ιδιοκτήτες και διαχειριστές ακινήτων${when ? `, ${when}` : ''}. Θα δούμε μαζί πώς να βγάζεις περισσότερα από κάθε ακίνητο, με λιγότερο κόπο.`)
+        + button('Κράτησε τη θέση σου', dash(c))
+        + note('Οι θέσεις είναι περιορισμένες. Θα λάβεις τον σύνδεσμο με την εγγραφή σου.'),
+    }) };
+  },
+}
+
+// ── Φάση 11: Ενίσχυση μετατροπής (Conversion, value-led) ──────────────────────
+export const CONVERSION: Record<string, CopyFn> = {
+
+  // 79. Απόδειξη αξίας (ROI)
+  roi_proof: (c) => {
+    const hrs = has(c.hoursSaved) ? p(`Με βάση τη χρήση σου, το Property OS σου γλίτωσε περίπου <b>${plural(c.hoursSaved, 'ώρα', 'ώρες')}</b> τον τελευταίο μήνα, χρόνο που αξιοποίησες αλλού.`) : '';
+    const money = has(c.collected) ? p(`Παράλληλα, οργάνωσε <b>${eur(c.collected)}</b> σε εισπράξεις χωρίς να χαθεί τίποτα στη διαδρομή.`) : '';
+    const fallback = (!has(c.hoursSaved) && !has(c.collected)) ? p('Κάθε αυτόματη υπενθύμιση, κάθε έτοιμη αναφορά και κάθε καταχώρηση που δεν χρειάστηκε να κάνεις με το χέρι, είναι χρόνος που κέρδισες.') : '';
+    return { subject: 'Πόσο σου απέδωσε το Property OS', html: emailShell({
+      preheader: 'Ο χρόνος που κέρδισες, σε αριθμούς.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Η αξία σου') + h('Ας δούμε τι κέρδισες') + greeting(c.name)
+        + hrs + money + fallback
+        + p('Με μια αναβάθμιση, αυτός ο χρόνος μεγαλώνει: περισσότεροι αυτοματισμοί, βαθύτερη ανάλυση, λιγότερος κόπος.')
+        + button('Δες τι κερδίζεις παραπάνω', dash(c))
+        + note(NOTE.cancel),
+    }) };
+  },
+
+  // 80. Σύγκριση πλάνων για τη χρήση του χρήστη
+  plan_comparison: (c) => {
+    const use = has(c.properties) ? `Έχεις <b>${plural(c.properties, 'ακίνητο', 'ακίνητα')}</b> στο χαρτοφυλάκιό σου. ` : '';
+    return { subject: 'Ποιο πλάνο συμφέρει για τη δική σου χρήση', html: emailShell({
+      preheader: 'Μια καθαρή σύγκριση, χωρίς μικρά γράμματα.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Σύγκριση πλάνων') + h('Ας βρούμε το σωστό πλάνο για σένα') + greeting(c.name)
+        + p(`${use}Αξίζει να δεις τι προσφέρει κάθε πλάνο σε σχέση με το πώς χρησιμοποιείς σήμερα το Property OS.`)
+        + bullets([
+            'Δωρεάν: τα βασικά για να ξεκινήσεις και να δεις αξία.',
+            'Ιδιώτης: αυτόματες υπενθυμίσεις, επίσημες αναφορές, απεριόριστες καταστάσεις.',
+            'Επαγγελματίας: πολλά ακίνητα, επώνυμες αναφορές, κατανομή σε συνιδιοκτήτες.',
+          ])
+        + button('Σύγκρινε τα πλάνα', dash(c))
+        + note(NOTE.cancel),
+    }) };
+  },
+
+  // 81. Κοινωνική απόδειξη
+  social_proof: (c) => ({
+    subject: 'Γιατί οι επαγγελματίες επιλέγουν το Property OS',
+    html: emailShell({
+      preheader: 'Η δουλειά ρουτίνας, στον αυτόματο.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Γιατί Property OS') + h('Φτιαγμένο για την ελληνική πραγματικότητα') + greeting(c.name)
+        + p('Ιδιοκτήτες και διαχειριστές σε όλη την Ελλάδα εμπιστεύονται το Property OS για μια δουλειά που πριν έτρωγε ώρες: ενοίκια, έξοδα, φόρους και υπενθυμίσεις σε ένα μέρος.')
+        + bullets([
+            'Ελληνικοί φόροι, ΕΝΦΙΑ και Ε2, υπολογισμένα με βάση τους ισχύοντες κανόνες.',
+            'Αυτόματες υπενθυμίσεις που δεν αφήνουν τίποτα να ξεφύγει.',
+            'Ένας βοηθός που απαντά με τα δικά σου νούμερα.',
+          ])
+        + button('Δες γιατί', dash(c))
+        + note(NOTE.cancel),
+    }),
+  }),
+
+  // 85. Σύγκριση ενοικίου με την αγορά (benchmark)
+  rent_benchmark_alert: (c) => {
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    const cmp = (has(c.amount) && has(c.marketRent))
+      ? p(`Το ενοίκιο${ref} είναι <b>${eur(c.amount)}</b>, ενώ ο μέσος όρος της περιοχής κινείται γύρω στα <b>${eur(c.marketRent)}</b>. Ίσως αφήνεις έσοδα στο τραπέζι.`)
+      : p(`Τα ενοίκια στην περιοχή του ακινήτου${ref} κινήθηκαν. Αξίζει να δεις αν το δικό σου παρακολουθεί την αγορά.`);
+    return { subject: 'Το ενοίκιό σου σε σχέση με την αγορά', html: emailShell({
+      preheader: 'Μια ματιά που μπορεί να σου αποδώσει.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Δεδομένα αγοράς') + h('Πώς στέκεται το ενοίκιό σου') + greeting(c.name)
+        + cmp
+        + p('Το Property OS συγκρίνει το ενοίκιό σου με την αγορά και σου δείχνει πότε αξίζει μια αναπροσαρμογή, πάντα μέσα στα νόμιμα όρια.')
+        + button('Δες τη σύγκριση', dash(c))
+        + note(NOTE.legal),
+    }) };
+  },
+}
+
+// ── Φάση 12: Συμμόρφωση (ελληνικές νομικές/φορολογικές υποχρεώσεις) ───────────
+// Ενεργοποιούνται από δεδομένα του χρήστη. Αποδεικνύουν βαθιά ελληνική εξειδίκευση
+// και ότι το προϊόν προστατεύει τον χρήστη νομικά. Πάντα με ενημερωτική επισήμανση.
+export const COMPLIANCE: Record<string, CopyFn> = {
+
+  // 86. Δήλωση μίσθωσης στο myAADE
+  lease_declaration_reminder: (c) => {
+    const ref = c.propertyName ? ` για το «${esc(c.propertyName)}»` : '';
+    const when = c.deadlineDate ? ` έως <b>${esc(c.deadlineDate)}</b>` : ' εντός της προθεσμίας';
+    return { subject: 'Δήλωσε τη μίσθωση στο myAADE', html: emailShell({
+      preheader: 'Μια υποχρέωση που καλό είναι να μη σου ξεφύγει.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Συμμόρφωση') + h('Μια δήλωση μίσθωσης εκκρεμεί') + greeting(c.name)
+        + p(`Για κάθε νέα ή τροποποιημένη μίσθωση${ref}, υποβάλλεται η Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης στο myAADE${when}. Το Property OS κρατά έτοιμα τα στοιχεία, ώστε η υποβολή να γίνει γρήγορα και χωρίς λάθη.`)
+        + button('Δες τα στοιχεία της μίσθωσης', dash(c))
+        + note(NOTE.aade),
+    }) };
+  },
+
+  // 87. Ανάρτηση ΑΜΑ βραχυχρόνιας μίσθωσης
+  str_registration_reminder: (c) => {
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    return { subject: 'Ανάρτησε τον Αριθμό Μητρώου Ακινήτου', html: emailShell({
+      preheader: 'Ο ΑΜΑ πρέπει να φαίνεται σε κάθε αγγελία.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Συμμόρφωση') + h('Ο ΑΜΑ θέλει ανάρτηση') + greeting(c.name)
+        + p(`Για τη βραχυχρόνια μίσθωση${ref}, το ακίνητο εγγράφεται στο Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής και ο Αριθμός Μητρώου Ακινήτου αναρτάται σε κάθε αγγελία σε Airbnb και Booking. Δες αν είναι όλα σε τάξη, ώστε να αποφύγεις πρόστιμα.`)
+        + button('Δες το ακίνητο', dash(c))
+        + note(NOTE.aade),
+    }) };
+  },
+
+  // 88. Απόδοση τέλους διαμονής (βραχυχρόνιες)
+  str_stay_tax: (c) => {
+    const per = c.period ? ` της περιόδου ${esc(c.period)}` : '';
+    const amt = has(c.amount) ? ` Το ποσό προς απόδοση: <b>${eur(c.amount)}</b>.` : '';
+    return { subject: 'Απόδοση τέλους διαμονής', html: emailShell({
+      preheader: 'Εισπράττεται από τον επισκέπτη, αποδίδεται στο κράτος.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Συμμόρφωση') + h('Ώρα για το τέλος διαμονής') + greeting(c.name)
+        + p(`Το τέλος διαμονής για τις βραχυχρόνιες μισθώσεις${per} εισπράττεται από τον επισκέπτη και αποδίδεται στην εφορία.${amt} Το Property OS το υπολογίζει ανά κράτηση, ώστε να ξέρεις τι οφείλεις.`)
+        + button('Δες τα ποσά', dash(c))
+        + note(NOTE.aade),
+    }) };
+  },
+}
+
+// ── Φάση 13: Συνδρομή & Χρέωση (Billing) ──────────────────────────────────────
+// Συναλλακτικά, χωρίς απεγγραφή. Προλαμβάνουν την ακούσια απώλεια συνδρομητή.
+export const BILLING: Record<string, CopyFn> = {
+
+  // 89. Λήξη κάρτας πληρωμής (προληπτικά)
+  card_expiring: (c) => {
+    const tail = c.cardLast4 ? `με τα τελευταία ψηφία <b>${esc(c.cardLast4)}</b>` : 'πληρωμής σου';
+    const when = c.deadlineDate ? ` πριν την ανανέωση στις <b>${esc(c.deadlineDate)}</b>` : '';
+    return { subject: 'Η κάρτα πληρωμής σου λήγει σύντομα', html: emailShell({
+      preheader: 'Μια γρήγορη ενημέρωση αποτρέπει τη διακοπή.',
+      bodyHtml: eyebrow('Συνδρομή') + h('Ενημέρωσε την κάρτα σου') + greeting(c.name)
+        + p(`Η κάρτα ${tail} λήγει σύντομα. Ενημέρωσέ την${when}, ώστε η συνδρομή σου να συνεχίσει χωρίς διακοπή.`)
+        + button('Ενημέρωσε την κάρτα', dash(c))
+        + note('Χρειάζεται λιγότερο από ένα λεπτό και σε γλιτώνει από ακούσια διακοπή.'),
+    }) };
+  },
+
+  // 90. Υπενθύμιση ανανέωσης συνδρομής (πριν τη χρέωση)
+  renewal_reminder: (c) => {
+    const planLine = c.plan ? ` του πλάνου <b>${PLAN_LABEL[c.plan]}</b>` : ' της συνδρομής σου';
+    const amt = has(c.amount) ? ` ύψους <b>${eur(c.amount)}</b>` : '';
+    const when = c.deadlineDate ? ` στις <b>${esc(c.deadlineDate)}</b>` : ' σύντομα';
+    return { subject: 'Η συνδρομή σου ανανεώνεται σύντομα', html: emailShell({
+      preheader: 'Καμία έκπληξη. Δες τι θα χρεωθεί και πότε.',
+      bodyHtml: eyebrow('Συνδρομή') + h('Μια υπενθύμιση ανανέωσης') + greeting(c.name)
+        + p(`Η συνδρομή σου${planLine} ανανεώνεται${when}${amt ? `, με χρέωση${amt}` : ''}. Δεν χρειάζεται να κάνεις κάτι. Θέλαμε απλώς να το ξέρεις εκ των προτέρων.`)
+        + p('Αν θέλεις να αλλάξεις πλάνο ή τρόπο πληρωμής, μπορείς όποτε σε βολεύει.')
+        + button('Διαχείριση συνδρομής', dash(c))
+        + note('Διαφάνεια πάντα. Κανένα κρυφό κόστος, καμία έκπληξη.'),
+    }) };
+  },
+}
+
+// ── Φάση 14: Σχέσεις (ενοικιαστές & συνιδιοκτήτες) ────────────────────────────
+// Two-sided αξία: επεκτείνει το προϊόν στη δεύτερη πλευρά. Ουδέτερο ως προς το φύλο.
+export const RELATIONSHIP: Record<string, CopyFn> = {
+
+  // 91. Καλωσόρισμα ενοικιαστή
+  tenant_welcome: (c) => {
+    const ref = c.propertyName ? ` στο «${esc(c.propertyName)}»` : '';
+    const rent = has(c.amount) ? ` Το μηνιαίο μίσθωμα είναι <b>${eur(c.amount)}</b>.` : '';
+    return { subject: 'Καλωσόρισες στο νέο σου σπίτι', html: emailShell({
+      preheader: 'Τα βασικά για μια ξεκάθαρη αρχή.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Καλωσόρισμα') + h('Μια ξεκάθαρη αρχή') + greeting(c.name)
+        + p(`Καλωσόρισες${ref}. Ο ιδιοκτήτης χρησιμοποιεί το Property OS, ώστε οι πληρωμές, οι αποδείξεις και η επικοινωνία να είναι απλές και ξεκάθαρες για όλους.${rent}`)
+        + p('Θα λαμβάνεις υπενθυμίσεις για το ενοίκιο και απόδειξη για κάθε πληρωμή σου, αυτόματα.')
+        + button('Δες τις λεπτομέρειες', dash(c))
+        + note('Έχεις μια απορία; Απάντησε σε αυτό το μήνυμα και θα φτάσει στον ιδιοκτήτη.'),
+    }) };
+  },
+
+  // 92. Απόδειξη ενοικίου προς ενοικιαστή
+  tenant_rent_receipt: (c) => {
+    const per = c.period ? ` για ${esc(c.period)}` : '';
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    const amt = has(c.amount) ? `<b>${eur(c.amount)}</b>` : 'Η πληρωμή σου';
+    return { subject: c.period ? `Απόδειξη ενοικίου ${esc(c.period)}` : 'Η απόδειξη του ενοικίου σου', html: emailShell({
+      preheader: 'Η πληρωμή σου καταγράφηκε.',
+      bodyHtml: eyebrow('Απόδειξη') + h('Λάβαμε την πληρωμή σου') + greeting(c.name)
+        + p(`${amt} για το ενοίκιο${ref}${per} καταγράφηκε. Ευχαριστούμε για τη συνέπεια.`)
+        + p('Κράτησε αυτό το μήνυμα ως επιβεβαίωση της πληρωμής σου.')
+        + button('Δες την απόδειξη', dash(c))
+        + note(NOTE.official),
+    }) };
+  },
+
+  // 93. Κατάσταση προς συνιδιοκτήτη
+  coowner_statement: (c) => {
+    const per = c.period ? ` ${esc(c.period)}` : '';
+    const ref = c.propertyName ? ` του «${esc(c.propertyName)}»` : '';
+    const share = has(c.sharePct) ? ` (μερίδιο ${c.sharePct}%)` : '';
+    const amt = has(c.amount) ? p(`Το καθαρό μερίδιό σου${share} για την περίοδο: <b>${eur(c.amount)}</b>.`) : '';
+    return { subject: 'Η κατάστασή σου ως συνιδιοκτήτη', html: emailShell({
+      preheader: 'Το μερίδιό σου σε έσοδα και έξοδα, ξεκάθαρα.', unsubUrl: c.unsubUrl,
+      bodyHtml: eyebrow('Συνιδιοκτησία') + h(`Η εικόνα σου${per}`) + greeting(c.name)
+        + p(`Να η κατάστασή σου για το ακίνητο${ref}${per}: έσοδα, έξοδα και το καθαρό αποτέλεσμα που σου αναλογεί.`)
+        + amt
+        + button('Δες την πλήρη κατάσταση', dash(c))
+        + note(NOTE.official),
+    }) };
+  },
+}
+
+// Ενιαίο ευρετήριο (93 emails, δεκατέσσερα προγράμματα).
 export const CATALOG: Record<string, CopyFn> = {
   ...ONBOARDING, ...ENGAGEMENT, ...UPSELL, ...SEASONAL, ...REFERRAL, ...LIFECYCLE, ...WINBACK,
+  ...OPERATIONS, ...SHORTTERM, ...PRODUCT, ...CONVERSION, ...COMPLIANCE, ...BILLING, ...RELATIONSHIP,
 }
