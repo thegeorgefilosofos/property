@@ -4,37 +4,66 @@
 --     ανακοινώσεις). Τρέχει κάθε Τρίτη 08:00 UTC.
 --   • send-market-digest — εβδομαδιαία μεταβολή επιτοκίων. Κάθε Δευτέρα 07:00 UTC.
 --
--- Ίδιο, ασφαλές μοτίβο με το reminders_pg_cron: το URL της function και το
--- x-cron-secret διαβάζονται από το vault, ώστε να μη γράφονται σε plaintext.
+-- ΑΥΘΕΝΤΙΚΟΠΟΙΗΣΗ (zero-config): κάθε job στέλνει το x-cron-secret διαβάζοντας το
+-- κοινό μυστικό από τον πίνακα public.cron_secrets (βλ. 20260721155000_cron_secrets).
+-- Η αντίστοιχη Edge Function το επαληθεύει με τον service-role client της. Δεν
+-- χρειάζεται κανένα μυστικό στο dashboard — τίποτα χειροκίνητο.
 --
--- ── One-time setup (τρέξε ΜΙΑ φορά, βάζοντας τα δικά σου URL/secrets) ──────────
---   select vault.create_secret('https://<PROJECT_REF>.functions.supabase.co/send-newsletter',    'newsletter_fn_url');
---   select vault.create_secret('<NEWSLETTER_CRON_SECRET>',                                        'newsletter_cron_secret');
---   select vault.create_secret('https://<PROJECT_REF>.functions.supabase.co/send-market-digest',  'market_digest_fn_url');
---   select vault.create_secret('<MARKET_DIGEST_CRON_SECRET>',                                      'market_digest_cron_secret');
--- (Τα ίδια secrets — NEWSLETTER_CRON_SECRET / MARKET_DIGEST_CRON_SECRET — ορίζονται
---  και ως secrets της κάθε Edge Function ώστε να ταιριάζει το x-cron-secret.)
+-- Απαιτεί: extensions pg_cron + pg_net ενεργά (υπάρχουν ήδη — τα χρησιμοποιεί το
+-- send-reminders-daily).
 -- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── send-newsletter: κάθε Τρίτη 08:00 UTC ────────────────────────────────────
 do $$
 begin
-  if exists (select 1 from cron.job where jobname = 'send-newsletter-weekly') then perform cron.unschedule('send-newsletter-weekly'); end if;
-  if exists (select 1 from cron.job where jobname = 'send-market-digest-weekly') then perform cron.unschedule('send-market-digest-weekly'); end if;
+  if exists (select 1 from cron.job where jobname = 'send-newsletter-weekly') then
+    perform cron.unschedule('send-newsletter-weekly');
+  end if;
 end $$;
 
 select cron.schedule('send-newsletter-weekly', '0 8 * * 2', $$
   select net.http_post(
-    url     := (select decrypted_secret from vault.decrypted_secrets where name = 'newsletter_fn_url'),
+    url     := 'https://aromvduuxtcrzmwwvnej.supabase.co/functions/v1/send-newsletter',
     headers := jsonb_build_object('Content-Type','application/json',
-                 'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'newsletter_cron_secret')),
-    body    := '{}'::jsonb
+                 'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 120000
   );
 $$);
 
+-- ── send-market-digest: κάθε Δευτέρα 07:00 UTC ───────────────────────────────
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'send-market-digest-weekly') then
+    perform cron.unschedule('send-market-digest-weekly');
+  end if;
+end $$;
+
 select cron.schedule('send-market-digest-weekly', '0 7 * * 1', $$
   select net.http_post(
-    url     := (select decrypted_secret from vault.decrypted_secrets where name = 'market_digest_fn_url'),
+    url     := 'https://aromvduuxtcrzmwwvnej.supabase.co/functions/v1/send-market-digest',
     headers := jsonb_build_object('Content-Type','application/json',
-                 'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'market_digest_cron_secret')),
-    body    := '{}'::jsonb
+                 'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 120000
   );
 $$);
+
+-- ── Επιδιόρθωση send-reminders-daily: στείλε το x-cron-secret από τον πίνακα ──
+-- ώστε να αυθεντικοποιείται μέσω της DB-secret οδού (το env REMINDERS_CRON_SECRET
+-- στο dashboard είναι λανθασμένα ίδιο με το RESEND_API_KEY). Διατηρεί το ίδιο
+-- πρόγραμμα — αλλάζει μόνο την εντολή.
+do $$
+declare jid int;
+begin
+  select jobid into jid from cron.job where jobname = 'send-reminders-daily';
+  if jid is not null then
+    perform cron.alter_job(job_id := jid, command := $cmd$
+  select net.http_post(
+    url     := 'https://aromvduuxtcrzmwwvnej.supabase.co/functions/v1/send-reminders',
+    headers := jsonb_build_object('Content-Type','application/json',
+                 'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
+    body    := '{}'::jsonb, timeout_milliseconds := 120000);
+$cmd$);
+  end if;
+end $$;

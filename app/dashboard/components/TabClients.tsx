@@ -13,6 +13,7 @@ import {
 } from '@/components/Theme';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UIComponents';
 import { downloadCsv } from './exportCsv';
+import ClientCompose from './ClientCompose';
 import {
   isValidAfm, stayNights, stayTotal, clientStats, normalizePhone,
   clientMatches, STAY_CHANNELS, STAY_CHANNEL_LABELS, NOTE_KINDS, NOTE_KIND_LABELS,
@@ -205,6 +206,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [search, setSearch] = useState('');
   const [segment, setSegment] = useState<'all' | 'vip' | 'repeat' | 'flagged'>('all');
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [composeOpen, setComposeOpen] = useState(false);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportYearMenu, setReportYearMenu] = useState(false);
   const [checkins, setCheckins] = useState<any[]>([]);   // υποβολές pre-check-in του ανοιχτού πελάτη
@@ -722,9 +724,11 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle title="Πελάτης" sub="Πλήρες αρχείο επισκεπτών βραχυχρόνιας μίσθωσης: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
-        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn>}{clients.length > 0 && <ExportButton onClick={exportCsv} />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
+        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setComposeOpen(true)}>Σύνταξη email</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn>}{clients.length > 0 && <ExportButton onClick={exportCsv} />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />
+
+      <ClientCompose open={composeOpen} onClose={() => setComposeOpen(false)} clients={clients} supabase={supabase} />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"

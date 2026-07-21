@@ -5,11 +5,10 @@
 // χρήστες (soft opt-in) που ΔΕΝ έχουν απεγγραφεί (email_marketing_prefs.product_news).
 // Κάθε email φέρει μοναδικό link απεγγραφής (GDPR).
 //
-// Ενεργοποίηση:
-//   supabase secrets set NEWSLETTER_CRON_SECRET=<τυχαίο>
-//   supabase secrets set APP_URL=https://propertyos.gr   (για τα links απεγγραφής/CTA)
-//   (RESEND_API_KEY / RESEND_FROM / SERVICE_ROLE υπάρχουν ήδη)
-//   supabase functions deploy send-newsletter
+// Ενεργοποίηση: κανένα χειροκίνητο μυστικό δεν χρειάζεται — το pg_cron καλεί τη
+// function με το service-role key (Authorization: Bearer, από το vault) και η
+// authorized() το δέχεται. Προαιρετικά: RESEND_FROM (branded αποστολέας μετά την
+// επαλήθευση domain) & APP_URL (default: https://propertyos.gr).
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -23,6 +22,22 @@ const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c))
+
+// Εξουσιοδότηση cron (zero-config): δέχεται (α) το service-role key (Bearer),
+// (β) το προαιρετικό x-cron-secret env, ή (γ) το κοινό μυστικό cron από τη ΒΔ
+// (public.cron_secrets) — η κύρια, μηδενικής-ρύθμισης οδός. Το pg_cron στέλνει
+// την τιμή του πίνακα, το function την επαληθεύει με τον service-role client του.
+async function authorized(req: Request): Promise<boolean> {
+  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (SERVICE_KEY && bearer === SERVICE_KEY) return true
+  const header = req.headers.get('x-cron-secret') || ''
+  if (CRON_SECRET && header === CRON_SECRET) return true
+  if (header) {
+    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
+    if (data?.secret && header === data.secret) return true
+  }
+  return false
+}
 
 interface Update { id: string; title: string; body_html: string; cta_label?: string; cta_url?: string }
 
@@ -65,8 +80,7 @@ async function listUsers(): Promise<{ id: string; email: string }[]> {
 }
 
 Deno.serve(async (req) => {
-  const cronHeader = req.headers.get('x-cron-secret') || ''
-  if (!CRON_SECRET || cronHeader !== CRON_SECRET) return json({ error: 'unauthorized' }, 401)
+  if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401)
   if (!RESEND_API_KEY) return json({ error: 'no_resend_key' }, 500)
 
   const { data: updates } = await supabase.from('product_updates')

@@ -12,6 +12,24 @@ const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@r
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
+// Πύλη ασφαλείας cron (zero-config): εξουσιοδότηση αν η κλήση φέρει (α) το
+// service-role key (Authorization: Bearer), (β) το προαιρετικό x-cron-secret env,
+// ή (γ) το κοινό μυστικό cron που είναι αποθηκευμένο στη ΒΔ (public.cron_secrets).
+// Η (γ) είναι η κύρια, μηδενικής-ρύθμισης οδός: το pg_cron στέλνει την ίδια τιμή
+// από τον πίνακα και το function την επαληθεύει με τον service-role client του —
+// άρα δεν χρειάζεται κανένα χειροκίνητο μυστικό στο dashboard.
+async function authorized(req: Request): Promise<boolean> {
+  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (SUPABASE_KEY && bearer === SUPABASE_KEY) return true
+  const header = req.headers.get('x-cron-secret') || ''
+  if (CRON_SECRET && header === CRON_SECRET) return true
+  if (header) {
+    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
+    if (data?.secret && header === data.secret) return true
+  }
+  return false
+}
+
 function buildEmail(events: any[], reminderType: string) {
   const typeLabel: Record<string, string> = {
     '7days': '7 μέρες', '3days': '3 μέρες', '1day': 'αύριο', 'today': 'ΣΗΜΕΡΑ', 'overdue': 'εκπρόθεσμα',
@@ -145,10 +163,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 }
 
 Deno.serve(async (req) => {
-  // Πύλη ασφαλείας: απαιτεί το σωστό x-cron-secret (το θέτει το pg_cron). Χωρίς
-  // ρυθμισμένο μυστικό ή με λάθος τιμή → 401, ώστε το endpoint να μην πυροδοτείται δημόσια.
-  const cronHeader = req.headers.get('x-cron-secret') || ''
-  if (!CRON_SECRET || cronHeader !== CRON_SECRET) {
+  if (!(await authorized(req))) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
   }
 
