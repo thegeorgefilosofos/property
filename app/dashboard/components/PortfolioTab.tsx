@@ -205,8 +205,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const exportStatement = () => {
     if (!stmt) return;
     const head = ['Ακίνητο', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό'];
-    const lines: (string | number)[][] = stmt.rows.map(r => [r.name, Math.round(r.revenue), Math.round(r.expenses), Math.round(r.net)]);
-    lines.push(['ΣΥΝΟΛΟ', Math.round(stmt.revenue), Math.round(stmt.expenses), Math.round(stmt.net)]);
+    const lines: (string | number)[][] = stmt.rows.map(r => [r.name, r.revenue, r.expenses, r.net]);
+    lines.push(['ΣΥΝΟΛΟ', stmt.revenue, stmt.expenses, stmt.net]);
     // Ασφαλής εξαγωγή (csvSafe: εξουδετερώνει =,+,-,@ ώστε να μη γίνει CSV/formula injection στο Excel).
     downloadCsv(`katastasi_${stmt.name.replace(/\s+/g, '_')}_${year}`, head, lines);
   };
@@ -220,12 +220,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     const html =
       reportHead(`Κατάσταση ιδιοκτήτη · ${stmt.name}`)
       + `<body><div class="page">`
-      + reportHeader(null, 'Κατάσταση ιδιοκτήτη', { rightNote: `Περίοδος αναφοράς: ${year}` })
+      + reportHeader(branding, 'Κατάσταση ιδιοκτήτη', { rightNote: `Περίοδος αναφοράς: ${year}` })
       + `<h1>${rEsc(stmt.name)}</h1>`
       + `<div class="sub">Έσοδα &amp; δαπάνες ${rEsc(String(year))} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</div>`
       + reportSection('Ανάλυση ανά ακίνητο')
       + `<table><thead><tr><th>Ακίνητο</th><th class="n">Έσοδα</th><th class="n">Δαπάνες</th><th class="n">Καθαρό</th></tr></thead><tbody>${bodyRows}${totalRow}</tbody></table>`
-      + reportDisclaimer('Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.')
+      + reportDisclaimer('Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.', branding)
       + `</div></body></html>`;
     openReport(html);
   };
@@ -270,7 +270,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   const exportCsv = () => {
     const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Νύχτες', 'Εκκρεμότητες'];
-    const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, MODE_LABEL[r.mode], Math.round(r.revenue), Math.round(r.expenses), Math.round(r.net), r.occupancy ?? '', r.nights, r.pending]);
+    const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, MODE_LABEL[r.mode], r.revenue, r.expenses, r.net, r.occupancy ?? '', r.nights, r.pending]);
     downloadCsv(`xartofylakio_${year}`, head, lines);
   };
 

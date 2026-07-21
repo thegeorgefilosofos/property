@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn, Spinner, ExportButton, EmptyState } from '@/components/Theme';
 import { downloadCsv } from './exportCsv';
+import { money, dec2, percent } from './xlsxStyle';
 import { runE2Export } from './e2Export';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
 
@@ -116,19 +117,18 @@ export default function TabComparison({ properties, userId }: Props) {
   // ── Εξαγωγή CSV (μορφή Ελληνικού Excel: διαχωριστικό «;», κόμμα δεκαδικών,
   //    UTF-8 BOM ώστε να φαίνονται σωστά τα ελληνικά). Χρήσιμο για λογιστή. ──
   const exportCSV = () => {
-    const money = (n: number) => String(Math.round(n));               // ακέραια ευρώ, χωρίς χιλιάδες
-    const dec1  = (n: number) => n.toFixed(1).replace('.', ',');       // π.χ. 5,2
+    // Κοινοί, τυποποιημένοι formatters: «1.234,56 €», «5,20 %», «85,5» (τ.μ.).
     const cols = ['Ακίνητο', 'Κατάσταση', 'Εμπορική Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Μηνιαίοι Λογαριασμοί (€)', 'Δαπάνες Έτους (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Εκτ. Φόρος Ενοικίου (€)'];
     const rows = rowsData.map(r => {
       const annualRent = r.rent * 12;
       const netYear = r.netMonthly * 12;
       const tax = rentalIncomeTax(annualRent);
-      return [r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '', money(r.value), money(r.sqm), money(r.perSqm), money(r.rent), money(annualRent), dec1(r.grossYield), money(r.monthlyBills), money(r.expensesYTD), money(r.netMonthly), money(netYear), money(tax)];
+      return [r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '', money(r.value), dec2(r.sqm), money(r.perSqm), money(r.rent), money(annualRent), percent(r.grossYield), money(r.monthlyBills), money(r.expensesYTD), money(r.netMonthly), money(netYear), money(tax)];
     });
     // Γραμμή συνόλων χαρτοφυλακίου
     const sum = (f: (r: typeof rowsData[number]) => number) => rowsData.reduce((s, r) => s + f(r), 0);
     const totAnnualRent = sum(r => r.rent * 12);
-    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), money(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(totAnnualRent), '', money(sum(r => r.monthlyBills)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(rentalIncomeTax(totAnnualRent))]);
+    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), dec2(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(totAnnualRent), '', money(sum(r => r.monthlyBills)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(rentalIncomeTax(totAnnualRent))]);
     // Κοινός, θωρακισμένος exporter (BOM, «;», escaping + εξουδετέρωση formula-injection).
     downloadCsv(`xartofylakio_${new Date().toISOString().slice(0, 10)}`, cols, rows);
   };

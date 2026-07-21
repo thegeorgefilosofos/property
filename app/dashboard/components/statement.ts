@@ -41,7 +41,7 @@ export interface StatementCtx {
 // Δύο δεκαδικά, ελληνικό κόμμα, σύμβολο «€». Αρνητικά με σφιχτό «−».
 const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 const signed = (n: number) => (n < 0 ? `−${eur(Math.abs(n))}` : eur(n));
-const pct = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+const pct = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 const esc = (str: string) => str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
 const s = (v: unknown) => (v == null || v === '' ? '' : String(v));
 

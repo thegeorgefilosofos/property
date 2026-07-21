@@ -12,7 +12,7 @@ import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBra
 export const rEsc = (v: unknown): string => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
 export const rEur = (n: number | null | undefined): string => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 export const rSigned = (n: number | null | undefined): string => ((n ?? 0) < 0 ? `−${rEur(Math.abs(n ?? 0))}` : rEur(n ?? 0));
-export const rPct = (n: number | null | undefined): string => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+export const rPct = (n: number | null | undefined): string => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 export const rDate = (d?: string | Date | null): string => { const t = d ? new Date(d) : new Date(); return isNaN(t.getTime()) ? '' : t.toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }); };
 
 // Ενιαίο CSS — ίδιο για κάθε αναφορά.
