@@ -8,7 +8,7 @@ const SUPABASE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // χρειάζεται πια το service-role key στην κλήση). Το function κρατά το δικό του
 // service key εσωτερικά για τα queries.
 const CRON_SECRET    = Deno.env.get('REMINDERS_CRON_SECRET') || ''
-const FROM_EMAIL     = 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
