@@ -241,7 +241,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     try {
       const sections: PdfSection[] = [
         {
-          type: 'table', title: 'Κατάσταση ανά ακίνητο',
+          type: 'table', title: 'Ανάλυση ανά ακίνητο',
           head: ['Ακίνητο', 'Έσοδα', 'Δαπάνες', 'Καθαρό'], align: ['l', 'r', 'r', 'r'],
           rows: stmt.rows.map(r => [r.name, pEur(r.revenue), pEur(r.expenses), pSigned(r.net)]),
           result: ['Σύνολο', pEur(stmt.revenue), pEur(stmt.expenses), pSigned(stmt.net)],
