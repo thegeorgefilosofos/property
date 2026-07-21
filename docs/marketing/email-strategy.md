@@ -43,7 +43,7 @@
 
 ---
 
-## 3. Τα 15 προγράμματα (100 emails)
+## 3. Τα 15 προγράμματα (101 emails)
 
 Κάθε πρόγραμμα είναι μια ξεχωριστή «ροή» με δικό της έναυσμα (trigger), τμήμα κοινού
 και δείκτη. Τα κλειδιά αντιστοιχούν στο `emailCopy.CATALOG` και καλούνται με `copyId`
@@ -75,10 +75,10 @@
 Έναυσμα: ενεργός χρήστης, σύσταση, ενεργοποίηση φίλου. Στόχος: viral growth.
 `referral_invite` · `referral_reminder` · `referral_reward` · `referral_friend_activated`
 
-### 6) Lifecycle, Νομικά & Συναλλαγές — εμπιστοσύνη (6)
-Έναυσμα: συμβάντα λογαριασμού. Συναλλακτικά (χωρίς απεγγραφή) όπου χρειάζεται.
+### 6) Lifecycle, Νομικά & Συναλλαγές — εμπιστοσύνη (7)
+Έναυσμα: συμβάντα λογαριασμού + απάντηση χρήστη. Συναλλακτικά (χωρίς απεγγραφή).
 `subscription_receipt` · `plan_changed` · `payment_failed` · `security_login` ·
-`mobile_launch` · `legislation_update`
+`reply_ack` (auto-responder σε απάντηση) · `mobile_launch` · `legislation_update`
 
 ### 7) Επανενεργοποίηση & Win-back — επιστροφή (5)
 Έναυσμα: αδράνεια 30/60/90 μέρες. Στόχος: επιστροφή πριν τη χαμένη σχέση.
