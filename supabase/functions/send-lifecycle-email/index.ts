@@ -20,6 +20,7 @@ import {
   legislationUpdateEmail, seasonalCampaignEmail, type Plan, type Season, type Ctx, type Personal,
 } from '../_shared/emailTemplates.ts'
 import { CATALOG, DIGESTS } from '../_shared/emailCopy.ts'
+import { guessGender } from '../_shared/gender.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -83,11 +84,15 @@ Deno.serve(async (req) => {
   // Πλούσιο πλαίσιο εξατομίκευσης: όλα τα params περνούν ζωντανά στο κείμενο
   // (amount, deadlineDate, period, tenantName, cardLast4, digestItems, κ.λπ.),
   // με το appUrl/όνομα να υπερισχύουν από τον φάκελο.
+  const recipientName = name || (params.name as string) || undefined
   const personal: Personal = {
     ...(params as Personal),
-    name: name || (params.name as string) || undefined,
+    name: recipientName,
     appUrl: APP_URL,
     unsubUrl: params.unsubUrl,
+    // Φύλο από το όνομα, αν δεν δόθηκε ρητά — για σωστή προσφώνηση.
+    gender: (params.gender as Personal['gender']) || guessGender(recipientName),
+    tenantGender: (params.tenantGender as Personal['tenantGender']) || guessGender(params.tenantName as string),
   }
 
   // Προτεραιότητα στο επιμελημένο catalog (copyId), μετά τα ενοποιημένα (DIGESTS),
