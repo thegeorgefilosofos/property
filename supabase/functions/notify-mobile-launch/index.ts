@@ -23,7 +23,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const LAUNCH_SECRET  = Deno.env.get('MOBILE_LAUNCH_SECRET') || ''
-const FROM_EMAIL     = 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
 const APP_URL        = 'https://propertyos-psi.vercel.app/dashboard'
 const IOS_URL        = 'https://apps.apple.com/app/property-os'
 const ANDROID_URL    = 'https://play.google.com/store/apps/details?id=com.propertyos'
