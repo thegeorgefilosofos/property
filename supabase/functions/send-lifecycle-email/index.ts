@@ -80,13 +80,14 @@ Deno.serve(async (req) => {
   if (!event && !copyId) return json({ error: 'no_event' }, 400)
   if (!isEmail(email)) return json({ error: 'bad_email' }, 400)
 
-  // Πλούσιο πλαίσιο εξατομίκευσης από τα params (όνομα, πλάνο και μοναδικά δεδομένα).
+  // Πλούσιο πλαίσιο εξατομίκευσης: όλα τα params περνούν ζωντανά στο κείμενο
+  // (amount, deadlineDate, period, tenantName, cardLast4, digestItems, κ.λπ.),
+  // με το appUrl/όνομα να υπερισχύουν από τον φάκελο.
   const personal: Personal = {
-    name: name || undefined, appUrl: APP_URL, unsubUrl: params.unsubUrl,
-    plan: params.plan, properties: params.properties, propertyName: params.propertyName,
-    collected: params.collected, outstanding: params.outstanding, portfolioValue: params.portfolioValue,
-    days: params.days, assistantName: params.assistantName,
-    digestItems: Array.isArray(params.digestItems) ? params.digestItems : undefined,
+    ...(params as Personal),
+    name: name || (params.name as string) || undefined,
+    appUrl: APP_URL,
+    unsubUrl: params.unsubUrl,
   }
 
   // Προτεραιότητα στο επιμελημένο catalog (copyId), μετά τα ενοποιημένα (DIGESTS),

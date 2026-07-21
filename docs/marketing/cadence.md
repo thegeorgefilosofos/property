@@ -49,6 +49,21 @@ Every `copy_id` is assigned a tier. Higher tiers win the day.
 - **Weekly rhythms** (e.g. a Monday market/rate digest) obey the P3 one-per-day and
   the weekly ceiling, so they can never combine with other opportunities to flood.
 
+## Guarantees in the live pipeline
+
+- **The policy is the only send path.** A freshly enqueued marketing/operational
+  row has `send_window = NULL`; the scheduler stamps it when it plans it, and the
+  drain sends only rows that are planned (`send_window` set) or transactional. So
+  the drain can never send a raw, un-governed row — the "ten at 08:00" cannot slip
+  through even if the two crons race.
+- **Caps count committed volume, not just sent.** The daily/weekly counters include
+  rows already scheduled for later today, so triggers dripping in through the day
+  can't each hand out a fresh budget of three.
+- **Obligations always reach the user** (a real deadline must not be silenced), but
+  they consume the day's budget, so nothing softer stacks on top of them.
+- **Time is Europe/Athens.** Slots and the day boundary are computed in local time,
+  so quiet hours actually hold for Greek users (no 23:00 mail).
+
 ## How it runs
 
 `planDeliveries(items, ctx)` takes everything queued for one recipient on one day and

@@ -88,6 +88,35 @@ console.log('\n8) Digest templates render for real');
   }
 }
 
+console.log('\n9) Weekly ceiling holds; obligations still get through');
+{
+  const items = ['limit_reached', 'monthly_statement', 'tax_installment'].map(copyId => ({ copyId }));
+  const { deliveries, deferred } = planDeliveries(items, { recipientKey: 'w@k.gr', sentThisWeekNonTx: 5 });
+  ok(deliveries.some(d => d.copyId === 'tax_installment'), 'a real obligation still reaches the user at the weekly cap');
+  ok(deferred.some(d => d.copyId === 'limit_reached') && deferred.some(d => d.copyId === 'monthly_statement'), 'opportunity + lifecycle defer once the weekly cap is hit');
+}
+
+console.log('\n10) Digests classify as obligations, not lifecycle');
+{
+  ok(policyFor('digest_tax').priority === 2 && policyFor('digest_obligations').category === 'obligation', 'digest_* → P2 obligation');
+  const { deliveries } = planDeliveries([{ copyId: 'digest_tax' }], { recipientKey: 'd@g.gr' });
+  ok(deliveries.length === 1 && deliveries[0].priority === 2, 'a digest row is not re-folded and stays P2');
+}
+
+console.log('\n11) The strongest opportunity wins the day, not the first queued');
+{
+  const { deliveries, deferred } = planDeliveries([{ copyId: 'rate_alert' }, { copyId: 'limit_reached' }], { recipientKey: 's@g.gr' });
+  ok(deliveries.some(d => d.copyId === 'limit_reached'), 'limit_reached (stronger) is chosen over rate_alert');
+  ok(deferred.some(d => d.copyId === 'rate_alert'), 'the weaker opportunity defers');
+}
+
+console.log('\n12) Several morning obligations spread across distinct minutes');
+{
+  const { deliveries } = planDeliveries([{ copyId: 'dunning_final' }, { copyId: 'data_retention_notice' }, { copyId: 'tax_e2' }, { copyId: 'tax_enfia' }], { recipientKey: 'm@g.gr' });
+  const morning = deliveries.filter(d => d.priority === 2).map(d => d.at);
+  ok(new Set(morning).size === morning.length && morning.length >= 3, `morning obligations land at distinct times (${morning.join(', ')})`);
+}
+
 console.log('');
 if (failed) { console.error(`✗ ${failed} assertion(s) failed`); process.exit(1); }
 console.log('✓ all cadence scenarios pass');

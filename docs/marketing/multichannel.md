@@ -7,6 +7,12 @@ decides **one channel per delivery**, with the daily caps spanning every channel
 
 ## The rule that makes it not-spam
 
+- **One dispatch seam.** Every send — including immediate transactional (receipts,
+  security, payment failed) — must pass through the single outbox where the cadence
+  plan already collapsed the event to one delivery, and `pickChannel()` is the last
+  hop that assigns the medium. A webhook must never email a receipt *and* fire a
+  push directly; it enqueues, and the pipeline decides the one channel. This is the
+  invariant that makes the guarantee real rather than aspirational.
 - **One delivery, one channel.** We never send the same thing on email *and* push
   *and* Viber. `pickChannel()` returns exactly one.
 - **Caps span channels.** A Viber message counts against the same daily/weekly
