@@ -75,7 +75,8 @@ function statementHtml(ownerRows: { primary: string; secondary: string; expected
         <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:11px 24px;border-radius:100px;font-weight:700;font-size:13px;">Άνοιγμα στο Property OS →</a>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:#80868b;margin:18px 0 4px;line-height:1.6;">Αυτόματη μηνιαία κατάσταση · Property OS</p>
+    <p style="text-align:center;font-size:11px;color:#5f6368;margin:16px 0 0;line-height:1.6;">Ενημερωτική κατάσταση με βάση τα δεδομένα σου. Δεν αποτελεί επίσημο λογιστικό ή φορολογικό έγγραφο.</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin:8px 0 4px;line-height:1.6;">Αυτόματη μηνιαία κατάσταση · Property OS</p>
   </div></body></html>`
 }
 
