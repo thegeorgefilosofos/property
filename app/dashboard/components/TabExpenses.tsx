@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
 import { Spinner, ExportButton } from '@/components/Theme';
-import { downloadCsv, csvEur, csvDate } from './exportCsv';
+import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { useReportBranding, type ReportBranding } from '@/lib/reportBranding';
@@ -1243,6 +1243,24 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     }
   }
 
+  // Εξαγωγή δαπανών σε .xlsx — «Μορφοποιημένο» (default) ή «Επεξεργάσιμο» (data).
+  const exportExpensesXlsx = (mode?: XlsxMode) => {
+    const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
+    const paidByLabel = (v:string|null) => PAID_BY_OPTIONS.find(p=>p.value===v)?.label || v || '';
+    const headers = ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Μερίδιό μου (€)','Μοιρασμένο με','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'];
+    const rows = processed.map(e => [
+      csvDate(e.date), e.description, e.category,
+      EXPENSE_GROUPS[e.expense_group||'']?.label || e.expense_group || '',
+      e.amount, paidByLabel(e.paid_by),
+      SHARED_SCOPES.has(e.paid_by||'') ? ownerShareAmount(e) : '',
+      SHARED_SCOPES.has(e.paid_by||'') ? (e.share_note||'') : '',
+      pmLabel(e.payment_method),
+      e.vat_amount, e.cashback_amount, e.installments || '',
+      e.paid ? 'Ναι' : 'Όχι', e.store_vendor || '', (e.notes||'').replace(/\n/g,' '),
+    ]);
+    downloadCsv(`dapanes_${new Date().toISOString().slice(0,10)}`, headers, rows, { mode });
+  };
+
   // ── Year-over-year ──
   const yoyData = useMemo(() => {
     const thisYear = new Date().getFullYear();
@@ -1771,24 +1789,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Toolbar: πλήθος + εξαγωγή */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:12, flexWrap:'wrap' }}>
         <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{processed.length} δαπάνες</div>
-        <ExportButton disabled={processed.length===0} onClick={() => {
-          const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
-          const paidByLabel = (v:string|null) => PAID_BY_OPTIONS.find(p=>p.value===v)?.label || v || '';
-          downloadCsv(
-            `dapanes_${new Date().toISOString().slice(0,10)}`,
-            ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Μερίδιό μου (€)','Μοιρασμένο με','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'],
-            processed.map(e => [
-              csvDate(e.date), e.description, e.category,
-              EXPENSE_GROUPS[e.expense_group||'']?.label || e.expense_group || '',
-              csvEur(e.amount), paidByLabel(e.paid_by),
-              SHARED_SCOPES.has(e.paid_by||'') ? csvEur(ownerShareAmount(e)) : '',
-              SHARED_SCOPES.has(e.paid_by||'') ? (e.share_note||'') : '',
-              pmLabel(e.payment_method),
-              csvEur(e.vat_amount), csvEur(e.cashback_amount), e.installments || '',
-              e.paid ? 'Ναι' : 'Όχι', e.store_vendor || '', (e.notes||'').replace(/\n/g,' '),
-            ])
-          );
-        }} />
+        <ExportButton disabled={processed.length===0} onClick={()=>exportExpensesXlsx()} onExportData={()=>exportExpensesXlsx('data')} />
       </div>
 
       {/* List */}
