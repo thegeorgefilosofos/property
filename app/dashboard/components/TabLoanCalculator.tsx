@@ -755,7 +755,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         ] },
         { type:'rows', title:'Στοιχεία δανείου', rows:[
           { label:'Τράπεζα', value:bankLabel },
-          { label:'Επιτόκιο', value:pPct(effRate) },
+          { label:'Επιτόκιο', value:`${pPct(effRate)} · ${rateType==='variable'?'κυμαινόμενο':'σταθερό'}` },
           { label:'Διάρκεια', value:termLabel },
         ] },
         { type:'table', title:'Πίνακας τοκοχρεολυσίου',

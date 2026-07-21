@@ -897,7 +897,7 @@ async function downloadOfficialExpenses(
         detail.push([
           fmtD(e.date),
           e.category || '—',
-          e.store_vendor ? `${e.description||'—'} · ${e.store_vendor}` : (e.description||'—'),
+          (e.description||'—') + (e.store_vendor?` · ${e.store_vendor}`:'') + (e.is_recurring?` · ${e.recurring_frequency==='monthly'?'Μηνιαία':e.recurring_frequency==='annual'?'Ετήσια':'Επαναλαμβανόμενη'}`:''),
           paidBy,
           e.installments ? `${pay} · ${e.installments} δόσεις` : pay,
           e.vat_amount && e.vat_amount>0 ? pEur(e.vat_amount) : '—',
@@ -928,7 +928,7 @@ async function downloadOfficialExpenses(
       ...(totalCashback>0 ? [{ label: 'Cashback (εξοικονόμηση)', value: pEur(totalCashback) }] : []),
       ...(unpaid>0 ? [{ label: 'Εκκρεμείς πληρωμές', value: pEur(unpaid) }] : []),
     ] },
-    { type: 'table', title: 'Κατανομή ανά κατηγορία', head: ['Κατηγορία','Ποσό','Ποσοστό'], align: ['l','r','r'],
+    { type: 'table', title: 'Κατανομή ανά ομάδα δαπάνης', head: ['Ομάδα','Ποσό','Ποσοστό'], align: ['l','r','r'],
       rows: distRows, result: ['Σύνολο', pEur(total), pPct(100)] },
     { type: 'table', title: 'Αναλυτικές κινήσεις',
       head: ['Ημερομηνία','Κατηγορία','Περιγραφή','Πληρώνει','Πληρωμή','ΦΠΑ','Εκπιπτ.','Ποσό'],
