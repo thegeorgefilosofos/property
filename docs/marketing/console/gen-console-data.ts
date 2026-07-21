@@ -1,6 +1,15 @@
 import * as C from '../../../../../home/user/property/supabase/functions/_shared/emailCopy.ts'
 import { type Personal, type CopyFn } from '../../../../../home/user/property/supabase/functions/_shared/emailTemplates.ts'
+import { policyFor, SLOT_TIME } from '../../../../../home/user/property/supabase/functions/_shared/emailPolicy.ts'
 import { writeFileSync } from 'node:fs'
+
+const PRIO_LABEL: Record<number, string> = { 1: 'Συναλλακτικό', 2: 'Υποχρέωση', 3: 'Ευκαιρία', 4: 'Ενημέρωση', 5: 'Προαιρετικό' }
+const WINDOW_LABEL = (slot: string): string => {
+  if (slot === 'immediate') return 'Άμεσα με το συμβάν'
+  const t = (SLOT_TIME as Record<string, string>)[slot]
+  const name: Record<string, string> = { morning: 'Πρωί', midday: 'Μεσημέρι', evening: 'Απόγευμα', late: 'Βράδυ' }
+  return `${name[slot] || ''} (~${t})`
+}
 
 const ctx: Personal = {
   name: 'Μαρία Παπαδοπούλου', appUrl: 'https://propertyos.gr', unsubUrl: 'x',
@@ -117,7 +126,9 @@ const programs = PROGRAMS.map(pr => {
     const o = pr.rec[key](ctx)
     total++
     const { preheader, blocks } = parse(o.html)
-    return { key, subject: o.subject, preheader, blocks, plans: PLAN_OVERRIDE[key] || pr.plans, trigger: pr.trigger, cadence: pr.cadence, goal: pr.goal, timing: SCHEDULE[key] || TIMING[pr.id] }
+    const pol = policyFor(key)
+    return { key, subject: o.subject, preheader, blocks, plans: PLAN_OVERRIDE[key] || pr.plans, trigger: pr.trigger, cadence: pr.cadence, goal: pr.goal, timing: SCHEDULE[key] || TIMING[pr.id],
+      priority: pol.priority, prioLabel: PRIO_LABEL[pol.priority], windowLabel: WINDOW_LABEL(pol.slot) }
   })
   return { id: pr.id, title: pr.title, subtitle: pr.subtitle, group: GROUP[pr.id], plans: pr.plans, trigger: pr.trigger, cadence: pr.cadence, goal: pr.goal, timing: TIMING[pr.id], count: emails.length, emails }
 })
