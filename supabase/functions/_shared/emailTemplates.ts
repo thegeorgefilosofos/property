@@ -81,10 +81,18 @@ export interface Ctx { name?: string; appUrl?: string; unsubUrl?: string }
 export interface Personal extends Ctx {
   plan?: Plan;
   properties?: number;       // πλήθος ακινήτων
-  propertyName?: string;     // όνομα (νέου) ακινήτου
+  propertyName?: string;     // όνομα ακινήτου
+  period?: string;           // ετικέτα περιόδου, π.χ. «Ιούλιος 2026»
   collected?: number;        // εισπράξεις περιόδου, σε EUR
+  expected?: number;         // αναμενόμενα περιόδου, σε EUR
   outstanding?: number;      // ανείσπρακτα, σε EUR
+  net?: number;              // καθαρό αποτέλεσμα, σε EUR
+  amount?: number;           // ποσό μεμονωμένης δόσης, σε EUR
+  tenantName?: string;       // όνομα ενοικιαστή
+  daysOverdue?: number;      // μέρες καθυστέρησης
+  deadlineDate?: string;     // ημερομηνία προθεσμίας, π.χ. «31/08»
   portfolioValue?: number;   // αξία χαρτοφυλακίου, σε EUR
+  occupancy?: number;        // πληρότητα, %
   days?: number;             // μέρες από την εγγραφή
   assistantName?: string;    // όνομα βοηθού, αν έχει οριστεί
 }
