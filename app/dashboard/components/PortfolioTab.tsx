@@ -15,6 +15,10 @@ import { stayTotal } from '@/lib/clients/clients';
 import { portfolioReturns } from '@/lib/market/portfolio';
 import { downloadCsv } from './exportCsv';
 import { reportHead, reportHeader, reportSection, reportDisclaimer, openReport, rEsc, rEur, rSigned } from './reportPdf';
+import { useReportBranding } from '@/lib/reportBranding';
+import { issueDocument } from '@/lib/documents/issue';
+import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
+import { ShieldCheck } from 'lucide-react';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
@@ -33,6 +37,7 @@ type SortKey = 'name' | 'revenue' | 'net' | 'occupancy' | 'pending';
 
 export default function PortfolioTab({ properties, userId, onSelectProperty }: Props) {
   const supabase = createClient();
+  const branding = useReportBranding(userId);
   // Σταθερό «τώρα» ανά mount, ώστε τα useMemo να μην ξαναϋπολογίζονται σε κάθε render.
   const nowMs = useMemo(() => Date.now(), []);
   const now = useMemo(() => new Date(nowMs), [nowMs]);
@@ -61,6 +66,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   // Καταστάσεις ιδιοκτήτη
   const [showStatements, setShowStatements] = useState(false);
   const [stmtOwner, setStmtOwner] = useState('');
+  const [genOfficial, setGenOfficial] = useState(false);
   const [toast, setToast] = useState('');
 
   const showToast = useCallback((msg: string) => { setToast(msg); window.setTimeout(() => setToast(''), 3200); }, []);
@@ -222,6 +228,42 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       + reportDisclaimer('Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.')
       + `</div></body></html>`;
     openReport(html);
+  };
+
+  // Επίσημο true-PDF της κατάστασης ιδιοκτήτη: αληθινό vector PDF με αριθμό
+  // εγγράφου και QR επαλήθευσης, καταχωρημένο στο μητρώο (/verify/<id>).
+  const officialStatement = async () => {
+    if (!stmt || genOfficial) return;
+    const isOwner = stmt.id !== NO_OWNER;
+    const ownerLabel = isOwner ? stmt.name : 'Χαρτοφυλάκιο ακινήτων';
+    const subtitle = `Έσοδα & δαπάνες ${year} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}`;
+    setGenOfficial(true);
+    try {
+      const sections: PdfSection[] = [
+        {
+          type: 'table', title: 'Κατάσταση ανά ακίνητο',
+          head: ['Ακίνητο', 'Έσοδα', 'Δαπάνες', 'Καθαρό'], align: ['l', 'r', 'r', 'r'],
+          rows: stmt.rows.map(r => [r.name, pEur(r.revenue), pEur(r.expenses), pSigned(r.net)]),
+          result: ['Σύνολο', pEur(stmt.revenue), pEur(stmt.expenses), pSigned(stmt.net)],
+        },
+      ];
+      const issued = await issueDocument(supabase, {
+        userId, docType: 'Κατάσταση ιδιοκτήτη',
+        subject: ownerLabel,
+        period: `Χρήση ${year}`,
+        summary: { properties: stmt.rows.length, netTotal: stmt.net },
+      });
+      const model: PdfReportModel = {
+        branding, docType: 'Κατάσταση ιδιοκτήτη',
+        title: isOwner ? stmt.name : 'Κατάσταση ιδιοκτήτη',
+        subtitle,
+        meta: { id: issued.id, issuedAt: issued.issuedAt, verifyUrl: issued.verifyUrl, note: `Χρήση ${year}` },
+        sections,
+        disclaimer: 'Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.',
+      };
+      await generateReportPdf(model, `Κατάσταση_ιδιοκτήτη_${year}`);
+    } catch { alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.'); }
+    finally { setGenOfficial(false); }
   };
 
   const fieldStyle: CSSProperties = { width: '100%', padding: '10px 16px', borderRadius: 4, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none' };
@@ -434,6 +476,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                 </div>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
                   <Btn variant="secondary" onClick={printStatement}>Εκτύπωση / PDF</Btn>
+                  <Btn variant="secondary" onClick={officialStatement} disabled={genOfficial}><ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}</Btn>
                   <ExportButton onClick={exportStatement} label="Εξαγωγή CSV" />
                 </div>
               </>

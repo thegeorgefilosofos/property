@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { Spinner, fe, fn, T } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
-import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info } from 'lucide-react';
+import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
 import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
 import {
@@ -22,6 +22,8 @@ import { incomeStatement, type TaxRegime } from '@/lib/accounting/statement';
 import { GLOSSARY as G } from '@/lib/market/glossary';
 import { useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc } from './reportPdf';
+import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport';
+import { issueDocument } from '@/lib/documents/issue';
 
 // Αντιστοίχιση περιοχής → πλησιέστερη αναφορά βραχυχρόνιας (τα δεδομένα ST είναι ανά
 // ευρύτερη ζώνη, όχι ανά προάστιο). Δίνει ρεαλιστικά defaults (πληρότητα/τιμή) ανά περιοχή.
@@ -367,6 +369,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const supabase = createClient();
   const branding = useReportBranding(userId);
   const [loading, setLoading] = useState(true);
+  const [genOfficial, setGenOfficial] = useState(false);
   const pro = profileType === 'professional';
 
   // Καθεστώς: επαγγελματίας → φυσικό/νομικό· μίσθωση → μακροχρόνια/βραχυχρόνια.
@@ -703,6 +706,120 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     openReport(html);
   };
 
+  // Επίσημο, τραπεζικού επιπέδου true-PDF (pdfmake): αριθμός εγγράφου, QR επαλήθευσης,
+  // per-page footer· καταχωρείται στο μητρώο εγγράφων ώστε να επαληθεύεται στο /verify/<id>.
+  // Καθρεφτίζει το περιεχόμενο της printReport σε PdfSection[].
+  const officialReport = async () => {
+    if (genOfficial) return;
+    setGenOfficial(true);
+    try {
+      const name = pName.trim() || 'Ακίνητο';
+      const num2 = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const noi = grossAnnual - effOpex;            // καθαρά λειτουργικά έσοδα
+      const afterTax = noi - annualTax;             // καθαρό αποτέλεσμα μετά τον φόρο
+      const totalReturn = y.netYield + nAppr;       // ενδεικτική συνολική απόδοση
+
+      const identity = [name, regimeLabel, term === 'short' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση', reg?.label || '', pSqm ? `${pSqm} τ.μ.` : '']
+        .filter(Boolean).join(' · ');
+
+      // Σύγκριση με την αγορά (ίδιες γραμμές με την printReport).
+      const regionRows: PdfRow[] = term === 'short'
+        ? [
+            { label: 'Το ακίνητό σου', value: pPct(y.grossYield) },
+            { label: 'Τυπική βραχυχρόνια περιοχής', value: pPct(stRef.grossYield) },
+            { label: 'Μακροχρόνια στην ίδια περιοχή', value: pPct(reg?.grossYield || 0) },
+          ]
+        : [
+            { label: 'Το ακίνητό σου', value: pPct(y.grossYield) },
+            { label: reg?.label || 'Περιοχή', value: pPct(reg?.grossYield || 0) },
+            { label: 'Μέσος όρος Αθήνας', value: pPct(ATHENS_AVG_GROSS_YIELD) },
+            { label: 'Εθνικός μέσος όρος', value: pPct(GREECE_AVG_GROSS_YIELD) },
+          ];
+
+      // Παραδοχές & μεθοδολογία.
+      const asmpItems = [
+        `Αξία ακινήτου: ${pEur(nVal)} (καταχώρηση ή εκτίμηση χρήστη)`,
+        term === 'short' ? `Έσοδα: εκτιμώμενη πληρότητα ${pPct(occEff)} × τιμή/νύχτα ${pEur(adrEff)}` : `Έσοδα: μηνιαίο ενοίκιο ${pEur(nRent)}`,
+        `Εκτιμώμενη ετήσια ανατίμηση: ${pPct(nAppr)}`,
+        `Φορολογικό καθεστώς: ${regimeLabel}`,
+        ...(pro ? [`Χρηματοδότηση: LTV ${pPct(parseFloat(ltv) || 0)}, επιτόκιο ${pPct(parseFloat(loanRate) || 0)}, ορίζοντας ${parseInt(holdYears)} έτη`] : []),
+        `Δεδομένα αναφοράς αγοράς: ${MARKET_DATA_ASOF}`,
+      ];
+
+      const disclaimer = `Η παρούσα αναφορά αποτελεί ενημερωτικό εργαλείο εκτίμησης. Οι υπολογισμοί βασίζονται στα στοιχεία που καταχώρησες και σε ενδεικτικά δημόσια δεδομένα αγοράς, και δεν συνιστούν επενδυτική, φορολογική ή νομική συμβουλή. Τα πραγματικά μεγέθη διαφέρουν ανά ακίνητο, όροφο, κατάσταση, θέση και συνθήκες αγοράς. Οι αποδόσεις των εναλλακτικών επενδύσεων είναι ιστορικές και δεν εγγυώνται μελλοντικά αποτελέσματα. Πριν από κάθε απόφαση, επιβεβαίωσε τα στοιχεία και συμβουλέψου εξειδικευμένο λογιστή ή σύμβουλο ακινήτων. Δεδομένα αγοράς: ${MARKET_DATA_ASOF}.`;
+
+      const sections: PdfSection[] = [
+        { type: 'kpis', title: 'Σύνοψη', items: [
+          { label: 'Αξία ακινήτου', value: pEur(nVal) },
+          { label: term === 'short' ? 'Ετήσια έσοδα' : 'Μηνιαίο ενοίκιο', value: pEur(term === 'short' ? grossAnnual : nRent) },
+          { label: 'Καθαρή απόδοση', value: pPct(y.netYield) },
+          { label: 'Βαθμός απόδοσης', value: `${grade.grade} · ${grade.score}/100` },
+        ] },
+        { type: 'rows', title: 'Ανάλυση εσόδων & εξόδων (ετήσια)', rows: [
+          { label: 'Ακαθάριστα έσοδα (ετήσια)', value: pEur(grossAnnual) },
+          { label: 'Λειτουργικά έξοδα ακινήτου', value: pSigned(-nOpex) },
+          ...(term === 'short' && stCosts > 0 ? [{ label: 'Κόστη βραχυχρόνιας (πλατφόρμα, καθαρισμός, ΤΑΚΚ, τέλος παρεπιδημούντων)', value: pSigned(-stCosts) }] : []),
+          { label: 'Καθαρά λειτουργικά έσοδα (NOI)', value: pEur(noi), kind: 'sub' },
+          { label: 'Φόρος εισοδήματος', value: pSigned(-annualTax) },
+          { label: 'Καθαρό αποτέλεσμα μετά τον φόρο', value: pEur(afterTax), kind: 'result' },
+        ] },
+        { type: 'rows', title: 'Δείκτες απόδοσης', rows: [
+          { label: 'Μεικτή απόδοση', value: pPct(y.grossYield) },
+          { label: 'Καθαρή απόδοση', value: pPct(y.netYield) },
+          { label: 'Απόδοση μετά τον φόρο', value: pPct(y.netYieldAfterTax) },
+          { label: 'Εκτιμώμενη ετήσια ανατίμηση', value: pPct(nAppr) },
+          { label: 'Ενδεικτική συνολική απόδοση (καθαρή + ανατίμηση)', value: pPct(totalReturn), kind: 'sub' },
+          { label: 'Βαθμός απόδοσης', value: `${grade.grade} · ${grade.score}/100`, kind: 'sub' },
+        ] },
+        { type: 'rows', title: 'Σύγκριση με την αγορά', rows: regionRows },
+      ];
+
+      if (pro) {
+        sections.push({ type: 'rows', title: 'Χρηματοδότηση & μόχλευση', rows: [
+          { label: 'Ίδια κεφάλαια', value: pEur(deal.equity) },
+          { label: 'Δάνειο', value: pEur(deal.loan) },
+          { label: 'Ετήσια δόση δανείου', value: pEur(deal.annualDebtService) },
+          { label: 'Δείκτης κάλυψης χρέους (DSCR)', value: Number.isFinite(deal.dscr) ? num2(deal.dscr) : '∞' },
+          { label: 'Απόδοση ιδίων κεφαλαίων (cash-on-cash)', value: pPct(lev.cashOnCash) },
+          { label: 'Ετήσια ταμειακή ροή', value: pEur(lev.cashFlow) },
+          { label: 'Εσωτερικός βαθμός απόδοσης (IRR)', value: Number.isFinite(deal.irrPct) ? pPct(deal.irrPct) : '—' },
+          { label: 'Καθαρή παρούσα αξία (NPV)', value: pEur(deal.npv) },
+          { label: 'Πολλαπλασιαστής ιδίων κεφαλαίων', value: `${num2(deal.equityMultiple)}×` },
+          { label: 'Ορίζοντας κατοχής', value: `${parseInt(holdYears)} έτη`, kind: 'sub' },
+        ] });
+        sections.push({ type: 'table', title: 'Ανάλυση ευαισθησίας',
+          head: ['Σενάριο', 'Συνολική απόδοση', 'Απόδοση ιδίων', 'Ταμειακή ροή'], align: ['l', 'r', 'r', 'r'],
+          rows: scenarios.map(sc => [`${sc.label} ${sc.note}`, pPct(sc.totalReturn), pPct(sc.roe), pEur(sc.cashFlow)]) });
+      }
+
+      if (term === 'short' && breakEvenOcc !== null) {
+        sections.push({ type: 'note', title: 'Νεκρό σημείο πληρότητας',
+          text: `Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: ${isFinite(breakEvenOcc) ? pPct(Math.min(100, breakEvenOcc)) : 'μη εφικτή'}. Εκτιμώμενη πληρότητα εργαλείου: ${pPct(occEff)} · τιμή/νύχτα ${pEur(adrEff)}.` });
+      }
+
+      sections.push({ type: 'rows', title: `Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`,
+        rows: compare.map(c => ({ label: c.label, value: `${pEur(c.futureValue)} · ${pPct(c.annualReturnPct)} ετησίως` })) });
+      sections.push({ type: 'note', title: 'Παραδοχές & μεθοδολογία', text: asmpItems.map(t => `· ${t}`).join('\n') });
+      sections.push({ type: 'note', text: `Πηγές: ${MARKET_SOURCES.map(s => s.label).join(' · ')}` });
+
+      const issued = await issueDocument(supabase, {
+        userId, docType: 'Αναφορά απόδοσης',
+        subject: name,
+        period: term === 'short' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση',
+        summary: { value: nVal, grossYield: y.grossYield, netYield: y.netYield, grade: grade.grade },
+      });
+
+      const model: PdfReportModel = {
+        branding, docType: 'Αναφορά απόδοσης', title: 'Αναφορά απόδοσης ακινήτου',
+        subtitle: identity,
+        meta: { id: issued.id, issuedAt: issued.issuedAt, verifyUrl: issued.verifyUrl },
+        sections, disclaimer,
+      };
+      await generateReportPdf(model, `Αναφορά_απόδοσης_${pName.trim() || 'ακίνητο'}`);
+    } catch { alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.'); }
+    finally { setGenOfficial(false); }
+  };
+
   if (loading) return <div style={{ padding: 40 }}><Spinner label="Φόρτωση αποδόσεων…" /></div>;
 
   const regimeLabel = pro ? (entity === 'company' ? 'Επιχείρηση · Νομικό πρόσωπο' : 'Επιχείρηση · Φυσικό πρόσωπο') : 'Ιδιώτης';
@@ -719,11 +836,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {pro && <Seg value={entity} onChange={setEntity} options={[['sole', 'Φυσικό πρόσωπο'], ['company', 'Νομικό πρόσωπο']]} />}
           <Seg value={term} onChange={setTerm} options={[['long', 'Μακροχρόνια'], ['short', 'Βραχυχρόνια']]} />
-          {!empty && (
+          {!empty && (<>
             <button onClick={printReport} className="acc-toggle" style={{ height: 36, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ArrowUpRight size={14} /> Αναφορά PDF
             </button>
-          )}
+            <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: 36, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}
+            </button>
+          </>)}
         </div>
       </div>
 
