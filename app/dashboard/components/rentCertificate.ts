@@ -10,6 +10,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportHead, reportHeader, reportSection, reportRow, reportDisclaimer, openReport, rEur, rEsc } from './reportPdf'
 import type { ReportBranding } from '@/lib/reportBranding'
+import { issueDocument } from '@/lib/documents/issue'
+import { generateReportPdf, pEur, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport'
+import type { createClient } from '@/lib/supabase/client'
 
 export interface RentCertMonth { label: string; amount: number }
 export interface RentCertificateCtx {
@@ -54,4 +57,48 @@ export function printRentCertificate(c: RentCertificateCtx): void {
     + `</div></body></html>`
 
   openReport(html)
+}
+
+type SB = ReturnType<typeof createClient>
+
+/**
+ * Επίσημο, τραπεζικού επιπέδου true-PDF της «Βεβαίωσης Ενοικίου»: αληθινό vector
+ * PDF (pdfmake) με αρ. εγγράφου, QR επαλήθευσης και per-page footer. Καταχωρείται
+ * στο μητρώο εγγράφων ώστε να είναι επαληθεύσιμη δημόσια στο /verify/<id>.
+ * Καθρεφτίζει πιστά την εκτυπώσιμη βεβαίωση (printRentCertificate).
+ */
+export async function downloadOfficialRentCertificate(c: RentCertificateCtx, o: { supabase: SB; userId: string }): Promise<void> {
+  const tenant = (c.tenantName || '').trim() || 'ο μισθωτής'
+  const afmPart = (c.tenantAfm || '').trim() ? ` (ΑΦΜ ${String(c.tenantAfm).trim()})` : ''
+  const certifyText = `Βεβαιώνεται ότι ${tenant}${afmPart} κατέβαλε για τη μίσθωση του ακινήτου, κατά το έτος ${c.year}, το συνολικό ποσό των ${pEur(c.total)}, όπως αναλύεται παρακάτω.`
+
+  // Ανάλυση μισθωμάτων: ίδια λογική με την εκτυπώσιμη — γραμμή ανά μήνα, μήνυμα
+  // κενής κατάστασης αν δεν υπάρχουν εισπραγμένα, και τελική γραμμή «Σύνολο».
+  const analysisRows: PdfRow[] = c.months.length
+    ? c.months.map(m => ({ label: m.label, value: pEur(m.amount) }))
+    : [{ label: `Δεν υπάρχουν εισπραγμένα μισθώματα για το ${c.year}.`, value: '', kind: 'muted' as const }]
+  analysisRows.push({ label: `Σύνολο ${c.year}`, value: pEur(c.total), kind: 'result' })
+
+  const sections: PdfSection[] = [
+    { type: 'note', text: certifyText },
+    { type: 'rows', title: 'Ανάλυση καταβληθέντων μισθωμάτων', rows: analysisRows },
+    { type: 'note', title: 'Υπογραφές', text: 'Ο εκμισθωτής  ..................................        Ο μισθωτής  ..................................' },
+  ]
+
+  const subject = [c.propName, c.address].filter(Boolean).join(' · ')
+
+  const issued = await issueDocument(o.supabase, {
+    userId: o.userId, docType: 'Βεβαίωση ενοικίου',
+    subject, period: `Έτος ${c.year}`,
+    summary: { total: c.total, months: c.months.length },
+  })
+
+  const model: PdfReportModel = {
+    branding: c.branding, docType: 'Βεβαίωση ενοικίου', title: `Βεβαίωση ενοικίου ${c.year}`,
+    subtitle: subject,
+    meta: { id: issued.id, issuedAt: issued.issuedAt, verifyUrl: issued.verifyUrl, note: `Έτος ${c.year}` },
+    sections,
+    disclaimer: 'Η βεβαίωση συντάχθηκε με βάση τα καταχωρημένα, εισπραγμένα μισθώματα. Για τη χρήση της σε δηλώσεις/δικαστικές διαδικασίες, επιβεβαίωσε τα στοιχεία με τον λογιστή ή τον δικηγόρο σου.',
+  }
+  await generateReportPdf(model, `Βεβαίωση_ενοικίου_${c.propName}_${c.year}`)
 }

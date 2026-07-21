@@ -5,11 +5,14 @@ import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
 import { Spinner, ExportButton } from '@/components/Theme';
-import { downloadCsv, csvEur, csvDate } from './exportCsv';
+import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf';
+import { ShieldCheck } from 'lucide-react';
+import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
+import { issueDocument } from '@/lib/documents/issue';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -854,10 +857,104 @@ function exportPDF(expenses: Expense[], propertyName: string, branding?: ReportB
   openReport(html);
 }
 
+type SB = ReturnType<typeof createClient>;
+
+// ─── Επίσημο true-PDF «Κατάσταση δαπανών» ─────────────────────────────────────
+// Αληθινό vector PDF (pdfmake) με αρ. εγγράφου & QR επαλήθευσης, καταχωρημένο στο
+// μητρώο εγγράφων ώστε να επαληθεύεται στο /verify/<id>. Καθρεφτίζει πιστά την
+// «Εξαγωγή PDF» (exportPDF): ίδιοι KPIs, ίδια φορολογική ανάλυση, κατανομή ανά
+// ομάδα και αναλυτικές κινήσεις ανά ομάδα με υποσύνολα και γενικό σύνολο.
+async function downloadOfficialExpenses(
+  rows: Expense[], propertyName: string, branding: ReportBranding | null | undefined,
+  o: { supabase: SB; userId: string },
+): Promise<void> {
+  const total = rows.reduce((s,e)=>s+e.amount,0);
+  const totalVat = rows.reduce((s,e)=>s+(e.vat_amount||0),0);
+  const totalCashback = rows.reduce((s,e)=>s+(e.cashback_amount||0),0);
+  const deductible = rows.filter(e=>EXPENSE_GROUPS[e.expense_group||'']?.taxDeductible).reduce((s,e)=>s+e.amount,0);
+  const unpaid = rows.filter(e=>!e.paid).reduce((s,e)=>s+e.amount,0);
+
+  const grouped: Record<string,Expense[]> = {};
+  rows.forEach(e=>{ const g=e.expense_group||'other'; if(!grouped[g])grouped[g]=[]; grouped[g].push(e); });
+  const byGroup: Record<string,number> = {};
+  rows.forEach(e=>{ const g=e.expense_group||'other'; byGroup[g]=(byGroup[g]||0)+e.amount; });
+
+  // Κατανομή ανά ομάδα (ίδια σειρά με exportPDF: φθίνον ποσό) + ποσοστό.
+  const distRows = Object.entries(byGroup).sort(([,a],[,b])=>b-a)
+    .map(([k,v])=>[EXPENSE_GROUPS[k]?.label||k, pEur(v), pPct(total>0?(v/total)*100:0)]);
+
+  // Αναλυτικές κινήσεις ανά ομάδα: κεφαλίδα ομάδας, κινήσεις, υποσύνολο (όπως exportPDF).
+  const detail: string[][] = [];
+  Object.entries(EXPENSE_GROUPS)
+    .filter(([k])=>grouped[k]&&grouped[k].length>0)
+    .forEach(([k,info])=>{
+      const grpExp = (grouped[k]||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+      const grpTotal = grpExp.reduce((s,e)=>s+e.amount,0);
+      detail.push([`${info.label} · ${grpExp.length} εγγραφές${info.taxDeductible?' · Εκπιπτόμενη':''}`, '', '', '', '', '', '', pEur(grpTotal)]);
+      grpExp.forEach(e=>{
+        const paidBy = PAID_BY_OPTIONS.find(p=>p.value===e.paid_by)?.label || '—';
+        const pay = PAYMENT_METHODS.find(p=>p.value===e.payment_method)?.label || '—';
+        detail.push([
+          fmtD(e.date),
+          e.category || '—',
+          (e.description||'—') + (e.store_vendor?` · ${e.store_vendor}`:'') + (e.is_recurring?` · ${e.recurring_frequency==='monthly'?'Μηνιαία':e.recurring_frequency==='annual'?'Ετήσια':'Επαναλαμβανόμενη'}`:''),
+          paidBy,
+          e.installments ? `${pay} · ${e.installments} δόσεις` : pay,
+          e.vat_amount && e.vat_amount>0 ? pEur(e.vat_amount) : '—',
+          info.taxDeductible ? 'ΝΑΙ' : 'ΟΧΙ',
+          pEur(e.amount),
+        ]);
+      });
+      detail.push([`Υποσύνολο ${info.label}`, '', '', '', '', '', '', pEur(grpTotal)]);
+    });
+
+  // Ίδιο ακριβώς κείμενο disclaimer με την «Εξαγωγή PDF».
+  const disclaimer = 'Εκτίμηση βάσει ελληνικής φορολογικής νομοθεσίας (Ν. 4172/2013). Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Πριν από κάθε υποβολή, επιβεβαιώστε τα ποσά με τον λογιστή σας.';
+
+  const sections: PdfSection[] = [
+    { type: 'kpis', title: 'Σύνοψη', items: [
+      { label: 'Σύνολο δαπανών', value: pEur(total) },
+      { label: 'Εκπιπτόμενες', value: pEur(deductible) },
+      { label: 'Μη εκπιπτόμενες', value: pEur(total-deductible) },
+      { label: 'Σύνολο ΦΠΑ', value: pEur(totalVat) },
+      { label: 'Cashback', value: pEur(totalCashback) },
+    ] },
+    { type: 'rows', title: 'Φορολογική ανάλυση', rows: [
+      { label: 'Εκπιπτόμενες δαπάνες', value: pEur(deductible) },
+      { label: 'Μη εκπιπτόμενες δαπάνες', value: pEur(total-deductible) },
+      { label: 'Ποσοστό εκπτώσεων', value: pPct(total>0?(deductible/total)*100:0) },
+      { label: 'Εκτ. φόρος ενοικίων (15%)', value: pEur(deductible*0.15) },
+      { label: 'Σύνολο ΦΠΑ', value: pEur(totalVat) },
+      ...(totalCashback>0 ? [{ label: 'Cashback (εξοικονόμηση)', value: pEur(totalCashback) }] : []),
+      ...(unpaid>0 ? [{ label: 'Εκκρεμείς πληρωμές', value: pEur(unpaid) }] : []),
+    ] },
+    { type: 'table', title: 'Κατανομή ανά ομάδα δαπάνης', head: ['Ομάδα','Ποσό','Ποσοστό'], align: ['l','r','r'],
+      rows: distRows, result: ['Σύνολο', pEur(total), pPct(100)] },
+    { type: 'table', title: 'Αναλυτικές κινήσεις',
+      head: ['Ημερομηνία','Κατηγορία','Περιγραφή','Πληρώνει','Πληρωμή','ΦΠΑ','Εκπιπτ.','Ποσό'],
+      align: ['l','l','l','l','l','r','l','r'],
+      rows: detail,
+      result: [`Γενικό σύνολο · ${rows.length} εγγραφές`, '', '', '', '', '', '', pEur(total)] },
+  ];
+
+  const issued = await issueDocument(o.supabase, {
+    userId: o.userId, docType: 'Κατάσταση δαπανών', subject: propertyName, period: '',
+    summary: { total, deductible, count: rows.length },
+  });
+
+  const model: PdfReportModel = {
+    branding, docType: 'Κατάσταση δαπανών', title: 'Κατάσταση δαπανών', subtitle: propertyName,
+    meta: { id: issued.id, issuedAt: issued.issuedAt, verifyUrl: issued.verifyUrl },
+    sections, disclaimer,
+  };
+  await generateReportPdf(model, 'Κατάσταση_δαπανών_'+propertyName);
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TabExpenses({ propertyId, userId }: { propertyId:string; userId:string }) {
   const supabase = createClient();
   const branding = useReportBranding(userId);
+  const [genOfficial, setGenOfficial] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1133,6 +1230,37 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   const deductible   = processed.filter(e => EXPENSE_GROUPS[e.expense_group||'']?.taxDeductible).reduce((s,e) => s+e.amount, 0);
   const unpaidTotal  = processed.filter(e => !e.paid).reduce((s,e) => s+e.amount, 0);
 
+  // Επίσημο true-PDF «Κατάσταση δαπανών» (αρ. εγγράφου + QR επαλήθευσης).
+  async function officialExpenses() {
+    if (genOfficial) return;
+    setGenOfficial(true);
+    try {
+      await downloadOfficialExpenses(processed, 'Ακίνητο', branding, { supabase, userId });
+    } catch {
+      alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.');
+    } finally {
+      setGenOfficial(false);
+    }
+  }
+
+  // Εξαγωγή δαπανών σε .xlsx — «Μορφοποιημένο» (default) ή «Επεξεργάσιμο» (data).
+  const exportExpensesXlsx = (mode?: XlsxMode) => {
+    const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
+    const paidByLabel = (v:string|null) => PAID_BY_OPTIONS.find(p=>p.value===v)?.label || v || '';
+    const headers = ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Μερίδιό μου (€)','Μοιρασμένο με','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'];
+    const rows = processed.map(e => [
+      csvDate(e.date), e.description, e.category,
+      EXPENSE_GROUPS[e.expense_group||'']?.label || e.expense_group || '',
+      e.amount, paidByLabel(e.paid_by),
+      SHARED_SCOPES.has(e.paid_by||'') ? ownerShareAmount(e) : '',
+      SHARED_SCOPES.has(e.paid_by||'') ? (e.share_note||'') : '',
+      pmLabel(e.payment_method),
+      e.vat_amount, e.cashback_amount, e.installments || '',
+      e.paid ? 'Ναι' : 'Όχι', e.store_vendor || '', (e.notes||'').replace(/\n/g,' '),
+    ]);
+    downloadCsv(`dapanes_${new Date().toISOString().slice(0,10)}`, headers, rows, { mode });
+  };
+
   // ── Year-over-year ──
   const yoyData = useMemo(() => {
     const thisYear = new Date().getFullYear();
@@ -1303,6 +1431,11 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <button onClick={() => exportPDF(processed, 'Ακίνητο', branding)}
             style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Εξαγωγή PDF
+          </button>
+          <button onClick={officialExpenses} disabled={genOfficial}
+            title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και λογιστή"
+            style={{ display:'inline-flex', alignItems:'center', gap:7, height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:genOfficial?'wait':'pointer', opacity:genOfficial?0.6:1, fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
+            <ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}
           </button>
           <button onClick={() => { setShowForm(v=>!v); setEditingId(null); }}
             style={{ height:36, padding:'0 18px', borderRadius:20, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, whiteSpace:'nowrap' }}>
@@ -1656,24 +1789,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Toolbar: πλήθος + εξαγωγή */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:12, flexWrap:'wrap' }}>
         <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{processed.length} δαπάνες</div>
-        <ExportButton disabled={processed.length===0} onClick={() => {
-          const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
-          const paidByLabel = (v:string|null) => PAID_BY_OPTIONS.find(p=>p.value===v)?.label || v || '';
-          downloadCsv(
-            `dapanes_${new Date().toISOString().slice(0,10)}`,
-            ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Μερίδιό μου (€)','Μοιρασμένο με','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'],
-            processed.map(e => [
-              csvDate(e.date), e.description, e.category,
-              EXPENSE_GROUPS[e.expense_group||'']?.label || e.expense_group || '',
-              csvEur(e.amount), paidByLabel(e.paid_by),
-              SHARED_SCOPES.has(e.paid_by||'') ? csvEur(ownerShareAmount(e)) : '',
-              SHARED_SCOPES.has(e.paid_by||'') ? (e.share_note||'') : '',
-              pmLabel(e.payment_method),
-              csvEur(e.vat_amount), csvEur(e.cashback_amount), e.installments || '',
-              e.paid ? 'Ναι' : 'Όχι', e.store_vendor || '', (e.notes||'').replace(/\n/g,' '),
-            ])
-          );
-        }} />
+        <ExportButton disabled={processed.length===0} onClick={()=>exportExpensesXlsx()} onExportData={()=>exportExpensesXlsx('data')} />
       </div>
 
       {/* List */}

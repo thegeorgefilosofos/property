@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ExportButton } from '@/components/Theme'
-import { downloadCsv, csvEur, csvDec, csvDate } from './exportCsv'
+import { downloadXlsx, type XlsxMode } from './exportXlsx'
 import TabLoanCalculator from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
 import {
@@ -341,25 +341,48 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
   // Περιεχόμενο «Αποθηκευμένα δάνεια» — εμφανίζεται στο τέλος του «Μάθε
   // περισσότερα» (κάτω από τις επίσημες πηγές), όχι ως ξεχωριστός φακός.
+  // Εξαγωγή αποθηκευμένων δανείων — «λογιστικού επιπέδου» .xlsx: τίτλος/υπότιτλος,
+  // ωμοί αριθμοί (σωστή στοίχιση/μορφή), σωστά πλάτη στηλών, ζωντανά σύνολα SUM.
+  const exportSavedLoans = (mode?: XlsxMode) => {
+    downloadXlsx(`Αποθηκευμένα_δάνεια_${new Date().toISOString().slice(0,10)}`, [{
+      name: 'Δάνεια',
+      title: 'Αποθηκευμένα δάνεια',
+      subtitle: `Property OS · ${saved.length} ${saved.length===1?'δάνειο':'δάνεια'} · Ημ. έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
+      columns: [
+        { header:'Τράπεζα', kind:'text', width:20 },
+        { header:'Τύπος δανείου', kind:'text', width:22 },
+        { header:'Ποσό (€)', kind:'eur', width:15 },
+        { header:'Επιτόκιο (%)', kind:'pct', width:12 },
+        { header:'Τύπος επιτοκίου', kind:'text', width:15 },
+        { header:'Διάρκεια (έτη)', kind:'int', width:13 },
+        { header:'Δόση τον μήνα (€)', kind:'eur', width:16 },
+        { header:'Συνολικοί τόκοι (€)', kind:'eur', width:17 },
+        { header:'Δάνειο προς αξία (%)', kind:'pct', width:18 },
+        { header:'Έναρξη', kind:'date', width:13 },
+        { header:'Κατάσταση', kind:'text', width:12 },
+        { header:'Σημειώσεις', kind:'text', width:30 },
+      ],
+      rows: saved.map(loan=>{
+        const m=calcMonthly(loan.amount,loan.rate,loan.years)
+        const ti=m*loan.years*12-loan.amount
+        const ltv=loan.property_value>0?(loan.amount/loan.property_value)*100:0
+        return [
+          loan.bank, LOAN_TYPES[loan.loan_type as LoanType]?.label||loan.loan_type,
+          loan.amount, loan.rate, loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό',
+          loan.years, m, ti, ltv,
+          loan.start_date ? new Date(loan.start_date) : '', loan.status==='active'?'Ενεργό':'Ανενεργό',
+          (loan.notes||'').replace(/\n/g,' '),
+        ]
+      }),
+      totalCols: [2, 6, 7],
+    }], { mode })
+  }
+
   const savedContent = (
     <div style={{display:'flex',flexDirection:'column',gap:12}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
         <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{saved.length} δάνεια</span>
-        <ExportButton disabled={saved.length===0} onClick={()=>downloadCsv(
-          `daneio_${new Date().toISOString().slice(0,10)}`,
-          ['Τράπεζα','Τύπος δανείου','Ποσό (€)','Επιτόκιο (%)','Τύπος επιτοκίου','Διάρκεια (έτη)','Δόση τον μήνα (€)','Συνολικοί τόκοι (€)','Δάνειο προς αξία (%)','Έναρξη','Κατάσταση','Σημειώσεις'],
-          saved.map(loan=>{
-            const m=calcMonthly(loan.amount,loan.rate,loan.years)
-            const ti=m*loan.years*12-loan.amount
-            const ltv=loan.property_value>0?(loan.amount/loan.property_value)*100:0
-            return [
-              loan.bank, LOAN_TYPES[loan.loan_type as LoanType]?.label||loan.loan_type,
-              csvEur(loan.amount), csvDec(loan.rate), loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό',
-              loan.years, csvEur(m), csvEur(ti), csvDec(ltv,1),
-              csvDate(loan.start_date), loan.status==='active'?'Ενεργό':'Ανενεργό', (loan.notes||'').replace(/\n/g,' '),
-            ]
-          })
-        )}/>
+        <ExportButton disabled={saved.length===0} onClick={()=>exportSavedLoans()} onExportData={()=>exportSavedLoans('data')}/>
       </div>
 
       {/* ── Ενιαίο δάνειο: όλα τα δάνεια του δανειολήπτη σε μία εικόνα ── */}

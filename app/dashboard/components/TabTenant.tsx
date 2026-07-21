@@ -16,7 +16,7 @@ import {
 } from './UIComponents';
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
-import { downloadCsv, csvEur, csvDate } from './exportCsv';
+import { downloadCsv, csvEur, csvDate, type XlsxMode } from './exportCsv';
 import { brandName, useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf';
 import { rentalIncomeTax, effectiveRentalRate, RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax';
@@ -911,6 +911,13 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const arrearsTotal=overdue.reduce((a,p)=>a+p.amount,0);
   const received=payments.filter(p=>p.paid).reduce((a,p)=>a+p.amount,0);
 
+  // Εξαγωγή πληρωμών ενοικίου σε .xlsx — «Μορφοποιημένο» (default) ή «Επεξεργάσιμο» (data).
+  const exportPaymentsXlsx = (mode?: XlsxMode) => {
+    const headers = ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημ. Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'];
+    const rows = sorted.map(p=>[`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`,p.amount,payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')]);
+    downloadCsv(`enoikio_${todayISO()}`, headers, rows, { mode });
+  };
+
   // Τρέχουσα ανάλυση δόσης βάσει προφίλ μισθωτή (ενοίκιο + υπηρεσίες).
   const baseRent=tenantBaseRent(tenant);
   const svcCharge=tenantServicesCharge(tenant);
@@ -1109,11 +1116,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
             <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σάρωσε απόδειξη</button>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.target.value='';}}/>
             <button style={s.btnSm} onClick={generateNow} disabled={busy}>{busy?'…':'Δημιουργία δόσεων'}</button>
-            <ExportButton disabled={payments.length===0} onClick={()=>downloadCsv(
-              `enoikio_${todayISO()}`,
-              ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημ. Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'],
-              sorted.map(p=>[`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`,csvEur(p.amount),payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')])
-            )}/>
+            <ExportButton disabled={payments.length===0} onClick={()=>exportPaymentsXlsx()} onExportData={()=>exportPaymentsXlsx('data')}/>
             <button style={s.btnSm} onClick={()=>setAddOpen(v=>!v)}>{addOpen?'Κλείσιμο':'+ Καταχώρηση'}</button>
           </div>
         </div>

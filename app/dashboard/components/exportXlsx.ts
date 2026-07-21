@@ -30,10 +30,21 @@ const txtLeft = S.txt;
 const txtCenter = { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } };
 const totLeft = S.totTxt, totRight = S.totNum;
 
-/** Κατεβάζει ένα προσεγμένο .xlsx με ένα ή περισσότερα στιλιζαρισμένα φύλλα. */
-export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
+export type XlsxMode = 'presentation' | 'data';
+
+/**
+ * Κατεβάζει ένα προσεγμένο .xlsx.
+ * - mode 'presentation' (προεπιλογή): ποσά/ποσοστά ως ΚΕΙΜΕΝΟ με εγγυημένο
+ *   ελληνικό κόμμα («1.234,56 €») — ίδια εμφάνιση σε κάθε Excel, αλλά μη
+ *   επεξεργάσιμα/αθροίσιμα.
+ * - mode 'data': ΖΩΝΤΑΝΑ αριθμητικά κελιά με number-format + γραμμή ΣΥΝΟΛΟ με
+ *   τύπο SUM — ο λογιστής μπορεί να επεξεργαστεί, να κάνει pivot και να ξανα-
+ *   αθροίσει (το κόμμα/σύμβολο ακολουθεί τη γλώσσα του Excel του αναγνώστη).
+ */
+export function downloadXlsx(filename: string, sheets: XlsxSheet[], opts: { mode?: XlsxMode } = {}): void {
   const wb = XLSX.utils.book_new();
   const used = new Set<string>();
+  const data = opts.mode === 'data';
 
   for (const sh of sheets) {
     const NC = sh.columns.length;
@@ -82,9 +93,9 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
         const cell = ws[enc(R, c)] as Cell | undefined;
         const raw = cell?.v;
         if (kind === 'date' && raw instanceof Date) setCell(ws, R, c, { s: txtCenter, t: 'd', z: FMT.date });
-        else if ((kind === 'eur' || kind === 'num') && typeof raw === 'number') setCell(ws, R, c, { v: money(raw), t: 's', s: S.num });
-        else if (kind === 'pct' && typeof raw === 'number') setCell(ws, R, c, { v: percent(raw), t: 's', s: S.num });
-        else if (kind === 'int' && typeof raw === 'number') setCell(ws, R, c, { v: intGr(raw), t: 's', s: S.num });
+        else if ((kind === 'eur' || kind === 'num') && typeof raw === 'number') setCell(ws, R, c, data ? { t: 'n', z: FMT.eur, s: S.num } : { v: money(raw), t: 's', s: S.num });
+        else if (kind === 'pct' && typeof raw === 'number') setCell(ws, R, c, data ? { t: 'n', z: FMT.pct, s: S.num } : { v: percent(raw), t: 's', s: S.num });
+        else if (kind === 'int' && typeof raw === 'number') setCell(ws, R, c, data ? { t: 'n', z: FMT.int, s: S.num } : { v: intGr(raw), t: 's', s: S.num });
         else if (kind === 'year') setCell(ws, R, c, { v: String(raw ?? ''), t: 's', s: txtCenter });
         else setCell(ws, R, c, { s: RIGHT.has(kind) ? S.num : CENTER.has(kind) ? txtCenter : txtLeft });
       }
@@ -93,10 +104,20 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
     // Γραμμή ΣΥΝΟΛΟ — άθροισμα (κείμενο «€» με κόμμα, ίδιο σε κάθε Excel).
     if (totals) {
       const totSet = new Set(sh.totalCols);
+      const firstDataRow1 = HR + 2;        // 1-based: πρώτη γραμμή δεδομένων
+      const lastDataRow1 = lastData + 1;   // 1-based: τελευταία γραμμή δεδομένων
       for (let c = 0; c < NC; c++) {
         if (totSet.has(c) && sh.rows.length) {
           const sum = sh.rows.reduce((acc, row) => acc + (typeof row[c] === 'number' ? (row[c] as number) : 0), 0);
-          setCell(ws, totalR, c, { v: money(sum), t: 's', s: totRight });
+          if (data) {
+            const k = (sh.columns[c]?.kind || 'eur') as XlsxKind;
+            const tz = k === 'pct' ? FMT.pct : k === 'int' ? FMT.int : FMT.eur;
+            const col = XLSX.utils.encode_col(c);
+            // Ζωντανός τύπος SUM + cached τιμή (για viewers χωρίς recalc).
+            setCell(ws, totalR, c, { t: 'n', v: sum, f: `SUM(${col}${firstDataRow1}:${col}${lastDataRow1})`, z: tz, s: totRight });
+          } else {
+            setCell(ws, totalR, c, { v: money(sum), t: 's', s: totRight });
+          }
         } else {
           setCell(ws, totalR, c, { s: totLeft });
         }
