@@ -37,6 +37,7 @@ export type PdfSection =
   | { type: 'kpis'; title?: string; items: { label: string; value: string }[] }
   | { type: 'table'; title?: string; head: string[]; align?: ('l' | 'r')[]; rows: string[][]; result?: string[] }
   | { type: 'chart'; title?: string; chart: 'bars' | 'line'; data: PdfChartPoint[]; unit?: 'eur' | 'pct' | 'num' }
+  | { type: 'sign'; title?: string; signers: { role: string; name?: string; image?: string; place?: string; date?: string }[] }
   | { type: 'note'; title?: string; text: string };
 
 export interface PdfDocMeta {
@@ -214,6 +215,25 @@ function lineChart(data: PdfChartPoint[], unit?: 'eur' | 'pct' | 'num'): Node {
   };
 }
 
+// Μπλοκ υπογραφής(ών): ρόλος (κεφαλαία) + ενσωματωμένη υπογραφή (data:image) ή
+// κενός χώρος, γραμμή, όνομα, τόπος/ημερομηνία. Για νομικά έγγραφα (e-signature).
+function signNode(signers: { role: string; name?: string; image?: string; place?: string; date?: string }[]): Node {
+  const cells = signers.map(s => ({
+    width: '*',
+    stack: [
+      { text: s.role.toUpperCase(), fontSize: 8, bold: true, color: FAINT, characterSpacing: 0.5, margin: [0, 0, 0, 6] },
+      (s.image && /^data:image\//.test(s.image))
+        ? { image: s.image, fit: [150, 52], margin: [0, 0, 0, 2] }
+        : { text: ' ', margin: [0, 0, 0, 42] },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 165, y2: 0, lineWidth: 0.7, lineColor: RULE }] },
+      { text: s.name || '', fontSize: 10, bold: true, color: INK, margin: [0, 4, 0, 0] },
+      ...((s.place || s.date) ? [{ text: [s.place, s.date].filter(Boolean).join(', '), fontSize: 8.5, color: MUTE, margin: [0, 1, 0, 0] }] : []),
+    ],
+    margin: [0, 8, 22, 0],
+  }));
+  return { columns: cells, columnGap: 0 };
+}
+
 /** Καθαρός builder → pdfmake docDefinition. Ελέγξιμος και σε Node. */
 export function buildDocDefinition(model: PdfReportModel): Node {
   const accent = reportAccent(model.branding);
@@ -271,6 +291,7 @@ export function buildDocDefinition(model: PdfReportModel): Node {
     else if (s.type === 'kpis') content.push(kpisRow(s.items));
     else if (s.type === 'table') content.push(headedTable(s.head, s.rows, s.align, s.result));
     else if (s.type === 'chart') content.push(s.chart === 'line' ? lineChart(s.data, s.unit) : barsChart(s.data, s.unit));
+    else if (s.type === 'sign') content.push(signNode(s.signers));
     else if (s.type === 'note') content.push({ text: s.text, fontSize: 10.5, color: '#374151', lineHeight: 1.35, margin: [0, 2, 0, 0] });
   }
 
