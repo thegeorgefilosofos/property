@@ -95,6 +95,18 @@ export interface Personal extends Ctx {
   occupancy?: number;        // πληρότητα, %
   days?: number;             // μέρες από την εγγραφή
   assistantName?: string;    // όνομα βοηθού, αν έχει οριστεί
+  // Upsell / εποχικά / lifecycle
+  discountPct?: number;      // ποσοστό έκπτωσης
+  trialDaysLeft?: number;    // μέρες που απομένουν στη δοκιμή
+  invoiceAmount?: number;    // ποσό παραστατικού, σε EUR
+  invoiceNumber?: string;    // αριθμός παραστατικού
+  referralCode?: string;     // κωδικός σύστασης
+  rewardLabel?: string;      // ετικέτα ανταμοιβής
+  friendName?: string;       // όνομα προσκεκλημένου
+  device?: string;           // συσκευή σύνδεσης
+  location?: string;         // τοποθεσία σύνδεσης
+  headline?: string;         // τίτλος (π.χ. νομοθεσία)
+  summaryText?: string;      // περίληψη (π.χ. νομοθεσία)
 }
 type Out = { subject: string; html: string };
 const app = (c: Ctx) => c.appUrl || DEFAULT_APP;
