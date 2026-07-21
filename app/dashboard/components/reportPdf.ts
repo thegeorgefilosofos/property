@@ -47,6 +47,8 @@ export const REPORT_CSS = `
   .note{margin-top:9px;font-size:11.5px;color:#374151;line-height:1.55}
   .tnum{font-variant-numeric:tabular-nums}
   .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
+  .colo{margin-top:10px;font-size:9.5px;letter-spacing:.02em;color:#9aa0a6}
+  .colo b{font-weight:700;color:#6b7280}
 `;
 
 /** <head> με γραμματοσειρά Inter + κοινό CSS. Το title μπαίνει ξεσκαρταρισμένο. */
@@ -87,7 +89,8 @@ export const reportKpi = (label: string, value: string): string =>
   `<div class="kpi"><div class="kl">${rEsc(label)}</div><div class="kv">${rEsc(value)}</div></div>`;
 
 export function reportDisclaimer(text: string, branding?: ReportBranding | null): string {
-  return `<div class="disc">${branding?.companyName ? brandName(branding) + ' · ' : ''}${rEsc(text)}</div>`;
+  return `<div class="disc">${branding?.companyName ? brandName(branding) + ' · ' : ''}${rEsc(text)}`
+    + `<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>Property OS</b></div></div>`;
 }
 
 /** Ανοίγει παράθυρο εκτύπωσης με το πλήρες HTML (auto-print). */

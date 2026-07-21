@@ -92,7 +92,7 @@ export function printPropertyStatement(c: StatementCtx): void {
   const subtitle = [c.propType, c.sqm ? `${c.sqm} τ.μ.` : '', leaseType, c.status].filter(Boolean).map(x => esc(String(x))).join(' · ');
   const ownerShare = own != null && own < 100
     ? `<div class="note"><span class="muted">Αναλογία ιδιοκτήτη (${esc(pct(own))}):</span> έσοδα <strong class="tnum">${esc(eur(c.annualRent * own / 100))}</strong> · καθαρό αποτέλεσμα <strong class="tnum">${esc(signed(net * own / 100))}</strong></div>` : '';
-  const disclaimer = `Η παρούσα αναφορά δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${c.year} και την τεκμαρτή έκπτωση δαπανών 5% (μακροχρόνια μίσθωση φυσικού προσώπου)${c.shortTerm ? ', ενώ στη βραχυχρόνια προστίθενται κατά περίπτωση τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων' : ''}. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`;
+  const disclaimer = `Η παρούσα αναφορά έχει ενημερωτικό χαρακτήρα και δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${c.year} και την τεκμαρτή έκπτωση δαπανών 5% (μακροχρόνια μίσθωση φυσικού προσώπου)${c.shortTerm ? ', ενώ στη βραχυχρόνια προστίθενται κατά περίπτωση τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων' : ''}. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`;
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <title>Αναφορά ακινήτου · ${esc(c.propName)}</title>
@@ -133,6 +133,8 @@ export function printPropertyStatement(c: StatementCtx): void {
   .note{margin-top:9px;font-size:11.5px;color:#374151;line-height:1.55}
   .tnum{font-variant-numeric:tabular-nums}
   .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
+  .colo{margin-top:10px;font-size:9.5px;letter-spacing:.02em;color:#9aa0a6}
+  .colo b{font-weight:700;color:#6b7280}
 </style></head>
 <body><div class="page">
   <div class="top">
@@ -191,7 +193,7 @@ export function printPropertyStatement(c: StatementCtx): void {
     <tbody>${catRows}</tbody>
   </table>
 
-  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}</div>
+  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>Property OS</b></div></div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
 </div></body></html>`;
 

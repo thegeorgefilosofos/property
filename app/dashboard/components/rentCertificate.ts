@@ -50,7 +50,7 @@ export function printRentCertificate(c: RentCertificateCtx): void {
     +   `<div style="flex:1;text-align:center"><div class="muted" style="border-top:1px solid #9aa0a6;padding-top:8px;font-size:12px">Ο εκμισθωτής</div></div>`
     +   `<div style="flex:1;text-align:center"><div class="muted" style="border-top:1px solid #9aa0a6;padding-top:8px;font-size:12px">Ο μισθωτής</div></div>`
     + `</div>`
-    + reportDisclaimer('Η βεβαίωση δημιουργήθηκε από το Property OS με βάση τα καταχωρημένα, εισπραγμένα μισθώματα. Για τη χρήση της σε δηλώσεις/δικαστικές διαδικασίες, επιβεβαίωσε τα στοιχεία με τον λογιστή ή τον δικηγόρο σου.', c.branding)
+    + reportDisclaimer('Η βεβαίωση συντάχθηκε με βάση τα καταχωρημένα, εισπραγμένα μισθώματα. Για τη χρήση της σε δηλώσεις/δικαστικές διαδικασίες, επιβεβαίωσε τα στοιχεία με τον λογιστή ή τον δικηγόρο σου.', c.branding)
     + `</div></body></html>`
 
   openReport(html)
