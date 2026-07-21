@@ -57,7 +57,7 @@ export function printAccountingReport(c: AccountingReportCtx): void {
   const brandMark = brandLogoImg(c.branding, 34) || `<div class="mark">P</div>`
   const contact = brandContactLine(c.branding)
 
-  const disclaimer = `Η παρούσα αναφορά δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${c.year} και την ισχύουσα φορολογική μεταχείριση: στη μακροχρόνια μίσθωση εφαρμόζεται τεκμαρτή έκπτωση δαπανών 5%, ενώ στη βραχυχρόνια ο φόρος υπολογίζεται επί των μεικτών εσόδων, με τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων όπου ισχύουν. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`
+  const disclaimer = `Η παρούσα αναφορά έχει ενημερωτικό χαρακτήρα και δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${c.year} και την ισχύουσα φορολογική μεταχείριση: στη μακροχρόνια μίσθωση εφαρμόζεται τεκμαρτή έκπτωση δαπανών 5%, ενώ στη βραχυχρόνια ο φόρος υπολογίζεται επί των μεικτών εσόδων, με τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων όπου ισχύουν. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <title>Λογιστική αναφορά · ${esc(c.propName)} ${esc(String(c.year))}</title>
@@ -92,6 +92,8 @@ export function printAccountingReport(c: AccountingReportCtx): void {
   .recon-note{font-size:12px;color:#374151;margin-bottom:8px}
   .recon-note strong{color:#111;font-weight:700}
   .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
+  .colo{margin-top:10px;font-size:9.5px;letter-spacing:.02em;color:#9aa0a6}
+  .colo b{font-weight:700;color:#6b7280}
 </style></head>
 <body><div class="page">
   <div class="top">
@@ -139,7 +141,7 @@ export function printAccountingReport(c: AccountingReportCtx): void {
     <tbody>${reconRows}</tbody>
   </table>
 
-  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}</div>
+  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>Property OS</b></div></div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
 </div></body></html>`
 
