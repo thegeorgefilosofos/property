@@ -16,7 +16,7 @@
 // --negative, --bg-*, --text-*, --border-*).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { ReactNode, CSSProperties } from 'react';
+import { ReactNode, CSSProperties, useState } from 'react';
 
 // ── Tokens (ίδια ονόματα με τα Bills, μηδενική αλλαγή νοοτροπίας) ─────────
 export const T = {
@@ -342,16 +342,61 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
   return <button type={type ?? 'button'} onClick={disabled ? undefined : onClick} style={{ ...base, ...variants[variant] }}>{children}</button>;
 }
 
-// ═══ ExportButton, κοινό κουμπί εξαγωγής CSV (ίδιο σε όλα τα tabs) ════════
-export function ExportButton({ onClick, label = 'Εξαγωγή Excel', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
-  return (
-    <button onClick={disabled ? undefined : onClick} title="Εξαγωγή σε Excel (.xlsx)" disabled={disabled}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' }}
-      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
-      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-      {label}
+// ═══ ExportButton, κοινό κουμπί εξαγωγής Excel (ίδιο σε όλα τα tabs) ═══════
+// Αν δοθεί onExportData, γίνεται split-button με δύο επιλογές: «Μορφοποιημένο»
+// (εμφάνιση, ελληνικό «1.234,56 €» ως κείμενο) και «Επεξεργάσιμο (δεδομένα)»
+// (ζωντανά αριθμητικά κελιά + SUM, για pivot/re-sum από λογιστή).
+export function ExportButton({ onClick, onExportData, label = 'Εξαγωγή Excel', disabled }: { onClick: () => void; onExportData?: () => void; label?: string; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const icon = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>;
+  const base: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' };
+
+  if (!onExportData) {
+    return (
+      <button onClick={disabled ? undefined : onClick} title="Εξαγωγή σε Excel (.xlsx)" disabled={disabled}
+        style={{ ...base, padding: '0 14px', borderRadius: T.radius.pill }}
+        onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+        {icon}{label}
+      </button>
+    );
+  }
+
+  const item = (title: string, sub: string, fn: () => void) => (
+    <button onClick={() => { setOpen(false); fn(); }}
+      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: T.font.sans }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>
     </button>
+  );
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex' }}>
+      <button onClick={disabled ? undefined : onClick} title="Μορφοποιημένο Excel (.xlsx)" disabled={disabled}
+        style={{ ...base, padding: '0 12px', borderRadius: `${T.radius.pill}px 0 0 ${T.radius.pill}px`, borderRight: 'none' }}
+        onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+        {icon}{label}
+      </button>
+      <button onClick={disabled ? undefined : () => setOpen(o => !o)} title="Επιλογές εξαγωγής" aria-label="Επιλογές εξαγωγής" disabled={disabled}
+        style={{ ...base, width: 30, padding: 0, justifyContent: 'center', borderRadius: `0 ${T.radius.pill}px ${T.radius.pill}px 0` }}
+        onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 41, minWidth: 244, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 12, boxShadow: '0 10px 28px rgba(0,0,0,0.14)', overflow: 'hidden' }}>
+            {item('Μορφοποιημένο', 'Έτοιμο για εκτύπωση · ελληνικό «1.234,56 €»', onClick)}
+            <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+            {item('Επεξεργάσιμο (δεδομένα)', 'Ζωντανά αριθμητικά κελιά + άθροισμα SUM, για pivot ή επεξεργασία', onExportData)}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

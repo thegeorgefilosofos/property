@@ -9,7 +9,8 @@
 // tabs αναβαθμίζονται αυτόματα. Οι βοηθοί csvEur/csvDec/csvDate μένουν για τη
 // μορφοποίηση κελιών από τους callers.
 // ═══════════════════════════════════════════════════════════════════════════
-import { downloadXlsx, type XlsxCol, type XlsxKind } from './exportXlsx';
+import { downloadXlsx, type XlsxCol, type XlsxKind, type XlsxMode } from './exportXlsx';
+export type { XlsxMode };
 
 /** Ποσό € — δύο δεκαδικά, ελληνικό κόμμα («751,00»). Το σύμβολο «€» το δίνει η στήλη. */
 export const csvEur = (n: number | null | undefined): string =>
@@ -46,9 +47,15 @@ const kindFromHeader = (h: string): XlsxKind => {
  * @param headers  γραμμή επικεφαλίδων
  * @param rows     πίνακας γραμμών (κάθε γραμμή = πίνακας κελιών)
  */
-export function downloadCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][]): void {
+export function downloadCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][], opts: { mode?: XlsxMode } = {}): void {
   const columns: XlsxCol[] = headers.map(h => ({ header: h, kind: kindFromHeader(h) }));
   const cleanRows = rows.map(r => headers.map((_, i) => { const v = r[i]; return v == null ? '' : v; }));
-  const name = filename.replace(/\.(csv|xlsx)$/i, '');
-  downloadXlsx(name, [{ name: 'Δεδομένα', columns, rows: cleanRows }]);
+  // Στη λειτουργία «δεδομένα» προσθέτουμε γραμμή ΣΥΝΟΛΟ (ζωντανό SUM) στις στήλες
+  // ποσών, ώστε ο λογιστής να έχει έτοιμο, επεξεργάσιμο άθροισμα.
+  const totalCols = opts.mode === 'data'
+    ? columns.map((c, i) => (c.kind === 'eur' ? i : -1)).filter(i => i >= 0)
+    : undefined;
+  const base = filename.replace(/\.(csv|xlsx)$/i, '');
+  const name = opts.mode === 'data' ? `${base} (δεδομένα)` : base;
+  downloadXlsx(name, [{ name: 'Δεδομένα', columns, rows: cleanRows, totalCols }], { mode: opts.mode });
 }
