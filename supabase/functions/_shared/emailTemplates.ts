@@ -27,6 +27,11 @@ export const BRAND_TAGLINE = 'Το ακίνητό σου, υπό έλεγχο.';
 const esc = (v: unknown): string =>
   String(v ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c));
 
+// Ελληνικά κεφαλαία ΧΩΡΙΣ τόνο (σωστή τυπογραφία· κρατά τα διαλυτικά). Για eyebrow/labels.
+const grUp = (v: string): string => String(v).toUpperCase()
+  .replace(/[ΆΈΉΊΌΎΏ]/g, m => ({ 'Ά': 'Α', 'Έ': 'Ε', 'Ή': 'Η', 'Ί': 'Ι', 'Ό': 'Ο', 'Ύ': 'Υ', 'Ώ': 'Ω' }[m] || m))
+  .replace(/ΐ/g, 'Ϊ').replace(/ΰ/g, 'Ϋ');
+
 export const PLAN_LABEL: Record<Plan, string> = {
   free: 'Δωρεάν', individual: 'Ιδιώτης', professional: 'Επαγγελματίας',
 };
@@ -37,7 +42,7 @@ export const p = (html: string): string =>
 export const h = (html: string): string =>
   `<h1 style="margin:0 0 12px;font-size:21px;color:${INK};font-weight:700;letter-spacing:-0.2px;">${html}</h1>`;
 export const eyebrow = (text: string): string =>
-  `<p style="margin:0 0 6px;font-size:10.5px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${esc(text)}</p>`;
+  `<p style="margin:0 0 6px;font-size:10.5px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${esc(grUp(text))}</p>`;
 export const bullets = (items: string[]): string =>
   `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;">${items.map(it => `<tr><td style="vertical-align:top;padding:5px 10px 5px 0;width:18px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${ACCENT};"></span></td><td style="font-size:14px;color:#3c4043;line-height:1.6;padding:3px 0;">${it}</td></tr>`).join('')}</table>`;
 export const button = (label: string, url: string): string =>
@@ -50,7 +55,7 @@ export const heroStat = (value: string, label: string): string =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:2px 0 20px;">`
   + `<tr><td style="text-align:center;padding:2px 0 0;">`
   + `<div style="font-size:40px;line-height:1;font-weight:800;color:${ACCENT};letter-spacing:-1px;">${esc(value)}</div>`
-  + `<div style="font-size:11.5px;color:${MUTE};text-transform:uppercase;letter-spacing:.09em;margin-top:8px;font-weight:600;">${esc(label)}</div>`
+  + `<div style="font-size:11.5px;color:${MUTE};text-transform:uppercase;letter-spacing:.09em;margin-top:8px;font-weight:600;">${esc(grUp(label))}</div>`
   + `</td></tr></table>`;
 // Μόνο το μικρό όνομα (πιο ζεστό): «Μαρία Παπαδοπούλου» → «Μαρία».
 export const firstNameOf = (name?: string): string => (name || '').trim().split(/\s+/)[0] || '';

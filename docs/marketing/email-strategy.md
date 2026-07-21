@@ -43,17 +43,17 @@
 
 ---
 
-## 3. Τα 14 προγράμματα (93 emails)
+## 3. Τα 15 προγράμματα (102 emails)
 
 Κάθε πρόγραμμα είναι μια ξεχωριστή «ροή» με δικό της έναυσμα (trigger), τμήμα κοινού
 και δείκτη. Τα κλειδιά αντιστοιχούν στο `emailCopy.CATALOG` και καλούνται με `copyId`
 μέσα από τη function `send-lifecycle-email`.
 
-### 1) Onboarding & Activation — ενεργοποίηση (12)
+### 1) Onboarding & Activation — ενεργοποίηση (13)
 Έναυσμα: εγγραφή και πρώτες μέρες. Στόχος: πρώτο ακίνητο, πρώτη είσπραξη, πρώτη αναφορά.
 `welcome_free` · `welcome_individual` · `welcome_professional` · `verify_email` ·
 `add_first_property` · `first_property_success` · `connect_bank` · `connect_calendar` ·
-`tip_assistant` · `tip_reports` · `feedback_week1` · `recap_week2`
+`tip_assistant` · `voice_entry` · `tip_reports` · `feedback_week1` · `recap_week2`
 
 ### 2) Engagement & Retention — διατήρηση (12)
 Έναυσμα: περιοδικό (μηνιαίο/εβδομαδιαίο) + συμβάντα εισπράξεων. Στόχος: συνήθεια χρήσης.
@@ -61,9 +61,9 @@
 `tax_e2` · `tax_enfia` · `tax_installment` · `year_end` · `rent_pending` ·
 `dunning_1` · `dunning_2` · `dunning_final`
 
-### 3) Upsell & Conversion — μετατροπή (9)
+### 3) Upsell & Conversion — μετατροπή (10)
 Έναυσμα: έναρξη/λήξη δοκιμής, όριο πλάνου, ενεργός δωρεάν χρήστης. Στόχος: αναβάθμιση.
-`trial_started` · `upsell_to_individual` · `upsell_to_professional` · `limit_reached` ·
+`free_month_upgrade` · `trial_started` · `upsell_to_individual` · `upsell_to_professional` · `limit_reached` ·
 `value_left` · `annual_discount` · `trial_ending` · `winback_downgrade` · `reactivation_offer`
 
 ### 4) Εποχικές καμπάνιες — αιχμές πωλήσεων (6)
@@ -75,10 +75,10 @@
 Έναυσμα: ενεργός χρήστης, σύσταση, ενεργοποίηση φίλου. Στόχος: viral growth.
 `referral_invite` · `referral_reminder` · `referral_reward` · `referral_friend_activated`
 
-### 6) Lifecycle, Νομικά & Συναλλαγές — εμπιστοσύνη (6)
-Έναυσμα: συμβάντα λογαριασμού. Συναλλακτικά (χωρίς απεγγραφή) όπου χρειάζεται.
+### 6) Lifecycle, Νομικά & Συναλλαγές — εμπιστοσύνη (7)
+Έναυσμα: συμβάντα λογαριασμού + απάντηση χρήστη. Συναλλακτικά (χωρίς απεγγραφή).
 `subscription_receipt` · `plan_changed` · `payment_failed` · `security_login` ·
-`mobile_launch` · `legislation_update`
+`reply_ack` (auto-responder σε απάντηση) · `mobile_launch` · `legislation_update`
 
 ### 7) Επανενεργοποίηση & Win-back — επιστροφή (5)
 Έναυσμα: αδράνεια 30/60/90 μέρες. Στόχος: επιστροφή πριν τη χαμένη σχέση.
@@ -95,10 +95,11 @@
 `checkin_today` · `checkout_today` · `cleaning_scheduled` · `occupancy_gap` ·
 `review_request` · `payout_received` · `str_season_recap`
 
-### 10) Προϊόν & Εξέλιξη (Product) — αφοσίωση (9)
+### 10) Προϊόν & Εξέλιξη (Product) — αφοσίωση (10)
 Έναυσμα: κυκλοφορίες, ορόσημα, περιοδικό. Στόχος: «διάλεξες προϊόν που εξελίσσεται».
-`feature_launch` · `assistant_upgraded` · `changelog_monthly` · `roadmap_preview` ·
-`anniversary` · `milestone_reached` · `nps_survey` · `best_practice_tip` · `webinar_invite`
+`feature_launch` · `assistant_upgraded` · `assistant_showcase` · `changelog_monthly` ·
+`roadmap_preview` · `anniversary` · `milestone_reached` · `nps_survey` ·
+`best_practice_tip` · `webinar_invite`
 
 ### 11) Ενίσχυση μετατροπής (Conversion) — αξία με απόδειξη (4)
 Έναυσμα: ενεργός δωρεάν χρήστης με αποδεδειγμένη αξία. Στόχος: αναβάθμιση με λογική ROI.
@@ -109,13 +110,20 @@
 `lease_declaration_reminder` (Δήλωση Μίσθωσης myAADE) · `str_registration_reminder`
 (ΑΜΑ βραχυχρόνιας) · `str_stay_tax` (τέλος διαμονής)
 
-### 13) Συνδρομή & Χρέωση (Billing) — έσοδα χωρίς διαρροές (2)
+### 13) Συνδρομή & Χρέωση (Billing) — έσοδα χωρίς διαρροές (1)
 Έναυσμα: κατάσταση κάρτας/συνδρομής. Συναλλακτικά. Στόχος: αποτροπή ακούσιας απώλειας.
-`card_expiring` · `renewal_reminder`
+`card_expiring` (η ανανέωση γίνεται σιωπηρά, χωρίς email, για αποφυγή downgrade)
 
 ### 14) Σχέσεις (ενοικιαστές & συνιδιοκτήτες) — two-sided αξία (3)
 Έναυσμα: καταχώρηση ενοικιαστή, είσπραξη, κλείσιμο περιόδου. Ουδέτερα ως προς το φύλο.
 `tenant_welcome` · `tenant_rent_receipt` · `coowner_statement`
+
+### 15) Αξία & Εξοικονόμηση (Value) — χρήματα στην τσέπη (5)
+Έναυσμα: ευκαιρία αξίας (κατανάλωση, ασφάλιση, δάνειο, επιτόκια, ανάγκη εγγράφων).
+Στόχος: ο χρήστης να νιώθει ότι του βρίσκουμε λεφτά και του λύνουμε πραγματικά προβλήματα.
+`energy_savings` (φθηνότερο ρεύμα) · `insurance_enfia` (ασφάλιση → μείωση ΕΝΦΙΑ) ·
+`loan_costs` (δάνειο + έξοδα φακέλου/συμβολαιογράφου) · `rate_alert` (μεταβολή επιτοκίων) ·
+`document_pack` (φάκελος ακινήτου με ένα κλικ για λογιστή/τράπεζα/επενδυτή)
 
 ---
 
