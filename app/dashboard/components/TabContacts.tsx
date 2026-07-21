@@ -7,7 +7,8 @@ import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, P
 import { DatePicker } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, fe, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
-import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
+import { brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
+import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
 
 const supabase = createSupabaseClient()
 
@@ -745,8 +746,6 @@ async function exportContactsExcel(contacts: Contact[]) {
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
 function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null) {
-  const accent = reportAccent(branding)
-  const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
   const preferred = contacts.filter(c => c._extra?.preferred)
   const byGroup: Record<string, Contact[]> = {}
   contacts.forEach(c => {
@@ -755,148 +754,71 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
     byGroup[g].push(c)
   })
 
-  const groupColors: Record<string, string> = {
-    authorities: '#3949ab', legal_finance: '#7e57c2', management: '#039be5',
-    electricity: '#e8710a', telecom: '#039be5', banks: '#7e57c2',
-    insurance: '#00897b', real_estate: '#5e35b1',
-    technical: '#e8710a', outdoor: '#34a853', tenants: '#4285f4',
-  }
+  // Διακριτικοί, ΑΣΠΡΟΜΑΥΡΟΙ δείκτες (WA/VB/IRIS): κείμενο, χωρίς χρώμα.
+  const mark = (on: boolean | undefined, text: string) =>
+    on ? ` <span class="muted" style="font-size:9px;font-weight:600">${rEsc(text)}</span>` : ''
 
-  const kpiHtml = (val: string, label: string, color: string) =>
-    `<div class="kpi"><div class="kpi-v" style="color:${color}">${esc(val)}</div><div class="kpi-l">${esc(label)}</div></div>`
+  const kpis = `<div class="kpis" style="grid-template-columns:repeat(3,1fr)">`
+    + reportKpi('Σύνολο επαφών', String(contacts.length))
+    + reportKpi('Προτιμώμενες', String(preferred.length))
+    + reportKpi('WhatsApp', String(contacts.filter(c => c._extra?.whatsapp).length))
+    + reportKpi('Viber', String(contacts.filter(c => c._extra?.viber).length))
+    + reportKpi('Με IBAN', String(contacts.filter(c => c._extra?.iban).length))
+    + reportKpi('Με IRIS', String(contacts.filter(c => c._extra?.iris).length))
+    + `</div>`
+
+  const preferredSection = preferred.length
+    ? reportSection('Προτιμώμενες επαφές')
+      + `<table><thead><tr><th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Email</th></tr></thead><tbody>`
+      + preferred.map(c => {
+          const role = ROLE_META[c.role]?.label || c.role
+          return `<tr>`
+            + `<td><div style="font-weight:600;color:#111">${rEsc(c.full_name)}</div>`
+            +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
+            + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}</td>`
+            + `<td>${rEsc(c.email || '—')}</td>`
+            + `</tr>`
+        }).join('')
+      + `</tbody></table>`
+    : ''
 
   const groupSections = GROUPS.filter(g => byGroup[g.id]?.length).map(g => {
-    const grpColor = groupColors[g.id] || '#888'
     const rows = byGroup[g.id].map(c => {
       const ex = c._extra || {}
       const statusMeta = STATUS_OPTIONS.find(s => s.value === (ex.status || 'active')) || STATUS_OPTIONS[0]
-      return `
-        <tr>
-          <td>
-            <div style="font-weight:500;color:#1a1a2e">${esc(c.full_name)}</div>
-            <div style="font-size:9px;color:#9aa0a6">${esc(ROLE_META[c.role]?.label || c.role)}</div>
-          </td>
-          <td>
-            ${c.phone ? `<div style="font-family:'Roboto Mono',monospace;font-size:11px">${esc(c.phone)}</div>` : '—'}
-            ${ex.whatsapp ? '<span class="badge" style="background:#e6f4ea;color:#137333">WA</span>' : ''}
-            ${ex.viber ? '<span class="badge" style="background:#ede9fe;color:#5b21b6">VB</span>' : ''}
-          </td>
-          <td style="font-size:10px">${esc(c.email || '—')}</td>
-          <td>
-            <span class="badge" style="background:${statusMeta.bg.replace('rgba', 'rgba').replace('0.12', '0.15')};color:${statusMeta.color}">
-              ${esc(statusMeta.label)}
-            </span>
-          </td>
-          <td style="text-align:center">${(ex.rating ? ex.rating + '/5' : '—')}</td>
-          <td style="font-family:'Roboto Mono',monospace;font-size:10px">
-            ${ex.iban ? `···${esc(ex.iban.slice(-4))}${ex.iris ? ' <span style="color:#b45309">IRIS</span>' : ''}` : '—'}
-          </td>
-        </tr>`
+      const role = ROLE_META[c.role]?.label || c.role
+      const iban = ex.iban ? `···${rEsc(ex.iban.slice(-4))}${mark(ex.iris, 'IRIS')}` : '—'
+      return `<tr>`
+        + `<td><div style="font-weight:600;color:#111">${rEsc(c.full_name)}</div>`
+        +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
+        + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}${mark(ex.whatsapp, 'WA')}${mark(ex.viber, 'VB')}</td>`
+        + `<td>${rEsc(c.email || '—')}</td>`
+        + `<td>${rEsc(statusMeta.label)}</td>`
+        + `<td class="n">${ex.rating ? rEsc(ex.rating + '/5') : '—'}</td>`
+        + `<td class="tnum">${iban}</td>`
+        + `</tr>`
     }).join('')
-    return `
-      <div class="sec">
-        <div class="g-header" style="border-left:4px solid ${grpColor}">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:10px;height:10px;border-radius:2px;background:${grpColor}"></div>
-            <strong style="color:${grpColor}">${esc(g.label)}</strong>
-            <span style="font-size:9px;color:#5f6368">${byGroup[g.id].length} επαφές</span>
-          </div>
-        </div>
-        <table>
-          <thead><tr>
-            <th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Email</th>
-            <th>Κατάσταση</th><th style="text-align:center">Αξιολ.</th><th>IBAN</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`
+    return reportSection(`${g.label} · ${byGroup[g.id].length} επαφές`)
+      + `<table><thead><tr>`
+      +   `<th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Email</th>`
+      +   `<th>Κατάσταση</th><th class="n">Αξιολ.</th><th>IBAN</th>`
+      + `</tr></thead><tbody>${rows}</tbody></table>`
   }).join('')
 
-  const w = window.open('', '_blank', 'width=1100,height=850')
-  if (!w) { alert('Επίτρεψε τα popups'); return }
+  const title = 'Κατάσταση Επαφών'
+  const html = reportHead(title)
+    + `<body><div class="page">`
+    + reportHeader(branding, 'Κατάλογος επαφών', { rightNote: `${contacts.length} επαφές` })
+    + `<h1>${rEsc(title)}</h1>`
+    + `<div class="sub">Κατάλογος συνεργατών, παρόχων και υπηρεσιών ακινήτου</div>`
+    + reportSection('Σύνοψη')
+    + kpis
+    + preferredSection
+    + groupSections
+    + reportDisclaimer('Ο κατάλογος δημιουργήθηκε από το Property OS και περιλαμβάνει τις καταχωρημένες επαφές του ακινήτου. Τα στοιχεία επικοινωνίας παρέχονται για ενημερωτική και οργανωτική χρήση.', branding)
+    + `</div></body></html>`
 
-  w.document.write(`<!DOCTYPE html><html lang="el"><head>
-<meta charset="UTF-8"><title>Κατάσταση Επαφών</title>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
-<style>
-${brandRootVars(branding)}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.page{padding:28px 32px;max-width:940px;margin:0 auto}
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid ${accent}}
-.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:${accent}}.logo span{color:var(--accent)}
-.logo-s{font-size:10px;color:#5f6368;margin-top:2px}
-.meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
-.meta-d{font-size:10px;color:#5f6368;margin-top:3px}
-.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:${accent};margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
-.sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
-.sec{margin-bottom:20px}
-.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
-.kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:10px 12px}
-.kpi-v{font-family:'Roboto Mono',monospace;font-size:15px;font-weight:700;margin-bottom:3px}
-.kpi-l{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368}
-.g-header{background:#f8f9fa;padding:9px 14px;margin-bottom:0;border-radius:6px 6px 0 0;border:1px solid #e8eaed;border-bottom:none}
-table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:16px}
-th{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;padding:6px 8px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa;border:1px solid #e8eaed}
-td{padding:7px 8px;border:1px solid #f1f3f4;vertical-align:top;color:#3c4043}
-tr:nth-child(even) td{background:#fafafa}
-.badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:8px;font-weight:500;font-family:'Inter',sans-serif;margin-left:3px}
-.preferred-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.pref-card{border:1px solid #e8eaed;border-radius:8px;padding:10px 12px;background:#f8f9fa}
-.footer{margin-top:24px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;font-size:9px;color:#9aa0a6}
-@media print{.page{padding:18px 22px}}
-</style></head><body><div class="page">
-<div class="hdr">
-  <div>
-    ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
-    <div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
-  </div>
-  <div class="meta-r">
-    <div class="meta-title">Κατάσταση Επαφών</div>
-    <div class="meta-d">${esc(today)}</div>
-  </div>
-</div>
-
-<div class="sec">
-  <div class="sec-title">Σύνοψη</div>
-  <div class="kpi-row">
-    ${kpiHtml(String(contacts.length), 'Σύνολο Επαφών', '#1a73e8')}
-    ${kpiHtml(String(preferred.length), 'Προτιμώμενες', 'var(--accent)')}
-    ${kpiHtml(String(contacts.filter(c => c._extra?.whatsapp).length), 'WhatsApp', '#25d366')}
-    ${kpiHtml(String(contacts.filter(c => c._extra?.viber).length), 'Viber', '#7360f2')}
-    ${kpiHtml(String(contacts.filter(c => c._extra?.iban).length), 'Με IBAN', '#1e7e34')}
-    ${kpiHtml(String(contacts.filter(c => c._extra?.iris).length), 'Με IRIS', '#b45309')}
-  </div>
-</div>
-
-${preferred.length > 0 ? `
-<div class="sec">
-  <div class="sec-title">Προτιμώμενες Επαφές, Γρήγορη Αναφορά</div>
-  <div class="preferred-grid">
-    ${preferred.map(c => {
-      const ex = c._extra || {}
-      return `<div class="pref-card">
-        <div style="font-weight:500;font-family:'Inter',sans-serif;margin-bottom:4px">${esc(c.full_name)}</div>
-        <div style="font-size:9px;color:#5f6368;margin-bottom:4px">${esc(ROLE_META[c.role]?.label || c.role)}</div>
-        ${c.phone ? `<div style="font-family:'Roboto Mono',monospace;font-size:10px">${esc(c.phone)}</div>` : ''}
-        ${c.email ? `<div style="font-size:9px;color:#5f6368">${esc(c.email)}</div>` : ''}
-      </div>`
-    }).join('')}
-  </div>
-</div>` : ''}
-
-<div class="sec">
-  <div class="sec-title">Αναλυτικές Επαφές ανά Κατηγορία</div>
-  ${groupSections}
-</div>
-
-<div class="footer">
-  <div>${branding?.companyName ? brandName(branding) : 'Property OS'} · Κατάσταση Επαφών Ακινήτου</div>
-  <div>${esc(today)}</div>
-</div>
-</div></body></html>`)
-  w.document.close()
-  setTimeout(() => { w.print() }, 900)
+  openReport(html)
 }
 
 // ─── Select Box ───────────────────────────────────────────────────────────────

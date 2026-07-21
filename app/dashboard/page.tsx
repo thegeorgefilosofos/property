@@ -1110,7 +1110,7 @@ export default function Dashboard() {
                       <>
                       {/* Κλείσιμο με κλικ οπουδήποτε αλλού */}
                       <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
-                      <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
+                      <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,maxHeight:'min(440px, calc(100vh - 96px))',overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
                         <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
                         {Object.entries(STATUS_LABELS).map(([k,v]) => {
                           const active = (selected.status_detail||'')===k;
@@ -1203,7 +1203,7 @@ export default function Dashboard() {
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
-              {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
+              {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
               {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}

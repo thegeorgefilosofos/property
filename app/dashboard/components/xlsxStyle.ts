@@ -8,10 +8,15 @@
 import XLSX from 'xlsx-js-style';
 export { XLSX };
 
+// Το πρόθεμα [$-408] (ελληνική τοπική ρύθμιση) ΕΠΙΒΑΛΛΕΙ ελληνική μορφή σε κάθε
+// Excel, ανεξάρτητα από τη γλώσσα του υπολογιστή: κόμμα για δεκαδικά, τελεία για
+// χιλιάδες → «1.234,56 €», «18,00%». Το «%» είναι κυριολεκτικό (δεν πολλαπλασιάζει
+// επί 100· οι τιμές αποθηκεύονται ήδη ως ακέραιο ποσοστό, π.χ. 18).
 export const FMT = {
-  eur: '#,##0.00;-#,##0.00',   // ευρώ, δύο δεκαδικά, αρνητικά με πρόσημο
-  int: '#,##0',
-  pct: '0.00',
+  eur: '[$-408]#,##0.00" €";[$-408]-#,##0.00" €"',  // «1.234,56 €», αρνητικά με πρόσημο
+  int: '[$-408]#,##0',
+  dec2: '[$-408]#,##0.##',      // αριθμός με δεκαδικά μόνο όταν υπάρχουν (π.χ. τ.μ. 85,5)
+  pct: '[$-408]0.00"%"',        // «18,00%» — δύο δεκαδικά, ελληνικό κόμμα
   date: 'dd/mm/yyyy',
 } as const;
 
@@ -39,7 +44,19 @@ export const S = {
   totNum: { font: font({ bold: true, sz: 10 }), alignment: { horizontal: 'right', vertical: 'center' }, border: { top: { style: 'medium', color: { rgb: INK } }, bottom: bThin, left: bThin, right: bThin } },
 } as const;
 
-export type Cell = { v: string | number | Date; t?: string; z?: string; s?: object };
+// v προαιρετικό + f (τύπος/formula) ώστε τα σύνολα να είναι ΖΩΝΤΑΝΑ SUM (όπως σε
+// πραγματικό λογιστικό πρόγραμμα)· το v κρατά cached τιμή για viewers χωρίς recalc.
+export type Cell = { v?: string | number | Date; t?: string; z?: string; s?: object; f?: string };
+
+// ── Κείμενο με ΕΓΓΥΗΜΕΝΟ ελληνικό κόμμα ─────────────────────────────────────
+// Τα αριθμητικά κελιά του Excel δείχνουν «.» ή «,» ανάλογα με τη ΓΛΩΣΣΑ του
+// υπολογιστή (το πρόθεμα [$-408] δεν το επιβάλλει αξιόπιστα). Για να φαίνεται
+// ΠΑΝΤΑ ελληνικά («60,00 €», «18,00%»), γράφουμε τα ποσά/ποσοστά ως κείμενο
+// προ-μορφοποιημένο με toLocaleString('el-GR') — ίδια εμφάνιση σε κάθε Excel.
+export const money = (n?: number | null) => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+export const moneySigned = (n?: number | null) => ((n ?? 0) < 0 ? `−${money(Math.abs(n ?? 0))}` : money(n ?? 0));
+export const percent = (n?: number | null) => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+export const intGr = (n?: number | null) => (n ?? 0).toLocaleString('el-GR');
 
 /** Ασφαλής εφαρμογή στυλ/τύπου/μορφής σε κελί (δημιουργεί το κελί αν λείπει). */
 export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial<Cell>): void {

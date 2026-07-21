@@ -7,6 +7,7 @@ import { DatePicker } from './UIComponents'
 import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Btn, EmptyState, type KPIItem } from '@/components/Theme'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
+import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
 
 const supabase = createSupabaseClient()
 
@@ -61,7 +62,7 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: minWidth })
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxH: number }>({ top: 0, left: 0, width: minWidth, maxH: 320 })
   const current = options.find(o => o.value === value) || options[0]
   const active = value !== 'all'
   const reposition = () => {
@@ -69,7 +70,10 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
     const r = btnRef.current.getBoundingClientRect()
     const menuH = Math.min(options.length * 40 + 12, 320)
     const openUp = r.bottom + menuH + 8 > window.innerHeight && r.top - menuH - 8 > 0
-    setPos({ top: openUp ? r.top - menuH - 6 : r.bottom + 6, left: r.left, width: r.width })
+    // maxH = ο ίδιος διαθέσιμος χώρος που δεσμεύτηκε για το flip, ώστε το πραγματικό ύψος
+    // να μη ξεπερνά τον χώρο και το πλεόνασμα να κάνει εσωτερικό scroll (αντί να κόβεται).
+    const avail = openUp ? r.top - 8 : window.innerHeight - r.bottom - 8
+    setPos({ top: openUp ? r.top - menuH - 6 : r.bottom + 6, left: r.left, width: r.width, maxH: Math.max(120, Math.min(menuH, avail - 6)) })
   }
   useEffect(() => {
     if (!open) return
@@ -476,9 +480,6 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
 }
 
 function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | null) {
-  const accent = reportAccent(branding)
-  const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
-  const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
   const done = items.filter(i => i.status === 'done').length
   const totalEst = items.reduce((s, i) => s + (i.estimated_cost || 0), 0)
   const totalAct = items.reduce((s, i) => s + (i.actual_cost || 0), 0)
@@ -488,121 +489,73 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
   const grouped: Record<string, ChecklistItem[]> = {}
   items.forEach(i => { if (!grouped[i.category]) grouped[i.category] = []; grouped[i.category].push(i) })
 
-  const kpiHtml = (val: string, lbl: string) =>
-    `<div class="kpi"><div class="kpi-v">${esc(val)}</div><div class="kpi-l">${esc(lbl)}</div></div>`
+  // Οικονομική σύνοψη — μόνο αν υπάρχουν κόστη. Αρνητική απόκλιση με σφιχτό «−».
+  const financialSection = (totalEst > 0 || totalAct > 0)
+    ? reportSection('Οικονομική σύνοψη')
+      + '<table><tbody>'
+      + reportRow('Εκτιμώμενο κόστος', rEur(totalEst))
+      + reportRow('Πραγματικό κόστος', rEur(totalAct))
+      + reportRow('Απόκλιση', rSigned(totalAct - totalEst), 'result')
+      + '</tbody></table>'
+    : ''
 
   const groupSections = CATEGORIES.filter(c => grouped[c.id]?.length).map(cat => {
-    const grpDone = grouped[cat.id].filter(i => i.status === 'done').length
-    const grpPct = Math.round((grpDone / grouped[cat.id].length) * 100)
-    const rows = grouped[cat.id].map(item => {
+    const list = grouped[cat.id]
+    const grpDone = list.filter(i => i.status === 'done').length
+    const grpPct = Math.round((grpDone / list.length) * 100)
+    const rows = list.map(item => {
       const pri = getPri(item.priority); const sm = getStatusMeta(item.status)
       const od = isOverdue(item.due_date, item.status)
+      const isDone = item.status === 'done'
+      const contact = item.assigned_contact_name
+        ? `<div style="font-size:10px;color:#8a8f98;margin-top:2px">${rEsc(item.assigned_contact_name)}</div>` : ''
+      const tags = (item._tags || []).length > 0
+        ? `<div style="margin-top:3px">${(item._tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border:1px solid #e5e7eb;border-radius:3px;font-size:9px;color:#6b7280;margin-right:3px">${rEsc(t)}</span>`).join('')}</div>` : ''
       return `<tr>
-        <td style="width:18px;padding:7px 8px;vertical-align:middle">
-          <div style="width:14px;height:14px;border:2px solid ${item.status==='done'?'#111':'#d1d5db'};border-radius:3px;background:${item.status==='done'?'#111':'#fff'};display:flex;align-items:center;justify-content:center">
-            ${item.status==='done'?'<svg width="8" height="8" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>':''}
-          </div>
+        <td>
+          <div style="font-size:12px;${isDone ? 'text-decoration:line-through;color:#8a8f98' : 'color:#111'}">${rEsc(item.description)}</div>
+          ${contact}${tags}
         </td>
-        <td style="padding:7px 8px">
-          <div style="font-size:11px;color:${item.status==='done'?'#9aa0a6':'#111'};text-decoration:${item.status==='done'?'line-through':'none'}">${esc(item.description)}</div>
-          ${item.assigned_contact_name?`<div style="font-size:9px;color:#6b7280;margin-top:2px">${esc(item.assigned_contact_name)}</div>`:''}
-          ${(item._tags||[]).length>0?`<div style="margin-top:3px">${(item._tags||[]).map(t=>`<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:#f8f9fa;border:1px solid #d1d5db;font-size:8px;color:#374151;margin-right:3px">${esc(t)}</span>`).join('')}</div>`:''}
-        </td>
-        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:#f8f9fa;border:1px solid #d1d5db;color:#111">${esc(pri.label)}</span></td>
-        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:#f8f9fa;border:1px solid #d1d5db;color:#111">${esc(sm.label)}</span></td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Inter', sans-serif;font-size:10px;font-weight:${od?600:400};color:${od?'#111':'#6b7280'}">${item.due_date?esc(fmtDate(item.due_date)):'—'}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-size:10px;color:#111">${item.estimated_cost>0?esc(eur(item.estimated_cost)):'—'}</td>
+        <td>${rEsc(pri.label)}</td>
+        <td>${rEsc(sm.label)}</td>
+        <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : '—'}${od ? '<div style="font-size:9px;color:#8a8f98">Εκπρόθεσμο</div>' : ''}</td>
+        <td class="n">${item.estimated_cost > 0 ? rEsc(rEur(item.estimated_cost)) : '—'}</td>
       </tr>`
     }).join('')
-    return `
-      <div class="sec">
-        <div class="g-header" style="border-left:3px solid #111">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="display:flex;align-items:center;gap:8px">
-              <strong style="color:#111">${esc(cat.label)}</strong>
-              <span style="font-size:9px;color:#6b7280">${grpDone}/${grouped[cat.id].length} ολοκλ.</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:60px;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden">
-                <div style="height:100%;width:${grpPct}%;background:#111;border-radius:2px"></div>
-              </div>
-              <span style="font-size:10px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums">${grpPct}%</span>
-            </div>
-          </div>
-        </div>
-        <table>
-          <thead><tr>
-            <th style="width:18px"></th>
-            <th>Περιγραφή</th>
-            <th style="width:70px;text-align:center">Προτερ.</th>
-            <th style="width:90px;text-align:center">Κατάσταση</th>
-            <th style="width:80px;text-align:right">Προθεσμία</th>
-            <th style="width:70px;text-align:right">Εκτιμ.</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`
+    return reportSection(cat.label)
+      + `<div class="sub">${rEsc(String(grpDone))}/${rEsc(String(list.length))} ολοκληρωμένα · πρόοδος ${rEsc(rPct(grpPct))}</div>`
+      + `<table>
+        <thead><tr>
+          <th>Περιγραφή</th>
+          <th>Προτεραιότητα</th>
+          <th>Κατάσταση</th>
+          <th class="np">Προθεσμία</th>
+          <th class="n">Εκτιμώμενο</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`
   }).join('')
 
-  const w = window.open('', '_blank', 'width=1100,height=850')
-  if (!w) { alert('Επίτρεψε τα popups'); return }
-  w.document.write(`<!DOCTYPE html><html lang="el"><head>
-<meta charset="UTF-8"><title>Εκκρεμότητες Ακινήτου</title>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
-<style>
-${brandRootVars(branding)}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#fff;color:#111;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.page{padding:28px 32px;max-width:940px;margin:0 auto}
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:2px solid #111}
-.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#111}.logo span{color:#111}
-.logo-s{font-size:10px;color:#6b7280;margin-top:2px}
-.meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#111}
-.meta-d{font-size:10px;color:#6b7280;margin-top:3px}
-.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#374151;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #111}
-.sec{margin-bottom:20px}
-.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
-.kpi{background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}
-.kpi-v{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;color:#111;margin-bottom:3px}
-.kpi-l{font-family:'Inter',sans-serif;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280}
-.progress-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-bottom:16px}
-.progress-fill{height:100%;border-radius:4px;transition:width 0s}
-.g-header{padding:9px 14px;margin-bottom:0;background:#f8f9fa;border-radius:6px 6px 0 0;border:1px solid #d1d5db;border-bottom:none}
-table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:16px}
-th{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;padding:6px 8px;border-bottom:2px solid #d1d5db;text-align:left;background:#f8f9fa;border:1px solid #d1d5db}
-td{border:1px solid #e5e7eb;vertical-align:middle;color:#374151}
-tr:nth-child(even) td{background:#fafafa}
-.footer{margin-top:24px;padding-top:10px;border-top:1px solid #d1d5db;display:flex;justify-content:space-between;font-size:9px;color:#6b7280}
-@media print{.page{padding:18px 22px}}
-</style></head><body><div class="page">
-<div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
-<div class="hdr">
-  <div>${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:7px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px">P</div><div class="logo">Property OS</div></div>`}<div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
-  <div class="meta-r"><div class="meta-title">Εκκρεμότητες Ακινήτου</div><div class="meta-d">${esc(today)}</div></div>
-</div>
-<div class="sec">
-  <div class="sec-title">Σύνοψη</div>
-  <div class="kpi-row">
-    ${kpiHtml(String(items.length), 'Σύνολο εργασιών')}
-    ${kpiHtml(String(done), 'Ολοκληρωμένα')}
-    ${kpiHtml(String(items.length - done), 'Εκκρεμή')}
-    ${kpiHtml(String(overdue), 'Ληγμένα')}
-    ${kpiHtml(totalEst > 0 ? eur(totalEst) : '—', 'Εκτιμώμενο')}
-    ${kpiHtml(totalAct > 0 ? eur(totalAct) : '—', 'Πραγματικό')}
-  </div>
-  <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b7280;margin-bottom:5px">
-    <span>Συνολική Πρόοδος</span><span style="font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums">${pct}%</span>
-  </div>
-  <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#111"></div></div>
-</div>
-<div class="sec">
-  <div class="sec-title">Αναλυτικά ανά Κατηγορία</div>
-  ${groupSections}
-</div>
-<div class="footer"><div>${branding?.companyName ? brandName(branding) : 'Property OS'} · Εκκρεμότητες Ακινήτου</div><div>${esc(today)}</div></div>
-</div></body></html>`)
-  w.document.close()
-  setTimeout(() => { w.print() }, 900)
+  const disclaimer = 'Η παρούσα λίστα εκκρεμοτήτων δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Οι προθεσμίες και τα εκτιμώμενα κόστη είναι ενδεικτικά. Επιβεβαίωσε τις φορολογικές προθεσμίες με τον λογιστή σου ή την ΑΑΔΕ.'
+
+  const html = reportHead('Εκκρεμότητες ακινήτου')
+    + '<body><div class="page">'
+    + reportHeader(branding, 'Εκκρεμότητες ακινήτου', { rightLabel: 'Ημερομηνία έκδοσης', rightValue: rDate(), rightNote: `Συνολική πρόοδος ${rPct(pct)}` })
+    + '<h1>Εκκρεμότητες ακινήτου</h1>'
+    + `<div class="sub">${rEsc(String(items.length))} εργασίες · ${rEsc(String(done))} ολοκληρωμένα · πρόοδος ${rEsc(rPct(pct))}</div>`
+    + reportSection('Σύνοψη')
+    + '<div class="kpis">'
+    + reportKpi('Σύνολο εργασιών', String(items.length))
+    + reportKpi('Ολοκληρωμένα', String(done))
+    + reportKpi('Εκκρεμή', String(items.length - done))
+    + reportKpi('Ληγμένα', String(overdue))
+    + '</div>'
+    + financialSection
+    + groupSections
+    + reportDisclaimer(disclaimer, branding)
+    + '</div></body></html>'
+
+  openReport(html)
 }
 
 // ─── Handover Protocol PDF (12 sections, auto-fill from cross-tab data) ───────

@@ -1,10 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// printAccountingReport — επαγγελματική, branded εκτυπώσιμη «Λογιστική Αναφορά»
-// (A4 PDF): κατάσταση αποτελεσμάτων + πρόβλεψη φόρου + συμφωνία ενοικίων. Καθαρό
-// HTML παράθυρο εκτύπωσης, ιδανικό για τον λογιστή/τράπεζα. Χωρίς εξαρτήσεις.
-// XSS-ασφαλές (όλα τα κείμενα περνούν από esc).
+// printAccountingReport — επαγγελματική, εκτυπώσιμη «Λογιστική Αναφορά» (A4 PDF).
+//
+// Σχεδίαση: ΑΣΠΡΟΜΑΥΡΟ, λιτό, σαν επίσημο λογιστικό έγγραφο — καμία διακοσμητική
+// χρωματική νότα. Χρήματα πάντα με δύο δεκαδικά και σύμβολο («1.234,56 €»),
+// αρνητικά με σφιχτό πρόσημο («−751,00 €»), ποσοστά «18,00%». Ενιαία
+// τυπογραφία/κενά/στοίχιση με την «Αναφορά απόδοσης». XSS-ασφαλές (esc).
 // ═══════════════════════════════════════════════════════════════════════════
-import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding'
+import { brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding'
 import type { IncomeStatement, TaxProvision } from '@/lib/accounting/statement'
 
 export interface ReconLite { label: string; paid: number; expected: number; statusLabel: string; statusColor: string }
@@ -23,91 +25,123 @@ export interface AccountingReportCtx {
   branding?: ReportBranding | null
 }
 
-const eur = (n: number) => `${Math.round(n).toLocaleString('el-GR')} €`
-const eur2 = (n: number) => n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
-const esc = (s: string) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c))
+// Χρήματα: δύο δεκαδικά + «€» (ελληνικό κόμμα). Αρνητικά με σφιχτό «−» (χωρίς κενό).
+const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+const signed = (n: number) => (n < 0 ? `−${eur(Math.abs(n))}` : eur(n))
+const pct = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+const esc = (str: string) => String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] || ch))
 
 export function printAccountingReport(c: AccountingReportCtx): void {
-  const accent = reportAccent(c.branding)
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
 
-  const stRow = (label: string, value: string, kind: string, negative?: boolean) => {
-    const strong = kind === 'subtotal' || kind === 'result'
-    const color = kind === 'result' ? accent : '#202124'
-    const top = kind === 'result' ? 'border-top:2px solid #e8eaed;' : 'border-bottom:1px solid #f1f3f4;'
-    return `<tr><td style="padding:10px 0;${top}color:${strong ? '#202124' : '#5f6368'};font-size:${strong ? 14 : 13}px;font-weight:${strong ? 700 : 400}">${esc(label)}</td>
-      <td style="padding:10px 0;${top}text-align:right;font-family:'Roboto Mono',monospace;font-size:${strong ? 15 : 13}px;font-weight:${strong ? 700 : 500};color:${color}">${negative ? '− ' : ''}${esc(value)}</td></tr>`
+  // Γραμμή κατάστασης αποτελεσμάτων: κανονική / υποσύνολο (έντονο) / αποτέλεσμα
+  // (λογιστική γραμμή με μαύρη άνω γραμμή). Αρνητικά με σφιχτό «−».
+  const stRow = (label: string, amount: number, kind: string, negative?: boolean) => {
+    const isSub = kind === 'subtotal', isRes = kind === 'result'
+    const display = negative ? `−${eur(Math.abs(amount))}` : signed(amount)
+    const cls = isRes ? 'result' : isSub ? 'sub' : ''
+    return `<tr class="${cls}"><td>${esc(label)}</td><td class="n">${esc(display)}</td></tr>`
   }
 
-  const kpi = (label: string, value: string, color = accent) =>
-    `<div style="flex:1;min-width:120px;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px">
-      <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#80868b;font-weight:700;margin-bottom:8px">${esc(label)}</div>
-      <div style="font-family:'Roboto Mono',monospace;font-size:20px;font-weight:700;color:${color}">${esc(value)}</div>
-    </div>`
+  const kpi = (label: string, value: string) =>
+    `<div class="kpi"><div class="kl">${esc(label)}</div><div class="kv">${esc(value)}</div></div>`
 
   const reconRows = c.reconciliation.length
     ? c.reconciliation.map(r => `<tr>
-        <td style="padding:8px 0;border-bottom:1px solid #f1f3f4;font-size:13px;color:#3c4043">${esc(r.label)}</td>
-        <td style="padding:8px 0;border-bottom:1px solid #f1f3f4;text-align:right;font-family:'Roboto Mono',monospace;font-size:12.5px;color:#5f6368">${esc(eur2(r.paid))} / ${esc(eur2(r.expected))}</td>
-        <td style="padding:8px 0;border-bottom:1px solid #f1f3f4;text-align:right;font-size:11px;font-weight:700;color:${r.statusColor}">${esc(r.statusLabel)}</td>
+        <td>${esc(r.label)}</td>
+        <td class="n">${esc(eur(r.paid))} / ${esc(eur(r.expected))}</td>
+        <td class="st">${esc(r.statusLabel)}</td>
       </tr>`).join('')
-    : `<tr><td colspan="3" style="color:#80868b;font-size:12px;padding:12px 0">Δεν υπάρχουν καταχωρημένα ενοίκια για το ${c.year}.</td></tr>`
+    : `<tr><td colspan="3" class="empty">Δεν υπάρχουν καταχωρημένα ενοίκια για το ${esc(String(c.year))}.</td></tr>`
+
+  const brandMark = brandLogoImg(c.branding, 34) || `<div class="mark">P</div>`
+  const contact = brandContactLine(c.branding)
+
+  const disclaimer = `Η παρούσα αναφορά δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${c.year} και την ισχύουσα φορολογική μεταχείριση: στη μακροχρόνια μίσθωση εφαρμόζεται τεκμαρτή έκπτωση δαπανών 5%, ενώ στη βραχυχρόνια ο φόρος υπολογίζεται επί των μεικτών εσόδων, με τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων όπου ισχύουν. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
-<title>Λογιστική Αναφορά, ${esc(c.propName)} ${esc(String(c.year))}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<title>Λογιστική αναφορά · ${esc(c.propName)} ${esc(String(c.year))}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,sans-serif;color:#202124;background:#fff;padding:40px;max-width:820px;margin:0 auto}
-  @media print{body{padding:0}@page{margin:16mm}}
-  h1{font-size:23px;font-weight:800;letter-spacing:-.02em}
-  .muted{color:#5f6368}
-  .sec{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5f6368;margin:26px 0 12px;padding-bottom:8px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:8px}
-  .dot{width:6px;height:6px;border-radius:50%;background:${accent};display:inline-block}
-  table{width:100%;border-collapse:collapse}
+  body{font-family:'Inter',system-ui,Arial,sans-serif;color:#111;background:#fff;font-size:12.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{max-width:760px;margin:0 auto;padding:40px}
+  @media print{.page{padding:16mm 15mm}@page{margin:0}}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .mark{width:34px;height:34px;border-radius:8px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+  .bname{font-size:15px;font-weight:700;color:#111}
+  .muted{color:#6b7280}
+  .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8f98;font-weight:600}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:22px 0 3px}
+  .sub{color:#6b7280;font-size:12px;margin-bottom:22px}
+  .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#111;margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid #111;break-after:avoid}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px}
+  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px}
+  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;margin-bottom:7px}
+  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  table{width:100%;border-collapse:collapse;break-inside:avoid}
+  td,th{padding:8px 4px;text-align:left;font-size:12.5px}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:#111}
+  tbody tr td{border-bottom:1px solid #eef0f2;color:#374151}
+  tr.sub td{font-weight:700;color:#111;background:#fafafa}
+  tr.result td{font-weight:700;color:#111;border-top:2px solid #111;border-bottom:none;padding-top:10px}
+  th{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:#8a8f98;font-weight:600;border-bottom:1px solid #d0d5dd}
+  td.st{text-align:right;font-size:11px;font-weight:700;color:#374151;white-space:nowrap}
+  td.empty{color:#8a8f98;font-size:12px;padding:12px 0}
+  .recon-note{font-size:12px;color:#374151;margin-bottom:8px}
+  .recon-note strong{color:#111;font-weight:700}
+  .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
 </style></head>
-<body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid ${accent};padding-bottom:18px">
-    <div style="display:flex;align-items:center;gap:10px">
-      ${brandLogoImg(c.branding, 34) || `<div style="width:34px;height:34px;border-radius:9px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px">P</div>`}
-      <div><div style="font-size:16px;font-weight:700">${brandName(c.branding)}</div><div class="muted" style="font-size:11px">Λογιστική Αναφορά</div>${brandContactLine(c.branding) ? `<div class="muted" style="font-size:10px;margin-top:2px">${brandContactLine(c.branding)}</div>` : ''}</div>
+<body><div class="page">
+  <div class="top">
+    <div class="brand">
+      ${brandMark}
+      <div>
+        <div class="bname">${brandName(c.branding)}</div>
+        <div class="muted" style="font-size:11px">Λογιστική αναφορά</div>
+        ${contact ? `<div class="muted" style="font-size:10px;margin-top:2px">${contact}</div>` : ''}
+      </div>
     </div>
-    <div style="text-align:right"><div class="muted" style="font-size:11px">Ημερομηνία</div><div style="font-size:13px;font-weight:600">${esc(today)}</div></div>
+    <div style="text-align:right">
+      <div class="asof-l">Ημερομηνία έκδοσης</div>
+      <div style="font-size:13px;font-weight:600;margin-top:2px">${esc(today)}</div>
+      <div class="muted" style="font-size:10px;margin-top:3px">Χρήση ${esc(String(c.year))}</div>
+    </div>
   </div>
 
-  <div style="margin:22px 0">
-    <h1>${esc(c.propName)}</h1>
-    <div class="muted" style="font-size:13px;margin-top:4px">${[c.regimeLabel, `Χρήση ${c.year}`, c.address].filter(Boolean).map(x => esc(String(x))).join(' · ')}</div>
+  <h1>${esc(c.propName)}</h1>
+  <div class="sub">${[c.regimeLabel, `Χρήση ${c.year}`, c.address].filter(Boolean).map(x => esc(String(x))).join(' · ')}</div>
+
+  <div class="kpis">
+    ${kpi('Μεικτά έσοδα', eur(c.statement.grossIncome))}
+    ${kpi('Φόρος εισοδήματος', eur(c.statement.incomeTax))}
+    ${kpi('Καθαρό αποτέλεσμα', signed(c.statement.netProfit))}
+    ${kpi('Πρόβλεψη φόρου / μήνα', eur(c.provision.monthly))}
   </div>
 
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-    ${kpi('Μεικτά έσοδα', eur(c.statement.grossIncome), '#188038')}
-    ${kpi('Φόρος εισοδήματος', eur(c.statement.incomeTax), '#e37400')}
-    ${kpi('Καθαρό αποτέλεσμα', eur(c.statement.netProfit), c.statement.netProfit >= 0 ? '#188038' : '#c5221f')}
-    ${kpi('Πρόβλεψη φόρου/μήνα', eur(c.provision.monthly))}
-  </div>
+  <div class="sec">Κατάσταση αποτελεσμάτων ${esc(String(c.year))}</div>
+  <table><tbody>${c.statement.lines.map(l => stRow(l.label, l.amount, l.kind, l.negative)).join('')}</tbody></table>
 
-  <div class="sec"><span class="dot"></span> Κατάσταση Αποτελεσμάτων ${esc(String(c.year))}</div>
-  <table>${c.statement.lines.map(l => stRow(l.label, eur2(l.amount), l.kind, l.negative)).join('')}</table>
+  <div class="sec">Πρόβλεψη φόρου</div>
+  <table><tbody>
+    ${stRow('Φόρος εισοδήματος (έτους)', c.provision.incomeTax, 'row')}
+    ${c.provision.propertyTaxes > 0 ? stRow('Φόροι και τέλη ακινήτου (έτους)', c.provision.propertyTaxes, 'row') : ''}
+    ${stRow('Σύνολο προς πρόβλεψη', c.provision.annualTaxTotal, 'subtotal')}
+    ${stRow('Ισόποσα ανά μήνα', c.provision.monthly, 'row')}
+    ${stRow('Για να προλάβεις έως το τέλος του έτους (ανά μήνα)', c.provision.perRemainingMonth, 'result')}
+  </tbody></table>
 
-  <div class="sec"><span class="dot"></span> Πρόβλεψη Φόρου</div>
+  <div class="sec">Συμφωνία ενοικίων ${esc(String(c.year))}</div>
+  <div class="recon-note">Εισπράχθηκαν <strong>${esc(eur(c.collectedTotal))}</strong> από ${esc(eur(c.expectedTotal))}${c.outstanding > 0 ? `. Ανείσπρακτα <strong>${esc(eur(c.outstanding))}</strong>` : ''}.</div>
   <table>
-    ${stRow('Φόρος εισοδήματος (έτους)', eur(c.provision.incomeTax), 'row')}
-    ${c.provision.propertyTaxes > 0 ? stRow('Φόροι / τέλη ακινήτου (έτους)', eur(c.provision.propertyTaxes), 'row') : ''}
-    ${stRow('Σύνολο προς πρόβλεψη', eur(c.provision.annualTaxTotal), 'subtotal')}
-    ${stRow('Ισόποσα ανά μήνα', eur(c.provision.monthly), 'row')}
-    ${stRow('Για να προλάβεις έως το τέλος του έτους (ανά μήνα)', eur(c.provision.perRemainingMonth), 'result')}
+    <thead><tr><th>Περίοδος</th><th class="n">Εισπράχθηκε / Αναμενόμενο</th><th class="st">Κατάσταση</th></tr></thead>
+    <tbody>${reconRows}</tbody>
   </table>
 
-  <div class="sec"><span class="dot"></span> Συμφωνία Ενοικίων ${esc(String(c.year))}</div>
-  <div class="muted" style="font-size:12px;margin-bottom:8px">Εισπράχθηκαν <strong style="color:#188038">${esc(eur(c.collectedTotal))}</strong> από ${esc(eur(c.expectedTotal))}${c.outstanding > 0 ? ` · ανείσπρακτα <strong style="color:#c5221f">${esc(eur(c.outstanding))}</strong>` : ''}.</div>
-  <table>${reconRows}</table>
-
-  <div style="margin-top:38px;padding-top:14px;border-top:1px solid #e8eaed;color:#80868b;font-size:10px;line-height:1.6">
-    ${c.branding?.companyName ? esc(brandName(c.branding)) + ' · ' : ''}Η αναφορά δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό/λογιστικό έγγραφο. Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026 και την ισχύουσα μεταχείριση (μακροχρόνια: τεκμαρτή έκπτωση 5%· βραχυχρόνια: φόρος στα μεικτά, με ΤΑΚΚ/τέλος παρεπιδημούντων όπου ισχύει). Τελική επιβεβαίωση με λογιστή/ΑΑΔΕ.
-  </div>
+  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}</div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
-</body></html>`
+</div></body></html>`
 
   const w = window.open('', '_blank')
   if (!w) { alert('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return }

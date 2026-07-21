@@ -11,21 +11,23 @@ const NCOLS = E2_OFFICIAL_HEADERS.length; // 19
 // Πλάτη στηλών (χαρακτήρες) — με αναδιπλωμένες επικεφαλίδες χωράνε άνετα δεδομένα+τίτλοι.
 const WIDTHS = [5, 34, 13, 18, 10, 24, 15, 26, 15, 16, 12, 12, 8, 14, 13, 16, 17, 17, 15];
 const numZ: Record<number, string> = {
-  [E2_NUM_COLS.sqm]: FMT.int, [E2_NUM_COLS.months]: FMT.int, [E2_NUM_COLS.monthly]: FMT.eur, [E2_NUM_COLS.pct]: FMT.pct,
+  [E2_NUM_COLS.sqm]: FMT.dec2, [E2_NUM_COLS.months]: FMT.int, [E2_NUM_COLS.monthly]: FMT.eur, [E2_NUM_COLS.pct]: FMT.pct,
   [E2_NUM_COLS.gross13]: FMT.eur, [E2_NUM_COLS.gross14]: FMT.eur, [E2_NUM_COLS.gross15]: FMT.eur, [E2_NUM_COLS.gross16]: FMT.eur,
 };
+// Οι τέσσερις στήλες «ακαθάριστο εισόδημα» (στ.13–16) — αθροίζονται όλες στο ΣΥΝΟΛΟ.
+const GROSS_COLS = [E2_NUM_COLS.gross13, E2_NUM_COLS.gross14, E2_NUM_COLS.gross15, E2_NUM_COLS.gross16];
 
 function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: string, year: number): XLSX.WorkSheet {
   const headerRow = 9;
   const totalRow: (string | number)[] = Array(NCOLS).fill('');
   totalRow[0] = 'ΣΥΝΟΛΟ';
   const sumCol = (c: number) => officialRows.reduce((s, r) => s + (typeof r[c] === 'number' ? (r[c] as number) : 0), 0);
-  totalRow[E2_NUM_COLS.gross13] = sumCol(E2_NUM_COLS.gross13);
-  totalRow[E2_NUM_COLS.gross15] = sumCol(E2_NUM_COLS.gross15);
+  // Άθροισε ΚΑΙ τις τέσσερις στήλες ακαθαρίστου (13–16) — αλλιώς δωρεάν παραχώρηση/ανείσπρακτα χάνονταν.
+  for (const c of GROSS_COLS) totalRow[c] = sumCol(c);
 
   const aoa: (string | number)[][] = [
     [`ΑΝΑΛΥΤΙΚΗ ΚΑΤΑΣΤΑΣΗ ΜΙΣΘΩΜΑΤΩΝ ΑΚΙΝΗΤΗΣ ΠΕΡΙΟΥΣΙΑΣ — ΦΟΡΟΛΟΓΙΚΟ ΕΤΟΣ ${year}`],
-    ['Έντυπο Ε2 · προσυμπληρωμένο από το Property OS — αντιγράψτε τα πεδία στο myAADE (τα εκτιμώμενα ελέγχονται πριν την υποβολή)'],
+    ['Έντυπο Ε2 · προσυμπληρωμένο από το Property OS · συμπληρώστε τα πεδία στο myAADE (τα εκτιμώμενα ελέγχονται πριν την υποβολή)'],
     [],
     ['ΣΤΟΙΧΕΙΑ ΥΠΟΧΡΕΟΥ'],
     ['ΑΦΜ / Ονοματεπώνυμο', ownerAfmCommon],
@@ -70,7 +72,12 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
     const z = numZ[c];
     const cell = ws[XLSX.utils.encode_cell({ r: totalR, c })] as Cell | undefined;
     const numeric = z !== undefined && cell && typeof cell.v === 'number';
-    setCell(ws, totalR, c, { s: numeric ? S.totNum : S.totTxt, ...(numeric ? { t: 'n', z } : {}) });
+    // Τα σύνολα ακαθαρίστου = ΖΩΝΤΑΝΑ SUM ώστε να μένουν σωστά μετά από χειροκίνητες αλλαγές.
+    const isGross = GROSS_COLS.includes(c);
+    const formula = isGross && officialRows.length
+      ? `SUM(${XLSX.utils.encode_cell({ r: headerRow + 1, c })}:${XLSX.utils.encode_cell({ r: lastDataRow, c })})`
+      : undefined;
+    setCell(ws, totalR, c, { s: numeric ? S.totNum : S.totTxt, ...(numeric ? { t: 'n', z } : {}), ...(formula ? { f: formula } : {}) });
   }
   return ws;
 }
@@ -102,6 +109,37 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, buildMainSheet(officialRows, ownerAfmCommon, year), `Ε2 ${year}`);
 
+  // ── Φύλλο: Επισημάνσεις πριν την υποβολή ────────────────────────────────────
+  // Οι έλεγχοι (buildE2Row.flags) υπολογίζονταν αλλά πετιόνταν· τους δείχνουμε ώστε
+  // ο χρήστης να δει «Λείπει ΑΤΑΚ», «εκτίμηση», «συνιδιοκτησία < 100%» κ.λπ.
+  const flagged = properties
+    .map((p, i) => ({ n: i + 1, loc: p.address || p.atak || `Ακίνητο ${i + 1}`, flags: e2rows[i].flags }))
+    .filter(x => x.flags.length > 0);
+  if (flagged.length) {
+    const fAoa: (string | number)[][] = [
+      ['ΕΠΙΣΗΜΑΝΣΕΙΣ ΠΡΙΝ ΤΗΝ ΥΠΟΒΟΛΗ'],
+      ['Έλεγξε και συμπλήρωσε τα παρακάτω πριν τα συμπληρώσεις στο myAADE.'],
+      [],
+      ['Α/Α', 'Ακίνητο', 'Επισημάνσεις'],
+      ...flagged.map(x => [x.n, x.loc, x.flags.join(' · ')]),
+    ];
+    const fws = XLSX.utils.aoa_to_sheet(fAoa);
+    fws['!cols'] = [{ wch: 6 }, { wch: 34 }, { wch: 82 }];
+    fws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }];
+    fws['!rows'] = []; fws['!rows'][0] = { hpt: 22 }; fws['!rows'][1] = { hpt: 15 };
+    setCell(fws, 0, 0, { s: S.title });
+    setCell(fws, 1, 0, { s: S.sub });
+    for (let c = 0; c < 3; c++) setCell(fws, 3, c, { s: S.head });
+    flagged.forEach((x, i) => {
+      const r = 4 + i;
+      setCell(fws, r, 0, { s: S.num });
+      setCell(fws, r, 1, { s: S.txt });
+      setCell(fws, r, 2, { s: S.txtWrap });
+      fws['!rows']![r] = { hpt: Math.max(18, Math.ceil(x.flags.join(' · ').length / 72) * 15 + 6) };
+    });
+    XLSX.utils.book_append_sheet(wb, fws, 'Επισημάνσεις');
+  }
+
   // ── Φύλλο 2: Οδηγίες συμπλήρωσης ────────────────────────────────────────────
   const gAoa: (string | number)[][] = [['ΟΔΗΓΙΕΣ ΣΥΜΠΛΗΡΩΣΗΣ ΕΝΤΥΠΟΥ Ε2'], [], ...E2_INSTRUCTIONS.map(t => [t]), [], ['Σημείωση: οι στήλες ακολουθούν το επίσημο έντυπο Ε2. Επιβεβαιώστε τυχόν ετήσιες αλλαγές στο myAADE.']];
   const guide = XLSX.utils.aoa_to_sheet(gAoa);
@@ -120,7 +158,8 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   if (e1.lines.length) {
     const e1aoa: (string | number)[][] = [
       ['ΣΥΝΟΨΗ Ε1 (Πίνακας 4Δ1) — άθροισμα ακαθάριστου εισοδήματος ανά κωδικό'], [],
-      [...E1_HEADERS], ...e1.lines.map(e1LineToCells), ['Σύνολο ακαθάριστου', '', '', e1.totalGross], [], [e1.note],
+      // Αριθμητικά ποσά (όχι κείμενο) → ομοιόμορφη μορφή ευρώ, ίδια με το σύνολο.
+      [...E1_HEADERS], ...e1.lines.map(l => [l.code, l.label, l.category, l.amount]), ['Σύνολο ακαθάριστου', '', '', e1.totalGross], [], [e1.note],
     ];
     const e1ws = XLSX.utils.aoa_to_sheet(e1aoa);
     e1ws['!cols'] = [{ wch: 12 }, { wch: 60 }, { wch: 24 }, { wch: 20 }];
@@ -134,7 +173,11 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
         const isTot = r === last, isNum = c === 3;
         const cell = e1ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined;
         const numeric = isNum && cell && typeof cell.v === 'number';
-        setCell(e1ws, r, c, { s: isTot ? (isNum ? S.totNum : S.totTxt) : (isNum ? S.num : S.txt), ...(numeric ? { t: 'n', z: FMT.eur } : {}) });
+        // Το σύνολο ακαθαρίστου = ΖΩΝΤΑΝΟ SUM της στήλης ποσού.
+        const formula = isTot && isNum && e1.lines.length
+          ? `SUM(${XLSX.utils.encode_cell({ r: hr + 1, c: 3 })}:${XLSX.utils.encode_cell({ r: last - 1, c: 3 })})`
+          : undefined;
+        setCell(e1ws, r, c, { s: isTot ? (isNum ? S.totNum : S.totTxt) : (isNum ? S.num : S.txt), ...(numeric ? { t: 'n', z: FMT.eur } : {}), ...(formula ? { f: formula } : {}) });
       }
     }
     XLSX.utils.book_append_sheet(wb, e1ws, 'Σύνοψη Ε1');

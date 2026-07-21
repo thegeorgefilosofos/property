@@ -4,7 +4,7 @@ import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, InfoDot } f
 import { KPI, LensBar, cardStyle } from './LoanShared'
 import { downloadCsv, csvEur } from './exportCsv'
 import DocChecklist from './DocChecklist'
-import { escHtml } from '@/lib/reportBranding'
+import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 import { Badge } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import {
@@ -691,64 +691,39 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     showToast('Ο πίνακας τοκοχρεολυσίου εξήχθη')
   }
 
-  // ── Εξαγωγή πίνακα τοκοχρεολυσίου σε εκτυπώσιμο PDF (μέσω παραθύρου εκτύπωσης) ─
+  // ── Εξαγωγή πίνακα τοκοχρεολυσίου σε εκτυπώσιμο PDF (κοινό ασπρόμαυρο σύστημα αναφορών) ─
   function exportAmortPdf(){
     if(!amort.length){showToast('Δεν υπάρχουν δόσεις προς εξαγωγή');return}
-    const w=window.open('','_blank','width=900,height=700')
-    if(!w){showToast('Επιτρέψτε τα αναδυόμενα παράθυρα για εξαγωγή PDF');return}
-    const today=new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})
-    const meta=[
-      ['Τράπεζα', bankName||'—'],
-      ['Ποσό δανείου', fmtEur(LA)],
-      ['Επιτόκιο', `${fmtPct(effRate)} · ${rateType==='variable'?'κυμαινόμενο':'σταθερό'}`],
-      ['Διάρκεια', `${Y} έτη (${Y*12} δόσεις)`],
-      ['Μηνιαία δόση', fmtEur(monthly)],
-      ['Σύνολο τόκων', fmtEur(totalInt)],
-      ['Συνολική αποπληρωμή', fmtEur(LA+totalInt)],
-    ]
-    const metaRows=meta.map(([k,v])=>`<div class="m"><span>${escHtml(k)}</span><strong>${escHtml(v)}</strong></div>`).join('')
+    const docTitle=['Πίνακας τοκοχρεολυσίου',bankName].filter(Boolean).join(' · ')
+    const summaryKpis=[
+      reportKpi('Ποσό δανείου', rEur(LA)),
+      reportKpi('Μηνιαία δόση', rEur(monthly)),
+      reportKpi('Σύνολο τόκων', rEur(totalInt)),
+      reportKpi('Συνολική αποπληρωμή', rEur(LA+totalInt)),
+    ].join('')
+    const detailRows=[
+      reportRow('Τράπεζα', bankName||'Μη καθορισμένη'),
+      reportRow('Επιτόκιο', `${rPct(effRate)} · ${rateType==='variable'?'κυμαινόμενο':'σταθερό'}`),
+      reportRow('Διάρκεια', `${Y} έτη (${Y*12} δόσεις)`),
+    ].join('')
     const bodyRows=amort.map(r=>{
       const dt=installmentDate(r.month).toLocaleDateString('el-GR',{month:'2-digit',year:'numeric'})
-      const yearStart=(r.month-1)%12===0
-      return `<tr${yearStart?' class="ys"':''}><td class="n">${r.month}</td><td class="n">${escHtml(dt)}</td><td class="e">${escHtml(fmtEur(r.payment))}</td><td class="e">${escHtml(fmtEur(r.principal))}</td><td class="e dim">${escHtml(fmtEur(r.interest))}</td><td class="e">${escHtml(fmtEur(r.balance))}</td><td class="e dim">${escHtml(fmtEur(r.totalInterestPaid))}</td></tr>`
+      return `<tr><td>${r.month}</td><td>${rEsc(dt)}</td><td class="n">${rEsc(rEur(r.payment))}</td><td class="n">${rEsc(rEur(r.principal))}</td><td class="np">${rEsc(rEur(r.interest))}</td><td class="n">${rEsc(rEur(r.balance))}</td><td class="np">${rEsc(rEur(r.totalInterestPaid))}</td></tr>`
     }).join('')
-    w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="utf-8"/><title>Πίνακας τοκοχρεολυσίου</title>
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;padding:32px 36px;font-size:12px;line-height:1.4}
-      h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
-      .sub{color:#666;font-size:11px;margin-top:3px}
-      .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:16px}
-      .brand{font-size:12px;color:#666;text-align:right}
-      .meta{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 28px;margin-bottom:20px}
-      .m{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:5px 0}
-      .m span{color:#666}
-      .m strong{font-variant-numeric:tabular-nums;font-weight:600}
-      table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-      thead th{text-align:right;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #111}
-      thead th:first-child,thead th:nth-child(2){text-align:left}
-      tbody td{padding:4px 8px;border-bottom:1px solid #f0f0f0}
-      td.n{text-align:left;color:#666}
-      td.e{text-align:right}
-      td.dim{color:#666}
-      tr.ys td{border-top:1px solid #d8d8d8}
-      tfoot{color:#999;font-size:10px}
-      .note{margin-top:16px;color:#999;font-size:10px;line-height:1.5}
-      @media print{body{padding:0}@page{margin:14mm}}
-    </style></head><body>
-      <div class="hd">
-        <div><h1>Πίνακας τοκοχρεολυσίου</h1><div class="sub">Ανάλυση αποπληρωμής ανά δόση</div></div>
-        <div class="brand"><strong>Property OS</strong><br/>${escHtml(today)}</div>
-      </div>
-      <div class="meta">${metaRows}</div>
-      <table>
-        <thead><tr><th>Δόση</th><th>Ημ/νία</th><th>Ποσό</th><th>Κεφάλαιο</th><th>Τόκος</th><th>Υπόλοιπο</th><th>Σωρ. τόκοι</th></tr></thead>
-        <tbody>${bodyRows}</tbody>
-      </table>
-      <div class="note">Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.</div>
-      <script>window.onload=function(){window.print()}</script>
-    </body></html>`)
-    w.document.close()
+    const html=reportHead(docTitle)
+      + `<body><div class="page">`
+      + reportHeader(null, 'Πίνακας τοκοχρεολυσίου')
+      + `<h1>Πίνακας τοκοχρεολυσίου</h1>`
+      + `<div class="sub">Ανάλυση αποπληρωμής ανά δόση</div>`
+      + reportSection('Σύνοψη δανείου')
+      + `<div class="kpis">${summaryKpis}</div>`
+      + reportSection('Στοιχεία δανείου')
+      + `<table><tbody>${detailRows}</tbody></table>`
+      + reportSection('Πρόγραμμα αποπληρωμής')
+      + `<table><thead><tr><th>Δόση</th><th>Ημ/νία</th><th class="n">Ποσό</th><th class="n">Κεφάλαιο</th><th class="np">Τόκος</th><th class="n">Υπόλοιπο</th><th class="np">Σωρ. τόκοι</th></tr></thead><tbody>${bodyRows}</tbody></table>`
+      + reportDisclaimer('Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.')
+      + `</div></body></html>`
+    openReport(html)
     showToast('Άνοιξε το παράθυρο εκτύπωσης PDF')
   }
 

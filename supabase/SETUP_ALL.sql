@@ -1376,6 +1376,17 @@ alter table public.tenants add column if not exists lease_doc_name         text;
 alter table public.tenants add column if not exists lease_doc_external_url text;
 create index if not exists tenants_property_idx on public.tenants (property_id);
 create index if not exists tenants_user_idx     on public.tenants (user_id);
+-- Κατάργηση λανθασμένου UNIQUE(property_id) — ένα ακίνητο δέχεται πολλούς
+-- ενοικιαστές (τρέχων + ιστορικό). Αλλιώς: «duplicate key tenants_property_id_key».
+do $$
+declare r record;
+begin
+  for r in select conname from pg_constraint
+    where conrelid='public.tenants'::regclass and contype='u'
+      and pg_get_constraintdef(oid) ilike '%(property_id)%'
+  loop execute format('alter table public.tenants drop constraint %I', r.conname); end loop;
+exception when undefined_table then null;
+end $$;
 alter table public.tenants enable row level security;
 drop policy if exists own_tenants on public.tenants;
 create policy own_tenants on public.tenants for all
