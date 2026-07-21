@@ -43,7 +43,7 @@
 
 ---
 
-## 3. Τα 11 προγράμματα (81 emails)
+## 3. Τα 14 προγράμματα (93 emails)
 
 Κάθε πρόγραμμα είναι μια ξεχωριστή «ροή» με δικό της έναυσμα (trigger), τμήμα κοινού
 και δείκτη. Τα κλειδιά αντιστοιχούν στο `emailCopy.CATALOG` και καλούνται με `copyId`
@@ -61,10 +61,10 @@
 `tax_e2` · `tax_enfia` · `tax_installment` · `year_end` · `rent_pending` ·
 `dunning_1` · `dunning_2` · `dunning_final`
 
-### 3) Upsell & Conversion — μετατροπή (8)
-Έναυσμα: όριο πλάνου, ενεργός δωρεάν χρήστης, λήξη δοκιμής. Στόχος: αναβάθμιση.
-`upsell_to_individual` · `upsell_to_professional` · `limit_reached` · `value_left` ·
-`annual_discount` · `trial_ending` · `winback_downgrade` · `reactivation_offer`
+### 3) Upsell & Conversion — μετατροπή (9)
+Έναυσμα: έναρξη/λήξη δοκιμής, όριο πλάνου, ενεργός δωρεάν χρήστης. Στόχος: αναβάθμιση.
+`trial_started` · `upsell_to_individual` · `upsell_to_professional` · `limit_reached` ·
+`value_left` · `annual_discount` · `trial_ending` · `winback_downgrade` · `reactivation_offer`
 
 ### 4) Εποχικές καμπάνιες — αιχμές πωλήσεων (6)
 Έναυσμα: ημερολόγιο. Στόχος: συγκεντρωμένη μετατροπή σε στιγμές αυξημένης πρόθεσης.
@@ -80,15 +80,15 @@
 `subscription_receipt` · `plan_changed` · `payment_failed` · `security_login` ·
 `mobile_launch` · `legislation_update`
 
-### 7) Επανενεργοποίηση & Win-back — επιστροφή (4)
+### 7) Επανενεργοποίηση & Win-back — επιστροφή (5)
 Έναυσμα: αδράνεια 30/60/90 μέρες. Στόχος: επιστροφή πριν τη χαμένη σχέση.
-`inactive_30` · `inactive_60` · `winback_offer` · `churn_survey`
+`inactive_30` · `inactive_60` · `winback_offer` · `churn_survey` · `data_retention_notice`
 
-### 8) Λειτουργικά ακινήτου (Operations) — αξία καθημερινότητας (10)
+### 8) Λειτουργικά ακινήτου (Operations) — αξία καθημερινότητας (11)
 Έναυσμα: δεδομένα του χρήστη (ημερομηνίες, λήξεις, ποσά). Στόχος: «το app δουλεύει για σένα».
 `lease_ending` · `lease_renewal_prompt` · `deposit_reminder` · `insurance_expiring` ·
-`certificate_expiring` · `appointment_reminder` · `maintenance_scheduled` ·
-`maintenance_completed` · `inspection_due` · `utility_bill_due`
+`certificate_expiring` · `appointment_reminder` · `appointment_missed` ·
+`maintenance_scheduled` · `maintenance_completed` · `inspection_due` · `utility_bill_due`
 
 ### 9) Βραχυχρόνια μίσθωση (Short-term) — STR hosts (7)
 Έναυσμα: κρατήσεις, αφίξεις/αναχωρήσεις, καθαρισμοί, πληρωμές πλατφόρμας.
@@ -100,9 +100,22 @@
 `feature_launch` · `assistant_upgraded` · `changelog_monthly` · `roadmap_preview` ·
 `anniversary` · `milestone_reached` · `nps_survey` · `best_practice_tip` · `webinar_invite`
 
-### 11) Ενίσχυση μετατροπής (Conversion) — αξία με απόδειξη (3)
+### 11) Ενίσχυση μετατροπής (Conversion) — αξία με απόδειξη (4)
 Έναυσμα: ενεργός δωρεάν χρήστης με αποδεδειγμένη αξία. Στόχος: αναβάθμιση με λογική ROI.
-`roi_proof` · `plan_comparison` · `social_proof`
+`roi_proof` · `plan_comparison` · `social_proof` · `rent_benchmark_alert`
+
+### 12) Συμμόρφωση (ελληνικές νομικές/φορολογικές υποχρεώσεις) — προστασία (3)
+Έναυσμα: δεδομένα του χρήστη + φορολογικό ημερολόγιο. Στόχος: βαθιά ελληνική εξειδίκευση.
+`lease_declaration_reminder` (Δήλωση Μίσθωσης myAADE) · `str_registration_reminder`
+(ΑΜΑ βραχυχρόνιας) · `str_stay_tax` (τέλος διαμονής)
+
+### 13) Συνδρομή & Χρέωση (Billing) — έσοδα χωρίς διαρροές (2)
+Έναυσμα: κατάσταση κάρτας/συνδρομής. Συναλλακτικά. Στόχος: αποτροπή ακούσιας απώλειας.
+`card_expiring` · `renewal_reminder`
+
+### 14) Σχέσεις (ενοικιαστές & συνιδιοκτήτες) — two-sided αξία (3)
+Έναυσμα: καταχώρηση ενοικιαστή, είσπραξη, κλείσιμο περιόδου. Ουδέτερα ως προς το φύλο.
+`tenant_welcome` · `tenant_rent_receipt` · `coowner_statement`
 
 ---
 
@@ -162,7 +175,7 @@
 
 ## 8. Τεχνική υλοποίηση
 
-- **Περιεχόμενο:** `supabase/functions/_shared/emailCopy.ts` (81 κείμενα, `CATALOG`).
+- **Περιεχόμενο:** `supabase/functions/_shared/emailCopy.ts` (93 κείμενα, `CATALOG`).
 - **Σχεδίαση:** `supabase/functions/_shared/emailTemplates.ts` (ενιαίο branded κέλυφος,
   τυπογραφία, tagline, `Personal` πλαίσιο εξατομίκευσης).
 - **Αποστολή:** `supabase/functions/send-lifecycle-email` — δέχεται `copyId` + παραλήπτη
@@ -181,7 +194,7 @@
 
 ## 9. Ποιοτικός έλεγχος
 
-Κάθε ένα από τα 81 emails ελέγχεται αυτόματα (render σε πλήρες και κενό πλαίσιο):
+Κάθε ένα από τα 93 emails ελέγχεται αυτόματα (render σε πλήρες και κενό πλαίσιο):
 απουσία παυλών, απουσία `undefined`/`NaN`, σωστοί εγκλιτικοί τόνοι, παρουσία tagline.
 Επιπλέον, το σύνολο περνά αυστηρό, ανεξάρτητο έλεγχο ποιότητας από πολλαπλές οπτικές
 (φιλολογική, marketing, ομοιογένεια φωνής, ασφάλεια εξατομίκευσης) με αντιπαραθετική

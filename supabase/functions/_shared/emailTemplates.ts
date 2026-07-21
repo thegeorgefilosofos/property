@@ -137,6 +137,10 @@ export interface Personal extends Ctx {
   assistantSkill?: string;   // νέα ικανότητα του βοηθού
   anniversaryYears?: number; // χρόνια συνεργασίας
   hoursSaved?: number;       // ώρες που εξοικονομήθηκαν
+  // Συνδρομή / σχέσεις / benchmarking
+  cardLast4?: string;        // τελευταία ψηφία κάρτας
+  marketRent?: number;       // μέσο ενοίκιο αγοράς, σε EUR
+  sharePct?: number;         // ποσοστό συνιδιοκτησίας
 }
 type Out = { subject: string; html: string };
 const app = (c: Ctx) => c.appUrl || DEFAULT_APP;
