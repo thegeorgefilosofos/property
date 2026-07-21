@@ -238,3 +238,33 @@ export function planDeliveries(items: QueuedItem[], ctx: PlanContext): Plan {
 
   return { deliveries, deferred };
 }
+
+// ── DB bridge — map outbox rows through the planner to row-level decisions ────
+// The edge scheduler (schedule-email-outbox) hands one recipient's pending rows
+// for a day; this returns what to do with each row (send at a time, or defer)
+// plus any digest to insert. Pure, so it is testable without a database.
+
+export interface OutboxRow { id: number | string; copyId: string; }
+export interface RowDecision { id: number | string; action: 'send' | 'defer'; at: string; viaDigest?: string; }
+export interface DigestSpec { copyId: string; at: string; memberIds: Array<number | string>; }
+export interface BatchResult { rows: RowDecision[]; digests: DigestSpec[]; }
+
+export function scheduleBatch(rows: OutboxRow[], ctx: PlanContext): BatchResult {
+  const { deliveries, deferred } = planDeliveries(rows.map(r => ({ copyId: r.copyId })), ctx);
+  const pool = rows.map(r => ({ ...r, used: false }));
+  const take = (copyId: string) => { const r = pool.find(x => x.copyId === copyId && !x.used); if (r) r.used = true; return r; };
+
+  const out: RowDecision[] = [];
+  const digests: DigestSpec[] = [];
+  for (const d of deliveries) {
+    if (d.kind === 'digest') {
+      const memberIds: Array<number | string> = [];
+      for (const cid of d.bundles || []) { const r = take(cid); if (r) { memberIds.push(r.id); out.push({ id: r.id, action: 'send', at: d.at, viaDigest: d.copyId }); } }
+      digests.push({ copyId: d.copyId, at: d.at, memberIds });
+    } else {
+      const r = take(d.copyId); if (r) out.push({ id: r.id, action: 'send', at: d.at });
+    }
+  }
+  for (const df of deferred) { const r = take(df.copyId); if (r) out.push({ id: r.id, action: 'defer', at: SLOT_TIME.morning }); }
+  return { rows: out, digests };
+}
