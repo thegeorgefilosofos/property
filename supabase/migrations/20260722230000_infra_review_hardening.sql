@@ -1,20 +1,75 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- Platform baseline · Scheduling (companion to 00000000000000_baseline.sql).
+-- Infra-review hardening (2026-07 audit follow-through).
 --
--- `supabase db dump` does not capture pg_cron jobs (they live in the `cron`
--- schema). This migration reproduces the FINAL state of every scheduled job, so
--- a from-scratch rebuild has them. Each job is env-agnostic:
---   • its shared secret comes from public.cron_secrets ('email_cron'), and
---   • its target URL is built from a per-environment base URL read from
---     vault.decrypted_secrets ('functions_base_url'), falling back to the
---     production host when that secret is absent — so the exact same definition
---     is correct on production (no secret ⇒ prod URL, unchanged) and on staging
---     (set `functions_base_url` in the staging vault ⇒ staging URL).
--- Wrapped in a pg_cron guard and unschedule-then-schedule, so it is idempotent
--- and safe on a project where the extension or secrets are not yet configured
--- (the job simply no-ops at runtime).
+-- Three fixes, all bookkeeping/logic only — no data touched:
+--   1. Env-safe function URLs. The scheduler jobs and drain_email_outbox() had
+--      the PRODUCTION project URL baked in as a literal. On a fresh (staging)
+--      rebuild that pointed the drain + 5 cron jobs at production. We switch them
+--      to derive the base URL from vault (`functions_base_url`), falling back to
+--      the current production host when that secret is absent — so production is
+--      byte-for-byte unchanged (no secret set ⇒ same URL as before), while a
+--      staging project that sets `functions_base_url` in its vault gets its own.
+--   2. drain_email_outbox() uses the same env-safe URL.
+--   3. Lock down the feedback-draw functions: they are SECURITY DEFINER prize
+--      draws with no caller guard, yet pg_dump had granted EXECUTE to anon/
+--      authenticated. Revoke both — only the cron (service_role) may draw.
+--
+-- Idempotent: safe to re-run. The cron block no-ops on a project without pg_cron.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ── 3) Revoke public reachability of the prize-draw functions ────────────────
+revoke execute on function public.draw_due_feedback_winners()   from anon, authenticated;
+revoke execute on function public.draw_feedback_winner(text)     from anon, authenticated;
+
+-- ── 2) Env-safe drain: resolve the base URL at runtime, prod-safe fallback ───
+create or replace function public.drain_email_outbox(p_limit integer default 100)
+returns integer
+language plpgsql security definer
+set search_path to 'public'
+as $$
+declare
+  r        record;
+  v_secret text;
+  v_base   text := coalesce(
+              (select decrypted_secret from vault.decrypted_secrets where name = 'functions_base_url'),
+              'https://aromvduuxtcrzmwwvnej.supabase.co');
+  v_url    text := v_base || '/functions/v1/send-lifecycle-email';
+  v_sent   int := 0;
+begin
+  select secret into v_secret from public.cron_secrets where name = 'email_cron' limit 1;
+  if v_secret is null then return 0; end if;   -- not configured yet → no-op
+
+  for r in
+    select * from public.email_outbox
+     where status = 'pending' and scheduled_for <= now()
+       and (send_window is not null or category = 'transactional')
+     order by scheduled_for
+     limit p_limit
+     for update skip locked
+  loop
+    if r.category = 'marketing' and not public.can_send_marketing(r.to_email) then
+      update public.email_outbox set status = 'skipped', last_error = 'frequency_cap' where id = r.id;
+      continue;
+    end if;
+
+    perform net.http_post(
+      url     := v_url,
+      headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', v_secret),
+      body    := jsonb_build_object('copyId', r.copy_id, 'email', r.to_email, 'name', r.to_name, 'params', r.params)
+    );
+    update public.email_outbox
+       set status = 'sent', sent_at = now(), attempts = attempts + 1
+     where id = r.id;
+    v_sent := v_sent + 1;
+  end loop;
+
+  return v_sent;
+end;
+$$;
+
+-- ── 1) Env-safe (re)scheduling of the jobs that had a hardcoded prod URL ─────
+-- Only touches the 5 previously-hardcoded jobs; the two vault-driven jobs
+-- (market-data, bank-rates) and the drain/feedback jobs are left as they are.
 do $$
 declare
   v_base text := coalesce(
@@ -34,26 +89,6 @@ begin
                    'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
       body    := '{}'::jsonb, timeout_milliseconds := 120000);
   $cron$, v_base || '/functions/v1/send-reminders'));
-
-  -- market-data-daily — 08:00 UTC (URL from its own vault secret)
-  if exists (select 1 from cron.job where jobname = 'market-data-daily') then perform cron.unschedule('market-data-daily'); end if;
-  perform cron.schedule('market-data-daily', '0 8 * * *', $cron$
-    select net.http_post(
-      url     := (select decrypted_secret from vault.decrypted_secrets where name = 'market_data_fn_url'),
-      headers := jsonb_build_object('Content-Type','application/json',
-                   'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
-      body    := '{}'::jsonb, timeout_milliseconds := 120000);
-  $cron$);
-
-  -- bank-rates-monthly — 06:30 UTC on the 1st (URL from its own vault secret)
-  if exists (select 1 from cron.job where jobname = 'bank-rates-monthly') then perform cron.unschedule('bank-rates-monthly'); end if;
-  perform cron.schedule('bank-rates-monthly', '30 6 1 * *', $cron$
-    select net.http_post(
-      url     := (select decrypted_secret from vault.decrypted_secrets where name = 'bank_rates_fn_url'),
-      headers := jsonb_build_object('Content-Type','application/json',
-                   'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
-      body    := '{}'::jsonb, timeout_milliseconds := 180000);
-  $cron$);
 
   -- send-newsletter-weekly — Tue 08:00 UTC
   if exists (select 1 from cron.job where jobname = 'send-newsletter-weekly') then perform cron.unschedule('send-newsletter-weekly'); end if;
@@ -85,7 +120,7 @@ begin
       body    := '{}'::jsonb, timeout_milliseconds := 120000);
   $cron$, v_base || '/functions/v1/send-monthly-statements'));
 
-  -- email-outbox-schedule / email-outbox-drain — every 5 minutes
+  -- email-outbox-schedule — every 5 minutes
   if exists (select 1 from cron.job where jobname = 'email-outbox-schedule') then perform cron.unschedule('email-outbox-schedule'); end if;
   perform cron.schedule('email-outbox-schedule', '*/5 * * * *', format($cron$
     select net.http_post(
@@ -94,10 +129,4 @@ begin
                    'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron' limit 1)),
       body    := '{}'::jsonb);
   $cron$, v_base || '/functions/v1/schedule-email-outbox'));
-  if exists (select 1 from cron.job where jobname = 'email-outbox-drain') then perform cron.unschedule('email-outbox-drain'); end if;
-  perform cron.schedule('email-outbox-drain', '*/5 * * * *', $cron$ select public.drain_email_outbox(100); $cron$);
-
-  -- feedback-draw-monthly — 1st @ 03:00 UTC
-  if exists (select 1 from cron.job where jobname = 'feedback-draw-monthly') then perform cron.unschedule('feedback-draw-monthly'); end if;
-  perform cron.schedule('feedback-draw-monthly', '0 3 1 * *', $cron$ select public.draw_due_feedback_winners(); $cron$);
 end $$;
