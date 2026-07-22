@@ -67,6 +67,32 @@ Deno.serve(async (req) => {
   if (!user) return json({ error: 'unauthorized' }, 401)
   const replyTo = user.email || undefined
 
+  // ── Anti-relay: recipients MUST be the caller's own CRM clients ──────────────
+  // Without this, any authenticated account could send arbitrary HTML to an
+  // arbitrary list under our sending domain. The caller's JWT already scopes
+  // `clients` via RLS; we build the allow-set from it (+ the owner's own address
+  // for self-tests) and silently drop anything else, reporting the count.
+  const { data: myClients } = await supabase.from('clients').select('email').eq('user_id', user.id)
+  const allow = new Set<string>(
+    (myClients || []).map((c: { email: string | null }) => (c.email || '').trim().toLowerCase()).filter(Boolean),
+  )
+  if (user.email) allow.add(user.email.trim().toLowerCase())
+  const requested = recipients.length
+  recipients = recipients.filter(r => allow.has(r.email))
+  const droppedNotClient = requested - recipients.length
+  if (!recipients.length) {
+    return json({ error: 'no_permitted_recipients', detail: 'Οι παραλήπτες πρέπει να είναι καταχωρημένοι πελάτες σου στο CRM.' }, 400)
+  }
+
+  // ── Anti-abuse: per-user rolling 24h volume cap ──────────────────────────────
+  const since = new Date(Date.now() - 86_400_000).toISOString()
+  const { data: recentCamps } = await supabase.from('email_campaigns')
+    .select('recipient_count').eq('user_id', user.id).gte('created_at', since)
+  const sent24h = (recentCamps || []).reduce((s: number, c: { recipient_count: number | null }) => s + (c.recipient_count || 0), 0)
+  if (sent24h + recipients.length > 3000) {
+    return json({ error: 'daily_cap', detail: 'Ξεπεράστηκε το ημερήσιο όριο αποστολών (3.000 παραλήπτες / 24ω).' }, 429)
+  }
+
   // Καμπάνια + παραλήπτες (RLS — γράφει μόνο δικές του εγγραφές).
   const { data: camp, error: cErr } = await supabase.from('email_campaigns')
     .insert({ user_id: user.id, subject, body_html: bodyHtml, kind, recipient_count: recipients.length, status: 'sending' })
@@ -121,5 +147,5 @@ Deno.serve(async (req) => {
     .update({ sent_count: sent, failed_count: failed, status, sent_at: new Date().toISOString() })
     .eq('id', campaignId)
 
-  return json({ campaignId, sent, failed, status })
+  return json({ campaignId, sent, failed, status, droppedNotClient })
 })

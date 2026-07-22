@@ -83,10 +83,10 @@ function isBlocked(summary: string): boolean {
 // Αποτρέπει SSRF: (α) μόνο http/https, (β) απαγόρευση loopback/link-local/private
 // σε IPv4 ΚΑΙ IPv6 (+ IPv4-mapped, + δεκαδικές/hex μορφές), (γ) οι redirects ΔΕΝ
 // ακολουθούνται αυτόματα — κάθε hop επικυρώνεται ξανά με τον ίδιο έλεγχο.
-function isBlockedHost(hRaw: string): boolean {
-  let h = hRaw.toLowerCase().trim()
+// Checks a bare IP string (v4 or v6, in any encoding) against private/reserved ranges.
+function isBlockedIp(ipRaw: string): boolean {
+  let h = ipRaw.toLowerCase().trim()
   if (h.startsWith('[') && h.endsWith(']')) h = h.slice(1, -1) // IPv6 literal
-  if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return true
   // IPv6 loopback / unspecified / link-local (fe80::) / unique-local (fc00::/7)
   if (h === '::1' || h === '::' || /^fe80:/i.test(h) || /^f[cd][0-9a-f]{2}:/i.test(h)) return true
   // IPv4-mapped IPv6 (::ffff:a.b.c.d) — check the embedded v4
@@ -94,10 +94,17 @@ function isBlockedHost(hRaw: string): boolean {
   if (mapped) h = mapped[1]
   // Non-dotted numeric encodings (decimal / hex / octal) — reject outright
   if (/^0x[0-9a-f]+$/i.test(h) || /^\d{8,}$/.test(h)) return true
-  // Dotted IPv4 private / loopback / link-local / unspecified
+  // Dotted IPv4 private / loopback / link-local / carrier-grade-NAT / unspecified
   return h === '0.0.0.0'
     || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h)
     || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
+    || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(h)   // 100.64.0.0/10 CGNAT
+}
+// Checks the hostname *string* (literal IPs + obvious internal names).
+function isBlockedHost(hRaw: string): boolean {
+  const h = hRaw.toLowerCase().trim()
+  if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return true
+  return isBlockedIp(h)
 }
 function assertSafeUrl(raw: string): URL {
   let u: URL
@@ -106,10 +113,36 @@ function assertSafeUrl(raw: string): URL {
   if (isBlockedHost(u.hostname)) throw new Error('Δεν επιτρέπεται εσωτερική διεύθυνση')
   return u
 }
+// Closes the DNS-rebinding SSRF gap: the string check above only inspects the
+// hostname, but fetch() resolves DNS itself. So we resolve A/AAAA ourselves and
+// reject if ANY resolved address is private/reserved — a public name that maps
+// to 169.254.169.254 / 127.0.0.1 / an internal range never gets fetched.
+async function assertResolvedSafe(hostname: string): Promise<void> {
+  const host = hostname.replace(/^\[|\]$/g, '')
+  // Literal IPs are already covered by isBlockedHost; only names need resolving.
+  const isLiteral = /^[0-9.]+$/.test(host) || host.includes(':')
+  if (isLiteral) return
+  // Best-effort: if the runtime doesn't expose Deno.resolveDns, fall back to the
+  // string-only check (no regression) rather than blocking every sync.
+  if (typeof Deno?.resolveDns !== 'function') return
+  const addrs: string[] = []
+  let resolveFailed = false
+  for (const kind of ['A', 'AAAA'] as const) {
+    try { addrs.push(...await Deno.resolveDns(host, kind)) }
+    catch (e) { if (!(e instanceof Deno.errors.NotFound)) resolveFailed = true }
+  }
+  // No A/AAAA record at all → refuse. A transient resolver error (not "no record")
+  // shouldn't hard-fail a legitimate feed, so only block on an empty-but-clean result.
+  if (addrs.length === 0 && !resolveFailed) throw new Error('Το όνομα δεν αναλύεται σε διεύθυνση')
+  for (const ip of addrs) {
+    if (isBlockedIp(ip)) throw new Error('Το όνομα δείχνει σε εσωτερική διεύθυνση')
+  }
+}
 async function fetchIcal(url: string): Promise<string> {
   let current = assertSafeUrl(url).toString()
   let res: Response | null = null
   for (let hop = 0; hop < 5; hop++) {
+    await assertResolvedSafe(new URL(current).hostname) // re-resolve & validate every hop
     res = await fetch(current, {
       headers: { 'User-Agent': 'PropertyOS-iCal/1.0', 'Accept': 'text/calendar, text/plain, */*' },
       redirect: 'manual',

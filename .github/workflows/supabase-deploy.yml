@@ -36,13 +36,16 @@ permissions:
   contents: read
   issues: write
 
+# Per-environment lock: a staging deploy (feature branch) must not serialize
+# behind or block a production deploy (main), and vice-versa.
 concurrency:
-  group: supabase-deploy
+  group: supabase-deploy-${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     # main → production project; any feature branch → staging project.
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     env:
@@ -50,7 +53,7 @@ jobs:
       SUPABASE_PROJECT_REF: ${{ github.ref == 'refs/heads/main' && 'aromvduuxtcrzmwwvnej' || 'rheufrfscmngpjayxgln' }}
       SUPABASE_DB_PASSWORD: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_DB_PASSWORD || secrets.STAGING_SUPABASE_DB_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: supabase/setup-cli@v1
         with:
@@ -80,18 +83,24 @@ jobs:
         run: |
           set -euo pipefail
           # Columns: LOCAL | REMOTE | TIME. A remote-only row has an empty LOCAL
-          # cell and a numeric REMOTE cell -> that version needs reverting.
+          # cell and a numeric REMOTE cell -> that version needs reverting. We keep
+          # stderr visible (a `migration list` failure must not be swallowed) and
+          # record every action to the job summary so an unattended repair on
+          # production is never silent.
+          listing="$(supabase migration list --linked)"
           orphans="$(
-            supabase migration list --linked 2>/dev/null \
+            printf '%s\n' "$listing" \
               | awk -F'|' 'NR>2 { gsub(/[^0-9]/,"",$1); gsub(/[^0-9]/,"",$2);
                                   if ($1=="" && $2!="") print $2 }' \
               | tr '\n' ' '
           )"
           if [ -n "${orphans// /}" ]; then
             echo "Reverting orphaned remote migration versions: $orphans"
+            echo "⚠️ Reconcile reverted orphaned remote versions on **$SUPABASE_PROJECT_REF**: \`$orphans\` (bookkeeping only, no schema change)." >> "$GITHUB_STEP_SUMMARY"
             supabase migration repair --status reverted $orphans
           else
             echo "Migration history is clean — nothing to reconcile."
+            echo "✅ Migration history clean on $SUPABASE_PROJECT_REF — nothing to reconcile." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # Applies every migration not yet recorded in the remote history table.
@@ -118,7 +127,7 @@ jobs:
       issues: write
     steps:
       - name: Open or update failure issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const target = context.ref === 'refs/heads/main' ? 'production' : 'staging';
