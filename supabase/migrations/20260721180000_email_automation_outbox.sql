@@ -19,9 +19,14 @@ create table if not exists public.email_outbox (
   to_name       text,
   params        jsonb       not null default '{}'::jsonb,
   category      text        not null default 'marketing',  -- marketing | transactional | operational
+  -- Cadence policy (see _shared/emailPolicy.ts): the scheduler stamps these from
+  -- the copy_id so the drain can enforce hierarchy, daily caps and staggering.
+  priority      int         not null default 4,            -- 1 transactional … 5 soft
+  send_window   text,                                      -- morning | midday | evening | late | immediate
+  digest_group  text,                                      -- same-day obligations in one group merge into one email
   dedup_key     text        unique,                    -- e.g. 'welcome:<user_id>' → never sent twice
   scheduled_for timestamptz not null default now(),
-  status        text        not null default 'pending',    -- pending | sent | failed | skipped
+  status        text        not null default 'pending',    -- pending | sent | failed | skipped | deferred
   attempts      int         not null default 0,
   last_error    text,
   sent_at       timestamptz,
@@ -78,8 +83,13 @@ begin
   if v_secret is null then return 0; end if;   -- not configured yet → no-op
 
   for r in
+    -- State gate: only send rows the scheduler has PLANNED (send_window set), or
+    -- transactional rows (which bypass the scheduler and go immediately). Raw
+    -- freshly-enqueued marketing/operational rows wait for schedule-email-outbox
+    -- to apply the cadence policy first, so the drain can never flood a recipient.
     select * from public.email_outbox
      where status = 'pending' and scheduled_for <= now()
+       and (send_window is not null or category = 'transactional')
      order by scheduled_for
      limit p_limit
      for update skip locked
@@ -105,7 +115,18 @@ begin
   return v_sent;
 end $$;
 
--- 5. Cron — drain every 5 minutes -------------------------------------------
+-- 5. Cron — plan first, then drain -----------------------------------------
+--    The scheduler applies the cadence policy (consolidate, cap, stagger, defer)
+--    and stamps send_window; the drain then sends only planned/transactional
+--    rows. Thanks to the state gate the order of the two crons does not matter.
+select cron.schedule('email-outbox-schedule', '*/5 * * * *', $$
+  select net.http_post(
+    url     := 'https://aromvduuxtcrzmwwvnej.supabase.co/functions/v1/schedule-email-outbox',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                 'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron' limit 1)),
+    body    := '{}'::jsonb
+  );
+$$);
 select cron.schedule('email-outbox-drain', '*/5 * * * *', $$ select public.drain_email_outbox(100); $$);
 
 -- 6. Event triggers — CONFIRM real table/column names before enabling -------

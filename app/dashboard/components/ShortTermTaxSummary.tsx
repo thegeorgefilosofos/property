@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, KPIGrid, InfoBanner, SecHdr, ExportButton, fe } from '@/components/Theme';
 import { downloadCsv } from './exportCsv';
+import { money, intGr } from './xlsxStyle';
 import { STAY_CHANNEL_LABELS } from '@/lib/clients/clients';
 import { RENTAL_TAX_ROWS_2026, climateLevyRates, rentalIncomeTax } from '@/lib/billing/greekTax';
 import { shortTermYearSummary, yearsWithStays, type TaxStay } from '@/lib/tax/shortTermTax';
@@ -75,17 +76,19 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
 
   const exportCsv = () => {
     downloadCsv(`forologia_vraxyxronia_${year}`,
-      ['Στοιχείο', 'Ποσό (€)'],
+      ['Στοιχείο', 'Τιμή'],
       [
         ['Έτος', String(year)],
-        ['Μεικτά έσοδα', String(Math.round(sum.grossRevenue))],
-        ['Διανυκτερεύσεις', String(sum.totalNights)],
-        ['Διαμονές', String(sum.stayCount)],
-        ['Εκτ. φόρος εισοδήματος', String(Math.round(sum.incomeTax))],
-        ['Τέλος Ανθεκτικότητας (ΤΑΚΚ)', String(Math.round(sum.levy))],
-        ['Τέλος παρεπιδημούντων', String(sum.municipalTax)],
-        ['Καθαρά μετά φόρων', String(Math.round(sum.net))],
-        ...sum.byChannel.map(c => [`Έσοδα ${STAY_CHANNEL_LABELS[c.channel as keyof typeof STAY_CHANNEL_LABELS] || 'Άλλο'}`, String(Math.round(c.revenue))]),
+        ['Μεικτά έσοδα', money(sum.grossRevenue)],
+        ['Διανυκτερεύσεις', intGr(sum.totalNights)],
+        ['Διαμονές', intGr(sum.stayCount)],
+        ['Εκτ. φόρος εισοδήματος', money(sum.incomeTax)],
+        ['Τέλος Ανθεκτικότητας (ΤΑΚΚ)', money(sum.levy)],
+        ['Τέλος παρεπιδημούντων', money(sum.municipalTax)],
+        ['Καθαρά μετά φόρων', money(sum.net)],
+        ...sum.byChannel.map(c => [`Έσοδα ${STAY_CHANNEL_LABELS[c.channel as keyof typeof STAY_CHANNEL_LABELS] || 'Άλλο'}`, money(c.revenue)]),
+        ['', ''],
+        ['Σημείωση', 'Ενδεικτικές εκτιμήσεις με βάση τα δεδομένα σου. Οριστικοποίηση με τον λογιστή σου ή στο myAADE.'],
       ]);
   };
 

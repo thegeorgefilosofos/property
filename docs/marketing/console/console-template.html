@@ -1,0 +1,389 @@
+<title>Property OS · Email Console</title>
+<style>
+__FONT__
+:root{
+  --bg:#fbfcfd; --panel:#ffffff; --hover:#f4f6f8; --sel:#e8f0fe;
+  --ink:#1f2327; --muted:#5b6169; --faint:#98a0a8;
+  --line:#e7eaee; --line-2:#eef1f4;
+  --accent:#1a73e8; --accent-soft:#d6e4fb; --accent-ink:#fff;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  --shadow-lg:0 12px 32px rgba(16,24,40,.10),0 2px 8px rgba(16,24,40,.06);
+  --mono:"SFMono-Regular",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181b; --panel:#1e2125; --hover:#262a2f; --sel:#233047;
+    --ink:#e8eaed; --muted:#a2a9b2; --faint:#6b7178;
+    --line:#31353b; --line-2:#282c31; --accent:#8ab4f8; --accent-soft:#2a3854; --accent-ink:#0b1220;
+    --shadow:0 1px 2px rgba(0,0,0,.3); --shadow-lg:0 18px 42px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#fbfcfd; --panel:#ffffff; --hover:#f4f6f8; --sel:#e8f0fe;
+  --ink:#1f2327; --muted:#5b6169; --faint:#98a0a8;
+  --line:#e7eaee; --line-2:#eef1f4; --accent:#1a73e8; --accent-soft:#d6e4fb; --accent-ink:#fff;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  --shadow-lg:0 12px 32px rgba(16,24,40,.10),0 2px 8px rgba(16,24,40,.06);
+}
+:root[data-theme="dark"]{
+  --bg:#16181b; --panel:#1e2125; --hover:#262a2f; --sel:#233047;
+  --ink:#e8eaed; --muted:#a2a9b2; --faint:#6b7178;
+  --line:#31353b; --line-2:#282c31; --accent:#8ab4f8; --accent-soft:#2a3854; --accent-ink:#0b1220;
+  --shadow:0 1px 2px rgba(0,0,0,.3); --shadow-lg:0 18px 42px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+::selection{background:var(--sel)}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Command bar ─────────────────────────────────────────── */
+.top{display:flex;align-items:center;gap:18px;padding:0 26px;height:62px;
+  border-bottom:1px solid var(--line);background:var(--panel);flex:none;z-index:5}
+.brand{display:flex;align-items:center;gap:11px;cursor:pointer;background:none;border:0;padding:0}
+.badge{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;font-weight:800;font-size:16px;flex:none;letter-spacing:-.02em}
+.brand .bt{display:flex;flex-direction:column;line-height:1.15;text-align:left}
+.brand .bt b{font-size:14.5px;font-weight:650;letter-spacing:-.017em}
+.brand .bt span{font-size:9.5px;color:var(--faint);letter-spacing:.14em;margin-top:2px}
+.top .sep{width:1px;height:26px;background:var(--line)}
+.planseg{display:inline-flex;background:var(--hover);border-radius:9px;padding:3px;gap:2px}
+.planseg button{border:0;background:none;color:var(--muted);font-size:12.5px;
+  padding:5px 13px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:color .13s,background .13s}
+.planseg button:hover{color:var(--ink)}
+.planseg button.on{background:var(--panel);color:var(--accent);font-weight:600;box-shadow:var(--shadow)}
+.spacer{flex:1}
+.search{position:relative;width:250px}
+.search input{width:100%;background:var(--hover);border:1px solid transparent;color:var(--ink);
+  font-family:inherit;font-size:13px;padding:8px 12px 8px 34px;border-radius:9px;transition:.14s}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{outline:none;background:var(--panel);border-color:var(--accent);box-shadow:0 0 0 3px var(--sel)}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.iconbtn{display:grid;place-items:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--line);
+  background:none;color:var(--muted);cursor:pointer;font-size:15px;transition:.13s;flex:none}
+.iconbtn:hover{color:var(--ink);border-color:var(--faint);background:var(--hover)}
+
+/* ── Canvas ──────────────────────────────────────────────── */
+.canvas{flex:1;overflow-y:auto;padding:28px 26px 48px}
+.wrap{max-width:1180px;margin:0 auto}
+
+.back{display:inline-flex;align-items:center;gap:7px;background:none;border:1px solid var(--line);
+  color:var(--muted);font-size:12.5px;font-weight:500;padding:6px 13px 6px 10px;border-radius:100px;cursor:pointer;
+  transition:.13s;margin-bottom:20px}
+.back:hover{color:var(--accent);border-color:var(--accent-soft);background:var(--hover)}
+.back svg{transition:transform .14s}
+.back:hover svg{transform:translateX(-2px)}
+
+.chead{display:flex;align-items:flex-end;gap:14px;margin:0 2px 24px;flex-wrap:wrap}
+.chead h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.024em}
+.chead .csub{font-size:13.5px;color:var(--muted);padding-bottom:3px}
+.chead .cn{margin-left:auto;font-size:12.5px;color:var(--faint);font-variant-numeric:tabular-nums;padding-bottom:4px;white-space:nowrap}
+.dmeta{display:flex;gap:7px;flex-wrap:wrap;margin:-14px 2px 24px}
+
+/* Phase section (overview) */
+.section{margin-bottom:34px}
+.sec-h{display:flex;align-items:center;gap:11px;margin:0 2px 15px}
+.sec-h .sd{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.sec-h .sn{font-size:11.5px;font-weight:700;letter-spacing:.1em;color:var(--ink)}
+.sec-h .ss{font-size:12px;color:var(--faint)}
+.sec-h .sc{font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:auto}
+.sec-h .srule{flex:1;height:1px;background:var(--line-2);max-width:0;transition:none}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;align-items:stretch}
+
+/* Program tile */
+.tile{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:18px 18px 15px;box-shadow:var(--shadow);cursor:pointer;position:relative;
+  min-height:150px;transition:box-shadow .16s,transform .16s,border-color .16s;text-align:left}
+.tile:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);border-color:var(--accent-soft)}
+.tth{display:flex;align-items:center;gap:9px}
+.tth b{font-size:15.5px;font-weight:650;letter-spacing:-.014em;flex:1;min-width:0}
+.pn{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--hover);padding:2px 9px;border-radius:20px;flex:none}
+.tsub{margin:7px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.tmeta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:12px}
+.chip{font-size:11px;color:var(--muted);background:var(--hover);border:1px solid var(--line-2);padding:2px 9px;border-radius:7px;white-space:nowrap}
+.tgo{margin-top:auto;padding-top:14px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--faint);font-weight:500;transition:color .13s}
+.tgo svg{transition:transform .16s}
+.tile:hover .tgo{color:var(--accent)}
+.tile:hover .tgo svg{transform:translateX(3px)}
+
+/* Program detail — emails */
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.emails{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:2px 8px;padding:10px}
+.em{display:flex;align-items:center;gap:10px;text-align:left;background:none;border:0;cursor:pointer;
+  padding:11px 13px;border-radius:11px;transition:background .1s}
+.em:hover{background:var(--hover)}
+.em.on{background:var(--sel)}
+.em .en{font-family:var(--mono);font-size:11px;color:var(--faint);width:20px;text-align:right;flex:none;padding-top:1px}
+.em .etxt{flex:1;min-width:0;display:flex;flex-direction:column}
+.em .es{display:block;font-size:13.5px;font-weight:500;letter-spacing:-.006em;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.em .et{display:block;font-size:11.5px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.em .echev{color:var(--faint);opacity:0;transform:translateX(-3px);transition:.13s;flex:none}
+.em:hover .echev,.em.on .echev{opacity:1;transform:none;color:var(--accent)}
+.em.on .es{color:var(--accent)}
+
+.empty{padding:70px 20px;text-align:center;color:var(--faint);font-size:13.5px}
+
+/* ── Preview sheet ───────────────────────────────────────── */
+.scrim{position:fixed;inset:0;background:rgba(16,24,40,.34);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30;backdrop-filter:blur(1.5px)}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(520px,94vw);background:var(--bg);
+  border-left:1px solid var(--line);box-shadow:var(--shadow-lg);z-index:31;
+  transform:translateX(100%);transition:transform .26s cubic-bezier(.32,.72,.28,1);display:flex;flex-direction:column;overflow:hidden}
+.sheet.show{transform:none}
+.sh-top{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.sh-top .stx{flex:1;min-width:0}
+.sh-eb{font-size:11px;color:var(--accent);display:flex;align-items:center;gap:7px;font-family:var(--mono)}
+.sh-eb .sd{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.sh-top h2{margin:8px 0 0;font-size:16.5px;font-weight:700;letter-spacing:-.017em;line-height:1.28}
+.sh-top .pre{margin:5px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.sh-close{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;font-size:16px;display:grid;place-items:center;transition:.13s}
+.sh-close:hover{background:var(--hover);color:var(--ink)}
+.sh-body{overflow-y:auto;flex:1}
+.facts{display:grid;grid-template-columns:92px 1fr;gap:9px 16px;padding:15px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.facts dt{font-size:10.5px;color:var(--faint);letter-spacing:.06em;font-weight:600;padding-top:1px}
+.facts dd{margin:0;font-size:12.5px;color:var(--ink);line-height:1.4}
+.plans{display:inline-flex;gap:5px;flex-wrap:wrap}
+.pill{font-size:11px;padding:2px 10px;border-radius:100px;border:1px solid var(--line);color:var(--muted);background:var(--hover);white-space:nowrap}
+.prio{display:inline-flex;align-items:center;gap:6px}
+.prio::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.prio.p3::before{background:color-mix(in srgb,var(--accent) 60%,var(--faint))}
+.prio.p4::before{background:var(--faint)}
+.prio.p5::before{background:transparent;border:1px solid var(--faint)}
+.auto{display:inline-flex;align-items:center;gap:7px;color:var(--accent)}
+.auto .adot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 22%,transparent)}
+.render{padding:20px;background:var(--hover)}
+.rlabel{font-size:10.5px;color:var(--faint);letter-spacing:.09em;font-weight:600;margin:0 2px 11px;display:flex;align-items:center;gap:8px}
+.rlabel::after{content:"";flex:1;height:1px;background:var(--line)}
+.mailhead{display:flex;align-items:center;gap:9px;margin:0 2px 12px}
+.mailhead .mb{width:26px;height:26px;border-radius:7px;background:#1a73e8;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px}
+.mailhead b{font-size:13.5px;color:var(--ink)}
+.mailhead span{font-size:11px;color:var(--faint);margin-left:auto;font-family:var(--mono)}
+.mcard{background:#fff;border:1px solid #e8eaed;border-top:3px solid #1a73e8;border-radius:13px;padding:24px 22px;box-shadow:var(--shadow)}
+.mcard .mhero{text-align:center;margin:2px 0 18px}
+.mcard .mhero-v{font-size:38px;line-height:1;font-weight:800;color:#1a73e8;letter-spacing:-.03em}
+.mcard .mhero-l{font-size:11px;color:#5f6368;letter-spacing:.09em;margin-top:8px;font-weight:600}
+.mcard .eb{font-size:10.5px;color:#1a73e8;letter-spacing:.08em;font-weight:700;margin:0 0 6px}
+.mcard h3{font-size:19px;color:#202124;font-weight:700;letter-spacing:-.02em;margin:0 0 12px;line-height:1.22}
+.mcard p{font-size:13.5px;color:#3c4043;line-height:1.68;margin:0 0 12px}
+.mcard p b{color:#202124}
+.mcard ul{list-style:none;padding:0;margin:0 0 12px}
+.mcard li{position:relative;padding:4px 0 4px 18px;font-size:13.5px;color:#3c4043;line-height:1.6}
+.mcard li::before{content:"";position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%;background:#1a73e8}
+.mbtn{display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:11px 24px;border-radius:100px;font-weight:600;font-size:13.5px;margin:8px 0 4px}
+.mnote{font-size:12px !important;color:#5f6368 !important;margin:13px 0 0 !important}
+.mtag{text-align:center;font-size:12px;color:#1a73e8;font-weight:600;margin:15px 2px 3px}
+.mfoot{text-align:center;font-size:11px;color:#80868b;margin:0 2px}
+
+@media (max-width:640px){
+  .top{gap:12px;padding:8px 16px;height:auto;flex-wrap:wrap}
+  .top .sep,.brand .bt{display:none}
+  .search{width:100%;order:5}
+  .canvas{padding:20px 16px 40px}
+  .grid,.emails{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.section,.detail{animation:rise .32s both}
+.section:nth-child(2){animation-delay:.04s}.section:nth-child(3){animation-delay:.08s}
+.section:nth-child(4){animation-delay:.12s}.section:nth-child(5){animation-delay:.16s}
+</style>
+
+<div class="shell">
+  <header class="top">
+    <button class="brand" id="brand" title="Όλα τα προγράμματα">
+      <div class="badge">P</div>
+      <div class="bt"><b>Property OS</b><span>EMAIL CONSOLE</span></div>
+    </button>
+    <div class="sep"></div>
+    <div class="planseg" id="planseg">
+      <button data-p="all" class="on">Όλα</button>
+      <button data-p="free">Δωρεάν</button>
+      <button data-p="individual">Ιδιώτης</button>
+      <button data-p="professional">Επαγγελματίας</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="Αναζήτηση" autocomplete="off">
+    </div>
+    <button class="iconbtn" id="tog" title="Εναλλαγή θέματος">◐</button>
+  </header>
+
+  <main class="canvas"><div class="wrap" id="stage"></div></main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-hidden="true"></aside>
+
+<script>
+const DATA = __DATA__;
+const $=s=>document.querySelector(s);
+const PLAN_LBL={free:'Δωρεάν',individual:'Ιδιώτης',professional:'Επαγγελματίας'};
+const CHEV='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+const BACK='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
+
+const TONO={'Ά':'Α','Έ':'Ε','Ή':'Η','Ί':'Ι','Ό':'Ο','Ύ':'Υ','Ώ':'Ω'};
+const grUp=s=>String(s).toUpperCase().replace(/[ΆΈΉΊΌΎΏ]/g,m=>TONO[m]||m).replace(/ΐ/g,'Ϊ').replace(/ΰ/g,'Ϋ');
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const PHASE_SUB={'Υποδοχή':'Τα πρώτα βήματα','Αφοσίωση':'Ενεργοί και πιστοί','Ανάπτυξη':'Περισσότερη αξία','Καθημερινότητα':'Καθημερινή λειτουργία','Εμπιστοσύνη':'Διαφάνεια και σιγουριά'};
+const ORDER=DATA.groupOrder||Object.keys(PHASE_SUB);
+
+const all=[];
+DATA.programs.forEach(p=>p.emails.forEach(e=>all.push({...e,progId:p.id,progTitle:p.title,group:p.group})));
+
+let openProg=null, plan='all', query='', selKey=null;
+
+function emVisible(e){
+  if(plan!=='all' && !e.plans.includes(plan)) return false;
+  if(!query) return true;
+  const q=query.toLowerCase();
+  return e.subject.toLowerCase().includes(q)||e.key.toLowerCase().includes(q)
+    ||e.progTitle.toLowerCase().includes(q)||(e.preheader||'').toLowerCase().includes(q);
+}
+
+const stage=$('#stage');
+function render(){ openProg ? renderDetail() : renderOverview(); }
+
+function renderOverview(){
+  let shown=0, progCount=0; stage.innerHTML='';
+  const head=document.createElement('div'); head.className='chead';
+  head.innerHTML=`<h1>Όλα τα προγράμματα</h1><span class="csub" id="sub"></span><span class="cn" id="cnt"></span>`;
+  stage.appendChild(head);
+
+  ORDER.forEach(g=>{
+    const progs=DATA.programs.filter(p=>p.group===g).map(p=>({p,c:p.emails.filter(emVisible).length})).filter(x=>x.c);
+    if(!progs.length) return;
+    const gc=progs.reduce((s,x)=>s+x.c,0); shown+=gc; progCount+=progs.length;
+    const sec=document.createElement('section'); sec.className='section';
+    const h=document.createElement('div'); h.className='sec-h';
+    h.innerHTML=`<span class="sd"></span><span class="sn">${grUp(g)}</span><span class="ss">${esc(PHASE_SUB[g]||'')}</span><span class="sc">${gc}</span>`;
+    sec.appendChild(h);
+    const grid=document.createElement('div'); grid.className='grid';
+    grid.innerHTML=progs.map(({p,c})=>tileHtml(p,c)).join('');
+    sec.appendChild(grid); stage.appendChild(sec);
+  });
+
+  $('#sub').textContent='Ένα ταξίδι, από την υποδοχή ως τη μακροχρόνια εμπιστοσύνη.';
+  $('#cnt').textContent=`${progCount} προγράμματα · ${shown} emails`;
+  if(!shown){ const e=document.createElement('div'); e.className='empty'; e.textContent='Κανένα πρόγραμμα δεν ταιριάζει.'; stage.appendChild(e); }
+  stage.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{ openProg=t.dataset.id; selKey=null; render(); $('.canvas').scrollTop=0; });
+}
+function tileHtml(p,c){
+  return `<button class="tile" data-id="${p.id}">
+    <div class="tth"><b>${esc(p.title)}</b><span class="pn">${c}</span></div>
+    <p class="tsub">${esc(p.subtitle||'')}</p>
+    <div class="tmeta"><span class="chip">${esc(p.trigger||'')}</span>${p.cadence?`<span class="chip">${esc(p.cadence)}</span>`:''}</div>
+    <div class="tgo">Δες τα emails ${CHEV}</div>
+  </button>`;
+}
+
+function renderDetail(){
+  const p=DATA.programs.find(x=>x.id===openProg); if(!p){openProg=null;return renderOverview();}
+  const ems=p.emails.filter(emVisible);
+  stage.innerHTML='';
+  const back=document.createElement('button'); back.className='back'; back.innerHTML=`${BACK} Όλα τα προγράμματα`;
+  back.onclick=()=>{ openProg=null; selKey=null; render(); $('.canvas').scrollTop=0; };
+  stage.appendChild(back);
+
+  const head=document.createElement('div'); head.className='chead';
+  head.innerHTML=`<h1>${esc(p.title)}</h1><span class="csub">${esc(grUp(p.group))} · ${esc(p.subtitle||'')}</span><span class="cn">${ems.length} ${ems.length===1?'email':'emails'}</span>`;
+  stage.appendChild(head);
+  const meta=document.createElement('div'); meta.className='dmeta';
+  meta.innerHTML=[p.trigger,p.cadence,p.goal?('Στόχος · '+p.goal):''].filter(Boolean).map(m=>`<span class="chip">${esc(m)}</span>`).join('');
+  stage.appendChild(meta);
+
+  const det=document.createElement('div'); det.className='detail';
+  if(!ems.length){ det.innerHTML='<div class="empty">Κανένα email δεν ταιριάζει με την αναζήτηση.</div>'; }
+  else{
+    det.innerHTML=`<div class="emails">${ems.map((e,i)=>`
+      <button class="em" data-key="${e.key}">
+        <span class="en">${String(i+1).padStart(2,'0')}</span>
+        <span class="etxt"><span class="es">${esc(e.subject)}</span><span class="et">${esc(e.timing||e.trigger||'')}</span></span>
+        <span class="echev">${CHEV}</span>
+      </button>`).join('')}</div>`;
+  }
+  stage.appendChild(det);
+  stage.querySelectorAll('.em').forEach(btn=>btn.onclick=()=>{ selKey=btn.dataset.key; openSheet(all.find(e=>e.key===selKey)); paintSel(); });
+  paintSel();
+}
+function paintSel(){ stage.querySelectorAll('.em').forEach(b=>b.classList.toggle('on',b.dataset.key===selKey)); }
+
+/* ── Preview sheet ─────────────────────────────────────── */
+const sheet=$('#sheet'), scrim=$('#scrim');
+function blocksHtml(bl){
+  return bl.map(b=>{
+    if(b.t==='hero')return `<div class="mhero"><div class="mhero-v">${b.value}</div><div class="mhero-l">${b.label}</div></div>`;
+    if(b.t==='eyebrow')return `<p class="eb">${b.html}</p>`;
+    if(b.t==='h')return `<h3>${b.html}</h3>`;
+    if(b.t==='p')return `<p>${b.html}</p>`;
+    if(b.t==='ul')return `<ul>${b.items.map(i=>`<li>${i}</li>`).join('')}</ul>`;
+    if(b.t==='btn')return `<a class="mbtn" href="#" onclick="return false">${b.label} →</a>`;
+    if(b.t==='note')return `<p class="mnote">${b.html}</p>`;
+    return '';
+  }).join('');
+}
+function openSheet(e){
+  if(!e) return;
+  sheet.innerHTML=`
+    <div class="sh-top"><div class="stx">
+      <div class="sh-eb"><span class="sd"></span>${esc(e.group)} · ${esc(e.progTitle)} · ${esc(e.key)}</div>
+      <h2>${esc(e.subject)}</h2>
+      <p class="pre">${esc(e.preheader||'')}</p>
+    </div><button class="sh-close" id="shClose" aria-label="Κλείσιμο">✕</button></div>
+    <div class="sh-body">
+      <dl class="facts">
+        <dt>Πλάνα</dt><dd><span class="plans">${e.plans.map(p=>`<span class="pill">${PLAN_LBL[p]}</span>`).join('')}</span></dd>
+        <dt>Έναυσμα</dt><dd>${esc(e.trigger||'')}</dd>
+        <dt>Χρονισμός</dt><dd>${esc(e.timing||'')}</dd>
+        <dt>Προτεραιότητα</dt><dd><span class="prio p${e.priority}">${esc(e.prioLabel||'')}</span></dd>
+        <dt>Παράθυρο</dt><dd>${esc(e.windowLabel||'')}</dd>
+        <dt>Στόχος</dt><dd>${esc(e.goal||'')}</dd>
+        <dt>Αποστολή</dt><dd><span class="auto"><span class="adot"></span>Αυτόματη, με όριο συχνότητας</span></dd>
+      </dl>
+      <div class="render">
+        <p class="rlabel">ΠΡΟΕΠΙΣΚΟΠΗΣΗ</p>
+        <div class="mailhead"><div class="mb">P</div><b>Property OS</b><span>no-reply@propertyos.gr</span></div>
+        <div class="mcard">${blocksHtml(e.blocks)}</div>
+        <p class="mtag">Το ακίνητό σου, υπό έλεγχο.</p>
+        <p class="mfoot">Property OS · Έξυπνη διαχείριση ακινήτων</p>
+      </div>
+    </div>`;
+  sheet.classList.add('show'); scrim.classList.add('show'); sheet.setAttribute('aria-hidden','false');
+  sheet.querySelector('#shClose').onclick=closeSheet;
+  sheet.querySelector('.sh-body').scrollTop=0;
+}
+function closeSheet(){ sheet.classList.remove('show'); scrim.classList.remove('show'); sheet.setAttribute('aria-hidden','true'); selKey=null; paintSel(); }
+scrim.onclick=closeSheet;
+
+/* ── Controls ──────────────────────────────────────────── */
+$('#q').addEventListener('input',ev=>{query=ev.target.value;render();});
+document.querySelectorAll('#planseg button').forEach(b=>b.onclick=()=>{
+  plan=b.dataset.p;
+  document.querySelectorAll('#planseg button').forEach(x=>x.classList.toggle('on',x===b));
+  render();
+});
+$('#brand').onclick=()=>{openProg=null;query='';$('#q').value='';selKey=null;render();$('.canvas').scrollTop=0;};
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'){ if(sheet.classList.contains('show'))closeSheet(); else if(openProg){openProg=null;render();} return; }
+  if(ev.key==='/' && document.activeElement!==$('#q')){ ev.preventDefault(); $('#q').focus(); return; }
+  if((ev.key==='ArrowDown'||ev.key==='ArrowUp') && sheet.classList.contains('show')){
+    ev.preventDefault();
+    const vis=[...stage.querySelectorAll('.em')].map(b=>b.dataset.key);
+    let i=vis.indexOf(selKey);
+    i = ev.key==='ArrowDown' ? Math.min(vis.length-1,i+1) : Math.max(0,i-1);
+    if(vis[i]){ selKey=vis[i]; openSheet(all.find(e=>e.key===selKey)); paintSel();
+      const el=stage.querySelector('.em.on'); if(el)el.scrollIntoView({block:'nearest'}); }
+  }
+});
+const root=document.documentElement;
+$('#tog').onclick=()=>{ const cur=root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'); root.setAttribute('data-theme', cur==='dark'?'light':'dark'); };
+
+render();
+</script>

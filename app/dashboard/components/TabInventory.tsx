@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fe, fn, fd, Spinner, ExportButton } from '@/components/Theme'
-import { downloadCsv, csvEur, csvDate, csvSafe } from './exportCsv'
+import { downloadCsv, csvDate, csvSafe } from './exportCsv'
+import { money as csvEur, percent as csvPct } from './xlsxStyle'
 import { depreciate, replacementSuggestion, portfolioSummary, USEFUL_LIFE_YEARS } from '@/lib/inventory/depreciation'
 import { reportAccent } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
@@ -1775,7 +1776,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   const totalMonthlyCost=electricItems.reduce((s,i)=>s+calcMonthlyCost(i,kwhPrice),0)
   const exportCSV=()=>{
     const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Προέλευση','Κατάστημα','Αριθμός Απόδειξης','Αξία Αγοράς','Αρχ.Τιμή','Έκπτωση%','Τρέχουσα Αξία','Κόστος Αντικ.','Απόσβεση%','Ηλ.Κλάση','Watt','Ώρες/ημ','kWh/μήνα','Κόστος Ρεύμ./μήνα','Smart','Tags','Ηλικία','Ημ/νία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
-    const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,provenanceLabel(i.provenance)||i.provenance||'Νέο',i.store_vendor||'',i.receipt_number||'',i.purchase_value||'',i.original_price||'',i.discount_pct||'',calcCurrentValue(i),i.replacement_cost||'',calcDepreciationPct(i)+'%',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?calcMonthlyCost(i,kwhPrice).toFixed(2):'',i.smart_device?'Ναι':'Όχι',(i.tags||[]).join(';'),calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
+    const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,provenanceLabel(i.provenance)||i.provenance||'Νέο',i.store_vendor||'',i.receipt_number||'',i.purchase_value?csvEur(i.purchase_value):'',i.original_price?csvEur(i.original_price):'',i.discount_pct?csvPct(i.discount_pct):'',csvEur(calcCurrentValue(i)),i.replacement_cost?csvEur(i.replacement_cost):'',csvPct(calcDepreciationPct(i)),i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?csvEur(calcMonthlyCost(i,kwhPrice)):'',i.smart_device?'Ναι':'Όχι',(i.tags||[]).join(';'),calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
     const csv=[headers,...rows].map(row=>row.map(cell=>{const s=csvSafe(String(cell??''));return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n')
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='απογραφη.csv';a.click()
   }

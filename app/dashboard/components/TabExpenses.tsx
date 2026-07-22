@@ -923,7 +923,6 @@ async function downloadOfficialExpenses(
       { label: 'Εκπιπτόμενες δαπάνες', value: pEur(deductible) },
       { label: 'Μη εκπιπτόμενες δαπάνες', value: pEur(total-deductible) },
       { label: 'Ποσοστό εκπτώσεων', value: pPct(total>0?(deductible/total)*100:0) },
-      { label: 'Εκτ. φόρος ενοικίων (15%)', value: pEur(deductible*0.15) },
       { label: 'Σύνολο ΦΠΑ', value: pEur(totalVat) },
       ...(totalCashback>0 ? [{ label: 'Cashback (εξοικονόμηση)', value: pEur(totalCashback) }] : []),
       ...(unpaid>0 ? [{ label: 'Εκκρεμείς πληρωμές', value: pEur(unpaid) }] : []),

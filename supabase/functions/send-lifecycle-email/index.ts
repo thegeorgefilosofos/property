@@ -19,7 +19,8 @@ import {
   feedbackRequestEmail, mobileLaunchEmail, referralInviteEmail, upsellEmail,
   legislationUpdateEmail, seasonalCampaignEmail, type Plan, type Season, type Ctx, type Personal,
 } from '../_shared/emailTemplates.ts'
-import { CATALOG } from '../_shared/emailCopy.ts'
+import { CATALOG, DIGESTS } from '../_shared/emailCopy.ts'
+import { guessGender } from '../_shared/gender.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -80,16 +81,24 @@ Deno.serve(async (req) => {
   if (!event && !copyId) return json({ error: 'no_event' }, 400)
   if (!isEmail(email)) return json({ error: 'bad_email' }, 400)
 
-  // Πλούσιο πλαίσιο εξατομίκευσης από τα params (όνομα, πλάνο και μοναδικά δεδομένα).
+  // Πλούσιο πλαίσιο εξατομίκευσης: όλα τα params περνούν ζωντανά στο κείμενο
+  // (amount, deadlineDate, period, tenantName, cardLast4, digestItems, κ.λπ.),
+  // με το appUrl/όνομα να υπερισχύουν από τον φάκελο.
+  const recipientName = name || (params.name as string) || undefined
   const personal: Personal = {
-    name: name || undefined, appUrl: APP_URL, unsubUrl: params.unsubUrl,
-    plan: params.plan, properties: params.properties, propertyName: params.propertyName,
-    collected: params.collected, outstanding: params.outstanding, portfolioValue: params.portfolioValue,
-    days: params.days, assistantName: params.assistantName,
+    ...(params as Personal),
+    name: recipientName,
+    appUrl: APP_URL,
+    unsubUrl: params.unsubUrl,
+    // Φύλο από το όνομα, αν δεν δόθηκε ρητά — για σωστή προσφώνηση.
+    gender: (params.gender as Personal['gender']) || guessGender(recipientName),
+    tenantGender: (params.tenantGender as Personal['tenantGender']) || guessGender(params.tenantName as string),
   }
 
-  // Προτεραιότητα στο επιμελημένο catalog (copyId)· αλλιώς τα lifecycle templates (event).
-  const tpl = (copyId && CATALOG[copyId]) ? CATALOG[copyId](personal) : render(event, personal, params)
+  // Προτεραιότητα στο επιμελημένο catalog (copyId), μετά τα ενοποιημένα (DIGESTS),
+  // αλλιώς τα lifecycle templates (event).
+  const byCopyId = { ...CATALOG, ...DIGESTS }
+  const tpl = (copyId && byCopyId[copyId]) ? byCopyId[copyId](personal) : render(event, personal, params)
   if (!tpl) return json({ error: 'unknown_email', event, copyId }, 400)
 
   try {

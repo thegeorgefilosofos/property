@@ -220,7 +220,7 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
     if (buildingDepr > 0) lines.push({ key: 'buildingDepreciation', label: 'Αποσβέσεις κτιρίου (4%)', amount: buildingDepr, kind: 'deduction', negative: true })
     if (interest > 0) lines.push({ key: 'interest', label: 'Τόκοι δανείου', amount: interest, kind: 'deduction', negative: true })
   } else if (presumptive > 0) {
-    lines.push({ key: 'presumptive', label: `Τεκμαρτή έκπτωση ${Math.round(presumptiveRate * 100)}%`, amount: presumptive, kind: 'deduction', negative: true })
+    lines.push({ key: 'presumptive', label: `Τεκμαρτή έκπτωση ${Math.round(presumptiveRate * 100)} %`, amount: presumptive, kind: 'deduction', negative: true })
   }
   lines.push({ key: 'taxable', label: 'Φορολογητέο εισόδημα', amount: taxable, kind: 'subtotal' })
   lines.push({ key: 'incomeTax', label: 'Φόρος εισοδήματος', amount: incomeTax, kind: 'tax', negative: true })

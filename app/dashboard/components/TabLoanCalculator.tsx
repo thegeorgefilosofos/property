@@ -2,7 +2,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, InfoDot } from './UIComponents'
 import { KPI, LensBar, cardStyle } from './LoanShared'
-import { downloadCsv, csvEur } from './exportCsv'
+import { downloadCsv } from './exportCsv'
+import { money as csvEur } from './xlsxStyle'
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 import { Badge } from '@/components/Theme'
@@ -720,7 +721,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     }).join('')
     const html=reportHead(docTitle)
       + `<body><div class="page">`
-      + reportHeader(null, 'Πίνακας τοκοχρεολυσίου')
+      + reportHeader(branding, 'Πίνακας τοκοχρεολυσίου')
       + `<h1>Πίνακας τοκοχρεολυσίου</h1>`
       + `<div class="sub">Ανάλυση αποπληρωμής ανά δόση</div>`
       + reportSection('Σύνοψη δανείου')
@@ -729,7 +730,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       + `<table><tbody>${detailRows}</tbody></table>`
       + reportSection('Πρόγραμμα αποπληρωμής')
       + `<table><thead><tr><th>Δόση</th><th>Ημ/νία</th><th class="n">Ποσό</th><th class="n">Κεφάλαιο</th><th class="np">Τόκος</th><th class="n">Υπόλοιπο</th><th class="np">Σωρ. τόκοι</th></tr></thead><tbody>${bodyRows}</tbody></table>`
-      + reportDisclaimer('Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.')
+      + reportDisclaimer('Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.', branding)
       + `</div></body></html>`
     openReport(html)
     showToast('Άνοιξε το παράθυρο εκτύπωσης PDF')

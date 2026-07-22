@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, fn, KPIGrid, Spinner, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton } from '@/components/Theme';
 import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
 import { downloadCsv } from './exportCsv';
+import { money } from './xlsxStyle';
 import { useAppPreferences } from './useAppPreferences';
 // Επαναχρησιμοποίηση του ΥΠΑΡΧΟΝΤΟΣ pipeline OCR/ταξινόμησης (DocumentScan + lib/billing)
 // για αυτόματη αναγνώριση & αρχειοθέτηση κατά το bulk upload — καμία νέα λογική OCR.
@@ -688,7 +689,7 @@ export default function TabDocuments({
     ['Όνομα', 'Φάκελος', 'Πάροχος', 'Ημερομηνία', 'Αξία (€)', 'Πηγή'],
     items.slice().sort(byDateDesc).map(i => [
       i.title, FOLDER_LABEL[i.folder], i.provider || '', i.date ? fd(i.date) : '',
-      i.value != null ? String(i.value) : '', ORIGIN_LABEL[i.source] || 'Αρχείο',
+      i.value != null ? money(i.value) : '', ORIGIN_LABEL[i.source] || 'Αρχείο',
     ]));
 
   // Ενιαίο σημείο ανεβάσματος — ζει στο PageTitle (ή στη γραμμή εργαλείων όταν embedded).

@@ -27,6 +27,7 @@ import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
 import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
+import MonthlyFeedbackNudge from './components/MonthlyFeedbackNudge';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
@@ -1237,6 +1238,9 @@ export default function Dashboard() {
           })}
         </nav>
       )}
+
+      {/* Ήπια μηνιαία παρότρυνση για feedback (πρώτες μέρες του μήνα) */}
+      {user&&<MonthlyFeedbackNudge/>}
 
       {/* Βοηθός ακινήτου, ορατός σε ΚΑΘΕ καρτέλα, πλωτό κουμπί κάτω δεξιά */}
       {selected&&user&&(
