@@ -112,9 +112,15 @@ function isBlockedHost(hRaw: string): boolean {
 // DNS-rebinding (TOCTOU) class that IP-checks alone can't (Deno Deploy exposes no
 // socket-level IP pinning). Extend via ICAL_EXTRA_HOSTS (comma-separated suffixes)
 // without a code change. The IP/DNS checks below stay as defense-in-depth.
+// TLD fragment for OTAs that operate many country domains (airbnb.com, .gr, .co.uk,
+// .com.au). It matches ONLY a real public suffix — a plain TLD (2+ letters), a
+// two-level ccTLD (co.uk, com.au), or .com — so it can never be satisfied by an
+// attacker-controlled suffix like `airbnb.evil.tld` / `airbnb.com.evil.tld`.
+const OTA_TLD = String.raw`(com|[a-z]{2,}|co\.[a-z]{2}|com\.[a-z]{2})`
 const ALLOWED_ICAL_HOSTS: RegExp[] = [
-  /(^|\.)airbnb\.[a-z.]+$/, /(^|\.)booking\.com$/, /(^|\.)vrbo\.com$/, /(^|\.)homeaway\.[a-z.]+$/,
-  /(^|\.)expedia\.[a-z.]+$/, /(^|\.)tripadvisor\.[a-z.]+$/,
+  new RegExp(String.raw`(^|\.)airbnb\.${OTA_TLD}$`), /(^|\.)booking\.com$/, /(^|\.)vrbo\.com$/,
+  new RegExp(String.raw`(^|\.)homeaway\.${OTA_TLD}$`),
+  new RegExp(String.raw`(^|\.)expedia\.${OTA_TLD}$`), new RegExp(String.raw`(^|\.)tripadvisor\.${OTA_TLD}$`),
   /(^|\.)google\.com$/, /(^|\.)googleusercontent\.com$/, /(^|\.)calendar\.google\.com$/,
   /(^|\.)icloud\.com$/, /(^|\.)me\.com$/, /(^|\.)outlook\.(com|office365\.com)$/, /(^|\.)office365\.com$/,
   // Channel managers commonly used for STR in Greece
