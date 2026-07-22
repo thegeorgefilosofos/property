@@ -46,30 +46,37 @@ export async function proxy(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  // Άγγιξε το Supabase auth ΜΟΝΟ αν το αίτημα κουβαλά auth cookie (sb-*). Χωρίς
+  // cookie ο χρήστης είναι σίγουρα ασύνδετος, οπότε γλιτώνουμε ένα round-trip στο
+  // auth σε κάθε ανώνυμη επίσκεψη (π.χ. στη landing). Η λογική redirect μένει ίδια.
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-"));
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  if (hasAuthCookie) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+    user = (await supabase.auth.getUser()).data.user;
+  }
 
   const { pathname } = request.nextUrl;
   // Δημόσιες σελίδες — προσβάσιμες ΧΩΡΙΣ σύνδεση (landing + νομικά + auth).

@@ -31,7 +31,7 @@ service-role key that had been committed to git history. All resolved.
 | 11 | Low | DB fn | `try/release_email_schedule_lock` PUBLIC → scheduler-lock DoS | ✅ Revoked from PUBLIC |
 | 12 | Low | RLS | `inventory_repairs` WITH CHECK OR-branch allowed write-injection onto another owner's item | ✅ Write target must be an item the caller owns |
 | 13 | Low | DB fn | `org_owner_ids` / `org_editor_owner_ids` answered for an arbitrary uid (relationship disclosure) | ✅ Guarded to the calling user |
-| 14 | Low | App | No `middleware.ts`; dashboard auth is client-side only (data still RLS-gated) | 🟠 Planned: session middleware for defence-in-depth |
+| 14 | Low | App | No `middleware.ts`; dashboard auth is client-side only (data still RLS-gated) | ✅ `proxy.ts` (Next 16) refreshes the session, redirects unauthenticated users off protected routes, and sets a strict per-request-nonce CSP + security headers |
 | 15 | Low | DB fn | Accountant/check-in tokens are static bearer capabilities (no PIN/expiry) | 🟠 Design note: consider PIN/expiry like the tenant portal |
 | 16 | Info | Repro | Base tables live in `SETUP_ALL.sql`, not in `migrations/` → a from-scratch `db reset` isn't self-sufficient | 🟠 Unify into a migration baseline once staging exists |
 
@@ -58,7 +58,9 @@ service-role key that had been committed to git history. All resolved.
 
 1. ✅ `maintenance-photos` → private bucket + signed URLs (finding 9) — done
    (`20260722220000_maint_photos_private_bucket.sql`).
-2. Session `middleware.ts` for defence-in-depth (finding 14).
+2. ✅ Session proxy for defence-in-depth (finding 14) — `proxy.ts` (session
+   refresh + auth redirect + CSP). Hardening the redirect against the implicit
+   auth flow (PKCE + `/auth/callback`) is deferred until staging exists.
 3. PIN/expiry option for accountant/check-in tokens (finding 15).
 4. Constant-time comparison for cron-secret checks (hardening).
 5. Migration baseline so the schema rebuilds from `migrations/` alone (finding 16),
