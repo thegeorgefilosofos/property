@@ -14,8 +14,11 @@ on:
 permissions:
   contents: read
 
+# Collapse the PR-event and push-event runs of the SAME branch into one group
+# (head_ref is set on pull_request, ref_name on push — both resolve to the branch
+# name), so a feature branch with an open PR doesn't run CI twice in parallel.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -24,12 +27,13 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies

@@ -1,15 +1,20 @@
 name: Database backup (free-tier safety net)
 
 # Supabase Free has no scheduled backups, so we take our own: a daily logical dump
-# (schema + data + roles) uploaded as a private GitHub Actions artifact, retained 90
-# days and restorable with psql. This is off-site (different provider) — a real DR
-# net until you upgrade to Pro (managed backups + PITR).
+# (schema + data + roles) uploaded as a private GitHub Actions artifact, restorable
+# with psql. This is off-site (different provider) — a real DR net until you upgrade
+# to Pro (managed backups + PITR).
 #
-# ⚠ The artifact contains REAL customer data. Keep this repository PRIVATE. Before
-# onboarding real customers / selling, move to Pro backups (or an encrypted bucket).
+# ⚠ The artifact contains REAL customer data. Two protections:
+#   • Set a repo secret BACKUP_PASSPHRASE and the dump is GPG-symmetric-encrypted
+#     before upload (decrypt with: gpg --decrypt --batch --passphrase "<pass>" file.gpg).
+#     Without it the job still runs but uploads PLAINTEXT and prints a loud warning.
+#   • Keep this repository PRIVATE. Retention is 30 days.
+# Before onboarding real customers / selling, move to Pro backups (or a KMS-encrypted
+# bucket) and set BACKUP_PASSPHRASE.
 #
 # Reuses the same two secrets as the deploy pipeline:
-#   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD   (+ optional BACKUP_PASSPHRASE)
 
 on:
   schedule:
@@ -25,9 +30,11 @@ env:
 jobs:
   backup:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
       - uses: supabase/setup-cli@v1
         with:
@@ -44,6 +51,21 @@ jobs:
           supabase db dump --linked --data-only -f backup/data.sql
           ls -lh backup
 
+      - name: Encrypt dump (or warn if no passphrase)
+        run: |
+          set -euo pipefail
+          if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
+            for f in backup/roles.sql backup/schema.sql backup/data.sql; do
+              gpg --batch --yes --symmetric --cipher-algo AES256 \
+                  --passphrase "$BACKUP_PASSPHRASE" -o "$f.gpg" "$f"
+              rm -f "$f"
+            done
+            echo "🔒 Backup encrypted (AES256) before upload." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::BACKUP_PASSPHRASE is not set — the backup artifact contains PLAINTEXT customer data. Set the secret to encrypt it."
+            echo "⚠️ **Unencrypted backup** — set the \`BACKUP_PASSPHRASE\` repo secret to encrypt the dump at rest." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Date stamp
         id: ts
         run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
@@ -53,4 +75,4 @@ jobs:
         with:
           name: supabase-backup-${{ steps.ts.outputs.date }}
           path: backup/
-          retention-days: 90
+          retention-days: 30
