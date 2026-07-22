@@ -42,8 +42,8 @@ jobs:
       - name: Security scan (secrets / forbidden files) — blocking
         run: npm run security
 
-      - name: Lint (informational)
-        run: npm run lint || true
+      - name: Lint ratchet (errors may only go down) — blocking
+        run: npm run lint:ratchet
 
       - name: Typecheck
         run: npx tsc --noEmit

@@ -1489,7 +1489,6 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     if (sortMode === 'alpha') list = [...list].sort((a, b) => a.full_name.localeCompare(b.full_name, 'el'))
     if (sortMode === 'rating') list = [...list].sort((a, b) => (b._extra?.rating || 0) - (a._extra?.rating || 0))
     return [...list.filter(c => c._extra?.preferred), ...list.filter(c => !c._extra?.preferred)]
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contacts, search, filterGroup, filterTag, filterScope, sortMode, isPro])
 
   const groupedFiltered: Record<string, Contact[]> = {}

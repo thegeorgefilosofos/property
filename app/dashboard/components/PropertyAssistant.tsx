@@ -124,7 +124,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Μνήμη ανά ακίνητο: φόρτωσε προηγούμενη συζήτηση (αν το επιτρέπει ο χρήστης),
