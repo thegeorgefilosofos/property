@@ -48,6 +48,33 @@ jobs:
       - name: Link project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
+      # Self-healing migration history. The remote history table can contain
+      # versions that have no file in supabase/migrations/ (schema applied via the
+      # dashboard/SQL editor in the past, or a half-finished CLI run). `db push`
+      # aborts on those with "Remote migration versions not found in local
+      # migrations directory". Rather than ever asking a human to run a repair by
+      # hand, we detect every remote-only version from `migration list` and mark it
+      # `reverted` in the *bookkeeping* table — this only edits history, never the
+      # live schema, so nothing is dropped. Idempotent: on a clean history this is a
+      # no-op. This keeps the pipeline green through any future drift, untouched.
+      - name: Reconcile migration history
+        run: |
+          set -euo pipefail
+          # Columns: LOCAL | REMOTE | TIME. A remote-only row has an empty LOCAL
+          # cell and a numeric REMOTE cell -> that version needs reverting.
+          orphans="$(
+            supabase migration list --linked 2>/dev/null \
+              | awk -F'|' 'NR>2 { gsub(/[^0-9]/,"",$1); gsub(/[^0-9]/,"",$2);
+                                  if ($1=="" && $2!="") print $2 }' \
+              | tr '\n' ' '
+          )"
+          if [ -n "${orphans// /}" ]; then
+            echo "Reverting orphaned remote migration versions: $orphans"
+            supabase migration repair --status reverted $orphans
+          else
+            echo "Migration history is clean — nothing to reconcile."
+          fi
+
       # Applies every migration not yet recorded in the remote history table.
       # All our migrations are idempotent, so a re-applied one is a safe no-op.
       - name: Apply database migrations

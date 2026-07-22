@@ -24,8 +24,10 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 - ✅ **Migrations-as-code** — the whole schema rebuilds from `supabase/migrations/`.
 - ✅ **CI/CD** — `.github/workflows/supabase-deploy.yml` applies migrations + deploys
   functions on push. No manual dashboard changes; no always-on write credential.
-- 🟠 Verify the remote migration history matches the repo (so `db reset` rebuilds
-  cleanly) — reconcile once with `migration repair` if needed.
+- ✅ Remote migration history is kept consistent with the repo **automatically** — the
+  deploy pipeline's *Reconcile migration history* step reverts any orphaned remote-only
+  version before each `db push` (bookkeeping only; never touches the schema), so the
+  history never drifts and no human runs `migration repair` by hand.
 
 ## 4. Environments
 - 🔴 Everything is on **`main` = production.** Add a **staging** environment

@@ -13,9 +13,13 @@ dashboard; Claude writes migrations/functions and pushes; the pipeline deploys t
   CLI authenticates from short-lived GitHub Actions secrets.
 - **One-time setup** (GitHub → Settings → Secrets and variables → Actions):
   `SUPABASE_ACCESS_TOKEN` (a Personal Access Token) and `SUPABASE_DB_PASSWORD`.
-- First run: `db push` may report already-applied idempotent migrations (safe). If it
-  errors on migration history, run `supabase migration list` then
-  `supabase migration repair --status applied <version>` once, then it is automatic.
+- **Self-healing history** — you never run a repair by hand. Before every `db push`
+  the pipeline's *Reconcile migration history* step lists the remote history, finds
+  any version that has no file in `supabase/migrations/` (schema once applied via the
+  dashboard/SQL editor), and marks it `reverted` in the bookkeeping table. That edits
+  history only — never the live schema — so nothing is dropped, and it is a no-op on a
+  clean history. Result: the deploy stays green through any drift, with zero manual
+  action.
 
 ## Why not give the AI a live write token?
 Because a customer-data production DB should never have an always-on credential that
