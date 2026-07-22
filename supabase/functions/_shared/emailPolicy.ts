@@ -80,7 +80,7 @@ const P3_OPPORTUNITY = [
   'limit_reached', 'value_left', 'annual_discount', 'trial_ending',
   'roi_proof', 'plan_comparison', 'rent_benchmark_alert', 'market_digest',
   'occupancy_gap', 'reactivation_offer', 'winback_offer', 'winback_downgrade',
-  'news_rate_move', 'news_insurance_risk',   // topical value hooks
+  'news_rate_move', 'news_insurance_risk', 'news_utility_prices',   // topical value hooks
 ];
 
 // P5 — soft / optional. Only when nothing heavier is going out; first to defer.
@@ -88,6 +88,7 @@ const P5_SOFT = [
   'roadmap_preview', 'nps_survey', 'feedback_lottery', 'best_practice_tip',
   'webinar_invite', 'assistant_showcase', 'social_proof', 'churn_survey',
   'tip_assistant', 'voice_entry', 'tip_reports', 'feedback_week1', 'recap_week2',
+  'yield_boost',
 ];
 
 // Everything else (onboarding drip steps, monthly statement, product & seasonal
@@ -149,8 +150,11 @@ const WEIGHT: Record<string, number> = {
   winback_downgrade: 9, limit_reached: 9, reactivation_offer: 8, winback_offer: 8, trial_ending: 8,
   value_left: 8, annual_discount: 7, upsell_to_professional: 7, upsell_to_individual: 7,
   free_month_upgrade: 6, document_pack: 6, energy_savings: 6, insurance_enfia: 6, roi_proof: 6, occupancy_gap: 6,
+  news_utility_prices: 6, news_insurance_risk: 6, news_rate_move: 5,
   loan_costs: 5, plan_comparison: 5, rent_benchmark_alert: 5, rate_alert: 4, market_digest: 3,
 };
+// Note: loan_first_scenario is an event-triggered educational follow-up and falls
+// through to the P4 lifecycle default (evening, one/day) — intentional, not upsell.
 const weightOf = (id: string) => WEIGHT[id] ?? 1;
 
 // ── The planner ──────────────────────────────────────────────────────────────

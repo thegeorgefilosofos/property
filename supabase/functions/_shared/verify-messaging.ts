@@ -1,5 +1,5 @@
 // Tests for the multichannel messaging layer. Run: npx tsx verify-messaging.ts
-import { MSG, renderPush, renderViber, renderWhatsApp, pickChannel } from './messaging.ts';
+import { MSG, renderPush, renderViber, renderIMessage, renderWhatsApp, pickChannel } from './messaging.ts';
 import type { Personal } from './emailTemplates.ts';
 
 let failed = 0;
@@ -30,6 +30,8 @@ console.log('\n2) Adapters respect channel limits');
   ok(push.title.length <= 48 && push.body.length <= 140, 'push truncates title ≤48 and body ≤140');
   const v = renderViber(m, 'https://propertyos.gr/dashboard');
   ok(v.text.includes('\n') && v.action?.url === 'https://propertyos.gr/dashboard', 'viber carries title+body and a link action');
+  const im = renderIMessage(m, 'https://propertyos.gr/dashboard');
+  ok(im.text.includes('\n') && im.text.includes('propertyos.gr') && im.action?.url === 'https://propertyos.gr/dashboard', 'imessage carries title+body, an inline link for the preview card, and a link action');
   const w = renderWhatsApp(m, 'digest_obligations', 'https://propertyos.gr/dashboard');
   const param = w.template.components[0].parameters[0].text;
   ok(w.template.name === 'po_digest_obligations' && w.template.language.code === 'el', 'whatsapp emits a named el template');
@@ -54,6 +56,9 @@ console.log('\n3) Channel selection never stacks — one delivery, one channel')
   ok(pickChannel('subscription_receipt', {}) === 'email', 'no opt-in → email even for urgent');
   ok(pickChannel('subscription_receipt', { viber: true }) === 'viber', 'urgent + viber opt-in → viber');
   ok(pickChannel('dunning_final', { push: true }) === 'push', 'obligation + push opt-in → push');
+  ok(pickChannel('str_stay_tax', { imessage: true }) === 'imessage', 'compliance obligation + imessage opt-in → imessage');
+  ok(pickChannel('lease_declaration_reminder', { imessage: true, push: true }) === 'imessage', 'imessage wins over push when both opted in');
+  ok(pickChannel('checkin_today', { viber: true, imessage: true }) === 'viber', 'viber wins the tie-break over imessage');
   ok(pickChannel('monthly_statement', { viber: true }) === 'email', 'lifecycle stays on email even with opt-in');
   ok(pickChannel('rate_alert', { viber: true }) === 'email', 'opportunity stays on email');
   ok(pickChannel('some_unknown_key', { viber: true }) === 'email', 'no short variant → email');
