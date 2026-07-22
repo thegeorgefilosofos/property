@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': 'inline; filename="property-os.ics"',
-      'Cache-Control': 'public, max-age=3600',
+      // Token-authorized personal data — must never sit in a shared/CDN cache.
+      'Cache-Control': 'private, no-store',
     },
   })
 })

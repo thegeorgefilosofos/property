@@ -300,7 +300,9 @@ Deno.serve(async (req) => {
 
     return json({ error: 'Άγνωστη ενέργεια' }, 400)
   } catch (err) {
+    // Log the detail server-side only; return a generic message so internal
+    // network/SSRF details are never reflected to the caller.
     reportEdgeError('ical-sync', err)
-    return json({ error: String(err) }, 500)
+    return json({ error: 'Ο συγχρονισμός απέτυχε' }, 500)
   }
 })
