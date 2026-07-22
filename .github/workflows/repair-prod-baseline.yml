@@ -1,0 +1,39 @@
+name: Repair production migration history (one-off)
+
+# One-off, BOOKKEEPING-ONLY (audit finding 16 follow-through). After the schema
+# was squashed into the three baseline migrations, production already contains
+# that exact schema. This marks the three baseline versions as already-applied in
+# production's migration-history table so the next `db push` skips them instead of
+# trying to re-CREATE existing objects. `migration repair` only edits the
+# bookkeeping table — it never runs DDL, so production data/schema are untouchable.
+# The pre-baseline versions become local-missing orphans and are reverted
+# automatically by the deploy's own reconcile step. Removed once done.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link production
+        run: supabase link --project-ref aromvduuxtcrzmwwvnej
+
+      - name: Mark the baseline versions as already-applied on production
+        run: supabase migration repair --status applied 00000000000000 00000000000001 00000000000002
+
+      - name: Show reconciled history
+        run: supabase migration list --linked || true
