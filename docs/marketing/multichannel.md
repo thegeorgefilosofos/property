@@ -70,7 +70,25 @@ caps and digests already applied — the channel is just the last hop.
   already has a `wants_mobile` flag (referral/entitlements migration); add per-
   channel opt-in columns (`wants_push`, `wants_viber`, `wants_whatsapp`) and a
   device-token table.
-- A thin `dispatch-message` edge function that reads a due row, calls
-  `pickChannel`, and hands off to the right provider. The message catalog,
-  adapters and selection are already done and tested; only the provider calls and
-  the opt-in columns remain.
+## What is now built
+
+- **`messaging_prefs`** (per-user opt-in: email/push/viber/whatsapp + `phone_e164`)
+  and **`push_devices`** tables, RLS-owned by the user — migration
+  `20260722100000_messaging_channels.sql`. Email on by default; the rest opt-in,
+  so a user with no row is email-only.
+- **`dispatch-message`** edge function — the single seam: reads a delivery, looks
+  up the recipient's opt-ins, calls `pickChannel`, and routes to email
+  (send-lifecycle-email), Viber, WhatsApp (template payload) or push (FCM). If a
+  provider key or the phone/device is missing, it falls back to email — never a
+  double-send, never a lost message.
+- The scheduler is single-flight (advisory lock) so overlapping cron runs can't
+  double-plan.
+
+## To go live (only provider credentials remain)
+
+- Set `VIBER_TOKEN`, `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID` (with Meta-approved
+  templates named `po_<copyId>`), and a push key (`FCM_SERVER_KEY`).
+- Point the drain at `dispatch-message` instead of `send-lifecycle-email` so every
+  delivery passes through the one channel seam.
+- Collect opt-ins + phone/device tokens in-app (write to `messaging_prefs` /
+  `push_devices`). Until then everything is email, exactly as today.
