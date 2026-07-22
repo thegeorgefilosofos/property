@@ -111,14 +111,17 @@ Deno.serve(async (req) => {
     }
     if (channel === 'push' && FCM_KEY && userId) {
       const { data: devices } = await supabase.from('push_devices').select('token').eq('user_id', userId)
-      const p = renderPush(msg)
-      for (const d of devices || []) {
-        await fetch('https://fcm.googleapis.com/fcm/send', {
-          method: 'POST', headers: { Authorization: `key=${FCM_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: d.token, notification: { title: p.title, body: p.body }, data: { url } }),
-        })
+      if (devices && devices.length) {
+        const p = renderPush(msg)
+        for (const d of devices) {
+          await fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST', headers: { Authorization: `key=${FCM_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: d.token, notification: { title: p.title, body: p.body }, data: { url } }),
+          })
+        }
+        return json({ channel: 'push', devices: devices.length })
       }
-      return json({ channel: 'push', devices: (devices || []).length })
+      // No registered device → fall through to the email fallback below (never a lost message).
     }
 
     // Chosen channel not configured (missing key/phone/device) → email fallback.
