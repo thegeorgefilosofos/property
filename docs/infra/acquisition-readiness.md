@@ -34,10 +34,14 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 - ✅ Service-role key server-side only (edge functions); client uses anon key + RLS.
 
 ## 2. Backups & disaster recovery — 🔴 top priority
-- 🔴 On **Free plan → no backups, no PITR.** For production customer data this is the
-  single biggest DD red flag. **Upgrade to Pro** → daily backups + 7-day
+- 🔴 On **Free plan → no managed backups, no PITR.** For production customer data this
+  is the single biggest DD red flag. **Upgrade to Pro** → daily backups + 7-day
   Point-in-Time Recovery. A buyer asks "what's your RPO/RTO?" — right now it is
   "none". After Pro: RPO ≤ 24h (≈0 with PITR), documented restore procedure.
+- 🟠 **Interim free safety net**: `db-backup.yml` takes a daily off-site logical dump
+  (roles + schema + data) as a private, 30-day GitHub artifact. Set a `BACKUP_PASSPHRASE`
+  repo secret and it is **GPG-AES256-encrypted** at rest before upload (without it the
+  job still runs but warns loudly). Not a substitute for Pro/PITR, but a real net today.
 
 ## 3. Change management & reproducibility
 - ✅ **Migrations-as-code** — the whole schema rebuilds from `supabase/migrations/`
@@ -96,7 +100,14 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 
 ## 8. Observability & operations
 - 🟠 Error tracking (e.g. Sentry) on app + edge functions; uptime monitoring.
-- 🟠 Alerting on failed cron/migrations/deploys.
+- ✅ **Alerting on failed deploys** — the deploy pipeline's `notify-failure` job opens
+  (and idempotently reuses) a labelled GitHub issue on any failed migration/function
+  deploy, so a red deploy is never silent (the free alternative to a paid alerting
+  integration).
+- ✅ **CI quality gate** — every PR to `main` (and `claude/**` push) must pass
+  typecheck + the full domain test-suite + a production build before it can merge
+  (`.github/workflows/ci.yml`); Dependabot keeps npm + the Actions themselves current,
+  each update verified by that gate.
 - ✅ Test suite (lib unit tests + verify-policy/messaging/gender for the messaging
   system) runs in the repo.
 
