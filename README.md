@@ -152,13 +152,18 @@ npx tsc --noEmit    # strict typecheck
 
 ## CI/CD & deployment
 
-Two GitHub Actions workflows, both driven by short-lived secrets (no standing
+GitHub Actions workflows, all driven by short-lived secrets (no standing
 credentials):
 
+- **`ci.yml`** — quality gate on every PR to `main` and `claude/**` push: secret
+  scan, lint-debt ratchet (error count may only go down), typecheck, the full
+  domain test-suite, and a production build. Blocking; no deploy.
 - **`supabase-deploy.yml`** — on push, reconciles migration history, runs
-  `supabase db push`, and deploys the edge functions. Self-healing and idempotent.
+  `supabase db push`, and deploys the edge functions (staging on `claude/**`,
+  production on `main`). Self-healing and idempotent, with a failure-alert job.
 - **`db-backup.yml`** — daily logical dump (roles + schema + data) to a private,
   retained artifact — an off-site safety net on the current plan.
+- **Dependabot** keeps npm + the Actions current, each update verified by `ci.yml`.
 
 ## Documentation
 

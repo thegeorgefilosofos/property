@@ -15,10 +15,11 @@ This document is the map. The authority is the SQL:
   the SQL editor; every statement is `… if not exists` / `drop policy if exists`.
 - **`functions/`** — edge functions (Deno) and the `_shared` domain modules they import.
 
-> Reproducibility note: a fresh environment is bootstrapped from `SETUP_ALL.sql`, then
-> kept current by `migrations/`. Unifying these into a single migration baseline is
-> planned once a staging project exists to validate a from-scratch `db reset`
-> (see `../docs/infra/acquisition-readiness.md`).
+> Reproducibility note: a fresh environment rebuilds **entirely from `migrations/`** —
+> the history is squashed into a production-schema baseline (`00000000000000_baseline.sql`
+> + storage/scheduling companions) and validated from scratch on the staging project on
+> every feature-branch push. `SETUP_ALL.sql` is a legacy convenience snapshot and is **not**
+> the source of truth (see `../docs/infra/acquisition-readiness.md`).
 
 ## Entity overview (ERD)
 
