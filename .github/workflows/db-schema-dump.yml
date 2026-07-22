@@ -33,6 +33,15 @@ jobs:
       - name: Dump public schema
         run: supabase db dump --linked -f schema-public.sql
 
+      # Print the dump to the job log with clear delimiters so it can be read
+      # back without needing artifact download (the agent proxy blocks the blob
+      # host). The schema contains no secrets — DDL only.
+      - name: Print schema
+        run: |
+          echo "=====SCHEMA_DUMP_BEGIN====="
+          cat schema-public.sql
+          echo "=====SCHEMA_DUMP_END====="
+
       - uses: actions/upload-artifact@v4
         with:
           name: db-schema
