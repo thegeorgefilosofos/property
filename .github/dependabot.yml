@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # npm dependencies — weekly security & version updates, grouped to keep PR noise
+  # low. Dependabot opens PRs; the CI gate verifies them before they can merge.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      production-dependencies:
+        dependency-type: production
+      development-dependencies:
+        dependency-type: development
+
+  # Keep the GitHub Actions themselves (checkout, setup-node, setup-cli…) current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5

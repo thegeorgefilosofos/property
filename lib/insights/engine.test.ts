@@ -74,9 +74,12 @@ ok(get(base({ inventory: [{ name: 'Πλυντήριο', warranty_expiry: inDays(
 { const list = computeInsights(base({ property: { ...base().property, insurance_expiry: inDays(-3) }, netYield: 6 }));
   ok(list[0].kind === 'urgent', 'urgent sorts first'); }
 
-// 19. Χαιρετισμός
-ok(greeting(new Date('2026-07-06T09:00:00').getTime(), 'Γιώργος Παπαδόπουλος') === 'Καλημέρα, Γιώργο', 'greeting morning + first name (κλητική)');
-ok(greeting(new Date('2026-07-06T20:00:00').getTime()) === 'Καλό βράδυ', 'greeting evening no name');
+// 19. Χαιρετισμός — timestamps anchored σε UTC (…Z) ώστε το test να είναι
+// ντετερμινιστικό ανεξάρτητα από τη ζώνη ώρας του runner· η greeting() υπολογίζει
+// πάντα σε ώρα Ελλάδας (Europe/Athens). Καλοκαίρι = EEST (UTC+3):
+//   06:00Z → 09:00 Αθήνα (πρωί → «Καλημέρα»)· 17:00Z → 20:00 Αθήνα (βράδυ → «Καλησπέρα»).
+ok(greeting(new Date('2026-07-06T06:00:00Z').getTime(), 'Γιώργος Παπαδόπουλος') === 'Καλημέρα, Γιώργο', 'greeting morning + first name (κλητική)');
+ok(greeting(new Date('2026-07-06T17:00:00Z').getTime()) === 'Καλησπέρα', 'greeting evening no name');
 
 // 20. Ντετερμινισμός: ίδιο input → ίδιο output
 { const a = JSON.stringify(computeInsights(base())); const b = JSON.stringify(computeInsights(base()));
