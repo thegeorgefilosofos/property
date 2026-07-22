@@ -1,6 +1,6 @@
-import * as C from '../../../supabase/functions/_shared/emailCopy.ts'
-import { type Personal, type CopyFn } from '../../../supabase/functions/_shared/emailTemplates.ts'
-import { policyFor, SLOT_TIME } from '../../../supabase/functions/_shared/emailPolicy.ts'
+import * as C from '../../../../../home/user/property/supabase/functions/_shared/emailCopy.ts'
+import { type Personal, type CopyFn } from '../../../../../home/user/property/supabase/functions/_shared/emailTemplates.ts'
+import { policyFor, SLOT_TIME } from '../../../../../home/user/property/supabase/functions/_shared/emailPolicy.ts'
 import { writeFileSync } from 'node:fs'
 
 const PRIO_LABEL: Record<number, string> = { 1: 'Συναλλακτικό', 2: 'Υποχρέωση', 3: 'Ευκαιρία', 4: 'Ενημέρωση', 5: 'Προαιρετικό' }
@@ -80,6 +80,7 @@ const PROGRAMS: Prog[] = [
   { id: 'billing', title: 'Συνδρομή', subtitle: 'Έσοδα χωρίς διαρροές', plans: IP, trigger: 'Κατάσταση συνδρομής', cadence: 'Κατά συμβάν', goal: 'Έσοδα', rec: C.BILLING },
   { id: 'relationship', title: 'Σχέσεις', subtitle: 'Ενοικιαστές & συνιδιοκτήτες', plans: IP, trigger: 'Ενοικιαστής / συνιδιοκτήτης', cadence: 'Κατά συμβάν', goal: 'Σχέση', rec: C.RELATIONSHIP },
   { id: 'value', title: 'Αξία & Εξοικονόμηση', subtitle: 'Χρήματα στην τσέπη', plans: A, trigger: 'Ευκαιρία αξίας', cadence: 'Κατά συμβάν', goal: 'Αξία', rec: C.VALUE },
+  { id: 'news', title: 'Επικαιρότητα', subtitle: 'Με αφορμή τα γεγονότα', plans: A, trigger: 'Πραγματικό γεγονός', cadence: 'Editorial', goal: 'Αξία & εμπιστοσύνη', rec: C.NEWS },
 ]
 const PLAN_OVERRIDE: Record<string, Plan[]> = {
   welcome_free: ['free'], welcome_individual: ['individual'], welcome_professional: ['professional'],
@@ -93,6 +94,7 @@ const TIMING: Record<string, string> = {
   winback: 'Ημέρες 30 / 60 / 90', operations: 'Πριν τη λήξη ή ημερομηνία', shortterm: 'Ημέρα άφιξης/αναχώρησης',
   product: 'Με την κυκλοφορία', conversion: 'Όταν υπάρχει αποδεδειγμένη αξία', compliance: 'Πριν την προθεσμία',
   billing: 'Πριν και μετά τη χρέωση', relationship: 'Με το συμβάν', value: 'Όταν εντοπίζεται ευκαιρία',
+  news: 'Με αφορμή πραγματικό γεγονός (editorial)',
 }
 // Ακριβής χρόνος αποστολής ανά email (fallback στο TIMING του προγράμματος).
 const SCHEDULE: Record<string, string> = {
@@ -114,7 +116,7 @@ const SCHEDULE: Record<string, string> = {
 const GROUP: Record<string, string> = {
   onboarding: 'Υποδοχή',
   engagement: 'Αφοσίωση', product: 'Αφοσίωση', winback: 'Αφοσίωση',
-  upsell: 'Ανάπτυξη', seasonal: 'Ανάπτυξη', conversion: 'Ανάπτυξη', referral: 'Ανάπτυξη',
+  upsell: 'Ανάπτυξη', seasonal: 'Ανάπτυξη', conversion: 'Ανάπτυξη', referral: 'Ανάπτυξη', news: 'Ανάπτυξη',
   operations: 'Καθημερινότητα', shortterm: 'Καθημερινότητα', value: 'Καθημερινότητα',
   lifecycle: 'Εμπιστοσύνη', billing: 'Εμπιστοσύνη', compliance: 'Εμπιστοσύνη', relationship: 'Εμπιστοσύνη',
 }
