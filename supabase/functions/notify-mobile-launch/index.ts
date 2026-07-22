@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { timingSafeEqual } from '../_shared/auth.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -73,7 +74,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
 
 Deno.serve(async (req) => {
   const header = req.headers.get('x-cron-secret') || ''
-  if (!LAUNCH_SECRET || header !== LAUNCH_SECRET) {
+  if (!LAUNCH_SECRET || !timingSafeEqual(header, LAUNCH_SECRET)) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
   }
 

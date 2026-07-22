@@ -107,7 +107,12 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   triggers where relevant.
 
 ## 8. Observability & operations
-- 🟠 Error tracking (e.g. Sentry) on app + edge functions; uptime monitoring.
+- ✅ **Error tracking wired (env-gated, free)** — `lib/observability/report.ts` (app,
+  via `error.tsx`/`global-error.tsx` boundaries) and `supabase/functions/_shared/report.ts`
+  (edge) post a minimal Sentry envelope over plain fetch (no SDK, no bundle cost) when a
+  DSN is configured, and are a pure no-op otherwise. PII keys are scrubbed before send.
+  Owner flips it on by setting `NEXT_PUBLIC_SENTRY_DSN` (app) / `SENTRY_DSN` (edge).
+- 🟠 Uptime monitoring (external ping) still to add.
 - ✅ **Alerting on failed deploys** — the deploy pipeline's `notify-failure` job opens
   (and idempotently reuses) a labelled GitHub issue on any failed migration/function
   deploy, so a red deploy is never silent (the free alternative to a paid alerting

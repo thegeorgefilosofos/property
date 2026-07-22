@@ -21,6 +21,7 @@ import {
 } from '../_shared/emailTemplates.ts'
 import { CATALOG, DIGESTS } from '../_shared/emailCopy.ts'
 import { guessGender } from '../_shared/gender.ts'
+import { authorizeCron } from '../_shared/auth.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -34,15 +35,7 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
 
 async function authorized(req: Request): Promise<boolean> {
-  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
-  if (SERVICE_KEY && bearer === SERVICE_KEY) return true
-  const header = req.headers.get('x-cron-secret') || ''
-  if (CRON_SECRET && header === CRON_SECRET) return true
-  if (header) {
-    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
-    if (data?.secret && header === data.secret) return true
-  }
-  return false
+  return authorizeCron(req, { serviceKey: SERVICE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
 // Επιλογή template από το event. Επιστρέφει { subject, html } ή null αν άγνωστο.

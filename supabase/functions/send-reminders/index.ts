@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authorizeCron } from '../_shared/auth.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -19,15 +20,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 // από τον πίνακα και το function την επαληθεύει με τον service-role client του —
 // άρα δεν χρειάζεται κανένα χειροκίνητο μυστικό στο dashboard.
 async function authorized(req: Request): Promise<boolean> {
-  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
-  if (SUPABASE_KEY && bearer === SUPABASE_KEY) return true
-  const header = req.headers.get('x-cron-secret') || ''
-  if (CRON_SECRET && header === CRON_SECRET) return true
-  if (header) {
-    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
-    if (data?.secret && header === data.secret) return true
-  }
-  return false
+  return authorizeCron(req, { serviceKey: SUPABASE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
 function buildEmail(events: any[], reminderType: string) {

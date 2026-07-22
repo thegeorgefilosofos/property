@@ -13,6 +13,7 @@
 // Χρειάζεται RESEND_API_KEY (υπάρχει) + προαιρετικά RESEND_FROM (branded αποστολέας).
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authorizeCron } from '../_shared/auth.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -29,15 +30,7 @@ const MONTHS = ['Ιανουαρίου', 'Φεβρουαρίου', 'Μαρτίο�
 // Εξουσιοδότηση cron (zero-config): service-role bearer, ή x-cron-secret env, ή το
 // κοινό μυστικό του πίνακα cron_secrets (το στέλνει το pg_cron).
 async function authorized(req: Request): Promise<boolean> {
-  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
-  if (SERVICE_KEY && bearer === SERVICE_KEY) return true
-  const header = req.headers.get('x-cron-secret') || ''
-  if (CRON_SECRET && header === CRON_SECRET) return true
-  if (header) {
-    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
-    if (data?.secret && header === data.secret) return true
-  }
-  return false
+  return authorizeCron(req, { serviceKey: SERVICE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
 interface Rent { property_id: string | null; tenant_id: string | null; amount: number | null; paid: boolean | null }

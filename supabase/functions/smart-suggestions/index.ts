@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { reportEdgeError } from '../_shared/report.ts'
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')!
@@ -118,7 +119,7 @@ ${JSON.stringify(expenses, null, 2)}
 
     return json({ suggestions }, 200)
   } catch (err) {
-    console.error('Function error:', String(err))
+    reportEdgeError('smart-suggestions', err)
     return json({ error: 'internal error' }, 500)
   }
 })
