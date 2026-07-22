@@ -25,8 +25,12 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   `send-test-notification` restricted to the caller's own address.
 - ✅ Every SECURITY DEFINER function pins `search_path`; token-gated portal/checkin/
   accountant/verify RPCs validate the token before returning any row (audited).
-- 🟠 **Security Advisor** (Dashboard → Advisors → Security): still run it as the
-  ongoing guard and close anything it flags via a hardening migration.
+- ✅ **Security Advisor findings closed** (`20260722210000_advisor_hardening.sql`):
+  pinned `search_path` on the remaining flagged functions; switched the
+  `active_loan_programs` view to `security_invoker`; revoked anon/authenticated
+  EXECUTE on backend-/trigger-only functions (token-gated portal/checkin/
+  accountant/verify/referral RPCs deliberately kept reachable). Keep running the
+  advisor as the ongoing guard.
 - ✅ Service-role key server-side only (edge functions); client uses anon key + RLS.
 
 ## 2. Backups & disaster recovery — 🔴 top priority
@@ -50,9 +54,11 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   expect prod ≠ dev.
 
 ## 5. Data privacy & compliance (EU / GDPR) — 🔴 for an EU SaaS sale
-- 🔴 **Data residency**: confirm the project region is in the **EU**.
-- 🔴 **Right to erasure & portability**: a user-data **export** and **delete-account**
-  path (we can build both as edge functions).
+- ✅ **Data residency**: project region is **EU — Central EU (Frankfurt),
+  `eu-central-1`**. Data stays in the EU.
+- ✅ **Right to erasure & portability**: one-click **export** (`export_my_data`,
+  dynamic per-user JSON of every table) and **delete-account**
+  (`delete_my_account`), both surfaced in Settings → Data & Privacy.
 - 🔴 **Records of processing + subprocessor list** (Supabase, Resend, messaging
   providers) and **DPAs** in place; a published Privacy Policy + Terms.
 - 🟠 PII minimization: no secrets/PII in logs; the lock-screen/no-amount rules in the
@@ -62,14 +68,23 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 - ✅ **MFA (TOTP)** enabled (free); **strong-password policy enforced server-side** —
   min length 8, requires lower/upper/digit/symbol; **anonymous sign-ins off**,
   **email confirmation on**, single provider (email) enabled.
+- ✅ **In-app MFA enrollment** — Settings → Security lets a user bind a TOTP
+  authenticator (QR + manual secret), verify, and disable, with activity logging,
+  so the enabled TOTP factor is actually usable end-to-end.
+- ✅ **Client-side strength check on every password entry point** — one shared
+  policy (`lib/auth/password.ts`) mirrors the server rules (≥8 + lower/upper/
+  digit/symbol) with a live meter and blocks obvious passwords, on signup,
+  password reset, and change-password. The free complement to HIBP.
 - 🟠 **Leaked-password protection** (HaveIBeenPwned) is **Pro-only** — deferred with
-  the other Pro items (managed backups/PITR). Server-side complexity rules cover most
-  of the benefit on Free; an optional client-side strength check can add UX feedback.
+  the other Pro items (managed backups/PITR).
 - 🟠 Restrict redirect URLs to your domains; keep OTP lifetimes tight (≤ 900s).
 
 ## 7. Performance & schema hygiene
-- 🟠 **Performance Advisor**: add indexes on unindexed foreign keys; drop unused
-  indexes. Ship as a migration.
+- ✅ **Unindexed foreign keys closed** (`20260722210000_advisor_hardening.sql`):
+  a catalog-driven block adds a covering btree index for every FK that lacked
+  one — generic, so it stays correct as the schema grows.
+- 🟠 **Performance Advisor**: keep running it; consider dropping genuinely unused
+  indexes once there's production traffic to judge them by.
 - 🟠 Consistent constraints (FKs, `not null`, checks), naming, and `updated_at`
   triggers where relevant.
 
