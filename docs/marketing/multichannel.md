@@ -1,9 +1,13 @@
-# Multichannel messaging (Viber · WhatsApp · Push)
+# Multichannel messaging (Viber · WhatsApp · iMessage · Push)
 
 Email is the home of everything the system says. A phone message is for the one
 thing that matters right now. This layer (`_shared/messaging.ts`) adds short,
-glanceable variants of the urgent events and — the part that protects the user —
-decides **one channel per delivery**, with the daily caps spanning every channel.
+glanceable variants of the urgent events — written in the same warm Property OS
+voice as the emails, only compressed to a lock screen — and, the part that
+protects the user, decides **one channel per delivery**, with the daily caps
+spanning every channel. Messages are gender-aware where a third person (a tenant)
+is named, with a safe neutral fallback, and never expose an amount or a private
+name on the lock screen.
 
 ## The rule that makes it not-spam
 
@@ -31,20 +35,33 @@ pickChannel(copyId, prefs)
   category not transactional/oblig.  → email
   viber opted-in                     → viber
   whatsapp opted-in                  → whatsapp
+  imessage opted-in                  → imessage
   push opted-in                      → push
   otherwise                          → email
 ```
+
+The tie-break order (Viber → WhatsApp → iMessage → push) only matters when a user
+opted into several; the messaging apps most common in Greece come first. Any single
+delivery still goes to exactly one channel.
 
 Opt-in is per channel and per user. With no opt-in, everything is email — the
 messaging channels are strictly additive to the user's stated preference.
 
 ## The message catalog
 
-`MSG` holds ~23 short variants (title + body + CTA), Greek, no dashes, gender-
-neutral, with safe fallbacks. Adapters format them per channel:
+`MSG` holds ~30 short variants (title + body + CTA), Greek, no dashes, gender-aware
+where a tenant is named (else neutral), with safe fallbacks. Coverage spans every
+glanceable event: transactional (receipts, security, payment failed, maintenance
+done), obligations (dunning, tax/utility/insurance/certificate deadlines, lease &
+compliance reminders — myAADE lease declaration, ΑΜΑ, τέλος ανθεκτικότητας — card
+expiry, data-retention), short-term ops (check-in/out, cleaning), the three
+digests, and a couple of lifecycle/opportunity nudges. Adapters format them per
+channel:
 
 - **Push** — title ≤ 48 chars, body ≤ 140; the whole thing taps into the app.
 - **Viber** — title + body + a link button (rich message).
+- **iMessage** (Apple Messages for Business) — title + body + the URL inline so
+  Apple renders a rich link-preview card, plus a CTA action.
 - **WhatsApp** — bold title + body + link. WhatsApp Business **templates must be
   pre-approved** by Meta before sending; each MSG entry maps to one template.
 
@@ -87,8 +104,12 @@ caps and digests already applied — the channel is just the last hop.
 ## To go live (only provider credentials remain)
 
 - Set `VIBER_TOKEN`, `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID` (with Meta-approved
-  templates named `po_<copyId>`), and a push key (`FCM_SERVER_KEY`).
+  templates named `po_<copyId>`), `IMESSAGE_API_URL` + `IMESSAGE_TOKEN` (Apple
+  Messages for Business, via an MSP such as Sunshine Conversations), and a push key
+  (`FCM_SERVER_KEY`). Each is independent — any absent channel simply falls back to
+  email, never a double-send.
 - Point the drain at `dispatch-message` instead of `send-lifecycle-email` so every
   delivery passes through the one channel seam.
-- Collect opt-ins + phone/device tokens in-app (write to `messaging_prefs` /
+- Collect opt-ins + phone/device tokens in-app (write to `messaging_prefs`, incl.
+  `wants_imessage` from migration `20260722140000_imessage_channel.sql`, and
   `push_devices`). Until then everything is email, exactly as today.

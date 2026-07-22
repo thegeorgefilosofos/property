@@ -10,11 +10,13 @@
 // once channels are live.
 //
 // Env (optional, per channel): VIBER_TOKEN, WHATSAPP_TOKEN + WHATSAPP_PHONE_ID,
-// and a push provider (e.g. FCM_SERVER_KEY). Absent → that channel falls back to
-// email. Deploy: supabase functions deploy dispatch-message (verify_jwt=false).
+// IMESSAGE_API_URL + IMESSAGE_TOKEN (Apple Messages for Business via an MSP such as
+// Sunshine Conversations), and a push provider (e.g. FCM_SERVER_KEY). Absent → that
+// channel falls back to email. Deploy: supabase functions deploy dispatch-message
+// (verify_jwt=false).
 // ─────────────────────────────────────────────────────────────────────────────
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { MSG, pickChannel, renderPush, renderViber, renderWhatsApp, type ChannelPrefs } from '../_shared/messaging.ts'
+import { MSG, pickChannel, renderPush, renderViber, renderIMessage, renderWhatsApp, type ChannelPrefs } from '../_shared/messaging.ts'
 import type { Personal } from '../_shared/emailTemplates.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -24,6 +26,8 @@ const APP_URL      = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 const VIBER_TOKEN    = Deno.env.get('VIBER_TOKEN') || ''
 const WHATSAPP_TOKEN = Deno.env.get('WHATSAPP_TOKEN') || ''
 const WHATSAPP_PHONE = Deno.env.get('WHATSAPP_PHONE_ID') || ''
+const IMESSAGE_URL   = Deno.env.get('IMESSAGE_API_URL') || ''
+const IMESSAGE_TOKEN = Deno.env.get('IMESSAGE_TOKEN') || ''
 const FCM_KEY        = Deno.env.get('FCM_SERVER_KEY') || ''
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
@@ -66,8 +70,8 @@ Deno.serve(async (req) => {
   let phone = ''
   if (userId) {
     const { data } = await supabase.from('messaging_prefs')
-      .select('wants_push,wants_viber,wants_whatsapp,phone_e164').eq('user_id', userId).maybeSingle()
-    if (data) { prefs = { push: data.wants_push, viber: data.wants_viber, whatsapp: data.wants_whatsapp }; phone = data.phone_e164 || '' }
+      .select('wants_push,wants_viber,wants_whatsapp,wants_imessage,phone_e164').eq('user_id', userId).maybeSingle()
+    if (data) { prefs = { push: data.wants_push, viber: data.wants_viber, whatsapp: data.wants_whatsapp, imessage: data.wants_imessage }; phone = data.phone_e164 || '' }
   }
 
   const channel = pickChannel(copyId, prefs)
@@ -95,6 +99,15 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'template', template: w.template }),
       })
       return json({ channel: 'whatsapp' })
+    }
+    if (channel === 'imessage' && IMESSAGE_URL && IMESSAGE_TOKEN && phone) {
+      const im = renderIMessage(msg, url)
+      // Generic MSP webhook (e.g. Sunshine Conversations): { recipient, text }.
+      await fetch(IMESSAGE_URL, {
+        method: 'POST', headers: { Authorization: `Bearer ${IMESSAGE_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipient: phone, type: 'text', text: im.text }),
+      })
+      return json({ channel: 'imessage' })
     }
     if (channel === 'push' && FCM_KEY && userId) {
       const { data: devices } = await supabase.from('push_devices').select('token').eq('user_id', userId)
