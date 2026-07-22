@@ -49,12 +49,21 @@ console.log('\n2b) Privacy — no euro amounts or tenant/guest names in glanceab
   // checkin_today is glanceable (obligation) → the guest name must stay behind the
   // tap, never on the lock screen.
   ok(!/John|Smith|Γιώργος/.test(MSG.checkin_today(rich).body), 'checkin_today body exposes no guest name');
+  ok(!/Ελένη|Νίκος|John/.test(MSG.referral_friend_activated(rich).body), 'referral_friend_activated body exposes no friend name');
   // dunning_1 references the tenant only via a gendered role noun; with no gender
   // data it names no one (genuinely neutral, not defaulted-masculine).
   ok(!/μισθωτή/.test(MSG.dunning_1(rich).body) && !/\s\./.test(MSG.dunning_1(rich).body), 'dunning_1 neutral fallback names no gendered person and leaves no dangling space');
   // whitespace-only names must not leak dangling articles or spaces
   const wsp = { ...rich, guestName: '   ', tenantName: '  ', friendName: ' ' } as Personal;
   ok(!/^\s/.test(MSG.checkin_today(wsp).body), 'whitespace guestName does not leave a leading space');
+}
+
+console.log('\n2c) Count agreement — singular renders grammatically');
+{
+  const one = { ...rich, daysOverdue: 1, digestItems: [{ title: 'Δόση φόρου' }] } as Personal;
+  ok(!/1 (μέρες|ημέρες)/.test(MSG.dunning_2(one).body), 'dunning_2 with 1 day does not print "1 μέρες"');
+  ok(/Ένα θέμα λήγει/.test(MSG.digest_obligations(one).body), 'digest_obligations singular → "Ένα θέμα λήγει"');
+  ok(/Μία προθεσμία πλησιάζει/.test(MSG.digest_tax(one).body), 'digest_tax singular → "Μία προθεσμία πλησιάζει"');
 }
 
 console.log('\n3) Channel selection never stacks — one delivery, one channel');
