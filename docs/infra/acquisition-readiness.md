@@ -9,9 +9,24 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   org policies only where team sharing applies. Legacy duplicate/over-permissive
   policies removed; the one public-read hole closed (`rls-conventions.md`,
   `20260722160000_rls_consolidation.sql`).
-- 🔴 **Security Advisor** (Dashboard → Advisors → Security): run it and close every
-  finding via a hardening migration — mutable-`search_path` functions, `SECURITY
-  DEFINER` views → `security_invoker`, extensions out of `public`.
+- ✅ **Full adversarial security audit** (four independent passes: RLS/tenant
+  isolation, SECURITY DEFINER & anon RPCs, edge functions, app/secrets). No
+  cross-tenant read leak found in the canonical schema; every finding verified
+  against the SQL/code and fixed — see `docs/db/security-audit-2026-07.md`.
+- ✅ **Function-grant hardening** (`20260722180000_security_hardening.sql`): revoked
+  the default PUBLIC EXECUTE on server-only functions (`enqueue_email`,
+  `drain_email_outbox`, `user_plan_rank`, the email-schedule locks); tightened
+  `inventory_repairs` write-check; stopped the org helpers disclosing another user's
+  relationships.
+- ✅ **Edge-function authorization** (`20260722190000` + function changes): every
+  privileged/cron function now enforces auth (service-role bearer or shared cron
+  secret); `smart-suggestions` requires the caller's JWT and verifies ownership;
+  `ical-sync` SSRF closed (no redirect-follow, IPv4/IPv6 private-range blocklist);
+  `send-test-notification` restricted to the caller's own address.
+- ✅ Every SECURITY DEFINER function pins `search_path`; token-gated portal/checkin/
+  accountant/verify RPCs validate the token before returning any row (audited).
+- 🟠 **Security Advisor** (Dashboard → Advisors → Security): still run it as the
+  ongoing guard and close anything it flags via a hardening migration.
 - ✅ Service-role key server-side only (edge functions); client uses anon key + RLS.
 
 ## 2. Backups & disaster recovery — 🔴 top priority
@@ -62,11 +77,20 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 ## 9. Access control & secrets
 - 🟠 Least-privilege dashboard access; enable the org **audit log**; MFA on the
   Supabase account itself.
-- ✅ Secrets never in git; provider keys in env only. 🟠 Add a rotation policy.
+- ✅ Secrets live only in the deployment environment (Supabase Edge Function secrets /
+  GitHub Actions secrets), never in the repo. `.env.local` is untracked and
+  `.gitignore`d.
+- ✅ **Incident handled cleanly**: a `.env.local` with a service-role + Anthropic key
+  had been committed historically. Response: both keys **rotated/revoked**, the file
+  **purged from all git history** (main + working branch rewritten, verified
+  byte-identical trees), and tracking removed. Documented as the reference runbook.
+- 🟠 Formalize a periodic **key-rotation policy** (service-role, PAT, provider keys).
 
 ## 10. Documentation (a buyer loves this)
-- ✅ `rls-conventions.md`, `security-and-automation.md`, `world-class-scheme.md`,
-  and this readiness doc. 🟠 Add an ERD / schema overview and an ops runbook.
+- ✅ Root `README.md` (architecture, stack, layout), `supabase/README.md` (schema
+  reference **+ ERD**, RLS model, cron, edge-function catalogue), `rls-conventions.md`,
+  `security-and-automation.md`, `security-audit-2026-07.md`, `world-class-scheme.md`,
+  and this readiness doc. 🟠 Add an ops runbook.
 
 ---
 
