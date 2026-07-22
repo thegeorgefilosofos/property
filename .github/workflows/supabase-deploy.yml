@@ -8,17 +8,30 @@ name: Supabase deploy
 # a production database automated AND safe.
 #
 # One-time setup (GitHub → repo → Settings → Secrets and variables → Actions):
-#   SUPABASE_ACCESS_TOKEN   a Supabase Personal Access Token (sbp_…)
-#   SUPABASE_DB_PASSWORD    the project's database password
+#   SUPABASE_ACCESS_TOKEN          a Supabase Personal Access Token (sbp_…), account-scoped
+#   SUPABASE_DB_PASSWORD           the PRODUCTION project's database password
+#   STAGING_SUPABASE_DB_PASSWORD   the STAGING project's database password
 # The project ref is public (in the dashboard URL), so it is not a secret.
+#
+# Environment split (prod ≠ dev): a push to `main` deploys to PRODUCTION; a push
+# to any feature branch (claude/**) deploys to the STAGING project, so migrations
+# and functions are validated against a throwaway copy before they reach real
+# customer data. The one Personal Access Token manages both projects.
 
 on:
   push:
-    branches: [main, 'claude/**']
+    # Only main auto-deploys (→ production). Feature-branch → staging deploys run
+    # on demand (Actions → Run workflow) until the migration baseline lands, since
+    # a fresh staging DB can't yet rebuild from migrations/ alone (SETUP_ALL.sql
+    # holds base tables that aren't captured as a baseline migration — see
+    # docs/infra/staging-setup.md). Once the baseline exists, add 'claude/**' here
+    # so feature branches validate on staging automatically before prod.
+    branches: [main]
     paths:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - '.github/workflows/supabase-deploy.yml'
+  # Manual trigger: run from a feature branch → deploys to staging; from main → production.
   workflow_dispatch: {}
 
 permissions:
@@ -28,22 +41,29 @@ concurrency:
   group: supabase-deploy
   cancel-in-progress: false
 
-env:
-  SUPABASE_PROJECT_REF: aromvduuxtcrzmwwvnej
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
+    # main → production project; any feature branch → staging project.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ github.ref == 'refs/heads/main' && 'aromvduuxtcrzmwwvnej' || 'rheufrfscmngpjayxgln' }}
+      SUPABASE_DB_PASSWORD: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_DB_PASSWORD || secrets.STAGING_SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+
+      - name: Show deploy target
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "Deploying to PRODUCTION ($SUPABASE_PROJECT_REF)"
+          else
+            echo "Deploying to STAGING ($SUPABASE_PROJECT_REF)"
+          fi
 
       - name: Link project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
