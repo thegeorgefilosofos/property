@@ -72,8 +72,13 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 - ✅ **Records of Processing (GDPR Art. 30) + subprocessor register** documented
   (`docs/compliance/records-of-processing.md`, `subprocessors.md`), plus a
   **retention schedule + breach-response runbook** (`data-retention-and-incidents.md`).
-  🔴 remaining: **execute the DPAs/SCCs** with each subprocessor and **publish a
-  Privacy Policy + Terms** (the RoPA gives the content; needs a legal pass).
+- ✅ **Operative legal framework drafted** (`docs/legal/`): Privacy Policy, Terms of
+  Service (with a prominent tax/legal-advice **liability disclaimer** for ΕΝΦΙΑ/Ε2/ΕΦΚΑ
+  outputs), a customer-facing **Art. 28 DPA**, and a **subprocessor-DPA execution
+  checklist** — all grounded in the real stack, GR primary + EN, with `[ΣΥΜΠΛΗΡΩΣΤΕ]`
+  placeholders for the company legal identity.
+  🔴 remaining (owner + one legal pass): fill the identity placeholders, **execute the
+  DPAs/SCCs** with each subprocessor (checklist provided), and **publish** Privacy/Terms.
 - 🟠 PII minimization: no secrets/PII in logs; the lock-screen/no-amount rules in the
   messaging layer already reflect this discipline.
 
