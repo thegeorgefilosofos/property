@@ -104,6 +104,8 @@ export interface Personal extends Ctx {
   tenantName?: string;       // όνομα ενοικιαστή
   daysOverdue?: number;      // μέρες καθυστέρησης
   deadlineDate?: string;     // ημερομηνία προθεσμίας, π.χ. «31/08»
+  installmentNo?: number;    // αριθμός τρέχουσας δόσης (π.χ. ΕΝΦΙΑ 4/12)
+  installmentsTotal?: number;// συνολικός αριθμός δόσεων
   portfolioValue?: number;   // αξία χαρτοφυλακίου, σε EUR
   occupancy?: number;        // πληρότητα, %
   days?: number;             // μέρες από την εγγραφή
