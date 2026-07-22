@@ -50,7 +50,7 @@ jobs:
       SUPABASE_PROJECT_REF: ${{ github.ref == 'refs/heads/main' && 'aromvduuxtcrzmwwvnej' || 'rheufrfscmngpjayxgln' }}
       SUPABASE_DB_PASSWORD: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_DB_PASSWORD || secrets.STAGING_SUPABASE_DB_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: supabase/setup-cli@v1
         with:
