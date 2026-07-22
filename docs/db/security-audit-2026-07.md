@@ -26,7 +26,7 @@ service-role key that had been committed to git history. All resolved.
 | 6 | High | DB fn | `enqueue_email` executable by `anon`/`authenticated` (default PUBLIC grant) → send mail from our domain | ✅ Revoked from PUBLIC |
 | 7 | High | DB fn | `drain_email_outbox` executable by PUBLIC → flush outbox on demand using cron secret | ✅ Revoked from PUBLIC |
 | 8 | Medium | Edge fn | `send-test-notification` sent to a body-supplied address (open relay off our domain) | ✅ Restricted to the caller's own account email |
-| 9 | Medium | Storage | `maintenance-photos` is a public bucket → owner-only RLS bypassed on the public URL path | 🟠 Planned: private bucket + signed URLs |
+| 9 | Medium | Storage | `maintenance-photos` is a public bucket → owner-only RLS bypassed on the public URL path | ✅ Private bucket; owner reads via short-lived signed URLs; app stores the path, not a public URL (`20260722220000`) |
 | 10 | Med/Low | DB fn | `user_plan_rank(uuid)` PUBLIC → cross-tenant billing-tier probe | ✅ Revoked from PUBLIC |
 | 11 | Low | DB fn | `try/release_email_schedule_lock` PUBLIC → scheduler-lock DoS | ✅ Revoked from PUBLIC |
 | 12 | Low | RLS | `inventory_repairs` WITH CHECK OR-branch allowed write-injection onto another owner's item | ✅ Write target must be an item the caller owns |
@@ -56,7 +56,8 @@ service-role key that had been committed to git history. All resolved.
 
 ## Follow-ups (tracked)
 
-1. `maintenance-photos` → private bucket + signed URLs (finding 9).
+1. ✅ `maintenance-photos` → private bucket + signed URLs (finding 9) — done
+   (`20260722220000_maint_photos_private_bucket.sql`).
 2. Session `middleware.ts` for defence-in-depth (finding 14).
 3. PIN/expiry option for accountant/check-in tokens (finding 15).
 4. Constant-time comparison for cron-secret checks (hardening).
