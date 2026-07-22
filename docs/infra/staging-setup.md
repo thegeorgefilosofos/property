@@ -56,13 +56,37 @@ This is a small, contained change and is applied only after the staging project
 exists, so the working pipeline is never left pointing at a ref that has no
 secret.
 
-## Part C — what staging unlocks
+## Current status & the baseline gap
 
-- **Migration baseline** (audit finding 16): with a throwaway project we can run a
-  from-scratch `supabase db reset` and prove the schema rebuilds from
-  `supabase/migrations/` alone, then fold the `SETUP_ALL.sql` base tables into a
-  baseline migration. Today that can't be validated safely because the only
-  project holds real data.
+The staging project is created and the deploy is wired (link + reconcile succeed
+against it). The **first from-scratch staging deploy surfaced audit finding 16**:
+the earliest base tables (e.g. `public.property_documents`) are created neither in
+`supabase/migrations/` nor cleanly in `SETUP_ALL.sql` (that file is a concatenation
+of later migrations and itself assumes those base tables exist). So `db push`
+against an empty database fails on the first `alter table`.
+
+Because of this, feature-branch → staging deploys are **on demand** for now
+(Actions → *Run workflow* on the branch), not automatic on push. `main` → production
+stays automatic and unaffected — production already has the full schema.
+
+### Closing the gap (the migration baseline)
+
+The reliable source of truth for the base schema is the **live production schema**,
+not `SETUP_ALL.sql`. The one-time procedure:
+
+1. `supabase db dump --linked -f supabase/migrations/00000000000000_baseline.sql`
+   against production (read-only) to capture the real base schema.
+2. Mark it already-applied on production so `main` never re-runs it:
+   `supabase migration repair --status applied 00000000000000`.
+3. Run it against the fresh **staging** project to prove a from-scratch rebuild
+   succeeds end-to-end.
+4. Re-add `'claude/**'` to the push trigger so feature branches auto-validate on
+   staging before prod.
+
+## What staging unlocks (once the baseline lands)
+
+- **Reproducibility** (finding 16): the whole schema rebuilds from
+  `supabase/migrations/` alone — a from-scratch `db reset` on staging proves it.
 - **Safe rehearsal** of destructive or ambiguous migrations before prod.
 - A place to trial the **PKCE + `/auth/callback`** auth flow so the proxy can do a
   hard server-side redirect without risking the production login flow.

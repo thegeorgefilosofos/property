@@ -20,11 +20,18 @@ name: Supabase deploy
 
 on:
   push:
-    branches: [main, 'claude/**']
+    # Only main auto-deploys (→ production). Feature-branch → staging deploys run
+    # on demand (Actions → Run workflow) until the migration baseline lands, since
+    # a fresh staging DB can't yet rebuild from migrations/ alone (SETUP_ALL.sql
+    # holds base tables that aren't captured as a baseline migration — see
+    # docs/infra/staging-setup.md). Once the baseline exists, add 'claude/**' here
+    # so feature branches validate on staging automatically before prod.
+    branches: [main]
     paths:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - '.github/workflows/supabase-deploy.yml'
+  # Manual trigger: run from a feature branch → deploys to staging; from main → production.
   workflow_dispatch: {}
 
 permissions:
