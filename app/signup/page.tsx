@@ -11,6 +11,30 @@ import GoogleG from '../GoogleG'
 // panel (AuthAside) με Σύνδεση/Επαναφορά. Google-first, με email ως δεύτερη οδό.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Client-side έλεγχος ισχύος κωδικού — καθρεφτίζει την server-side πολιτική του
+// Supabase Auth (min 8 + πεζό/κεφαλαίο/αριθμό/σύμβολο) ώστε ο χρήστης να βλέπει
+// άμεσο feedback ΠΡΙΝ το submit, αντί για ένα σκέτο σφάλμα μετά. Δεν αντικαθιστά
+// τον server έλεγχο· είναι UX layer πάνω του. Μπλοκάρει και προφανείς κωδικούς.
+const COMMON_PASSWORDS = new Set([
+  '12345678', '123456789', '1234567890', 'password', 'password1', 'password123',
+  'qwerty123', 'qwertyui', '11111111', '00000000', 'iloveyou', 'admin123',
+  'welcome1', 'letmein1', 'abc12345', 'passw0rd', '1q2w3e4r', 'football',
+])
+type PwCheck = { key: string; label: string; ok: boolean }
+function checkPassword(pw: string): { checks: PwCheck[]; score: number; ok: boolean; common: boolean } {
+  const common = COMMON_PASSWORDS.has(pw.toLowerCase())
+  const checks: PwCheck[] = [
+    { key: 'len', label: 'Τουλάχιστον 8 χαρακτήρες', ok: pw.length >= 8 },
+    { key: 'lower', label: 'Ένα πεζό γράμμα (a–z)', ok: /[a-z]/.test(pw) },
+    { key: 'upper', label: 'Ένα κεφαλαίο γράμμα (A–Z)', ok: /[A-Z]/.test(pw) },
+    { key: 'digit', label: 'Έναν αριθμό (0–9)', ok: /\d/.test(pw) },
+    { key: 'symbol', label: 'Ένα σύμβολο (!@#$…)', ok: /[^A-Za-z0-9]/.test(pw) },
+  ]
+  const score = checks.filter(c => c.ok).length
+  const ok = score === checks.length && !common
+  return { checks, score, ok, common }
+}
+
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -23,7 +47,9 @@ export default function SignupPage() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [show, setShow] = useState(false)
+  const [pwTouched, setPwTouched] = useState(false)
   const [resent, setResent] = useState(false)
+  const pw = checkPassword(password)
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
     : /weak|at least|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε τουλάχιστον 8 χαρακτήρες.'
@@ -61,6 +87,13 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!pw.ok) {
+      setPwTouched(true)
+      setError(pw.common
+        ? 'Ο κωδικός είναι πολύ κοινός. Διάλεξε κάτι πιο δύσκολο να μαντέψει κανείς.'
+        : 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.')
+      return
+    }
     setError(''); setLoading(true)
     const supabase = createClient()
     // Αποδεικτικό συγκατάθεσης (GDPR, αρχή λογοδοσίας): καταγράφουμε στο προφίλ
@@ -154,7 +187,7 @@ export default function SignupPage() {
                 <div>
                   <label htmlFor="su-password" style={label}>Κωδικός</label>
                   <div style={{ position: 'relative' }}>
-                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" required minLength={8} style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={blur} />
+                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" required minLength={8} aria-describedby="su-pw-req" style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={e => { blur(e); setPwTouched(true) }} />
                     <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'} aria-pressed={show}
                       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {show
@@ -162,6 +195,44 @@ export default function SignupPage() {
                         : <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.9 17.9A10.7 10.7 0 0 1 12 19c-6.5 0-10-7-10-7a19 19 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c6.5 0 10 7 10 7a19 19 0 0 1-2.2 3.2M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>}
                     </button>
                   </div>
+
+                  {/* Μετρητής ισχύος + λίστα προϋποθέσεων — εμφανίζεται μόλις ο χρήστης
+                      αρχίσει να πληκτρολογεί. Καθαρό, ήρεμο, στα tokens του app. */}
+                  {(password || pwTouched) && (
+                    <div id="su-pw-req" style={{ marginTop: 10 }}>
+                      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }} aria-hidden="true">
+                        {[0, 1, 2, 3, 4].map(i => (
+                          <div key={i} style={{
+                            flex: 1, height: 3, borderRadius: 2,
+                            background: i < pw.score
+                              ? (pw.score <= 2 ? 'var(--negative)' : pw.score <= 4 ? 'var(--warning, #d0a000)' : 'var(--positive, var(--accent))')
+                              : 'var(--border-subtle)',
+                            transition: 'background .15s',
+                          }} />
+                        ))}
+                      </div>
+                      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 4 }}>
+                        {pw.checks.map(c => (
+                          <li key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: c.ok ? 'var(--positive, var(--accent))' : 'var(--text-tertiary)' }}>
+                            <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center' }}>
+                              {c.ok
+                                ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                                : <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-tertiary)' }} />}
+                            </span>
+                            {c.label}
+                          </li>
+                        ))}
+                        {pw.common && (
+                          <li style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--negative)' }}>
+                            <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center' }}>
+                              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                            </span>
+                            Πολύ κοινός κωδικός — διάλεξε κάτι πιο μοναδικό
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
                 {error && (
@@ -181,7 +252,7 @@ export default function SignupPage() {
                   </span>
                 </div>
 
-                <button type="submit" disabled={loading || !consent} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent) ? 'not-allowed' : 'pointer', opacity: (loading || !consent) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
+                <button type="submit" disabled={loading || !consent || !pw.ok} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
                   {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν →'}
                 </button>
               </form>
