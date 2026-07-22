@@ -547,10 +547,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // εκτίμηση (καθαρή απόδοση + ανατίμηση). Ειλικρινή δεδομένα, όχι εξομαλυμένες υποθέσεις.
   const compare = useMemo(() => {
     const totalReturn = clampReturn(propertyTotalReturn(y.netYield, nAppr));
-    const useRet = (b: typeof BENCHMARKS[number]) => cmpYears === '20' ? b.ret20 : b.ret10;
+    const retFor = (b: typeof BENCHMARKS[number]) => cmpYears === '20' ? b.ret20 : b.ret10;
     const opts = [
       { key: 'property', label: 'Το ακίνητό σου (εκτίμηση)', annualReturnPct: totalReturn },
-      ...BENCHMARKS.filter(b => b.key !== 'inflation').map(b => ({ key: b.key, label: b.label, annualReturnPct: useRet(b) })),
+      ...BENCHMARKS.filter(b => b.key !== 'inflation').map(b => ({ key: b.key, label: b.label, annualReturnPct: retFor(b) })),
     ];
     return compareInvestments(nVal || 100000, parseInt(cmpYears), opts);
   }, [y.netYield, nAppr, nVal, cmpYears]);

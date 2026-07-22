@@ -303,7 +303,6 @@ export function CustomSelect({
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onScroll);
     return () => { window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, options.length]);
 
   const openList = (to?: number) => {

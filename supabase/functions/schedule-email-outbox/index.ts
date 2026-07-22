@@ -20,6 +20,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { scheduleBatch, policyFor, type OutboxRow } from '../_shared/emailPolicy.ts'
 import { CATALOG, DIGESTS } from '../_shared/emailCopy.ts'
+import { authorizeCron } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -33,15 +34,7 @@ const titleOf = (copyId: string): string => {
 }
 
 async function authorized(req: Request): Promise<boolean> {
-  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
-  if (SERVICE_KEY && bearer === SERVICE_KEY) return true
-  const header = req.headers.get('x-cron-secret') || ''
-  if (CRON_SECRET && header === CRON_SECRET) return true
-  if (header) {
-    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
-    if (data?.secret && header === data.secret) return true
-  }
-  return false
+  return authorizeCron(req, { serviceKey: SERVICE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
 // ── Europe/Athens time helpers (Deno Deploy runs in UTC) ────────────────────

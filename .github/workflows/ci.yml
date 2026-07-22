@@ -1,9 +1,9 @@
 name: CI
 
 # Quality gate: runs on every pull request to main and on feature-branch pushes.
-# Typecheck, the domain test-suite, and a production build must pass; lint is
-# reported but non-blocking (informational). Fast, no secrets, no deploy — this
-# only verifies the code is sound before it can be merged.
+# A secret scan, the lint-debt ratchet (error count may only go down), typecheck,
+# the domain test-suite, and a production build must all pass. Fast, no secrets,
+# no deploy — this only verifies the code is sound before it can be merged.
 
 on:
   pull_request:
@@ -42,8 +42,8 @@ jobs:
       - name: Security scan (secrets / forbidden files) — blocking
         run: npm run security
 
-      - name: Lint (informational)
-        run: npm run lint || true
+      - name: Lint ratchet (errors may only go down) — blocking
+        run: npm run lint:ratchet
 
       - name: Typecheck
         run: npx tsc --noEmit

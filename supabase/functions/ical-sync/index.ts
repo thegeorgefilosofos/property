@@ -15,6 +15,8 @@
 //   • Απλός έλεγχος SSRF: μπλοκάρει localhost/ιδιωτικά δίκτυα.
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { timingSafeEqual } from '../_shared/auth.ts'
+import { reportEdgeError } from '../_shared/report.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -254,7 +256,7 @@ Deno.serve(async (req) => {
 
     // ── Cron/service: συγχρονισμός ΟΛΩΝ των ενεργών συνδέσμων ──
     if (action === 'sync-all' || cronHeader) {
-      if (!CRON_SECRET || cronHeader !== CRON_SECRET) return json({ error: 'unauthorized' }, 401)
+      if (!CRON_SECRET || !timingSafeEqual(cronHeader || '', CRON_SECRET)) return json({ error: 'unauthorized' }, 401)
       const { data: feeds } = await admin.from('ical_feeds').select('*').eq('active', true)
       const results = []
       for (const f of (feeds || []) as Feed[]) results.push(await syncFeed(f))
@@ -298,6 +300,9 @@ Deno.serve(async (req) => {
 
     return json({ error: 'Άγνωστη ενέργεια' }, 400)
   } catch (err) {
-    return json({ error: String(err) }, 500)
+    // Log the detail server-side only; return a generic message so internal
+    // network/SSRF details are never reflected to the caller.
+    reportEdgeError('ical-sync', err)
+    return json({ error: 'Ο συγχρονισμός απέτυχε' }, 500)
   }
 })

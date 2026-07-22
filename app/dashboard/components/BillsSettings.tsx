@@ -74,7 +74,6 @@ export function useBillsSettings<T extends Record<string, any>>(
         doSaveRef.current?.(latest.current, boundKey.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Save ─────────────────────────────────────────────────────────────────

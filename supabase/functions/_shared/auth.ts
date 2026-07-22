@@ -1,0 +1,54 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Shared cron/service authorization for edge functions — one source of truth.
+//
+// Before this, every cron function inlined the same three-way check with plain
+// `===` string comparison, which is timing-unsafe (an attacker can, in theory,
+// recover a secret byte-by-byte from response-time differences) and drifted
+// subtly between functions. This centralises it with a constant-time compare.
+//
+// The real protection is still the 122-bit secret itself; the constant-time
+// compare is defense-in-depth and, more importantly, makes the authz identical
+// and auditable across all functions.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Constant-time string equality. Runs over the longer of the two inputs and
+// folds any length mismatch into the result, so it does not early-return on the
+// first differing byte (which is what leaks timing).
+export function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder()
+  const ba = enc.encode(a ?? '')
+  const bb = enc.encode(b ?? '')
+  const len = Math.max(ba.length, bb.length)
+  let diff = ba.length ^ bb.length
+  for (let i = 0; i < len; i++) diff |= (ba[i] ?? 0) ^ (bb[i] ?? 0)
+  return diff === 0
+}
+
+interface CronAuthOpts {
+  serviceKey?: string        // SUPABASE_SERVICE_ROLE_KEY — accepted as Bearer
+  envSecret?: string         // per-function *_CRON_SECRET env (optional)
+  // Any Supabase client; we only ever call .from('cron_secrets').select().eq().maybeSingle().
+  // deno-lint-ignore no-explicit-any
+  supabase?: { from: (table: string) => any }
+  dbSecretName?: string      // row name in public.cron_secrets (default 'email_cron')
+}
+
+// Authorize a cron/service request (zero-config): accepts (a) the service-role
+// key as `Authorization: Bearer`, (b) the per-function env secret via
+// `x-cron-secret`, or (c) the shared secret stored in public.cron_secrets — the
+// zero-config path pg_cron uses. All comparisons are constant-time.
+export async function authorizeCron(req: Request, opts: CronAuthOpts): Promise<boolean> {
+  const { serviceKey = '', envSecret = '', supabase, dbSecretName = 'email_cron' } = opts
+  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (serviceKey && timingSafeEqual(bearer, serviceKey)) return true
+  const header = req.headers.get('x-cron-secret') || ''
+  if (envSecret && timingSafeEqual(header, envSecret)) return true
+  if (supabase && header) {
+    try {
+      const { data } = await supabase.from('cron_secrets').select('secret').eq('name', dbSecretName).maybeSingle()
+      const dbSecret = data?.secret || ''
+      if (dbSecret && timingSafeEqual(header, dbSecret)) return true
+    } catch { /* fall through to unauthorized */ }
+  }
+  return false
+}

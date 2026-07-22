@@ -32,6 +32,14 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   accountant/verify/referral RPCs deliberately kept reachable). Keep running the
   advisor as the ongoing guard.
 - ✅ Service-role key server-side only (edge functions); client uses anon key + RLS.
+- ✅ **Edge/auth hardening pass** (free): all 11 cron/edge functions share one
+  constant-time `authorizeCron` helper (`_shared/auth.ts`) — no more duplicated
+  timing-unsafe `===` secret compares; **portal PIN** brute-force throttle (5/15 min,
+  server-side); **Anthropic-proxy** cost-abuse cap moved to a durable cross-instance
+  Supabase counter (`bump_ai_usage`); **Storage** buckets now enforce size + MIME
+  limits (untrusted `maintenance-photos` capped at images/10 MB); token-gated
+  calendar/booking feeds switched from `Cache-Control: public` to `private, no-store`;
+  ical-sync no longer reflects raw internal errors.
 
 ## 2. Backups & disaster recovery — 🔴 top priority
 - 🔴 On **Free plan → no managed backups, no PITR.** For production customer data this
@@ -44,6 +52,19 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   job still runs but warns loudly). Not a substitute for Pro/PITR, but a real net today.
 
 ## 3. Change management & reproducibility
+- ✅ **Baseline↔production drift reconciled (safe subset)** — a deep audit found the
+  squashed baseline had dropped columns production actually has (notably
+  `rent_payments.{tenant_id,period_year,period_month,paid,paid_date,days_late}`, which
+  `get_portal_data()` and the rent UI depend on), so a from-scratch rebuild broke the
+  portal. `20260724092000_schema_reconciliation.sql` adds them idempotently
+  (`ADD COLUMN IF NOT EXISTS` → no-op on prod, fixes rebuild), plus GDPR
+  cascade FKs (`user_id → auth.users`, `NOT VALID` so they never fail on existing
+  rows), duplicate-index/FK cleanup, and the missing RLS/FK indexes.
+- 🟠 **Deferred to a backup-gated pass** (needs Pro/PITR + a prod schema dump to run
+  safely on data): normalize the three `text`-typed `user_id` columns and the `text`
+  `property_id` columns to `uuid`, add the *validating* FKs, `SET NOT NULL` on owner
+  columns, drop the `::text` casts in RLS, and add `updated_at` triggers across tables.
+  DDL is drafted in the audit output; hold until backups exist.
 - ✅ **Migrations-as-code** — the whole schema rebuilds from `supabase/migrations/`
   **from scratch**, validated on staging. The history was squashed into a
   production-schema baseline + storage/scheduling companions
@@ -107,7 +128,12 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   triggers where relevant.
 
 ## 8. Observability & operations
-- 🟠 Error tracking (e.g. Sentry) on app + edge functions; uptime monitoring.
+- ✅ **Error tracking wired (env-gated, free)** — `lib/observability/report.ts` (app,
+  via `error.tsx`/`global-error.tsx` boundaries) and `supabase/functions/_shared/report.ts`
+  (edge) post a minimal Sentry envelope over plain fetch (no SDK, no bundle cost) when a
+  DSN is configured, and are a pure no-op otherwise. PII keys are scrubbed before send.
+  Owner flips it on by setting `NEXT_PUBLIC_SENTRY_DSN` (app) / `SENTRY_DSN` (edge).
+- 🟠 Uptime monitoring (external ping) still to add.
 - ✅ **Alerting on failed deploys** — the deploy pipeline's `notify-failure` job opens
   (and idempotently reuses) a labelled GitHub issue on any failed migration/function
   deploy, so a red deploy is never silent (the free alternative to a paid alerting

@@ -64,6 +64,26 @@ export async function POST(req: NextRequest) {
     dailyLimit.set(ip, { count: 1, day: today });
   }
 
+  // ── Durable, cross-instance cap (authoritative) ──────────────
+  // The in-memory maps above are per-instance on serverless; this atomic Supabase
+  // counter is the real cap that a user cannot bypass by hitting other instances.
+  // Fail-open only if the RPC itself errors (the in-memory guard still applies).
+  try {
+    const { data: usage } = await supabase.rpc('bump_ai_usage', {
+      p_max_min: MAX_REQUESTS_PER_MINUTE,
+      p_max_day: MAX_REQUESTS_PER_DAY,
+    });
+    if (usage && (usage as { allowed?: boolean }).allowed === false) {
+      const reason = (usage as { reason?: string }).reason;
+      return NextResponse.json(
+        { error: reason === 'day'
+            ? 'Έφτασες το ημερήσιο όριο αιτήσεων AI. Δοκίμασε ξανά αύριο.'
+            : 'Πολλές αιτήσεις. Δοκίμασε σε 1 λεπτό.' },
+        { status: 429 }
+      );
+    }
+  } catch { /* RPC unavailable — rely on the in-memory guard above */ }
+
   // ── Anthropic API call ───────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {

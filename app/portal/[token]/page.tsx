@@ -86,7 +86,11 @@ export default function TenantPortal() {
     setPinErr(''); setPinChecking(true);
     const { data: d, error } = await supabase.rpc('get_portal_data', { p_token: token, p_pin: pin });
     setPinChecking(false);
-    if (error || !d || (d as { locked?: boolean }).locked) { setPinErr('Λάθος κωδικός'); return; }
+    if (error || !d || (d as { locked?: boolean }).locked) {
+      const rl = (d as { rate_limited?: boolean } | null)?.rate_limited;
+      setPinErr(rl ? 'Πολλές αποτυχημένες προσπάθειες. Δοκίμασε ξανά σε λίγα λεπτά.' : 'Λάθος κωδικός');
+      return;
+    }
     applyData(d);
     setState('ok');
   };

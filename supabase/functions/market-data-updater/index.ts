@@ -4,6 +4,7 @@
 // Deploy: supabase functions deploy market-data-updater --project-ref aromvduuxtcrzmwwvnej
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authorizeCron } from '../_shared/auth.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -16,15 +17,7 @@ const supabase = createClient(
 // secret stored in public.cron_secrets (the zero-config path pg_cron uses).
 const CRON_SECRET = Deno.env.get('MARKET_DATA_CRON_SECRET') || ''
 async function authorized(req: Request): Promise<boolean> {
-  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
-  if (bearer && bearer === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) return true
-  const header = req.headers.get('x-cron-secret') || ''
-  if (CRON_SECRET && header === CRON_SECRET) return true
-  if (header) {
-    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
-    if (data?.secret && header === data.secret) return true
-  }
-  return false
+  return authorizeCron(req, { serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '', envSecret: CRON_SECRET, supabase })
 }
 
 // ── ECB SDW API helper ────────────────────────────────────────────────────────

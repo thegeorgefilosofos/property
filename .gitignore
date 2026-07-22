@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Generated preview (regenerate via docs/marketing/console/gen-messages-preview.ts)
 docs/marketing/console/messages-preview.html
+
+# Supabase CLI local state (contains project-ref / pooler-url — must not be committed)
+supabase/.temp/

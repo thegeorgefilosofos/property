@@ -18,6 +18,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { MSG, pickChannel, renderPush, renderViber, renderIMessage, renderWhatsApp, type ChannelPrefs } from '../_shared/messaging.ts'
 import type { Personal } from '../_shared/emailTemplates.ts'
+import { authorizeCron } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -34,15 +35,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
 
 async function authorized(req: Request): Promise<boolean> {
-  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
-  if (SERVICE_KEY && bearer === SERVICE_KEY) return true
-  const header = req.headers.get('x-cron-secret') || ''
-  if (CRON_SECRET && header === CRON_SECRET) return true
-  if (header) {
-    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
-    if (data?.secret && header === data.secret) return true
-  }
-  return false
+  return authorizeCron(req, { serviceKey: SERVICE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
 async function sendEmail(copyId: string, email: string, name: string, params: Record<string, unknown>) {

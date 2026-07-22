@@ -9,6 +9,7 @@
 // Τρέχει μηνιαία μέσω pg_cron (βλ. migration 20260715130000_bank_rates_pg_cron.sql).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authorizeCron } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -97,15 +98,7 @@ const json = (body: unknown, status = 200) =>
 // public.cron_secrets (the zero-config path pg_cron uses).
 const CRON_SECRET = Deno.env.get('BANK_RATES_CRON_SECRET') || ''
 async function authorized(req: Request, sb: ReturnType<typeof createClient>): Promise<boolean> {
-  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
-  if (bearer && bearer === SUPABASE_SERVICE_KEY) return true
-  const header = req.headers.get('x-cron-secret') || ''
-  if (CRON_SECRET && header === CRON_SECRET) return true
-  if (header) {
-    const { data } = await sb.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
-    if ((data as { secret?: string } | null)?.secret && header === (data as { secret?: string }).secret) return true
-  }
-  return false
+  return authorizeCron(req, { serviceKey: SUPABASE_SERVICE_KEY, envSecret: CRON_SECRET, supabase: sb })
 }
 
 Deno.serve(async (req) => {

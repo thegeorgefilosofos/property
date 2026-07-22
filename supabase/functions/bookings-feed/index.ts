@@ -66,7 +66,8 @@ Deno.serve(async (req) => {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': 'inline; filename="krathseis.ics"',
-      'Cache-Control': 'public, max-age=1800',
+      // Token-authorized personal data — must never sit in a shared/CDN cache.
+      'Cache-Control': 'private, no-store',
     },
   })
 })
