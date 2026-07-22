@@ -33,16 +33,15 @@ Rules:
 
 ## Audit findings (from the policy dump)
 
-### 🔴 Security — over-permissive policies (verify the `USING` clause, then drop)
-These grant far more than ownership and are almost certainly leftover debug policies:
-
-- `inventory_handovers` → **`Public read`** (anyone) + **`authenticated full`** (every logged-in user, ALL)
-- `inventory_maintenance` → **`authenticated full`** (every logged-in user, ALL)
-- `inventory_repairs` → **`authenticated full`** (every logged-in user, ALL)
-
-If their `USING` is `true` they are holes — every user can read/write **all** rows.
-(If one instead gates on a portal token it is a feature; confirm before dropping —
-see the verify query in the migration.)
+### 🔴 Security — verified against the live definitions + the code
+- **`Public read inventory_handovers`** = `TO public USING (true)` → a **real hole**:
+  any visitor could read every handover row. `TabInventory` reads this table only
+  authenticated, so nothing depends on it → **dropped**.
+- The three **`authenticated full …`** (inventory_handovers / _maintenance / _repairs)
+  are `USING (auth.uid() = user_id)` — **correct owner policies**, merely duplicating
+  `own_*`. Dropped as dedup; owner access unchanged.
+- **RLS is enabled on every table** in `public` (verified: zero tables with
+  `relrowsecurity = false`).
 
 ### 🟠 Redundancy — duplicate policy stacks (safe to collapse to `own_*` + `org_*`)
 Same access declared 2–4 times over. Worst offenders:

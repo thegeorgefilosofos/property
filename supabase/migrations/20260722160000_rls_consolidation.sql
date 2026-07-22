@@ -101,20 +101,17 @@ drop policy if exists "User read inventory_handovers"    on public.inventory_han
 drop policy if exists "User write inventory_handovers"   on public.inventory_handovers;
 
 
--- ═══ PART B · SECURITY (verify, then uncomment) ════════════════════════════════
--- These grant EVERY logged-in user (or anyone) access to EVERY row — a hole, unless
--- one gates on a portal token. Run this first to see each USING clause:
---
---   select tablename, policyname, cmd, roles, qual as using_expr, with_check
---   from pg_policies where schemaname = 'public'
---   and policyname in (
---     'Public read inventory_handovers', 'authenticated full inventory_handovers',
---     'authenticated full inventory_maintenance', 'authenticated full inventory_repairs');
---
--- If USING is `true` (or has no ownership/token check), uncomment and run:
---
--- drop policy if exists "Public read inventory_handovers"        on public.inventory_handovers;
--- drop policy if exists "authenticated full inventory_handovers" on public.inventory_handovers;
--- drop policy if exists "authenticated full inventory_maintenance" on public.inventory_maintenance;
--- drop policy if exists "authenticated full inventory_repairs"     on public.inventory_repairs;
+-- ═══ PART B · SECURITY & final dedup (verified — safe to run) ══════════════════
+-- Verified against the live policy definitions AND the codebase:
+--   • "Public read inventory_handovers" = TO public USING (true) → a REAL hole: any
+--     visitor could read every handover row. TabInventory reads this table only
+--     authenticated (…select().eq('property_id', …)); no public/portal path depends
+--     on it, so we drop it outright.
+--   • the three "authenticated full …" are USING (auth.uid() = user_id) — correct
+--     owner policies that merely duplicate own_<table> (which guards ownership via
+--     property_id / user_id). Dropping them leaves owner access intact.
+drop policy if exists "Public read inventory_handovers"          on public.inventory_handovers;
+drop policy if exists "authenticated full inventory_handovers"   on public.inventory_handovers;
+drop policy if exists "authenticated full inventory_maintenance" on public.inventory_maintenance;
+drop policy if exists "authenticated full inventory_repairs"     on public.inventory_repairs;
 -- ═══════════════════════════════════════════════════════════════════════════════
