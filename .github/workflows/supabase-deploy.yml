@@ -118,7 +118,7 @@ jobs:
       issues: write
     steps:
       - name: Open or update failure issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const target = context.ref === 'refs/heads/main' ? 'production' : 'staging';
