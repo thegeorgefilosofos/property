@@ -74,6 +74,12 @@ function tomorrowMorningISO(): string {
 Deno.serve(async (req) => {
   if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401)
 
+  // Single-flight: if another run holds the advisory lock, exit cleanly so two
+  // overlapping cron ticks never plan the same rows.
+  const { data: gotLock } = await supabase.rpc('try_email_schedule_lock')
+  if (gotLock === false) return json({ skipped: 'locked' })
+
+  try {
   const nowISO = new Date().toISOString()
   const weekAgoISO = new Date(Date.now() - 7 * 864e5).toISOString()
   const dayStartISO = startOfAthensDayISO()
@@ -141,4 +147,7 @@ Deno.serve(async (req) => {
   }
 
   return json({ recipients: byRecipient.size, scheduled, digests: digestsMade })
+  } finally {
+    await supabase.rpc('release_email_schedule_lock')
+  }
 })
