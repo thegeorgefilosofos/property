@@ -98,6 +98,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
   const openRentRef = useRef<{ id: string; label: string; amount: number }[]>([]);
 
+  // Ο μηνιαίος nudge (ή άλλο σημείο) μπορεί να ανοίξει το feedback του βοηθού.
+  useEffect(() => {
+    const openFb = () => { setOpen(true); setFeedbackOpen(true); };
+    window.addEventListener('pos:open-feedback', openFb);
+    return () => window.removeEventListener('pos:open-feedback', openFb);
+  }, []);
+
   // Ταυτότητα από localStorage (μία φορά)
   useEffect(() => {
     const saved = loadIdentity();
