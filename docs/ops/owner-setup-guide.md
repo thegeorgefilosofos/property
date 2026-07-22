@@ -5,31 +5,39 @@ are one-time toggles only the account owner can do. Each turns work that is
 already *built* into something that is *enforced* — exactly what a technical buyer
 checks first.
 
-## 1. Protect `main` so the CI gate is REQUIRED (highest leverage)
+## 1. Protect `main` so the CI gate is REQUIRED  ⚠️ NOT free on a private repo
 
-Right now CI runs on every PR, but nothing stops a merge if it's red. Make it a
-hard gate:
+Goal: nothing reaches `main` unless the `verify` CI job passes.
 
-**GitHub → repo → Settings → Branches → Add branch ruleset** (or "Add rule"):
-- Branch name pattern: `main`
-- ☑ **Require a pull request before merging** (1 approval optional for a solo owner)
-- ☑ **Require status checks to pass before merging** → search and select **`verify`** (the CI job)
-- ☑ **Require branches to be up to date before merging**
-- ☑ **Do not allow bypassing the above settings** (or allow only yourself)
-- Save.
+**Important limitation:** on a **private repository owned by a personal account
+on the Free plan, GitHub does NOT enforce branch rulesets / branch protection**
+(the ruleset screen shows: *"Your rulesets won't be enforced on this private
+repository until you move to a GitHub Team organization account"*). So creating
+the ruleset does nothing until you either:
+- upgrade to **GitHub Pro** (~€4/month) — enables branch protection on personal
+  private repos; **the only paid item, and it's tiny**; or
+- move the repo into a **GitHub Team organization**; or
+- make the repo **public** (not recommended — it holds the product).
 
-Result: nothing reaches `main` unless typecheck + the full test-suite + the
-production build pass. This is the single most visible "professional operations"
-signal.
+**Free, practical alternative (what we actually rely on today):** every change
+already goes through a **pull request**, and CI (`verify`) **runs and reports on
+every PR** — so the quality signal is fully intact; only the hard *merge-block* is
+missing. For a solo owner that is a low practical risk. When you're ready to
+enforce, buy Pro and then: Settings → Rules → Rulesets → New → target `main`,
+Enforcement **Active**, ☑ Require status checks → add **`verify`**, ☑ Block force
+pushes.
 
-## 2. Turn on secret scanning + push protection
+## 2. Secret scanning + push protection  ⚠️ NOT free on a private repo
 
-Stops an API key/token from ever being committed (we had one historical leak —
-this prevents a repeat).
+GitHub **secret scanning / push protection are free only for PUBLIC repos**; on a
+private repo they require **GitHub Advanced Security** (Enterprise-tier, not
+included in Free or Pro). So this isn't available here for free.
 
-**GitHub → repo → Settings → Code security and analysis:**
-- **Secret scanning** → Enable
-- **Push protection** → Enable  (blocks a push that contains a detected secret)
+**Free mitigation (already in place):** secrets live only in the deployment
+environment (GitHub Actions / Edge Function secrets), never in the repo;
+`.env.local` is gitignored; the one historical leak was rotated + purged from git
+history (documented in `acquisition-readiness.md` §9). Keep that discipline — it's
+the substance of what push protection would enforce.
 
 ## 3. Harden Supabase Auth (no domain needed)
 
