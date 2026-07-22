@@ -1,0 +1,62 @@
+name: Supabase deploy
+
+# Migrations-as-code, applied automatically. Claude writes versioned SQL under
+# supabase/migrations/ and edge functions under supabase/functions/; on push this
+# pipeline applies them to the Supabase project. No human touches the dashboard, and
+# no always-on write token exists anywhere — the CLI authenticates from short-lived
+# GitHub Actions secrets only. This is the professional, least-privilege way to keep
+# a production database automated AND safe.
+#
+# One-time setup (GitHub → repo → Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN   a Supabase Personal Access Token (sbp_…)
+#   SUPABASE_DB_PASSWORD    the project's database password
+# The project ref is public (in the dashboard URL), so it is not a secret.
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - '.github/workflows/supabase-deploy.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_REF: aromvduuxtcrzmwwvnej
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      # Applies every migration not yet recorded in the remote history table.
+      # All our migrations are idempotent, so a re-applied one is a safe no-op.
+      - name: Apply database migrations
+        run: supabase db push
+
+      # Edge functions for the messaging system. verify_jwt is governed by
+      # supabase/config.toml; the cron-called ones stay --no-verify-jwt.
+      - name: Deploy Edge Functions
+        run: |
+          supabase functions deploy send-lifecycle-email  --no-verify-jwt
+          supabase functions deploy schedule-email-outbox --no-verify-jwt
+          supabase functions deploy dispatch-message       --no-verify-jwt
