@@ -106,11 +106,35 @@ function isBlockedHost(hRaw: string): boolean {
   if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return true
   return isBlockedIp(h)
 }
+// Host ALLOWLIST — the definitive SSRF control. iCal feeds only ever legitimately
+// originate from a known set of OTAs / channel managers / calendar providers, and
+// none of those resolve to a private IP — so an allowlist eliminates the whole
+// DNS-rebinding (TOCTOU) class that IP-checks alone can't (Deno Deploy exposes no
+// socket-level IP pinning). Extend via ICAL_EXTRA_HOSTS (comma-separated suffixes)
+// without a code change. The IP/DNS checks below stay as defense-in-depth.
+const ALLOWED_ICAL_HOSTS: RegExp[] = [
+  /(^|\.)airbnb\.[a-z.]+$/, /(^|\.)booking\.com$/, /(^|\.)vrbo\.com$/, /(^|\.)homeaway\.[a-z.]+$/,
+  /(^|\.)expedia\.[a-z.]+$/, /(^|\.)tripadvisor\.[a-z.]+$/,
+  /(^|\.)google\.com$/, /(^|\.)googleusercontent\.com$/, /(^|\.)calendar\.google\.com$/,
+  /(^|\.)icloud\.com$/, /(^|\.)me\.com$/, /(^|\.)outlook\.(com|office365\.com)$/, /(^|\.)office365\.com$/,
+  // Channel managers commonly used for STR in Greece
+  /(^|\.)guesty\.com$/, /(^|\.)hostaway\.com$/, /(^|\.)lodgify\.com$/, /(^|\.)smoobu\.com$/,
+  /(^|\.)beds24\.com$/, /(^|\.)tokeet\.com$/, /(^|\.)uplisting\.io$/, /(^|\.)ownerrez\.com$/,
+  /(^|\.)hospitable\.com$/, /(^|\.)your\.rentals$/, /(^|\.)rentalsunited\.com$/, /(^|\.)nextpax\.com$/,
+]
+const EXTRA_ICAL_HOSTS: RegExp[] = (Deno.env.get('ICAL_EXTRA_HOSTS') || '')
+  .split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+  .map(sfx => new RegExp('(^|\\.)' + sfx.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'))
+function isAllowedIcalHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  return ALLOWED_ICAL_HOSTS.some(re => re.test(h)) || EXTRA_ICAL_HOSTS.some(re => re.test(h))
+}
 function assertSafeUrl(raw: string): URL {
   let u: URL
   try { u = new URL(raw) } catch { throw new Error('Μη έγκυρο URL') }
   if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('Επιτρέπονται μόνο http/https')
   if (isBlockedHost(u.hostname)) throw new Error('Δεν επιτρέπεται εσωτερική διεύθυνση')
+  if (!isAllowedIcalHost(u.hostname)) throw new Error('Ο πάροχος iCal δεν είναι στη λίστα επιτρεπόμενων (Airbnb, Booking, Google/Apple Calendar, channel managers κ.ά.)')
   return u
 }
 // Closes the DNS-rebinding SSRF gap: the string check above only inspects the
