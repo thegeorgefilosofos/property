@@ -20,13 +20,11 @@ name: Supabase deploy
 
 on:
   push:
-    # Only main auto-deploys (→ production). Feature-branch → staging deploys run
-    # on demand (Actions → Run workflow) until the migration baseline lands, since
-    # a fresh staging DB can't yet rebuild from migrations/ alone (SETUP_ALL.sql
-    # holds base tables that aren't captured as a baseline migration — see
-    # docs/infra/staging-setup.md). Once the baseline exists, add 'claude/**' here
-    # so feature branches validate on staging automatically before prod.
-    branches: [main]
+    # main → production; feature branches (claude/**) → staging. The migration
+    # baseline (00000000000000_baseline.sql + companions) lets a fresh staging DB
+    # rebuild from migrations/ alone, so feature branches validate against a
+    # throwaway copy before prod (see docs/infra/staging-setup.md).
+    branches: [main, 'claude/**']
     paths:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
