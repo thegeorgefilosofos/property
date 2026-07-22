@@ -10,6 +10,23 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
+// Authorization gate: this function writes market_rates / energy_tariffs and can
+// push calendar events to every loan owner — it must never be publicly callable.
+// Accepts the service-role bearer, an optional env secret, or the shared cron
+// secret stored in public.cron_secrets (the zero-config path pg_cron uses).
+const CRON_SECRET = Deno.env.get('MARKET_DATA_CRON_SECRET') || ''
+async function authorized(req: Request): Promise<boolean> {
+  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (bearer && bearer === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) return true
+  const header = req.headers.get('x-cron-secret') || ''
+  if (CRON_SECRET && header === CRON_SECRET) return true
+  if (header) {
+    const { data } = await supabase.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
+    if (data?.secret && header === data.secret) return true
+  }
+  return false
+}
+
 // ── ECB SDW API helper ────────────────────────────────────────────────────────
 async function fetchECBSeries(seriesKey: string, lastN = 1): Promise<number | null> {
   const url = `https://data-api.ecb.europa.eu/service/data/${seriesKey}?lastNObservations=${lastN}&format=jsondata`
@@ -96,7 +113,10 @@ const ENERGY_TARIFFS = [
 ]
 
 // ── Main handler ──────────────────────────────────────────────────────────────
-Deno.serve(async (_req: Request) => {
+Deno.serve(async (req: Request) => {
+  if (!(await authorized(req))) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { 'content-type': 'application/json' } })
+  }
   console.log('=== Market Data Updater ===', new Date().toISOString())
 
   const now   = new Date()

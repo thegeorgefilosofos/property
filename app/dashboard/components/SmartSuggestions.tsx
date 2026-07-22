@@ -39,15 +39,19 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
     setSuggestions([]);
     setDismissedIds(new Set());
     try {
+      // Send the signed-in user's own access token — the function derives identity
+      // from it and verifies the property belongs to them (never trusts a body id).
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('no session');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/smart-suggestions`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ property_id: propertyId, user_id: userId }),
+          body: JSON.stringify({ property_id: propertyId }),
         }
       );
       const data = await response.json();

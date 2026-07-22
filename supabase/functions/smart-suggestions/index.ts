@@ -2,45 +2,63 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const ANON_KEY      = Deno.env.get('SUPABASE_ANON_KEY')!
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+// Service client is used ONLY after we have verified, from the caller's JWT, that
+// the requested property belongs to them. Identity always comes from the token —
+// never from the request body (which an attacker controls).
+const service = createClient(SUPABASE_URL, SERVICE_KEY)
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
 Deno.serve(async (req) => {
-  // CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, content-type',
-    }})
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { property_id, user_id } = await req.json()
-    if (!property_id || !user_id) {
-      return new Response(JSON.stringify({ error: 'Missing property_id or user_id' }), { status: 400 })
-    }
+    // ── 1. Authenticate the caller from their JWT ─────────────────────────────
+    const authHeader = req.headers.get('Authorization') || ''
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    if (!token) return json({ error: 'unauthorized' }, 401)
+    const authClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: userData, error: userErr } = await authClient.auth.getUser(token)
+    if (userErr || !userData?.user) return json({ error: 'unauthorized' }, 401)
+    const userId = userData.user.id
 
-    // ── Τράβα πραγματικά δεδομένα ────────────────────────────────────────
+    // ── 2. The property_id must belong to the authenticated user ──────────────
+    const { property_id } = await req.json().catch(() => ({}))
+    if (!property_id) return json({ error: 'Missing property_id' }, 400)
+    const { data: owned } = await service
+      .from('user_properties')
+      .select('id, name, prop_type, sqm, value, target_rent, address, heating, pea_class')
+      .eq('id', property_id)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (!owned) return json({ error: 'forbidden' }, 403)
 
-    const [eventsRes, billsRes, expensesRes, propertyRes] = await Promise.all([
-      supabase.from('calendar_events').select('title,category,amount,event_date,recurring,recurring_interval,status').eq('property_id', property_id).eq('user_id', user_id),
-      supabase.from('bills').select('name,amount,category,paid,due_date').eq('property_id', property_id),
-      supabase.from('expenses').select('description,amount,category,date').eq('property_id', property_id).order('date', { ascending: false }).limit(30),
-      supabase.from('properties').select('property_type,size_sqm,year_built,monthly_rent,address').eq('id', property_id).maybeSingle(),
+    // ── 3. Read only this user's data for this property ───────────────────────
+    const [eventsRes, billsRes, expensesRes] = await Promise.all([
+      service.from('calendar_events').select('title,category,amount,event_time,recurring,status').eq('property_id', property_id).eq('user_id', userId),
+      service.from('bills').select('name,amount,category,paid,due_date').eq('property_id', property_id).eq('user_id', userId),
+      service.from('expenses').select('description,amount,category,date').eq('property_id', property_id).eq('user_id', userId).order('date', { ascending: false }).limit(30),
     ])
+    const events   = eventsRes.data || []
+    const bills    = billsRes.data || []
+    const expenses = expensesRes.data || []
 
-    const events    = eventsRes.data || []
-    const bills     = billsRes.data || []
-    const expenses  = expensesRes.data || []
-    const property  = propertyRes.data || {}
-
-    // ── Prompt για Claude ─────────────────────────────────────────────────
-
+    // ── 4. Ask the model for missing calendar obligations ─────────────────────
     const prompt = `Είσαι expert σύμβουλος διαχείρισης ακινήτων στην Ελλάδα. Ανάλυσε τα παρακάτω δεδομένα και πρότεινε 4-6 γεγονότα ημερολογίου που λείπουν ή χρειάζονται προσοχή.
 
 ΣΤΟΙΧΕΙΑ ΑΚΙΝΗΤΟΥ:
-${JSON.stringify(property, null, 2)}
+${JSON.stringify(owned, null, 2)}
 
 ΥΠΑΡΧΟΝΤΑ ΓΕΓΟΝΟΤΑ ΗΜΕΡΟΛΟΓΙΟΥ (${events.length}):
 ${JSON.stringify(events.slice(0, 20), null, 2)}
@@ -71,8 +89,6 @@ ${JSON.stringify(expenses, null, 2)}
   }
 ]`
 
-    // ── Κλήση Claude API ──────────────────────────────────────────────────
-
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -89,8 +105,8 @@ ${JSON.stringify(expenses, null, 2)}
 
     if (!aiRes.ok) {
       const err = await aiRes.text()
-      console.error('Claude API error:', err)
-      return new Response(JSON.stringify({ error: 'AI error', details: err }), { status: 500 })
+      console.error('Claude API error status', aiRes.status)
+      return json({ error: 'AI error', details: err }, 500)
     }
 
     const aiData = await aiRes.json()
@@ -98,23 +114,11 @@ ${JSON.stringify(expenses, null, 2)}
     const clean  = text.replace(/```json|```/g, '').trim()
 
     let suggestions = []
-    try {
-      suggestions = JSON.parse(clean)
-    } catch {
-      console.error('JSON parse error:', clean)
-      suggestions = []
-    }
+    try { suggestions = JSON.parse(clean) } catch { suggestions = [] }
 
-    return new Response(JSON.stringify({ suggestions }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    })
-
+    return json({ suggestions }, 200)
   } catch (err) {
-    console.error('Function error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 })
+    console.error('Function error:', String(err))
+    return json({ error: 'internal error' }, 500)
   }
 })
