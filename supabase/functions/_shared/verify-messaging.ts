@@ -46,6 +46,12 @@ console.log('\n2b) Privacy — no euro amounts or tenant/guest names in glanceab
     const b = MSG[key](rich).body;
     ok(!/€|\bΓιώργος\b|\b480\b|\b4\.?200\b/.test(b), `${key} body exposes no amount or tenant name (${b})`);
   }
+  // checkin_today is glanceable (obligation) → the guest name must stay behind the
+  // tap, never on the lock screen.
+  ok(!/John|Smith|Γιώργος/.test(MSG.checkin_today(rich).body), 'checkin_today body exposes no guest name');
+  // dunning_1 references the tenant only via a gendered role noun; with no gender
+  // data it names no one (genuinely neutral, not defaulted-masculine).
+  ok(!/μισθωτή/.test(MSG.dunning_1(rich).body) && !/\s\./.test(MSG.dunning_1(rich).body), 'dunning_1 neutral fallback names no gendered person and leaves no dangling space');
   // whitespace-only names must not leak dangling articles or spaces
   const wsp = { ...rich, guestName: '   ', tenantName: '  ', friendName: ' ' } as Personal;
   ok(!/^\s/.test(MSG.checkin_today(wsp).body), 'whitespace guestName does not leave a leading space');
