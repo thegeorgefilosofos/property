@@ -59,8 +59,13 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   messaging layer already reflect this discipline.
 
 ## 6. Auth hardening (Dashboard → Authentication)
-- 🔴 Enable **leaked-password protection** (HaveIBeenPwned) and **MFA (TOTP)**.
-- 🟠 Restrict redirect URLs to your domains; sane session/OTP lifetimes.
+- ✅ **MFA (TOTP)** enabled (free); **strong-password policy enforced server-side** —
+  min length 8, requires lower/upper/digit/symbol; **anonymous sign-ins off**,
+  **email confirmation on**, single provider (email) enabled.
+- 🟠 **Leaked-password protection** (HaveIBeenPwned) is **Pro-only** — deferred with
+  the other Pro items (managed backups/PITR). Server-side complexity rules cover most
+  of the benefit on Free; an optional client-side strength check can add UX feedback.
+- 🟠 Restrict redirect URLs to your domains; keep OTP lifetimes tight (≤ 900s).
 
 ## 7. Performance & schema hygiene
 - 🟠 **Performance Advisor**: add indexes on unindexed foreign keys; drop unused
