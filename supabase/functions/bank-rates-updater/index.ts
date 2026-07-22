@@ -78,7 +78,11 @@ async function callAnthropic(): Promise<any[]> {
   return Array.isArray(parsed?.banks) ? parsed.banks : []
 }
 
-// CORS ώστε να μπορεί να κληθεί και από τον browser (κουμπί διαχειριστή), εκτός του cron.
+// CORS επιτρέπει preflight, αλλά αυτή η function είναι ΑΠΟΚΛΕΙΣΤΙΚΑ server/cron:
+// το `authorized()` δέχεται μόνο service-role bearer ή το κοινό cron secret — κανένα
+// από τα δύο ΔΕΝ επιτρέπεται να ζει σε browser. Μη φτιάξεις «κουμπί διαχειριστή» που
+// καλεί απευθείας αυτό το endpoint· αν χρειαστεί admin trigger, πέρασέ τον μέσα από
+// ξεχωριστή, με-JWT function που ελέγχει ρόλο admin και μετά καλεί εσωτερικά αυτήν.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',

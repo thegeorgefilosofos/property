@@ -199,15 +199,15 @@ Deno.serve(async (req: Request) => {
   // ── 6. Manage program deadlines ─────────────────────────────────────────────
   const programResults = await manageProgramDeadlines()
 
-  // ── 7. Alert if significant change ─────────────────────────────────────────
+  // ── 7. Log a significant change ─────────────────────────────────────────────
+  // NB: this previously tried to insert into `notification_log`, whose columns are
+  // (user_id, event_id, reminder_type) — none of which fit a global market alert —
+  // so every insert failed and was swallowed. `notification_log` is strictly a
+  // per-user event-reminder ledger. User-facing rate-change alerts are delivered
+  // by the weekly `send-market-digest` job (which reads `market_rates`), so here we
+  // just record the change to the function log for observability.
   if (newRates.rate_changed) {
-    await supabase.from('notification_log').insert({
-      type: 'market_alert',
-      title: `Euribor άλλαξε: ${prev3m.toFixed(2)}% → ${newRates.euribor_3m.toFixed(2)}%`,
-      body: `Euribor 3M μεταβλήθηκε κατά ${delta3m.toFixed(2)}%. Ελέγξτε τις κυμαινόμενες δόσεις.`,
-      data: { prev: prev3m, current: newRates.euribor_3m, delta: delta3m },
-      created_at: now.toISOString(),
-    }).catch(() => {})
+    console.log(`⚠ Euribor 3M ${prev3m.toFixed(2)}% → ${newRates.euribor_3m.toFixed(2)}% (Δ ${delta3m.toFixed(2)}%) — picked up by the weekly market digest.`)
   }
 
   // ── Response ────────────────────────────────────────────────────────────────
