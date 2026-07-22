@@ -90,7 +90,7 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 - ✅ Root `README.md` (architecture, stack, layout), `supabase/README.md` (schema
   reference **+ ERD**, RLS model, cron, edge-function catalogue), `rls-conventions.md`,
   `security-and-automation.md`, `security-audit-2026-07.md`, `world-class-scheme.md`,
-  and this readiness doc. 🟠 Add an ops runbook.
+  `runbook.md`, and this readiness doc.
 
 ---
 

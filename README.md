@@ -164,10 +164,12 @@ credentials):
 
 | Doc | Purpose |
 |---|---|
+| [`supabase/README.md`](supabase/README.md) | Schema reference & ERD |
 | [`docs/db/rls-conventions.md`](docs/db/rls-conventions.md) | Row-Level Security model & audit |
 | [`docs/db/security-and-automation.md`](docs/db/security-and-automation.md) | Security posture & automation runbook |
+| [`docs/db/security-audit-2026-07.md`](docs/db/security-audit-2026-07.md) | Security audit — findings & resolutions |
+| [`docs/infra/runbook.md`](docs/infra/runbook.md) | Operations runbook (deploys, secrets, backups, incidents) |
 | [`docs/infra/acquisition-readiness.md`](docs/infra/acquisition-readiness.md) | Technical due-diligence checklist |
-| [`supabase/README.md`](supabase/README.md) | Schema reference & ERD |
 | [`docs/marketing/world-class-scheme.md`](docs/marketing/world-class-scheme.md) | Lifecycle-comms playbook |
 
 ---
