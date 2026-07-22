@@ -80,6 +80,7 @@ const P3_OPPORTUNITY = [
   'limit_reached', 'value_left', 'annual_discount', 'trial_ending',
   'roi_proof', 'plan_comparison', 'rent_benchmark_alert', 'market_digest',
   'occupancy_gap', 'reactivation_offer', 'winback_offer', 'winback_downgrade',
+  'news_rate_move', 'news_insurance_risk',   // topical value hooks
 ];
 
 // P5 — soft / optional. Only when nothing heavier is going out; first to defer.
