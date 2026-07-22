@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Security scan (secrets / forbidden files) — blocking
+        run: npm run security
+
       - name: Lint (informational)
         run: npm run lint || true
 

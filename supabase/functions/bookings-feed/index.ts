@@ -40,8 +40,14 @@ Deno.serve(async (req) => {
   const property = url.searchParams.get('property') || ''
   if (!token || token.length < 20) return new Response('Μη έγκυρο token', { status: 401 })
 
-  const { data: row } = await supabase.from('calendar_feed_tokens').select('user_id').eq('token', token).maybeSingle()
+  // Enforce token expiry server-side (mirror of calendar-feed): a leaked/rotated token
+  // must stop working. expires_at is set on issue; legacy NULL rows never expire.
+  const { data: row } = await supabase.from('calendar_feed_tokens')
+    .select('user_id, expires_at').eq('token', token).maybeSingle()
   if (!row?.user_id) return new Response('Δεν βρέθηκε', { status: 404 })
+  if (row.expires_at && new Date(row.expires_at).getTime() <= Date.now()) {
+    return new Response('Το token έχει λήξει', { status: 401 })
+  }
 
   let q = supabase.from('client_stays').select('id,check_in,check_out,channel').eq('user_id', row.user_id).order('check_in')
   if (property) q = q.eq('property_id', property)

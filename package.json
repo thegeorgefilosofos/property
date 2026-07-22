@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx lib/billing/parse.test.ts && tsx lib/billing/scenarios.test.ts && tsx lib/billing/documents.test.ts && tsx lib/billing/propertyFacts.test.ts && tsx app/dashboard/components/assistantPersona.test.ts && tsx lib/insights/engine.test.ts && tsx lib/billing/plans.test.ts && tsx lib/billing/greekTax.test.ts && tsx lib/billing/enfia.test.ts && tsx lib/billing/e2.test.ts && tsx app/dashboard/components/comparableStats.test.ts && tsx lib/reportBranding.test.ts && tsx lib/clients/clients.test.ts && tsx lib/calendar/externalLinks.test.ts && tsx lib/calendar/greekHolidays.test.ts && tsx lib/calendar/recurrence.test.ts && tsx lib/calendar/quickAdd.test.ts && tsx lib/calendar/availability.test.ts && tsx lib/calendar/icsImport.test.ts && tsx lib/calendar/notify.test.ts && tsx lib/calendar/bookingEvents.test.ts && tsx lib/calendar/stayBars.test.ts && tsx lib/calendar/overlap.test.ts && tsx lib/calendar/invite.test.ts && tsx lib/calendar/rentDue.test.ts && tsx lib/calendar/liveflows.test.ts && tsx lib/calendar/busyFeed.test.ts && tsx lib/accounting/ledger.test.ts && tsx lib/accounting/statement.test.ts && tsx lib/accounting/advisory.test.ts && tsx lib/accounting/transfer.test.ts && tsx lib/accounting/bankImport.test.ts && tsx lib/accounting/journal.test.ts && tsx lib/accounting/ownerSplit.test.ts && tsx lib/documents/rentAdjustment.test.ts && tsx lib/i18n/format.test.ts && tsx lib/tax/greekTaxCalendar.test.ts && tsx lib/calendar/calendar.integration.test.ts && tsx supabase/functions/_shared/verify-policy.ts && tsx supabase/functions/_shared/verify-messaging.ts && tsx supabase/functions/_shared/verify-gender.ts"
+    "security": "node scripts/security-check.mjs",
+    "test": "node scripts/test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
