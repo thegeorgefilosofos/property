@@ -69,8 +69,11 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
 - ✅ **Right to erasure & portability**: one-click **export** (`export_my_data`,
   dynamic per-user JSON of every table) and **delete-account**
   (`delete_my_account`), both surfaced in Settings → Data & Privacy.
-- 🔴 **Records of processing + subprocessor list** (Supabase, Resend, messaging
-  providers) and **DPAs** in place; a published Privacy Policy + Terms.
+- ✅ **Records of Processing (GDPR Art. 30) + subprocessor register** documented
+  (`docs/compliance/records-of-processing.md`, `subprocessors.md`), plus a
+  **retention schedule + breach-response runbook** (`data-retention-and-incidents.md`).
+  🔴 remaining: **execute the DPAs/SCCs** with each subprocessor and **publish a
+  Privacy Policy + Terms** (the RoPA gives the content; needs a legal pass).
 - 🟠 PII minimization: no secrets/PII in logs; the lock-screen/no-amount rules in the
   messaging layer already reflect this discipline.
 
@@ -121,7 +124,12 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   had been committed historically. Response: both keys **rotated/revoked**, the file
   **purged from all git history** (main + working branch rewritten, verified
   byte-identical trees), and tracking removed. Documented as the reference runbook.
-- 🟠 Formalize a periodic **key-rotation policy** (service-role, PAT, provider keys).
+- ✅ **Key-rotation policy** formalised (`docs/compliance/key-rotation-policy.md`):
+  per-secret cadence, no-downtime procedure, and standing hardening (account MFA,
+  audit log, secret scanning). Free to maintain.
+- 🟠 **Enforce** the free toggles in `docs/ops/owner-setup-guide.md` (branch
+  protection requiring the `verify` CI check; secret scanning + push protection;
+  Auth redirect-URL allowlist + tight OTP) — turns built controls into enforced ones.
 
 ## 10. Documentation (a buyer loves this)
 - ✅ Root `README.md` (architecture, stack, layout), `supabase/README.md` (schema
