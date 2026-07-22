@@ -5,35 +5,14 @@ import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
+import { checkPassword } from '@/lib/auth/password'
+import PasswordStrength from '@/components/PasswordStrength'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Εγγραφή, στα χρώματα του app (design tokens, theme-aware). Κοινό marketing
 // panel (AuthAside) με Σύνδεση/Επαναφορά. Google-first, με email ως δεύτερη οδό.
+// Ο έλεγχος ισχύος κωδικού είναι κοινός (lib/auth/password) με επαναφορά/ρυθμίσεις.
 // ═══════════════════════════════════════════════════════════════════════════
-
-// Client-side έλεγχος ισχύος κωδικού — καθρεφτίζει την server-side πολιτική του
-// Supabase Auth (min 8 + πεζό/κεφαλαίο/αριθμό/σύμβολο) ώστε ο χρήστης να βλέπει
-// άμεσο feedback ΠΡΙΝ το submit, αντί για ένα σκέτο σφάλμα μετά. Δεν αντικαθιστά
-// τον server έλεγχο· είναι UX layer πάνω του. Μπλοκάρει και προφανείς κωδικούς.
-const COMMON_PASSWORDS = new Set([
-  '12345678', '123456789', '1234567890', 'password', 'password1', 'password123',
-  'qwerty123', 'qwertyui', '11111111', '00000000', 'iloveyou', 'admin123',
-  'welcome1', 'letmein1', 'abc12345', 'passw0rd', '1q2w3e4r', 'football',
-])
-type PwCheck = { key: string; label: string; ok: boolean }
-function checkPassword(pw: string): { checks: PwCheck[]; score: number; ok: boolean; common: boolean } {
-  const common = COMMON_PASSWORDS.has(pw.toLowerCase())
-  const checks: PwCheck[] = [
-    { key: 'len', label: 'Τουλάχιστον 8 χαρακτήρες', ok: pw.length >= 8 },
-    { key: 'lower', label: 'Ένα πεζό γράμμα (a–z)', ok: /[a-z]/.test(pw) },
-    { key: 'upper', label: 'Ένα κεφαλαίο γράμμα (A–Z)', ok: /[A-Z]/.test(pw) },
-    { key: 'digit', label: 'Έναν αριθμό (0–9)', ok: /\d/.test(pw) },
-    { key: 'symbol', label: 'Ένα σύμβολο (!@#$…)', ok: /[^A-Za-z0-9]/.test(pw) },
-  ]
-  const score = checks.filter(c => c.ok).length
-  const ok = score === checks.length && !common
-  return { checks, score, ok, common }
-}
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
@@ -196,43 +175,9 @@ export default function SignupPage() {
                     </button>
                   </div>
 
-                  {/* Μετρητής ισχύος + λίστα προϋποθέσεων — εμφανίζεται μόλις ο χρήστης
-                      αρχίσει να πληκτρολογεί. Καθαρό, ήρεμο, στα tokens του app. */}
-                  {(password || pwTouched) && (
-                    <div id="su-pw-req" style={{ marginTop: 10 }}>
-                      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }} aria-hidden="true">
-                        {[0, 1, 2, 3, 4].map(i => (
-                          <div key={i} style={{
-                            flex: 1, height: 3, borderRadius: 2,
-                            background: i < pw.score
-                              ? (pw.score <= 2 ? 'var(--negative)' : pw.score <= 4 ? 'var(--warning, #d0a000)' : 'var(--positive, var(--accent))')
-                              : 'var(--border-subtle)',
-                            transition: 'background .15s',
-                          }} />
-                        ))}
-                      </div>
-                      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 4 }}>
-                        {pw.checks.map(c => (
-                          <li key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: c.ok ? 'var(--positive, var(--accent))' : 'var(--text-tertiary)' }}>
-                            <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center' }}>
-                              {c.ok
-                                ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                                : <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-tertiary)' }} />}
-                            </span>
-                            {c.label}
-                          </li>
-                        ))}
-                        {pw.common && (
-                          <li style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--negative)' }}>
-                            <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center' }}>
-                              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                            </span>
-                            Πολύ κοινός κωδικός — διάλεξε κάτι πιο μοναδικό
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
+                  {/* Μετρητής ισχύος + λίστα προϋποθέσεων (κοινό component) —
+                      εμφανίζεται μόλις ο χρήστης αρχίσει να πληκτρολογεί. */}
+                  {(password || pwTouched) && <PasswordStrength password={password} id="su-pw-req" />}
                 </div>
 
                 {error && (

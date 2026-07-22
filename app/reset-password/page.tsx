@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import AuthAside from '../AuthAside'
+import { checkPassword } from '@/lib/auth/password'
+import PasswordStrength from '@/components/PasswordStrength'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Επαναφορά κωδικού, δύο καταστάσεις:
@@ -48,9 +50,11 @@ export default function ResetPasswordPage() {
     if (error) setError(trans(error.message)); else setMode('sent')
   }
 
+  const pwOk = checkPassword(password).ok
+
   async function updatePassword(e: React.FormEvent) {
     e.preventDefault(); setError('')
-    if (password.length < 8) { setError('Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.'); return }
+    if (!pwOk) { setError('Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.'); return }
     if (password !== confirm) { setError('Οι κωδικοί δεν ταιριάζουν.'); return }
     setLoading(true)
     const supabase = createClient()
@@ -150,10 +154,11 @@ export default function ResetPasswordPage() {
                 <div>
                   <label htmlFor="rp-password" style={label}>Νέος κωδικός</label>
                   <div style={{ position: 'relative' }}>
-                    <input id="rp-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" style={{ ...field, paddingRight: 48 }}
+                    <input id="rp-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" aria-describedby="rp-pw-req" style={{ ...field, paddingRight: 48 }}
                       onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                     {eye}
                   </div>
+                  {password && <PasswordStrength password={password} id="rp-pw-req" />}
                 </div>
                 <div>
                   <label htmlFor="rp-confirm" style={label}>Επιβεβαίωση</label>
@@ -161,7 +166,7 @@ export default function ResetPasswordPage() {
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 </div>
                 {errBox}
-                <button type="submit" disabled={loading} style={btn}>{loading ? 'Αποθήκευση…' : 'Αποθήκευση κωδικού →'}</button>
+                <button type="submit" disabled={loading || !pwOk} style={{ ...btn, cursor: (loading || !pwOk) ? 'not-allowed' : 'pointer', opacity: (loading || !pwOk) ? 0.6 : 1 }}>{loading ? 'Αποθήκευση…' : 'Αποθήκευση κωδικού →'}</button>
               </form>
             </>
           )}
