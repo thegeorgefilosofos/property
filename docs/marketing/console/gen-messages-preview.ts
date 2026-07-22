@@ -47,7 +47,7 @@ const GROUPS: Array<{ label: string; blurb: string; keys: string[] }> = [
   { label: 'Συναλλακτικά', blurb: 'Άμεσα, τη στιγμή που συμβαίνουν. Ποτέ ποσά ή ονόματα στην οθόνη κλειδώματος.',
     keys: ['subscription_receipt', 'payment_failed', 'security_login', 'tenant_rent_receipt', 'payout_received', 'maintenance_completed'] },
   { label: 'Υποχρεώσεις και προθεσμίες', blurb: 'Ό,τι λήγει ή θέλει δράση. Όταν πέφτουν την ίδια μέρα, ενοποιούνται σε ένα μήνυμα.',
-    keys: ['dunning_1', 'dunning_2', 'dunning_final', 'tax_installment', 'lease_ending', 'insurance_expiring', 'certificate_expiring', 'card_expiring', 'appointment_reminder', 'maintenance_scheduled', 'lease_declaration_reminder', 'str_registration_reminder', 'str_stay_tax', 'data_retention_notice'] },
+    keys: ['dunning_1', 'dunning_2', 'dunning_final', 'tax_installment', 'tax_enfia', 'enfia_installment_reminder', 'lease_ending', 'insurance_expiring', 'certificate_expiring', 'card_expiring', 'appointment_reminder', 'maintenance_scheduled', 'maintenance_requested', 'lease_declaration_reminder', 'str_registration_reminder', 'str_stay_tax', 'takk_seasonal_rate_switch', 'data_retention_notice'] },
   { label: 'Βραχυχρόνια μίσθωση', blurb: 'Το πρόγραμμα της ημέρας: αφίξεις, αναχωρήσεις, καθαρισμοί.',
     keys: ['checkin_today', 'checkout_today', 'cleaning_scheduled'] },
   { label: 'Ενοποιημένα μηνύματα', blurb: 'Πολλά θέματα μιας μέρας σε ένα μήνυμα, αντί για βομβαρδισμό.',
