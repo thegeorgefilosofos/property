@@ -49,9 +49,12 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   history never drifts and no human runs `migration repair` by hand.
 
 ## 4. Environments
-- 🔴 Everything is on **`main` = production.** Add a **staging** environment
-  (Supabase branching / a second project) so changes are tested before prod. Buyers
-  expect prod ≠ dev.
+- 🟠 Everything is on **`main` = production.** The free path to prod ≠ dev is a
+  **second free Supabase project** as staging (Free allows two projects) — no Pro
+  needed. Setup is documented step-by-step in
+  [`staging-setup.md`](staging-setup.md); it needs the account owner to create the
+  project + add two GitHub secrets, then the deploy workflow is parameterised to
+  target staging on feature branches and production on `main`.
 
 ## 5. Data privacy & compliance (EU / GDPR) — 🔴 for an EU SaaS sale
 - ✅ **Data residency**: project region is **EU — Central EU (Frankfurt),
