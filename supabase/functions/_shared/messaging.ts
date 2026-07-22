@@ -23,7 +23,6 @@ import type { Personal } from './emailTemplates.ts';
 export type Channel = 'email' | 'push' | 'viber' | 'whatsapp' | 'imessage';
 export interface ChannelMessage { title: string; body: string; cta?: string; }
 
-const first = (name?: string) => (name || '').trim().split(/\s+/)[0] || '';
 // Third-person tenant reference, correctly gendered (owner-facing dunning etc.).
 // The unknown case is genuinely genderless: it names no person rather than
 // defaulting to a masculine «μισθωτή», so an undetected-gender tenant is never
@@ -38,22 +37,22 @@ export const MSG: Record<string, (c: Personal) => ChannelMessage> = {
   // behind the tap.
   subscription_receipt: (c) => ({ title: 'Η απόδειξή σου είναι έτοιμη', body: 'Λάβαμε την πληρωμή της συνδρομής σου. Ευχαριστούμε που είσαι μαζί μας.', cta: 'Δες την απόδειξη' }),
   payment_failed: (c) => ({ title: 'Η πληρωμή δεν ολοκληρώθηκε', body: 'Η χρέωση της συνδρομής απέτυχε, συνήθως φταίει μια κάρτα που έληξε. Ενημέρωσέ την για να μη διακοπεί τίποτα.', cta: 'Διόρθωσε τώρα' }),
-  security_login: (c) => ({ title: 'Νέα σύνδεση στον λογαριασμό σου', body: `Είδαμε μια σύνδεση${c.location ? ` από ${c.location}` : ''}. Αν ήσουν εσύ, όλα εντάξει, αγνόησέ το.`, cta: 'Έλεγξε τη δραστηριότητα' }),
+  security_login: (c) => ({ title: 'Νέα σύνδεση στον λογαριασμό σου', body: `Είδαμε μια σύνδεση${c.location ? ` από ${c.location}` : ''}. Αν ήσουν εσύ, αγνόησέ το.`, cta: 'Έλεγξε τη δραστηριότητα' }),
   tenant_rent_receipt: (c) => ({ title: 'Καταχωρήθηκε πληρωμή ενοικίου', body: 'Μια πληρωμή ενοικίου μόλις καταγράφηκε. Η απόδειξη είναι έτοιμη στην εφαρμογή.', cta: 'Δες την απόδειξη' }),
   payout_received: (c) => ({ title: 'Μπήκε μια είσπραξη', body: 'Καταγράφηκε μια πληρωμή από τις κρατήσεις σου. Τα έσοδά σου ενημερώθηκαν.', cta: 'Δες τα έσοδα' }),
   maintenance_completed: (c) => ({ title: 'Ολοκληρώθηκε η συντήρηση', body: `${c.propertyName ? c.propertyName + ': η' : 'Η'} εργασία ολοκληρώθηκε και καταγράφηκε στο ιστορικό του ακινήτου.`, cta: 'Δες το ιστορικό' }),
 
   // ── Obligations ────────────────────────────────────────────────────────────
   dunning_1: (c) => ({ title: 'Εκκρεμεί ένα ενοίκιο', body: `Ένα ενοίκιο δεν έχει εξοφληθεί ακόμη. Αν θες, στείλε μια ευγενική υπενθύμιση${toTenant(c)}.`, cta: 'Δες το ενοίκιο' }),
-  dunning_2: (c) => ({ title: 'Ενοίκιο σε καθυστέρηση', body: `${c.daysOverdue ? c.daysOverdue + ' μέρες καθυστέρηση. ' : ''}Ίσως ήρθε η ώρα για μια πιο άμεση, πάντα ευγενική, υπενθύμιση.`, cta: 'Δες τις επιλογές' }),
-  dunning_final: (c) => ({ title: 'Ληξιπρόθεσμο ενοίκιο', body: 'Ένα ενοίκιο παραμένει ανεξόφλητο για καιρό. Δες τα επόμενα βήματα που έχεις στη διάθεσή σου.', cta: 'Δες τη δόση' }),
+  dunning_2: (c) => ({ title: 'Ενοίκιο σε καθυστέρηση', body: `${c.daysOverdue ? (c.daysOverdue === 1 ? 'Καθυστέρηση μίας ημέρας. ' : `Καθυστέρηση ${c.daysOverdue} ημερών. `) : ''}Ίσως ήρθε η ώρα για μια πιο άμεση, πάντα ευγενική, υπενθύμιση.`, cta: 'Δες τις επιλογές' }),
+  dunning_final: (c) => ({ title: 'Ληξιπρόθεσμο ενοίκιο', body: 'Ένα ενοίκιο παραμένει ανεξόφλητο για καιρό. Δες τα επόμενα βήματα που έχεις στη διάθεσή σου.', cta: 'Δες το ενοίκιο' }),
   tax_installment: (c) => ({ title: 'Δόση φόρου αυτόν τον μήνα', body: `Πλησιάζει η προθεσμία${c.deadlineDate ? ` στις ${c.deadlineDate}` : ''}. Μια ματιά τώρα σε γλιτώνει από τρέξιμο μετά.`, cta: 'Δες την υποχρέωση' }),
   lease_ending: (c) => ({ title: 'Λήγει μια μίσθωση', body: `${c.propertyName ? c.propertyName + ': η' : 'Μια'} μίσθωση λήγει σύντομα${c.leaseEndDate ? ` στις ${c.leaseEndDate}` : ''}. Καλή στιγμή να αποφασίσεις ανανέωση ή αλλαγή.`, cta: 'Δες το συμβόλαιο' }),
   insurance_expiring: (c) => ({ title: 'Λήγει η ασφάλεια του ακινήτου', body: `${c.propertyName ? c.propertyName + ': το' : 'Το'} ασφαλιστήριο λήγει σύντομα${c.policyEndDate ? ` στις ${c.policyEndDate}` : ''}. Μην αφήσεις κενό στην κάλυψη.`, cta: 'Δες την ασφάλεια' }),
-  certificate_expiring: (c) => ({ title: `Λήγει πιστοποιητικό${c.certificateName ? `: ${c.certificateName}` : ''}`, body: `${c.propertyName ? c.propertyName + ': καλό' : 'Καλό'} είναι να ανανεωθεί εγκαίρως${c.certificateEndDate ? ` (λήξη ${c.certificateEndDate})` : ''}, για να μη σε καθυστερήσει σε μίσθωση ή πώληση.`, cta: 'Δες το ακίνητο' }),
+  certificate_expiring: (c) => ({ title: `Λήγει ${c.certificateName ? 'πιστοποιητικό: ' + c.certificateName : 'ένα πιστοποιητικό'}`, body: `${c.propertyName ? c.propertyName + ': καλό' : 'Καλό'} είναι να ανανεωθεί εγκαίρως${c.certificateEndDate ? ` (λήξη ${c.certificateEndDate})` : ''}, για να μη σε καθυστερήσει σε μίσθωση ή πώληση.`, cta: 'Δες το ακίνητο' }),
   card_expiring: (c) => ({ title: 'Λήγει η κάρτα πληρωμής', body: 'Η κάρτα της συνδρομής λήγει σύντομα. Μια γρήγορη ανανέωση αποτρέπει τη διακοπή.', cta: 'Ενημέρωσε την κάρτα' }),
   appointment_reminder: (c) => ({ title: 'Υπενθύμιση ραντεβού', body: `${c.appointmentTitle || 'Έχεις ραντεβού'}${c.appointmentDate ? ` στις ${c.appointmentDate}` : ''}${c.appointmentTime ? ` ${c.appointmentTime}` : ''}. Το κρατάμε στο ημερολόγιό σου.`, cta: 'Δες το ημερολόγιο' }),
-  maintenance_scheduled: (c) => ({ title: 'Προγραμματισμένη συντήρηση', body: `${c.maintenanceTitle ? c.maintenanceTitle : 'Μια εργασία'}${c.propertyName ? ` στο ${c.propertyName}` : ''}${c.maintenanceDate ? ` στις ${c.maintenanceDate}` : ''}. Θα σου θυμίσουμε λίγο πριν.`, cta: 'Δες τη συντήρηση' }),
+  maintenance_scheduled: (c) => ({ title: 'Προγραμματισμένη συντήρηση', body: `${c.propertyName ? c.propertyName + ': ' : ''}${c.maintenanceTitle || 'Μια εργασία'}${c.maintenanceDate ? ` στις ${c.maintenanceDate}` : ''}. Θα σου θυμίσουμε λίγο πριν.`, cta: 'Δες τη συντήρηση' }),
   lease_declaration_reminder: (c) => ({ title: 'Δήλωση μίσθωσης στο myAADE', body: `Μια μίσθωση${c.propertyName ? ` (${c.propertyName})` : ''} θέλει δήλωση στο myAADE${c.deadlineDate ? ` έως ${c.deadlineDate}` : ''}. Τα στοιχεία είναι έτοιμα.`, cta: 'Δες τα στοιχεία' }),
   str_registration_reminder: (c) => ({ title: 'Ανάρτηση Αριθμού Μητρώου Ακινήτου', body: `${c.propertyName ? c.propertyName + ': ο' : 'Ο'} ΑΜΑ πρέπει να φαίνεται σε κάθε αγγελία σε Airbnb και Booking. Δες αν είναι όλα σε τάξη.`, cta: 'Δες το ακίνητο' }),
   str_stay_tax: (c) => ({ title: 'Απόδοση τέλους ανθεκτικότητας', body: 'Το τέλος ανθεκτικότητας στην κλιματική κρίση για τις βραχυχρόνιες θέλει απόδοση. Δες τι αναλογεί ανά κράτηση.', cta: 'Δες τα ποσά' }),
@@ -67,17 +66,18 @@ export const MSG: Record<string, (c: Personal) => ChannelMessage> = {
   cleaning_scheduled: (c) => ({ title: 'Καθαρισμός σήμερα', body: `${c.propertyName ? c.propertyName + ': υπάρχει' : 'Υπάρχει'} προγραμματισμένος καθαρισμός, ώστε το ακίνητο να είναι έτοιμο για την επόμενη άφιξη.`, cta: 'Δες το πρόγραμμα' }),
 
   // ── Digests (consolidated) ─────────────────────────────────────────────────
-  digest_obligations: (c) => ({ title: 'Τι χρειάζεται προσοχή σήμερα', body: `${c.digestItems?.length ? c.digestItems.length + ' θέματα λήγουν σήμερα, μαζεμένα σε ένα μήνυμα.' : 'Δες συγκεντρωμένα ό,τι λήγει σήμερα.'}`, cta: 'Άνοιξε τον πίνακα' }),
-  digest_tax: (c) => ({ title: 'Φορολογικές προθεσμίες', body: `${c.digestItems?.length ? c.digestItems.length + ' προθεσμίες πλησιάζουν, όλες σε ένα σημείο.' : 'Δες συγκεντρωμένες τις προθεσμίες σου.'}`, cta: 'Δες το ημερολόγιο' }),
+  digest_obligations: (c) => ({ title: 'Τι χρειάζεται προσοχή σήμερα', body: `${c.digestItems?.length ? (c.digestItems.length === 1 ? 'Ένα θέμα λήγει σήμερα, σε ένα μήνυμα.' : `${c.digestItems.length} θέματα λήγουν σήμερα, μαζεμένα σε ένα μήνυμα.`) : 'Δες συγκεντρωμένα ό,τι λήγει σήμερα.'}`, cta: 'Άνοιξε τον πίνακα' }),
+  digest_tax: (c) => ({ title: 'Φορολογικές προθεσμίες', body: `${c.digestItems?.length ? (c.digestItems.length === 1 ? 'Μία προθεσμία πλησιάζει, σε ένα σημείο.' : `${c.digestItems.length} προθεσμίες πλησιάζουν, όλες σε ένα σημείο.`) : 'Δες συγκεντρωμένες τις προθεσμίες σου.'}`, cta: 'Δες το ημερολόγιο' }),
   digest_str_today: (c) => ({ title: 'Το πρόγραμμα της ημέρας', body: 'Αφίξεις, αναχωρήσεις και καθαρισμοί για σήμερα, σε ένα μήνυμα.', cta: 'Άνοιξε το ημερολόγιο' }),
 
   // ── Opportunity (brief nudge — the rich version lives in-app/email) ─────────
-  limit_reached: (c) => ({ title: 'Έφτασες το όριο του πλάνου', body: 'Το χρησιμοποιείς σοβαρά, καλό σημάδι. Μια αναβάθμιση ανοίγει τον δρόμο για κι άλλα ακίνητα.', cta: 'Δες τα πλάνα' }),
-  rate_alert: (c) => ({ title: 'Κινήθηκαν τα επιτόκια', body: 'Οι τραπεζικές τιμές ενημερώθηκαν. Δες τη νέα δόση και αν συμφέρει μια αναχρηματοδότηση.', cta: 'Δες τη σύγκριση' }),
+  limit_reached: (c) => ({ title: 'Έφτασες το όριο του πλάνου', body: 'Φαίνεται πως το αξιοποιείς στο έπακρο, καλό σημάδι. Μια αναβάθμιση ανοίγει τον δρόμο για κι άλλα ακίνητα.', cta: 'Δες τα πλάνα' }),
+  rate_alert: (c) => ({ title: 'Κινήθηκαν τα επιτόκια', body: 'Τα τραπεζικά επιτόκια ενημερώθηκαν. Δες τη νέα δόση και αν συμφέρει μια αναχρηματοδότηση.', cta: 'Δες τη σύγκριση' }),
 
   // ── Lifecycle (glanceable good news) ───────────────────────────────────────
   monthly_statement: (c) => ({ title: 'Η μηνιαία σου κατάσταση', body: `${c.period ? c.period + ': η' : 'Η'} σύνοψη του μήνα είναι έτοιμη, τακτοποιημένη ανά ακίνητο.`, cta: 'Δες την κατάσταση' }),
-  referral_friend_activated: (c) => ({ title: 'Η σύστασή σου ενεργοποιήθηκε', body: `${first(c.friendName) || 'Ένα άτομο'} ξεκίνησε ενεργά με το Property OS χάρη σε σένα.${c.rewardLabel ? ' Η ανταμοιβή σου έρχεται.' : ''}`, cta: 'Δες τις συστάσεις' }),
+  // Privacy: never the friend's name in the body (lock screen is public); it lives in-app.
+  referral_friend_activated: (c) => ({ title: 'Η σύστασή σου ενεργοποιήθηκε', body: `Κάποιος που προσκάλεσες μόλις ξεκίνησε με το Property OS, χάρη σε σένα.${c.rewardLabel ? ' Η ανταμοιβή σου έρχεται.' : ''}`, cta: 'Δες τις συστάσεις' }),
 };
 
 // ── Per-channel adapters ─────────────────────────────────────────────────────
