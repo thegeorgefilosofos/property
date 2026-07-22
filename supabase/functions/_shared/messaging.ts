@@ -77,7 +77,7 @@ export const MSG: Record<string, (c: Personal) => ChannelMessage> = {
 
   // ── Lifecycle (glanceable good news) ───────────────────────────────────────
   monthly_statement: (c) => ({ title: 'Η μηνιαία σου κατάσταση', body: `${c.period ? c.period + ': η' : 'Η'} σύνοψη του μήνα είναι έτοιμη, τακτοποιημένη ανά ακίνητο.`, cta: 'Δες την κατάσταση' }),
-  referral_friend_activated: (c) => ({ title: 'Η σύστασή σου ενεργοποιήθηκε', body: `${first(c.friendName) || 'Ο φίλος σου'} ξεκίνησε ενεργά με το Property OS χάρη σε σένα.${c.rewardLabel ? ' Η ανταμοιβή σου έρχεται.' : ''}`, cta: 'Δες τις συστάσεις' }),
+  referral_friend_activated: (c) => ({ title: 'Η σύστασή σου ενεργοποιήθηκε', body: `${first(c.friendName) || 'Ένα άτομο'} ξεκίνησε ενεργά με το Property OS χάρη σε σένα.${c.rewardLabel ? ' Η ανταμοιβή σου έρχεται.' : ''}`, cta: 'Δες τις συστάσεις' }),
 };
 
 // ── Per-channel adapters ─────────────────────────────────────────────────────
