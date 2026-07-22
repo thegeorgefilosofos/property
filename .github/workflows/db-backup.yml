@@ -1,0 +1,56 @@
+name: Database backup (free-tier safety net)
+
+# Supabase Free has no scheduled backups, so we take our own: a daily logical dump
+# (schema + data + roles) uploaded as a private GitHub Actions artifact, retained 90
+# days and restorable with psql. This is off-site (different provider) — a real DR
+# net until you upgrade to Pro (managed backups + PITR).
+#
+# ⚠ The artifact contains REAL customer data. Keep this repository PRIVATE. Before
+# onboarding real customers / selling, move to Pro backups (or an encrypted bucket).
+#
+# Reuses the same two secrets as the deploy pipeline:
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD
+
+on:
+  schedule:
+    - cron: '0 2 * * *'      # every day at 02:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_PROJECT_REF: aromvduuxtcrzmwwvnej
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Dump roles, schema and data
+        run: |
+          mkdir -p backup
+          supabase db dump --linked --role-only -f backup/roles.sql
+          supabase db dump --linked            -f backup/schema.sql
+          supabase db dump --linked --data-only -f backup/data.sql
+          ls -lh backup
+
+      - name: Date stamp
+        id: ts
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ steps.ts.outputs.date }}
+          path: backup/
+          retention-days: 90
