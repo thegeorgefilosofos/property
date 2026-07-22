@@ -80,17 +80,9 @@ jobs:
       - name: Apply database migrations
         run: supabase db push
 
-      # Edge functions. Cron/token-gated functions enforce auth internally (cron
-      # secret / capability token) and stay --no-verify-jwt so pg_net/cron can call
-      # them. User-facing functions honour verify_jwt from supabase/config.toml
-      # (smart-suggestions = true) and require a real user JWT.
+      # Deploy every edge function in one pass. Each function's verify_jwt is
+      # declared explicitly in supabase/config.toml (cron/token/service = false,
+      # user-facing = true), so no per-function flags are needed and nothing is
+      # left undeployed.
       - name: Deploy Edge Functions
-        run: |
-          supabase functions deploy send-lifecycle-email  --no-verify-jwt
-          supabase functions deploy schedule-email-outbox --no-verify-jwt
-          supabase functions deploy dispatch-message      --no-verify-jwt
-          supabase functions deploy market-data-updater   --no-verify-jwt
-          supabase functions deploy bank-rates-updater    --no-verify-jwt
-          supabase functions deploy ical-sync             --no-verify-jwt
-          supabase functions deploy smart-suggestions
-          supabase functions deploy send-test-notification
+        run: supabase functions deploy
