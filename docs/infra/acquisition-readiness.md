@@ -40,7 +40,11 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   "none". After Pro: RPO ≤ 24h (≈0 with PITR), documented restore procedure.
 
 ## 3. Change management & reproducibility
-- ✅ **Migrations-as-code** — the whole schema rebuilds from `supabase/migrations/`.
+- ✅ **Migrations-as-code** — the whole schema rebuilds from `supabase/migrations/`
+  **from scratch**, validated on staging. The history was squashed into a
+  production-schema baseline + storage/scheduling companions
+  (`00000000000000_baseline.sql` …), so a fresh `db reset` is self-sufficient
+  (audit finding 16 closed).
 - ✅ **CI/CD** — `.github/workflows/supabase-deploy.yml` applies migrations + deploys
   functions on push. No manual dashboard changes; no always-on write credential.
 - ✅ Remote migration history is kept consistent with the repo **automatically** — the
@@ -49,12 +53,11 @@ versioned, automated, documented, compliant. Status: ✅ done · 🟠 in progres
   history never drifts and no human runs `migration repair` by hand.
 
 ## 4. Environments
-- 🟠 Everything is on **`main` = production.** The free path to prod ≠ dev is a
-  **second free Supabase project** as staging (Free allows two projects) — no Pro
-  needed. Setup is documented step-by-step in
-  [`staging-setup.md`](staging-setup.md); it needs the account owner to create the
-  project + add two GitHub secrets, then the deploy workflow is parameterised to
-  target staging on feature branches and production on `main`.
+- ✅ **prod ≠ dev.** A second (free) Supabase project serves as **staging**: the
+  deploy workflow targets staging on feature branches (`claude/**`) and production
+  on `main`, so every schema/function change is validated against a throwaway copy
+  before it reaches customer data. A from-scratch rebuild is proven on staging via
+  the migration baseline. See [`staging-setup.md`](staging-setup.md).
 
 ## 5. Data privacy & compliance (EU / GDPR) — 🔴 for an EU SaaS sale
 - ✅ **Data residency**: project region is **EU — Central EU (Frankfurt),

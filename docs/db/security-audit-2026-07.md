@@ -33,7 +33,7 @@ service-role key that had been committed to git history. All resolved.
 | 13 | Low | DB fn | `org_owner_ids` / `org_editor_owner_ids` answered for an arbitrary uid (relationship disclosure) | ✅ Guarded to the calling user |
 | 14 | Low | App | No `middleware.ts`; dashboard auth is client-side only (data still RLS-gated) | ✅ `proxy.ts` (Next 16) refreshes the session, redirects unauthenticated users off protected routes, and sets a strict per-request-nonce CSP + security headers |
 | 15 | Low | DB fn | Accountant/check-in tokens are static bearer capabilities (no PIN/expiry) | 🟠 Design note: consider PIN/expiry like the tenant portal |
-| 16 | Info | Repro | Base tables live in `SETUP_ALL.sql`, not in `migrations/` → a from-scratch `db reset` isn't self-sufficient | 🟠 Unify into a migration baseline once staging exists |
+| 16 | Info | Repro | Base tables live in `SETUP_ALL.sql`, not in `migrations/` → a from-scratch `db reset` isn't self-sufficient | ✅ Squashed into a migration baseline (`00000000000000_baseline.sql` + `_platform_storage` + `_scheduling`); a from-scratch rebuild is validated on the staging project |
 
 ## Verified clean (no action needed)
 
@@ -63,6 +63,9 @@ service-role key that had been committed to git history. All resolved.
    auth flow (PKCE + `/auth/callback`) is deferred until staging exists.
 3. PIN/expiry option for accountant/check-in tokens (finding 15).
 4. Constant-time comparison for cron-secret checks (hardening).
-5. Migration baseline so the schema rebuilds from `migrations/` alone (finding 16),
-   after a staging project exists to validate a from-scratch `db reset`.
+5. ✅ Migration baseline so the schema rebuilds from `migrations/` alone (finding
+   16) — done; the 87 incremental migrations were squashed into a
+   production-schema baseline + storage/scheduling companions, validated from
+   scratch on the staging project, and production's history was reconciled by
+   marking the baselines already-applied (bookkeeping only).
 6. Run Supabase Security & Performance Advisors as the ongoing automated guard.
