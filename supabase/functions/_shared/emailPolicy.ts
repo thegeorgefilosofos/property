@@ -55,10 +55,16 @@ export const CAPS = {
 const P1_TRANSACTIONAL = [
   'welcome_free', 'welcome_individual', 'welcome_professional', 'verify_email',
   'first_property_success', 'trial_started',
-  'subscription_receipt', 'plan_changed', 'payment_failed', 'security_login', 'reply_ack',
+  'subscription_receipt', 'plan_changed', 'payment_failed', 'security_login', 'password_reset', 'reply_ack',
   'tenant_rent_receipt', 'payout_received', 'maintenance_completed',
   'referral_reward', 'referral_friend_activated',
 ];
+
+// Wake-worthy transactional: security-critical events that may legitimately buzz a
+// phone at night. Everything else transactional (receipts, payout) is night-holdable
+// — the dispatcher may hold its lock-screen buzz to civil hours (content still sends).
+const WAKE_WORTHY = new Set(['security_login', 'password_reset', 'payment_failed']);
+export const isWakeWorthy = (copyId: string) => WAKE_WORTHY.has(copyId);
 
 // Time-critical obligations. Same-day ones consolidate into one digest, except
 // the ones flagged standalone below.
@@ -67,9 +73,9 @@ const P2_OBLIGATION = [
   'tax_e2', 'tax_enfia', 'tax_installment',
   'lease_ending', 'lease_renewal_prompt', 'deposit_reminder',
   'insurance_expiring', 'certificate_expiring', 'inspection_due',
-  'utility_bill_due', 'appointment_reminder', 'appointment_missed', 'maintenance_scheduled',
-  'lease_declaration_reminder', 'str_registration_reminder', 'str_stay_tax',
-  'card_expiring', 'data_retention_notice',
+  'utility_bill_due', 'appointment_reminder', 'appointment_missed', 'maintenance_scheduled', 'maintenance_requested',
+  'lease_declaration_reminder', 'str_registration_reminder', 'str_stay_tax', 'takk_seasonal_rate_switch',
+  'enfia_installment_reminder', 'card_expiring', 'data_retention_notice',
   'checkin_today', 'checkout_today', 'cleaning_scheduled',
 ];
 
@@ -81,6 +87,7 @@ const P3_OPPORTUNITY = [
   'roi_proof', 'plan_comparison', 'rent_benchmark_alert', 'market_digest',
   'occupancy_gap', 'reactivation_offer', 'winback_offer', 'winback_downgrade',
   'news_rate_move', 'news_insurance_risk', 'news_utility_prices',   // topical value hooks
+  'energy_pulse',   // monthly green-tariff savings pulse
 ];
 
 // P5 — soft / optional. Only when nothing heavier is going out; first to defer.
@@ -88,7 +95,7 @@ const P5_SOFT = [
   'roadmap_preview', 'nps_survey', 'feedback_lottery', 'best_practice_tip',
   'webinar_invite', 'assistant_showcase', 'social_proof', 'churn_survey',
   'tip_assistant', 'voice_entry', 'tip_reports', 'feedback_week1', 'recap_week2',
-  'yield_boost',
+  'yield_boost', 'portfolio_digest_nudge',
 ];
 
 // Everything else (onboarding drip steps, monthly statement, product & seasonal
@@ -100,7 +107,7 @@ const STANDALONE = new Set(['dunning_final', 'payment_failed', 'data_retention_n
 // Which digest a same-day obligation joins.
 function digestGroupFor(copyId: string): string {
   if (['checkin_today', 'checkout_today', 'cleaning_scheduled'].includes(copyId)) return 'str_today';
-  if (['tax_e2', 'tax_enfia', 'tax_installment'].includes(copyId)) return 'tax';
+  if (['tax_e2', 'tax_enfia', 'tax_installment', 'enfia_installment_reminder'].includes(copyId)) return 'tax';
   return 'obligations';
 }
 
@@ -131,11 +138,19 @@ export function offsetMinutes(recipientKey: string): number {
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
+// Pull any 'HH:MM' that lands outside civil hours [QUIET_END, QUIET_START) back to
+// the morning slot — the hard guarantee that nothing non-transactional ever buzzes
+// at night, enforced in code, not merely by slot choice. See verify-policy.
+export function civilClamp(clock: string): string {
+  if (clock === 'now') return clock;
+  const h = Number(clock.split(':')[0]);
+  return (h >= QUIET_START || h < QUIET_END) ? SLOT_TIME.morning : clock;
+}
 function slotClock(slot: Slot, recipientKey: string): string {
   if (slot === 'immediate') return 'now';
   const [hh, mm] = SLOT_TIME[slot].split(':').map(Number);
   const total = hh * 60 + mm + offsetMinutes(recipientKey);
-  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+  return civilClamp(`${pad(Math.floor(total / 60))}:${pad(total % 60)}`);
 }
 // Add minutes to an 'HH:MM' clock (used to spread several morning obligations).
 function addMinutes(clock: string, m: number): string {
@@ -150,7 +165,7 @@ const WEIGHT: Record<string, number> = {
   winback_downgrade: 9, limit_reached: 9, reactivation_offer: 8, winback_offer: 8, trial_ending: 8,
   value_left: 8, annual_discount: 7, upsell_to_professional: 7, upsell_to_individual: 7,
   free_month_upgrade: 6, document_pack: 6, energy_savings: 6, insurance_enfia: 6, roi_proof: 6, occupancy_gap: 6,
-  news_utility_prices: 6, news_insurance_risk: 6, news_rate_move: 5,
+  news_utility_prices: 6, news_insurance_risk: 6, news_rate_move: 5, energy_pulse: 6,
   loan_costs: 5, plan_comparison: 5, rent_benchmark_alert: 5, rate_alert: 4, market_digest: 3,
 };
 // Note: loan_first_scenario is an event-triggered educational follow-up and falls

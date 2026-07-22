@@ -1,6 +1,6 @@
 // Scenario tests for the email cadence policy. Run: npx tsx verify-policy.ts
 // Proves the anti-spam guarantees hold — above all the "ten emails on the 1st".
-import { planDeliveries, policyFor, scheduleBatch, SLOT_TIME, QUIET_END, QUIET_START } from './emailPolicy.ts';
+import { planDeliveries, policyFor, scheduleBatch, SLOT_TIME, QUIET_END, QUIET_START, civilClamp, isWakeWorthy } from './emailPolicy.ts';
 import { DIGESTS } from './emailCopy.ts';
 
 let failed = 0;
@@ -115,6 +115,26 @@ console.log('\n12) Several morning obligations spread across distinct minutes');
   const { deliveries } = planDeliveries([{ copyId: 'dunning_final' }, { copyId: 'data_retention_notice' }, { copyId: 'tax_e2' }, { copyId: 'tax_enfia' }], { recipientKey: 'm@g.gr' });
   const morning = deliveries.filter(d => d.priority === 2).map(d => d.at);
   ok(new Set(morning).size === morning.length && morning.length >= 3, `morning obligations land at distinct times (${morning.join(', ')})`);
+}
+
+console.log('\n13) Quiet hours are clamped in code, not just by slot choice');
+{
+  ok(civilClamp('22:30') === SLOT_TIME.morning, 'a 22:30 time defers to the morning slot');
+  ok(civilClamp('07:15') === SLOT_TIME.morning, 'a 07:15 time (pre-08:00) defers to the morning slot');
+  ok(civilClamp('12:30') === '12:30' && civilClamp('20:59') === '20:59', 'civil-hour times pass through unchanged');
+  ok(civilClamp('now') === 'now', 'immediate/now is never clamped');
+  // every planned non-transactional delivery lands inside civil hours
+  const { deliveries } = planDeliveries([{ copyId: 'market_digest' }, { copyId: 'product_update' }, { copyId: 'nps_survey' }], { recipientKey: 'quiet@g.gr' });
+  ok(deliveries.filter(d => d.category !== 'transactional').every(d => within(d.at)), 'all non-transactional sends fall within civil hours');
+}
+
+console.log('\n14) Wake-worthy transactional classification');
+{
+  ok(isWakeWorthy('security_login') && isWakeWorthy('password_reset') && isWakeWorthy('payment_failed'), 'security-critical events are wake-worthy');
+  ok(!isWakeWorthy('subscription_receipt') && !isWakeWorthy('payout_received'), 'receipts/payouts are night-holdable, not wake-worthy');
+  ok(policyFor('password_reset').category === 'transactional', 'password_reset is transactional (uncapped, immediate)');
+  ok(policyFor('enfia_installment_reminder').priority === 2 && policyFor('enfia_installment_reminder').digestGroup === 'tax', 'ENFIA instalment reminder is a P2 obligation in the tax digest');
+  ok(policyFor('energy_pulse').category === 'opportunity' && policyFor('portfolio_digest_nudge').category === 'soft', 'energy_pulse=opportunity, portfolio nudge=soft');
 }
 
 console.log('');

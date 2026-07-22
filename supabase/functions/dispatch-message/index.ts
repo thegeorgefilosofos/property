@@ -86,9 +86,14 @@ Deno.serve(async (req) => {
 
     if (channel === 'viber' && VIBER_TOKEN && phone) {
       const v = renderViber(msg, url)
+      // Carry the CTA as a tappable open-url keyboard button — never drop v.action.
+      const keyboard = v.action ? {
+        Type: 'keyboard', DefaultHeight: false,
+        Buttons: [{ Columns: 6, Rows: 1, BgColor: '#1a73e8', ActionType: 'open-url', ActionBody: v.action.url, Text: `<font color="#ffffff"><b>${v.action.text}</b></font>`, TextSize: 'medium' }],
+      } : undefined
       await fetch('https://chatapi.viber.com/pa/send_message', {
         method: 'POST', headers: { 'X-Viber-Auth-Token': VIBER_TOKEN, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiver: phone, type: 'text', text: v.text }),
+        body: JSON.stringify({ receiver: phone, min_api_version: 7, type: 'text', text: v.text, keyboard }),
       })
       return json({ channel: 'viber' })
     }
