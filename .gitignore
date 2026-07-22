@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated preview (regenerate via docs/marketing/console/gen-messages-preview.ts)
+docs/marketing/console/messages-preview.html
