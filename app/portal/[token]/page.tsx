@@ -144,8 +144,9 @@ export default function TenantPortal() {
       const path = `${token}/${Date.now()}_${i}_${safeName}`;
       const { error: upErr } = await supabase.storage.from('maintenance-photos').upload(path, f, { contentType: f.type });
       if (upErr) continue;
-      const publicUrl = supabase.storage.from('maintenance-photos').getPublicUrl(path).data.publicUrl;
-      if (publicUrl) urls.push(publicUrl);
+      // Το bucket είναι ιδιωτικό: αποθηκεύουμε το PATH, όχι public URL. Ο
+      // ιδιοκτήτης το υπογράφει (signed URL) όταν το βλέπει.
+      urls.push(path);
     }
     const { data: ok, error } = await supabase.rpc('submit_maintenance_request', {
       p_token: token, p_title: title.trim(), p_description: desc.trim(), p_contact: contact.trim(), p_photos: urls,

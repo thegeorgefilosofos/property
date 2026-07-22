@@ -5,10 +5,13 @@ import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
+import { checkPassword } from '@/lib/auth/password'
+import PasswordStrength from '@/components/PasswordStrength'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Εγγραφή, στα χρώματα του app (design tokens, theme-aware). Κοινό marketing
 // panel (AuthAside) με Σύνδεση/Επαναφορά. Google-first, με email ως δεύτερη οδό.
+// Ο έλεγχος ισχύος κωδικού είναι κοινός (lib/auth/password) με επαναφορά/ρυθμίσεις.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function SignupPage() {
@@ -23,7 +26,9 @@ export default function SignupPage() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [show, setShow] = useState(false)
+  const [pwTouched, setPwTouched] = useState(false)
   const [resent, setResent] = useState(false)
+  const pw = checkPassword(password)
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
     : /weak|at least|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε τουλάχιστον 8 χαρακτήρες.'
@@ -61,6 +66,13 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!pw.ok) {
+      setPwTouched(true)
+      setError(pw.common
+        ? 'Ο κωδικός είναι πολύ κοινός. Διάλεξε κάτι πιο δύσκολο να μαντέψει κανείς.'
+        : 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.')
+      return
+    }
     setError(''); setLoading(true)
     const supabase = createClient()
     // Αποδεικτικό συγκατάθεσης (GDPR, αρχή λογοδοσίας): καταγράφουμε στο προφίλ
@@ -154,7 +166,7 @@ export default function SignupPage() {
                 <div>
                   <label htmlFor="su-password" style={label}>Κωδικός</label>
                   <div style={{ position: 'relative' }}>
-                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" required minLength={8} style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={blur} />
+                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" required minLength={8} aria-describedby="su-pw-req" style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={e => { blur(e); setPwTouched(true) }} />
                     <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'} aria-pressed={show}
                       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {show
@@ -162,6 +174,10 @@ export default function SignupPage() {
                         : <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.9 17.9A10.7 10.7 0 0 1 12 19c-6.5 0-10-7-10-7a19 19 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c6.5 0 10 7 10 7a19 19 0 0 1-2.2 3.2M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>}
                     </button>
                   </div>
+
+                  {/* Μετρητής ισχύος + λίστα προϋποθέσεων (κοινό component) —
+                      εμφανίζεται μόλις ο χρήστης αρχίσει να πληκτρολογεί. */}
+                  {(password || pwTouched) && <PasswordStrength password={password} id="su-pw-req" />}
                 </div>
 
                 {error && (
@@ -181,7 +197,7 @@ export default function SignupPage() {
                   </span>
                 </div>
 
-                <button type="submit" disabled={loading || !consent} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent) ? 'not-allowed' : 'pointer', opacity: (loading || !consent) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
+                <button type="submit" disabled={loading || !consent || !pw.ok} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
                   {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν →'}
                 </button>
               </form>

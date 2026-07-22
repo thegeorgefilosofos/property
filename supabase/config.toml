@@ -1,39 +1,82 @@
 
+# Edge function configuration. verify_jwt governs whether the Supabase gateway
+# requires a valid JWT before the function runs:
+#   false  → cron / token / service functions that enforce their own auth
+#            (x-cron-secret, capability token, or service-role bearer) and must be
+#            reachable by pg_net/cron without a user session.
+#   true   → user-facing functions that require the caller's own JWT.
+# import_map is set only for functions that ship a deno.json.
+
+# ── User-facing (require the caller's JWT) ──────────────────────────────────
+[functions.smart-suggestions]
+enabled = true
+verify_jwt = true
+import_map = "./functions/smart-suggestions/deno.json"
+
+[functions.send-client-email]
+enabled = true
+verify_jwt = true
+
+[functions.send-org-invite]
+enabled = true
+verify_jwt = true
+
+[functions.send-test-notification]
+enabled = true
+verify_jwt = true
+
+# ── Cron / token / service (enforce their own auth) ─────────────────────────
 [functions.send-reminders]
 enabled = true
 verify_jwt = false
 import_map = "./functions/send-reminders/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/send-reminders/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/send-reminders/*.html" ]
-
-[functions.smart-suggestions]
-enabled = true
-verify_jwt = false
-import_map = "./functions/smart-suggestions/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/smart-suggestions/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/smart-suggestions/*.html" ]
 
 [functions.ical-sync]
 enabled = true
 verify_jwt = false
 import_map = "./functions/ical-sync/deno.json"
-entrypoint = "./functions/ical-sync/index.ts"
 
 [functions.calendar-feed]
 enabled = true
 verify_jwt = false
 import_map = "./functions/calendar-feed/deno.json"
-entrypoint = "./functions/calendar-feed/index.ts"
 
 [functions.bookings-feed]
 enabled = true
 verify_jwt = false
-entrypoint = "./functions/bookings-feed/index.ts"
+
+[functions.dispatch-message]
+enabled = true
+verify_jwt = false
+
+[functions.schedule-email-outbox]
+enabled = true
+verify_jwt = false
+
+[functions.send-lifecycle-email]
+enabled = true
+verify_jwt = false
+
+[functions.send-newsletter]
+enabled = true
+verify_jwt = false
+
+[functions.send-market-digest]
+enabled = true
+verify_jwt = false
+
+[functions.send-monthly-statements]
+enabled = true
+verify_jwt = false
+
+[functions.notify-mobile-launch]
+enabled = true
+verify_jwt = false
+
+[functions.market-data-updater]
+enabled = true
+verify_jwt = false
+
+[functions.bank-rates-updater]
+enabled = true
+verify_jwt = false

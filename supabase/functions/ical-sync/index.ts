@@ -80,24 +80,49 @@ function isBlocked(summary: string): boolean {
 }
 
 // ── Ασφαλές κατέβασμα iCal (μπλοκάρει ιδιωτικά δίκτυα, ελέγχει περιεχόμενο) ──
+// Αποτρέπει SSRF: (α) μόνο http/https, (β) απαγόρευση loopback/link-local/private
+// σε IPv4 ΚΑΙ IPv6 (+ IPv4-mapped, + δεκαδικές/hex μορφές), (γ) οι redirects ΔΕΝ
+// ακολουθούνται αυτόματα — κάθε hop επικυρώνεται ξανά με τον ίδιο έλεγχο.
+function isBlockedHost(hRaw: string): boolean {
+  let h = hRaw.toLowerCase().trim()
+  if (h.startsWith('[') && h.endsWith(']')) h = h.slice(1, -1) // IPv6 literal
+  if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return true
+  // IPv6 loopback / unspecified / link-local (fe80::) / unique-local (fc00::/7)
+  if (h === '::1' || h === '::' || /^fe80:/i.test(h) || /^f[cd][0-9a-f]{2}:/i.test(h)) return true
+  // IPv4-mapped IPv6 (::ffff:a.b.c.d) — check the embedded v4
+  const mapped = h.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i)
+  if (mapped) h = mapped[1]
+  // Non-dotted numeric encodings (decimal / hex / octal) — reject outright
+  if (/^0x[0-9a-f]+$/i.test(h) || /^\d{8,}$/.test(h)) return true
+  // Dotted IPv4 private / loopback / link-local / unspecified
+  return h === '0.0.0.0'
+    || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h)
+    || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
+}
 function assertSafeUrl(raw: string): URL {
   let u: URL
   try { u = new URL(raw) } catch { throw new Error('Μη έγκυρο URL') }
   if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('Επιτρέπονται μόνο http/https')
-  const h = u.hostname.toLowerCase()
-  const priv = h === 'localhost' || h.endsWith('.local') || h === '0.0.0.0'
-    || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h)
-    || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
-  if (priv) throw new Error('Δεν επιτρέπεται εσωτερική διεύθυνση')
+  if (isBlockedHost(u.hostname)) throw new Error('Δεν επιτρέπεται εσωτερική διεύθυνση')
   return u
 }
 async function fetchIcal(url: string): Promise<string> {
-  assertSafeUrl(url)
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'PropertyOS-iCal/1.0', 'Accept': 'text/calendar, text/plain, */*' },
-    redirect: 'follow',
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  let current = assertSafeUrl(url).toString()
+  let res: Response | null = null
+  for (let hop = 0; hop < 5; hop++) {
+    res = await fetch(current, {
+      headers: { 'User-Agent': 'PropertyOS-iCal/1.0', 'Accept': 'text/calendar, text/plain, */*' },
+      redirect: 'manual',
+    })
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get('location')
+      if (!loc) throw new Error(`HTTP ${res.status} χωρίς Location`)
+      current = assertSafeUrl(new URL(loc, current).toString()).toString() // re-validate every hop
+      continue
+    }
+    break
+  }
+  if (!res || !res.ok) throw new Error(`HTTP ${res?.status ?? 'redirect loop'}`)
   const text = await res.text()
   if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error('Το URL δεν επέστρεψε ημερολόγιο iCal')
   return text

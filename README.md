@@ -1,36 +1,177 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PropertyOS
 
-## Getting Started
+**The operating system for Greek property owners and managers.**
+_Το ακίνητό σου, υπό έλεγχο._
 
-First, run the development server:
+PropertyOS is a SaaS platform that turns the scattered, paperwork-heavy reality of
+owning and managing property in Greece — bills, tenants, taxes, loans, short-stay
+pricing, compliance — into a single, calm, real-time console. It is built for three
+audiences from one codebase: individual owners, professional property managers, and
+the accountants who serve them.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> This repository is **private**. It contains proprietary product code and
+> infrastructure for a production service handling customer data. A curated public
+> showcase of the product lives separately.
+
+---
+
+## Table of contents
+
+- [What it does](#what-it-does)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Repository layout](#repository-layout)
+- [Database & security](#database--security)
+- [Local development](#local-development)
+- [Testing](#testing)
+- [CI/CD & deployment](#cicd--deployment)
+- [Documentation](#documentation)
+
+---
+
+## What it does
+
+| Domain | Capability |
+|---|---|
+| **Bills & energy** | Every electricity/gas/water/internet provider and tariff in Greece, per-property; reads real market prices and flags savings. |
+| **Tenants & leases** | Lease ledger (base rent + service charges), monthly statements, rent receipts / βεβαίωση ενοικίου, dunning, a tenant portal with PIN gate and payment requests (IBAN/QR). |
+| **Accounting & tax** | Greek tax engine (income scales, ΕΝΦΙΑ, ΕΦΚΑ, advance tax, depreciation, transfer costs), Ε2/Ε1 filing bundle, period locking with audit trail, bank-statement import & auto-match. |
+| **Loans** | «Σπίτι μου ΙΙ» eligibility, best-loan recommender, amortization, live bank-rate data, and an assistant that coaches the whole journey. |
+| **Short-stay** | Dynamic pricing engine, iCal sync (Airbnb/Booking), occupancy & yield projections, season recap. |
+| **CRM** | Client/guest relationship model with stay history, notes timeline, rating/tags — for brokers and managers. |
+| **Reporting** | Branded investor/accountant PDF reports with charts, cross-property comparison, universal Excel/CSV export. |
+| **Lifecycle comms** | A value-first email & multichannel (push/Viber/WhatsApp/iMessage) engine with a cadence/anti-spam policy — an internal tool the management team uses to keep each user informed. |
+| **Referrals & billing** | Persona-split referral economics, plan entitlements, organizations & team permissions. |
+
+An in-app AI assistant is trained on the domain and can explain, inform, register,
+and advise across all of the above.
+
+## Tech stack
+
+- **Framework** — [Next.js](https://nextjs.org) 16 (App Router, Turbopack) · React 19 · TypeScript (strict)
+- **Styling** — Tailwind CSS v4, a single design-system token layer (`Theme`), self-hosted Inter
+- **Backend** — [Supabase](https://supabase.com): Postgres + Row-Level Security, Auth, Storage, Edge Functions (Deno), `pg_cron` + `pg_net`
+- **Data/UX** — Recharts (charts), pdfmake (documents), xlsx (exports), qrcode-generator
+- **Tooling** — ESLint (`eslint-config-next`), `tsx` test runner, GitHub Actions CI/CD
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Client["Next.js app (App Router)"]
+        Landing["Marketing & auth"]
+        Dashboard["Dashboard — owner / manager / accountant"]
+        Portals["Tenant · Accountant · Check-in portals"]
+        Assistant["AI assistant"]
+    end
+
+    subgraph Edge["Supabase Edge Functions (Deno)"]
+        Email["Lifecycle email + outbox drain"]
+        Msg["Multichannel dispatch"]
+        Cron["Rate & market updaters · reminders · statements"]
+        Sync["iCal sync · calendar feeds"]
+    end
+
+    subgraph Data["Supabase Postgres"]
+        Tables["Domain tables — RLS on every table"]
+        Jobs["pg_cron schedules → pg_net → Edge Functions"]
+        Storage["Private storage buckets"]
+    end
+
+    Client -->|anon key + RLS| Data
+    Edge -->|service role| Data
+    Jobs --> Edge
+    Assistant --> Client
+
+    GH["GitHub Actions"] -->|migrations + functions deploy| Edge
+    GH -->|db push| Data
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Two trust boundaries: the **browser** talks to Postgres with the anon key, gated
+entirely by Row-Level Security; **edge functions** hold the service-role key and run
+the privileged work. No always-on write credential exists anywhere — schema changes
+ship as migrations applied by CI.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Repository layout
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/                 Next.js App Router — landing, auth, dashboard, portals, API routes
+  dashboard/         The authenticated console (tabs, components, AI assistant)
+  portal/ accountant/ checkin/   Token-gated external portals
+components/           Shared UI primitives (Theme design system)
+lib/                  Domain logic — pure, tested, framework-free
+  accounting/ billing/ loans/ pricing/ calendar/ clients/ tax/ documents/ i18n/ …
+supabase/
+  migrations/        Schema as code — one migration owns each change
+  functions/         Edge functions (Deno) + _shared domain modules
+docs/                Engineering & product docs (DB, infra, marketing)
+.github/workflows/   CI/CD — Supabase deploy + daily DB backup
+```
 
-## Learn More
+The `lib/` layer is deliberately framework-free and unit-tested, so business rules
+(Greek tax, amortization, pricing, ledgers) are verifiable in isolation.
 
-To learn more about Next.js, take a look at the following resources:
+## Database & security
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Row-Level Security on every table.** One canonical policy per table
+  (`own_<table>` keyed by `user_id`), org policies via a single `is_org_member`
+  helper only where team sharing applies. See [`docs/db/rls-conventions.md`](docs/db/rls-conventions.md).
+- **Migrations as code.** The entire schema rebuilds from `supabase/migrations/`.
+  The deploy pipeline self-reconciles migration history before every push.
+- **Least privilege.** Service-role key lives only in edge-function env; the client
+  uses the anon key. Cron/`pg_net` calls target only our own functions.
+- **Defence in depth & DD readiness** — see
+  [`docs/db/security-and-automation.md`](docs/db/security-and-automation.md) and
+  [`docs/infra/acquisition-readiness.md`](docs/infra/acquisition-readiness.md).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Local development
 
-## Deploy on Vercel
+Requires Node 20+.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install
+cp .env.example .env.local   # fill in Supabase + provider keys
+npm run dev                  # http://localhost:3000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> **Note on Next.js:** this project tracks a fast-moving Next.js release. Before
+> touching framework-level code, read the bundled guides in
+> `node_modules/next/dist/docs/` — see [`AGENTS.md`](AGENTS.md).
+
+## Testing
+
+The domain layer is covered by a fast `tsx` suite (billing, Greek tax, ΕΝΦΙΑ, Ε2,
+accounting ledgers, calendar, clients, i18n) plus verifiers for the messaging policy,
+copy, and gender-safe rendering.
+
+```bash
+npm run test        # full domain + messaging suite
+npm run lint        # ESLint
+npx tsc --noEmit    # strict typecheck
+```
+
+## CI/CD & deployment
+
+Two GitHub Actions workflows, both driven by short-lived secrets (no standing
+credentials):
+
+- **`supabase-deploy.yml`** — on push, reconciles migration history, runs
+  `supabase db push`, and deploys the edge functions. Self-healing and idempotent.
+- **`db-backup.yml`** — daily logical dump (roles + schema + data) to a private,
+  retained artifact — an off-site safety net on the current plan.
+
+## Documentation
+
+| Doc | Purpose |
+|---|---|
+| [`supabase/README.md`](supabase/README.md) | Schema reference & ERD |
+| [`docs/db/rls-conventions.md`](docs/db/rls-conventions.md) | Row-Level Security model & audit |
+| [`docs/db/security-and-automation.md`](docs/db/security-and-automation.md) | Security posture & automation runbook |
+| [`docs/db/security-audit-2026-07.md`](docs/db/security-audit-2026-07.md) | Security audit — findings & resolutions |
+| [`docs/infra/runbook.md`](docs/infra/runbook.md) | Operations runbook (deploys, secrets, backups, incidents) |
+| [`docs/infra/acquisition-readiness.md`](docs/infra/acquisition-readiness.md) | Technical due-diligence checklist |
+| [`docs/marketing/world-class-scheme.md`](docs/marketing/world-class-scheme.md) | Lifecycle-comms playbook |
+
+---
+
+© PropertyOS. All rights reserved. Proprietary and confidential.

@@ -81,15 +81,33 @@ async function callAnthropic(): Promise<any[]> {
 // CORS ώστε να μπορεί να κληθεί και από τον browser (κουμπί διαχειριστή), εκτός του cron.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'content-type': 'application/json' } })
 
+// Authorization gate: this function burns the Anthropic quota and overwrites the
+// public bank_rates sheet — it must never be callable anonymously. Accepts the
+// service-role bearer, an optional env secret, or the shared cron secret from
+// public.cron_secrets (the zero-config path pg_cron uses).
+const CRON_SECRET = Deno.env.get('BANK_RATES_CRON_SECRET') || ''
+async function authorized(req: Request, sb: ReturnType<typeof createClient>): Promise<boolean> {
+  const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (bearer && bearer === SUPABASE_SERVICE_KEY) return true
+  const header = req.headers.get('x-cron-secret') || ''
+  if (CRON_SECRET && header === CRON_SECRET) return true
+  if (header) {
+    const { data } = await sb.from('cron_secrets').select('secret').eq('name', 'email_cron').maybeSingle()
+    if ((data as { secret?: string } | null)?.secret && header === (data as { secret?: string }).secret) return true
+  }
+  return false
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  if (!(await authorized(req, supabase))) return json({ error: 'unauthorized' }, 401)
   try {
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set')
     const raw = await callAnthropic()

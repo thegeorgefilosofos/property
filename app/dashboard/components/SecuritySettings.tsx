@@ -13,6 +13,8 @@ import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn, settingsField } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
+import { checkPassword } from '@/lib/auth/password';
+import PasswordStrength from '@/components/PasswordStrength';
 
 // ── Κοινά στυλ, ευθυγραμμισμένα με τις υπόλοιπες κάρτες ρυθμίσεων ──────────
 const group: CSSProperties = { padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' };
@@ -186,8 +188,8 @@ export default function SecuritySettings() {
   }
 
   async function savePassword() {
-    if (newPass.length < 8) {
-      setPwMsg({ ok: false, text: 'Ο κωδικός χρειάζεται τουλάχιστον 8 χαρακτήρες.' });
+    if (!checkPassword(newPass).ok) {
+      setPwMsg({ ok: false, text: 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.' });
       return;
     }
     if (newPass !== confirm) {
@@ -226,13 +228,13 @@ export default function SecuritySettings() {
       {/* 1. Κωδικός πρόσβασης */}
       <div style={group}>
         <div style={subLabel}>Κωδικός πρόσβασης</div>
-        <div style={desc}>Όρισε έναν νέο κωδικό για τον λογαριασμό σου. Τουλάχιστον 8 χαρακτήρες.</div>
+        <div style={desc}>Όρισε έναν νέο κωδικό για τον λογαριασμό σου. Τουλάχιστον 8 χαρακτήρες, με πεζό, κεφαλαίο, αριθμό και σύμβολο.</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginTop: 12 }}>
           <div>
             <label htmlFor="sec-new-pass" style={fieldLabel}>Νέος κωδικός</label>
             <input
               id="sec-new-pass" type="password" autoComplete="new-password" className="po-field"
-              value={newPass} onChange={e => setNewPass(e.target.value)} style={field}
+              value={newPass} onChange={e => setNewPass(e.target.value)} style={field} aria-describedby="sec-pw-req"
             />
           </div>
           <div>
@@ -243,8 +245,9 @@ export default function SecuritySettings() {
             />
           </div>
         </div>
+        {newPass && <PasswordStrength password={newPass} id="sec-pw-req" />}
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          <Btn variant="primary" onClick={savePassword} disabled={pwBusy}>
+          <Btn variant="primary" onClick={savePassword} disabled={pwBusy || !checkPassword(newPass).ok}>
             {pwBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}
           </Btn>
         </div>

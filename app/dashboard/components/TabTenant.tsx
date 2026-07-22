@@ -1635,11 +1635,39 @@ const MAINT_STATUS:Record<string,{label:string;c:string;bg:string}>={
   in_progress:{label:'Σε εξέλιξη',c:'var(--warning)',bg:'var(--warning-soft)'},
   done:{label:'Ολοκληρώθηκε',c:'var(--positive)',bg:'var(--positive-dim)'},
 };
+// Το bucket maintenance-photos είναι ιδιωτικό: αποθηκεύουμε το PATH. Από παλιές
+// εγγραφές μπορεί να έχει μείνει ολόκληρο public URL — κρατάμε ό,τι ακολουθεί το
+// «/maintenance-photos/» ώστε να υπογράφεται κι εκείνο σωστά.
+function maintPhotoPath(stored:string):string {
+  const marker='/maintenance-photos/';
+  const i=stored.indexOf(marker);
+  return i>=0 ? stored.slice(i+marker.length) : stored;
+}
 function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, notify }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; onRefresh:()=>void; notify:(m:string)=>void }) {
   const supabase=createClient();
   const [busy,setBusy]=useState(false);
   const [assignFor,setAssignFor]=useState<string|null>(null);   // ποιο αίτημα αναθέτει σε συνεργείο
   const [af,setAf]=useState({name:'',contact:''});
+  // Signed URLs ανά αίτημα (id → λίστα προσωρινών URL). Το ιδιωτικό bucket
+  // απαιτεί υπογραφή· η ανάγνωση περνά από την owns_portal_token SELECT policy.
+  const [signed,setSigned]=useState<Record<string,string[]>>({});
+  const photoSig=useMemo(()=>requests.map(m=>`${m.id}:${(m.photos||[]).join(',')}`).join('|'),[requests]);
+  useEffect(()=>{
+    let alive=true;
+    (async()=>{
+      const items:{id:string;path:string}[]=[];
+      for(const m of requests){ if(Array.isArray(m.photos)) for(const ph of m.photos){ if(ph) items.push({id:m.id,path:maintPhotoPath(ph)}); } }
+      if(items.length===0){ if(alive) setSigned({}); return; }
+      // 7 ημέρες: αρκετό ώστε ένα κοινοποιημένο link στο συνεργείο να μείνει ενεργό.
+      const { data }=await supabase.storage.from('maintenance-photos').createSignedUrls(items.map(i=>i.path),604800);
+      if(!alive||!data) return;
+      const map:Record<string,string[]>={};
+      data.forEach((d,i)=>{ if(d.signedUrl){ const id=items[i].id; (map[id]||=[]).push(d.signedUrl); } });
+      setSigned(map);
+    })();
+    return ()=>{ alive=false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[photoSig]);
   const list=[...requests].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   const setStatus=async(m:MaintenanceReq,status:string)=>{
     setBusy(true);
@@ -1663,7 +1691,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
   const contractorText=(m:MaintenanceReq)=>[
     `Εργασία: ${m.title}`, m.description?`Περιγραφή: ${m.description}`:'',
     tenant.full_name?`Ενοικιαστής: ${tenant.full_name}`:'', m.contact?`Επικοινωνία ενοικιαστή: ${m.contact}`:'',
-    (Array.isArray(m.photos)&&m.photos.length)?`Φωτογραφίες: ${m.photos.join(' ')}`:'',
+    (signed[m.id]?.length)?`Φωτογραφίες: ${signed[m.id].join(' ')}`:'',
   ].filter(Boolean).join('\n');
 
   return (
@@ -1691,11 +1719,11 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
                     <span style={{ ...s.badge(st.c,st.bg), border:`1px solid ${st.c}33`, fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{st.label}</span>
                   </div>
                   {m.description&&<div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:12, whiteSpace:'pre-wrap' as const }}>{m.description}</div>}
-                  {Array.isArray(m.photos)&&m.photos.length>0&&(
+                  {(signed[m.id]?.length??0)>0&&(
                     <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, marginBottom:12 }}>
-                      {m.photos.map((ph,pi)=>(
-                        <a key={pi} href={ph} target="_blank" rel="noopener noreferrer" style={{ display:'block', width:64, height:64, borderRadius:8, overflow:'hidden', border:'1px solid var(--border-subtle)' }}>
-                          <img src={ph} alt="Φωτογραφία βλάβης" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                      {signed[m.id].map((url,pi)=>(
+                        <a key={pi} href={url} target="_blank" rel="noopener noreferrer" style={{ display:'block', width:64, height:64, borderRadius:8, overflow:'hidden', border:'1px solid var(--border-subtle)' }}>
+                          <img src={url} alt="Φωτογραφία βλάβης" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
                         </a>
                       ))}
                     </div>

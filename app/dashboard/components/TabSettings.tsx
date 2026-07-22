@@ -136,8 +136,25 @@ function DeleteAccount() {
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ready = confirmText.trim().toUpperCase() === 'ΔΙΑΓΡΑΦΗ';
+
+  // GDPR data portability: download every row of your own data as one JSON file.
+  const exportData = async () => {
+    if (exporting) return;
+    setExporting(true); setError(null);
+    const { data, error } = await supabase.rpc('export_my_data');
+    setExporting(false);
+    if (error) { setError(error.message || 'Η εξαγωγή απέτυχε. Δοκίμασε ξανά.'); return; }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `propertyos-data-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const del = async () => {
     if (!ready || busy) return;
@@ -150,9 +167,19 @@ function DeleteAccount() {
 
   return (
     <div style={divider}>
+      {/* Εξαγωγή δεδομένων (GDPR — φορητότητα): κατέβασμα όλων των δεδομένων σε ένα αρχείο. */}
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Εξαγωγή δεδομένων</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
+        Κατέβασε όλα τα δεδομένα σου (ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς και τα υπόλοιπα) σε ένα αρχείο JSON. Δικαίωμα φορητότητας δεδομένων.
+      </div>
+      <button onClick={exportData} disabled={exporting}
+        style={{ appearance: 'none', cursor: exporting ? 'not-allowed' : 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, marginBottom: 24 }}>
+        {exporting ? 'Εξαγωγή…' : 'Κατέβασε τα δεδομένα μου (JSON)'}
+      </button>
+
       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
-        Διαγράφει οριστικά τον λογαριασμό και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα εξαγωγή δεδομένων από κάθε καρτέλα.
+        Διαγράφει οριστικά τον λογαριασμό και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα την εξαγωγή δεδομένων παραπάνω.
       </div>
       {!open ? (
         // Ουδέτερο ως προεπιλογή· γίνεται κόκκινο μόνο στο hover/focus, ώστε να μη

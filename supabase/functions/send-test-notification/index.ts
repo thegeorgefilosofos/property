@@ -56,13 +56,14 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization') || ''
   if (!authHeader.startsWith('Bearer ')) return json({ error: 'unauthorized' }, 401)
 
-  let email = ''
-  try { const body = await req.json(); email = String(body?.email || '').trim() } catch { /* no body */ }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email' }, 400)
-
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, { global: { headers: { Authorization: authHeader } } })
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return json({ error: 'unauthorized' }, 401)
+
+  // The recipient is ALWAYS the authenticated user's own account address — never a
+  // body-supplied value — so this cannot be abused to email arbitrary people.
+  const email = String(userData.user.email || '').trim()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email' }, 400)
 
   if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: 'Λείπει το RESEND_API_KEY στα secrets της function.' }, 500)
 
