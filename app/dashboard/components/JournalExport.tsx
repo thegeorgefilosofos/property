@@ -20,10 +20,10 @@ type ExportFormat = JournalFormat | 'excel';
 interface Prop { id: string; name: string }
 const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const FORMATS: { key: ExportFormat; label: string; hint: string; ext: string }[] = [
-  { key: 'excel', label: 'Excel (λογιστικό)', hint: 'Μορφοποιημένο βιβλίο: €, φίλτρα, ζωντανές φόρμουλες, ισοζύγιο & έλεγχος', ext: 'xlsx' },
-  { key: 'generic', label: 'Soft1 / Epsilon', hint: 'Ελληνικό ημερολόγιο (;), χρέωση/πίστωση', ext: 'csv' },
-  { key: 'quickbooks', label: 'QuickBooks', hint: 'Journal import (Date, Account, Debit, Credit)', ext: 'csv' },
-  { key: 'xero', label: 'Xero', hint: 'Manual Journal template (signed amounts)', ext: 'csv' },
+  { key: 'excel', label: 'Excel — λογιστικό βιβλίο', hint: 'Ημερολόγιο, ισοζύγιο & έλεγχος σε ένα αρχείο. Μορφή €, φίλτρα, ζωντανές φόρμουλες.', ext: 'xlsx' },
+  { key: 'generic', label: 'Soft1 / Epsilon', hint: 'Ελληνικό ημερολόγιο άρθρων (;) — αριθμημένα άρθρα, χρέωση/πίστωση, έτοιμο για εισαγωγή.', ext: 'csv' },
+  { key: 'quickbooks', label: 'QuickBooks', hint: 'Journal Entry import — άρθρα με Journal No, Debits/Credits, MM/DD/YYYY.', ext: 'csv' },
+  { key: 'xero', label: 'Xero', hint: 'Manual Journal template — προσημασμένα ποσά ανά άρθρο, DD/MM/YYYY.', ext: 'csv' },
 ];
 const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
@@ -176,7 +176,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <div style={{ ...TT.label }}>Ισοζύγιο & έλεγχος</div>
-                <Badge tone={audit ? (audit.ok ? 'positive' : 'negative') : (totals.balanced ? 'positive' : 'negative')}>{audit ? (audit.ok ? 'Ισοσκελισμένο ✓' : 'Απαιτεί προσοχή') : (totals.balanced ? 'Ισοσκελισμένο ✓' : 'Ασυμφωνία')}</Badge>
+                <Badge tone={audit ? audit.tone : (totals.balanced ? 'positive' : 'negative')}>{audit ? (audit.tone === 'positive' ? 'Ισοσκελισμένο ✓' : audit.tone === 'warning' ? 'Ισοσκελισμένο · προσοχή' : 'Απαιτεί διόρθωση') : (totals.balanced ? 'Ισοσκελισμένο ✓' : 'Ασυμφωνία')}</Badge>
               </div>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '8px 14px', background: 'var(--bg-elevated)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>
@@ -195,23 +195,36 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                   <span style={{ textAlign: 'right', fontFamily: T.font.mono }}>{eur(totals.credit)}</span>
                 </div>
               </div>
-              {audit && (
-                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {audit.checks.map(c => {
-                    const tone = c.status === 'pass' ? 'var(--positive)' : c.status === 'warn' ? 'var(--warning)' : 'var(--negative)';
-                    const mark = c.status === 'pass' ? '✓' : c.status === 'warn' ? '!' : '✕';
-                    return (
-                      <div key={c.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 12 }}>
-                        <span style={{ flexShrink: 0, width: 16, height: 16, borderRadius: '50%', background: `color-mix(in srgb, ${tone} 16%, transparent)`, color: tone, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, marginTop: 1 }}>{mark}</span>
-                        <span style={{ minWidth: 0 }}>
-                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{c.label}</span>
-                          <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>— {c.detail}</span>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {audit && (() => {
+                const toneVar = audit.tone === 'positive' ? 'var(--positive)' : audit.tone === 'warning' ? 'var(--warning)' : 'var(--negative)';
+                const toneMark = audit.tone === 'positive' ? '✓' : audit.tone === 'warning' ? '!' : '✕';
+                const statusMeta = (s: string) => s === 'pass' ? { c: 'var(--positive)', t: 'Εντάξει' } : s === 'warn' ? { c: 'var(--warning)', t: 'Προσοχή' } : { c: 'var(--negative)', t: 'Σφάλμα' };
+                return (
+                  <div style={{ marginTop: 12 }}>
+                    {/* Ετυμηγορία — γράφει σαν λογιστής τι ισχύει και τι χρειάζεται */}
+                    <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 11, background: `color-mix(in srgb, ${toneVar} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${toneVar} 28%, transparent)` }}>
+                      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: toneVar, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, marginTop: 1 }}>{toneMark}</span>
+                      <span style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.5 }}>{audit.summary}</span>
+                    </div>
+                    {/* Αναλυτικοί έλεγχοι — καθαρές γραμμές αναφοράς, όχι κουκκίδες */}
+                    <div style={{ marginTop: 10, border: '1px solid var(--border-subtle)', borderRadius: 11, overflow: 'hidden' }}>
+                      {audit.checks.map((c, i) => {
+                        const m = statusMeta(c.status);
+                        return (
+                          <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '3px 1fr auto', gap: 12, alignItems: 'center', padding: '10px 14px', borderTop: i ? '1px solid var(--border-subtle)' : 'none' }}>
+                            <span style={{ alignSelf: 'stretch', background: m.c, borderRadius: 3, opacity: 0.85 }} />
+                            <span style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{c.label}</div>
+                              <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 1, lineHeight: 1.4 }}>{c.detail}</div>
+                            </span>
+                            <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: m.c, background: `color-mix(in srgb, ${m.c} 12%, transparent)`, padding: '3px 9px', borderRadius: 20 }}>{m.t}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

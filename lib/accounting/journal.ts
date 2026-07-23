@@ -20,6 +20,7 @@ export interface JournalLine {
   credit: number;       // πίστωση
   doc?: string;         // παραστατικό / αναφορά
   party?: string;       // αντισυμβαλλόμενος (όνομα ή ΑΦΜ)
+  art?: number;         // αριθμός λογιστικού άρθρου (ομαδοποιεί χρέωση+πίστωση)
 }
 
 export interface IncomeRec { date: string; amount: number; description?: string; property?: string; party?: string; doc?: string }
@@ -81,16 +82,19 @@ export function expenseAccount(category?: string | null): Acct {
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const short = (s?: string) => (s || '').replace(/\s+/g, ' ').trim();
 
-/** Χτίζει ισοσκελισμένο ημερολόγιο (ταξινομημένο κατά ημερομηνία). */
+/** Χτίζει ισοσκελισμένο ημερολόγιο — ένα άρθρο (voucher) ανά εγγραφή, ταξινομημένο
+ * κατά ημερομηνία, με σειριακό αριθμό άρθρου (art) που κρατά μαζί χρέωση+πίστωση. */
 export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec[] }): JournalLine[] {
-  const lines: JournalLine[] = [];
+  const vouchers: JournalLine[][] = [];
 
   for (const inc of input.incomes || []) {
     const amt = round2(inc.amount);
     if (!amt) continue;
     const desc = short(inc.description) || `Είσπραξη ενοικίου${inc.property ? ` — ${inc.property}` : ''}`;
-    lines.push({ date: inc.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: amt, credit: 0, doc: inc.doc, party: inc.party });
-    lines.push({ date: inc.date, code: ACCOUNTS.rentIncome.code, account: ACCOUNTS.rentIncome.name, description: desc, debit: 0, credit: amt, doc: inc.doc, party: inc.party });
+    vouchers.push([
+      { date: inc.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: amt, credit: 0, doc: inc.doc, party: inc.party },
+      { date: inc.date, code: ACCOUNTS.rentIncome.code, account: ACCOUNTS.rentIncome.name, description: desc, debit: 0, credit: amt, doc: inc.doc, party: inc.party },
+    ]);
   }
 
   for (const ex of input.expenses || []) {
@@ -98,11 +102,16 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
     if (!amt) continue;
     const acc = expenseAccount(ex.category);
     const desc = short(ex.description) || `${acc.name}${ex.property ? ` — ${ex.property}` : ''}`;
-    lines.push({ date: ex.date, code: acc.code, account: acc.name, description: desc, debit: amt, credit: 0, doc: ex.doc, party: ex.party });
-    lines.push({ date: ex.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: ex.doc, party: ex.party });
+    vouchers.push([
+      { date: ex.date, code: acc.code, account: acc.name, description: desc, debit: amt, credit: 0, doc: ex.doc, party: ex.party },
+      { date: ex.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: ex.doc, party: ex.party },
+    ]);
   }
 
-  lines.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  // Ταξινόμηση άρθρων κατά ημερομηνία (σταθερή), μετά σειριακή αρίθμηση άρθρων.
+  vouchers.sort((a, b) => (a[0].date < b[0].date ? -1 : a[0].date > b[0].date ? 1 : 0));
+  const lines: JournalLine[] = [];
+  vouchers.forEach((v, i) => { for (const l of v) { l.art = i + 1; lines.push(l); } });
   return lines;
 }
 
@@ -133,27 +142,34 @@ const csvField = (v: unknown, sep: string) => {
 };
 const n2 = (n: number) => (Number(n) || 0).toFixed(2);                 // dot decimal
 const n2gr = (n: number) => (Number(n) || 0).toFixed(2).replace('.', ','); // comma decimal
+const dmy = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || ''); }; // DD/MM/YYYY (EU / Xero / Ελλάδα)
+const mdy = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[2]}/${m[3]}/${m[1]}` : (iso || ''); }; // MM/DD/YYYY (QuickBooks US default)
 
-/** Γενικό ελληνικό ημερολόγιο (Soft1 / Epsilon / λογιστής): «;» + κόμμα δεκαδικά. */
+/** Soft1 / Epsilon — ελληνικό ημερολόγιο άρθρων: «;», κόμμα δεκαδικά, DD/MM/YYYY,
+ * μία γραμμή ανά κίνηση, ομαδοποιημένες σε αριθμημένα άρθρα (χρέωση=πίστωση/άρθρο).
+ * Στήλες που τα import wizards των παρόχων αντιστοιχίζουν κατευθείαν. */
 export function journalCsvGeneric(lines: JournalLine[]): string {
-  const head = ['Ημερομηνία', 'Κωδικός', 'Λογαριασμός', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Παραστατικό', 'ΑΦΜ/Αντισυμβ.'];
-  const rows = lines.map(l => [l.date, l.code, l.account, l.description, l.debit ? n2gr(l.debit) : '', l.credit ? n2gr(l.credit) : '', l.doc || '', l.party || '']);
+  const head = ['Αρ.Άρθρου', 'Ημ/νία', 'Κωδικός', 'Περιγραφή Λογαριασμού', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Παραστατικό', 'ΑΦΜ/Αντισυμβ.'];
+  const rows = lines.map(l => [String(l.art ?? ''), dmy(l.date), l.code, l.account, l.description, l.debit ? n2gr(l.debit) : '', l.credit ? n2gr(l.credit) : '', l.doc || '', l.party || '']);
   const t = journalTotals(lines);
-  rows.push(['', '', 'ΣΥΝΟΛΑ', '', n2gr(t.debit), n2gr(t.credit), '', '']);
+  rows.push(['', '', '', '', 'ΣΥΝΟΛΑ', n2gr(t.debit), n2gr(t.credit), '', '']);
   return [head, ...rows].map(r => r.map(c => csvField(c, ';')).join(';')).join('\r\n');
 }
 
-/** QuickBooks (Journal import): Date, Account, Debit, Credit, Description. */
+/** QuickBooks — Journal Entry import (SaasAnt / Transaction Pro layout): Journal No
+ * ομαδοποιεί το άρθρο, MM/DD/YYYY, Debits/Credits σε ξεχωριστές στήλες, τελεία δεκαδικά. */
 export function journalCsvQuickBooks(lines: JournalLine[]): string {
-  const head = ['Date', 'Account', 'Debit', 'Credit', 'Description'];
-  const rows = lines.map(l => [l.date, `${l.code} ${l.account}`, l.debit ? n2(l.debit) : '', l.credit ? n2(l.credit) : '', l.description]);
+  const head = ['Journal No', 'Journal Date', 'Account', 'Debits', 'Credits', 'Memo/Description', 'Name'];
+  const rows = lines.map(l => [String(l.art ?? ''), mdy(l.date), `${l.code} ${l.account}`, l.debit ? n2(l.debit) : '', l.credit ? n2(l.credit) : '', l.description, l.party || '']);
   return [head, ...rows].map(r => r.map(c => csvField(c, ',')).join(',')).join('\r\n');
 }
 
-/** Xero (Manual Journal template): *Narration,*Date,Description,*AccountCode,*TaxRate,*Amount (signed). */
-export function journalCsvXero(lines: JournalLine[], narration = 'Property OS — Ημερολόγιο'): string {
+/** Xero — Manual Journal import template: *Narration (ανά άρθρο), *Date DD/MM/YYYY,
+ * *AccountCode, *TaxRate, *Amount ΠΡΟΣΗΜΑΣΜΕΝΟ (θετικό=χρέωση, αρνητικό=πίστωση· κάθε
+ * άρθρο αθροίζει στο 0). Η μοναδική Narration ανά άρθρο εγγυάται σωστή ομαδοποίηση. */
+export function journalCsvXero(lines: JournalLine[], _narration = 'Property OS — Ημερολόγιο'): string {
   const head = ['*Narration', '*Date', 'Description', '*AccountCode', '*TaxRate', '*Amount'];
-  const rows = lines.map(l => [narration, l.date, l.description, l.code, 'Tax Exempt (0%)', n2(l.debit ? l.debit : -l.credit)]);
+  const rows = lines.map(l => [`Άρθρο ${l.art ?? ''} — ${l.description}`.trim(), dmy(l.date), l.description, l.code, 'Tax Exempt (0%)', n2(l.debit ? l.debit : -l.credit)]);
   return [head, ...rows].map(r => r.map(c => csvField(c, ',')).join(',')).join('\r\n');
 }
 
@@ -174,7 +190,7 @@ const KNOWN_CODES = new Set<string>([ACCOUNTS.bank.code, ACCOUNTS.rentIncome.cod
 
 export type AuditStatus = 'pass' | 'warn' | 'fail';
 export interface AuditCheck { key: string; label: string; status: AuditStatus; detail: string }
-export interface JournalAudit { ok: boolean; checks: AuditCheck[] }
+export interface JournalAudit { ok: boolean; tone: 'positive' | 'warning' | 'negative'; summary: string; checks: AuditCheck[] }
 
 export function auditJournal(lines: JournalLine[], opts?: { year?: number; month?: number }): JournalAudit {
   const checks: AuditCheck[] = [];
@@ -251,5 +267,28 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
     detail: outside ? `${outside} εγγραφές εκτός περιόδου` : 'Όλες οι εγγραφές εντός περιόδου',
   });
 
-  return { ok: checks.every(c => c.status !== 'fail'), checks };
+  // Συνολική «λογιστική» ετυμηγορία — αντιδρά σαν λογιστής, όχι σαν απλή σημαία.
+  const fails = checks.filter(c => c.status === 'fail');
+  const warns = checks.filter(c => c.status === 'warn');
+  const ok = fails.length === 0;
+  let tone: JournalAudit['tone']; let summary: string;
+  if (fails.length) {
+    tone = 'negative';
+    const bal = checks.find(c => c.key === 'balance');
+    const tieP = checks.find(c => c.key === 'tieout');
+    const hint = bal?.status === 'fail'
+      ? `Το ημερολόγιο ΔΕΝ ισοσκελίζει — ${bal.detail}. Έλεγξε ότι κάθε κίνηση έχει χρεωθεί και πιστωθεί.`
+      : tieP?.status === 'fail'
+        ? `Δεν συμφωνεί το ταμείο με το αποτέλεσμα — ${tieP.detail}. Έλεγξε εισπράξεις/πληρωμές της περιόδου.`
+        : `Βρέθηκαν ${fails.length} θέματα που εμποδίζουν την υποβολή — δες αναλυτικά παρακάτω.`;
+    summary = `Χρειάζεται διόρθωση πριν την καταχώρηση. ${hint}`;
+  } else if (warns.length) {
+    tone = 'warning';
+    summary = `Ισοσκελισμένο και έτοιμο για εξαγωγή — ${warns.length === 1 ? 'ένα σημείο χρειάζεται' : `${warns.length} σημεία χρειάζονται`} προσοχή για ακριβέστερη λογιστική απεικόνιση (δες παρακάτω).`;
+  } else {
+    tone = 'positive';
+    summary = 'Ισοσκελισμένο και πλήρες — το άρθρο συμφωνεί κατά τα διπλογραφικά πρότυπα και είναι έτοιμο για καταχώρηση στον λογιστή.';
+  }
+
+  return { ok, tone, summary, checks };
 }
