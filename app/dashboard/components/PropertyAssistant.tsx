@@ -102,7 +102,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   useEffect(() => {
     const openFb = () => { setOpen(true); setFeedbackOpen(true); };
     window.addEventListener('pos:open-feedback', openFb);
-    return () => window.removeEventListener('pos:open-feedback', openFb);
+    // Άλλα σημεία (π.χ. έλεγχος ισοζυγίου) ανοίγουν τον βοηθό με προ-συμπληρωμένη ερώτηση.
+    const openAsk = (e: Event) => { const q = String((e as CustomEvent).detail?.q || '').trim(); setOpen(true); if (q) setInput(q); };
+    window.addEventListener('pos:ask', openAsk);
+    return () => { window.removeEventListener('pos:open-feedback', openFb); window.removeEventListener('pos:ask', openAsk); };
   }, []);
 
   // Ταυτότητα από localStorage (μία φορά)

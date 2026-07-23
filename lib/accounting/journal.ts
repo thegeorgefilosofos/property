@@ -94,7 +94,7 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
   for (const inc of input.incomes || []) {
     const amt = round2(inc.amount);
     if (!amt) continue;
-    const desc = short(inc.description) || `Είσπραξη ενοικίου${inc.property ? ` — ${inc.property}` : ''}`;
+    const desc = short(inc.description) || `Είσπραξη ενοικίου${inc.property ? ` · ${inc.property}` : ''}`;
     vouchers.push([
       { date: inc.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: amt, credit: 0, doc: inc.doc, party: inc.party },
       { date: inc.date, code: ACCOUNTS.rentIncome.code, account: ACCOUNTS.rentIncome.name, description: desc, debit: 0, credit: amt, doc: inc.doc, party: inc.party },
@@ -105,7 +105,7 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
     const amt = round2(ex.amount);
     if (!amt) continue;
     const acc = expenseAccount(ex.category);
-    const desc = short(ex.description) || `${acc.name}${ex.property ? ` — ${ex.property}` : ''}`;
+    const desc = short(ex.description) || `${acc.name}${ex.property ? ` · ${ex.property}` : ''}`;
     vouchers.push([
       { date: ex.date, code: acc.code, account: acc.name, description: desc, debit: amt, credit: 0, doc: ex.doc, party: ex.party },
       { date: ex.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: ex.doc, party: ex.party },
@@ -120,7 +120,7 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
     if (!amt) continue;
     const interest = Math.max(0, Math.min(amt, round2(lp.interest)));
     const principal = round2(amt - interest);
-    const desc = short(lp.description) || `Δόση δανείου${lp.property ? ` — ${lp.property}` : ''}`;
+    const desc = short(lp.description) || `Δόση δανείου${lp.property ? ` · ${lp.property}` : ''}`;
     const v: JournalLine[] = [];
     if (interest > 0) v.push({ date: lp.date, code: ACCOUNTS.loanInterest.code, account: ACCOUNTS.loanInterest.name, description: desc, debit: interest, credit: 0, doc: lp.doc, party: lp.party });
     if (principal > 0) v.push({ date: lp.date, code: ACCOUNTS.loanPrincipal.code, account: ACCOUNTS.loanPrincipal.name, description: desc, debit: principal, credit: 0, doc: lp.doc, party: lp.party });
@@ -189,7 +189,7 @@ export function journalCsvQuickBooks(lines: JournalLine[]): string {
  * άρθρο αθροίζει στο 0). Η μοναδική Narration ανά άρθρο εγγυάται σωστή ομαδοποίηση. */
 export function journalCsvXero(lines: JournalLine[], _narration = 'Property OS — Ημερολόγιο'): string {
   const head = ['*Narration', '*Date', 'Description', '*AccountCode', '*TaxRate', '*Amount'];
-  const rows = lines.map(l => [`Άρθρο ${l.art ?? ''} — ${l.description}`.trim(), dmy(l.date), l.description, l.code, 'Tax Exempt (0%)', n2(l.debit ? l.debit : -l.credit)]);
+  const rows = lines.map(l => [`Άρθρο ${l.art ?? ''} · ${l.description}`.trim(), dmy(l.date), l.description, l.code, 'Tax Exempt (0%)', n2(l.debit ? l.debit : -l.credit)]);
   return [head, ...rows].map(r => r.map(c => csvField(c, ',')).join(',')).join('\r\n');
 }
 
@@ -209,7 +209,7 @@ const money = (n: number) => `${(Number(n) || 0).toLocaleString('el-GR', { minim
 const KNOWN_CODES = new Set<string>([...Object.values(ACCOUNTS).map(a => a.code), ...Object.values(EXPENSE_ACCOUNTS).map(a => a.code)]);
 
 export type AuditStatus = 'pass' | 'warn' | 'fail';
-export interface AuditCheck { key: string; label: string; status: AuditStatus; detail: string }
+export interface AuditCheck { key: string; label: string; status: AuditStatus; detail: string; fix?: string }
 export interface JournalAudit { ok: boolean; tone: 'positive' | 'warning' | 'negative'; summary: string; checks: AuditCheck[] }
 
 export function auditJournal(lines: JournalLine[], opts?: { year?: number; month?: number }): JournalAudit {
@@ -218,9 +218,10 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
   // 1) Ισοσκέλιση συνόλων.
   const t = journalTotals(lines);
   checks.push({
-    key: 'balance', label: 'Ισοσκέλιση (Σύνολο Χρέωσης = Σύνολο Πίστωσης)',
+    key: 'balance', label: 'Ισοσκέλιση (σύνολο χρέωσης = σύνολο πίστωσης)',
     status: t.balanced ? 'pass' : 'fail',
     detail: `Χρέωση ${money(t.debit)} · Πίστωση ${money(t.credit)}${t.balanced ? '' : ` · Διαφορά ${money(round2(t.debit - t.credit))}`}`,
+    ...(t.balanced ? {} : { fix: 'Κάθε κίνηση πρέπει να έχει χρέωση και πίστωση ίσου ποσού. Εντόπισε την εγγραφή που λείπει το ένα σκέλος.' }),
   });
 
   // 2) Ισοσκέλιση ανά άρθρο (κάθε παραστατικό: ημερομηνία + αιτιολογία).
@@ -231,6 +232,7 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
     key: 'articles', label: 'Ισοσκέλιση ανά άρθρο (διπλογραφική)',
     status: unbalanced ? 'fail' : 'pass',
     detail: unbalanced ? `${unbalanced} μη ισοσκελισμένα άρθρα` : `${vmap.size} άρθρα, όλα ισοσκελισμένα`,
+    ...(unbalanced ? { fix: 'Σε κάθε άρθρο το σύνολο της χρέωσης πρέπει να ισούται με το σύνολο της πίστωσης. Διόρθωσε το ποσό στο άρθρο που δεν κλείνει.' } : {}),
   });
 
   // 3) Έγκυροι λογαριασμοί (ΕΓΛΣ).
@@ -239,6 +241,7 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
     key: 'accounts', label: 'Έγκυροι λογαριασμοί (Ελληνικό Λογιστικό Σχέδιο)',
     status: invalid.length ? 'fail' : 'pass',
     detail: invalid.length ? `Άγνωστοι κωδικοί: ${invalid.join(', ')}` : 'Όλοι οι λογαριασμοί αναγνωρίζονται',
+    ...(invalid.length ? { fix: 'Αντιστοίχισε τους άγνωστους κωδικούς σε λογαριασμούς του δικού σου λογιστικού σχεδίου κατά την εισαγωγή.' } : {}),
   });
 
   // 4) Ταξινόμηση εξόδων — προειδοποίηση για ό,τι έμεινε στο «64.98 Διάφορα έξοδα».
@@ -247,7 +250,8 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
   checks.push({
     key: 'classify', label: 'Ταξινόμηση εξόδων σε λογαριασμούς',
     status: uncat.length ? 'warn' : 'pass',
-    detail: uncat.length ? `${uncat.length} εγγραφές σε «64.98 Διάφορα έξοδα» (${money(uncatSum)}) — δώσε κατηγορία για ακριβέστερη απεικόνιση` : 'Όλα τα έξοδα ταξινομημένα',
+    detail: uncat.length ? `${uncat.length === 1 ? '1 εγγραφή παρέμεινε' : `${uncat.length} εγγραφές παρέμειναν`} στο «64.98 Διάφορα έξοδα» (${money(uncatSum)})` : 'Όλα τα έξοδα ταξινομημένα',
+    ...(uncat.length ? { fix: 'Όρισε κατηγορία στο έξοδο (π.χ. ρεύμα, κοινόχρηστα, συντήρηση) ώστε να μεταφερθεί αυτόματα στον σωστό λογαριασμό εξόδων.' } : {}),
   });
 
   // 5) Ταμειακή συμφωνία (tie-out): Ταμείο (38) = Έσοδα (7) − Έξοδα (6) − Χρεολύσια (45).
@@ -262,7 +266,8 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
   checks.push({
     key: 'tieout', label: 'Ταμειακή συμφωνία (Ταμείο = Έσοδα − Έξοδα − Χρεολύσια)',
     status: tie ? 'pass' : 'fail',
-    detail: `Ταμείο ${money(cash)} = Έσοδα ${money(income)} − Έξοδα ${money(expense)}${principal ? ` − Χρεολύσια ${money(principal)}` : ''} (${money(net)})`,
+    detail: `Ταμείο ${money(cash)} · Έσοδα ${money(income)} · Έξοδα ${money(expense)}${principal ? ` · Χρεολύσια ${money(principal)}` : ''}`,
+    ...(tie ? {} : { fix: 'Το υπόλοιπο του ταμείου δεν συμφωνεί με έσοδα μείον έξοδα και χρεολύσια. Έλεγξε ότι όλες οι εισπράξεις και πληρωμές της περιόδου έχουν καταχωρηθεί.' }),
   });
 
   // 5β) Διαχωρισμός δόσεων δανείου: κάθε άρθρο με χρεολύσιο (45) πρέπει να έχει και
@@ -272,13 +277,14 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
   const unsplitLoans = [...artMap.values()].filter(codes => codes.has('45.00') && !codes.has('65.00')).length;
   if (unsplitLoans > 0) {
     checks.push({
-      key: 'loansplit', label: 'Διαχωρισμός δόσεων δανείου (τόκοι 65 / χρεολύσιο 45)',
+      key: 'loansplit', label: 'Διαχωρισμός δόσεων δανείου (τόκοι 65 · χρεολύσιο 45)',
       status: 'warn',
-      detail: `${unsplitLoans} ${unsplitLoans === 1 ? 'δόση καταχωρήθηκε' : 'δόσεις καταχωρήθηκαν'} χωρίς διαχωρισμό τόκων — σύνδεσε το δάνειο (επιτόκιο/έναρξη) για ακριβή έκπτωση τόκων.`,
+      detail: `${unsplitLoans} ${unsplitLoans === 1 ? 'δόση καταχωρήθηκε' : 'δόσεις καταχωρήθηκαν'} χωρίς διαχωρισμό τόκων.`,
+      fix: 'Σύνδεσε το δάνειο (επιτόκιο και ημερομηνία έναρξης) ώστε να διαχωριστούν οι τόκοι από το χρεολύσιο και να εκπέσουν σωστά.',
     });
   } else if ([...artMap.values()].some(codes => codes.has('65.00') && codes.has('45.00'))) {
     checks.push({
-      key: 'loansplit', label: 'Διαχωρισμός δόσεων δανείου (τόκοι 65 / χρεολύσιο 45)',
+      key: 'loansplit', label: 'Διαχωρισμός δόσεων δανείου (τόκοι 65 · χρεολύσιο 45)',
       status: 'pass',
       detail: 'Οι δόσεις δανείου διαχωρίστηκαν σωστά σε τόκους και χρεολύσιο.',
     });
@@ -290,6 +296,7 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
     key: 'amounts', label: 'Εγκυρότητα ποσών (θετικά, μονομερή)',
     status: bad ? 'fail' : 'pass',
     detail: bad ? `${bad} εγγραφές με μη έγκυρο ποσό` : 'Όλα τα ποσά θετικά και μονομερή',
+    ...(bad ? { fix: 'Κάθε εγγραφή πρέπει να έχει ένα θετικό ποσό, είτε στη χρέωση είτε στην πίστωση, ποτέ και στα δύο ή μηδενικό.' } : {}),
   });
 
   // 7) Ημερομηνίες εντός επιλεγμένης περιόδου (έτος + προαιρετικά μήνας).
@@ -306,6 +313,7 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
     key: 'dates', label: 'Ημερομηνίες εντός περιόδου',
     status: outside ? 'fail' : 'pass',
     detail: outside ? `${outside} εγγραφές εκτός περιόδου` : 'Όλες οι εγγραφές εντός περιόδου',
+    ...(outside ? { fix: 'Μετέφερε ή διόρθωσε τις εγγραφές που βρίσκονται εκτός της επιλεγμένης περιόδου, ή άλλαξε την περίοδο εξαγωγής.' } : {}),
   });
 
   // Συνολική «λογιστική» ετυμηγορία — αντιδρά σαν λογιστής, όχι σαν απλή σημαία.
@@ -318,17 +326,17 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
     const bal = checks.find(c => c.key === 'balance');
     const tieP = checks.find(c => c.key === 'tieout');
     const hint = bal?.status === 'fail'
-      ? `Το ημερολόγιο ΔΕΝ ισοσκελίζει — ${bal.detail}. Έλεγξε ότι κάθε κίνηση έχει χρεωθεί και πιστωθεί.`
+      ? `Το ημερολόγιο δεν ισοσκελίζει: ${bal.detail}. Κάθε κίνηση χρειάζεται χρέωση και πίστωση ίσου ποσού.`
       : tieP?.status === 'fail'
-        ? `Δεν συμφωνεί το ταμείο με το αποτέλεσμα — ${tieP.detail}. Έλεγξε εισπράξεις/πληρωμές της περιόδου.`
-        : `Βρέθηκαν ${fails.length} θέματα που εμποδίζουν την υποβολή — δες αναλυτικά παρακάτω.`;
+        ? `Το ταμείο δεν συμφωνεί με το αποτέλεσμα: ${tieP.detail}. Έλεγξε τις εισπράξεις και πληρωμές της περιόδου.`
+        : `Βρέθηκαν ${fails.length} θέματα που εμποδίζουν την υποβολή. Δες αναλυτικά παρακάτω.`;
     summary = `Χρειάζεται διόρθωση πριν την καταχώρηση. ${hint}`;
   } else if (warns.length) {
     tone = 'warning';
-    summary = `Ισοσκελισμένο και έτοιμο για εξαγωγή — ${warns.length === 1 ? 'ένα σημείο χρειάζεται' : `${warns.length} σημεία χρειάζονται`} προσοχή για ακριβέστερη λογιστική απεικόνιση (δες παρακάτω).`;
+    summary = `Ισοσκελισμένο και έτοιμο για εξαγωγή. ${warns.length === 1 ? 'Ένα σημείο βελτιώνει' : `${warns.length} σημεία βελτιώνουν`} την ακρίβεια της λογιστικής απεικόνισης.`;
   } else {
     tone = 'positive';
-    summary = 'Ισοσκελισμένο και πλήρες — το άρθρο συμφωνεί κατά τα διπλογραφικά πρότυπα και είναι έτοιμο για καταχώρηση στον λογιστή.';
+    summary = 'Ισοσκελισμένο και πλήρες. Το ημερολόγιο συμφωνεί με τα διπλογραφικά πρότυπα και είναι έτοιμο για καταχώρηση στον λογιστή.';
   }
 
   return { ok, tone, summary, checks };

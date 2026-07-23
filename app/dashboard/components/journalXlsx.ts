@@ -37,7 +37,7 @@ export function downloadJournalWorkbook(opts: {
       l.debit || '', l.credit || '', l.doc || '',
     ]);
     const aoa: (string | number | Date)[][] = [
-      [`ΛΟΓΙΣΤΙΚΟ ΗΜΕΡΟΛΟΓΙΟ — ${periodLabel}`], [idLine], [],
+      [`ΛΟΓΙΣΤΙΚΟ ΗΜΕΡΟΛΟΓΙΟ · ${periodLabel}`], [idLine], [],
       header, ...data as (string | number | Date)[][],
       ['', '', '', '', 'ΣΥΝΟΛΑ', '', '', ''],
       ['', '', '', '', 'Έλεγχος ισοζυγίου', '', '', ''],
@@ -105,7 +105,7 @@ export function downloadJournalWorkbook(opts: {
       r.balance > 0 ? r.balance : '', r.balance < 0 ? -r.balance : '',
     ]);
     const aoa: (string | number)[][] = [
-      [`ΙΣΟΖΥΓΙΟ ΛΟΓΑΡΙΑΣΜΩΝ — ${periodLabel}`], [idLine], [],
+      [`ΙΣΟΖΥΓΙΟ ΛΟΓΑΡΙΑΣΜΩΝ · ${periodLabel}`], [idLine], [],
       header, ...data, ['', 'ΣΥΝΟΛΑ', '', '', '', ''],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -136,12 +136,12 @@ export function downloadJournalWorkbook(opts: {
     const NC = 3, HR = 3;
     const audit = auditJournal(lines, { year: opts.year, month: opts.month });
     const mark = (s: string) => (s === 'pass' ? '✓' : s === 'warn' ? '⚠' : '✗');
-    const header = ['Έλεγχος', 'Κατάσταση', 'Λεπτομέρεια'];
+    const header = ['Έλεγχος', 'Κατάσταση', 'Λεπτομέρεια & πρόταση'];
     const aoa: (string | number)[][] = [
-      [`ΕΛΕΓΧΟΣ ΙΣΟΖΥΓΙΟΥ — ${periodLabel}`],
+      [`ΕΛΕΓΧΟΣ ΙΣΟΖΥΓΙΟΥ · ${periodLabel}`],
       [`Αποτέλεσμα: ${audit.summary}`],
       [],
-      header, ...audit.checks.map(c => [`${mark(c.status)}  ${c.label}`, c.status === 'pass' ? 'ΟΚ' : c.status === 'warn' ? 'ΠΡΟΣΟΧΗ' : 'ΣΦΑΛΜΑ', c.detail]),
+      header, ...audit.checks.map(c => [`${mark(c.status)}  ${c.label}`, c.status === 'pass' ? 'ΟΚ' : c.status === 'warn' ? 'ΠΡΟΣΟΧΗ' : 'ΣΦΑΛΜΑ', c.fix ? `${c.detail}\nΠρόταση: ${c.fix}` : c.detail]),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [{ wch: 48 }, { wch: 14 }, { wch: 62 }];
@@ -152,7 +152,7 @@ export function downloadJournalWorkbook(opts: {
     setCell(ws, 1, 0, { s: { ...S.sub, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: auditRgb } } } });
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     audit.checks.forEach((c, i) => {
-      const r = HR + 1 + i; ws['!rows']![r] = { hpt: 18 };
+      const r = HR + 1 + i; ws['!rows']![r] = { hpt: c.fix ? 30 : 18 };
       setCell(ws, r, 0, { s: S.txt });
       setCell(ws, r, 1, { s: { ...S.strongTxt, alignment: { horizontal: 'center', vertical: 'center' }, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: c.status === 'pass' ? '027A48' : c.status === 'warn' ? 'B54708' : 'B42318' } } } });
       setCell(ws, r, 2, { s: S.txtWrap });
