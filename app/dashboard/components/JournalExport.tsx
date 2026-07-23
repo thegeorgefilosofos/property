@@ -11,13 +11,16 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
 import {
-  buildJournal, journalTotals, trialBalance, journalToCsv,
-  type JournalFormat, type IncomeRec, type ExpenseRec,
+  buildJournal, journalTotals, trialBalance, journalToCsv, auditJournal,
+  type JournalFormat, type IncomeRec, type ExpenseRec, type JournalAudit,
 } from '@/lib/accounting/journal';
+import { downloadJournalWorkbook } from './journalXlsx';
 
+type ExportFormat = JournalFormat | 'excel';
 interface Prop { id: string; name: string }
 const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
-const FORMATS: { key: JournalFormat; label: string; hint: string; ext: string }[] = [
+const FORMATS: { key: ExportFormat; label: string; hint: string; ext: string }[] = [
+  { key: 'excel', label: 'Excel (λογιστικό)', hint: 'Μορφοποιημένο βιβλίο: €, φίλτρα, ζωντανές φόρμουλες, ισοζύγιο & έλεγχος', ext: 'xlsx' },
   { key: 'generic', label: 'Soft1 / Epsilon', hint: 'Ελληνικό ημερολόγιο (;), χρέωση/πίστωση', ext: 'csv' },
   { key: 'quickbooks', label: 'QuickBooks', hint: 'Journal import (Date, Account, Debit, Credit)', ext: 'csv' },
   { key: 'xero', label: 'Xero', hint: 'Manual Journal template (signed amounts)', ext: 'csv' },
@@ -32,12 +35,13 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const [propIds, setPropIds] = useState<Set<string>>(new Set());
   const [year, setYear] = useState(nowYear);
   const [month, setMonth] = useState(0);
-  const [format, setFormat] = useState<JournalFormat>('generic');
+  const [format, setFormat] = useState<ExportFormat>('excel');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [preview, setPreview] = useState<ReturnType<typeof trialBalance> | null>(null);
   const [totals, setTotals] = useState<{ debit: number; credit: number; balanced: boolean } | null>(null);
+  const [audit, setAudit] = useState<JournalAudit | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -50,7 +54,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const selIds = useMemo(() => props.filter(p => propIds.has(p.id)).map(p => p.id), [props, propIds]);
   const toggle = (id: string) => setPropIds(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  useEffect(() => { setPreview(null); setTotals(null); }, [year, month, propIds]);
+  useEffect(() => { setPreview(null); setTotals(null); setAudit(null); }, [year, month, propIds]);
   if (!open) return null;
 
   const periodLabel = month === 0 ? `${year}` : `${MONTHS[month - 1]} ${year}`;
@@ -78,10 +82,19 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     return buildJournal({ incomes, expenses });
   };
 
+  const applyChecks = (lines: ReturnType<typeof buildJournal>) => {
+    setPreview(trialBalance(lines)); setTotals(journalTotals(lines));
+    setAudit(auditJournal(lines, { year, month }));
+  };
+
   const doPreview = async () => {
     setErr(''); if (!selIds.length) { setErr('Διάλεξε τουλάχιστον ένα ακίνητο.'); return; }
     setBusy(true);
-    try { const lines = await gather(); setPreview(trialBalance(lines)); setTotals(journalTotals(lines)); }
+    try {
+      const lines = await gather();
+      if (!lines.length) { setErr('Δεν υπάρχουν εγγραφές εσόδων/εξόδων για την περίοδο.'); setPreview(null); setTotals(null); setAudit(null); return; }
+      applyChecks(lines);
+    }
     catch (e: any) { setErr(e?.message || 'Αποτυχία υπολογισμού.'); }
     finally { setBusy(false); }
   };
@@ -92,25 +105,24 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     try {
       const lines = await gather();
       if (!lines.length) { setErr('Δεν υπάρχουν εγγραφές εσόδων/εξόδων για την περίοδο.'); setBusy(false); return; }
-      const csv = journalToCsv(lines, format, `Property OS — Ημερολόγιο ${periodLabel}`);
-      // BOM ώστε το Excel να ανοίγει σωστά τα ελληνικά (UTF-8).
-      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `Ημερολόγιο_${format}_${periodLabel}.csv`.replace(/\s+/g, '_');
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      setPreview(trialBalance(lines)); setTotals(journalTotals(lines));
+      if (format === 'excel') {
+        downloadJournalWorkbook({ lines, periodLabel, entityName: 'Property OS', year, month });
+      } else {
+        const csv = journalToCsv(lines, format, `Property OS — Ημερολόγιο ${periodLabel}`);
+        // BOM ώστε το Excel να ανοίγει σωστά τα ελληνικά (UTF-8).
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Ημερολόγιο_${format}_${periodLabel}.csv`.replace(/\s+/g, '_');
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      }
+      applyChecks(lines);
     } catch (e: any) { setErr(e?.message || 'Αποτυχία εξαγωγής.'); }
     finally { setBusy(false); }
   };
 
   const field: React.CSSProperties = { height: 40, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' };
   const pill = (on: boolean): React.CSSProperties => ({ fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', border: `1px solid ${on ? 'var(--accent-border)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans });
-
-  // Cash-basis balance sheet tie-out: Ταμείο (38.00) = Καθαρό αποτέλεσμα.
-  const cash = preview?.find(r => r.code === '38.00')?.balance ?? 0;
-  const revenue = Math.abs(preview?.find(r => r.code === '75.00')?.balance ?? 0);
-  const netProfit = totals ? cash : 0;
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
@@ -164,7 +176,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <div style={{ ...TT.label }}>Ισοζύγιο & έλεγχος</div>
-                <Badge tone={totals.balanced ? 'positive' : 'negative'}>{totals.balanced ? 'Ισοσκελισμένο ✓' : 'Ασυμφωνία'}</Badge>
+                <Badge tone={audit ? (audit.ok ? 'positive' : 'negative') : (totals.balanced ? 'positive' : 'negative')}>{audit ? (audit.ok ? 'Ισοσκελισμένο ✓' : 'Απαιτεί προσοχή') : (totals.balanced ? 'Ισοσκελισμένο ✓' : 'Ασυμφωνία')}</Badge>
               </div>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '8px 14px', background: 'var(--bg-elevated)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>
@@ -183,9 +195,23 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                   <span style={{ textAlign: 'right', fontFamily: T.font.mono }}>{eur(totals.credit)}</span>
                 </div>
               </div>
-              <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Tie-out (ταμειακή βάση): <b>Ενεργητικό (Ταμείο)</b> {eur(cash)} = <b>Καθαρό αποτέλεσμα</b> {eur(netProfit)}. Έσοδα περιόδου {eur(revenue)}.
-              </div>
+              {audit && (
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {audit.checks.map(c => {
+                    const tone = c.status === 'pass' ? 'var(--positive)' : c.status === 'warn' ? 'var(--warning)' : 'var(--negative)';
+                    const mark = c.status === 'pass' ? '✓' : c.status === 'warn' ? '!' : '✕';
+                    return (
+                      <div key={c.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 12 }}>
+                        <span style={{ flexShrink: 0, width: 16, height: 16, borderRadius: '50%', background: `color-mix(in srgb, ${tone} 16%, transparent)`, color: tone, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, marginTop: 1 }}>{mark}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{c.label}</span>
+                          <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>— {c.detail}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -196,7 +222,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
           <span style={{ ...TT.bodySm }}>{selIds.length} ακίν. · {periodLabel}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             <Btn variant="secondary" onClick={doPreview} disabled={busy || !selIds.length}>{busy ? '…' : 'Έλεγχος ισοζυγίου'}</Btn>
-            <Btn variant="primary" onClick={download} disabled={busy || !selIds.length}>{busy ? 'Εξαγωγή…' : 'Λήψη CSV'}</Btn>
+            <Btn variant="primary" onClick={download} disabled={busy || !selIds.length}>{busy ? 'Εξαγωγή…' : (format === 'excel' ? 'Λήψη Excel' : 'Λήψη CSV')}</Btn>
           </div>
         </div>
       </div>
