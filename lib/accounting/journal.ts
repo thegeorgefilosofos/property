@@ -25,12 +25,16 @@ export interface JournalLine {
 
 export interface IncomeRec { date: string; amount: number; description?: string; property?: string; party?: string; doc?: string }
 export interface ExpenseRec { date: string; amount: number; category?: string; description?: string; property?: string; party?: string; doc?: string }
+/** Δόση δανείου: το συνολικό ποσό πληρωμής + το τμήμα τόκων (τα υπόλοιπα = χρεολύσιο). */
+export interface LoanPaymentRec { date: string; amount: number; interest: number; description?: string; property?: string; party?: string; doc?: string }
 
 interface Acct { code: string; name: string }
 
 export const ACCOUNTS = {
-  bank:       { code: '38.00', name: 'Ταμείο / Καταθέσεις' },
-  rentIncome: { code: '75.00', name: 'Έσοδα από ενοίκια' },
+  bank:          { code: '38.00', name: 'Ταμείο / Καταθέσεις' },
+  rentIncome:    { code: '75.00', name: 'Έσοδα από ενοίκια' },
+  loanInterest:  { code: '65.00', name: 'Τόκοι & έξοδα δανείων' },
+  loanPrincipal: { code: '45.00', name: 'Μακροπρόθεσμες υποχρεώσεις (χρεολύσιο δανείων)' },
 } as const;
 
 // Χαρτογράφηση κατηγορίας εξόδου → λογαριασμός (ΕΓΛΣ-style). Οι κωδικοί είναι
@@ -84,7 +88,7 @@ const short = (s?: string) => (s || '').replace(/\s+/g, ' ').trim();
 
 /** Χτίζει ισοσκελισμένο ημερολόγιο — ένα άρθρο (voucher) ανά εγγραφή, ταξινομημένο
  * κατά ημερομηνία, με σειριακό αριθμό άρθρου (art) που κρατά μαζί χρέωση+πίστωση. */
-export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec[] }): JournalLine[] {
+export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec[]; loanPayments?: LoanPaymentRec[] }): JournalLine[] {
   const vouchers: JournalLine[][] = [];
 
   for (const inc of input.incomes || []) {
@@ -106,6 +110,22 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
       { date: ex.date, code: acc.code, account: acc.name, description: desc, debit: amt, credit: 0, doc: ex.doc, party: ex.party },
       { date: ex.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: ex.doc, party: ex.party },
     ]);
+  }
+
+  // Δόσεις δανείου — σωστό διπλογραφικό άρθρο: Χρέωση 65 (τόκοι) + Χρέωση 45
+  // (χρεολύσιο = μείωση υποχρέωσης) / Πίστωση 38 (Ταμείο). Ο τόκος είναι έξοδο· το
+  // κεφάλαιο ΔΕΝ είναι έξοδο (μειώνει το δάνειο), όπως επιβάλλει το ΕΓΛΣ.
+  for (const lp of input.loanPayments || []) {
+    const amt = round2(lp.amount);
+    if (!amt) continue;
+    const interest = Math.max(0, Math.min(amt, round2(lp.interest)));
+    const principal = round2(amt - interest);
+    const desc = short(lp.description) || `Δόση δανείου${lp.property ? ` — ${lp.property}` : ''}`;
+    const v: JournalLine[] = [];
+    if (interest > 0) v.push({ date: lp.date, code: ACCOUNTS.loanInterest.code, account: ACCOUNTS.loanInterest.name, description: desc, debit: interest, credit: 0, doc: lp.doc, party: lp.party });
+    if (principal > 0) v.push({ date: lp.date, code: ACCOUNTS.loanPrincipal.code, account: ACCOUNTS.loanPrincipal.name, description: desc, debit: principal, credit: 0, doc: lp.doc, party: lp.party });
+    v.push({ date: lp.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: lp.doc, party: lp.party });
+    vouchers.push(v);
   }
 
   // Ταξινόμηση άρθρων κατά ημερομηνία (σταθερή), μετά σειριακή αρίθμηση άρθρων.
@@ -186,7 +206,7 @@ export function journalToCsv(lines: JournalLine[], format: JournalFormat, narrat
 // (Ταμείο = Έσοδα − Έξοδα), μονομερή θετικά ποσά, ημερομηνίες εντός περιόδου.
 // Ισχύει ΤΟ ΙΔΙΟ για ολόκληρο έτος, για μεμονωμένο μήνα και για προηγούμενα έτη.
 const money = (n: number) => `${(Number(n) || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-const KNOWN_CODES = new Set<string>([ACCOUNTS.bank.code, ACCOUNTS.rentIncome.code, ...Object.values(EXPENSE_ACCOUNTS).map(a => a.code)]);
+const KNOWN_CODES = new Set<string>([...Object.values(ACCOUNTS).map(a => a.code), ...Object.values(EXPENSE_ACCOUNTS).map(a => a.code)]);
 
 export type AuditStatus = 'pass' | 'warn' | 'fail';
 export interface AuditCheck { key: string; label: string; status: AuditStatus; detail: string }
@@ -230,18 +250,39 @@ export function auditJournal(lines: JournalLine[], opts?: { year?: number; month
     detail: uncat.length ? `${uncat.length} εγγραφές σε «64.98 Διάφορα έξοδα» (${money(uncatSum)}) — δώσε κατηγορία για ακριβέστερη απεικόνιση` : 'Όλα τα έξοδα ταξινομημένα',
   });
 
-  // 5) Ταμειακή συμφωνία (tie-out): Ταμείο (ομ. 38) = Έσοδα (ομ. 7) − Έξοδα (ομ. 6).
+  // 5) Ταμειακή συμφωνία (tie-out): Ταμείο (38) = Έσοδα (7) − Έξοδα (6) − Χρεολύσια (45).
+  // Το χρεολύσιο (ομ. 4) είναι εκροή μετρητών που ΔΕΝ είναι έξοδο (μειώνει υποχρέωση).
   const tb = trialBalance(lines);
   const cash = round2(tb.filter(r => r.code.startsWith('38')).reduce((s, r) => s + r.balance, 0));
   const income = round2(tb.filter(r => /^7/.test(r.code)).reduce((s, r) => s + (r.credit - r.debit), 0));
   const expense = round2(tb.filter(r => /^6/.test(r.code)).reduce((s, r) => s + (r.debit - r.credit), 0));
-  const net = round2(income - expense);
+  const principal = round2(tb.filter(r => /^4/.test(r.code)).reduce((s, r) => s + (r.debit - r.credit), 0));
+  const net = round2(income - expense - principal);
   const tie = Math.abs(round2(cash - net)) < 0.005;
   checks.push({
-    key: 'tieout', label: 'Ταμειακή συμφωνία (Ταμείο = Έσοδα − Έξοδα)',
+    key: 'tieout', label: 'Ταμειακή συμφωνία (Ταμείο = Έσοδα − Έξοδα − Χρεολύσια)',
     status: tie ? 'pass' : 'fail',
-    detail: `Ταμείο ${money(cash)} = Έσοδα ${money(income)} − Έξοδα ${money(expense)} (${money(net)})`,
+    detail: `Ταμείο ${money(cash)} = Έσοδα ${money(income)} − Έξοδα ${money(expense)}${principal ? ` − Χρεολύσια ${money(principal)}` : ''} (${money(net)})`,
   });
+
+  // 5β) Διαχωρισμός δόσεων δανείου: κάθε άρθρο με χρεολύσιο (45) πρέπει να έχει και
+  // τόκους (65). Αλλιώς η δόση καταχωρήθηκε χωρίς διαχωρισμό (χαμένη έκπτωση τόκων).
+  const artMap = new Map<number, Set<string>>();
+  for (const l of lines) { if (l.art == null) continue; const s = artMap.get(l.art) || new Set<string>(); s.add(l.code); artMap.set(l.art, s); }
+  const unsplitLoans = [...artMap.values()].filter(codes => codes.has('45.00') && !codes.has('65.00')).length;
+  if (unsplitLoans > 0) {
+    checks.push({
+      key: 'loansplit', label: 'Διαχωρισμός δόσεων δανείου (τόκοι 65 / χρεολύσιο 45)',
+      status: 'warn',
+      detail: `${unsplitLoans} ${unsplitLoans === 1 ? 'δόση καταχωρήθηκε' : 'δόσεις καταχωρήθηκαν'} χωρίς διαχωρισμό τόκων — σύνδεσε το δάνειο (επιτόκιο/έναρξη) για ακριβή έκπτωση τόκων.`,
+    });
+  } else if ([...artMap.values()].some(codes => codes.has('65.00') && codes.has('45.00'))) {
+    checks.push({
+      key: 'loansplit', label: 'Διαχωρισμός δόσεων δανείου (τόκοι 65 / χρεολύσιο 45)',
+      status: 'pass',
+      detail: 'Οι δόσεις δανείου διαχωρίστηκαν σωστά σε τόκους και χρεολύσιο.',
+    });
+  }
 
   // 6) Εγκυρότητα ποσών: θετικά και μονομερή (όχι χρέωση & πίστωση μαζί, όχι μηδενικά).
   const bad = lines.filter(l => (l.debit < 0 || l.credit < 0) || (l.debit === 0 && l.credit === 0) || (l.debit > 0 && l.credit > 0)).length;
