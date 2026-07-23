@@ -34,9 +34,8 @@ const signed = (n: number) => (n < 0 ? `−${eur(Math.abs(n))}` : eur(n))
 const pct = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`
 const esc = (str: string) => String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] || ch))
 
-// Κοινό κείμενο disclaimer (ίδιο σε print & επίσημο PDF).
-const buildDisclaimer = (year: number | string) =>
-  `Η παρούσα αναφορά έχει ενημερωτικό χαρακτήρα και δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων ${year} και την ισχύουσα φορολογική μεταχείριση: στη μακροχρόνια μίσθωση εφαρμόζεται τεκμαρτή έκπτωση δαπανών 5%, ενώ στη βραχυχρόνια ο φόρος υπολογίζεται επί των μεικτών εσόδων, με τέλος ανθεκτικότητας κλιματικής κρίσης και τέλος παρεπιδημούντων όπου ισχύουν. Πριν από κάθε υποβολή, επιβεβαίωσε τα ποσά με τον λογιστή σου ή την ΑΑΔΕ.`
+// Κοινό, λιτό disclaimer (ίδιο σε print & επίσημο PDF) — νομικά επαρκές, χωρίς φλυαρία.
+const DISCLAIMER = 'Ενημερωτικό έγγραφο, όχι επίσημη φορολογική δήλωση. Τα ποσά είναι ενδεικτικά· επιβεβαίωσέ τα με τον λογιστή σου ή στο myAADE.'
 
 export function printAccountingReport(c: AccountingReportCtx): void {
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -64,7 +63,7 @@ export function printAccountingReport(c: AccountingReportCtx): void {
   const brandMark = brandLogoImg(c.branding, 34) || `<div class="mark">P</div>`
   const contact = brandContactLine(c.branding)
 
-  const disclaimer = buildDisclaimer(c.year)
+  const disclaimer = DISCLAIMER
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <title>Λογιστική αναφορά · ${esc(c.propName)} ${esc(String(c.year))}</title>
@@ -148,7 +147,7 @@ export function printAccountingReport(c: AccountingReportCtx): void {
     <tbody>${reconRows}</tbody>
   </table>
 
-  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>Property OS</b></div></div>
+  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}<div class="colo"><b>Property OS</b></div></div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
 </div></body></html>`
 
@@ -207,7 +206,7 @@ export async function downloadOfficialAccountingReport(c: AccountingReportCtx, o
     branding: c.branding, docType: 'Λογιστική αναφορά', title: c.propName,
     subtitle: [c.regimeLabel, `Χρήση ${c.year}`, c.address].filter(Boolean).join(' · '),
     meta: { id: issued.id, issuedAt: issued.issuedAt, verifyUrl: issued.verifyUrl, note: `Χρήση ${c.year}` },
-    sections, disclaimer: buildDisclaimer(c.year),
+    sections, disclaimer: DISCLAIMER,
   }
   await generateReportPdf(model, `Λογιστική_αναφορά_${c.propName}_${c.year}`)
 }

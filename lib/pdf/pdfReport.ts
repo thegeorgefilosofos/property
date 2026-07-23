@@ -296,10 +296,10 @@ export function buildDocDefinition(model: PdfReportModel): Node {
   }
 
   if (model.disclaimer) {
-    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.7, lineColor: '#e5e7eb' }], margin: [0, 26, 0, 8] });
-    content.push({ text: (model.branding?.companyName ? name + ' · ' : '') + model.disclaimer, fontSize: 9, color: FAINT, lineHeight: 1.5 });
+    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.7, lineColor: '#e5e7eb' }], margin: [0, 22, 0, 8] });
+    content.push({ text: (model.branding?.companyName ? name + ' · ' : '') + model.disclaimer, fontSize: 8.5, color: FAINT, lineHeight: 1.45 });
   }
-  content.push({ text: [{ text: 'Σχεδιάστηκε και δημιουργήθηκε από το ' }, { text: 'Property OS', bold: true, color: MUTE }], fontSize: 8.5, color: FAINT, margin: [0, model.disclaimer ? 9 : 22, 0, 0] });
+  // Το brand & η γνησιότητα μπαίνουν στο per-page footer — καμία επανάληψη colophon εδώ (πιο λιτό).
 
   const issuedStr = pDateTime(model.meta.issuedAt);
   return {
