@@ -139,7 +139,7 @@ export function downloadJournalWorkbook(opts: {
     const header = ['Έλεγχος', 'Κατάσταση', 'Λεπτομέρεια'];
     const aoa: (string | number)[][] = [
       [`ΕΛΕΓΧΟΣ ΙΣΟΖΥΓΙΟΥ — ${periodLabel}`],
-      [audit.ok ? 'Αποτέλεσμα: ΙΣΟΣΚΕΛΙΣΜΕΝΟ — όλοι οι έλεγχοι πέρασαν' : 'Αποτέλεσμα: ΑΠΑΙΤΕΙ ΠΡΟΣΟΧΗ — ένας ή περισσότεροι έλεγχοι απέτυχαν'],
+      [`Αποτέλεσμα: ${audit.summary}`],
       [],
       header, ...audit.checks.map(c => [`${mark(c.status)}  ${c.label}`, c.status === 'pass' ? 'ΟΚ' : c.status === 'warn' ? 'ΠΡΟΣΟΧΗ' : 'ΣΦΑΛΜΑ', c.detail]),
     ];
@@ -148,7 +148,8 @@ export function downloadJournalWorkbook(opts: {
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
     setCell(ws, 0, 0, { s: S.title });
-    setCell(ws, 1, 0, { s: { ...S.sub, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: audit.ok ? '027A48' : 'B42318' } } } });
+    const auditRgb = audit.tone === 'positive' ? '027A48' : audit.tone === 'warning' ? 'B54708' : 'B42318';
+    setCell(ws, 1, 0, { s: { ...S.sub, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: auditRgb } } } });
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     audit.checks.forEach((c, i) => {
       const r = HR + 1 + i; ws['!rows']![r] = { hpt: 18 };

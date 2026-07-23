@@ -54,13 +54,16 @@ ok('trial balance nets to zero', tbSum === 0)
 
 // CSV formatters παράγουν σωστό αριθμό γραμμών + header.
 const gen = journalCsvGeneric(lines).split('\r\n')
-ok('generic CSV header greek', gen[0].startsWith('Ημερομηνία;Κωδικός'))
+ok('generic CSV header greek (articles)', gen[0].startsWith('Αρ.Άρθρου;Ημ/νία;Κωδικός'))
 ok('generic CSV has totals row', gen[gen.length - 1].includes('ΣΥΝΟΛΑ'))
-ok('generic CSV comma decimals in amount col', gen[1].split(';')[4] === '500,00')
+ok('generic CSV article number in col 0', gen[1].split(';')[0] === '1')
+ok('generic CSV DD/MM/YYYY date', gen[1].split(';')[1] === '05/01/2026')
+ok('generic CSV comma decimals in debit col', gen[1].split(';')[5] === '500,00')
 
 const qb = journalCsvQuickBooks(lines).split('\r\n')
-ok('QuickBooks header', qb[0] === 'Date,Account,Debit,Credit,Description')
-ok('QuickBooks dot decimals', qb[1].includes('500.00') || qb.some(r => r.includes('.00')))
+ok('QuickBooks header (Journal No + Debits/Credits)', qb[0] === 'Journal No,Journal Date,Account,Debits,Credits,Memo/Description,Name')
+ok('QuickBooks MM/DD/YYYY date', qb[1].split(',')[1] === '01/05/2026')
+ok('QuickBooks dot decimals', qb.some(r => r.includes('.00')))
 
 const xero = journalCsvXero(lines).split('\r\n')
 ok('Xero header', xero[0].startsWith('*Narration,*Date'))
@@ -72,6 +75,8 @@ ok('journalToCsv dispatch', journalToCsv(lines, 'quickbooks') === journalCsvQuic
 const audit = auditJournal(lines, { year: 2026 })
 const byKey = (k: string) => audit.checks.find(c => c.key === k)!
 ok('audit ok (warn does not fail)', audit.ok === true)
+ok('audit tone warning when only warns', audit.tone === 'warning')
+ok('audit summary mentions readiness', /έτοιμο/i.test(audit.summary))
 ok('audit balance passes', byKey('balance').status === 'pass')
 ok('audit articles pass', byKey('articles').status === 'pass')
 ok('audit accounts pass', byKey('accounts').status === 'pass')
