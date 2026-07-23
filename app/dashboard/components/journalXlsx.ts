@@ -31,9 +31,9 @@ export function downloadJournalWorkbook(opts: {
   // ── Φύλλο 1: Ημερολόγιο ────────────────────────────────────────────────────
   {
     const NC = 8, HR = 3;
-    const header = ['Α/Α', 'Ημ/νία', 'Κωδικός', 'Λογαριασμός', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Παραστατικό'];
+    const header = ['Άρθρο', 'Ημ/νία', 'Κωδικός', 'Λογαριασμός', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Παραστατικό'];
     const data: Cell['v'][][] = lines.map((l, i) => [
-      i + 1, toDate(l.date), l.code, l.account, l.description,
+      l.art ?? (i + 1), toDate(l.date), l.code, l.account, l.description,
       l.debit || '', l.credit || '', l.doc || '',
     ]);
     const aoa: (string | number | Date)[][] = [
@@ -43,7 +43,7 @@ export function downloadJournalWorkbook(opts: {
       ['', '', '', '', 'Έλεγχος ισοζυγίου', '', '', ''],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
-    ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 30 }, { wch: 46 }, { wch: 15 }, { wch: 15 }, { wch: 16 }];
+    ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 11 }, { wch: 34 }, { wch: 46 }, { wch: 15 }, { wch: 15 }, { wch: 16 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
 

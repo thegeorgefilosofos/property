@@ -12,9 +12,29 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
 import {
   buildJournal, journalTotals, trialBalance, journalToCsv, auditJournal,
-  type JournalFormat, type IncomeRec, type ExpenseRec, type JournalAudit,
+  type JournalFormat, type IncomeRec, type ExpenseRec, type JournalAudit, type LoanPaymentRec,
 } from '@/lib/accounting/journal';
 import { downloadJournalWorkbook } from './journalXlsx';
+import { annuityMonthly } from '@/lib/loans/recommend';
+
+// Δόση δανείου (από περιγραφή/κατηγορία εξόδου) — ελληνικά & αγγλικά.
+const LOAN_RE = /δάνει|δόσ\w*\s*δάν|τοκοχρε|χρεολ|loan|installment|mortgage|στεγαστ/i;
+interface LoanRow { property_id: string | null; loan_amount: number | null; rate_type: string | null; fixed_rate: number | null; euribor: number | null; spread: number | null; years: number | null; start_date: string | null }
+interface ExpRow { property_id: string | null; date: string; amount: number | string | null; category: string | null; description: string | null }
+const loanAnnualRate = (l: LoanRow) => l.rate_type === 'variable' ? (Number(l.euribor || 0) + Number(l.spread || 0)) : Number(l.fixed_rate || 0);
+// Τόκος της δόσης = υπόλοιπο κεφαλαίου πριν τη δόση × μηνιαίο επιτόκιο (clamped στο ποσό).
+function loanInterestForPayment(l: LoanRow, isoDate: string, payment: number): number {
+  const principal = Number(l.loan_amount || 0), years = Number(l.years || 0), annual = loanAnnualRate(l);
+  if (!principal || !annual || !years) return 0;
+  const r = annual / 100 / 12, n = years * 12;
+  const pay = annuityMonthly(principal, annual, years);
+  let t = 0;
+  if (l.start_date) { const s = new Date(l.start_date), d = new Date(isoDate); t = Math.max(0, (d.getUTCFullYear() - s.getUTCFullYear()) * 12 + (d.getUTCMonth() - s.getUTCMonth())); }
+  t = Math.min(t, Math.max(0, n - 1));
+  const g = Math.pow(1 + r, t);
+  const balBefore = principal * g - pay * ((g - 1) / r); // υπόλοιπο πριν τη δόση t+1
+  return Math.max(0, Math.min(payment, Math.round(balBefore * r * 100) / 100));
+}
 
 type ExportFormat = JournalFormat | 'excel';
 interface Prop { id: string; name: string }
@@ -67,19 +87,37 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     let rentQ = supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date')
       .in('property_id', selIds).eq('paid', true).eq('period_year', year);
     if (month > 0) rentQ = rentQ.eq('period_month', month);
-    const [{ data: rentData }, { data: expData }] = await Promise.all([
+    const [{ data: rentData }, { data: expData }, { data: loanData }] = await Promise.all([
       rentQ,
       supabase.from('expenses').select('property_id,date,amount,category,description').in('property_id', selIds).gte('date', from).lte('date', to),
+      supabase.from('loans').select('property_id,loan_amount,rate_type,fixed_rate,euribor,spread,years,start_date').eq('user_id', userId),
     ]);
     const incomes: IncomeRec[] = (rentData || []).map((r: any) => ({
       date: r.paid_date || r.due_date || `${r.period_year}-${String(r.period_month || 1).padStart(2, '0')}-01`,
       amount: Number(r.amount) || 0, property: r.property_id ? nameById.get(r.property_id) : undefined,
     }));
-    const expenses: ExpenseRec[] = (expData || []).map((e: any) => ({
-      date: e.date, amount: Number(e.amount) || 0, category: e.category, description: e.description,
-      property: e.property_id ? nameById.get(e.property_id) : undefined,
-    }));
-    return buildJournal({ incomes, expenses });
+
+    // Χωρίζουμε τα έξοδα-δόσεις δανείου από τα κανονικά έξοδα, ώστε να καταχωρηθούν
+    // διπλογραφικά σωστά (τόκοι 65 + χρεολύσιο 45), όχι σαν απλό έξοδο.
+    const loans = (loanData || []) as LoanRow[];
+    const loanFor = (propId: string | null): LoanRow | undefined =>
+      loans.find(l => l.property_id && l.property_id === propId) || (loans.length === 1 ? loans[0] : undefined);
+    const isLoan = (e: ExpRow) => LOAN_RE.test(`${e.category || ''} ${e.description || ''}`);
+
+    const expenses: ExpenseRec[] = [];
+    const loanPayments: LoanPaymentRec[] = [];
+    for (const e of (expData || []) as ExpRow[]) {
+      const amount = Number(e.amount) || 0;
+      const property = e.property_id ? nameById.get(e.property_id) : undefined;
+      if (amount && isLoan(e)) {
+        const loan = loanFor(e.property_id);
+        const interest = loan ? loanInterestForPayment(loan, e.date, amount) : 0;
+        loanPayments.push({ date: e.date, amount, interest, description: e.description || 'Δόση δανείου', property });
+      } else {
+        expenses.push({ date: e.date, amount, category: e.category ?? undefined, description: e.description ?? undefined, property });
+      }
+    }
+    return buildJournal({ incomes, expenses, loanPayments });
   };
 
   const applyChecks = (lines: ReturnType<typeof buildJournal>) => {

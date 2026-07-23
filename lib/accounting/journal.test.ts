@@ -95,5 +95,23 @@ ok('audit fails on unknown account', badAudit.checks.find(c => c.key === 'accoun
 const janAudit = auditJournal(lines, { year: 2026, month: 1 })
 ok('audit flags out-of-month dates', janAudit.checks.find(c => c.key === 'dates')!.status === 'fail')
 
+// ── Δόσεις δανείου: διαχωρισμός τόκων (65) + χρεολυσίου (45) ─────────────────
+const loanLines = buildJournal({ incomes: [], expenses: [], loanPayments: [{ date: '2026-05-10', amount: 751, interest: 200 }] })
+ok('loan payment → 3 lines', loanLines.length === 3)
+ok('loan interest on 65.00', loanLines.some(l => l.code === '65.00' && Math.abs(l.debit - 200) < 0.005))
+ok('loan principal on 45.00', loanLines.some(l => l.code === '45.00' && Math.abs(l.debit - 551) < 0.005))
+ok('loan credit on 38.00', loanLines.some(l => l.code === '38.00' && Math.abs(l.credit - 751) < 0.005))
+ok('loan article balanced', journalTotals(loanLines).balanced)
+const loanAudit = auditJournal(loanLines, { year: 2026 })
+ok('loan audit ok (all pass)', loanAudit.ok === true && loanAudit.tone === 'positive')
+ok('loan → no misc 64.98 warning', !loanAudit.checks.some(c => c.key === 'classify' && c.status === 'warn'))
+ok('loan split check passes', loanAudit.checks.find(c => c.key === 'loansplit')!.status === 'pass')
+ok('loan tie-out passes (incl. χρεολύσιο)', loanAudit.checks.find(c => c.key === 'tieout')!.status === 'pass')
+
+// Δόση χωρίς τόκους (interest=0) → όλα στο 45, ο έλεγχος διαχωρισμού προειδοποιεί.
+const unsplit = buildJournal({ incomes: [], expenses: [], loanPayments: [{ date: '2026-06-10', amount: 400, interest: 0 }] })
+ok('unsplit loan → 2 lines (45 + 38)', unsplit.length === 2 && unsplit.some(l => l.code === '45.00' && l.debit === 400))
+ok('unsplit loan warns on split', auditJournal(unsplit, { year: 2026 }).checks.find(c => c.key === 'loansplit')!.status === 'warn')
+
 console.log(`journal.test.ts: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
