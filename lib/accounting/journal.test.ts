@@ -2,6 +2,7 @@
 import {
   buildJournal, journalTotals, trialBalance, expenseAccount,
   journalCsvGeneric, journalCsvQuickBooks, journalCsvXero, journalToCsv,
+  auditJournal,
 } from './journal'
 
 let passed = 0, failed = 0
@@ -66,6 +67,28 @@ ok('Xero header', xero[0].startsWith('*Narration,*Date'))
 ok('Xero signed amounts (credit negative)', xero.some(r => /,-\d/.test(r)))
 
 ok('journalToCsv dispatch', journalToCsv(lines, 'quickbooks') === journalCsvQuickBooks(lines))
+
+// ── Audit (πραγματικός έλεγχος ισοζυγίου) ────────────────────────────────────
+const audit = auditJournal(lines, { year: 2026 })
+const byKey = (k: string) => audit.checks.find(c => c.key === k)!
+ok('audit ok (warn does not fail)', audit.ok === true)
+ok('audit balance passes', byKey('balance').status === 'pass')
+ok('audit articles pass', byKey('articles').status === 'pass')
+ok('audit accounts pass', byKey('accounts').status === 'pass')
+ok('audit tie-out passes', byKey('tieout').status === 'pass')
+ok('audit amounts pass', byKey('amounts').status === 'pass')
+ok('audit dates in-period pass', byKey('dates').status === 'pass')
+// 45€ σε 'unknown_cat' → πέφτει στο 64.98 → προειδοποίηση ταξινόμησης.
+ok('audit classify warns on 64.98 fallback', byKey('classify').status === 'warn')
+
+// Άγνωστος κωδικός → ο έλεγχος λογαριασμών αποτυγχάνει και audit.ok=false.
+const badLines = [...lines, { date: '2026-04-01', code: '99.99', account: 'Άγνωστος', description: 'x', debit: 10, credit: 0 }, { date: '2026-04-01', code: '38.00', account: 'Ταμείο', description: 'x', debit: 0, credit: 10 }]
+const badAudit = auditJournal(badLines, { year: 2026 })
+ok('audit fails on unknown account', badAudit.checks.find(c => c.key === 'accounts')!.status === 'fail' && badAudit.ok === false)
+
+// Ημερομηνία εκτός μήνα → ο έλεγχος ημερομηνιών αποτυγχάνει.
+const janAudit = auditJournal(lines, { year: 2026, month: 1 })
+ok('audit flags out-of-month dates', janAudit.checks.find(c => c.key === 'dates')!.status === 'fail')
 
 console.log(`journal.test.ts: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

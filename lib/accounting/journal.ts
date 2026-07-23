@@ -163,3 +163,93 @@ export function journalToCsv(lines: JournalLine[], format: JournalFormat, narrat
   if (format === 'xero') return journalCsvXero(lines, narration);
   return journalCsvGeneric(lines);
 }
+
+// ── Έλεγχος ισοζυγίου (πραγματικός λογιστικός audit, όχι απλή ένδειξη) ─────────
+// Οι κανόνες ακολουθούν το Ελληνικό Γενικό Λογιστικό Σχέδιο (ΕΓΛΣ): κάθε άρθρο
+// ισοσκελισμένο (Χρέωση = Πίστωση), έγκυροι λογαριασμοί ομάδων, ταμειακή συμφωνία
+// (Ταμείο = Έσοδα − Έξοδα), μονομερή θετικά ποσά, ημερομηνίες εντός περιόδου.
+// Ισχύει ΤΟ ΙΔΙΟ για ολόκληρο έτος, για μεμονωμένο μήνα και για προηγούμενα έτη.
+const money = (n: number) => `${(Number(n) || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+const KNOWN_CODES = new Set<string>([ACCOUNTS.bank.code, ACCOUNTS.rentIncome.code, ...Object.values(EXPENSE_ACCOUNTS).map(a => a.code)]);
+
+export type AuditStatus = 'pass' | 'warn' | 'fail';
+export interface AuditCheck { key: string; label: string; status: AuditStatus; detail: string }
+export interface JournalAudit { ok: boolean; checks: AuditCheck[] }
+
+export function auditJournal(lines: JournalLine[], opts?: { year?: number; month?: number }): JournalAudit {
+  const checks: AuditCheck[] = [];
+
+  // 1) Ισοσκέλιση συνόλων.
+  const t = journalTotals(lines);
+  checks.push({
+    key: 'balance', label: 'Ισοσκέλιση (Σύνολο Χρέωσης = Σύνολο Πίστωσης)',
+    status: t.balanced ? 'pass' : 'fail',
+    detail: `Χρέωση ${money(t.debit)} · Πίστωση ${money(t.credit)}${t.balanced ? '' : ` · Διαφορά ${money(round2(t.debit - t.credit))}`}`,
+  });
+
+  // 2) Ισοσκέλιση ανά άρθρο (κάθε παραστατικό: ημερομηνία + αιτιολογία).
+  const vmap = new Map<string, { d: number; c: number }>();
+  for (const l of lines) { const k = `${l.date}|${l.description}`; const v = vmap.get(k) || { d: 0, c: 0 }; v.d += l.debit; v.c += l.credit; vmap.set(k, v); }
+  const unbalanced = [...vmap.values()].filter(v => Math.abs(round2(v.d - v.c)) >= 0.005).length;
+  checks.push({
+    key: 'articles', label: 'Ισοσκέλιση ανά άρθρο (διπλογραφική)',
+    status: unbalanced ? 'fail' : 'pass',
+    detail: unbalanced ? `${unbalanced} μη ισοσκελισμένα άρθρα` : `${vmap.size} άρθρα, όλα ισοσκελισμένα`,
+  });
+
+  // 3) Έγκυροι λογαριασμοί (ΕΓΛΣ).
+  const invalid = [...new Set(lines.filter(l => !KNOWN_CODES.has(l.code)).map(l => l.code))];
+  checks.push({
+    key: 'accounts', label: 'Έγκυροι λογαριασμοί (Ελληνικό Λογιστικό Σχέδιο)',
+    status: invalid.length ? 'fail' : 'pass',
+    detail: invalid.length ? `Άγνωστοι κωδικοί: ${invalid.join(', ')}` : 'Όλοι οι λογαριασμοί αναγνωρίζονται',
+  });
+
+  // 4) Ταξινόμηση εξόδων — προειδοποίηση για ό,τι έμεινε στο «64.98 Διάφορα έξοδα».
+  const uncat = lines.filter(l => l.code === '64.98' && l.debit > 0);
+  const uncatSum = round2(uncat.reduce((s, l) => s + l.debit, 0));
+  checks.push({
+    key: 'classify', label: 'Ταξινόμηση εξόδων σε λογαριασμούς',
+    status: uncat.length ? 'warn' : 'pass',
+    detail: uncat.length ? `${uncat.length} εγγραφές σε «64.98 Διάφορα έξοδα» (${money(uncatSum)}) — δώσε κατηγορία για ακριβέστερη απεικόνιση` : 'Όλα τα έξοδα ταξινομημένα',
+  });
+
+  // 5) Ταμειακή συμφωνία (tie-out): Ταμείο (ομ. 38) = Έσοδα (ομ. 7) − Έξοδα (ομ. 6).
+  const tb = trialBalance(lines);
+  const cash = round2(tb.filter(r => r.code.startsWith('38')).reduce((s, r) => s + r.balance, 0));
+  const income = round2(tb.filter(r => /^7/.test(r.code)).reduce((s, r) => s + (r.credit - r.debit), 0));
+  const expense = round2(tb.filter(r => /^6/.test(r.code)).reduce((s, r) => s + (r.debit - r.credit), 0));
+  const net = round2(income - expense);
+  const tie = Math.abs(round2(cash - net)) < 0.005;
+  checks.push({
+    key: 'tieout', label: 'Ταμειακή συμφωνία (Ταμείο = Έσοδα − Έξοδα)',
+    status: tie ? 'pass' : 'fail',
+    detail: `Ταμείο ${money(cash)} = Έσοδα ${money(income)} − Έξοδα ${money(expense)} (${money(net)})`,
+  });
+
+  // 6) Εγκυρότητα ποσών: θετικά και μονομερή (όχι χρέωση & πίστωση μαζί, όχι μηδενικά).
+  const bad = lines.filter(l => (l.debit < 0 || l.credit < 0) || (l.debit === 0 && l.credit === 0) || (l.debit > 0 && l.credit > 0)).length;
+  checks.push({
+    key: 'amounts', label: 'Εγκυρότητα ποσών (θετικά, μονομερή)',
+    status: bad ? 'fail' : 'pass',
+    detail: bad ? `${bad} εγγραφές με μη έγκυρο ποσό` : 'Όλα τα ποσά θετικά και μονομερή',
+  });
+
+  // 7) Ημερομηνίες εντός επιλεγμένης περιόδου (έτος + προαιρετικά μήνας).
+  let outside = 0;
+  if (opts?.year) {
+    for (const l of lines) {
+      const m = /^(\d{4})-(\d{2})/.exec(l.date);
+      const okY = !!m && Number(m[1]) === opts.year;
+      const okM = !opts.month || Number(m?.[2]) === opts.month;
+      if (!(okY && okM)) outside++;
+    }
+  }
+  checks.push({
+    key: 'dates', label: 'Ημερομηνίες εντός περιόδου',
+    status: outside ? 'fail' : 'pass',
+    detail: outside ? `${outside} εγγραφές εκτός περιόδου` : 'Όλες οι εγγραφές εντός περιόδου',
+  });
+
+  return { ok: checks.every(c => c.status !== 'fail'), checks };
+}
