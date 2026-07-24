@@ -53,9 +53,9 @@ jobs:
       SUPABASE_PROJECT_REF: ${{ github.ref == 'refs/heads/main' && 'aromvduuxtcrzmwwvnej' || 'rheufrfscmngpjayxgln' }}
       SUPABASE_DB_PASSWORD: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_DB_PASSWORD || secrets.STAGING_SUPABASE_DB_PASSWORD }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 
@@ -127,7 +127,7 @@ jobs:
       issues: write
     steps:
       - name: Open or update failure issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const target = context.ref === 'refs/heads/main' ? 'production' : 'staging';
