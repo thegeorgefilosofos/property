@@ -415,6 +415,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντελεστής ${pct(statement.effectiveRate)}`, raw:statement.incomeTax },
     { label:'Καθαρό αποτέλεσμα', value:eur(statement.netProfit), raw:statement.netProfit },
   ]
+  // Έχει το έτος πραγματική κίνηση; Αν όχι, αντί για τοίχο από «0 €» δείχνουμε μια
+  // ήρεμη, καθοδηγητική αφετηρία (τι θα ξεκλειδώσει μόλις μπουν δεδομένα).
+  const hasActivity = grossIncome>0 || expensesTotal>0 || rentAccruedYear>0 || book.length>0
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -522,6 +525,33 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       )}
 
+      {/* Αφετηρία — όταν δεν υπάρχει καμία κίνηση για το έτος (καθαρή onboarding εικόνα) */}
+      {!hasActivity && (
+        <div style={{ ...card, padding:'26px 24px' }}>
+          <div style={{ display:'flex', alignItems:'flex-start', gap:16, flexWrap:'wrap' }}>
+            <span style={{ width:44, height:44, borderRadius:12, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)' }}>
+              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+            </span>
+            <div style={{ flex:1, minWidth:240 }}>
+              <p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif", letterSpacing:'0.1px' }}>Ξεκίνα τη λογιστική σου για το {year}</p>
+              <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.6, fontFamily:"'Inter',sans-serif", maxWidth:520 }}>Καταχώρησε ενοίκια και έξοδα — και όλα εδώ υπολογίζονται αυτόματα: έσοδα, φόρος, καθαρό ταμείο, ισοζύγιο διπλογραφικής και έτοιμες αναφορές για τον λογιστή σου.</p>
+              <div style={{ display:'flex', alignItems:'center', gap:16, margin:'14px 0 0', flexWrap:'wrap' }}>
+                {['Έσοδα & πρόβλεψη φόρου','Ισοζύγιο διπλογραφικής','Αναφορές & PDF'].map(t=>(
+                  <span key={t} style={{ display:'inline-flex', alignItems:'center', gap:7, fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>
+                    <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--border-default)', flexShrink:0 }}/>{t}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10, margin:'18px 0 0', flexWrap:'wrap' }}>
+                <button onClick={()=>onNavigate?.('tenant')} style={{ height:38, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Καταχώρηση ενοικίου</button>
+                <button onClick={()=>onNavigate?.('finances')} style={{ height:38, padding:'0 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>Προσθήκη εξόδου</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasActivity && (<>
       {/* Σύνοψη — ουδέτερα (μελάνι) by default· χρώμα ΜΟΝΟ στο hover, στα νούμερα με νόημα */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap:12 }}>
         <div onMouseEnter={()=>setHoverStat('cash')} onMouseLeave={()=>setHoverStat(null)}
@@ -595,6 +625,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           </div>
         </div>
       </div>
+      </>)}
 
       {/* Φορολογική κλίμακα 2026, αναφορά ανά καθεστώς (έμφαση στο κλιμάκιο του χρήστη) */}
       {!(businessMode&&elpForm==='company') ? (
