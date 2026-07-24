@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
+import PropertyPicker from './PropertyPicker';
 import {
   buildJournal, journalTotals, trialBalance, journalToCsv, auditJournal,
   type JournalFormat, type IncomeRec, type ExpenseRec, type JournalAudit, type LoanPaymentRec,
@@ -81,7 +82,6 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
 
   const yearsAvail = useMemo(() => Array.from({ length: 7 }, (_, i) => nowYear - i), [nowYear]);
   const selIds = useMemo(() => props.filter(p => propIds.has(p.id)).map(p => p.id), [props, propIds]);
-  const toggle = (id: string) => setPropIds(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   useEffect(() => { setPreview(null); setTotals(null); setAudit(null); setShowChecks(false); }, [year, month, propIds]);
   if (!open) return null;
@@ -195,15 +195,8 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ ...TT.label }}>ΑΚΙΝΗΤΑ</div>
-              {props.length > 0 && <div style={{ display: 'flex', gap: 6 }}><button onClick={() => setPropIds(new Set(props.map(p => p.id)))} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700 }}>Όλα</button><button onClick={() => setPropIds(new Set())} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontWeight: 700 }}>Κανένα</button></div>}
-            </div>
-            {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 210px), 1fr))', gap: 8 }}>
-                {props.map(p => <button key={p.id} onClick={() => toggle(p.id)} style={pill(propIds.has(p.id))}><span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span></button>)}
-              </div>
-            )}
+            <div style={{ ...TT.label, marginBottom: 8 }}>ΑΚΙΝΗΤΑ</div>
+            <PropertyPicker items={props} selected={propIds} onChange={setPropIds} loading={loading} />
           </div>
 
           <div>

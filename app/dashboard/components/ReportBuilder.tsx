@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
+import PropertyPicker from './PropertyPicker';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
@@ -257,26 +258,8 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
 
           {/* Ακίνητα */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ ...TT.label }}>ΑΚΙΝΗΤΑ</div>
-              {props.length > 0 && (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setPropIds(new Set(props.map(p => p.id)))} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700 }}>Όλα</button>
-                  <button onClick={() => setPropIds(new Set())} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontWeight: 700 }}>Κανένα</button>
-                </div>
-              )}
-            </div>
-            {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? (
-              <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα ακόμη.</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 210px), 1fr))', gap: 8 }}>
-                {props.map(p => (
-                  <button key={p.id} onClick={() => toggle(propIds, p.id, setPropIds)} style={pill(propIds.has(p.id))}>
-                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <div style={{ ...TT.label, marginBottom: 8 }}>ΑΚΙΝΗΤΑ</div>
+            <PropertyPicker items={props} selected={propIds} onChange={setPropIds} loading={loading} />
           </div>
 
           {/* Ενότητες */}
