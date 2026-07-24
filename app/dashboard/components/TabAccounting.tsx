@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner, fe } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, User, Briefcase, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
 import { REGULATORY_UPDATES_2026, type RegulatoryUpdate, type UpdateAudience } from '@/lib/accounting/updates2026'
 import { transferCosts } from '@/lib/accounting/transfer'
@@ -129,7 +129,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   },[advisoryOpen,changesOpen])
   const [showBankImport,setShowBankImport] = useState(false)
   const [refreshKey,setRefreshKey] = useState(0)
-  const [hoverKpi,setHoverKpi] = useState<string|null>(null)
   const [hoverBracket,setHoverBracket] = useState<number|null>(null)
   const [tenant,setTenant] = useState<{ full_name?:string; afm?:string }|null>(null)
   const [xferOpen,setXferOpen] = useState(true)
@@ -385,11 +384,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   if(loading) return <div style={{ padding:40 }}><Spinner label="Φόρτωση λογιστικής…" /></div>
 
   const regimeLabel = businessMode ? 'Επιχείρηση (ΕΛΠ)' : (regime==='individual_shortterm' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση')
-  // Δευτερεύοντα (μικρά) — τα «ακατέργαστα» μεγέθη. Ο hero από πάνω δίνει την απάντηση.
+  // Δευτερεύοντα μεγέθη — λιτός πίνακας αριθμών, χωρίς διακοσμητικά εικονίδια.
   const stats = [
-    { label:'Μεικτά έσοδα', value:eur(statement.grossIncome), icon:<TrendingUp size={15}/> },
-    { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντ. ${pct(statement.effectiveRate)}`, icon:<TrendingDown size={15}/> },
-    { label:'Καθαρό αποτέλεσμα', value:eur(statement.netProfit), icon:<Wallet size={15}/> },
+    { label:'Μεικτά έσοδα', value:eur(statement.grossIncome) },
+    { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντελεστής ${pct(statement.effectiveRate)}` },
+    { label:'Καθαρό αποτέλεσμα', value:eur(statement.netProfit) },
   ]
 
   return (
@@ -498,40 +497,28 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       )}
 
-      {/* KPIs */}
+      {/* Σύνοψη — δύο βασικά μεγέθη, λιτά, τυπογραφικά (χωρίς διακοσμητικά εικονίδια/χρώμα) */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap:12 }}>
-        <div style={{ ...card, padding:20 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', color:'var(--text-tertiary)', flexShrink:0 }}><PiggyBank size={16}/></span>
-            <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Σου μένουν · {year}</p>
-          </div>
-          <p style={{ fontSize:33, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:statement.netCash>=0?'var(--accent)':'var(--negative)', margin:'12px 0 0', lineHeight:1 }}>{eur(statement.netCash)}</p>
-          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Ταμειακό υπόλοιπο, μετά από φόρους, τέλη και δόσεις δανείου.</p>
+        <div style={{ ...card, padding:'18px 20px' }}>
+          <p style={{ fontSize:10.5, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Καθαρό ταμείο · {year}</p>
+          <p style={{ fontSize:32, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:statement.netCash<0?'var(--negative)':'var(--text-primary)', margin:'11px 0 0', lineHeight:1 }}>{eur(statement.netCash)}</p>
+          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Ό,τι απομένει μετά από φόρους, τέλη και δόσεις δανείου.</p>
         </div>
-        <div style={{ ...card, padding:20 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', color:'var(--text-tertiary)', flexShrink:0 }}><TrendingDown size={16}/></span>
-            <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Βάλε στην άκρη · μήνα</p>
-          </div>
-          <p style={{ fontSize:33, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:'var(--text-primary)', margin:'12px 0 0', lineHeight:1 }}>{eur(provision.monthly)}</p>
-          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για τον φόρο του {year}. Σύνολο {eur(provision.annualTaxTotal)}.</p>
+        <div style={{ ...card, padding:'18px 20px' }}>
+          <p style={{ fontSize:10.5, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Πρόβλεψη φόρου · μήνα</p>
+          <p style={{ fontSize:32, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:'var(--text-primary)', margin:'11px 0 0', lineHeight:1 }}>{eur(provision.monthly)}</p>
+          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Ποσό ανά μήνα για τον φόρο {year} · σύνολο {eur(provision.annualTaxTotal)} τον χρόνο.</p>
         </div>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12 }}>
-        {stats.map(s=>{
-          const hot = hoverKpi===s.label
-          return (
-          <div key={s.label} onMouseEnter={()=>setHoverKpi(s.label)} onMouseLeave={()=>setHoverKpi(null)}
-            style={{ ...card, borderColor:hot?'var(--border-default)':undefined, transition:'transform 0.16s ease, border-color 0.16s ease', transform:hot?'translateY(-2px)':'none' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:9 }}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:'var(--bg-elevated)', color:'var(--text-tertiary)' }}>{s.icon}</span>
-              <p style={{ fontSize:10, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', margin:0 }}>{s.label}</p>
-            </div>
-            <p style={{ fontSize:19, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-primary)', fontWeight:700, margin:0 }}>{s.value}</p>
+        {stats.map(s=>(
+          <div key={s.label} style={{ ...card, padding:'14px 16px' }}>
+            <p style={{ fontSize:10, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-tertiary)', letterSpacing:'0.07em', textTransform:'uppercase', margin:0 }}>{s.label}</p>
+            <p style={{ fontSize:18, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-primary)', fontWeight:700, margin:'7px 0 0' }}>{s.value}</p>
             {s.sub&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily:"'Inter',sans-serif" }}>{s.sub}</p>}
           </div>
-        )})}
+        ))}
       </div>
 
       {/* Κατάσταση Αποτελεσμάτων + Πρόβλεψη φόρου */}
@@ -584,9 +571,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div style={card}>
           <p style={cardTitle}>{businessMode ? 'Κλίμακα επιχειρηματικής δραστηριότητας 2026' : 'Φορολογική κλίμακα ενοικίων 2026'}</p>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10 }}>
-            {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; const lit=active||hot; return (
+            {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; return (
               <div key={r.range} onMouseEnter={()=>setHoverBracket(i)} onMouseLeave={()=>setHoverBracket(null)}
-                style={{ padding:'12px 14px', borderRadius:14, border:`1px solid ${lit?'var(--border-default)':'var(--border-subtle)'}`, background:'var(--surface-raised)', boxShadow:hot?'0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 30px -16px rgba(0,0,0,0.6)':'0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -16px rgba(0,0,0,0.5)', transform:hot?'translateY(-3px)':'none', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease', cursor:'default' }}>
+                style={{ padding:'12px 14px', borderRadius:12, border:`1px solid ${active?'var(--accent)':hot?'var(--border-default)':'var(--border-subtle)'}`, background:active?'var(--accent-soft)':'var(--bg-surface)', transition:'border-color 0.15s, background 0.15s', cursor:'default' }}>
                 <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>{r.range}</p>
                 <p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", transition:'color 0.16s ease' }}>{r.rate}</p>
               </div>
