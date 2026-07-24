@@ -74,7 +74,7 @@ function Check({ checked, onChange, label, hint, align='center' }:{ checked:bool
   )
 }
 
-export default function TabAccounting({ propertyId, userId, profileType='individual' }: { propertyId:string; userId:string; profileType?:'individual'|'professional' }) {
+export default function TabAccounting({ propertyId, userId, profileType='individual', onNavigate }: { propertyId:string; userId:string; profileType?:'individual'|'professional'; onNavigate?:(tab:string)=>void }) {
   const supabase = createClient()
   const branding = useReportBranding(userId)
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false)
@@ -415,13 +415,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               ))}
             </div>
           )}
-          <ActionMenu label="Αναφορές" title="Αναφορές & εξαγωγές για λογιστή/τράπεζα" icon={<Printer size={14}/>} items={[
+          <ActionMenu label="Αναφορές & εργαλεία" title="Αναφορές, εξαγωγές και εργαλεία λογιστικής" icon={<Printer size={14}/>} items={[
             { key:'print', label:'Αναφορά', description:'Γρήγορη λογιστική αναφορά σε PDF', icon:<Printer size={16}/>, onClick:printReport },
             { key:'official', label:'Επίσημο PDF', description:'True-PDF με αρ. εγγράφου & QR επαλήθευσης', icon:<ShieldCheck size={16}/>, onClick:officialReport, busy:genOfficial },
             { key:'builder', label:'Σύνθεση αναφοράς', description:'Προσαρμοσμένη αναφορά χαρτοφυλακίου', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>, onClick:()=>setReportBuilderOpen(true) },
             { key:'journal', label:'Ημερολόγιο λογιστή', description:'Double-entry CSV (Soft1/Epsilon/Xero)', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>, onClick:()=>setJournalOpen(true) },
-          ]}/>
-          <ActionMenu label="Εργαλεία" title="Εργαλεία λογιστικής" icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>} items={[
             { key:'bank', label:'Τράπεζα', description:'Εισαγωγή κίνησης CSV & αυτόματη αντιστοίχιση', icon:<Landmark size={16}/>, onClick:()=>setShowBankImport(true) },
             { key:'split', label:'Κατανομή ιδιοκτητών', description:'Καθαρό ανά συνιδιοκτήτη + διαχειριστική αμοιβή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>, onClick:()=>setSplitOpen(true) },
             { key:'adjust', label:'Αναπροσαρμογή', description:'Ειδοποίηση αναπροσαρμογής με e-υπογραφή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, onClick:()=>setAdjustOpen(true) },
@@ -871,6 +869,19 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           )}
         </div>
       </div>
+
+      {mode==='individual' && (
+        <div style={{ ...card, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+          <span style={{ width:40, height:40, borderRadius:11, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)' }}>
+            <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <div style={{ flex:1, minWidth:220 }}>
+            <p style={{ ...cardTitle, margin:0 }}>Επαγγελματική εργαλειοθήκη λογιστικής</p>
+            <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'4px 0 0', lineHeight:1.55, fontFamily:"'Inter',sans-serif" }}>Με το προφίλ <strong style={{ color:'var(--text-primary)' }}>Επαγγελματίας</strong> ξεκλειδώνεις καθεστώς Επιχείρησης (ΕΛΠ), Βιβλίο Εσόδων-Εξόδων, ενοποίηση χαρτοφυλακίου και εκπιπτόμενα έξοδα με ακρίβεια λογιστή.</p>
+          </div>
+          <button onClick={()=>onNavigate?.('settings')} style={{ flexShrink:0, height:38, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Αναβάθμιση</button>
+        </div>
+      )}
 
       <div style={{ marginTop:24 }}>
         <E2IncomeCalc userId={userId} propertyId={propertyId} />
