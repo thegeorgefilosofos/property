@@ -1206,7 +1206,7 @@ export default function Dashboard() {
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
               {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
-              {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
+              {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType} onNavigate={(t)=>setNav(t)}/>}
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>}
