@@ -41,10 +41,10 @@ type ExportFormat = JournalFormat | 'excel';
 interface Prop { id: string; name: string }
 const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const FORMATS: { key: ExportFormat; label: string; hint: string; ext: string }[] = [
-  { key: 'excel', label: 'Excel · λογιστικό βιβλίο', hint: 'Ημερολόγιο, ισοζύγιο και έλεγχος σε ένα αρχείο. Μορφή €, φίλτρα, ζωντανές φόρμουλες.', ext: 'xlsx' },
-  { key: 'generic', label: 'Soft1 / Epsilon', hint: 'Ελληνικό ημερολόγιο άρθρων: αριθμημένα άρθρα, χρέωση/πίστωση, έτοιμο για εισαγωγή.', ext: 'csv' },
-  { key: 'quickbooks', label: 'QuickBooks', hint: 'Journal Entry: άρθρα με Journal No, Debits/Credits, MM/DD/YYYY.', ext: 'csv' },
-  { key: 'xero', label: 'Xero', hint: 'Manual Journal: προσημασμένα ποσά ανά άρθρο, DD/MM/YYYY.', ext: 'csv' },
+  { key: 'excel', label: 'Excel', hint: 'Πλήρες βιβλίο', ext: 'xlsx' },
+  { key: 'generic', label: 'Soft1 / Epsilon', hint: 'Ημερολόγιο άρθρων', ext: 'csv' },
+  { key: 'quickbooks', label: 'QuickBooks', hint: 'Journal Entry', ext: 'csv' },
+  { key: 'xero', label: 'Xero', hint: 'Manual Journal', ext: 'csv' },
 ];
 const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
@@ -201,13 +201,19 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
 
           <div>
             <div style={{ ...TT.label, marginBottom: 8 }}>ΜΟΡΦΗ</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: 8 }}>
-              {FORMATS.map(f => (
-                <button key={f.key} onClick={() => setFormat(f.key)} style={{ ...pill(format === f.key), display: 'block' }}>
-                  <span style={{ display: 'block', fontWeight: 700 }}>{f.label}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, fontWeight: 400 }}>{f.hint}</span>
-                </button>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+              {FORMATS.map(f => {
+                const on = format === f.key;
+                return (
+                  <button key={f.key} onClick={() => setFormat(f.key)} style={{ textAlign: 'left', padding: '9px 12px', borderRadius: 10, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, transition: 'border-color 0.15s, background 0.15s' }}>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 12.5, fontWeight: 660, letterSpacing: '-0.01em', color: on ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.label}</span>
+                      <span style={{ display: 'block', fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.hint}</span>
+                    </span>
+                    {on && <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5"/></svg>}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -219,17 +225,17 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                 <Badge tone={audit ? (audit.tone === 'positive' ? 'neutral' : audit.tone) : (totals.balanced ? 'neutral' : 'negative')}>{audit ? (audit.tone === 'positive' ? 'Ισοσκελισμένο' : audit.tone === 'warning' ? 'Ισοσκελισμένο · προσοχή' : 'Απαιτεί διόρθωση') : (totals.balanced ? 'Ισοσκελισμένο' : 'Ασυμφωνία')}</Badge>
               </div>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 13, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
                   <span>ΛΟΓΑΡΙΑΣΜΟΣ</span><span style={{ textAlign: 'right' }}>ΧΡΕΩΣΗ</span><span style={{ textAlign: 'right' }}>ΠΙΣΤΩΣΗ</span>
                 </div>
                 {preview.map(r => (
-                  <div key={r.code} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 12.5 }}>
+                  <div key={r.code} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 12.5 }}>
                     <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ fontFamily: T.font.mono, fontSize: 11.5, color: 'var(--text-tertiary)', marginRight: 10 }}>{r.code}</span>{r.account}</span>
                     <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.debit ? eur(r.debit) : ''}</span>
                     <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.credit ? eur(r.credit) : ''}</span>
                   </div>
                 ))}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '12px 16px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-elevated)', fontSize: 13, fontWeight: 700 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '12px 16px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-elevated)', fontSize: 13, fontWeight: 700 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>ΣΥΝΟΛΑ</span>
                   <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{eur(totals.debit)}</span>
                   <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{eur(totals.credit)}</span>
