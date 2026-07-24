@@ -385,11 +385,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   if(loading) return <div style={{ padding:40 }}><Spinner label="Φόρτωση λογιστικής…" /></div>
 
   const regimeLabel = businessMode ? 'Επιχείρηση (ΕΛΠ)' : (regime==='individual_shortterm' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση')
-  const kpis = [
-    { label:'Μεικτά έσοδα', value:eur(statement.grossIncome), hover:'var(--text-primary)', icon:<TrendingUp size={15}/> },
-    { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντ. ${pct(statement.effectiveRate)}`, hover:'var(--text-primary)', icon:<TrendingDown size={15}/> },
-    { label:'Καθαρό αποτέλεσμα', value:eur(statement.netProfit), hover:statement.netProfit>=0?'var(--accent)':'var(--negative)', icon:<Wallet size={15}/> },
-    { label:'Ταμειακό υπόλοιπο', value:eur(statement.netCash), sub:'μετά από φόρους, τέλη και δόσεις δανείου', hover:statement.netCash>=0?'var(--accent)':'var(--negative)', icon:<PiggyBank size={15}/> },
+  // Δευτερεύοντα (μικρά) — τα «ακατέργαστα» μεγέθη. Ο hero από πάνω δίνει την απάντηση.
+  const stats = [
+    { label:'Μεικτά έσοδα', value:eur(statement.grossIncome), icon:<TrendingUp size={15}/> },
+    { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντ. ${pct(statement.effectiveRate)}`, icon:<TrendingDown size={15}/> },
+    { label:'Καθαρό αποτέλεσμα', value:eur(statement.netProfit), icon:<Wallet size={15}/> },
   ]
 
   return (
@@ -499,18 +499,37 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       )}
 
       {/* KPIs */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap:12 }}>
-        {kpis.map(k=>{
-          const hot = hoverKpi===k.label
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap:12 }}>
+        <div style={{ ...card, padding:20 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', color:'var(--text-tertiary)', flexShrink:0 }}><PiggyBank size={16}/></span>
+            <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Σου μένουν · {year}</p>
+          </div>
+          <p style={{ fontSize:33, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:statement.netCash>=0?'var(--accent)':'var(--negative)', margin:'12px 0 0', lineHeight:1 }}>{eur(statement.netCash)}</p>
+          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Ταμειακό υπόλοιπο, μετά από φόρους, τέλη και δόσεις δανείου.</p>
+        </div>
+        <div style={{ ...card, padding:20 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', color:'var(--text-tertiary)', flexShrink:0 }}><TrendingDown size={16}/></span>
+            <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Βάλε στην άκρη · μήνα</p>
+          </div>
+          <p style={{ fontSize:33, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:'var(--text-primary)', margin:'12px 0 0', lineHeight:1 }}>{eur(provision.monthly)}</p>
+          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για τον φόρο του {year}. Σύνολο {eur(provision.annualTaxTotal)}.</p>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12 }}>
+        {stats.map(s=>{
+          const hot = hoverKpi===s.label
           return (
-          <div key={k.label} onMouseEnter={()=>setHoverKpi(k.label)} onMouseLeave={()=>setHoverKpi(null)}
-            style={{ ...card, position:'relative', borderColor:hot?'var(--border-default)':'var(--border-subtle)', transition:'transform 0.16s ease, border-color 0.16s ease', transform:hot?'translateY(-2px)':'none' }}>
+          <div key={s.label} onMouseEnter={()=>setHoverKpi(s.label)} onMouseLeave={()=>setHoverKpi(null)}
+            style={{ ...card, borderColor:hot?'var(--border-default)':undefined, transition:'transform 0.16s ease, border-color 0.16s ease', transform:hot?'translateY(-2px)':'none' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:9 }}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:9, background:'var(--bg-elevated)', color:'var(--text-tertiary)' }}>{k.icon}</span>
-              <p style={{ fontSize:10, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', margin:0 }}>{k.label}</p>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:'var(--bg-elevated)', color:'var(--text-tertiary)' }}>{s.icon}</span>
+              <p style={{ fontSize:10, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', margin:0 }}>{s.label}</p>
             </div>
-            <p style={{ fontSize:22, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:hot?k.hover:'var(--text-primary)', fontWeight:700, margin:0, transition:'color 0.16s ease' }}>{k.value}</p>
-            {k.sub&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily:"'Inter',sans-serif" }}>{k.sub}</p>}
+            <p style={{ fontSize:19, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-primary)', fontWeight:700, margin:0 }}>{s.value}</p>
+            {s.sub&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily:"'Inter',sans-serif" }}>{s.sub}</p>}
           </div>
         )})}
       </div>
@@ -541,11 +560,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           <div className="po-fig-card" style={card}>
-            <p style={cardTitle}>Φόρος για να βάλεις στην άκρη</p>
-            <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
-              <span className="po-fig" data-tone={provision.monthly!==0?'accent':undefined} style={{ fontSize:24, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{eur(provision.monthly)}</span>
-              <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>ανά μήνα</span>
-            </div>
+            <p style={cardTitle}>Ανάλυση φόρου {year}</p>
             <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>
               <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong> τον χρόνο, σε φορολογητέο {eur(statement.taxableIncome)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?' (μερίδιο χαρτοφυλακίου)':''}{provision.propertyTaxes>0?<>, εκ των οποίων {eur(provision.propertyTaxes)} φόροι και τέλη ακινήτου</>:''}.{year===athensYear()?<> Έως το τέλος του έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)} τον μήνα</strong>.</>:''}{provision.advanceTax>0?<> Συν προκαταβολή {eur(provision.advanceTax)} (πιστώνεται τον επόμενο χρόνο), σύνολο 1ου έτους {eur(provision.firstYearTotal)}.</>:''}
             </p>
