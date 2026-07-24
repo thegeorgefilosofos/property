@@ -16,6 +16,10 @@ import {
   type LedgerInput, type Expected, type Actual, type ReconStatus,
 } from '@/lib/accounting/ledger'
 import {
+  buildJournal, trialBalance, journalTotals,
+  type IncomeRec, type ExpenseRec, type LoanPaymentRec,
+} from '@/lib/accounting/journal'
+import {
   incomeStatement, taxProvision, consolidateIndividual,
   type TaxRegime, type StatementInput, type IncomeStatement,
 } from '@/lib/accounting/statement'
@@ -135,6 +139,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [tenant,setTenant] = useState<{ full_name?:string; afm?:string }|null>(null)
   const [xferOpen,setXferOpen] = useState(true)
   const [cashOpen,setCashOpen] = useState(true)
+  // «Για τον λογιστή»: το διπλογραφικό βάθος (ισοζύγιο, άρθρα) είναι πάντα διαθέσιμο,
+  // αλλά κλειστό για τον ιδιώτη (καθαρή εικόνα) και ανοιχτό για τον επαγγελματία.
+  const [forAccountantOpen,setForAccountantOpen] = useState(profileType==='professional')
   useEffect(()=>{ try{
     const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'')
     const e=localStorage.getItem('acc_ekfa'); if(e) setEkfa(Number(e)||'')
@@ -282,6 +289,22 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const cash = useMemo(()=>cashflowByYear(entries,year),[entries,year])
   const book = useMemo(()=>buildLedger(yearEntries),[yearEntries])
   const recentLedger = useMemo(()=>[...book].slice(-12).reverse(),[book])
+
+  // Ισοζύγιο διπλογραφικής (trial balance) — για τον λογιστή. Ταμειακή βάση:
+  // εισπραγμένα ενοίκια/κρατήσεις → έσοδα, πληρωμένα έξοδα, δόσεις δανείου
+  // διαχωρισμένες σε τόκους (65) και χρεολύσιο (45). Κάθε άρθρο ισοσκελισμένο.
+  const journalLines = useMemo(()=>{
+    const incomes:IncomeRec[] = []
+    for(const p of rent){ if(p.paid&&(p.amount||0)>0&&p.period_year===year){ incomes.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount, description:`Ενοίκιο ${MONTHS_GR[(p.period_month||1)-1]} ${p.period_year}` }) } }
+    for(const s of stays){ if((s.total||0)>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:s.total, description:`Κράτηση ${s.channel||''}`.trim() }) } }
+    const exp:ExpenseRec[] = []
+    for(const e of expenses){ if((e.amount||0)>0&&e.date&&String(e.date).slice(0,4)===String(year)){ exp.push({ date:e.date, amount:e.amount, category:e.category, description:e.description }) } }
+    const loanPayments:LoanPaymentRec[] = []
+    for(const l of loans){ if(!loanActiveInYear(l))continue; const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; const annual=Math.round(annuityMonthly(amount,rate,yrs)*12); const interest=Math.round(interestForYear(amount,rate,yrs,idx)); if(annual>0) loanPayments.push({ date:`${year}-06-30`, amount:annual, interest, description:`Δόσεις δανείου${l.bank?` · ${l.bank}`:''}` }) }
+    return buildJournal({ incomes, expenses:exp, loanPayments })
+  },[rent,stays,expenses,loans,year])
+  const trial = useMemo(()=>trialBalance(journalLines),[journalLines])
+  const jTotals = useMemo(()=>journalTotals(journalLines),[journalLines])
 
   const recon = useMemo(()=>{
     const yr = rent.filter(p=>p.period_year===year)
@@ -858,9 +881,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
 
         <div style={card}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <div style={{ marginBottom:12 }}>
             <p style={{ ...cardTitle, margin:0 }}>{mode==='professional'?'Βιβλίο Εσόδων-Εξόδων':'Πρόσφατες κινήσεις'}</p>
-            <button onClick={exportBundle} title="Φάκελος για τον λογιστή (Excel)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Download size={13}/>Για τον λογιστή</button>
           </div>
           {recentLedger.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", padding:'8px 0' }}>Καμία κίνηση για το {year}.</p>
@@ -877,6 +899,59 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </div>
           )}
         </div>
+      </div>
+
+      {/* Για τον λογιστή — ισοζύγιο διπλογραφικής + άρθρα, ομαδοποιημένα και ήσυχα.
+          Ουδέτερο, στοιχισμένο, «SoftOne»-grade. Κλειστό για ιδιώτη, ανοιχτό για επαγγελματία. */}
+      <div style={card}>
+        <button onClick={()=>setForAccountantOpen(o=>!o)} aria-expanded={forAccountantOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+          </span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <p style={{ ...cardTitle, margin:0 }}>Για τον λογιστή</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>Ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων και φάκελος Excel — έτοιμα για καταχώρηση.</p>
+          </div>
+          <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:forAccountantOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+        </button>
+        {forAccountantOpen&&(trial.length===0?(
+          <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", padding:'16px 0 2px' }}>Δεν υπάρχουν εισπράξεις ή πληρωμές για το {year} ώστε να σχηματιστεί ισοζύγιο.</p>
+        ):(<>
+          <div style={{ marginTop:16, borderRadius:12, border:'1px solid var(--border-subtle)', overflow:'hidden' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'9px 14px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--border-subtle)' }}>
+              {[['Κωδ.','left'],['Λογαριασμός','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
+                <span key={h} style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", textAlign:a as 'left'|'right' }}>{h}</span>
+              ))}
+            </div>
+            {trial.map((r,i)=>(
+              <div key={r.code} style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
+                <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{r.code}</span>
+                <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={r.account}>{r.account}</span>
+                <span style={{ fontSize:12.5, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur2(r.debit):'—'}</span>
+                <span style={{ fontSize:12.5, color:r.credit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.credit?eur2(r.credit):'—'}</span>
+                <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(r.balance)}</span>
+              </div>
+            ))}
+            <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', borderTop:'1px solid var(--border-default)', alignItems:'center' }}>
+              <span/>
+              <span style={{ fontSize:11, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", textTransform:'uppercase', letterSpacing:'0.05em' }}>Σύνολα</span>
+              <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.debit)}</span>
+              <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.credit)}</span>
+              <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:5, fontSize:10.5, fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily:"'Inter',sans-serif", whiteSpace:'nowrap' }}>
+                {jTotals.balanced?<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M20 6 9 17l-5-5"/></svg>Ισοσκελισμένο</>:<>Διαφορά {eur2(jTotals.debit-jTotals.credit)}</>}
+              </span>
+            </div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:14 }}>
+            <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων & εξαγωγή CSV (Soft1/Epsilon/QuickBooks/Xero)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Ημερολόγιο άρθρων
+            </button>
+            <button onClick={exportBundle} title="Φάκελος για τον λογιστή σε Excel — Κατάσταση αποτελεσμάτων & αναλυτικές κινήσεις" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
+              <Download size={13}/>Φάκελος Excel
+            </button>
+          </div>
+          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση = πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
+        </>))}
       </div>
 
       {mode==='individual' && (
