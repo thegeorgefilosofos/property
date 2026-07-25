@@ -205,10 +205,11 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     height: 38, padding: '0 13px', borderRadius: 9, border: '1px solid var(--border-default)',
     background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
   };
+  // Ουδέτερη επιλογή: η κάρτα μένει ήρεμη· μόνο το κουτάκι ελέγχου παίρνει accent.
   const pill = (on: boolean): React.CSSProperties => ({
-    fontSize: 12, fontWeight: 600, padding: '9px 13px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-    border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
-    background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans,
+    fontSize: 12, fontWeight: 600, padding: '11px 13px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+    border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
+    background: 'var(--bg-surface)', color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans,
     transition: 'border-color 0.15s, background 0.15s',
   });
 

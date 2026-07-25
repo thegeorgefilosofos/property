@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn } from '@/components/Theme';
+import { InfoHint } from './InfoHint';
 import SignaturePad from '@/components/SignaturePad';
 import { computeRentAdjustment, adjustmentNoticeText, type AdjMethod } from '@/lib/documents/rentAdjustment';
 import { issueDocument } from '@/lib/documents/issue';
@@ -99,9 +100,24 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     finally { setBusy(false); }
   };
 
-  const field: React.CSSProperties = { height: 38, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%' };
+  const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
   const lbl = { ...TT.label, marginBottom: 6 } as React.CSSProperties;
-  const seg = (m: AdjMethod, label: string): React.CSSProperties => ({ flex: 1, fontSize: 12, fontWeight: 600, padding: '8px 6px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: `1px solid ${method === m ? 'var(--accent-border)' : 'var(--border-default)'}`, background: method === m ? 'var(--accent-soft)' : 'transparent', color: method === m ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans });
+  const onFieldFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
+  const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
+  const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 12.5, fontWeight: 600, height: 34, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'all 0.15s' });
+  const METHOD_HINT: Record<AdjMethod, string> = {
+    percent: 'Σταθερό ποσοστό αύξησης, όπως το έχετε συμφωνήσει στο μισθωτήριο.',
+    cpi: 'Αναπροσαρμογή με τον επίσημο Δείκτη Τιμών Καταναλωτή της ΕΛΣΤΑΤ. Συμπλήρωσε την ετήσια μεταβολή του δείκτη.',
+    manual: 'Όρισε απευθείας το νέο μίσθωμα, όπως το συμφωνήσατε με τον μισθωτή.',
+  };
+  // Πεδίο ποσού με διακριτικό σύμβολο (€ ή %) στη δεξιά άκρη, αριθμοί δεξιά.
+  const money = (value: string, on: (v: string) => void, suffix: string) => (
+    <div style={{ position: 'relative' }}>
+      <input value={value} onChange={e => on(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} inputMode="decimal" placeholder="0"
+        style={{ ...field, paddingRight: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
+      <span style={{ position: 'absolute', right: 13, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none' }}>{suffix}</span>
+    </div>
+  );
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
@@ -111,8 +127,8 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2 }}>Ειδοποίηση αναπροσαρμογής</div>
-            <div style={{ ...TT.bodySm, marginTop: 1 }}>Νομικό έγγραφο με ηλεκτρονική υπογραφή & QR επαλήθευσης</div>
+            <div style={{ ...TT.h2, display: 'flex', alignItems: 'center', gap: 7 }}>Αναπροσαρμογή ενοικίου<InfoHint>Ετοιμάζει την επίσημη έγγραφη ειδοποίηση προς τον μισθωτή για το νέο μίσθωμα. Υπολογίζει το νέο ποσό, το υπογράφεις ηλεκτρονικά και βγαίνει υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης, έτοιμο να το κοινοποιήσεις.</InfoHint></div>
+            <div style={{ ...TT.bodySm, marginTop: 2 }}>Επίσημη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή και επαλήθευση</div>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
         </div>
@@ -121,42 +137,52 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
-                <div><div style={lbl}>Ακίνητο</div><select value={propId} onChange={e => setPropId(e.target.value)} style={field}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-                <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} placeholder="Ονοματεπώνυμο" style={field} /></div>
+                <div><div style={lbl}>Ακίνητο</div><select value={propId} onChange={e => setPropId(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={field}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+                <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο" style={field} /></div>
               </div>
 
               <div>
                 <div style={lbl}>Μέθοδος αναπροσαρμογής</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setMethod('percent')} style={seg('percent', '')}>Ποσοστό</button>
-                  <button onClick={() => setMethod('cpi')} style={seg('cpi', '')}>ΔΤΚ (ΕΛΣΤΑΤ)</button>
-                  <button onClick={() => setMethod('manual')} style={seg('manual', '')}>Χειροκίνητο</button>
+                <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 11 }}>
+                  <button onClick={() => setMethod('percent')} style={seg('percent')}>Ποσοστό</button>
+                  <button onClick={() => setMethod('cpi')} style={seg('cpi')}>ΔΤΚ (ΕΛΣΤΑΤ)</button>
+                  <button onClick={() => setMethod('manual')} style={seg('manual')}>Χειροκίνητο</button>
                 </div>
+                <div style={{ ...TT.bodySm, marginTop: 8, lineHeight: 1.5 }}>{METHOD_HINT[method]}</div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 12 }}>
-                <div><div style={lbl}>Τρέχον μίσθωμα (€)</div><input value={currentRent} onChange={e => setCurrentRent(e.target.value)} inputMode="decimal" style={field} /></div>
+                <div><div style={lbl}>Τρέχον μίσθωμα</div>{money(currentRent, setCurrentRent, '€')}</div>
                 {method === 'manual'
-                  ? <div><div style={lbl}>Νέο μίσθωμα (€)</div><input value={newRentManual} onChange={e => setNewRentManual(e.target.value)} inputMode="decimal" style={field} /></div>
-                  : <div><div style={lbl}>{method === 'cpi' ? 'Μεταβολή ΔΤΚ (%)' : 'Ποσοστό (%)'}</div><input value={percent} onChange={e => setPercent(e.target.value)} inputMode="decimal" style={field} /></div>}
-                <div><div style={lbl}>Ισχύς από</div><input type="date" value={effective} onChange={e => setEffective(e.target.value)} style={field} /></div>
+                  ? <div><div style={lbl}>Νέο μίσθωμα</div>{money(newRentManual, setNewRentManual, '€')}</div>
+                  : <div><div style={lbl}>{method === 'cpi' ? 'Μεταβολή ΔΤΚ' : 'Ποσοστό'}</div>{money(percent, setPercent, '%')}</div>}
+                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><input type="date" lang="el-GR" value={effective} onChange={e => setEffective(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, colorScheme: 'light dark' }} /></div>
               </div>
 
-              {/* Live αποτέλεσμα */}
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: '12px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, fontSize: 13 }}>
-                <span>Τρέχον <b>{pEur(res.currentRent)}</b></span>
-                <span>Μεταβολή <b>{pPct(res.pctApplied)}</b></span>
-                <span>Νέο <b style={{ color: 'var(--accent)' }}>{pEur(res.newRent)}</b></span>
-                <span style={{ color: res.increase >= 0 ? 'var(--text-secondary)' : 'var(--negative)' }}>({res.increase >= 0 ? '+' : ''}{pEur(res.increase)})</span>
+              {/* Live αποτέλεσμα: Τρέχον → Νέο, ουδέτερο μελάνι, χρώμα μόνο σε μείωση */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', padding: '15px 18px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Τρέχον</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{pEur(res.currentRent)}</div>
+                </div>
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Νέο μίσθωμα</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', marginTop: 2, letterSpacing: '-0.01em', fontFamily: T.font.sans }}>{pEur(res.newRent)}</div>
+                </div>
+                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Μεταβολή</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: res.increase >= 0 ? 'var(--text-secondary)' : 'var(--negative)', fontVariantNumeric: 'tabular-nums', marginTop: 4, fontFamily: T.font.sans }}>{pPct(res.pctApplied)} · {res.increase >= 0 ? '+' : ''}{pEur(res.increase)}</div>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                <div><div style={lbl}>Εκμισθωτής (υπογράφων)</div><input value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Ονοματεπώνυμο / επωνυμία" style={field} /></div>
-                <div><div style={lbl}>Τόπος</div><input value={place} onChange={e => setPlace(e.target.value)} placeholder="π.χ. Αθήνα" style={field} /></div>
+                <div><div style={lbl}>Εκμισθωτής (υπογράφων)</div><input value={ownerName} onChange={e => setOwnerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
+                <div><div style={lbl}>Τόπος</div><input value={place} onChange={e => setPlace(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="π.χ. Αθήνα" style={field} /></div>
               </div>
 
               <div>
-                <div style={lbl}>Ηλεκτρονική υπογραφή</div>
+                <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ηλεκτρονική υπογραφή<InfoHint>Υπόγραψε με το ποντίκι ή το δάχτυλο. Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο έγγραφο.</InfoHint></div>
                 <SignaturePad onChange={setSig} />
               </div>
 

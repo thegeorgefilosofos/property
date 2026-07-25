@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
+import { InfoHint } from './InfoHint';
 import { computeSplit, type OwnerShare } from '@/lib/accounting/ownerSplit';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
@@ -117,7 +118,15 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     finally { setBusy(false); }
   };
 
-  const field: React.CSSProperties = { height: 38, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' };
+  const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.14s' };
+  const onFieldFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
+  const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
+  const miniStat = (label: string, value: string, strong = false): React.ReactNode => (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
+      <div style={{ fontSize: strong ? 16 : 14, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{value}</div>
+    </div>
+  );
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
@@ -127,8 +136,8 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2 }}>Κατανομή σε ιδιοκτήτες</div>
-            <div style={{ ...TT.bodySm, marginTop: 1 }}>Συνιδιοκτησία + διαχειριστική αμοιβή → καθαρό ανά ιδιοκτήτη</div>
+            <div style={{ ...TT.h2, display: 'flex', alignItems: 'center', gap: 7 }}>Κατανομή σε ιδιοκτήτες<InfoHint>Μοιράζει τα καθαρά έσοδα της περιόδου στους συνιδιοκτήτες, ανάλογα με το ποσοστό του καθενός. Αφαιρεί πρώτα τα έξοδα και τη διαχειριστική αμοιβή και βγάζει επίσημη «Κατάσταση κατανομής» σε PDF, με αριθμό εγγράφου και QR επαλήθευσης, για τον κάθε ιδιοκτήτη.</InfoHint></div>
+            <div style={{ ...TT.bodySm, marginTop: 2 }}>Το καθαρό κάθε συνιδιοκτήτη, μετά τα έξοδα και τη διαχειριστική αμοιβή</div>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
         </div>
@@ -137,60 +146,65 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <select value={propId} onChange={e => setPropId(e.target.value)} style={{ ...field, flex: '2 1 200px' }}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...field, flex: '1 1 90px' }}>{Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => <option key={y} value={y}>{y}</option>)}</select>
-                <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ ...field, flex: '1 1 130px' }}><option value={0}>Όλο το έτος</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
+                <select value={propId} onChange={e => setPropId(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '2 1 200px' }}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                <select value={year} onChange={e => setYear(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '1 1 90px' }}>{Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => <option key={y} value={y}>{y}</option>)}</select>
+                <select value={month} onChange={e => setMonth(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '1 1 130px' }}><option value={0}>Όλο το έτος</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
               </div>
 
               {/* Ιδιοκτήτες */}
               <div>
-                <div style={{ ...TT.label, marginBottom: 8 }}>Ιδιοκτήτες & ποσοστά</div>
+                <div style={{ ...TT.label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Ιδιοκτήτες και ποσοστά<InfoHint>Πρόσθεσε κάθε συνιδιοκτήτη με το ποσοστό ιδιοκτησίας του. Τα ποσοστά πρέπει να αθροίζουν στο 100%. Το ΑΦΜ είναι προαιρετικό και εμφανίζεται στην επίσημη κατάσταση.</InfoHint></div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {rows.map((r, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
-                      <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value)} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
+                      <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
+                      <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
                       <div style={{ position: 'relative', flex: '0 0 92px' }}>
-                        <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} placeholder="%" style={{ ...field, width: '100%', paddingRight: 26 }} inputMode="decimal" />
-                        <span style={{ position: 'absolute', right: 10, top: 9, color: 'var(--text-tertiary)', fontSize: 13 }}>%</span>
+                        <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 28, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                        <span style={{ position: 'absolute', right: 12, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
                       </div>
                       <button onClick={() => delRow(i)} disabled={rows.length === 1} title="Αφαίρεση" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: rows.length === 1 ? 'default' : 'pointer', fontSize: 18, lineHeight: 1, padding: 4, opacity: rows.length === 1 ? 0.3 : 1 }}>×</button>
                     </div>
                   ))}
                 </div>
-                <button onClick={addRow} style={{ ...TT.caption, marginTop: 8, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700 }}>+ Προσθήκη ιδιοκτήτη</button>
+                <button onClick={addRow} style={{ ...TT.caption, marginTop: 10, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700 }}>+ Προσθήκη ιδιοκτήτη</button>
               </div>
 
               {/* Αμοιβή διαχείρισης */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ flex: '1 1 160px' }}>
-                  <div style={{ ...TT.label, marginBottom: 6 }}>Αμοιβή διαχείρισης</div>
+                  <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
                   <div style={{ position: 'relative' }}>
-                    <input value={feePct} onChange={e => setFeePct(e.target.value)} placeholder="0" style={{ ...field, width: '100%', paddingRight: 60 }} inputMode="decimal" />
-                    <span style={{ position: 'absolute', right: 10, top: 9, color: 'var(--text-tertiary)', fontSize: 12 }}>% εσόδων</span>
+                    <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 68, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                    <span style={{ position: 'absolute', right: 12, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none' }}>% εσόδων</span>
                   </div>
                 </div>
                 <div style={{ flex: '2 1 200px' }}>
                   <div style={{ ...TT.label, marginBottom: 6 }}>Διαχειριστής (προαιρετικό)</div>
-                  <input value={managerName} onChange={e => setManagerName(e.target.value)} placeholder="Επωνυμία διαχειριστή" style={{ ...field, width: '100%' }} />
+                  <input value={managerName} onChange={e => setManagerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Επωνυμία διαχειριστή" style={{ ...field, width: '100%' }} />
                 </div>
               </div>
 
               {/* Αποτέλεσμα */}
               {figures && (
                 <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '10px 14px', background: 'var(--bg-elevated)', fontSize: 12 }}>
-                    <span>Εισπράχθηκαν <b>{pEur(result.gross)}</b></span>
-                    <span>Έξοδα <b>{pEur(result.expenses)}</b></span>
-                    <span>Αμοιβή <b>{pEur(result.managementFee)}</b></span>
-                    <span>Προς διανομή <b>{pEur(result.distributable)}</b></span>
-                    <span style={{ marginLeft: 'auto' }}><Badge tone={result.valid ? 'positive' : 'warning'}>{result.valid ? `${result.pctSum}% ✓` : `${result.pctSum}%`}</Badge></span>
+                  <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '14px 16px', background: 'var(--bg-elevated)' }}>
+                    {miniStat('Εισπράχθηκαν', pEur(result.gross))}
+                    {miniStat('Έξοδα', pEur(result.expenses))}
+                    {miniStat('Αμοιβή', pEur(result.managementFee))}
+                    {miniStat('Προς διανομή', pEur(result.distributable), true)}
+                    <span style={{ marginLeft: 'auto' }}><Badge tone={result.valid ? 'positive' : 'warning'}>{result.valid ? `Ποσοστά ${result.pctSum}% ✓` : `Ποσοστά ${result.pctSum}%`}</Badge></span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '8px 16px', borderTop: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Παρακράτηση</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right', minWidth: 84 }}>Καθαρό</span>
                   </div>
                   {result.owners.map((o, i) => (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 14px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center' }}>
-                      <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(o.pct)}</span></span>
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.mono }}>−{pEur(o.expenseShare + o.feeShare)}</span>
-                      <span style={{ fontFamily: T.font.mono, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{pEur(o.net)}</span>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{o.name}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(o.pct)}</span></span>
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{o.expenseShare + o.feeShare > 0 ? `−${pEur(o.expenseShare + o.feeShare)}` : '—'}</span>
+                      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{pEur(o.net)}</span>
                     </div>
                   ))}
                 </div>

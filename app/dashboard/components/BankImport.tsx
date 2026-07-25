@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { X, Check, ArrowRight, Landmark } from 'lucide-react'
+import { Check, ArrowRight, Landmark } from 'lucide-react'
 import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
 import { feAuto, T } from '@/components/Theme'
 
@@ -62,7 +62,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     }catch(_){ setError('Σφάλμα κατά την καταχώριση. Δοκίμασε ξανά.'); setStep('review') }
   }
 
-  const field:React.CSSProperties = { width:'100%', minHeight:150, padding:'10px 16px', borderRadius:4, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter',sans-serif", lineHeight:'20px', resize:'vertical', outline:'none' }
+  const field:React.CSSProperties = { width:'100%', minHeight:150, padding:'12px 15px', borderRadius:11, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", lineHeight:'20px', resize:'vertical', outline:'none', transition:'border-color 0.14s' }
   const row:React.CSSProperties = { display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:10, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)' }
 
   function Box({ checked, onClick }:{ checked:boolean; onClick:()=>void }){
@@ -71,17 +71,17 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
 
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'6vh 16px', overflowY:'auto' }}>
-      <div onClick={e=>e.stopPropagation()} style={{ width:'min(100%, 560px)', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:18, boxShadow:'var(--elev-3)', overflow:'hidden' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'16px 18px', borderBottom:'1px solid var(--border-subtle)' }}>
-          <Landmark size={17} style={{ color:'var(--accent)' }}/>
-          <div style={{ flex:1 }}>
+      <div onClick={e=>e.stopPropagation()} style={{ width:'min(100%, 560px)', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:18, boxShadow:'var(--elev-3)', overflow:'hidden' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14, padding:'18px 24px', borderBottom:'1px solid var(--border-subtle)' }}>
+          <div style={{ width:40, height:40, borderRadius:11, background:'var(--accent-soft)', border:'1px solid var(--accent-border)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Landmark size={19}/></div>
+          <div style={{ flex:1, minWidth:0 }}>
             <p style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em', color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Εισαγωγή τραπεζικής κίνησης</p>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>Αντιστοίχιση σε ενοίκια και έξοδα, με έγκρισή σου.</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>Αντιστοίχισε αυτόματα τις κινήσεις σε ενοίκια και έξοδα, με τη δική σου έγκριση</p>
           </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width:30, height:30, borderRadius:T.radius.btn, border:'none', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><X size={16}/></button>
+          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background:'none', border:'none', color:'var(--text-tertiary)', cursor:'pointer', fontSize:22, lineHeight:1, padding:4 }}>×</button>
         </div>
 
-        <div style={{ padding:18 }}>
+        <div style={{ padding:'20px 24px 22px' }}>
           {step==='input'&&(<>
             <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'0 0 10px', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Επικόλλησε την κίνηση από το e-banking (CSV) ή ανέβασε αρχείο. Αναγνωρίζονται στήλες ημερομηνία, περιγραφή και ποσό (ή χρέωση/πίστωση).</p>
             <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={'Ημερομηνία;Περιγραφή;Ποσό\n05/03/2026;Κατάθεση ενοικίου;800,00'} style={field}
