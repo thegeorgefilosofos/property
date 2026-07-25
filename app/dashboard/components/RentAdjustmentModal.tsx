@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import DateField from './DateField';
+import Select from './Select';
 import SignaturePad from '@/components/SignaturePad';
 import { computeRentAdjustment, adjustmentNoticeText, type AdjMethod } from '@/lib/documents/rentAdjustment';
 import { issueDocument } from '@/lib/documents/issue';
@@ -107,15 +108,10 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
   const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 12.5, fontWeight: 600, height: 34, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'all 0.15s' });
   const METHOD_HINT: Record<AdjMethod, string> = {
-    percent: 'Σταθερό ποσοστό αύξησης, όπως το έχετε συμφωνήσει στο μισθωτήριο.',
-    cpi: 'Αναπροσαρμογή με τον επίσημο Δείκτη Τιμών Καταναλωτή της ΕΛΣΤΑΤ. Συμπλήρωσε την ετήσια μεταβολή του δείκτη.',
-    manual: 'Όρισε απευθείας το νέο μίσθωμα, όπως το συμφωνήσατε με τον μισθωτή.',
+    percent: 'Σταθερό ποσοστό αύξησης, όπως το συμφωνήσατε στο μισθωτήριο.',
+    cpi: 'Επίσημος Δείκτης Τιμών Καταναλωτή της ΕΛΣΤΑΤ. Βάλε την ετήσια μεταβολή.',
+    manual: 'Όρισε απευθείας το νέο μίσθωμα, όπως το συμφωνήσατε.',
   };
-  // Dropdown με δικό μας chevron (κρύβει το default του OS) — ομοιόμορφο, Google/Apple.
-  const selStyle: React.CSSProperties = { ...field, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: 34, cursor: 'pointer' };
-  const selChevron = (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><path d="M6 9l6 6 6-6" /></svg>
-  );
   // Πεδίο ποσού με διακριτικό σύμβολο (€ ή %) στη δεξιά άκρη, αριθμοί δεξιά.
   const money = (value: string, on: (v: string) => void, suffix: string) => (
     <div style={{ position: 'relative' }}>
@@ -143,7 +139,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
-                <div><div style={lbl}>Ακίνητο</div><div style={{ position: 'relative' }}><select value={propId} onChange={e => setPropId(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={selStyle}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>{selChevron}</div></div>
+                <div><div style={lbl}>Ακίνητο</div><Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επιλογή ακινήτου" /></div>
                 <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο" style={field} /></div>
               </div>
 

@@ -34,13 +34,10 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
     ctx.setTransform(d, 0, 0, d, 0, 0);
     const w = c.width / d, h = c.height / d;
     ctx.clearRect(0, 0, w, h);
-    // Γραμμή υπογραφής + διακριτικό «✕» αριστερά (affordance «υπόγραψε εδώ»),
-    // σε ουδέτερο γκρι που διαβάζεται και στο σκούρο και στο ανοιχτό θέμα.
-    ctx.strokeStyle = 'rgba(140,140,145,0.45)';
+    // Διακριτική γραμμή υπογραφής, σε ουδέτερο γκρι που διαβάζεται σε σκούρο/ανοιχτό.
+    ctx.strokeStyle = 'rgba(140,140,145,0.4)';
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(18, h - 26); ctx.lineTo(w - 18, h - 26); ctx.stroke();
-    ctx.font = '13px ' + T.font.sans; ctx.fillStyle = 'rgba(140,140,145,0.55)'; ctx.textBaseline = 'middle';
-    ctx.fillText('✕', 18, h - 38);
+    ctx.beginPath(); ctx.moveTo(18, h - 24); ctx.lineTo(w - 18, h - 24); ctx.stroke();
     // Πινελιές με το μελάνι του θέματος.
     ctx.strokeStyle = getComputedStyle(c).color;
     ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
