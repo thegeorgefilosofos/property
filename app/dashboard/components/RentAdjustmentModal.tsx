@@ -16,10 +16,13 @@ import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
 import { computeRentAdjustment, adjustmentNoticeText, type AdjMethod } from '@/lib/documents/rentAdjustment';
 import { issueDocument } from '@/lib/documents/issue';
-import { generateReportPdf, pEur, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
+import { generateReportPdf, reportPdfBlob, pEur, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
 
 interface Prop { id: string; name: string; address: string | null }
+// Ελάχιστοι τύποι για την αναγνώριση ομιλίας του browser (δεν υπάρχουν στο lib.dom).
+interface SpeechEvent { results?: { [i: number]: { [j: number]: { transcript?: string } } } }
+interface SpeechRec { lang: string; interimResults: boolean; continuous: boolean; maxAlternatives: number; start(): void; onresult: (e: SpeechEvent) => void; onerror: () => void; onend: () => void }
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const grDate = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? iso : d.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -41,6 +44,11 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(true);
+  // Μετά τη δημιουργία: ερώτηση αρχειοθέτησης στα έγγραφα του ακινήτου.
+  const [pending, setPending] = useState<{ model: PdfReportModel; fname: string } | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [archived, setArchived] = useState(false);
+  const [listening, setListening] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -97,10 +105,57 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
         ],
         disclaimer: 'Έγγραφη ειδοποίηση αναπροσαρμογής μισθώματος. Επιβεβαιώστε τους όρους με το μισθωτήριο και τον νομικό/λογιστικό σας σύμβουλο.',
       };
-      await generateReportPdf(model, `Αναπροσαρμογή_${prop.name}_${grDate(effective)}`.replace(/[\/\s]+/g, '_'));
-      onClose();
+      const fname = `Αναπροσαρμογή_${prop.name}_${grDate(effective)}`.replace(/[\/\s]+/g, '_');
+      await generateReportPdf(model, fname);
+      // Δεν κλείνουμε ακόμη: ρωτάμε αν θα αρχειοθετηθεί στα έγγραφα του ακινήτου.
+      setPending({ model, fname });
     } catch (e: any) { setErr(e?.message || 'Αποτυχία δημιουργίας.'); }
     finally { setBusy(false); }
+  };
+
+  // Αρχειοθέτηση στα έγγραφα του ακινήτου, με ημερομηνία (χρονολογική σειρά).
+  const archive = async () => {
+    if (!pending || !prop) return;
+    setArchiving(true); setErr('');
+    try {
+      const blob = await reportPdfBlob(pending.model);
+      const path = `${userId}/${prop.id}/document/${Date.now()}_${pending.fname}.pdf`;
+      const { error: upErr } = await supabase.storage.from('property-files').upload(path, blob, { upsert: false, contentType: 'application/pdf' });
+      if (upErr) throw upErr;
+      const base = {
+        property_id: prop.id, user_id: userId, kind: 'document', category: 'lease',
+        title: `Αναπροσαρμογή μισθώματος · ισχύς από ${grDate(effective)}`.slice(0, 200),
+        notes: `Νέο μίσθωμα ${pEur(res.newRent)} (από ${pEur(res.currentRent)}, ${pPct(res.pctApplied)})`,
+        doc_date: effective, file_path: path, file_name: `${pending.fname}.pdf`,
+        mime: 'application/pdf', size_bytes: blob.size,
+      };
+      let { error } = await supabase.from('property_documents').insert({ ...base, supplier: tenant.trim() || null });
+      if (error && /supplier/i.test(error.message)) ({ error } = await supabase.from('property_documents').insert(base));
+      if (error) throw error;
+      setArchived(true);
+      setTimeout(onClose, 1200);
+    } catch { setErr('Η αρχειοθέτηση απέτυχε. Το PDF έχει ήδη κατέβει.'); }
+    finally { setArchiving(false); }
+  };
+
+  // Φωνητική απάντηση στην ερώτηση αρχειοθέτησης: «ναι» → αποθήκευση,
+  // «όχι / αργότερα» → κλείσιμο. Χρησιμοποιεί την αναγνώριση ομιλίας του browser.
+  const answerByVoice = () => {
+    const SR = (globalThis as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec }).SpeechRecognition
+      || (globalThis as unknown as { webkitSpeechRecognition?: new () => SpeechRec }).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = 'el-GR'; rec.interimResults = false; rec.continuous = false; rec.maxAlternatives = 1;
+    rec.onresult = (e: SpeechEvent) => {
+      const said = String(e.results?.[0]?.[0]?.transcript || '').toLowerCase();
+      setListening(false);
+      if (/(ναι|ναί|αποθήκευσ|σώσ|φύλαξ)/.test(said)) archive();
+      else if (/(όχι|οχι|αργότερα|αργοτερα|ίσως|ισως|άκυρο)/.test(said)) onClose();
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    setListening(true);
+    try { rec.start(); } catch { setListening(false); }
   };
 
   const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
@@ -139,7 +194,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
         <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
-              <ScanButton label="Σκάναρε μισθωτήριο" hint="Συμπληρώνει μισθωτή, μίσθωμα και εκμισθωτή από φωτό ή PDF." onExtract={doc => {
+              <ScanButton label="Σάρωσε έγγραφο" hint="Από μισθωτήριο: μισθωτή, μίσθωμα και εκμισθωτή." onExtract={doc => {
                 if (doc.tenant_name) setTenant(doc.tenant_name);
                 if (doc.monthly_rent) setCurrentRent(String(doc.monthly_rent));
                 if (doc.landlord_name && !ownerName.trim()) setOwnerName(doc.landlord_name);
@@ -207,10 +262,31 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
-          <Btn variant="primary" onClick={generate} disabled={busy || !sig || num(currentRent) <= 0}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο PDF'}</Btn>
-        </div>
+        {pending ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                {archived ? 'Αποθηκεύτηκε στα έγγραφα του ακινήτου.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
+              </div>
+              {!archived && <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>Αρχειοθετείται με ημερομηνία ισχύος {grDate(effective)}, σε χρονολογική σειρά.</div>}
+            </div>
+            {!archived && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
+                  style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
+                </button>
+                <Btn variant="secondary" onClick={onClose}>Ίσως αργότερα</Btn>
+                <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+            <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
+            <Btn variant="primary" onClick={generate} disabled={busy || !sig || num(currentRent) <= 0}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο PDF'}</Btn>
+          </div>
+        )}
       </div>
     </div>
   );
