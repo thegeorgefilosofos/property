@@ -12,6 +12,7 @@ import { T, TT, Btn } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import DateField from './DateField';
 import Select from './Select';
+import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
 import { computeRentAdjustment, adjustmentNoticeText, type AdjMethod } from '@/lib/documents/rentAdjustment';
 import { issueDocument } from '@/lib/documents/issue';
@@ -138,6 +139,12 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
         <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
+              <ScanButton label="Σκάναρε μισθωτήριο" hint="Συμπληρώνει μισθωτή, μίσθωμα και εκμισθωτή από φωτό ή PDF." onExtract={doc => {
+                if (doc.tenant_name) setTenant(doc.tenant_name);
+                if (doc.monthly_rent) setCurrentRent(String(doc.monthly_rent));
+                if (doc.landlord_name && !ownerName.trim()) setOwnerName(doc.landlord_name);
+              }} />
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
                 <div><div style={lbl}>Ακίνητο</div><Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επιλογή ακινήτου" /></div>
                 <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο" style={field} /></div>

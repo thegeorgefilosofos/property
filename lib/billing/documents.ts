@@ -71,6 +71,7 @@ export interface ScannedDoc {
 
   // μισθωτήριο
   tenant_name?: string;
+  landlord_name?: string;  // εκμισθωτής (ιδιοκτήτης)
   monthly_rent?: number;
   lease_start?: string;
   lease_end?:   string;
@@ -78,6 +79,8 @@ export interface ScannedDoc {
   afm?:         string;
 
   // τίτλος / συμβόλαιο / ακίνητο
+  // Συνιδιοκτήτες με ποσοστά (από τίτλο/συμβόλαιο) — για την «Κατανομή σε ιδιοκτήτες».
+  owners?: { name?: string; afm?: string; pct?: number }[];
   purchase_price?: number;
   purchase_date?:  string;
   obj_value?:      number;  // αντικειμενική αξία
