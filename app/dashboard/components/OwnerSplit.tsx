@@ -127,6 +127,12 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
       <div style={{ fontSize: strong ? 16 : 14, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{value}</div>
     </div>
   );
+  // Dropdown με Google/Apple αίσθηση: κρύβει το default βελάκι του OS και βάζει
+  // δικό μας chevron, ώστε όλα τα modals να δείχνουν ομοιόμορφα και καθαρά.
+  const selStyle: React.CSSProperties = { ...field, width: '100%', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: 34, cursor: 'pointer' };
+  const selChevron = (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><path d="M6 9l6 6 6-6" /></svg>
+  );
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
@@ -146,9 +152,15 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <select value={propId} onChange={e => setPropId(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '2 1 200px' }}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                <select value={year} onChange={e => setYear(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '1 1 90px' }}>{Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => <option key={y} value={y}>{y}</option>)}</select>
-                <select value={month} onChange={e => setMonth(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '1 1 130px' }}><option value={0}>Όλο το έτος</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
+                <div style={{ position: 'relative', flex: '2 1 200px', minWidth: 0 }}>
+                  <select value={propId} onChange={e => setPropId(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={selStyle}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>{selChevron}
+                </div>
+                <div style={{ position: 'relative', flex: '1 1 90px', minWidth: 0 }}>
+                  <select value={year} onChange={e => setYear(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={selStyle}>{Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => <option key={y} value={y}>{y}</option>)}</select>{selChevron}
+                </div>
+                <div style={{ position: 'relative', flex: '1 1 130px', minWidth: 0 }}>
+                  <select value={month} onChange={e => setMonth(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={selStyle}><option value={0}>Όλο το έτος</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>{selChevron}
+                </div>
               </div>
 
               {/* Ιδιοκτήτες */}

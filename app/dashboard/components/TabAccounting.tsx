@@ -59,7 +59,9 @@ const STATUS_META:Record<ReconStatus,{label:string;color:string}> = {
 
 // Κάρτα λογιστικής: καθαρή, ανασηκωμένη με σκιά (3D) αλλά ΧΩΡΙΣ λευκό περίγραμμα/
 // γυαλάδα (highlight-inset). Ήσυχο, Stripe/Apple αίσθηση, ομοιόμορφο σε όλο το tab.
-const card:React.CSSProperties = { position:'relative', background:'var(--surface-raised)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:16, boxShadow:'var(--elev-1)' }
+// Κάρτα: ΚΑΜΙΑ ορατή περίμετρος (το «λευκό γύρω γύρω»). Το βάθος/ζωντάνια έρχεται
+// αποκλειστικά από την ανασηκωμένη επιφάνεια + τη σκιά, όπως σε Apple/Stripe.
+const card:React.CSSProperties = { position:'relative', background:'var(--surface-raised)', border:'none', borderRadius:14, padding:16, boxShadow:'var(--elev-1)' }
 const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(--text-primary)', margin:'0 0 14px', fontFamily:"'Inter',sans-serif", letterSpacing:'0.1px' }
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος, αλλού ουδέτερο (χωρίς θόρυβο).
