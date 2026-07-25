@@ -144,6 +144,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // «Για τον λογιστή»: το διπλογραφικό βάθος (ισοζύγιο, άρθρα) είναι πάντα διαθέσιμο,
   // αλλά κλειστό για τον ιδιώτη (καθαρή εικόνα) και ανοιχτό για τον επαγγελματία.
   const [forAccountantOpen,setForAccountantOpen] = useState(profileType==='professional')
+  // Live πύλη λογιστή (χωρίς login/email): ένας σύνδεσμος με token ανά χρήστη.
+  const [acctCopied,setAcctCopied] = useState(false)
+  const [acctBusy,setAcctBusy] = useState(false)
   useEffect(()=>{ try{
     const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'')
     const e=localStorage.getItem('acc_ekfa'); if(e) setEkfa(Number(e)||'')
@@ -370,6 +373,22 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   async function unlockYear(){
     setLockErr(null); setClosing(null)
     await supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year)
+  }
+
+  // Δημιουργεί/ανακτά τον σύνδεσμο της πύλης λογιστή και τον αντιγράφει. Ο λογιστής
+  // βλέπει live εικόνα εσόδων/εξόδων ανά ακίνητο, read-only, χωρίς login ή email.
+  async function shareWithAccountant(){
+    if(acctBusy) return
+    setAcctBusy(true)
+    try{
+      const { data } = await supabase.from('accountant_links').upsert({ user_id:userId, active:true }, { onConflict:'user_id' }).select('token').maybeSingle()
+      const token = (data as { token?:string } | null)?.token
+      if(token){
+        const url = `${window.location.origin}/accountant/${token}`
+        try{ await navigator.clipboard.writeText(url); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2600) }
+        catch{ window.prompt('Αντίγραψε τον σύνδεσμο για τον λογιστή σου:', url) }
+      }
+    } finally { setAcctBusy(false) }
   }
 
   function exportBundle(){
@@ -983,6 +1002,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </button>
             <button onClick={exportBundle} title="Φάκελος για τον λογιστή σε Excel, με κατάσταση αποτελεσμάτων και αναλυτικές κινήσεις" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
               <Download size={13}/>Φάκελος Excel
+            </button>
+            <button onClick={shareWithAccountant} disabled={acctBusy} title="Δώσε στον λογιστή σου έναν σύνδεσμο με live εικόνα των ακινήτων σου, χωρίς login και χωρίς email" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:`1px solid ${acctCopied?'var(--positive)':'var(--border-default)'}`, background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:acctBusy?'wait':'pointer', fontFamily:"'Inter',sans-serif", transition:'color 0.15s, border-color 0.15s' }} onMouseEnter={e=>{ if(!acctCopied){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctCopied){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
+              {acctCopied
+                ? <><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Ο σύνδεσμος αντιγράφηκε</>
+                : <><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':'Μοίρασε live στον λογιστή'}</>}
             </button>
           </div>
           <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
