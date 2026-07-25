@@ -156,7 +156,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 {method === 'manual'
                   ? <div><div style={lbl}>Νέο μίσθωμα</div>{money(newRentManual, setNewRentManual, '€')}</div>
                   : <div><div style={lbl}>{method === 'cpi' ? 'Μεταβολή ΔΤΚ' : 'Ποσοστό'}</div>{money(percent, setPercent, '%')}</div>}
-                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><input type="date" value={effective} onChange={e => setEffective(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={field} /></div>
+                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><input type="date" lang="el-GR" value={effective} onChange={e => setEffective(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, colorScheme: 'light dark' }} /></div>
               </div>
 
               {/* Live αποτέλεσμα: Τρέχον → Νέο, ουδέτερο μελάνι, χρώμα μόνο σε μείωση */}
