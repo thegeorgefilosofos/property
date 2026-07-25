@@ -150,6 +150,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [acctCopied,setAcctCopied] = useState(false)
   const [acctBusy,setAcctBusy] = useState(false)
   const [acctLink,setAcctLink] = useState<string|null>(null)
+  const [acctRevoked,setAcctRevoked] = useState(false)
   useEffect(()=>{ try{
     const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'')
     const e=localStorage.getItem('acc_ekfa'); if(e) setEkfa(Number(e)||'')
@@ -391,6 +392,19 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         setAcctLink(url)
         try{ await navigator.clipboard.writeText(url); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2600) }catch{ /* ο σύνδεσμος φαίνεται πλέον στο πλαίσιο, ο χρήστης τον αντιγράφει χειροκίνητα */ }
       }
+    } finally { setAcctBusy(false) }
+  }
+
+  // Ανάκληση: περιστρέφει το token, ώστε ο παλιός σύνδεσμος να πάψει αμέσως να
+  // λειτουργεί (ασφάλεια) και να εμφανιστεί καινούριος για μοίρασμα.
+  async function revokeAccountantLink(){
+    if(acctBusy) return
+    setAcctBusy(true)
+    try{
+      const fresh = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const { data } = await supabase.from('accountant_links').upsert({ user_id:userId, token:fresh, active:true }, { onConflict:'user_id' }).select('token').maybeSingle()
+      const token = (data as { token?:string } | null)?.token
+      if(token){ setAcctLink(`${window.location.origin}/accountant/${token}`); setAcctCopied(false); setAcctRevoked(true); setTimeout(()=>setAcctRevoked(false),2600) }
     } finally { setAcctBusy(false) }
   }
 
@@ -1018,6 +1032,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <input readOnly value={acctLink} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:150, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:12, fontFamily:"'Inter',sans-serif", outline:'none', textOverflow:'ellipsis' }} />
               <button onClick={()=>{ try{ navigator.clipboard?.writeText(acctLink); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2000) }catch{ /* ignore */ } }} style={{ height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif", whiteSpace:'nowrap' }}>{acctCopied?'Αντιγράφηκε':'Αντιγραφή'}</button>
               <a href={acctLink} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:5, height:28, padding:'0 13px', borderRadius:14, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, textDecoration:'none', fontFamily:"'Inter',sans-serif", whiteSpace:'nowrap' }}>Άνοιγμα πύλης<ArrowUpRight size={13}/></a>
+              <div style={{ width:'100%', display:'flex', alignItems:'center', gap:10, marginTop:2, paddingLeft:2 }}>
+                <span style={{ fontSize:10.5, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε. Μοιράσου τον νέο.':'Ο σύνδεσμος δίνει read-only πρόσβαση. Ανακάλεσέ τον όποτε θες.'}</span>
+                <button onClick={revokeAccountantLink} disabled={acctBusy} title="Ακυρώνει τον τρέχοντα σύνδεσμο και δημιουργεί καινούριο — ο παλιός παύει αμέσως να λειτουργεί" style={{ marginLeft:'auto', background:'none', border:'none', padding:0, color:'var(--text-tertiary)', fontSize:11, fontWeight:700, cursor:acctBusy?'wait':'pointer', fontFamily:"'Inter',sans-serif", whiteSpace:'nowrap' }} onMouseEnter={e=>{ if(!acctBusy) e.currentTarget.style.color='var(--negative)' }} onMouseLeave={e=>{ e.currentTarget.style.color='var(--text-tertiary)' }}>Ανάκληση</button>
+              </div>
             </div>
           )}
           <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
