@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import Select from './Select';
+import ScanButton from './ScanButton';
 import { computeSplit, type OwnerShare } from '@/lib/accounting/ownerSplit';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
@@ -161,6 +162,13 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
               {/* Ιδιοκτήτες */}
               <div>
                 <div style={{ ...TT.label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Ιδιοκτήτες και ποσοστά<InfoHint>Πρόσθεσε κάθε συνιδιοκτήτη με το ποσοστό ιδιοκτησίας του. Τα ποσοστά πρέπει να αθροίζουν στο 100%. Το ΑΦΜ είναι προαιρετικό και εμφανίζεται στην επίσημη κατάσταση.</InfoHint></div>
+                <div style={{ marginBottom: 10 }}>
+                  <ScanButton label="Σκάναρε τίτλο ή συμβόλαιο" hint="Συμπληρώνει ονόματα, ΑΦΜ και ποσοστά συνιδιοκτησίας." onExtract={doc => {
+                    const ex = (doc.owners || []).filter(o => o?.name);
+                    if (ex.length) setRows(ex.map(o => ({ name: o.name || '', afm: o.afm || '', pct: o.pct != null ? String(o.pct) : '' })));
+                    else if (doc.landlord_name) setRows([{ name: doc.landlord_name, afm: doc.afm || '', pct: '' }]);
+                  }} />
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {rows.map((r, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
