@@ -57,7 +57,9 @@ const STATUS_META:Record<ReconStatus,{label:string;color:string}> = {
   overdue:  { label:'Εκπρόθεσμο', color:'var(--negative)' },
 }
 
-const card:React.CSSProperties = { position:'relative', background:'var(--surface-raised)', border:'1px solid var(--border-raised)', borderRadius:14, padding:16, boxShadow:'var(--highlight-inset), var(--elev-1)' }
+// Κάρτα λογιστικής: καθαρή, ανασηκωμένη με σκιά (3D) αλλά ΧΩΡΙΣ λευκό περίγραμμα/
+// γυαλάδα (highlight-inset). Ήσυχο, Stripe/Apple αίσθηση, ομοιόμορφο σε όλο το tab.
+const card:React.CSSProperties = { position:'relative', background:'var(--surface-raised)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:16, boxShadow:'var(--elev-1)' }
 const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(--text-primary)', margin:'0 0 14px', fontFamily:"'Inter',sans-serif", letterSpacing:'0.1px' }
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος, αλλού ουδέτερο (χωρίς θόρυβο).
@@ -442,14 +444,15 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               ))}
             </div>
           )}
-          <ActionMenu label="Αναφορές & εργαλεία" title="Αναφορές, εξαγωγές και εργαλεία λογιστικής" icon={<Printer size={14}/>} items={[
-            { key:'print', label:'Αναφορά', description:'Γρήγορη λογιστική αναφορά σε PDF', icon:<Printer size={16}/>, onClick:printReport },
-            { key:'official', label:'Επίσημο PDF', description:'True-PDF με αρ. εγγράφου & QR επαλήθευσης', icon:<ShieldCheck size={16}/>, onClick:officialReport, busy:genOfficial },
-            { key:'builder', label:'Σύνθεση αναφοράς', description:'Προσαρμοσμένη αναφορά χαρτοφυλακίου', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>, onClick:()=>setReportBuilderOpen(true) },
-            { key:'journal', label:'Ημερολόγιο λογιστή', description:'Double-entry CSV (Soft1/Epsilon/Xero)', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>, onClick:()=>setJournalOpen(true) },
-            { key:'bank', label:'Τράπεζα', description:'Εισαγωγή κίνησης CSV & αυτόματη αντιστοίχιση', icon:<Landmark size={16}/>, onClick:()=>setShowBankImport(true) },
-            { key:'split', label:'Κατανομή ιδιοκτητών', description:'Καθαρό ανά συνιδιοκτήτη + διαχειριστική αμοιβή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>, onClick:()=>setSplitOpen(true) },
-            { key:'adjust', label:'Αναπροσαρμογή', description:'Ειδοποίηση αναπροσαρμογής με e-υπογραφή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, onClick:()=>setAdjustOpen(true) },
+          <ActionMenu label="Εργαλεία & Αναφορές" title="Αναφορές και εργαλεία διαχείρισης" icon={<Printer size={14}/>} items={[
+            { key:'print', label:'Λογιστική αναφορά', description:'Σύνοψη εσόδων, φόρου και καθαρού σε PDF, έτοιμη για τον λογιστή σου', icon:<Printer size={16}/>, onClick:printReport },
+            { key:'official', label:'Επίσημη αναφορά', description:'Υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης', icon:<ShieldCheck size={16}/>, onClick:officialReport, busy:genOfficial },
+            { key:'adjust', label:'Αναπροσαρμογή ενοικίου', description:'Νόμιμη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, onClick:()=>setAdjustOpen(true) },
+            ...(mode==='professional' ? [
+              { key:'builder', label:'Σύνθεση αναφοράς', description:'Προσαρμοσμένη αναφορά για όλο το χαρτοφυλάκιο', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>, onClick:()=>setReportBuilderOpen(true) },
+              { key:'bank', label:'Εισαγωγή από τράπεζα', description:'Ανέβασε κίνηση λογαριασμού και αντιστοίχισε αυτόματα τις εισπράξεις', icon:<Landmark size={16}/>, onClick:()=>setShowBankImport(true) },
+              { key:'split', label:'Κατανομή σε ιδιοκτήτες', description:'Καθαρό ανά συνιδιοκτήτη, με διαχειριστική αμοιβή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>, onClick:()=>setSplitOpen(true) },
+            ] : []),
           ]}/>
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
             <button onClick={()=>setYear(y=>y-1)} aria-label="Προηγούμενο έτος" style={{ width:34, height:34, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><ChevronLeft size={17}/></button>
@@ -534,9 +537,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </span>
             <div style={{ flex:1, minWidth:240 }}>
               <p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif", letterSpacing:'0.1px' }}>Ξεκίνα τη λογιστική σου για το {year}</p>
-              <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.6, fontFamily:"'Inter',sans-serif", maxWidth:520 }}>Καταχώρησε ενοίκια και έξοδα — και όλα εδώ υπολογίζονται αυτόματα: έσοδα, φόρος, καθαρό ταμείο, ισοζύγιο διπλογραφικής και έτοιμες αναφορές για τον λογιστή σου.</p>
+              <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.6, fontFamily:"'Inter',sans-serif", maxWidth:520 }}>Καταχώρησε ενοίκια και έξοδα και όλα εδώ υπολογίζονται αυτόματα: έσοδα, φόρος, καθαρό ταμείο και έτοιμες αναφορές για τον λογιστή σου.</p>
               <div style={{ display:'flex', alignItems:'center', gap:16, margin:'14px 0 0', flexWrap:'wrap' }}>
-                {['Έσοδα & πρόβλεψη φόρου','Ισοζύγιο διπλογραφικής','Αναφορές & PDF'].map(t=>(
+                {['Έσοδα & πρόβλεψη φόρου','Καθαρό ταμείο','Αναφορές & PDF'].map(t=>(
                   <span key={t} style={{ display:'inline-flex', alignItems:'center', gap:7, fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>
                     <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--border-default)', flexShrink:0 }}/>{t}
                   </span>
@@ -932,8 +935,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       </div>
 
-      {/* Για τον λογιστή — ισοζύγιο διπλογραφικής + άρθρα, ομαδοποιημένα και ήσυχα.
-          Ουδέτερο, στοιχισμένο, «SoftOne»-grade. Κλειστό για ιδιώτη, ανοιχτό για επαγγελματία. */}
+      {/* Για τον λογιστή — προηγμένο διπλογραφικό υλικό (ισοζύγιο, άρθρα, Excel).
+          Advanced λογιστική: αποκλειστικά στο πλάνο Επαγγελματίας. */}
+      {mode==='professional' && (
       <div style={card}>
         <button onClick={()=>setForAccountantOpen(o=>!o)} aria-expanded={forAccountantOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
           <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}>
@@ -941,7 +945,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           </span>
           <div style={{ flex:1, minWidth:0 }}>
             <p style={{ ...cardTitle, margin:0 }}>Για τον λογιστή</p>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>Ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων και φάκελος Excel — έτοιμα για καταχώρηση.</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>Ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων και φάκελος Excel, έτοιμα για καταχώρηση.</p>
           </div>
           <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:forAccountantOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
         </button>
@@ -977,24 +981,36 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων & εξαγωγή CSV (Soft1/Epsilon/QuickBooks/Xero)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
               <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Ημερολόγιο άρθρων
             </button>
-            <button onClick={exportBundle} title="Φάκελος για τον λογιστή σε Excel — Κατάσταση αποτελεσμάτων & αναλυτικές κινήσεις" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
+            <button onClick={exportBundle} title="Φάκελος για τον λογιστή σε Excel, με κατάσταση αποτελεσμάτων και αναλυτικές κινήσεις" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
               <Download size={13}/>Φάκελος Excel
             </button>
           </div>
-          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση = πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
+          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
         </>))}
       </div>
+      )}
 
+      {/* Ιδιώτης & Δωρεάν: καθαρή εικόνα των λογιστικών + γέφυρα προς τον λογιστή, με
+          ήρεμη πρόσκληση αναβάθμισης για όποιον χρειάζεται πλήρη επαγγελματική σουίτα. */}
       {mode==='individual' && (
-        <div style={{ ...card, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
-          <span style={{ width:40, height:40, borderRadius:11, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)' }}>
-            <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </span>
-          <div style={{ flex:1, minWidth:220 }}>
-            <p style={{ ...cardTitle, margin:0 }}>Επαγγελματική εργαλειοθήκη λογιστικής</p>
-            <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'4px 0 0', lineHeight:1.55, fontFamily:"'Inter',sans-serif" }}>Με το προφίλ <strong style={{ color:'var(--text-primary)' }}>Επαγγελματίας</strong> ξεκλειδώνεις καθεστώς Επιχείρησης (ΕΛΠ), Βιβλίο Εσόδων-Εξόδων, ενοποίηση χαρτοφυλακίου και εκπιπτόμενα έξοδα με ακρίβεια λογιστή.</p>
+        <div style={{ ...card, padding:'20px 22px' }}>
+          <div style={{ display:'flex', alignItems:'flex-start', gap:16, flexWrap:'wrap' }}>
+            <span style={{ width:40, height:40, borderRadius:11, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)' }}>
+              <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 22v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 22v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <div style={{ flex:1, minWidth:240 }}>
+              <p style={{ ...cardTitle, margin:0 }}>Έτοιμος για τον λογιστή σου</p>
+              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.6, fontFamily:"'Inter',sans-serif", maxWidth:560 }}>Εδώ βλέπεις καθαρά τα έσοδα, τον φόρο και το καθαρό σου αποτέλεσμα, ώστε να πηγαίνεις στον λογιστή ή τον φοροτεχνικό σου ενημερωμένος. Κατέβασε τη <strong style={{ color:'var(--text-primary)' }}>λογιστική αναφορά</strong> από τα Εργαλεία και δώσ’ την του, τα έχει όλα συγκεντρωμένα.</p>
+              <button onClick={printReport} style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 15px', margin:'14px 0 0', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={14}/>Λογιστική αναφορά</button>
+            </div>
           </div>
-          <button onClick={()=>onNavigate?.('settings')} style={{ flexShrink:0, height:38, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Αναβάθμιση</button>
+          <div style={{ display:'flex', alignItems:'center', gap:14, margin:'18px 0 0', paddingTop:16, borderTop:'1px solid var(--border-subtle)', flexWrap:'wrap' }}>
+            <div style={{ flex:1, minWidth:240 }}>
+              <p style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Διαχειρίζεσαι πολλά ακίνητα ή θέλεις πλήρη λογιστική;</p>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', lineHeight:1.55, fontFamily:"'Inter',sans-serif", maxWidth:520 }}>Το πλάνο Επαγγελματίας προσθέτει καθεστώς Επιχείρησης (ΕΛΠ), ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων, ενοποίηση χαρτοφυλακίου και εκπιπτόμενα έξοδα με ακρίβεια λογιστή.</p>
+            </div>
+            <button onClick={()=>onNavigate?.('settings')} style={{ flexShrink:0, height:38, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Δες το Επαγγελματίας</button>
+          </div>
         </div>
       )}
 
