@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
+import Select from './Select';
 import { computeSplit, type OwnerShare } from '@/lib/accounting/ownerSplit';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
@@ -146,9 +147,15 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <select value={propId} onChange={e => setPropId(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '2 1 200px' }}>{props.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                <select value={year} onChange={e => setYear(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '1 1 90px' }}>{Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => <option key={y} value={y}>{y}</option>)}</select>
-                <select value={month} onChange={e => setMonth(Number(e.target.value))} onFocus={onFieldFocus} onBlur={onFieldBlur} style={{ ...field, flex: '1 1 130px' }}><option value={0}>Όλο το έτος</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
+                <div style={{ flex: '2 1 200px', minWidth: 0 }}>
+                  <Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} />
+                </div>
+                <div style={{ flex: '1 1 90px', minWidth: 0 }}>
+                  <Select value={String(year)} onChange={v => setYear(Number(v))} options={Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => ({ value: String(y), label: String(y) }))} />
+                </div>
+                <div style={{ flex: '1 1 130px', minWidth: 0 }}>
+                  <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))]} />
+                </div>
               </div>
 
               {/* Ιδιοκτήτες */}

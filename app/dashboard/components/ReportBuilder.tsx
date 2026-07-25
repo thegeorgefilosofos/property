@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
+import Select from './Select';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
@@ -247,13 +248,12 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           <div>
             <div style={{ ...TT.label, marginBottom: 8 }}>ΠΕΡΙΟΔΟΣ</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...field, minWidth: 110 }}>
-                {yearsAvail.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ ...field, minWidth: 150 }}>
-                <option value={0}>Όλο το έτος</option>
-                {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-              </select>
+              <div style={{ flex: '0 1 130px', minWidth: 110 }}>
+                <Select value={String(year)} onChange={v => setYear(Number(v))} options={yearsAvail.map(y => ({ value: String(y), label: String(y) }))} />
+              </div>
+              <div style={{ flex: '0 1 170px', minWidth: 150 }}>
+                <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))]} />
+              </div>
             </div>
           </div>
 

@@ -42,7 +42,7 @@ interface Prop { id: string; name: string }
 const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const FORMATS: { key: ExportFormat; label: string; hint: string; ext: string }[] = [
   { key: 'excel', label: 'Excel', hint: 'Πλήρες βιβλίο', ext: 'xlsx' },
-  { key: 'generic', label: 'Soft1 / Epsilon', hint: 'Ημερολόγιο άρθρων', ext: 'csv' },
+  { key: 'generic', label: 'SoftOne / Epsilon', hint: 'Ημερολόγιο άρθρων', ext: 'csv' },
   { key: 'quickbooks', label: 'QuickBooks', hint: 'Journal Entry', ext: 'csv' },
   { key: 'xero', label: 'Xero', hint: 'Manual Journal', ext: 'csv' },
 ];
@@ -64,6 +64,8 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const [totals, setTotals] = useState<{ debit: number; credit: number; balanced: boolean } | null>(null);
   const [audit, setAudit] = useState<JournalAudit | null>(null);
   const [showChecks, setShowChecks] = useState(false);
+  // Το ισοζύγιο μαζεύεται από default· ανοίγει με «Έλεγχος ισοζυγίου» (καθαρή εικόνα).
+  const [showBalance, setShowBalance] = useState(false);
 
   // «Ρώτησε τον βοηθό» — ανοίγει τον βοηθό με προ-συμπληρωμένη ερώτηση για το εύρημα
   // και κλείνει το modal ώστε να φανεί ο βοηθός.
@@ -180,7 +182,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ ...TT.h2 }}>Λογιστικό ημερολόγιο</div>
-            <div style={{ ...TT.bodySm, marginTop: 1 }}>Διπλογραφικό, έτοιμο για τον λογιστή · Soft1 · Epsilon · QuickBooks · Xero</div>
+            <div style={{ ...TT.bodySm, marginTop: 1 }}>Διπλογραφικό, έτοιμο για τον λογιστή · SoftOne · Epsilon · QuickBooks · Xero</div>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
         </div>
@@ -220,10 +222,13 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
           {/* Ισοζύγιο & έλεγχος */}
           {preview && totals && (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ ...TT.label }}>ΙΣΟΖΥΓΙΟ</div>
+              <button onClick={() => setShowBalance(s => !s)} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: showBalance ? 10 : 0, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: showBalance ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M9 6l6 6-6 6"/></svg>
+                <span style={{ ...TT.label }}>ΙΣΟΖΥΓΙΟ</span>
                 <Badge tone={audit ? (audit.tone === 'positive' ? 'neutral' : audit.tone) : (totals.balanced ? 'neutral' : 'negative')}>{audit ? (audit.tone === 'positive' ? 'Ισοσκελισμένο' : audit.tone === 'warning' ? 'Ισοσκελισμένο · προσοχή' : 'Απαιτεί διόρθωση') : (totals.balanced ? 'Ισοσκελισμένο' : 'Ασυμφωνία')}</Badge>
-              </div>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 600 }}>{showBalance ? 'Σύμπτυξη' : 'Προβολή'}</span>
+              </button>
+              {showBalance && (<>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 13, overflow: 'hidden' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
                   <span>ΛΟΓΑΡΙΑΣΜΟΣ</span><span style={{ textAlign: 'right' }}>ΧΡΕΩΣΗ</span><span style={{ textAlign: 'right' }}>ΠΙΣΤΩΣΗ</span>
@@ -252,6 +257,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>Χρέωση <span style={{ fontWeight: 700, color: 'var(--text-tertiary)' }}>=</span> Πίστωση · {totals.balanced ? 'ισοσκελισμένο' : 'ασυμφωνία'}</span>
               </div>
+              </>)}
 
               {audit && (() => {
                 const toneVar = audit.tone === 'positive' ? 'var(--border-default)' : audit.tone === 'warning' ? 'var(--warning)' : 'var(--negative)';

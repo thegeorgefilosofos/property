@@ -59,7 +59,9 @@ const STATUS_META:Record<ReconStatus,{label:string;color:string}> = {
 
 // Κάρτα λογιστικής: καθαρή, ανασηκωμένη με σκιά (3D) αλλά ΧΩΡΙΣ λευκό περίγραμμα/
 // γυαλάδα (highlight-inset). Ήσυχο, Stripe/Apple αίσθηση, ομοιόμορφο σε όλο το tab.
-const card:React.CSSProperties = { position:'relative', background:'var(--surface-raised)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:16, boxShadow:'var(--elev-1)' }
+// Κάρτα: ΚΑΜΙΑ ορατή περίμετρος (το «λευκό γύρω γύρω»). Το βάθος/ζωντάνια έρχεται
+// αποκλειστικά από την ανασηκωμένη επιφάνεια + τη σκιά, όπως σε Apple/Stripe.
+const card:React.CSSProperties = { position:'relative', background:'var(--surface-raised)', border:'none', borderRadius:14, padding:16, boxShadow:'var(--elev-1)' }
 const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(--text-primary)', margin:'0 0 14px', fontFamily:"'Inter',sans-serif", letterSpacing:'0.1px' }
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος, αλλού ουδέτερο (χωρίς θόρυβο).
@@ -147,6 +149,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Live πύλη λογιστή (χωρίς login/email): ένας σύνδεσμος με token ανά χρήστη.
   const [acctCopied,setAcctCopied] = useState(false)
   const [acctBusy,setAcctBusy] = useState(false)
+  const [acctLink,setAcctLink] = useState<string|null>(null)
   useEffect(()=>{ try{
     const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'')
     const e=localStorage.getItem('acc_ekfa'); if(e) setEkfa(Number(e)||'')
@@ -385,8 +388,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       const token = (data as { token?:string } | null)?.token
       if(token){
         const url = `${window.location.origin}/accountant/${token}`
-        try{ await navigator.clipboard.writeText(url); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2600) }
-        catch{ window.prompt('Αντίγραψε τον σύνδεσμο για τον λογιστή σου:', url) }
+        setAcctLink(url)
+        try{ await navigator.clipboard.writeText(url); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2600) }catch{ /* ο σύνδεσμος φαίνεται πλέον στο πλαίσιο, ο χρήστης τον αντιγράφει χειροκίνητα */ }
       }
     } finally { setAcctBusy(false) }
   }
@@ -997,18 +1000,26 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:14 }}>
-            <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων & εξαγωγή CSV (Soft1/Epsilon/QuickBooks/Xero)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
+            <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων & εξαγωγή CSV (SoftOne/Epsilon/QuickBooks/Xero)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
               <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Ημερολόγιο άρθρων
             </button>
-            <button onClick={exportBundle} title="Φάκελος για τον λογιστή σε Excel, με κατάσταση αποτελεσμάτων και αναλυτικές κινήσεις" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
-              <Download size={13}/>Φάκελος Excel
+            <button onClick={exportBundle} title="Αναλυτικές κινήσεις εσόδων/εξόδων και κατάσταση αποτελεσμάτων, σε Excel για τον λογιστή" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
+              <Download size={13}/>Κινήσεις Excel
             </button>
-            <button onClick={shareWithAccountant} disabled={acctBusy} title="Δώσε στον λογιστή σου έναν σύνδεσμο με live εικόνα των ακινήτων σου, χωρίς login και χωρίς email" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:`1px solid ${acctCopied?'var(--positive)':'var(--border-default)'}`, background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:acctBusy?'wait':'pointer', fontFamily:"'Inter',sans-serif", transition:'color 0.15s, border-color 0.15s' }} onMouseEnter={e=>{ if(!acctCopied){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctCopied){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
-              {acctCopied
-                ? <><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Ο σύνδεσμος αντιγράφηκε</>
-                : <><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':'Μοίρασε live στον λογιστή'}</>}
+            <button onClick={shareWithAccountant} disabled={acctBusy} title="Δώσε στον λογιστή σου έναν ζωντανό σύνδεσμο με πλήρη εικόνα των ακινήτων σου, χωρίς login και χωρίς email" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:`1px solid ${acctLink?'var(--accent)':'var(--border-default)'}`, background:'var(--bg-surface)', color:acctLink?'var(--accent)':'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:acctBusy?'wait':'pointer', fontFamily:"'Inter',sans-serif", transition:'color 0.15s, border-color 0.15s' }} onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Μοίρασε live στον λογιστή'}
             </button>
           </div>
+          {acctLink && (
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, padding:'8px 8px 8px 12px', borderRadius:11, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexWrap:'wrap' }}>
+              <span style={{ display:'inline-flex', width:24, height:24, borderRadius:7, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', alignItems:'center', justifyContent:'center', color:'var(--text-tertiary)', flexShrink:0 }}>
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+              </span>
+              <input readOnly value={acctLink} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:150, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:12, fontFamily:"'Inter',sans-serif", outline:'none', textOverflow:'ellipsis' }} />
+              <button onClick={()=>{ try{ navigator.clipboard?.writeText(acctLink); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2000) }catch{ /* ignore */ } }} style={{ height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif", whiteSpace:'nowrap' }}>{acctCopied?'Αντιγράφηκε':'Αντιγραφή'}</button>
+              <a href={acctLink} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:5, height:28, padding:'0 13px', borderRadius:14, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, textDecoration:'none', fontFamily:"'Inter',sans-serif", whiteSpace:'nowrap' }}>Άνοιγμα πύλης<ArrowUpRight size={13}/></a>
+            </div>
+          )}
           <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
         </>))}
       </div>
