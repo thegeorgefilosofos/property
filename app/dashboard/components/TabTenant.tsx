@@ -1645,10 +1645,11 @@ function maintPhotoPath(stored:string):string {
   const i=stored.indexOf(marker);
   return i>=0 ? stored.slice(i+marker.length) : stored;
 }
-function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, notify }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; onRefresh:()=>void; notify:(m:string)=>void }) {
+function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefresh, notify }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; others:MaintenanceReq[]; onRefresh:()=>void; notify:(m:string)=>void }) {
   const supabase=createClient();
   const [busy,setBusy]=useState(false);
   const [assignFor,setAssignFor]=useState<string|null>(null);   // ποιο αίτημα αναθέτει σε συνεργείο
+  const [histOpen,setHistOpen]=useState(false);                 // ιστορικό ακινήτου (μαζεμένο)
   const [af,setAf]=useState({name:'',contact:''});
   // Signed URLs ανά αίτημα (id → λίστα προσωρινών URL). Το ιδιωτικό bucket
   // απαιτεί υπογραφή· η ανάγνωση περνά από την owns_portal_token SELECT policy.
@@ -1813,6 +1814,30 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Ιστορικό ακινήτου: αιτήματα από προηγούμενους ενοικιαστές ή χωρίς
+            ενοικιαστή, που αλλιώς δεν θα φαίνονταν πουθενά. Μαζεμένο by default. */}
+        {others.length>0&&(
+          <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:20, paddingTop:14 }}>
+            <button onClick={()=>setHistOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' as const, fontFamily:T.font.sans }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color:'var(--text-tertiary)', transform:histOpen?'rotate(90deg)':'none', transition:'transform 0.2s', flexShrink:0 }}><path d="M9 6l6 6-6 6"/></svg>
+              <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-secondary)' }}>Ιστορικό ακινήτου</span>
+              <span style={{ marginLeft:'auto', fontSize:11.5, color:'var(--text-tertiary)', fontWeight:600 }}>{others.length} {others.length===1?'αίτημα':'αιτήματα'}</span>
+            </button>
+            {histOpen&&(
+              <div style={{ marginTop:12, display:'flex', flexDirection:'column' as const, gap:6 }}>
+                {[...others].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).map(m=>(
+                  <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:10, background:'var(--bg-base)' }}>
+                    <span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:T.font.sans, fontVariantNumeric:'tabular-nums' as const, width:74, flexShrink:0 }}>{gdt(m.created_at)}</span>
+                    <span style={{ flex:1, minWidth:0, fontSize:12.5, color:'var(--text-primary)', fontFamily:T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{m.title}</span>
+                    {m.assignee_name&&<span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{m.assignee_name}</span>}
+                    <span style={{ fontSize:11, fontWeight:600, color:m.status==='done'?'var(--text-tertiary)':'var(--text-secondary)', fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{m.status==='done'?'Ολοκληρώθηκε':m.status==='in_progress'?'Σε εξέλιξη':'Νέο'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2360,7 +2385,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               {dossierTab==='condition'&&(
                 <div style={{ display:'flex', flexDirection:'column' }}>
                   <DamagesView tenant={dc} propertyId={propertyId} userId={userId} damages={dcDamages} onRefresh={fetch_}/>
-                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} onRefresh={fetch_} notify={notify}/></div>
+                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} others={dc?maint.filter(m=>m.tenant_id!==dc.id):maint} onRefresh={fetch_} notify={notify}/></div>
                 </div>
               )}
               {dossierTab==='legal'&&<LegalTaxView tenant={dc}/>}
