@@ -14,6 +14,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
 import Select from './Select';
+import { num } from './docUtils';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
@@ -35,7 +36,6 @@ type SectionKey = typeof SECTIONS[number]['key'];
 const PRESET_KEY = 'po_report_presets_v1';
 interface Preset { name: string; month: number; sections: SectionKey[]; propIds: string[] }
 
-const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 
 export default function ReportBuilder({ open, onClose, userId, supabase, branding }: {
   open: boolean; onClose: () => void; userId: string; supabase: SupabaseClient; branding?: ReportBranding | null;
