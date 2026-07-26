@@ -18,18 +18,13 @@ import DateField from './DateField';
 import Select from './Select';
 import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
+import { grDate, todayIso, num, archivePdfToProperty, askByVoice, speechSupported } from './docUtils';
 import { computeLease, leasePreamble, leaseTerms, type LeaseUse } from '@/lib/documents/lease';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, reportPdfBlob, pEur, type PdfReportModel } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
 
 interface Prop { id: string; name: string; address: string | null; sqm?: number | null; atak?: string | null }
-interface SpeechEvent { results?: { [i: number]: { [j: number]: { transcript?: string } } } }
-interface SpeechRec { lang: string; interimResults: boolean; continuous: boolean; maxAlternatives: number; start(): void; onresult: (e: SpeechEvent) => void; onerror: () => void; onend: () => void }
-
-const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
-const grDate = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? iso : d.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
-const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export default function LeaseModal({ open, onClose, userId, supabase, branding, propertyId }: {
   open: boolean; onClose: () => void; userId: string; supabase: SupabaseClient; branding?: ReportBranding | null; propertyId?: string;
@@ -157,20 +152,12 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
     if (!pending || !prop) return;
     setArchiving(true); setErr('');
     try {
-      const blob = await reportPdfBlob(pending.model);
-      const path = `${userId}/${prop.id}/document/${Date.now()}_${pending.fname}.pdf`;
-      const { error: upErr } = await supabase.storage.from('property-files').upload(path, blob, { upsert: false, contentType: 'application/pdf' });
-      if (upErr) throw upErr;
-      const base = {
-        property_id: prop.id, user_id: userId, kind: 'document', category: 'lease',
-        title: `Μισθωτήριο · ${tenant.trim()} · από ${grDate(res.start)}`.slice(0, 200),
+      await archivePdfToProperty({
+        supabase, userId, propertyId: prop.id, blob: await reportPdfBlob(pending.model), fileName: pending.fname,
+        title: `Μισθωτήριο · ${tenant.trim()} · από ${grDate(res.start)}`,
         notes: `Μίσθωμα ${pEur(res.monthlyRent)}${res.deposit > 0 ? `, εγγύηση ${pEur(res.deposit)}` : ''}, έως ${grDate(res.end)}`,
-        doc_date: res.start, file_path: path, file_name: `${pending.fname}.pdf`,
-        mime: 'application/pdf', size_bytes: blob.size,
-      };
-      let { error } = await supabase.from('property_documents').insert({ ...base, supplier: tenant.trim() || null });
-      if (error && /supplier/i.test(error.message)) ({ error } = await supabase.from('property_documents').insert(base));
-      if (error) throw error;
+        docDate: res.start, category: 'lease', supplier: tenant.trim(),
+      });
 
       // Ενημέρωση/δημιουργία ενοικιαστή από το υπογεγραμμένο συμφωνητικό.
       const payload = { full_name: tenant.trim(), afm: tenantAfm.trim() || null, monthly_rent: res.monthlyRent, deposit: res.deposit || null, lease_start: res.start, lease_end: res.end };
@@ -185,21 +172,8 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   };
 
   const answerByVoice = () => {
-    const SR = (globalThis as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec }).SpeechRecognition
-      || (globalThis as unknown as { webkitSpeechRecognition?: new () => SpeechRec }).webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = 'el-GR'; rec.interimResults = false; rec.continuous = false; rec.maxAlternatives = 1;
-    rec.onresult = (e: SpeechEvent) => {
-      const said = String(e.results?.[0]?.[0]?.transcript || '').toLowerCase();
-      setListening(false);
-      if (/(ναι|ναί|αποθήκευσ|σώσ|φύλαξ)/.test(said)) archive();
-      else if (/(όχι|οχι|αργότερα|αργοτερα|ίσως|ισως|άκυρο)/.test(said)) onClose();
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    setListening(true);
-    try { rec.start(); } catch { setListening(false); }
+    const started = askByVoice({ onYes: archive, onNo: onClose, onEnd: () => setListening(false) });
+    if (started) setListening(true);
   };
 
   const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
@@ -327,10 +301,10 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
             </div>
             {!archived && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
+                {speechSupported() && <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
                   style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
-                </button>
+                </button>}
                 <Btn variant="secondary" onClick={onClose}>Ίσως αργότερα</Btn>
                 <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
               </div>

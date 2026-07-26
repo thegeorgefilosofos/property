@@ -12,6 +12,7 @@ import { T, TT, Btn, Badge } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import Select from './Select';
 import ScanButton from './ScanButton';
+import { num } from './docUtils';
 import { computeSplit, type OwnerShare } from '@/lib/accounting/ownerSplit';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
@@ -19,7 +20,6 @@ import type { ReportBranding } from '@/lib/reportBranding';
 
 interface Prop { id: string; name: string; address: string | null }
 const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
-const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const LS = (pid: string) => `po_owner_split_${pid}`;
 
 interface Row { name: string; pct: string; afm: string }
