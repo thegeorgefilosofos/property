@@ -17,6 +17,7 @@ import {
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import LeaseModal from './LeaseModal';
+import { roleLabel } from '@/lib/contacts/roles';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { money as csvEur } from './xlsxStyle';
 import { brandName, useReportBranding } from '@/lib/reportBranding';
@@ -1670,10 +1671,35 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[photoSig]);
   const list=[...requests].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  // Αποθηκευμένοι τεχνικοί/συνεργεία του ακινήτου, για ανάθεση χωρίς πληκτρολόγηση.
+  const [savedContacts,setSavedContacts]=useState<{id:string;full_name:string;phone:string|null;email:string|null;role:string|null}[]>([]);
+  useEffect(()=>{ let alive=true;
+    supabase.from('contacts').select('id,full_name,phone,email,role').eq('property_id',propertyId).eq('user_id',userId).order('full_name')
+      .then(({data})=>{ if(alive) setSavedContacts((data||[]) as typeof savedContacts); });
+    return ()=>{ alive=false; };
+  },[propertyId,userId,supabase]);
+  // Ολοκλήρωση με κόστος: το ποσό γίνεται αυτόματα δαπάνη του ακινήτου.
+  const [doneFor,setDoneFor]=useState<string|null>(null);
+  const [doneCost,setDoneCost]=useState('');
   const setStatus=async(m:MaintenanceReq,status:string)=>{
     setBusy(true);
     await supabase.from('maintenance_requests').update({ status, resolved_at: status==='done'?new Date().toISOString():null }).eq('id',m.id);
     setBusy(false); onRefresh(); notify('Το αίτημα ενημερώθηκε');
+  };
+  // Ολοκλήρωση εργασίας: σημειώνεται «done» και, αν δοθεί κόστος, καταχωρείται
+  // δαπάνη ώστε να μπει αυτόματα στη λογιστική εικόνα του ακινήτου.
+  const completeWithCost=async(m:MaintenanceReq)=>{
+    const cost=parseFloat(String(doneCost).replace(',','.'));
+    setBusy(true);
+    await supabase.from('maintenance_requests').update({ status:'done', resolved_at:new Date().toISOString() }).eq('id',m.id);
+    if(Number.isFinite(cost)&&cost>0){
+      await supabase.from('expenses').insert({
+        property_id:propertyId, user_id:userId, amount:cost, date:todayISO(),
+        category:'maintenance', description:[m.title,m.assignee_name].filter(Boolean).join(' · ').slice(0,120),
+      });
+    }
+    setBusy(false); setDoneFor(null); setDoneCost(''); onRefresh();
+    notify(Number.isFinite(cost)&&cost>0?'Ολοκληρώθηκε και καταχωρήθηκε στις δαπάνες':'Ολοκληρώθηκε');
   };
   const toDamage=async(m:MaintenanceReq)=>{
     setBusy(true);
@@ -1740,16 +1766,44 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
                         <TextInput label="Συνεργείο / Τεχνικός" value={af.name} onChange={v=>setAf(a=>({...a,name:v}))} placeholder="π.χ. Υδραυλικός Παπαδόπουλος"/>
                         <TextInput label="Τηλέφωνο / Email" value={af.contact} onChange={v=>setAf(a=>({...a,contact:v}))} placeholder="69XXXXXXXX"/>
                       </div>
+                      {savedContacts.length>0&&(
+                        <div style={{ marginBottom:10 }}>
+                          <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginBottom:6 }}>Από τις επαφές σου</div>
+                          <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
+                            {savedContacts.slice(0,8).map(c=>(
+                              <button key={c.id} onClick={()=>setAf({ name:c.full_name||'', contact:c.phone||c.email||'' })}
+                                style={{ ...s.btnGhost, padding:'6px 11px', fontSize:11 }}>
+                                {c.full_name}{c.role?` · ${roleLabel(c.role)}`:''}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
                         <button style={s.btnGhost} onClick={()=>setAssignFor(null)}>Ακύρωση</button>
                         <button style={s.btnGold} disabled={busy} onClick={()=>saveAssign(m)}>Αποθήκευση</button>
                       </div>
                     </div>
                   )}
+                  {doneFor===m.id&&(
+                    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:14, marginBottom:10 }}>
+                      <div style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.55, marginBottom:10 }}>
+                        Κόστος εργασίας; Αν το συμπληρώσεις, καταχωρείται αυτόματα στις δαπάνες του ακινήτου.
+                      </div>
+                      <div style={{ display:'flex', gap:8, alignItems:'flex-end', flexWrap:'wrap' as const }}>
+                        <div style={{ width:150 }}>
+                          <TextInput label="Κόστος (€)" value={doneCost} onChange={setDoneCost} placeholder="Προαιρετικό"/>
+                        </div>
+                        <div style={{ flex:1 }}/>
+                        <button style={s.btnGhost} onClick={()=>setDoneFor(null)}>Ακύρωση</button>
+                        <button style={s.btnGold} disabled={busy} onClick={()=>completeWithCost(m)}>Ολοκλήρωση</button>
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
                     {m.status!=='new'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'new')}>Νέο</button>}
                     {m.status!=='in_progress'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'in_progress')}>Σε εξέλιξη</button>}
-                    {m.status!=='done'&&<button style={s.btnSm} disabled={busy} onClick={()=>setStatus(m,'done')}>Ολοκληρώθηκε</button>}
+                    {m.status!=='done'&&<button style={s.btnSm} disabled={busy} onClick={()=>{ setDoneFor(m.id); setDoneCost(''); }}>Ολοκληρώθηκε</button>}
                     <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>openAssign(m)}>{(m.assignee_name||m.assignee_contact)?'Ανάθεση':'Ανάθεση σε συνεργείο'}</button>
                     {m.assignee_contact&&normalizePhone(m.assignee_contact).length>=10&&<a href={whatsappLink(msgDigits(m.assignee_contact),contractorText(m))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp συνεργείου</a>}
                     {m.assignee_contact&&m.assignee_contact.includes('@')&&<a href={`mailto:${m.assignee_contact}?subject=${encodeURIComponent('Εργασία: '+m.title)}&body=${encodeURIComponent(contractorText(m))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Email συνεργείου</a>}
