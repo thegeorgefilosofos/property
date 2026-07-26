@@ -16,6 +16,7 @@ import {
 } from './UIComponents';
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
+import LeaseModal from './LeaseModal';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { money as csvEur } from './xlsxStyle';
 import { brandName, useReportBranding } from '@/lib/reportBranding';
@@ -1832,6 +1833,9 @@ type DossierTab='overview'|'lease'|'condition'|'legal'|'comm'|'docs';
 
 export default function TabTenant({ propertyId, userId, onStartHandover }:TabTenantProps) {
   const supabase=createClient();
+  const branding=useReportBranding(userId);
+  // Ψηφιακό μισθωτήριο: σύνταξη, υπογραφή και των δύο μερών, επαληθεύσιμο PDF.
+  const [leaseOpen,setLeaseOpen]=useState(false);
   const [tenants,setTenants]=useState<Tenant[]>([]);
   const [payments,setPayments]=useState<RentPayment[]>([]);
   const [damages,setDamages]=useState<TenantDamage[]>([]);
@@ -2150,6 +2154,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       <PageTitle title="Ενοικιαστής" sub="Μητρώο ενοικιαστών του ακινήτου: τρέχων και ιστορικοί, με πλήρες ντοσιέ ανά μίσθωση."
         right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
           <ExportButton onClick={exportRoster}/>
+          <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Μισθωτήριο</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
         </div>:undefined}/>
 
@@ -2166,7 +2171,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       </div>
 
       {tenants.length===0?(
-        <EmptyState title="Κανένας ενοικιαστής ακόμη" hint="Πρόσθεσε τον ενοικιαστή του ακινήτου για πλήρη παρακολούθηση μίσθωσης, ενοικίων, εγγύησης, φθορών και ανανέωσης." action={<Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>}/>
+        <EmptyState title="Κανένας ενοικιαστής ακόμη" hint="Πρόσθεσε τον ενοικιαστή του ακινήτου για πλήρη παρακολούθηση μίσθωσης, ενοικίων, εγγύησης, φθορών και ανανέωσης." action={<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, justifyContent:'center' }}><Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn><Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Σύνταξη μισθωτηρίου</Btn></div>}/>
       ):(
         <>
           {filtered.length===0?(
@@ -2632,6 +2637,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
           </div>
         </div>
       )}
+
+      <LeaseModal open={leaseOpen} onClose={()=>setLeaseOpen(false)} userId={userId} supabase={supabase} branding={branding} propertyId={propertyId} />
     </div>
   );
 }
