@@ -208,7 +208,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   };
   // Ουδέτερη επιλογή: η κάρτα μένει ήρεμη· μόνο το κουτάκι ελέγχου παίρνει accent.
   const pill = (on: boolean): React.CSSProperties => ({
-    fontSize: 12, fontWeight: 600, padding: '11px 13px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+    fontSize: 12, fontWeight: 600, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
     border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
     background: 'var(--bg-surface)', color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans,
     transition: 'border-color 0.15s, background 0.15s',
@@ -229,7 +229,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
         </div>
 
-        <div style={{ padding: '18px 24px 22px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ padding: '18px 24px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 15 }}>
           {presets.length > 0 && (
             <div>
               <div style={{ ...TT.label, marginBottom: 8 }}>ΑΠΟΘΗΚΕΥΜΕΝΑ ΠΡΟΦΙΛ</div>

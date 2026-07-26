@@ -324,13 +324,26 @@ export function buildDocDefinition(model: PdfReportModel): Node {
   };
 }
 
-/** Client-side: φορτώνει pdfmake δυναμικά και κατεβάζει το αρχείο. */
-export async function generateReportPdf(model: PdfReportModel, filename: string): Promise<void> {
+async function loadPdfMake(): Promise<Node> {
   const pdfMakeMod: Node = await import('pdfmake/build/pdfmake');
   const vfsMod: Node = await import('pdfmake/build/vfs_fonts');
   const pdfMake: Node = pdfMakeMod.default || pdfMakeMod;
-  const vfs = vfsMod.vfs || (vfsMod.default && (vfsMod.default.vfs || vfsMod.default)) || (vfsMod.pdfMake && vfsMod.pdfMake.vfs);
-  pdfMake.vfs = vfs;
+  pdfMake.vfs = vfsMod.vfs || (vfsMod.default && (vfsMod.default.vfs || vfsMod.default)) || (vfsMod.pdfMake && vfsMod.pdfMake.vfs);
+  return pdfMake;
+}
+
+/** Client-side: φορτώνει pdfmake δυναμικά και κατεβάζει το αρχείο. */
+export async function generateReportPdf(model: PdfReportModel, filename: string): Promise<void> {
+  const pdfMake = await loadPdfMake();
   const safe = filename.replace(/\.pdf$/i, '') + '.pdf';
   pdfMake.createPdf(buildDocDefinition(model)).download(safe);
+}
+
+/** Ίδιο PDF, αλλά ως Blob — για αρχειοθέτηση στα έγγραφα του ακινήτου. */
+export async function reportPdfBlob(model: PdfReportModel): Promise<Blob> {
+  const pdfMake = await loadPdfMake();
+  return new Promise<Blob>((resolve, reject) => {
+    try { pdfMake.createPdf(buildDocDefinition(model)).getBlob((b: Blob) => resolve(b)); }
+    catch (e) { reject(e instanceof Error ? e : new Error('pdf')); }
+  });
 }

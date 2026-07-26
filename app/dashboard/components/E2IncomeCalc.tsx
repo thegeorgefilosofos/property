@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, Btn } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
+import Select from './Select';
 import { runE2Export } from './e2Export';
 
 // ── Κλίμακα ενοικίων 2026: νέος ενδιάμεσος 25% στα 12.000–24.000 ──────────────
@@ -49,9 +50,12 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
   }, [e2Rent, e2Deductible]);
 
   const lbl = { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans } as const;
-  const inp = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, height: 42, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans } as const;
-  const card = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20 } as const;
-  const cardGap = { ...card, marginBottom: 16 };
+  const inp = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, height: 40, padding: '0 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, transition: 'border-color 0.14s' } as const;
+  // Κάρτα ίδια με το υπόλοιπο app: ανασηκωμένη επιφάνεια + σκιά, ΚΑΜΙΑ ορατή περίμετρος.
+  const card = { position: 'relative', background: 'var(--surface-raised)', border: 'none', borderRadius: 14, padding: 16, boxShadow: 'var(--elev-1)' } as const;
+  const cardGap = { ...card, marginBottom: 14 };
+  // Εσωτερικά πάνελ: βαθουλωτά (bg-base), χωρίς περίγραμμα — καθαρό inset.
+  const panel = { background: 'var(--bg-base)', borderRadius: 12, padding: 13 } as const;
   const sectionTitle = (t: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div style={{ fontFamily: T.font.sans, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontWeight: 700 }}>{t}</div>
@@ -63,11 +67,9 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
       <div style={cardGap}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           {sectionTitle('Εκτίμηση Φόρου Εισοδήματος Ακινήτων')}
-          <select value={e2Year} onChange={e => setE2Year(e.target.value)}
-            style={{ ...inp, width: 'auto', height: 36, padding: '0 12px', fontSize: 12 }}>
-            {[new Date().getFullYear() - 1, new Date().getFullYear() - 2, new Date().getFullYear() - 3]
-              .map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <div style={{ width: 104, flexShrink: 0 }}>
+            <Select value={e2Year} onChange={setE2Year} options={[new Date().getFullYear() - 1, new Date().getFullYear() - 2, new Date().getFullYear() - 3].map(y => ({ value: String(y), label: String(y) }))} />
+          </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 16 }}>
           <div>
@@ -93,14 +95,14 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
                   { label: 'Φόρος', value: fe(e2Result.tax), tone: 'negative' },
                   { label: 'Καθαρό/μήνα', value: fe(e2Result.netAfterTax / 12), tone: 'accent' },
                 ].map((k, i) => (
-                  <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
+                  <div key={i} className="po-fig-card" tabIndex={0} style={{ ...panel, padding: '11px 13px' }}>
                     <div className="po-fig" data-tone={k.tone} style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 3 }}>{k.value}</div>
                     <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)' }}>{k.label}</div>
                   </div>
                 ))}
               </div>
               {/* Bracket breakdown */}
-              <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 14 }}>
+              <div style={panel}>
                 {sectionTitle('Κλιμάκωση')}
                 {e2Result.breakdown.map((b, i) => (
                   <div key={i} style={{ marginBottom: 10 }}>
@@ -124,7 +126,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
 
             {/* Right: E2 codes + deadlines */}
             <div>
-              <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+              <div style={{ ...panel, marginBottom: 14 }}>
                 {sectionTitle('Κωδικοί Ε2, Τι να γράψεις')}
                 {[
                   { code: 'Κωδ. 101', label: 'Ακαθάριστα Μισθώματα', value: fe(parseFloat(e2Rent) || 0), color: 'var(--text-primary)' },
@@ -143,7 +145,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
                 ))}
               </div>
 
-              <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+              <div style={{ ...panel, marginBottom: 14 }}>
                 {sectionTitle('Σημαντικές Προθεσμίες')}
                 {[
                   { label: 'Υποβολή Ε1/Ε2', desc: '30 Ιουνίου κάθε χρόνο', color: 'var(--text-primary)' },
@@ -160,7 +162,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
               </div>
 
               <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer" title="ΑΑΔΕ — Ανεξάρτητη Αρχή Δημοσίων Εσόδων"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500 }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 13px', background: 'var(--bg-base)', borderRadius: 12, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
                 AADE.gr, Φορολογία Ακινήτων
               </a>
