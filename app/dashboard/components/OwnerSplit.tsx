@@ -33,6 +33,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   const [year, setYear] = useState(nowYear);
   const [month, setMonth] = useState(0);
   const [rows, setRows] = useState<Row[]>([{ name: '', pct: '', afm: '' }]);
+  const [hoverRow, setHoverRow] = useState<number | null>(null);
   const [feePct, setFeePct] = useState('');
   const [managerName, setManagerName] = useState('');
   const [figures, setFigures] = useState<{ gross: number; expenses: number } | null>(null);
@@ -163,7 +164,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
               <div>
                 <div style={{ ...TT.label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Ιδιοκτήτες και ποσοστά<InfoHint>Πρόσθεσε κάθε συνιδιοκτήτη με το ποσοστό ιδιοκτησίας του. Τα ποσοστά πρέπει να αθροίζουν στο 100%. Το ΑΦΜ είναι προαιρετικό και εμφανίζεται στην επίσημη κατάσταση.</InfoHint></div>
                 <div style={{ marginBottom: 10 }}>
-                  <ScanButton label="Σάρωσε έγγραφο" hint="Από τίτλο ή συμβόλαιο: ονόματα, ΑΦΜ και ποσοστά συνιδιοκτησίας." onExtract={doc => {
+                  <ScanButton label="Σάρωσε έγγραφο" hint="Γρήγορη καταχώρηση στοιχείων." onExtract={doc => {
                     const ex = (doc.owners || []).filter(o => o?.name);
                     if (ex.length) setRows(ex.map(o => ({ name: o.name || '', afm: o.afm || '', pct: o.pct != null ? String(o.pct) : '' })));
                     else if (doc.landlord_name) setRows([{ name: doc.landlord_name, afm: doc.afm || '', pct: '' }]);
@@ -171,14 +172,19 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {rows.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    // Η αφαίρεση εμφανίζεται μόνο όταν υπάρχουν πολλοί ιδιοκτήτες, και
+                    // μόνο όταν ο κέρσορας/δάχτυλο περνά πάνω από τη γραμμή (ήσυχο UI).
+                    <div key={i} onMouseEnter={() => setHoverRow(i)} onMouseLeave={() => setHoverRow(null)} onFocusCapture={() => setHoverRow(i)}
+                      style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
                       <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
                       <div style={{ position: 'relative', flex: '0 0 92px' }}>
-                        <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 28, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
-                        <span style={{ position: 'absolute', right: 12, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
+                        <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                        <span style={{ position: 'absolute', right: 13, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
                       </div>
-                      <button onClick={() => delRow(i)} disabled={rows.length === 1} title="Αφαίρεση" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: rows.length === 1 ? 'default' : 'pointer', fontSize: 18, lineHeight: 1, padding: 4, opacity: rows.length === 1 ? 0.3 : 1 }}>×</button>
+                      <button onClick={() => delRow(i)} aria-label="Αφαίρεση ιδιοκτήτη" title="Αφαίρεση"
+                        style={{ width: 26, flexShrink: 0, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, visibility: rows.length > 1 && hoverRow === i ? 'visible' : 'hidden', transition: 'opacity 0.14s' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--negative)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)'; }}>×</button>
                     </div>
                   ))}
                 </div>
@@ -190,8 +196,8 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                 <div style={{ flex: '1 1 160px' }}>
                   <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
                   <div style={{ position: 'relative' }}>
-                    <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 68, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
-                    <span style={{ position: 'absolute', right: 12, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none' }}>% εσόδων</span>
+                    <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                    <span style={{ position: 'absolute', right: 13, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>% εσόδων</span>
                   </div>
                 </div>
                 <div style={{ flex: '2 1 200px' }}>

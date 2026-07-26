@@ -194,7 +194,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
         <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
             <>
-              <ScanButton label="Σάρωσε έγγραφο" hint="Από μισθωτήριο: μισθωτή, μίσθωμα και εκμισθωτή." onExtract={doc => {
+              <ScanButton label="Σάρωσε έγγραφο" hint="Γρήγορη καταχώρηση στοιχείων." onExtract={doc => {
                 if (doc.tenant_name) setTenant(doc.tenant_name);
                 if (doc.monthly_rent) setCurrentRent(String(doc.monthly_rent));
                 if (doc.landlord_name && !ownerName.trim()) setOwnerName(doc.landlord_name);
