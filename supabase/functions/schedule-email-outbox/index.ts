@@ -30,7 +30,7 @@ const TZ = 'Europe/Athens'
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
 const titleOf = (copyId: string): string => {
-  try { return ({ ...CATALOG, ...DIGESTS })[copyId]?.({ appUrl: 'https://property-os.gr' })?.subject || copyId } catch { return copyId }
+  try { return ({ ...CATALOG, ...DIGESTS })[copyId]?.({ appUrl: 'https://propertyos.gr' })?.subject || copyId } catch { return copyId }
 }
 
 async function authorized(req: Request): Promise<boolean> {

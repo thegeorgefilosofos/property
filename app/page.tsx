@@ -17,7 +17,7 @@ const OG_TITLE = 'Property OS · Διαχείριση ακινήτων με μί
 const OG_DESC = 'Σάρωσε λογαριασμό, μισθωτήριο ή ασφαλιστήριο και καταχωρείται αυτόματα εκεί που πρέπει. Ρώτα τον βοηθό με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, σε μία οθόνη.';
 
 export const metadata = {
-  metadataBase: new URL('https://property-os.gr'),
+  metadataBase: new URL('https://propertyos.gr'),
   title: OG_TITLE,
   description: OG_DESC,
   openGraph: { title: OG_TITLE, description: OG_DESC, type: 'website', locale: 'el_GR', siteName: 'Property OS' },

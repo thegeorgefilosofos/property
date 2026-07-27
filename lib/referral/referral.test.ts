@@ -21,7 +21,7 @@ ok(referralCode(uid) === referralCode(uid), 'κωδικός ντετερμινι
 ok(/^PO[0-9A-Z]{7}$/.test(referralCode(uid)), 'κωδικός σε μορφή (PO + 7, χωρίς απώλεια ψηφίων)');
 ok(referralCode(uid).length === 9, 'κωδικός σταθερού μήκους 9');
 ok(referralCode(uid) !== referralCode('other'), 'διαφορετικοί χρήστες → διαφορετικοί κωδικοί');
-ok(referralLink('https://property-os.gr/', uid) === `https://property-os.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
+ok(referralLink('https://propertyos.gr/', uid) === `https://propertyos.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
 
 // ── Εγκυρότητα ──
 ok(isValidReferral('A', 'B', true) === true, 'έγκυρη');

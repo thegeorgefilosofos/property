@@ -41,7 +41,7 @@ const draw = (text: string, opts?: Parameters<typeof drawQrToCanvas>[2]) => {
 
 // ── Ζωγραφίζει κάτι, και το φόντο μπαίνει πρώτο ────────────────────────────
 {
-  const { rects, dark } = draw('https://property-os.gr')
+  const { rects, dark } = draw('https://propertyos.gr')
   ok('ζωγραφίζει φόντο πρώτα', rects.length > 0 && rects[0].fill === '#ffffff')
   ok('ζωγραφίζει σκούρα modules', dark.length > 20)
   ok('τα modules είναι στο χρώμα προσκηνίου', dark.every(r => r.fill === '#0d1b2e'))
@@ -71,7 +71,7 @@ const draw = (text: string, opts?: Parameters<typeof drawQrToCanvas>[2]) => {
 // ── Το περιεχόμενο επηρεάζει το αποτέλεσμα (δεν επιστρέφει σταθερό πλέγμα) ─
 {
   const a = draw('ΑΑΑ').dark.length
-  const b = draw('https://property-os.gr/portal/abc123def456').dark.length
+  const b = draw('https://propertyos.gr/portal/abc123def456').dark.length
   ok('διαφορετικό κείμενο → διαφορετικό QR', a !== b)
   ok('μεγαλύτερο κείμενο → περισσότερα modules', b > a)
 }

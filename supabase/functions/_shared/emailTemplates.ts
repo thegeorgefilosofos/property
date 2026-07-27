@@ -19,7 +19,7 @@ const ACCENT = '#1a73e8';
 const INK = '#111111';
 const MUTE = '#5f6368';
 const FAINT = '#80868b';
-const DEFAULT_APP = 'https://property-os.gr';
+const DEFAULT_APP = 'https://propertyos.gr';
 
 // Η φωνή του προϊόντος: το tagline της landing, υπογραφή σε ΚΑΘΕ email (ομοιομορφία + brand awareness).
 export const BRAND_TAGLINE = 'Το ακίνητό σου, υπό έλεγχο.';

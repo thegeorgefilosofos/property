@@ -23,7 +23,7 @@ import { authorizeCron } from '../_shared/auth.ts'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET  = Deno.env.get('LIFECYCLE_CRON_SECRET') || ''
-const APP_URL      = Deno.env.get('APP_URL') || 'https://property-os.gr'
+const APP_URL      = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 const VIBER_TOKEN    = Deno.env.get('VIBER_TOKEN') || ''
 const WHATSAPP_TOKEN = Deno.env.get('WHATSAPP_TOKEN') || ''
 const WHATSAPP_PHONE = Deno.env.get('WHATSAPP_PHONE_ID') || ''

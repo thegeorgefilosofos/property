@@ -42,11 +42,11 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
           <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px' }}>Διαχειρίζεσαι μεγάλο χαρτοφυλάκιο</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
             Το πλάνο Επαγγελματίας καλύπτει έως {PLANS.agency.maxProperties} ακίνητα και τα έχεις ήδη συμπληρώσει.
-            Για περισσότερα, στήνουμε πλάνο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>support@property-os.gr</strong> και απαντάμε την ίδια ημέρα.
+            Για περισσότερα, στήνουμε πλάνο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>support@propertyos.gr</strong> και απαντάμε την ίδια ημέρα.
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Κλείσιμο</button>
-            <a href="mailto:support@property-os.gr?subject=Χαρτοφυλάκιο%20άνω%20των%20ακινήτων%20του%20πλάνου"
+            <a href="mailto:support@propertyos.gr?subject=Χαρτοφυλάκιο%20άνω%20των%20ακινήτων%20του%20πλάνου"
               style={{ height: 44, padding: '0 24px', borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Επικοινώνησε μαζί μας</a>
           </div>
         </div>
