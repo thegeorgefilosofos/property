@@ -74,7 +74,12 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
           const dabs = Math.abs(o.daysUntil);
           const badge = overdue ? `${dabs} ${dabs === 1 ? 'ημέρα' : 'ημέρες'} πριν` : o.daysUntil === 0 ? 'Σήμερα' : `σε ${o.daysUntil} ${o.daysUntil === 1 ? 'ημέρα' : 'ημέρες'}`;
           return (
-            <div key={o.id} onClick={() => onNavigate(o.category === 'financial' ? 'settings' : o.category === 'contract' ? 'tenant' : o.category === 'maintenance' ? 'inventory' : 'calendar')}
+            <div key={o.id} onClick={() => {
+                onNavigate(o.category === 'financial' ? 'settings' : o.category === 'contract' ? 'tenant' : o.category === 'maintenance' ? 'inventory' : 'calendar');
+                // Λήξη μίσθωσης: άνοιξε κατευθείαν το μισθωτήριο για ανανέωση, αντί να
+                // αφήσει τον χρήστη να το ψάξει μόνος του στην καρτέλα.
+                if (o.id === 'lease_end') setTimeout(() => window.dispatchEvent(new CustomEvent('pos:lease')), 60);
+              }}
               style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', cursor: 'pointer' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-subtle)', marginTop: 6, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>

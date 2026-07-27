@@ -1915,6 +1915,13 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   const branding=useReportBranding(userId);
   // Ψηφιακό μισθωτήριο: σύνταξη, υπογραφή και των δύο μερών, επαληθεύσιμο PDF.
   const [leaseOpen,setLeaseOpen]=useState(false);
+  // Η υπενθύμιση «Λήξη σύμβασης μίσθωσης» (Υποχρεώσεις) ανοίγει το μισθωτήριο
+  // κατευθείαν για ανανέωση — ίδιο μοτίβο event με τον βοηθό.
+  useEffect(()=>{
+    const open=()=>setLeaseOpen(true);
+    window.addEventListener('pos:lease',open);
+    return ()=>window.removeEventListener('pos:lease',open);
+  },[]);
   const [tenants,setTenants]=useState<Tenant[]>([]);
   const [payments,setPayments]=useState<RentPayment[]>([]);
   const [damages,setDamages]=useState<TenantDamage[]>([]);
