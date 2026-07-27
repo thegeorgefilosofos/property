@@ -30,20 +30,23 @@ export function downloadJournalWorkbook(opts: {
 
   // ── Φύλλο 1: Ημερολόγιο ────────────────────────────────────────────────────
   {
-    const NC = 8, HR = 3;
-    const header = ['Άρθρο', 'Ημ/νία', 'Κωδικός', 'Λογαριασμός', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Παραστατικό'];
+    const NC = 9, HR = 3;
+    // Στήλες Χρέωσης/Πίστωσης (0-indexed) — μία πηγή αλήθειας, ώστε η προσθήκη
+    // στήλης να μη «σπάει» φόρμουλες/στυλ παρακάτω.
+    const CD = 6, CC = 7;
+    const header = ['Άρθρο', 'Ημ/νία', 'Κωδικός', 'Λογαριασμός', 'Αιτιολογία', 'Ακίνητο', 'Χρέωση', 'Πίστωση', 'Παραστατικό'];
     const data: Cell['v'][][] = lines.map((l, i) => [
-      l.art ?? (i + 1), toDate(l.date), l.code, l.account, l.description,
+      l.art ?? (i + 1), toDate(l.date), l.code, l.account, l.description, l.property || '',
       l.debit || '', l.credit || '', l.doc || '',
     ]);
     const aoa: (string | number | Date)[][] = [
       [`ΛΟΓΙΣΤΙΚΟ ΗΜΕΡΟΛΟΓΙΟ · ${periodLabel}`], [idLine], [],
       header, ...data as (string | number | Date)[][],
-      ['', '', '', '', 'ΣΥΝΟΛΑ', '', '', ''],
-      ['', '', '', '', 'Έλεγχος ισοζυγίου', '', '', ''],
+      ['', '', '', '', '', 'ΣΥΝΟΛΑ', '', '', ''],
+      ['', '', '', '', '', 'Έλεγχος ισοζυγίου', '', '', ''],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
-    ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 11 }, { wch: 34 }, { wch: 46 }, { wch: 15 }, { wch: 15 }, { wch: 16 }];
+    ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 11 }, { wch: 32 }, { wch: 42 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 16 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
 
@@ -62,33 +65,34 @@ export function downloadJournalWorkbook(opts: {
       setCell(ws, r, 2, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });  // Κωδικός
       setCell(ws, r, 3, { s: S.txt });                                                    // Λογαριασμός
       setCell(ws, r, 4, { s: S.txtWrap });                                                // Αιτιολογία
-      for (const c of [5, 6]) {                                                           // Χρέωση/Πίστωση — αριθμοί € με φόρμουλα-ready
+      setCell(ws, r, 5, { s: S.txt });                                                    // Ακίνητο (κέντρο κόστους)
+      for (const c of [CD, CC]) {                                                         // Χρέωση/Πίστωση — αριθμοί € με φόρμουλα-ready
         const cell = ws[A1(r, c)] as Cell | undefined;
         if (cell && typeof cell.v === 'number') setCell(ws, r, c, { t: 'n', z: FMT.eur, s: S.num });
         else setCell(ws, r, c, { s: S.num });
       }
-      setCell(ws, r, 7, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });  // Παραστατικό
+      setCell(ws, r, 8, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });  // Παραστατικό
     }
 
     // Σύνολα ως ΖΩΝΤΑΝΕΣ φόρμουλες SUM (recalc στο άνοιγμα· cached v για viewers).
     const t = journalTotals(lines);
-    for (let c = 0; c < 5; c++) setCell(ws, totalR, c, { s: S.totTxt });
-    const dRange = `${A1(HR + 1, 5)}:${A1(lastData, 5)}`;
-    const cRange = `${A1(HR + 1, 6)}:${A1(lastData, 6)}`;
-    setCell(ws, totalR, 5, { t: 'n', f: `SUM(${dRange})`, v: t.debit, z: FMT.eur, s: S.totNum });
-    setCell(ws, totalR, 6, { t: 'n', f: `SUM(${cRange})`, v: t.credit, z: FMT.eur, s: S.totNum });
-    setCell(ws, totalR, 7, { s: S.totTxt });
+    for (let c = 0; c < CD; c++) setCell(ws, totalR, c, { s: S.totTxt });
+    const dRange = `${A1(HR + 1, CD)}:${A1(lastData, CD)}`;
+    const cRange = `${A1(HR + 1, CC)}:${A1(lastData, CC)}`;
+    setCell(ws, totalR, CD, { t: 'n', f: `SUM(${dRange})`, v: t.debit, z: FMT.eur, s: S.totNum });
+    setCell(ws, totalR, CC, { t: 'n', f: `SUM(${cRange})`, v: t.credit, z: FMT.eur, s: S.totNum });
+    setCell(ws, totalR, 8, { s: S.totTxt });
 
     // Έλεγχος ισοζυγίου ως φόρμουλα IF (πράσινο/κόκκινο ανάλογα με το αποτέλεσμα).
-    for (let c = 0; c < 5; c++) setCell(ws, checkR, c, { s: S.strongTxt });
+    for (let c = 0; c < CD; c++) setCell(ws, checkR, c, { s: S.strongTxt });
     const balOk = t.balanced;
-    setCell(ws, checkR, 5, {
+    setCell(ws, checkR, CD, {
       t: 's',
-      f: `IF(ROUND(${A1(totalR, 5)}-${A1(totalR, 6)},2)=0,"✓ ΙΣΟΣΚΕΛΙΣΜΕΝΟ","⚠ ΑΣΥΜΦΩΝΙΑ")`,
+      f: `IF(ROUND(${A1(totalR, CD)}-${A1(totalR, CC)},2)=0,"✓ ΙΣΟΣΚΕΛΙΣΜΕΝΟ","⚠ ΑΣΥΜΦΩΝΙΑ")`,
       v: balOk ? '✓ ΙΣΟΣΚΕΛΙΣΜΕΝΟ' : '⚠ ΑΣΥΜΦΩΝΙΑ',
       s: { ...S.strongTxt, alignment: { horizontal: 'left', vertical: 'center' }, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: balOk ? '027A48' : 'B42318' } } },
     });
-    if (ws['!merges']) ws['!merges'].push({ s: { r: checkR, c: 5 }, e: { r: checkR, c: 7 } });
+    if (ws['!merges']) ws['!merges'].push({ s: { r: checkR, c: CD }, e: { r: checkR, c: 8 } });
 
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     ws['!freeze'] = { xSplit: 0, ySplit: HR + 1, topLeftCell: A1(HR + 1, 0), activePane: 'bottomLeft', state: 'frozen' };

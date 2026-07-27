@@ -17,6 +17,7 @@ import Select from './Select';
 import { num } from './docUtils';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
+import { downloadPortfolioComparison, type PortfolioRow } from './portfolioXlsx';
 import type { ReportBranding } from '@/lib/reportBranding';
 
 interface Prop { id: string; name: string; address: string | null }
@@ -50,6 +51,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [xlsxBusy, setXlsxBusy] = useState(false);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -201,6 +203,38 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     } finally { setBusy(false); }
   };
 
+  // ── Συγκριτικό Excel χαρτοφυλακίου ──────────────────────────────────────────
+  // Παραθέτει τα επιλεγμένα ακίνητα δίπλα-δίπλα (αναμενόμενα, εισπράξεις,
+  // ανείσπρακτα, δαπάνες, καθαρό, ποσοστό είσπραξης) με ζωντανά σύνολα.
+  const generateComparison = async () => {
+    setErr('');
+    if (selProps.length < 2) { setErr('Το συγκριτικό Excel χρειάζεται τουλάχιστον δύο ακίνητα.'); return; }
+    setXlsxBusy(true);
+    try {
+      const ids = selProps.map(p => p.id);
+      let rentQ = supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid').in('property_id', ids).eq('period_year', year);
+      if (month > 0) rentQ = rentQ.eq('period_month', month);
+      const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
+      const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
+      const [{ data: rentData }, { data: expData }] = await Promise.all([
+        rentQ,
+        supabase.from('expenses').select('property_id,date,amount,category').in('property_id', ids).gte('date', from).lte('date', to),
+      ]);
+      const rents = (rentData || []) as RentRow[];
+      const exps = (expData || []) as ExpRow[];
+      const rows: PortfolioRow[] = selProps.map(p => ({
+        name: p.name,
+        expected: rents.filter(r => r.property_id === p.id).reduce((s, r) => s + num(r.amount), 0),
+        collected: rents.filter(r => r.property_id === p.id).reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0),
+        expenses: exps.filter(x => x.property_id === p.id).reduce((s, x) => s + num(x.amount), 0),
+      }));
+      downloadPortfolioComparison({ rows, periodLabel });
+      onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας Excel.');
+    } finally { setXlsxBusy(false); }
+  };
+
   // ── Στυλ (ίδια premium γλώσσα με το Λογιστικό ημερολόγιο) ────────────────────
   const field: React.CSSProperties = {
     height: 38, padding: '0 13px', borderRadius: 9, border: '1px solid var(--border-default)',
@@ -300,7 +334,10 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           <span style={{ ...TT.bodySm, display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{selProps.length} {selProps.length === 1 ? 'ακίνητο' : 'ακίνητα'} · {periodLabel} <Badge tone="neutral">Επαληθεύσιμο PDF</Badge></span>
           <div style={{ display: 'flex', gap: 8 }}>
             <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
-            <Btn variant="primary" onClick={generate} disabled={busy || !selProps.length || !sections.size}>{busy ? 'Δημιουργία…' : 'Δημιουργία PDF'}</Btn>
+            {selProps.length > 1 && (
+              <Btn variant="secondary" onClick={generateComparison} disabled={busy || xlsxBusy}>{xlsxBusy ? 'Excel…' : 'Συγκριτικό Excel'}</Btn>
+            )}
+            <Btn variant="primary" onClick={generate} disabled={busy || xlsxBusy || !selProps.length || !sections.size}>{busy ? 'Δημιουργία…' : 'Δημιουργία PDF'}</Btn>
           </div>
         </div>
       </div>
