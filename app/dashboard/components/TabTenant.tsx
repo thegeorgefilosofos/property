@@ -17,6 +17,7 @@ import {
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import LeaseModal from './LeaseModal';
+import LeaseDeclaration from './LeaseDeclaration';
 import { roleLabel } from '@/lib/contacts/roles';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { money as csvEur } from './xlsxStyle';
@@ -1915,6 +1916,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   const branding=useReportBranding(userId);
   // Ψηφιακό μισθωτήριο: σύνταξη, υπογραφή και των δύο μερών, επαληθεύσιμο PDF.
   const [leaseOpen,setLeaseOpen]=useState(false);
+  const [declOpen,setDeclOpen]=useState(false);
   // Η υπενθύμιση «Λήξη σύμβασης μίσθωσης» (Υποχρεώσεις) ανοίγει το μισθωτήριο
   // κατευθείαν για ανανέωση — ίδιο μοτίβο event με τον βοηθό.
   useEffect(()=>{
@@ -2241,6 +2243,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
         right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
           <ExportButton onClick={exportRoster}/>
           <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Μισθωτήριο</Btn>
+          <Btn variant="secondary" onClick={()=>setDeclOpen(true)}>Δήλωση Μίσθωσης</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
         </div>:undefined}/>
 
@@ -2724,6 +2727,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
         </div>
       )}
 
+      <LeaseDeclaration open={declOpen} onClose={()=>setDeclOpen(false)} propertyId={propertyId} userId={userId} supabase={supabase} />
       <LeaseModal open={leaseOpen} onClose={()=>setLeaseOpen(false)} userId={userId} supabase={supabase} branding={branding} propertyId={propertyId} />
     </div>
   );

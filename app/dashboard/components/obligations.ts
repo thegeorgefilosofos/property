@@ -1,3 +1,5 @@
+import { declarationDeadline } from '@/lib/tax/leaseDeclaration';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // obligations.ts, Μηχανή Ελληνικών Θεσμικών/Φορολογικών Υποχρεώσεων.
 // Ενοποιεί ΘΕΣΜΙΚΕΣ προθεσμίες (ΕΝΦΙΑ, Ε1/Ε2, Δήλωση Μίσθωσης) με δεδομένα
@@ -88,7 +90,11 @@ export function computeObligations(prop: OblProp, tenant: OblTenant | null, main
   if (tenant?.lease_start) {
     const start = new Date(tenant.lease_start);
     if (!isNaN(start.getTime())) {
-      const deadline = new Date(start.getFullYear(), start.getMonth() + 1, Math.min(start.getDate() + 0, 28));
+      // ΜΙΑ πηγή αλήθειας με τη μηχανή της δήλωσης (lib/tax/leaseDeclaration):
+      // τέλος του ΕΠΟΜΕΝΟΥ μήνα από την έναρξη — όχι «ίδια μέρα επόμενου μήνα»,
+      // που έδειχνε προθεσμία έως και δύο εβδομάδες νωρίτερα από την πραγματική.
+      const dISO = declarationDeadline(tenant.lease_start.slice(0, 10));
+      const deadline = new Date(+dISO.slice(0, 4), +dISO.slice(5, 7) - 1, +dISO.slice(8, 10));
       const du = daysBetween(deadline, now);
       // Δείξ' το μόνο αν είναι πρόσφατη έναρξη ή επικείμενη προθεσμία.
       if (du >= -30 && du <= 60) push('lease_decl', 'Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης (ΑΑΔΕ)', deadline, 'contract',

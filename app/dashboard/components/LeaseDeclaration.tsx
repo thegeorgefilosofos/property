@@ -1,0 +1,201 @@
+'use client';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LeaseDeclaration — «Δήλωση Μίσθωσης», ο φάκελος που δεν σε αφήνει να κάνεις
+// λάθος.
+//
+// Ο ιδιοκτήτης δεν χάνει χρόνο στο κλικ της υποβολής· χάνει χρόνο επειδή φτάνει
+// στη φόρμα της ΑΑΔΕ και του λείπει το ΑΤΑΚ, ή γράφει λάθος ΑΦΜ και η δήλωση
+// απορρίπτεται, ή ξεχνά την προθεσμία και πληρώνει πρόστιμο.
+//
+// Εδώ: όλα ελέγχονται ΠΡΙΝ, με τους πραγματικούς κανόνες (ΑΦΜ mod 11, ΑΤΑΚ 11
+// ψηφία, ημερομηνίες), κάθε πεδίο αντιγράφεται με ένα κλικ στη σειρά της φόρμας,
+// και η κατάσταση υποβολής καταγράφεται ώστε να υπάρχει ιστορικό.
+//
+// ΔΕΝ ζητάμε ποτέ κωδικούς Taxisnet και δεν υποβάλλουμε εκ μέρους του χρήστη.
+// ═══════════════════════════════════════════════════════════════════════════
+import { useEffect, useMemo, useState } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { T, TT, Btn, Modal } from '@/components/Theme';
+import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide-react';
+import {
+  buildLeaseDeclaration, declarationSheet, RULES,
+  type LeaseDeclarationInput, type DeclField,
+} from '@/lib/tax/leaseDeclaration';
+
+const TAB_LABEL: Record<NonNullable<DeclField['fixIn']>, string> = {
+  property: 'Ακίνητο', tenant: 'Ενοικιαστής', settings: 'Ρυθμίσεις',
+};
+
+export default function LeaseDeclaration({ open, onClose, propertyId, userId, supabase }: {
+  open: boolean; onClose: () => void; propertyId: string; userId: string; supabase: SupabaseClient;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [input, setInput] = useState<LeaseDeclarationInput>({});
+  const [copied, setCopied] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<{ at: string; ref: string } | null>(null);
+  const [refInput, setRefInput] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    // Το setLoading μπαίνει ΜΕΣΑ στο async, ώστε να μη γίνεται σύγχρονο setState
+    // στο σώμα του effect (cascading renders).
+    (async () => {
+      if (alive) setLoading(true);
+      const [{ data: prop }, { data: tenants }, { data: settings }] = await Promise.all([
+        supabase.from('user_properties').select('name,atak,address,postal_code,sqm,floor,type,ownership').eq('id', propertyId).maybeSingle(),
+        supabase.from('tenants').select('full_name,afm,id_doc_type,id_doc_number,email,phone,lease_start,lease_end,monthly_rent')
+          .eq('property_id', propertyId).order('created_at', { ascending: false }).limit(1),
+        supabase.from('property_settings').select('owner_name,owner_afm').eq('user_id', userId).maybeSingle(),
+      ]);
+      const t = (tenants || [])[0] as Record<string, unknown> | undefined;
+      const p = prop as Record<string, unknown> | null;
+      const s = settings as Record<string, unknown> | null;
+      if (!alive) return;
+      setInput({
+        owner: { name: (s?.owner_name as string) ?? null, afm: (s?.owner_afm as string) ?? null },
+        property: { name: (p?.name as string) ?? null, atak: (p?.atak as string) ?? null, address: (p?.address as string) ?? null,
+                    postalCode: (p?.postal_code as string) ?? null, sqm: (p?.sqm as number) ?? null,
+                    floor: (p?.floor as string) ?? null, type: (p?.type as string) ?? null,
+                    ownershipPct: (p?.ownership as number) ?? null },
+        tenant: { fullName: (t?.full_name as string) ?? null, afm: (t?.afm as string) ?? null,
+                  idDocType: (t?.id_doc_type as string) ?? null, idDocNumber: (t?.id_doc_number as string) ?? null,
+                  email: (t?.email as string) ?? null, phone: (t?.phone as string) ?? null },
+        lease: { start: (t?.lease_start as string) ?? null, end: (t?.lease_end as string) ?? null,
+                 monthlyRent: (t?.monthly_rent as number) ?? null },
+      });
+      if (!alive) return;
+      setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, [open, propertyId, userId, supabase]);
+
+  const decl = useMemo(() => buildLeaseDeclaration(input), [input]);
+
+  const copy = async (key: string, text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1400); } catch { /* αγνόησε */ }
+  };
+
+  const printSheet = () => {
+    const w = window.open('', '_blank');
+    if (!w) { alert('Επίτρεψε τα αναδυόμενα παράθυρα.'); return; }
+    const esc = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c));
+    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Δήλωση Μίσθωσης</title><style>body{font-family:'Inter',system-ui,sans-serif;padding:40px;max-width:760px;margin:0 auto;color:#202124}pre{font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.9;white-space:pre-wrap}@media print{body{padding:0}@page{margin:16mm}}</style></head><body><pre>${esc(declarationSheet(decl))}</pre><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`);
+    w.document.close();
+  };
+
+  const markSubmitted = async () => {
+    setSaving(true);
+    const at = new Date().toISOString();
+    setSubmitted({ at, ref: refInput.trim() });
+    try {
+      await supabase.from('activity_log').insert({
+        user_id: userId, action: 'lease_declaration_submitted', entity: 'property', entity_id: propertyId,
+        metadata: { reference: refInput.trim() || null, deadline: decl.deadline.due },
+      });
+    } catch { /* το μητρώο δραστηριότητας είναι προαιρετικό */ }
+    setSaving(false);
+  };
+
+  const tone = decl.readiness === 'ready' ? (decl.deadline.state === 'overdue' ? 'warning' : 'positive')
+             : decl.readiness === 'invalid' ? 'negative' : 'warning';
+  const toneVar = tone === 'positive' ? 'var(--positive)' : tone === 'warning' ? 'var(--warning)' : 'var(--negative)';
+
+  const row = (f: DeclField) => {
+    const bad = f.status !== 'ok';
+    const c = f.status === 'invalid' ? 'var(--negative)' : f.status === 'missing' ? 'var(--warning)' : 'var(--positive)';
+    return (
+      <div key={f.key} style={{ display: 'grid', gridTemplateColumns: '3px 1fr auto', gap: 12, alignItems: 'center', padding: '10px 14px', borderTop: '1px solid var(--border-subtle)' }}>
+        <span style={{ alignSelf: 'stretch', background: c, borderRadius: 3, opacity: bad ? 0.9 : 0.5 }} />
+        <span style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{f.label}</div>
+          {f.value
+            ? <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, marginTop: 1 }}>{f.value}</div>
+            : <div style={{ fontSize: 13, color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>— λείπει</div>}
+          {f.hint && <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>
+            {f.hint}{f.fixIn && <> <span style={{ color: 'var(--accent)', fontWeight: 600 }}>→ καρτέλα {TAB_LABEL[f.fixIn]}</span></>}
+          </div>}
+        </span>
+        {f.value && f.status === 'ok' && (
+          <button onClick={() => copy(f.key, f.value)} title="Αντιγραφή"
+            style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: copied === f.key ? 'var(--positive)' : 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {copied === f.key ? <Check size={14} /> : <Copy size={13} />}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} width={720}
+      title="Δήλωση Μίσθωσης"
+      subtitle="Έλεγχος πληρότητας πριν την υποβολή στο myAADE"
+      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>}
+      footerInfo={<>{decl.fields.filter(f => f.status === 'ok').length} από {decl.fields.length} πεδία έτοιμα</>}
+      footer={<>
+        <Btn variant="secondary" onClick={printSheet}><Printer size={14} />Εκτύπωση φύλλου</Btn>
+        <Btn variant="primary" onClick={() => window.open(RULES.portalUrl, '_blank', 'noopener,noreferrer')}>
+          Άνοιξε το myAADE<ExternalLink size={14} />
+        </Btn>
+      </>}>
+
+      {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : <>
+
+        {/* Ετυμηγορία */}
+        <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '13px 15px', borderRadius: 11,
+                      background: `color-mix(in srgb, ${toneVar} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${toneVar} 28%, transparent)` }}>
+          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: toneVar, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, marginTop: 1 }}>
+            {decl.readiness === 'ready' ? '✓' : decl.readiness === 'invalid' ? '✕' : '!'}
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.summary}</span>
+        </div>
+
+        {/* Προθεσμία */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', borderRadius: 11,
+                      border: `1px solid ${decl.deadline.state === 'overdue' ? 'var(--negative-border)' : 'var(--border-subtle)'}`,
+                      background: decl.deadline.state === 'overdue' ? 'var(--negative-soft)' : 'var(--bg-elevated)' }}>
+          {decl.deadline.state === 'overdue' ? <AlertTriangle size={15} style={{ color: 'var(--negative)', flexShrink: 0 }} />
+                                             : <Clock size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />}
+          <span style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.deadline.label}</span>
+        </div>
+
+        {/* Πεδία στη σειρά της φόρμας */}
+        <div>
+          <div style={{ ...TT.label, marginBottom: 8 }}>ΣΤΟΙΧΕΙΑ ΔΗΛΩΣΗΣ</div>
+          <div style={{ ...TT.caption, marginBottom: 10, lineHeight: 1.5 }}>
+            Με τη σειρά που τα ζητά η φόρμα. Πάτα το εικονίδιο για αντιγραφή και επικόλλησέ τα ένα-ένα.
+          </div>
+          <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 11, overflow: 'hidden' }}>
+            {decl.fields.map(row)}
+          </div>
+        </div>
+
+        {/* Καταγραφή υποβολής */}
+        <div>
+          <div style={{ ...TT.label, marginBottom: 8 }}>ΜΕΤΑ ΤΗΝ ΥΠΟΒΟΛΗ</div>
+          {submitted ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', borderRadius: 11, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)' }}>
+              <Check size={15} style={{ color: 'var(--positive)', flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>
+                Καταγράφηκε στις {new Date(submitted.at).toLocaleDateString('el-GR')}
+                {submitted.ref && <> · αρ. δήλωσης <strong style={{ fontFamily: T.font.mono }}>{submitted.ref}</strong></>}
+              </span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input value={refInput} onChange={e => setRefInput(e.target.value)} placeholder="Αριθμός δήλωσης (προαιρετικό)"
+                style={{ flex: 1, minWidth: 200, height: 40, padding: '0 13px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: T.font.sans, outline: 'none' }} />
+              <Btn variant="secondary" onClick={markSubmitted} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Την υπέβαλα'}</Btn>
+            </div>
+          )}
+          <div style={{ ...TT.caption, marginTop: 8, lineHeight: 1.5 }}>
+            Ο μισθωτής πρέπει να αποδεχθεί τη δήλωση από τον δικό του λογαριασμό στο myAADE.
+            {' '}Πηγή: {RULES.source}. Επιβεβαίωσε πάντα την τρέχουσα διαδικασία στην ΑΑΔΕ.
+          </div>
+        </div>
+      </>}
+    </Modal>
+  );
+}
