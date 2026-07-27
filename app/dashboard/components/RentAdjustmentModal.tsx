@@ -11,7 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import DateField from './DateField';
-import Select from './Select';
+import { CustomSelect as Select } from './UIComponents';
 import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
 import { grDate, todayIso, num, archivePdfToProperty, askByVoice, speechSupported } from './docUtils';
@@ -155,7 +155,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(720px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -181,7 +181,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
 
               <div>
                 <div style={lbl}>Μέθοδος αναπροσαρμογής</div>
-                <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 11 }}>
+                <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
                   <button onClick={() => setMethod('percent')} style={seg('percent')}>Ποσοστό</button>
                   <button onClick={() => setMethod('cpi')} style={seg('cpi')}>ΔΤΚ (ΕΛΣΤΑΤ)</button>
                   <button onClick={() => setMethod('manual')} style={seg('manual')}>Χειροκίνητο</button>
@@ -224,7 +224,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 <SignaturePad onChange={setSig} height={92} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 11, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
                   Ιδιωτική ειδοποίηση με ισχύ έγγραφης απόδειξης. Η <strong style={{ color: 'var(--text-primary)' }}>αλλαγή μισθώματος</strong> δηλώνεται επίσημα στη «Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης» στο <a href="https://www.aade.gr/misthoseis-akiniton" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>.

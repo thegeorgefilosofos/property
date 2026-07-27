@@ -66,7 +66,7 @@ export default function SpitiMouPanel({
 
       {/* Hero: μπλεντ επιτόκιο + δόση + εξοικονόμηση */}
       <div onMouseEnter={() => setHi(true)} onMouseLeave={() => setHi(false)} onTouchStart={() => setHi(true)} onTouchEnd={() => setHi(false)}
-        style={{ position: 'relative', background: 'var(--bg-surface)', border: `1px solid ${hi ? 'var(--border-default)' : 'var(--border-subtle)'}`, borderLeft: '3px solid var(--accent)', borderRadius: 16, padding: '18px 20px', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: hi ? 'var(--elev-2)' : 'var(--elev-1)' }}>
+        style={{ position: 'relative', background: 'var(--bg-surface)', border: `1px solid ${hi ? 'var(--border-default)' : 'var(--border-subtle)'}`, borderLeft: '3px solid var(--accent)', borderRadius: 14, padding: '18px 20px', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: hi ? 'var(--elev-2)' : 'var(--elev-1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 100, background: hardFail ? 'var(--bg-elevated)' : 'var(--accent)', color: hardFail ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
@@ -88,7 +88,7 @@ export default function SpitiMouPanel({
           { k: 'Κανονική δόση', v: fmtEur(normalMonthly), s: `με ${fmtPct(bankRatePct)}` },
           { k: 'Εξοικονόμηση τον μήνα', v: fmtEur(saveMonthly), s: `${fmtEur(saveTotal)} συνολικά` },
         ].map(t => (
-          <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 16 }}>
+          <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 16 }}>
             <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
             <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 7, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: FONT }}>{t.v}</p>
             <p style={{ fontSize: 11, marginTop: 5, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>

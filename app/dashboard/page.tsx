@@ -24,7 +24,7 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
+import { T, SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
 import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
 import MonthlyFeedbackNudge from './components/MonthlyFeedbackNudge';
@@ -172,13 +172,13 @@ const fmtEur = (n:number|null|undefined) => n == null ? '—' : `${fmt(n)} €`;
 
 // MD3 form styles
 const mdInput: React.CSSProperties = {
-  width:'100%', padding:'10px 16px', height:40, borderRadius:4,
+  width:'100%', padding:'10px 16px', height:40, borderRadius:6,
   border:'1px solid var(--border-default)', background:'var(--bg-surface)',
-  color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter',sans-serif",
+  color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans,
   letterSpacing:'0.25px', outline:'none', boxSizing:'border-box', transition:'border-color 0.15s',
 };
 const mdLabel: React.CSSProperties = {
-  display:'block', fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:500,
+  display:'block', fontFamily: T.font.sans, fontSize:12, fontWeight:500,
   letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:6,
 };
 const focusInput = (e: React.FocusEvent<HTMLInputElement|HTMLSelectElement>) => {
@@ -256,18 +256,18 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
   };
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
-      <div style={{background:'var(--bg-surface)',borderRadius:16,padding:24,width:'100%',maxWidth:480,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
+      <div style={{background:'var(--bg-surface)',borderRadius:14,padding:24,width:'100%',maxWidth:480,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
-            <p style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
-            <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
+            <p style={{fontFamily: T.font.sans,fontSize:20,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
+            <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
           </div>
-          <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          <button onClick={onClose} style={{width:40,height:40,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         {otherProperties.length === 0 ? (
           <div style={{padding:'32px',textAlign:'center',color:'var(--text-secondary)'}}>
             <p style={{fontSize:32,marginBottom:12}}></p>
-            <p style={{fontFamily:"'Inter',sans-serif",fontSize:14}}>Δεν υπάρχουν άλλα ακίνητα</p>
+            <p style={{fontFamily: T.font.sans,fontSize:14}}>Δεν υπάρχουν άλλα ακίνητα</p>
           </div>
         ) : (
           <>
@@ -278,8 +278,8 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
                   <div key={p.id} onClick={()=>setSourceId(p.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderRadius:12,border:`1px solid ${sourceId===p.id?'var(--accent)':'var(--border-default)'}`,background:sourceId===p.id?'var(--accent-dim)':'transparent',cursor:'pointer',transition:'all 0.2s'}}>
                     <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)',flexShrink:0}}/>
                     <div>
-                      <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:500,color:'var(--text-primary)'}}>{p.name}</p>
-                      <p style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>{PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type}{p.address?` · ${p.address}`:''}</p>
+                      <p style={{fontFamily: T.font.sans,fontSize:14,fontWeight:500,color:'var(--text-primary)'}}>{p.name}</p>
+                      <p style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>{PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type}{p.address?` · ${p.address}`:''}</p>
                     </div>
                     {sourceId===p.id&&<span style={{marginLeft:'auto',display:'inline-flex',color:'var(--accent)'}}><svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>}
                   </div>
@@ -289,15 +289,15 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
             {preview.length > 0 && (
               <div style={{padding:'12px 16px',background:'var(--bg-elevated)',borderRadius:12}}>
                 <p style={{...mdLabel,marginBottom:8}}>Προεπισκόπηση ({preview.length}+ αντικείμενα)</p>
-                {preview.map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)',marginBottom:4}}><span>{item.name}</span><span style={{color:'var(--text-tertiary)'}}>{item.category}</span></div>)}
+                {preview.map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',marginBottom:4}}><span>{item.name}</span><span style={{color:'var(--text-tertiary)'}}>{item.category}</span></div>)}
               </div>
             )}
             <div style={{padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
-              <p style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
+              <p style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
             </div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-              <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:'transparent',color:'var(--accent)',fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
-              <button onClick={handleCopy} disabled={!sourceId||copying} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:!sourceId||copying?'var(--bg-overlay)':'var(--accent)',color:!sourceId||copying?'var(--text-tertiary)':'var(--accent-text)',fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:500,cursor:!sourceId||copying?'not-allowed':'pointer'}}>{copying?'Αντιγραφή...':'Αντιγραφή'}</button>
+              <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:18,border:'none',background:'transparent',color:'var(--accent)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
+              <button onClick={handleCopy} disabled={!sourceId||copying} style={{height:40,padding:'0 24px',borderRadius:18,border:'none',background:!sourceId||copying?'var(--bg-overlay)':'var(--accent)',color:!sourceId||copying?'var(--text-tertiary)':'var(--accent-text)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:!sourceId||copying?'not-allowed':'pointer'}}>{copying?'Αντιγραφή…':'Αντιγραφή'}</button>
             </div>
           </>
         )}
@@ -509,7 +509,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           monthlyRent: rent, annualRent, grossYield, netYield,
           expensesYTD: totalExpYTD, categories: catEntries, branding,
         })}
-          style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:700,cursor:'pointer'}}
+          style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:12,fontWeight:700,cursor:'pointer'}}
           onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)';}}
           onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)';}}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
@@ -522,7 +522,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           <div style={{ fontSize:13, color:'var(--text-secondary)' }}>
             <strong style={{ color:'var(--text-primary)' }}>Δείγμα (demo).</strong> Περιήγησε τα εργαλεία με έτοιμα δεδομένα. Όταν είσαι έτοιμος, καθάρισέ το και πρόσθεσε το δικό σου ακίνητο.
           </div>
-          {onCleanDemo && <button onClick={onCleanDemo} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:20, padding:'7px 16px', fontSize:13, fontWeight:600, fontFamily:"'Inter',sans-serif", color:'var(--accent)', cursor:'pointer', whiteSpace:'nowrap' }}>Καθάρισε το demo</button>}
+          {onCleanDemo && <button onClick={onCleanDemo} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:18, padding:'7px 16px', fontSize:13, fontWeight:600, fontFamily: T.font.sans, color:'var(--accent)', cursor:'pointer', whiteSpace:'nowrap' }}>Καθάρισε το demo</button>}
         </div>
       )}
 
@@ -546,9 +546,9 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
         ].map((k,i) => (
           <div key={i} className="kpi-card" title={(k as any).title}>
-            <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
+            <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
-            {(k as any).sub && <div style={{fontSize:11,fontWeight:600,marginTop:4,color:(k as any).sub.color,fontFamily:"'Inter',sans-serif"}}>{(k as any).sub.text}</div>}
+            {(k as any).sub && <div style={{fontSize:11,fontWeight:600,marginTop:4,color:(k as any).sub.color,fontFamily: T.font.sans}}>{(k as any).sub.text}</div>}
           </div>
         ))}
       </div>
@@ -563,7 +563,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             <span><span className="section-dot"/> Δαπάνες {chartYear} ανά μήνα</span>
             <div style={{position:'relative'}}>
               <button type="button" onClick={()=>setYearMenu(m=>!m)} title="Άλλαξε έτος"
-                style={{display:'inline-flex',alignItems:'center',gap:5,height:26,padding:'0 8px 0 10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                style={{display:'inline-flex',alignItems:'center',gap:5,height:26,padding:'0 8px 0 10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontFamily: T.font.mono,fontSize:12,fontWeight:700,cursor:'pointer'}}>
                 {chartYear}
                 <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform:yearMenu?'rotate(180deg)':'none',transition:'transform 0.2s',opacity:0.8}}><path d="m6 9 6 6 6-6"/></svg>
               </button>
@@ -575,11 +575,11 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
                       const sel = y===chartYear; const future = y>now.getFullYear();
                       return (
                         <button key={y} type="button" onClick={()=>{setChartYear(y);setYearMenu(false);}}
-                          style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,width:'100%',padding:'8px 10px',borderRadius:7,border:'none',background:sel?'var(--accent-dim)':'transparent',color:sel?'var(--accent)':'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontSize:13,fontWeight:sel?700:500,cursor:'pointer',textAlign:'left'}}
+                          style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,width:'100%',padding:'8px 10px',borderRadius:8,border:'none',background:sel?'var(--accent-dim)':'transparent',color:sel?'var(--accent)':'var(--text-primary)',fontFamily: T.font.mono,fontSize:13,fontWeight:sel?700:500,cursor:'pointer',textAlign:'left'}}
                           onMouseEnter={e=>{if(!sel)e.currentTarget.style.background='var(--bg-hover)';}}
                           onMouseLeave={e=>{if(!sel)e.currentTarget.style.background='transparent';}}>
                           {y}
-                          {future && <span style={{fontFamily:"'Inter',sans-serif",fontSize:9,fontWeight:600,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>μελλοντικό</span>}
+                          {future && <span style={{fontFamily: T.font.sans,fontSize:9,fontWeight:600,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>μελλοντικό</span>}
                         </button>
                       );
                     })}
@@ -595,12 +595,12 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
               <button key={i} type="button" onClick={()=>setSelMonth(i)} title={`${MONTHS[i]}: ${fmtEur(v)}`} aria-pressed={active}
                 style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',background:'transparent',border:'none',padding:0,height:'100%',justifyContent:'flex-end'}}>
                 <div style={{width:'100%',height:`${maxExp>0?(v/maxExp)*100:0}%`,background:active?'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 76%, #6ea8ff) 100%)':'var(--bg-hover)',borderRadius:'6px 6px 2px 2px',minHeight:v>0?4:0,transition:'height 0.45s cubic-bezier(.2,0,0,1)',boxShadow:active?'0 4px 10px -4px rgba(26,115,232,.4)':'none'}}/>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:active?700:400,color:active?'var(--accent)':'var(--text-tertiary)'}}>{MONTHS[i]}</div>
+                <div style={{fontFamily: T.font.sans,fontSize:10,fontWeight:active?700:400,color:active?'var(--accent)':'var(--text-tertiary)'}}>{MONTHS[i]}</div>
               </button>
             );})}
           </div>
           {chartYear > now.getFullYear() && (
-            <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.5}}>
+            <div style={{fontFamily: T.font.sans,fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.5}}>
               Προβολή βάσει των επαναλαμβανόμενων (πάγιων) δαπανών που έχεις καταχωρήσει. Πρόσθεσε ή σήμανε πάγιες δαπάνες στις «Δαπάνες».
             </div>
           )}
@@ -608,16 +608,16 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         <div className="card">
           <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
             <span><span className="section-dot"/> Κατηγορίες Δαπανών · {MONTHS_LONG[selMonth]} {chartYear}</span>
-            {selMonthTotal>0 && <span style={{fontFamily:"'Roboto Mono',monospace",fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
+            {selMonthTotal>0 && <span style={{fontFamily: T.font.mono,fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
           </div>
           {selCatEntries.length===0
-            ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες για {MONTHS_LONG[selMonth]} {chartYear}</div>
+            ? <div style={{fontFamily: T.font.sans,color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες για {MONTHS_LONG[selMonth]} {chartYear}</div>
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {selCatEntries.map(([cat,amt],i) => (
                   <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:8,height:8,borderRadius:2,background:catColors[i],flexShrink:0}}/>
-                    <div style={{flex:1,fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
-                    <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtEur(amt)}</div>
+                    <div style={{width:8,height:8,borderRadius:3,background:catColors[i],flexShrink:0}}/>
+                    <div style={{flex:1,fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
+                    <div style={{fontFamily: T.font.mono,fontSize:13,color:'var(--text-primary)',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtEur(amt)}</div>
                   </div>
                 ))}
               </div>
@@ -632,8 +632,8 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             <tbody>
               {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
-                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
-                  <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
+                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily: T.font.sans,color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
+                  <td style={{padding:'8px 0',fontFamily: T.font.sans,color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
                 </tr>
               ))}
             </tbody>
@@ -642,14 +642,14 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Επόμενες Εργασίες</div>
           {tasks.length===0
-            ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν εκκρεμείς εργασίες</div>
+            ? <div style={{fontFamily: T.font.sans,color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν εκκρεμείς εργασίες</div>
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {tasks.map(t => { const pc=t.priority==='high'?'var(--border-subtle)':t.priority==='medium'?'var(--border-subtle)':'var(--border-subtle)'; return (
                   <div key={t.id} style={{display:'flex',alignItems:'flex-start',gap:10}}>
                     <div style={{width:6,height:6,borderRadius:'50%',background:pc,marginTop:6,flexShrink:0}}/>
                     <div>
-                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-primary)',lineHeight:'20px'}}>{t.title}</div>
-                      {t.due_date&&<div style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-tertiary)',marginTop:2}}>{new Date(t.due_date).toLocaleDateString('el-GR')}</div>}
+                      <div style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-primary)',lineHeight:'20px'}}>{t.title}</div>
+                      {t.due_date&&<div style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-tertiary)',marginTop:2}}>{new Date(t.due_date).toLocaleDateString('el-GR')}</div>}
                     </div>
                   </div>
                 );})}
@@ -659,12 +659,12 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Μέσοι Λογαριασμοί</div>
           {bills.length===0
-            ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν λογαριασμοί</div>
+            ? <div style={{fontFamily: T.font.sans,color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν λογαριασμοί</div>
             : <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {bills.slice(0,5).map(b => (
                   <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>{b.type}</div>
-                    <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(b.avg_amount||b.amount)}</div>
+                    <div style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>{b.type}</div>
+                    <div style={{fontFamily: T.font.mono,fontSize:13,color:'var(--text-primary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(b.avg_amount||b.amount)}</div>
                   </div>
                 ))}
               </div>
@@ -689,21 +689,21 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, tone:'accent', title:'Απόδοση (yield): καθαρό ετήσιο έσοδο ως ποσοστό της αξίας του ακινήτου' },
           ]; })().map((k,i) => { const tone=(k as any).tone; return (
             <div key={i} className="po-fig-card po-lift" tabIndex={0} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,boxShadow:'var(--highlight-inset), 0 8px 20px -16px color-mix(in srgb, var(--text-primary) 45%, transparent)'}}>
-              <div className="po-fig" data-tone={tone} style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
+              <div className="po-fig" data-tone={tone} style={{fontFamily: T.font.sans,fontSize:20,fontWeight:700,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
+              <div style={{fontFamily: T.font.sans,fontSize:10,fontWeight:700,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
             </div>
           );})}
         </div>
         {loans.length > 0 && (
           <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Δόση δανείου / μήνα</span>
-              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(monthlyDebt))}</span>
+              <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Δόση δανείου / μήνα</span>
+              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(monthlyDebt))}</span>
             </div>
             {debtLtv > 0 && (
               <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span title="Δείκτης δανείου προς αξία ακινήτου (Loan to Value)" style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Δάνειο προς αξία</span>
-                <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{debtLtv.toFixed(0)}%</span>
+                <span title="Δείκτης δανείου προς αξία ακινήτου (Loan to Value)" style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Δάνειο προς αξία</span>
+                <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{debtLtv.toFixed(0)}%</span>
               </div>
             )}
           </div>
@@ -711,19 +711,19 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         {hostStays.length > 0 && (
           <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span title="Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα Πελάτης" style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Έσοδα φιλοξενίας {year}</span>
-              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(hostingYTD))}</span>
+              <span title="Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα Πελάτης" style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Έσοδα φιλοξενίας {year}</span>
+              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(hostingYTD))}</span>
             </div>
             {hostingNights > 0 && (
               <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Διανυκτερεύσεις</span>
-                <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{hostingNights}</span>
+                <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Διανυκτερεύσεις</span>
+                <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{hostingNights}</span>
               </div>
             )}
             {nextArrival && (
               <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Επόμενη άφιξη</span>
-                <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--accent)'}}>{new Date(nextArrival).toLocaleDateString('el-GR')}</span>
+                <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Επόμενη άφιξη</span>
+                <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--accent)'}}>{new Date(nextArrival).toLocaleDateString('el-GR')}</span>
               </div>
             )}
           </div>
@@ -732,20 +732,20 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{width:8,height:8,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block'}}/>
-              <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Πληρωμένα</span>
-              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(paidExpYTD)}</span>
+              <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Πληρωμένα</span>
+              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(paidExpYTD)}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{width:8,height:8,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block'}}/>
-              <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Εκκρεμή</span>
-              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(pendingExpYTD)}</span>
+              <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Εκκρεμή</span>
+              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(pendingExpYTD)}</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Διαχείριση & Εργαλεία, δευτερεύουσες ενέργειες, κάτω από την οικονομική εικόνα */}
-      <div style={{marginTop:8,marginBottom:12,fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-tertiary)'}}>Διαχείριση & Εργαλεία</div>
+      <div style={{marginTop:8,marginBottom:12,fontFamily: T.font.sans,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-tertiary)'}}>Διαχείριση & Εργαλεία</div>
       <PortalShare propertyId={prop.id} userId={userId} />
       <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
       <PaymentLinks />
@@ -772,14 +772,14 @@ function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric
   return (
     <button onClick={onOpen} className="card tool-card" style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{title}</span>
+        <span style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{title}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--negative)', color: 'var(--text-inverse)', fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
+          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 8, background: 'var(--negative)', color: 'var(--text-inverse)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </div>
       </div>
-      <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{metric}</span>
-      <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: 'var(--text-tertiary)' }}>{sub}</span>
+      <span style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{metric}</span>
+      <span style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{sub}</span>
     </button>
   );
 }
@@ -974,7 +974,7 @@ export default function Dashboard() {
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg-base)',flexDirection:'column',gap:16}}>
       <div style={{width:48,height:48,borderRadius:'50%',border:'4px solid var(--md-primary-container)',borderTopColor:'var(--accent)',animation:'spin 1s linear infinite'}}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <span style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.1px'}}>Φόρτωση...</span>
+      <span style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.1px'}}>Φόρτωση…</span>
     </div>
   );
 
@@ -1044,7 +1044,7 @@ export default function Dashboard() {
             </div>
           ))}
           <button onClick={()=>tryAddProperty()}
-            style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--accent)',textAlign:'left'}}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:40,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily: T.font.sans,fontSize:14,color:'var(--accent)',textAlign:'left'}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'}
             onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
             <span style={{fontSize:18,lineHeight:1}}>+</span> Προσθήκη ακινήτου
@@ -1073,7 +1073,7 @@ export default function Dashboard() {
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected} title={locked ? 'Διαθέσιμο σε ανώτερο πλάνο' : undefined}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{id==='referral' && effProfileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
-                  {locked ? <LockBadge/> : (badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>)}
+                  {locked ? <LockBadge/> : (badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily: T.font.sans,fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>)}
                 </button>
               );})}
             </div>
@@ -1100,10 +1100,10 @@ export default function Dashboard() {
             <>
               <div style={{flex:1}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{fontFamily:"'Inter',sans-serif",fontSize:16,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
+                  <span style={{fontFamily: T.font.sans,fontSize:16,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative'}}>
-                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:32,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
+                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:32,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}
                       <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.65,marginLeft:1,transform:statusDropdown?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="m6 9 6 6 6-6"/></svg>
                     </button>
@@ -1112,11 +1112,11 @@ export default function Dashboard() {
                       {/* Κλείσιμο με κλικ οπουδήποτε αλλού */}
                       <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
                       <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,maxHeight:'min(440px, calc(100vh - 96px))',overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
-                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
+                        <div style={{fontFamily: T.font.sans,fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
                         {Object.entries(STATUS_LABELS).map(([k,v]) => {
                           const active = (selected.status_detail||'')===k;
                           return (
-                            <button key={k} role="menuitem" onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:active?600:400,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                            <button key={k} role="menuitem" onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:14,fontWeight:active?600:400,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                               <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[k]||'var(--text-secondary)',flexShrink:0}}/>
                               <span style={{flex:1}}>{v}</span>
                               {active && <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
@@ -1124,12 +1124,12 @@ export default function Dashboard() {
                           );
                         })}
                         <div style={{height:1,background:'var(--border-subtle)',margin:'6px 12px'}}/>
-                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Εργαλεία ακινήτου</div>
-                        <button role="menuitem" onClick={()=>{setStatusDropdown(false);setEditProperty(selected);}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                        <div style={{fontFamily: T.font.sans,fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Εργαλεία ακινήτου</div>
+                        <button role="menuitem" onClick={()=>{setStatusDropdown(false);setEditProperty(selected);}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                           Επεξεργασία στοιχείων
                         </button>
-                        <button role="menuitem" onClick={deleteProperty} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--negative)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--negative-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                        <button role="menuitem" onClick={deleteProperty} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:14,color:'var(--negative)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--negative-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg>
                           Διαγραφή ακινήτου
                         </button>
@@ -1138,24 +1138,24 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
+                <div style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
                   {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
                 </div>
               </div>
               {nav==='inventory'&&properties.length>1&&(
-                <button onClick={()=>setShowCopyInventory(true)} style={{height:36,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
+                <button onClick={()=>setShowCopyInventory(true)} style={{height:36,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
               )}
               <button onClick={()=>setNav('referral')} title={isPartner?'Είσαι Συνεργάτης Property OS · Πρόγραμμα Συνεργατών':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'} · Πρόγραμμα ${effProfileType==='professional'?'Συνεργατών':'Πρόσκλησης'}`} aria-label="Η ιδιότητά μου και το πρόγραμμα πρόσκλησης" style={{display:'flex',alignItems:'center',height:36,padding:0,border:'none',background:'transparent',cursor:'pointer',marginRight:8,borderRadius:'50%',transition:'transform .15s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
                 <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} showLabel={false} size={30} />
               </button>
               <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση & γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:36,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                <span className="desktop-only" style={{fontSize:11,fontFamily:"'Roboto Mono',monospace",color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:5,padding:'1px 5px'}}>{kbdHint}</span>
+                <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
               </button>
               <ThemeToggle />
             </>
           ) : (
-            <><div style={{flex:1,fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div><ThemeToggle /></>
+            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div><ThemeToggle /></>
           )}
         </header>
 
@@ -1165,8 +1165,8 @@ export default function Dashboard() {
               <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
               </div>
-              <h1 style={{fontFamily:"'Inter',sans-serif",fontSize:28,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο Property OS</h1>
-              <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή, όλα σε ένα σημείο.</p>
+              <h1 style={{fontFamily: T.font.sans,fontSize:28,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο Property OS</h1>
+              <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή, όλα σε ένα σημείο.</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12,marginBottom:28,textAlign:'left'}}>
                 {[
                   {t:'Αποδόσεις & Φόρος 2026',d:'Μεικτή/καθαρή απόδοση, φόρος βάσει κλίμακας'},
@@ -1174,8 +1174,8 @@ export default function Dashboard() {
                   {t:'Ενοικιαστής & Συμβόλαιο',d:'Πληρωμές, λήξεις, εγγύηση, ιστορικό'},
                 ].map((f,i)=>(
                   <div key={i} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'14px 16px'}}>
-                    <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>{f.t}</div>
-                    <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'var(--text-tertiary)',lineHeight:1.5}}>{f.d}</div>
+                    <div style={{fontFamily: T.font.sans,fontSize:13,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>{f.t}</div>
+                    <div style={{fontFamily: T.font.sans,fontSize:11,color:'var(--text-tertiary)',lineHeight:1.5}}>{f.d}</div>
                   </div>
                 ))}
               </div>
@@ -1187,7 +1187,7 @@ export default function Dashboard() {
             <div className="app-content">
               {['contacts','documents','checklist','inventory'].includes(nav) && (
                 <button onClick={()=>setNav('overview')} title="Πίσω στην Επισκόπηση" aria-label="Πίσω στην Επισκόπηση"
-                  style={{display:'inline-flex',alignItems:'center',gap:6,marginBottom:14,padding:'4px 4px 4px 0',border:'none',background:'transparent',color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,cursor:'pointer'}}
+                  style={{display:'inline-flex',alignItems:'center',gap:6,marginBottom:14,padding:'4px 4px 4px 0',border:'none',background:'transparent',color:'var(--text-tertiary)',fontFamily: T.font.sans,fontSize:13,fontWeight:600,cursor:'pointer'}}
                   onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}>
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                   Επισκόπηση
@@ -1268,7 +1268,7 @@ export default function Dashboard() {
       {quickAddOpen&&user&&selected&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
           onClick={e=>{if(e.target===e.currentTarget)closeQuickAdd();}}>
-          <div style={{background:'var(--bg-surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
+          <div style={{background:'var(--bg-surface)',borderRadius:14,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
             <button onClick={()=>closeQuickAdd()} aria-label="Κλείσιμο"
               style={{position:'absolute',top:16,right:16,width:34,height:34,borderRadius:'50%',border:'none',background:'var(--bg-hover)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-secondary)'}}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg-elevated)'}

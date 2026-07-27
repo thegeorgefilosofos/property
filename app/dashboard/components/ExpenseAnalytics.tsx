@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { T } from '@/components/Theme';
 
 interface Expense {
   id: string; amount: number; category: string; expense_group: string | null;
@@ -38,7 +39,7 @@ function parseLocalDate(s: string): Date {
 const NBSP = ' ';
 const fmtEur = (n: number) => `${Math.round(n).toLocaleString('el-GR')}${NBSP}€`;
 const fmtEur2 = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${NBSP}€`;
-const num = (n: number): React.CSSProperties => ({ fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' } as React.CSSProperties);
+const num = (n: number): React.CSSProperties => ({ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' } as React.CSSProperties);
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
@@ -50,7 +51,7 @@ const cardStyle: React.CSSProperties = {
 
 const SectionLabel = ({ label }: { label: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
+    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
       {label}
     </span>
   </div>
@@ -62,7 +63,7 @@ function DonutChart({ data, size = 128 }: { data: { label: string; value: number
   const r = size / 2 - 11, cx = size / 2, cy = size / 2, C = 2 * Math.PI * r;
   const sw = size * 0.11;
   if (!total) return (
-    <div style={{ width: size, height: size, borderRadius: '50%', border: `${sw}px solid var(--border-subtle)`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', border: `${sw}px solid var(--border-subtle)`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
       Κενό
     </div>
   );
@@ -100,8 +101,8 @@ function RankBars({ data, total }: { data: { label: string; value: number; color
         return (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '112px 1fr auto', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</span>
+              <span style={{ width: 8, height: 8, borderRadius: 3, background: d.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</span>
             </div>
             <div style={{ height: 8, background: 'var(--border-subtle)', borderRadius: 100, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${Math.max((d.value / max) * 100, d.value > 0 ? 2 : 0)}%`, background: d.color, borderRadius: 100, transition: 'width 0.5s cubic-bezier(.2,0,0,1)' }} />
@@ -130,7 +131,7 @@ function MonthBars({ data, labels, currentIdx, height = 132 }: { data: number[];
               {v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v)}
             </div>
             <div title={fmtEur(v)} style={{ width: '100%', maxWidth: 34, borderRadius: '4px 4px 0 0', height: `${Math.max((v / max) * 100, v > 0 ? 3 : 0)}%`, background: isCur ? 'var(--accent)' : 'var(--border-strong)', transition: 'height 0.45s cubic-bezier(.2,0,0,1)', minHeight: v > 0 ? 3 : 0 }} />
-            <div style={{ fontSize: 9, color: isCur ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontWeight: isCur ? 700 : 400, fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap' }}>{labels[i]}</div>
+            <div style={{ fontSize: 9, color: isCur ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontWeight: isCur ? 700 : 400, fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{labels[i]}</div>
           </div>
         );
       })}
@@ -140,7 +141,7 @@ function MonthBars({ data, labels, currentIdx, height = 132 }: { data: number[];
 
 // ─── Σωρευτική καμπύλη (ήρεμη, accent· όχι κόκκινο) ───
 function Area({ data, height = 72 }: { data: number[]; height?: number }) {
-  if (data.length < 2) return <div style={{ height, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: "'Inter', sans-serif" }}>Χρειάζονται τουλάχιστον δύο μήνες</div>;
+  if (data.length < 2) return <div style={{ height, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.sans }}>Χρειάζονται τουλάχιστον δύο μήνες</div>;
   const W = 300, max = Math.max(...data, 1);
   const pt = (v: number, i: number) => `${(i / (data.length - 1)) * (W - 16) + 8},${height - 8 - ((v / max) * (height - 16))}`;
   const pts = data.map((v, i) => pt(v, i)).join(' ');
@@ -183,8 +184,8 @@ function KPICard({ label, value, hint, positive = false }: { label: string; valu
   return (
     <div className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '14px 16px', minWidth: 0 }}>
       <div className="po-fig" data-tone={positive ? 'positive' : undefined} style={{ fontSize: 17, fontWeight: 700, ...num(0), marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' as const, fontFamily: "'Inter', sans-serif", lineHeight: 1.3 }}>{label}</div>
-      {hint && <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif", marginTop: 3 }}>{hint}</div>}
+      <div style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' as const, fontFamily: T.font.sans, lineHeight: 1.3 }}>{label}</div>
+      {hint && <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>{hint}</div>}
     </div>
   );
 }
@@ -293,13 +294,13 @@ export default function ExpenseAnalytics({ expenses }: Props) {
   })();
 
   return (
-    <div style={{ marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ marginBottom: 20, fontFamily: T.font.sans }}>
 
       {/* Εκκρεμείς */}
       {unpaid.length > 0 && (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
+          <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
             <strong>{unpaid.length}</strong> {unpaid.length === 1 ? 'δαπάνη μένει' : 'δαπάνες μένουν'} να εξοφληθούν
           </span>
           <span style={{ fontSize: 13, color: 'var(--text-tertiary)', ...num(unpaidTotal) }}>{fmtEur2(unpaidTotal)}</span>
@@ -309,7 +310,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       {/* Header + περίοδος */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Inter', sans-serif" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>
             Ανάλυση δαπανών
           </span>
         </div>
@@ -320,7 +321,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               <button key={p.value} onClick={() => setPeriod(p.value)}
                 style={{
                   padding: '6px 14px', borderRadius: 100, border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: on ? 700 : 500, fontFamily: "'Inter', sans-serif",
+                  fontSize: 12, fontWeight: on ? 700 : 500, fontFamily: T.font.sans,
                   background: on ? 'var(--accent)' : 'transparent',
                   color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
                   transition: 'background 0.15s, color 0.15s',
@@ -345,7 +346,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       {momText && (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: momText.tone === 'up' ? 'var(--text-tertiary)' : momText.tone === 'down' ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }} />
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>{momText.text}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>{momText.text}</span>
         </div>
       )}
 
@@ -360,8 +361,8 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
               {paidByData.map((d, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
+                  <div style={{ width: 8, height: 8, borderRadius: 3, background: d.color, flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', ...num(d.value), flexShrink: 0 }}>{fmtEur(d.value)}</div>
                 </div>
               ))}
@@ -374,7 +375,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
           <SectionLabel label="Πού πάνε τα χρήματα" />
           {groupData.length > 0
             ? <RankBars data={groupData} total={stats.total} />
-            : <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Καμία κίνηση στην περίοδο</div>}
+            : <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Καμία κίνηση στην περίοδο</div>}
         </div>
 
         {/* Σωρευτικές έτους */}
@@ -384,7 +385,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', ...num(0), letterSpacing: '-0.02em' }}>
               {fmtEur(stats.ytdData[stats.ytdData.length - 1] || 0)}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: "'Inter', sans-serif" }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.sans }}>
               Ιανουάριος έως {MONTHS_S[thisMonth]}
             </div>
           </div>
@@ -408,7 +409,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               return (
                 <div key={i}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{pmLabels[m] || m}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{pmLabels[m] || m}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-primary)', ...num(amt), fontWeight: 500 }}>{fmtEur(amt)}</span>
                   </div>
                   <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 100, overflow: 'hidden' }}>
@@ -418,11 +419,11 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               );
             })}
             {Object.keys(stats.byPayment).length === 0 && (
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Δεν έχει καταχωρηθεί τρόπος πληρωμής</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Δεν έχει καταχωρηθεί τρόπος πληρωμής</div>
             )}
             {stats.totalCashback > 0 && (
               <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>Επιστροφή χρημάτων (cashback)</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Επιστροφή χρημάτων (cashback)</span>
                 <span className="po-fig" data-tone="positive" style={{ fontSize: 12, fontWeight: 600, ...num(0) }}>{fmtEur(stats.totalCashback)}</span>
               </div>
             )}

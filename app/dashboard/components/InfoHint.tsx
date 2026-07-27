@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/Theme'
 import { useState, useRef, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -52,7 +53,7 @@ export function InfoHint({ children, size = 14, label = 'Περισσότερα'
             zIndex: 9999, maxWidth: 280, width: 'max-content',
             background: 'var(--bg-elevated)', color: 'var(--text-secondary)',
             border: '1px solid var(--border-default)', borderRadius: 10,
-            padding: '12px', fontSize: 12, lineHeight: 1.55, fontFamily: "'Inter',sans-serif",
+            padding: '12px', fontSize: 12, lineHeight: 1.55, fontFamily: T.font.sans,
             boxShadow: 'var(--elev-3)', pointerEvents: 'none',
           }}
         >

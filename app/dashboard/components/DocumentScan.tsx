@@ -139,7 +139,7 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false }: {
       type={type}
       value={String(value ?? '')}
       onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
+      style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
       onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
       onBlur={e => (e.target.style.borderColor = invalid ? 'var(--warning)' : 'var(--border-default)')}
     />
@@ -660,7 +660,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                 <div>
                   <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Κατηγορία</label>
                   <select value={edited.category || 'other'} onChange={e => setEdited(p => p ? { ...p, category: e.target.value } : p)}
-                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, outline: 'none', fontFamily: T.font.sans }}>
+                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, outline: 'none', fontFamily: T.font.sans }}>
                     {Object.entries(CATEGORY_LABELS).map(([val, l]) => <option key={val} value={val}>{l}</option>)}
                   </select>
                 </div>
@@ -683,9 +683,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                 {(edited.custom || []).map((c, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <input value={c.label} placeholder="Πεδίο" onChange={e => setEdited(p => { if (!p) return p; const cs = [...(p.custom || [])]; cs[i] = { ...cs[i], label: e.target.value }; return { ...p, custom: cs }; })}
-                      style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                      style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
                     <input value={c.value} placeholder="Τιμή" onChange={e => setEdited(p => { if (!p) return p; const cs = [...(p.custom || [])]; cs[i] = { ...cs[i], value: e.target.value }; return { ...p, custom: cs }; })}
-                      style={{ flex: 1, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                      style={{ flex: 1, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
                     <button onClick={() => setEdited(p => p ? { ...p, custom: (p.custom || []).filter((_, j) => j !== i) } : p)} title="Αφαίρεση"
                       style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer' }}>×</button>
                   </div>
@@ -694,10 +694,10 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
             )}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
               <input value={newField.label} placeholder="Νέο πεδίο (π.χ. Αρ. πρωτοκόλλου)" onChange={e => setNewField(f => ({ ...f, label: e.target.value }))}
-                style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
               <input value={newField.value} placeholder="Τιμή" onChange={e => setNewField(f => ({ ...f, value: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter' && newField.label.trim()) { setEdited(p => p ? { ...p, custom: [...(p.custom || []), { ...newField }] } : p); setNewField({ label: '', value: '' }); } }}
-                style={{ flex: 1, background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                style={{ flex: 1, background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
               <button onClick={() => { if (newField.label.trim()) { setEdited(p => p ? { ...p, custom: [...(p.custom || []), { ...newField }] } : p); setNewField({ label: '', value: '' }); } }}
                 title="Προσθήκη πεδίου" style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 6, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>+</button>
             </div>

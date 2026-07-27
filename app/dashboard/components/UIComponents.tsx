@@ -22,7 +22,7 @@ const mdInputBase: React.CSSProperties = {
   padding: '10px 16px',
   color: 'var(--text-primary)',
   fontSize: 14,
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: T.font.sans,
   letterSpacing: 0,
   outline: 'none',
   boxSizing: 'border-box' as const,
@@ -32,7 +32,7 @@ const mdInputBase: React.CSSProperties = {
 
 const mdLabelBase: React.CSSProperties = {
   display: 'block',
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: T.font.sans,
   fontSize: 12,
   fontWeight: 500,
   letterSpacing: '0.5px',
@@ -70,7 +70,7 @@ export function InfoDot({ text }: { text: string }) {
       </button>
       {open && typeof document !== 'undefined' && createPortal(
         <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
-          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.55 }}>{text}</p>
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>{text}</p>
         </div>,
         document.body,
       )}
@@ -165,7 +165,7 @@ export function NumberInput({
         {prefix && (
           <span style={{
             padding: '0 12px',
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: T.font.sans,
             fontSize: 14,
             color: 'var(--text-secondary)',
             background: 'var(--bg-elevated)',
@@ -204,7 +204,7 @@ export function NumberInput({
           <span style={{
             // FIX: dynamic padding + never shrink below content width
             padding: getSuffixPadding(suffix),
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: T.font.sans,
             fontSize: suffix.length > 4 ? 12 : 14,
             color: 'var(--text-secondary)',
             background: 'var(--bg-elevated)',
@@ -383,9 +383,9 @@ export function CustomSelect({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
           {selected?.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: selected.dot, flexShrink: 0 }}/>}
-          {selected?.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: selected.color, flexShrink: 0 }}/>}
+          {selected?.color && <div style={{ width: 10, height: 10, borderRadius: 3, background: selected.color, flexShrink: 0 }}/>}
           <span style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: T.font.sans,
             fontSize: 14,
             letterSpacing: '0.25px',
             color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
@@ -422,7 +422,7 @@ export function CustomSelect({
             <Fragment key={opt.value}>
             {opt.header && (
               <div style={{
-                padding: '10px 12px 5px', fontFamily: "'Inter', sans-serif", fontSize: 10.5,
+                padding: '10px 12px 5px', fontFamily: T.font.sans, fontSize: 10.5,
                 fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)', userSelect: 'none', pointerEvents: 'none',
               }}>{opt.header}</div>
@@ -442,7 +442,7 @@ export function CustomSelect({
                 alignItems: 'center',
                 gap: 12,
                 cursor: 'pointer',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: T.font.sans,
                 fontSize: 14,
                 letterSpacing: 0,
                 color: opt.value === value ? 'var(--accent)' : 'var(--text-primary)',
@@ -452,11 +452,11 @@ export function CustomSelect({
               }}
             >
               {opt.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.dot, flexShrink: 0 }}/>}
-              {opt.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: opt.color, flexShrink: 0 }}/>}
+              {opt.color && <div style={{ width: 10, height: 10, borderRadius: 3, background: opt.color, flexShrink: 0 }}/>}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ whiteSpace: 'nowrap' }}>{opt.label}</div>
                 {opt.description && (
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px' }}>{opt.description}</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px' }}>{opt.description}</div>
                 )}
               </div>
               {opt.value === value && (
@@ -578,7 +578,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           userSelect: 'none',
         }}
       >
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, letterSpacing: 0, color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+        <span style={{ fontFamily: T.font.sans, fontSize: 14, letterSpacing: 0, color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
           {value ? fmtDisplay(value) : placeholder}
         </span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)" aria-hidden="true">
@@ -599,15 +599,15 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           boxShadow: 'var(--shadow-lg)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: 32, height: 32, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
             </button>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
+            <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
               {MONTHS_GR[month]} {year}
             </span>
-            <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: 32, height: 32, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
@@ -615,7 +615,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0, marginBottom: 4 }}>
             {DAYS_GR.map(d => (
-              <div key={d} style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
+              <div key={d} style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0 }}>
@@ -638,7 +638,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
                     border: 'none',
                     background: isSelected ? 'var(--accent)' : 'transparent',
                     color: isSelected ? 'var(--accent-text)' : isToday ? 'var(--accent)' : 'var(--text-primary)',
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: T.font.sans,
                     fontSize: 13,
                     fontWeight: isToday ? 700 : 400,
                     cursor: 'pointer',
@@ -658,13 +658,13 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           </div>
           <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
             <button onClick={() => { onChange(''); setOpen(false); }}
-              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
+              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-dim)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               Εκκαθάριση
             </button>
             <button onClick={() => { onChange(today); setOpen(false); }}
-              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Σήμερα
             </button>
           </div>
@@ -724,7 +724,7 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
         }}/>
       </button>
       {(label || labelOff) && (
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: on ? 'var(--positive)' : 'var(--text-secondary)', letterSpacing: '0.25px', transition: 'color 0.15s' }}>
+        <span style={{ fontFamily: T.font.sans, fontSize: 14, color: on ? 'var(--positive)' : 'var(--text-secondary)', letterSpacing: '0.25px', transition: 'color 0.15s' }}>
           {text}
         </span>
       )}
@@ -763,7 +763,7 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
         height: FIELD_HEIGHT,
       }}>
         {prefix && (
-          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderRight: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderRight: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             {prefix}
           </div>
         )}
@@ -784,14 +784,14 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
             outline: 'none',
             padding: '10px 14px',
             color: 'var(--text-primary)',
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: T.font.sans,
             fontSize: 14,
             letterSpacing: 0,
             minWidth: 0,
           }}
         />
         {suffix && (
-          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             {suffix}
           </div>
         )}
@@ -827,7 +827,7 @@ export function Textarea({
           borderRadius: FIELD_RADIUS,
           padding: '10px 14px',
           color: 'var(--text-primary)',
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: T.font.sans,
           fontSize: 14,
           letterSpacing: 0,
           boxSizing: 'border-box',
@@ -859,7 +859,7 @@ export function ServiceBySelect({ label, value, onChange }: { label: string; val
             style={{
               flex: 1,
               height: 36,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: T.font.sans,
               fontSize: 13,
               fontWeight: 500,
               letterSpacing: '0.1px',
@@ -910,7 +910,7 @@ export function SegmentControl({ options, value, onChange }: { options: SegmentO
             height: 32,
             paddingLeft: 16,
             paddingRight: 16,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: T.font.sans,
             fontSize: 13,
             fontWeight: value === o.value ? 500 : 400,
             letterSpacing: '0.1px',

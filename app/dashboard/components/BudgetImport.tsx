@@ -126,7 +126,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
               {rows.map(r => (
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: r.selected ? 'var(--bg-elevated)' : 'transparent', opacity: r.selected ? 1 : 0.5, transition: 'opacity 0.15s, background 0.15s' }}>
                   <button type="button" onClick={() => setRows(rs => rs!.map(x => x.id === r.id ? { ...x, selected: !x.selected } : x))} aria-label="Επιλογή"
-                    style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 5, border: `1.5px solid ${r.selected ? 'var(--accent)' : 'var(--border-default)'}`, background: r.selected ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                    style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 6, border: `1.5px solid ${r.selected ? 'var(--accent)' : 'var(--border-default)'}`, background: r.selected ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                     {r.selected && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                   </button>
                   <span style={{ width: 66, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{/^\d{4}-\d{2}-\d{2}$/.test(r.date) ? `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}/${r.date.slice(2, 4)}` : '·'}</span>
@@ -143,7 +143,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
           {rows.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
               <button type="button" onClick={doImport} disabled={busy || !selectedCount}
-                style={{ height: 38, padding: '0 18px', borderRadius: T.radius.inner, border: 'none', background: selectedCount && !busy ? 'var(--accent)' : 'var(--bg-elevated)', color: selectedCount && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: selectedCount && !busy ? 'pointer' : 'default', transition: 'all 0.15s' }}>
+                style={{ height: 36, padding: '0 18px', borderRadius: T.radius.inner, border: 'none', background: selectedCount && !busy ? 'var(--accent)' : 'var(--bg-elevated)', color: selectedCount && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: selectedCount && !busy ? 'pointer' : 'default', transition: 'all 0.15s' }}>
                 {busy ? 'Εισαγωγή…' : `Εισαγωγή ${selectedCount} δαπανών`}
               </button>
               {selectedCount > 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σύνολο <span style={{ fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{feAuto(selectedTotal)}</span></span>}

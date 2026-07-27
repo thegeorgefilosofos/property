@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
-import Select from './Select';
+import { CustomSelect as Select } from './UIComponents';
 import { num } from './docUtils';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
@@ -237,7 +237,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
 
   // ── Στυλ (ίδια premium γλώσσα με το Λογιστικό ημερολόγιο) ────────────────────
   const field: React.CSSProperties = {
-    height: 38, padding: '0 13px', borderRadius: 9, border: '1px solid var(--border-default)',
+    height: 38, padding: '0 13px', borderRadius: 8, border: '1px solid var(--border-default)',
     background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
   };
   // Ουδέτερη επιλογή: η κάρτα μένει ήρεμη· μόνο το κουτάκι ελέγχου παίρνει accent.
@@ -253,7 +253,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(720px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -305,7 +305,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
                 const on = sections.has(s.key);
                 return (
                   <button key={s.key} onClick={() => toggle(sections, s.key, setSections)} style={{ ...pill(on), display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ width: 16, height: 16, marginTop: 1, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ width: 16, height: 16, marginTop: 1, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {on && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
                     </span>
                     <span>

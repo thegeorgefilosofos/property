@@ -40,15 +40,15 @@ interface Props { propertyId: string; userId: string; propertyName?: string; pro
 
 const CATEGORIES = [
   { value: 'electricity', label: 'Ρεύμα',                       icon: 'bolt',                    color: '#f9ab00' },
-  { value: 'common',      label: 'Κοινόχρηστα',                  icon: 'building',                color: '#5f6368' },
-  { value: 'internet',    label: 'Internet / Τηλεόραση',          icon: 'wifi',                    color: '#1a73e8' },
+  { value: 'common',      label: 'Κοινόχρηστα',                  icon: 'building',                color: 'var(--text-secondary)' },
+  { value: 'internet',    label: 'Internet / Τηλεόραση',          icon: 'wifi',                    color: 'var(--accent)' },
   { value: 'water',       label: 'Νερό',                         icon: 'drop',                    color: '#12b5cb' },
   { value: 'gas',         label: 'Αέριο / Θέρμανση',             icon: 'flame',                   color: '#d93025' },
   { value: 'insurance',   label: 'Ασφάλεια',                     icon: 'shield',                  color: '#00897b' },
   { value: 'security',    label: 'Security / Συναγερμός',         icon: 'lock',                    color: '#9334e6' },
   { value: 'streaming',   label: 'Streaming / Συνδρομές',         icon: 'device-tv',               color: '#a142f4' },
-  { value: 'enfia',       label: 'ΕΝΦΙΑ',                        icon: 'landmark',                color: '#80868b' },
-  { value: 'dimotika',    label: 'Δημοτικά Τέλη',               icon: 'building-community',      color: '#9aa0a6' },
+  { value: 'enfia',       label: 'ΕΝΦΙΑ',                        icon: 'landmark',                color: 'var(--text-tertiary)' },
+  { value: 'dimotika',    label: 'Δημοτικά Τέλη',               icon: 'building-community',      color: 'var(--text-tertiary)' },
   { value: 'cleaning',    label: 'Καθαρισμός',                   icon: 'sparkles',                color: '#7cb342' },
   { value: 'garden',      label: 'Κήπος',                        icon: 'plant',                   color: '#188038' },
   { value: 'pool',        label: 'Πισίνα',                       icon: 'pool',                    color: '#039be5' },
@@ -591,7 +591,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           </button>
           {!showForm ? (
             <button onClick={() => setShowForm(true)}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 36, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' as const }}>
               + Προσθήκη Λογαριασμού
             </button>
           ) : (
@@ -659,7 +659,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
             )}
             <div style={{ paddingTop: 22 }}><Toggle on={form.recurring} onChange={v => sf('recurring', v)} label="Πάγιο" labelOff="Εφάπαξ"/></div>
-            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση..."/>
+            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση…"/>
           </div>
           {form.category === 'electricity' && (
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>
@@ -692,7 +692,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <button onClick={() => setShowForm(false)} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: T.radius.btn, padding: '9px 16px', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
             <button onClick={addBill} disabled={!form.name || !form.amount || saving}
               style={{ background: (!form.name || !form.amount || saving) ? 'var(--bg-elevated)' : 'var(--accent)', color: (!form.name || !form.amount || saving) ? 'var(--text-tertiary)' : 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '9px 20px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
-              {saving ? 'Αποθήκευση...' : 'Προσθήκη'}
+              {saving ? 'Αποθήκευση…' : 'Προσθήκη'}
             </button>
           </div>
         </div>
@@ -713,7 +713,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν λογαριασμοί</div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>Πρόσθεσε τα πάγια έξοδα του ακινήτου σου</div>
-            <button onClick={() => setShowForm(true)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>+ Προσθήκη Λογαριασμού</button>
+            <button onClick={() => setShowForm(true)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 36, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>+ Προσθήκη Λογαριασμού</button>
           </div>
         ) : (
           (['overdue','upcoming','paid'] as const).map(group => {
@@ -967,7 +967,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   </div>
                 </div>
                 <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
-                  {c.benchmark > 0 && <div style={{ position: 'absolute', left: '50%', top: -2, width: 2, height: 10, background: 'var(--border-default)', borderRadius: 1 }}/>}
+                  {c.benchmark > 0 && <div style={{ position: 'absolute', left: '50%', top: -2, width: 2, height: 10, background: 'var(--border-default)', borderRadius: 3 }}/>}
                   <div style={{ height: '100%', width: `${Math.min(barPct, 100)}%`, background: overBudget ? 'var(--negative)' : isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' }}/>
                 </div>
               </div>

@@ -164,17 +164,17 @@ export default function TenantPortal() {
 
   const wrap: React.CSSProperties = { maxWidth: 560, margin: '0 auto', padding: '0 clamp(16px,5vw,24px)' };
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
-  const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit' };
+  const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit' };
   const label: React.CSSProperties = { fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' };
   const row = (k: string, v: string) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k}</span>
-      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace" }}>{v}</span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{v}</span>
     </div>
   );
 
   return (
-    <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif", paddingBottom: 40 }}>
+    <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: T.font.sans, paddingBottom: 40 }}>
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14 }}>P</div>
@@ -213,7 +213,7 @@ export default function TenantPortal() {
                 type="button"
                 onClick={submitPin}
                 disabled={pinChecking || !pin.trim()}
-                style={{ height: 46, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (pinChecking || !pin.trim()) ? 'not-allowed' : 'pointer', opacity: (pinChecking || !pin.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
+                style={{ height: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (pinChecking || !pin.trim()) ? 'not-allowed' : 'pointer', opacity: (pinChecking || !pin.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
               >
                 {pinChecking ? 'Έλεγχος…' : 'Είσοδος'}
               </button>
@@ -242,7 +242,7 @@ export default function TenantPortal() {
                           <div key={item.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{monthLabel(item.month, item.year)}</span>
-                              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace" }}>{eur(item.amount)}</span>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{eur(item.amount)}</span>
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Λήξη προθεσμίας: {gdate(item.due_date)}</div>
                             <div style={{ marginTop: 12 }}>
@@ -282,7 +282,7 @@ export default function TenantPortal() {
                                   href={link as string}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
                                 >
                                   Πληρωμή τώρα
                                 </a>
@@ -294,7 +294,7 @@ export default function TenantPortal() {
                               <>
                                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, lineHeight: 1.5 }}>Πλήρωσε με τραπεζικό έμβασμα στον παρακάτω IBAN και έπειτα δήλωσε την πληρωμή.</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace", wordBreak: 'break-all', flex: 1 }}>{data.tenant.rent_iban}</span>
+                                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, wordBreak: 'break-all', flex: 1 }}>{data.tenant.rent_iban}</span>
                                   <button
                                     type="button"
                                     onClick={() => copyIban(data.tenant.rent_iban as string)}
@@ -365,7 +365,7 @@ export default function TenantPortal() {
                   </div>
 
                   {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
-                  <button type="submit" disabled={sending || !title.trim()} style={{ height: 46, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
+                  <button type="submit" disabled={sending || !title.trim()} style={{ height: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
                     {sending ? 'Αποστολή…' : 'Αποστολή αιτήματος'}
                   </button>
                 </form>

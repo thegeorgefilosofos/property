@@ -208,7 +208,7 @@ function DeleteAccount() {
               onFocus={e => { if (ready && !busy) { e.currentTarget.style.background = 'var(--negative)'; e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = '#fff'; } }}
               onBlur={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)'; }}
               style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, transition: 'background 0.15s, color 0.15s, border-color 0.15s' }}>
-              {busy ? 'Διαγραφή...' : 'Οριστική διαγραφή'}
+              {busy ? 'Διαγραφή…' : 'Οριστική διαγραφή'}
             </button>
             <button onClick={() => { setOpen(false); setConfirmText(''); setError(null); }} disabled={busy}
               style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500 }}>

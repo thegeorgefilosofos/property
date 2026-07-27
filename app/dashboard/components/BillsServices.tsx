@@ -395,7 +395,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   return (
                     <div key={r.key} onClick={() => toggleReduction(r.key)}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', background: active ? 'rgba(26,115,232,0.07)' : eligible ? 'rgba(26,115,232,0.04)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'rgba(26,115,232,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
-                      <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 6, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                       </div>
                       <div style={{ flex: 1 }}>
@@ -656,7 +656,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <NumberInput label="Μηνιαία Συντήρηση (€)"  value={s.elevatorMonthly}        onChange={v => upd({ elevatorMonthly: v })}        suffix="€" step={5}/>
               <DatePicker  label="Τελευταία Συντήρηση"  value={s.elevatorLastInspection} onChange={v => upd({ elevatorLastInspection: v })}/>
             </div>
-            <TextInput label="Σημειώσεις" value={s.elevatorNotes} onChange={v => upd({ elevatorNotes: v })} placeholder="Παράδειγμα: Ετήσιος έλεγχος ΕΛΟΤ..."/>
+            <TextInput label="Σημειώσεις" value={s.elevatorNotes} onChange={v => upd({ elevatorNotes: v })} placeholder="Παράδειγμα: Ετήσιος έλεγχος ΕΛΟΤ…"/>
           </>
         )}
       </div>
@@ -679,7 +679,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {secHdr('Άλλες Υπηρεσίες')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, marginBottom: 12 }}>
-            <TextInput label="Υπηρεσία"         value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή, Υδραυλικός..."/>
+            <TextInput label="Υπηρεσία"         value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή, Υδραυλικός…"/>
             <TextInput label="Τεχνικός / Εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο ή Εταιρεία"/>
             <TextInput label="Τηλέφωνο"          value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>
           </div>
@@ -732,8 +732,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
-              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${totalServices > 0 ? (r.amount / totalServices) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 2, transition: 'width 0.3s' }}/>
+              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${totalServices > 0 ? (r.amount / totalServices) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 3, transition: 'width 0.3s' }}/>
               </div>
             </div>
           ))}

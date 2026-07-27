@@ -1187,7 +1187,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <button onClick={onToggle} role="switch" aria-checked={on}
-      style={{ width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0, background: on ? 'var(--accent)' : 'var(--border-default)', position: 'relative', transition: 'background 0.2s' }}>
+      style={{ width: 42, height: 26, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0, background: on ? 'var(--accent)' : 'var(--border-default)', position: 'relative', transition: 'background 0.2s' }}>
       <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
     </button>
   );
@@ -1243,7 +1243,7 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
       <div>
         <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Όνομα</div>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Γράψε ένα όνομα…" maxLength={24}
-          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', marginBottom: 10 }}
+          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', marginBottom: 10 }}
           onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {suggestions.map(s => (
@@ -1293,8 +1293,8 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-        {onCancel && <button onClick={onCancel} style={{ flex: '0 0 auto', height: 42, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Άκυρο</button>}
-        <button onClick={() => onSave({ name: name.trim() || DEFAULT_IDENTITY.name, gender, memory, compare, formal })} style={{ flex: 1, height: 42, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
+        {onCancel && <button onClick={onCancel} style={{ flex: '0 0 auto', height: 40, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Άκυρο</button>}
+        <button onClick={() => onSave({ name: name.trim() || DEFAULT_IDENTITY.name, gender, memory, compare, formal })} style={{ flex: 1, height: 40, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
       </div>
     </div>
   );

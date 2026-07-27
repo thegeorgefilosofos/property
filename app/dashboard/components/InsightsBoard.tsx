@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import type { Insight, InsightKind } from '@/lib/insights/engine';
 import { greeting } from '@/lib/insights/engine';
 import { vocative } from '@/lib/greekName';
+import { T } from '@/components/Theme';
 
 const DOT: Record<InsightKind, string> = {
   urgent: 'var(--negative)',
@@ -52,13 +53,13 @@ export default function InsightsBoard({ insights, name, onSaveName, onNavigate, 
   const hidden = insights.length - shown.length;
 
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 'clamp(18px, 2.4vw, 24px)', marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 'clamp(18px, 2.4vw, 24px)', marginBottom: 20, fontFamily: T.font.sans }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: insights.length ? 18 : 0 }}>
         {editing ? (
           <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') save(); else if (e.key === 'Escape') setEditing(false); }}
             onBlur={save} placeholder="Το όνομά σου" maxLength={40}
-            style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', background: 'var(--bg-elevated)', border: '1px solid var(--accent)', boxShadow: '0 0 0 3px var(--accent-dim)', borderRadius: 4, padding: '4px 10px', outline: 'none', fontFamily: "'Inter', sans-serif", minWidth: 180 }} />
+            style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', background: 'var(--bg-elevated)', border: '1px solid var(--accent)', boxShadow: '0 0 0 3px var(--accent-dim)', borderRadius: 6, padding: '4px 10px', outline: 'none', fontFamily: T.font.sans, minWidth: 180 }} />
         ) : (
           <h2 onClick={onSaveName ? startEdit : undefined} title={onSaveName ? 'Άλλαξε το όνομά σου' : undefined}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', margin: 0, cursor: onSaveName ? 'pointer' : 'default' }}>
@@ -88,7 +89,7 @@ export default function InsightsBoard({ insights, name, onSaveName, onNavigate, 
               </div>
               {it.action && (
                 <button onClick={() => onNavigate(it.action!.tab)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, fontFamily: "'Inter', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.15s, color 0.15s, border-color 0.15s' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.15s, color 0.15s, border-color 0.15s' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 45%, transparent)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-default)'; }}>
                   {it.action.label}
@@ -99,7 +100,7 @@ export default function InsightsBoard({ insights, name, onSaveName, onNavigate, 
           ))}
           {(hidden > 0 || expanded) && insights.length > cap && (
             <button onClick={() => setExpanded(e => !e)}
-              style={{ alignSelf: 'flex-start', marginTop: 8, background: 'none', border: 'none', padding: '4px 2px', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: "'Inter', sans-serif" }}>
+              style={{ alignSelf: 'flex-start', marginTop: 8, background: 'none', border: 'none', padding: '4px 2px', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans }}>
               {expanded ? 'Λιγότερα' : `Δες όλα (${insights.length})`}
             </button>
           )}

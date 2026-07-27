@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
@@ -8,7 +9,7 @@ import type { BorrowerType } from './TabLoanData'
 // το χρώμα (γαλάζιο θετικό / κόκκινο κινδύνου) μόνο στην ετυμηγορία, όχι παντού.
 const labelStyle: React.CSSProperties = {
   fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:700,fontFamily:"'Inter',sans-serif",
+  letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,
 }
 
 const EMPLOYMENT_OPTIONS:{value:EmploymentType;label:string}[] = [
@@ -91,8 +92,8 @@ export default function ApprovalPanel({
       <div onMouseEnter={()=>setVh(true)} onMouseLeave={()=>setVh(false)} onTouchStart={()=>setVh(true)} onTouchEnd={()=>setVh(false)}
         style={{background:'var(--bg-surface)',border:`1px solid ${vh?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px',transition:'border-color 0.15s'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:12}}>
-          <p style={{fontSize:16,fontWeight:700,fontFamily:"'Inter',sans-serif",color:verdictColor,letterSpacing:'-0.01em',transition:'color 0.15s'}}>{verdictLabel(res.verdict)}</p>
-          <p style={{fontSize:13,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.score}<span style={{fontSize:11,color:'var(--text-tertiary)'}}> / 100</span></p>
+          <p style={{fontSize:16,fontWeight:700,fontFamily: T.font.sans,color:verdictColor,letterSpacing:'-0.01em',transition:'color 0.15s'}}>{verdictLabel(res.verdict)}</p>
+          <p style={{fontSize:13,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.score}<span style={{fontSize:11,color:'var(--text-tertiary)'}}> / 100</span></p>
         </div>
         <div role="progressbar" aria-valuenow={res.score} aria-valuemin={0} aria-valuemax={100} aria-label={`Βαθμολογία έγκρισης ${res.score} στα 100`} style={{height:6,borderRadius:3,background:'color-mix(in srgb, var(--text-primary) 8%, transparent)',overflow:'hidden'}}>
           <div style={{height:'100%',width:`${res.score}%`,borderRadius:3,background:barColor,transition:'width 0.3s, background 0.15s'}}/>
@@ -100,9 +101,9 @@ export default function ApprovalPanel({
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginTop:14}}>
           {metrics.map((m,i)=>(
             <div key={m.l} onMouseEnter={()=>setHm(i)} onMouseLeave={()=>setHm(null)} onTouchStart={()=>setHm(i)} onTouchEnd={()=>setHm(null)}>
-              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily:"'Inter',sans-serif",marginBottom:4}}>{m.l}</p>
-              <p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:m.over?'var(--negative)':hm===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{m.v}</p>
-              <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>{m.sub}</p>
+              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:4}}>{m.l}</p>
+              <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:m.over?'var(--negative)':hm===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{m.v}</p>
+              <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>{m.sub}</p>
             </div>
           ))}
         </div>
@@ -122,7 +123,7 @@ export default function ApprovalPanel({
                   ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
                   : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
               </span>
-              <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily:"'Inter',sans-serif",color:f.kind==='block'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
+              <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:f.kind==='block'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
               <InfoDot text={f.detail}/>
             </div>
           ))}
@@ -137,14 +138,14 @@ export default function ApprovalPanel({
             {res.suggestions.map((s,i)=>(
               <div key={i} style={{display:'flex',alignItems:'flex-start',gap:9}}>
                 <span style={{width:5,height:5,borderRadius:'50%',background:'var(--border-default)',flexShrink:0,marginTop:6}}/>
-                <span style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{s}</span>
+                <span style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>{s}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
+      <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
         Ενδεικτική εκτίμηση βάσει των στοιχείων που δηλώνεις και των ορίων Τράπεζας Ελλάδος. Η τελική απόφαση ανήκει στην τράπεζα μετά από πλήρη αξιολόγηση.
       </p>
     </div>

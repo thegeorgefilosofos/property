@@ -218,7 +218,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           </span>
         </div>
         <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
-          <div style={{ position: 'absolute', left: '50%', top: -3, width: 2, height: 12, background: 'var(--text-tertiary)', borderRadius: 1 }}/>
+          <div style={{ position: 'absolute', left: '50%', top: -3, width: 2, height: 12, background: 'var(--text-tertiary)', borderRadius: 3 }}/>
           <div style={{ height: '100%', width: `${pct}%`, background: isHigh ? 'var(--negative)' : isLow ? 'var(--positive)' : 'var(--accent)', borderRadius: 3 }}/>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
@@ -578,8 +578,8 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                   <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
-              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${totalM > 0 ? (r.amount / totalM) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 2 }}/>
+              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${totalM > 0 ? (r.amount / totalM) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 3 }}/>
               </div>
             </div>
           ))}

@@ -7,6 +7,7 @@
 // αποδεικτικό και να ζητείται εκ νέου όταν η πολιτική αλλάξει ουσιωδώς.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { T } from '@/components/Theme';
 
 const KEY = 'pos-cookie-consent';
 // Συγχρονίζεται με την ημερομηνία «Τελευταία ενημέρωση» της Πολιτικής Απορρήτου.
@@ -32,12 +33,12 @@ export default function CookieConsent() {
   return (
     <div role="dialog" aria-label="Ενημέρωση για cookies" style={{ position: 'fixed', left: 12, right: 12, bottom: 12, zIndex: 2000, maxWidth: 720, margin: '0 auto',
       background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 14, boxShadow: 'var(--shadow-lg)',
-      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontFamily: "'Inter',sans-serif" }}>
+      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontFamily: T.font.sans }}>
       <div style={{ flex: 1, minWidth: 220, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
         Χρησιμοποιούμε μόνο <strong style={{ color: 'var(--text-primary)' }}>απολύτως απαραίτητα cookies</strong> για τη λειτουργία της υπηρεσίας (σύνδεση, προτίμηση θέματος). Κανένα cookie διαφήμισης ή παρακολούθησης. Αναλυτικά στην{' '}
         <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική Απορρήτου</Link>.
       </div>
-      <button onClick={acknowledge} style={{ flexShrink: 0, height: 38, padding: '0 22px', borderRadius: 100, border: 'none',
+      <button onClick={acknowledge} style={{ flexShrink: 0, height: 36, padding: '0 22px', borderRadius: 100, border: 'none',
         background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
         Το κατάλαβα
       </button>

@@ -266,7 +266,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     finally { setGenOfficial(false); }
   };
 
-  const fieldStyle: CSSProperties = { width: '100%', padding: '10px 16px', borderRadius: 4, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none' };
+  const fieldStyle: CSSProperties = { width: '100%', padding: '10px 16px', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none' };
 
   const exportCsv = () => {
     const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Νύχτες', 'Εκκρεμότητες'];
@@ -361,7 +361,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     {r.pending > 0
-                      ? <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 11, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
+                      ? <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
                       : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
@@ -379,9 +379,9 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
       {/* Ήρεμη μπάρα μαζικών ενεργειών (Gmail/Linear style) */}
       {selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
+        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
           <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
-            <div style={{ minWidth: 24, height: 24, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
+            <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{allSelected ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -406,8 +406,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
       {/* Modal: νέα εργασία σε επιλεγμένα ακίνητα */}
       {showBulk && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !bulkSaving && setShowBulk(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 460, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !bulkSaving && setShowBulk(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 460, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
             <h3 style={{ color: 'var(--text-primary)', margin: '0 0 4px', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', fontFamily: T.font.sans }}>Νέα εργασία σε επιλεγμένα</h3>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 20px', fontFamily: T.font.sans }}>Δημιουργείται μία ίδια εργασία σε {selected.size} {selected.size === 1 ? 'ακίνητο' : 'ακίνητα'}.</p>
             <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Περιγραφή</label>
@@ -436,8 +436,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
       {/* Modal: κατάσταση ιδιοκτήτη */}
       {showStatements && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowStatements(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowStatements(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
             <SecHdr label="Καταστάσεις ιδιοκτήτη" sub={`Έσοδα, δαπάνες & καθαρό ανά ακίνητο · ${year}`}
               right={<button type="button" aria-label="Κλείσιμο" onClick={() => setShowStatements(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1 }}>✕</button>} />
             <select value={stmt?.id || ''} onChange={e => setStmtOwner(e.target.value)} style={{ ...fieldStyle, marginBottom: 18 }}>
@@ -518,10 +518,10 @@ function SelectBox({ checked, indeterminate, onChange, label }: { checked: boole
   const on = checked || indeterminate;
   return (
     <button type="button" aria-label={label} onClick={e => { e.stopPropagation(); onChange(); }}
-      style={{ width: 18, height: 18, borderRadius: 5, border: '2px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), background: on ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', flexShrink: 0 }}>
+      style={{ width: 18, height: 18, borderRadius: 6, border: '2px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), background: on ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', flexShrink: 0 }}>
       {checked
         ? <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        : indeterminate ? <div style={{ width: 8, height: 2, borderRadius: 1, background: 'var(--accent-text)' }} /> : null}
+        : indeterminate ? <div style={{ width: 8, height: 2, borderRadius: 3, background: 'var(--accent-text)' }} /> : null}
     </button>
   );
 }

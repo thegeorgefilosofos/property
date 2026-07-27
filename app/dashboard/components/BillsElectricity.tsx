@@ -458,14 +458,14 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               const firstId = prov?.tariffs[0]?.id || '';
               setTariffId(firstId);
               save({ elecProvider: p, elecTariff: firstId });
-            }} style={{ width: '100%', height: 42, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
+            }} style={{ width: '100%', height: 40, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
               {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 7, fontFamily: T.font.sans }}>Τιμολόγιο</div>
             <select value={tariffId} onChange={e => { setTariffId(e.target.value); save({ elecTariff: e.target.value }); }}
-              style={{ width: '100%', height: 42, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
+              style={{ width: '100%', height: 40, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
               {providerObj.tariffs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
@@ -570,7 +570,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               <button type="button" role="switch" aria-checked={useEbill}
                 onClick={() => { const v = !useEbill; setUseEbill(v); save({ useEbill: v }); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, height: 40, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-                <span style={{ width: 40, height: 24, borderRadius: 12, padding: 2, flexShrink: 0, background: useEbill ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span style={{ width: 40, height: 26, borderRadius: 12, padding: 2, flexShrink: 0, background: useEbill ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
                   <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: useEbill ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{useEbill ? 'Ενεργό, μειωμένο πάγιο' : 'Ανενεργό'}</span>

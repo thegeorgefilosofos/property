@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
-import { Spinner, ExportButton } from '@/components/Theme';
+import { T, Spinner, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
 import { annuityMonthly } from '@/lib/loans/recommend';
@@ -129,7 +129,7 @@ const cardStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-secondary)',
-  display: 'block', marginBottom: 6, fontWeight: 500, fontFamily: "'Inter', sans-serif",
+  display: 'block', marginBottom: 6, fontWeight: 500, fontFamily: T.font.sans,
 };
 
 const g2: React.CSSProperties = { display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:12, marginBottom:12 };
@@ -138,7 +138,7 @@ const g4: React.CSSProperties = { display:'grid', gridTemplateColumns:'repeat(4,
 function SectionLabel({ label }: { label: string }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, paddingBottom:8, borderBottom:'1px solid var(--border-subtle)' }}>
-      <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+      <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
         {label}
       </span>
     </div>
@@ -147,9 +147,9 @@ function SectionLabel({ label }: { label: string }) {
 
 function InfoRow({ label, value, color = 'var(--text-primary)' }: { label: string; value: string; color?: string }) {
   return (
-    <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-      <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>{label}</span>
-      <span style={{ fontSize:14, fontWeight:700, color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{value}</span>
+    <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
+      <span style={{ fontSize:14, fontWeight:700, color, fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums' }}>{value}</span>
     </div>
   );
 }
@@ -203,12 +203,12 @@ function InstallmentCalc({ amount, installments, interestRate, startDate }: { am
           { label:'Εξόφληση', value:payoff.toLocaleDateString('el-GR',{month:'long',year:'numeric'}), tone:undefined },
         ].map((k,i) => (
           <div key={i} className="po-fig-card" tabIndex={0} style={{ background:'var(--bg-elevated)', borderRadius:6, padding:'8px 10px' }}>
-            <div className="po-fig" data-tone={k.tone} style={{ fontSize:12, fontWeight:700, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.value}</div>
-            <div style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif" }}>{k.label}</div>
+            <div className="po-fig" data-tone={k.tone} style={{ fontSize:12, fontWeight:700, fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.value}</div>
+            <div style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily: T.font.sans }}>{k.label}</div>
           </div>
         ))}
       </div>
-      <div style={{ fontSize:11, color:isInterestFree?'var(--positive)':'var(--warning)', fontFamily:"'Inter', sans-serif", lineHeight:1.5 }}>
+      <div style={{ fontSize:11, color:isInterestFree?'var(--positive)':'var(--warning)', fontFamily: T.font.sans, lineHeight:1.5 }}>
         {isInterestFree ? 'Άτοκες δόσεις, δεν συμφέρει πρόωρη εξόφληση. Διατήρησε τη ρευστότητά σου.' : `Πρόωρη εξόφληση: εξοικονομείς ${fmtEur(interest)} σε τόκους.`}
       </div>
     </div>
@@ -235,7 +235,7 @@ function ContactPicker({ value, onChange, propertyId }: { value:string; onChange
         <div style={{ flex:1 }}><TextInput value={value} onChange={onChange} placeholder="π.χ. Αντικατάσταση ψυγείου Bosch" /></div>
         {contacts.length > 0 && (
           <button type="button" onClick={() => setShow(s=>!s)}
-            style={{ padding:'0 12px', borderRadius:4, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:40, fontFamily:"'Inter', sans-serif" }}>
+            style={{ padding:'0 12px', borderRadius:6, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:40, fontFamily: T.font.sans }}>
             Επαφές
           </button>
         )}
@@ -244,7 +244,7 @@ function ContactPicker({ value, onChange, propertyId }: { value:string; onChange
         <div style={{ position:'absolute', top:'calc(100% + 4px)', right:0, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, padding:8, zIndex:700, minWidth:220, maxHeight:200, overflowY:'auto', boxShadow:'var(--shadow-lg)' }}>
           {contacts.map(c => (
             <div key={c.id} onClick={() => { onChange(c.full_name); setShow(false); }}
-              style={{ padding:'8px 10px', cursor:'pointer', borderRadius:6, fontSize:13, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif" }}
+              style={{ padding:'8px 10px', cursor:'pointer', borderRadius:6, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}
               onMouseEnter={e => e.currentTarget.style.background='var(--bg-surface)'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}>
               {c.full_name}
@@ -334,21 +334,21 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
     <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px', marginBottom:14 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: preview ? 12 : 0 }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif" }}>
+        <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily: T.font.sans }}>
           Σάρωση Απόδειξης με AI
         </span>
-        <span style={{ fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:10, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
+        <span style={{ fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:10, fontFamily: T.font.sans, fontWeight:500 }}>
           Claude Vision
         </span>
         <div style={{ flex:1 }} />
         <button
           onClick={() => inputRef.current?.click()}
           disabled={scanning}
-          style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'var(--accent-text)', fontSize:11, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
+          style={{ height:32, padding:'0 14px', borderRadius:18, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'var(--accent-text)', fontSize:11, fontFamily: T.font.sans, fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
           {scanning ? (
             <>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation:'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-              Ανάλυση...
+              Ανάλυση…
             </>
           ) : (
             <>
@@ -362,14 +362,14 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
       </div>
       {preview && !scanning && (
         <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
-          <img src={preview} alt="receipt" style={{ height:48, width:'auto', borderRadius:4, border:'1px solid var(--border-subtle)', objectFit:'cover' }} />
-          <div style={{ fontSize:11, color:'var(--positive)', fontFamily:"'Inter', sans-serif" }}>
+          <img src={preview} alt="receipt" style={{ height:44, width:'auto', borderRadius:6, border:'1px solid var(--border-subtle)', objectFit:'cover' }} />
+          <div style={{ fontSize:11, color:'var(--positive)', fontFamily: T.font.sans }}>
             Στοιχεία εξήχθησαν, ελέγξτε και συμπληρώστε
           </div>
         </div>
       )}
       {error && (
-        <div style={{ fontSize:11, color:'var(--negative)', marginTop:8, fontFamily:"'Inter', sans-serif" }}>{error}</div>
+        <div style={{ fontSize:11, color:'var(--negative)', marginTop:8, fontFamily: T.font.sans }}>{error}</div>
       )}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
@@ -403,11 +403,11 @@ function ExpenseForm({
   return (
     <div style={{ ...cardStyle, border:`1px solid ${isEdit?'var(--accent)':'var(--border-accent)'}` }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <div style={{ fontSize:11, fontWeight:500, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ fontSize:11, fontWeight:500, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily: T.font.sans, display:'flex', alignItems:'center', gap:8 }}>
           {isEdit ? 'Επεξεργασία Δαπάνης' : 'Νέα Δαπάνη'}
         </div>
         {isDeductible !== undefined && (
-          <span style={{ fontSize:10, fontWeight:500, color:isDeductible?'var(--positive)':'var(--text-tertiary)', background:isDeductible?'var(--positive-dim)':'var(--bg-surface)', padding:'3px 10px', borderRadius:20, fontFamily:"'Inter', sans-serif" }}>
+          <span style={{ fontSize:10, fontWeight:500, color:isDeductible?'var(--positive)':'var(--text-tertiary)', background:isDeductible?'var(--positive-dim)':'var(--bg-surface)', padding:'3px 10px', borderRadius:18, fontFamily: T.font.sans }}>
             {isDeductible ? 'Εκπιπτόμενη δαπάνη' : 'Μη εκπιπτόμενη'}
           </span>
         )}
@@ -427,7 +427,7 @@ function ExpenseForm({
             options={groupOptions} />
           {!showAllGroups && (
             <button type="button" onClick={() => setShowAllGroups(true)}
-              style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 600 }}>
+              style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 600 }}>
               + Περισσότερες κατηγορίες (επαγγελματικές)
             </button>
           )}
@@ -446,7 +446,7 @@ function ExpenseForm({
             <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note',v)} placeholder="π.χ. αδερφός, γονείς, συνιδιοκτήτης" />
           </div>
           {form.amount && parseFloat(form.amount) > 0 && (
-            <div style={{ marginTop:10, fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+            <div style={{ marginTop:10, fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
               Δικό σου μερίδιο: <strong style={{ color:'var(--text-primary)' }}>{fmtEur(parseFloat(form.amount) * (form.share_percent ? Math.max(0,Math.min(100,parseFloat(form.share_percent))) : 50) / 100)}</strong>
               <span style={{ color:'var(--text-tertiary)' }}> από {fmtEur(parseFloat(form.amount))} συνολικά</span>
             </div>
@@ -470,14 +470,14 @@ function ExpenseForm({
         <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate',v)} options={VAT_RATES} />
         <div>
           <label style={labelStyle}><span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span> Ποσό</label>
-          <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--text-primary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
+          <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums' }}>
             {form.vat_amount ? `${form.vat_amount} €` : '—'}
           </div>
         </div>
       </div>
 
       {form.discount_amount && parseFloat(form.discount_amount) > 0 && (
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--positive)', fontFamily:"'Inter', sans-serif" }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--positive)', fontFamily: T.font.sans }}>
           Εξοικονόμηση: <strong>{form.discount_amount} €</strong>
           {form.original_price && form.amount && (
             <span style={{ marginLeft:8, color:'var(--text-secondary)' }}>
@@ -501,7 +501,7 @@ function ExpenseForm({
           <NumberInput label="Cashback %" value={form.cashback_pct} onChange={v => sf('cashback_pct',v)} suffix="%" step={0.1} max={100} />
           <div className="po-fig-card" tabIndex={0}>
             <label style={labelStyle}><span title="Επιστροφή μέρους της αγοράς σε χρήμα">Cashback</span> Ποσό</label>
-            <div className="po-fig" data-tone="positive" style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
+            <div className="po-fig" data-tone="positive" style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums' }}>
               {form.cashback_amount ? `+${form.cashback_amount} €` : '—'}
             </div>
           </div>
@@ -513,7 +513,7 @@ function ExpenseForm({
       )}
 
       {form.amount && parseFloat(form.amount) > 0 && !hasInstallments && (
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
           <strong style={{ color:'var(--text-primary)' }}>Προτεινόμενος τρόπος:</strong> {bestPayment(parseFloat(form.amount))}
         </div>
       )}
@@ -544,24 +544,24 @@ function ExpenseForm({
           />
           {form.attachment_url && (
             <a href={form.attachment_url} target="_blank" rel="noopener noreferrer"
-              style={{ height:40, padding:'0 16px', borderRadius:4, border:'1px solid var(--accent)', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap', gap:6 }}>
+              style={{ height:40, padding:'0 16px', borderRadius:6, border:'1px solid var(--accent)', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', fontSize:12, fontFamily: T.font.sans, fontWeight:500, cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap', gap:6 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               Άνοιγμα
             </a>
           )}
         </div>
-        <div style={{ fontSize:10, color:'var(--text-tertiary)', marginTop:4, fontFamily:"'Inter', sans-serif" }}>
+        <div style={{ fontSize:10, color:'var(--text-tertiary)', marginTop:4, fontFamily: T.font.sans }}>
           Σύνδεσμος σε Google Drive, Dropbox, τιμολόγιο, ή άλλο έγγραφο
         </div>
       </div>
 
       <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:16 }}>
-        <button onClick={onCancel} style={{ background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:20, padding:'8px 16px', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:'pointer' }}>
+        <button onClick={onCancel} style={{ background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:18, padding:'8px 16px', fontSize:12, fontFamily: T.font.sans, fontWeight:500, cursor:'pointer' }}>
           Ακύρωση
         </button>
         <button onClick={onSave} disabled={saving || !form.description || !form.amount}
-          style={{ background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:20, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily:"'Inter', sans-serif", cursor:'pointer', opacity:saving?0.7:1 }}>
-          {saving ? 'Αποθήκευση...' : isEdit ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
+          style={{ background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:18, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily: T.font.sans, cursor:'pointer', opacity:saving?0.7:1 }}>
+          {saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
         </button>
       </div>
     </div>
@@ -1323,11 +1323,11 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   }
 
   return (
-    <div style={{ fontFamily:"'Inter', sans-serif", color:'var(--text-primary)', width:'100%', boxSizing:'border-box' }}>
+    <div style={{ fontFamily: T.font.sans, color:'var(--text-primary)', width:'100%', boxSizing:'border-box' }}>
 
       {/* Toast */}
       {ok && (
-        <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 16px', marginBottom:14, color:'var(--positive)', fontSize:12, fontFamily:"'Inter', sans-serif" }}>
+        <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 16px', marginBottom:14, color:'var(--positive)', fontSize:12, fontFamily: T.font.sans }}>
           {ok}
         </div>
       )}
@@ -1336,7 +1336,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {unpaidTotal > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:8, padding:'10px 16px', marginBottom:14, display:'flex', alignItems:'center', gap:12 }}>
           <div style={{ width:7, height:7, borderRadius:'50%', background:'var(--warning)', flexShrink:0 }} />
-          <span style={{ fontSize:12, color:'var(--warning)', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
+          <span style={{ fontSize:12, color:'var(--warning)', fontFamily: T.font.sans, fontWeight:500 }}>
             {processed.filter(e=>!e.paid).length} εκκρεμείς δαπάνες, {fmtEur(unpaidTotal)} αναμένουν εξόφληση
           </span>
         </div>
@@ -1344,7 +1344,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
 
       {/* Tooltip for notes */}
       {hoveredNote && (
-        <div style={{ position:'fixed', left:notePos.x+14, top:notePos.y-8, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, padding:'8px 12px', zIndex:9999, maxWidth:280, fontSize:12, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", lineHeight:1.5, boxShadow:'var(--shadow-lg)', pointerEvents:'none' }}>
+        <div style={{ position:'fixed', left:notePos.x+14, top:notePos.y-8, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, padding:'8px 12px', zIndex:9999, maxWidth:280, fontSize:12, color:'var(--text-primary)', fontFamily: T.font.sans, lineHeight:1.5, boxShadow:'var(--shadow-lg)', pointerEvents:'none' }}>
           {hoveredNote}
         </div>
       )}
@@ -1352,14 +1352,14 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Recurring reminders */}
       {recurringReminders.length > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--accent)', borderRadius:8, padding:'10px 16px', marginBottom:12 }}>
-          <div style={{ fontSize:10, fontWeight:500, color:'var(--accent)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:8 }}>
+          <div style={{ fontSize:10, fontWeight:500, color:'var(--accent)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily: T.font.sans, marginBottom:8 }}>
             Επαναλαμβανόμενες, εκκρεμείς αυτόν τον μήνα
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
             {recurringReminders.slice(0,6).map((e, i) => (
               <div key={i} style={{ display:'flex', alignItems:'center', gap:8, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:8, padding:'6px 12px' }}>
-                <span style={{ fontSize:12, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif" }}>{e.description}</span>
-                <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(e.amount)}</span>
+                <span style={{ fontSize:12, color:'var(--text-primary)', fontFamily: T.font.sans }}>{e.description}</span>
+                <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmtEur(e.amount)}</span>
                 <button onClick={async () => {
                   await supabase.from('expenses').insert({
                     property_id:propertyId, user_id:userId,
@@ -1380,7 +1380,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     appliance_lease_monthly:null, notes:null,
                   });
                   notify('Καταχωρήθηκε'); load();
-                }} style={{ height:24, padding:'0 8px', borderRadius:12, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:10, cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
+                }} style={{ height:26, padding:'0 8px', borderRadius:12, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:10, cursor:'pointer', fontFamily: T.font.sans, fontWeight:500 }}>
                   + Καταχώρηση
                 </button>
               </div>
@@ -1392,12 +1392,12 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Warranty alerts */}
       {warrantyAlerts.length > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:8, padding:'10px 16px', marginBottom:12 }}>
-          <div style={{ fontSize:10, fontWeight:500, color:'var(--warning)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:8 }}>
+          <div style={{ fontSize:10, fontWeight:500, color:'var(--warning)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily: T.font.sans, marginBottom:8 }}>
             Εγγυήσεις που λήγουν σύντομα
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
             {warrantyAlerts.map((e, i) => (
-              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:8, padding:'6px 12px', fontSize:12, fontFamily:"'Inter', sans-serif" }}>
+              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:8, padding:'6px 12px', fontSize:12, fontFamily: T.font.sans }}>
                 <span style={{ color:'var(--text-primary)', fontWeight:500 }}>{e.description}</span>
                 {', '}
                 <span style={{ color:e.daysLeft<=14?'var(--negative)':'var(--warning)', fontWeight:500 }}>
@@ -1415,7 +1415,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, flexWrap:'wrap', gap:8 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif" }}>
+          <span style={{ fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily: T.font.sans }}>
             Δαπάνες Ακινήτου
           </span>
         </div>
@@ -1424,20 +1424,20 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               (Δαπάνες → Προϋπολογισμός, Συγκριτική Ανάλυση → Φορολογική Ανάλυση) —
               καμία διπλή είσοδος εδώ. */}
           <button onClick={() => exportExcel(processed, 'Ακίνητο')}
-            style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
+            style={{ height:36, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
             Εξαγωγή Excel
           </button>
           <button onClick={() => exportPDF(processed, 'Ακίνητο', branding)}
-            style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
+            style={{ height:36, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
             Εξαγωγή PDF
           </button>
           <button onClick={officialExpenses} disabled={genOfficial}
             title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και λογιστή"
-            style={{ display:'inline-flex', alignItems:'center', gap:7, height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:genOfficial?'wait':'pointer', opacity:genOfficial?0.6:1, fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
+            style={{ display:'inline-flex', alignItems:'center', gap:7, height:36, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:genOfficial?'wait':'pointer', opacity:genOfficial?0.6:1, fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
             <ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}
           </button>
           <button onClick={() => { setShowForm(v=>!v); setEditingId(null); }}
-            style={{ height:36, padding:'0 18px', borderRadius:20, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, whiteSpace:'nowrap' }}>
+            style={{ height:36, padding:'0 18px', borderRadius:18, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500, whiteSpace:'nowrap' }}>
             {showForm ? 'Κλείσιμο' : '+ Νέα Δαπάνη'}
           </button>
         </div>
@@ -1446,28 +1446,28 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* ── Quick-add bar ── */}
       <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'10px 14px', marginBottom:14, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", fontWeight:500, flexShrink:0 }}>Γρήγορη καταχώρηση:</span>
+        <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500, flexShrink:0 }}>Γρήγορη καταχώρηση:</span>
         <input
           value={quickDesc} onChange={e=>setQuickDesc(e.target.value)}
           placeholder="Τί αγόρασες; (π.χ. Λογαριασμός ΔΕΗ)"
           onKeyDown={e=>{ if(e.key==='Enter'&&quickAmt) quickSave(); }}
-          style={{ flex:3, minWidth:160, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter', sans-serif", outline:'none' }}
+          style={{ flex:3, minWidth:160, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily: T.font.sans, outline:'none' }}
         />
         <input
           type="number" value={quickAmt} onChange={e=>setQuickAmt(e.target.value)}
           placeholder="Ποσό €"
           onKeyDown={e=>{ if(e.key==='Enter'&&quickDesc.trim()) quickSave(); }}
-          style={{ flex:1, minWidth:90, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', outline:'none' }}
+          style={{ flex:1, minWidth:90, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums', outline:'none' }}
         />
         <select value={quickGroup} onChange={e=>setQuickGroup(e.target.value)}
-          style={{ flex:2, minWidth:130, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 8px', color:'var(--text-primary)', fontSize:12, fontFamily:"'Inter', sans-serif", outline:'none' }}>
+          style={{ flex:2, minWidth:130, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 8px', color:'var(--text-primary)', fontSize:12, fontFamily: T.font.sans, outline:'none' }}>
           {Object.entries(EXPENSE_GROUPS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
         </select>
         <button onClick={quickSave} disabled={quickSaving||!quickDesc.trim()||!quickAmt}
-          style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
+          style={{ height:32, padding:'0 16px', borderRadius:18, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontFamily: T.font.sans, fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
           {quickSaving?'...':'Αποθήκευση'}
         </button>
-        <span style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", flexShrink:0 }}>Enter</span>
+        <span style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans, flexShrink:0 }}>Enter</span>
       </div>
 
       {/* Add form */}
@@ -1490,8 +1490,8 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           { label:'Σύνολο ΦΠΑ',          value:fmtEur(totalVat),      accent:false },
         ].map((k,i) => (
           <div key={i} className="po-fig-card" tabIndex={0} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'14px 16px' }}>
-            <div className="po-fig" data-tone={k.accent ? 'positive' : undefined} style={{ fontSize:18, fontWeight:700, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:5 }}>{k.value}</div>
-            <div style={{ fontSize:10, fontWeight:500, letterSpacing:'0.04em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{k.label}</div>
+            <div className="po-fig" data-tone={k.accent ? 'positive' : undefined} style={{ fontSize:18, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:5 }}>{k.value}</div>
+            <div style={{ fontSize:10, fontWeight:500, letterSpacing:'0.04em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.label}</div>
           </div>
         ))}
       </div>
@@ -1502,20 +1502,20 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           {yoyData.lastYTD > 0 && (
             <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:16 }}>
               <div>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter', sans-serif", marginBottom:6 }}>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily: T.font.sans, marginBottom:6 }}>
                   Φέτος έναντι πέρσι, ίδια περίοδος
                 </div>
                 <div style={{ display:'flex', gap:18, alignItems:'baseline' }}>
                   <div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.thisYTD)}</div>
-                    <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{yoyData.thisYear}</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.thisYTD)}</div>
+                    <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{yoyData.thisYear}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.lastYTD)}</div>
-                    <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{yoyData.lastYear}</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-secondary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.lastYTD)}</div>
+                    <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{yoyData.lastYear}</div>
                   </div>
                   {yoyData.change !== null && (
-                    <div style={{ fontSize:13, fontWeight:600, color:yoyData.change>0?'var(--warning)':'var(--positive)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:yoyData.change>0?'var(--warning)':'var(--positive)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>
                       {yoyData.change>0?'+':'−'}{Math.abs(yoyData.change).toFixed(0)}%
                     </div>
                   )}
@@ -1525,14 +1525,14 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           )}
           {cashbackStats.ytdCashback > 0 && (
             <div className="po-fig-card" tabIndex={0} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px' }}>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter', sans-serif", marginBottom:6 }}>
+              <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily: T.font.sans, marginBottom:6 }}>
                 Επιστροφές χρημάτων φέτος
               </div>
               <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
-                <div className="po-fig" data-tone="positive" style={{ fontSize:16, fontWeight:700, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(cashbackStats.ytdCashback)}</div>
-                <div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>{cashbackStats.cashbackCount} αγορές</div>
+                <div className="po-fig" data-tone="positive" style={{ fontSize:16, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(cashbackStats.ytdCashback)}</div>
+                <div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily: T.font.sans }}>{cashbackStats.cashbackCount} αγορές</div>
                 {cashbackStats.bestCashback && (
-                  <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>
+                  <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
                     Καλύτερη: {cashbackStats.bestCashback.description} (+{fmtEur(cashbackStats.bestCashback.cashback_amount||0)})
                   </div>
                 )}
@@ -1718,11 +1718,11 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'16px 18px', marginBottom:16 }}>
             <div className="po-fig-card" tabIndex={0} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+                <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
                   Αναλύσεις & Ειδοποιήσεις
                 </span>
                 {cards.some(c=>c.urgent) && (
-                  <span className="po-fig" data-tone="negative" style={{ fontSize:9, fontWeight:700, background:'var(--negative-soft)', padding:'2px 8px', borderRadius:10, fontFamily:"'Inter', sans-serif" }}>
+                  <span className="po-fig" data-tone="negative" style={{ fontSize:9, fontWeight:700, background:'var(--negative-soft)', padding:'2px 8px', borderRadius:10, fontFamily: T.font.sans }}>
                     {cards.filter(c=>c.urgent).length} επείγοντα
                   </span>
                 )}
@@ -1739,15 +1739,15 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d={card.icon} />
                     </svg>
-                    <span style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", textTransform:'uppercase', letterSpacing:'0.05em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    <span style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', fontFamily: T.font.sans, textTransform:'uppercase', letterSpacing:'0.05em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {card.title}
                     </span>
                     {card.urgent && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--warning)', flexShrink:0 }} />}
                   </div>
-                  <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {card.value}
                   </div>
-                  <div style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", lineHeight:1.45 }}>
+                  <div style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight:1.45 }}>
                     {card.sub}
                   </div>
                 </div>
@@ -1768,8 +1768,8 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <div style={{ position:'relative' }}>
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Περιγραφή, κατηγορία..."
-              style={{ width:'100%', height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 36px 0 12px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter', sans-serif", outline:'none', boxSizing:'border-box' as const }}
+              placeholder="Περιγραφή, κατηγορία…"
+              style={{ width:'100%', height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 36px 0 12px', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, outline:'none', boxSizing:'border-box' as const }}
             />
             {search && (
               <button onClick={() => setSearch('')}
@@ -1787,7 +1787,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
 
       {/* Toolbar: πλήθος + εξαγωγή */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:12, flexWrap:'wrap' }}>
-        <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{processed.length} δαπάνες</div>
+        <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{processed.length} δαπάνες</div>
         <ExportButton disabled={processed.length===0} onClick={()=>exportExpensesXlsx()} onExportData={()=>exportExpensesXlsx('data')} />
       </div>
 
@@ -1799,11 +1799,11 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
           </div>
-          <div style={{ fontSize:13, fontWeight:500, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+          <div style={{ fontSize:13, fontWeight:500, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
             {search ? `Δεν βρέθηκαν αποτελέσματα για «${search}»` : 'Δεν έχεις καταχωρίσει δαπάνες ακόμα'}
           </div>
           {!search && (
-            <div style={{ fontSize:12, color:'var(--text-tertiary)', marginTop:4, fontFamily:"'Inter', sans-serif" }}>
+            <div style={{ fontSize:12, color:'var(--text-tertiary)', marginTop:4, fontFamily: T.font.sans }}>
               Πρόσθεσε την πρώτη σου δαπάνη για να ξεκινήσει η παρακολούθηση εξόδων και αποδόσεων.
             </div>
           )}
@@ -1818,15 +1818,15 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               <div key={groupKey} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, marginBottom:12, overflow:'hidden' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 18px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-surface)' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:8, height:8, borderRadius:2, background:GROUP_COLORS[groupKey]||'var(--accent)', flexShrink:0 }} />
-                    <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif" }}>{groupInfo.label}</span>
-                    <span style={{ fontSize:10, color:'var(--text-secondary)', background:'var(--bg-elevated)', padding:'2px 8px', borderRadius:4, fontFamily:"'Inter', sans-serif" }}>{groupExp.length}</span>
+                    <div style={{ width:8, height:8, borderRadius:3, background:GROUP_COLORS[groupKey]||'var(--accent)', flexShrink:0 }} />
+                    <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily: T.font.sans }}>{groupInfo.label}</span>
+                    <span style={{ fontSize:10, color:'var(--text-secondary)', background:'var(--bg-elevated)', padding:'2px 8px', borderRadius:6, fontFamily: T.font.sans }}>{groupExp.length}</span>
                     {groupInfo.taxDeductible && (
-                      <span style={{ fontSize:9, color:'var(--positive)', background:'var(--positive-dim)', padding:'2px 8px', borderRadius:4, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>Εκπιπτόμενη</span>
+                      <span style={{ fontSize:9, color:'var(--positive)', background:'var(--positive-dim)', padding:'2px 8px', borderRadius:6, fontFamily: T.font.sans, fontWeight:500 }}>Εκπιπτόμενη</span>
                     )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                    <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>{fmtEur(groupTotal)}</span>
+                    <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>{fmtEur(groupTotal)}</span>
                   </div>
                 </div>
                 <div style={{ overflowX:'auto' }}>
@@ -1835,7 +1835,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     <thead>
                       <tr>
                         {['Ημερομηνία','Κατηγορία','Περιγραφή','Πληρώνει','Κατάστημα','Πληρωμή','ΦΠΑ','Επιστροφή','Ποσό',''].map((h,i) => (
-                          <th key={i} title={h==='ΦΠΑ'?'Φόρος Προστιθέμενης Αξίας':h==='Επιστροφή'?'Cashback — επιστροφή χρημάτων':undefined} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'7px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif", whiteSpace:'nowrap' }}>{h}</th>
+                          <th key={i} title={h==='ΦΠΑ'?'Φόρος Προστιθέμενης Αξίας':h==='Επιστροφή'?'Cashback — επιστροφή χρημάτων':undefined} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'7px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily: T.font.sans, whiteSpace:'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -1852,13 +1852,13 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                               style={{ background:isEditing?'var(--bg-surface)':'transparent', transition:'background 0.15s' }}
                               onMouseEnter={ev => { if (!isEditing) ev.currentTarget.style.background='var(--bg-surface)'; }}
                               onMouseLeave={ev => { if (!isEditing) ev.currentTarget.style.background='transparent'; }}>
-                              <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:12, fontFamily:"'Inter', sans-serif", whiteSpace:'nowrap' }}>{fmtD(e.date)}</td>
+                              <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:12, fontFamily: T.font.sans, whiteSpace:'nowrap' }}>{fmtD(e.date)}</td>
                               <td style={{ padding:'9px 10px' }}>
-                                <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:4, fontSize:10, fontWeight:500, fontFamily:"'Inter', sans-serif", background:`${getCatColor(e.category)}20`, color:getCatColor(e.category) }}>{e.category}</span>
+                                <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:6, fontSize:10, fontWeight:500, fontFamily: T.font.sans, background:`${getCatColor(e.category)}20`, color:getCatColor(e.category) }}>{e.category}</span>
                               </td>
                               <td style={{ padding:'9px 10px', maxWidth:200 }}>
                                 <div
-                                  style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", cursor:e.notes?'help':'default' }}
+                                  style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'var(--text-primary)', fontFamily: T.font.sans, cursor:e.notes?'help':'default' }}
                                   onMouseEnter={ev => { if(e.notes){ setHoveredNote(e.notes); setNotePos({x:ev.clientX,y:ev.clientY}); } }}
                                   onMouseMove={ev => { if(e.notes) setNotePos({x:ev.clientX,y:ev.clientY}); }}
                                   onMouseLeave={() => setHoveredNote(null)}
@@ -1867,28 +1867,28 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                                   {e.notes && <span style={{ marginLeft:5, fontSize:8, color:'var(--accent)' }}>●</span>}
                                 </div>
                                 <div style={{ display:'flex', gap:4, marginTop:2 }}>
-                                  {e.is_recurring && <span style={{ fontSize:9, background:'var(--bg-hover)', color:'var(--text-secondary)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>{freqLabel[e.recurring_frequency||'']||'Επαναλ.'}</span>}
-                                  {!e.paid && <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>Εκκρεμεί</span>}
-                                  {SHARED_SCOPES.has(e.paid_by||'') && <span title={e.share_note?`Μοιρασμένο με ${e.share_note}`:'Μοιρασμένη δαπάνη'} style={{ fontSize:9, background:'var(--bg-hover)', color:'var(--text-secondary)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>μοιρασμένο · {e.share_percent!=null?e.share_percent:50}%</span>}
+                                  {e.is_recurring && <span style={{ fontSize:9, background:'var(--bg-hover)', color:'var(--text-secondary)', padding:'1px 6px', borderRadius:3, fontFamily: T.font.sans }}>{freqLabel[e.recurring_frequency||'']||'Επαναλ.'}</span>}
+                                  {!e.paid && <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily: T.font.sans }}>Εκκρεμεί</span>}
+                                  {SHARED_SCOPES.has(e.paid_by||'') && <span title={e.share_note?`Μοιρασμένο με ${e.share_note}`:'Μοιρασμένη δαπάνη'} style={{ fontSize:9, background:'var(--bg-hover)', color:'var(--text-secondary)', padding:'1px 6px', borderRadius:3, fontFamily: T.font.sans }}>μοιρασμένο · {e.share_percent!=null?e.share_percent:50}%</span>}
                                   {e.warranty_months && (() => {
                                     const exp = new Date(e.date+'T00:00:00'); exp.setMonth(exp.getMonth()+e.warranty_months);
                                     const days = Math.ceil((exp.getTime()-Date.now())/86400000);
-                                    return days >= 0 && days <= 90 ? <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>Εγγ.{days}μ.</span> : null;
+                                    return days >= 0 && days <= 90 ? <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily: T.font.sans }}>Εγγ.{days}μ.</span> : null;
                                   })()}
                                 </div>
                               </td>
-                              <td style={{ padding:'9px 10px' }}><span style={{ fontSize:11, fontWeight:500, color:paidByColor, fontFamily:"'Inter', sans-serif" }}>{paidByLabel}</span></td>
-                              <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:12, fontFamily:"'Inter', sans-serif" }}>{e.store_vendor||'—'}</td>
-                              <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:11, fontFamily:"'Inter', sans-serif" }}>
+                              <td style={{ padding:'9px 10px' }}><span style={{ fontSize:11, fontWeight:500, color:paidByColor, fontFamily: T.font.sans }}>{paidByLabel}</span></td>
+                              <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:12, fontFamily: T.font.sans }}>{e.store_vendor||'—'}</td>
+                              <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:11, fontFamily: T.font.sans }}>
                                 <div>{pm?.label||'—'}</div>
                                 {e.installments && <div style={{ fontSize:10, color:'var(--text-tertiary)' }}>{e.installments} δόσεις</div>}
                               </td>
-                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', fontSize:12 }}>
+                              <td style={{ padding:'9px 10px', fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', fontSize:12 }}>
                                 {e.vat_amount ? fmtEur(e.vat_amount) : '—'}
-                                {e.vat_rate && <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{e.vat_rate}%</div>}
+                                {e.vat_rate && <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{e.vat_rate}%</div>}
                               </td>
-                              <td className="po-fig" data-tone="positive" style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontSize:12 }}>{e.cashback_amount ? `+${fmtEur(e.cashback_amount)}` : '—'}</td>
-                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontWeight:700, color:e.paid?'var(--text-primary)':'var(--warning)', whiteSpace:'nowrap' }}>
+                              <td className="po-fig" data-tone="positive" style={{ padding:'9px 10px', fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:12 }}>{e.cashback_amount ? `+${fmtEur(e.cashback_amount)}` : '—'}</td>
+                              <td style={{ padding:'9px 10px', fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, color:e.paid?'var(--text-primary)':'var(--warning)', whiteSpace:'nowrap' }}>
                                 {fmtEur(e.amount)}
                                 {e.original_price && e.original_price > e.amount && <div style={{ fontSize:10, color:'var(--text-tertiary)', textDecoration:'line-through', fontWeight:400 }}>{fmtEur(e.original_price)}</div>}
                                 {SHARED_SCOPES.has(e.paid_by||'') && <div style={{ fontSize:10, color:'var(--text-tertiary)', fontWeight:400 }} title="Το μερίδιό σου">εγώ: {fmtEur(ownerShareAmount(e))}</div>}
@@ -1945,12 +1945,12 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 ...(totalVat>0?[{ label:'ΦΠΑ', value:fmtEur(totalVat), tone:undefined }]:[]),
                 { label:'Εκπιπτόμενες', value:fmtEur(deductible), tone:deductible>0?'positive':undefined },
               ].map((item,i) => (
-                <span key={i} style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
-                  {item.label}: <strong className="po-fig" data-tone={item.tone} style={{ fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>{item.value}</strong>
+                <span key={i} style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
+                  {item.label}: <strong className="po-fig" data-tone={item.tone} style={{ fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>{item.value}</strong>
                 </span>
               ))}
             </div>
-            <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{processed.length} εγγραφές</span>
+            <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{processed.length} εγγραφές</span>
           </div>
         </>
       )}

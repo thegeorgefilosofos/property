@@ -100,7 +100,7 @@ function SegBtn({ active, disabled, divider, onClick, children }: {
       type="button"
       onClick={disabled ? undefined : onClick}
       style={{
-        height: 30, padding: '0 12px', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
+        height: 28, padding: '0 12px', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
         cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap',
         border: 'none', borderLeft: divider ? '1px solid var(--border-default)' : 'none',
         background: active ? 'var(--accent-soft)' : 'transparent',
@@ -588,7 +588,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                                         // Ποτέ κενή λίστα: κενό θα σήμαινε «όλα» και θα άνοιγε σιωπηλά την πρόσβαση.
                                         void setMemberScope(m.email, { property_scope: next.length ? next : [p.id] });
                                       }}
-                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 15, cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 14, cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
                                       {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
                                       {p.name}
                                     </button>

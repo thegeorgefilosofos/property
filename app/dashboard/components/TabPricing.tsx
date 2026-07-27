@@ -252,7 +252,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyR
         <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix="νύχτες" />
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Έτος</div>
-          <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', height: 42 }}>
+          <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', height: 40 }}>
             {[nowYear, nowYear + 1, nowYear + 2].map(y => (
               <button key={y} onClick={() => setPyear(y)} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, background: pyear === y ? 'var(--accent)' : 'transparent', color: pyear === y ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{y}</button>
             ))}

@@ -41,7 +41,7 @@ export default function Unsubscribe() {
   };
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: '#111' };
-  const card: React.CSSProperties = { width: '100%', maxWidth: 440, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '30px 28px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
+  const card: React.CSSProperties = { width: '100%', maxWidth: 440, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '30px 28px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
   const btn = (danger?: boolean): React.CSSProperties => ({ width: '100%', height: 42, borderRadius: 10, border: '1px solid ' + (danger ? '#e5e7eb' : '#d0d5dd'), background: danger ? '#fff' : '#111', color: danger ? '#374151' : '#fff', fontSize: 13.5, fontWeight: 600, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 });
 
   return (

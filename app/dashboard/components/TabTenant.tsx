@@ -27,12 +27,12 @@ import { whatsappLink, viberLink } from '@/lib/clients/messages';
 import { normalizePhone } from '@/lib/clients/clients';
 import { SYSTEM_PROMPT } from './DocumentScan';
 import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
+import { escHtml as esc } from '@/lib/reportBranding';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
-const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Tenant {
@@ -217,12 +217,12 @@ function SplitBar({ owner, onChange }: { owner:number; onChange:(v:number)=>void
         tabIndex={0}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onKeyDown={onKey}
         style={{
-          position:'relative', height:14, borderRadius:999,
+          position:'relative', height:14, borderRadius:100,
           background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)',
           cursor:'pointer', touchAction:'none', outline:'none',
         }}
       >
-        <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${owner}%`, background:'var(--accent)', borderRadius:999, transition: dragging ? 'none' : 'width 0.18s cubic-bezier(0.2,0,0,1)' }}/>
+        <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${owner}%`, background:'var(--accent)', borderRadius:100, transition: dragging ? 'none' : 'width 0.18s cubic-bezier(0.2,0,0,1)' }}/>
         <div style={{
           position:'absolute', top:'50%', left:`${owner}%`, transform:'translate(-50%,-50%)',
           width:22, height:22, borderRadius:'50%',
@@ -241,7 +241,7 @@ function SplitBar({ owner, onChange }: { owner:number; onChange:(v:number)=>void
           return (
             <button key={label} type="button" onClick={()=>onChange(val)}
               style={{
-                flex:1, height:30, borderRadius:999, cursor:'pointer',
+                flex:1, height:28, borderRadius:100, cursor:'pointer',
                 fontFamily:T.font.sans, fontSize:11, fontWeight: active ? 600 : 500,
                 border:`1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`,
                 background: active ? 'var(--accent-dim)' : 'transparent',
@@ -369,7 +369,7 @@ function PaymentBars({ payments }:{payments:RentPayment[]}) {
       <div style={{ display:'flex', flexWrap:'wrap' as const, gap:'10px 16px', marginTop:12 }}>
         {[['var(--positive)','Εμπρόθεσμη'],['var(--info)','Μικρή καθυστέρηση'],['var(--warning)','Μεγάλη καθυστέρηση'],['var(--negative)','Εκκρεμεί']].map(([c,l])=>(
           <div key={l} style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <div style={{ width:8, height:8, borderRadius:2, background:c, flexShrink:0 }}/>
+            <div style={{ width:8, height:8, borderRadius:3, background:c, flexShrink:0 }}/>
             <span style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{l}</span>
           </div>
         ))}
@@ -779,17 +779,17 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
-                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="π.χ. Θετικό, αρνητικό..." style={inputStyle}/>
+                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="π.χ. Θετικό, αρνητικό…" style={inputStyle}/>
               </div>
             </div>
             <div style={{ marginBottom:14 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Σύνοψη Επικοινωνίας *</div>
-              <textarea value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))} placeholder="Περιγραφή επικοινωνίας..." rows={3}
+              <textarea value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))} placeholder="Περιγραφή επικοινωνίας…" rows={3}
                 style={{ width:'100%', background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, letterSpacing:0, fontFamily:T.font.sans, outline:'none', boxSizing:'border-box' as const, resize:'vertical' as const, lineHeight:1.6 }}/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>setShowAdd(false)}>Ακύρωση</button>
-              <button style={s.btnGold} onClick={saveLog} disabled={saving}>{saving?'Αποθήκευση...':'Αποθήκευση'}</button>
+              <button style={s.btnGold} onClick={saveLog} disabled={saving}>{saving?'Αποθήκευση…':'Αποθήκευση'}</button>
             </div>
           </div>
         )}
@@ -798,7 +798,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
         {!loading&&logs.length===0&&<div style={{ textAlign:'center', padding:40, color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν καταχωρήσεις επικοινωνίας</div>}
         {!loading&&logs.map(log=>(
           <div key={log.id} style={{ display:'flex', gap:14, alignItems:'flex-start', padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
-            <div style={{ width:38, height:38, borderRadius:19, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16 }}>
+            <div style={{ width:38, height:38, borderRadius:18, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16 }}>
             </div>
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
@@ -1172,7 +1172,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>setAddOpen(false)}>Ακύρωση</button>
-              <button style={s.btnGold} onClick={savePay} disabled={busy}>{busy?'Αποθήκευση...':'Καταχώρηση'}</button>
+              <button style={s.btnGold} onClick={savePay} disabled={busy}>{busy?'Αποθήκευση…':'Καταχώρηση'}</button>
             </div>
           </div>
         )}
@@ -1586,7 +1586,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>{setAddOpen(false);setEditId(null);}}>Ακύρωση</button>
-              <button style={s.btnGold} onClick={save} disabled={busy}>{busy?'Αποθήκευση...':editId?'Αποθήκευση':'Καταχώρηση'}</button>
+              <button style={s.btnGold} onClick={save} disabled={busy}>{busy?'Αποθήκευση…':editId?'Αποθήκευση':'Καταχώρηση'}</button>
             </div>
           </div>
         )}
@@ -2248,10 +2248,10 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
       <div style={{ display:'flex', gap:10, flexWrap:'wrap' as const, alignItems:'center', marginBottom:16 }}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"
-          style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:42, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
+          style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:40, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
           {([['all','Όλοι'],['current','Τρέχων'],['past','Προηγούμενοι']] as [typeof segment,string][]).map(([v,l])=>(
-            <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius:20, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
+            <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius:18, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
           ))}
         </div>
       </div>
@@ -2366,7 +2366,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               {DTABS.map(tb=>(
                 <button key={tb.id} onClick={()=>setDossierTab(tb.id)} style={{ ...s.tabBtn(dossierTab===tb.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                   {tb.label}
-                  {tb.badge&&tb.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:9, background:'var(--negative)', color:'#fff', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
+                  {tb.badge&&tb.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'#fff', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
                 </button>
               ))}
             </div>
@@ -2413,7 +2413,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                         <button onClick={()=>openLeaseDoc(dc)} style={{ ...s.btnGold, display:'inline-block', marginBottom:10 }}>Άνοιγμα PDF</button>
                         <div style={{ marginTop:10 }}>
                           <label style={{ ...s.btnSm, cursor:'pointer', display:'inline-block' }}>
-                            {uploading?'Ανέβασμα...':'Αντικατάσταση PDF'}
+                            {uploading?'Ανέβασμα…':'Αντικατάσταση PDF'}
                             <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
                           </label>
                         </div>
@@ -2422,7 +2422,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ border:'2px dashed var(--border-default)', borderRadius:T.radius.inner, padding:'40px 28px', textAlign:'center' as const }}>
                         <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:18 }}>Ανέβασε το μισθωτήριο σε μορφή PDF</div>
                         <label style={{ ...s.btnGold, cursor:'pointer', display:'inline-block', padding:'11px 28px' }}>
-                          {uploading?'Ανέβασμα...':'Επιλογή PDF'}
+                          {uploading?'Ανέβασμα…':'Επιλογή PDF'}
                           <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
                         </label>
                       </div>
@@ -2458,8 +2458,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               <button style={s.btnGhost} onClick={closeForm}>Ακύρωση</button>
             </div>
 
-            <div style={{ height:3, background:'var(--bg-overlay)', borderRadius:2, marginBottom:24, overflow:'hidden' }}>
-              <div style={{ height:'100%', width:`${(FTABS.findIndex(([,t])=>t===formTab)+1)/FTABS.length*100}%`, background:'var(--accent)', borderRadius:2, transition:'width 0.3s ease' }}/>
+            <div style={{ height:3, background:'var(--bg-overlay)', borderRadius:3, marginBottom:24, overflow:'hidden' }}>
+              <div style={{ height:'100%', width:`${(FTABS.findIndex(([,t])=>t===formTab)+1)/FTABS.length*100}%`, background:'var(--accent)', borderRadius:3, transition:'width 0.3s ease' }}/>
             </div>
 
             <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', marginBottom:24 }}>
@@ -2486,7 +2486,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                   <TextInput label="IBAN" value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000 0000..."/>
                 </div>
                 <div style={{ ...s.g2, marginBottom:16 }}>
-                  <SelectField label="Τύπος Εγγράφου Ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή..."/>
+                  <SelectField label="Τύπος Εγγράφου Ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
                   <TextInput label="Αριθμός Εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
                 </div>
                 {/* Ανέβασμα σαρωμένου εγγράφου ταυτοποίησης */}
@@ -2497,7 +2497,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2, lineHeight:1.4 }}>Ανέβασε σαρωμένη ταυτότητα, διαβατήριο ή άλλο έγγραφο (PDF ή εικόνα).</div>
                     </div>
                     <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
-                      {docBusy?'Ανέβασμα...':'Επιλογή αρχείου'}
+                      {docBusy?'Ανέβασμα…':'Επιλογή αρχείου'}
                       <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'id'); e.currentTarget.value='';}}/>
                     </label>
                   </div>
@@ -2591,7 +2591,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 <SectionTitle>Εγγύηση</SectionTitle>
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <NumberInput label="Ποσό Εγγύησης" value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
-                  <SelectField label="Τρόπος Καταβολής" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή..."/>
+                  <SelectField label="Τρόπος Καταβολής" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>
                   <DateField label="Ημ. Καταβολής Εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>
                 </div>
                 <div style={{ ...s.g3, marginBottom:16 }}>
@@ -2602,7 +2602,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 {form.deposit_invested&&(
                   <div style={{ ...s.g3, marginBottom:16 }}>
                     <NumberInput label="Απόδοση % / Έτος" value={form.deposit_invest_rate} onChange={v=>sf('deposit_invest_rate',v)} suffix="%" step={0.1} max={100}/>
-                    <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
+                    <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή…"/>
                     <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="π.χ. VWCE..."/>
                   </div>
                 )}
@@ -2621,7 +2621,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                   <TextInput label="Εξωτερικός Σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="https://drive.google.com/..."/>
                   <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:14, flexWrap:'wrap' as const }}>
                     <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
-                      {docBusy?'Ανέβασμα...':'Ανέβασμα αρχείου'}
+                      {docBusy?'Ανέβασμα…':'Ανέβασμα αρχείου'}
                       <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'lease'); e.currentTarget.value='';}}/>
                     </label>
                     <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>PDF ή εικόνα, αποθηκεύεται στον χώρο εγγράφων του ακινήτου</span>
@@ -2690,14 +2690,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     {form.parking_extra&&<NumberInput label="Μηνιαία Τιμή Στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
                   </div>
                   <div style={{ ...s.g3, marginBottom:16 }}>
-                    <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή..."/>
+                    <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή…"/>
                     <div><div title="Υποδομή φόρτισης για ηλεκτρικό όχημα" style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης Ηλεκτρικού Οχήματος</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
                   </div>
-                  <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="π.χ. Θέση Νο. 12, υπόγειο Β..."/>
+                  <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="π.χ. Θέση Νο. 12, υπόγειο Β…"/>
                 </SvcSection>
 
                 <SvcSection title="Επιπλέον Παροχές" hint="Αποθήκη, κήπος, κοινόχρηστες παροχές και ό,τι άλλο προσφέρεις." open={svcUI.extra} onToggle={()=>setSvcUI(u=>({...u,extra:!u.extra}))}>
-                  <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="π.χ. Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
+                  <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="π.χ. Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
                 </SvcSection>
               </>
             )}

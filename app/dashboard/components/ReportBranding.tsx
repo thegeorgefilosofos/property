@@ -117,7 +117,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
           PNG, JPG ή WebP, ιδανικά τετράγωνο ή οριζόντιο. Μειώνεται αυτόματα, μέγιστο 500 KB.
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          {logoUrl && <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 48, width: 'auto', maxWidth: 200, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 6 }} />}
+          {logoUrl && <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 44, width: 'auto', maxWidth: 200, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 6 }} />}
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onFile} style={{ display: 'none' }} />
           <Btn variant="secondary" onClick={() => fileRef.current?.click()}>Μεταφόρτωση λογοτύπου</Btn>
           {logoUrl && <Btn variant="ghost" onClick={() => setLogoUrl('')}>Αφαίρεση</Btn>}
@@ -142,7 +142,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: `2px solid ${sanitizeAccent(accent)}` }}>
             {logoUrl
               ? <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 34, width: 'auto', maxWidth: 150, objectFit: 'contain' }} />
-              : <div style={{ width: 34, height: 34, borderRadius: 9, background: sanitizeAccent(accent), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
+              : <div style={{ width: 34, height: 34, borderRadius: 8, background: sanitizeAccent(accent), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#202124', fontFamily: T.font.sans }}>{previewName}</div>
               <div style={{ fontSize: 11, color: '#5f6368', fontFamily: T.font.sans }}>Αναφορά Ακινήτου</div>
