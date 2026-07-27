@@ -1539,7 +1539,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
   // Εκτύπωση: καθαρή, branded αναφορά επερχόμενων γεγονότων (όχι raw σελίδα).
   function printCalendar(){
-    const esc=(s:string)=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c))
+    // Καλύπτει ΚΑΙ τα εισαγωγικά: αλλιώς, αν κάποια τιμή μπει σε attribute (π.χ.
+    // title="…"), μια απόστροφος θα μπορούσε να σπάσει το attribute (XSS).
+    const esc=(s:string)=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c))
     const up=[...filtered].filter(e=>e.status!=='paid').sort((a,b)=>a.event_date.localeCompare(b.event_date))
     const fmtD=(s:string)=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,(m||1)-1,d||1).toLocaleDateString('el-GR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})}
     const rows=up.length?up.map(e=>{const cat=CATEGORIES[e.category];const d=daysUntil(e.event_date);const tag=d<0?`${Math.abs(d)} ημ. πριν`:d===0?'Σήμερα':`σε ${d} ημ.`;const col=d<0?'#c5221f':d<=7?'#e37400':'#5f6368';return `<tr>
