@@ -1,21 +1,73 @@
 version: 2
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ΓΙΑΤΙ ΕΙΝΑΙ ΧΩΡΙΣΜΕΝΟ ΕΤΣΙ
+# ─────────────────────────────────────────────────────────────────────────
+# Η πρώτη εκδοχή ομαδοποιούσε μόνο σε «production» και «development». Το
+# αποτέλεσμα ήταν το PR #188: σε ΕΝΑ pull request μπήκαν μαζί τέσσερις major
+# αναβαθμίσεις — TypeScript 5.9 → 7.0 (το rewrite σε Go), ESLint 9 → 10,
+# @types/node 20 → 26 — και ένα ακίνδυνο patch του eslint-config-next. Έσκασε,
+# και μαζί του κόλλησε και το patch που ήταν μια χαρά.
+#
+# Ο κανόνας που βγαίνει: ένα PR πρέπει να έχει ΕΝΑ επίπεδο ρίσκου. Τα
+# patch/minor είναι ρουτίνα και περνούν μαζικά· τα major θέλουν άνθρωπο, άρα
+# έρχονται ένα-ένα και ξεχωριστά, με το δικό τους CI να τα κρίνει.
+# ═══════════════════════════════════════════════════════════════════════════
+
 updates:
-  # npm dependencies — weekly security & version updates, grouped to keep PR noise
-  # low. Dependabot opens PRs; the CI gate verifies them before they can merge.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 8
     groups:
-      production-dependencies:
+      # ── Ρουτίνα: μπαίνουν μαζί, περνούν από το CI, χαμηλό ρίσκο ──────────
+      production-patch-minor:
         dependency-type: production
-      development-dependencies:
+        update-types: [minor, patch]
+      development-patch-minor:
         dependency-type: development
+        update-types: [minor, patch]
+      # Τα major ΔΕΝ ομαδοποιούνται: το dependabot ανοίγει ένα PR ανά πακέτο,
+      # ώστε όταν κάτι σπάσει να ξέρουμε ακριβώς ποιο φταίει.
 
-  # Keep the GitHub Actions themselves (checkout, setup-node, setup-cli…) current,
-  # grouped into a single weekly PR so action bumps don't create separate noise.
+    ignore:
+      # Το ESLint δεν αναβαθμίζεται ανεξάρτητα. Το `eslint-config-next`
+      # κουβαλά το δικό του `typescript-eslint`, το οποίο φορτώνεται με
+      # require() και ΚΡΑΣΑΡΕΙ σε ESLint 10 (PR #188, run 30247416734:
+      # «lint-ratchet: ESLint produced no output — cannot evaluate»).
+      # Ένα lint που δεν τρέχει είναι χειρότερο από lint που αποτυγχάνει,
+      # γιατί ο ratchet δεν έχει τι να μετρήσει και περνά κενός. Ξεκλειδώνει
+      # όταν το Next.js υποστηρίξει ESLint 10 — τότε σβήνεται η γραμμή.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+
+      # Ο TypeScript ορίζει τι μεταγλωττίζεται· major έκδοση αλλάζει
+      # συμπεριφορά ελέγχου τύπων σε ΟΛΟ το repo. Η 7.0 είναι επιπλέον ο νέος
+      # compiler σε Go. Αναβαθμίζεται σκόπιμα, με χρόνο για δοκιμή, ποτέ από
+      # αυτόματο PR της Δευτέρας.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+      # Τα @types/node πρέπει να ταιριάζουν με το Node runtime που τρέχει στο
+      # Vercel και στα GitHub Actions, όχι με το τελευταίο npm tag.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+
+      # Next, React και react-dom είναι καρφωμένα σε ακριβή έκδοση στο
+      # package.json και αναβαθμίζονται μαζί, με δοκιμή. Major του ενός χωρίς
+      # τα άλλα δεν έχει νόημα.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+
+  # Οι ίδιες οι GitHub Actions (checkout, setup-node, setup-cli…). Εδώ η
+  # ομαδοποίηση είναι ασφαλής: τα actions είναι απομονωμένα μεταξύ τους και η
+  # αποτυχία φαίνεται αμέσως στο ίδιο το CI που τα τρέχει.
   - package-ecosystem: github-actions
     directory: /
     schedule:
