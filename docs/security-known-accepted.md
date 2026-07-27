@@ -57,11 +57,26 @@ pg_net και θα έσπαγε τα cron jobs που στέλνουν email μ�
 
 ---
 
-## 4. Προστασία διαρρευσάντων κωδικών & MFA — ΑΠΑΙΤΕΙ ΕΝΕΡΓΕΙΑ ΑΝΘΡΩΠΟΥ
+## 4. Ρυθμίσεις ταυτοποίησης — ΑΠΑΙΤΟΥΝ ΕΝΕΡΓΕΙΑ ΑΝΘΡΩΠΟΥ
 Δεν ρυθμίζονται από κώδικα ή migration· είναι διακόπτες στο Supabase Dashboard.
+Ακριβείς διαδρομές (έκδοση dashboard 2026):
 
-- **Authentication → Providers → Email → «Prevent use of leaked passwords»**
-  (έλεγχος έναντι HaveIBeenPwned).
-- **Authentication → Multi-Factor Authentication** — ενεργοποίηση TOTP.
+| Ρύθμιση | Διαδρομή | Επιθυμητή τιμή |
+|---|---|---|
+| Prevent use of leaked passwords | Authentication → **Attack Protection** | ✅ ON |
+| TOTP (App Authenticator) | Authentication → **Multi-Factor** | ✅ ON |
+| Allow manual linking | Authentication → Sign In / Providers | ❌ OFF |
+| Allow anonymous sign-ins | Authentication → Sign In / Providers | ❌ OFF |
 
-Και τα δύο είναι διαθέσιμα στο δωρεάν πλάνο.
+Και τα δύο πρώτα είναι διαθέσιμα στο δωρεάν πλάνο.
+
+**Γιατί OFF το «Allow manual linking»:** επαληθεύτηκε με σάρωση κώδικα ότι το app
+δεν καλεί ποτέ `linkIdentity()` / `unlinkIdentity()` / `getUserIdentities()`.
+Χρησιμοποιεί μόνο `signInWithPassword` και `signInWithOAuth({provider:'google'})`.
+Ο διακόπτης αφορά μόνο τα ΧΕΙΡΟΚΙΝΗΤΑ endpoints· η αυτόματη αντιστοίχιση
+«ίδιο email → ίδιος λογαριασμός» συνεχίζει να δουλεύει κανονικά.
+
+**Γιατί OFF το «Allow anonymous sign-ins»:** αν ήταν ανοιχτό, οποιοσδήποτε θα
+έπαιρνε ρόλο `authenticated` χωρίς εγγραφή. Αυτό θα ακύρωνε την προστασία των
+πολιτικών αποθήκευσης που απευθύνονται σε `authenticated` (migrations
+20260727060000 και 20260727070000).
