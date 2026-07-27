@@ -62,18 +62,18 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     }catch(_){ setError('Σφάλμα κατά την καταχώριση. Δοκίμασε ξανά.'); setStep('review') }
   }
 
-  const field:React.CSSProperties = { width:'100%', minHeight:104, padding:'11px 14px', borderRadius:11, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:T.font.mono, lineHeight:'19px', resize:'vertical', outline:'none', transition:'border-color 0.14s' }
+  const field:React.CSSProperties = { width:'100%', minHeight:104, padding:'11px 14px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:T.font.mono, lineHeight:'19px', resize:'vertical', outline:'none', transition:'border-color 0.14s' }
   const row:React.CSSProperties = { display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:10, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)' }
 
   function Box({ checked, onClick }:{ checked:boolean; onClick:()=>void }){
-    return <button type="button" role="checkbox" aria-checked={checked} onClick={onClick} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:18, height:18, borderRadius:4, border:`1.5px solid ${checked?'var(--accent)':'var(--border-default)'}`, background:checked?'var(--accent)':'var(--bg-elevated)', cursor:'pointer', flexShrink:0, padding:0 }}>{checked&&<Check size={12} style={{ color:'var(--accent-text)' }}/>}</button>
+    return <button type="button" role="checkbox" aria-checked={checked} onClick={onClick} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:18, height:18, borderRadius:6, border:`1.5px solid ${checked?'var(--accent)':'var(--border-default)'}`, background:checked?'var(--accent)':'var(--bg-elevated)', cursor:'pointer', flexShrink:0, padding:0 }}>{checked&&<Check size={12} style={{ color:'var(--accent-text)' }}/>}</button>
   }
 
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'6vh 16px', overflowY:'auto' }}>
       <div onClick={e=>e.stopPropagation()} style={{ width:'min(100%, 560px)', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:18, boxShadow:'var(--elev-3)', overflow:'hidden' }}>
         <div style={{ display:'flex', alignItems:'center', gap:14, padding:'18px 24px', borderBottom:'1px solid var(--border-subtle)' }}>
-          <div style={{ width:40, height:40, borderRadius:11, background:'var(--accent-soft)', border:'1px solid var(--accent-border)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Landmark size={19}/></div>
+          <div style={{ width:40, height:40, borderRadius:10, background:'var(--accent-soft)', border:'1px solid var(--accent-border)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Landmark size={19}/></div>
           <div style={{ flex:1, minWidth:0 }}>
             <p style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em', color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>Εισαγωγή τραπεζικής κίνησης</p>
             <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>Αντιστοίχισε αυτόματα τις κινήσεις σε ενοίκια και έξοδα, με τη δική σου έγκριση</p>

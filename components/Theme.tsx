@@ -137,8 +137,10 @@ export function Card({ children, style, className }: { children: ReactNode; styl
 // Εδώ ορίζεται μία φορά: ίδιο scrim, ίδιο radius, ίδια κεφαλίδα (εικονίδιο +
 // τίτλος + υπότιτλος + ×), ίδιο padding, ίδιο υποσέλιδο ενεργειών.
 // Κλείνει με κλικ στο φόντο ή Escape· το περιεχόμενο κυλά, header/footer όχι.
-export function Modal({ open, onClose, title, subtitle, icon, width = 620, children, footer, footerInfo }: {
-  open: boolean; onClose: () => void; title: string; subtitle?: string; icon?: ReactNode;
+export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width = 620, children, footer, footerInfo }: {
+  open: boolean; onClose: () => void;
+  /** Δέχεται και JSX (π.χ. τίτλος με <InfoHint>). Για τεχνολογίες υποβοήθησης δώσε ariaLabel. */
+  title: ReactNode; ariaLabel?: string; subtitle?: ReactNode; icon?: ReactNode;
   width?: number; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
 }) {
   useEffect(() => {
@@ -150,14 +152,14 @@ export function Modal({ open, onClose, title, subtitle, icon, width = 620, child
 
   if (!open) return null;
   return (
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={title}
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel ?? (typeof title === 'string' ? title : undefined)}
       style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: T.sp.lg }}>
       <div onClick={e => e.stopPropagation()}
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: `min(${width}px, 100%)`, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           {icon && (
-            <div style={{ width: T.h.lg, height: T.h.lg, borderRadius: 11, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
+            <div style={{ width: T.h.lg, height: T.h.lg, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ ...TT.h2 }}>{title}</div>
@@ -358,8 +360,8 @@ export function StatRow({ label, amount, total, annual }: { label: string; amoun
           {annual !== false && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(amount * 12)} / έτος</span>}
         </div>
       </div>
-      <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: 'var(--accent)', borderRadius: 2, transition: 'width 0.25s cubic-bezier(0.2,0,0,1)' }}/>
+      <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: 'var(--accent)', borderRadius: 3, transition: 'width 0.25s cubic-bezier(0.2,0,0,1)' }}/>
       </div>
     </div>
   );

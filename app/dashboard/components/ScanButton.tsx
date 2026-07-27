@@ -27,7 +27,7 @@ export default function ScanButton({ label, hint, onExtract }: { label: string; 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
       <button type="button" onClick={() => ref.current?.click()} disabled={busy}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 14px', borderRadius: 10, border: `1px solid ${busy ? 'var(--accent-border)' : 'var(--border-default)'}`, background: busy ? 'var(--accent-soft)' : 'var(--bg-surface)', color: busy ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12.5, fontWeight: 600, cursor: busy ? 'wait' : 'pointer', fontFamily: T.font.sans, transition: 'border-color 0.14s, color 0.14s' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 14px', borderRadius: 10, border: `1px solid ${busy ? 'var(--accent-border)' : 'var(--border-default)'}`, background: busy ? 'var(--accent-soft)' : 'var(--bg-surface)', color: busy ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12.5, fontWeight: 600, cursor: busy ? 'wait' : 'pointer', fontFamily: T.font.sans, transition: 'border-color 0.14s, color 0.14s' }}
         onMouseEnter={e => { if (!busy) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
         onMouseLeave={e => { if (!busy) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
         {busy

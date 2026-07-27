@@ -101,7 +101,7 @@ function RankBars({ data, total }: { data: { label: string; value: number; color
         return (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '112px 1fr auto', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+              <span style={{ width: 8, height: 8, borderRadius: 3, background: d.color, flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</span>
             </div>
             <div style={{ height: 8, background: 'var(--border-subtle)', borderRadius: 100, overflow: 'hidden' }}>
@@ -361,7 +361,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
               {paidByData.map((d, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+                  <div style={{ width: 8, height: 8, borderRadius: 3, background: d.color, flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', ...num(d.value), flexShrink: 0 }}>{fmtEur(d.value)}</div>
                 </div>

@@ -34,7 +34,7 @@ export default function MonthlyFeedbackNudge() {
       style={{
         position: 'fixed', left: 20, bottom: 20, zIndex: 60, width: 'min(340px, calc(100vw - 40px))',
         background: 'var(--bg-elevated, #fff)', border: '1px solid var(--border-default, #e7eaee)',
-        borderRadius: 16, boxShadow: '0 12px 32px rgba(16,24,40,.14)', padding: '16px 16px 14px',
+        borderRadius: 14, boxShadow: '0 12px 32px rgba(16,24,40,.14)', padding: '16px 16px 14px',
         fontFamily: T.font.sans, animation: 'posNudgeIn .28s ease both',
       }}
     >
@@ -47,7 +47,7 @@ export default function MonthlyFeedbackNudge() {
             Πες μας τη γνώμη σου για το Property OS και μπες στην κλήρωση για <b style={{ color: 'var(--text-primary, #1f2327)' }}>έναν χρόνο δωρεάν Επαγγελματία</b>. Ένα λεπτό φτάνει.
           </p>
         </div>
-        <button onClick={close} aria-label="Κλείσιμο" style={{ flex: 'none', width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border-default, #e7eaee)', background: 'transparent', color: 'var(--text-tertiary, #98a0a8)', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>
+        <button onClick={close} aria-label="Κλείσιμο" style={{ flex: 'none', width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border-default, #e7eaee)', background: 'transparent', color: 'var(--text-tertiary, #98a0a8)', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
         <button onClick={give} style={{ background: 'var(--accent, #1a73e8)', color: '#fff', border: 0, borderRadius: 100, padding: '8px 16px', fontSize: 12.5, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>

@@ -9,6 +9,8 @@ import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, fe, Spi
 import { downloadCsv } from './exportCsv'
 import { brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
+import { escHtml as esc } from '@/lib/reportBranding';
+import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 
 const supabase = createSupabaseClient()
 
@@ -43,7 +45,7 @@ type ViewMode = 'cards' | 'compact'
 
 // ─── Design System ────────────────────────────────────────────────────────────
 const iStyle: React.CSSProperties = {
-  width: '100%', height: 40, padding: '10px 16px', borderRadius: 4,
+  width: '100%', height: 40, padding: '10px 16px', borderRadius: 6,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, outline: 'none',
   fontFamily: T.font.sans, boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -52,7 +54,7 @@ const iStyle: React.CSSProperties = {
 // ─── ROLE GROUPS, Πλήρης Ελληνική Λίστα ─────────────────────────────────────
 const GROUPS = [
   {
-    id: 'authorities', label: 'Δημόσιες Αρχές', color: '#1a73e8', Icon: Building2,
+    id: 'authorities', label: 'Δημόσιες Αρχές', color: 'var(--accent)', Icon: Building2,
     roles: [
       { value: 'doy', label: 'ΔΟΥ' },
       { value: 'ktimatologio', label: 'Κτηματολόγιο' },
@@ -65,7 +67,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'electricity', label: 'Πάροχοι Ρεύματος', color: '#1a73e8', Icon: Zap,
+    id: 'electricity', label: 'Πάροχοι Ρεύματος', color: 'var(--accent)', Icon: Zap,
     roles: [
       { value: 'elec_dei', label: 'ΔΕΗ' },
       { value: 'elec_protergia', label: 'Protergia (Metlen)' },
@@ -85,7 +87,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#1a73e8', Icon: Wifi,
+    id: 'telecom', label: 'Τηλεφωνία & Internet', color: 'var(--accent)', Icon: Wifi,
     roles: [
       { value: 'tel_ote', label: 'Cosmote (OTE)' },
       { value: 'tel_vodafone', label: 'Vodafone' },
@@ -95,7 +97,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#1a73e8', Icon: Landmark,
+    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: 'var(--accent)', Icon: Landmark,
     roles: [
       { value: 'bank_alpha', label: 'Alpha Bank' },
       { value: 'bank_eurobank', label: 'Eurobank' },
@@ -111,7 +113,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'insurance', label: 'Ασφαλιστικές Εταιρείες', color: '#1a73e8', Icon: Shield,
+    id: 'insurance', label: 'Ασφαλιστικές Εταιρείες', color: 'var(--accent)', Icon: Shield,
     roles: [
       { value: 'ins_ethiniki', label: 'Εθνική Ασφαλιστική' },
       { value: 'ins_interamerican', label: 'Interamerican' },
@@ -128,7 +130,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'real_estate', label: 'Μεσιτεία & Αξιολόγηση', color: '#1a73e8', Icon: Building2,
+    id: 'real_estate', label: 'Μεσιτεία & Αξιολόγηση', color: 'var(--accent)', Icon: Building2,
     roles: [
       { value: 'agent', label: 'Μεσίτης Ακινήτων' },
       { value: 'appraiser', label: 'Εκτιμητής Ακινήτων' },
@@ -138,7 +140,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'technical', label: 'Τεχνικοί & Μάστορες', color: '#1a73e8', Icon: Wrench,
+    id: 'technical', label: 'Τεχνικοί & Μάστορες', color: 'var(--accent)', Icon: Wrench,
     roles: [
       { value: 'plumber', label: 'Υδραυλικός' },
       { value: 'electrician', label: 'Ηλεκτρολόγος' },
@@ -159,7 +161,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: '#1a73e8', Icon: Trees,
+    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: 'var(--accent)', Icon: Trees,
     roles: [
       { value: 'gardener', label: 'Κηπουρός' },
       { value: 'pool', label: 'Συντηρητής Πισίνας' },
@@ -170,7 +172,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: '#1a73e8', Icon: UserCheck,
+    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: 'var(--accent)', Icon: UserCheck,
     roles: [
       { value: 'tenant', label: 'Ενοικιαστής' },
       { value: 'prev_tenant', label: 'Πρώην Ενοικιαστής' },
@@ -223,7 +225,6 @@ function fmtDate(d: string) {
 function daysUntil(d: string) { if (!d) return null; return Math.round((new Date(d).getTime() - Date.now()) / 86400000) }
 function isOverdue(d: string) { const n = daysUntil(d); return n !== null && n < 0 }
 // HTML-escape any dynamic value interpolated into printable/PDF HTML written via document.write.
-const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 
 // ─── Input primitives ─────────────────────────────────────────────────────────
 function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
@@ -301,7 +302,7 @@ function SecHead({ children }: { children: React.ReactNode }) {
 }
 function Tog({ value, onChange, colorOn = 'var(--accent)' }: { value: boolean; onChange: (v: boolean) => void; colorOn?: string }) {
   return (
-    <button type="button" onClick={() => onChange(!value)} style={{ width: 46, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', background: value ? colorOn : 'var(--border-default)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+    <button type="button" onClick={() => onChange(!value)} style={{ width: 46, height: 26, borderRadius: 12, border: 'none', cursor: 'pointer', background: value ? colorOn : 'var(--border-default)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
       <div style={{ position: 'absolute', top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.35)', transition: 'left 0.18s' }} />
     </button>
   )
@@ -388,9 +389,8 @@ function AvatarUpload({ avatarUrl, initials, onChange }: { avatarUrl: string; in
   const fileRef = useRef<HTMLInputElement>(null)
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return; setUploading(true)
-    const path = `contacts/${Date.now()}.${file.name.split('.').pop()}`
-    const { data, error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-    if (!error && data) { const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path); onChange(pub.publicUrl) }
+    const { path, error } = await uploadUserScoped(supabase, 'avatars', `contacts/${Date.now()}.${file.name.split('.').pop()}`, file, { upsert: true })
+    if (!error) { const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path); onChange(pub.publicUrl) }
     setUploading(false)
   }
   return (
@@ -418,9 +418,8 @@ function FileUploader({ files, onChange, contactId }: { files: { name: string; u
   const fileRef = useRef<HTMLInputElement>(null)
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return; setUploading(true)
-    const path = `contact-files/${contactId || 'new'}/${Date.now()}.${file.name.split('.').pop()}`
-    const { data, error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-    if (!error && data) {
+    const { path, error } = await uploadUserScoped(supabase, 'avatars', `contact-files/${contactId || 'new'}/${Date.now()}.${file.name.split('.').pop()}`, file, { upsert: true })
+    if (!error) {
       const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
       onChange([...files, { name: file.name, url: pub.publicUrl, size: file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`, uploaded: new Date().toISOString() }])
     }
@@ -461,8 +460,8 @@ function QRCodeModal({ contact, onClose }: { contact: Contact; onClose: () => vo
         <QrCode size={28} color="var(--accent)" style={{ margin: '0 auto 12px' }} />
         <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>QR Επαφής</h3>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 22 }}>Σάρωσε για να αποθηκεύσεις τα στοιχεία</p>
-        <div style={{ padding: 12, background: '#ffffff', borderRadius: 16, border: '1px solid var(--border-subtle)', display: 'inline-block', marginBottom: 16 }}>
-          <img src={qrUrl} alt="QR" style={{ width: 190, height: 190, borderRadius: 4, display: 'block' }} />
+        <div style={{ padding: 12, background: '#ffffff', borderRadius: 14, border: '1px solid var(--border-subtle)', display: 'inline-block', marginBottom: 16 }}>
+          <img src={qrUrl} alt="QR" style={{ width: 190, height: 190, borderRadius: 6, display: 'block' }} />
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{contact.full_name}</div>
         {contact.phone && <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone}</div>}
@@ -847,7 +846,7 @@ function BulkBtn({ icon: Icon, label, onClick, disabled, danger }: { icon: Eleme
   const active = hov && !disabled
   return (
     <button type="button" disabled={disabled} onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
         border: '1px solid ' + (active ? (danger ? 'var(--negative-border)' : 'var(--accent-border)') : 'var(--border-subtle)'),
         background: active ? (danger ? 'var(--negative-soft)' : 'var(--accent-soft)') : 'var(--bg-elevated)',
         color: active ? (danger ? 'var(--negative)' : 'var(--accent)') : 'var(--text-secondary)',
@@ -959,8 +958,8 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone}</span>
-              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 9, color: '#25d366', fontWeight: 800, background: 'rgba(37,211,102,0.1)', padding: '1px 5px', borderRadius: 4 }}>WA</a>}
-              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 9, color: '#7360f2', fontWeight: 800, background: 'rgba(115,96,242,0.1)', padding: '1px 5px', borderRadius: 4 }}>VB</a>}
+              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 9, color: '#25d366', fontWeight: 800, background: 'rgba(37,211,102,0.1)', padding: '1px 5px', borderRadius: 6 }}>WA</a>}
+              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 9, color: '#7360f2', fontWeight: 800, background: 'rgba(115,96,242,0.1)', padding: '1px 5px', borderRadius: 6 }}>VB</a>}
             </div>
           )}
           {extra.phone2 && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.phone2}</span><span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>2ο</span></div>}
@@ -990,7 +989,7 @@ function CommButton({ label, Icon, href, target, accent }: { label: string; Icon
   return (
     <a href={href} target={target} rel={target ? 'noopener noreferrer' : undefined}
       onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '13px 6px', borderRadius: 16, cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, background: accent ? 'var(--accent)' : 'var(--bg-surface)', color: accent ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (accent ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 10px 26px rgba(0,0,0,0.26)' : '0 2px 8px rgba(0,0,0,0.12)', transform: h ? 'translateY(-3px)' : 'none', transition: 'transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s' }}>
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '13px 6px', borderRadius: 14, cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, background: accent ? 'var(--accent)' : 'var(--bg-surface)', color: accent ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (accent ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 10px 26px rgba(0,0,0,0.26)' : '0 2px 8px rgba(0,0,0,0.12)', transform: h ? 'translateY(-3px)' : 'none', transition: 'transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s' }}>
       <Icon size={19} /><span style={{ fontSize: 11, fontWeight: 600 }}>{label}</span>
     </a>
   )
@@ -1001,8 +1000,8 @@ function ContactActionTile({ Icon, label, sub, onClick, primary }: { Icon: React
   const [h, setH] = useState(false)
   return (
     <button type="button" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: 150, padding: '22px 14px', borderRadius: 20, cursor: 'pointer', fontFamily: T.font.sans, textAlign: 'center', background: primary ? 'var(--accent)' : 'var(--bg-surface)', color: primary ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (primary ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 16px 36px rgba(0,0,0,0.22)' : '0 2px 10px rgba(0,0,0,0.10)', transform: h ? 'translateY(-4px)' : 'none', transition: 'transform .2s cubic-bezier(.2,0,0,1), box-shadow .2s' }}>
-      <div style={{ width: 48, height: 48, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', background: primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-soft)', color: primary ? 'var(--accent-text)' : 'var(--accent)' }}><Icon size={23} /></div>
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: 150, padding: '22px 14px', borderRadius: 18, cursor: 'pointer', fontFamily: T.font.sans, textAlign: 'center', background: primary ? 'var(--accent)' : 'var(--bg-surface)', color: primary ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (primary ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 16px 36px rgba(0,0,0,0.22)' : '0 2px 10px rgba(0,0,0,0.10)', transform: h ? 'translateY(-4px)' : 'none', transition: 'transform .2s cubic-bezier(.2,0,0,1), box-shadow .2s' }}>
+      <div style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-soft)', color: primary ? 'var(--accent-text)' : 'var(--accent)' }}><Icon size={23} /></div>
       <div>
         <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
         {sub && <div style={{ fontSize: 11, fontWeight: 400, opacity: 0.72, marginTop: 3 }}>{sub}</div>}
@@ -1049,7 +1048,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
     </div>
   )
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '15px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '15px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{title}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
     </div>
@@ -1089,7 +1088,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {exp.count > 0 && (
-            <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
+            <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
               <div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
@@ -1110,7 +1109,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           )}
 
           {mapEmbed && (
-            <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <iframe title="Χάρτης τοποθεσίας" src={mapEmbed} style={{ width: '100%', height: 170, border: 0, display: 'block' }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
             </div>
           )}
@@ -1208,8 +1207,8 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
       <StatusBadge status={extra.status || 'active'} />
       <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : hov ? 1 : 0, pointerEvents: bulkMode ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}
-        {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#25d366', background: 'rgba(37,211,102,0.1)', borderRadius: 4 }}>WA</a>}
-        {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#7360f2', background: 'rgba(115,96,242,0.1)', borderRadius: 4 }}>VB</a>}
+        {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#25d366', background: 'rgba(37,211,102,0.1)', borderRadius: 6 }}>WA</a>}
+        {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#7360f2', background: 'rgba(115,96,242,0.1)', borderRadius: 6 }}>VB</a>}
         {contact.email && <a href={'mailto:' + contact.email} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Mail size={14} /></a>}
         <button type="button" onClick={onEdit} style={{ fontSize: 12, padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Επεξεργασία</button>
         <button type="button" onClick={onDelete} style={{ fontSize: 12, padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Διαγραφή</button>
@@ -1223,7 +1222,7 @@ function GroupDivider({ group, count }: { group: typeof GROUPS[0]; count: number
   const GroupIcon = group.Icon
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-      <div style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <GroupIcon size={15} color="var(--accent)" />
       </div>
       <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', fontFamily: T.font.sans }}>{group.label}</span>
@@ -1586,7 +1585,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               <BulkBtn icon={FileText} label="Εξαγωγή vCard" onClick={bulkVcard} disabled={none} />
               <BulkBtn icon={Trash2} label="Διαγραφή" onClick={bulkDelete} disabled={none} danger />
             </div>
-            <button type="button" onClick={() => { setBulkMode(false); setSelected(new Set()) }} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><X size={14} />Τέλος</button>
+            <button type="button" onClick={() => { setBulkMode(false); setSelected(new Set()) }} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><X size={14} />Τέλος</button>
           </div>
         )
       })()}
@@ -1608,8 +1607,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   <div><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{c.full_name}</div><div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{meta.label}</div></div>
                   <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
                     {c.phone && <a href={'tel:' + c.phone} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', padding: 3 }}><Phone size={13} /></a>}
-                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: '#25d366', background: 'rgba(37,211,102,0.12)', padding: '2px 5px', borderRadius: 4 }}>WA</a>}
-                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: '#7360f2', background: 'rgba(115,96,242,0.12)', padding: '2px 5px', borderRadius: 4 }}>VB</a>}
+                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: '#25d366', background: 'rgba(37,211,102,0.12)', padding: '2px 5px', borderRadius: 6 }}>WA</a>}
+                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: '#7360f2', background: 'rgba(115,96,242,0.12)', padding: '2px 5px', borderRadius: 6 }}>VB</a>}
                   </div>
                 </div>
               )
@@ -1913,7 +1912,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
       {dup && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
             <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Υπάρχει ήδη παρόμοια επαφή</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 16px', lineHeight: 1.55 }}>Βρέθηκε επαφή με το ίδιο τηλέφωνο ή ΑΦΜ. Θέλεις να τη συγχωνεύσεις (να συμπληρωθούν τα νέα στοιχεία) ή να δημιουργήσεις ξεχωριστή εγγραφή;</p>
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 18 }}>

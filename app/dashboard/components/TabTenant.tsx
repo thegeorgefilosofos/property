@@ -27,12 +27,12 @@ import { whatsappLink, viberLink } from '@/lib/clients/messages';
 import { normalizePhone } from '@/lib/clients/clients';
 import { SYSTEM_PROMPT } from './DocumentScan';
 import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
+import { escHtml as esc } from '@/lib/reportBranding';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
-const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Tenant {
@@ -217,12 +217,12 @@ function SplitBar({ owner, onChange }: { owner:number; onChange:(v:number)=>void
         tabIndex={0}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onKeyDown={onKey}
         style={{
-          position:'relative', height:14, borderRadius:999,
+          position:'relative', height:14, borderRadius:100,
           background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)',
           cursor:'pointer', touchAction:'none', outline:'none',
         }}
       >
-        <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${owner}%`, background:'var(--accent)', borderRadius:999, transition: dragging ? 'none' : 'width 0.18s cubic-bezier(0.2,0,0,1)' }}/>
+        <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${owner}%`, background:'var(--accent)', borderRadius:100, transition: dragging ? 'none' : 'width 0.18s cubic-bezier(0.2,0,0,1)' }}/>
         <div style={{
           position:'absolute', top:'50%', left:`${owner}%`, transform:'translate(-50%,-50%)',
           width:22, height:22, borderRadius:'50%',
@@ -241,7 +241,7 @@ function SplitBar({ owner, onChange }: { owner:number; onChange:(v:number)=>void
           return (
             <button key={label} type="button" onClick={()=>onChange(val)}
               style={{
-                flex:1, height:30, borderRadius:999, cursor:'pointer',
+                flex:1, height:28, borderRadius:100, cursor:'pointer',
                 fontFamily:T.font.sans, fontSize:11, fontWeight: active ? 600 : 500,
                 border:`1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`,
                 background: active ? 'var(--accent-dim)' : 'transparent',
@@ -369,7 +369,7 @@ function PaymentBars({ payments }:{payments:RentPayment[]}) {
       <div style={{ display:'flex', flexWrap:'wrap' as const, gap:'10px 16px', marginTop:12 }}>
         {[['var(--positive)','Εμπρόθεσμη'],['var(--info)','Μικρή καθυστέρηση'],['var(--warning)','Μεγάλη καθυστέρηση'],['var(--negative)','Εκκρεμεί']].map(([c,l])=>(
           <div key={l} style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <div style={{ width:8, height:8, borderRadius:2, background:c, flexShrink:0 }}/>
+            <div style={{ width:8, height:8, borderRadius:3, background:c, flexShrink:0 }}/>
             <span style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{l}</span>
           </div>
         ))}
@@ -798,7 +798,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
         {!loading&&logs.length===0&&<div style={{ textAlign:'center', padding:40, color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν καταχωρήσεις επικοινωνίας</div>}
         {!loading&&logs.map(log=>(
           <div key={log.id} style={{ display:'flex', gap:14, alignItems:'flex-start', padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
-            <div style={{ width:38, height:38, borderRadius:19, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16 }}>
+            <div style={{ width:38, height:38, borderRadius:18, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16 }}>
             </div>
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
@@ -2248,10 +2248,10 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
       <div style={{ display:'flex', gap:10, flexWrap:'wrap' as const, alignItems:'center', marginBottom:16 }}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"
-          style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:42, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
+          style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:40, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
           {([['all','Όλοι'],['current','Τρέχων'],['past','Προηγούμενοι']] as [typeof segment,string][]).map(([v,l])=>(
-            <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius:20, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
+            <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius:18, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
           ))}
         </div>
       </div>
@@ -2366,7 +2366,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               {DTABS.map(tb=>(
                 <button key={tb.id} onClick={()=>setDossierTab(tb.id)} style={{ ...s.tabBtn(dossierTab===tb.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                   {tb.label}
-                  {tb.badge&&tb.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:9, background:'var(--negative)', color:'#fff', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
+                  {tb.badge&&tb.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'#fff', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
                 </button>
               ))}
             </div>
@@ -2458,8 +2458,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               <button style={s.btnGhost} onClick={closeForm}>Ακύρωση</button>
             </div>
 
-            <div style={{ height:3, background:'var(--bg-overlay)', borderRadius:2, marginBottom:24, overflow:'hidden' }}>
-              <div style={{ height:'100%', width:`${(FTABS.findIndex(([,t])=>t===formTab)+1)/FTABS.length*100}%`, background:'var(--accent)', borderRadius:2, transition:'width 0.3s ease' }}/>
+            <div style={{ height:3, background:'var(--bg-overlay)', borderRadius:3, marginBottom:24, overflow:'hidden' }}>
+              <div style={{ height:'100%', width:`${(FTABS.findIndex(([,t])=>t===formTab)+1)/FTABS.length*100}%`, background:'var(--accent)', borderRadius:3, transition:'width 0.3s ease' }}/>
             </div>
 
             <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', marginBottom:24 }}>

@@ -133,7 +133,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
 
         {/* Οπτικό + κείμενο */}
         <div style={{ padding: '4px 36px 4px', textAlign: 'center' }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(150deg, var(--accent-soft), color-mix(in srgb, var(--accent) 8%, transparent))', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>{ic(s.icon)}</div>
+          <div style={{ width: 72, height: 72, borderRadius: 18, background: 'linear-gradient(150deg, var(--accent-soft), color-mix(in srgb, var(--accent) 8%, transparent))', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>{ic(s.icon)}</div>
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: 12 }}>{s.title}</div>
           <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', minHeight: 92, maxWidth: 340, margin: '0 auto' }}>{s.body}</div>
         </div>
@@ -160,7 +160,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
         {/* Δείκτες βημάτων */}
         <div style={{ display: 'flex', gap: 7, justifyContent: 'center', padding: '20px 0 22px' }}>
           {SLIDES.map((_, i) => (
-            <span key={i} style={{ width: i === step ? 24 : 7, height: 7, borderRadius: 4, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: 'all 0.28s cubic-bezier(0.2,0,0,1)' }} />
+            <span key={i} style={{ width: i === step ? 24 : 7, height: 7, borderRadius: 6, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: 'all 0.28s cubic-bezier(0.2,0,0,1)' }} />
           ))}
         </div>
 

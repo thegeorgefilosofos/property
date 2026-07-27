@@ -38,7 +38,7 @@ export default function CookieConsent() {
         Χρησιμοποιούμε μόνο <strong style={{ color: 'var(--text-primary)' }}>απολύτως απαραίτητα cookies</strong> για τη λειτουργία της υπηρεσίας (σύνδεση, προτίμηση θέματος). Κανένα cookie διαφήμισης ή παρακολούθησης. Αναλυτικά στην{' '}
         <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική Απορρήτου</Link>.
       </div>
-      <button onClick={acknowledge} style={{ flexShrink: 0, height: 38, padding: '0 22px', borderRadius: 100, border: 'none',
+      <button onClick={acknowledge} style={{ flexShrink: 0, height: 36, padding: '0 22px', borderRadius: 100, border: 'none',
         background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
         Το κατάλαβα
       </button>

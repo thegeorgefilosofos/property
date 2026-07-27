@@ -72,7 +72,7 @@ const BENCH_SHORT: Record<string, string> = {
 };
 const benchShort = (key: string, fallback: string) => BENCH_SHORT[key] || fallback;
 const SANS = T.font.sans;
-const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '18px 20px', boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -20px rgba(0,0,0,0.55)' };
+const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '18px 20px', boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -20px rgba(0,0,0,0.55)' };
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
 const subStyle: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS };
 
@@ -118,7 +118,7 @@ function Section({ icon, title, sub, info, children, defaultOpen = false }: { ic
   return (
     <div style={card}>
       <button onClick={() => setOpen(o => !o)} aria-expanded={open} className="acc-toggle" style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 9, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', flexShrink: 0 }}>{icon}</span>
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', flexShrink: 0 }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={titleStyle}>{title}{info && <TermInfo text={info} />}</p>
           {sub && <p style={subStyle}>{sub}</p>}
@@ -149,7 +149,7 @@ function GradeCard({ grade, note }: { grade: YieldGrade; note: string }) {
   const strong = grade.grade === 'A' || grade.grade === 'B';
   return (
     <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 16, background: 'var(--bg-elevated)', border: `1px solid ${strong ? 'var(--border-accent)' : 'var(--border-subtle)'}`, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 14, background: 'var(--bg-elevated)', border: `1px solid ${strong ? 'var(--border-accent)' : 'var(--border-subtle)'}`, flexShrink: 0 }}>
         <span style={{ fontSize: 32, fontWeight: 700, color: strong ? 'var(--accent)' : 'var(--text-primary)', fontFamily: SANS, lineHeight: 1 }}>{grade.grade}</span>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -157,8 +157,8 @@ function GradeCard({ grade, note }: { grade: YieldGrade; note: string }) {
           <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, display: 'flex', alignItems: 'center' }}>Βαθμός απόδοσης<TermInfo text={G.grade} /></p>
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{grade.label} · {grade.score} / 100</span>
         </div>
-        <div style={{ marginTop: 8, height: 6, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-          <div style={{ width: `${Math.max(3, grade.score)}%`, height: '100%', borderRadius: 4, background: 'var(--accent)', transition: 'width 0.5s ease' }} />
+        <div style={{ marginTop: 8, height: 6, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+          <div style={{ width: `${Math.max(3, grade.score)}%`, height: '100%', borderRadius: 6, background: 'var(--accent)', transition: 'width 0.5s ease' }} />
         </div>
         <p style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
       </div>
@@ -173,8 +173,8 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '5px 0' }} title={hint}>
       <span style={{ width: 156, flexShrink: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 4, background: bg, transition: 'width 0.4s ease' }} />
+      <div style={{ flex: 1, height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 6, background: bg, transition: 'width 0.4s ease' }} />
       </div>
       <span style={{ width: 92, flexShrink: 0, textAlign: 'right', fontSize: 12, fontWeight: 600, color: tone === 'accent' ? 'var(--accent)' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{valueLabel}</span>
     </div>
@@ -994,7 +994,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <LineChart series={projSeries} />
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '2px 0 14px' }}>
             {projSeries.map(s => (
-              <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 12, height: 2.5, borderRadius: 2, background: s.color }} />{s.label}</span>
+              <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 12, height: 2.5, borderRadius: 3, background: s.color }} />{s.label}</span>
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1036,7 +1036,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                         setLoanRate(String(savedLoan.rate));
                         setIfree(savedLoan.loan_type === 'first_home' ? '50' : '0');
                       }}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 500, cursor: 'pointer' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 500, cursor: 'pointer' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12a9 9 0 11-6.2-8.5"/><polyline points="21 3 21 9 15 9"/></svg>
                       Χρησιμοποίησε το πραγματικό μου δάνειο
                     </button>

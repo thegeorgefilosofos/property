@@ -15,7 +15,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import DateField from './DateField';
-import Select from './Select';
+import { CustomSelect as Select } from './UIComponents';
 import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
 import { grDate, todayIso, num, archivePdfToProperty, askByVoice, speechSupported } from './docUtils';
@@ -199,7 +199,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(760px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" /></svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -225,7 +225,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <div><div style={lbl}>Ακίνητο</div><Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επιλογή ακινήτου" /></div>
                 <div>
                   <div style={lbl}>Χρήση</div>
-                  <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 11 }}>
+                  <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
                     <button onClick={() => setUse('residence')} style={seg('residence')}>Κατοικία</button>
                     <button onClick={() => setUse('professional')} style={seg('professional')}>Επαγγελματική</button>
                   </div>
@@ -257,7 +257,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <div style={{ marginLeft: 'auto' }}>{stat('Δήλωση έως', grDate(res.declarationDeadline))}</div>
               </div>
               {res.belowLegalMinimum && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 11, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 10, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)' }}>
                   <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
                   <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>Στην κατοικία ισχύει η <strong style={{ color: 'var(--text-primary)' }}>ελάχιστη τριετής διάρκεια</strong> κατά νόμο, ακόμη και με μικρότερη συμφωνία.</div>
                 </div>
@@ -279,7 +279,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <input value={place} onChange={e => setPlace(e.target.value)} onFocus={onF} onBlur={onB} placeholder="π.χ. Αθήνα" style={field} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 11, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
                   Μετά την υπογραφή, υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης</strong> στο <a href="https://www.aade.gr/misthoseis-akiniton" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>, έως {grDate(res.declarationDeadline)}.

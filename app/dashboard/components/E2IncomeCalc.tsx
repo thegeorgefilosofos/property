@@ -11,7 +11,7 @@ import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, Btn } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
-import Select from './Select';
+import { CustomSelect as Select } from './UIComponents';
 import { runE2Export } from './e2Export';
 
 // ── Κλίμακα ενοικίων 2026: νέος ενδιάμεσος 25% στα 12.000–24.000 ──────────────
@@ -110,8 +110,8 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{b.label}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(b.tax)}</span>
                     </div>
-                    <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 2 }}>
-                      <div style={{ height: '100%', width: `${(b.taxable / (e2Result.taxable || 1)) * 100}%`, background: 'var(--text-secondary)', borderRadius: 2 }} />
+                    <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 3 }}>
+                      <div style={{ height: '100%', width: `${(b.taxable / (e2Result.taxable || 1)) * 100}%`, background: 'var(--text-secondary)', borderRadius: 3 }} />
                     </div>
                   </div>
                 ))}

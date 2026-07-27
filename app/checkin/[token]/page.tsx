@@ -59,7 +59,7 @@ export default function GuestCheckin() {
 
   const wrap: React.CSSProperties = { maxWidth: 560, margin: '0 auto', padding: '0 clamp(16px,5vw,24px)' };
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
-  const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', height: 40, color: 'var(--text-primary)', fontSize: 14, outline: 'none', fontFamily: 'inherit' };
+  const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', height: 40, color: 'var(--text-primary)', fontSize: 14, outline: 'none', fontFamily: 'inherit' };
   const label: React.CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500, display: 'block', marginBottom: 6, letterSpacing: '0.5px' };
 
   return (

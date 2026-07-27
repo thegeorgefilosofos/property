@@ -102,7 +102,7 @@ export default function BankRatesAdmin({ onSaved, showToast }:{
         <div style={{padding:'2px 14px 14px',display:'flex',flexDirection:'column',gap:12}}>
           {/* Αυτόματη επικαιροποίηση */}
           <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-            <button onClick={refreshAI} disabled={refreshing} style={{display:'inline-flex',alignItems:'center',gap:7,height:34,padding:'0 14px',borderRadius:100,cursor:refreshing?'wait':'pointer',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily: T.font.sans}}>
+            <button onClick={refreshAI} disabled={refreshing} style={{display:'inline-flex',alignItems:'center',gap:7,height:32,padding:'0 14px',borderRadius:100,cursor:refreshing?'wait':'pointer',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily: T.font.sans}}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               {refreshing?'Επικαιροποίηση…':'Αυτόματη επικαιροποίηση με AI'}
             </button>

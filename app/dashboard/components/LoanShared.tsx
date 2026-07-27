@@ -11,7 +11,7 @@ export const labelStyle: React.CSSProperties = {
   letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,
 }
 export const cardStyle: React.CSSProperties = {
-  background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:16,
+  background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:16,
 }
 
 // Ομοιόμορφο πλακίδιο μετρικής: λευκή τιμή, γαλάζια στο πέρασμα του κέρσορα/δαχτύλου·
@@ -23,7 +23,7 @@ export function KPI({label,value,color,sub,title}:{label:string;value:string;col
   const isPos = color==='var(--accent)'
   return (
     <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onTouchStart={()=>setH(true)} onTouchEnd={()=>setH(false)}
-      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'12px 16px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
+      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'12px 16px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
       <p title={title} style={{...labelStyle,marginBottom:6,cursor:title?'help':undefined}}>{label}</p>
       <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:isNeg?'var(--negative)':(isPos||h)?'var(--accent)':'var(--text-primary)',fontWeight:700,transition:'color 0.15s'}}>{value}</p>
       {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily: T.font.sans}}>{sub}</p>}
@@ -34,7 +34,7 @@ export function KPI({label,value,color,sub,title}:{label:string;value:string;col
 // Cockpit: εναλλαγή φακών επί τόπου (segmented control, ένα πάνελ τη φορά).
 export function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
   return (
-    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:4,overflowX:'auto'}}>
+    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:4,overflowX:'auto'}}>
       {items.map(it=>{const on=value===it.id;return(
         <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:10,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
           color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',

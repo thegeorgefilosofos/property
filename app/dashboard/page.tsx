@@ -172,7 +172,7 @@ const fmtEur = (n:number|null|undefined) => n == null ? '—' : `${fmt(n)} €`;
 
 // MD3 form styles
 const mdInput: React.CSSProperties = {
-  width:'100%', padding:'10px 16px', height:40, borderRadius:4,
+  width:'100%', padding:'10px 16px', height:40, borderRadius:6,
   border:'1px solid var(--border-default)', background:'var(--bg-surface)',
   color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans,
   letterSpacing:'0.25px', outline:'none', boxSizing:'border-box', transition:'border-color 0.15s',
@@ -256,13 +256,13 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
   };
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
-      <div style={{background:'var(--bg-surface)',borderRadius:16,padding:24,width:'100%',maxWidth:480,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
+      <div style={{background:'var(--bg-surface)',borderRadius:14,padding:24,width:'100%',maxWidth:480,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
             <p style={{fontFamily: T.font.sans,fontSize:20,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
             <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
           </div>
-          <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          <button onClick={onClose} style={{width:40,height:40,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         {otherProperties.length === 0 ? (
           <div style={{padding:'32px',textAlign:'center',color:'var(--text-secondary)'}}>
@@ -296,8 +296,8 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
               <p style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
             </div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-              <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:'transparent',color:'var(--accent)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
-              <button onClick={handleCopy} disabled={!sourceId||copying} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:!sourceId||copying?'var(--bg-overlay)':'var(--accent)',color:!sourceId||copying?'var(--text-tertiary)':'var(--accent-text)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:!sourceId||copying?'not-allowed':'pointer'}}>{copying?'Αντιγραφή…':'Αντιγραφή'}</button>
+              <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:18,border:'none',background:'transparent',color:'var(--accent)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
+              <button onClick={handleCopy} disabled={!sourceId||copying} style={{height:40,padding:'0 24px',borderRadius:18,border:'none',background:!sourceId||copying?'var(--bg-overlay)':'var(--accent)',color:!sourceId||copying?'var(--text-tertiary)':'var(--accent-text)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:!sourceId||copying?'not-allowed':'pointer'}}>{copying?'Αντιγραφή…':'Αντιγραφή'}</button>
             </div>
           </>
         )}
@@ -522,7 +522,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           <div style={{ fontSize:13, color:'var(--text-secondary)' }}>
             <strong style={{ color:'var(--text-primary)' }}>Δείγμα (demo).</strong> Περιήγησε τα εργαλεία με έτοιμα δεδομένα. Όταν είσαι έτοιμος, καθάρισέ το και πρόσθεσε το δικό σου ακίνητο.
           </div>
-          {onCleanDemo && <button onClick={onCleanDemo} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:20, padding:'7px 16px', fontSize:13, fontWeight:600, fontFamily: T.font.sans, color:'var(--accent)', cursor:'pointer', whiteSpace:'nowrap' }}>Καθάρισε το demo</button>}
+          {onCleanDemo && <button onClick={onCleanDemo} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:18, padding:'7px 16px', fontSize:13, fontWeight:600, fontFamily: T.font.sans, color:'var(--accent)', cursor:'pointer', whiteSpace:'nowrap' }}>Καθάρισε το demo</button>}
         </div>
       )}
 
@@ -575,7 +575,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
                       const sel = y===chartYear; const future = y>now.getFullYear();
                       return (
                         <button key={y} type="button" onClick={()=>{setChartYear(y);setYearMenu(false);}}
-                          style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,width:'100%',padding:'8px 10px',borderRadius:7,border:'none',background:sel?'var(--accent-dim)':'transparent',color:sel?'var(--accent)':'var(--text-primary)',fontFamily: T.font.mono,fontSize:13,fontWeight:sel?700:500,cursor:'pointer',textAlign:'left'}}
+                          style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,width:'100%',padding:'8px 10px',borderRadius:8,border:'none',background:sel?'var(--accent-dim)':'transparent',color:sel?'var(--accent)':'var(--text-primary)',fontFamily: T.font.mono,fontSize:13,fontWeight:sel?700:500,cursor:'pointer',textAlign:'left'}}
                           onMouseEnter={e=>{if(!sel)e.currentTarget.style.background='var(--bg-hover)';}}
                           onMouseLeave={e=>{if(!sel)e.currentTarget.style.background='transparent';}}>
                           {y}
@@ -615,7 +615,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {selCatEntries.map(([cat,amt],i) => (
                   <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:8,height:8,borderRadius:2,background:catColors[i],flexShrink:0}}/>
+                    <div style={{width:8,height:8,borderRadius:3,background:catColors[i],flexShrink:0}}/>
                     <div style={{flex:1,fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
                     <div style={{fontFamily: T.font.mono,fontSize:13,color:'var(--text-primary)',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtEur(amt)}</div>
                   </div>
@@ -774,7 +774,7 @@ function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{title}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--negative)', color: 'var(--text-inverse)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
+          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 8, background: 'var(--negative)', color: 'var(--text-inverse)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </div>
       </div>
@@ -1044,7 +1044,7 @@ export default function Dashboard() {
             </div>
           ))}
           <button onClick={()=>tryAddProperty()}
-            style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily: T.font.sans,fontSize:14,color:'var(--accent)',textAlign:'left'}}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:40,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily: T.font.sans,fontSize:14,color:'var(--accent)',textAlign:'left'}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'}
             onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
             <span style={{fontSize:18,lineHeight:1}}>+</span> Προσθήκη ακινήτου
@@ -1150,7 +1150,7 @@ export default function Dashboard() {
               </button>
               <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση & γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:36,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:5,padding:'1px 5px'}}>{kbdHint}</span>
+                <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
               </button>
               <ThemeToggle />
             </>
@@ -1268,7 +1268,7 @@ export default function Dashboard() {
       {quickAddOpen&&user&&selected&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
           onClick={e=>{if(e.target===e.currentTarget)closeQuickAdd();}}>
-          <div style={{background:'var(--bg-surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
+          <div style={{background:'var(--bg-surface)',borderRadius:14,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
             <button onClick={()=>closeQuickAdd()} aria-label="Κλείσιμο"
               style={{position:'absolute',top:16,right:16,width:34,height:34,borderRadius:'50%',border:'none',background:'var(--bg-hover)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-secondary)'}}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg-elevated)'}

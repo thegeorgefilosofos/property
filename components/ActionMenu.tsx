@@ -67,7 +67,7 @@ export function ActionMenu({
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 17,
+          display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 13px', borderRadius: 18,
           border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)',
           color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
           fontFamily: T.font.sans, transition: 'all 0.13s', whiteSpace: 'nowrap',
@@ -102,7 +102,7 @@ export function ActionMenu({
                 onClick={() => { if (inert) return; setOpen(false); it.onClick(); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left', padding: '9px 10px',
-                  borderRadius: 9, border: 'none', background: 'transparent', cursor: inert ? 'default' : 'pointer',
+                  borderRadius: 8, border: 'none', background: 'transparent', cursor: inert ? 'default' : 'pointer',
                   opacity: it.disabled ? 0.5 : 1, fontFamily: T.font.sans, transition: 'background 0.12s',
                 }}
                 onMouseEnter={e => { if (!inert) e.currentTarget.style.background = 'var(--bg-elevated)'; }}

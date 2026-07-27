@@ -20,7 +20,7 @@ export default function PasswordStrength({ password, id }: { password: string; i
       <div style={{ display: 'flex', gap: 4, marginBottom: 10 }} aria-hidden="true">
         {[0, 1, 2, 3, 4].map(i => (
           <div key={i} style={{
-            flex: 1, height: 3, borderRadius: 2,
+            flex: 1, height: 3, borderRadius: 3,
             background: i < pw.score ? barColor : 'var(--border-subtle)',
             transition: 'background .15s',
           }} />

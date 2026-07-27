@@ -71,7 +71,7 @@ export default function AccountantPortal() {
             <span style={{ fontSize: 16, fontWeight: 700 }}>Πύλη Λογιστή</span>
           </div>
           {state === 'ok' && (
-            <select value={year} onChange={e => setYear(parseInt(e.target.value, 10))} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.mono, fontWeight: 700 }}>
+            <select value={year} onChange={e => setYear(parseInt(e.target.value, 10))} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.mono, fontWeight: 700 }}>
               {[nowYear, nowYear - 1, nowYear - 2, nowYear - 3].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           )}

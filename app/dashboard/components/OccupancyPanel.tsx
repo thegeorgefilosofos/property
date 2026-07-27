@@ -81,7 +81,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
           {/* Toggle */}
           <button type="button" role="switch" aria-checked={d.shortTerm} onClick={() => upd({ shortTerm: !d.shortTerm })}
             style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: d.shortTerm ? 18 : 0 }}>
-            <span style={{ width: 40, height: 24, borderRadius: 12, padding: 2, flexShrink: 0, background: d.shortTerm ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+            <span style={{ width: 40, height: 26, borderRadius: 12, padding: 2, flexShrink: 0, background: d.shortTerm ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
               <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: d.shortTerm ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
             </span>
             <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 600 }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</span>
@@ -110,7 +110,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
                     <div key={m} style={{ textAlign: 'center', minWidth: 0 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: isPeak ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 4 }}>{m}</div>
                       <input value={d.nights[i]} onChange={e => setNight(i, e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" placeholder="0"
-                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: `1px solid ${isPeak ? 'var(--accent-border)' : 'var(--border-default)'}`, borderRadius: 4, padding: '9px 2px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, textAlign: 'center', outline: 'none', transition: 'border-color 0.15s' }}
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: `1px solid ${isPeak ? 'var(--accent-border)' : 'var(--border-default)'}`, borderRadius: 6, padding: '9px 2px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, textAlign: 'center', outline: 'none', transition: 'border-color 0.15s' }}
                         onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
                         onBlur={e => { e.currentTarget.style.borderColor = isPeak ? 'var(--accent-border)' : 'var(--border-default)'; e.currentTarget.style.boxShadow = 'none'; }} />
                     </div>

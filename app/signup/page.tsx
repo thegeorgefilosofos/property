@@ -98,7 +98,7 @@ export default function SignupPage() {
   const field: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',
     background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
-    borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)',
+    borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)',
     fontSize: 14, fontFamily: 'inherit', transition: 'border-color .15s',
   }
   const label: React.CSSProperties = {

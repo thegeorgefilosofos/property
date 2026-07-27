@@ -43,12 +43,12 @@ export function PanelDashboard() {
     <div style={{ display: 'flex', gap: 16, textAlign: 'left' }}>
       <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 12px' }}>
-          <div style={{ width: 22, height: 22, borderRadius: 7, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12 }}>P</div>
+          <div style={{ width: 22, height: 22, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12 }}>P</div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Property OS</div>
         </div>
         {['Επισκόπηση', 'Ενοίκιο', 'Δαπάνες', 'Λογαριασμοί', 'Ημερολόγιο'].map((r, i) => (
-          <div key={i} className="lp-live" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 9, background: i === 0 ? 'var(--bg-elevated)' : 'transparent', border: i === 0 ? '1px solid var(--border-subtle)' : '1px solid transparent', color: i === 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: i === 0 ? 700 : 500 }}>
-            <span style={{ width: 6, height: 6, borderRadius: 2, background: i === 0 ? 'var(--text-secondary)' : 'var(--border-strong)' }} />{r}
+          <div key={i} className="lp-live" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 8, background: i === 0 ? 'var(--bg-elevated)' : 'transparent', border: i === 0 ? '1px solid var(--border-subtle)' : '1px solid transparent', color: i === 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: i === 0 ? 700 : 500 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 3, background: i === 0 ? 'var(--text-secondary)' : 'var(--border-strong)' }} />{r}
           </div>
         ))}
       </div>
@@ -147,7 +147,7 @@ export function PanelAssistant() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 24 }}>
           {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
-            <span key={i} className="lp-bar" style={{ animationDelay: `${i * 0.09}s`, width: 3, height: 18, borderRadius: 2, background: 'color-mix(in srgb, var(--accent) 55%, transparent)' }} />
+            <span key={i} className="lp-bar" style={{ animationDelay: `${i * 0.09}s`, width: 3, height: 18, borderRadius: 3, background: 'color-mix(in srgb, var(--accent) 55%, transparent)' }} />
           ))}
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginLeft: 'auto' }}>Μίλα του ελληνικά…</div>

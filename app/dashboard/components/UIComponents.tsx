@@ -383,7 +383,7 @@ export function CustomSelect({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
           {selected?.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: selected.dot, flexShrink: 0 }}/>}
-          {selected?.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: selected.color, flexShrink: 0 }}/>}
+          {selected?.color && <div style={{ width: 10, height: 10, borderRadius: 3, background: selected.color, flexShrink: 0 }}/>}
           <span style={{
             fontFamily: T.font.sans,
             fontSize: 14,
@@ -452,7 +452,7 @@ export function CustomSelect({
               }}
             >
               {opt.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.dot, flexShrink: 0 }}/>}
-              {opt.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: opt.color, flexShrink: 0 }}/>}
+              {opt.color && <div style={{ width: 10, height: 10, borderRadius: 3, background: opt.color, flexShrink: 0 }}/>}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ whiteSpace: 'nowrap' }}>{opt.label}</div>
                 {opt.description && (
@@ -599,7 +599,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           boxShadow: 'var(--shadow-lg)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: 32, height: 32, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
@@ -607,7 +607,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
             <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
               {MONTHS_GR[month]} {year}
             </span>
-            <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: 32, height: 32, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>

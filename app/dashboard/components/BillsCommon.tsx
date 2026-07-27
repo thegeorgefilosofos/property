@@ -445,7 +445,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={addExtra}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 38, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 36, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
               + Προσθήκη
             </button>
           </div>
@@ -598,8 +598,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                   <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
-              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${totalCommon > 0 ? (r.amount / totalCommon) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 2 }}/>
+              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${totalCommon > 0 ? (r.amount / totalCommon) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 3 }}/>
               </div>
             </div>
           ))}

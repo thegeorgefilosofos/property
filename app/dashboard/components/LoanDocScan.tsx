@@ -160,7 +160,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
 
   const font = "'Inter',sans-serif"
   return (
-    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '16px 20px', boxShadow: 'var(--shadow-sm)' }}>
+    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '16px 20px', boxShadow: 'var(--shadow-sm)' }}>
       <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) loadFile(f); e.currentTarget.value = '' }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: ex || scanning ? 16 : 0 }}>
         <div style={{ minWidth: 0 }}>

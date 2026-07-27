@@ -88,7 +88,7 @@ const num = (s: string) => { const v = parseFloat(s.replace(',', '.')); return i
 
 // ── Στυλ inputs (ίδιο look με το υπάρχον modal) ─────────────────────────────
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 16px', height: 40, borderRadius: 4,
+  width: '100%', padding: '10px 16px', height: 40, borderRadius: 6,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans,
   letterSpacing: 0, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -269,7 +269,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 20, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-xl)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-xl)', overflow: 'hidden' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 28px 0' }}>
@@ -339,7 +339,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     const sel = status === k;
                     return (
                       <button key={k} onClick={() => setStatus(k)} style={{
-                        display: 'flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
                         border: sel ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
                         background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
                         fontFamily: T.font.sans, fontSize: 13, fontWeight: 500,
@@ -361,7 +361,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</div>
                   <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
                 </div>
-                <div style={{ width: 44, height: 26, borderRadius: 13, background: airbnb ? 'var(--accent)' : 'var(--bg-overlay)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                <div style={{ width: 44, height: 26, borderRadius: 12, background: airbnb ? 'var(--accent)' : 'var(--bg-overlay)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                   <div style={{ position: 'absolute', top: 3, left: airbnb ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
                 </div>
               </button>

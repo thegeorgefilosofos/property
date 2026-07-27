@@ -44,7 +44,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
     : `${selected.size} από ${items.length} ακίνητα`;
 
   const box = (on: boolean, mixed = false): React.CSSProperties => ({
-    width: 17, height: 17, borderRadius: 5, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 17, height: 17, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     border: `1.5px solid ${on || mixed ? 'var(--accent)' : 'var(--border-default)'}`,
     background: on || mixed ? 'var(--accent)' : 'var(--bg-surface)', transition: 'border-color 0.14s, background 0.14s',
   });
@@ -64,13 +64,13 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
           {items.length > 6 && (
             <div style={{ padding: 8, borderBottom: '1px solid var(--border-subtle)' }}>
               <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Αναζήτηση ακινήτου…"
-                style={{ width: '100%', height: 34, padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, outline: 'none' }} />
+                style={{ width: '100%', height: 32, padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, outline: 'none' }} />
             </div>
           )}
           <div style={{ maxHeight: 260, overflowY: 'auto', padding: 4 }}>
             <button type="button" onClick={toggleAll} style={{ ...row, fontWeight: 600 }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
-              <span style={box(allOn, selected.size > 0 && !allOn)}>{allOn ? check : (selected.size > 0 ? <span style={{ width: 8, height: 2, borderRadius: 2, background: 'var(--accent-text)' }} /> : null)}</span>
+              <span style={box(allOn, selected.size > 0 && !allOn)}>{allOn ? check : (selected.size > 0 ? <span style={{ width: 8, height: 2, borderRadius: 3, background: 'var(--accent-text)' }} /> : null)}</span>
               Όλα τα ακίνητα
             </button>
             <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />

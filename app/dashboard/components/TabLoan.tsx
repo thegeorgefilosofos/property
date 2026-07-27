@@ -56,7 +56,7 @@ function MiniSection({title,badges,meta,defaultOpen,order,flat,children}:{title:
   return (
     <div style={flat
       ? {order,borderTop:'1px solid var(--border-subtle)'}
-      : {order,background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,overflow:'hidden',transition:'border-color 0.2s'}}>
+      : {order,background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,overflow:'hidden',transition:'border-color 0.2s'}}>
       <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:flat?'13px 2px':'15px 18px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
         <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,flexWrap:'wrap'}}>
           <span style={{fontSize:flat?13:14.5,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.01em'}}>{title}</span>
@@ -399,7 +399,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           { k:'Συνολικοί τόκοι', v:fmtEur(totalInterest), accent:false },
         ]
         return (
-          <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'16px 18px'}}>
+          <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'16px 18px'}}>
             <p style={{...labelStyle,marginBottom:12}}>Ενιαίο δάνειο, συνολική εικόνα · {rows.length} δάνεια</p>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10,marginBottom:16}}>
               {tiles.map((t,i)=>{const on=uniHover===i;return(
@@ -411,7 +411,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             </div>
             {rows.length>1&&(<>
               <p style={{...labelStyle,marginBottom:9}}>Κατανομή μηνιαίας δόσης ανά δάνειο</p>
-              <div style={{display:'flex',height:14,borderRadius:7,overflow:'hidden',border:'1px solid var(--border-subtle)',marginBottom:10}}>
+              <div style={{display:'flex',height:14,borderRadius:8,overflow:'hidden',border:'1px solid var(--border-subtle)',marginBottom:10}}>
                 {rows.map((r,i)=>(
                   <div key={r.l.id} title={`${r.l.bank}: ${fmtEur(r.m)} τον μήνα`} style={{width:`${totalMonthly>0?(r.m/totalMonthly)*100:0}%`,height:'100%',background:`color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`}}/>
                 ))}
@@ -445,7 +445,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         const elapsed=loan.start_date?Math.floor((Date.now()-new Date(loan.start_date).getTime())/(1000*60*60*24*30.44)):0
         const rem=Math.max(0,loan.years*12-elapsed)
         return(
-          <div key={loan.id} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:16}}>
+          <div key={loan.id} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:16}}>
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
               <div>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
@@ -563,7 +563,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               const myM = calcMonthly(calcState.loanAmount||150000, bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, calcState.years||25)
               return (
                 <button key={key} onClick={()=>setSelBank(on?null:key)} aria-pressed={on} onMouseEnter={()=>setHoverBank(key)} onMouseLeave={()=>setHoverBank(null)} onTouchStart={()=>setHoverBank(key)} onTouchEnd={()=>setHoverBank(null)} style={{textAlign:'left' as const,cursor:'pointer',background:'var(--bg-elevated)',
-                  border:`1px solid ${on?'var(--border-accent)':hoverBank===key?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'14px 15px',transition:'border-color 0.15s, box-shadow 0.15s',
+                  border:`1px solid ${on?'var(--border-accent)':hoverBank===key?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'14px 15px',transition:'border-color 0.15s, box-shadow 0.15s',
                   boxShadow:on?'0 2px 4px color-mix(in srgb, var(--accent) 14%, transparent), 0 10px 24px -14px color-mix(in srgb, var(--accent) 40%, transparent)':hoverBank===key?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'0 1px 2px color-mix(in srgb, var(--text-primary) 6%, transparent)'}}>
                   <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:12}}>
                     <span style={{fontSize:14,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',minWidth:0,lineHeight:1.3}}>{bank.bank_name||bank.name}</span>
@@ -592,7 +592,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             const myM = calcMonthly(calcState.loanAmount||150000, bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, calcState.years||25)
             const terms = [['3 ετών','fixed_3yr'],['5 ετών','fixed_5yr'],['10 ετών','fixed_10yr'],['15 ετών','fixed_15yr'],['20 ετών','fixed_20yr']] as const
             return (
-              <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-accent)',borderRadius:16,padding:'18px 20px',boxShadow:'var(--shadow-sm)'}}>
+              <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-accent)',borderRadius:14,padding:'18px 20px',boxShadow:'var(--shadow-sm)'}}>
                 <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap',marginBottom:16}}>
                   <div>
                     <p style={{fontSize:16,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',letterSpacing:'-0.01em'}}>{bank.bank_name||bank.name}</p>
@@ -873,7 +873,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                         <button onClick={()=>applyBank(topRec.nominalRatePct, topRec.rateType, topRec.bankName)}
                           onMouseEnter={()=>setApplyHover(true)} onMouseLeave={()=>setApplyHover(false)}
                           onTouchStart={()=>setApplyHover(true)} onTouchEnd={()=>setApplyHover(false)}
-                          style={{marginTop:10,display:'inline-flex',alignItems:'center',gap:6,height:32,padding:'0 13px',borderRadius:16,background:applyHover?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${applyHover?'var(--border-accent)':'var(--border-subtle)'}`,color:applyHover?'var(--accent)':'var(--text-secondary)',fontSize:12,fontWeight:600,fontFamily: T.font.sans,cursor:'pointer',transition:'color 0.15s, background 0.15s, border-color 0.15s'}}>
+                          style={{marginTop:10,display:'inline-flex',alignItems:'center',gap:6,height:32,padding:'0 13px',borderRadius:14,background:applyHover?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${applyHover?'var(--border-accent)':'var(--border-subtle)'}`,color:applyHover?'var(--accent)':'var(--text-secondary)',fontSize:12,fontWeight:600,fontFamily: T.font.sans,cursor:'pointer',transition:'color 0.15s, background 0.15s, border-color 0.15s'}}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                           Εφαρμογή στον Υπολογιστή
                         </button>

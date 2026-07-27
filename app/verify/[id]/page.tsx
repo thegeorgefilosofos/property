@@ -39,7 +39,7 @@ export default function VerifyDocument() {
   }, [id]);
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: '#111' };
-  const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '30px 30px 26px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
+  const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '30px 30px 26px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
   const mark: React.CSSProperties = { width: 34, height: 34, borderRadius: 8, background: '#1a73e8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17 };
   const label: React.CSSProperties = { fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8a8f98', fontWeight: 700 };
   const value: React.CSSProperties = { fontSize: 14, color: '#111', fontWeight: 600, marginTop: 3 };

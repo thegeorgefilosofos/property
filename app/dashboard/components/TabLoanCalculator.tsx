@@ -44,7 +44,7 @@ const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
 function Section({title,sub,children,defaultOpen=false,badge}:{title:string;sub?:string;children:React.ReactNode;defaultOpen?:boolean;badge?:string}) {
   const [open,setOpen] = useState(defaultOpen)
   return (
-    <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,overflow:'hidden'}}>
+    <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,overflow:'hidden'}}>
       <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
         <div>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -166,12 +166,12 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
       <div style={{position:'absolute',top:0,left:`${leftPct}%`,transform:'translateX(-50%)',pointerEvents:'none',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'8px 11px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const}}>
         <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:5,fontFamily: T.font.sans,textAlign:'center' as const}}>Έτος {data[hi].year}</p>
         <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
-          <span style={{width:9,height:9,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/>
+          <span style={{width:9,height:9,borderRadius:3,background:'var(--accent)',display:'inline-block'}}/>
           <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Κεφάλαιο</span>
           <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi].cap)}</span>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
-          <span style={{width:9,height:9,borderRadius:2,background:'var(--text-tertiary)',opacity:0.5,display:'inline-block'}}/>
+          <span style={{width:9,height:9,borderRadius:3,background:'var(--text-tertiary)',opacity:0.5,display:'inline-block'}}/>
           <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Τόκοι</span>
           <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi].int)}</span>
         </div>
@@ -238,7 +238,7 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
           background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'8px 11px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const}}>
           <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:5,fontFamily: T.font.sans,textAlign:'center' as const}}>{data[hi].year}</p>
           <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
-            <span style={{width:12,height:2.4,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/>
+            <span style={{width:12,height:2.4,borderRadius:3,background:'var(--accent)',display:'inline-block'}}/>
             <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Σταθερό</span>
             <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi][keyA])}</span>
           </div>
@@ -296,7 +296,7 @@ function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:nu
         <div style={{position:'absolute',top:0,left:`${leftPct}%`,transform:'translateX(-50%)',pointerEvents:'none',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'8px 11px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const,minWidth:150}}>
           <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:5,fontFamily: T.font.sans,textAlign:'center' as const}}>Έτος {hi}</p>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:3}}>
-            <span style={{width:9,height:9,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/>
+            <span style={{width:9,height:9,borderRadius:3,background:'var(--accent)',display:'inline-block'}}/>
             <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Αγορά</span>
             <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(buy[hi])}</span>
           </div>
@@ -793,7 +793,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           {PRESETS.map(p=>{
             const on = activePreset===p.id
             return (
-              <button key={p.id} onClick={()=>applyPreset(p)} title={p.desc} style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 14px',borderRadius:20,cursor:'pointer',background:on?'var(--accent-dim)':'var(--bg-surface)',border:`1px solid ${on?'var(--border-accent)':'var(--border-subtle)'}`,color:on?'var(--accent)':'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,transition:'all 0.15s'}}>
+              <button key={p.id} onClick={()=>applyPreset(p)} title={p.desc} style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 14px',borderRadius:18,cursor:'pointer',background:on?'var(--accent-dim)':'var(--bg-surface)',border:`1px solid ${on?'var(--border-accent)':'var(--border-subtle)'}`,color:on?'var(--accent)':'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,transition:'all 0.15s'}}>
                 {on&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>}
                 {p.label}
               </button>
@@ -891,7 +891,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <div key={t.k}
             onMouseEnter={()=>setHoverKpi(i)} onMouseLeave={()=>setHoverKpi(null)}
             onTouchStart={()=>setHoverKpi(i)} onTouchEnd={()=>setHoverKpi(null)}
-            style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'18px 18px 16px',transition:'border-color 0.15s, box-shadow 0.15s',
+            style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'18px 18px 16px',transition:'border-color 0.15s, box-shadow 0.15s',
             boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
             <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.k}</p>
             <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
@@ -1000,8 +1000,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
             <AmortDonut principal={LA} interest={totalInt}/>
             <div style={{display:'flex',gap:14}}>
-              <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:9,height:9,borderRadius:2,background:'var(--accent)'}}/>Κεφάλαιο {fmtEur(LA)}</span>
-              <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:9,height:9,borderRadius:2,background:'var(--text-tertiary)',opacity:0.5}}/>Τόκοι {fmtEur(totalInt)}</span>
+              <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:9,height:9,borderRadius:3,background:'var(--accent)'}}/>Κεφάλαιο {fmtEur(LA)}</span>
+              <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:9,height:9,borderRadius:3,background:'var(--text-tertiary)',opacity:0.5}}/>Τόκοι {fmtEur(totalInt)}</span>
             </div>
           </div>
           <div style={{flex:1,minWidth:260}}>
@@ -1045,7 +1045,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         <p style={{...labelStyle,marginBottom:10}}>Σωρευτικοί τόκοι στη διάρκεια</p>
         <DualLine data={fvChartData} keyA="Σταθερό" keyB="Κυμαινόμενο" fmt={fmtEur}/>
         <div style={{display:'flex',gap:16,marginTop:8}}>
-          <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:14,height:2.4,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/>Σταθερό</span>
+          <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:14,height:2.4,borderRadius:3,background:'var(--accent)',display:'inline-block'}}/>Σταθερό</span>
           <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:14,height:0,borderTop:'2px dashed var(--text-tertiary)',display:'inline-block'}}/>Κυμαινόμενο</span>
         </div>
       </Section>
@@ -1115,7 +1115,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div key={t.k}
               onMouseEnter={()=>setHoverCap(i)} onMouseLeave={()=>setHoverCap(null)}
               onTouchStart={()=>setHoverCap(i)} onTouchEnd={()=>setHoverCap(null)}
-              style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'16px 16px 14px',transition:'border-color 0.15s, box-shadow 0.15s',
+              style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px 16px 14px',transition:'border-color 0.15s, box-shadow 0.15s',
               boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
               <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.k}</p>
               <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
@@ -1135,7 +1135,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 <span style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Η δόση ως ποσοστό του εισοδήματος</span>
                 <span style={{fontSize:12.5,color:over?'var(--negative)':'var(--accent)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtPct1(usedPct)} <span style={{color:'var(--text-tertiary)'}}>από {Math.round(limitPct)}%</span></span>
               </div>
-              <div style={{position:'relative',height:38,borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
+              <div style={{position:'relative',height:36,borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
                 <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${usedW}%`,borderRadius:'12px 0 0 12px',transition:'width 0.4s ease',
                   background:over?'linear-gradient(90deg, color-mix(in srgb, var(--negative) 80%, transparent), var(--negative))':'linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, transparent), var(--accent))'}}/>
                 <div style={{position:'absolute',left:`${limitX}%`,top:0,bottom:0,width:0,borderLeft:'2px dashed var(--text-secondary)'}}/>
@@ -1269,15 +1269,15 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       {lens==='table' && (<>
       <Section title="Πίνακας αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`} defaultOpen>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
-          <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
+          <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             Εκτύπωση / PDF
           </button>
-          <button onClick={officialAmort} disabled={genOfficial} title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:genOfficial?'wait':'pointer',opacity:genOfficial?0.6:1}}>
+          <button onClick={officialAmort} disabled={genOfficial} title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:genOfficial?'wait':'pointer',opacity:genOfficial?0.6:1}}>
             <ShieldCheck size={15}/>
             {genOfficial?'Δημιουργία…':'Επίσημο PDF'}
           </button>
-          <button onClick={exportAmortCsv} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
+          <button onClick={exportAmortCsv} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Λήψη για Excel
           </button>

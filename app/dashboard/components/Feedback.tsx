@@ -93,7 +93,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
       <div style={shell}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <span aria-hidden style={{
-            width: 34, height: 34, flexShrink: 0, borderRadius: 11,
+            width: 34, height: 34, flexShrink: 0, borderRadius: 10,
             background: 'var(--accent-soft)', border: '1px solid var(--accent-border)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)',
           }}>

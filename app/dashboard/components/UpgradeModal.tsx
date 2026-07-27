@@ -21,7 +21,7 @@ export default function UpgradeModal({ currentCount, planId, onClose, onManage }
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       className="md-scrim" style={{ fontFamily: T.font.sans }}>
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 20, width: '100%', maxWidth: 720, maxHeight: 'calc(100vh - 48px)', overflow: 'auto', boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 720, maxHeight: 'calc(100vh - 48px)', overflow: 'auto', boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 8 }}>
           <div>
