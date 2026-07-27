@@ -41,7 +41,7 @@ const SUBPROCESSORS: { name: string; what: string; where: string; planned?: bool
   { name: 'Resend', what: 'Αποστολή όλων των email: λειτουργικά, υπενθυμίσεις, μηνιαίες καταστάσεις με ονόματα και ποσά, ενημερωτικά', where: 'ΗΠΑ' },
   { name: 'Anthropic', what: 'Ο βοηθός και η ανάγνωση εγγράφων: οι ερωτήσεις σου, τα συμφραζόμενα του ακινήτου και όποιο έγγραφο ή φωτογραφία ανεβάζεις για αυτόματη καταχώρηση', where: 'ΗΠΑ' },
   { name: 'GitHub', what: 'Κώδικας και κρυπτογραφημένα αντίγραφα ασφαλείας', where: 'ΗΠΑ' },
-  { name: 'Google', what: 'Σύνδεση με λογαριασμό Google (αν την επιλέξεις), ενσωματωμένος χάρτης στο ντοσιέ επαφής, γραμματοσειρές στις εκτυπώσιμες αναφορές — όπου γίνεται γνωστή η διεύθυνση IP σου', where: 'ΗΠΑ' },
+  { name: 'Google', what: 'Σύνδεση με λογαριασμό Google, αν την επιλέξεις, και ο ενσωματωμένος χάρτης στο ντοσιέ επαφής — εκεί γίνεται γνωστή η διεύθυνση IP σου. Οι γραμματοσειρές των αναφορών φιλοξενούνται πλέον από εμάς', where: 'ΗΠΑ' },
   { name: 'OpenStreetMap', what: 'Πρόταση διευθύνσεων καθώς πληκτρολογείς επαφή (Nominatim)', where: 'ΕΕ' },
   { name: 'Sentry', what: 'Καταγραφή σφαλμάτων της εφαρμογής — ενεργοποιείται μόνο αν οριστεί κλειδί· σήμερα δεν είναι ενεργό', where: 'ΗΠΑ / ΕΕ', planned: true },
   { name: 'Stripe', what: 'Χρέωση συνδρομής — ΔΕΝ έχει ενεργοποιηθεί ακόμη', where: 'ΗΠΑ / ΕΕ', planned: true },
@@ -213,7 +213,7 @@ export default function TrustPage() {
             <li style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}><strong style={{ color: 'var(--text-primary)' }}>Πρόσβαση &amp; φορητότητα:</strong> κατεβάζεις όλες τις καταχωρήσεις σου σε ένα αρχείο JSON που διαβάζεται από οποιοδήποτε εργαλείο. Τα έγγραφα που έχεις ανεβάσει τα κατεβάζεις από το Αρχείο.</li>
             <li style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}><strong style={{ color: 'var(--text-primary)' }}>Διόρθωση:</strong> κάθε πεδίο το διορθώνεις μόνος σου, χωρίς αίτημα. Μόνη εξαίρεση το ονοματεπώνυμο, που αλλάζει μία φορά τον μήνα για λόγους ασφάλειας.</li>
             <li style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}><strong style={{ color: 'var(--text-primary)' }}>Διαγραφή:</strong> οριστική διαγραφή λογαριασμού και δεδομένων, από την εφαρμογή.</li>
-            <li style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}><strong style={{ color: 'var(--text-primary)' }}>Εναντίωση:</strong> απενεργοποιείς τη συνεισφορά στα ανώνυμα δεδομένα κοινότητας με έναν διακόπτη.</li>
+            <li style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}><strong style={{ color: 'var(--text-primary)' }}>Εναντίωση:</strong> η συνεισφορά στα ανώνυμα δεδομένα κοινότητας είναι κλειστή εξ ορισμού — την ανοίγεις μόνο εσύ, με έναν διακόπτη.</li>
           </ul>
           <p style={{ ...P, marginTop: 12 }}>
             Έχεις επίσης δικαίωμα καταγγελίας στην Αρχή Προστασίας Δεδομένων Προσωπικού Χαρακτήρα (dpa.gr).

@@ -12,6 +12,12 @@ function buildCsp(nonce: string): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     "style-src 'self' 'unsafe-inline'",
+    // ΠΡΟΣΟΧΗ — αυτό ΔΕΝ καλύπτει τα εκτυπώσιμα έγγραφα. Οι γεννήτριες αναφορών
+    // ανοίγουν `window.open('')` και γράφουν HTML σε έγγραφο `about:blank`: δεν
+    // υπάρχει HTTP απόκριση, άρα δεν υπάρχει CSP header να εφαρμοστεί. Ακριβώς
+    // γι' αυτό τέσσερις αναφορές φόρτωναν επί μήνες γραμματοσειρές από τη Google
+    // ενώ αυτή η γραμμή έλεγε 'self' — και η IP του χρήστη έφευγε σε κάθε PDF.
+    // Η άμυνα εκεί είναι ο κώδικας, όχι η κεφαλίδα: lib/print/fonts.ts.
     "font-src 'self' data:",
     "img-src 'self' data: blob: https:",
     // Nominatim (OpenStreetMap): πρόταση διευθύνσεων χωρίς κλειδί στη φόρμα επαφής.

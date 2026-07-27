@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { incomeStatement } from '@/lib/accounting/statement';
+import { printFontFaces } from '@/lib/print/fonts';
 
 export interface StatementCtx {
   propName: string;
@@ -96,7 +97,7 @@ export function printPropertyStatement(c: StatementCtx): void {
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <title>Αναφορά ακινήτου · ${esc(c.propName)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+${printFontFaces()}
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Inter',system-ui,Arial,sans-serif;color:#111;background:#fff;font-size:12.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}

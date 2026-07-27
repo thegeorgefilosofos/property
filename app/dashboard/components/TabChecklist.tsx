@@ -9,6 +9,7 @@ import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding
 import { annuityMonthly } from '@/lib/loans/recommend'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
+import { printFontFaces } from '@/lib/print/fonts';
 
 const supabase = createSupabaseClient()
 
@@ -604,7 +605,7 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 
   const html = `<!DOCTYPE html><html lang="el"><head>
 <meta charset="UTF-8"><title>${esc(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+${printFontFaces()}
 <style>
 ${brandRootVars(branding)}
 *{margin:0;padding:0;box-sizing:border-box}

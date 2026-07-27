@@ -102,27 +102,57 @@ function AccountantLink({ userId }: { userId: string }) {
   );
 }
 
-// ── Συγκατάθεση δεδομένων κοινότητας (opt-out), bare row ──────────────────
+// ── Συγκατάθεση δεδομένων κοινότητας (opt-in), bare row ───────────────────
+// Ήταν opt-out με προεπιλογή «ναι»: ο χρήστης συνεισέφερε χωρίς να το επιλέξει
+// και, στην πράξη, χωρίς να το δει. Τώρα ξεκινά ΚΛΕΙΣΤΟ και η απόφαση
+// καταγράφεται με χρονοσήμανση — το άρθρο 7§1 GDPR ζητά να μπορούμε να
+// ΑΠΟΔΕΙΞΟΥΜΕ τη συγκατάθεση, και μια προεπιλογή δεν αποδεικνύει τίποτα.
 function MarketDataSharing({ userId }: { userId: string }) {
   const supabase = createClient();
-  const [on, setOn] = useState(true);
+  const [on, setOn] = useState(false);
+  const [decided, setDecided] = useState(true);   // αισιόδοξο: κρύβει το badge μέχρι να ξέρουμε
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    supabase.from('billing_profiles').select('share_market_data').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => { if (data && data.share_market_data === false) setOn(false); setLoaded(true); });
+    supabase.from('billing_profiles').select('share_market_data, share_market_data_decided_at').eq('user_id', userId).maybeSingle()
+      .then(({ data, error }) => {
+        // Σφάλμα ανάγνωσης ⇒ μένουμε στο ΚΛΕΙΣΤΟ. Fail-closed: ένα πρόβλημα
+        // δικτύου δεν επιτρέπεται να δείξει τον διακόπτη ανοιχτό και να
+        // παραπλανήσει τον χρήστη ότι συμμετέχει ή ότι δεν συμμετέχει.
+        if (!error && data) {
+          setOn(data.share_market_data === true);
+          setDecided(data.share_market_data_decided_at != null);
+        } else if (!error) {
+          setDecided(false);                       // δεν υπάρχει προφίλ: ποτέ δεν ρωτήθηκε
+        }
+        setLoaded(true);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
   const toggle = async (v: boolean) => {
     setOn(v);
-    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, share_market_data: v }, { onConflict: 'user_id' });
-    if (error) setOn(!v); // επαναφορά αν η αποθήκευση απέτυχε (χωρίς σιωπηλή απόκλιση)
+    const { error } = await supabase.from('billing_profiles').upsert(
+      { user_id: userId, share_market_data: v, share_market_data_decided_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
+    if (error) { setOn(!v); return; }   // επαναφορά αν η αποθήκευση απέτυχε
+    setDecided(true);
   };
   return (
     <div style={{ ...divider, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Συνεισφορά στα δεδομένα κοινότητας</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          Συνεισφορά στα δεδομένα κοινότητας
+          {loaded && !decided && (
+            <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.01em', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)', borderRadius: 100, padding: '2px 8px' }}>
+              Ανενεργό
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
-          Τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά. Δεν κοινοποιείται ποτέ μεμονωμένο ακίνητο, διεύθυνση ή στοιχείο σου· εμφανίζονται μόνο περιοχές με τουλάχιστον πέντε ακίνητα. Μπορείς να εξαιρεθείς όποτε θέλεις.
+          Αν το ενεργοποιήσεις, τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα
+          αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά.
+          Δεν κοινοποιείται ποτέ μεμονωμένο ακίνητο, διεύθυνση ή στοιχείο σου· εμφανίζονται μόνο περιοχές με
+          τουλάχιστον πέντε ακίνητα. <strong>Είναι κλειστό εξ ορισμού</strong> και το ανοίγεις ή το κλείνεις όποτε θέλεις.
         </div>
       </div>
       {loaded && <Toggle on={on} onChange={toggle} size="sm" />}
