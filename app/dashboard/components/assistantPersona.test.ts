@@ -559,12 +559,14 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('gating: trigger «Ε2 εξαγωγή»', /«Ε2 εξαγωγή»/.test(p));
   ok('gating: trigger «branding»/«επώνυμες αναφορές»', /«branding»\/«επώνυμες αναφορές»/.test(p));
 
-  // mobile app coming soon + waitlist
-  ok('gating: Property OS Mobile coming', /Property OS Mobile/.test(p) && /ΕΡΧΕΤΑΙ, ΔΕΝ υπάρχει ακόμη/.test(p));
-  ok('gating: mobile iOS & Android', /iOS και Android/.test(p));
+  // Κινητό: ΔΥΟ αλήθειες ταυτόχρονα — εγκαθίσταται ήδη ως PWA, native δεν υπάρχει.
+  ok('gating: PWA εγκαθίσταται ήδη', /ΕΓΚΑΘΙΣΤΑΤΑΙ ΗΔΗ στην αρχική οθόνη/.test(p));
+  ok('gating: οδηγία Android', /«Εγκατάσταση εφαρμογής»/.test(p));
+  ok('gating: οδηγία iPhone', /«Πρόσθεση στην αρχική οθόνη»/.test(p));
+  ok('gating: native δεν υπάρχει ακόμη', /δεν υπάρχει ακόμη/.test(p) && /App Store \/ Google Play/.test(p));
   ok('gating: mobile roadmap «Τι έρχεται»', /roadmap «Τι έρχεται»/.test(p));
-  ok('gating: mobile waitlist «Ειδοποίησέ με»', /λίστα αναμονής/.test(p) && /«Ειδοποίησέ με»/.test(p));
-  ok('gating: never claim mobile exists', /ΜΗΝ πεις ποτέ ότι υπάρχει ήδη/.test(p));
+  ok('gating: mobile waitlist «Ειδοποίησέ με»', /«Ειδοποίησέ με»/.test(p));
+  ok('gating: never claim native app exists', /μην πεις ποτέ ότι υπάρχει native app/.test(p));
 }
 // parseAction: το upsell δρομολογεί έγκυρα στη Συνδρομή/Λογαριασμό
 {

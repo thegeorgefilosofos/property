@@ -1027,7 +1027,14 @@ export default function Dashboard() {
     }
   };
 
-  const signOut = async () => { await supabase.auth.signOut(); window.location.href = '/login'; };
+  // Στην αποσύνδεση καθαρίζουμε και τις caches του service worker. Δεν κρατά
+  // προσωπικά δεδομένα (μόνο στατικά), αλλά σε κοινόχρηστη συσκευή το σωστό
+  // είναι να μη μένει τίποτα πίσω από τον προηγούμενο χρήστη.
+  const signOut = async () => {
+    try { navigator.serviceWorker?.controller?.postMessage('pos-clear-caches'); } catch { /* ignore */ }
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg-base)',flexDirection:'column',gap:16}}>
