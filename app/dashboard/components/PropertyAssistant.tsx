@@ -46,6 +46,8 @@ type ClientLite = { id: string; name: string; phone: string; afm: string; vip: b
 // Ελαφρύ ευρετήριο επαφών (τεχνικοί/πάροχοι) για επικοινωνία (WhatsApp/Viber/email/κλήση).
 type ContactLite = { name: string; role: string; phone: string; email: string };
 
+import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from '@/lib/assistant/openers';
+
 const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
 const navLabel = (id: string) => NAV_MAP.find(n => n.id === id)?.label || id;
 const onlyDigits = (p: string) => (p || '').replace(/\D/g, '');
@@ -57,12 +59,6 @@ const reachLabel = (ch: 'whatsapp' | 'viber' | 'email' | 'call', name: string) =
     : `Άνοιγμα WhatsApp προς ${name}`;
 const CH_HUMAN: Record<'whatsapp' | 'viber' | 'email' | 'call', string> = { whatsapp: 'WhatsApp', viber: 'Viber', email: 'email', call: 'κλήση' };
 
-const SUGGESTED = [
-  'Τι εκκρεμεί τώρα;',
-  'Πόσα ξόδεψα φέτος και πού;',
-  'Πώς φορολογείται το ενοίκιό μου;',
-  'Πώς ανεβάζω την αξία του ακινήτου;',
-];
 
 export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan }: Props) {
   const supabase = createClient();
@@ -88,6 +84,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [marketStr, setMarketStr] = useState('');
   const [clientsStr, setClientsStr] = useState('');
   const [pricingStr, setPricingStr] = useState('');
+  // Τα ΔΙΚΑ ΤΟΥ νούμερα, για τις προτάσεις εκκίνησης και τον χαιρετισμό.
+  // Μένει άδειο μέχρι να φορτώσουν πραγματικά δεδομένα: ο βοηθός δεν
+  // ισχυρίζεται ποτέ ότι «βλέπει» κάτι που δεν έχει διαβάσει ακόμη.
+  const [openerCtx, setOpenerCtx] = useState<OpenerContext>({});
   const [techStr, setTechStr] = useState('');   // επαφές τεχνικών/παρόχων (καρτέλα Επαφές)
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -234,6 +234,20 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const checklistLine = openTasks.length
       ? `Ανοιχτές εκκρεμότητες (${openTasks.length}${overdueTasks.length ? `, εκ των οποίων ${overdueTasks.length} ληξιπρόθεσμες` : ''}${taskCostSum > 0 ? `, εκτιμώμενο κόστος ${eur(Math.round(taskCostSum))}` : ''}): ${openTasks.slice(0, 15).map((i: any) => `${i.description}${i.due_date ? ` [προθεσμία ${i.due_date}${i.due_date < todayStr ? ' — ΛΗΞΙΠΡΟΘΕΣΜΗ' : ''}]` : ''}${i.estimated_cost ? ` ~${eur(i.estimated_cost)}` : ''}${i.assigned_contact_name ? ` (ανάθεση: ${i.assigned_contact_name})` : ''}`).join('; ')}${openTasks.length > 15 ? ` (και ${openTasks.length - 15} ακόμη)` : ''}`
       : 'Δεν υπάρχουν ανοιχτές εκκρεμότητες.';
+
+    // Τα νούμερα που τροφοδοτούν τις προτάσεις εκκίνησης. Ό,τι δεν υπάρχει
+    // μένει undefined — η μηχανή προτάσεων δεν επινοεί ποτέ ποσά.
+    setOpenerCtx({
+      propertyName: propContext.name,
+      monthlyRent: rent || undefined,
+      propertyValue: value || undefined,
+      expensesYtd: total || undefined,
+      openTasks: openTasks.length,
+      overdueRent: openRentRef.current.reduce((sum, r) => sum + (r.amount || 0), 0) || undefined,
+      hasLoan: loanRows.length > 0,
+      isShortTerm: propStays.length > 0,
+      propertyCount: allProperties.length || undefined,
+    });
 
     // ── Δυναμική τιμολόγηση: βάση + ενδεικτικός πίνακας ανά μήνα (για τον βοηθό) ──
     // Προτίμησε τη ΒΑΣΗ που έχει ορίσει ο χρήστης στην καρτέλα Τιμολόγηση (αν υπάρχει).
@@ -907,12 +921,17 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   };
 
   const initial = (identity.name || 'A').trim().charAt(0).toUpperCase();
+  // Ο χαιρετισμός λέει ΤΙ ΒΛΕΠΕΙ ο βοηθός, όχι τι είναι. Το «ρώτησέ με οτιδήποτε»
+  // δεν λέει τίποτα· το «βλέπω τα ενοίκια και τις δαπάνες του Χ» λέει τα πάντα,
+  // και είναι ο λόγος που ο χρήστης θα ρωτήσει κάτι δικό του αντί για κάτι γενικό.
   const greeting = hasIdentity
-    ? (identity.formal
-        ? `Γεια σας! Είμαι ${identity.name}. Ρωτήστε με οτιδήποτε για ${propContext.name} ή για ακίνητα γενικά.`
-        : `Γεια σου! Είμαι ${identity.name}. Ρώτησέ με οτιδήποτε για ${propContext.name} ή για ακίνητα γενικά.`)
+    ? buildGreeting(identity.name, openerCtx, identity.formal)
     : `Γεια σου! Θα είμαι ο βοηθός σου. Πρώτα, πες μου πώς να με λες.`;
   const askVerb = identity.formal ? 'Ρωτήστε' : 'Ρώτησε';
+  // Το κείμενο του πεδίου είναι το πιο φθηνό σημείο επανατοποθέτησης: αντί για
+  // «ρώτησε τον Άριελ» (που δεν λέει τι μπορεί να ρωτήσει), λέει ρητά ότι
+  // απαντά για ΤΑ ΔΙΚΑ ΤΟΥ νούμερα.
+  const askPlaceholder = `${askVerb} για τα δικά σου νούμερα…`;
 
   // Χρωματική ταυτότητα avatar ανά φύλο (διακριτικά).
   const avatarBg = identity.gender === 'female' ? 'linear-gradient(135deg,#ec4899,#f9a8d4)'
@@ -990,7 +1009,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       {/* FAB, ορατό σε κάθε καρτέλα */}
       {!open && (
         <div className="pa-fab-wrap" style={fabFixed}>
-          {!fabPos && <span className="pa-fab-label">{askVerb} τον/την {identity.name}</span>}
+          {!fabPos && <span className="pa-fab-label">{askVerb} για τα δικά σου νούμερα</span>}
           <button className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(true)} aria-label={`Βοηθός: ${identity.name} (σύρετε για μετακίνηση)`} title="Σύρετε για μετακίνηση"
             style={{ background: avatarBg, cursor: dragging ? 'grabbing' : 'pointer' }}>
             <span className="pa-fab-initial">{initial}</span>
@@ -1060,7 +1079,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>{greeting}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                      {SUGGESTED.map(s => (
+                      {suggestedOpeners(openerCtx).map(s => (
                         <button key={s} onClick={() => ask(s)} style={{ fontFamily: T.font.sans, fontSize: 12, padding: '7px 12px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
                           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
                           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>{s}</button>
@@ -1130,7 +1149,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
                   </button>
                 )}
-                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : `${askVerb} τον/την ${identity.name}…`} disabled={busy}
+                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : askPlaceholder} disabled={busy}
                   style={{ flex: 1, minWidth: 0, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 15px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 <button onClick={() => ask(input)} disabled={busy || !input.trim()} aria-label="Αποστολή"
