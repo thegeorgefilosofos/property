@@ -24,14 +24,25 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
   // βρίσκει κλειδωμένη στήλη. Αδιέξοδο· κρατάμε το ανώτατο επιτρεπτό.
   const byCount = planForCount(currentCount + 1);
   const allowed = isPlanAllowedForProfile(profileType, byCount) ? byCount : paidPlanForProfile(profileType);
-  // Αν το «προτεινόμενο» είναι το πλάνο που ΗΔΗ έχει, δεν υπάρχει πρόταση:
-  // αλλιώς το ίδιο κουτί θα έγραφε «Προτεινόμενο» και «Το τρέχον πλάνο σου».
-  const recommended: PlanId | null = allowed === current ? null : allowed;
-  // Έφτασε το ταβάνι του Ιδιώτη: η λύση είναι αλλαγή τρόπου χρήσης, όχι πλάνου.
-  const needsProfileSwitch = profileType === 'individual' && current === 'owner' && currentCount >= PLANS.owner.maxProperties;
-  // Πάνω από το ανώτατο πλάνο δεν υπάρχει «αναβάθμιση» να προτείνουμε. Το λέμε
-  // ειλικρινά και ανοίγουμε συζήτηση, αντί να στέλνουμε σε πλάνο που ήδη έχει.
-  const beyondTopPlan = current === 'agency' && currentCount >= PLANS.agency.maxProperties;
+
+  // Το ταβάνι που μπορεί να ΑΓΟΡΑΣΕΙ αυτό το προφίλ — όχι το πλάνο που έχει.
+  // Κρίσιμο ότι δεν εξαρτάται από το τρέχον πλάνο: ο χρήστης που έληξε η δοκιμή
+  // του κρατώντας 3 ακίνητα είναι στο ίδιο αδιέξοδο με τον συνδρομητή στα 3,
+  // απλώς με άλλη ταμπέλα.
+  const profileCeiling = PLANS[paidPlanForProfile(profileType)].maxProperties;
+  const atCeiling = currentCount >= profileCeiling;
+
+  // Ιδιώτης στο ταβάνι: η λύση είναι αλλαγή τρόπου χρήσης, όχι πλάνου.
+  const needsProfileSwitch = profileType === 'individual' && atCeiling;
+  // Επαγγελματίας στο ταβάνι: δεν υπάρχει μεγαλύτερο πλάνο — ανοίγουμε συζήτηση.
+  const beyondTopPlan = profileType === 'professional' && atCeiling;
+
+  // ΚΑΝΟΝΑΣ: δεν προτείνουμε ΠΟΤΕ πλάνο που δεν λύνει το πρόβλημα. Ούτε αυτό που
+  // ήδη έχει (θα έγραφε «Προτεινόμενο» και «Το τρέχον πλάνο σου» στο ίδιο κουτί),
+  // ούτε ένα που δεν χωράει ούτε ένα ακίνητο παραπάνω — που ήταν το χειρότερο:
+  // πλήρωνες 9,90 € για ακριβώς τη χωρητικότητα που είχες ήδη εξαντλήσει.
+  const recommended: PlanId | null =
+    atCeiling || allowed === current || PLANS[allowed].maxProperties <= currentCount ? null : allowed;
 
 
   if (beyondTopPlan) {
