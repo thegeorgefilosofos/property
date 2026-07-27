@@ -57,13 +57,27 @@ export function eur(n: number): string {
 /** Θετικός αριθμός με νόημα; (το 0 και το null δεν είναι δεδομένο) */
 const has = (n: number | null | undefined): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0;
 
+/** Προτάσεις όσο ΔΕΝ έχουν φορτώσει ακόμη τα δεδομένα.
+ *
+ *  Κρίσιμη διάκριση: «δεν ξέρω ακόμη» ≠ «δεν έχεις τίποτα». Ο χρήστης με τρία
+ *  χρόνια δαπάνες που ανοίγει τον βοηθό δεν πρέπει να διαβάσει «μόλις
+ *  καταχωρήσεις τα πρώτα στοιχεία…» επειδή δεν γύρισε ακόμη το ερώτημα. */
+const LOADING_OPENERS = [
+  'Τι εκκρεμεί στο ακίνητό μου αυτή τη στιγμή;',
+  'Πόσο μου μένει καθαρά από το ενοίκιο;',
+  'Πόσο φόρο θα πληρώσω φέτος;',
+];
+
 /**
  * Οι προτάσεις εκκίνησης για τον συγκεκριμένο χρήστη και ακίνητο.
  *
  * Επιστρέφει το πολύ MAX ερωτήσεις, με σειρά προτεραιότητας. Κάθε ερώτηση που
  * περιέχει νούμερο, το παίρνει από τα δεδομένα — ποτέ από εκτίμηση.
+ *
+ * `null` σημαίνει «τα δεδομένα δεν έχουν φορτώσει», όχι «δεν υπάρχουν δεδομένα».
  */
-export function suggestedOpeners(ctx: OpenerContext = {}): string[] {
+export function suggestedOpeners(ctx: OpenerContext | null = {}): string[] {
+  if (ctx === null) return [...LOADING_OPENERS];
   const out: string[] = [];
   const name = (ctx.propertyName || '').trim();
   const forProp = name ? ` στο ${name}` : '';
@@ -121,14 +135,25 @@ export function suggestedOpeners(ctx: OpenerContext = {}): string[] {
  * Ο χαιρετισμός: λέει τι ΞΕΡΕΙ ο βοηθός, όχι τι είναι.
  * «Ρώτησέ με οτιδήποτε» δεν λέει τίποτα· «βλέπω τα νούμερα του Χ» λέει τα πάντα.
  */
-export function greeting(assistantName: string, ctx: OpenerContext = {}, formal = false): string {
+export function greeting(assistantName: string, ctx: OpenerContext | null = {}, formal = false): string {
+  // Ο πληθυντικός ευγενείας πρέπει να είναι ΟΛΟΚΛΗΡΟΣ. Μεικτό «Γεια σου …
+  // Ρωτήστε με» ακούγεται χειρότερα από το να μην υπήρχε καθόλου η ρύθμιση.
+  const hi = formal ? 'Γεια σας' : 'Γεια σου';
   const you = formal ? 'Ρωτήστε με' : 'Ρώτα με';
+  const your = formal ? 'σας' : 'σου';
+  const yours = formal ? 'τα δικά σας νούμερα' : 'τα δικά σου νούμερα';
+
+  // Δεν έχουν φορτώσει ακόμη τα δεδομένα: δεν λέμε ούτε «βλέπω», ούτε «δεν έχεις».
+  if (ctx === null) {
+    return `${hi}! Είμαι ${assistantName}. Κοιτάζω τα στοιχεία ${your}… ${you} για ${yours}.`;
+  }
+
   const name = (ctx.propertyName || '').trim();
   const many = (ctx.propertyCount ?? 0) > 1;
 
   const scope = many
-    ? `των ${ctx.propertyCount} ακινήτων σου`
-    : name ? `του ${name}` : 'του ακινήτου σου';
+    ? `των ${ctx.propertyCount} ακινήτων ${your}`
+    : name ? `του ${name}` : `του ακινήτου ${your}`;
 
   const knows: string[] = [];
   if (has(ctx.monthlyRent)) knows.push('τα ενοίκια');
@@ -137,9 +162,11 @@ export function greeting(assistantName: string, ctx: OpenerContext = {}, formal 
   if ((ctx.openTasks ?? 0) > 0) knows.push('τις εκκρεμότητες');
 
   if (knows.length === 0) {
-    return `Γεια σου! Είμαι ${assistantName}. Μόλις καταχωρήσεις τα πρώτα στοιχεία ${scope}, θα μπορώ να σου απαντώ με τα δικά σου νούμερα. ${you} τι χρειάζομαι.`;
+    const enter = formal ? 'καταχωρήσετε' : 'καταχωρήσεις';
+    const can = formal ? 'σας απαντώ' : 'σου απαντώ';
+    return `${hi}! Είμαι ${assistantName}. Μόλις ${enter} τα πρώτα στοιχεία ${scope}, θα μπορώ να ${can} με ${yours}. ${you} τι χρειάζομαι.`;
   }
 
   const list = knows.length === 1 ? knows[0] : `${knows.slice(0, -1).join(', ')} και ${knows[knows.length - 1]}`;
-  return `Γεια σου! Είμαι ${assistantName}. Βλέπω ${list} ${scope}. ${you} για τα δικά σου νούμερα — όχι γενικά.`;
+  return `${hi}! Είμαι ${assistantName}. Βλέπω ${list} ${scope}. ${you} για ${yours} — όχι γενικά.`;
 }

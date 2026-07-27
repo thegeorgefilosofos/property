@@ -99,7 +99,15 @@ self.addEventListener('fetch', (event) => {
 // Καθαρισμός κατ' απαίτηση (καλείται στο logout από την εφαρμογή). Δεν
 // αποθηκεύουμε προσωπικά δεδομένα, αλλά ο καθαρισμός είναι φθηνός και σωστός.
 self.addEventListener('message', (event) => {
-  if (event.data === 'pos-clear-caches') {
-    event.waitUntil(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))));
-  }
+  if (event.data !== 'pos-clear-caches') return;
+  // ΔΕΝ σβήνουμε το SHELL_CACHE: γεμίζει ΜΟΝΟ στο install, το οποίο δεν ξανατρέχει
+  // για ήδη εγκατεστημένο worker. Σβήνοντάς το, η σελίδα «χωρίς σύνδεση» χανόταν
+  // οριστικά με την πρώτη αποσύνδεση και ο χρήστης έβλεπε ξανά τον δεινόσαυρο.
+  // Καθαρίζουμε τα υπόλοιπα και το ξαναγεμίζουμε για κάθε ενδεχόμενο.
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== SHELL_CACHE).map((k) => caches.delete(k))))
+      .then(() => caches.open(SHELL_CACHE))
+      .then((cache) => Promise.allSettled(SHELL_ASSETS.map((u) => cache.add(u))))
+  );
 });

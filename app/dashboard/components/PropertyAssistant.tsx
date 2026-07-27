@@ -85,9 +85,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [clientsStr, setClientsStr] = useState('');
   const [pricingStr, setPricingStr] = useState('');
   // Τα ΔΙΚΑ ΤΟΥ νούμερα, για τις προτάσεις εκκίνησης και τον χαιρετισμό.
-  // Μένει άδειο μέχρι να φορτώσουν πραγματικά δεδομένα: ο βοηθός δεν
-  // ισχυρίζεται ποτέ ότι «βλέπει» κάτι που δεν έχει διαβάσει ακόμη.
-  const [openerCtx, setOpenerCtx] = useState<OpenerContext>({});
+  // `null` = «δεν έχουν φορτώσει ακόμη» και είναι ΔΙΑΦΟΡΕΤΙΚΟ από `{}` = «δεν
+  // υπάρχουν δεδομένα». Με κενό αντικείμενο, ο χρήστης με τρία χρόνια δαπάνες
+  // διάβαζε «μόλις καταχωρήσεις τα πρώτα στοιχεία…» για όσο κρατούσε το ερώτημα.
+  const [openerCtx, setOpenerCtx] = useState<OpenerContext | null>(null);
   const [techStr, setTechStr] = useState('');   // επαφές τεχνικών/παρόχων (καρτέλα Επαφές)
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -133,7 +134,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
-    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr('');
+    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr(''); setOpenerCtx(null);
     const mem = loadIdentity()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);

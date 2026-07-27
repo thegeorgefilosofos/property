@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -29,8 +30,13 @@ const DISMISS_DAYS = 60;
 const MIN_VISITS = 2;
 
 export default function PwaProvider() {
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
+  // Το layout είναι ΕΝΑ για όλο το site, οπότε χωρίς αυτόν τον έλεγχο το banner
+  // εμφανιζόταν και στη landing και — χειρότερα — στις σελίδες ενοικιαστή/λογιστή
+  // με token, ζητώντας από τρίτους να εγκαταστήσουν εφαρμογή που δεν τους αφορά.
+  const inApp = !!pathname && pathname.startsWith('/dashboard');
 
   // Καταχώριση του service worker. Μόνο σε production: στο dev ο SW κρύβει
   // αλλαγές πίσω από cache και τρελαίνει το hot reload.
@@ -50,6 +56,7 @@ export default function PwaProvider() {
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
+      if (!window.location.pathname.startsWith('/dashboard')) return;
       // Ήδη εγκατεστημένη; Τότε δεν ρωτάμε τίποτα.
       if (window.matchMedia('(display-mode: standalone)').matches) return;
       if (visits < MIN_VISITS) return;
@@ -64,20 +71,24 @@ export default function PwaProvider() {
     return () => window.removeEventListener('beforeinstallprompt', onPrompt);
   }, []);
 
+  const remember = () => {
+    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* private mode */ }
+  };
+
   const install = async () => {
     if (!deferred) return;
     setShow(false);
     await deferred.prompt();
-    await deferred.userChoice;
+    const { outcome } = await deferred.userChoice;
+    // Άκυρο στο native παράθυρο = «όχι». Χωρίς αυτό, το banner ξαναεμφανιζόταν
+    // στην επόμενη φόρτωση — ακριβώς η επανάληψη που υποσχεθήκαμε να μην κάνουμε.
+    if (outcome === 'dismissed') remember();
     setDeferred(null);
   };
 
-  const dismiss = () => {
-    setShow(false);
-    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* private mode */ }
-  };
+  const dismiss = () => { setShow(false); remember(); };
 
-  if (!show) return null;
+  if (!show || !inApp) return null;
 
   return (
     <div role="dialog" aria-label="Εγκατάσταση εφαρμογής"

@@ -27,7 +27,10 @@ export interface LegalIdentity {
   gemi: string | null;
   /** Τηλέφωνο επικοινωνίας πελατών. */
   phone: string | null;
-  /** Email υποστήριξης — ζει στο ίδιο domain με την υπηρεσία. */
+  /** Email υποστήριξης. ΠΡΟΣΟΧΗ: πρέπει να είναι στο ΙΔΙΟ domain με την
+   *  εφαρμογή (property-os.gr — με παύλα, όπως στο metadataBase, στο robots
+   *  και στο sitemap). Διεύθυνση σε άλλο domain δείχνει προχειρότητα ακριβώς
+   *  εκεί που ο χρήστης ψάχνει σοβαρότητα. */
   supportEmail: string;
   /** Email για θέματα προσωπικών δεδομένων (GDPR). */
   privacyEmail: string;
@@ -43,9 +46,9 @@ export const IDENTITY: LegalIdentity = {
   doy: null,
   gemi: null,
   phone: null,
-  supportEmail: 'support@propertyos.gr',
-  privacyEmail: 'privacy@propertyos.gr',
-  securityEmail: 'security@propertyos.gr',
+  supportEmail: 'support@property-os.gr',
+  privacyEmail: 'privacy@property-os.gr',
+  securityEmail: 'security@property-os.gr',
 };
 
 /** Κείμενο για πεδίο που δεν έχει οριστεί ακόμη. Ένα και μόνο, παντού ίδιο. */

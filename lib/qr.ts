@@ -53,3 +53,22 @@ export function drawQrToCanvas(
     }
   }
 }
+
+/** Το ίδιο QR ως data: URL, για χρήση σε `<img src>` και σε παράθυρα εκτύπωσης.
+ *
+ *  ΓΙΑΤΙ ΥΠΑΡΧΕΙ: τρία σημεία της εφαρμογής έστελναν το περιεχόμενο του QR σε
+ *  εξωτερική υπηρεσία (`api.qrserver.com`) μέσα στο query string — δηλαδή
+ *  ονοματεπώνυμο, τηλέφωνο και email επαφής, IBAN και ποσό πληρωμής, στοιχεία
+ *  απογραφής. Αυτά είναι προσωπικά δεδομένα τρίτων που έφευγαν από τη συσκευή
+ *  χωρίς λόγο. Ο υπολογισμός γίνεται τοπικά σε χιλιοστά του δευτερολέπτου.
+ *
+ *  Επιστρέφει κενή συμβολοσειρά εκτός browser (SSR), ώστε ο caller να μη σκάει. */
+export function qrDataUrl(
+  text: string,
+  opts?: { size?: number; margin?: number; dark?: string; light?: string },
+): string {
+  if (typeof document === 'undefined') return '';
+  const canvas = document.createElement('canvas');
+  drawQrToCanvas(canvas, text, opts);
+  return canvas.toDataURL('image/png');
+}

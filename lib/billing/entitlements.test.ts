@@ -138,15 +138,11 @@ ok(propertyLimit(partner) === 15, 'partner → 15 ακίνητα');
 ok(canAddProperty(free, 0) === true, 'free μπορεί το 1ο');
 ok(canAddProperty(free, 1) === false, 'free ΔΕΝ μπορεί 2ο');
 ok(canAddProperty(owner, 2) === true, 'owner μπορεί το 3ο');
-ok(canAddProperty(owner, 6) === false, 'owner ΔΕΝ μπορεί 7ο');
+ok(canAddProperty(owner, 3) === false, 'owner φράζει στα 3');
 ok(canAddProperty(agency, 14) === true, 'agency μπορεί το 15ο');
 ok(canAddProperty(agency, 15) === false, 'agency φράζει στα 15');
 ok(canAddProperty(compOwner, 2) === true, 'comp owner μπορεί έως 3');
-ok(canAddProperty(compOwner, 6) === false, 'comp owner σταματά στα 6');
-
-console.log(`\nbilling/entitlements.ts — ${p} passed, ${f} failed`);
-if (f > 0) process.exit(1);
-console.log('όλα πέρασαν');
+ok(canAddProperty(compOwner, 3) === false, 'comp owner σταματά στα 3');
 
 // ── Δωρεάν δοκιμή 30 ημερών ─────────────────────────────────────────────────
 {
@@ -160,9 +156,10 @@ console.log('όλα πέρασαν');
   ok(trialState(mk(31)).active === false, 'μετά τις 30 ημέρες → δοκιμή έληξε');
   ok(trialState({ now }).active === false, 'χωρίς createdAt → καμία δοκιμή');
 
-  // Στη δοκιμή ο ιδιώτης βλέπει «Ιδιοκτήτης», ο επαγγελματίας «Επαγγελματίας».
+  // Η δοκιμή δίνει ΠΑΝΤΑ «Ιδιοκτήτης» — ίδιο με τον server και τους Όρους Χρήσης.
   ok(effectivePlan(mk(5)) === 'owner', 'δοκιμή ιδιώτη → owner');
-  ok(effectivePlan(mk(5, { profileType: 'professional' })) === 'agency', 'δοκιμή επαγγελματία → agency');
+  ok(effectivePlan(mk(5, { profileType: 'professional' })) === 'owner', 'δοκιμή επαγγελματία → ΕΠΙΣΗΣ owner (όχι agency)');
+  ok(propertyLimit(mk(5, { profileType: 'professional' })) === 3, 'το όριο δοκιμής είναι 3, όσο και του server');
   ok(effectivePlan(mk(40)) === 'free', 'μετά τη λήξη → free');
 
   // Η δοκιμή δεν υποβαθμίζει ποτέ πληρωμένο πλάνο.
@@ -173,3 +170,7 @@ console.log('όλα πέρασαν');
   ok(hasFeature(mk(5), 'e2_export') === true, 'δοκιμή ξεκλειδώνει Ε2');
   ok(hasFeature(mk(40), 'e2_export') === false, 'μετά τη λήξη κλειδώνει το Ε2');
 }
+
+console.log(`\nbilling/entitlements.ts — ${p} passed, ${f} failed`);
+if (f > 0) process.exit(1);
+console.log('όλα πέρασαν');

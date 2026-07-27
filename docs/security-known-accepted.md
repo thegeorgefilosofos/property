@@ -62,7 +62,13 @@ pg_net και θα έσπαγε τα cron jobs που στέλνουν email μ�
 | Ρύθμιση | Διαδρομή | Τιμή | Κατάσταση |
 |---|---|---|---|
 | Prevent use of leaked passwords | Authentication → Attack Protection → Email | ✅ ON | ❌ **ΜΠΛΟΚΑΡΕΤΑΙ — μόνο Pro** |
-| TOTP (App Authenticator) | Authentication → Multi-Factor | **Enroll and Verify Enabled** | ⚠️ απαιτείται |
+| TOTP (App Authenticator) | Authentication → Multi-Factor | **Enroll and Verify Enabled** | ⚠️ ΕΠΙΒΕΒΑΙΩΣΕ ΤΟ |
+
+> **Η σελίδα `/trust` δηλώνει δημόσια ότι ο χρήστης μπορεί να ενεργοποιήσει σύνδεση
+> δύο βημάτων.** Η δήλωση είναι αληθής ΜΟΝΟ με την τιμή «Enroll and Verify Enabled».
+> Με «Verify Enabled» το `mfa.enroll()` απορρίπτεται, κανείς δεν μπορεί να
+> ενεργοποιήσει MFA, και η σελίδα λέει ψέματα. Επιβεβαίωσε την τιμή πριν βγει το
+> προϊόν σε πελάτες — ή αφαίρεσε τη γραμμή από τη σελίδα.
 | Allow manual linking | Authentication → Sign In / Providers | ❌ OFF | ✅ εφαρμόστηκε |
 | Allow anonymous sign-ins | Authentication → Sign In / Providers | ❌ OFF | ✅ ίσχυε ήδη |
 | Confirm email | Authentication → Sign In / Providers | ✅ ON | ✅ ίσχυε ήδη |

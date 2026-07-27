@@ -114,6 +114,10 @@ export function activeComp(input: EntitlementInput): { plan: PlanId; until: stri
  */
 export interface TrialState { active: boolean; daysLeft: number; endsAt: string | null }
 
+/** Το επίπεδο που δίνει η δοκιμή. ΠΡΕΠΕΙ να ταυτίζεται με το `greatest(v_rank, 1)`
+ *  του `public.user_plan_rank` και με τη διατύπωση των Όρων Χρήσης. */
+export const TRIAL_PLAN: PlanId = 'owner';
+
 export function trialState(input: EntitlementInput): TrialState {
   const off: TrialState = { active: false, daysLeft: 0, endsAt: null };
   if (!input.createdAt) return off;
@@ -130,12 +134,17 @@ export function trialState(input: EntitlementInput): TrialState {
  *  μήνες ή ιδιότητα Συνεργάτη. */
 export function effectivePlan(input: EntitlementInput): PlanId {
   let best = normalizePlan(input.plan);
-  // Δωρεάν δοκιμή → «Ιδιοκτήτης» (ή «Επαγγελματίας» για επαγγελματικό προφίλ).
+  // Δωρεάν δοκιμή → ΠΑΝΤΑ «Ιδιοκτήτης», ανεξάρτητα από τον τύπο προφίλ.
+  //
+  // ΓΙΑΤΙ ΟΧΙ «Επαγγελματίας» ΓΙΑ ΤΟΥΣ ΕΠΑΓΓΕΛΜΑΤΙΕΣ: ο τύπος προφίλ δηλώνεται
+  // ελεύθερα από τον χρήστη στο onboarding, χωρίς κανέναν έλεγχο. Αν η δοκιμή
+  // ακολουθούσε το προφίλ, οποιοσδήποτε θα έπαιρνε 15 ακίνητα δηλώνοντας
+  // «Επαγγελματίας». Κυριότερο: ο server (user_plan_rank) δίνει rank 1 σε κάθε
+  // δοκιμή και οι Όροι Χρήσης λένε ρητά «στο επίπεδο Ιδιοκτήτης» — αν το UI
+  // έδειχνε όριο 15 ενώ το trigger κόβει στα 3, ο χρήστης θα πατούσε
+  // «Προσθήκη ακινήτου» και θα έτρωγε σφάλμα βάσης. Μία αλήθεια παντού.
   const trial = trialState(input);
-  if (trial.active) {
-    const trialPlan: PlanId = input.profileType === 'professional' ? 'agency' : 'owner';
-    if (rank(trialPlan) > rank(best)) best = trialPlan;
-  }
+  if (trial.active && rank(TRIAL_PLAN) > rank(best)) best = TRIAL_PLAN;
   const comp = activeComp(input);
   if (comp && rank(comp.plan) > rank(best)) best = comp.plan;
   if (input.partner && rank('agency') > rank(best)) best = 'agency';

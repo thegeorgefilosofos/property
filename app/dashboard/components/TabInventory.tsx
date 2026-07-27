@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
@@ -451,7 +452,8 @@ function RoomInput({value,onChange}:{value:string;onChange:(v:string)=>void}) {
 }
 
 function QRModal({item,onClose}:{item:InventoryItem;onClose:()=>void}) {
-  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(JSON.stringify({n:item.name,b:item.brand,m:item.model,sn:item.serial_number,cat:item.category,cond:item.condition,w:item.warranty_expiry}))}`
+  // QR τοπικά: τα στοιχεία της απογραφής δεν φεύγουν σε εξωτερική υπηρεσία.
+  const qr = qrDataUrl(JSON.stringify({n:item.name,b:item.brand,m:item.model,sn:item.serial_number,cat:item.category,cond:item.condition,w:item.warranty_expiry}), { size: 200 })
   const print = () => {
     const w=window.open('','_blank');if(!w)return
     w.document.write(`<html><head><title>QR</title><style>body{font-family:'Inter',Roboto,sans-serif;padding:24px;text-align:center}@media print{button{display:none}}</style></head><body><h2>${esc(item.name)}</h2><img src="${esc(qr)}" width="180" height="180" style="margin:12px auto;display:block;border:1px solid #eee;padding:8px;border-radius:8px"/><button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)

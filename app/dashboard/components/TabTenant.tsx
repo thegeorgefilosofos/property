@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { qrDataUrl } from '@/lib/qr';
 import { createClient } from '@/lib/supabase/client';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
@@ -1001,7 +1002,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   // εφαρμογές. Δεν είναι είσπραξη — απλώς προσυμπληρώνει τη μεταφορά για τον μισθωτή.
   const epcPayload=(iban:string,name:string,amount:number,ref:string)=>
     `BCD\n002\n1\nSCT\n\n${name.slice(0,70)}\n${iban.replace(/\s/g,'').toUpperCase()}\nEUR${amount.toFixed(2)}\n\n\n${ref.slice(0,140)}`;
-  const qrSrc=(data:string)=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(data)}`;
+  // QR τοπικά: το IBAN και το ποσό της πληρωμής δεν φεύγουν σε εξωτερική υπηρεσία.
+  const qrSrc=(data:string)=>qrDataUrl(data,{ size:240, margin:3 });
   const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
   const paymentRequestText=(p:RentPayment)=>{
     const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${(p.base_rent||0).toLocaleString('el-GR')} € + υπηρεσίες ${(p.services_charge||0).toLocaleString('el-GR')} €)`:'';

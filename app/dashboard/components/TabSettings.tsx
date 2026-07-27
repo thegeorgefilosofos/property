@@ -609,7 +609,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           έπειτα τα στοιχεία τιμολόγησης και η χρέωση (νηφάλια). Μία αποκάλυψη. */}
       {showManage && (
         <div ref={manageRef} style={{ scrollMarginTop: 16 }}>
-          <PlanComparison profileType={profileType} currentPlan={effPlan} onUpgrade={openManage} />
+          <PlanComparison profileType={profileType} currentPlan={effPlan} trialAvailable={trial.active} onUpgrade={openManage} />
           <Billing userId={userId} />
         </div>
       )}
