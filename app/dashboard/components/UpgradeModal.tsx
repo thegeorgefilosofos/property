@@ -17,6 +17,29 @@ export default function UpgradeModal({ currentCount, planId, onClose, onManage }
 }) {
   const current = normalizePlan(planId);
   const recommended = planForCount(currentCount + 1);
+  // Πάνω από το ανώτατο πλάνο δεν υπάρχει «αναβάθμιση» να προτείνουμε. Το λέμε
+  // ειλικρινά και ανοίγουμε συζήτηση, αντί να στέλνουμε σε πλάνο που ήδη έχει.
+  const beyondTopPlan = current === 'agency' && currentCount >= PLANS.agency.maxProperties;
+
+  if (beyondTopPlan) {
+    return (
+      <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+        className="md-scrim" style={{ fontFamily: T.font.sans }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 520, boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px' }}>Διαχειρίζεσαι μεγάλο χαρτοφυλάκιο</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
+            Το πλάνο Επαγγελματίας καλύπτει έως {PLANS.agency.maxProperties} ακίνητα και τα έχεις ήδη συμπληρώσει.
+            Για περισσότερα, στήνουμε πλάνο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>support@propertyos.gr</strong> και απαντάμε την ίδια ημέρα.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Κλείσιμο</button>
+            <a href="mailto:support@propertyos.gr?subject=Χαρτοφυλάκιο%20άνω%20των%20ακινήτων%20του%20πλάνου"
+              style={{ height: 44, padding: '0 24px', borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Επικοινώνησε μαζί μας</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}

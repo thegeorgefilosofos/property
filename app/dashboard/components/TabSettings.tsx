@@ -22,8 +22,8 @@ import SecuritySettings from './SecuritySettings';
 import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
-import { PLANS } from '@/lib/billing/plans';
-import { effectivePlan, activeComp, planAtLeast, propertyLimit } from '@/lib/billing/entitlements';
+import { PLANS, TRIAL_DAYS, normalizePlan } from '@/lib/billing/plans';
+import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState } from '@/lib/billing/entitlements';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -343,6 +343,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
   // Ταυτότητα λογαριασμού & χρέωσης
   const [accountEmail, setAccountEmail] = useState('');
+  // Ημερομηνία δημιουργίας λογαριασμού: βάση για τη δωρεάν δοκιμή 30 ημερών.
+  const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null);
   const [plan, setPlan] = useState('free');
   const [partner, setPartner] = useState(false);
   const [compPlan, setCompPlan] = useState<string | null>(null);
@@ -368,7 +370,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [reduceMotion, setReduceMotion] = useState(false);
   const [largeText, setLargeText] = useState(false);
 
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setAccountEmail(data.user?.email || '');
+      setAccountCreatedAt(data.user?.created_at ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     supabase.from('billing_profiles').select('plan, comp_plan, comp_until').eq('user_id', userId).maybeSingle()
@@ -433,9 +440,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   };
   const openComparison = openManage;
 
-  const ent = { plan, profileType, partner, compPlan, compUntil };
+  const ent = { plan, profileType, partner, compPlan, compUntil, createdAt: accountCreatedAt };
   const effPlan = effectivePlan(ent);
   const comp = activeComp(ent);
+  // Η δωρεάν δοκιμή μετράει μόνο όσο δεν έχει ήδη πληρωμένο πλάνο (αλλιώς δεν
+  // «ανυψώνει» τίποτα και δεν έχει νόημα να την ανακοινώνουμε).
+  const trial = trialState(ent);
+  const trialShowing = trial.active && normalizePlan(plan) === 'free' && !comp && !partner;
   const propLimit = propertyLimit(ent);
   const propLimitLabel = propLimit === Infinity ? 'απεριόριστα' : String(propLimit);
   const usagePct = propLimit === Infinity || !propertyCount ? 0 : Math.min(100, Math.round((propertyCount / propLimit) * 100));
@@ -526,6 +537,18 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                   : 'Ένα ακόμη ακίνητο και φτάνεις το όριο του πλάνου σου.'}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Δωρεάν δοκιμή: πόσο απομένει, χωρίς κάρτα και χωρίς αυτόματη χρέωση.
+            Λέμε ΚΑΙ τι γίνεται μετά, ώστε να μην υπάρχει έκπληξη. */}
+        {trialShowing && (
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
+            <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)', flexShrink: 0, marginTop: 6 }} />
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+              Δοκιμάζεις δωρεάν το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[effPlan].name}</strong> για {trial.daysLeft === 1 ? 'ακόμη μία ημέρα' : `ακόμη ${trial.daysLeft} ημέρες`}.
+              {' '}Δεν ζητήσαμε κάρτα και δεν θα χρεωθείς: όταν λήξει, ο λογαριασμός σου συνεχίζει στο Δωρεάν, με το πρώτο σου ακίνητο και τα δεδομένα σου ανέπαφα.
+            </div>
           </div>
         )}
 

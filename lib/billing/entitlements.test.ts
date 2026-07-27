@@ -4,6 +4,7 @@ import {
   planAtLeast, effectivePlan, activeComp, hasFeature, isTabAllowed,
   requiredPlanForTab, requiredPlanForFeature, propertyLimit, canAddProperty,
   isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant,
+  trialState,
   type EntitlementInput,
 } from './entitlements';
 
@@ -131,17 +132,44 @@ ok(isTabRelevant('individual', 'overview') === true, 'ιδιώτης βλέπε�
 
 // ── Όριο ακινήτων ──
 ok(propertyLimit(free) === 1, 'free → 1 ακίνητο');
-ok(propertyLimit(owner) === 6, 'owner → 6 ακίνητα');
-ok(propertyLimit(agency) === Infinity, 'agency → απεριόριστα');
-ok(propertyLimit(partner) === Infinity, 'partner → απεριόριστα');
+ok(propertyLimit(owner) === 3, 'owner → 3 ακίνητα');
+ok(propertyLimit(agency) === 15, 'agency → 15 ακίνητα');
+ok(propertyLimit(partner) === 15, 'partner → 15 ακίνητα');
 ok(canAddProperty(free, 0) === true, 'free μπορεί το 1ο');
 ok(canAddProperty(free, 1) === false, 'free ΔΕΝ μπορεί 2ο');
-ok(canAddProperty(owner, 5) === true, 'owner μπορεί το 6ο');
+ok(canAddProperty(owner, 2) === true, 'owner μπορεί το 3ο');
 ok(canAddProperty(owner, 6) === false, 'owner ΔΕΝ μπορεί 7ο');
-ok(canAddProperty(agency, 999) === true, 'agency πάντα μπορεί');
-ok(canAddProperty(compOwner, 3) === true, 'comp owner μπορεί έως 6');
+ok(canAddProperty(agency, 14) === true, 'agency μπορεί το 15ο');
+ok(canAddProperty(agency, 15) === false, 'agency φράζει στα 15');
+ok(canAddProperty(compOwner, 2) === true, 'comp owner μπορεί έως 3');
 ok(canAddProperty(compOwner, 6) === false, 'comp owner σταματά στα 6');
 
 console.log(`\nbilling/entitlements.ts — ${p} passed, ${f} failed`);
 if (f > 0) process.exit(1);
 console.log('όλα πέρασαν');
+
+// ── Δωρεάν δοκιμή 30 ημερών ─────────────────────────────────────────────────
+{
+  const DAY = 86400000;
+  const now = Date.parse('2026-07-27T12:00:00Z');
+  const mk = (daysAgo: number, extra = {}) =>
+    ({ createdAt: new Date(now - daysAgo * DAY).toISOString(), now, ...extra });
+
+  ok(trialState(mk(3)).active === true, 'νέος λογαριασμός → δοκιμή ενεργή');
+  ok(trialState(mk(3)).daysLeft === 27, 'μένουν 27 ημέρες');
+  ok(trialState(mk(31)).active === false, 'μετά τις 30 ημέρες → δοκιμή έληξε');
+  ok(trialState({ now }).active === false, 'χωρίς createdAt → καμία δοκιμή');
+
+  // Στη δοκιμή ο ιδιώτης βλέπει «Ιδιοκτήτης», ο επαγγελματίας «Επαγγελματίας».
+  ok(effectivePlan(mk(5)) === 'owner', 'δοκιμή ιδιώτη → owner');
+  ok(effectivePlan(mk(5, { profileType: 'professional' })) === 'agency', 'δοκιμή επαγγελματία → agency');
+  ok(effectivePlan(mk(40)) === 'free', 'μετά τη λήξη → free');
+
+  // Η δοκιμή δεν υποβαθμίζει ποτέ πληρωμένο πλάνο.
+  ok(effectivePlan(mk(40, { plan: 'agency' })) === 'agency', 'πληρωμένο agency μένει agency μετά τη δοκιμή');
+  ok(effectivePlan(mk(5, { plan: 'agency' })) === 'agency', 'πληρωμένο agency δεν πέφτει σε owner λόγω δοκιμής');
+
+  // Στη δοκιμή ξεκλειδώνουν τα χαρακτηριστικά για τα οποία θα πληρώσει.
+  ok(hasFeature(mk(5), 'e2_export') === true, 'δοκιμή ξεκλειδώνει Ε2');
+  ok(hasFeature(mk(40), 'e2_export') === false, 'μετά τη λήξη κλειδώνει το Ε2');
+}

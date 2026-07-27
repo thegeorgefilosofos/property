@@ -16,6 +16,7 @@ import {
   loadMemories, addMemory, removeMemory, clearMemories,
   normalizeBookTime, resolveBookDate,
 } from './assistantPersona';
+import { PLANS, TRIAL_DAYS } from '@/lib/billing/plans';
 
 let passed = 0, failed = 0;
 const fails: string[] = [];
@@ -498,10 +499,12 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('gating: owner plan named', /«Ιδιοκτήτης»/.test(p));
   ok('gating: agency plan named', /«Επαγγελματίας»/.test(p));
   ok('gating: free = 0€ / 1 property', /0€/.test(p) && /1 ακίνητο/.test(p));
-  ok('gating: owner price 5,90€', /5,90€\/μήνα/.test(p));
-  ok('gating: owner up to 6', /έως 6 ακίνητα/.test(p));
-  ok('gating: agency price 18,90€', /18,90€\/μήνα/.test(p));
-  ok('gating: agency unlimited', /απεριόριστα ακίνητα/.test(p));
+  // Οι τιμές/όρια διαβάζονται από τα PLANS: το τεστ πιάνει απόκλιση prompt↔τιμολόγησης.
+  ok('gating: owner price from PLANS', p.includes(`${PLANS.owner.priceMonthly.toFixed(2).replace('.', ',')}€/μήνα`));
+  ok('gating: owner limit from PLANS', p.includes(`έως ${PLANS.owner.maxProperties} ακίνητα`));
+  ok('gating: agency price from PLANS', p.includes(`${PLANS.agency.priceMonthly.toFixed(2).replace('.', ',')}€/μήνα`));
+  ok('gating: agency limit from PLANS', p.includes(`έως ${PLANS.agency.maxProperties} ακίνητα`));
+  ok('gating: αναφέρει τη δωρεάν δοκιμή', p.includes(`${TRIAL_DAYS} ΗΜΕΡΕΣ ΔΩΡΕΑΝ ΔΟΚΙΜΗ`));
 
   // τι δίνει η Δωρεάν για 1 ακίνητο (βασικά εργαλεία)
   ok('gating: free unlocks basics', /Η «ΔΩΡΕΑΝ» ΔΙΝΕΙ ΤΑ ΠΑΝΤΑ ΓΙΑ 1 ΑΚΙΝΗΤΟ/.test(p));
@@ -525,8 +528,8 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('gating: Επαγγελματίας → πλάνο Επαγγελματίας', /Ο «Επαγγελματίας» έχει το πλάνο «Επαγγελματίας»/.test(p));
   ok('gating: Ιδιώτης θέλει pro → switch mode', /χρειάζεται να γυρίσει τον τρόπο σε «Επαγγελματίας»/.test(p));
 
-  // όριο ακινήτων 1 / 6 / απεριόριστα
-  ok('gating: limits 1/6/unlimited', /Δωρεάν 1, Ιδιοκτήτης 6, Επαγγελματίας απεριόριστα/.test(p));
+  // όριο ακινήτων, πάντα από τα PLANS
+  ok('gating: limits from PLANS', p.includes(`Δωρεάν ${PLANS.free.maxProperties}, Ιδιοκτήτης ${PLANS.owner.maxProperties}, Επαγγελματίας ${PLANS.agency.maxProperties}`));
   ok('gating: δεύτερο ακίνητο needs upgrade', /«δεύτερο ακίνητο»/.test(p) && /χρειάζεται αναβάθμιση/.test(p));
 
   // value-first framing keywords

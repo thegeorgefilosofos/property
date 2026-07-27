@@ -842,7 +842,7 @@ export default function Dashboard() {
 
   // Δικαιώματα συνδρομής: το «ενεργό» πλάνο ορίζει τι βλέπεις (βασικό πλάνο,
   // ανυψωμένο από ενεργούς δωρεάν μήνες ή ιδιότητα Συνεργάτη).
-  const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil };
+  const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil, createdAt: user?.created_at ?? null };
   const effPlan = effectivePlan(ent);
 
   // Ο τρόπος «Επαγγελματίας» απαιτεί το πλάνο Επαγγελματίας (agency). Χωρίς αυτό, ο

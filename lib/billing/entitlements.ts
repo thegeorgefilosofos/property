@@ -16,7 +16,7 @@
 // και να το μοιράζονται client (UI gating) και server (RLS/trigger έχει δικό του).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLANS, PLAN_ORDER, normalizePlan, type PlanId } from './plans';
+import { PLANS, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
 
 export type ProfileType = 'individual' | 'professional';
 
@@ -90,6 +90,8 @@ export interface EntitlementInput {
   compPlan?: string | null;
   /** Λήξη της δωρεάν πρόσβασης (ISO). */
   compUntil?: string | null;
+  /** Ημερομηνία δημιουργίας λογαριασμού (ISO) — βάση για τη δωρεάν δοκιμή. */
+  createdAt?: string | null;
   /** Χρόνος αναφοράς σε ms (default Date.now()), για ελεγξιμότητα. */
   now?: number;
 }
@@ -103,9 +105,37 @@ export function activeComp(input: EntitlementInput): { plan: PlanId; until: stri
   return { plan: normalizePlan(input.compPlan), until: input.compUntil };
 }
 
-/** Το ενεργό (effective) πλάνο: βασικό, ανυψωμένο από δωρεάν μήνες ή ιδιότητα Συνεργάτη. */
+/** Κατάσταση δωρεάν δοκιμής.
+ *
+ * Κάθε νέος λογαριασμός παίρνει TRIAL_DAYS ημέρες στο πλάνο «Ιδιοκτήτης», ώστε
+ * να δει την πραγματική αξία (Δήλωση Μίσθωσης, Ε2, ημερολόγιο λογιστή) πριν
+ * αποφασίσει. Χωρίς αυτό, ο χρήστης με ένα ακίνητο δεν συναντά ποτέ τους λόγους
+ * να πληρώσει. Η δοκιμή ΔΕΝ ισχύει αν έχει ήδη πληρωμένο πλάνο.
+ */
+export interface TrialState { active: boolean; daysLeft: number; endsAt: string | null }
+
+export function trialState(input: EntitlementInput): TrialState {
+  const off: TrialState = { active: false, daysLeft: 0, endsAt: null };
+  if (!input.createdAt) return off;
+  const start = new Date(input.createdAt).getTime();
+  if (!Number.isFinite(start)) return off;
+  const now = input.now ?? Date.now();
+  const end = start + TRIAL_DAYS * 86400000;
+  const endsAt = new Date(end).toISOString();
+  if (end <= now) return { active: false, daysLeft: 0, endsAt };
+  return { active: true, daysLeft: Math.ceil((end - now) / 86400000), endsAt };
+}
+
+/** Το ενεργό (effective) πλάνο: βασικό, ανυψωμένο από δωρεάν δοκιμή, δωρεάν
+ *  μήνες ή ιδιότητα Συνεργάτη. */
 export function effectivePlan(input: EntitlementInput): PlanId {
   let best = normalizePlan(input.plan);
+  // Δωρεάν δοκιμή → «Ιδιοκτήτης» (ή «Επαγγελματίας» για επαγγελματικό προφίλ).
+  const trial = trialState(input);
+  if (trial.active) {
+    const trialPlan: PlanId = input.profileType === 'professional' ? 'agency' : 'owner';
+    if (rank(trialPlan) > rank(best)) best = trialPlan;
+  }
   const comp = activeComp(input);
   if (comp && rank(comp.plan) > rank(best)) best = comp.plan;
   if (input.partner && rank('agency') > rank(best)) best = 'agency';
