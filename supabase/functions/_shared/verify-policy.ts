@@ -82,7 +82,7 @@ console.log('\n8) Digest templates render for real');
 {
   const items = [{ title: 'Δόση φόρου', detail: 'έως 31/07' }, { title: 'ΕΝΦΙΑ Α΄ δόση', detail: 'έως 31/07' }];
   for (const key of ['digest_obligations', 'digest_tax', 'digest_str_today']) {
-    const out = (DIGESTS as Record<string, (c: any) => { subject: string; html: string }>)[key]({ name: 'Μαρία', digestItems: items, appUrl: 'https://propertyos.gr' });
+    const out = (DIGESTS as Record<string, (c: any) => { subject: string; html: string }>)[key]({ name: 'Μαρία', digestItems: items, appUrl: 'https://property-os.gr' });
     const bad = /—|undefined|NaN|\[object/.test(out.html) || !out.subject;
     ok(!bad && out.html.includes('Δόση φόρου'), `${key} renders cleanly with its items`);
   }

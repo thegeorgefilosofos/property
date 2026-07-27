@@ -124,6 +124,14 @@ const draw = (text: string, opts?: Parameters<typeof drawQrToCanvas>[2]) => {
   try { draw('') } catch { threw = true }
   ok('κενό κείμενο δεν ρίχνει την εφαρμογή', !threw)
 
+  // Υπερμεγέθες φορτίο: το qrcode-generator πετά σκέτο string. Επειδή η
+  // qrDataUrl καλείται σε render, μια εξαίρεση θα έριχνε την καρτέλα.
+  let threw3 = false
+  let rects3 = -1
+  try { rects3 = draw('Χ'.repeat(5000)).rects.length } catch { threw3 = true }
+  ok('υπερμεγέθες κείμενο δεν πετά εξαίρεση', !threw3)
+  ok('υπερμεγέθες κείμενο → δεν ζωγραφίζεται τίποτα', rects3 === 0)
+
   // Χωρίς 2d context (παλιό/κλειδωμένο περιβάλλον): βγαίνει ήσυχα.
   const noCtx = { width: 0, height: 0, style: {} as Record<string, string>, getContext: () => null }
   let threw2 = false

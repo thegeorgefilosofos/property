@@ -23,9 +23,11 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
   // πλάνο που το ALLOWED_PLANS του απαγορεύει, οπότε πατάει «Αναβάθμιση» και
   // βρίσκει κλειδωμένη στήλη. Αδιέξοδο· κρατάμε το ανώτατο επιτρεπτό.
   const byCount = planForCount(currentCount + 1);
-  const recommended = isPlanAllowedForProfile(profileType, byCount) ? byCount : paidPlanForProfile(profileType);
-  // Ο Ιδιώτης στο ανώτατο δικό του πλάνο δεν έχει πού να αναβαθμίσει: χρειάζεται
-  // αλλαγή τρόπου χρήσης, όχι πλάνου. Το λέμε αντί να τον στείλουμε σε τοίχο.
+  const allowed = isPlanAllowedForProfile(profileType, byCount) ? byCount : paidPlanForProfile(profileType);
+  // Αν το «προτεινόμενο» είναι το πλάνο που ΗΔΗ έχει, δεν υπάρχει πρόταση:
+  // αλλιώς το ίδιο κουτί θα έγραφε «Προτεινόμενο» και «Το τρέχον πλάνο σου».
+  const recommended: PlanId | null = allowed === current ? null : allowed;
+  // Έφτασε το ταβάνι του Ιδιώτη: η λύση είναι αλλαγή τρόπου χρήσης, όχι πλάνου.
   const needsProfileSwitch = profileType === 'individual' && current === 'owner' && currentCount >= PLANS.owner.maxProperties;
   // Πάνω από το ανώτατο πλάνο δεν υπάρχει «αναβάθμιση» να προτείνουμε. Το λέμε
   // ειλικρινά και ανοίγουμε συζήτηση, αντί να στέλνουμε σε πλάνο που ήδη έχει.
@@ -63,7 +65,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55, maxWidth: 520 }}>
               Το πλάνο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}.{' '}
               {needsProfileSwitch
-                ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα, η διαχείριση γίνεται επαγγελματική δουλειά: γύρνα τον τρόπο χρήσης σε «Επαγγελματίας» στις Ρυθμίσεις και το πλάνο Επαγγελματίας ξεκλειδώνει έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
+                ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» — περνά αμέσως, χωρίς προϋπόθεση — και ξεκλειδώνει η αγορά του πλάνου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
                 : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πλάνο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
             </p>
           </div>

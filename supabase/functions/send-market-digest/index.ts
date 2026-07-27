@@ -16,7 +16,7 @@ const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET    = Deno.env.get('MARKET_DIGEST_CRON_SECRET') || ''
 const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
-const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
+const APP_URL        = Deno.env.get('APP_URL') || 'https://property-os.gr'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })

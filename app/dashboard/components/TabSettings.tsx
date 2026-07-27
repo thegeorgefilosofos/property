@@ -420,16 +420,22 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // Έξυπνη αλλαγή τύπου προφίλ (persist όπως πριν· η ειδοποίηση εμφανίζεται από το derived state)
   const setProfile = async (v: ProfileType) => {
     if (v === profileType) return;
-    // Ο τρόπος «Επαγγελματίας» απαιτεί το πλάνο Επαγγελματίας. Αν δεν το έχεις,
-    // δεν αλλάζει ο τρόπος: σε παραπέμπουμε αμέσως στην αναβάθμιση συνδρομής.
-    if (v === 'professional' && !planAtLeast(effPlan, 'agency')) {
-      openComparison();
-      return;
-    }
+    // Ο τρόπος χρήσης είναι ΔΗΛΩΣΗ ΠΡΟΘΕΣΗΣ, όχι δικαίωμα — και γι' αυτό περνά
+    // πάντα. Παλιότερα μπλοκαριζόταν αν δεν είχες ήδη το πλάνο Επαγγελματίας,
+    // που έφτιαχνε κλειστό κύκλο: για να πάρεις το πλάνο έπρεπε να είσαι σε
+    // επαγγελματικό προφίλ (ALLOWED_PLANS), και για να μπεις σε επαγγελματικό
+    // προφίλ έπρεπε να έχεις το πλάνο. Ο Ιδιώτης στα 3 ακίνητα δεν είχε ΚΑΜΙΑ
+    // διαδρομή προς τα εμπρός.
+    //
+    // Οι επαγγελματικές δυνατότητες εξακολουθούν να ανοίγουν ΜΟΝΟ με το πλάνο:
+    // το effProfileType στο page.tsx παραμένει «individual» όσο λείπει. Αλλάζει
+    // μόνο ποιο πλάνο μπορείς να αγοράσεις.
     const prev = profileType;
     onProfileChange?.(v);
     const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
-    if (error) onProfileChange?.(prev); // επαναφορά αν απέτυχε
+    if (error) { onProfileChange?.(prev); return; } // επαναφορά αν απέτυχε
+    // Δηλώθηκε επαγγελματίας χωρίς το πλάνο: δείχνουμε αμέσως τι λείπει.
+    if (v === 'professional' && !planAtLeast(effPlan, 'agency')) openComparison();
   };
 
   // Ένα σημείο εισόδου: όλα τα CTA (διαχείριση, σύγκριση, «Δες τα πλάνα») ανοίγουν
@@ -609,7 +615,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           έπειτα τα στοιχεία τιμολόγησης και η χρέωση (νηφάλια). Μία αποκάλυψη. */}
       {showManage && (
         <div ref={manageRef} style={{ scrollMarginTop: 16 }}>
-          <PlanComparison profileType={profileType} currentPlan={effPlan} trialAvailable={trial.active} onUpgrade={openManage} />
+          <PlanComparison profileType={profileType} currentPlan={effPlan} onUpgrade={openManage} />
           <Billing userId={userId} />
         </div>
       )}

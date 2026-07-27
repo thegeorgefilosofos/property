@@ -18,7 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { emailShell, eyebrow, h, p, bullets, button, greeting, note, heroStat, gv, PLAN_LABEL, type Personal } from './emailTemplates.ts'
 
-const app = (c: Personal) => c.appUrl || 'https://propertyos.gr'
+const app = (c: Personal) => c.appUrl || 'https://property-os.gr'
 const dash = (c: Personal) => `${app(c)}/dashboard`
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch] || ch))
 const has = (n: unknown): n is number => typeof n === 'number' && isFinite(n) && n > 0

@@ -26,9 +26,18 @@ export function drawQrToCanvas(
   const dark = opts?.dark ?? '#0d1b2e';    // near-black navy, ~16:1 σε λευκό
   const light = opts?.light ?? '#ffffff';
 
+  // Το qr.make() πετά ΣΚΕΤΟ string ('code length overflow') όταν το κείμενο δεν
+  // χωρά ούτε στη μεγαλύτερη έκδοση. Επειδή η qrDataUrl καλείται μέσα σε render,
+  // μια ανεξέλεγκτη εξαίρεση θα έριχνε ολόκληρη την καρτέλα — π.χ. αν ένα είδος
+  // απογραφής ήρθε από εισαγωγή CSV με τεράστια περιγραφή. Καλύτερα κενό QR
+  // παρά λευκή οθόνη.
   const qr = qrcode(0, 'M');               // 0 = αυτόματη επιλογή έκδοσης
-  qr.addData(text);                        // byte mode (default) για URL
-  qr.make();
+  try {
+    qr.addData(text);                      // byte mode (UTF-8, βλ. παραπάνω)
+    qr.make();
+  } catch {
+    return;
+  }
 
   const count = qr.getModuleCount();
   const total = count + margin * 2;

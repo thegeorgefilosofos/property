@@ -56,8 +56,10 @@ export default function PwaProvider() {
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      if (!window.location.pathname.startsWith('/dashboard')) return;
-      // Ήδη εγκατεστημένη; Τότε δεν ρωτάμε τίποτα.
+      // ΚΑΜΙΑ απόφαση εδώ για τη διαδρομή: το event πυροδοτείται μία φορά ανά
+      // έγγραφο, συνήθως όσο ο χρήστης είναι ακόμη στη landing. Αν κόβαμε εδώ,
+      // το banner δεν θα εμφανιζόταν ΠΟΤΕ στη φυσιολογική ροή landing → login →
+      // dashboard, που είναι client-side πλοήγηση μέσα στο ίδιο έγγραφο.
       if (window.matchMedia('(display-mode: standalone)').matches) return;
       if (visits < MIN_VISITS) return;
       try {

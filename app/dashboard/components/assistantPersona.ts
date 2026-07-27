@@ -645,23 +645,6 @@ export interface Memory { id: string; text: string; }
 const MEM_CAP = 100;
 const memKey = (uid: string) => `pa_mem_${uid || 'anon'}`;
 
-/** Σβήνει ΟΛΕΣ τις τοπικές συνομιλίες του βοηθού, για κάθε ακίνητο.
- *
- *  Καλείται στην αποσύνδεση. Οι συνομιλίες περιέχουν ονόματα ενοικιαστών, ΑΦΜ
- *  και ποσά· σε κοινόχρηστο υπολογιστή δεν έχουν καμία δουλειά να επιβιώνουν
- *  του logout. ΔΕΝ αγγίζει τις «αναμνήσεις» (pa_mem_<uid>): είναι ρητή επιλογή
- *  του χρήστη, κλειδωμένες στο δικό του id, και σβήνονται από τις Ρυθμίσεις. */
-export function clearAllAssistantHistory() {
-  try {
-    const doomed: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith('pa_hist_')) doomed.push(k);
-    }
-    doomed.forEach(k => localStorage.removeItem(k));
-  } catch { /* private mode */ }
-}
-
 const normFact = (s: string) => (s || '').trim().replace(/\s+/g, ' ').slice(0, 140);
 // Σταθερό id από το ίδιο το κείμενο (djb2). Αφού τα γεγονότα είναι μοναδικά (dedup),
 // το id είναι επίσης μοναδικό και σταθερό, χωρίς εξάρτηση από τυχαιότητα ή σειρά.

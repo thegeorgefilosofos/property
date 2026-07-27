@@ -36,7 +36,8 @@ import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { stayTotal } from '@/lib/clients/clients';
-import { clearHistory as clearAssistantHistory, clearAllAssistantHistory } from './components/assistantPersona';
+import { clearHistory as clearAssistantHistory } from './components/assistantPersona';
+import { clearLocalPersonalData } from '@/lib/localPrivacy';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
 import FeatureLock, { LockBadge } from './components/FeatureLock';
@@ -806,7 +807,10 @@ export default function Dashboard() {
   // Ζωντανός μόνο όσο είναι mounted το component. ΔΕΝ μηδενίζεται σε κάθε αλλαγή
   // καρτέλας (αυτό ακριβώς ακύρωνε τις ενημερώσεις πριν).
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    mountedRef.current = true;   // το StrictMode τρέχει setup→cleanup→setup
+    return () => { mountedRef.current = false; };
+  }, []);
   const [navShowAll, setNavShowAll] = useState(false);
   const [navPrefsLoaded, setNavPrefsLoaded] = useState(false);
   const [navSignals, setNavSignals] = useState<DisclosureSignals>({});
@@ -891,12 +895,25 @@ export default function Dashboard() {
     // δεν προλαβαίνει να ενημερωθεί μέσα σε ένα round-trip δικτύου).
     const next = reveal(revealedRef.current, nav);
     revealedRef.current = next;
+    const tab = nav;
     supabase.from('onboarding_progress').upsert({ user_id: user.id, revealed_tabs: next }, { onConflict: 'user_id' })
       .then(({ error }) => {
-        if (error) { revealedRef.current = revealedRef.current.filter(t => t !== nav); return; }
-        // Πάντα ο ΤΡΕΧΩΝ ref, όχι το `next` της στιγμής: αν στο μεταξύ προστέθηκε
-        // κι άλλη καρτέλα, η οθόνη πρέπει να δείξει και τις δύο.
-        if (mountedRef.current) setRevealedTabs(revealedRef.current);
+        if (error) {
+          // ΠΡΟΣΟΧΗ στην επαναφορά: μια αποτυχία ΔΕΝ επιτρέπεται να σβήσει καρτέλα
+          // που μια μεταγενέστερη, ΕΠΙΤΥΧΗΜΕΝΗ εγγραφή έχει ήδη αποθηκεύσει. Ο ref
+          // είναι κοινός, οπότε αφαιρούμε μόνο αν είναι ακόμη το ΤΕΛΕΥΤΑΙΟ στοιχείο
+          // — δηλαδή αν καμία άλλη εγγραφή δεν πρόλαβε να το «κλειδώσει» από πίσω.
+          const cur = revealedRef.current;
+          if (cur[cur.length - 1] === tab) revealedRef.current = cur.slice(0, -1);
+          return;
+        }
+        // Δημοσιεύουμε ΜΟΝΟ ό,τι επιβεβαιωμένα γράφτηκε (`next`), όχι τον τρέχοντα
+        // ref: αυτός μπορεί να περιέχει καρτέλες με εγγραφή ακόμη σε πτήση, που
+        // ίσως αποτύχει. Η ενεργή καρτέλα φαίνεται ούτως ή άλλως (id===nav), και
+        // η δική της εγγραφή θα τη δημοσιεύσει μόλις επιβεβαιωθεί.
+        if (mountedRef.current) {
+          setRevealedTabs(prev => (prev.includes(tab) ? prev : [...prev, tab]));
+        }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nav, navPrefsLoaded, user, effProfileType]);
@@ -1067,9 +1084,17 @@ export default function Dashboard() {
   // Οι «αναμνήσεις» μένουν: είναι ρητή επιλογή του χρήστη, κλειδωμένες στο δικό
   // του id, και καθαρίζονται από τις Ρυθμίσεις.
   const signOut = async () => {
-    try { clearAllAssistantHistory(); } catch { /* ignore */ }
+    // ΠΡΩΤΑ η αποσύνδεση. Αν αποτύχει (π.χ. χαμένο δίκτυο), ο χρήστης παραμένει
+    // συνδεδεμένος — και θα ήταν παράλογο να έχει ήδη χάσει τις συνομιλίες του
+    // για μια αποσύνδεση που δεν έγινε. Το supabase-js επιστρέφει το σφάλμα ως
+    // τιμή, δεν το πετά, οπότε το ελέγχουμε ρητά.
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      window.alert('Δεν έγινε η αποσύνδεση — δες τη σύνδεσή σου στο δίκτυο και δοκίμασε ξανά.\n\nΤα δεδομένα σου στη συσκευή δεν πειράχτηκαν.');
+      return;
+    }
+    clearLocalPersonalData();
     try { navigator.serviceWorker?.controller?.postMessage('pos-clear-caches'); } catch { /* ignore */ }
-    await supabase.auth.signOut();
     window.location.href = '/login';
   };
 
@@ -1421,7 +1446,7 @@ export default function Dashboard() {
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {editProperty&&user&&<AddPropertyWizard userId={user.id} existing={editProperty} onClose={()=>setEditProperty(null)} onSaved={async()=>{setEditProperty(null);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
-      {showUpgrade&&<UpgradeModal currentCount={properties.length} planId={plan} profileType={effProfileType} onClose={()=>setShowUpgrade(false)} onManage={()=>{setShowUpgrade(false);setNav('settings');}}/>}
+      {showUpgrade&&<UpgradeModal currentCount={properties.length} planId={effPlan} profileType={effProfileType} onClose={()=>setShowUpgrade(false)} onManage={()=>{setShowUpgrade(false);setNav('settings');}}/>}
     </div>
   );
 }

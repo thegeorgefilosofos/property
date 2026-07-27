@@ -66,11 +66,13 @@ function LockGlyph() {
   );
 }
 
-export default function PlanComparison({ profileType, currentPlan, trialAvailable = false, onUpgrade }: {
+// Η δωρεάν δοκιμή ΔΕΝ ανακοινώνεται εδώ. Όσο τρέχει, ανεβάζει το ενεργό πλάνο
+// σε «Ιδιοκτήτης», οπότε αυτή η στήλη είναι ήδη «το τρέχον πλάνο σου» — ένα τσιπ
+// «30 ημέρες δωρεάν» δεν θα εμφανιζόταν ποτέ. Η κατάσταση της δοκιμής λέγεται
+// μία φορά, στο πλαίσιο των Ρυθμίσεων, με τις ημέρες που απομένουν.
+export default function PlanComparison({ profileType, currentPlan, onUpgrade }: {
   profileType: 'individual' | 'professional';
   currentPlan: PlanId;
-  /** Είναι ΟΝΤΩΣ διαθέσιμη δωρεάν δοκιμή για αυτόν τον λογαριασμό αυτή τη στιγμή; */
-  trialAvailable?: boolean;
   onUpgrade?: () => void;
 }) {
   const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly');
@@ -184,14 +186,6 @@ export default function PlanComparison({ profileType, currentPlan, trialAvailabl
                   </div>
                 )}
 
-                {/* Δωρεάν δοκιμή: μόνο αν είναι ΟΝΤΩΣ διαθέσιμη. Η δοκιμή μετράει από
-                    τη δημιουργία του λογαριασμού και δίνεται μία φορά — αν έχει λήξει,
-                    το τσιπ θα ήταν υπόσχεση που δεν μπορούμε να τηρήσουμε. */}
-                {!isFree && !isCurrent && !locked && trialAvailable && p.trialDays > 0 && (
-                  <div style={{ marginTop: 8 }}>
-                    <Chip tone="accent">{p.trialDays} ημέρες δωρεάν, χωρίς κάρτα</Chip>
-                  </div>
-                )}
 
                 {/* CTA, καρφωμένο στη βάση ώστε οι στήλες να ισοϋψούνται */}
                 <div style={{ marginTop: 'auto', paddingTop: 16 }}>{cta}</div>

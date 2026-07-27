@@ -63,6 +63,9 @@ pg_net και θα έσπαγε τα cron jobs που στέλνουν email μ�
 |---|---|---|---|
 | Prevent use of leaked passwords | Authentication → Attack Protection → Email | ✅ ON | ❌ **ΜΠΛΟΚΑΡΕΤΑΙ — μόνο Pro** |
 | TOTP (App Authenticator) | Authentication → Multi-Factor | **Enabled** | ✅ ΕΦΑΡΜΟΣΜΕΝΟ (επιβεβαιώθηκε 27/07/2026) |
+| Allow manual linking | Authentication → Sign In / Providers | ❌ OFF | ✅ εφαρμόστηκε |
+| Allow anonymous sign-ins | Authentication → Sign In / Providers | ❌ OFF | ✅ ίσχυε ήδη |
+| Confirm email | Authentication → Sign In / Providers | ✅ ON | ✅ ίσχυε ήδη |
 
 > **Η σελίδα `/trust` δηλώνει δημόσια ότι ο χρήστης μπορεί να ενεργοποιήσει σύνδεση
 > δύο βημάτων — και ισχύει.** Επιβεβαιώθηκε στο dashboard: TOTP = «Enabled», που
@@ -73,9 +76,6 @@ pg_net και θα έσπαγε τα cron jobs που στέλνουν email μ�
 > ⚠️ Αν κάποτε γυριστεί σε «Verify Enabled», το `mfa.enroll()` απορρίπτεται,
 > κανείς δεν μπορεί να ενεργοποιήσει MFA και η δημόσια δήλωση γίνεται ψευδής.
 > Μην αλλάξεις αυτή τη ρύθμιση χωρίς να αφαιρέσεις και τη γραμμή από τη σελίδα.
-| Allow manual linking | Authentication → Sign In / Providers | ❌ OFF | ✅ εφαρμόστηκε |
-| Allow anonymous sign-ins | Authentication → Sign In / Providers | ❌ OFF | ✅ ίσχυε ήδη |
-| Confirm email | Authentication → Sign In / Providers | ✅ ON | ✅ ίσχυε ήδη |
 
 ### 4α. Leaked-password protection — ΜΗ ΔΙΑΘΕΣΙΜΟ ΣΤΟ ΔΩΡΕΑΝ ΠΛΑΝΟ
 Δοκιμάστηκε στην παραγωγή· το Supabase το απορρίπτει:
