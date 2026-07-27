@@ -62,13 +62,17 @@ pg_net και θα έσπαγε τα cron jobs που στέλνουν email μ�
 | Ρύθμιση | Διαδρομή | Τιμή | Κατάσταση |
 |---|---|---|---|
 | Prevent use of leaked passwords | Authentication → Attack Protection → Email | ✅ ON | ❌ **ΜΠΛΟΚΑΡΕΤΑΙ — μόνο Pro** |
-| TOTP (App Authenticator) | Authentication → Multi-Factor | **Enroll and Verify Enabled** | ⚠️ ΕΠΙΒΕΒΑΙΩΣΕ ΤΟ |
+| TOTP (App Authenticator) | Authentication → Multi-Factor | **Enabled** | ✅ ΕΦΑΡΜΟΣΜΕΝΟ (επιβεβαιώθηκε 27/07/2026) |
 
 > **Η σελίδα `/trust` δηλώνει δημόσια ότι ο χρήστης μπορεί να ενεργοποιήσει σύνδεση
-> δύο βημάτων.** Η δήλωση είναι αληθής ΜΟΝΟ με την τιμή «Enroll and Verify Enabled».
-> Με «Verify Enabled» το `mfa.enroll()` απορρίπτεται, κανείς δεν μπορεί να
-> ενεργοποιήσει MFA, και η σελίδα λέει ψέματα. Επιβεβαίωσε την τιμή πριν βγει το
-> προϊόν σε πελάτες — ή αφαίρεσε τη γραμμή από τη σελίδα.
+> δύο βημάτων — και ισχύει.** Επιβεβαιώθηκε στο dashboard: TOTP = «Enabled», που
+> επιτρέπει ΚΑΙ enroll ΚΑΙ verify (η παλιά ονομασία ήταν «Enroll and Verify
+> Enabled»· το UI του Supabase την απλοποίησε σε «Enabled»). Max factors ανά
+> χρήστη: 10.
+>
+> ⚠️ Αν κάποτε γυριστεί σε «Verify Enabled», το `mfa.enroll()` απορρίπτεται,
+> κανείς δεν μπορεί να ενεργοποιήσει MFA και η δημόσια δήλωση γίνεται ψευδής.
+> Μην αλλάξεις αυτή τη ρύθμιση χωρίς να αφαιρέσεις και τη γραμμή από τη σελίδα.
 | Allow manual linking | Authentication → Sign In / Providers | ❌ OFF | ✅ εφαρμόστηκε |
 | Allow anonymous sign-ins | Authentication → Sign In / Providers | ❌ OFF | ✅ ίσχυε ήδη |
 | Confirm email | Authentication → Sign In / Providers | ✅ ON | ✅ ίσχυε ήδη |

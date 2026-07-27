@@ -1003,7 +1003,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const epcPayload=(iban:string,name:string,amount:number,ref:string)=>
     `BCD\n002\n1\nSCT\n\n${name.slice(0,70)}\n${iban.replace(/\s/g,'').toUpperCase()}\nEUR${amount.toFixed(2)}\n\n\n${ref.slice(0,140)}`;
   // QR τοπικά: το IBAN και το ποσό της πληρωμής δεν φεύγουν σε εξωτερική υπηρεσία.
-  const qrSrc=(data:string)=>qrDataUrl(data,{ size:240, margin:3 });
+  const qrSrc=(data:string)=>qrDataUrl(data,{ size:240 });
   const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
   const paymentRequestText=(p:RentPayment)=>{
     const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${(p.base_rent||0).toLocaleString('el-GR')} € + υπηρεσίες ${(p.services_charge||0).toLocaleString('el-GR')} €)`:'';
