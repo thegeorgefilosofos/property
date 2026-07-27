@@ -5,13 +5,18 @@
 #            (x-cron-secret, capability token, or service-role bearer) and must be
 #            reachable by pg_net/cron without a user session.
 #   true   → user-facing functions that require the caller's own JWT.
-# import_map is set only for functions that ship a deno.json.
+# Καμία function δεν χρησιμοποιεί import map. Τέσσερα deno.json υπήρχαν εδώ και
+# ήταν ΝΕΚΡΑ: δήλωναν «@supabase/functions-js» και «@supabase/server», specifiers
+# που κανένα index.ts δεν εισήγαγε ποτέ. Γεννήθηκαν από `supabase functions new`
+# — στο ίδιο commit που τα δημιούργησε, ο κώδικας ήδη έκανε import από αλλού.
+# Ήταν αβλαβή (οι αχρησιμοποίητες καταχωρήσεις δεν επιλύονται ποτέ) αλλά δήλωναν
+# κυμαινόμενα εύρη ^2 και ^1 — ακριβώς η ασθένεια που μόλις διώξαμε από τα
+# imports. Οι εξαρτήσεις δηλώνονται πλέον inline: npm:<pkg>@<ακριβής έκδοση>.
 
 # ── User-facing (require the caller's JWT) ──────────────────────────────────
 [functions.smart-suggestions]
 enabled = true
 verify_jwt = true
-import_map = "./functions/smart-suggestions/deno.json"
 
 [functions.send-client-email]
 enabled = true
@@ -29,17 +34,14 @@ verify_jwt = true
 [functions.send-reminders]
 enabled = true
 verify_jwt = false
-import_map = "./functions/send-reminders/deno.json"
 
 [functions.ical-sync]
 enabled = true
 verify_jwt = false
-import_map = "./functions/ical-sync/deno.json"
 
 [functions.calendar-feed]
 enabled = true
 verify_jwt = false
-import_map = "./functions/calendar-feed/deno.json"
 
 [functions.bookings-feed]
 enabled = true
