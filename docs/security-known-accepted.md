@@ -57,26 +57,58 @@ pg_net και θα έσπαγε τα cron jobs που στέλνουν email μ�
 
 ---
 
-## 4. Ρυθμίσεις ταυτοποίησης — ΑΠΑΙΤΟΥΝ ΕΝΕΡΓΕΙΑ ΑΝΘΡΩΠΟΥ
-Δεν ρυθμίζονται από κώδικα ή migration· είναι διακόπτες στο Supabase Dashboard.
-Ακριβείς διαδρομές (έκδοση dashboard 2026):
+## 4. Ρυθμίσεις ταυτοποίησης — κατάσταση & περιορισμοί πλάνου
 
-| Ρύθμιση | Διαδρομή | Επιθυμητή τιμή |
-|---|---|---|
-| Prevent use of leaked passwords | Authentication → **Attack Protection** | ✅ ON |
-| TOTP (App Authenticator) | Authentication → **Multi-Factor** | ✅ ON |
-| Allow manual linking | Authentication → Sign In / Providers | ❌ OFF |
-| Allow anonymous sign-ins | Authentication → Sign In / Providers | ❌ OFF |
+| Ρύθμιση | Διαδρομή | Τιμή | Κατάσταση |
+|---|---|---|---|
+| Prevent use of leaked passwords | Authentication → Attack Protection → Email | ✅ ON | ❌ **ΜΠΛΟΚΑΡΕΤΑΙ — μόνο Pro** |
+| TOTP (App Authenticator) | Authentication → Multi-Factor | **Enroll and Verify Enabled** | ⚠️ απαιτείται |
+| Allow manual linking | Authentication → Sign In / Providers | ❌ OFF | ✅ εφαρμόστηκε |
+| Allow anonymous sign-ins | Authentication → Sign In / Providers | ❌ OFF | ✅ ίσχυε ήδη |
+| Confirm email | Authentication → Sign In / Providers | ✅ ON | ✅ ίσχυε ήδη |
 
-Και τα δύο πρώτα είναι διαθέσιμα στο δωρεάν πλάνο.
+### 4α. Leaked-password protection — ΜΗ ΔΙΑΘΕΣΙΜΟ ΣΤΟ ΔΩΡΕΑΝ ΠΛΑΝΟ
+Δοκιμάστηκε στην παραγωγή· το Supabase το απορρίπτει:
 
-**Γιατί OFF το «Allow manual linking»:** επαληθεύτηκε με σάρωση κώδικα ότι το app
-δεν καλεί ποτέ `linkIdentity()` / `unlinkIdentity()` / `getUserIdentities()`.
-Χρησιμοποιεί μόνο `signInWithPassword` και `signInWithOAuth({provider:'google'})`.
-Ο διακόπτης αφορά μόνο τα ΧΕΙΡΟΚΙΝΗΤΑ endpoints· η αυτόματη αντιστοίχιση
-«ίδιο email → ίδιος λογαριασμός» συνεχίζει να δουλεύει κανονικά.
+```
+Failed to update auth configuration: Configuring leaked password protection
+via HaveIBeenPwned.org is available on Pro Plans and up.
+```
 
-**Γιατί OFF το «Allow anonymous sign-ins»:** αν ήταν ανοιχτό, οποιοσδήποτε θα
-έπαιρνε ρόλο `authenticated` χωρίς εγγραφή. Αυτό θα ακύρωνε την προστασία των
-πολιτικών αποθήκευσης που απευθύνονται σε `authenticated` (migrations
-20260727060000 και 20260727070000).
+**Αντισταθμιστικοί έλεγχοι που ΙΣΧΥΟΥΝ (δωρεάν):**
+- Ελάχιστο μήκος κωδικού: 8 χαρακτήρες.
+- Απαίτηση πολυπλοκότητας: πεζά + κεφαλαία + ψηφία + σύμβολα.
+- «Require current password when updating»: ON.
+- «Confirm email»: ON.
+- Rate limiting στο PIN της πύλης ενοικιαστή (migration 20260724090000).
+
+Η υποχρεωτική πολυπλοκότητα απορρίπτει ήδη τους περισσότερους κωδικούς που θα
+έπιανε το HIBP. Το HIBP καλύπτει κυρίως ΕΠΑΝΑΧΡΗΣΙΜΟΠΟΙΗΜΕΝΟΥΣ κωδικούς από
+άλλες διαρροές· το κενό αυτό καλύπτεται ουσιαστικά από το MFA (4β).
+
+**Επανεξέταση:** με την πρώτη αναβάθμιση σε Pro (που ούτως ή άλλως χρειάζεται για
+τα αντίγραφα ασφαλείας / PITR).
+
+### 4β. TOTP — η τιμή «Verify Enabled» ΣΠΑΕΙ τη λειτουργία του app
+Το PropertyOS έχει πλήρη ροή MFA στο `app/dashboard/components/SecuritySettings.tsx`
+(`mfa.listFactors`, `mfa.enroll`, `mfa.challenge`, `mfa.verify`, `mfa.unenroll`).
+
+Η τιμή **«Verify Enabled»** επιτρέπει μόνο την επαλήθευση ΥΠΑΡΧΟΝΤΩΝ factors και
+απορρίπτει το `mfa.enroll()`. Πρακτικά κανένας χρήστης δεν μπορεί να ενεργοποιήσει
+MFA· ο κώδικας το πιάνει και εμφανίζει «μη διαθέσιμο» (`setMfaUnavailable`).
+
+**Σωστή τιμή: «Enroll and Verify Enabled».** Είναι δωρεάν.
+
+---
+
+## 5. Γιατί OFF το «Allow manual linking»
+Επαληθεύτηκε με σάρωση κώδικα ότι το app δεν καλεί ποτέ `linkIdentity()` /
+`unlinkIdentity()` / `getUserIdentities()`. Χρησιμοποιεί μόνο
+`signInWithPassword` και `signInWithOAuth({provider:'google'})`. Ο διακόπτης
+αφορά μόνο τα ΧΕΙΡΟΚΙΝΗΤΑ endpoints· η αυτόματη αντιστοίχιση «ίδιο email →
+ίδιος λογαριασμός» συνεχίζει να δουλεύει κανονικά για το Google.
+
+## 6. Γιατί OFF το «Allow anonymous sign-ins»
+Αν ήταν ανοιχτό, οποιοσδήποτε θα έπαιρνε ρόλο `authenticated` χωρίς εγγραφή.
+Αυτό θα ακύρωνε τις πολιτικές αποθήκευσης που απευθύνονται σε `authenticated`
+(migrations 20260727060000 και 20260727070000).
