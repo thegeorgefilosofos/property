@@ -21,14 +21,24 @@ import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto } from '@/components/Them
 type CellValue = boolean | string;
 interface FeatureRow { label: string; values: Record<PlanId, CellValue> }
 
+/** Το όριο ακινήτων γράφεται ΠΑΝΤΑ από τα PLANS, ποτέ με το χέρι: αλλιώς ο
+ *  πίνακας αποκλίνει σιωπηλά από αυτό που επιβάλλει ο server. */
+const limitLabel = (id: PlanId): string => {
+  const n = PLANS[id].maxProperties;
+  if (!Number.isFinite(n)) return 'Απεριόριστα';
+  return n === 1 ? '1' : `Έως ${n}`;
+};
+
 const MATRIX: FeatureRow[] = [
-  { label: 'Ακίνητα', values: { free: '1', owner: 'Έως 6', agency: 'Απεριόριστα' } },
+  { label: 'Ακίνητα', values: { free: limitLabel('free'), owner: limitLabel('owner'), agency: limitLabel('agency') } },
   { label: 'Σάρωση εγγράφων & βοηθός με φωνή', values: { free: true, owner: true, agency: true } },
   { label: 'Αποδόσεις, δαπάνες, ενέργεια & φόρος 2026', values: { free: true, owner: true, agency: true } },
   { label: 'Έξυπνες ειδοποιήσεις & υπενθυμίσεις', values: { free: true, owner: true, agency: true } },
   { label: 'Σύγκριση ακινήτων', values: { free: false, owner: true, agency: true } },
   { label: 'Διαχείριση ενοικιαστών & εισπράξεις', values: { free: false, owner: true, agency: true } },
+  { label: 'Δήλωση Μίσθωσης: έλεγχος πριν το myAADE', values: { free: false, owner: true, agency: true } },
   { label: 'Εξαγωγή Ε2 για τον λογιστή', values: { free: false, owner: true, agency: true } },
+  { label: 'Λογιστικό ημερολόγιο (SoftOne, Epsilon, Xero)', values: { free: false, owner: true, agency: true } },
   { label: 'Υποστήριξη κατά προτεραιότητα', values: { free: false, owner: true, agency: true } },
   { label: 'Πελατολόγιο & υποψήφιοι (CRM)', values: { free: false, owner: false, agency: true } },
   { label: 'Χαρτοφυλάκιο πολλών ακινήτων', values: { free: false, owner: false, agency: true } },
@@ -56,6 +66,10 @@ function LockGlyph() {
   );
 }
 
+// Η δωρεάν δοκιμή ΔΕΝ ανακοινώνεται εδώ. Όσο τρέχει, ανεβάζει το ενεργό πλάνο
+// σε «Ιδιοκτήτης», οπότε αυτή η στήλη είναι ήδη «το τρέχον πλάνο σου» — ένα τσιπ
+// «30 ημέρες δωρεάν» δεν θα εμφανιζόταν ποτέ. Η κατάσταση της δοκιμής λέγεται
+// μία φορά, στο πλαίσιο των Ρυθμίσεων, με τις ημέρες που απομένουν.
 export default function PlanComparison({ profileType, currentPlan, onUpgrade }: {
   profileType: 'individual' | 'professional';
   currentPlan: PlanId;
@@ -164,9 +178,14 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                   </div>
                 )}
 
-                {id === 'owner' && (
-                  <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>Έξι ακίνητα, λιγότερο από 1 € το καθένα τον μήνα.</div>
+                {/* Το κόστος ανά ακίνητο βγαίνει από τα PLANS: όποτε αλλάξει τιμή ή
+                    όριο, η γραμμή ακολουθεί χωρίς να ξεχαστεί. */}
+                {!isFree && Number.isFinite(p.maxProperties) && p.maxProperties > 1 && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
+                    {p.maxProperties} ακίνητα, {feAuto(Math.round((p.priceMonthly / p.maxProperties) * 100) / 100)} το καθένα τον μήνα.
+                  </div>
                 )}
+
 
                 {/* CTA, καρφωμένο στη βάση ώστε οι στήλες να ισοϋψούνται */}
                 <div style={{ marginTop: 'auto', paddingTop: 16 }}>{cta}</div>

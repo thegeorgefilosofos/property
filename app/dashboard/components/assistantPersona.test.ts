@@ -16,6 +16,7 @@ import {
   loadMemories, addMemory, removeMemory, clearMemories,
   normalizeBookTime, resolveBookDate,
 } from './assistantPersona';
+import { PLANS, TRIAL_DAYS } from '@/lib/billing/plans';
 
 let passed = 0, failed = 0;
 const fails: string[] = [];
@@ -498,10 +499,12 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('gating: owner plan named', /«Ιδιοκτήτης»/.test(p));
   ok('gating: agency plan named', /«Επαγγελματίας»/.test(p));
   ok('gating: free = 0€ / 1 property', /0€/.test(p) && /1 ακίνητο/.test(p));
-  ok('gating: owner price 5,90€', /5,90€\/μήνα/.test(p));
-  ok('gating: owner up to 6', /έως 6 ακίνητα/.test(p));
-  ok('gating: agency price 18,90€', /18,90€\/μήνα/.test(p));
-  ok('gating: agency unlimited', /απεριόριστα ακίνητα/.test(p));
+  // Οι τιμές/όρια διαβάζονται από τα PLANS: το τεστ πιάνει απόκλιση prompt↔τιμολόγησης.
+  ok('gating: owner price from PLANS', p.includes(`${PLANS.owner.priceMonthly.toFixed(2).replace('.', ',')}€/μήνα`));
+  ok('gating: owner limit from PLANS', p.includes(`έως ${PLANS.owner.maxProperties} ακίνητα`));
+  ok('gating: agency price from PLANS', p.includes(`${PLANS.agency.priceMonthly.toFixed(2).replace('.', ',')}€/μήνα`));
+  ok('gating: agency limit from PLANS', p.includes(`έως ${PLANS.agency.maxProperties} ακίνητα`));
+  ok('gating: αναφέρει τη δωρεάν δοκιμή', p.includes(`${TRIAL_DAYS} ΗΜΕΡΕΣ ΔΩΡΕΑΝ ΔΟΚΙΜΗ`));
 
   // τι δίνει η Δωρεάν για 1 ακίνητο (βασικά εργαλεία)
   ok('gating: free unlocks basics', /Η «ΔΩΡΕΑΝ» ΔΙΝΕΙ ΤΑ ΠΑΝΤΑ ΓΙΑ 1 ΑΚΙΝΗΤΟ/.test(p));
@@ -525,8 +528,8 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('gating: Επαγγελματίας → πλάνο Επαγγελματίας', /Ο «Επαγγελματίας» έχει το πλάνο «Επαγγελματίας»/.test(p));
   ok('gating: Ιδιώτης θέλει pro → switch mode', /χρειάζεται να γυρίσει τον τρόπο σε «Επαγγελματίας»/.test(p));
 
-  // όριο ακινήτων 1 / 6 / απεριόριστα
-  ok('gating: limits 1/6/unlimited', /Δωρεάν 1, Ιδιοκτήτης 6, Επαγγελματίας απεριόριστα/.test(p));
+  // όριο ακινήτων, πάντα από τα PLANS
+  ok('gating: limits from PLANS', p.includes(`Δωρεάν ${PLANS.free.maxProperties}, Ιδιοκτήτης ${PLANS.owner.maxProperties}, Επαγγελματίας ${PLANS.agency.maxProperties}`));
   ok('gating: δεύτερο ακίνητο needs upgrade', /«δεύτερο ακίνητο»/.test(p) && /χρειάζεται αναβάθμιση/.test(p));
 
   // value-first framing keywords
@@ -556,12 +559,14 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('gating: trigger «Ε2 εξαγωγή»', /«Ε2 εξαγωγή»/.test(p));
   ok('gating: trigger «branding»/«επώνυμες αναφορές»', /«branding»\/«επώνυμες αναφορές»/.test(p));
 
-  // mobile app coming soon + waitlist
-  ok('gating: Property OS Mobile coming', /Property OS Mobile/.test(p) && /ΕΡΧΕΤΑΙ, ΔΕΝ υπάρχει ακόμη/.test(p));
-  ok('gating: mobile iOS & Android', /iOS και Android/.test(p));
+  // Κινητό: ΔΥΟ αλήθειες ταυτόχρονα — εγκαθίσταται ήδη ως PWA, native δεν υπάρχει.
+  ok('gating: PWA εγκαθίσταται ήδη', /ΕΓΚΑΘΙΣΤΑΤΑΙ ΗΔΗ στην αρχική οθόνη/.test(p));
+  ok('gating: οδηγία Android', /«Εγκατάσταση εφαρμογής»/.test(p));
+  ok('gating: οδηγία iPhone', /«Πρόσθεση στην αρχική οθόνη»/.test(p));
+  ok('gating: native δεν υπάρχει ακόμη', /δεν υπάρχει ακόμη/.test(p) && /App Store \/ Google Play/.test(p));
   ok('gating: mobile roadmap «Τι έρχεται»', /roadmap «Τι έρχεται»/.test(p));
-  ok('gating: mobile waitlist «Ειδοποίησέ με»', /λίστα αναμονής/.test(p) && /«Ειδοποίησέ με»/.test(p));
-  ok('gating: never claim mobile exists', /ΜΗΝ πεις ποτέ ότι υπάρχει ήδη/.test(p));
+  ok('gating: mobile waitlist «Ειδοποίησέ με»', /«Ειδοποίησέ με»/.test(p));
+  ok('gating: never claim native app exists', /μην πεις ποτέ ότι υπάρχει native app/.test(p));
 }
 // parseAction: το upsell δρομολογεί έγκυρα στη Συνδρομή/Λογαριασμό
 {

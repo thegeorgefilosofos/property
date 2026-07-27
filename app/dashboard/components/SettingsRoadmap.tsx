@@ -162,6 +162,16 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               όπου κι αν βρίσκεσαι.
             </p>
 
+            {/* Μέχρι να βγει η αυτόνομη εφαρμογή, το Property OS εγκαθίσταται ήδη
+                στην αρχική οθόνη. Το λέμε εδώ, δίπλα στην αναμονή, αντί να
+                αφήνουμε τον χρήστη να περιμένει κάτι που έχει ήδη σε άλλη μορφή. */}
+            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Μέχρι τότε, βάλ’ το ήδη στην αρχική σου οθόνη.</strong>{' '}
+              Ανοίγει σαν κανονική εφαρμογή, με δικό της εικονίδιο και χωρίς μπάρα διεύθυνσης.
+              Σε <strong style={{ color: 'var(--text-primary)' }}>Android</strong> από το μενού «⋮» → «Εγκατάσταση εφαρμογής».
+              Σε <strong style={{ color: 'var(--text-primary)' }}>iPhone</strong> από το κουμπί «Κοινή χρήση» → «Πρόσθεση στην αρχική οθόνη».
+            </div>
+
             {/* Platform chips */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <Chip tone="neutral">iOS</Chip>

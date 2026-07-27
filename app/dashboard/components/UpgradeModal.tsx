@@ -7,16 +7,63 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { PLANS, PLAN_ORDER, normalizePlan, planForCount, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+import { isPlanAllowedForProfile, paidPlanForProfile, type ProfileType } from '@/lib/billing/entitlements';
 import { T, feAuto } from '@/components/Theme';
 
-export default function UpgradeModal({ currentCount, planId, onClose, onManage }: {
+export default function UpgradeModal({ currentCount, planId, profileType = 'individual', onClose, onManage }: {
   currentCount: number;
   planId: string | null | undefined;
+  profileType?: ProfileType;
   onClose: () => void;
   onManage: () => void;
 }) {
   const current = normalizePlan(planId);
-  const recommended = planForCount(currentCount + 1);
+  // Η πρόταση πρέπει να είναι ΑΓΟΡΑΣΙΜΗ από αυτό το προφίλ. Το σκέτο
+  // planForCount() προτείνει «Επαγγελματίας» σε Ιδιώτη που έπιασε τα 3 ακίνητα —
+  // πλάνο που το ALLOWED_PLANS του απαγορεύει, οπότε πατάει «Αναβάθμιση» και
+  // βρίσκει κλειδωμένη στήλη. Αδιέξοδο· κρατάμε το ανώτατο επιτρεπτό.
+  const byCount = planForCount(currentCount + 1);
+  const allowed = isPlanAllowedForProfile(profileType, byCount) ? byCount : paidPlanForProfile(profileType);
+
+  // Το ταβάνι που μπορεί να ΑΓΟΡΑΣΕΙ αυτό το προφίλ — όχι το πλάνο που έχει.
+  // Κρίσιμο ότι δεν εξαρτάται από το τρέχον πλάνο: ο χρήστης που έληξε η δοκιμή
+  // του κρατώντας 3 ακίνητα είναι στο ίδιο αδιέξοδο με τον συνδρομητή στα 3,
+  // απλώς με άλλη ταμπέλα.
+  const profileCeiling = PLANS[paidPlanForProfile(profileType)].maxProperties;
+  const atCeiling = currentCount >= profileCeiling;
+
+  // Ιδιώτης στο ταβάνι: η λύση είναι αλλαγή τρόπου χρήσης, όχι πλάνου.
+  const needsProfileSwitch = profileType === 'individual' && atCeiling;
+  // Επαγγελματίας στο ταβάνι: δεν υπάρχει μεγαλύτερο πλάνο — ανοίγουμε συζήτηση.
+  const beyondTopPlan = profileType === 'professional' && atCeiling;
+
+  // ΚΑΝΟΝΑΣ: δεν προτείνουμε ΠΟΤΕ πλάνο που δεν λύνει το πρόβλημα. Ούτε αυτό που
+  // ήδη έχει (θα έγραφε «Προτεινόμενο» και «Το τρέχον πλάνο σου» στο ίδιο κουτί),
+  // ούτε ένα που δεν χωράει ούτε ένα ακίνητο παραπάνω — που ήταν το χειρότερο:
+  // πλήρωνες 9,90 € για ακριβώς τη χωρητικότητα που είχες ήδη εξαντλήσει.
+  const recommended: PlanId | null =
+    atCeiling || allowed === current || PLANS[allowed].maxProperties <= currentCount ? null : allowed;
+
+
+  if (beyondTopPlan) {
+    return (
+      <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+        className="md-scrim" style={{ fontFamily: T.font.sans }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 520, boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px' }}>Διαχειρίζεσαι μεγάλο χαρτοφυλάκιο</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
+            Το πλάνο Επαγγελματίας καλύπτει έως {PLANS.agency.maxProperties} ακίνητα και τα έχεις ήδη συμπληρώσει.
+            Για περισσότερα, στήνουμε πλάνο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>support@propertyos.gr</strong> και απαντάμε την ίδια ημέρα.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Κλείσιμο</button>
+            <a href="mailto:support@propertyos.gr?subject=Χαρτοφυλάκιο%20άνω%20των%20ακινήτων%20του%20πλάνου"
+              style={{ height: 44, padding: '0 24px', borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Επικοινώνησε μαζί μας</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
@@ -27,7 +74,10 @@ export default function UpgradeModal({ currentCount, planId, onClose, onManage }
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 6px' }}>Χρειάζεσαι λίγο περισσότερο χώρο</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55, maxWidth: 520 }}>
-              Το πλάνο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}. Για να προσθέσεις κι άλλο, διάλεξε ένα πλάνο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.
+              Το πλάνο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}.{' '}
+              {needsProfileSwitch
+                ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» — περνά αμέσως, χωρίς προϋπόθεση — και ξεκλειδώνει η αγορά του πλάνου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
+                : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πλάνο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
             </p>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: 36, height: 36, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>

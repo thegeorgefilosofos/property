@@ -21,7 +21,7 @@ ok(referralCode(uid) === referralCode(uid), 'κωδικός ντετερμινι
 ok(/^PO[0-9A-Z]{7}$/.test(referralCode(uid)), 'κωδικός σε μορφή (PO + 7, χωρίς απώλεια ψηφίων)');
 ok(referralCode(uid).length === 9, 'κωδικός σταθερού μήκους 9');
 ok(referralCode(uid) !== referralCode('other'), 'διαφορετικοί χρήστες → διαφορετικοί κωδικοί');
-ok(referralLink('https://property-os.gr/', uid) === `https://property-os.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
+ok(referralLink('https://propertyos.gr/', uid) === `https://propertyos.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
 
 // ── Εγκυρότητα ──
 ok(isValidReferral('A', 'B', true) === true, 'έγκυρη');
@@ -89,9 +89,9 @@ ok(PARTNER_MONTHLY_FREE_MONTHS === 1, 'κάθε επιτυχημένος μήν�
 // ── Προμήθεια Συνεργάτη ──
 ok(partnerCommission(100) === 20, 'προμήθεια 20% στα 100€');
 ok(partnerCommission(-50) === 0, 'αρνητικά έσοδα → 0 προμήθεια');
-ok(Math.abs(partnerCommission(18.9) - 3.78) < 1e-9, 'προμήθεια σε 18,90€');
-ok(partnerCommissionFromSubs([5.9, 18.9, 5.9]) === PARTNER_COMMISSION_RATE * (5.9 + 18.9 + 5.9), 'προμήθεια από λίστα συνδρομών');
-ok(partnerCommissionFromSubs([5.9, -3, 18.9]) === PARTNER_COMMISSION_RATE * (5.9 + 18.9), 'αγνοεί μη-θετικά');
+ok(Math.abs(partnerCommission(24.9) - 4.98) < 1e-9, 'προμήθεια σε 24,90€');
+ok(partnerCommissionFromSubs([9.9, 24.9, 9.9]) === PARTNER_COMMISSION_RATE * (9.9 + 24.9 + 9.9), 'προμήθεια από λίστα συνδρομών');
+ok(partnerCommissionFromSubs([9.9, -3, 24.9]) === PARTNER_COMMISSION_RATE * (9.9 + 24.9), 'αγνοεί μη-θετικά');
 
 console.log(`\nreferral/referral.ts — ${p} passed, ${f} failed`);
 if (f > 0) process.exit(1);

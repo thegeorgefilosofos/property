@@ -21,6 +21,10 @@ function buildCsp(nonce: string): string {
     "frame-src 'self' https://www.google.com https://maps.google.com https://*.supabase.co",
     "frame-ancestors 'none'",
     "object-src 'none'",
+    // PWA: ο service worker και το manifest είναι δικά μας και μόνο δικά μας.
+    // Χωρίς αυτά, το 'strict-dynamic' του script-src μπλοκάρει την καταχώριση.
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "base-uri 'self'",
     "form-action 'self'",
     "upgrade-insecure-requests",
@@ -81,7 +85,10 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   // Δημόσιες σελίδες — προσβάσιμες ΧΩΡΙΣ σύνδεση (landing + νομικά + auth).
   // Το /privacy & /terms ΠΡΕΠΕΙ να είναι δημόσια (απαίτηση GDPR).
-  const PUBLIC = new Set(["/", "/login", "/signup", "/privacy", "/terms"]);
+  // Το /trust («Ποιοι είμαστε») είναι σελίδα εμπιστοσύνης: πρέπει να διαβάζεται
+  // ΠΡΙΝ ο χρήστης αποφασίσει να εγγραφεί, άρα δημόσια. Το /offline είναι η
+  // στατική σελίδα του service worker όταν δεν υπάρχει δίκτυο.
+  const PUBLIC = new Set(["/", "/login", "/signup", "/privacy", "/terms", "/trust", "/offline"]);
   // Σελίδες με capability-token (/portal, /accountant, /checkin, /verify) είναι
   // δημόσιες by-design — η πρόσβαση ελέγχεται από το ίδιο το token, όχι από login.
   const isPublic = PUBLIC.has(pathname)
@@ -105,6 +112,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Το sw.js και το manifest ΠΡΕΠΕΙ να σερβίρονται χωρίς έλεγχο σύνδεσης:
+    // ο browser τα ζητά και σε ανώνυμη επίσκεψη, και μια ανακατεύθυνση στο
+    // /login θα ακύρωνε σιωπηλά την εγκατάσταση της εφαρμογής.
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|icons/|fonts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

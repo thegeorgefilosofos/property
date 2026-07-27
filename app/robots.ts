@@ -10,6 +10,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/dashboard', '/portal/', '/checkin/', '/reset-password'],
     },
-    sitemap: 'https://property-os.gr/sitemap.xml',
+    sitemap: 'https://propertyos.gr/sitemap.xml',
   }
 }

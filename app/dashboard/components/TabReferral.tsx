@@ -173,7 +173,7 @@ type Referee = { created_at: string; activated_at: string | null };
 export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
 }) {
-  const [origin, setOrigin] = useState('https://property-os.gr');
+  const [origin, setOrigin] = useState('https://propertyos.gr');
   const [copied, setCopied] = useState(false);
   const [msgCopied, setMsgCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -392,7 +392,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       ctx.fillStyle = '#cfe0fb'; ctx.font = `700 38px ${T.font.sans}`;
       ctx.fillText('Κωδικός ' + code, W / 2, chipY + 60);
       ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = `500 28px ${T.font.sans}`;
-      ctx.fillText('property-os.gr', W / 2, 1272);
+      ctx.fillText('propertyos.gr', W / 2, 1272);
 
       const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'));
       if (!blob) return;

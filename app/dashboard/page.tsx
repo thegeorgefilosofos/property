@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
@@ -37,11 +37,13 @@ import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { stayTotal } from '@/lib/clients/clients';
 import { clearHistory as clearAssistantHistory } from './components/assistantPersona';
+import { clearLocalPersonalData } from '@/lib/localPrivacy';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
 import FeatureLock, { LockBadge } from './components/FeatureLock';
 import { PLANS } from '@/lib/billing/plans';
 import { effectivePlan, isTabAllowed, isTabRelevant, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
+import { isTabVisible, hiddenCount, reveal, sanitizeRevealed, coreTabs, type DisclosureSignals } from '@/lib/nav/disclosure';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -796,6 +798,22 @@ export default function Dashboard() {
   // Ομαδοποιημένη πλοήγηση (accordion): ανοιχτή μένει η ομάδα του ενεργού tab.
   const [openGroup, setOpenGroup] = useState('Οικονομικά');
   useEffect(() => { const g = NAV_GROUPS.find(gr => gr.ids.includes(nav)); if (g?.label) setOpenGroup(g.label); }, [nav]);
+  // Σταδιακή αποκάλυψη: ποιες καρτέλες έχει ήδη ανοίξει ο χρήστης και αν ζήτησε
+  // να τις βλέπει όλες. Φορτώνονται από τη βάση ώστε να τον ακολουθούν παντού.
+  const [revealedTabs, setRevealedTabs] = useState<string[]>([]);
+  // Καθρέφτης του revealedTabs για σύγχρονη ανάγνωση/γράψιμο μέσα σε effect —
+  // αποτρέπει το «τελευταίο γράψιμο κερδίζει» σε γρήγορη διαδοχή πλοηγήσεων.
+  const revealedRef = useRef<string[]>([]);
+  // Ζωντανός μόνο όσο είναι mounted το component. ΔΕΝ μηδενίζεται σε κάθε αλλαγή
+  // καρτέλας (αυτό ακριβώς ακύρωνε τις ενημερώσεις πριν).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;   // το StrictMode τρέχει setup→cleanup→setup
+    return () => { mountedRef.current = false; };
+  }, []);
+  const [navShowAll, setNavShowAll] = useState(false);
+  const [navPrefsLoaded, setNavPrefsLoaded] = useState(false);
+  const [navSignals, setNavSignals] = useState<DisclosureSignals>({});
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCopyInventory, setShowCopyInventory] = useState(false);
@@ -842,7 +860,7 @@ export default function Dashboard() {
 
   // Δικαιώματα συνδρομής: το «ενεργό» πλάνο ορίζει τι βλέπεις (βασικό πλάνο,
   // ανυψωμένο από ενεργούς δωρεάν μήνες ή ιδιότητα Συνεργάτη).
-  const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil };
+  const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil, createdAt: user?.created_at ?? null };
   const effPlan = effectivePlan(ent);
 
   // Ο τρόπος «Επαγγελματίας» απαιτεί το πλάνο Επαγγελματίας (agency). Χωρίς αυτό, ο
@@ -850,6 +868,63 @@ export default function Dashboard() {
   // επαγγελματικές καρτέλες (η αλλαγή τρόπου στις Ρυθμίσεις παραπέμπει σε αναβάθμιση).
   const proEligible = planAtLeast(effPlan, 'agency');
   const effProfileType: 'individual' | 'professional' = proEligible ? profileType : 'individual';
+
+  // ── Σταδιακή αποκάλυψη καρτελών ──────────────────────────────────────────
+  // Fail-open: αν οι προτιμήσεις δεν διαβάστηκαν (σφάλμα δικτύου), δείχνουμε τα
+  // πάντα. Καλύτερα ένα γεμάτο μενού παρά να «εξαφανιστούν» καρτέλες.
+  const disclosure = useMemo(() => ({
+    profileType: effProfileType,
+    revealed: revealedTabs,
+    showAll: navShowAll || !navPrefsLoaded,
+    signals: { ...navSignals, isShortTerm: selected?.rental_mode === 'short_term' || selected?.status_detail === 'seasonal', openTasks: checklistAlerts },
+  }), [effProfileType, revealedTabs, navShowAll, navPrefsLoaded, navSignals, selected, checklistAlerts]);
+
+  // Κάθε επίσκεψη σε καρτέλα την αποκαλύπτει μόνιμα — από όπου κι αν ήρθε
+  // (μενού, ⌘K, βοηθός, πλακίδιο Επισκόπησης). Ένα σημείο, καμία διαρροή.
+  useEffect(() => {
+    if (!navPrefsLoaded || !user) return;
+    // Καταγράφουμε ΚΑΘΕ επίσκεψη σε μη-βασική καρτέλα, ακόμη κι όταν είναι ήδη
+    // ορατή. Παλιότερα βγαίναμε νωρίς αν η καρτέλα φαινόταν — που με ενεργό το
+    // «Δες όλες τις καρτέλες» ισχύει ΠΑΝΤΑ, οπότε τίποτα δεν καταγραφόταν και
+    // επιστρέφοντας στο απλοποιημένο μενού ο χρήστης έχανε ό,τι χρησιμοποιούσε.
+    if (coreTabs(effProfileType).includes(nav)) return;
+    if (revealedRef.current.includes(nav)) return;
+
+    // Ο ref είναι η πηγή για το γράψιμο και ενημερώνεται ΣΥΓΧΡΟΝΑ: δύο γρήγορες
+    // πλοηγήσεις συσσωρεύουν αντί να γράφει η δεύτερη πάνω στην πρώτη (το state
+    // δεν προλαβαίνει να ενημερωθεί μέσα σε ένα round-trip δικτύου).
+    const next = reveal(revealedRef.current, nav);
+    revealedRef.current = next;
+    const tab = nav;
+    supabase.from('onboarding_progress').upsert({ user_id: user.id, revealed_tabs: next }, { onConflict: 'user_id' })
+      .then(({ error }) => {
+        if (error) {
+          // ΠΡΟΣΟΧΗ στην επαναφορά: μια αποτυχία ΔΕΝ επιτρέπεται να σβήσει καρτέλα
+          // που μια μεταγενέστερη, ΕΠΙΤΥΧΗΜΕΝΗ εγγραφή έχει ήδη αποθηκεύσει. Ο ref
+          // είναι κοινός, οπότε αφαιρούμε μόνο αν είναι ακόμη το ΤΕΛΕΥΤΑΙΟ στοιχείο
+          // — δηλαδή αν καμία άλλη εγγραφή δεν πρόλαβε να το «κλειδώσει» από πίσω.
+          const cur = revealedRef.current;
+          if (cur[cur.length - 1] === tab) revealedRef.current = cur.slice(0, -1);
+          return;
+        }
+        // Δημοσιεύουμε ΜΟΝΟ ό,τι επιβεβαιωμένα γράφτηκε (`next`), όχι τον τρέχοντα
+        // ref: αυτός μπορεί να περιέχει καρτέλες με εγγραφή ακόμη σε πτήση, που
+        // ίσως αποτύχει. Η ενεργή καρτέλα φαίνεται ούτως ή άλλως (id===nav), και
+        // η δική της εγγραφή θα τη δημοσιεύσει μόλις επιβεβαιωθεί.
+        if (mountedRef.current) {
+          setRevealedTabs(prev => (prev.includes(tab) ? prev : [...prev, tab]));
+        }
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nav, navPrefsLoaded, user, effProfileType]);
+
+  // Μία πηγή αλήθειας για το «απλοποιημένο μενού»: το κουμπί στην μπάρα και ο
+  // διακόπτης στις Ρυθμίσεις γράφουν εδώ, ώστε η αλλαγή να φαίνεται αμέσως.
+  const setNavShowAllPref = (v: boolean) => {
+    setNavShowAll(v);
+    if (user) supabase.from('onboarding_progress').upsert({ user_id: user.id, nav_show_all: v }, { onConflict: 'user_id' }).then(() => {});
+  };
+  const showAllTabs = () => setNavShowAllPref(true);
 
   const fetchProperties = useCallback(async (uid: string) => {
     const { data } = await supabase.from('user_properties').select('*').eq('user_id', uid).order('created_at');
@@ -882,12 +957,44 @@ export default function Dashboard() {
       // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
       try {
-        const [{ data: ob }, { count }, { count: docCount }] = await Promise.all([
-          supabase.from('onboarding_progress').select('welcomed').eq('user_id', user.id).maybeSingle(),
-          supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('property_documents').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        const cnt = (t: string) => supabase.from(t).select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+        const [{ data: ob, error: obErr }, { count }, { count: docCount }, loanRes, contactRes, invRes] = await Promise.all([
+          supabase.from('onboarding_progress').select('welcomed, revealed_tabs, nav_show_all').eq('user_id', user.id).maybeSingle(),
+          cnt('user_properties'),
+          cnt('property_documents'),
+          cnt('loans'),
+          cnt('contacts'),
+          cnt('inventory_items'),
         ]);
         if (!ob?.welcomed && (count || 0) === 0) setShowWelcome(true);
+        // Σταδιακή αποκάλυψη: τι έχει ήδη ανοίξει + τι δικαιολογούν τα δεδομένα.
+        //
+        // ΚΡΙΣΙΜΟ: το supabase-js ΔΕΝ πετά εξαίρεση σε σφάλμα ερωτήματος — γυρίζει
+        // { data: null, error }. Το try/catch από κάτω δεν πιάνει τίποτα. Αν δεν
+        // ελέγξουμε ρητά το `error`, ένα αποτυχημένο read (π.χ. η εφαρμογή ανέβηκε
+        // πριν εφαρμοστεί το migration που προσθέτει τις στήλες) θα περνούσε ως
+        // «διαβάστηκαν κενές προτιμήσεις» και θα ΕΚΡΥΒΕ καρτέλες αντί να ανοίξει
+        // fail-open. Μόνο όταν το read πετύχει δηλώνουμε τις προτιμήσεις φορτωμένες.
+        const rec = ob as { revealed_tabs?: unknown; nav_show_all?: boolean } | null;
+        if (obErr) {
+          setNavPrefsLoaded(false);   // → showAll: φαίνονται ΟΛΕΣ οι καρτέλες
+        } else {
+          const loadedTabs = sanitizeRevealed(rec?.revealed_tabs, NAV_ITEMS.map(i => i.id));
+          revealedRef.current = loadedTabs;
+          setRevealedTabs(loadedTabs);
+          setNavShowAll(!!rec?.nav_show_all);
+          setNavPrefsLoaded(true);
+        }
+        setNavSignals({
+          propertyCount: count || 0,
+          hasLoan: (loanRes.count || 0) > 0,
+          hasDocuments: (docCount || 0) > 0,
+          hasContacts: (contactRes.count || 0) > 0,
+          hasInventory: (invRes.count || 0) > 0,
+          daysSinceSignup: user.created_at
+            ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000)
+            : 0,
+        });
         // Ενεργοποίηση σύστασης: ο νέος χρήστης έχει ≥1 ακίνητο & ≥1 σαρωμένο
         // έγγραφο → η σύστασή του «κλειδώνει» (idempotent, μόνο τη δική του γραμμή).
         if ((count || 0) >= 1 && (docCount || 0) >= 1) supabase.rpc('mark_referral_activated').then(() => {});
@@ -968,7 +1075,28 @@ export default function Dashboard() {
     }
   };
 
-  const signOut = async () => { await supabase.auth.signOut(); window.location.href = '/login'; };
+  // Υγιεινή αποσύνδεσης σε κοινόχρηστη συσκευή.
+  //
+  // Οι caches του service worker ΔΕΝ κρατούν προσωπικά δεδομένα (μόνο στατικά),
+  // οπότε από μόνες τους δεν ήταν το πρόβλημα. Το πραγματικό ρίσκο είναι το
+  // localStorage: οι συνομιλίες του βοηθού κρατούν έως 40 μηνύματα ανά ακίνητο
+  // και μέσα τους περνούν ονόματα ενοικιαστών, ΑΦΜ και ποσά. Αυτά σβήνονται.
+  // Οι «αναμνήσεις» μένουν: είναι ρητή επιλογή του χρήστη, κλειδωμένες στο δικό
+  // του id, και καθαρίζονται από τις Ρυθμίσεις.
+  const signOut = async () => {
+    // ΠΡΩΤΑ η αποσύνδεση. Αν αποτύχει (π.χ. χαμένο δίκτυο), ο χρήστης παραμένει
+    // συνδεδεμένος — και θα ήταν παράλογο να έχει ήδη χάσει τις συνομιλίες του
+    // για μια αποσύνδεση που δεν έγινε. Το supabase-js επιστρέφει το σφάλμα ως
+    // τιμή, δεν το πετά, οπότε το ελέγχουμε ρητά.
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      window.alert('Δεν έγινε η αποσύνδεση — δες τη σύνδεσή σου στο δίκτυο και δοκίμασε ξανά.\n\nΤα δεδομένα σου στη συσκευή δεν πειράχτηκαν.');
+      return;
+    }
+    clearLocalPersonalData();
+    try { navigator.serviceWorker?.controller?.postMessage('pos-clear-caches'); } catch { /* ignore */ }
+    window.location.href = '/login';
+  };
 
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg-base)',flexDirection:'column',gap:16}}>
@@ -1056,9 +1184,13 @@ export default function Dashboard() {
             // δωρεάν και στα δύο προφίλ· εμφανίζονται όμως σε ΕΝΑ σημείο ανά προφίλ —
             // στον Ιδιώτη μέσα στην Επισκόπηση, στον Επαγγελματία στην πλαϊνή μπάρα.
             if (group.label==='Εργαλεία' && effProfileType!=='professional') return null;
+            // Σταδιακή αποκάλυψη: μένουν οι καρτέλες που έχουν ήδη νόημα για αυτόν
+            // τον χρήστη — συν η ενεργή, ώστε να μη «φεύγει» κάτω από τα πόδια του.
+            const ids = group.ids.filter(id => isTabRelevant(effProfileType, id) && (id===nav || isTabVisible(id, disclosure)));
+            if (ids.length === 0) return null;
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
-            const groupBadge = group.ids.reduce((s,id)=>s+getBadge(id),0);
+            const groupBadge = ids.reduce((s,id)=>s+getBadge(id),0);
             return (
             <div className="sidebar-section" key={gi}>
               {hasHeader && (
@@ -1069,7 +1201,7 @@ export default function Dashboard() {
                   <span className="sidebar-section-chevron" aria-hidden style={{display:'inline-flex',transform:open?'rotate(90deg)':'none',transition:'transform .15s'}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
                 </button>
               )}
-              {open && group.ids.filter(id => isTabRelevant(effProfileType, id)).map(id => { const badge=getBadge(id); const locked=!isTabAllowed(ent, id); return (
+              {open && ids.map(id => { const badge=getBadge(id); const locked=!isTabAllowed(ent, id); return (
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected} title={locked ? 'Διαθέσιμο σε ανώτερο πλάνο' : undefined}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{id==='referral' && effProfileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
@@ -1078,6 +1210,25 @@ export default function Dashboard() {
               );})}
             </div>
           );})}
+
+          {/* Οι κρυμμένες καρτέλες δεν είναι μυστικό: λέμε πόσες είναι και ανοίγουν
+              με ένα κλικ. Χωρίς αυτό, η σταδιακή αποκάλυψη γίνεται εξαφάνιση. */}
+          {(() => {
+            const hidden = hiddenCount(
+              NAV_GROUPS.flatMap(g => (g.label==='Εργαλεία' && effProfileType!=='professional') ? [] : g.ids)
+                        .filter(id => isTabRelevant(effProfileType, id) && id !== nav),
+              disclosure,
+            );
+            if (hidden === 0) return null;
+            return (
+              <button type="button" onClick={showAllTabs} className="sidebar-item" style={{ color: 'var(--text-tertiary)' }}
+                title="Η εφαρμογή δείχνει πρώτα όσα χρειάζεσαι τώρα. Οι υπόλοιπες καρτέλες εμφανίζονται μόλις αποκτήσουν νόημα — ή όλες μαζί από εδώ.">
+                <span className="sidebar-item-icon" aria-hidden>{ic('M4 6h16|M4 12h16|M4 18h16')}</span>
+                <span className="sidebar-item-label">Δες όλες τις καρτέλες</span>
+                <span style={{ marginLeft: 'auto', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>+{hidden}</span>
+              </button>
+            );
+          })()}
         </div>
         <div className="sidebar-footer">
           <div className="user-row" role="button" tabIndex={0} aria-label="Αποσύνδεση" onClick={signOut} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();signOut();}}} title="Αποσύνδεση">
@@ -1215,7 +1366,7 @@ export default function Dashboard() {
                 : <FeatureLock title="Πελατολόγιο και υποψήφιοι (CRM)" benefit="Οργάνωσε πελάτες, ιστορικό διαμονών, αξιολογήσεις και υποψήφιους σε ένα επαγγελματικό CRM. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
-              {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType}/>}
+              {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType} navShowAll={navShowAll} onNavShowAllChange={setNavShowAllPref}/>}
             </div>
           </>
         )}
@@ -1295,7 +1446,7 @@ export default function Dashboard() {
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {editProperty&&user&&<AddPropertyWizard userId={user.id} existing={editProperty} onClose={()=>setEditProperty(null)} onSaved={async()=>{setEditProperty(null);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
-      {showUpgrade&&<UpgradeModal currentCount={properties.length} planId={plan} onClose={()=>setShowUpgrade(false)} onManage={()=>{setShowUpgrade(false);setNav('settings');}}/>}
+      {showUpgrade&&<UpgradeModal currentCount={properties.length} planId={effPlan} profileType={effProfileType} onClose={()=>setShowUpgrade(false)} onManage={()=>{setShowUpgrade(false);setNav('settings');}}/>}
     </div>
   );
 }

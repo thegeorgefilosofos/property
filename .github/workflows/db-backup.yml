@@ -6,12 +6,14 @@ name: Database backup (free-tier safety net)
 # to Pro (managed backups + PITR).
 #
 # ⚠ The artifact contains REAL customer data. Two protections:
-#   • Set a repo secret BACKUP_PASSPHRASE and the dump is GPG-symmetric-encrypted
-#     before upload (decrypt with: gpg --decrypt --batch --passphrase "<pass>" file.gpg).
-#     Without it the job still runs but uploads PLAINTEXT and prints a loud warning.
+#   • BACKUP_PASSPHRASE is REQUIRED. The dump is GPG-symmetric-encrypted (AES256)
+#     before upload. Decrypt with:
+#       gpg --decrypt --batch --passphrase "<pass>" data.sql.gpg > data.sql
+#     If the secret is missing the job FAILS and uploads nothing — an encrypted
+#     backup or none at all, never a plaintext dump of customer data.
 #   • Keep this repository PRIVATE. Retention is 30 days.
-# Before onboarding real customers / selling, move to Pro backups (or a KMS-encrypted
-# bucket) and set BACKUP_PASSPHRASE.
+# Before selling at scale, move to Pro backups (managed + PITR) or a KMS-encrypted
+# bucket with longer retention.
 #
 # Reuses the same two secrets as the deploy pipeline:
 #   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD   (+ optional BACKUP_PASSPHRASE)
@@ -51,20 +53,32 @@ jobs:
           supabase db dump --linked --data-only -f backup/data.sql
           ls -lh backup
 
-      - name: Encrypt dump (or warn if no passphrase)
+      # Fail-CLOSED: χωρίς passphrase ΔΕΝ ανεβαίνει τίποτα. Ένα κρυπτογραφημένο
+      # αντίγραφο ή κανένα — ποτέ dump πελατών σε καθαρό κείμενο σε artifact.
+      - name: Encrypt dump (required)
         run: |
           set -euo pipefail
-          if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
-            for f in backup/roles.sql backup/schema.sql backup/data.sql; do
-              gpg --batch --yes --symmetric --cipher-algo AES256 \
-                  --passphrase "$BACKUP_PASSPHRASE" -o "$f.gpg" "$f"
-              rm -f "$f"
-            done
-            echo "🔒 Backup encrypted (AES256) before upload." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::warning::BACKUP_PASSPHRASE is not set — the backup artifact contains PLAINTEXT customer data. Set the secret to encrypt it."
-            echo "⚠️ **Unencrypted backup** — set the \`BACKUP_PASSPHRASE\` repo secret to encrypt the dump at rest." >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            rm -rf backup
+            {
+              echo "## ❌ Το αντίγραφο ασφαλείας ΔΕΝ δημιουργήθηκε"
+              echo
+              echo "Λείπει το repo secret \`BACKUP_PASSPHRASE\`, οπότε το dump θα ανέβαινε"
+              echo "σε **καθαρό κείμενο** με πραγματικά δεδομένα πελατών (ονόματα, ΑΦΜ,"
+              echo "διευθύνσεις, μισθωτήρια). Το job σταματά αντί να το ανεβάσει."
+              echo
+              echo "**Διόρθωση:** Settings → Secrets and variables → Actions → New repository secret"
+              echo "με όνομα \`BACKUP_PASSPHRASE\` και μια ισχυρή, φυλαγμένη φράση."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::BACKUP_PASSPHRASE is not set — refusing to upload a plaintext dump of customer data."
+            exit 1
           fi
+          for f in backup/roles.sql backup/schema.sql backup/data.sql; do
+            gpg --batch --yes --symmetric --cipher-algo AES256 \
+                --passphrase "$BACKUP_PASSPHRASE" -o "$f.gpg" "$f"
+            rm -f "$f"
+          done
+          echo "🔒 Αντίγραφο κρυπτογραφημένο (AES256) πριν το ανέβασμα." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Date stamp
         id: ts
@@ -76,3 +90,7 @@ jobs:
           name: supabase-backup-${{ steps.ts.outputs.date }}
           path: backup/
           retention-days: 30
+
+# Δες και: .github/workflows/backup-watchdog.yml — ελέγχει καθημερινά ότι αυτό
+# εδώ ΟΝΤΩΣ τρέχει και παράγει κρυπτογραφημένο αντίγραφο, και ανοίγει issue αν
+# περάσουν δύο μέρες χωρίς. Χωρίς τον φύλακα, η αποτυχία εδώ είναι σιωπηλή.

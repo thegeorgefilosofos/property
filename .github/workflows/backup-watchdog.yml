@@ -1,0 +1,195 @@
+name: Backup watchdog
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ
+# Ένα αντίγραφο ασφαλείας που σταματά να γίνεται δεν κάνει θόρυβο. Το GitHub
+# στέλνει email σε αποτυχία scheduled workflow, αλλά αυτά χάνονται στα υπόλοιπα.
+# Το χειρότερο σενάριο δεν είναι καν η αποτυχία — είναι η ΣΙΩΠΗ:
+#   • λήγει το SUPABASE_ACCESS_TOKEN και το job σκάει κάθε βράδυ
+#   • το GitHub απενεργοποιεί τα scheduled workflows μετά από 60 ημέρες
+#     αδράνειας στο repo, χωρίς να ξαναρωτήσει
+#   • το job γράφει «success» αλλά δεν ανέβασε τίποτα
+# Και στις τρεις περιπτώσεις νομίζεις ότι έχεις αντίγραφα, μέχρι τη μέρα που
+# τα χρειάζεσαι.
+#
+# ΤΙ ΚΑΝΕΙ
+# Κάθε μέρα ελέγχει ότι υπάρχει ΕΠΙΤΥΧΗΜΕΝΟ backup μέσα στο παράθυρο ανοχής
+# (48 ώρες = δύο μέρες στη σειρά), και ότι το αντίγραφο ΥΠΑΡΧΕΙ ΠΡΑΓΜΑΤΙΚΑ ως
+# artifact και είναι ΚΡΥΠΤΟΓΡΑΦΗΜΕΝΟ. Δεν εμπιστεύεται το «success» του job:
+# κατεβάζει τη λίστα αρχείων του artifact και επιβεβαιώνει ότι είναι .gpg.
+#
+# ΠΩΣ ΕΙΔΟΠΟΙΕΙ
+# Ανοίγει GitHub issue. Επίτηδες — ένα issue είναι ΚΑΤΑΣΤΑΣΗ, όχι μήνυμα:
+# μένει ανοιχτό μέχρι να λυθεί, φαίνεται στην αρχική του repo, και φτάνει ως
+# push στο κινητό αν έχεις την εφαρμογή GitHub. Ένα email διαβάζεται μία φορά
+# και ξεχνιέται. Όταν το backup ξαναγίνει, το issue κλείνει ΜΟΝΟ του.
+#
+# Ο ΙΔΙΟΣ Ο ΦΥΛΑΚΑΣ: αν σπάσει αυτό το workflow, το GitHub στέλνει το κλασικό
+# email αποτυχίας. Δεν βάζουμε φύλακα στον φύλακα — κάπου σταματάει.
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    - cron: '0 5 * * *'      # 05:00 UTC, τρεις ώρες μετά το backup των 02:00
+  workflow_dispatch: {}
+
+permissions:
+  actions: read              # ανάγνωση των runs του db-backup
+  issues: write              # άνοιγμα/κλείσιμο της ειδοποίησης
+  contents: read
+
+env:
+  # Παράθυρο ανοχής. 48 ώρες = «δεν έγινε δύο μέρες στη σειρά».
+  MAX_AGE_HOURS: '48'
+  BACKUP_WORKFLOW: 'db-backup.yml'
+  ALARM_TITLE: '🔴 Το αντίγραφο ασφαλείας της βάσης δεν γίνεται'
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Έλεγχος τελευταίου επιτυχημένου αντιγράφου
+        id: check
+        run: |
+          set -euo pipefail
+
+          # Τελευταίο run που ΟΛΟΚΛΗΡΩΘΗΚΕ με επιτυχία.
+          run_json=$(gh api \
+            "repos/$REPO/actions/workflows/$BACKUP_WORKFLOW/runs?status=success&per_page=1" \
+            --jq '.workflow_runs[0] // empty')
+
+          if [ -z "$run_json" ]; then
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Δεν βρέθηκε ΚΑΝΕΝΑ επιτυχημένο αντίγραφο στο ιστορικό." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          run_id=$(echo "$run_json"   | jq -r '.id')
+          finished=$(echo "$run_json" | jq -r '.updated_at')
+          age_h=$(( ( $(date -u +%s) - $(date -u -d "$finished" +%s) ) / 3600 ))
+
+          echo "Τελευταίο επιτυχημένο: run $run_id, πριν από $age_h ώρες ($finished)"
+          echo "run_id=$run_id"   >> "$GITHUB_OUTPUT"
+          echo "age_h=$age_h"     >> "$GITHUB_OUTPUT"
+          echo "finished=$finished" >> "$GITHUB_OUTPUT"
+
+          if [ "$age_h" -gt "$MAX_AGE_HOURS" ]; then
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Το τελευταίο επιτυχημένο αντίγραφο έγινε πριν από $age_h ώρες (όριο: $MAX_AGE_HOURS)." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Το «success» ΔΕΝ αρκεί: υπάρχει όντως artifact, και είναι .gpg; ──
+          art=$(gh api "repos/$REPO/actions/runs/$run_id/artifacts" \
+                --jq '[.artifacts[] | select(.expired == false)] | first // empty')
+          if [ -z "$art" ]; then
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Το run $run_id γράφει «success» αλλά ΔΕΝ έχει διαθέσιμο artifact." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          art_id=$(echo "$art"   | jq -r '.id')
+          art_size=$(echo "$art" | jq -r '.size_in_bytes')
+
+          # Κατεβάζουμε ΜΟΝΟ για να διαβάσουμε τη λίστα αρχείων. Το `unzip -l`
+          # δεν αποκρυπτογραφεί τίποτα — τα .gpg μένουν κλειστά — και το αρχείο
+          # σβήνεται αμέσως μετά.
+          gh api "repos/$REPO/actions/artifacts/$art_id/zip" > /tmp/backup.zip 2>/dev/null || true
+          listing=$(unzip -l /tmp/backup.zip 2>/dev/null | awk '{print $NF}' || echo '')
+          rm -f /tmp/backup.zip
+
+          if [ -z "$listing" ]; then
+            # Δεν μπορέσαμε να το διαβάσουμε — δεν κραυγάζουμε γι' αυτό, αλλά
+            # το λέμε. Το ότι υπάρχει artifact με μέγεθος είναι ήδη καλό σημάδι.
+            echo "Προειδοποίηση: δεν διαβάστηκε η λίστα αρχείων του artifact."
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+            echo "detail=artifact $art_id, $art_size bytes (η λίστα αρχείων δεν διαβάστηκε)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if echo "$listing" | grep -q '\.sql$'; then
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Το αντίγραφο περιέχει ΜΗ ΚΡΥΠΤΟΓΡΑΦΗΜΕΝΑ αρχεία .sql με δεδομένα πελατών. Λείπει ή δεν εφαρμόζεται το BACKUP_PASSPHRASE." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! echo "$listing" | grep -q '\.gpg$'; then
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Το αντίγραφο δεν περιέχει κανένα κρυπτογραφημένο αρχείο (.gpg)." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "healthy=true" >> "$GITHUB_OUTPUT"
+          echo "detail=artifact $art_id, $art_size bytes, κρυπτογραφημένο (.gpg)" >> "$GITHUB_OUTPUT"
+
+      - name: Ειδοποίηση όταν το αντίγραφο λείπει
+        if: steps.check.outputs.healthy == 'false'
+        run: |
+          set -euo pipefail
+          # ΟΧΙ αναζήτηση: το ευρετήριο του GitHub αργεί λεπτά, οπότε ένα φρεσκο-
+          # ανοιγμένο issue δεν βρίσκεται και θα άνοιγε διπλότυπο κάθε μέρα. Η λίστα
+          # ανοιχτών issues είναι άμεση και συνεπής.
+          existing=$(gh issue list --repo "$REPO" --state open --limit 100 \
+                     --json number,title \
+                     --jq '[.[] | select(.title | test("αντίγραφο ασφαλείας")) | .number] | first // empty')
+
+          body=$(cat <<EOF
+          ## Τι συμβαίνει
+
+          ${{ steps.check.outputs.reason }}
+
+          Ελέγχθηκε στις $(date -u '+%d/%m/%Y %H:%M UTC') από το \`backup-watchdog\`.
+
+          ## Γιατί έχει σημασία
+
+          Το Supabase Free **δεν κρατά δικά του αντίγραφα**. Αυτό το ημερήσιο dump είναι
+          το μόνο δίχτυ. Όσο δεν γίνεται, μια λάθος διαγραφή ή μια κακή migration δεν
+          αναιρείται με τίποτα.
+
+          ## Τι να ελέγξεις, με σειρά
+
+          1. **Actions → Database backup** — τρέχει καθόλου; Αν το τελευταίο run είναι
+             παλιό, το GitHub μπορεί να απενεργοποίησε το χρονοδιάγραμμα λόγω αδράνειας
+             (συμβαίνει μετά από 60 ημέρες χωρίς commit). Πάτα **Enable workflow**.
+          2. **Το τελευταίο run που απέτυχε** — διάβασε το σφάλμα. Το πιο συχνό είναι
+             ληγμένο \`SUPABASE_ACCESS_TOKEN\`.
+          3. **Settings → Secrets → Actions** — υπάρχουν και τα τρία;
+             \`SUPABASE_ACCESS_TOKEN\`, \`SUPABASE_DB_PASSWORD\`, \`BACKUP_PASSPHRASE\`.
+          4. Τρέξε το χειροκίνητα (**Run workflow**) για να επιβεβαιώσεις τη διόρθωση.
+
+          ## Πότε κλείνει
+
+          Μόνο του, μόλις γίνει ξανά επιτυχημένο κρυπτογραφημένο αντίγραφο.
+          Μην το κλείσεις με το χέρι χωρίς να το διορθώσεις — θα ξανανοίξει αύριο.
+          EOF
+          )
+
+          if [ -n "$existing" ]; then
+            echo "Το issue #$existing είναι ήδη ανοιχτό — προσθήκη σχολίου αντί για διπλότυπο."
+            gh issue comment "$existing" --repo "$REPO" --body "Εξακολουθεί να ισχύει: ${{ steps.check.outputs.reason }} ($(date -u '+%d/%m %H:%M UTC'))"
+          else
+            gh issue create --repo "$REPO" --title "$ALARM_TITLE" --body "$body"
+          fi
+
+          # Το job αποτυγχάνει επίτηδες: κόκκινο στο Actions ΚΑΙ email από το GitHub.
+          echo "::error::${{ steps.check.outputs.reason }}"
+          exit 1
+
+      - name: Κλείσιμο ειδοποίησης όταν επανέλθει
+        if: steps.check.outputs.healthy == 'true'
+        run: |
+          set -euo pipefail
+          echo "✅ Αντίγραφο ασφαλείας εντάξει — ${{ steps.check.outputs.detail }} (πριν από ${{ steps.check.outputs.age_h }} ώρες)." >> "$GITHUB_STEP_SUMMARY"
+
+          existing=$(gh issue list --repo "$REPO" --state open --limit 100 \
+                     --json number,title \
+                     --jq '[.[] | select(.title | test("αντίγραφο ασφαλείας")) | .number] | first // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" \
+              --body "✅ Επανήλθε. Τελευταίο επιτυχημένο κρυπτογραφημένο αντίγραφο: ${{ steps.check.outputs.finished }} (${{ steps.check.outputs.detail }}). Κλείνει αυτόματα."
+            gh issue close "$existing" --repo "$REPO"
+          fi

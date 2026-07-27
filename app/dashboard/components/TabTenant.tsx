@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { qrDataUrl } from '@/lib/qr';
 import { createClient } from '@/lib/supabase/client';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
@@ -17,6 +18,7 @@ import {
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import LeaseModal from './LeaseModal';
+import LeaseDeclaration from './LeaseDeclaration';
 import { roleLabel } from '@/lib/contacts/roles';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { money as csvEur } from './xlsxStyle';
@@ -1000,7 +1002,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   // εφαρμογές. Δεν είναι είσπραξη — απλώς προσυμπληρώνει τη μεταφορά για τον μισθωτή.
   const epcPayload=(iban:string,name:string,amount:number,ref:string)=>
     `BCD\n002\n1\nSCT\n\n${name.slice(0,70)}\n${iban.replace(/\s/g,'').toUpperCase()}\nEUR${amount.toFixed(2)}\n\n\n${ref.slice(0,140)}`;
-  const qrSrc=(data:string)=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(data)}`;
+  // QR τοπικά: το IBAN και το ποσό της πληρωμής δεν φεύγουν σε εξωτερική υπηρεσία.
+  const qrSrc=(data:string)=>qrDataUrl(data,{ size:240 });
   const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
   const paymentRequestText=(p:RentPayment)=>{
     const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${(p.base_rent||0).toLocaleString('el-GR')} € + υπηρεσίες ${(p.services_charge||0).toLocaleString('el-GR')} €)`:'';
@@ -1915,6 +1918,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   const branding=useReportBranding(userId);
   // Ψηφιακό μισθωτήριο: σύνταξη, υπογραφή και των δύο μερών, επαληθεύσιμο PDF.
   const [leaseOpen,setLeaseOpen]=useState(false);
+  const [declOpen,setDeclOpen]=useState(false);
   // Η υπενθύμιση «Λήξη σύμβασης μίσθωσης» (Υποχρεώσεις) ανοίγει το μισθωτήριο
   // κατευθείαν για ανανέωση — ίδιο μοτίβο event με τον βοηθό.
   useEffect(()=>{
@@ -2241,6 +2245,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
         right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
           <ExportButton onClick={exportRoster}/>
           <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Μισθωτήριο</Btn>
+          <Btn variant="secondary" onClick={()=>setDeclOpen(true)}>Δήλωση Μίσθωσης</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
         </div>:undefined}/>
 
@@ -2724,6 +2729,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
         </div>
       )}
 
+      <LeaseDeclaration open={declOpen} onClose={()=>setDeclOpen(false)} propertyId={propertyId} userId={userId} supabase={supabase} />
       <LeaseModal open={leaseOpen} onClose={()=>setLeaseOpen(false)} userId={userId} supabase={supabase} branding={branding} propertyId={propertyId} />
     </div>
   );

@@ -1,12 +1,37 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "./ThemeProvider";
 import CookieConsent from "./CookieConsent";
+import PwaProvider from "./PwaProvider";
 
 export const metadata: Metadata = {
   title: "Property OS",
-  description: "Premium real estate management for Greek investors",
+  description: "Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.",
+  applicationName: "Property OS",
+  // Εγκαταστάσιμη εφαρμογή: το manifest παράγεται από το app/manifest.ts.
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Property OS",
+    // Ημιδιαφανής μπάρα ώστε το περιεχόμενο να φτάνει μέχρι πάνω στο iOS.
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+// Χρώμα μπάρας ανά θέμα, και ασφαλείς περιοχές (notch) όταν τρέχει standalone.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0f14" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 // Prevent flash of wrong theme, runs before React hydration.
@@ -49,6 +74,7 @@ export default async function RootLayout({
         <ThemeProvider>
           {children}
           <CookieConsent />
+          <PwaProvider />
         </ThemeProvider>
       </body>
     </html>

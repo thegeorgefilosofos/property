@@ -22,8 +22,8 @@ import SecuritySettings from './SecuritySettings';
 import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
-import { PLANS } from '@/lib/billing/plans';
-import { effectivePlan, activeComp, planAtLeast, propertyLimit } from '@/lib/billing/entitlements';
+import { PLANS, normalizePlan } from '@/lib/billing/plans';
+import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState } from '@/lib/billing/entitlements';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -338,11 +338,13 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void }) {
+export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange, navShowAll = false, onNavShowAllChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void; navShowAll?: boolean; onNavShowAllChange?: (v: boolean) => void }) {
   const supabase = createClient();
 
   // Ταυτότητα λογαριασμού & χρέωσης
   const [accountEmail, setAccountEmail] = useState('');
+  // Ημερομηνία δημιουργίας λογαριασμού: βάση για τη δωρεάν δοκιμή 30 ημερών.
+  const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null);
   const [plan, setPlan] = useState('free');
   const [partner, setPartner] = useState(false);
   const [compPlan, setCompPlan] = useState<string | null>(null);
@@ -368,7 +370,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [reduceMotion, setReduceMotion] = useState(false);
   const [largeText, setLargeText] = useState(false);
 
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setAccountEmail(data.user?.email || '');
+      setAccountCreatedAt(data.user?.created_at ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     supabase.from('billing_profiles').select('plan, comp_plan, comp_until').eq('user_id', userId).maybeSingle()
@@ -413,16 +420,22 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // Έξυπνη αλλαγή τύπου προφίλ (persist όπως πριν· η ειδοποίηση εμφανίζεται από το derived state)
   const setProfile = async (v: ProfileType) => {
     if (v === profileType) return;
-    // Ο τρόπος «Επαγγελματίας» απαιτεί το πλάνο Επαγγελματίας. Αν δεν το έχεις,
-    // δεν αλλάζει ο τρόπος: σε παραπέμπουμε αμέσως στην αναβάθμιση συνδρομής.
-    if (v === 'professional' && !planAtLeast(effPlan, 'agency')) {
-      openComparison();
-      return;
-    }
+    // Ο τρόπος χρήσης είναι ΔΗΛΩΣΗ ΠΡΟΘΕΣΗΣ, όχι δικαίωμα — και γι' αυτό περνά
+    // πάντα. Παλιότερα μπλοκαριζόταν αν δεν είχες ήδη το πλάνο Επαγγελματίας,
+    // που έφτιαχνε κλειστό κύκλο: για να πάρεις το πλάνο έπρεπε να είσαι σε
+    // επαγγελματικό προφίλ (ALLOWED_PLANS), και για να μπεις σε επαγγελματικό
+    // προφίλ έπρεπε να έχεις το πλάνο. Ο Ιδιώτης στα 3 ακίνητα δεν είχε ΚΑΜΙΑ
+    // διαδρομή προς τα εμπρός.
+    //
+    // Οι επαγγελματικές δυνατότητες εξακολουθούν να ανοίγουν ΜΟΝΟ με το πλάνο:
+    // το effProfileType στο page.tsx παραμένει «individual» όσο λείπει. Αλλάζει
+    // μόνο ποιο πλάνο μπορείς να αγοράσεις.
     const prev = profileType;
     onProfileChange?.(v);
     const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
-    if (error) onProfileChange?.(prev); // επαναφορά αν απέτυχε
+    if (error) { onProfileChange?.(prev); return; } // επαναφορά αν απέτυχε
+    // Δηλώθηκε επαγγελματίας χωρίς το πλάνο: δείχνουμε αμέσως τι λείπει.
+    if (v === 'professional' && !planAtLeast(effPlan, 'agency')) openComparison();
   };
 
   // Ένα σημείο εισόδου: όλα τα CTA (διαχείριση, σύγκριση, «Δες τα πλάνα») ανοίγουν
@@ -433,9 +446,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   };
   const openComparison = openManage;
 
-  const ent = { plan, profileType, partner, compPlan, compUntil };
+  const ent = { plan, profileType, partner, compPlan, compUntil, createdAt: accountCreatedAt };
   const effPlan = effectivePlan(ent);
   const comp = activeComp(ent);
+  // Η δωρεάν δοκιμή μετράει μόνο όσο δεν έχει ήδη πληρωμένο πλάνο (αλλιώς δεν
+  // «ανυψώνει» τίποτα και δεν έχει νόημα να την ανακοινώνουμε).
+  const trial = trialState(ent);
+  const trialShowing = trial.active && normalizePlan(plan) === 'free' && !comp && !partner;
   const propLimit = propertyLimit(ent);
   const propLimitLabel = propLimit === Infinity ? 'απεριόριστα' : String(propLimit);
   const usagePct = propLimit === Infinity || !propertyCount ? 0 : Math.min(100, Math.round((propertyCount / propLimit) * 100));
@@ -526,6 +543,18 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                   : 'Ένα ακόμη ακίνητο και φτάνεις το όριο του πλάνου σου.'}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Δωρεάν δοκιμή: πόσο απομένει, χωρίς κάρτα και χωρίς αυτόματη χρέωση.
+            Λέμε ΚΑΙ τι γίνεται μετά, ώστε να μην υπάρχει έκπληξη. */}
+        {trialShowing && (
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
+            <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)', flexShrink: 0, marginTop: 6 }} />
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+              Δοκιμάζεις δωρεάν το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[effPlan].name}</strong> για {trial.daysLeft === 1 ? 'ακόμη μία ημέρα' : `ακόμη ${trial.daysLeft} ημέρες`}.
+              {' '}Δεν ζητήσαμε κάρτα και δεν θα χρεωθείς: όταν λήξει, ο λογαριασμός σου συνεχίζει στο Δωρεάν, με το πρώτο σου ακίνητο και τα δεδομένα σου ανέπαφα.
+            </div>
           </div>
         )}
 
@@ -629,6 +658,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
         <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
           control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
+        <SettingRow title="Απλοποιημένο μενού" desc="Δείχνει πρώτα μόνο τις καρτέλες που χρειάζεσαι τώρα. Οι υπόλοιπες εμφανίζονται μόλις αποκτήσουν νόημα — π.χ. το «Δάνειο» μόλις καταχωρήσεις δάνειο. Καμία καρτέλα δεν χάνεται: όσες έχεις ανοίξει μένουν πάντα ορατές."
+          control={<Toggle on={!navShowAll} onChange={v => onNavShowAllChange?.(!v)} size="sm" />} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10, minHeight: 18 }}>
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
             Γλώσσα: Ελληνικά · Νόμισμα: ευρώ (€)
@@ -666,6 +697,19 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
+        {/* Η εμπιστοσύνη δεν είναι μόνο για τη σελίδα πωλήσεων: ο υπάρχων χρήστης
+            πρέπει να βρίσκει με ένα κλικ πού ζουν τα δεδομένα του και ποιοι είμαστε. */}
+        <div style={divider}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Πού φυλάσσονται τα δεδομένα σου</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 12 }}>
+            Ποιοι είμαστε, σε ποια χώρα βρίσκονται τα δεδομένα σου, ποιος μπορεί να τα δει και τι δεν κάνουμε ποτέ μ’ αυτά.
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <a href="/trust" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="secondary">Ποιοι είμαστε</Btn></a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Πολιτική Απορρήτου</Btn></a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Όροι Χρήσης</Btn></a>
+          </div>
+        </div>
         <DeleteAccount />
       </CollapsibleSection>
 

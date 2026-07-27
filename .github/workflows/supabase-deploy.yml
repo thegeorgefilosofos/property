@@ -115,6 +115,52 @@ jobs:
       - name: Deploy Edge Functions
         run: supabase functions deploy
 
+  # Ένα ειδοποιητικό που ανοίγει αλλά δεν κλείνει ποτέ, παύει να είναι
+  # ειδοποιητικό: μετά την πρώτη αποτυχία το κόκκινο μένει για πάντα, και το
+  # επόμενο πραγματικό πρόβλημα δεν ξεχωρίζει από το παλιό. Ακριβώς αυτό
+  # συνέβη — το deploy διορθώθηκε στο run 41 και το issue #184 έμεινε ανοιχτό
+  # για 7 επιτυχημένα runs. Ο κύκλος κλείνει εδώ: επιτυχία ⇒ κλείνει το issue
+  # του ΙΔΙΟΥ περιβάλλοντος, με σχόλιο που λέει ποιο run το έλυσε.
+  resolve-on-success:
+    needs: deploy
+    if: success()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close the failure issue for this environment
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const target = context.ref === 'refs/heads/main' ? 'production' : 'staging';
+            const title = `🔴 Supabase deploy failed (${target})`;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // Μόνο το issue ΑΥΤΟΥ του περιβάλλοντος: ένα πράσινο staging deploy
+            // δεν επιτρέπεται να κλείσει μια ανοιχτή αποτυχία της παραγωγής.
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'deploy-failure',
+              per_page: 100,
+            });
+            for (const issue of open.filter(i => i.title === title)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ Το deploy προς **${target}** πέτυχε ξανά — κλείνει αυτόματα.\n\n- Run: ${runUrl}\n- Commit: ${context.sha}`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              core.notice(`Closed #${issue.number} — ${target} deploy is green again.`);
+            }
+
   # If a deploy fails, open (or reuse) a GitHub issue so the failure is never
   # silent — the free alternative to a paid alerting integration. Idempotent:
   # a single open "deploy failure" issue is reused and re-commented rather than

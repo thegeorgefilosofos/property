@@ -82,7 +82,7 @@ export default function LandingShowcase() {
           <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />
           <div className="lp-hide-xs" style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: 7, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '5px 14px', fontSize: 12, color: 'var(--text-tertiary)' }}>
             <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-            property-os.gr/scan
+            propertyos.gr/scan
           </div>
         </div>
 

@@ -1,5 +1,12 @@
 import qrcode from 'qrcode-generator';
 
+// ΚΡΙΣΙΜΟ: το qrcode-generator κωδικοποιεί εξ ορισμού με `charCodeAt(i) & 0xff`,
+// που ΚΑΤΑΣΤΡΕΦΕΙ κάθε μη-ASCII χαρακτήρα. Το «Γ» (U+0393) γίνεται byte 147 και
+// ο σαρωτής διαβάζει σκουπίδια. Σε ελληνική εφαρμογή αυτό αφορά τα πάντα: όνομα
+// ιδιοκτήτη σε QR πληρωμής, αιτιολογία «Ενοίκιο Ιουλίου», κάρτα επαφής, ετικέτα
+// απογραφής. Δηλώνουμε ρητά UTF-8 μία φορά, κατά την εισαγωγή του module.
+qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Δημιουργία QR ΤΟΠΙΚΑ στη συσκευή, χωρίς καμία εξωτερική κλήση (privacy-by-design,
 // GDPR Άρθ. 25). Χρησιμοποιεί τη δοκιμασμένη υλοποίηση qrcode-generator (Kazuhiko
@@ -19,9 +26,18 @@ export function drawQrToCanvas(
   const dark = opts?.dark ?? '#0d1b2e';    // near-black navy, ~16:1 σε λευκό
   const light = opts?.light ?? '#ffffff';
 
+  // Το qr.make() πετά ΣΚΕΤΟ string ('code length overflow') όταν το κείμενο δεν
+  // χωρά ούτε στη μεγαλύτερη έκδοση. Επειδή η qrDataUrl καλείται μέσα σε render,
+  // μια ανεξέλεγκτη εξαίρεση θα έριχνε ολόκληρη την καρτέλα — π.χ. αν ένα είδος
+  // απογραφής ήρθε από εισαγωγή CSV με τεράστια περιγραφή. Καλύτερα κενό QR
+  // παρά λευκή οθόνη.
   const qr = qrcode(0, 'M');               // 0 = αυτόματη επιλογή έκδοσης
-  qr.addData(text);                        // byte mode (default) για URL
-  qr.make();
+  try {
+    qr.addData(text);                      // byte mode (UTF-8, βλ. παραπάνω)
+    qr.make();
+  } catch {
+    return;
+  }
 
   const count = qr.getModuleCount();
   const total = count + margin * 2;
@@ -52,4 +68,23 @@ export function drawQrToCanvas(
       }
     }
   }
+}
+
+/** Το ίδιο QR ως data: URL, για χρήση σε `<img src>` και σε παράθυρα εκτύπωσης.
+ *
+ *  ΓΙΑΤΙ ΥΠΑΡΧΕΙ: τρία σημεία της εφαρμογής έστελναν το περιεχόμενο του QR σε
+ *  εξωτερική υπηρεσία (`api.qrserver.com`) μέσα στο query string — δηλαδή
+ *  ονοματεπώνυμο, τηλέφωνο και email επαφής, IBAN και ποσό πληρωμής, στοιχεία
+ *  απογραφής. Αυτά είναι προσωπικά δεδομένα τρίτων που έφευγαν από τη συσκευή
+ *  χωρίς λόγο. Ο υπολογισμός γίνεται τοπικά σε χιλιοστά του δευτερολέπτου.
+ *
+ *  Επιστρέφει κενή συμβολοσειρά εκτός browser (SSR), ώστε ο caller να μη σκάει. */
+export function qrDataUrl(
+  text: string,
+  opts?: { size?: number; margin?: number; dark?: string; light?: string },
+): string {
+  if (typeof document === 'undefined') return '';
+  const canvas = document.createElement('canvas');
+  drawQrToCanvas(canvas, text, opts);
+  return canvas.toDataURL('image/png');
 }
