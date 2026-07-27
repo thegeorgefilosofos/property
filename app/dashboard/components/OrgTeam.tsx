@@ -43,6 +43,8 @@ interface Member {
   user_id: string | null;
   can_edit: boolean;
   edit_requested_at: string | null;
+  property_scope: string[] | null;      // null/κενό = όλα τα ακίνητα
+  can_view_financials: boolean;
 }
 
 // Η δική μου εγγραφή στον πίνακα μελών (για την ανίχνευση όψης).
@@ -113,6 +115,9 @@ export default function OrgTeam({ userId }: { userId: string }) {
 
   const [org, setOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  // Ακίνητα του οργανισμού, για τον ορισμό εύρους πρόσβασης ανά μέλος.
+  const [orgProps, setOrgProps] = useState<{ id: string; name: string }[]>([]);
+  const [openPerms, setOpenPerms] = useState<string | null>(null);   // email γραμμής με ανοιχτά δικαιώματα
   const [loading, setLoading] = useState(true);
 
   // Όψη: ιδιοκτήτης (διαχείριση) ή μέλος (προβολή + αιτήματα)
@@ -141,13 +146,36 @@ export default function OrgTeam({ userId }: { userId: string }) {
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
 
+  useEffect(() => {
+    supabase.from('user_properties').select('id,name').eq('user_id', userId).order('name')
+      .then(({ data }) => setOrgProps((data ?? []) as { id: string; name: string }[]));
+  }, [userId, supabase]);
+
   const loadMembers = async (orgId: string) => {
-    const { data } = await supabase
+    const cols = 'email, role, status, joined_at, user_id, can_edit, edit_requested_at';
+    const first = await supabase
       .from('organization_members')
-      .select('email, role, status, joined_at, user_id, can_edit, edit_requested_at')
-      .eq('org_id', orgId)
-      .order('invited_at');
-    setMembers((data as Member[] | null) ?? []);
+      .select(`${cols}, property_scope, can_view_financials`)
+      .eq('org_id', orgId).order('invited_at');
+    let data = first.data;
+    const error = first.error;
+    // Βάση χωρίς τις νέες στήλες: γύρνα στο βασικό σχήμα αντί να μείνει κενή η λίστα.
+    if (error) ({ data } = await supabase.from('organization_members').select(cols).eq('org_id', orgId).order('invited_at') as unknown as { data: typeof data });
+    setMembers(((data ?? []) as Partial<Member>[]).map(m => ({
+      ...(m as Member),
+      property_scope: (m.property_scope as string[] | null) ?? null,
+      can_view_financials: m.can_view_financials !== false,
+    })));
+  };
+
+  // Ενημέρωση δικαιωμάτων μέλους (εύρος ακινήτων / ορατότητα οικονομικών).
+  const setMemberScope = async (email: string, patch: { property_scope?: string[] | null; can_view_financials?: boolean }) => {
+    if (!org) return;
+    setRowBusy(email); setMemberError(null);
+    const { error } = await supabase.from('organization_members').update(patch).eq('org_id', org.id).eq('email', email);
+    setRowBusy(null);
+    if (error) setMemberError('Η αλλαγή δεν αποθηκεύτηκε.');
+    else await loadMembers(org.id);
   };
 
   useEffect(() => {
@@ -450,13 +478,14 @@ export default function OrgTeam({ userId }: { userId: string }) {
                 const isYou = m.user_id != null && m.user_id === userId;
                 const canAct = !isOwner && m.status !== 'revoked';
                 const busy = rowBusy === m.email;
+                const permsOpen = openPerms === m.email;
+                const scoped = (m.property_scope?.length ?? 0) > 0;
                 return (
+                  <div key={m.email || `row-${i}`} style={{ borderBottom: i < members.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                   <div
-                    key={m.email || `row-${i}`}
                     style={{
                       display: 'grid', gridTemplateColumns: ROW_COLS, gap: 16, alignItems: 'center',
                       padding: '12px 0',
-                      borderBottom: i < members.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                       opacity: m.status === 'revoked' ? 0.55 : 1,
                     }}
                   >
@@ -509,6 +538,69 @@ export default function OrgTeam({ userId }: { userId: string }) {
                         </>
                       )}
                     </div>
+                  </div>
+
+                  {/* Δικαιώματα ανά μέλος: εύρος ακινήτων και ορατότητα οικονομικών.
+                      Μαζεμένα by default — η γραμμή μένει καθαρή, οι λεπτομέρειες on demand. */}
+                  {canAct && (
+                    <div style={{ paddingBottom: 12 }}>
+                      <button onClick={() => setOpenPerms(permsOpen ? null : m.email)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: T.font.sans }}>
+                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: permsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><path d="M9 6l6 6-6 6" /></svg>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Δικαιώματα</span>
+                        <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
+                          {scoped ? `${m.property_scope!.length} ακίνητα` : 'Όλα τα ακίνητα'} · {m.can_view_financials ? 'με οικονομικά' : 'χωρίς οικονομικά'}
+                        </span>
+                      </button>
+
+                      {permsOpen && (
+                        <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: 'var(--bg-base)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Οικονομικά στοιχεία</div>
+                              <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Ενοίκια, δαπάνες, λογαριασμοί, δάνεια και λογιστική.</div>
+                            </div>
+                            <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>
+                              <SegBtn active={m.can_view_financials} disabled={busy} onClick={() => { if (!m.can_view_financials) void setMemberScope(m.email, { can_view_financials: true }); }}>Ορατά</SegBtn>
+                              <SegBtn active={!m.can_view_financials} disabled={busy} divider onClick={() => { if (m.can_view_financials) void setMemberScope(m.email, { can_view_financials: false }); }}>Κρυφά</SegBtn>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: scoped ? 10 : 0 }}>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ακίνητα</div>
+                                <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Σε ποια ακίνητα έχει πρόσβαση το μέλος.</div>
+                              </div>
+                              <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>
+                                <SegBtn active={!scoped} disabled={busy} onClick={() => { if (scoped) void setMemberScope(m.email, { property_scope: null }); }}>Όλα</SegBtn>
+                                <SegBtn active={scoped} disabled={busy} divider onClick={() => { if (!scoped && orgProps[0]) void setMemberScope(m.email, { property_scope: [orgProps[0].id] }); }}>Επιλεγμένα</SegBtn>
+                              </div>
+                            </div>
+                            {scoped && (
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {orgProps.map(p => {
+                                  const on = m.property_scope!.includes(p.id);
+                                  return (
+                                    <button key={p.id} disabled={busy}
+                                      onClick={() => {
+                                        const next = on ? m.property_scope!.filter(x => x !== p.id) : [...m.property_scope!, p.id];
+                                        // Ποτέ κενή λίστα: κενό θα σήμαινε «όλα» και θα άνοιγε σιωπηλά την πρόσβαση.
+                                        void setMemberScope(m.email, { property_scope: next.length ? next : [p.id] });
+                                      }}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 15, cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                                      {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                                      {p.name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   </div>
                 );
               })}
