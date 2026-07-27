@@ -691,6 +691,19 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
+        {/* Η εμπιστοσύνη δεν είναι μόνο για τη σελίδα πωλήσεων: ο υπάρχων χρήστης
+            πρέπει να βρίσκει με ένα κλικ πού ζουν τα δεδομένα του και ποιοι είμαστε. */}
+        <div style={divider}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Πού φυλάσσονται τα δεδομένα σου</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 12 }}>
+            Ποιοι είμαστε, σε ποια χώρα βρίσκονται τα δεδομένα σου, ποιος μπορεί να τα δει και τι δεν κάνουμε ποτέ μ’ αυτά.
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <a href="/trust" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="secondary">Ποιοι είμαστε</Btn></a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Πολιτική Απορρήτου</Btn></a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Όροι Χρήσης</Btn></a>
+          </div>
+        </div>
         <DeleteAccount />
       </CollapsibleSection>
 
