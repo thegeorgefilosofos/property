@@ -14,13 +14,13 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.107.0",
-    "lucide-react": "^1.25.0",
-    "next": "16.2.11",
+    "lucide-react": "^1.27.0",
+    "next": "^16.2.12",
     "pdfmake": "^0.3.11",
     "qrcode-generator": "^2.0.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "recharts": "^3.10.0",
+    "recharts": "^3.10.1",
     "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0"
   },
