@@ -473,7 +473,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               {!e.transferredToExpenses && (
                 <button onClick={() => transferToExpenses(i)} disabled={transferring === i}
                   style={{ fontSize: 10, color: 'var(--accent)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
-                  {transferring === i ? 'Μεταφορά...' : 'Μεταφορά στις Δαπάνες →'}
+                  {transferring === i ? 'Μεταφορά…' : 'Μεταφορά στις Δαπάνες →'}
                 </button>
               )}
               <button onClick={() => delExtra(i)}

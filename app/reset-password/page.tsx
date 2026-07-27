@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -69,7 +70,7 @@ export default function ResetPasswordPage() {
   }
   const label: React.CSSProperties = {
     fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: 8,
-    textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Inter',sans-serif",
+    textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans,
   }
   const btn: React.CSSProperties = {
     width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100,
@@ -105,7 +106,7 @@ export default function ResetPasswordPage() {
   )
 
   return (
-    <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: "'Inter',sans-serif" }}>
+    <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: T.font.sans }}>
 
       {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside

@@ -659,7 +659,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
             )}
             <div style={{ paddingTop: 22 }}><Toggle on={form.recurring} onChange={v => sf('recurring', v)} label="Πάγιο" labelOff="Εφάπαξ"/></div>
-            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση..."/>
+            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση…"/>
           </div>
           {form.category === 'electricity' && (
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>
@@ -692,7 +692,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <button onClick={() => setShowForm(false)} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: T.radius.btn, padding: '9px 16px', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
             <button onClick={addBill} disabled={!form.name || !form.amount || saving}
               style={{ background: (!form.name || !form.amount || saving) ? 'var(--bg-elevated)' : 'var(--accent)', color: (!form.name || !form.amount || saving) ? 'var(--text-tertiary)' : 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '9px 20px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
-              {saving ? 'Αποθήκευση...' : 'Προσθήκη'}
+              {saving ? 'Αποθήκευση…' : 'Προσθήκη'}
             </button>
           </div>
         </div>

@@ -841,7 +841,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
       {/* ── Ντοσιέ πελάτη (drawer) ─────────────────────────────────────────── */}
       {dc && dcStats && (
-        <div onClick={() => { setOpenId(null); setStayFormOpen(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, display: 'flex', justifyContent: 'flex-end' }}>
+        <div onClick={() => { setOpenId(null); setStayFormOpen(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 900, display: 'flex', justifyContent: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', width: 'min(720px, 100%)', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
             {/* Sticky header: avatar + όνομα + σήματα + βαθμολογία + ενέργειες */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--bg-surface)' }}>

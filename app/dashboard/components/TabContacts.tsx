@@ -374,7 +374,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
         ))}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add(input))} placeholder="Νέα ετικέτα..." style={{ ...iStyle, flex: 1 }} />
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add(input))} placeholder="Νέα ετικέτα…" style={{ ...iStyle, flex: 1 }} />
         <button type="button" onClick={() => add(input)} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
     </div>
@@ -444,7 +444,7 @@ function FileUploader({ files, onChange, contactId }: { files: { name: string; u
       </div>
       <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: T.radius.inner, border: '1px dashed var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 13, width: '100%' }}>
-        {uploading ? 'Ανέβασμα...' : '+ Προσθήκη Αρχείου (PDF, DOC, JPG, Excel)'}
+        {uploading ? 'Ανέβασμα…' : '+ Προσθήκη Αρχείου (PDF, DOC, JPG, Excel)'}
       </button>
       <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls,.csv" onChange={handleFile} style={{ display: 'none' }} />
     </div>
@@ -576,7 +576,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση...' : 'Αποθήκευση Δαπάνης'}</button>
+          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση Δαπάνης'}</button>
         </div>
       </div>
     </div>
@@ -599,7 +599,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση...' : 'Προσθήκη στο Ημερολόγιο'}</button>
+          <button type="button" onClick={save} disabled={saving} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Προσθήκη στο Ημερολόγιο'}</button>
         </div>
       </div>
     </div>
@@ -1056,7 +1056,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   )
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 460px)', height: '100%', background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)', boxShadow: '-24px 0 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dossierIn .28s cubic-bezier(.2,0,0,1)' }}>
         <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}} .dsr-act:hover{border-color:var(--accent-border);background:var(--accent-soft);color:var(--accent)} .dsr-del{border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-secondary)} .dsr-del:hover{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}`}</style>
 
@@ -1621,7 +1621,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
           <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, τηλ., email, ΑΦΜ, IBAN, ετικέτας..." style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, τηλ., email, ΑΦΜ, IBAN, ετικέτας…" style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
         </div>
         <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)} style={{ ...iStyle, minWidth: 200, width: 'auto', cursor: 'pointer' }}>
           <option value="all">Όλες οι κατηγορίες</option>
@@ -1888,7 +1888,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
               <button type="button" onClick={closeModal} style={{ flex: 1, padding: '12px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
               <button type="button" onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: saving ? 'var(--border-default)' : 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
-                {saving ? 'Αποθήκευση...' : editContact ? 'Αποθήκευση Αλλαγών' : 'Προσθήκη Επαφής'}
+                {saving ? 'Αποθήκευση…' : editContact ? 'Αποθήκευση Αλλαγών' : 'Προσθήκη Επαφής'}
               </button>
             </div>
           </div>

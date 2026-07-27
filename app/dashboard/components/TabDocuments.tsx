@@ -927,7 +927,7 @@ export default function TabDocuments({
       {/* ── Lightbox (εικόνα ή προεπισκόπηση PDF) ───────────────────────── */}
       {lightbox && lightbox.url && (
         <div onClick={() => setLightbox(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, flexDirection: 'column', gap: 12 }}>
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, flexDirection: 'column', gap: 12 }}>
           <button onClick={() => setLightbox(null)} title="Κλείσιμο" style={{ position: 'absolute', top: 18, right: 18, width: 38, height: 38, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconX size={16}/></button>
           {isPdfItem(lightbox)
             ? <iframe title={lightbox.title} src={lightbox.url} onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 900px)', height: '82%', border: 'none', borderRadius: T.radius.inner, background: '#fff' }}/>

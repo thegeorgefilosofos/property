@@ -406,7 +406,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
       {/* Modal: νέα εργασία σε επιλεγμένα ακίνητα */}
       {showBulk && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !bulkSaving && setShowBulk(false)}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !bulkSaving && setShowBulk(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 460, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
             <h3 style={{ color: 'var(--text-primary)', margin: '0 0 4px', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', fontFamily: T.font.sans }}>Νέα εργασία σε επιλεγμένα</h3>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 20px', fontFamily: T.font.sans }}>Δημιουργείται μία ίδια εργασία σε {selected.size} {selected.size === 1 ? 'ακίνητο' : 'ακίνητα'}.</p>
@@ -436,7 +436,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
       {/* Modal: κατάσταση ιδιοκτήτη */}
       {showStatements && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowStatements(false)}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowStatements(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
             <SecHdr label="Καταστάσεις ιδιοκτήτη" sub={`Έσοδα, δαπάνες & καθαρό ανά ακίνητο · ${year}`}
               right={<button type="button" aria-label="Κλείσιμο" onClick={() => setShowStatements(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1 }}>✕</button>} />

@@ -90,10 +90,10 @@ const num = (s: string) => { const v = parseFloat(s.replace(',', '.')); return i
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 16px', height: 40, borderRadius: 4,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Inter', sans-serif",
+  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans,
   letterSpacing: 0, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
 };
-const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' };
+const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' };
 const labelStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'flex-end', minHeight: 28, lineHeight: 1.3,
   fontFamily: T.font.sans, fontSize: 10, fontWeight: 700,
@@ -111,7 +111,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // Επικεφαλίδα υποενότητας (ίδιο accent uppercase look με το panel απόδοσης)
 const sectionLabelStyle: React.CSSProperties = {
-  fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
+  fontFamily: T.font.sans, fontSize: 11, fontWeight: 600,
   textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 4,
 };
 
@@ -266,7 +266,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.32)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{ background: 'var(--bg-surface)', borderRadius: 20, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-xl)', overflow: 'hidden' }}>
@@ -275,7 +275,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 28px 0' }}>
           <div>
             <div style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.25 }}>{isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}</div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, letterSpacing: '0.25px' }}>Βήμα {step + 1} από {STEPS.length} · {STEPS[step]}</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, letterSpacing: '0.25px' }}>Βήμα {step + 1} από {STEPS.length} · {STEPS[step]}</div>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: 36, height: 36, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
         </div>
@@ -293,9 +293,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     background: on ? 'var(--accent)' : 'var(--bg-overlay)', color: on ? 'var(--accent-text)' : 'var(--text-tertiary)',
                     border: active ? '2px solid var(--accent)' : '2px solid transparent',
                     boxShadow: active ? '0 0 0 4px var(--accent-soft)' : 'none',
-                    fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, transition: 'all 0.2s',
+                    fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, transition: 'all 0.2s',
                   }}>{done ? '✓' : i + 1}</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
                 </div>
                 {i < STEPS.length - 1 && <div style={{ flex: 1, height: 2, background: i < step ? 'var(--accent)' : 'var(--border-subtle)', margin: '0 8px', marginBottom: 22, transition: 'background 0.2s' }} />}
               </div>
@@ -325,7 +325,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                         onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-overlay)'; }}
                         onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-surface)'; }}>
                         <TypeIcon type={t} />
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: sel ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'center' }}>{PROP_TYPE_LABELS[t]}</span>
+                        <span style={{ fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: sel ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'center' }}>{PROP_TYPE_LABELS[t]}</span>
                       </button>
                     );
                   })}
@@ -342,7 +342,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                         display: 'flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
                         border: sel ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
                         background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
-                        fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 500,
+                        fontFamily: T.font.sans, fontSize: 13, fontWeight: 500,
                         color: sel ? 'var(--text-primary)' : 'var(--text-secondary)',
                       }}>
                         {v}
@@ -358,8 +358,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 background: airbnb ? 'var(--accent-soft)' : 'var(--bg-surface)', transition: 'all 0.15s',
               }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
                 </div>
                 <div style={{ width: 44, height: 26, borderRadius: 13, background: airbnb ? 'var(--accent)' : 'var(--bg-overlay)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                   <div style={{ position: 'absolute', top: 3, left: airbnb ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
@@ -470,7 +470,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               </div>
               {isShared && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
                     {coOwners.length === 1 ? 'Συνιδιοκτήτης' : 'Συνιδιοκτήτες'}
                   </div>
                   <div style={grid2}>
@@ -485,9 +485,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
               {grossYield != null && (
                 <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16 }}>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
                   <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{grossYield.toFixed(1)}%</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                     {airbnb
                       ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
                       : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!, 0)}`}
@@ -574,10 +574,10 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
                 <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || '—'}</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || '—'}</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
                 </div>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[effStatus] }} />{STATUS_LABELS[effStatus]}
                 </span>
               </div>
@@ -607,14 +607,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                    <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                    <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
                     <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημ. Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}
               </div>
 
               {error && (
-                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--negative)' }}>{error}</div>
+                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: T.font.sans, fontSize: 13, color: 'var(--negative)' }}>{error}</div>
               )}
             </div>
           )}
@@ -622,7 +622,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
         {/* Footer navigation */}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', padding: '16px 28px', borderTop: '1px solid var(--border-subtle)' }}>
-          <button onClick={() => (step === 0 ? onClose() : setStep(s => s - 1))} style={{ height: 40, padding: '0 20px', borderRadius: 100, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+          <button onClick={() => (step === 0 ? onClose() : setStep(s => s - 1))} style={{ height: 40, padding: '0 20px', borderRadius: 100, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             {step === 0 ? 'Ακύρωση' : 'Πίσω'}
           </button>
 
@@ -630,14 +630,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext} style={{
               height: 40, padding: '0 24px', borderRadius: 100, border: 'none',
               background: canNext ? 'var(--accent)' : 'var(--bg-overlay)', color: canNext ? 'var(--accent-text)' : 'var(--text-tertiary)',
-              fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: canNext ? 'pointer' : 'not-allowed',
+              fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: canNext ? 'pointer' : 'not-allowed',
             }}>Συνέχεια</button>
           ) : (
             <button onClick={save} disabled={saving || !name.trim()} style={{
               height: 40, padding: '0 24px', borderRadius: 100, border: 'none',
               background: saving || !name.trim() ? 'var(--bg-overlay)' : 'var(--accent)', color: saving || !name.trim() ? 'var(--text-tertiary)' : 'var(--accent-text)',
-              fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
-            }}>{saving ? 'Αποθήκευση...' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη Ακινήτου'}</button>
+              fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
+            }}>{saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη Ακινήτου'}</button>
           )}
         </div>
       </div>

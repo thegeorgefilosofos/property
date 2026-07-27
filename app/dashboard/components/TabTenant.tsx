@@ -779,17 +779,17 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
-                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="π.χ. Θετικό, αρνητικό..." style={inputStyle}/>
+                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="π.χ. Θετικό, αρνητικό…" style={inputStyle}/>
               </div>
             </div>
             <div style={{ marginBottom:14 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Σύνοψη Επικοινωνίας *</div>
-              <textarea value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))} placeholder="Περιγραφή επικοινωνίας..." rows={3}
+              <textarea value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))} placeholder="Περιγραφή επικοινωνίας…" rows={3}
                 style={{ width:'100%', background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, letterSpacing:0, fontFamily:T.font.sans, outline:'none', boxSizing:'border-box' as const, resize:'vertical' as const, lineHeight:1.6 }}/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>setShowAdd(false)}>Ακύρωση</button>
-              <button style={s.btnGold} onClick={saveLog} disabled={saving}>{saving?'Αποθήκευση...':'Αποθήκευση'}</button>
+              <button style={s.btnGold} onClick={saveLog} disabled={saving}>{saving?'Αποθήκευση…':'Αποθήκευση'}</button>
             </div>
           </div>
         )}
@@ -1172,7 +1172,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>setAddOpen(false)}>Ακύρωση</button>
-              <button style={s.btnGold} onClick={savePay} disabled={busy}>{busy?'Αποθήκευση...':'Καταχώρηση'}</button>
+              <button style={s.btnGold} onClick={savePay} disabled={busy}>{busy?'Αποθήκευση…':'Καταχώρηση'}</button>
             </div>
           </div>
         )}
@@ -1586,7 +1586,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>{setAddOpen(false);setEditId(null);}}>Ακύρωση</button>
-              <button style={s.btnGold} onClick={save} disabled={busy}>{busy?'Αποθήκευση...':editId?'Αποθήκευση':'Καταχώρηση'}</button>
+              <button style={s.btnGold} onClick={save} disabled={busy}>{busy?'Αποθήκευση…':editId?'Αποθήκευση':'Καταχώρηση'}</button>
             </div>
           </div>
         )}
@@ -2413,7 +2413,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                         <button onClick={()=>openLeaseDoc(dc)} style={{ ...s.btnGold, display:'inline-block', marginBottom:10 }}>Άνοιγμα PDF</button>
                         <div style={{ marginTop:10 }}>
                           <label style={{ ...s.btnSm, cursor:'pointer', display:'inline-block' }}>
-                            {uploading?'Ανέβασμα...':'Αντικατάσταση PDF'}
+                            {uploading?'Ανέβασμα…':'Αντικατάσταση PDF'}
                             <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
                           </label>
                         </div>
@@ -2422,7 +2422,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ border:'2px dashed var(--border-default)', borderRadius:T.radius.inner, padding:'40px 28px', textAlign:'center' as const }}>
                         <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:18 }}>Ανέβασε το μισθωτήριο σε μορφή PDF</div>
                         <label style={{ ...s.btnGold, cursor:'pointer', display:'inline-block', padding:'11px 28px' }}>
-                          {uploading?'Ανέβασμα...':'Επιλογή PDF'}
+                          {uploading?'Ανέβασμα…':'Επιλογή PDF'}
                           <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
                         </label>
                       </div>
@@ -2486,7 +2486,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                   <TextInput label="IBAN" value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000 0000..."/>
                 </div>
                 <div style={{ ...s.g2, marginBottom:16 }}>
-                  <SelectField label="Τύπος Εγγράφου Ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή..."/>
+                  <SelectField label="Τύπος Εγγράφου Ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
                   <TextInput label="Αριθμός Εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
                 </div>
                 {/* Ανέβασμα σαρωμένου εγγράφου ταυτοποίησης */}
@@ -2497,7 +2497,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2, lineHeight:1.4 }}>Ανέβασε σαρωμένη ταυτότητα, διαβατήριο ή άλλο έγγραφο (PDF ή εικόνα).</div>
                     </div>
                     <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
-                      {docBusy?'Ανέβασμα...':'Επιλογή αρχείου'}
+                      {docBusy?'Ανέβασμα…':'Επιλογή αρχείου'}
                       <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'id'); e.currentTarget.value='';}}/>
                     </label>
                   </div>
@@ -2591,7 +2591,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 <SectionTitle>Εγγύηση</SectionTitle>
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <NumberInput label="Ποσό Εγγύησης" value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
-                  <SelectField label="Τρόπος Καταβολής" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή..."/>
+                  <SelectField label="Τρόπος Καταβολής" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>
                   <DateField label="Ημ. Καταβολής Εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>
                 </div>
                 <div style={{ ...s.g3, marginBottom:16 }}>
@@ -2602,7 +2602,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 {form.deposit_invested&&(
                   <div style={{ ...s.g3, marginBottom:16 }}>
                     <NumberInput label="Απόδοση % / Έτος" value={form.deposit_invest_rate} onChange={v=>sf('deposit_invest_rate',v)} suffix="%" step={0.1} max={100}/>
-                    <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
+                    <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή…"/>
                     <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="π.χ. VWCE..."/>
                   </div>
                 )}
@@ -2621,7 +2621,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                   <TextInput label="Εξωτερικός Σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="https://drive.google.com/..."/>
                   <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:14, flexWrap:'wrap' as const }}>
                     <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
-                      {docBusy?'Ανέβασμα...':'Ανέβασμα αρχείου'}
+                      {docBusy?'Ανέβασμα…':'Ανέβασμα αρχείου'}
                       <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'lease'); e.currentTarget.value='';}}/>
                     </label>
                     <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>PDF ή εικόνα, αποθηκεύεται στον χώρο εγγράφων του ακινήτου</span>
@@ -2690,14 +2690,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     {form.parking_extra&&<NumberInput label="Μηνιαία Τιμή Στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
                   </div>
                   <div style={{ ...s.g3, marginBottom:16 }}>
-                    <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή..."/>
+                    <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή…"/>
                     <div><div title="Υποδομή φόρτισης για ηλεκτρικό όχημα" style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης Ηλεκτρικού Οχήματος</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
                   </div>
-                  <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="π.χ. Θέση Νο. 12, υπόγειο Β..."/>
+                  <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="π.χ. Θέση Νο. 12, υπόγειο Β…"/>
                 </SvcSection>
 
                 <SvcSection title="Επιπλέον Παροχές" hint="Αποθήκη, κήπος, κοινόχρηστες παροχές και ό,τι άλλο προσφέρεις." open={svcUI.extra} onToggle={()=>setSvcUI(u=>({...u,extra:!u.extra}))}>
-                  <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="π.χ. Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
+                  <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="π.χ. Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
                 </SvcSection>
               </>
             )}

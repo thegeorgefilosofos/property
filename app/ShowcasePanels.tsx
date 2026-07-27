@@ -1,5 +1,6 @@
 'use client';
 
+import { T } from '@/components/Theme';
 // ═══════════════════════════════════════════════════════════════════════════
 // Τα τρία «πάνελ προϊόντος» (Σάρωση · Πίνακας · Βοηθός), ΜΙΑ πηγή αλήθειας
 // για το showcase του hero ΚΑΙ το scrollytelling «Πώς δουλεύει». Μαζί τους
@@ -56,7 +57,7 @@ export function PanelDashboard() {
           {kpis.map(([l, v], i) => (
             <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</div>
-              <div style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', fontSize: 'clamp(17px, 2.6vw, 22px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{v}</div>
+              <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', fontSize: 'clamp(17px, 2.6vw, 22px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{v}</div>
             </div>
           ))}
         </div>
@@ -96,11 +97,11 @@ export function PanelScan() {
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
         </div>
         {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημ. λήξης', '10/08/2026']].map(([l, v], i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>
         ))}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
           <span style={{ fontSize: 12, fontWeight: 700 }}>Πληρωτέο</span>
-          <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>88,50&nbsp;€</span>
+          <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>88,50&nbsp;€</span>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 2px 10px', fontSize: 12, color: 'var(--text-secondary)' }}>

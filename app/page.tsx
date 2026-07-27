@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
 import ScrollStory from './ScrollStory';
 import LandingCalculator from './LandingCalculator';
+import { T } from '@/components/Theme';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Landing. Χτισμένη γύρω από τα δύο μοναδικά μας: (1) μία φωτογραφία → αυτόματη
@@ -99,7 +100,7 @@ export default async function Landing() {
   const loggedIn = !!user;
 
   return (
-    <div className="lp-root" style={{ color: TEXT, minHeight: '100vh', fontFamily: "'Inter',-apple-system,sans-serif", overflowX: 'clip', position: 'relative' }}>
+    <div className="lp-root" style={{ color: TEXT, minHeight: '100vh', fontFamily: T.font.sans, overflowX: 'clip', position: 'relative' }}>
 
       <style>{`
         /* Η landing είναι πάντα σκοτεινή, ανεξάρτητα από το θέμα της εφαρμογής:

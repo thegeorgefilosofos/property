@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Badge } from '@/components/Theme';
+import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
 import {
   buildJournal, journalTotals, trialBalance, journalToCsv, auditJournal,
@@ -86,7 +86,6 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const selIds = useMemo(() => props.filter(p => propIds.has(p.id)).map(p => p.id), [props, propIds]);
 
   useEffect(() => { setPreview(null); setTotals(null); setAudit(null); setShowChecks(false); }, [year, month, propIds]);
-  if (!open) return null;
 
   const periodLabel = month === 0 ? `${year}` : `${MONTHS[month - 1]} ${year}`;
 
@@ -173,21 +172,27 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const field: React.CSSProperties = { height: 40, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' };
   const pill = (on: boolean): React.CSSProperties => ({ fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', border: `1px solid ${on ? 'var(--accent-border)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans });
 
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(760px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2 }}>Λογιστικό ημερολόγιο</div>
-            <div style={{ ...TT.bodySm, marginTop: 1 }}>Διπλογραφικό, έτοιμο για τον λογιστή · SoftOne · Epsilon · QuickBooks · Xero</div>
-          </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
+  const footerInfo = <>{selIds.length} {selIds.length === 1 ? 'ακίνητο' : 'ακίνητα'} · {periodLabel}</>;
+  const footer = (
+    <>
+      <button onClick={e => { e.currentTarget.blur(); doPreview(); }} disabled={busy || !selIds.length}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: T.radius.btn, background: 'none', border: 'none', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: (busy || !selIds.length) ? 'not-allowed' : 'pointer', opacity: (busy || !selIds.length) ? 0.5 : 1, transition: 'background 0.15s, color 0.15s' }}
+        onMouseEnter={e => { if (!(busy || !selIds.length)) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        {busy ? 'Έλεγχος…' : preview ? 'Επανέλεγχος' : 'Έλεγχος ισοζυγίου'}
+      </button>
+      <Btn variant="primary" onClick={download} disabled={busy || !selIds.length}>{busy ? 'Εξαγωγή…' : (format === 'excel' ? 'Λήψη Excel' : 'Λήψη CSV')}</Btn>
+    </>
+  );
 
-        <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+  return (
+    <Modal open={open} onClose={onClose} width={760}
+      title="Λογιστικό ημερολόγιο"
+      subtitle="Διπλογραφικό, έτοιμο για τον λογιστή · SoftOne · Epsilon · QuickBooks · Xero"
+      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>}
+      footer={footer} footerInfo={footerInfo}>
+      <>
           <div>
             <div style={{ ...TT.label, marginBottom: 8 }}>ΠΕΡΙΟΔΟΣ</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -323,22 +328,8 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
           )}
 
           {err && <div style={{ fontSize: 12.5, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
-          <span style={{ ...TT.bodySm }}>{selIds.length} {selIds.length === 1 ? 'ακίνητο' : 'ακίνητα'} · {periodLabel}</span>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <button onClick={e => { e.currentTarget.blur(); doPreview(); }} disabled={busy || !selIds.length}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: T.radius.btn, background: 'none', border: 'none', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: (busy || !selIds.length) ? 'not-allowed' : 'pointer', opacity: (busy || !selIds.length) ? 0.5 : 1, transition: 'background 0.15s, color 0.15s' }}
-              onMouseEnter={e => { if (!(busy || !selIds.length)) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-              {busy ? 'Έλεγχος…' : preview ? 'Επανέλεγχος' : 'Έλεγχος ισοζυγίου'}
-            </button>
-            <Btn variant="primary" onClick={download} disabled={busy || !selIds.length}>{busy ? 'Εξαγωγή…' : (format === 'excel' ? 'Λήψη Excel' : 'Λήψη CSV')}</Btn>
-          </div>
-        </div>
-      </div>
-    </div>
+      </>
+    </Modal>
   );
 }
+

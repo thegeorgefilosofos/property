@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
-import { feAuto } from '@/components/Theme';
+import { T, feAuto } from '@/components/Theme';
 
 interface Expense { category: string; amount: number; date: string }
 interface Stay { check_in: string | null; check_out: string | null; nights: number | null; total: number | null }
@@ -58,12 +58,12 @@ export default function AccountantPortal() {
   const row = (k: string, v: string, strong?: boolean) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k}</span>
-      <span style={{ fontSize: 14, fontWeight: strong ? 700 : 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace" }}>{v}</span>
+      <span style={{ fontSize: 14, fontWeight: strong ? 700 : 600, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{v}</span>
     </div>
   );
 
   return (
-    <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif", paddingBottom: 40 }}>
+    <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: T.font.sans, paddingBottom: 40 }}>
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -71,7 +71,7 @@ export default function AccountantPortal() {
             <span style={{ fontSize: 16, fontWeight: 700 }}>Πύλη Λογιστή</span>
           </div>
           {state === 'ok' && (
-            <select value={year} onChange={e => setYear(parseInt(e.target.value, 10))} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Roboto Mono',monospace", fontWeight: 700 }}>
+            <select value={year} onChange={e => setYear(parseInt(e.target.value, 10))} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.mono, fontWeight: 700 }}>
               {[nowYear, nowYear - 1, nowYear - 2, nowYear - 3].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           )}
@@ -118,7 +118,7 @@ export default function AccountantPortal() {
                     {Object.entries((x.p.expenses || []).reduce<Record<string, number>>((m, e) => { m[e.category || 'Άλλο'] = (m[e.category || 'Άλλο'] || 0) + (e.amount || 0); return m; }, {})).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
                       <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
                         <span style={{ color: 'var(--text-secondary)' }}>{cat}</span>
-                        <span style={{ fontFamily: "'Roboto Mono',monospace", color: 'var(--text-primary)' }}>{feAuto(amt)}</span>
+                        <span style={{ fontFamily: T.font.mono, color: 'var(--text-primary)' }}>{feAuto(amt)}</span>
                       </div>
                     ))}
                   </div>

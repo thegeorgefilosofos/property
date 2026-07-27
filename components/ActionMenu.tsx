@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { T } from '@/components/Theme';
 
 export interface ActionMenuItem {
   key: string;
@@ -69,7 +70,7 @@ export function ActionMenu({
           display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 17,
           border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)',
           color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-          fontFamily: "'Inter',sans-serif", transition: 'all 0.13s', whiteSpace: 'nowrap',
+          fontFamily: T.font.sans, transition: 'all 0.13s', whiteSpace: 'nowrap',
         }}
         onMouseEnter={e => { if (!open) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
         onMouseLeave={e => { if (!open) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
@@ -102,7 +103,7 @@ export function ActionMenu({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left', padding: '9px 10px',
                   borderRadius: 9, border: 'none', background: 'transparent', cursor: inert ? 'default' : 'pointer',
-                  opacity: it.disabled ? 0.5 : 1, fontFamily: "'Inter',sans-serif", transition: 'background 0.12s',
+                  opacity: it.disabled ? 0.5 : 1, fontFamily: T.font.sans, transition: 'background 0.12s',
                 }}
                 onMouseEnter={e => { if (!inert) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}

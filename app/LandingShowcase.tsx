@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { PanelFX, PanelScan, PanelDashboard, PanelAssistant } from './ShowcasePanels';
+import { T } from '@/components/Theme';
 
 const TABS = [
   { key: 'scan', label: 'Σάρωση' },
@@ -102,7 +103,7 @@ export default function LandingShowcase() {
           const on = i === active;
           return (
             <button key={t.key} role="tab" aria-selected={on} id={`tab-${t.key}`} aria-controls={`panel-${t.key}`} onClick={() => { setActive(i); setPaused(true); }}
-              style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${on ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : 'var(--border-subtle)'}`, background: on ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', borderRadius: 100, padding: '8px 16px', fontSize: 13, fontWeight: on ? 700 : 500, fontFamily: "'Inter', sans-serif", cursor: 'pointer', transition: 'all .2s' }}>
+              style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${on ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : 'var(--border-subtle)'}`, background: on ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', borderRadius: 100, padding: '8px 16px', fontSize: 13, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'all .2s' }}>
               {t.label}
               {on && !paused && <span key={active} className="lp-progress" style={{ position: 'absolute', left: 0, bottom: 0, height: 2, background: 'var(--accent)' }} />}
             </button>

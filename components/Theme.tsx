@@ -16,11 +16,16 @@
 // --negative, --bg-*, --text-*, --border-*).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { ReactNode, CSSProperties, useState } from 'react';
+import { ReactNode, CSSProperties, useState, useEffect } from 'react';
 
 // ── Tokens (ίδια ονόματα με τα Bills, μηδενική αλλαγή νοοτροπίας) ─────────
 export const T = {
-  radius: { card: 14, inner: 10, badge: 100, btn: 10, pill: 100 },
+  radius: { card: 14, inner: 10, badge: 100, btn: 10, pill: 100, modal: 18 },
+  // Ύψη control — ΜΙΑ κλίμακα για κάθε κουμπί/πεδίο/chip, ώστε τίποτα να μη
+  // «χοροπηδά» από οθόνη σε οθόνη: sm=chips, md=κανονικά πεδία, lg=κύρια πεδία.
+  h: { sm: 32, md: 36, lg: 40 },
+  // Επικάλυψη παραθύρου — μία τιμή παντού (πριν υπήρχαν 7 διαφορετικές).
+  scrim: 'rgba(0,0,0,0.55)',
   font: {
     // Γραμματοσειρές που φορτώνει self-hosted το app (globals.css): Inter + Roboto Mono.
     sans: "'Inter', system-ui, sans-serif",
@@ -53,7 +58,7 @@ export const TT = {
   mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
 } as const;
 
-// ═══ Skeleton, placeholder φόρτωσης (αντικαθιστά τα «Φόρτωση...») ══════════
+// ═══ Skeleton, placeholder φόρτωσης (αντικαθιστά τα «Φόρτωση…») ══════════
 export function Skeleton({ w = '100%', h = 14, r = 8, style }: { w?: number | string; h?: number | string; r?: number; style?: CSSProperties }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r, ...style }} />;
 }
@@ -126,6 +131,57 @@ export function Card({ children, style, className }: { children: ReactNode; styl
   );
 }
 
+// ═══ Modal, ΜΙΑ επιφάνεια για κάθε παράθυρο ═══════════════════════════════
+// Πριν, κάθε modal έφτιαχνε μόνο του overlay/πλαίσιο: 7 διαφορετικές
+// διαφάνειες και 8 διαφορετικά radius, οπότε το app έμοιαζε με πολλά apps.
+// Εδώ ορίζεται μία φορά: ίδιο scrim, ίδιο radius, ίδια κεφαλίδα (εικονίδιο +
+// τίτλος + υπότιτλος + ×), ίδιο padding, ίδιο υποσέλιδο ενεργειών.
+// Κλείνει με κλικ στο φόντο ή Escape· το περιεχόμενο κυλά, header/footer όχι.
+export function Modal({ open, onClose, title, subtitle, icon, width = 620, children, footer, footerInfo }: {
+  open: boolean; onClose: () => void; title: string; subtitle?: string; icon?: ReactNode;
+  width?: number; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={title}
+      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: T.sp.lg }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: `min(${width}px, 100%)`, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          {icon && (
+            <div style={{ width: T.h.lg, height: T.h.lg, borderRadius: 11, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ ...TT.h2 }}>{title}</div>
+            {subtitle && <div style={{ ...TT.bodySm, marginTop: 1 }}>{subtitle}</div>}
+          </div>
+          <button onClick={onClose} aria-label="Κλείσιμο"
+            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4, fontFamily: T.font.sans }}>×</button>
+        </div>
+
+        <div style={{ padding: T.sp.xxl, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: T.sp.xl }}>
+          {children}
+        </div>
+
+        {(footer || footerInfo) && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: T.sp.md, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
+            <span style={{ ...TT.bodySm }}>{footerInfo}</span>
+            <div style={{ display: 'flex', gap: T.sp.sm }}>{footer}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ═══ SecHdr, επικεφαλίδα ενότητας (η τελεία + uppercase label των Bills) ══
 export function SecHdr({ label, sub, right }: { label: string; sub?: string; right?: ReactNode }) {
   return (
@@ -180,7 +236,7 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   );
 }
 
-// ═══ Badge, μικρή ετικέτα κατάστασης (Πληρώθηκε, Ενεργό...) ════════════════
+// ═══ Badge, μικρή ετικέτα κατάστασης (Πληρώθηκε, Ενεργό…) ════════════════
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: Tone }) {
   const tv = toneVars(tone);
   return (

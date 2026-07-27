@@ -533,7 +533,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
             </div>
             <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
               <button onClick={()=>setStep('upload')} style={{padding:'9px 18px',borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Πίσω</button>
-              <button onClick={handleImport} disabled={importing} style={{padding:'9px 22px',borderRadius:T.radius.pill,background:importing?'var(--bg-elevated)':'var(--accent)',border:'none',color:importing?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:importing?'wait':'pointer'}}>{importing?'Εισαγωγή...':`Εισαγωγή ${rows.length} αντικειμένων`}</button>
+              <button onClick={handleImport} disabled={importing} style={{padding:'9px 22px',borderRadius:T.radius.pill,background:importing?'var(--bg-elevated)':'var(--accent)',border:'none',color:importing?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:importing?'wait':'pointer'}}>{importing?'Εισαγωγή…':`Εισαγωγή ${rows.length} αντικειμένων`}</button>
             </div>
           </>
         )}
@@ -814,12 +814,12 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
               })}
             </div>
           </div>
-          <Textarea label="Σημειώσεις" value={form.notes||''} onChange={v=>set('notes',v)} placeholder="Παρατηρήσεις, ιστορικό, χαρακτηριστικά..." rows={2}/>
+          <Textarea label="Σημειώσεις" value={form.notes||''} onChange={v=>set('notes',v)} placeholder="Παρατηρήσεις, ιστορικό, χαρακτηριστικά…" rows={2}/>
         </div>
         <div style={{padding:'16px 28px 24px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:10,justifyContent:'flex-end',flexShrink:0,background:'var(--bg-surface)'}}>
           <button onClick={onClose} style={{padding:'0 20px',height:40,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
           <button onClick={handleSave} disabled={saving} style={{padding:'0 24px',height:40,borderRadius:T.radius.pill,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:saving?'wait':'pointer',minWidth:120}}>
-            {saving?'Αποθήκευση...':'Αποθήκευση'}
+            {saving?'Αποθήκευση…':'Αποθήκευση'}
           </button>
         </div>
       </div>
@@ -901,7 +901,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
               )}
             </div>
           </div>
-          <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Περιγραφή *</label><Textarea value={form.description} onChange={v=>setForm(f=>({...f,description:v}))} placeholder="Τι επισκευάστηκε..." rows={2}/></div>
+          <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Περιγραφή *</label><Textarea value={form.description} onChange={v=>setForm(f=>({...f,description:v}))} placeholder="Τι επισκευάστηκε…" rows={2}/></div>
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
           <div>
@@ -911,7 +911,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
           <Toggle on={pushExpenses} onChange={setPushExpenses}/>
         </div>
         <button onClick={handleAdd} disabled={saving} style={{padding:'0 20px',height:40,borderRadius:T.radius.pill,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:saving?'wait':'pointer',alignSelf:'flex-end'}}>
-          {saving?'Αποθήκευση...':'Καταχώρηση Επισκευής'}
+          {saving?'Αποθήκευση…':'Καταχώρηση Επισκευής'}
         </button>
       </div>
     </div>
@@ -1188,7 +1188,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-        <div style={{flex:1,minWidth:180}}><TextInput value={search} onChange={setSearch} placeholder="Αναζήτηση αντικειμένου, μάρκας..."/></div>
+        <div style={{flex:1,minWidth:180}}><TextInput value={search} onChange={setSearch} placeholder="Αναζήτηση αντικειμένου, μάρκας…"/></div>
         <div style={{width:150}}><CustomSelect value={filterCat} onChange={setFilterCat} options={['Όλες',...['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].filter(c=>items.some(i=>i.category===c))].map(c=>({value:c,label:c==='Όλες'?'Όλες Κατηγορίες':c}))}/></div>
         {allRooms.length>0&&<div style={{width:140}}><CustomSelect value={filterRoom} onChange={setFilterRoom} options={[{value:'Όλα',label:'Όλα Δωμάτια'},...allRooms.map(r=>({value:r,label:r}))]}/></div>}
         {allTags.length>0&&<div style={{width:130}}><CustomSelect value={filterTag} onChange={setFilterTag} options={[{value:'Όλα',label:'Όλες οι ετικέτες'},...allTags.map(t=>({value:t,label:t}))]}/></div>}
@@ -1518,7 +1518,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
         <div><label style={labelStyle}>Ονοματεπώνυμο *</label><TextInput value={tenantName} onChange={setTenantName} placeholder="Παράδειγμα: Ιωάννης Παπαδόπουλος"/></div>
         <div><label style={labelStyle}>Τηλέφωνο</label><TextInput value={tenantPhone} onChange={setTenantPhone} placeholder="6912345678"/></div>
         <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={handoverDate} onChange={setHandoverDate}/></div>
-        <div><label style={labelStyle}>Σημειώσεις</label><TextInput value={notes} onChange={setNotes} placeholder="Γενικές παρατηρήσεις..."/></div>
+        <div><label style={labelStyle}>Σημειώσεις</label><TextInput value={notes} onChange={setNotes} placeholder="Γενικές παρατηρήσεις…"/></div>
       </div>
       <div>
         <SectionLabel label="Κατάσταση Αντικειμένων" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{items.length} αντικείμενα</span>}/>
@@ -1552,7 +1552,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
       <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
         <button onClick={()=>setMode('list')} style={{padding:'0 20px',height:40,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
         <button onClick={handleSave} disabled={saving} style={{padding:'0 24px',height:40,borderRadius:T.radius.pill,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:saving?'wait':'pointer'}}>
-          {saving?'Αποθήκευση...':'Αποθήκευση Πρωτοκόλλου'}
+          {saving?'Αποθήκευση…':'Αποθήκευση Πρωτοκόλλου'}
         </button>
       </div>
     </div>
@@ -1709,7 +1709,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
             <div><label style={labelStyle}>Κάθε (μήνες)</label><NumberInput value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>
             <div><label style={labelStyle}>Τελευταία Εκτέλεση</label><DatePicker value={form.last_done} onChange={v=>setForm(f=>({...f,last_done:v}))}/></div>
             <div><label style={labelStyle}>Εκτιμώμενο Κόστος (€)</label><NumberInput value={String(form.est_cost)} onChange={v=>setForm(f=>({...f,est_cost:parseFloat(v)||0}))} suffix="€" min={0}/></div>
-            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Σημειώσεις</label><TextInput value={form.notes} onChange={v=>setForm(f=>({...f,notes:v}))} placeholder="Τεχνικός, παρατηρήσεις..."/></div>
+            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Σημειώσεις</label><TextInput value={form.notes} onChange={v=>setForm(f=>({...f,notes:v}))} placeholder="Τεχνικός, παρατηρήσεις…"/></div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,padding:'9px 12px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -1717,7 +1717,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
           </div>
           <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:12}}>
             <button onClick={()=>setAdding(false)} style={{padding:'0 16px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
-            <button onClick={handleSave} disabled={saving} style={{padding:'0 20px',height:36,borderRadius:T.radius.pill,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:12,fontWeight:500,fontFamily:T.font.sans,cursor:saving?'wait':'pointer'}}>{saving?'Αποθήκευση...':'Αποθήκευση'}</button>
+            <button onClick={handleSave} disabled={saving} style={{padding:'0 20px',height:36,borderRadius:T.radius.pill,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:12,fontWeight:500,fontFamily:T.font.sans,cursor:saving?'wait':'pointer'}}>{saving?'Αποθήκευση…':'Αποθήκευση'}</button>
           </div>
         </div>
       )}

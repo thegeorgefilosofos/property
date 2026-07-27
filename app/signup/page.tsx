@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -102,13 +103,13 @@ export default function SignupPage() {
   }
   const label: React.CSSProperties = {
     fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, display: 'block',
-    marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Inter',sans-serif",
+    marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans,
   }
   const focus = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--accent)' }
   const blur = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)' }
 
   return (
-    <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: "'Inter',sans-serif" }}>
+    <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: T.font.sans }}>
 
       {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside

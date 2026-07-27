@@ -1,4 +1,5 @@
 'use client'
+import { T } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -65,11 +66,11 @@ export default function LoginPage() {
   const label: React.CSSProperties = {
     fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700,
     display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em',
-    fontFamily: "'Inter',sans-serif",
+    fontFamily: T.font.sans,
   }
 
   return (
-    <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: "'Inter',sans-serif" }}>
+    <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: T.font.sans }}>
 
       {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside />

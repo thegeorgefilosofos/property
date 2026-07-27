@@ -75,73 +75,73 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
         <div style={{ display:'flex', alignItems:'center', gap:14, padding:'18px 24px', borderBottom:'1px solid var(--border-subtle)' }}>
           <div style={{ width:40, height:40, borderRadius:11, background:'var(--accent-soft)', border:'1px solid var(--accent-border)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Landmark size={19}/></div>
           <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em', color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Εισαγωγή τραπεζικής κίνησης</p>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>Αντιστοίχισε αυτόματα τις κινήσεις σε ενοίκια και έξοδα, με τη δική σου έγκριση</p>
+            <p style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em', color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>Εισαγωγή τραπεζικής κίνησης</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>Αντιστοίχισε αυτόματα τις κινήσεις σε ενοίκια και έξοδα, με τη δική σου έγκριση</p>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ background:'none', border:'none', color:'var(--text-tertiary)', cursor:'pointer', fontSize:22, lineHeight:1, padding:4 }}>×</button>
         </div>
 
         <div style={{ padding:'20px 24px 22px' }}>
           {step==='input'&&(<>
-            <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'0 0 10px', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Επικόλλησε την κίνηση από το e-banking (CSV) ή ανέβασε αρχείο. Αναγνωρίζονται στήλες ημερομηνία, περιγραφή και ποσό (ή χρέωση/πίστωση).</p>
+            <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'0 0 10px', fontFamily: T.font.sans, lineHeight:1.55 }}>Επικόλλησε την κίνηση από το e-banking (CSV) ή ανέβασε αρχείο. Αναγνωρίζονται στήλες ημερομηνία, περιγραφή και ποσό (ή χρέωση/πίστωση).</p>
             <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={'Ημερομηνία;Περιγραφή;Ποσό\n05/03/2026;Κατάθεση ενοικίου;800,00'} style={field}
               onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}/>
             <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:12, flexWrap:'wrap' }}>
-              <label style={{ fontSize:13, color:'var(--accent)', cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>
+              <label style={{ fontSize:13, color:'var(--accent)', cursor:'pointer', fontFamily: T.font.sans }}>
                 Άνοιγμα αρχείου CSV
                 <input type="file" accept=".csv,text/csv,text/plain" style={{ display:'none' }} onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>{ const v=String(r.result||''); setText(v); analyze(v) }; r.readAsText(f) } }}/>
               </label>
               <div style={{ flex:1 }}/>
-              <button disabled={!text.trim()} onClick={()=>analyze(text)} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:text.trim()?'var(--accent)':'var(--bg-surface)', color:text.trim()?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:text.trim()?'pointer':'default', fontFamily:"'Inter',sans-serif" }}>Ανάλυση<ArrowRight size={15}/></button>
+              <button disabled={!text.trim()} onClick={()=>analyze(text)} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:text.trim()?'var(--accent)':'var(--bg-surface)', color:text.trim()?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:text.trim()?'pointer':'default', fontFamily: T.font.sans }}>Ανάλυση<ArrowRight size={15}/></button>
             </div>
-            {error&&<p style={{ fontSize:13, color:'var(--negative)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif" }}>{error}</p>}
+            {error&&<p style={{ fontSize:13, color:'var(--negative)', margin:'12px 0 0', fontFamily: T.font.sans }}>{error}</p>}
           </>)}
 
           {step==='review'&&(<>
             {rentMatches.length===0&&expenses.length===0?(
-              <p style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", padding:'8px 0' }}>Δεν βρέθηκαν νέες αντιστοιχίσεις.{skipped>0?` (${skipped} κινήσεις είχαν ήδη εισαχθεί.)`:''}</p>
+              <p style={{ fontSize:13, color:'var(--text-secondary)', fontFamily: T.font.sans, padding:'8px 0' }}>Δεν βρέθηκαν νέες αντιστοιχίσεις.{skipped>0?` (${skipped} κινήσεις είχαν ήδη εισαχθεί.)`:''}</p>
             ):(<>
               {rentMatches.length>0&&(<>
-                <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily:"'Inter',sans-serif" }}>Ενοίκια που εισπράχθηκαν</p>
+                <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Ενοίκια που εισπράχθηκαν</p>
                 <div style={{ display:'flex', flexDirection:'column', gap:7, marginBottom:16 }}>
                   {rentMatches.map((m,i)=>(
                     <div key={i} style={row}>
                       <Box checked={m.confirm} onClick={()=>setRentMatches(a=>a.map((x,j)=>j===i?{...x,confirm:!x.confirm}:x))}/>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif" }}>{m.label}</p>
-                        <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily:"'Inter',sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.txn.date} · {m.txn.description}</p>
+                        <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>{m.label}</p>
+                        <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.txn.date} · {m.txn.description}</p>
                       </div>
-                      <span style={{ fontSize:13, fontWeight:600, color:'var(--positive)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{feAuto(m.txn.amount)}</span>
+                      <span style={{ fontSize:13, fontWeight:600, color:'var(--positive)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(m.txn.amount)}</span>
                     </div>
                   ))}
                 </div>
               </>)}
               {expenses.length>0&&(<>
-                <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily:"'Inter',sans-serif" }}>Πιθανά έξοδα</p>
+                <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Πιθανά έξοδα</p>
                 <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
                   {expenses.map((e,i)=>(
                     <div key={i} style={row}>
                       <Box checked={e.confirm} onClick={()=>setExpenses(a=>a.map((x,j)=>j===i?{...x,confirm:!x.confirm}:x))}/>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</p>
-                        <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily:"'Inter',sans-serif" }}>{e.txn.date}</p>
+                        <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</p>
+                        <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans }}>{e.txn.date}</p>
                       </div>
-                      <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{feAuto(e.amount)}</span>
+                      <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(e.amount)}</span>
                     </div>
                   ))}
                 </div>
               </>)}
-              {skipped>0&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif" }}>{skipped} κινήσεις παραλείφθηκαν (είχαν ήδη εισαχθεί).</p>}
+              {skipped>0&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{skipped} κινήσεις παραλείφθηκαν (είχαν ήδη εισαχθεί).</p>}
             </>)}
             <div style={{ display:'flex', gap:10, marginTop:18, justifyContent:'flex-end' }}>
-              <button onClick={()=>setStep('input')} style={{ padding:'9px 18px', borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Πίσω</button>
-              <button disabled={!rentMatches.some(m=>m.confirm)&&!expenses.some(e=>e.confirm)} onClick={save} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:(rentMatches.some(m=>m.confirm)||expenses.some(e=>e.confirm))?'var(--accent)':'var(--bg-surface)', color:(rentMatches.some(m=>m.confirm)||expenses.some(e=>e.confirm))?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Καταχώριση</button>
+              <button onClick={()=>setStep('input')} style={{ padding:'9px 18px', borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Πίσω</button>
+              <button disabled={!rentMatches.some(m=>m.confirm)&&!expenses.some(e=>e.confirm)} onClick={save} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:(rentMatches.some(m=>m.confirm)||expenses.some(e=>e.confirm))?'var(--accent)':'var(--bg-surface)', color:(rentMatches.some(m=>m.confirm)||expenses.some(e=>e.confirm))?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Καταχώριση</button>
             </div>
-            {error&&<p style={{ fontSize:13, color:'var(--negative)', margin:'12px 0 0', fontFamily:"'Inter',sans-serif" }}>{error}</p>}
+            {error&&<p style={{ fontSize:13, color:'var(--negative)', margin:'12px 0 0', fontFamily: T.font.sans }}>{error}</p>}
           </>)}
 
           {step==='saving'&&(
-            <p style={{ fontSize:13.5, color:'var(--text-secondary)', textAlign:'center', padding:'24px 0', fontFamily:"'Inter',sans-serif" }}>{savedMsg||'Καταχώριση…'}</p>
+            <p style={{ fontSize:13.5, color:'var(--text-secondary)', textAlign:'center', padding:'24px 0', fontFamily: T.font.sans }}>{savedMsg||'Καταχώριση…'}</p>
           )}
         </div>
       </div>

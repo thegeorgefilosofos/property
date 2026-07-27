@@ -310,7 +310,7 @@ function SubTaskEditor({ subtasks, onChange }: { subtasks: SubTask[]; onChange: 
         ))}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Νέο βήμα..." style={{ ...iStyle, flex: 1 }} />
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Νέο βήμα…" style={{ ...iStyle, flex: 1 }} />
         <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
     </div>
@@ -323,7 +323,7 @@ function CommentsEditor({ comments, onChange }: { comments: Comment[]; onChange:
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Γράψε σχόλιο..." style={{ ...iStyle, flex: 1 }} />
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Γράψε σχόλιο…" style={{ ...iStyle, flex: 1 }} />
         <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
@@ -1141,7 +1141,7 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
   const entries = Object.entries(TEMPLATES).filter(([key]) => (profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key)) && !smartKeys.has(key))
   const year = new Date().getFullYear()
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 620, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1250,7 +1250,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
   } : mkEmpty())
   // Ένα καθαρό form — χωρίς tabs, χωρίς επαναλήψεις (Google λογική).
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 28px 16px', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
           <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}</h3>
@@ -1287,7 +1287,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
             </div>
           </div>
           <div><FL>Σημείωση</FL>
-            <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+            <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -1316,7 +1316,7 @@ function QuickExpenseModal({ item, propertyId, userId, onClose, onSaved }: { ite
     setSaving(false); onSaved(); onClose()
   }
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 420, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
         <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 20px', color: 'var(--text-primary)' }}>Καταχώρηση Δαπάνης</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1326,7 +1326,7 @@ function QuickExpenseModal({ item, propertyId, userId, onClose, onSaved }: { ite
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
           <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: amount ? 'var(--accent)' : 'var(--bg-elevated)', color: amount ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: amount ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
-            {saving ? 'Καταχώρηση...' : 'Καταχώρηση Δαπάνης'}
+            {saving ? 'Καταχώρηση…' : 'Καταχώρηση Δαπάνης'}
           </button>
         </div>
       </div>
@@ -1743,7 +1743,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {/* Filters */}
       {items.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση εργασίας, ετικέτας, επαφής..." style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση εργασίας, ετικέτας, επαφής…" style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
           {search && <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
         </div>
         <FilterSelect value={filterStatus} onChange={v => setFilterStatus(v as FilterStatus)} minWidth={172}
@@ -1909,7 +1909,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {quickExpenseItem && <QuickExpenseModal item={quickExpenseItem} propertyId={propertyId} userId={userId} onClose={() => setQuickExpenseItem(null)} onSaved={() => showToast('Δαπάνη καταχωρήθηκε')} />}
 
       {deleteId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
@@ -1925,7 +1925,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       )}
 
       {bulkDeleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>

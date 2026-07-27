@@ -662,7 +662,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           {/* FIX: 2+2 grid, Πόλη label doesn't overflow */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
             <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
-            <TextInput   label="Πόλη / Περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη..."/>
+            <TextInput   label="Πόλη / Περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη…"/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
             <NumberInput label="Αξία Κτηρίου (€)"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
@@ -839,7 +839,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               </div>
               {insEditCovers && (
                 <div>
-                  <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός..."
+                  <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός…"
                     style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
                   <div style={{ display: 'flex', gap: 16 }}>
                     <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς Σεισμό"/>
