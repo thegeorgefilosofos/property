@@ -8,7 +8,7 @@
 // Secret:  supabase secrets set ANTHROPIC_API_KEY="sk-ant-..."
 // Τρέχει μηνιαία μέσω pg_cron (βλ. migration 20260715130000_bank_rates_pg_cron.sql).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -97,7 +97,13 @@ const json = (body: unknown, status = 200) =>
 // service-role bearer, an optional env secret, or the shared cron secret from
 // public.cron_secrets (the zero-config path pg_cron uses).
 const CRON_SECRET = Deno.env.get('BANK_RATES_CRON_SECRET') || ''
-async function authorized(req: Request, sb: ReturnType<typeof createClient>): Promise<boolean> {
+// Ο δομικός τύπος, όχι το ReturnType<typeof createClient>. Με το npm: specifier
+// το createClient είναι generic const arrow στο .d.mts, οπότε το ReturnType<> το
+// στιγμιοτυποποιεί με unknown/never και ο έλεγχος τύπων σπάει (TS2345) — ενώ η
+// πραγματική κλήση παρακάτω δίνει any/"public". Ο τύπος εδώ είναι ΑΚΡΙΒΩΣ αυτός
+// που δέχεται ήδη το _shared/auth.ts, άρα δεν είναι παράκαμψη· είναι ευθυγράμμιση.
+// deno-lint-ignore no-explicit-any
+async function authorized(req: Request, sb: { from: (table: string) => any }): Promise<boolean> {
   return authorizeCron(req, { serviceKey: SUPABASE_SERVICE_KEY, envSecret: CRON_SECRET, supabase: sb })
 }
 

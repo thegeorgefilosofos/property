@@ -3,7 +3,7 @@
 // Ενημερώνει: ECB Euribor + ΤτΕ rates (market_rates) + energy_tariffs
 // Deploy: supabase functions deploy market-data-updater --project-ref aromvduuxtcrzmwwvnej
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
 
 const supabase = createClient(

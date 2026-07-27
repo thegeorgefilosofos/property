@@ -51,6 +51,15 @@ const EGRESS_PATTERNS = [
   { name: 'Google Fonts stylesheet (leaks user IP)', re: /fonts\.googleapis\.com/ },
   { name: 'Google Fonts asset host (leaks user IP)', re: /fonts\.gstatic\.com/ },
   { name: 'External QR service (leaks payload in URL)', re: /api\.qrserver\.com/ },
+  // A CDN import inside an edge function puts a third party in the deploy path —
+  // and, worse, in the ROLLBACK path. On 2026-07-27 esm.sh returned 522 and no
+  // function could be deployed at all; had production been broken at that moment,
+  // `git revert` would have pointed straight back at the same dead host. The
+  // range (`@2`) was also resolved by the CDN at deploy time, so two deploys a
+  // week apart could ship different library code with nothing recording it.
+  // Use `npm:<pkg>@<exact-version>` instead.
+  { name: 'CDN import in an edge function (unreproducible deploy — use npm:)',
+    re: /from\s+['"]https:\/\/(esm\.sh|deno\.land\/x|unpkg\.com|cdn\.skypack\.dev)\// },
 ]
 
 // Files allowed to name these hosts: the guard itself, the module that replaced

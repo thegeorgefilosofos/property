@@ -12,7 +12,7 @@
 // Deploy: supabase functions deploy send-monthly-statements  (verify_jwt=false)
 // Χρειάζεται RESEND_API_KEY (υπάρχει) + προαιρετικά RESEND_FROM (branded αποστολέας).
 // ─────────────────────────────────────────────────────────────────────────
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!

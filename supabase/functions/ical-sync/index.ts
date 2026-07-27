@@ -14,7 +14,7 @@
 //   • sync-all: απαιτεί header x-cron-secret == ICAL_CRON_SECRET.
 //   • Απλός έλεγχος SSRF: μπλοκάρει localhost/ιδιωτικά δίκτυα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { timingSafeEqual } from '../_shared/auth.ts'
 import { reportEdgeError } from '../_shared/report.ts'
 

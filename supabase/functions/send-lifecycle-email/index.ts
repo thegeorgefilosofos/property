@@ -13,7 +13,7 @@
 // Deploy (μόλις υπάρχει verified domain): supabase functions deploy send-lifecycle-email
 // (verify_jwt=false). Χρειάζεται RESEND_API_KEY + RESEND_FROM (branded αποστολέας).
 // ─────────────────────────────────────────────────────────────────────────
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import {
   welcomeEmail, planUpgradedEmail, planDowngradedEmail, newPropertyEmail,
   feedbackRequestEmail, mobileLaunchEmail, referralInviteEmail, upsellEmail,
