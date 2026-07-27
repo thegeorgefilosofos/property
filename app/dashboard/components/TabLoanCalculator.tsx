@@ -110,7 +110,7 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
     const el=wrapRef.current; if(!el)return
     const r2=el.getBoundingClientRect()
     const xv=((clientX-r2.left)/r2.width)*W
-    let i=Math.floor((xv-padL)/step)
+    const i=Math.floor((xv-padL)/step)
     setHi(Math.max(0,Math.min(n-1,i)))
   }
   const leftPct=hi!=null?Math.max(13,Math.min(87,(cx(hi)/W)*100)):0
@@ -204,7 +204,7 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
     const el=wrapRef.current; if(!el)return
     const r=el.getBoundingClientRect()
     const xv=((clientX-r.left)/r.width)*W
-    let i=Math.round((xv-padL)/((W-padL-padR)/(n-1)))
+    const i=Math.round((xv-padL)/((W-padL-padR)/(n-1)))
     setHi(Math.max(0,Math.min(n-1,i)))
   }
   const leftPct=hi!=null?Math.max(11,Math.min(89,(X(hi)/W)*100)):0
@@ -643,7 +643,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
   const extraSav = useMemo(()=>{
     if(EP<=0)return null
-    let bal=LA,months=0,ti=0,m=monthly+EP
+    let bal=LA,months=0,ti=0; const m=monthly+EP
     while(bal>0&&months<Y*12){const int=bal*(effRate/100/12);ti+=int;bal=bal*(1+effRate/100/12)-m;months++}
     return{savedMonths:Y*12-months,savedInt:Math.max(0,totalInt-ti)}
   },[LA,effRate,Y,EP,monthly,totalInt])

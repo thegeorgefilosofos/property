@@ -155,7 +155,7 @@ export default function TrustPage() {
             </li>
             <li style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
               <strong style={{ color: 'var(--text-primary)' }}>Η ίδια η εφαρμογή</strong> σερβίρεται από παγκόσμιο
-              δίκτυο (Vercel, ΗΠΑ), οπότε κάθε αίτημά σου περνά από εκεί καθ' οδόν προς τη βάση.
+              δίκτυο (Vercel, ΗΠΑ), οπότε κάθε αίτημά σου περνά από εκεί καθ’ οδόν προς τη βάση.
             </li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 16 }}>
