@@ -31,6 +31,27 @@ const DEFAULT: NotifPrefs = {
   dunning_max: 3,
 }
 
+// Γραμμή διακόπτη με τίτλο/περιγραφή, με το κοινό MD3 Toggle (ίδιο με όλες τις Ρυθμίσεις).
+//
+// ΣΕ MODULE SCOPE, ΟΧΙ ΜΕΣΑ ΣΤΟ COMPONENT: όταν ένα component ορίζεται μέσα σε
+// άλλο, κάθε render του γονέα φτιάχνει ΝΕΟ τύπο. Ο React δεν μπορεί να ξέρει ότι
+// είναι «το ίδιο», οπότε αποσυναρμολογεί και ξαναχτίζει όλο το υποδέντρο: χάνεται
+// το state, κόβεται το focus, ξαναρχίζουν τα animations. Εδώ ήταν επτά διακόπτες
+// που ξαναγεννιούνταν σε κάθε πάτημα οποιουδήποτε από αυτούς.
+function NotifRow({ val, onChange, label, desc }: {
+  val: boolean; onChange: (v: boolean) => void; label: string; desc: string
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{label}</p>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{desc}</p>
+      </div>
+      <Toggle on={val} onChange={onChange} size="sm" />
+    </div>
+  )
+}
+
 export default function NotificationSettings({ userId }: { userId: string }) {
   const supabase = createClient()
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT)
@@ -96,21 +117,6 @@ export default function NotificationSettings({ userId }: { userId: string }) {
   const lbl: React.CSSProperties = {
     fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, color: 'var(--text-secondary)',
     display: 'block', marginBottom: 6,
-  }
-
-  // Γραμμή διακόπτη με τίτλο/περιγραφή, με το κοινό MD3 Toggle (ίδιο με όλες τις Ρυθμίσεις).
-  function NotifRow({ val, onChange, label, desc }: {
-    val: boolean; onChange: (v: boolean) => void; label: string; desc: string
-  }) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{label}</p>
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{desc}</p>
-        </div>
-        <Toggle on={val} onChange={onChange} size="sm" />
-      </div>
-    )
   }
 
   return (
