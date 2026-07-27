@@ -55,19 +55,31 @@ ok('trial balance nets to zero', tbSum === 0)
 // CSV formatters παράγουν σωστό αριθμό γραμμών + header.
 const gen = journalCsvGeneric(lines).split('\r\n')
 ok('generic CSV header greek (articles)', gen[0].startsWith('Αρ.Άρθρου;Ημ/νία;Κωδικός'))
-ok('generic CSV has totals row', gen[gen.length - 1].includes('ΣΥΝΟΛΑ'))
+ok('generic CSV has cost-centre column', gen[0].endsWith(';Κέντρο Κόστους'))
+// Αρχείο ΕΙΣΑΓΩΓΗΣ: καμία γραμμή συνόλων — θα την διάβαζε ο wizard ως κίνηση.
+ok('generic CSV has NO totals row', !journalCsvGeneric(lines).includes('ΣΥΝΟΛΑ'))
+ok('generic CSV row count = lines + header', gen.length === lines.length + 1)
 ok('generic CSV article number in col 0', gen[1].split(';')[0] === '1')
 ok('generic CSV DD/MM/YYYY date', gen[1].split(';')[1] === '05/01/2026')
 ok('generic CSV comma decimals in debit col', gen[1].split(';')[5] === '500,00')
+// Και οι δύο αριθμητικές στήλες πάντα συμπληρωμένες (0,00 όπου δεν υπάρχει ποσό).
+ok('generic CSV zero-fills credit col', gen[1].split(';')[6] === '0,00')
+ok('generic CSV carries property as cost centre', gen[1].split(';')[9] === 'Διαμ. Α')
 
 const qb = journalCsvQuickBooks(lines).split('\r\n')
-ok('QuickBooks header (Journal No + Debits/Credits)', qb[0] === 'Journal No,Journal Date,Account,Debits,Credits,Memo/Description,Name')
+ok('QuickBooks header (Journal No + Debits/Credits)', qb[0] === 'Journal No,Journal Date,Account,Debits,Credits,Memo/Description,Name,Currency,Class')
 ok('QuickBooks MM/DD/YYYY date', qb[1].split(',')[1] === '01/05/2026')
 ok('QuickBooks dot decimals', qb.some(r => r.includes('.00')))
+ok('QuickBooks account is code:name', qb[1].split(',')[2] === '38.00:Ταμείο / Καταθέσεις')
+ok('QuickBooks states EUR currency', qb[1].split(',')[7] === 'EUR')
 
 const xero = journalCsvXero(lines).split('\r\n')
 ok('Xero header', xero[0].startsWith('*Narration,*Date'))
 ok('Xero signed amounts (credit negative)', xero.some(r => /,-\d/.test(r)))
+// Κρίσιμο για το Xero: ΙΔΙΑ narration σε όλα τα σκέλη ενός άρθρου → ένα journal.
+const xeroArt1 = xero.slice(1).filter(r => /Άρθρο 1:/.test(r))
+ok('Xero groups an article under one narration', xeroArt1.length === 2 && xeroArt1[0].split(',')[0] === xeroArt1[1].split(',')[0])
+ok('Xero article amounts net to zero', Math.abs(xeroArt1.reduce((s, r) => s + Number(r.split(',')[5]), 0)) < 0.005)
 
 ok('journalToCsv dispatch', journalToCsv(lines, 'quickbooks') === journalCsvQuickBooks(lines))
 

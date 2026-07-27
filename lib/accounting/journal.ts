@@ -21,6 +21,7 @@ export interface JournalLine {
   doc?: string;         // παραστατικό / αναφορά
   party?: string;       // αντισυμβαλλόμενος (όνομα ή ΑΦΜ)
   art?: number;         // αριθμός λογιστικού άρθρου (ομαδοποιεί χρέωση+πίστωση)
+  property?: string;    // κέντρο κόστους (ακίνητο) — αναλυτική παρακολούθηση ανά ακίνητο
 }
 
 export interface IncomeRec { date: string; amount: number; description?: string; property?: string; party?: string; doc?: string }
@@ -96,8 +97,8 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
     if (!amt) continue;
     const desc = short(inc.description) || `Είσπραξη ενοικίου${inc.property ? ` · ${inc.property}` : ''}`;
     vouchers.push([
-      { date: inc.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: amt, credit: 0, doc: inc.doc, party: inc.party },
-      { date: inc.date, code: ACCOUNTS.rentIncome.code, account: ACCOUNTS.rentIncome.name, description: desc, debit: 0, credit: amt, doc: inc.doc, party: inc.party },
+      { date: inc.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: amt, credit: 0, doc: inc.doc, party: inc.party, property: inc.property },
+      { date: inc.date, code: ACCOUNTS.rentIncome.code, account: ACCOUNTS.rentIncome.name, description: desc, debit: 0, credit: amt, doc: inc.doc, party: inc.party, property: inc.property },
     ]);
   }
 
@@ -107,8 +108,8 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
     const acc = expenseAccount(ex.category);
     const desc = short(ex.description) || `${acc.name}${ex.property ? ` · ${ex.property}` : ''}`;
     vouchers.push([
-      { date: ex.date, code: acc.code, account: acc.name, description: desc, debit: amt, credit: 0, doc: ex.doc, party: ex.party },
-      { date: ex.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: ex.doc, party: ex.party },
+      { date: ex.date, code: acc.code, account: acc.name, description: desc, debit: amt, credit: 0, doc: ex.doc, party: ex.party, property: ex.property },
+      { date: ex.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: ex.doc, party: ex.party, property: ex.property },
     ]);
   }
 
@@ -122,9 +123,9 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
     const principal = round2(amt - interest);
     const desc = short(lp.description) || `Δόση δανείου${lp.property ? ` · ${lp.property}` : ''}`;
     const v: JournalLine[] = [];
-    if (interest > 0) v.push({ date: lp.date, code: ACCOUNTS.loanInterest.code, account: ACCOUNTS.loanInterest.name, description: desc, debit: interest, credit: 0, doc: lp.doc, party: lp.party });
-    if (principal > 0) v.push({ date: lp.date, code: ACCOUNTS.loanPrincipal.code, account: ACCOUNTS.loanPrincipal.name, description: desc, debit: principal, credit: 0, doc: lp.doc, party: lp.party });
-    v.push({ date: lp.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: lp.doc, party: lp.party });
+    if (interest > 0) v.push({ date: lp.date, code: ACCOUNTS.loanInterest.code, account: ACCOUNTS.loanInterest.name, description: desc, debit: interest, credit: 0, doc: lp.doc, party: lp.party, property: lp.property });
+    if (principal > 0) v.push({ date: lp.date, code: ACCOUNTS.loanPrincipal.code, account: ACCOUNTS.loanPrincipal.name, description: desc, debit: principal, credit: 0, doc: lp.doc, party: lp.party, property: lp.property });
+    v.push({ date: lp.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: lp.doc, party: lp.party, property: lp.property });
     vouchers.push(v);
   }
 
@@ -165,31 +166,54 @@ const n2gr = (n: number) => (Number(n) || 0).toFixed(2).replace('.', ','); // co
 const dmy = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || ''); }; // DD/MM/YYYY (EU / Xero / Ελλάδα)
 const mdy = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[2]}/${m[3]}/${m[1]}` : (iso || ''); }; // MM/DD/YYYY (QuickBooks US default)
 
+// Τα αρχεία αυτά είναι ΑΡΧΕΙΑ ΕΙΣΑΓΩΓΗΣ, όχι εκτυπώσεις: κάθε γραμμή είναι μία
+// κίνηση και τίποτα άλλο. Γι' αυτό ΔΕΝ περιέχουν γραμμές συνόλων ή τίτλους — ένα
+// «ΣΥΝΟΛΑ» στο τέλος το διαβάζει ο import wizard ως κίνηση χωρίς λογαριασμό και
+// απορρίπτει το άρθρο. Τα σύνολα τα βλέπει ο χρήστης στο Excel και στην οθόνη.
+
 /** Soft1 / Epsilon — ελληνικό ημερολόγιο άρθρων: «;», κόμμα δεκαδικά, DD/MM/YYYY,
  * μία γραμμή ανά κίνηση, ομαδοποιημένες σε αριθμημένα άρθρα (χρέωση=πίστωση/άρθρο).
- * Στήλες που τα import wizards των παρόχων αντιστοιχίζουν κατευθείαν. */
+ * Στήλες που τα import wizards των παρόχων αντιστοιχίζουν κατευθείαν, μαζί με κέντρο
+ * κόστους (ακίνητο) για αναλυτική παρακολούθηση ανά ακίνητο. */
 export function journalCsvGeneric(lines: JournalLine[]): string {
-  const head = ['Αρ.Άρθρου', 'Ημ/νία', 'Κωδικός', 'Περιγραφή Λογαριασμού', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Παραστατικό', 'ΑΦΜ/Αντισυμβ.'];
-  const rows = lines.map(l => [String(l.art ?? ''), dmy(l.date), l.code, l.account, l.description, l.debit ? n2gr(l.debit) : '', l.credit ? n2gr(l.credit) : '', l.doc || '', l.party || '']);
-  const t = journalTotals(lines);
-  rows.push(['', '', '', '', 'ΣΥΝΟΛΑ', n2gr(t.debit), n2gr(t.credit), '', '']);
+  const head = ['Αρ.Άρθρου', 'Ημ/νία', 'Κωδικός', 'Περιγραφή Λογαριασμού', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Παραστατικό', 'ΑΦΜ/Αντισυμβ.', 'Κέντρο Κόστους'];
+  const rows = lines.map(l => [
+    String(l.art ?? ''), dmy(l.date), l.code, l.account, l.description,
+    // Και οι δύο αριθμητικές στήλες πάντα συμπληρωμένες (0,00 όπου δεν υπάρχει ποσό):
+    // τα ελληνικά import wizards περιμένουν αριθμητικό πεδίο, όχι κενό.
+    n2gr(l.debit), n2gr(l.credit), l.doc || '', l.party || '', l.property || '',
+  ]);
   return [head, ...rows].map(r => r.map(c => csvField(c, ';')).join(';')).join('\r\n');
 }
 
 /** QuickBooks — Journal Entry import (SaasAnt / Transaction Pro layout): Journal No
- * ομαδοποιεί το άρθρο, MM/DD/YYYY, Debits/Credits σε ξεχωριστές στήλες, τελεία δεκαδικά. */
+ * ομαδοποιεί το άρθρο, MM/DD/YYYY, Debits/Credits σε ξεχωριστές στήλες, τελεία δεκαδικά.
+ * Το Account γράφεται «κωδικός:όνομα» (η ιεραρχία που περιμένει το QuickBooks) και
+ * δηλώνεται ρητά Currency, ώστε να μην πέφτει στο προεπιλεγμένο νόμισμα του αρχείου. */
 export function journalCsvQuickBooks(lines: JournalLine[]): string {
-  const head = ['Journal No', 'Journal Date', 'Account', 'Debits', 'Credits', 'Memo/Description', 'Name'];
-  const rows = lines.map(l => [String(l.art ?? ''), mdy(l.date), `${l.code} ${l.account}`, l.debit ? n2(l.debit) : '', l.credit ? n2(l.credit) : '', l.description, l.party || '']);
+  const head = ['Journal No', 'Journal Date', 'Account', 'Debits', 'Credits', 'Memo/Description', 'Name', 'Currency', 'Class'];
+  const rows = lines.map(l => [
+    String(l.art ?? ''), mdy(l.date), `${l.code}:${l.account}`,
+    l.debit ? n2(l.debit) : '', l.credit ? n2(l.credit) : '',
+    l.description, l.party || '', 'EUR', l.property || '',
+  ]);
   return [head, ...rows].map(r => r.map(c => csvField(c, ',')).join(',')).join('\r\n');
 }
 
-/** Xero — Manual Journal import template: *Narration (ανά άρθρο), *Date DD/MM/YYYY,
- * *AccountCode, *TaxRate, *Amount ΠΡΟΣΗΜΑΣΜΕΝΟ (θετικό=χρέωση, αρνητικό=πίστωση· κάθε
- * άρθρο αθροίζει στο 0). Η μοναδική Narration ανά άρθρο εγγυάται σωστή ομαδοποίηση. */
-export function journalCsvXero(lines: JournalLine[], _narration = 'Property OS — Ημερολόγιο'): string {
-  const head = ['*Narration', '*Date', 'Description', '*AccountCode', '*TaxRate', '*Amount'];
-  const rows = lines.map(l => [`Άρθρο ${l.art ?? ''} · ${l.description}`.trim(), dmy(l.date), l.description, l.code, 'Tax Exempt (0%)', n2(l.debit ? l.debit : -l.credit)]);
+/** Xero — Manual Journal import template: *Narration ΙΔΙΑ για όλες τις γραμμές ενός
+ * άρθρου (έτσι το Xero τις ομαδοποιεί σε ΕΝΑ journal· αν διαφέρει ανά γραμμή, σπάει σε
+ * χωριστά journals), *Date DD/MM/YYYY, *AccountCode, *TaxRate, *Amount ΠΡΟΣΗΜΑΣΜΕΝΟ
+ * (θετικό=χρέωση, αρνητικό=πίστωση· κάθε άρθρο αθροίζει στο 0). */
+export function journalCsvXero(lines: JournalLine[], narration = 'Property OS — Ημερολόγιο'): string {
+  const head = ['*Narration', '*Date', 'Description', '*AccountCode', '*TaxRate', '*Amount', 'TrackingName1', 'TrackingOption1'];
+  // Η αιτιολογία του ΠΡΩΤΟΥ σκέλους κάθε άρθρου γίνεται η κοινή narration του άρθρου.
+  const artNarration = new Map<number, string>();
+  for (const l of lines) { if (l.art != null && !artNarration.has(l.art)) artNarration.set(l.art, l.description); }
+  const rows = lines.map(l => [
+    l.art != null ? `${narration} · Άρθρο ${l.art}: ${artNarration.get(l.art) || ''}`.trim() : narration,
+    dmy(l.date), l.description, l.code, 'Tax Exempt (0%)', n2(l.debit ? l.debit : -l.credit),
+    l.property ? 'Ακίνητο' : '', l.property || '',
+  ]);
   return [head, ...rows].map(r => r.map(c => csvField(c, ',')).join(',')).join('\r\n');
 }
 
