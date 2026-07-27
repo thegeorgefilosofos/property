@@ -22,7 +22,7 @@ import SecuritySettings from './SecuritySettings';
 import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
-import { PLANS, TRIAL_DAYS, normalizePlan } from '@/lib/billing/plans';
+import { PLANS, normalizePlan } from '@/lib/billing/plans';
 import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState } from '@/lib/billing/entitlements';
 
 type ProfileType = 'individual' | 'professional';
@@ -338,7 +338,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void }) {
+export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange, navShowAll = false, onNavShowAllChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void; navShowAll?: boolean; onNavShowAllChange?: (v: boolean) => void }) {
   const supabase = createClient();
 
   // Ταυτότητα λογαριασμού & χρέωσης
@@ -652,6 +652,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
         <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
           control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
+        <SettingRow title="Απλοποιημένο μενού" desc="Δείχνει πρώτα μόνο τις καρτέλες που χρειάζεσαι τώρα. Οι υπόλοιπες εμφανίζονται μόλις αποκτήσουν νόημα — π.χ. το «Δάνειο» μόλις καταχωρήσεις δάνειο. Καμία καρτέλα δεν χάνεται: όσες έχεις ανοίξει μένουν πάντα ορατές."
+          control={<Toggle on={!navShowAll} onChange={v => onNavShowAllChange?.(!v)} size="sm" />} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10, minHeight: 18 }}>
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
             Γλώσσα: Ελληνικά · Νόμισμα: ευρώ (€)
