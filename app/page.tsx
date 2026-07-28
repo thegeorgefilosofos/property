@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
 import ScrollStory from './ScrollStory';
 import LandingCalculator from './LandingCalculator';
-import { T } from '@/components/Theme';
+import { T } from '@/components/tokens';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Landing. Χτισμένη γύρω από τα δύο μοναδικά μας: (1) μία φωτογραφία → αυτόματη
@@ -95,9 +95,17 @@ const ic = (d: string) => <svg width={21} height={21} viewBox="0 0 24 24" fill="
 const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>;
 
 export default async function Landing() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const loggedIn = !!user;
+  // Η συνεδρία χρησιμοποιείται ΜΟΝΟ για να γράφει το κουμπί «Πίνακας» αντί για
+  // «Σύνδεση». Είναι καλλωπισμός — και δεν επιτρέπεται να ρίχνει τη δημόσια
+  // αρχική σελίδα. Χωρίς αυτό το try, μια στιγμιαία αστοχία του Supabase (ή μια
+  // λάθος μεταβλητή περιβάλλοντος στο build) εμφανίζει «Κάτι πήγε στραβά» σε
+  // κάθε επισκέπτη, τη στιγμή που τους δείχνουμε το προϊόν για πρώτη φορά.
+  let loggedIn = false;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    loggedIn = !!user;
+  } catch { /* ο επισκέπτης βλέπει απλώς «Σύνδεση» */ }
 
   return (
     <div className="lp-root" style={{ color: TEXT, minHeight: '100vh', fontFamily: T.font.sans, overflowX: 'clip', position: 'relative' }}>

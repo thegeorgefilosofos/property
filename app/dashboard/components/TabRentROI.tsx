@@ -24,6 +24,7 @@ import { useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc } from './reportPdf';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport';
 import { issueDocument } from '@/lib/documents/issue';
+import { notifyError } from '@/components/Toast';
 
 // Αντιστοίχιση περιοχής → πλησιέστερη αναφορά βραχυχρόνιας (τα δεδομένα ST είναι ανά
 // ευρύτερη ζώνη, όχι ανά προάστιο). Δίνει ρεαλιστικά defaults (πληρότητα/τιμή) ανά περιοχή.
@@ -816,7 +817,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         sections, disclaimer,
       };
       await generateReportPdf(model, `Αναφορά_απόδοσης_${pName.trim() || 'ακίνητο'}`);
-    } catch { alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.'); }
+    } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.'); }
     finally { setGenOfficial(false); }
   };
 

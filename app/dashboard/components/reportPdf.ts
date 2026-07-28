@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
+import { notifyError } from '@/components/toastBus';
 
 export const rEsc = (v: unknown): string => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
 export const rEur = (n: number | null | undefined): string => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -97,7 +98,7 @@ export function reportDisclaimer(text: string, branding?: ReportBranding | null)
 /** Ανοίγει παράθυρο εκτύπωσης με το πλήρες HTML (auto-print). */
 export function openReport(bodyHtml: string): void {
   const w = window.open('', '_blank');
-  if (!w) { alert('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return; }
+  if (!w) { notifyError('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return; }
   w.document.write(bodyHtml + `<script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>`);
   w.document.close();
 }

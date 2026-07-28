@@ -10,6 +10,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fdLong, SecHdr } from '@/components/Theme';
 import { computeObligations, oblToCalendarCategory, type Obligation, type OblProp } from './obligations';
+import { notifyError } from '@/components/Toast';
 
 export default function ObligationsPanel({ propertyId, userId, prop, onNavigate }: {
   propertyId: string; userId: string; prop: OblProp; onNavigate: (tab: string) => void;
@@ -40,7 +41,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
       const { error } = await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', 'obligations');
       setSyncing(false);
       if (!error) setAdded(false);
-      else alert('Σφάλμα: ' + error.message);
+      else notifyError('Σφάλμα: ' + error.message);
       return;
     }
     // Καθάρισε τυχόν παλιές αυτόματες εγγραφές και ξαναγράψε (idempotent)
@@ -53,7 +54,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
     const { error } = await supabase.from('calendar_events').insert(rows);
     setSyncing(false);
     if (!error) setAdded(true);
-    else alert('Σφάλμα: ' + error.message);
+    else notifyError('Σφάλμα: ' + error.message);
   };
 
   if (!obls.length) return null;

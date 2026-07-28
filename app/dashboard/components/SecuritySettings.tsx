@@ -6,7 +6,7 @@
 // Τέσσερα αληθινά εργαλεία: αλλαγή κωδικού, επαλήθευση δύο βημάτων (2FA/TOTP
 // μέσω Supabase MFA), στοιχεία τρέχουσας σύνδεσης, καθολική αποσύνδεση.
 // Ίδια οπτική γλώσσα με το υπόλοιπο «Ρυθμίσεις» (σειρές, πεδία,
-// tokens). Χωρίς alert(), χωρίς ψεύτικα κουμπιά.
+// tokens). Χωρίς notifyError(), χωρίς ψεύτικα κουμπιά.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, CSSProperties } from 'react';
@@ -15,6 +15,7 @@ import { T, Btn, settingsField } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
 import { checkPassword } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
+import { notifyError } from '@/components/Toast';
 
 // ── Κοινά στυλ, ευθυγραμμισμένα με τις υπόλοιπες κάρτες ρυθμίσεων ──────────
 const group: CSSProperties = { padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' };

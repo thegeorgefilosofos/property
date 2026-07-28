@@ -2,7 +2,7 @@
 // Sources: vresdaneio.gr, greece20.gov.gr, ypen.gov.gr, ΑΑΔΕ, bankofgreece.gr, ECB
 
 import { rentalIncomeTax } from '@/lib/billing/greekTax'
-import { fe } from '@/components/Theme'
+import { fe } from '@/components/tokens';
 
 export type LoanType = 'purchase'|'first_home'|'renovation'|'energy'|'investment'|'auction'|'construction'|'commercial'|'land'|'refinance'
 export type RateType = 'fixed'|'variable'|'mixed'

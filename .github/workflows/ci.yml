@@ -48,6 +48,14 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # Το tsc ΔΕΝ πιάνει το σύνορο server/πελάτη: ο τύπος είναι σωστός, η τιμή
+      # στον χρόνο εκτέλεσης όχι. Όταν Server Component διάβασε `T` από το
+      # `'use client'` Theme.tsx, ολόκληρο το δημόσιο site (αρχική, «Ποιοι
+      # είμαστε», Απόρρητο, Όροι) έδειχνε «Κάτι πήγε στραβά» — με το build
+      # απολύτως πράσινο. Αυτός ο έλεγχος είναι το μόνο πράγμα που το πιάνει.
+      - name: Server/client boundary (τιμές από module πελάτη) — blocking
+        run: node scripts/check-server-imports.mjs
+
       # Οι edge functions ΔΕΝ καλύπτονται από το tsc: το tsconfig.json εξαιρεί
       # ρητά το `supabase/`, επειδή τρέχουν σε Deno και όχι σε Node. Μέχρι σήμερα
       # αυτό σήμαινε ότι ο ΠΡΩΤΟΣ έλεγχος τύπων τους γινόταν τη στιγμή του deploy

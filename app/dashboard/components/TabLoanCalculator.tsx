@@ -13,6 +13,7 @@ import { useReportBranding } from '@/lib/reportBranding'
 import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport'
 import { issueDocument } from '@/lib/documents/issue'
 import { ShieldCheck } from 'lucide-react'
+import { notifyError } from '@/components/Toast';
 import {
   BANKS, LOAN_TYPES, BORROWER_PROFILES, TAX_DATA,
   calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax,
@@ -780,7 +781,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         disclaimer:'Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.',
       }
       await generateReportPdf(model, 'Τοκοχρεολύσιο_'+(bankLabel||'δάνειο'))
-    } catch { alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
+    } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
     finally { setGenOfficial(false) }
   }
 

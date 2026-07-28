@@ -4,7 +4,7 @@
 // δώσει τη μία χρήσιμη κίνηση (δοκίμασε ξανά).
 
 import type { Metadata } from 'next';
-import { T } from '@/components/Theme';
+import { T } from '@/components/tokens';
 
 export const metadata: Metadata = { title: 'Χωρίς σύνδεση · Property OS' };
 

@@ -18,45 +18,12 @@
 
 import { ReactNode, CSSProperties, useState, useEffect } from 'react';
 
-// ── Tokens (ίδια ονόματα με τα Bills, μηδενική αλλαγή νοοτροπίας) ─────────
-export const T = {
-  radius: { card: 14, inner: 10, badge: 100, btn: 10, pill: 100, modal: 18 },
-  // Ύψη control — ΜΙΑ κλίμακα για κάθε κουμπί/πεδίο/chip, ώστε τίποτα να μη
-  // «χοροπηδά» από οθόνη σε οθόνη: sm=chips, md=κανονικά πεδία, lg=κύρια πεδία.
-  h: { sm: 32, md: 36, lg: 40 },
-  // Επικάλυψη παραθύρου — μία τιμή παντού (πριν υπήρχαν 7 διαφορετικές).
-  scrim: 'rgba(0,0,0,0.55)',
-  font: {
-    // Γραμματοσειρές που φορτώνει self-hosted το app (globals.css): Inter + Roboto Mono.
-    sans: "'Inter', system-ui, sans-serif",
-    mono: "'Roboto Mono', 'JetBrains Mono', monospace",
-    // Μεγάλοι αριθμοί «κεφαλίδας» (KPI): σφιχτή sans με tabular ψηφία, χωρίς τα
-    // πλατιά κενά του monospace γύρω από κόμμα/τελεία. Το mono μένει για πυκνούς πίνακες.
-    num:  "'Inter', system-ui, sans-serif",
-  },
-  sp: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, section: 32 },
-  // Καμπύλες κίνησης Google (Material 3), μία πηγή για όλα τα transitions.
-  ease: { standard: 'cubic-bezier(0.2, 0, 0, 1)', emphasized: 'cubic-bezier(0.3, 0, 0, 1)', decel: 'cubic-bezier(0, 0, 0, 1)' },
-} as const;
-
-// ── Τυπογραφική κλίμακα, ΜΙΑ πηγή αλήθειας για μεγέθη/βάρη/spacing.
-// Στόχος: «Google οπτική» ομοιομορφία, ίδιοι τίτλοι/ετικέτες/τιμές παντού.
-// Χρήση: <div style={{ ...TT.label }}>…</div>  ή  style={TT.kpi}
-export const TT = {
-  display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
-  // Μικρότερο display για μεγάλους αριθμούς μέσα σε κάρτες (π.χ. ανταμοιβές).
-  displaySm: { fontFamily: T.font.sans, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
-  h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)' },
-  h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)' },
-  // Ετικέτα ενότητας, η uppercase «τελεία» των Bills, τυποποιημένη.
-  label:   { fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)' },
-  body:    { fontFamily: T.font.sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)' },
-  bodySm:  { fontFamily: T.font.sans, fontSize: 12, fontWeight: 400, lineHeight: 1.5,  color: 'var(--text-secondary)' },
-  caption: { fontFamily: T.font.sans, fontSize: 11, fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)' },
-  // Μεγάλοι αριθμοί KPI: σφιχτή sans (num) + tabular. Το πυκνό mono μένει για πίνακες.
-  kpi:     { fontFamily: T.font.num, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, letterSpacing: '-0.01em', lineHeight: 1, color: 'var(--text-primary)' },
-  mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
-} as const;
+// Τα tokens ζουν σε module ΧΩΡΙΣ React (components/tokens.ts) ώστε να μπορεί να
+// τα εισάγει και Server Component. Εδώ ξανα-εξάγονται αυτούσια, ώστε τα ~600
+// σημεία που γράφουν `from '@/components/Theme'` να μη χρειαστεί να αλλάξουν.
+export { T, TT, fe, feAuto, fn, fd, fdLong } from './tokens';
+export type { Tone } from './tokens';
+import { T, TT, fe, type Tone } from './tokens';
 
 // ═══ Skeleton, placeholder φόρτωσης (αντικαθιστά τα «Φόρτωση…») ══════════
 export function Skeleton({ w = '100%', h = 14, r = 8, style }: { w?: number | string; h?: number | string; r?: number; style?: CSSProperties }) {
@@ -87,31 +54,7 @@ export function Spinner({ size = 22, label }: { size?: number; label?: string })
   );
 }
 
-// ── Μορφοποίηση ποσών (μία υλοποίηση για όλη την εφαρμογή) ─────────────────
-// Χρησιμοποιεί αδιάσπαστο διάστημα (U+00A0) πριν το €, ώστε το ποσό να μη
-// «σπάει» ποτέ σε δύο γραμμές (π.χ. «1.234,56» πάνω και «€» κάτω), google-level.
-export const fe = (n: number, d = 2) =>
-  `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
-
-/// Ευρώ με «έξυπνα» δεκαδικά: ακέραιο ποσό → χωρίς δεκαδικά (751 €), ποσό με λεπτά →
-// δύο δεκαδικά (19,25 €). Το δεύτερο όρισμα αγνοείται (για εύκολη αντικατάσταση του fe).
-export const feAuto = (n: number, _d?: number) =>
-  `${(Math.round((n || 0) * 100) / 100).toLocaleString('el-GR', Number.isInteger(Math.round((n || 0) * 100) / 100) ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-
-// Ακέραιοι/αριθμοί χωρίς σύμβολο νομίσματος
-export const fn = (n: number, d = 0) =>
-  n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d });
-
-export const fd = (d: string | Date) =>
-  new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
-
-// Πλήρης μορφή χωρίς συντομογραφία μήνα («30 Ιουνίου 2026»).
-export const fdLong = (d: string | Date) =>
-  new Date(d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-// ── Σημασιολογικοί τόνοι, ρόλοι, όχι αυθαίρετα χρώματα ─────────────────────
-export type Tone = 'accent' | 'info' | 'positive' | 'warning' | 'negative' | 'neutral';
-
+// ── Σημασιολογικοί τόνοι, ρόλοι, όχι αυθαίρετα χρώματα ────────────────────
 const toneVars = (tone: Tone) => {
   if (tone === 'neutral')
     return { color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)' };
@@ -459,9 +402,24 @@ export function ExportButton({ onClick, onExportData, label = 'Εξαγωγή Ex
 }
 
 // ═══ EmptyState, κενή κατάσταση με πρόσκληση σε δράση (όχι σκέτο «κενό») ══
-export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
+//
+// ΤΟ `icon` ΔΕΝ ΕΙΝΑΙ ΚΑΛΛΩΠΙΣΜΟΣ. Μετρήθηκε ότι το 86% των κενών καταστάσεων
+// της εφαρμογής είναι χειρόγραφες, με 7 διαφορετικά αρχέτυπα, 20 paddings και
+// 6 μεγέθη τίτλου — και η δομική αιτία ήταν ακριβώς αυτή η παράλειψη: όποιος
+// ήθελε εικονίδιο δεν μπορούσε να χρησιμοποιήσει το primitive, οπότε έγραφε
+// δικό του από την αρχή. Ένα primitive που δεν καλύπτει τη συνηθισμένη ανάγκη
+// δεν αγνοείται από αμέλεια· παρακάμπτεται από ανάγκη.
+export function EmptyState({ title, hint, action, icon }: { title: string; hint?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
     <div style={{ textAlign: 'center' as const, padding: '40px 20px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+      {icon && (
+        <div aria-hidden style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 44, height: 44, margin: '0 auto 12px', borderRadius: T.radius.inner + 2,
+          background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+          color: 'var(--text-tertiary)',
+        }}>{icon}</div>
+      )}
       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{title}</div>
       {hint && <div style={{ fontSize: 11, lineHeight: 1.6, maxWidth: 380, margin: '0 auto' }}>{hint}</div>}
       {action && <div style={{ marginTop: 14 }}>{action}</div>}
