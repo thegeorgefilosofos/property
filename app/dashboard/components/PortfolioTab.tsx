@@ -19,6 +19,7 @@ import { useReportBranding } from '@/lib/reportBranding';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import { ShieldCheck } from 'lucide-react';
+import { notifyError } from '@/components/Toast';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
@@ -262,7 +263,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         disclaimer: 'Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.',
       };
       await generateReportPdf(model, `Κατάσταση_ιδιοκτήτη_${year}`);
-    } catch { alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.'); }
+    } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.'); }
     finally { setGenOfficial(false); }
   };
 

@@ -12,6 +12,7 @@ import { issueDocument } from '@/lib/documents/issue'
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport'
 import type { createClient } from '@/lib/supabase/client'
 import { printFontFaces } from '@/lib/print/fonts';
+import { notifyError } from '@/components/toastBus';
 
 export interface ReconLite { label: string; paid: number; expected: number; statusLabel: string; statusColor: string }
 
@@ -153,7 +154,7 @@ ${printFontFaces()}
 </div></body></html>`
 
   const w = window.open('', '_blank')
-  if (!w) { alert('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return }
+  if (!w) { notifyError('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return }
   w.document.write(html)
   w.document.close()
 }

@@ -7,6 +7,7 @@ import { downloadCsv } from './exportCsv';
 import { money, dec2, percent } from './xlsxStyle';
 import { runE2Export } from './e2Export';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
+import { notifyError } from '@/components/Toast';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -147,7 +148,7 @@ export default function TabComparison({ properties, userId }: Props) {
         </div>
         {!loading && (
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-            <ExportButton label="Εξαγωγή Ε2" onClick={async () => { const y = new Date().getFullYear() - 1; const n = await runE2Export(supabase, userId, y); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }} />
+            <ExportButton label="Εξαγωγή Ε2" onClick={async () => { const y = new Date().getFullYear() - 1; const n = await runE2Export(supabase, userId, y); if (!n) notifyError('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }} />
             <ExportButton onClick={exportCSV} />
           </div>
         )}

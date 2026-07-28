@@ -13,7 +13,7 @@
 
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { T } from '@/components/Theme';
+import { T } from '@/components/tokens';
 import { IDENTITY, identityIsPublished, orPending } from '@/lib/legal/identity';
 
 export const metadata: Metadata = {

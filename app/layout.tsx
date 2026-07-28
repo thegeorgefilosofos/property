@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "./ThemeProvider";
 import CookieConsent from "./CookieConsent";
 import PwaProvider from "./PwaProvider";
+import { ToastHost } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: "Property OS",
@@ -73,6 +74,7 @@ export default async function RootLayout({
       <body>
         <ThemeProvider>
           {children}
+          <ToastHost />
           <CookieConsent />
           <PwaProvider />
         </ThemeProvider>

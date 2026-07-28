@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { T } from '@/components/Theme';
+import { T } from '@/components/tokens';
 
 // Κοινό «κέλυφος» για νομικές σελίδες (Πολιτική Απορρήτου, Όροι), theme-aware.
 // Κάθε ενότητα: παράγραφοι (p), προαιρετική λίστα (list) και προαιρετική σημείωση (note).

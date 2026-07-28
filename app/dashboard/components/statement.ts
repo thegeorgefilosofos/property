@@ -10,6 +10,7 @@
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { incomeStatement } from '@/lib/accounting/statement';
 import { printFontFaces } from '@/lib/print/fonts';
+import { notifyError } from '@/components/toastBus';
 
 export interface StatementCtx {
   propName: string;
@@ -199,7 +200,7 @@ ${printFontFaces()}
 </div></body></html>`;
 
   const w = window.open('', '_blank');
-  if (!w) { alert('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return; }
+  if (!w) { notifyError('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return; }
   w.document.write(html);
   w.document.close();
 }

@@ -13,6 +13,7 @@ import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDi
 import { ShieldCheck } from 'lucide-react';
 import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import { issueDocument } from '@/lib/documents/issue';
+import { notifyError } from '@/components/Toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -1164,7 +1165,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     setSaving(true);
     const { error } = await supabase.from('expenses').insert(buildPayload(form));
     setSaving(false);
-    if (error) { alert('Σφάλμα: '+error.message); return; }
+    if (error) { notifyError('Σφάλμα: '+error.message); return; }
     setShowForm(false); setForm(blank());
     notify('Η δαπάνη καταχωρήθηκε'); load();
   };
@@ -1175,7 +1176,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     delete (p as any).property_id; delete (p as any).user_id;
     const { error } = await supabase.from('expenses').update(p).eq('id',id);
     setSaving(false);
-    if (error) { alert('Σφάλμα: '+error.message); return; }
+    if (error) { notifyError('Σφάλμα: '+error.message); return; }
     setEditingId(null); notify('Η δαπάνη ενημερώθηκε'); load();
   };
 
@@ -1236,7 +1237,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     try {
       await downloadOfficialExpenses(processed, 'Ακίνητο', branding, { supabase, userId });
     } catch {
-      alert('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.');
+      notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.');
     } finally {
       setGenOfficial(false);
     }

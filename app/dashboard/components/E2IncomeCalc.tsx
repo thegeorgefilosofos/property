@@ -13,6 +13,7 @@ import { T, fe, Btn } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import { CustomSelect as Select } from './UIComponents';
 import { runE2Export } from './e2Export';
+import { notifyError } from '@/components/Toast';
 
 // ── Κλίμακα ενοικίων 2026: νέος ενδιάμεσος 25% στα 12.000–24.000 ──────────────
 const RENTAL_TAX = [
@@ -183,7 +184,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6, marginBottom: 14 }}>
           Κατέβασε προσυμπληρωμένο αρχείο Excel για το έτος {e2Year}, με τη δομή του επίσημου εντύπου Ε2 (Πίνακας I με την αρίθμηση στηλών της ΑΑΔΕ), μία γραμμή ανά ακίνητο, φύλλο «Οδηγίες συμπλήρωσης» και σύνοψη Ε1. Έτοιμο να το συμπληρώσει ο λογιστής στο myAADE.
         </div>
-        <Btn variant="primary" onClick={async () => { const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (Excel)</Btn>
+        <Btn variant="primary" onClick={async () => { const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) notifyError('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (Excel)</Btn>
         <div style={{ marginTop: 16, fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
           Ορισμένα πεδία συμπληρώνονται αυτόματα ως εκτίμηση. Έλεγξέ τα πριν την υποβολή.
           <InfoHint>Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου. Το ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου, από το Ε9) και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων).</InfoHint>

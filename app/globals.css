@@ -1960,3 +1960,11 @@ html.a11y-reduce-motion *::after {
 }
 /* Μεγαλύτερο κείμενο: ήπια μεγέθυνση όλης της διεπαφής (zoom, px-agnostic). */
 html.a11y-large-text { zoom: 1.08; }
+
+/* ═══ Toast (components/Toast.tsx) ════════════════════════════════════════ */
+/* Η μόνη κίνηση: ήπια άνοδος 6px. Το `prefers-reduced-motion` παραπάνω και ο
+   διακόπτης προσβασιμότητας τη σβήνουν αυτόματα, χωρίς ειδική περίπτωση εδώ. */
+@keyframes po-toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

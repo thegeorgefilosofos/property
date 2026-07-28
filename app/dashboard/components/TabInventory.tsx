@@ -13,6 +13,7 @@ import { reportAccent } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
+import { notifyError } from '@/components/Toast';
 
 const supabase = createSupabaseClient()
 
@@ -23,7 +24,7 @@ async function openInventoryDoc(pathOrUrl?: string | null) {
   if (!pathOrUrl) return
   if (/^https?:\/\//.test(pathOrUrl)) { window.open(pathOrUrl, '_blank'); return }
   const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(pathOrUrl, 3600)
-  if (error || !data) { alert('Δεν ήταν δυνατό το άνοιγμα του αρχείου.'); return }
+  if (error || !data) { notifyError('Δεν ήταν δυνατό το άνοιγμα του αρχείου.'); return }
   window.open(data.signedUrl, '_blank')
 }
 
@@ -504,7 +505,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const handleImport=async()=>{
     setImporting(true)
     const {error}=await supabase.from('inventory_items').insert(rows.map(r=>({...r,property_id:propertyId,user_id:userId,photos:[],tags:[]})))
-    if(error){alert('Σφάλμα: '+error.message);setImporting(false);return}
+    if(error){notifyError('Σφάλμα: '+error.message);setImporting(false);return}
     onImported();onClose()
   }
   return (
@@ -573,7 +574,7 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
   const discountedPrice = form.original_price && form.discount_pct
     ? Math.round(form.original_price*(1-form.discount_pct/100)) : 0
   const handleSave = async() => {
-    if(!form.name?.trim()){alert('Το όνομα είναι υποχρεωτικό.');return}
+    if(!form.name?.trim()){notifyError('Το όνομα είναι υποχρεωτικό.');return}
     const primaryUrl = form.photo_url||(form.photos&&form.photos.length>0?form.photos[0]:'')
     setSaving(true)
     await onSave({...form,photo_url:primaryUrl})
@@ -589,7 +590,7 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
     setDocUp(true)
     const path=`receipts/${propertyId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
     const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:true})
-    if(error){alert('Σφάλμα upload: '+error.message);setDocUp(false);return}
+    if(error){notifyError('Σφάλμα upload: '+error.message);setDocUp(false);return}
     const prev=form.receipt_doc_url
     setForm(f=>({...f,receipt_doc_url:path,receipt_doc_name:file.name}))
     // Καθάρισε τυχόν προηγούμενο ΑΝΕΒΑΣΜΑ αυτής της συνεδρίας (όχι το αρχικά αποθηκευμένο).
@@ -640,7 +641,7 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
     setPhotoBusy(true)
     const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
     if(!error){ const {data:u}=supabase.storage.from('inventory-photos').getPublicUrl(path); setForm(f=>{const photos=[...(f.photos||[]),u.publicUrl]; return {...f,photos,photo_url:f.photo_url||u.publicUrl}}) }
-    else alert('Σφάλμα μεταφόρτωσης: '+error.message)
+    else notifyError('Σφάλμα μεταφόρτωσης: '+error.message)
     setPhotoBusy(false)
   }
   const removePhoto = (url:string) => { const p=(form.photos||[]).filter(x=>x!==url); set('photos',p); if(form.photo_url===url) set('photo_url',p[0]||'') }
@@ -841,7 +842,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
   const totalCost = itemRepairs.reduce((s,r)=>s+(r.cost||0),0)
   const curVal = calcCurrentValue(item)
   const handleAdd = async() => {
-    if(!form.description.trim()){alert('Η περιγραφή είναι υποχρεωτική.');return}
+    if(!form.description.trim()){notifyError('Η περιγραφή είναι υποχρεωτική.');return}
     setSaving(true)
     await onAdd(form)
     if(pushExpenses&&form.cost>0){
@@ -1345,7 +1346,7 @@ function WarrantiesTab({items,userId,propertyId,embedded}:{items:InventoryItem[]
     setPushing(item.id)
     const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
     setPushing(null)
-    if(error){alert('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
+    if(error){notifyError('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
     setPushed(p=>new Set(p).add(item.id))
   }
   const WSection = ({title,color,list}:{title:string;color:string;list:InventoryItem[]}) => list.length===0?null:(
@@ -1403,7 +1404,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const uploadCondPhoto = async(itemId:string,file:File) => {
     setUploadingId(itemId)
     const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`handover/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
-    if(error){alert('Σφάλμα upload: '+error.message);setUploadingId(null);return}
+    if(error){notifyError('Σφάλμα upload: '+error.message);setUploadingId(null);return}
     const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
     setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))
     setUploadingId(null)
@@ -1431,12 +1432,12 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[seed?.n])
   const handleSave = async() => {
-    if(!tenantName.trim()){alert('Το ονοματεπώνυμο είναι υποχρεωτικό.');return}
+    if(!tenantName.trim()){notifyError('Το ονοματεπώνυμο είναι υποχρεωτικό.');return}
     setSaving(true)
     const nowIso=new Date().toISOString()
     const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||'',condition_photo:itemConds[i.id]?.photo||'',captured_at:itemConds[i.id]?.photo?nowIso:''}))
     const {error} = await supabase.from('inventory_handovers').insert({property_id:propertyId,user_id:userId,handover_type:type,tenant_name:tenantName,tenant_phone:tenantPhone,handover_date:handoverDate||new Date().toISOString().split('T')[0],notes,items_snapshot:snap})
-    if(error){alert('Σφάλμα: '+error.message);setSaving(false);return}
+    if(error){notifyError('Σφάλμα: '+error.message);setSaving(false);return}
     setMode('list');onSaved();setSaving(false)
   }
   const printHandover = (h:InventoryHandover) => {
@@ -1663,12 +1664,12 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
     setAdding(true)
   }
   const handleSave=async()=>{
-    if(!form.task.trim()){alert('Η εργασία είναι υποχρεωτική.');return}
+    if(!form.task.trim()){notifyError('Η εργασία είναι υποχρεωτική.');return}
     setSaving(true)
     const base=form.last_done||today(); const nextDue=addMonths(base,form.interval_months); const est=form.est_cost||0
     const {data:sched,error:schedErr}=await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:nextDue,notes:form.notes,est_cost:est}).select('id').single()
     // Αν αποτύχει η εγγραφή (π.χ. δεν έχει τρέξει η migration), μην δημιουργήσεις ορφανές εγγραφές στο κύκλωμα.
-    if(schedErr){alert('Σφάλμα αποθήκευσης: '+schedErr.message);setSaving(false);return}
+    if(schedErr){notifyError('Σφάλμα αποθήκευσης: '+schedErr.message);setSaving(false);return}
     // Αν έχει ήδη γίνει (δηλωμένη τελευταία εκτέλεση) κατέγραψε πληρωμένη δαπάνη για το ιστορικό.
     if(form.last_done&&est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
     // Κύκλωμα για την επόμενη προγραμματισμένη εκτέλεση.
@@ -1914,18 +1915,18 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleSaveItem=async(data:Partial<InventoryItem>)=>{
     if(data.original_price&&data.discount_pct&&!data.purchase_value){data.purchase_value=Math.round((data.original_price)*(1-data.discount_pct/100))}
     const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],tags:data.tags||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,standby_watts:data.standby_watts||0,replacement_cost:data.replacement_cost||0,smart_device:data.smart_device||false,smart_notes:data.smart_notes||'',provenance:data.provenance||'new',original_price:data.original_price||0,discount_pct:data.discount_pct||0,store_vendor:data.store_vendor||'',receipt_number:data.receipt_number||'',receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
-    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)alert('Σφάλμα: '+error.message)
+    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)notifyError('Σφάλμα: '+error.message)
       // Καθάρισε την ΠΑΛΙΑ απόδειξη αν αντικαταστάθηκε/αφαιρέθηκε (αποφυγή orphan στο storage).
       else{const oldDoc=editingItem.receipt_doc_url;if(oldDoc&&oldDoc!==payload.receipt_doc_url&&!/^https?:\/\//.test(oldDoc))await supabase.storage.from(DOCS_BUCKET).remove([oldDoc])}}
-    else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)alert('Σφάλμα: '+error.message)}
+    else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)notifyError('Σφάλμα: '+error.message)}
     setShowItemForm(false);setEditingItem(null);fetchData()
   }
   // Καθαρισμός συνημμένων αποδείξεων (private bucket) ώστε να μη μένουν orphan αρχεία.
   const cleanupDocs=async(its:InventoryItem[])=>{const paths=its.map(i=>i.receipt_doc_url).filter((p):p is string=>!!p&&!/^https?:\/\//.test(p));if(paths.length)await supabase.storage.from(DOCS_BUCKET).remove(paths)}
-  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){alert('Σφάλμα: '+error.message);return};if(it)await cleanupDocs([it]);fetchData()}
+  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){notifyError('Σφάλμα: '+error.message);return};if(it)await cleanupDocs([it]);fetchData()}
   const handleAddRepair=async(data:Partial<InventoryRepair>)=>{if(!repairItem)return;await supabase.from('inventory_repairs').insert({...data,item_id:repairItem.id,user_id:userId});fetchData()}
   const handleUpdateCondition=async(id:string,condition:string)=>{await supabase.from('inventory_items').update({condition,updated_at:new Date().toISOString()}).eq('id',id);setItems(prev=>prev.map(i=>i.id===id?{...i,condition}:i))}
-  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){alert('Σφάλμα: '+error.message);return}await cleanupDocs(its);fetchData()}
+  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){notifyError('Σφάλμα: '+error.message);return}await cleanupDocs(its);fetchData()}
   const handleBulkRoom=async(ids:string[],room:string)=>{if(!ids.length)return;await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids);fetchData()}
   const handleBulkTag=async(ids:string[],tag:string)=>{if(!ids.length)return;const sel=items.filter(i=>ids.includes(i.id));await Promise.all(sel.map(i=>{const tags=Array.from(new Set([...(i.tags||[]),tag]));return supabase.from('inventory_items').update({tags,updated_at:new Date().toISOString()}).eq('id',i.id)}));fetchData()}
   const [cloning,setCloning] = useState(false)
@@ -1935,24 +1936,24 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     const rows=STARTER_PACK.map(s=>({property_id:propertyId,user_id:String(userId),name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],tags:[],purchase_value:0,provenance:'new'}))
     const {error}=await supabase.from('inventory_items').insert(rows)
     setCloning(false)
-    if(error){alert('Σφάλμα: '+error.message);return}
+    if(error){notifyError('Σφάλμα: '+error.message);return}
     fetchData()
   }
   const cloneFromProperty = async(sourceId:string) => {
     setCloning(true)
     const {data}=await supabase.from('inventory_items').select('*').eq('property_id',sourceId)
-    if(!data||data.length===0){setCloning(false);alert('Το ακίνητο δεν έχει αντικείμενα προς αντιγραφή.');return}
+    if(!data||data.length===0){setCloning(false);notifyError('Το ακίνητο δεν έχει αντικείμενα προς αντιγραφή.');return}
     const rows=data.map((i:any)=>{const {id,created_at,updated_at,property_id,...rest}=i;return {...rest,property_id:propertyId,user_id:String(userId)}})
     const {error}=await supabase.from('inventory_items').insert(rows)
     setCloning(false)
-    if(error){alert('Σφάλμα: '+error.message);return}
+    if(error){notifyError('Σφάλμα: '+error.message);return}
     fetchData()
   }
   const handleWarrantyReminder=async(item:InventoryItem)=>{
-    if(!item.warranty_expiry){alert('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return}
+    if(!item.warranty_expiry){notifyError('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return}
     const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
-    if(error){alert('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
-    alert(`Προστέθηκε υπενθύμιση εγγύησης στο ημερολόγιο για «${item.name}».`)
+    if(error){notifyError('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
+    notifyError(`Προστέθηκε υπενθύμιση εγγύησης στο ημερολόγιο για «${item.name}».`)
   }
   const exportInventoryCsv=()=>downloadCsv(
     `apografi_${new Date().toISOString().slice(0,10)}`,

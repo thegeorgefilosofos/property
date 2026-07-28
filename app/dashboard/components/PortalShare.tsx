@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe } from '@/components/Theme';
+import { notifyError } from '@/components/Toast';
 
 interface Req { id: string; title: string; description: string | null; contact: string | null; status: string; created_at: string; photos?: string[] | null; }
 
@@ -64,7 +65,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     const { data, error } = await supabase.from('portal_links').insert({ property_id: propertyId, user_id: userId }).select('token').single();
     setBusy(false);
     if (!error && data) setToken(data.token);
-    else if (error) alert('Σφάλμα: ' + error.message);
+    else if (error) notifyError('Σφάλμα: ' + error.message);
   };
 
   const url = token && typeof window !== 'undefined' ? `${window.location.origin}/portal/${token}` : '';

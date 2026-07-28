@@ -29,6 +29,7 @@ import { greekPropertyTaxObligations, taxObligationToEvent, AADE_CALENDAR_URL, T
 import { annuityMonthly } from '@/lib/loans/recommend'
 import { syncTenantSchedule } from './TabTenantHelpers'
 import { escHtml as esc } from '@/lib/reportBranding';
+import { notifyError } from '@/components/Toast';
 
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -1555,7 +1556,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
       <table><thead><tr><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Ημερομηνία</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Γεγονός</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Κατηγορία</th><th style="text-align:right;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Πότε</th></tr></thead><tbody>${rows}</tbody></table>
       <div style="margin-top:30px;font-size:10px;color:#80868b;border-top:1px solid #eee;padding-top:12px">Δημιουργήθηκε αυτόματα από το Property OS.</div>
       <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script></body></html>`
-    const w=window.open('','_blank'); if(!w){alert('Επίτρεψε τα αναδυόμενα παράθυρα.');return} w.document.write(html); w.document.close()
+    const w=window.open('','_blank'); if(!w){notifyError('Επίτρεψε τα αναδυόμενα παράθυρα.');return} w.document.write(html); w.document.close()
   }
 
   const prevPeriod=()=>{ if(viewMode==='year')setTimelineYear(y=>y-1); else if(viewMode==='day')setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()-1)); else if(viewMode==='week')setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()-7)); else setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth()-1,1)) }
