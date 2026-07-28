@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, fe, InfoBanner } from '@/components/Theme';
+import { T, fe, InfoBanner, Card, EmptyState } from '@/components/Theme';
+import { notifyOk, notifyError } from '@/components/Toast';
+import { HandCoins, BarChart3 } from 'lucide-react';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -76,11 +78,6 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const supabase  = createClient();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const card: React.CSSProperties = {
-    background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-    borderRadius: T.radius.card, padding: 20, marginBottom: 16,
-  };
-
   const [mgmtType,     setMgmtType]     = useState('traditional');
   const [mgmtCost,     setMgmtCost]     = useState('');
   const [mgmtDueDay,   setMgmtDueDay]   = useState('25');
@@ -95,7 +92,6 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const [history,      setHistory]      = useState<string[]>(Array(12).fill(''));
   const [millesimi,    setMillesimi]    = useState('');
   const [catData,      setCatData]      = useState<Record<string, string>>({});
-  const [transferMsg,  setTransferMsg]  = useState<string | null>(null);
   const [transferring, setTransferring] = useState<number | null>(null);
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
   const [hoveredCard,  setHoveredCard]  = useState<string | null>(null);
@@ -176,11 +172,12 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       });
       const n = extras.map((ex, j) => j === i ? { ...ex, transferredToExpenses: true } : ex);
       setExtras(n); upd({ extras: n });
-      setTransferMsg(`"${e.reason}", ${parseFloat(e.amount).toFixed(2)} € προστέθηκε στις Δαπάνες`);
-      setTimeout(() => setTransferMsg(null), 4500);
+      // Ο τόνος (θετικό/αρνητικό) δηλώνεται πια ρητά. Πριν, η επιτυχία ξεχώριζε από
+      // την αποτυχία με `transferMsg.startsWith('Σφάλμα')` — αν άλλαζε η διατύπωση
+      // του μηνύματος, η αποτυχία εμφανιζόταν ουδέτερη και διαβαζόταν ως επιτυχία.
+      notifyOk(`«${e.reason}», ${parseFloat(e.amount).toFixed(2)} € προστέθηκε στις Δαπάνες`);
     } catch {
-      setTransferMsg('Σφάλμα, δοκίμασε ξανά');
-      setTimeout(() => setTransferMsg(null), 3000);
+      notifyError('Σφάλμα, δοκίμασε ξανά');
     } finally {
       setTransferring(null);
     }
@@ -226,15 +223,6 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         .hist-bar:hover { opacity: 0.85; }
       `}</style>
 
-      {/* ── Toast ────────────────────────────────────────────────────────── */}
-      {transferMsg && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: 'var(--bg-surface)', border: `1px solid ${transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, fontFamily: T.font.sans, boxShadow: '0 8px 32px rgba(0,0,0,0.25)', minWidth: 300 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--text-secondary)' }}/>
-          <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--text-primary)' }}>{transferMsg}</span>
-          <button onClick={() => setTransferMsg(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>✕</button>
-        </div>
-      )}
-
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
@@ -255,7 +243,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       </InfoBanner>
 
       {/* ── Ανάλυση Κοινοχρήστων ανά Κατηγορία (χιλιοστά, Billys logic) ──── */}
-      <div style={card}>
+      <Card pad="lg">
         {secHdr('Ανάλυση Κοινοχρήστων ανά Κατηγορία')}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 16 }}>
@@ -317,10 +305,10 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             Συμπλήρωσε τα χιλιοστά σου παραπάνω για να υπολογιστεί το μερίδιό σου.
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── Διαχείριση Κτηρίου ───────────────────────────────────────────── */}
-      <div style={card}>
+      <Card pad="lg">
         {secHdr('Διαχείριση Κτηρίου')}
 
         {/* FIX: 3 cols so DatePicker has enough room, was 4 cols causing overflow */}
@@ -400,10 +388,10 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── Ταμείο Κτηρίου ───────────────────────────────────────────────── */}
-      <div style={card}>
+      <Card pad="lg">
         {secHdr('Ταμείο Κτηρίου')}
 
         {/* FIX: 2+2 grid layout so DatePicker label doesn't overflow */}
@@ -432,10 +420,10 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── Έκτακτες Εισφορές ────────────────────────────────────────────── */}
-      <div style={card}>
+      <Card pad="lg">
         {secHdr('Έκτακτες Εισφορές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
@@ -445,16 +433,18 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={addExtra}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 36, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: T.h.md, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
               + Προσθήκη
             </button>
           </div>
         </div>
 
         {extras.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.sans }}>
-            Δεν υπάρχουν καταγεγραμμένες έκτακτες εισφορές
-          </div>
+          <EmptyState
+            icon={<HandCoins size={20} />}
+            title="Καμία έκτακτη εισφορά"
+            hint="Κατέγραψε έκτακτες χρεώσεις κοινοχρήστων (π.χ. ανακαίνιση, ασανσέρ) για σωστό ετήσιο σύνολο."
+          />
         )}
 
         {extras.map((e, i) => (
@@ -490,16 +480,18 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(totalExtras)}</span>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── Ιστορικό Κοινοχρήστων ────────────────────────────────────────── */}
-      <div style={card}>
+      <Card pad="lg">
         {secHdr('Ιστορικό Κοινοχρήστων ανά Μήνα')}
 
         {history.every(v => !v) && (
-          <div style={{ textAlign: 'center', padding: '12px 0', marginBottom: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Καταχώρησε ποσά παρακάτω για να εμφανιστεί το γράφημα
-          </div>
+          <EmptyState
+            icon={<BarChart3 size={20} />}
+            title="Το γράφημα είναι κενό"
+            hint="Καταχώρησε μηνιαία ποσά κοινοχρήστων παρακάτω για να δεις την εξέλιξη του έτους."
+          />
         )}
 
         {/* Bar chart, with hover highlight */}
@@ -579,11 +571,11 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── Σύνοψη Κοινοχρήστων ──────────────────────────────────────────── */}
       {totalCommon > 0 && (
-        <div style={card}>
+        <Card pad="lg">
           {secHdr('Σύνοψη Κοινοχρήστων')}
           {[
             { label: 'Διαχείριση',         amount: mgmtMonthly,                  skip: !mgmtMonthly },
@@ -610,7 +602,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalCommon * 12)} / έτος</div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

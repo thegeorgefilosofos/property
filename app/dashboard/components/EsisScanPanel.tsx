@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
+import { T } from '@/components/Theme'
 import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 
 // Σαρωτής προσφοράς ESIS — ανεβάζεις το δελτίο της τράπεζας (ή πληκτρολογείς τα
@@ -130,7 +131,7 @@ export default function EsisScanPanel({
       <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{display:'none'}} onChange={e=>{ const f=e.target.files?.[0]; if(f) loadFile(f); e.currentTarget.value='' }}/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
         <p style={{flex:1,minWidth:240,fontSize:13,color:'var(--text-tertiary)',fontFamily:font,lineHeight:1.55}}>Ανέβασε το δελτίο ESIS ή την προσφορά της τράπεζας, ή πληκτρολόγησε τα νούμερα. Το εργαλείο αποκαλύπτει το πραγματικό κόστος (ΣΕΠΠΕ) πέρα από το διαφημιζόμενο επιτόκιο.</p>
-        <button onClick={()=>inputRef.current?.click()} disabled={scanning} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'0 16px',height:36,borderRadius:100,background:'var(--accent)',border:'1px solid transparent',color:'var(--accent-text)',fontSize:12,fontFamily:font,fontWeight:700,cursor:scanning?'wait':'pointer',flexShrink:0}}>
+        <button onClick={()=>inputRef.current?.click()} disabled={scanning} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'0 16px',height:T.h.md,borderRadius:100,background:'var(--accent)',border:'1px solid transparent',color:'var(--accent-text)',fontSize:12,fontFamily:font,fontWeight:700,cursor:scanning?'wait':'pointer',flexShrink:0}}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
           {scanning?'Ανάλυση…':'Ανέβασε προσφορά'}
         </button>

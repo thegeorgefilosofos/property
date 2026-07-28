@@ -9,8 +9,8 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Sparkles, Check, Plus, X, RotateCcw, TrendingUp } from 'lucide-react';
-import { T, fe } from '@/components/Theme';
+import { Sparkles, Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
+import { T, fe, EmptyState } from '@/components/Theme';
 
 interface Suggestion {
   title: string;
@@ -159,18 +159,11 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
       )}
 
       {suggestions.length > 0 && visibleSuggestions.length === 0 && (
-        <p style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans, textAlign: 'center', padding: '8px 0' }}>
-          Όλες οι προτάσεις διεκπεραιώθηκαν.
-        </p>
+        <EmptyState icon={<CircleCheckBig size={20} />} title="Όλες οι προτάσεις διεκπεραιώθηκαν" hint="Τρέξε νέα ανάλυση όταν αλλάξουν δαπάνες, λογαριασμοί ή μίσθωση." />
       )}
 
       {suggestions.length === 0 && !loadingSugg && (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <TrendingUp size={24} color="var(--text-tertiary)" style={{ margin: '0 auto 8px' }} />
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Πάτα «Ανάλυση ακινήτου» για έξυπνες προτάσεις
-          </p>
-        </div>
+        <EmptyState icon={<Sparkles size={20} />} title="Καμία πρόταση ακόμη" hint="Πάτα «Ανάλυση ακινήτου» για έξυπνες προτάσεις με βάση τα δεδομένα σου." />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

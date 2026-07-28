@@ -64,7 +64,7 @@ export default function DateField({ value, onChange, style }: { value: string; o
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   const label = sel ? `${sel.getDate()} ${MONTHS_GEN[sel.getMonth()]} ${sel.getFullYear()}` : 'Επιλογή ημερομηνίας';
 
-  const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, cursor: 'pointer', transition: 'border-color 0.14s', ...style };
+  const field: React.CSSProperties = { height: T.h.lg, padding: '0 13px', borderRadius: T.radius.inner, border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, cursor: 'pointer', transition: 'border-color 0.14s', ...style };
   const navBtn: React.CSSProperties = { width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 17, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
   const nav = (delta: number) => setView(new Date(y, m + delta, 1));
@@ -92,7 +92,7 @@ export default function DateField({ value, onChange, style }: { value: string; o
               const isSel = value === dIso, isToday = todayIso === dIso;
               return (
                 <button key={i} type="button" onClick={() => { onChange(dIso); setOpen(false); }}
-                  style={{ height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12.5, fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', background: isSel ? 'var(--accent)' : 'transparent', color: isSel ? 'var(--accent-text)' : 'var(--text-primary)', fontWeight: (isSel || isToday) ? 700 : 500, boxShadow: !isSel && isToday ? 'inset 0 0 0 1px var(--border-default)' : 'none', transition: 'background 0.12s' }}
+                  style={{ height: T.h.sm, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12.5, fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', background: isSel ? 'var(--accent)' : 'transparent', color: isSel ? 'var(--accent-text)' : 'var(--text-primary)', fontWeight: (isSel || isToday) ? 700 : 500, boxShadow: !isSel && isToday ? 'inset 0 0 0 1px var(--border-default)' : 'none', transition: 'background 0.12s' }}
                   onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}>{d}</button>
               );

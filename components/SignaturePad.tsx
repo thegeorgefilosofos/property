@@ -99,8 +99,11 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
     onChange(text.trim() ? off.toDataURL('image/png') : '');
   };
 
+  // Ύψος από την κοινή κλίμακα αντί για literal 30: τα segmented controls του app
+  // είχαν 30/34/36 ανάλογα με το αρχείο, οπότε η ίδια «γλώσσα» κουμπιού έδειχνε
+  // διαφορετική σε κάθε οθόνη. T.h.sm είναι το πλησιέστερο σκαλί.
   const seg = (m: 'draw' | 'type'): React.CSSProperties => ({
-    fontSize: 12, fontWeight: 600, height: 30, padding: '0 14px', borderRadius: 8, cursor: 'pointer', border: 'none',
+    fontSize: 12, fontWeight: 600, height: T.h.sm, padding: '0 14px', borderRadius: 8, cursor: 'pointer', border: 'none',
     background: mode === m ? 'var(--accent)' : 'transparent', color: mode === m ? 'var(--accent-text)' : 'var(--text-secondary)',
     fontFamily: T.font.sans, transition: 'all 0.15s',
   });

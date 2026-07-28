@@ -4,16 +4,17 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
-import { T, Spinner, ExportButton } from '@/components/Theme';
+import { T, Card, Skeleton, EmptyState, Btn, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, SearchX, Receipt } from 'lucide-react';
 import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import { issueDocument } from '@/lib/documents/issue';
-import { notifyError } from '@/components/Toast';
+import { notifyOk, notifyError } from '@/components/Toast';
+import { confirmDialog } from '@/components/confirmBus';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -120,14 +121,6 @@ function getCatColor(cat: string) {
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
-const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-elevated)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: 12,
-  padding: 20,
-  marginBottom: 16,
-};
-
 const labelStyle: React.CSSProperties = {
   fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-secondary)',
   display: 'block', marginBottom: 6, fontWeight: 500, fontFamily: T.font.sans,
@@ -236,7 +229,7 @@ function ContactPicker({ value, onChange, propertyId }: { value:string; onChange
         <div style={{ flex:1 }}><TextInput value={value} onChange={onChange} placeholder="π.χ. Αντικατάσταση ψυγείου Bosch" /></div>
         {contacts.length > 0 && (
           <button type="button" onClick={() => setShow(s=>!s)}
-            style={{ padding:'0 12px', borderRadius:6, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:40, fontFamily: T.font.sans }}>
+            style={{ padding:'0 12px', borderRadius:6, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:T.h.lg, fontFamily: T.font.sans }}>
             Επαφές
           </button>
         )}
@@ -345,7 +338,7 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
         <button
           onClick={() => inputRef.current?.click()}
           disabled={scanning}
-          style={{ height:32, padding:'0 14px', borderRadius:18, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'var(--accent-text)', fontSize:11, fontFamily: T.font.sans, fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
+          style={{ height:T.h.sm, padding:'0 14px', borderRadius:18, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'var(--accent-text)', fontSize:11, fontFamily: T.font.sans, fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
           {scanning ? (
             <>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation:'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -402,7 +395,7 @@ function ExpenseForm({
     .map(([k,v]) => ({ value:k, label:v.label }));
 
   return (
-    <div style={{ ...cardStyle, border:`1px solid ${isEdit?'var(--accent)':'var(--border-accent)'}` }}>
+    <Card pad="lg" style={{ border:`1px solid ${isEdit?'var(--accent)':'var(--border-accent)'}` }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <div style={{ fontSize:11, fontWeight:500, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily: T.font.sans, display:'flex', alignItems:'center', gap:8 }}>
           {isEdit ? 'Επεξεργασία Δαπάνης' : 'Νέα Δαπάνη'}
@@ -545,7 +538,7 @@ function ExpenseForm({
           />
           {form.attachment_url && (
             <a href={form.attachment_url} target="_blank" rel="noopener noreferrer"
-              style={{ height:40, padding:'0 16px', borderRadius:6, border:'1px solid var(--accent)', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', fontSize:12, fontFamily: T.font.sans, fontWeight:500, cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap', gap:6 }}>
+              style={{ height:T.h.lg, padding:'0 16px', borderRadius:6, border:'1px solid var(--accent)', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', fontSize:12, fontFamily: T.font.sans, fontWeight:500, cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap', gap:6 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               Άνοιγμα
             </a>
@@ -565,7 +558,7 @@ function ExpenseForm({
           {saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
         </button>
       </div>
-    </div>
+    </Card>
   );
 }
 // ─── Export helpers ───────────────────────────────────────────────────────────
@@ -966,7 +959,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   const [filterPaid, setFilterPaid] = useState('all');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
-  const [ok, setOk] = useState<string|null>(null);
   const [showInsights, setShowInsights] = useState(true);
   const [hoveredNote, setHoveredNote] = useState<string|null>(null);
   const [notePos, setNotePos] = useState({ x:0, y:0 });
@@ -1055,7 +1047,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   }, [propertyId]);
 
   useEffect(() => { load(); }, [load]);
-  const notify = (msg:string) => { setOk(msg); setTimeout(()=>setOk(null),3000); };
 
   // ── Quick-add save ──
   const quickSave = async () => {
@@ -1082,7 +1073,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     });
     setQuickSaving(false);
     setQuickDesc(''); setQuickAmt('');
-    notify('Γρήγορη καταχώρηση αποθηκεύτηκε');
+    notifyOk('Γρήγορη καταχώρηση αποθηκεύτηκε');
     load();
   };
 
@@ -1157,17 +1148,22 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
 
   const save = async () => {
     if (!form.description || !form.amount || !form.date) return;
-    const selectedDate = new Date(form.date+'T00:00:00');
+    // Στιγμιότυπο ΠΡΙΝ τον διάλογο: το confirm του περιηγητή πάγωνε τη σελίδα, ο
+    // δικός μας διάλογος όχι. Χωρίς το snapshot, ο χρήστης μπορούσε να αλλάξει
+    // ημερομηνία όσο η ερώτηση ήταν ανοιχτή και να αποθηκευτεί ΑΛΛΗ από εκείνη
+    // που ανέφερε η ερώτηση.
+    const snapshot = form;
+    const selectedDate = new Date(snapshot.date+'T00:00:00');
     const today = new Date(); today.setHours(0,0,0,0);
     if (selectedDate > today) {
-      if (!window.confirm(`Η ημερομηνία ${fmtD(form.date)} είναι στο μέλλον. Συνέχεια;`)) return;
+      if (!(await confirmDialog(`Η ημερομηνία ${fmtD(snapshot.date)} είναι στο μέλλον. Συνέχεια;`))) return;
     }
     setSaving(true);
-    const { error } = await supabase.from('expenses').insert(buildPayload(form));
+    const { error } = await supabase.from('expenses').insert(buildPayload(snapshot));
     setSaving(false);
     if (error) { notifyError('Σφάλμα: '+error.message); return; }
     setShowForm(false); setForm(blank());
-    notify('Η δαπάνη καταχωρήθηκε'); load();
+    notifyOk('Η δαπάνη καταχωρήθηκε'); load();
   };
 
   const saveEdit = async (id:string, editForm: typeof form) => {
@@ -1177,14 +1173,17 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     const { error } = await supabase.from('expenses').update(p).eq('id',id);
     setSaving(false);
     if (error) { notifyError('Σφάλμα: '+error.message); return; }
-    setEditingId(null); notify('Η δαπάνη ενημερώθηκε'); load();
+    setEditingId(null); notifyOk('Η δαπάνη ενημερώθηκε'); load();
   };
 
   const del = async (id:string) => {
-    if (!confirm('Διαγραφή δαπάνης;')) return;
+    if (!(await confirmDialog('Διαγραφή δαπάνης;',{tone:'negative'}))) return;
     await supabase.from('expenses').delete().eq('id',id);
     setExpenses(p => p.filter(e => e.id!==id));
     if (editingId===id) setEditingId(null);
+    // Πριν, η διαγραφή ήταν η μόνη ενέργεια χωρίς επιβεβαίωση: η γραμμή έφευγε
+    // σιωπηλά και ο χρήστης δεν ήξερε αν έσβησε τη σωστή.
+    notifyOk('Η δαπάνη διαγράφηκε');
   };
 
   const duplicate = async (e: Expense) => {
@@ -1194,7 +1193,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       paid: false,
     });
     await supabase.from('expenses').insert(payload);
-    notify('Δαπάνη αντιγράφηκε'); load();
+    notifyOk('Δαπάνη αντιγράφηκε'); load();
   };
 
   // ── Filtered & sorted ──
@@ -1326,13 +1325,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   return (
     <div style={{ fontFamily: T.font.sans, color:'var(--text-primary)', width:'100%', boxSizing:'border-box' }}>
 
-      {/* Toast */}
-      {ok && (
-        <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 16px', marginBottom:14, color:'var(--positive)', fontSize:12, fontFamily: T.font.sans }}>
-          {ok}
-        </div>
-      )}
-
       {/* Unpaid alert */}
       {unpaidTotal > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:8, padding:'10px 16px', marginBottom:14, display:'flex', alignItems:'center', gap:12 }}>
@@ -1380,7 +1372,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     exhibition_booth_cost:null, floor_type:null, appliance_lease_months:null,
                     appliance_lease_monthly:null, notes:null,
                   });
-                  notify('Καταχωρήθηκε'); load();
+                  notifyOk('Καταχωρήθηκε'); load();
                 }} style={{ height:26, padding:'0 8px', borderRadius:12, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:10, cursor:'pointer', fontFamily: T.font.sans, fontWeight:500 }}>
                   + Καταχώρηση
                 </button>
@@ -1425,20 +1417,20 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               (Δαπάνες → Προϋπολογισμός, Συγκριτική Ανάλυση → Φορολογική Ανάλυση) —
               καμία διπλή είσοδος εδώ. */}
           <button onClick={() => exportExcel(processed, 'Ακίνητο')}
-            style={{ height:36, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
+            style={{ height:T.h.md, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
             Εξαγωγή Excel
           </button>
           <button onClick={() => exportPDF(processed, 'Ακίνητο', branding)}
-            style={{ height:36, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
+            style={{ height:T.h.md, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
             Εξαγωγή PDF
           </button>
           <button onClick={officialExpenses} disabled={genOfficial}
             title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και λογιστή"
-            style={{ display:'inline-flex', alignItems:'center', gap:7, height:36, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:genOfficial?'wait':'pointer', opacity:genOfficial?0.6:1, fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
+            style={{ display:'inline-flex', alignItems:'center', gap:7, height:T.h.md, padding:'0 14px', borderRadius:18, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:genOfficial?'wait':'pointer', opacity:genOfficial?0.6:1, fontSize:12, fontFamily: T.font.sans, fontWeight:500 }}>
             <ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}
           </button>
           <button onClick={() => { setShowForm(v=>!v); setEditingId(null); }}
-            style={{ height:36, padding:'0 18px', borderRadius:18, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500, whiteSpace:'nowrap' }}>
+            style={{ height:T.h.md, padding:'0 18px', borderRadius:18, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily: T.font.sans, fontWeight:500, whiteSpace:'nowrap' }}>
             {showForm ? 'Κλείσιμο' : '+ Νέα Δαπάνη'}
           </button>
         </div>
@@ -1465,7 +1457,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           {Object.entries(EXPENSE_GROUPS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
         </select>
         <button onClick={quickSave} disabled={quickSaving||!quickDesc.trim()||!quickAmt}
-          style={{ height:32, padding:'0 16px', borderRadius:18, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontFamily: T.font.sans, fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
+          style={{ height:T.h.sm, padding:'0 16px', borderRadius:18, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontFamily: T.font.sans, fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
           {quickSaving?'...':'Αποθήκευση'}
         </button>
         <span style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans, flexShrink:0 }}>Enter</span>
@@ -1794,21 +1786,26 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
 
       {/* List */}
       {loading ? (
-        <Spinner label="Φόρτωση…" />
-      ) : processed.length === 0 ? (
-        <div style={{ textAlign:'center', padding:64, color:'var(--text-tertiary)' }}>
-          <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
-          </div>
-          <div style={{ fontSize:13, fontWeight:500, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
-            {search ? `Δεν βρέθηκαν αποτελέσματα για «${search}»` : 'Δεν έχεις καταχωρίσει δαπάνες ακόμα'}
-          </div>
-          {!search && (
-            <div style={{ fontSize:12, color:'var(--text-tertiary)', marginTop:4, fontFamily: T.font.sans }}>
-              Πρόσθεσε την πρώτη σου δαπάνη για να ξεκινήσει η παρακολούθηση εξόδων και αποδόσεων.
-            </div>
-          )}
+        // Ξέρουμε το σχήμα που έρχεται (ομάδες δαπανών), οπότε δείχνουμε το σχήμα
+        // αντί για κυκλικό δείκτη: η σελίδα δεν «πηδά» όταν φτάσουν τα δεδομένα.
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {[0,1,2].map(i => <Skeleton key={i} h={92} r={12} />)}
         </div>
+      ) : processed.length === 0 ? (
+        search ? (
+          <EmptyState
+            icon={<SearchX size={20} />}
+            title={`Δεν βρέθηκαν αποτελέσματα για «${search}»`}
+            hint="Δοκίμασε άλλον όρο ή καθάρισε τα φίλτρα."
+          />
+        ) : (
+          <EmptyState
+            icon={<Receipt size={20} />}
+            title="Δεν έχεις καταχωρίσει δαπάνες ακόμα"
+            hint="Πρόσθεσε την πρώτη σου δαπάνη για να ξεκινήσει η παρακολούθηση εξόδων και αποδόσεων."
+            action={<Btn variant="primary" onClick={() => { setShowForm(true); setEditingId(null); }}>Νέα δαπάνη</Btn>}
+          />
+        )
       ) : (
         <>
           {Object.entries(EXPENSE_GROUPS).map(([groupKey, groupInfo]) => {

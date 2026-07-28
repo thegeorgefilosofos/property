@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, Spinner, ExportButton, EmptyState } from '@/components/Theme';
+import { T, fe, fn, Skeleton, ExportButton, EmptyState } from '@/components/Theme';
+import { Building2 } from 'lucide-react';
 import { downloadCsv } from './exportCsv';
 import { money, dec2, percent } from './xlsxStyle';
 import { runE2Export } from './e2Export';
@@ -77,7 +78,7 @@ export default function TabComparison({ properties, userId }: Props) {
       <div style={{ fontFamily: T.font.sans }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 20px' }}>Σύγκριση Ακινήτων</h1>
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8 }}>
-          <EmptyState title="Χρειάζονται τουλάχιστον δύο ακίνητα" hint="Πρόσθεσε ένα δεύτερο ακίνητο για να τα συγκρίνεις ως προς αξία, ενοίκιο, απόδοση, λογαριασμούς και δαπάνες." />
+          <EmptyState icon={<Building2 size={20} />} title="Χρειάζονται τουλάχιστον δύο ακίνητα" hint="Πρόσθεσε ένα δεύτερο ακίνητο για να τα συγκρίνεις ως προς αξία, ενοίκιο, απόδοση, λογαριασμούς και δαπάνες." />
         </div>
       </div>
     );
@@ -155,7 +156,10 @@ export default function TabComparison({ properties, userId }: Props) {
       </div>
 
       {loading ? (
-        <Spinner label="Φόρτωση…" />
+        // Σκελετός αντί για spinner: το σχήμα του πίνακα σύγκρισης είναι γνωστό εκ
+        // των προτέρων, οπότε ο χώρος δεσμεύεται από την αρχή και η σελίδα δεν
+        // «πηδά» όταν φτάνουν τα δεδομένα.
+        <Skeleton h={320} r={14} />
       ) : (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8, overflowX: 'auto' }}>
           <div className="table-wrap">

@@ -1,7 +1,10 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { T, ExportButton } from '@/components/Theme'
+import { T, ExportButton, EmptyState, Btn, Skeleton } from '@/components/Theme'
+import { notifyOk } from '@/components/Toast'
+import { confirmDialog } from '@/components/confirmBus'
+import { Landmark, Gift } from 'lucide-react'
 import { downloadXlsx, type XlsxMode } from './exportXlsx'
 import TabLoanCalculator from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
@@ -108,7 +111,7 @@ function SourceLinkPill({href,children}:{href:string;children:React.ReactNode}) 
   return (
     <a href={href} target="_blank" rel="noreferrer"
       onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onFocus={()=>setH(true)} onBlur={()=>setH(false)}
-      style={{display:'inline-flex',alignItems:'center',gap:6,padding:'0 16px',height:36,borderRadius:18,
+      style={{display:'inline-flex',alignItems:'center',gap:6,padding:'0 16px',height:T.h.md,borderRadius:18,
         background:h?'var(--accent-dim)':'var(--bg-surface)',border:`1px solid ${h?'var(--border-accent)':'var(--border-subtle)'}`,
         color:h?'var(--accent)':'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,textDecoration:'none',fontWeight:600,
         transition:'color 0.15s, background 0.15s, border-color 0.15s'}}>{children}</a>
@@ -230,7 +233,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
     const eur = market.euribor_3m || MARKET_FALLBACK.euribor_3m
     const applyRate = rt==='variable' ? Math.max(0, Number((rate - eur).toFixed(2))) : rate
     setAppliedLoan({ v: Date.now(), rate:applyRate, rateType:rt })
-    if(bankName) showToast(`Εφαρμόστηκε το επιτόκιο: ${bankName}`)
+    if(bankName) notifyOk(`Εφαρμόστηκε το επιτόκιο: ${bankName}`)
     scrollToCalc()
   }
   const [saved,setSaved] = useState<SavedLoan[]>([])
@@ -245,8 +248,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const [uniHover,setUniHover] = useState<number|null>(null)
   const [hoverBankRow,setHoverBankRow] = useState<number|null>(null)
   const [hoverRate,setHoverRate] = useState<number|null>(null)
-  const [toast,setToast] = useState<string|null>(null)
-  function showToast(msg:string){setToast(msg);setTimeout(()=>setToast(null),2500)}
+  // Ξεκινά «true»: πριν, η καρτέλα έδειχνε ΤΙΠΟΤΑ όσο έτρεχε η loadSaved και μετά
+  // αναβόσβηνε για μια στιγμή η κενή κατάσταση «δεν υπάρχουν δάνεια», σαν να μην
+  // είχε αποθηκεύσει ποτέ τίποτα ο χρήστης.
+  const [loadingSaved,setLoadingSaved] = useState(true)
 
   const market      = useMarketRates()
   const {banks:liveBanks,loading:banksLoading,verifiedAt} = useBankRates()
@@ -264,7 +269,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
   useEffect(()=>{loadSaved()},[propertyId])
 
-  async function loadSaved(){const{data}=await supabase.from('loans').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false});setSaved(data||[])}
+  async function loadSaved(){
+    try{
+      const{data}=await supabase.from('loans').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false})
+      setSaved(data||[])
+    } finally { setLoadingSaved(false) }
+  }
   async function handleSaveLoan(loan:Partial<SavedLoan>){
     await supabase.from('loans').insert({...loan,property_id:propertyId,user_id:userId})
     await loadSaved()
@@ -275,9 +285,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
       const monthly = calcMonthly(loan.amount, loan.rate, loan.years)
       const start = loan.start_date || new Date().toISOString().split('T')[0]
       await handleSaveCal(monthly, loan.years, start, loan.bank || '', loan.amount, true)
-      showToast('Το δάνειο αποθηκεύτηκε και οι δόσεις προστέθηκαν στο Ημερολόγιο')
+      notifyOk('Το δάνειο αποθηκεύτηκε και οι δόσεις προστέθηκαν στο Ημερολόγιο')
     } else {
-      showToast('Το δάνειο αποθηκεύτηκε')
+      notifyOk('Το δάνειο αποθηκεύτηκε')
     }
   }
   async function handleSaveCal(monthly:number,years:number,startDate:string,bankName:string,loanAmount?:number,silent=false){
@@ -296,13 +306,17 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
     }
     await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src)
     for(let i=0;i<events.length;i+=20)await supabase.from('calendar_events').insert(events.slice(i,i+20))
-    if(!silent) showToast(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
+    if(!silent) notifyOk(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){
     await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:new Date().toISOString().split('T')[0]})
-    showToast('Δόση καταχωρήθηκε στις Δαπάνες')
+    notifyOk('Δόση καταχωρήθηκε στις Δαπάνες')
   }
-  async function deleteLoan(id:string){if(!confirm('Διαγραφή δανείου;'))return;await supabase.from('loans').delete().eq('id',id);await loadSaved()}
+  async function deleteLoan(id:string){
+    if(!(await confirmDialog('Διαγραφή δανείου;',{tone:'negative'})))return
+    await supabase.from('loans').delete().eq('id',id)
+    await loadSaved()
+  }
 
   const updStr = market.isLoading?'…' : new Date(market.updated_at).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
   const banksUpdStr = new Date(verifiedAt || BANKS_VERIFIED).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
@@ -430,13 +444,20 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </div>
         )
       })()}
-      {saved.length===0&&(
-        <div style={{textAlign:'center',padding:'40px 0'}}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-default)" strokeWidth="1.5" style={{margin:'0 auto 14px',display:'block'}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          <p style={{fontSize:15,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:400}}>Δεν υπάρχουν αποθηκευμένα δάνεια</p>
-          <p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:6,fontFamily: T.font.sans}}>Χρησιμοποίησε τον Υπολογιστή Δανείου για να υπολογίσεις και να αποθηκεύσεις δάνεια.</p>
-          <button onClick={scrollToCalc} style={{marginTop:14,padding:'0 18px',height:36,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:18,color:'var(--text-secondary)',fontSize:13,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>Άνοιξε τον Υπολογιστή Δανείου</button>
+      {/* Όσο τρέχει η loadSaved δείχνουμε το σχήμα των καρτών δανείου, ώστε να μη
+          διαβάζεται για μια στιγμή το «δεν υπάρχουν δάνεια» ως απάντηση. */}
+      {loadingSaved&&(
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {[0,1].map(i=><Skeleton key={i} h={140} r={14}/>)}
         </div>
+      )}
+      {!loadingSaved&&saved.length===0&&(
+        <EmptyState
+          icon={<Landmark size={20}/>}
+          title="Δεν υπάρχουν αποθηκευμένα δάνεια"
+          hint="Χρησιμοποίησε τον Υπολογιστή Δανείου για να υπολογίσεις και να αποθηκεύσεις δάνεια."
+          action={<Btn variant="secondary" onClick={scrollToCalc}>Άνοιξε τον Υπολογιστή Δανείου</Btn>}
+        />
       )}
       {saved.map(loan=>{
         const m=calcMonthly(loan.amount,loan.rate,loan.years)
@@ -536,7 +557,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
       {openSec==='banks' && (<LensPanel title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}${banksStale?' · χρήζουν επαλήθευσης':''}`}>
         {openSec==='banks'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          {isAdmin && <BankRatesAdmin showToast={showToast} onSaved={()=>{}}/>}
+          {isAdmin && <BankRatesAdmin onSaved={()=>{}}/>}
           {banksStale&&(
             <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10}}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
@@ -544,7 +565,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             </div>
           )}
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-            <button onClick={()=>setFS(f=>!f)} style={{display:'flex',alignItems:'center',gap:7,padding:'0 14px',height:36,background:filterSpiti?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${filterSpiti?'var(--border-accent)':'var(--border-subtle)'}`,borderRadius:18,cursor:'pointer',color:filterSpiti?'var(--accent)':'var(--text-secondary)',fontSize:12,fontFamily: T.font.sans,fontWeight:500}}>
+            <button onClick={()=>setFS(f=>!f)} style={{display:'flex',alignItems:'center',gap:7,padding:'0 14px',height:T.h.md,background:filterSpiti?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${filterSpiti?'var(--border-accent)':'var(--border-subtle)'}`,borderRadius:18,cursor:'pointer',color:filterSpiti?'var(--accent)':'var(--text-secondary)',fontSize:12,fontFamily: T.font.sans,fontWeight:500}}>
               Σπίτι μου ΙΙ
             </button>
             <p style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily: T.font.sans}}>
@@ -599,8 +620,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     {bank.note&&<p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:3,fontFamily: T.font.sans}}>{bank.note}</p>}
                   </div>
                   <div style={{display:'flex',gap:8}}>
-                    {bank.url&&<a href={bank.url} target="_blank" rel="noreferrer" style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-default)',background:'none',color:'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,textDecoration:'none',fontWeight:500,display:'flex',alignItems:'center'}}>Επίσκεψη</a>}
-                    <button onClick={()=>applyBank(bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, 'fixed', bank.bank_name||bank.name)} style={{padding:'0 16px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12.5,fontFamily: T.font.sans,cursor:'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
+                    {bank.url&&<a href={bank.url} target="_blank" rel="noreferrer" style={{padding:'0 16px',height:T.h.md,borderRadius:18,border:'1px solid var(--border-default)',background:'none',color:'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,textDecoration:'none',fontWeight:500,display:'flex',alignItems:'center'}}>Επίσκεψη</a>}
+                    <button onClick={()=>applyBank(bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, 'fixed', bank.bank_name||bank.name)} style={{padding:'0 16px',height:T.h.md,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12.5,fontFamily: T.font.sans,cursor:'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
                   </div>
                 </div>
                 <p style={{...labelStyle,marginBottom:10}}>Σταθερά επιτόκια «από», ανά διάρκεια</p>
@@ -743,9 +764,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             )
           })}
           {activePrograms.length===0&&(
-            <div style={{textAlign:'center',padding:'40px 0',color:'var(--text-secondary)'}}>
-              <p style={{fontSize:14,fontFamily: T.font.sans}}>Δεν υπάρχουν ενεργά προγράμματα.</p>
-            </div>
+            <EmptyState
+              icon={<Gift size={20}/>}
+              title="Δεν υπάρχουν ενεργά προγράμματα"
+              hint="Τα κρατικά προγράμματα στέγασης εμφανίζονται εδώ μόλις ανοίξει νέος κύκλος."
+            />
           )}
         </div>
         )}
@@ -873,7 +896,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                         <button onClick={()=>applyBank(topRec.nominalRatePct, topRec.rateType, topRec.bankName)}
                           onMouseEnter={()=>setApplyHover(true)} onMouseLeave={()=>setApplyHover(false)}
                           onTouchStart={()=>setApplyHover(true)} onTouchEnd={()=>setApplyHover(false)}
-                          style={{marginTop:10,display:'inline-flex',alignItems:'center',gap:6,height:32,padding:'0 13px',borderRadius:14,background:applyHover?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${applyHover?'var(--border-accent)':'var(--border-subtle)'}`,color:applyHover?'var(--accent)':'var(--text-secondary)',fontSize:12,fontWeight:600,fontFamily: T.font.sans,cursor:'pointer',transition:'color 0.15s, background 0.15s, border-color 0.15s'}}>
+                          style={{marginTop:10,display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 13px',borderRadius:14,background:applyHover?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${applyHover?'var(--border-accent)':'var(--border-subtle)'}`,color:applyHover?'var(--accent)':'var(--text-secondary)',fontSize:12,fontWeight:600,fontFamily: T.font.sans,cursor:'pointer',transition:'color 0.15s, background 0.15s, border-color 0.15s'}}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                           Εφαρμογή στον Υπολογιστή
                         </button>
@@ -1380,11 +1403,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         )}
       </LensPanel>)}
 
-      {toast&&(
-        <div style={{position:'fixed',bottom:24,right:24,zIndex:1000,display:'flex',alignItems:'center',gap:9,padding:'11px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,boxShadow:'var(--shadow-lg)',maxWidth:320}}>
-          <span style={{fontSize:13,color:'var(--text-primary)',fontFamily: T.font.sans}}>{toast}</span>
-        </div>
-      )}
     </div>
   )
 }

@@ -63,7 +63,7 @@ export function InfoDot({ text }: { text: string }) {
       <button ref={ref} type="button" aria-label="Επεξήγηση"
         onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); open ? hide() : show(); }}
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 0, marginTop: -9, marginBottom: -9, padding: 0, width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0 }}>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 0, marginTop: -9, marginBottom: -9, padding: 0, width: T.h.sm, height: T.h.sm, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 15, height: 15, borderRadius: '50%', border: '1px solid var(--border-default)' }}>
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 8h.01M11 12h1v4h1" /></svg>
         </span>
@@ -599,7 +599,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           boxShadow: 'var(--shadow-lg)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: 32, height: 32, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: T.h.sm, height: T.h.sm, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
@@ -607,7 +607,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
             <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
               {MONTHS_GR[month]} {year}
             </span>
-            <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: 32, height: 32, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: T.h.sm, height: T.h.sm, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
@@ -658,13 +658,13 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           </div>
           <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
             <button onClick={() => { onChange(''); setOpen(false); }}
-              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
+              style={{ height: T.h.md, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-dim)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               Εκκαθάριση
             </button>
             <button onClick={() => { onChange(today); setOpen(false); }}
-              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              style={{ height: T.h.md, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Σήμερα
             </button>
           </div>
@@ -858,7 +858,7 @@ export function ServiceBySelect({ label, value, onChange }: { label: string; val
             onClick={() => onChange(v)}
             style={{
               flex: 1,
-              height: 36,
+              height: T.h.md,
               fontFamily: T.font.sans,
               fontSize: 13,
               fontWeight: 500,
@@ -907,7 +907,7 @@ export function SegmentControl({ options, value, onChange }: { options: SegmentO
           onClick={() => onChange(o.value)}
           style={{
             flex: 1,
-            height: 32,
+            height: T.h.sm,
             paddingLeft: 16,
             paddingRight: 16,
             fontFamily: T.font.sans,

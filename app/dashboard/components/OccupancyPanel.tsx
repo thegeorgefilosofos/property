@@ -10,7 +10,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Skeleton } from '@/components/Theme';
 import { NumberInput, TextInput } from './UIComponents';
 import { shortTermNet } from '@/lib/billing/greekTax';
 
@@ -24,11 +24,17 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
   const supabase = createClient();
   const [d, setD] = useState<OccData>(INIT);
   const [open, setOpen] = useState(false);
+  // Χωρίς αυτόν τον δείκτη, το πάνελ έδειχνε το INIT (διακόπτης «κλειστός», μηδενικές
+  // νύχτες) σαν να ήταν αποθηκευμένα δεδομένα: όποιος άνοιγε την κάρτα πριν γυρίσει
+  // το ερώτημα έβλεπε «Βραχυχρόνια: όχι» και μετά τον διακόπτη να αναπηδά μόνος του.
+  const [loading, setLoading] = useState(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'occupancy').maybeSingle();
-    if (data?.data) setD({ ...INIT, ...(data.data as Partial<OccData>) });
+    try {
+      const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'occupancy').maybeSingle();
+      if (data?.data) setD({ ...INIT, ...(data.data as Partial<OccData>) });
+    } finally { setLoading(false); }
   }, [propertyId]);
   useEffect(() => { load(); }, [load]);
 
@@ -78,6 +84,16 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
 
       {open && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+          {/* Ο σκελετός καλύπτει ΜΟΝΟ τη σειρά του διακόπτη — το μόνο σχήμα που είναι
+              βέβαιο πριν φορτώσουν τα δεδομένα. Σκελετός με KPIs θα υποσχόταν πίνακα
+              μετρικών που στα περισσότερα ακίνητα δεν εμφανίζεται ποτέ (βραχυχρόνια
+              απενεργοποιημένη), δηλαδή θα αντικαθιστούσε το ένα ψέμα με ένα άλλο. */}
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Skeleton w={40} h={26} r={12} />
+              <Skeleton w={260} h={13} r={6} />
+            </div>
+          ) : (<>
           {/* Toggle */}
           <button type="button" role="switch" aria-checked={d.shortTerm} onClick={() => upd({ shortTerm: !d.shortTerm })}
             style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: d.shortTerm ? 18 : 0 }}>
@@ -138,6 +154,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
               </div>
             </>
           )}
+          </>)}
         </div>
       )}
     </div>

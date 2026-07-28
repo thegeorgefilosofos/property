@@ -13,7 +13,7 @@ import { useReportBranding } from '@/lib/reportBranding'
 import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport'
 import { issueDocument } from '@/lib/documents/issue'
 import { ShieldCheck } from 'lucide-react'
-import { notifyError } from '@/components/Toast';
+import { notify, notifyOk, notifyError } from '@/components/Toast';
 import {
   BANKS, LOAN_TYPES, BORROWER_PROFILES, TAX_DATA,
   calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax,
@@ -28,7 +28,7 @@ const labelStyle: React.CSSProperties = {
   display:'block',marginBottom:6,
 }
 const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperties => ({
-  padding:'0 14px',height:36,borderRadius:18,border:`1px solid ${active?accentColor:'var(--border-subtle)'}`,
+  padding:'0 14px',height:T.h.md,borderRadius:18,border:`1px solid ${active?accentColor:'var(--border-subtle)'}`,
   background:active?`${accentColor}14`:'none',color:active?accentColor:'var(--text-secondary)',
   cursor:'pointer',fontSize:12,fontFamily: T.font.sans,fontWeight:active?500:400,
   transition:'all 0.15s',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap' as const,
@@ -544,9 +544,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [hoverCap,  setHoverCap]  = useState<number|null>(null)
   const [hoverRow,  setHoverRow]  = useState<number|null>(null)
   const [hoverCost, setHoverCost] = useState<number|null>(null)
-  const [toast,       setToast]       = useState<string|null>(null)
-  const toastTimer   = useRef<any>(null)
-  function showToast(msg:string){setToast(msg);if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(null),2500)}
+  // Το τοπικό toast (state + ref-timer + δικό του JSX κάτω δεξιά) αφαιρέθηκε: το
+  // αρχείο περνούσε ήδη τα ΣΦΑΛΜΑΤΑ από τον κοινό host και τις ΕΠΙΤΥΧΙΕΣ από δικό
+  // του, οπότε ένα σφάλμα και μια επιτυχία μπορούσαν να εμφανιστούν ταυτόχρονα σε
+  // δύο διαφορετικά σημεία της οθόνης, με διαφορετικό σχήμα και διάρκεια.
 
   // Το προφίλ (ιδιώτης/επιχείρηση) περιορίζει τους τύπους δανειολήπτη σε αυτούς
   // που πραγματικά αφορούν τον χρήστη — καθαρή, στοχευμένη εμπειρία.
@@ -669,9 +670,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     setRateType('fixed');setLoanType('purchase');setBorrower('individual')
     setFixedPeriod('5');setBankId('');setCustomBank('');setNotes('');setExtraPay('0')
     setHasAgent(false);setAgentPct('2');setActivePreset(null)
-    showToast('Επαναφορά στις προεπιλογές')
+    notify('Επαναφορά στις προεπιλογές')
   }
-  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);showToast('Το δάνειο αποθηκεύτηκε')}
+  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);notifyOk('Το δάνειο αποθηκεύτηκε')}
 
   // ── Ημερομηνία δόσης i (1..n) με βάση την έναρξη ──────────────────────────────
   function installmentDate(i:number){
@@ -683,7 +684,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
   // ── Εξαγωγή πλήρους πίνακα τοκοχρεολυσίου σε CSV (ανοίγει σε Excel) ───────────
   function exportAmortCsv(){
-    if(!amort.length){showToast('Δεν υπάρχουν δόσεις προς εξαγωγή');return}
+    if(!amort.length){notify('Δεν υπάρχουν δόσεις προς εξαγωγή',{tone:'warning'});return}
     downloadCsv(
       amortFileBase(),
       ['Δόση','Ημερομηνία','Έτος','Ποσό δόσης (€)','Κεφάλαιο (€)','Τόκος (€)','Υπόλοιπο (€)','Σωρευτικοί τόκοι (€)'],
@@ -698,12 +699,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         ]
       })
     )
-    showToast('Ο πίνακας τοκοχρεολυσίου εξήχθη')
+    notifyOk('Ο πίνακας τοκοχρεολυσίου εξήχθη')
   }
 
   // ── Εξαγωγή πίνακα τοκοχρεολυσίου σε εκτυπώσιμο PDF (κοινό ασπρόμαυρο σύστημα αναφορών) ─
   function exportAmortPdf(){
-    if(!amort.length){showToast('Δεν υπάρχουν δόσεις προς εξαγωγή');return}
+    if(!amort.length){notify('Δεν υπάρχουν δόσεις προς εξαγωγή',{tone:'warning'});return}
     const docTitle=['Πίνακας τοκοχρεολυσίου',bankName].filter(Boolean).join(' · ')
     const summaryKpis=[
       reportKpi('Ποσό δανείου', rEur(LA)),
@@ -734,7 +735,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       + reportDisclaimer('Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.', branding)
       + `</div></body></html>`
     openReport(html)
-    showToast('Άνοιξε το παράθυρο εκτύπωσης PDF')
+    notify('Άνοιξε το παράθυρο εκτύπωσης PDF',{tone:'info'})
   }
 
   // ── Επίσημο true-PDF τοκοχρεολυσίου (vector PDF με αρ. εγγράφου & QR επαλήθευσης) ─
@@ -742,7 +743,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   // Η μηχανή σελιδοποιεί αυτόματα τον πλήρη πίνακα δόσεων σε πολλές σελίδες.
   async function officialAmort(){
     if(genOfficial) return
-    if(!amort.length){showToast('Δεν υπάρχουν δόσεις προς εξαγωγή');return}
+    if(!amort.length){notify('Δεν υπάρχουν δόσεις προς εξαγωγή',{tone:'warning'});return}
     const bankLabel = bankName || 'Μη καθορισμένη'
     const termLabel = `${Y} έτη (${Y*12} δόσεις)`
     const totalRepayment = LA+totalInt
@@ -794,7 +795,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           {PRESETS.map(p=>{
             const on = activePreset===p.id
             return (
-              <button key={p.id} onClick={()=>applyPreset(p)} title={p.desc} style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 14px',borderRadius:18,cursor:'pointer',background:on?'var(--accent-dim)':'var(--bg-surface)',border:`1px solid ${on?'var(--border-accent)':'var(--border-subtle)'}`,color:on?'var(--accent)':'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,transition:'all 0.15s'}}>
+              <button key={p.id} onClick={()=>applyPreset(p)} title={p.desc} style={{display:'inline-flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 14px',borderRadius:18,cursor:'pointer',background:on?'var(--accent-dim)':'var(--bg-surface)',border:`1px solid ${on?'var(--border-accent)':'var(--border-subtle)'}`,color:on?'var(--accent)':'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,transition:'all 0.15s'}}>
                 {on&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>}
                 {p.label}
               </button>
@@ -818,7 +819,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             {sqmPrice>0&&(
               <div>
                 <label style={labelStyle}>Τιμή ανά τ.μ.</label>
-                <div style={{height:44,display:'flex',alignItems:'center',justifyContent:'flex-end',padding:'0 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+                {/* T.h.lg (40) = FIELD_HEIGHT των CustomSelect/NumberInput δίπλα. Το παλιό 44
+                    έκανε αυτό το ένα κελί 4px ψηλότερο από τα υπόλοιπα του ίδιου πλέγματος. */}
+                <div style={{height:T.h.lg,display:'flex',alignItems:'center',justifyContent:'flex-end',padding:'0 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
                   <span style={{fontSize:14,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(sqmPrice)}</span>
                 </div>
               </div>
@@ -827,12 +830,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           {isNewBuilding&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΠΑ: Φόρος Προστιθέμενης Αξίας · ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Νεόδμητο: ΦΠΑ 24% ({fmtEur(vatOwed)}) αντί ΦΜΑ</p></div>}
           {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% επί της αξίας)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Επαγγελματικό: ΦΜΑ 3% + Τέλη χαρτοσήμου 3,6% αν εκμισθωθεί</p></div>}
           <div style={{display:'flex',alignItems:'flex-end',gap:12,flexWrap:'wrap'}}>
-            <button onClick={()=>setHasAgent(h=>!h)} style={{...pillBtn(hasAgent,'var(--accent)'),height:44}}>
+            <button onClick={()=>setHasAgent(h=>!h)} style={{...pillBtn(hasAgent,'var(--accent)'),height:T.h.lg}}>
               {hasAgent?<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
               Αμοιβή μεσίτη
             </button>
             {hasAgent&&<div style={{width:150}}><NumberInput label="Ποσοστό μεσίτη" value={agentPct} onChange={setAgentPct} suffix="%" step={0.5}/></div>}
-            {hasAgent&&<div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',justifyContent:'flex-end',height:44,padding:'0 4px'}}><span style={{fontSize:14,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(AGNT)}</span></div>}
+            {hasAgent&&<div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',justifyContent:'flex-end',height:T.h.lg,padding:'0 4px'}}><span style={{fontSize:14,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(AGNT)}</span></div>}
           </div>
         </div>
       </div>
@@ -906,12 +909,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         {[
           {label:saving?'Αποθήκευση…':'Αποθήκευση δανείου',fn:handleSave,disabled:saving,color:'var(--accent)',bg:'var(--accent-dim)',border:'var(--border-accent)'},
-          {label:'Δόσεις → Ημερολόγιο',fn:async()=>{await onSaveToCalendar(monthly,Y,startDate,bankName);showToast('Οι δόσεις προστέθηκαν στο ημερολόγιο')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
-          {label:'Δόση → Δαπάνες',fn:async()=>{await onSaveToExpenses(monthly,bankName);showToast('Η δόση προστέθηκε στις δαπάνες')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
+          {label:'Δόσεις → Ημερολόγιο',fn:async()=>{await onSaveToCalendar(monthly,Y,startDate,bankName);notifyOk('Οι δόσεις προστέθηκαν στο ημερολόγιο')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
+          {label:'Δόση → Δαπάνες',fn:async()=>{await onSaveToExpenses(monthly,bankName);notifyOk('Η δόση προστέθηκε στις δαπάνες')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
           {label:'+ Προσθήκη σεναρίου',fn:addScen,disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
           {label:'Επαναφορά',fn:resetAll,disabled:false,color:'var(--text-tertiary)',bg:'transparent',border:'var(--border-subtle)'},
         ].map(a=>(
-          <button key={a.label} onClick={a.fn} disabled={a.disabled} style={{display:'flex',alignItems:'center',gap:7,padding:'0 18px',height:36,background:a.bg,border:`1px solid ${a.border}`,borderRadius:18,cursor:a.disabled?'wait':'pointer',color:a.color,fontSize:13,fontFamily: T.font.sans,fontWeight:500,transition:'all 0.15s',whiteSpace:'nowrap' as const}}>
+          <button key={a.label} onClick={a.fn} disabled={a.disabled} style={{display:'flex',alignItems:'center',gap:7,padding:'0 18px',height:T.h.md,background:a.bg,border:`1px solid ${a.border}`,borderRadius:18,cursor:a.disabled?'wait':'pointer',color:a.color,fontSize:13,fontFamily: T.font.sans,fontWeight:500,transition:'all 0.15s',whiteSpace:'nowrap' as const}}>
             {a.label}
           </button>
         ))}
@@ -1270,15 +1273,15 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       {lens==='table' && (<>
       <Section title="Πίνακας αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`} defaultOpen>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
-          <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
+          <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             Εκτύπωση / PDF
           </button>
-          <button onClick={officialAmort} disabled={genOfficial} title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:genOfficial?'wait':'pointer',opacity:genOfficial?0.6:1}}>
+          <button onClick={officialAmort} disabled={genOfficial} title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:genOfficial?'wait':'pointer',opacity:genOfficial?0.6:1}}>
             <ShieldCheck size={15}/>
             {genOfficial?'Δημιουργία…':'Επίσημο PDF'}
           </button>
-          <button onClick={exportAmortCsv} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
+          <button onClick={exportAmortCsv} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 14px',borderRadius:18,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Λήψη για Excel
           </button>
@@ -1399,13 +1402,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       </div>
       </>)}
 
-      {/* Non-blocking success toast */}
-      {toast&&(
-        <div style={{position:'fixed',bottom:20,right:20,zIndex:1000,display:'flex',alignItems:'center',gap:9,padding:'12px 18px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,boxShadow:'var(--shadow-lg)',fontSize:13,color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500,maxWidth:'calc(100vw - 40px)'}}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" style={{flexShrink:0}}><polyline points="20 6 9 17 4 12"/></svg>
-          {toast}
-        </div>
-      )}
     </div>
   )
 }

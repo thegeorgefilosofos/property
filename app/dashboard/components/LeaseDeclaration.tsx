@@ -16,7 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Modal } from '@/components/Theme';
+import { T, TT, Btn, Modal, Spinner } from '@/components/Theme';
 import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide-react';
 import { notifyError } from '@/components/Toast';
 import {
@@ -142,7 +142,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         </Btn>
       </>}>
 
-      {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : <>
+      {loading ? <Spinner size={18} label="Φόρτωση…" /> : <>
 
         {/* Ετυμηγορία */}
         <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '13px 15px', borderRadius: 11,

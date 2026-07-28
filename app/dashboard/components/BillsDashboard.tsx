@@ -9,7 +9,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
-import { T, fe, Spinner } from '@/components/Theme';
+import { T, fe, Btn, EmptyState, Skeleton, SkeletonKPIs } from '@/components/Theme';
+import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@/lib/expenses/sharing';
 
@@ -523,7 +524,14 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     </div>
   );
 
-  if (loading) return <Spinner label="Φόρτωση…" />;
+  // Σκελετός αντί για γυμνό spinner: το σχήμα (KPIs + λίστα λογαριασμών) είναι
+  // σταθερό, οπότε η διάταξη δεν «πηδά» μόλις φτάσουν τα δεδομένα.
+  if (loading) return (
+    <>
+      <SkeletonKPIs n={4} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2, 3].map(i => <Skeleton key={i} h={58} r={12} />)}</div>
+    </>
+  );
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -591,7 +599,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           </button>
           {!showForm ? (
             <button onClick={() => setShowForm(true)}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 36, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: T.h.md, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' as const }}>
               + Προσθήκη Λογαριασμού
             </button>
           ) : (
@@ -710,11 +718,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{bills.length} εγγραφές</span>
         </div>
         {bills.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν λογαριασμοί</div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>Πρόσθεσε τα πάγια έξοδα του ακινήτου σου</div>
-            <button onClick={() => setShowForm(true)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 36, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>+ Προσθήκη Λογαριασμού</button>
-          </div>
+          <EmptyState
+            icon={<Receipt size={20} />}
+            title="Δεν υπάρχουν λογαριασμοί"
+            hint="Πρόσθεσε τα πάγια έξοδα του ακινήτου σου"
+            action={<Btn variant="primary" onClick={() => setShowForm(true)}>+ Προσθήκη Λογαριασμού</Btn>}
+          />
         ) : (
           (['overdue','upcoming','paid'] as const).map(group => {
             const groupBills = sortBills(bills.filter(b => {
@@ -1083,7 +1092,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
         {secHdr(`Ημερολόγιο Πληρωμών, ${MONTHS_GR[currentMonth]}`)}
         {bills.filter(b => b.due_date && new Date(b.due_date).getMonth() === currentMonth).length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.sans }}>Δεν υπάρχουν λογαριασμοί με ημερομηνία λήξης αυτόν τον μήνα</div>
+          <EmptyState icon={<CalendarDays size={20} />} title="Δεν υπάρχουν λογαριασμοί με ημερομηνία λήξης αυτόν τον μήνα" />
         ) : (
           Array.from({ length: 31 }, (_, d) => d + 1).map(day => {
             const dayBills = bills.filter(b => {

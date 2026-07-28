@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fdLong, SecHdr } from '@/components/Theme';
+import { T, fdLong, SecHdr, Skeleton } from '@/components/Theme';
 import { computeObligations, oblToCalendarCategory, type Obligation, type OblProp } from './obligations';
 import { notifyError } from '@/components/Toast';
 
@@ -19,6 +19,10 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
   const [obls, setObls] = useState<Obligation[]>([]);
   const [added, setAdded] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  // Η load τρέχει τρία ερωτήματα· ώσπου να γυρίσουν, το `obls` ήταν κενό και η
+  // κάρτα ΔΕΝ αποδιδόταν καθόλου. Εμφανιζόταν απότομα και έσπρωχνε προς τα κάτω
+  // ό,τι είχε ήδη διαβάσει ο χρήστης στην Επισκόπηση.
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     const { data: ten } = await supabase.from('tenants').select('lease_start,lease_end,monthly_rent').eq('property_id', propertyId).order('updated_at', { ascending: false }).limit(1);
@@ -28,6 +32,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
     // Δες αν οι υποχρεώσεις είναι ήδη περασμένες στο Ημερολόγιο
     const { count } = await supabase.from('calendar_events').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).eq('source', 'obligations');
     setAdded((count || 0) > 0);
+    setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, prop.insurance_expiry, prop.enfia]);
 
@@ -57,6 +62,14 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
     else notifyError('Σφάλμα: ' + error.message);
   };
 
+  if (loading) return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <Skeleton w={180} h={10} style={{ marginBottom: 16 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[0, 1, 2].map(i => <Skeleton key={i} h={44} r={T.radius.inner} />)}
+      </div>
+    </div>
+  );
   if (!obls.length) return null;
   const shown = obls.slice(0, 6);
 
@@ -64,7 +77,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
     <div className="card" style={{ marginBottom: 16 }}>
       <SecHdr label="Υποχρεώσεις & Προθεσμίες" sub="Φορολογικές και θεσμικές προθεσμίες, λήξεις ασφάλισης/μίσθωσης, συντήρηση" right={
         <button onClick={toggleCalendar} disabled={syncing} title={added ? 'Αφαίρεση από το Ημερολόγιο' : 'Προσθήκη στο Ημερολόγιο'}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: added ? '1px solid var(--border-default)' : 'none', background: added ? 'transparent' : 'var(--accent)', color: added ? 'var(--text-secondary)' : 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: added ? '1px solid var(--border-default)' : 'none', background: added ? 'transparent' : 'var(--accent)', color: added ? 'var(--text-secondary)' : 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
           {syncing ? 'Ενημέρωση…' : added ? 'Προστέθηκε στο Ημερολόγιο' : 'Προσθήκη στο Ημερολόγιο'}
         </button>
       } />

@@ -277,7 +277,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             <div style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.25 }}>{isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}</div>
             <div style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, letterSpacing: '0.25px' }}>Βήμα {step + 1} από {STEPS.length} · {STEPS[step]}</div>
           </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: 36, height: 36, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
+          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: T.h.md, height: T.h.md, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
         </div>
 
         {/* Step progress */}
@@ -339,7 +339,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     const sel = status === k;
                     return (
                       <button key={k} onClick={() => setStatus(k)} style={{
-                        display: 'flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', height: T.h.sm, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
                         border: sel ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
                         background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
                         fontFamily: T.font.sans, fontSize: 13, fontWeight: 500,
@@ -622,19 +622,19 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
         {/* Footer navigation */}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', padding: '16px 28px', borderTop: '1px solid var(--border-subtle)' }}>
-          <button onClick={() => (step === 0 ? onClose() : setStep(s => s - 1))} style={{ height: 40, padding: '0 20px', borderRadius: 100, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+          <button onClick={() => (step === 0 ? onClose() : setStep(s => s - 1))} style={{ height: T.h.lg, padding: '0 20px', borderRadius: 100, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             {step === 0 ? 'Ακύρωση' : 'Πίσω'}
           </button>
 
           {step < STEPS.length - 1 ? (
             <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext} style={{
-              height: 40, padding: '0 24px', borderRadius: 100, border: 'none',
+              height: T.h.lg, padding: '0 24px', borderRadius: 100, border: 'none',
               background: canNext ? 'var(--accent)' : 'var(--bg-overlay)', color: canNext ? 'var(--accent-text)' : 'var(--text-tertiary)',
               fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: canNext ? 'pointer' : 'not-allowed',
             }}>Συνέχεια</button>
           ) : (
             <button onClick={save} disabled={saving || !name.trim()} style={{
-              height: 40, padding: '0 24px', borderRadius: 100, border: 'none',
+              height: T.h.lg, padding: '0 24px', borderRadius: 100, border: 'none',
               background: saving || !name.trim() ? 'var(--bg-overlay)' : 'var(--accent)', color: saving || !name.trim() ? 'var(--text-tertiary)' : 'var(--accent-text)',
               fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
             }}>{saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη Ακινήτου'}</button>

@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd, fe, fn, KPIGrid, Spinner, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton } from '@/components/Theme';
+import { T, fd, fe, fn, KPIGrid, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton } from '@/components/Theme';
+import { SearchX, FolderOpen, FileText } from 'lucide-react';
+import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import { money } from './xlsxStyle';
@@ -583,7 +585,10 @@ export default function TabDocuments({
 
   const del = async (it: Item) => {
     if (!it.raw) return;
-    if (prefs.confirmBeforeDelete && !window.confirm('Να διαγραφεί οριστικά αυτό το αρχείο;')) return;
+    // Ο έλεγχος της σημαίας ΠΡΕΠΕΙ να μείνει ΠΡΙΝ το await: αν ο διάλογος καλούνταν
+    // πρώτος και ελεγχόταν μετά, θα εμφανιζόταν και σε όσους τον έχουν απενεργοποιήσει
+    // στις προτιμήσεις — λειτουργικά «σωστό», σιωπηλά λάθος ως προς την επιλογή τους.
+    if (prefs.confirmBeforeDelete && !(await confirmDialog('Να διαγραφεί οριστικά αυτό το αρχείο;', { tone: 'negative' }))) return;
     await supabase.storage.from('property-files').remove([it.raw.file_path]);
     await supabase.from('property_documents').delete().eq('id', it.raw.id);
     if (lightbox?.id === it.id) setLightbox(null);
@@ -608,7 +613,10 @@ export default function TabDocuments({
   const selRaw = useMemo(() => selItems.filter(i => i.raw), [selItems]);
   const bulkDelete = async () => {
     if (!selRaw.length) return;
-    if (prefs.confirmBeforeDelete && !window.confirm(`Να διαγραφούν οριστικά ${selRaw.length} ${selRaw.length === 1 ? 'αρχείο' : 'αρχεία'};`)) return;
+    // Το `selRaw` είναι const αυτού του render, άρα το closure το έχει ήδη «παγώσει»:
+    // ό,τι διαγραφεί μετά το await είναι ακριβώς όσα μέτρησε το μήνυμα. Επιπλέον ο
+    // διάλογος έχει δικό του scrim, οπότε η επιλογή δεν αλλάζει όσο ρωτάει.
+    if (prefs.confirmBeforeDelete && !(await confirmDialog(`Να διαγραφούν οριστικά ${selRaw.length} ${selRaw.length === 1 ? 'αρχείο' : 'αρχεία'};`, { tone: 'negative' }))) return;
     await supabase.storage.from('property-files').remove(selRaw.map(i => i.raw!.file_path));
     await supabase.from('property_documents').delete().in('id', selRaw.map(i => i.raw!.id));
     setSelected(new Set()); fetchAll();
@@ -844,7 +852,7 @@ export default function TabDocuments({
         <div style={{ position: 'relative', width: 240, maxWidth: '100%' }}>
           <svg {...S} width={15} height={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Αναζήτηση σε όλο το αρχείο…"
-            style={{ width: '100%', height: 36, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' }}/>
+            style={{ width: '100%', height: T.h.md, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' }}/>
           {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
         </div>
 
@@ -852,7 +860,7 @@ export default function TabDocuments({
           {([['grid', 'Πλέγμα', <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>],
              ['list', 'Λίστα', <><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></>]] as const).map(([k, title, ic]) => (
             <button key={k} onClick={() => setView(k)} title={title}
-              style={{ width: 38, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+              style={{ width: 38, height: T.h.md, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
               <svg {...S} width={15} height={15}>{ic}</svg>
             </button>
           ))}
@@ -876,14 +884,20 @@ export default function TabDocuments({
       )}
 
       {/* ── Περιεχόμενο ─────────────────────────────────────────────────── */}
-      {loading ? <Spinner label="Φόρτωση αρχείου…"/> :
+      {/* Σκελετός αντί για γυμνό spinner: το πλέγμα φακέλων έχει γνωστό σχήμα, οπότε
+          ο χώρος δεσμεύεται από την αρχή και το περιεχόμενο δεν «πέφτει» μέσα ξαφνικά. */}
+      {loading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
+          {[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} h={120} r={12}/>)}
+        </div>
+      ) :
         q ? (
           <FileList items={searchResults ?? []} a={fileActions(true)}
-            empty={<EmptyState title="Κανένα αποτέλεσμα" hint={`Δεν βρέθηκε αρχείο για «${query}».`}/>}/>
+            empty={<EmptyState icon={<SearchX size={20}/>} title="Κανένα αποτέλεσμα" hint={`Δεν βρέθηκε αρχείο για «${query}».`}/>}/>
         ) : !folderKey ? (
           /* Επίπεδο 0: φάκελοι κατηγοριών */
           items.length === 0 ? (
-            <div className="card"><EmptyState title="Το αρχείο είναι κενό"
+            <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Το αρχείο είναι κενό"
               hint="Ανέβασε το πρώτο συμβόλαιο, λογαριασμό ή τιμολόγιο. Ό,τι καταχωρείς στα Έξοδα, τους Λογαριασμούς ή την Απογραφή αρχειοθετείται κι εδώ αυτόματα."
               action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Νέο αρχείο</Btn>}/></div>
           ) : view === 'grid' ? (
@@ -907,7 +921,7 @@ export default function TabDocuments({
               </div>
             )}
             {folderItems.length === 0 ? (
-              <div className="card"><EmptyState title={`Ο φάκελος «${FOLDER_LABEL[folderKey]}» είναι κενός`} hint="Μόλις καταχωρηθεί σχετικό έγγραφο, θα εμφανιστεί εδώ αυτόματα."/></div>
+              <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title={`Ο φάκελος «${FOLDER_LABEL[folderKey]}» είναι κενός`} hint="Μόλις καταχωρηθεί σχετικό έγγραφο, θα εμφανιστεί εδώ αυτόματα."/></div>
             ) : view === 'grid' ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
                 {subfolders.map(([name, its]) => <SubfolderCardGrid key={name} name={name} mode={subMode} count={its.length} value={isPro ? its.reduce((s, i) => s + (i.value || 0), 0) : undefined} onClick={() => setSubKey(name)}/>)}
@@ -921,7 +935,7 @@ export default function TabDocuments({
         ) : (
           /* Επίπεδο 2: αρχεία */
           <FileList items={subItems.sort(byDateDesc)} groupByMonth={subMode === 'date'} a={fileActions(false)}
-            empty={<EmptyState title="Κανένα αρχείο εδώ"/>}/>
+            empty={<EmptyState icon={<FileText size={20}/>} title="Κανένα αρχείο εδώ" hint="Ανέβασε αρχείο ή άλλαξε υποφάκελο."/>}/>
         )}
 
       {/* ── Lightbox (εικόνα ή προεπισκόπηση PDF) ───────────────────────── */}

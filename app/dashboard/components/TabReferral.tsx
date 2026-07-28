@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { downloadCsv, csvDate } from './exportCsv';
 import { drawQrToCanvas } from '@/lib/qr';
-import { T, TT, Badge, TierBadge, ExportButton, fn } from '@/components/Theme';
+import { T, TT, Badge, TierBadge, ExportButton, EmptyState, SkeletonKPIs, fn } from '@/components/Theme';
+import { UserPlus } from 'lucide-react';
 import {
   referralCode, referralLink, progress,
   individualReferrerReward, refereeWelcome,
@@ -33,8 +34,10 @@ const card: React.CSSProperties = {
 };
 const PAD = T.sp.xl;
 // Κοινό στυλ «chip» για τα κανάλια κοινοποίησης (ενιαία εμφάνιση).
+// Το ύψος έρχεται από την κοινή κλίμακα (T.h.md): τα chips κοινοποίησης κάθονται
+// στην ίδια γραμμή με κουμπιά άλλων αρχείων και κάθε literal εδώ τα ξεσυγχρόνιζε.
 const CHIP: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 14px',
+  display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 14px',
   background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill,
   fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none',
 };
@@ -346,7 +349,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div style={{ marginTop: 12 }}>
             {st === 'done'
               ? <span role="status" style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
-              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Πάρ’ το δώρο σου'}</button>}
+              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: T.h.md, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Πάρ’ το δώρο σου'}</button>}
             {st === 'error' && <div role="alert" style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι δεν πήγε καλά. Δοκίμασε ξανά.</div>}
           </div>
         )}
@@ -422,7 +425,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             <div style={{ background: '#fff', padding: 14, borderRadius: T.radius.inner, display: 'inline-block', boxShadow: 'var(--well-inset)' }}>
               <canvas ref={qrCanvasRef} role="img" aria-label="Κωδικός QR πρόσκλησης" style={{ display: 'block' }} />
             </div>
-            <button ref={qrCloseRef} onClick={() => setQrOpen(false)} className="ref-cta" style={{ marginTop: 18, height: 40, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
+            <button ref={qrCloseRef} onClick={() => setQrOpen(false)} className="ref-cta" style={{ marginTop: 18, height: T.h.lg, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
           </div>
         </div>
       )}
@@ -465,6 +468,9 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             <Ic d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1|M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" s={15} c="var(--text-tertiary)" />
             <span style={{ ...TT.body, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link}</span>
           </div>
+          {/* Το 44 μένει σκόπιμα εκτός κλίμακας (T.h.lg = 40): είναι το ελάχιστο μέγεθος
+              στόχου αφής και ζευγαρώνει με το minHeight:44 του πλαισίου συνδέσμου δίπλα.
+              Αν πέσει στα 40, τα δύο στοιχεία της ίδιας γραμμής παύουν να ευθυγραμμίζονται. */}
           <button onClick={copy} className="ref-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.inner, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <Ic d={copied ? 'M20 6 9 17l-5-5' : 'M8 4h10a2 2 0 0 1 2 2v10|M4 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z'} s={15} />
             {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
@@ -500,9 +506,14 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             <div style={{ ...TT.h2, fontSize: 13 }}>Κάνε την πρώτη σου πρόσκληση</div>
             <div style={{ ...TT.bodySm, marginTop: 2 }}>Στείλε τον σύνδεσμό σου σε {isPro ? 'έναν πελάτη-ιδιοκτήτη' : 'έναν ιδιοκτήτη ακινήτου'} και ξεκίνα να κερδίζεις από σήμερα.</div>
           </div>
-          <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ height: 40, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>Μοιράσου τώρα</button>
+          <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ height: T.h.lg, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>Μοιράσου τώρα</button>
         </div>
       )}
+
+      {/* Όσο το `stats` είναι null δεν αποδιδόταν ΤΙΠΟΤΑ εδώ: οι τρεις μετρικές
+          έπεφταν μέσα αργότερα και έσπρωχναν όλη τη σελίδα προς τα κάτω, τη στιγμή
+          που ο χρήστης διάβαζε ήδη τα παρακάτω. Ο σκελετός κρατά τη θέση τους. */}
+      {!stats && <SkeletonKPIs n={3} />}
 
       {/* ── Τα κέρδη σου με μια ματιά (μόλις υπάρχει δραστηριότητα) ── */}
       {!coldStart && stats && stats.invites > 0 && (
@@ -518,7 +529,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
             </div>
           ))}
-          <button onClick={shareProof} className="ref-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 18px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <button onClick={shareProof} className="ref-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.lg, padding: '0 18px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} />Κάρτα προόδου
           </button>
         </div>
@@ -662,6 +673,16 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Χωρίς αυτόν τον κλάδο, η ενότητα «Οι προσκλήσεις σου» απλώς ΕΛΕΙΠΕ όταν δεν
+          υπήρχαν προσκλήσεις — ο χρήστης δεν είχε τρόπο να ξέρει αν δεν έχει ακόμη
+          καμία ή αν η λίστα δεν φόρτωσε. Το `stats &&` κρατά τον έλεγχο μετά τη φόρτωση. */}
+      {stats && list.length === 0 && (
+        <div style={{ marginBottom: T.sp.xl }}>
+          <SectionLabel>Οι προσκλήσεις σου</SectionLabel>
+          <EmptyState icon={<UserPlus size={20} />} title="Καμία πρόσκληση ακόμη" hint="Μοιράσου τον σύνδεσμό σου· κάθε φίλος που ενεργοποιείται εμφανίζεται εδώ με το στάδιό του." />
         </div>
       )}
 

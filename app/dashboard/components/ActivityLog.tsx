@@ -8,7 +8,8 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T } from '@/components/Theme';
+import { T, Skeleton, EmptyState } from '@/components/Theme';
+import { History } from 'lucide-react';
 import { activityLabel, type ActivityRow } from '@/lib/activity';
 
 function relTime(iso: string): string {
@@ -40,14 +41,22 @@ export default function ActivityLog() {
   }, []);
 
   if (rows === null) {
-    return <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans, padding: '8px 0' }}>Φόρτωση…</div>;
+    // Το σχήμα είναι γνωστό (γραμμές timeline), οπότε δείχνουμε το σχήμα και όχι
+    // γυμνό «Φόρτωση…»: η ενότητα δεν αλλάζει ύψος όταν φτάσουν τα δεδομένα.
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '8px 0' }}>
+        {[0, 1, 2].map(i => <Skeleton key={i} h={34} r={10} />)}
+      </div>
+    );
   }
 
   if (rows.length === 0) {
     return (
-      <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, padding: '4px 0' }}>
-        Δεν υπάρχει ακόμη καταγεγραμμένη δραστηριότητα. Εδώ θα βλέπεις σημαντικές ενέργειες στον λογαριασμό και στην ομάδα σου.
-      </div>
+      <EmptyState
+        icon={<History size={20} />}
+        title="Καμία δραστηριότητα ακόμη"
+        hint="Εδώ θα βλέπεις σημαντικές ενέργειες στον λογαριασμό και στην ομάδα σου."
+      />
     );
   }
 

@@ -1,5 +1,6 @@
 'use client'
 import { T } from '@/components/Theme'
+import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { NumberInput, TextInput, Toggle, InfoDot } from './UIComponents'
@@ -29,8 +30,13 @@ const labelStyle:React.CSSProperties = {
 }
 const today = () => new Date().toISOString().slice(0,10)
 
-export default function BankRatesAdmin({ onSaved, showToast }:{
-  onSaved?:()=>void; showToast:(m:string)=>void
+export default function BankRatesAdmin({ onSaved }:{
+  onSaved?:()=>void
+  // Απομεινάρι: τα μηνύματα δεν ανεβαίνουν πια στον γονέα — πάνε κατευθείαν στο
+  // κοινό toast. Ο τύπος μένει δηλωμένος (και προαιρετικός) επειδή ο καλών
+  // εξακολουθεί να περνά το prop· αν έφευγε τώρα, θα έσπαγε η μεταγλώττιση σε
+  // αρχείο εκτός αυτής της αλλαγής. Δεν αποδομείται, άρα δεν χρησιμοποιείται.
+  showToast?:(m:string)=>void
 }) {
   const supabase = createClient()
   const [open,setOpen] = useState(false)
@@ -70,8 +76,8 @@ export default function BankRatesAdmin({ onSaved, showToast }:{
     }
     const { error } = await supabase.from('bank_rates').update(patch).eq('bank_id',edit.bank_id)
     setSaving(false)
-    if (error) { showToast('Η αποθήκευση απέτυχε: ελέγξτε δικαιώματα διαχειριστή'); return }
-    showToast(`Ενημερώθηκαν τα επιτόκια: ${edit.bank_name}`)
+    if (error) { notifyError('Η αποθήκευση απέτυχε: ελέγξτε δικαιώματα διαχειριστή'); return }
+    notifyOk(`Ενημερώθηκαν τα επιτόκια: ${edit.bank_name}`)
     setSelId(null); setEdit(null)
     await load(); onSaved?.()
   }
@@ -81,10 +87,10 @@ export default function BankRatesAdmin({ onSaved, showToast }:{
     try {
       const { error } = await supabase.functions.invoke('bank-rates-updater',{ body:{} })
       if (error) throw error
-      showToast('Η αυτόματη επικαιροποίηση ξεκίνησε, ανανέωση σε λίγο')
+      notify('Η αυτόματη επικαιροποίηση ξεκίνησε, ανανέωση σε λίγο', { tone: 'info' })
       setTimeout(async()=>{ await load(); onSaved?.() }, 8000)
     } catch {
-      showToast('Η αυτόματη επικαιροποίηση δεν είναι διαθέσιμη')
+      notify('Η αυτόματη επικαιροποίηση δεν είναι διαθέσιμη', { tone: 'warning' })
     }
     setRefreshing(false)
   }
@@ -102,7 +108,7 @@ export default function BankRatesAdmin({ onSaved, showToast }:{
         <div style={{padding:'2px 14px 14px',display:'flex',flexDirection:'column',gap:12}}>
           {/* Αυτόματη επικαιροποίηση */}
           <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-            <button onClick={refreshAI} disabled={refreshing} style={{display:'inline-flex',alignItems:'center',gap:7,height:32,padding:'0 14px',borderRadius:100,cursor:refreshing?'wait':'pointer',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily: T.font.sans}}>
+            <button onClick={refreshAI} disabled={refreshing} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.sm,padding:'0 14px',borderRadius:100,cursor:refreshing?'wait':'pointer',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily: T.font.sans}}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               {refreshing?'Επικαιροποίηση…':'Αυτόματη επικαιροποίηση με AI'}
             </button>
@@ -141,10 +147,10 @@ export default function BankRatesAdmin({ onSaved, showToast }:{
                         <div style={{flex:1,minWidth:180}}><TextInput label="Επίσημη πηγή (σύνδεσμος)" value={edit.source_url ?? ''} onChange={v=>set('source_url', v as any)} placeholder="https://…"/></div>
                       </div>
                       <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                        <button onClick={save} disabled={saving} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 18px',borderRadius:100,cursor:saving?'wait':'pointer',background:'var(--accent)',border:'1px solid var(--accent)',color:'var(--accent-text)',fontSize:13,fontWeight:700,fontFamily: T.font.sans}}>
+                        <button onClick={save} disabled={saving} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 18px',borderRadius:100,cursor:saving?'wait':'pointer',background:'var(--accent)',border:'1px solid var(--accent)',color:'var(--accent-text)',fontSize:13,fontWeight:700,fontFamily: T.font.sans}}>
                           {saving?'Αποθήκευση…':'Αποθήκευση'}
                         </button>
-                        <button onClick={()=>{setSelId(null);setEdit(null)}} style={{height:36,padding:'0 16px',borderRadius:100,cursor:'pointer',background:'transparent',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontSize:13,fontWeight:500,fontFamily: T.font.sans}}>Ακύρωση</button>
+                        <button onClick={()=>{setSelId(null);setEdit(null)}} style={{height:T.h.md,padding:'0 16px',borderRadius:100,cursor:'pointer',background:'transparent',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontSize:13,fontWeight:500,fontFamily: T.font.sans}}>Ακύρωση</button>
                         <span style={{fontSize:10.5,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily: T.font.sans}}>Η επιβεβαίωση ορίζεται στο σήμερα</span>
                       </div>
                     </div>

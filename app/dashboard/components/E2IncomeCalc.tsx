@@ -9,7 +9,8 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, Btn } from '@/components/Theme';
+import { T, fe, Btn, EmptyState } from '@/components/Theme';
+import { Calculator } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { CustomSelect as Select } from './UIComponents';
 import { runE2Export } from './e2Export';
@@ -170,12 +171,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
             </div>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: 13, fontFamily: T.font.sans, marginBottom: 6 }}>
-              Συμπλήρωσε τα ετήσια μισθώματα για υπολογισμό
-            </div>
-            <div style={{ fontSize: 11 }}>Φορολογική κλίμακα: 15% / 25% / 35% / 45%</div>
-          </div>
+          <EmptyState icon={<Calculator size={20} />} title="Συμπλήρωσε τα ετήσια μισθώματα" hint="Φορολογική κλίμακα εισοδήματος από ακίνητα: 15% / 25% / 35% / 45%." />
         )}
       </div>
 

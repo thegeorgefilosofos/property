@@ -5,6 +5,7 @@ import { ThemeProvider } from "./ThemeProvider";
 import CookieConsent from "./CookieConsent";
 import PwaProvider from "./PwaProvider";
 import { ToastHost } from "@/components/Toast";
+import { ConfirmHost } from "@/components/ConfirmDialog";
 
 export const metadata: Metadata = {
   title: "Property OS",
@@ -75,6 +76,7 @@ export default async function RootLayout({
         <ThemeProvider>
           {children}
           <ToastHost />
+          <ConfirmHost />
           <CookieConsent />
           <PwaProvider />
         </ThemeProvider>

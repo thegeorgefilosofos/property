@@ -24,7 +24,10 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
+import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge } from '@/components/Theme';
+import { Building2, Receipt, ListChecks, FileText } from 'lucide-react';
+import { confirmDialog } from '@/components/ConfirmDialog';
+import { notifyError } from '@/components/Toast';
 import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
 import MonthlyFeedbackNudge from './components/MonthlyFeedbackNudge';
@@ -174,7 +177,7 @@ const fmtEur = (n:number|null|undefined) => n == null ? '—' : `${fmt(n)} €`;
 
 // MD3 form styles
 const mdInput: React.CSSProperties = {
-  width:'100%', padding:'10px 16px', height:40, borderRadius:6,
+  width:'100%', padding:'10px 16px', height:T.h.lg, borderRadius:6,
   border:'1px solid var(--border-default)', background:'var(--bg-surface)',
   color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans,
   letterSpacing:'0.25px', outline:'none', boxSizing:'border-box', transition:'border-color 0.15s',
@@ -264,13 +267,12 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
             <p style={{fontFamily: T.font.sans,fontSize:20,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
             <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
           </div>
-          <button onClick={onClose} style={{width:40,height:40,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          <button onClick={onClose} style={{width:40,height:T.h.lg,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         {otherProperties.length === 0 ? (
-          <div style={{padding:'32px',textAlign:'center',color:'var(--text-secondary)'}}>
-            <p style={{fontSize:32,marginBottom:12}}></p>
-            <p style={{fontFamily: T.font.sans,fontSize:14}}>Δεν υπάρχουν άλλα ακίνητα</p>
-          </div>
+          /* Το κενό <p style={{fontSize:32}}> ήταν νεκρή υποδοχή εικονιδίου: το primitive
+             δεν δεχόταν icon, οπότε κάποιος άφησε τη θέση του και δεν την γέμισε ποτέ. */
+          <EmptyState icon={<Building2 size={20}/>} title="Δεν υπάρχουν άλλα ακίνητα" hint="Η αντιγραφή απογραφής χρειάζεται δεύτερο ακίνητο ως πηγή." />
         ) : (
           <>
             <div>
@@ -298,8 +300,8 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
               <p style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
             </div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-              <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:18,border:'none',background:'transparent',color:'var(--accent)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
-              <button onClick={handleCopy} disabled={!sourceId||copying} style={{height:40,padding:'0 24px',borderRadius:18,border:'none',background:!sourceId||copying?'var(--bg-overlay)':'var(--accent)',color:!sourceId||copying?'var(--text-tertiary)':'var(--accent-text)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:!sourceId||copying?'not-allowed':'pointer'}}>{copying?'Αντιγραφή…':'Αντιγραφή'}</button>
+              <button onClick={onClose} style={{height:T.h.lg,padding:'0 24px',borderRadius:18,border:'none',background:'transparent',color:'var(--accent)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
+              <button onClick={handleCopy} disabled={!sourceId||copying} style={{height:T.h.lg,padding:'0 24px',borderRadius:18,border:'none',background:!sourceId||copying?'var(--bg-overlay)':'var(--accent)',color:!sourceId||copying?'var(--text-tertiary)':'var(--accent-text)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:!sourceId||copying?'not-allowed':'pointer'}}>{copying?'Αντιγραφή…':'Αντιγραφή'}</button>
             </div>
           </>
         )}
@@ -511,7 +513,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           monthlyRent: rent, annualRent, grossYield, netYield,
           expensesYTD: totalExpYTD, categories: catEntries, branding,
         })}
-          style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:12,fontWeight:700,cursor:'pointer'}}
+          style={{display:'inline-flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:12,fontWeight:700,cursor:'pointer'}}
           onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)';}}
           onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)';}}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
@@ -613,7 +615,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             {selMonthTotal>0 && <span style={{fontFamily: T.font.mono,fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
           </div>
           {selCatEntries.length===0
-            ? <div style={{fontFamily: T.font.sans,color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες για {MONTHS_LONG[selMonth]} {chartYear}</div>
+            ? <EmptyState icon={<Receipt size={20}/>} title={`Δεν υπάρχουν δαπάνες για ${MONTHS_LONG[selMonth]} ${chartYear}`} hint="Διάλεξε άλλον μήνα ή καταχώρησε δαπάνη στην καρτέλα «Δαπάνες»." />
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {selCatEntries.map(([cat,amt],i) => (
                   <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>
@@ -644,7 +646,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Επόμενες Εργασίες</div>
           {tasks.length===0
-            ? <div style={{fontFamily: T.font.sans,color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν εκκρεμείς εργασίες</div>
+            ? <EmptyState icon={<ListChecks size={20}/>} title="Δεν υπάρχουν εκκρεμείς εργασίες" hint="Οι επόμενες προθεσμίες και παραδόσεις θα εμφανιστούν εδώ." action={<Btn variant="secondary" onClick={()=>onNavigate('checklist')}>Νέα εκκρεμότητα</Btn>} />
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {tasks.map(t => { const pc=t.priority==='high'?'var(--border-subtle)':t.priority==='medium'?'var(--border-subtle)':'var(--border-subtle)'; return (
                   <div key={t.id} style={{display:'flex',alignItems:'flex-start',gap:10}}>
@@ -661,7 +663,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Μέσοι Λογαριασμοί</div>
           {bills.length===0
-            ? <div style={{fontFamily: T.font.sans,color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν λογαριασμοί</div>
+            ? <EmptyState icon={<FileText size={20}/>} title="Δεν υπάρχουν λογαριασμοί" hint="Πρόσθεσε ρεύμα, νερό και πάγια για να δεις μέσο μηνιαίο κόστος." action={<Btn variant="secondary" onClick={()=>onNavigate('finances')}>Λογαριασμοί</Btn>} />
             : <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {bills.slice(0,5).map(b => (
                   <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -1021,15 +1023,20 @@ export default function Dashboard() {
   // Αν ήταν το τελευταίο ακίνητο, ανοίγει αυτόματα η νέα καταχώρηση (ξεκινάς από την αρχή).
   const deletePropertyById = async (pid: string, name: string) => {
     if (!user) return;
-    const ok = window.confirm(
+    // Το `wasLast` διαβάζεται ΠΡΙΝ τον διάλογο: το native confirm πάγωνε τη σελίδα,
+    // οπότε «πλήθος ακινήτων» σήμαινε πάντα «τη στιγμή του κλικ». Ο νέος διάλογος δεν
+    // παγώνει τίποτα — αν το μετρούσαμε μετά το await και εν τω μεταξύ φορτωνόταν άλλο
+    // ακίνητο, ο οδηγός «νέα καταχώρηση» θα άνοιγε (ή δεν θα άνοιγε) άστοχα.
+    const wasLast = properties.length <= 1;
+    const ok = await confirmDialog(
       `Οριστική διαγραφή του ακινήτου «${name}»;\n\n`+
       `Θα διαγραφούν όλα τα συνδεδεμένα στοιχεία του (έσοδα, δαπάνες, λογαριασμοί, `+
       `ενοικιαστής, δάνεια, απογραφή, έγγραφα, διαμονές) και οι συνομιλίες και αναμνήσεις `+
-      `του βοηθού γι' αυτό. Η ενέργεια δεν αναιρείται.`
+      `του βοηθού γι' αυτό. Η ενέργεια δεν αναιρείται.`,
+      { tone: 'negative', confirmLabel: 'Οριστική διαγραφή' }
     );
     if (!ok) return;
     setStatusDropdown(false);
-    const wasLast = properties.length <= 1;
     // Καθαρισμός συνδεδεμένων εγγραφών (best-effort· η RLS περιορίζει στα δικά σου).
     const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences','client_stays','pricing_settings','ical_feeds'];
     await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', pid)));
@@ -1045,8 +1052,10 @@ export default function Dashboard() {
   // Καθάρισμα demo με ένα κλικ: σβήνει τα δείγματα ακίνητα/πελάτες/διαμονές.
   const cleanupDemo = async () => {
     if (!user) return;
-    if (!window.confirm('Να αφαιρεθούν τα δείγματα (demo) δεδομένα;')) return;
+    // Ίδιος λόγος με τη διαγραφή ακινήτου: το σύνολο των demo κλειδώνει ΠΡΙΝ τη
+    // ερώτηση, ώστε να μη σβηστεί κάτι που δεν υπήρχε όταν ρωτήθηκε ο χρήστης.
     const demoProps = properties.filter(p => (p.name || '').startsWith('Demo —'));
+    if (!(await confirmDialog('Να αφαιρεθούν τα δείγματα (demo) δεδομένα;', { tone: 'negative' }))) return;
     const childTables = ['expenses','calendar_events','bills','tenants','inventory_items','loans','property_settings','rent_comparables','property_documents','client_stays','pricing_settings','ical_feeds'];
     for (const p of demoProps) {
       await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', p.id)));
@@ -1090,7 +1099,10 @@ export default function Dashboard() {
     // τιμή, δεν το πετά, οπότε το ελέγχουμε ρητά.
     const { error } = await supabase.auth.signOut();
     if (error) {
-      window.alert('Δεν έγινε η αποσύνδεση — δες τη σύνδεσή σου στο δίκτυο και δοκίμασε ξανά.\n\nΤα δεδομένα σου στη συσκευή δεν πειράχτηκαν.');
+      // duration 0 = μένει ώσπου να το κλείσει ο χρήστης, ίδιο βάρος με το alert που
+      // αντικατέστησε. Οι δύο προτάσεις ενώθηκαν σε μία παράγραφο: το toast δεν
+      // αποδίδει αλλαγές γραμμής και το «\n\n» θα κολλούσε τις προτάσεις μεταξύ τους.
+      notifyError('Δεν έγινε η αποσύνδεση — δες τη σύνδεσή σου στο δίκτυο και δοκίμασε ξανά. Τα δεδομένα σου στη συσκευή δεν πειράχτηκαν.', { duration: 0 });
       return;
     }
     clearLocalPersonalData();
@@ -1098,11 +1110,12 @@ export default function Dashboard() {
     window.location.href = '/login';
   };
 
+  // Ο χειροποίητος κύκλος είχε ΔΙΚΟ ΤΟΥ inline <style> με @keyframes spin — ακριβές
+  // διπλότυπο του globals.css. Δύο ορισμοί της ίδιας κίνησης σημαίνει ότι μια αλλαγή
+  // ταχύτητας στο ένα σημείο άφηνε το άλλο πίσω.
   if (loading) return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg-base)',flexDirection:'column',gap:16}}>
-      <div style={{width:48,height:48,borderRadius:'50%',border:'4px solid var(--md-primary-container)',borderTopColor:'var(--accent)',animation:'spin 1s linear infinite'}}/>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <span style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.1px'}}>Φόρτωση…</span>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg-base)'}}>
+      <Spinner size={48} label="Φόρτωση…" />
     </div>
   );
 
@@ -1172,7 +1185,7 @@ export default function Dashboard() {
             </div>
           ))}
           <button onClick={()=>tryAddProperty()}
-            style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:40,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily: T.font.sans,fontSize:14,color:'var(--accent)',textAlign:'left'}}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:T.h.lg,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily: T.font.sans,fontSize:14,color:'var(--accent)',textAlign:'left'}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'}
             onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
             <span style={{fontSize:18,lineHeight:1}}>+</span> Προσθήκη ακινήτου
@@ -1254,7 +1267,7 @@ export default function Dashboard() {
                   <span style={{fontFamily: T.font.sans,fontSize:16,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative'}}>
-                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:32,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
+                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:T.h.sm,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}
                       <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.65,marginLeft:1,transform:statusDropdown?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="m6 9 6 6 6-6"/></svg>
                     </button>
@@ -1294,12 +1307,12 @@ export default function Dashboard() {
                 </div>
               </div>
               {nav==='inventory'&&properties.length>1&&(
-                <button onClick={()=>setShowCopyInventory(true)} style={{height:36,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
+                <button onClick={()=>setShowCopyInventory(true)} style={{height:T.h.md,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
               )}
-              <button onClick={()=>setNav('referral')} title={isPartner?'Είσαι Συνεργάτης Property OS · Πρόγραμμα Συνεργατών':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'} · Πρόγραμμα ${effProfileType==='professional'?'Συνεργατών':'Πρόσκλησης'}`} aria-label="Η ιδιότητά μου και το πρόγραμμα πρόσκλησης" style={{display:'flex',alignItems:'center',height:36,padding:0,border:'none',background:'transparent',cursor:'pointer',marginRight:8,borderRadius:'50%',transition:'transform .15s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
+              <button onClick={()=>setNav('referral')} title={isPartner?'Είσαι Συνεργάτης Property OS · Πρόγραμμα Συνεργατών':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'} · Πρόγραμμα ${effProfileType==='professional'?'Συνεργατών':'Πρόσκλησης'}`} aria-label="Η ιδιότητά μου και το πρόγραμμα πρόσκλησης" style={{display:'flex',alignItems:'center',height:T.h.md,padding:0,border:'none',background:'transparent',cursor:'pointer',marginRight:8,borderRadius:'50%',transition:'transform .15s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
                 <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} showLabel={false} size={30} />
               </button>
-              <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση & γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:36,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση & γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
                 <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
               </button>

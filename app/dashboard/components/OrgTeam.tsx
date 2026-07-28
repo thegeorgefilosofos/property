@@ -17,7 +17,8 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, Chip, settingsField } from '@/components/Theme';
+import { T, Btn, Chip, EmptyState, Skeleton, settingsField } from '@/components/Theme';
+import { Users } from 'lucide-react';
 import { logActivity } from '@/lib/activity';
 import { CustomSelect } from './UIComponents';
 
@@ -318,10 +319,13 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setUpgradeSent(true);
   };
 
+  // Σκελετός στη θέση του γυμνού «Φόρτωση…»: το σχήμα της λίστας μελών είναι
+  // γνωστό, οπότε η σελίδα δεν αναδιατάσσεται μόλις φτάσουν τα δεδομένα.
   if (loading) {
     return (
-      <div style={{ padding: '20px 0', fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-        Φόρτωση…
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '20px 0' }}>
+        <Skeleton w={120} h={11} />
+        {[0, 1, 2].map(i => <Skeleton key={i} h={48} r={10} />)}
       </div>
     );
   }
@@ -455,9 +459,11 @@ export default function OrgTeam({ userId }: { userId: string }) {
         <div style={descStyle}>Η ομάδα του οργανισμού σου.</div>
 
         {members.length === 0 ? (
-          <div style={{ padding: '16px 0', fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Κανένα μέλος ακόμη.
-          </div>
+          <EmptyState
+            icon={<Users size={20} />}
+            title="Κανένα μέλος ακόμη"
+            hint="Πρόσκαλεσε συνεργάτες και δώσε τους πρόσβαση σε συγκεκριμένα ακίνητα."
+          />
         ) : (
           <div style={{ overflowX: 'auto', marginTop: 12 }}>
             <div style={{ minWidth: ROW_MIN }}>

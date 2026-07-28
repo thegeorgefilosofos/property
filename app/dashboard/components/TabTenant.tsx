@@ -16,7 +16,10 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem } from '@/components/Theme';
+import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
+import { notify, notifyOk, notifyError } from '@/components/Toast';
+import { confirmDialog } from '@/components/ConfirmDialog';
 import LeaseModal from './LeaseModal';
 import LeaseDeclaration from './LeaseDeclaration';
 import { roleLabel } from '@/lib/contacts/roles';
@@ -256,7 +259,7 @@ function SplitBar({ owner, onChange }: { owner:number; onChange:(v:number)=>void
           return (
             <button key={label} type="button" onClick={()=>onChange(val)}
               style={{
-                flex:1, height:28, borderRadius:100, cursor:'pointer',
+                flex:1, height:T.h.sm, borderRadius:100, cursor:'pointer',
                 fontFamily:T.font.sans, fontSize:11, fontWeight: active ? 600 : 500,
                 border:`1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`,
                 background: active ? 'var(--accent-dim)' : 'transparent',
@@ -355,9 +358,7 @@ function predictAlerts(payments:RentPayment[], tenant:Tenant|null):{text:string;
 // ─── Payment Bar Chart ────────────────────────────────────────────────────────
 function PaymentBars({ payments }:{payments:RentPayment[]}) {
   if(!payments.length) return (
-    <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-tertiary)', fontSize:12, fontFamily:T.font.sans }}>
-      Δεν υπάρχουν δεδομένα πληρωμών
-    </div>
+    <EmptyState icon={<BarChart3 size={20}/>} title="Δεν υπάρχουν δεδομένα πληρωμών" hint="Μόλις καταγραφεί η πρώτη είσπραξη, το γράφημα 12 μηνών γεμίζει αυτόματα." />
   );
   const last12=[...payments].sort((a,b)=>b.period_year-a.period_year||b.period_month-a.period_month).slice(0,12).reverse();
   return (
@@ -541,7 +542,9 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
   const isExpired=daysExp!==null&&daysExp<0;
   const isExpiring=daysExp!==null&&daysExp>=0&&daysExp<=60;
 
-  const selectStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,fontFamily:T.font.sans,outline:'none',cursor:'pointer'};
+  // 42 ήταν off-scale: κάθε άλλο πεδίο του app (UIComponents.FIELD_HEIGHT, settingsField)
+  // είναι 40, οπότε αυτό το select καθόταν 2px ψηλότερα από τα διπλανά του.
+  const selectStyle:React.CSSProperties={width:'100%',height:T.h.lg,background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,fontFamily:T.font.sans,outline:'none',cursor:'pointer'};
 
   const genLetter=()=>{
     const today_str=rDate();
@@ -676,7 +679,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
               </div>
 
               {/* Print Button */}
-              <button onClick={genLetter} style={{ width:'100%', height:40, borderRadius:T.radius.btn, border:'none', background:'var(--accent)', color:'var(--accent-text)', cursor:'pointer', fontSize:13, fontFamily:T.font.sans, fontWeight:700, letterSpacing:'0.04em', marginBottom:12 }}>
+              <button onClick={genLetter} style={{ width:'100%', height:T.h.lg, borderRadius:T.radius.btn, border:'none', background:'var(--accent)', color:'var(--accent-text)', cursor:'pointer', fontSize:13, fontFamily:T.font.sans, fontWeight:700, letterSpacing:'0.04em', marginBottom:12 }}>
                 Εκτύπωση Ειδοποίησης Αναπροσαρμογής
               </button>
             </>
@@ -810,7 +813,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
         )}
 
         {loading&&<Spinner label="Φόρτωση…" />}
-        {!loading&&logs.length===0&&<div style={{ textAlign:'center', padding:40, color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν καταχωρήσεις επικοινωνίας</div>}
+        {!loading&&logs.length===0&&<EmptyState icon={<MessageSquare size={20}/>} title="Καμία επικοινωνία καταγεγραμμένη" hint="Κατέγραψε κλήσεις, μηνύματα και επισκέψεις για να έχεις πλήρες ιστορικό με τον ενοικιαστή." />}
         {!loading&&logs.map(log=>(
           <div key={log.id} style={{ display:'flex', gap:14, alignItems:'flex-start', padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
             <div style={{ width:38, height:38, borderRadius:18, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16 }}>
@@ -823,7 +826,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6 }}>{log.summary}</div>
             </div>
-            <button style={s.btnDng} onClick={async()=>{if(!confirm('Διαγραφή;'))return;await supabase.from('tenant_comm_log').delete().eq('id',log.id);loadLogs();}}>Διαγραφή</button>
+            <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή καταγραφής επικοινωνίας;',{tone:'negative'})))return;await supabase.from('tenant_comm_log').delete().eq('id',log.id);loadLogs();}}>Διαγραφή</button>
           </div>
         ))}
       </div>
@@ -878,8 +881,11 @@ const numify=(v:unknown):number|undefined=>{
 const msgDigits=(p?:string|null)=>{const d=normalizePhone(p);return d.length===10?'30'+d:d;};
 
 // ─── Payments View (Rent Ledger) ───────────────────────────────────────────────
-function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify }:{
-  tenant:Tenant; propertyId:string; userId:string; payments:RentPayment[]; onRefresh:()=>void; notify:(m:string)=>void;
+// Το `notify` ΔΕΝ περνά πια ως prop: όσο υπήρχε, σκίαζε σιωπηλά το κοινό import με
+// πανομοιότυπο όνομα και υπογραφή, οπότε τα μηνύματα αυτού του component κατέληγαν
+// σε άλλον υποδοχέα από τα υπόλοιπα της ίδιας οθόνης.
+function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
+  tenant:Tenant; propertyId:string; userId:string; payments:RentPayment[]; onRefresh:()=>void;
 }) {
   const supabase=createClient();
   const branding=useReportBranding(userId);
@@ -921,7 +927,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[missing.length]);
 
-  const generateNow=async()=>{ setBusy(true); await genForRows(missing); setBusy(false); onRefresh(); notify(missing.length?`Δημιουργήθηκαν ${missing.length} δόσεις`:'Οι δόσεις είναι ενημερωμένες'); };
+  const generateNow=async()=>{ setBusy(true); await genForRows(missing); setBusy(false); onRefresh(); notifyOk(missing.length?`Δημιουργήθηκαν ${missing.length} δόσεις`:'Οι δόσεις είναι ενημερωμένες'); };
 
   const sorted=useMemo(()=>[...payments].sort((a,b)=>b.period_year-a.period_year||b.period_month-a.period_month),[payments]);
   const open=useMemo(()=>payments.filter(p=>!p.paid),[payments]);
@@ -950,19 +956,21 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
     setBusy(true);
     // Ενημερώνει μόνο τις συγκεκριμένες εκκρεμείς δόσεις (όχι δηλωμένες/χειροκίνητες εκτός λίστας).
     await supabase.from('rent_payments').update({amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}).in('id',ids);
-    setBusy(false); onRefresh(); notify('Οι εκκρεμείς δόσεις ενημερώθηκαν');
+    setBusy(false); onRefresh(); notifyOk('Οι εκκρεμείς δόσεις ενημερώθηκαν');
   };
 
   const doMarkPaid=async(p:RentPayment,method:PayMethod,receipt:string,paidDate:string,docId?:string|null)=>{
     const daysLate=p.due_date && paidDate>p.due_date ? Math.ceil((new Date(paidDate).getTime()-new Date(p.due_date).getTime())/86400000) : 0;
     await supabase.from('rent_payments').update({paid:true,paid_date:paidDate,method,receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null,days_late:daysLate}).eq('id',p.id);
     await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,true);
-    onRefresh(); notify('Καταχωρήθηκε ως πληρωμένο');
+    onRefresh(); notifyOk('Καταχωρήθηκε ως πληρωμένο');
   };
   const doUnpay=async(p:RentPayment)=>{ await supabase.from('rent_payments').update({paid:false,paid_date:null,days_late:null}).eq('id',p.id); await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,false); onRefresh(); };
 
   const savePay=async()=>{
-    if(!payF.amount){notify('Συμπλήρωσε ποσό');return;}
+    // Ήταν ΠΡΑΣΙΝΟ ενώ πρόκειται για σφάλμα επικύρωσης — το παλιό banner είχε έναν
+    // μόνο τόνο για τα πάντα. Τώρα ο τόνος λέει την αλήθεια.
+    if(!payF.amount){notify('Συμπλήρωσε ποσό',{tone:'warning'});return;}
     setBusy(true);
     const paidDate=payF.paid?payF.paid_date:null;
     const due=`${payF.period_year}-${String(payF.period_month).padStart(2,'0')}-${String(Math.min(Math.max(1,rentDueDay),28)).padStart(2,'0')}`;
@@ -970,7 +978,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
     await supabase.from('rent_payments').upsert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_month:payF.period_month,period_year:payF.period_year,amount:Math.max(0,parseFloat(payF.amount)),paid:payF.paid,paid_date:paidDate,method:payF.paid?payF.method:null,days_late:daysLate,due_date:due,notes:payF.notes||null},{onConflict:'tenant_id,period_year,period_month'});
     await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,payF.period_year,payF.period_month,payF.paid);
     setBusy(false);setAddOpen(false);setPayF({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',method:'Τραπεζική κατάθεση',paid:true,paid_date:todayISO(),notes:''});
-    onRefresh();notify('Πληρωμή καταχωρήθηκε');
+    onRefresh();notifyOk('Πληρωμή καταχωρήθηκε');
   };
 
   const propLabel=()=> (prop?.address||prop?.title||prop?.name||prop?.label||'') as string;
@@ -1194,9 +1202,12 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
         )}
 
         {payments.length===0?(
-          <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>
-            Δεν υπάρχουν δόσεις. {tenant.lease_start&&tenant.monthly_rent?'Πάτησε «Δημιουργία δόσεων» για αυτόματη συμπλήρωση από τη μίσθωση.':'Όρισε έναρξη μίσθωσης και ενοίκιο για αυτόματη δημιουργία.'}
-          </div>
+          <EmptyState
+            icon={<Banknote size={20}/>}
+            title="Δεν υπάρχουν δόσεις"
+            hint={tenant.lease_start&&tenant.monthly_rent?'Πάτησε «Δημιουργία δόσεων» για αυτόματη συμπλήρωση από τη μίσθωση.':'Όρισε έναρξη μίσθωσης και μηνιαίο μίσθωμα για αυτόματη δημιουργία δόσεων.'}
+            action={tenant.lease_start&&tenant.monthly_rent?<Btn variant="primary" onClick={generateNow} disabled={busy}>Δημιουργία δόσεων</Btn>:undefined}
+          />
         ):(
           <div className="table-wrap" style={{ marginTop:14 }}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
@@ -1222,7 +1233,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
                       {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
                       {tenant.phone&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
                       {tenant.phone&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
-                      <button style={s.btnDng} onClick={async()=>{if(!confirm('Διαγραφή;'))return;await supabase.from('rent_payments').delete().eq('id',p.id);onRefresh();}}>Διαγραφή</button>
+                      <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;await supabase.from('rent_payments').delete().eq('id',p.id);onRefresh();}}>Διαγραφή</button>
                     </div>
                   </td>
                 </tr>
@@ -1281,7 +1292,9 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
               {tenant.phone&&<a href={whatsappLink(msgDigits(tenant.phone),paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>WhatsApp</a>}
               {tenant.phone&&<a href={viberLink(paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>Viber</a>}
               {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Αίτημα πληρωμής ενοικίου '+monthLabel(req))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Email</a>}
-              <button style={s.btnGhost} onClick={()=>{ try{ navigator.clipboard.writeText(paymentRequestText(req)); notify('Το κείμενο αντιγράφηκε'); }catch{} }}>Αντιγραφή κειμένου</button>
+              {/* Το catch ήταν κενό: αν η αντιγραφή αποτύγχανε (άρνηση δικαιώματος, μη ασφαλές
+                  context), ο χρήστης νόμιζε ότι το κείμενο ήταν στο πρόχειρο και το επικολλούσε στο κενό. */}
+              <button style={s.btnGhost} onClick={()=>{ try{ navigator.clipboard.writeText(paymentRequestText(req)); notifyOk('Το κείμενο αντιγράφηκε'); }catch{ notifyError('Δεν έγινε η αντιγραφή. Επίλεξε και αντίγραψε το κείμενο χειροκίνητα.'); } }}>Αντιγραφή κειμένου</button>
             </div>
 
             <div style={{ display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', flexWrap:'wrap' as const }}>
@@ -1531,7 +1544,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
     else await supabase.from('tenant_damages').insert(payload);
     setBusy(false); setAddOpen(false); setF(blankF()); setEditId(null); onRefresh();
   };
-  const del=async(d:TenantDamage)=>{ if(!confirm('Διαγραφή φθοράς;')) return; await supabase.from('tenant_damages').delete().eq('id',d.id); onRefresh(); };
+  const del=async(d:TenantDamage)=>{ if(!(await confirmDialog('Διαγραφή φθοράς;',{tone:'negative'}))) return; await supabase.from('tenant_damages').delete().eq('id',d.id); onRefresh(); };
 
   // Ομαδοποίηση ανά έτος μίσθωσης (από lease_start· αλλιώς ανά ημερολογιακό έτος).
   const bucketOf=(occurred:string|null):{key:string;label:string;sort:number}=>{
@@ -1599,7 +1612,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
         )}
 
         {damages.length===0?(
-          <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν έχουν καταγραφεί φθορές ή επισκευές.</div>
+          <EmptyState icon={<Hammer size={20}/>} title="Καμία φθορά ή επισκευή" hint="Κατέγραψε φθορές με φωτογραφίες και κόστος, για τεκμηρίωση στην απόδοση της εγγύησης." />
         ):groups.map(g=>(
           <div key={g.label} style={{ marginBottom:18 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
@@ -1652,7 +1665,8 @@ function maintPhotoPath(stored:string):string {
   const i=stored.indexOf(marker);
   return i>=0 ? stored.slice(i+marker.length) : stored;
 }
-function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefresh, notify }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; others:MaintenanceReq[]; onRefresh:()=>void; notify:(m:string)=>void }) {
+// Ίδιος λόγος με το PaymentsView: το prop `notify` σκίαζε το κοινό import.
+function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefresh }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; others:MaintenanceReq[]; onRefresh:()=>void }) {
   const supabase=createClient();
   const [busy,setBusy]=useState(false);
   const [assignFor,setAssignFor]=useState<string|null>(null);   // ποιο αίτημα αναθέτει σε συνεργείο
@@ -1692,7 +1706,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
   const setStatus=async(m:MaintenanceReq,status:string)=>{
     setBusy(true);
     await supabase.from('maintenance_requests').update({ status, resolved_at: status==='done'?new Date().toISOString():null }).eq('id',m.id);
-    setBusy(false); onRefresh(); notify('Το αίτημα ενημερώθηκε');
+    setBusy(false); onRefresh(); notifyOk('Το αίτημα ενημερώθηκε');
   };
   // Ολοκλήρωση εργασίας: σημειώνεται «done» και, αν δοθεί κόστος, καταχωρείται
   // δαπάνη ώστε να μπει αυτόματα στη λογιστική εικόνα του ακινήτου.
@@ -1707,20 +1721,20 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
       });
     }
     setBusy(false); setDoneFor(null); setDoneCost(''); onRefresh();
-    notify(Number.isFinite(cost)&&cost>0?'Ολοκληρώθηκε και καταχωρήθηκε στις δαπάνες':'Ολοκληρώθηκε');
+    notifyOk(Number.isFinite(cost)&&cost>0?'Ολοκληρώθηκε και καταχωρήθηκε στις δαπάνες':'Ολοκληρώθηκε');
   };
   const toDamage=async(m:MaintenanceReq)=>{
     setBusy(true);
     await supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(': ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' });
-    setBusy(false); onRefresh(); notify('Καταγράφηκε στις φθορές');
+    setBusy(false); onRefresh(); notifyOk('Καταγράφηκε στις φθορές');
   };
-  const del=async(m:MaintenanceReq)=>{ if(!confirm('Διαγραφή αιτήματος;')) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
+  const del=async(m:MaintenanceReq)=>{ if(!(await confirmDialog('Διαγραφή αιτήματος;',{tone:'negative'}))) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
   const gdt=(d:string|null)=>d?new Date(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):'—';
   const openAssign=(m:MaintenanceReq)=>{ setAssignFor(m.id); setAf({name:m.assignee_name||'',contact:m.assignee_contact||''}); };
   const saveAssign=async(m:MaintenanceReq)=>{
     setBusy(true);
     await supabase.from('maintenance_requests').update({ assignee_name:af.name.trim()||null, assignee_contact:af.contact.trim()||null, status:m.status==='new'?'in_progress':m.status }).eq('id',m.id);
-    setBusy(false); setAssignFor(null); onRefresh(); notify('Η ανάθεση αποθηκεύτηκε');
+    setBusy(false); setAssignFor(null); onRefresh(); notifyOk('Η ανάθεση αποθηκεύτηκε');
   };
   // Μήνυμα προς συνεργείο (τίτλος, περιγραφή, ακίνητο, σύνδεσμοι φωτογραφιών).
   const contractorText=(m:MaintenanceReq)=>[
@@ -1737,9 +1751,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
           Αιτήματα που στέλνει ο ενοικιαστής μέσω της πύλης. Διαχειρίσου την κατάστασή τους και, αν πρόκειται για φθορά, κατέγραψέ τα στο ιστορικό φθορών.
         </div>
         {list.length===0?(
-          <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>
-            Δεν υπάρχουν αιτήματα βλάβης. Όταν ο ενοικιαστής στείλει αίτημα από την πύλη, θα εμφανιστεί εδώ.
-          </div>
+          <EmptyState icon={<Wrench size={20}/>} title="Κανένα αίτημα βλάβης" hint="Όταν ο ενοικιαστής στείλει αίτημα από την πύλη, θα εμφανιστεί εδώ για διαχείριση." />
         ):(
           <div style={{ display:'flex', flexDirection:'column' as const, gap:12 }}>
             {list.map(m=>{
@@ -1939,7 +1951,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(false);
   const [error,setError]=useState<string|null>(null);
-  const [ok,setOk]=useState<string|null>(null);
+  // Το in-flow banner επιτυχίας (state + helper + JSX) αφαιρέθηκε υπέρ του κοινού
+  // toast: ήταν ΠΑΝΤΑ πράσινο, ακόμη και για ουδέτερα («Διαγράφηκε») ή για σφάλματα
+  // επικύρωσης, και έσπρωχνε το περιεχόμενο προς τα κάτω κάθε φορά που εμφανιζόταν.
 
   const [search,setSearch]=useState('');
   const [segment,setSegment]=useState<'current'|'past'|'overdue'|'all'>('current');
@@ -1993,7 +2007,6 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[loading]);
 
-  const notify=(msg:string)=>{setOk(msg);setTimeout(()=>setOk(null),3000);};
 
   // ── Παράγωγα ────────────────────────────────────────────────────────────────
   const todayS=todayISO();
@@ -2044,9 +2057,15 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   // ── Φόρμα ────────────────────────────────────────────────────────────────────
   const openAdd=()=>{ setForm(blank()); setEditId(null); setFormDocs([]); setSvcUI(SVC_UI_CLOSED); setFormTab('profile'); setError(null); setIsForm(true); };
   // Κλείσιμο φόρμας με προστασία από ακούσια απώλεια δεδομένων (backdrop/Ακύρωση).
-  const closeForm=()=>{
+  // Έγινε async γιατί ο κοινός διάλογος επιστρέφει Promise. Δένεται σε ΔΥΟ σημεία
+  // (κλικ στο backdrop του χειροποίητου modal με zIndex 950, και το κουμπί «Ακύρωση»)
+  // και κανένα από τα δύο δεν περιμένει σύγχρονη επιστροφή, οπότε η αλλαγή υπογραφής
+  // είναι ασφαλής. Ο ConfirmHost ζει στη ρίζα του layout με z-index 10000: δεν είναι
+  // απόγονος αυτού του backdrop, άρα κανένα κλικ του δεν ξαναπυροδοτεί το closeForm,
+  // και ο δίαυλος έτσι κι αλλιώς απορρίπτει δεύτερη ταυτόχρονη ερώτηση.
+  const closeForm=async()=>{
     const dirty = !!(form.full_name.trim()||form.afm||form.phone||form.email||form.monthly_rent);
-    if(dirty && !window.confirm('Κλείσιμο χωρίς αποθήκευση; Τα στοιχεία που συμπλήρωσες θα χαθούν.')) return;
+    if(dirty && !(await confirmDialog('Κλείσιμο χωρίς αποθήκευση; Τα στοιχεία που συμπλήρωσες θα χαθούν.'))) return;
     setError(null); setIsForm(false);
   };
   const openEditForm=(t:Tenant)=>{
@@ -2098,7 +2117,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       const{data:ins,error:insErr}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',supplier:editId?('tenant:'+editId):null,title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id,file_name').single();
       if(insErr){ setError(insErr.message); setDocBusy(false); return; }
       if(ins) setFormDocs(prev=>[...prev,{id:ins.id as string,file_name:ins.file_name as string,tag}]);
-      notify('Το έγγραφο ανέβηκε');
+      notifyOk('Το έγγραφο ανέβηκε');
     }catch{ setError('Σφάλμα ανεβάσματος εγγράφου'); }
     setDocBusy(false);
   };
@@ -2160,17 +2179,17 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
     }catch{ /* δευτερεύον — αγνοείται· ο ενοικιαστής έχει ήδη αποθηκευτεί */ }
     setSaving(false);setIsForm(false);
-    notify(editId?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');
+    notifyOk(editId?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');
     await fetch_();
   };
 
   const markMovedOut=async(t:Tenant)=>{
-    if(!confirm(`Σήμανση αποχώρησης για «${t.full_name}»; Θα μεταφερθεί στους προηγούμενους ενοικιαστές.`)) return;
+    if(!(await confirmDialog(`Σήμανση αποχώρησης για «${t.full_name}»; Θα μεταφερθεί στους προηγούμενους ενοικιαστές.`))) return;
     await supabase.from('tenants').update({status:'past',move_out_date:todayISO()}).eq('id',t.id);
     notify('Ο ενοικιαστής μεταφέρθηκε στο ιστορικό'); fetch_();
   };
   const delTenant=async(t:Tenant)=>{
-    if(!confirm(`Οριστική διαγραφή «${t.full_name}»; Θα διαγραφούν και οι πληρωμές/φθορές του.`)) return;
+    if(!(await confirmDialog(`Οριστική διαγραφή «${t.full_name}»; Θα διαγραφούν και οι πληρωμές/φθορές του.`,{tone:'negative',confirmLabel:'Οριστική διαγραφή'}))) return;
     await supabase.from('rent_payments').delete().eq('tenant_id',t.id);
     await supabase.from('tenant_damages').delete().eq('tenant_id',t.id);
     await supabase.from('tenants').delete().eq('id',t.id);
@@ -2185,7 +2204,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     const{error:upErr}=await supabase.storage.from('lease-documents').upload(path,file,{upsert:true});
     if(upErr){setError(upErr.message);setUploading(false);return;}
     await supabase.from('tenants').update({lease_doc_name:file.name}).eq('id',t.id);
-    setUploading(false);notify('Το PDF ανέβηκε');fetch_();
+    setUploading(false);notifyOk('Το PDF ανέβηκε');fetch_();
   };
   const openLeaseDoc=async(t:Tenant)=>{
     if(!t.lease_doc_name) return;
@@ -2207,8 +2226,15 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     );
   };
 
+  // Σκελετός αντί για spinner: η οθόνη έχει γνωστό σχήμα (σειρά KPIs + πλέγμα καρτών
+  // ενοικιαστών), οπότε ο χώρος δεσμεύεται από την αρχή αντί να «πέφτει» μέσα ξαφνικά.
   if(loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:400 }}><Spinner label="Φόρτωση…" /></div>
+    <>
+      <SkeletonKPIs n={4} />
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap:14 }}>
+        {[0,1,2].map(i=><Skeleton key={i} h={210} r={14}/>)}
+      </div>
+    </>
   );
 
   const dc=openId?tenants.find(t=>t.id===openId)||null:null;
@@ -2242,7 +2268,6 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     <div style={{ fontFamily:T.font.sans, color:'var(--text-primary)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {ok&&<div style={{ background:'var(--positive-dim)', border:'1px solid var(--positive-border)', borderLeft:'3px solid var(--positive)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--positive)', fontSize:13, fontFamily:T.font.sans, fontWeight:500 }}>{ok}</div>}
       {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
 
       <PageTitle title="Ενοικιαστής" sub="Μητρώο ενοικιαστών του ακινήτου: τρέχων και ιστορικοί, με πλήρες ντοσιέ ανά μίσθωση."
@@ -2266,11 +2291,11 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       </div>
 
       {tenants.length===0?(
-        <EmptyState title="Κανένας ενοικιαστής ακόμη" hint="Πρόσθεσε τον ενοικιαστή του ακινήτου για πλήρη παρακολούθηση μίσθωσης, ενοικίων, εγγύησης, φθορών και ανανέωσης." action={<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, justifyContent:'center' }}><Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn><Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Σύνταξη μισθωτηρίου</Btn></div>}/>
+        <EmptyState icon={<Users size={20}/>} title="Κανένας ενοικιαστής ακόμη" hint="Πρόσθεσε τον ενοικιαστή του ακινήτου για πλήρη παρακολούθηση μίσθωσης, ενοικίων, εγγύησης, φθορών και ανανέωσης." action={<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, justifyContent:'center' }}><Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn><Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Σύνταξη μισθωτηρίου</Btn></div>}/>
       ):(
         <>
           {filtered.length===0?(
-            <EmptyState title="Δεν βρέθηκαν ενοικιαστές" hint="Άλλαξε φίλτρο ή αναζήτηση."/>
+            <EmptyState icon={<SearchX size={20}/>} title="Δεν βρέθηκαν ενοικιαστές" hint="Άλλαξε φίλτρο ή αναζήτηση."/>
           ):(
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap:14 }}>
               {filtered.map(t=>{
@@ -2392,7 +2417,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 <div style={{ display:'flex', flexDirection:'column' }}>
                   <div>
                     <InfoBanner tone="info">Περιμένεις το ενοίκιο κάθε μήνα την <strong>{fn(Math.min(Math.max(1,dc.rent_due_day||1),28))}η</strong> ημέρα. Οι μηνιαίες δόσεις δημιουργούνται αυτόματα από την έναρξη της μίσθωσης.</InfoBanner>
-                    <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_} notify={notify}/>
+                    <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_}/>
                   </div>
                   <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><DepositView tenant={dc} payments={dcPayments} damages={dcDamages} onReturned={fetch_}/></div>
                   <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><RenewalView tenant={dc} userId={userId} comps={comps}/></div>
@@ -2401,7 +2426,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               {dossierTab==='condition'&&(
                 <div style={{ display:'flex', flexDirection:'column' }}>
                   <DamagesView tenant={dc} propertyId={propertyId} userId={userId} damages={dcDamages} onRefresh={fetch_}/>
-                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} others={dc?maint.filter(m=>m.tenant_id!==dc.id):maint} onRefresh={fetch_} notify={notify}/></div>
+                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} others={dc?maint.filter(m=>m.tenant_id!==dc.id):maint} onRefresh={fetch_}/></div>
                 </div>
               )}
               {dossierTab==='legal'&&<LegalTaxView tenant={dc}/>}

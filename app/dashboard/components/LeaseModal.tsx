@@ -12,7 +12,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState } from '@/components/Theme';
+import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import DateField from './DateField';
 import { CustomSelect as Select } from './UIComponents';
@@ -210,7 +211,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
         </div>
 
         <div style={{ padding: '18px 24px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 15 }}>
-          {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
+          {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Δεν υπάρχουν ακίνητα" hint="Πρόσθεσε ακίνητο για να συντάξεις μισθωτήριο." /> : (
             <>
               <ScanButton label="Σάρωσε έγγραφο" hint="Γρήγορη καταχώρηση στοιχείων." onExtract={doc => {
                 if (doc.tenant_name) setTenant(doc.tenant_name);

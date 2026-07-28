@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { Calculator } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, Spinner } from '@/components/Theme';
+import { T, fe, Spinner, EmptyState } from '@/components/Theme';
 import { estimateENFIA, ENFIA_REDUCTIONS } from '@/lib/billing/enfia';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
@@ -476,21 +477,27 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   )}
                 </>
               ) : (
-                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 24, textAlign: 'center' as const }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 8 }}>Συμπλήρωσε εμβαδόν + τιμή ζώνης</div>
-                  <div title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE" style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 18, lineHeight: 1.5 }}>Η τιμή ζώνης βρίσκεται στο myAADE → Εφαρμογές → Δήλωση Ε9/ΕΝΦΙΑ</div>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
-                    <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
-                      title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                      Δήλωση Ε9/ΕΝΦΙΑ (myAADE) →
-                    </a>
-                    <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                      ΕΝΦΙΑ 2026 →
-                    </a>
-                  </div>
-                </div>
+                // Τα δύο rgba(26,115,232,…) ήταν κλειδωμένα στο γαλάζιο του light theme:
+                // στο dark η πλακέτα έβγαινε σκούρο μπλε πίσω από ανοιχτόχρωμο κείμενο.
+                // Τα tokens accent-soft/accent-border ακολουθούν το θέμα.
+                <EmptyState
+                  icon={<Calculator size={20} />}
+                  title="Συμπλήρωσε εμβαδόν + τιμή ζώνης"
+                  hint="Η τιμή ζώνης βρίσκεται στο myAADE → Εφαρμογές → Δήλωση Ε9/ΕΝΦΙΑ"
+                  action={
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
+                      <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
+                        title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+                        Δήλωση Ε9/ΕΝΦΙΑ (myAADE) →
+                      </a>
+                      <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+                        ΕΝΦΙΑ 2026 →
+                      </a>
+                    </div>
+                  }
+                />
               )}
             </div>
           </div>
@@ -687,7 +694,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <NumberInput  label="Κόστος (€)" value={newCost} onChange={setNewCost} suffix="€" step={10}/>
             <CustomSelect label="Συχνότητα"  value={newFreq} onChange={setNewFreq} options={FREQ}/>
             <button onClick={addOther}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 20px', height: 40, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 20px', height: T.h.lg, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
               + Προσθήκη
             </button>
           </div>
@@ -703,7 +710,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(toMonthly(o.cost, o.freq))} / μήνα</span>
               <button onClick={() => delOther(i)}
-                style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                style={{ width: T.h.sm, height: T.h.sm, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12 }}>✕</button>
             </div>
           </div>
         ))}

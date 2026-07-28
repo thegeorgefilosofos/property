@@ -10,8 +10,10 @@ export const labelStyle: React.CSSProperties = {
   fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',
   letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,
 }
+// Οι ακτίνες/κενά έρχονται πλέον από τα tokens και όχι από literals: όταν αλλάξει η
+// ακτίνα κάρτας στο components/tokens.ts, το Δάνειο δεν μένει πίσω με το δικό του 14.
 export const cardStyle: React.CSSProperties = {
-  background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:16,
+  background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:T.sp.lg,
 }
 
 // Ομοιόμορφο πλακίδιο μετρικής: λευκή τιμή, γαλάζια στο πέρασμα του κέρσορα/δαχτύλου·

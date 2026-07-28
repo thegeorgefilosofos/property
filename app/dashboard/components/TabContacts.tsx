@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } f
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
-import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Upload, Check, Minus } from 'lucide-react'
+import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Upload, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, fe, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ExportButton, type KPIItem } from '@/components/Theme'
+import { notify, notifyOk, notifyError } from '@/components/Toast'
+import { confirmDialog } from '@/components/confirmBus'
 import { downloadCsv } from './exportCsv'
 import { brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
@@ -449,7 +451,7 @@ function FileUploader({ files, onChange, contactId }: { files: { name: string; u
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-        {files.length === 0 && <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-secondary)', fontSize: 13 }}><FileText size={30} style={{ opacity: 0.25, display: 'block', margin: '0 auto 10px' }} />Δεν υπάρχουν αρχεία ακόμα</div>}
+        {files.length === 0 && <EmptyState icon={<FileText size={20} />} title="Δεν υπάρχουν αρχεία" hint="Ανέβασε συμβόλαια, τιμολόγια ή φωτογραφίες που αφορούν αυτή την επαφή." />}
         {files.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
             <FileText size={16} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
@@ -521,7 +523,9 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
           <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
         </div>
         <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1 }}>
-          {loading ? <Spinner label="Φόρτωση…" /> : (
+          {loading ? (
+            <><SkeletonKPIs n={3} />{[0, 1, 2].map(i => <Skeleton key={i} h={48} r={10} style={{ marginBottom: 12 }} />)}</>
+          ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 24 }}>
                 {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : '—', color: 'var(--text-primary)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
@@ -531,7 +535,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
                   </div>
                 ))}
               </div>
-              {timeline.length === 0 ? <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)', fontSize: 13 }}>Δεν υπάρχει ιστορικό ακόμα</div> : (
+              {timeline.length === 0 ? <EmptyState icon={<History size={20} />} title="Δεν υπάρχει ιστορικό ακόμα" hint="Δαπάνες, σημειώσεις και ραντεβού με αυτή την επαφή εμφανίζονται εδώ χρονολογικά." /> : (
                 <div style={{ position: 'relative' }}>
                   <div style={{ position: 'absolute', left: 15, top: 0, bottom: 0, width: 1, background: 'var(--border-subtle)' }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1033,10 +1037,14 @@ function ContactActionTile({ Icon, label, sub, onClick, primary }: { Icon: React
 }
 
 // ─── Contact Dossier (πλήρες προφίλ επαφής, slide-in) ───────────────────────────
-function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, onVcard, branding, notify, refreshKey }: {
+// Το `notify` ΔΕΝ είναι πλέον prop: ερχόταν από τον γονέα ως τοπικό showToast και
+// σκίαζε το κοινό `notify` του '@/components/Toast'. Επειδή το όνομα είναι ίδιο,
+// αν έμενε το prop ο κώδικας θα μεταγλωττιζόταν κανονικά ενώ θα συνέχιζε να καλεί
+// τον παλιό, ιδιωτικό υποδοχέα — σιωπηλή αποτυχία της ενοποίησης.
+function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, onVcard, branding, refreshKey }: {
   contact: Contact; propertyId: string; onClose: () => void; onEdit: () => void; onDelete: () => void
   onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void; onVcard: () => void
-  branding?: ReportBranding | null; notify: (m: string) => void; refreshKey?: number
+  branding?: ReportBranding | null; refreshKey?: number
 }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
   const extra = contact._extra || {}
@@ -1069,7 +1077,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
         <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}} .dsr-act:hover{border-color:var(--accent-border);background:var(--accent-soft);color:var(--accent)} .dsr-del{border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-secondary)} .dsr-del:hover{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}`}</style>
 
         <div style={{ position: 'relative', padding: '22px 22px 20px', background: 'linear-gradient(155deg, var(--accent-soft), transparent 66%)', borderBottom: '1px solid var(--border-subtle)' }}>
-          <button type="button" onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={16} /></button>
+          <button type="button" onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, width: T.h.sm, height: T.h.sm, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={16} /></button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
             {extra.avatar_url
               ? <img src={extra.avatar_url} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--accent-border)', boxShadow: '0 6px 18px rgba(0,0,0,0.25)', flexShrink: 0 }} />
@@ -1271,12 +1279,10 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [quickCalendar, setQuickCalendar] = useState<Contact | null>(null)
   const [historyContact, setHistoryContact] = useState<Contact | null>(null)
   const [qrContact, setQrContact] = useState<Contact | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const [bulkMode, setBulkMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dossierRefresh, setDossierRefresh] = useState(0)   // ανανεώνει τις πληρωμές στο dossier μετά από νέα δαπάνη
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3200) }
   // ─── Εμβέλεια επαφής (μόνο επαγγελματικό προφίλ) ──────────────────────────────
   const propName = (id?: string | null) => properties.find(p => p.id === id)?.name || ''
   const scopeIsPortfolio = (c: Contact) => c._extra?.scope === 'portfolio'
@@ -1311,10 +1317,10 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       const sys = 'Είσαι βοηθός καταχώρησης επαφών για διαχείριση ακινήτων. Από επαγγελματική κάρτα ή τιμολόγιο, εξάγεις τα στοιχεία του επαγγελματία/εταιρείας. Σε τιμολόγιο, κράτα τον ΕΚΔΟΤΗ/προμηθευτή (όχι τον πελάτη). Απάντησε ΜΟΝΟ με έγκυρο JSON χωρίς επεξήγηση, με κλειδιά: full_name (string), role (μία λέξη στα αγγλικά που περιγράφει την ειδικότητα, π.χ. plumber, electrician, accountant, lawyer, notary, hvac· αλλιώς κενό), phone, phone2, email, website, address, afm (μόνο ψηφία), iban, specialty. Ό,τι δεν υπάρχει, κενή συμβολοσειρά.'
       const res = await fetch('/api/anthropic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 900, system: sys, messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Εξάγαγε τα στοιχεία επαφής από αυτό το έγγραφο.' }] }] }) })
       const data = await res.json()
-      if (!res.ok || data?.error) { setScanning(false); showToast('Η σάρωση δεν είναι διαθέσιμη τώρα'); return }
+      if (!res.ok || data?.error) { setScanning(false); notifyError('Η σάρωση δεν είναι διαθέσιμη τώρα'); return }
       const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}'
       let d: Record<string, string> = {}
-      try { d = JSON.parse(text.replace(/```json?|```/g, '').trim()) } catch { setScanning(false); showToast('Δεν διάβασα καθαρά την κάρτα, δοκίμασε πάλι'); return }
+      try { d = JSON.parse(text.replace(/```json?|```/g, '').trim()) } catch { setScanning(false); notifyError('Δεν διάβασα καθαρά την κάρτα, δοκίμασε πάλι'); return }
       const roleVal = (d.role && ROLE_META[d.role.trim().toLowerCase()]) ? d.role.trim().toLowerCase() : inferRole([d.role, d.specialty, d.full_name].filter(Boolean).join(' ')) || 'other'
       const has = (v?: string) => (v || '').trim()
       setEditContact(null); setRoleOther('')
@@ -1324,8 +1330,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       })
       setShowMore(!!(has(d.afm) || has(d.iban) || has(d.website) || has(d.address) || has(d.specialty)))
       setError(null); setScanning(false); setShowModal(true)
-      showToast(has(d.full_name) ? 'Έλεγξε τα στοιχεία και αποθήκευσε' : 'Συμπλήρωσε τα στοιχεία που λείπουν')
-    } catch { setScanning(false); showToast('Παρουσιάστηκε σφάλμα στη σάρωση') }
+      notify(has(d.full_name) ? 'Έλεγξε τα στοιχεία και αποθήκευσε' : 'Συμπλήρωσε τα στοιχεία που λείπουν', { tone: 'info' })
+    } catch { setScanning(false); notifyError('Παρουσιάστηκε σφάλμα στη σάρωση') }
   }
   // ── Εισαγωγή από αρχείο (.vcf / .csv) ──
   const importFromFile = async (file: File) => {
@@ -1351,7 +1357,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           if (cols[0]) rows.push({ name: cols[0], phone: cols[1], email: cols[2], role: cols[3] })
         }
       }
-      if (!rows.length) { setImporting(false); showToast('Δεν βρέθηκαν επαφές στο αρχείο'); return }
+      if (!rows.length) { setImporting(false); notify('Δεν βρέθηκαν επαφές στο αρχείο', { tone: 'warning' }); return }
       const seen = new Set(contacts.map(c => onlyDigits(c.phone)).filter(p => p.length >= 8))
       let added = 0
       for (const r of rows) {
@@ -1361,14 +1367,15 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         const { error: e } = await supabase.from('contacts').insert({ property_id: propertyId, user_id: userId, full_name: r.name.slice(0, 120), role, phone: r.phone?.trim() || null, email: r.email?.trim() || null, notes: serializeNotes({} as ContactExtra, '') })
         if (!e) { added++; if (ph) seen.add(ph) }
       }
-      setImporting(false); fetchContacts(); showToast(added ? `Εισήχθησαν ${added} επαφές` : 'Καμία νέα επαφή (πιθανά διπλότυπα)')
-    } catch { setImporting(false); showToast('Σφάλμα εισαγωγής αρχείου') }
+      setImporting(false); fetchContacts()
+      if (added) notifyOk(`Εισήχθησαν ${added} επαφές`); else notify('Καμία νέα επαφή (πιθανά διπλότυπα)', { tone: 'warning' })
+    } catch { setImporting(false); notifyError('Σφάλμα εισαγωγής αρχείου') }
   }
   // ── Επιλογή από τις επαφές του τηλεφώνου (Contacts Picker API, mobile) ──
   const supportsPicker = typeof navigator !== 'undefined' && !!(navigator as unknown as { contacts?: { select?: unknown } }).contacts?.select
   const pickFromPhone = async () => {
     const api = (navigator as unknown as { contacts?: { select?: (p: string[], o: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[]; email?: string[] }>> } }).contacts
-    if (!api?.select) { showToast('Δεν υποστηρίζεται σε αυτή τη συσκευή'); return }
+    if (!api?.select) { notify('Δεν υποστηρίζεται σε αυτή τη συσκευή', { tone: 'warning' }); return }
     try {
       const picked = await api.select(['name', 'tel', 'email'], { multiple: true })
       if (!picked?.length) return
@@ -1382,7 +1389,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         const { error: e } = await supabase.from('contacts').insert({ property_id: propertyId, user_id: userId, full_name: name.slice(0, 120), role: 'other', phone: phone || null, email: email || null, notes: serializeNotes({} as ContactExtra, '') })
         if (!e) { added++; if (ph) seen.add(ph) }
       }
-      fetchContacts(); showToast(added ? `Προστέθηκαν ${added} επαφές` : 'Καμία νέα επαφή')
+      fetchContacts()
+      if (added) notifyOk(`Προστέθηκαν ${added} επαφές`); else notify('Καμία νέα επαφή', { tone: 'warning' })
     } catch { /* ο χρήστης ακύρωσε */ }
   }
   // ── Εξαγωγή vCard ──
@@ -1433,19 +1441,19 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       const { error: e } = await supabase.from('contacts').update({ full_name: name || target.full_name, role: mergedRole, phone: form.phone.trim() || target.phone, email: form.email.trim() || target.email, notes: serializeNotes(mergedExtra, mergedNotes) }).eq('id', target.id)
       if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
       await syncContactReminder(target.id, name || target.full_name)
-      setSaving(false); setDup(null); closeModal(); fetchContacts(); showToast('Οι επαφές συγχωνεύθηκαν'); return
+      setSaving(false); setDup(null); closeModal(); fetchContacts(); notifyOk('Οι επαφές συγχωνεύθηκαν'); return
     }
     const payload = { full_name: name, role: finalRole, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
     if (mode === 'update' && editContact) {
       const { error: e } = await supabase.from('contacts').update(payload).eq('id', editContact.id)
       if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
       await syncContactReminder(editContact.id, name)
-      setSaving(false); closeModal(); fetchContacts(); showToast('Επαφή ενημερώθηκε'); return
+      setSaving(false); closeModal(); fetchContacts(); notifyOk('Επαφή ενημερώθηκε'); return
     }
     const { data: ins, error: e } = await supabase.from('contacts').insert({ ...payload, property_id: propertyId, user_id: userId }).select('id').single()
     if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
     if (ins?.id) await syncContactReminder(ins.id, name)
-    setSaving(false); setDup(null); closeModal(); fetchContacts(); showToast('Επαφή προστέθηκε')
+    setSaving(false); setDup(null); closeModal(); fetchContacts(); notifyOk('Επαφή προστέθηκε')
   }
 
   const handleSave = async () => {
@@ -1454,18 +1462,23 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     await persist(editContact ? 'update' : 'insert')
   }
 
-  const handleDelete = async (id: string) => { await supabase.from('contacts').delete().eq('id', id); try { await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`) } catch { /* best-effort */ } setDeleteId(null); fetchContacts(); showToast('Επαφή διαγράφηκε') }
+  const handleDelete = async (id: string) => { await supabase.from('contacts').delete().eq('id', id); try { await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`) } catch { /* best-effort */ } setDeleteId(null); fetchContacts(); notify('Επαφή διαγράφηκε') }
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   const bulkDelete = async () => {
-    const n = selected.size
-    if (!n || !confirm(`Διαγραφή ${n} ${n === 1 ? 'επαφής' : 'επαφών'};`)) return
+    // Το στιγμιότυπο των ids παίρνεται ΠΡΙΝ την ερώτηση. Με το native confirm η
+    // σελίδα πάγωνε, οπότε το `selected` δεν μπορούσε να αλλάξει όσο ρωτούσαμε.
+    // Ο δικός μας διάλογος δεν παγώνει τίποτα: αν διαβάζαμε το `selected` μετά
+    // το await, ο χρήστης θα μπορούσε να αλλάξει επιλογή και θα διαγράφονταν
+    // ΑΛΛΕΣ επαφές από όσες ανέφερε το μήνυμα — και σε άλλο πλήθος από το `n`.
     const ids = [...selected]
+    const n = ids.length
+    if (!n || !(await confirmDialog(`Διαγραφή ${n} ${n === 1 ? 'επαφής' : 'επαφών'};`, { tone: 'negative' }))) return
     await Promise.all(ids.map(id => supabase.from('contacts').delete().eq('id', id)))
     // Καθαρισμός των υπενθυμίσεων ημερολογίου (παριτότητα με τη μεμονωμένη διαγραφή).
     try { await Promise.all(ids.map(id => supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`))) } catch { /* best-effort */ }
-    setSelected(new Set()); setBulkMode(false); fetchContacts(); showToast(`${n} ${n === 1 ? 'επαφή διαγράφηκε' : 'επαφές διαγράφηκαν'}`)
+    setSelected(new Set()); setBulkMode(false); fetchContacts(); notify(`${n} ${n === 1 ? 'επαφή διαγράφηκε' : 'επαφές διαγράφηκαν'}`)
   }
-  const bulkEmail = () => { const emails = contacts.filter(c => selected.has(c.id) && c.email).map(c => c.email).join(','); if (emails) window.open('mailto:' + emails); else showToast('Καμία από τις επιλεγμένες δεν έχει email') }
+  const bulkEmail = () => { const emails = contacts.filter(c => selected.has(c.id) && c.email).map(c => c.email).join(','); if (emails) window.open('mailto:' + emails); else notify('Καμία από τις επιλεγμένες δεν έχει email', { tone: 'warning' }) }
   const bulkVcard = () => { const sel = contacts.filter(c => selected.has(c.id)); if (sel.length) downloadVcf(sel, 'epafes-epilogi.vcf') }
   // Το ραντεβού που κλείνεται από το προφίλ γράφεται και στην ΙΔΙΑ την επαφή
   // (πεδίο «επόμενο ραντεβού»), ώστε να ανάβει το badge/η παρακολούθηση ληξιπρόθεσμων.
@@ -1520,7 +1533,6 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1080, margin: '0 auto', fontFamily: T.font.sans }}>
 
-      {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 2000, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }} />{toast}</div>}
 
       <input ref={cardRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runCardScan(f); e.currentTarget.value = '' }} />
       <input ref={importRef} type="file" accept=".vcf,.csv,text/vcard,text/csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) importFromFile(f); e.currentTarget.value = '' }} />
@@ -1696,9 +1708,16 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       )}
 
       {loading ? (
-        <Spinner label="Φόρτωση…" />
+        // Ο γυμνός Spinner δεν προδιέγραφε τίποτα: μόλις έρχονταν τα δεδομένα, τα
+        // KPIs και η λίστα εμφανίζονταν μαζί και η σελίδα πηδούσε. Το σχήμα είναι
+        // γνωστό (4 μετρικές + λίστα επαφών), άρα ο σκελετός κρατά το ύψος.
+        <>
+          <SkeletonKPIs n={4} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2, 3, 4].map(i => <Skeleton key={i} h={54} r={10} />)}</div>
+        </>
       ) : contacts.length === 0 ? (
         <EmptyState
+          icon={<Users size={20} />}
           title="Δεν υπάρχουν επαφές"
           hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου."
           action={<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
@@ -1709,7 +1728,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           </div>}
         />
       ) : processed.length === 0 ? (
-        <EmptyState title="Δεν βρέθηκαν αποτελέσματα" hint="Δοκίμασε διαφορετική αναζήτηση ή κατηγορία." />
+        <EmptyState icon={<SearchX size={20} />} title="Δεν βρέθηκαν αποτελέσματα" hint="Δοκίμασε διαφορετική αναζήτηση ή κατηγορία." />
       ) : viewMode === 'compact' ? (
         <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
@@ -1940,15 +1959,15 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
-      {detail && <ContactDossier contact={detail} propertyId={propertyId} branding={branding} notify={showToast} onVcard={() => downloadVcf([detail], (detail.full_name || 'epafi').replace(/[^\w.\-]+/g, '_') + '.vcf')} onClose={() => setDetailId(null)}
+      {detail && <ContactDossier contact={detail} propertyId={propertyId} branding={branding} onVcard={() => downloadVcf([detail], (detail.full_name || 'epafi').replace(/[^\w.\-]+/g, '_') + '.vcf')} onClose={() => setDetailId(null)}
         onEdit={() => openEdit(detail)}
         onDelete={() => setDeleteId(detail.id)}
         onQuickExpense={() => setQuickExpense(detail)}
         onQuickCalendar={() => setQuickCalendar(detail)}
         onShowHistory={() => setHistoryContact(detail)}
         onShowQR={() => setQrContact(detail)} refreshKey={dossierRefresh} />}
-      {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => { showToast('Δαπάνη αποθηκεύτηκε'); setDossierRefresh(x => x + 1) }} />}
-      {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={(date) => { linkAppointmentToContact(quickCalendar, date); showToast('Ραντεβού προστέθηκε, καταχωρήθηκε και στην επαφή') }} />}
+      {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => { notifyOk('Δαπάνη αποθηκεύτηκε'); setDossierRefresh(x => x + 1) }} />}
+      {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={(date) => { linkAppointmentToContact(quickCalendar, date); notifyOk('Ραντεβού προστέθηκε, καταχωρήθηκε και στην επαφή') }} />}
       {historyContact && <HistoryModal contact={historyContact} propertyId={propertyId} onClose={() => setHistoryContact(null)} />}
       {qrContact && <QRCodeModal contact={qrContact} onClose={() => setQrContact(null)} />}
     </div>
