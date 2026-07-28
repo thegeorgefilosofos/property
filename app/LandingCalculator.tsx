@@ -113,7 +113,9 @@ export default function LandingCalculator() {
           Ενδεικτικός υπολογισμός με τη φορολογική κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση 5% για συντήρηση. Υποστηρικτικός, δεν υποκαθιστά τον λογιστή σου.
         </p>
         <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>
-          Δες τα δικά σου νούμερα, αυτόματα →
+          {/* Αχώριστο διάστημα πριν το βέλος: στα 320px η ετικέτα σπάει σε δύο
+              γραμμές και χωρίς αυτό το βέλος έμενε ΜΟΝΟ του στη δεύτερη. */}
+          Δες τα δικά σου νούμερα, αυτόματα →
         </Link>
       </div>
     </div>

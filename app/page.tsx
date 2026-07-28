@@ -293,6 +293,86 @@ export default async function Landing() {
             .lp-reveal { animation: lpReveal linear both; animation-timeline: view(); animation-range: entry 3% cover 18%; }
           }
         }
+        /* ═══ ΔΙΑΤΑΞΗ ΤΑΜΠΛΕΤΑΣ ΚΑΙ ΚΙΝΗΤΟΥ ═══════════════════════════════════
+           ΓΙΑΤΙ ΧΤΙΣΤΗΚΕ ΞΕΧΩΡΙΣΤΑ: η σελίδα δεν είχε διάταξη για μικρές οθόνες
+           — είχε ΑΠΟΥΣΙΑ διάταξης. Όλα τα πλέγματα ήταν auto-fit minmax(), που
+           σημαίνει ότι κάτω από ένα πλάτος καταρρέουν σε ΜΙΑ στήλη και η σελίδα
+           γίνεται μια ατέλειωτη στοίβα: 12.207px στα 390px πλάτος, δηλαδή 14
+           οθόνες κύλισης. Κανείς δεν φτάνει στο τέλος.
+
+           Η λύση ΔΕΝ είναι μικρότερα περιθώρια. Είναι διαφορετική ΜΟΡΦΗ ανά
+           μέγεθος: ό,τι σε desktop είναι πλέγμα καρτών, σε κινητό γίνεται είτε
+           συμπαγής λίστα είτε οριζόντιο καρουζέλ με snap. Το καρουζέλ είναι το
+           μοτίβο που χρησιμοποιεί κάθε κορυφαίο προϊόν στο κινητό, ακριβώς
+           επειδή μετατρέπει ύψος (που κοστίζει κύλιση) σε πλάτος (που δεν
+           κοστίζει τίποτα).
+
+           Τρία σκαλιά: ταμπλέτα 861-1024, μικρή ταμπλέτα 601-860, κινητό ≤600. */
+
+        /* ── ΤΑΜΠΛΕΤΑ ────────────────────────────────────────────────────── */
+        @media (max-width: 1024px) {
+          /* Δύο στήλες αντί για τρεις: τρεις κάρτες στα 1024 αφήνουν 300px η
+             καθεμία, όπου ο ελληνικός τίτλος σπάει σε τρεις γραμμές. */
+          .lp-feat { grid-template-columns: repeat(2, 1fr) !important; }
+          .lp-stats { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+
+        /* ── ΚΙΝΗΤΟ ΚΑΙ ΜΙΚΡΗ ΤΑΜΠΛΕΤΑ ──────────────────────────────────── */
+        @media (max-width: 860px) {
+          /* ΠΛΑΝΑ ΣΕ ΚΑΡΟΥΖΕΛ. Τρεις κάρτες τιμολόγησης στοιβαγμένες είναι
+             1.950px — το 16% ολόκληρης της σελίδας για κάτι που ο επισκέπτης
+             θέλει να ΣΥΓΚΡΙΝΕΙ, και η σύγκριση είναι αδύνατη όταν δεν βλέπεις
+             δύο μαζί. Οριζόντια, με snap, βλέπει τη μία και μισή και σέρνει. */
+          .lp-plans, .lp-duo {
+            display: flex !important; gap: 12px;
+            overflow-x: auto; overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 20px;
+            /* Αρνητικά περιθώρια ώστε το καρουζέλ να «βγαίνει» ως την άκρη της
+               οθόνης: μια κάρτα που κόβεται στο χείλος λέει «υπάρχουν κι άλλες»
+               χωρίς να χρειάζεται βελάκι ή κουκκίδες. */
+            margin-inline: calc(-1 * clamp(20px, 5vw, 48px));
+            padding-inline: clamp(20px, 5vw, 48px);
+            padding-bottom: 6px;
+            scrollbar-width: none;
+          }
+          .lp-plans::-webkit-scrollbar, .lp-duo::-webkit-scrollbar { display: none; }
+          .lp-plans > *, .lp-duo > * {
+            flex: 0 0 min(84vw, 320px); scroll-snap-align: center;
+          }
+
+          /* ΔΥΝΑΤΟΤΗΤΕΣ ΣΕ ΛΙΣΤΑ. Επτά κάρτες με εικονίδιο ΠΑΝΩ από τον τίτλο
+             είναι 1.652px. Το ίδιο περιεχόμενο σε σειρές — εικονίδιο αριστερά,
+             κείμενο δεξιά — είναι κάτω από τις μισές, και διαβάζεται πιο γρήγορα
+             γιατί το μάτι σαρώνει κάθετα μια στήλη τίτλων αντί να πηδά. */
+          .lp-feat { grid-template-columns: 1fr !important; gap: 10px !important; }
+          .lp-feat > .lp-card {
+            display: grid; grid-template-columns: 40px 1fr; column-gap: 14px;
+            align-items: start; padding: 16px 18px !important;
+          }
+          .lp-feat > .lp-card > div:first-child {
+            width: 40px !important; height: 40px !important; margin-bottom: 0 !important;
+            grid-row: 1 / span 2; border-radius: 11px !important;
+          }
+          .lp-feat > .lp-card > h3 { margin: 2px 0 4px !important; font-size: 15.5px !important; }
+          /* Τρεις γραμμές και όχι επτά. Οι περιγραφές γράφτηκαν για κάρτα πλάτους
+             300px σε desktop· στο κινητό η ίδια πρόταση γίνεται επτάγραμμη και η
+             κάρτα 212px. Ο επισκέπτης σε κινητό ΣΑΡΩΝΕΙ — θέλει να καταλάβει σε
+             δύο δευτερόλεπτα αν τον αφορά, όχι να διαβάσει παράγραφο. Το πλήρες
+             κείμενο μένει ακέραιο στο DOM (άρα και για τις μηχανές αναζήτησης
+             και για τους αναγνώστες οθόνης)· κόβεται μόνο οπτικά. */
+          .lp-feat > .lp-card > p {
+            font-size: 13.5px !important; line-height: 1.55 !important;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+        }
+
+        @media (max-width: 600px) {
+          /* Οι μετρήσεις σε 2×2: τέσσερα νούμερα σε στήλη είναι τέσσερις οθόνες
+             για τέσσερα νούμερα. Σε τετράγωνο διαβάζονται με μια ματιά. */
+          .lp-stats { grid-template-columns: repeat(2, 1fr) !important; }
+        }
         @media (max-width: 760px) { .lp-split { grid-template-columns: 1fr !important; } }
         .lp-only-xs { display: none; }
         @media (max-width: 520px) { .lp-hide-xs { display: none !important; } .lp-only-xs { display: inline !important; } }
@@ -420,7 +500,7 @@ export default async function Landing() {
 
       {/* ── Proof band: μετρήσιμα, πραγματικά (χωρίς ψεύτικα «νούμερα χρηστών») ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(20px, 3vw, 34px)', paddingBottom: 'clamp(28px, 4vw, 48px)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 1, background: LINE, border: `1px solid ${LINE}`, borderRadius: 14, overflow: 'hidden' }}>
+        <div className="lp-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 1, background: LINE, border: `1px solid ${LINE}`, borderRadius: 14, overflow: 'hidden' }}>
           {STATS.map((s, i) => (
             <div key={i} style={{ padding: 'clamp(20px, 3vw, 26px) 22px', textAlign: 'center', background: PANEL }}>
               <div style={{ fontSize: 'clamp(24px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT, lineHeight: 1, marginBottom: 8, fontVariantNumeric: 'tabular-nums' }}>{s.n}</div>
@@ -440,7 +520,7 @@ export default async function Landing() {
       {/* ── Capabilities ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Δυνατότητες" title="Ό,τι χρειάζεται το ακίνητό σου" sub="Από τον λογαριασμό ρεύματος μέχρι τη φορολογική δήλωση, με τη σειρά που προκύπτουν." />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 258px), 1fr))', gap: 14 }}>
+        <div className="lp-feat" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 258px), 1fr))', gap: 14 }}>
           {FEATURES.map((f, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)' }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{ic(f.i)}</div>
@@ -486,7 +566,7 @@ export default async function Landing() {
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Μείνε επειδή αξίζει." sub="Το πρώτο ακίνητο δωρεάν, για πάντα — και 30 ημέρες δοκιμή του Ιδιοκτήτη, χωρίς κάρτα. Αναβαθμίζεις μόνο όταν μεγαλώνει το χαρτοφυλάκιό σου." />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1040, margin: '0 auto', alignItems: 'stretch' }}>
+        <div className="lp-plans" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1040, margin: '0 auto', alignItems: 'stretch' }}>
 
           {/* Δωρεάν */}
           <PlanCard
@@ -522,7 +602,7 @@ export default async function Landing() {
       {/* ── Σύσταση: δύο διακριτά προγράμματα, ιδιώτη και επαγγελματία ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Σύσταση" title="Μοιράσου το. Κερδίστε και οι δύο." sub="Κάθε ιδιοκτήτης που ξεκινά με τη σύστασή σου παίρνει δώρο, κι εσύ ανταμείβεσαι. Για τους επαγγελματίες, γίνεται σταθερή πηγή εισοδήματος." />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
+        <div className="lp-duo" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
           {REFERRAL.map((r, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 30px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
