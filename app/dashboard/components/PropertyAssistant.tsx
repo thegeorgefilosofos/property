@@ -21,7 +21,7 @@ import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/l
 import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
 import {
   type AssistantIdentity, type Gender, type Memory, type AssistantAction, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
-  NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
+  NAV_MAP, buildSystemBlocks, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
   loadHistory, saveHistory, clearHistory,
   loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
@@ -79,6 +79,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const nudgedRef = useRef(false);
   const imgRef = useRef<HTMLInputElement>(null);   // λήψη/επιλογή φωτο αντικειμένου για αναγνώριση
   const [err, setErr] = useState('');
+  // Το ακριβές κείμενο του server όταν χτυπηθεί όριο. ΓΙΑΤΙ ΞΕΧΩΡΙΣΤΑ: το γενικό
+  // «δεν μπόρεσα να απαντήσω» κάνει τον χρήστη να νομίζει ότι χάλασε κάτι. Το όριο
+  // δεν είναι βλάβη — είναι κατάσταση με νούμερο και με ημερομηνία επιστροφής, και
+  // πρέπει να λέγεται όπως ακριβώς τη διατύπωσε ο server (lib/billing/aiLimits.ts).
+  const [limitMsg, setLimitMsg] = useState('');
   const [ctxStr, setCtxStr] = useState('');
   const [insightsStr, setInsightsStr] = useState('');
   const [marketStr, setMarketStr] = useState('');
@@ -811,12 +816,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const ask = async (question: string, viaVoice = false) => {
     const q = question.trim();
     if (!q || busy) return;
-    setErr(''); setInput('');
+    setErr(''); setLimitMsg(''); setInput('');
     const history = [...msgs, { role: 'user' as const, text: q }];
     setMsgs(history); setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const system = buildSystemPrompt(identity, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {
+      const system = buildSystemBlocks(identity, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {
         insights: insightsStr || undefined,
         market: marketStr || undefined,
         clients: clientsStr || undefined,
@@ -831,7 +836,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         body: JSON.stringify({ max_tokens: 900, system, messages: history.map(m => ({ role: m.role, content: m.text })) }),
       });
       const data = await res.json();
-      if (!res.ok) { setErr(String(data?.error || '').includes('ANTHROPIC_API_KEY') ? 'key' : 'service'); setMsgs(m => m.slice(0, -1)); return; }
+      if (!res.ok) {
+        if (res.status === 429) { setLimitMsg(String(data?.error || '')); setErr('limit'); }
+        else setErr(String(data?.error || '').includes('ANTHROPIC_API_KEY') ? 'key' : 'service');
+        setMsgs(m => m.slice(0, -1));
+        return;
+      }
       const raw: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || 'Δεν έχω απάντηση αυτή τη στιγμή.';
       const { clean, action, remember } = parseAction(raw);
       // Μόνιμη μνήμη: κράτησε το γεγονός που ζήτησε ο βοηθός (μόνο αν το επιτρέπει η ρύθμιση).
@@ -1132,7 +1142,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                 {busy && <div style={{ display: 'flex', gap: 5, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}
                 {err && (
                   <div style={{ background: err === 'key' ? 'var(--bg-elevated)' : 'var(--warning-soft)', border: `1px solid ${err === 'key' ? 'var(--border-subtle)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '10px 13px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    {err === 'key' ? `Ο ${identity.name} χρειάζεται ενεργό κλειδί AI για να απαντήσει. Μόλις ενεργοποιηθεί, θα μιλάει ζωντανά για το ακίνητό σου.` : 'Δεν μπόρεσα να απαντήσω τώρα, δοκίμασε ξανά σε λίγο.'}
+                    {err === 'key'
+                      ? `Ο ${identity.name} χρειάζεται ενεργό κλειδί AI για να απαντήσει. Μόλις ενεργοποιηθεί, θα μιλάει ζωντανά για το ακίνητό σου.`
+                      : err === 'limit'
+                        ? (limitMsg || 'Έφτασες το όριο ερωτήσεων. Ανανεώνεται σύντομα.')
+                        : 'Δεν μπόρεσα να απαντήσω τώρα, δοκίμασε ξανά σε λίγο.'}
                   </div>
                 )}
               </div>

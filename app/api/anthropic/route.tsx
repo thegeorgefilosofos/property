@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import {
+  MAX_PER_MINUTE, PLAN_RANK_ORDER,
+  dailyLimitsByRank, monthlyLimitsByRank, FREE_POOL_PER_MONTH,
+  dailyExhaustedMessage, monthlyExhaustedMessage, poolExhaustedMessage,
+} from '@/lib/billing/aiLimits';
 
 // Rate limiting: simple in-memory store (για production χρησιμοποίησε Redis)
 // ΣΗΜ.: σε serverless/πολλαπλά instances αυτό είναι ανά-instance. Είναι φράγμα
 // άμυνας σε βάθος· η οριστική λύση είναι κοινός μετρητής (Supabase RPC ή Redis).
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
 const dailyLimit = new Map<string, { count: number; day: number }>();
-const MAX_REQUESTS_PER_MINUTE = 20;
-const MAX_REQUESTS_PER_DAY = 400;   // ταβάνι ανά χρήστη/ημέρα (κατά της κατάχρησης κόστους)
+const MAX_REQUESTS_PER_MINUTE = MAX_PER_MINUTE;
+
+// Το in-memory ημερήσιο φράγμα ΔΕΝ ξέρει το πλάνο του χρήστη (θα χρειαζόταν
+// ερώτημα στη βάση πριν καν το φράγμα). Κρατά λοιπόν το ΜΕΓΑΛΥΤΕΡΟ όριο όλων
+// των πλάνων: κόβει την προφανή κατάχρηση χωρίς ποτέ να κόψει άδικα συνδρομητή.
+// Το πραγματικό, ανά-πλάνο όριο το επιβάλλει η bump_ai_usage παρακάτω, που
+// είναι και η μόνη αυθεντική πηγή (ατομική, διαμοιραζόμενη, race-free).
+const MAX_REQUESTS_PER_DAY = Math.max(...dailyLimitsByRank());
 
 // ── Όρια εισόδου (κόστος/DoS) ────────────────────────────────────────────────
 // Το input δεν έχει max_tokens· ένας συνδεδεμένος χρήστης θα μπορούσε να στείλει
@@ -68,19 +79,29 @@ export async function POST(req: NextRequest) {
   // The in-memory maps above are per-instance on serverless; this atomic Supabase
   // counter is the real cap that a user cannot bypass by hitting other instances.
   // Fail-open only if the RPC itself errors (the in-memory guard still applies).
+  //
+  // Τα όρια περνούν ως πίνακες [δωρεάν, ιδιοκτήτης, επαγγελματίας]. Η ΑΝΑΓΝΩΡΙΣΗ
+  // του πλάνου γίνεται μέσα στη βάση (public.user_plan_rank), ώστε να μη χρειάζεται
+  // δεύτερο ερώτημα εδώ και να μην μπορεί να δηλωθεί πλάνο από τον client.
   try {
     const { data: usage } = await supabase.rpc('bump_ai_usage', {
       p_max_min: MAX_REQUESTS_PER_MINUTE,
-      p_max_day: MAX_REQUESTS_PER_DAY,
+      p_day:     dailyLimitsByRank(),
+      p_month:   monthlyLimitsByRank(),
+      p_pool:    FREE_POOL_PER_MONTH,
     });
-    if (usage && (usage as { allowed?: boolean }).allowed === false) {
-      const reason = (usage as { reason?: string }).reason;
-      return NextResponse.json(
-        { error: reason === 'day'
-            ? 'Έφτασες το ημερήσιο όριο αιτήσεων AI. Δοκίμασε ξανά αύριο.'
-            : 'Πολλές αιτήσεις. Δοκίμασε σε 1 λεπτό.' },
-        { status: 429 }
-      );
+    const u = usage as { allowed?: boolean; reason?: string; rank?: number } | null;
+    if (u && u.allowed === false) {
+      // Το μήνυμα λέει το ΠΡΑΓΜΑΤΙΚΟ νούμερο του πλάνου του χρήστη. Ένα γενικό
+      // «έφτασες το όριο» αφήνει τον χρήστη να μαντεύει πόσο είναι το όριο και
+      // πότε επιστρέφει — και αυτό είναι που τον κάνει να νομίζει ότι χάλασε κάτι.
+      const plan = PLAN_RANK_ORDER[u.rank ?? 0] ?? 'free';
+      const error =
+        u.reason === 'pool'   ? poolExhaustedMessage()
+        : u.reason === 'month' ? monthlyExhaustedMessage(plan)
+        : u.reason === 'day'   ? dailyExhaustedMessage(plan)
+        : 'Πολλές ερωτήσεις μαζί. Δοκίμασε ξανά σε ένα λεπτό.';
+      return NextResponse.json({ error, reason: u.reason, plan }, { status: 429 });
     }
   } catch { /* RPC unavailable — rely on the in-memory guard above */ }
 
@@ -114,19 +135,61 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(body?.messages) || body.messages.length === 0) {
       return NextResponse.json({ error: 'Λείπουν μηνύματα.' }, { status: 400 });
     }
+    // ΚΟΒΟΥΜΕ, ΔΕΝ ΑΠΟΡΡΙΠΤΟΥΜΕ. Πριν, στο 40ό μήνυμα (≈20ή ερώτηση) ο χρήστης
+    // έπαιρνε 413 «Πολύ μεγάλη συνομιλία» και η συνεδρία ΣΠΑΓΕ: κάθε επόμενη
+    // ερώτηση απέτυχε, χωρίς τρόπο ανάκαμψης πέρα από ανανέωση σελίδας. Ο σκοπός
+    // του ορίου είναι να φράξει το κόστος, όχι να τιμωρήσει όποιον μιλά πολύ.
+    //
+    // Κρατάμε τα ΤΕΛΕΥΤΑΙΑ μηνύματα (η πρόσφατη συνομιλία είναι που μετράει) και
+    // φροντίζουμε να ξεκινά από 'user': το Anthropic API απορρίπτει ιστορικό που
+    // αρχίζει με 'assistant'.
     if (body.messages.length > MAX_MESSAGES) {
-      return NextResponse.json(
-        { error: 'Πολύ μεγάλη συνομιλία.' },
-        { status: 413 }
-      );
+      let trimmed = body.messages.slice(-MAX_MESSAGES);
+      while (trimmed.length && trimmed[0]?.role !== 'user') trimmed = trimmed.slice(1);
+      body.messages = trimmed.length ? trimmed : body.messages.slice(-1);
     }
     const safeBody: Record<string, unknown> = {
       model:      ALLOWED.has(body.model) ? body.model : 'claude-sonnet-5', // ποτέ opus
       max_tokens: Math.min(Number(body.max_tokens) || 1000, 2000),
       messages:   body.messages,
     };
-    if (typeof body.system === 'string')      safeBody.system = body.system;
-    if (typeof body.temperature === 'number') safeBody.temperature = body.temperature;
+    // ── PROMPT CACHING: η μεγαλύτερη μείωση κόστους που υπάρχει εδώ ──────────
+    // Το system prompt είναι 72.598 χαρακτήρες (~33.000 tokens) και προσαρτάται
+    // αυτούσιο σε ΚΑΘΕ μήνυμα. Το caching είναι αντιστοίχιση ΠΡΟΘΕΜΑΤΟΣ και
+    // κοστίζει write 1,25× · read 0,10×.
+    //
+    // Ο βοηθός στέλνει πλέον ΔΥΟ μπλοκ (assistantPersona.buildSystemBlocks):
+    // πρώτα το σταθερό (γνώση, κανόνες, πλάνα — ίδιο για κάθε χρήστη, το 97,5%
+    // του κειμένου) και μετά το προσωπικό. Έτσι η cache είναι ΚΟΙΝΗ για όλους
+    // τους χρήστες του ίδιου κλειδιού. Το κόστος πέφτει από ~0,130 $ σε
+    // ~0,052 $ ανά ερώτηση, χωρίς να αλλάξει λέξη στο prompt.
+    //
+    // Το TTL των 5 λεπτών ανανεώνεται ΔΩΡΕΑΝ σε κάθε hit, άρα η κίνηση κρατά
+    // την cache ζεστή χωρίς δεύτερη χρέωση write. Γι' αυτό δεν χρησιμοποιούμε
+    // το 1ωρο TTL, που κοστίζει 2× αντί 1,25×.
+    //
+    // ΤΟ `cache_control` ΤΟ ΒΑΖΕΙ Ο SERVER, ΠΟΤΕ Ο CLIENT: κάθε breakpoint είναι
+    // χρεώσιμη εγγραφή, οπότε αν το εμπιστευόμασταν στον client, ένας χρήστης θα
+    // μπορούσε να ζητήσει τέσσερα breakpoints σε κάθε αίτημα και να πολλαπλασιάσει
+    // τον λογαριασμό. Το καθαρίζουμε και το βάζουμε μόνοι μας, στο πρώτο μπλοκ.
+    const asBlock = (b: unknown) =>
+      b && typeof b === 'object' && typeof (b as { text?: unknown }).text === 'string'
+        ? { type: 'text' as const, text: (b as { text: string }).text }
+        : null;
+    if (typeof body.system === 'string' && body.system.length > 0) {
+      safeBody.system = [{ type: 'text', text: body.system, cache_control: { type: 'ephemeral' } }];
+    } else if (Array.isArray(body.system)) {
+      const blocks = body.system.map(asBlock).filter(Boolean) as { type: 'text'; text: string }[];
+      if (blocks.length) {
+        safeBody.system = blocks.map((b, i) =>
+          i === 0 ? { ...b, cache_control: { type: 'ephemeral' } } : b);
+      }
+    }
+    // ΣΚΟΠΙΜΑ ΔΕΝ ΠΡΟΩΘΕΙΤΑΙ το `temperature`. Το Claude Sonnet 5 απορρίπτει με 400
+    // κάθε μη-προεπιλεγμένη τιμή σε temperature/top_p/top_k. Κανένας από τους
+    // caller δεν το στέλνει σήμερα, οπότε η γραμμή ήταν νάρκη: θα έσπαγε αθόρυβα
+    // την πρώτη φορά που κάποιος θα το πρόσθετε, με σφάλμα που δεν παραπέμπει
+    // πουθενά. Αν χρειαστεί ποτέ έλεγχος δημιουργικότητας, γίνεται στο prompt.
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
