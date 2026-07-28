@@ -15,7 +15,7 @@ const INSURANCE_COMPANIES = [
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Βραχυχρόνια Μίσθωση'],
     note: 'Modular καλύψεις, τιμή εξαρτάται από τετραγωνικά, ζώνη, αξία. Δωρεάν αποτίμηση online.',
     plans: [
-      { id: 'hd_ktiriο',    name: 'Κτίριο',                monthly: 5.50,  annual: 55,  covers: ['Πυρκαγιά','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
+      { id: 'hd_ktirio',    name: 'Κτίριο',                monthly: 5.50,  annual: 55,  covers: ['Πυρκαγιά','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'hd_perieh',   name: 'Περιεχόμενο',            monthly: 4.00,  annual: 40,  covers: ['Κλοπή','Βραχυκύκλωμα','Τυχαίες Ζημιές Περιεχομένου'], earthquake: false, flood: false, natural: false },
       { id: 'hd_full',     name: 'Κτίριο & Περιεχόμενο',   monthly: 8.50,  annual: 85,  covers: ['Πυρκαγιά','Κλοπή','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη','Τυχαίες Ζημιές'], earthquake: false, flood: true,  natural: true  },
       { id: 'hd_full_eq',  name: 'Κτίριο & Περιεχόμενο + Σεισμός', monthly: 12.00, annual: 120, covers: ['Πλήρης Κάλυψη','Σεισμός','Κλοπή','Αστική Ευθύνη'], earthquake: true, flood: true, natural: true },
@@ -210,13 +210,19 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
     .flatMap(c => (c.plans ?? []).map(p => {
       const base = (p as any).monthly;
       const estimate = base * totalFactor;
+      // ΤΟ ΕΤΗΣΙΟ ΔΕΝ ΕΙΝΑΙ ΜΗΝΙΑΙΟ ΕΠΙ ΔΩΔΕΚΑ. Κάθε πρόγραμμα φέρει και δικό του
+      // annual, που είναι εκπτωτικό: η Hellas Direct «Κτίριο & Περιεχόμενο» κάνει
+      // 8,50 τον μήνα αλλά 85 τον χρόνο, όχι 102. Ο παλιός τύπος έδειχνε την
+      // ετήσια πληρωμή περίπου 20% ακριβότερη απ όσο πραγματικά είναι, δηλαδή
+      // έκρυβε ακριβώς την έκπτωση που κάνει την ετήσια πληρωμή συμφέρουσα.
+      const annualRatio = ((p as any).annual && base) ? (p as any).annual / (base * 12) : 1;
       return {
         company:       c.value,
         companyLabel:  c.label,
         plan:          p.id,
         planLabel:     (p as any).name,
         monthlyEstimate: Math.round(estimate * 100) / 100,
-        annualEstimate:  Math.round(estimate * 12 * 100) / 100,
+        annualEstimate:  Math.round(estimate * 12 * annualRatio * 100) / 100,
         earthquake:    (p as any).earthquake,
         flood:         (p as any).flood,
         natural:       (p as any).natural,
@@ -336,7 +342,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   }, [propertyId]);
 
   const [ps, updPs, loading] = useBillsSettings(propertyId, userId, 'insurance', {
-    insProvider: 'hellas_direct', insPlanId: 'hd_basic',
+    insProvider: 'hellas_direct', insPlanId: 'hd_full',
     insCustomPrice: '', insCustomPlanName: '',
     insAgentName: '', insAgentPhone: '', insRenewalDate: '',
     insPropValue: '', insContentValue: '',
