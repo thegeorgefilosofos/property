@@ -38,13 +38,12 @@ const FEATURES = [
   // πράγμα που δεν έχει κανένας ανταγωνιστής στη ζώνη τιμής μας. Μπαίνει
   // πρώτος, γιατί είναι ο λόγος που κάποιος διαλέγει εμάς και όχι ένα φύλλο
   // Excel — τα υπόλοιπα, με αρκετό κόπο, γίνονται και αλλού.
-  { t: 'Βοηθός που σκέφτεται στα ελληνικά', d: 'Προγραμματίζει, ενημερώνει, συμβουλεύει. Έχει μπροστά του τα ενοίκια, τις δαπάνες και τις προθεσμίες σου, και απαντά με βάση αυτά. Όχι με γενικότητες. Με φωνή, αν σε βολεύει.', i: 'M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12M8.5 12h.01M12 12h.01M15.5 12h.01' },
-  { t: 'Σύγκριση ρεύματος και ασφάλειας', d: 'Συγκρίνεις τιμολόγια 11 παρόχων ρεύματος και 16 ασφαλιστικών εταιρειών, από στοιχεία που επαληθεύουμε και ενημερώνουμε τακτικά, για να λάβεις την καλύτερη απόφαση για την περιουσία σου.', i: 'M3 12h4l3 8 4-16 3 8h4' },
-  { t: 'Χρηματοδότηση χωρίς εκπλήξεις', d: 'Ανάλυση στεγαστικού, δόσεις, επιτόκια και έξοδα μεταβίβασης, ώστε να επιλέγεις την πιο αποδοτική λύση για κάθε τύπο ακινήτου.', i: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-4' },
-  { t: 'Προϋπολογισμός και αποδόσεις', d: 'Καταγράφεις δαπάνες, ορίζεις στόχους και βλέπεις τις αποδόσεις κάθε ακινήτου σε πραγματικό χρόνο.', i: 'M12 2v20M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7' },
-  { t: 'Μίσθωση με σιγουριά', d: 'Συγκρίνεις βραχυχρόνια και μακροχρόνια μίσθωση με τα δικά σου δεδομένα, είτε ξεκινάς τώρα είτε εκμισθώνεις ήδη.', i: 'M3 21h18M5 21V7l8-4v18M13 9h6v12M9 9h.01M9 13h.01M9 17h.01' },
-  { t: 'Φορολογία 2026', d: 'Γνωρίζεις έγκαιρα τις υποχρεώσεις και τις ευκαιρίες σου με βάση την ισχύουσα φορολογία. Δεν αντικαθιστά τον λογιστή σου, σε κρατά όμως πάντα ενήμερο και προετοιμασμένο.', i: 'M9 7h6M9 11h6M9 15h4M5 3h14v18l-3-2-2 2-2-2-2 2-3-2z' },
-  { t: 'Όλα σε ένα σημείο', d: 'Έγγραφα, ημερολόγιο, υπενθυμίσεις και αρχείο, οργανωμένα σε ένα σημείο, με κρυπτογραφημένη μεταφορά και πρόσβαση μόνο για τον λογαριασμό σου. Τέλος στους σκόρπιους φακέλους.', i: 'M4 4h6l2 2h8v12H4zM4 10h16' },
+  { t: 'Βοηθός που σκέφτεται στα ελληνικά', d: 'Συγκρίνει, υπολογίζει, προτείνει. Έχει μπροστά του τα δικά σου ενοίκια, δαπάνες και προθεσμίες, όχι γενικότητες. Με φωνή, αν σε βολεύει.', i: 'M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12M8.5 12h.01M12 12h.01M15.5 12h.01' },
+  { t: 'Σύγκριση ρεύματος και ασφάλειας', d: 'Τιμολόγια 11 παρόχων ρεύματος και 16 ασφαλιστικών, από στοιχεία που επαληθεύουμε και ενημερώνουμε τακτικά.', i: 'M3 12h4l3 8 4-16 3 8h4' },
+  { t: 'Χρηματοδότηση χωρίς εκπλήξεις', d: 'Δόσεις, επιτόκια και έξοδα μεταβίβασης, με τα κρατικά προγράμματα ελεγμένα ως προς τα δικά σου κριτήρια.', i: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-4' },
+  { t: 'Αποδόσεις και σενάρια μίσθωσης', d: 'Καθαρή απόδοση ανά ακίνητο σε πραγματικό χρόνο, και σύγκριση βραχυχρόνιας με μακροχρόνια μίσθωση στα δικά σου νούμερα.', i: 'M12 2v20M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7' },
+  { t: 'Φορολογία 2026', d: 'Υποχρεώσεις, προθεσμίες και ευκαιρίες με βάση την ισχύουσα νομοθεσία. Δεν αντικαθιστά τον λογιστή σου, σε πηγαίνει όμως προετοιμασμένο.', i: 'M9 7h6M9 11h6M9 15h4M5 3h14v18l-3-2-2 2-2-2-2 2-3-2z' },
+  { t: 'Έγγραφα και προθεσμίες', d: 'Συμβόλαια, λογαριασμοί και πιστοποιητικά σε ένα αρχείο, με το ημερολόγιο να θυμάται αντί για εσένα.', i: 'M4 4h6l2 2h8v12H4zM4 10h16' },
 ];
 
 const FAQ = [
@@ -59,12 +58,11 @@ const FAQ = [
   { q: 'Πόσο γρήγορα ξεκινάω;', a: 'Η εγγραφή θέλει λιγότερο από ένα λεπτό, με Google ή με email. Προσθέτεις το πρώτο σου ακίνητο με λίγα βασικά στοιχεία και η εικόνα του συμπληρώνεται σιγά σιγά, με κάθε έγγραφο που περνάς μέσα. Αν θέλεις να δεις πρώτα πώς λειτουργεί, υπάρχουν έτοιμα δεδομένα επίδειξης για να εξερευνήσεις ελεύθερα, πριν βάλεις τα δικά σου.' },
 ];
 
-// Ταινία δυνατοτήτων στο κάτω άκρο του hero: διαρκής, ήρεμη κίνηση (παύση στο hover).
-const TICKER = [
-  'Σάρωση εγγράφων', 'Σύγκριση 11 παρόχων ρεύματος', 'Φορολογία 2026', '«Σπίτι μου II»',
-  '«Ανακαινίζω-Νοικιάζω»', 'Βοηθός με ελληνική φωνή', 'Αποδόσεις σε πραγματικό χρόνο',
-  'Ε2 έτοιμο για τον λογιστή', 'Βάση δεδομένων στην ΕΕ · Σχεδιασμένο για GDPR',
-];
+// ΓΙΑΤΙ ΕΦΥΓΕ Η ΤΑΙΝΙΑ ΔΥΝΑΤΟΤΗΤΩΝ: εννέα ετικέτες κεφαλαία που κυλούσαν στο κάτω
+// άκρο του hero, και οι εννέα έλεγαν κάτι που η σελίδα λέει ήδη πιο κάτω με
+// ολοκληρωμένη πρόταση. Ήταν το πιο «σούπερ μάρκετ» στοιχείο της σελίδας: πολλά
+// σήματα, μηδέν νέα πληροφορία, ακριβώς στο σημείο όπου ο επισκέπτης πρέπει να
+// κοιτάξει το προϊόν. Η πρώτη οθόνη κερδίζει και ησυχία και ύψος.
 
 // ΓΙΑΤΙ ΤΕΣΣΕΡΑ ΝΟΥΜΕΡΑ ΚΑΙ ΟΧΙ ΛΕΞΕΙΣ: η προηγούμενη εκδοχή έβαζε στη θέση του
 // μεγάλου αριθμού τις λέξεις «Δάνεια» και «ΕΕ». Μια ζώνη μετρήσεων που δεν μετρά
@@ -251,12 +249,6 @@ export default async function Landing() {
         .lp-hero button[role="tab"] { color: rgba(255,255,255,.62) !important; border-color: rgba(255,255,255,.16) !important; }
         .lp-hero button[role="tab"][aria-selected="true"] { color: #8ab4f8 !important; border-color: rgba(138,180,248,.5) !important; background: rgba(138,180,248,.1) !important; }
         /* Ticker: αδιάκοπη οριζόντια ροή δυνατοτήτων, παύση στο πέρασμα του κέρσορα. */
-        .lp-ticker { overflow: hidden; border-top: 1px solid rgba(255,255,255,.07); padding: 15px 0; position: relative; z-index: 1; }
-        .lp-ticker-track { display: inline-flex; white-space: nowrap; animation: lpTicker 38s linear infinite; will-change: transform; }
-        .lp-ticker-track > span { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.38); }
-        .lp-ticker-track .lp-dot { margin: 0 22px; color: rgba(255,255,255,.2); }
-        .lp-ticker:hover .lp-ticker-track { animation-play-state: paused; }
-        @keyframes lpTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         /* ═══ ΑΤΜΟΣΦΑΙΡΑ ═══════════════════════════════════════════════════════
            ΓΙΑΤΙ ΑΛΛΑΞΕ: το φόντο ήταν δύο θολές κηλίδες πάνω σε επίπεδο σκούρο
            μπλε. Διαβαζόταν ως «σκούρο θέμα», όχι ως σχεδιασμένη επιφάνεια — και
@@ -341,19 +333,10 @@ export default async function Landing() {
            το πλάτος της μακρύτερης και ξεπερνούσε ορατά τις κοντύτερες. Κληρονομεί
            το animation-delay της λέξης της, οπότε γράφεται ακριβώς όταν εκείνη
            εμφανίζεται — και σβήνει μαζί της, αφού το opacity του γονέα την παρασύρει. */
-        .lp-rotor > span::after {
-          content: ''; position: absolute; left: 0; right: 0; bottom: -.08em; height: 2px; border-radius: 2px;
-          background: linear-gradient(90deg, currentColor, color-mix(in srgb, currentColor 35%, transparent));
-          opacity: .55; transform-origin: 0 50%;
-          animation: lpRotorLine 11.2s cubic-bezier(.16,1,.3,1) infinite;
-          animation-delay: inherit;
-        }
-        /* Γράφεται από αριστερά προς τα δεξιά μέσα στον ίδιο 11,2s κύκλο με τη λέξη. */
-        @keyframes lpRotorLine {
-          0%   { transform: scaleX(0); }
-          9%   { transform: scaleX(1); }
-          100% { transform: scaleX(1); }
-        }
+        /* ΧΩΡΙΣ ΥΠΟΓΡΑΜΜΙΣΗ. Η λέξη εναλλάσσεται ήδη και είναι ήδη σε άλλο χρώμα:
+           δύο σήματα για το ίδιο πράγμα. Η γραμμή από κάτω πρόσθετε ένα τρίτο,
+           κινούμενο, που τραβούσε το βλέμμα σε ένα διακοσμητικό στοιχείο αντί για
+           τη λέξη. Ο τίτλος διαβάζεται πιο καθαρά χωρίς αυτήν. */
         @keyframes lpUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         .lp-rise { animation: lpUp .6s cubic-bezier(.2,0,0,1) both; }
         .lp-rise-2 { animation: lpUp .6s cubic-bezier(.2,0,0,1) .06s both; }
@@ -426,12 +409,6 @@ export default async function Landing() {
           height: 1px; border: 0; margin: 0 0 clamp(18px, 2.4vw, 28px);
           background: linear-gradient(90deg,
             var(--border-default) 0%, var(--border-subtle) 42%, transparent 100%);
-        }
-        .lp-head-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-          gap: clamp(18px, 4vw, 64px);
-          align-items: end;
         }
         /* Block-level (και όχι inline-flex): τα κάθετα περιθώρια ενός inline
            κουτιού δεν μετακινούν τη γραμμή από κάτω, οπότε το margin-bottom
@@ -522,10 +499,6 @@ export default async function Landing() {
         }
 
         @media (max-width: 860px) {
-          /* Η ζυγισμένη κεφαλίδα θέλει δύο πραγματικές στήλες. Κάτω από 860px
-             δεν υπάρχουν: ο υπότιτλος θα έμενε με 150px και θα έσπαγε σε επτά
-             γραμμές. Επιστρέφει κάτω από τον τίτλο, πάντα αριστερά. */
-          .lp-head-grid { grid-template-columns: 1fr; gap: 12px; align-items: start; }
           .lp-works { grid-template-columns: repeat(2, 1fr); }
         }
 
@@ -541,10 +514,8 @@ export default async function Landing() {
           .lp-rise, .lp-rise-2, .lp-rise-3, .lp-rise-4, .lp-reveal { animation: none !important; }
           .lp-aurora::before, .lp-aurora::after, .lp-atmos .lp-orb { animation: none !important; }
           .lp-atmos::after { animation: none !important; }
-          .lp-rotor > span, .lp-rotor > span::after { animation: none !important; }
-          .lp-rotor > span::after { transform: scaleX(1); }
+          .lp-rotor > span { animation: none !important; }
           .lp-rotor > span:first-child { opacity: 1; }
-          .lp-ticker-track { animation: none !important; }
         }
       `}</style>
 
@@ -637,10 +608,14 @@ export default async function Landing() {
               είναι καλή τριάδα, αλλά σε hero τρεις προτάσεις γίνονται παράγραφος
               και η παράγραφος δεν διαβάζεται. Ζουν πιο κάτω, εκεί που ο επισκέπτης
               έχει ήδη αποφασίσει ότι τον ενδιαφέρει και θέλει λεπτομέρεια. */}
-          <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 1.8vw, 18.5px)', color: 'rgba(255,255,255,.72)', lineHeight: 1.62, maxWidth: 580, margin: '0 auto 26px', textWrap: 'balance' }}>
-            Ενοίκια, λογαριασμοί, δάνεια, φόροι: όλα σε ένα μέρος.
-            Κι ένας βοηθός που σκέφτεται στα ελληνικά και απαντά για{' '}
-            <em style={{ fontStyle: 'normal', color: '#fff', fontWeight: 600 }}>τα δικά σου</em> νούμερα.
+          {/* ΠΛΑΤΟΣ 760 ΚΑΙ ΟΧΙ 580: στα 580 ο υπότιτλος έσπαγε σε ΤΡΕΙΣ γραμμές. Ένα
+              hero με τρίγραμμη παράγραφο διαβάζεται ως κείμενο· με δίγραμμη
+              διαβάζεται ως δήλωση. Το textWrap: balance μοιράζει τις δύο γραμμές
+              σε ίσο μήκος, ώστε να μη μένει η δεύτερη με τρεις λέξεις. */}
+          <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 1.75vw, 18.5px)', color: 'rgba(255,255,255,.72)', lineHeight: 1.6, maxWidth: 760, margin: '0 auto 28px', textWrap: 'balance' }}>
+            Ενοίκια, λογαριασμοί, δάνεια και φόροι σε ένα μέρος. Ο βοηθός συγκρίνει,
+            υπολογίζει και προτείνει στα ελληνικά, αποκλειστικά με{' '}
+            <em style={{ fontStyle: 'normal', color: '#fff', fontWeight: 600 }}>τα δικά σου</em> δεδομένα.
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
@@ -655,14 +630,6 @@ export default async function Landing() {
           <LandingShowcase />
         </div>
 
-        {/* Ταινία δυνατοτήτων: το κάτω άκρο του hero ρέει διαρκώς, ήρεμα */}
-        <div className="lp-ticker" aria-hidden="true">
-          <div className="lp-ticker-track">
-            {[...TICKER, ...TICKER].map((t, i) => (
-              <span key={i}>{t}<span className="lp-dot">•</span></span>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* ── Proof band: μετρήσιμα, πραγματικά (χωρίς ψεύτικα «νούμερα χρηστών») ── */}
@@ -691,13 +658,18 @@ export default async function Landing() {
 
       {/* ── Για ποιον είναι: ο επισκέπτης βρίσκει τον εαυτό του πριν διαβάσει ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(24px, 3.2vw, 40px)', paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
-        <SectionHead over="Για ποιον είναι" title="Τρεις άνθρωποι, τρεις διαφορετικές δουλειές" sub="Το ίδιο υπόβαθρο δεδομένων, με τα εργαλεία που χρειάζεται ο καθένας μπροστά του και τα υπόλοιπα εκτός δρόμου." />
+        <SectionHead over="Για ποιον είναι" title="Τρεις άνθρωποι, τρεις διαφορετικές ανάγκες" sub="Ίδια βάση δεδομένων και εργαλεία που προσαρμόζονται στις ανάγκες και τις απαιτήσεις σου." />
         <div className="lp-aud">
           {AUDIENCE.map((a, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)', display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.11em', textTransform: 'uppercase', color: ACCENT, marginBottom: 12 }}>{a.tag}</span>
               <h3 style={{ fontSize: 18, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.018em' }}>{a.t}</h3>
-              <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{a.d}</p>
+              {/* minHeight τριών γραμμών: οι τρεις περιγραφές πιάνουν τρεις γραμμές
+                  η καθεμία, αλλά όχι πάντα. Χωρίς κατώφλι, οι τρεις λίστες από
+                  κάτω ξεκινούσαν σε τρία διαφορετικά ύψη και το μάτι το έπιανε
+                  αμέσως, επειδή τα σημάδια ελέγχου είναι επαναλαμβανόμενο σχήμα
+                  και κάθε απόκλιση σε επαναλαμβανόμενο σχήμα φαίνεται. */}
+              <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: '0 0 18px', minHeight: 65 }}>{a.d}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 'auto' }}>
                 {a.k.map((t, j) => (
                   <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 13, color: TEXT, lineHeight: 1.45 }}>{t}</span></div>
@@ -721,13 +693,18 @@ export default async function Landing() {
             διεθνές εργαλείο διαχείρισης: ότι ξέρει την ελληνική πραγματικότητα.
             Το «Ό,τι χρειάζεται το ακίνητό σου» ήταν αληθές και εντελώς άχρωμο,
             γιατί το ίδιο ακριβώς θα έγραφε και ο κάθε ανταγωνιστής. */}
-        <SectionHead over="Δυνατότητες" title="Φτιαγμένο για το ελληνικό ακίνητο" sub="ΕΝΦΙΑ, κοινόχρηστα, Δήλωση Μίσθωσης, κλίμακα ενοικίων 2026, «Σπίτι μου II». Ένα διεθνές εργαλείο διαχείρισης δεν ξέρει καν τι σημαίνουν αυτές οι λέξεις." />
-        <div className="lp-feat" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 258px), 1fr))', gap: 14 }}>
+        <SectionHead over="Δυνατότητες" title="Σχεδιασμένο για την ελληνική αγορά ακινήτων" sub="ΕΝΦΙΑ, κοινόχρηστα, Δήλωση Μίσθωσης, κλίμακα ενοικίων 2026, «Σπίτι μου II». Ένα διεθνές εργαλείο διαχείρισης δεν ξέρει καν τι σημαίνουν αυτές οι λέξεις." />
+        {/* ΡΗΤΑ ΤΡΕΙΣ ΣΤΗΛΕΣ ΓΙΑ ΕΞΙ ΚΑΡΤΕΣ. Με επτά κάρτες και auto-fit, η έβδομη
+            έμενε ΜΟΝΗ ΤΗΣ σε τρίτη σειρά, με δύο κενά δίπλα της. Ένα ορφανό κελί
+            είναι το πιο ορατό λάθος διάταξης που υπάρχει: δεν χρειάζεται να ξέρεις
+            τίποτα από σχεδιασμό για να το προσέξεις. Έξι κάρτες κλείνουν σε τέλειο
+            3×2 και η ενότητα διαβάζεται ως ένα σχήμα, όχι ως λίστα που ξέμεινε. */}
+        <div className="lp-feat" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
           {FEATURES.map((f, i) => (
-            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{ic(f.i)}</div>
-              <h3 style={{ fontSize: 16.5, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.015em' }}>{f.t}</h3>
-              <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.d}</p>
+            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(20px, 2.2vw, 24px)' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>{ic(f.i)}</div>
+              <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 7px', letterSpacing: '-0.015em' }}>{f.t}</h3>
+              <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.d}</p>
             </div>
           ))}
         </div>
@@ -859,7 +836,7 @@ export default async function Landing() {
           />
         </div>
         <p style={{ fontSize: 12.5, color: FAINT, margin: '22px 0 0', maxWidth: 620, lineHeight: 1.6 }}>
-          Η δοκιμή δεν ζητά κάρτα και δεν μετατρέπεται μόνη της σε συνδρομή: όταν λήξει, συνεχίζεις στο Δωρεάν με τα δεδομένα σου ανέπαφα. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
+          Η δοκιμή δεν ζητά κάρτα. Όταν λήξει, συνεχίζεις στο Δωρεάν με τα δεδομένα σου ανέπαφα. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
@@ -963,21 +940,25 @@ export default async function Landing() {
   );
 }
 
-// Η κεφαλίδα κάθε ενότητας: λεπτή γραμμή που δηλώνει την τομή, μικρή ετικέτα με
-// κουκκίδα, τίτλος αριστερά και υπότιτλος δίπλα του με κοινή βάση. Το `sub`
-// κάθεται στη δεξιά στήλη ώστε οι δύο να διαβάζονται σαν μία γραμμή σκέψης, όχι
-// σαν δύο ανακοινώσεις η μία κάτω από την άλλη.
+// Η κεφαλίδα κάθε ενότητας: λεπτή γραμμή που δηλώνει την τομή, ετικέτα με κουκκίδα,
+// τίτλος, υπότιτλος. Και τα τέσσερα ξεκινούν από το ΙΔΙΟ αριστερό σημείο.
+//
+// ΓΙΑΤΙ ΟΧΙ ΔΙΠΛΑ: ο υπότιτλος σε δεύτερη στήλη έδινε πυκνότητα, αλλά έσπαγε τον
+// άξονα. Όταν ο τίτλος έπιανε δύο γραμμές, ο υπότιτλος έπρεπε να ευθυγραμμιστεί με
+// κάτι: με την κορυφή του τίτλου, με τη βάση του ή με το κέντρο. Καμία επιλογή δεν
+// ήταν σωστή σε ΟΛΕΣ τις ενότητες, γιατί οι τίτλοι δεν έχουν ίδιο ύψος. Το
+// αποτέλεσμα ήταν έξι ενότητες με έξι ελαφρώς διαφορετικές ισορροπίες.
+//
+// Από κάτω, υπάρχει ένας άξονας και μόνο ένας: ετικέτα, τίτλος, υπότιτλος, κάρτες.
+// Κάθε γραμμή της σελίδας ξεκινά στο ίδιο x. Αυτή είναι η στοίχιση που διαβάζεται
+// ως προσοχή στη λεπτομέρεια, και είναι και η μόνη που δεν σπάει ποτέ.
 function SectionHead({ over, title, sub }: { over: string; title: string; sub?: string }) {
   return (
     <div style={{ marginBottom: 'clamp(24px, 3.4vw, 40px)' }}>
       <hr className="lp-hair" />
-      <div className="lp-head-grid">
-        <div>
-          <div className="lp-eyebrow">{over}</div>
-          <h2 style={{ fontSize: 'clamp(25px, 3.9vw, 40px)', fontWeight: 680, letterSpacing: '-0.032em', lineHeight: 1.1, margin: 0, textWrap: 'balance' }}>{title}</h2>
-        </div>
-        {sub && <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.62, margin: 0, maxWidth: 520 }}>{sub}</p>}
-      </div>
+      <div className="lp-eyebrow">{over}</div>
+      <h2 style={{ fontSize: 'clamp(25px, 3.9vw, 40px)', fontWeight: 680, letterSpacing: '-0.032em', lineHeight: 1.1, margin: 0, maxWidth: 780, textWrap: 'balance' }}>{title}</h2>
+      {sub && <p style={{ fontSize: 15.5, color: MUTED, lineHeight: 1.62, margin: '13px 0 0', maxWidth: 620 }}>{sub}</p>}
     </div>
   );
 }
