@@ -206,7 +206,8 @@ export default async function Landing() {
           }
         }
         @media (max-width: 760px) { .lp-split { grid-template-columns: 1fr !important; } }
-        @media (max-width: 520px) { .lp-hide-xs { display: none !important; } }
+        .lp-only-xs { display: none; }
+        @media (max-width: 520px) { .lp-hide-xs { display: none !important; } .lp-only-xs { display: inline !important; } }
         @media (prefers-reduced-motion: reduce) {
           .lp-rise, .lp-rise-2, .lp-rise-3, .lp-rise-4, .lp-reveal { animation: none !important; }
           .lp-aurora::before, .lp-aurora::after { animation: none !important; }
@@ -223,13 +224,25 @@ export default async function Landing() {
         <nav style={{ ...wrap, height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15 }}>P</div>
-            <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
+            <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
           </div>
           {loggedIn ? (
             <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς σου →</Link>
           ) : (<>
-            <Link href="/login" className="lp-link lp-hide-xs" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 12px' }}>Σύνδεση</Link>
-            <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
+            {/* ΧΩΡΙΣ lp-hide-xs: κάτω από 520px το «Σύνδεση» εξαφανιζόταν εντελώς και
+                ο επιστρέφων χρήστης έβλεπε ΜΟΝΟ «Ξεκίνα δωρεάν» — δηλαδή του
+                προτείναμε να φτιάξει δεύτερο λογαριασμό. Στο κινητό το κείμενο
+                κονταίνει σε «Είσοδος», δεν σβήνει. */}
+            <Link href="/login" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 10px', whiteSpace: 'nowrap' }}>
+              <span className="lp-hide-xs">Σύνδεση</span><span className="lp-only-xs">Είσοδος</span>
+            </Link>
+            {/* Μόλις μπήκε το «Είσοδος» στο κινητό, τα τρία στοιχεία δεν χωρούσαν σε
+                390px και ΚΑΙ η μάρκα ΚΑΙ το κουμπί έσπαγαν σε δύο γραμμές. Στις πολύ
+                στενές οθόνες το κουμπί λέει σκέτο «Δωρεάν» — η υπόσχεση μένει ίδια,
+                χάνεται μόνο η λέξη που ο χρήστης έχει ήδη διαβάσει στον τίτλο. */}
+            <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+              <span className="lp-hide-xs">Ξεκίνα δωρεάν</span><span className="lp-only-xs">Δωρεάν</span>
+            </Link>
           </>)}
         </nav>
       </header>
@@ -239,8 +252,20 @@ export default async function Landing() {
       {/* ── Hero: κινηματογραφικό, πάντα σκοτεινό, με το προϊόν φωτισμένο σαν έκθεμα ── */}
       <section className="lp-hero" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="lp-aurora" aria-hidden="true" />
-        <div style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(64px, 9vw, 112px)', paddingBottom: 'clamp(48px, 7vw, 84px)', textAlign: 'center' }}>
-          <h1 className="lp-rise" style={{ fontSize: 'clamp(38px, 7.2vw, 78px)', fontWeight: 680, letterSpacing: '-0.04em', lineHeight: 1.05, margin: '0 auto 24px', maxWidth: 1000, color: 'var(--text-primary)' }}>
+        {/* ΓΙΑΤΙ ΤΟΣΟ ΣΦΙΧΤΟ: το hero κατανάλωνε ΟΛΟ το πρώτο viewport (112px πάνω,
+            τίτλος έως 78px, 84px κάτω) και το προϊόν ξεκινούσε στα ~1080px — δηλαδή
+            ο επισκέπτης έβλεπε μόνο κείμενο και έπρεπε να κυλήσει για να δει τι
+            αγοράζει. Κάθε κορυφαίο προϊόν δείχνει το προϊόν ΜΕΣΑ στην πρώτη οθόνη. */}
+        <div style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(40px, 5.5vw, 68px)', paddingBottom: 'clamp(28px, 4vw, 44px)', textAlign: 'center' }}>
+          {/* ΤΟ ΧΕΙΡΟΤΕΡΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΘΗΚΕ ΕΔΩ: η δεύτερη σειρά — αυτή που
+              περιέχει το ΟΝΟΜΑ ΤΟΥ ΠΡΟΪΟΝΤΟΣ — ήταν rgba(255,255,255,.52), δηλαδή
+              το πιο αχνό στοιχείο ολόκληρης της σελίδας. Δεν διαβαζόταν ως
+              σχεδιαστική ιεράρχηση· διαβαζόταν ως απενεργοποιημένο κείμενο.
+              Η ιεράρχηση προκύπτει τώρα από το ΧΡΩΜΑ ΤΟΥ ΤΟΝΟΥ (το εναλλασσόμενο
+              αντικείμενο σε accent) και όχι από ξεθώριασμα του brand.
+              Και το μέγεθος έπεσε από 78px σε 60px: στα 78 ο τίτλος έσπαγε σε
+              τέσσερις γραμμές με κακά σημεία κοπής («…κάνει τα / υπόλοιπα»). */}
+          <h1 className="lp-rise" style={{ fontSize: 'clamp(32px, 5.2vw, 60px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.08, margin: '0 auto 20px', maxWidth: 1000, color: 'var(--text-primary)' }}>
             Φωτογραφίζεις{' '}
             <span className="lp-rotor">
               <span>τον λογαριασμό.</span>
@@ -249,10 +274,17 @@ export default async function Landing() {
               <span>τον ΕΝΦΙΑ.</span>
             </span>
             <br />
-            <span style={{ color: 'rgba(255,255,255,.52)' }}>Το Property OS κάνει τα υπόλοιπα.</span>
+            {/* nowrap ώστε να μη μένει ποτέ το «υπόλοιπα.» μόνο του σε τρίτη γραμμή:
+                ένα ορφανό στο τέλος τίτλου διαβάζεται ως τυπογραφικό ατύχημα. Σε
+                στενές οθόνες το clamp ρίχνει το μέγεθος, οπότε χωράει ούτως ή άλλως. */}
+            <span style={{ whiteSpace: 'nowrap' }}>Το Property OS</span> κάνει τα υπόλοιπα.
           </h1>
-          <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: 'rgba(255,255,255,.66)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 32px' }}>
-            Καταχωρεί, υπολογίζει, συγκρίνει τα δικά σου δεδομένα. Απαντά στα ελληνικά. Αποφασίζεις εσύ.
+          {/* Ο υπότιτλος έλεγε ΡΗΜΑΤΑ («καταχωρεί, υπολογίζει, συγκρίνει») — δηλαδή
+              τι κάνει το λογισμικό, όχι τι κερδίζει ο άνθρωπος. Λέει τώρα το όφελος
+              με νούμερα που ο ιδιοκτήτης αναγνωρίζει αμέσως ως δικά του. */}
+          <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 1.8vw, 18.5px)', color: 'rgba(255,255,255,.72)', lineHeight: 1.6, maxWidth: 600, margin: '0 auto 26px', textWrap: 'balance' }}>
+            Ενοίκια, δαπάνες, λογαριασμοί, δάνειο και φόρος σε ένα μέρος — με το Ε2 έτοιμο
+            τον Ιούνιο και έναν βοηθό που απαντά για <em style={{ fontStyle: 'normal', color: '#fff', fontWeight: 600 }}>τα δικά σου</em> νούμερα.
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
