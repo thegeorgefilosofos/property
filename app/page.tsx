@@ -39,8 +39,8 @@ const FEATURES = [
   // πρώτος, γιατί είναι ο λόγος που κάποιος διαλέγει εμάς και όχι ένα φύλλο
   // Excel — τα υπόλοιπα, με αρκετό κόπο, γίνονται και αλλού.
   { t: 'Βοηθός που σκέφτεται στα ελληνικά', d: 'Συγκρίνει, υπολογίζει, προτείνει. Έχει μπροστά του τα δικά σου ενοίκια, δαπάνες και προθεσμίες, όχι γενικότητες. Με φωνή, αν σε βολεύει.', i: 'M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12M8.5 12h.01M12 12h.01M15.5 12h.01' },
-  { t: 'Σύγκριση ρεύματος και ασφάλειας', d: 'Τιμολόγια 11 παρόχων ρεύματος και 16 ασφαλιστικών, από στοιχεία που επαληθεύουμε και ενημερώνουμε τακτικά.', i: 'M3 12h4l3 8 4-16 3 8h4' },
-  { t: 'Χρηματοδότηση χωρίς εκπλήξεις', d: 'Δόσεις, επιτόκια και έξοδα μεταβίβασης, με τα κρατικά προγράμματα ελεγμένα ως προς τα δικά σου κριτήρια.', i: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-4' },
+  { t: 'Σύγκριση παρόχων ρεύματος και ασφάλισης', d: 'Τιμολόγια 11 παρόχων ρεύματος και 16 ασφαλιστικών, από στοιχεία που επαληθεύουμε και ενημερώνουμε τακτικά.', i: 'M3 12h4l3 8 4-16 3 8h4' },
+  { t: 'Δάνειο χωρίς εκπλήξεις', d: 'Δόσεις, επιτόκια και έξοδα μεταβίβασης, υπολογισμένα στα δικά σου στοιχεία. Και έλεγχος αν πληροίς τα κριτήρια του «Σπίτι μου ΙΙ», πριν πας στην τράπεζα.', i: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-4' },
   { t: 'Αποδόσεις και σενάρια μίσθωσης', d: 'Καθαρή απόδοση ανά ακίνητο σε πραγματικό χρόνο, και σύγκριση βραχυχρόνιας με μακροχρόνια μίσθωση στα δικά σου νούμερα.', i: 'M12 2v20M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7' },
   { t: 'Φορολογία 2026', d: 'Υποχρεώσεις, προθεσμίες και ευκαιρίες με βάση την ισχύουσα νομοθεσία. Δεν αντικαθιστά τον λογιστή σου, σε πηγαίνει όμως προετοιμασμένο.', i: 'M9 7h6M9 11h6M9 15h4M5 3h14v18l-3-2-2 2-2-2-2 2-3-2z' },
   { t: 'Έγγραφα και προθεσμίες', d: 'Συμβόλαια, λογαριασμοί και πιστοποιητικά σε ένα αρχείο, με το ημερολόγιο να θυμάται αντί για εσένα.', i: 'M4 4h6l2 2h8v12H4zM4 10h16' },
@@ -71,10 +71,10 @@ const FAQ = [
 // Η δήλωση για ΕΕ και GDPR έφυγε από εδώ: λεγόταν ήδη πέντε φορές στη σελίδα και
 // έχει τη θέση της στην ενότητα Ασφάλεια, όπου συνοδεύεται από απόδειξη.
 const STATS = [
+  { n: '7', u: 'είδη εγγράφων', l: 'από λογαριασμό και μισθωτήριο μέχρι ασφαλιστήριο και ΕΝΦΙΑ, με μία φωτογραφία' },
   { n: '11', u: 'πάροχοι', l: 'εταιρείες ρεύματος με τα κύρια τιμολόγιά τους σε σύγκριση, επαληθευμένα τον Ιούλιο 2026' },
   { n: '16', u: 'ασφαλιστικές', l: 'προγράμματα κατοικίας και επαγγελματικού χώρου, με τις καλύψεις αντικριστά' },
   { n: '2026', u: 'φορολογία', l: 'κλίμακα ενοικίων, τεκμαρτές εκπτώσεις και προθεσμίες στην ισχύουσα νομοθεσία' },
-  { n: '30', u: 'ημέρες', l: 'πλήρης δοκιμή του πλάνου Ιδιοκτήτης, χωρίς κάρτα και χωρίς αυτόματη χρέωση' },
 ];
 
 // ═══ ΓΙΑ ΠΟΙΟΝ ΕΙΝΑΙ ═══════════════════════════════════════════════════════
@@ -116,8 +116,8 @@ const AUDIENCE = [
 const WORKS_WITH = [
   { t: 'myAADE', d: 'Δήλωση Μίσθωσης με έλεγχο πληρότητας πριν την υποβολή' },
   { t: 'Έντυπο Ε2', d: 'εξαγωγή με αντιστοίχιση κωδικών, έτοιμη για τον λογιστή' },
-  { t: 'SoftOne, Epsilon', d: 'λογιστικό ημερολόγιο έτοιμο για εισαγωγή' },
-  { t: 'QuickBooks, Xero', d: 'λογιστικό ημερολόγιο έτοιμο για εισαγωγή' },
+  { t: 'SoftOne, Epsilon', d: 'λογιστικό ημερολόγιο εγγραφών, έτοιμο για εισαγωγή' },
+  { t: 'QuickBooks, Xero', d: 'λογιστικό ημερολόγιο εγγραφών, έτοιμο για εισαγωγή' },
   { t: 'Airbnb, Booking.com', d: 'συγχρονισμός κρατήσεων μέσω iCal' },
   { t: 'Κινήσεις τράπεζας', d: 'εισαγωγή CSV και αυτόματη αντιστοίχιση με τα ενοίκια' },
   { t: 'Excel', d: 'εξαγωγή κάθε πίνακα, χωρίς κλείδωμα των δεδομένων σου' },
@@ -146,6 +146,9 @@ const REFERRAL = [
     items: ['Δωρεάν μήνες μόλις πιάσεις τον μηνιαίο στόχο: 5 συνδρομητές → 2 μήνες, ή 10 δωρεάν χρήστες → 1 μήνας', 'Ιδιότητα Συνεργάτη με 20% επαναλαμβανόμενη προμήθεια, όταν διατηρήσεις 5 συνδρομητές για 3 συνεχόμενους μήνες (ενεργοποιείται μαζί με τη χρέωση με κάρτα)'],
   },
 ];
+
+const GAP = 'clamp(30px, 4.2vw, 56px)';
+const GAP_ACT = 'clamp(48px, 6.5vw, 88px)';
 
 const wrap: React.CSSProperties = { maxWidth: 1140, margin: '0 auto', padding: '0 clamp(20px, 5vw, 48px)' };
 const ic = (d: string) => <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
@@ -228,10 +231,11 @@ export default async function Landing() {
         }
         .lp-cta { transition: transform .15s, filter .15s; }
         .lp-cta:hover { transform: translateY(-1px); filter: brightness(1.05); }
-        /* Ενιαία κύρια ενέργεια σε όλη τη σελίδα: το ζωντανό γαλάζιο της μάρκας
-           (#1a73e8) με λευκό κείμενο. Το ανοιχτό accent (#8ab4f8) μένει μόνο για
-           τονισμούς, συνδέσμους και ενεργές καταστάσεις. Δύο ρόλοι, δύο αποχρώσεις. */
-        .lp-primary { background: #1a73e8 !important; color: #fff !important; }
+        /* Μία κύρια ενέργεια, μία όψη: γεμάτο accent με σκούρο κείμενο. Ορίζεται
+           ΜΟΝΟ εδώ. Κανένα inline background σε CTA, ώστε να μην μπορεί να
+           ξαναδιαφοροποιηθεί κατά λάθος. Η ιεραρχία βγαίνει από την αντίθεση
+           γεμάτου εναντίον περιγράμματος (.lp-ghost), όχι από δεύτερη απόχρωση. */
+        .lp-primary { background: var(--accent); color: var(--accent-text); }
         .lp-ghost { transition: border-color .15s, background .15s, color .15s; }
         .lp-ghost:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 5%, transparent); color: var(--accent); }
         .lp-link { transition: color .15s; }
@@ -249,8 +253,6 @@ export default async function Landing() {
         .lp-hero .lp-aurora::before { opacity: .22; }
         .lp-hero .lp-aurora::after { opacity: .15; }
         .lp-hero .lp-rotor { color: #8ab4f8; }
-        .lp-hero button[role="tab"] { color: var(--text-secondary) !important; border-color: var(--border-default) !important; }
-        .lp-hero button[role="tab"][aria-selected="true"] { color: #8ab4f8 !important; border-color: rgba(138,180,248,.5) !important; background: rgba(138,180,248,.1) !important; }
         /* Ticker: αδιάκοπη οριζόντια ροή δυνατοτήτων, παύση στο πέρασμα του κέρσορα. */
         /* ═══ ΑΤΜΟΣΦΑΙΡΑ ═══════════════════════════════════════════════════════
            ΓΙΑΤΙ ΑΛΛΑΞΕ: το φόντο ήταν δύο θολές κηλίδες πάνω σε επίπεδο σκούρο
@@ -395,9 +397,15 @@ export default async function Landing() {
            κατευθείαν στο τελικό καρέ, δηλαδή μια μόνιμα γεμάτη μπάρα που δεν
            σημαίνει τίποτα. Έτσι, όπου δεν υπάρχει η δυνατότητα, δεν υπάρχει και
            το στοιχείο. */
-        .lp-progress { display: none; }
+        /* ΚΑΝΟΝΑΣ ΟΝΟΜΑΤΩΝ: το πρόθεμα lp- ανήκει αποκλειστικά σε ΑΥΤΟ το αρχείο.
+           Κάθε component γράφει δικές του κλάσεις με δικό του πρόθεμα (ls- για το
+           showcase, story- για το scrollytelling, calc- για τον υπολογιστή).
+           Η γραμμή ανάγνωσης λεγόταν .lp-progress και το showcase όριζε κι εκείνο
+           .lp-progress για τη μπάρα των καρτελών του: δύο καθολικά <style> με την
+           ίδια κλάση, όπου το ένα ακύρωνε το άλλο. Το όνομα είναι πλέον ρητό. */
+        .lp-readbar { display: none; }
         @supports (animation-timeline: scroll()) {
-          .lp-progress {
+          .lp-readbar {
             display: block; position: fixed; inset: 0 0 auto 0; height: 2px;
             z-index: 60; pointer-events: none; transform-origin: 0 50%;
             background: linear-gradient(90deg, var(--accent), #5ee0ff);
@@ -406,7 +414,7 @@ export default async function Landing() {
           }
         }
         @keyframes lpProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-        @media (prefers-reduced-motion: reduce) { .lp-progress { display: none; } }
+        @media (prefers-reduced-motion: reduce) { .lp-readbar { display: none; } }
 
         .lp-hair {
           height: 1px; border: 0; margin: 0 0 clamp(18px, 2.4vw, 28px);
@@ -487,7 +495,7 @@ export default async function Landing() {
             width: 40px !important; height: 40px !important; margin-bottom: 0 !important;
             grid-row: 1 / span 2; border-radius: 11px !important;
           }
-          .lp-feat > .lp-card > h3 { margin: 2px 0 4px !important; font-size: 15.5px !important; }
+          .lp-feat > .lp-card > h3 { margin: 2px 0 4px !important; font-size: 16px !important; }
           /* Τρεις γραμμές και όχι επτά. Οι περιγραφές γράφτηκαν για κάρτα πλάτους
              300px σε desktop· στο κινητό η ίδια πρόταση γίνεται επτάγραμμη και η
              κάρτα 212px. Ο επισκέπτης σε κινητό ΣΑΡΩΝΕΙ — θέλει να καταλάβει σε
@@ -495,7 +503,7 @@ export default async function Landing() {
              κείμενο μένει ακέραιο στο DOM (άρα και για τις μηχανές αναζήτησης
              και για τους αναγνώστες οθόνης)· κόβεται μόνο οπτικά. */
           .lp-feat > .lp-card > p {
-            font-size: 13.5px !important; line-height: 1.55 !important;
+            font-size: 14.5px !important; line-height: 1.55 !important;
             display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
             overflow: hidden;
           }
@@ -524,7 +532,7 @@ export default async function Landing() {
 
       <a href="#main" className="lp-skip">Μετάβαση στο περιεχόμενο</a>
 
-      <div className="lp-progress" aria-hidden="true" />
+      <div className="lp-readbar" aria-hidden="true" />
 
       {/* Το σταθερό στρώμα ατμόσφαιρας: πλέγμα, τρίτη αύρα, κόκκος, βινιέτα.
           Είναι `fixed` ώστε να μην υπάρχει ραφή ανάμεσα στις ενότητες καθώς
@@ -572,7 +580,7 @@ export default async function Landing() {
             τίτλος έως 78px, 84px κάτω) και το προϊόν ξεκινούσε στα ~1080px — δηλαδή
             ο επισκέπτης έβλεπε μόνο κείμενο και έπρεπε να κυλήσει για να δει τι
             αγοράζει. Κάθε κορυφαίο προϊόν δείχνει το προϊόν ΜΕΣΑ στην πρώτη οθόνη. */}
-        <div style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(40px, 5.5vw, 68px)', paddingBottom: 'clamp(28px, 4vw, 44px)', textAlign: 'center' }}>
+        <div style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(40px, 5.5vw, 68px)', paddingBottom: GAP, textAlign: 'center' }}>
           {/* ΤΟ ΧΕΙΡΟΤΕΡΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΘΗΚΕ ΕΔΩ: η δεύτερη σειρά — αυτή που
               περιέχει το ΟΝΟΜΑ ΤΟΥ ΠΡΟΪΟΝΤΟΣ — ήταν rgba(255,255,255,.52), δηλαδή
               το πιο αχνό στοιχείο ολόκληρης της σελίδας. Δεν διαβαζόταν ως
@@ -585,9 +593,9 @@ export default async function Landing() {
             Φωτογραφίζεις{' '}
             <span className="lp-rotor">
               <span>τον λογαριασμό.</span>
-              <span>το μισθωτήριο.</span>
-              <span>το ασφαλιστήριο.</span>
-              <span>τον ΕΝΦΙΑ.</span>
+              <span aria-hidden="true">το μισθωτήριο.</span>
+              <span aria-hidden="true">το ασφαλιστήριο.</span>
+              <span aria-hidden="true">τον ΕΝΦΙΑ.</span>
             </span>
             <br />
             {/* nowrap ώστε να μη μένει ποτέ το «υπόλοιπα.» μόνο του σε τρίτη γραμμή:
@@ -616,15 +624,15 @@ export default async function Landing() {
               διαβάζεται ως δήλωση. Το textWrap: balance μοιράζει τις δύο γραμμές
               σε ίσο μήκος, ώστε να μη μένει η δεύτερη με τρεις λέξεις. */}
           <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 1.75vw, 18.5px)', color: 'var(--text-hero)', lineHeight: 1.6, maxWidth: 760, margin: '0 auto 28px', textWrap: 'balance' }}>
-            Ενοίκια, λογαριασμοί, δάνεια και φόροι σε ένα μέρος. Ο βοηθός συγκρίνει,
-            υπολογίζει και προτείνει στα ελληνικά, αποκλειστικά με{' '}
-            <em style={{ fontStyle: 'normal', color: '#fff', fontWeight: 600 }}>τα δικά σου</em> δεδομένα.
+            Ενοίκια, λογαριασμοί, δάνεια και φόροι σε ένα σημείο. Ρωτάς στα ελληνικά
+            και ο βοηθός απαντά με{' '}
+            <em style={{ fontStyle: 'normal', color: '#fff', fontWeight: 600 }}>τα δικά σου</em> νούμερα.
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
-              <Link href="/dashboard" className="lp-cta" style={{ background: 'var(--accent)', color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
+              <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
             ) : (<>
-              <Link href="/signup" className="lp-cta" style={{ background: 'var(--accent)', color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
+              <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
               <Link href="/login" style={{ background: 'transparent', color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: '1px solid var(--border-strong)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
             </>)}
           </div>
@@ -636,7 +644,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Proof band: μετρήσιμα, πραγματικά (χωρίς ψεύτικα «νούμερα χρηστών») ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(20px, 3vw, 34px)', paddingBottom: 'clamp(28px, 4vw, 48px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP_ACT }}>
         {/* Ρητά τέσσερις στήλες, όχι auto-fit: με minmax(200px) στα 1440 ο browser
             χωρούσε ΠΕΝΤΕ κολόνες για τέσσερα στοιχεία, οπότε η ζώνη τελείωνε με
             ένα άδειο κελί που έδειχνε μόνο το χρώμα του πλέγματος. Οι μετρήσεις
@@ -651,16 +659,16 @@ export default async function Landing() {
                   κύλιση μέσα σε σελίδα που αλλού δεν έχει καμία. */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 9, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 'clamp(26px, 3.2vw, 34px)', fontWeight: 680, letterSpacing: '-0.035em', color: TEXT, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{s.n}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: ACCENT }}>{s.u}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: ACCENT }}>{s.u}</span>
               </div>
-              <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>{s.l}</div>
+              <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>{s.l}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Για ποιον είναι: ο επισκέπτης βρίσκει τον εαυτό του πριν διαβάσει ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(24px, 3.2vw, 40px)', paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         <SectionHead over="Για ποιον είναι" title="Τρεις άνθρωποι, τρεις διαφορετικές ανάγκες" sub="Ίδια βάση δεδομένων και εργαλεία που προσαρμόζονται στις ανάγκες και τις απαιτήσεις σου." />
         <div className="lp-aud">
           {AUDIENCE.map((a, i) => (
@@ -672,10 +680,10 @@ export default async function Landing() {
                   κάτω ξεκινούσαν σε τρία διαφορετικά ύψη και το μάτι το έπιανε
                   αμέσως, επειδή τα σημάδια ελέγχου είναι επαναλαμβανόμενο σχήμα
                   και κάθε απόκλιση σε επαναλαμβανόμενο σχήμα φαίνεται. */}
-              <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: '0 0 18px', minHeight: 65 }}>{a.d}</p>
+              <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '0 0 18px', minHeight: 72 }}>{a.d}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 'auto' }}>
                 {a.k.map((t, j) => (
-                  <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.5 }}>{t}</span></div>
+                  <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 15, color: TEXT, lineHeight: 1.5 }}>{t}</span></div>
                 ))}
               </div>
             </div>
@@ -685,13 +693,13 @@ export default async function Landing() {
 
       {/* ── Scrollytelling: το προϊόν μένει sticky και αλλάζει πράξη όσο διαβάζεις.
              ΠΡΟΣΟΧΗ: χωρίς lp-reveal εδώ (transform στον πρόγονο σπάει το sticky). */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(28px, 3.6vw, 46px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
+      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP_ACT }}>
         <SectionHead over="Πώς δουλεύει" title="Τρεις κινήσεις, και το ακίνητο μπαίνει σε τάξη" sub="Φωτογραφίζεις, ρωτάς, αποφασίζεις. Ό,τι μεσολαβεί το αναλαμβάνει η εφαρμογή." />
         <ScrollStory />
       </section>
 
       {/* ── Capabilities ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         {/* Ο τίτλος λέει τώρα το ΜΟΝΟ πράγμα που δεν μπορεί να αντιγράψει κανένα
             διεθνές εργαλείο διαχείρισης: ότι ξέρει την ελληνική πραγματικότητα.
             Το «Ό,τι χρειάζεται το ακίνητό σου» ήταν αληθές και εντελώς άχρωμο,
@@ -707,7 +715,7 @@ export default async function Landing() {
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(20px, 2.2vw, 24px)' }}>
               <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>{ic(f.i)}</div>
               <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 7px', letterSpacing: '-0.02em' }}>{f.t}</h3>
-              <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.d}</p>
+              <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.d}</p>
             </div>
           ))}
         </div>
@@ -723,30 +731,30 @@ export default async function Landing() {
              Καμία λέξη εδώ δεν είναι πρόθεση: κάθε γραμμή αντιστοιχεί σε
              λειτουργία που ήδη υπάρχει στον κώδικα. Ένα ψεύτικο όνομα σε τέτοιο
              πλέγμα δεν είναι μάρκετινγκ, είναι λόγος ακύρωσης συνδρομής. */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         <SectionHead over="Συμβατότητα" title="Δεν αφήνεις πίσω τίποτα από όσα ήδη δουλεύουν" sub="Τα δεδομένα σου βγαίνουν όποτε θέλεις, στη μορφή που περιμένει ο λογιστής σου." />
         <div className="lp-works">
           {WORKS_WITH.map((w, i) => (
             <div key={i}>
-              <div style={{ fontSize: 13.5, fontWeight: 680, color: TEXT, letterSpacing: '-0.01em', marginBottom: 5 }}>{w.t}</div>
-              <div style={{ fontSize: 12.5, color: FAINT, lineHeight: 1.5 }}>{w.d}</div>
+              <div style={{ fontSize: 15, fontWeight: 680, color: TEXT, letterSpacing: '-0.01em', marginBottom: 5 }}>{w.t}</div>
+              <div style={{ fontSize: 13.5, color: FAINT, lineHeight: 1.5 }}>{w.d}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Ζωντανό εργαλείο απόδοσης: αξία επιτόπου, με τον αληθινό μας μηχανισμό ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         <SectionHead over="Δες το μόνος σου" title="Πόσο σου αποδίδει πραγματικά;" sub="Ενδεικτική καθαρή απόδοση, με την ίδια φορολογική κλίμακα ενοικίων 2026 που τρέχει και μέσα στην εφαρμογή." />
         <LandingCalculator />
       </section>
 
       {/* ── Security & trust ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(24px, 3vw, 38px)', display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 'clamp(24px, 3vw, 40px)', alignItems: 'center' }}>
           <div>
             <div className="lp-eyebrow">Ασφάλεια</div>
-            <h3 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 12px' }}>Τα δεδομένα σου είναι δικά σου</h3>
+            <h2 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 12px' }}>Τα δεδομένα σου είναι δικά σου</h2>
             <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0 }}>
               Οι λογαριασμοί, τα συμβόλαια και τα νούμερά σου είναι από τα πιο ευαίσθητα δεδομένα που έχεις. Τα προστατεύουμε ανάλογα.
             </p>
@@ -758,8 +766,8 @@ export default async function Landing() {
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{s.i.split('M').filter(Boolean).map((p, j) => <path key={j} d={'M' + p} />)}</svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 680, color: TEXT, marginBottom: 3, letterSpacing: '-0.01em' }}>{s.t}</div>
-                  <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>{s.d}</div>
+                  <div style={{ fontSize: 15, fontWeight: 680, color: TEXT, marginBottom: 3, letterSpacing: '-0.01em' }}>{s.t}</div>
+                  <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.5 }}>{s.d}</div>
                 </div>
               </div>
             ))}
@@ -781,7 +789,7 @@ export default async function Landing() {
              ΤΙ ΔΕΝ ΛΕΕΙ: δεν επικαλείται βιογραφία, ιδρυτές ή ιστορίες που δεν
              μπορεί να επαληθεύσει ο αναγνώστης. Περιγράφει ένα πρόβλημα που
              αναγνωρίζει όποιος έχει ακίνητο στην Ελλάδα, και σταματά εκεί. */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(10px, 1.6vw, 20px)', paddingBottom: 'clamp(34px, 4.6vw, 62px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP_ACT }}>
         <hr className="lp-hair" />
         <div style={{ maxWidth: 760 }}>
           <div className="lp-eyebrow">Γιατί υπάρχει</div>
@@ -803,7 +811,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Pricing ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(30px, 4.2vw, 56px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         <SectionHead over="Τιμολόγηση" title="Κοστίζει λιγότερο από έναν λογαριασμό ρεύματος" sub="Ξεκινάς δωρεάν με το πρώτο ακίνητο. Πληρώνεις μόνο όταν μεγαλώσει το χαρτοφυλάκιο." />
         <div className="lp-plans" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, alignItems: 'stretch' }}>
 
@@ -844,7 +852,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Σύσταση: δύο διακριτά προγράμματα, ιδιώτη και επαγγελματία ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         <SectionHead over="Σύσταση" title="Κάθε σύσταση ανταμείβει και τους δύο" sub="Ο φίλος σου παίρνει δώρο, εσύ ανταμείβεσαι. Για επαγγελματίες, σταθερή πηγή εισοδήματος." />
         <div className="lp-duo" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
           {REFERRAL.map((r, i) => (
@@ -854,10 +862,10 @@ export default async function Landing() {
                 <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT }}>{r.tag}</span>
               </div>
               <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em' }}>{r.t}</h3>
-              <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{r.d}</p>
+              <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{r.d}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                 {r.items.map((t, j) => (
-                  <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.5 }}>{t}</span></div>
+                  <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 15, color: TEXT, lineHeight: 1.5 }}>{t}</span></div>
                 ))}
               </div>
             </div>
@@ -869,7 +877,7 @@ export default async function Landing() {
       </section>
 
       {/* ── FAQ: ίδια κεφαλίδα με κάθε άλλη ενότητα, ερωτήσεις σε όλο το πλάτος ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(32px, 4.4vw, 58px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 0 }}>
         <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν" sub="Ειλικρινείς απαντήσεις, χωρίς αστερίσκους." />
         <div style={{ borderBottom: `1px solid ${LINE}` }}>
           {FAQ.map((f, i) => (
@@ -888,10 +896,10 @@ export default async function Landing() {
       {/* ── Final CTA: σκοτεινό κλείσιμο, καθρέφτης του hero ── */}
       <section className="lp-hero lp-reveal" style={{ position: 'relative', overflow: 'hidden', borderBottom: 'none' }}>
         <div className="lp-aurora" aria-hidden="true" />
-        <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: 'clamp(40px, 5.4vw, 68px)', paddingBottom: 'clamp(40px, 5.4vw, 68px)' }}>
+        <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: GAP_ACT, paddingBottom: GAP_ACT }}>
           <h2 style={{ fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.1, margin: '0 auto 16px', maxWidth: 720, color: 'var(--text-primary)' }}>Το ακίνητό σου, υπό έλεγχο.</h2>
           <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>Φωτογράφισε το πρώτο έγγραφο. Δωρεάν, χωρίς δέσμευση.</p>
-          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta" style={{ display: 'inline-block', background: 'var(--accent)', color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Ξεκίνα δωρεάν →'}</Link>
+          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta lp-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Ξεκίνα δωρεάν →'}</Link>
         </div>
       </section>
 
@@ -956,11 +964,11 @@ function SectionHead({ over, title, sub }: { over: string; title: string; sub?: 
     <div style={{ marginBottom: 'clamp(24px, 3.4vw, 40px)' }}>
       <hr className="lp-hair" />
       <div className="lp-eyebrow">{over}</div>
-      <h2 style={{ fontSize: 'clamp(25px, 3.9vw, 40px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: 0, textWrap: 'balance' }}>{title}</h2>
+      <h2 style={{ fontSize: 'clamp(25px, 3.4vw, 40px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: 0, textWrap: 'balance' }}>{title}</h2>
       {/* Ο υπότιτλος παίρνει όλο το πλάτος της στήλης και ΚΑΘΕ κείμενο κόπηκε ώστε
           να χωρά σε μία γραμμή. Δύο γραμμές υπότιτλου κάτω από μονόγραμμο τίτλο
           δίνουν βαρύ, ασύμμετρο μπλοκ· μία και μία διαβάζονται ως ζευγάρι. */}
-      {sub && <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '13px 0 0' }}>{sub}</p>}
+      {sub && <p style={{ fontSize: 17, color: MUTED, lineHeight: 1.55, margin: '13px 0 0' }}>{sub}</p>}
     </div>
   );
 }
@@ -971,8 +979,8 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
   return (
     <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
       {featured && <span style={{ position: 'absolute', top: 18, right: 18, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '4px 10px' }}>Προτεινόμενο</span>}
-      <div style={{ fontSize: 13.5, fontWeight: 700, color: nameColor, marginBottom: 4 }}>{name}</div>
-      <div style={{ fontSize: 12.5, color: FAINT, marginBottom: 18, minHeight: 32 }}>{sub}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: nameColor, marginBottom: 4 }}>{name}</div>
+      <div style={{ fontSize: 13.5, color: FAINT, marginBottom: 18, minHeight: 38 }}>{sub}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
         <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT }}>{price}</span>
         <span style={{ fontSize: 15, color: MUTED }}>{per}</span>
@@ -987,7 +995,7 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
       </div>
-      <Link href="/signup" className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : '#1a73e8', color: ctaGhost ? TEXT : '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      <Link href="/signup" className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
     </div>
   );
 }
