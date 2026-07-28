@@ -93,7 +93,11 @@ export default function ScrollStory() {
         .story-dot.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
         .story-dot:hover { color: var(--text-primary); }
         .story-steps { display: flex; flex-direction: column; }
-        .story-step { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; opacity: .35; transition: opacity .45s cubic-bezier(.2,0,0,1); }
+        /* 58vh και όχι 72vh: τρία βήματα × 72vh = 216vh διαδρομής, δηλαδή η
+           ενότητα μόνη της έπιανε το 25% ολόκληρης της σελίδας. Στα 58vh η
+           κάθε πράξη προλαβαίνει ακόμη να διαβαστεί και να «κλειδώσει» πριν
+           αλλάξει η επόμενη — κάτω από ~50vh η εναλλαγή γίνεται νευρική. */
+        .story-step { min-height: 58vh; display: flex; flex-direction: column; justify-content: center; opacity: .35; transition: opacity .45s cubic-bezier(.2,0,0,1); }
         .story-step.on { opacity: 1; }
         .story-panel-inline { display: none; }
         @media (max-width: 900px) {

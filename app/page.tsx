@@ -180,20 +180,103 @@ export default async function Landing() {
         .lp-ticker-track .lp-dot { margin: 0 22px; color: rgba(255,255,255,.2); }
         .lp-ticker:hover .lp-ticker-track { animation-play-state: paused; }
         @keyframes lpTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        /* Αύρα βάθους στο hero: δύο μεγάλες, θολές κηλίδες στο γαλάζιο της παλέτας
-           που μετακινούνται αργά. Δίνει ζωή και βάθος χωρίς θόρυβο· μία απόχρωση μόνο. */
-        .lp-aurora { position: absolute; inset: -14% -18% auto; height: 115%; z-index: 0; pointer-events: none; }
-        .lp-aurora::before, .lp-aurora::after { content: ''; position: absolute; width: min(58vw, 760px); aspect-ratio: 1; border-radius: 50%; filter: blur(90px); background: radial-gradient(circle, var(--accent), transparent 64%); }
-        .lp-aurora::before { top: -6%; left: -6%; opacity: .13; animation: lpDrift 28s ease-in-out infinite alternate; }
-        .lp-aurora::after { top: 10%; right: -10%; opacity: .09; animation: lpDrift 36s ease-in-out -9s infinite alternate-reverse; }
-        @keyframes lpDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(5vw, 4vh, 0) scale(1.14); } }
-        /* Εναλλασσόμενη λέξη στον τίτλο: μία κάθε τρία δευτερόλεπτα, απαλή άνοδος. */
-        .lp-rotor { display: inline-grid; justify-items: center; color: var(--accent); }
-        .lp-rotor > span { grid-area: 1 / 1; opacity: 0; white-space: nowrap; animation: lpRotor 12s cubic-bezier(.2, 0, 0, 1) infinite; }
-        .lp-rotor > span:nth-child(2) { animation-delay: 3s; }
-        .lp-rotor > span:nth-child(3) { animation-delay: 6s; }
-        .lp-rotor > span:nth-child(4) { animation-delay: 9s; }
-        @keyframes lpRotor { 0% { opacity: 0; transform: translateY(16px); } 4% { opacity: 1; transform: none; } 23% { opacity: 1; transform: none; } 27% { opacity: 0; transform: translateY(-16px); } 100% { opacity: 0; } }
+        /* ═══ ΑΤΜΟΣΦΑΙΡΑ ═══════════════════════════════════════════════════════
+           ΓΙΑΤΙ ΑΛΛΑΞΕ: το φόντο ήταν δύο θολές κηλίδες πάνω σε επίπεδο σκούρο
+           μπλε. Διαβαζόταν ως «σκούρο θέμα», όχι ως σχεδιασμένη επιφάνεια — και
+           η διαφορά ανάμεσα σε ένα καλό και σε ένα κορυφαίο dark site είναι
+           ακριβώς αυτή: ΒΑΘΟΣ (πολλά επίπεδα σε διαφορετικές ταχύτητες), ΥΦΗ
+           (κόκκος, που σπάει τα banding του gradient) και ΕΣΤΙΑΣΗ (βινιέτα).
+
+           Τέσσερα επίπεδα, όλα σε ΕΝΑ σταθερό στρώμα ώστε να μην υπάρχει ραφή
+           ανάμεσα στις ενότητες καθώς κυλά η σελίδα:
+             1. πλέγμα προοπτικής, με μάσκα ώστε να σβήνει — το «2050» σήμα
+             2. τρεις αύρες σε τρία βάθη και τρεις ταχύτητες → παράλλαξη
+             3. κόκκος (SVG feTurbulence, inline) → υφή, όχι πλαστικό
+             4. βινιέτα → το βλέμμα πηγαίνει στο κέντρο, όχι στις άκρες
+           Κάθε επίπεδο είναι σκόπιμα ΜΟΛΙΣ ορατό. Το «premium» δεν είναι τα
+           εφέ· είναι ότι δεν καταλαβαίνεις γιατί φαίνεται ακριβό. */
+        .lp-atmos { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        /* 1. Πλέγμα: 72px κελί, σβήνει με ακτινική μάσκα ώστε να μη μοιάζει με
+              λογιστικό φύλλο. Φαίνεται μόνο στο πάνω μέρος, πίσω από τον τίτλο. */
+        .lp-atmos::before {
+          content: ''; position: absolute; inset: 0;
+          background-image:
+            linear-gradient(rgba(138,180,248,.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(138,180,248,.06) 1px, transparent 1px);
+          background-size: 72px 72px;
+          -webkit-mask-image: radial-gradient(ellipse 76% 52% at 50% 0%, #000 0%, transparent 72%);
+          mask-image: radial-gradient(ellipse 76% 52% at 50% 0%, #000 0%, transparent 72%);
+        }
+        /* 3+4. Κόκκος και βινιέτα στο ίδιο επίπεδο. Ο κόκκος μπαίνει με
+                mix-blend-mode ώστε να ΔΙΑΜΟΡΦΩΝΕΙ τα από κάτω χρώματα αντί να
+                κάθεται σαν γκρίζο πέπλο πάνω τους. */
+        .lp-atmos::after {
+          content: ''; position: absolute; inset: -50%;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          opacity: .05; mix-blend-mode: overlay;
+          animation: lpGrain 8s steps(1) infinite;
+        }
+        /* Ο κόκκος «ζει»: μετατοπίζεται σε οκτώ θέσεις. Ακίνητος κόκκος φαίνεται
+           σαν λερωμένη οθόνη· κόκκος που αναπνέει φαίνεται σαν φιλμ. */
+        @keyframes lpGrain {
+          0%,100% { transform: translate(0,0); }      12.5% { transform: translate(-4%,-3%); }
+          25% { transform: translate(3%,-5%); }        37.5% { transform: translate(-2%,4%); }
+          50% { transform: translate(4%,2%); }         62.5% { transform: translate(-5%,1%); }
+          75% { transform: translate(2%,-4%); }        87.5% { transform: translate(-3%,3%); }
+        }
+        /* 2. Οι αύρες. Τρεις, σε τρεις αποχρώσεις της ΙΔΙΑΣ οικογένειας (γαλάζιο,
+              κυανό, βαθύ ινδικό): αρκετή ποικιλία για βάθος, καμία για καρναβάλι. */
+        .lp-aurora { position: absolute; inset: -14% -18% auto; height: 118%; z-index: 0; pointer-events: none; }
+        .lp-aurora::before, .lp-aurora::after,
+        .lp-atmos .lp-orb { content: ''; position: absolute; border-radius: 50%; will-change: transform; }
+        .lp-aurora::before { content: ''; width: min(56vw, 720px); aspect-ratio: 1; top: -8%; left: -8%; opacity: .15; filter: blur(100px); background: radial-gradient(circle, var(--accent), transparent 64%); animation: lpDrift 34s ease-in-out infinite alternate; }
+        .lp-aurora::after  { content: ''; width: min(44vw, 560px); aspect-ratio: 1; top: 12%; right: -8%; opacity: .11; filter: blur(80px);  background: radial-gradient(circle, #5ee0ff, transparent 66%); animation: lpDrift 46s ease-in-out -12s infinite alternate-reverse; }
+        .lp-atmos .lp-orb { width: min(70vw, 900px); aspect-ratio: 1; left: 50%; top: 34%; margin-left: -35vw; opacity: .085; filter: blur(130px); background: radial-gradient(circle, #6d5cff, transparent 62%); animation: lpDrift 62s ease-in-out -25s infinite alternate; }
+        @keyframes lpDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(5vw, 4vh, 0) scale(1.16); } }
+
+        /* ═══ Η ΕΝΑΛΛΑΣΣΟΜΕΝΗ ΛΕΞΗ ════════════════════════════════════════════
+           ΓΙΑΤΙ ΑΛΛΑΞΕ: η εναλλαγή περνούσε απαρατήρητη. Η κίνηση ήταν 16px και
+           ο χρόνος 3s ανά λέξη — αρκετά αργή ώστε ο επισκέπτης να προλάβει να
+           κοιτάξει αλλού, και αρκετά διακριτική ώστε να μη διαβάζεται ως πρόθεση.
+           Τώρα: η λέξη μπαίνει από κάτω ΜΕ ΘΟΛΩΜΑ (κίνηση με motion blur — αυτό
+           ακριβώς διαβάζεται ως ακριβό) και από κάτω της τρέχει μια γραμμή που
+           ξαναγράφεται σε κάθε αλλαγή. Η γραμμή είναι το σήμα «αυτό αλλάζει»:
+           χωρίς αυτήν, κάθε εναλλαγή έμοιαζε με τυχαία ανανέωση της σελίδας. */
+        /* justify-items: start και ΟΧΙ center. Και οι τέσσερις λέξεις μοιράζονται
+           ΕΝΑ κελί με το πλάτος της μακρύτερης («το ασφαλιστήριο.»), οπότε με
+           κεντράρισμα κάθε κοντύτερη λέξη άφηνε κενό ΚΑΙ στις δύο πλευρές — μια
+           ορατή τρύπα στη μέση της πρότασης, αμέσως μετά το «Φωτογραφίζεις».
+           Με start η λέξη κολλάει στο ρήμα και το περίσσευμα πέφτει στο τέλος της
+           γραμμής, όπου το κενό είναι αόρατο. */
+        .lp-rotor { display: inline-grid; justify-items: start; color: var(--accent); }
+        .lp-rotor > span { grid-area: 1 / 1; position: relative; opacity: 0; white-space: nowrap; animation: lpRotor 11.2s cubic-bezier(.16,1,.3,1) infinite; }
+        .lp-rotor > span:nth-child(2) { animation-delay: 2.8s; }
+        .lp-rotor > span:nth-child(3) { animation-delay: 5.6s; }
+        .lp-rotor > span:nth-child(4) { animation-delay: 8.4s; }
+        @keyframes lpRotor {
+          0%   { opacity: 0; transform: translateY(.34em) scale(.97); filter: blur(6px); }
+          5%   { opacity: 1; transform: none; filter: blur(0); }
+          21%  { opacity: 1; transform: none; filter: blur(0); }
+          26%  { opacity: 0; transform: translateY(-.28em) scale(.99); filter: blur(5px); }
+          100% { opacity: 0; }
+        }
+        /* Η γραμμή ανήκει στην ΚΑΘΕ ΛΕΞΗ, όχι στο κοινό κελί: αλλιώς είχε πάντα
+           το πλάτος της μακρύτερης και ξεπερνούσε ορατά τις κοντύτερες. Κληρονομεί
+           το animation-delay της λέξης της, οπότε γράφεται ακριβώς όταν εκείνη
+           εμφανίζεται — και σβήνει μαζί της, αφού το opacity του γονέα την παρασύρει. */
+        .lp-rotor > span::after {
+          content: ''; position: absolute; left: 0; right: 0; bottom: -.08em; height: 2px; border-radius: 2px;
+          background: linear-gradient(90deg, currentColor, color-mix(in srgb, currentColor 35%, transparent));
+          opacity: .55; transform-origin: 0 50%;
+          animation: lpRotorLine 11.2s cubic-bezier(.16,1,.3,1) infinite;
+          animation-delay: inherit;
+        }
+        /* Γράφεται από αριστερά προς τα δεξιά μέσα στον ίδιο 11,2s κύκλο με τη λέξη. */
+        @keyframes lpRotorLine {
+          0%   { transform: scaleX(0); }
+          9%   { transform: scaleX(1); }
+          100% { transform: scaleX(1); }
+        }
         @keyframes lpUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         .lp-rise { animation: lpUp .6s cubic-bezier(.2,0,0,1) both; }
         .lp-rise-2 { animation: lpUp .6s cubic-bezier(.2,0,0,1) .06s both; }
@@ -210,14 +293,21 @@ export default async function Landing() {
         @media (max-width: 520px) { .lp-hide-xs { display: none !important; } .lp-only-xs { display: inline !important; } }
         @media (prefers-reduced-motion: reduce) {
           .lp-rise, .lp-rise-2, .lp-rise-3, .lp-rise-4, .lp-reveal { animation: none !important; }
-          .lp-aurora::before, .lp-aurora::after { animation: none !important; }
-          .lp-rotor > span { animation: none !important; }
+          .lp-aurora::before, .lp-aurora::after, .lp-atmos .lp-orb { animation: none !important; }
+          .lp-atmos::after { animation: none !important; }
+          .lp-rotor > span, .lp-rotor > span::after { animation: none !important; }
+          .lp-rotor > span::after { transform: scaleX(1); }
           .lp-rotor > span:first-child { opacity: 1; }
           .lp-ticker-track { animation: none !important; }
         }
       `}</style>
 
       <a href="#main" className="lp-skip">Μετάβαση στο περιεχόμενο</a>
+
+      {/* Το σταθερό στρώμα ατμόσφαιρας: πλέγμα, τρίτη αύρα, κόκκος, βινιέτα.
+          Είναι `fixed` ώστε να μην υπάρχει ραφή ανάμεσα στις ενότητες καθώς
+          κυλά η σελίδα — αν ήταν ανά ενότητα, κάθε όριο θα φαινόταν. */}
+      <div className="lp-atmos" aria-hidden="true"><div className="lp-orb" /></div>
 
       {/* ── Nav ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-base) 78%, transparent)', backdropFilter: 'saturate(180%) blur(14px)', WebkitBackdropFilter: 'saturate(180%) blur(14px)', borderBottom: `1px solid ${LINE}` }}>
@@ -323,15 +413,15 @@ export default async function Landing() {
 
       {/* ── Scrollytelling: το προϊόν μένει sticky και αλλάζει πράξη όσο διαβάζεις.
              ΠΡΟΣΟΧΗ: χωρίς lp-reveal εδώ (transform στον πρόγονο σπάει το sticky). */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(36px, 5vw, 64px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
+      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(28px, 3.6vw, 46px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
         <SectionHead over="Πώς δουλεύει" title="Τρεις κινήσεις. Πλήρης έλεγχος." />
         <ScrollStory />
       </section>
 
       {/* ── Capabilities ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Δυνατότητες" title="Ό,τι χρειάζεται το ακίνητό σου" sub="Από τον λογαριασμό ρεύματος μέχρι τη φορολογική δήλωση, με τη σειρά που προκύπτουν." />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 258px), 1fr))', gap: 14 }}>
           {FEATURES.map((f, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)' }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{ic(f.i)}</div>
@@ -343,13 +433,13 @@ export default async function Landing() {
       </section>
 
       {/* ── Ζωντανό εργαλείο απόδοσης: αξία επιτόπου, με τον αληθινό μας μηχανισμό ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Δες το μόνος σου" title="Πόσο σου αποδίδει πραγματικά;" sub="Βάλε τα δεδομένα του ακινήτου σου. Ο υπολογιστής σού δίνει ενδεικτική καθαρή απόδοση, με την ίδια φορολογική κλίμακα ενοικίων 2026 που χρησιμοποιεί και η εφαρμογή." />
         <LandingCalculator />
       </section>
 
       {/* ── Security & trust ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
         <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(24px, 3vw, 38px)', display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 'clamp(24px, 3vw, 40px)', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 12 }}>Ασφάλεια</div>
@@ -375,7 +465,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Pricing ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(44px, 7vw, 84px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Μείνε επειδή αξίζει." sub="Το πρώτο ακίνητο δωρεάν, για πάντα — και 30 ημέρες δοκιμή του Ιδιοκτήτη, χωρίς κάρτα. Αναβαθμίζεις μόνο όταν μεγαλώνει το χαρτοφυλάκιό σου." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1040, margin: '0 auto', alignItems: 'stretch' }}>
 
@@ -411,7 +501,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Σύσταση: δύο διακριτά προγράμματα, ιδιώτη και επαγγελματία ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Σύσταση" title="Μοιράσου το. Κερδίστε και οι δύο." sub="Κάθε ιδιοκτήτης που ξεκινά με τη σύστασή σου παίρνει δώρο, κι εσύ ανταμείβεσαι. Για τους επαγγελματίες, γίνεται σταθερή πηγή εισοδήματος." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
           {REFERRAL.map((r, i) => (
@@ -436,7 +526,7 @@ export default async function Landing() {
       </section>
 
       {/* ── FAQ: κεφαλίδα στο πλάι, κάθετα κεντραρισμένη στη μέση των ερωτήσεων ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 92px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(32px, 4.4vw, 58px)' }}>
         <div className="lp-faq-grid" style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.4fr', gap: 'clamp(24px, 5vw, 72px)', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 12 }}>Συχνές ερωτήσεις</div>
@@ -459,7 +549,7 @@ export default async function Landing() {
       {/* ── Final CTA: σκοτεινό κλείσιμο, καθρέφτης του hero ── */}
       <section className="lp-hero lp-reveal" style={{ position: 'relative', overflow: 'hidden', borderBottom: 'none' }}>
         <div className="lp-aurora" aria-hidden="true" />
-        <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: 'clamp(56px, 8vw, 100px)', paddingBottom: 'clamp(56px, 8vw, 100px)' }}>
+        <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: 'clamp(40px, 5.4vw, 68px)', paddingBottom: 'clamp(40px, 5.4vw, 68px)' }}>
           <h2 style={{ fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.08, margin: '0 auto 16px', maxWidth: 720, color: 'var(--text-primary)' }}>Το ακίνητό σου, υπό έλεγχο.</h2>
           <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: 'rgba(255,255,255,.62)', lineHeight: 1.6, maxWidth: 480, margin: '0 auto 30px' }}>Φωτογράφισε το πρώτο έγγραφο και δες το να μπαίνει σε τάξη. Δωρεάν, χωρίς δέσμευση.</p>
           <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta" style={{ display: 'inline-block', background: 'var(--accent)', color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Ξεκίνα δωρεάν →'}</Link>
