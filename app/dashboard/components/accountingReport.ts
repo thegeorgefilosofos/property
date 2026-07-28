@@ -11,6 +11,7 @@ import type { IncomeStatement, TaxProvision } from '@/lib/accounting/statement'
 import { issueDocument } from '@/lib/documents/issue'
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport'
 import type { createClient } from '@/lib/supabase/client'
+import { printFontFaces } from '@/lib/print/fonts';
 
 export interface ReconLite { label: string; paid: number; expected: number; statusLabel: string; statusColor: string }
 
@@ -67,7 +68,7 @@ export function printAccountingReport(c: AccountingReportCtx): void {
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <title>Λογιστική αναφορά · ${esc(c.propName)} ${esc(String(c.year))}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+${printFontFaces()}
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Inter',system-ui,Arial,sans-serif;color:#111;background:#fff;font-size:12.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}

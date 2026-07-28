@@ -112,8 +112,36 @@ jobs:
       # declared explicitly in supabase/config.toml (cron/token/service = false,
       # user-facing = true), so no per-function flags are needed and nothing is
       # left undeployed.
+      #
+      # Retry: το `functions deploy` κάνει content-diff ανά function («No change
+      # found in Function: X»), άρα μια επανάληψη ξαναδοκιμάζει μόνο ό,τι δεν
+      # πέρασε — ασφαλώς idempotent. Καλύπτει παροδικά: 5xx του Supabase API,
+      # network glitch του runner, φευγαλέο σφάλμα registry.
+      #
+      # ΔΕΝ καλύπτει μόνιμη διακοπή CDN — γι' αυτό τα imports είναι πλέον
+      # `npm:@supabase/supabase-js@<ακριβής>` και όχι CDN URL. Στις 27/07/2026 το
+      # esm.sh γύρισε 522 και δεν μπορούσε να γίνει deploy ΤΙΠΟΤΑ· αν εκείνη τη
+      # στιγμή είχε σπάσει η παραγωγή, το `git revert` θα έδειχνε πάλι στον ίδιο
+      # νεκρό host. Το retry δεν λύνει αυτό. Το specifier το λύνει.
+      #
+      # ΣΚΟΠΙΜΑ ΧΩΡΙΣ retry το `db push` παραπάνω: τα migrations είναι forward-only
+      # και μια τυφλή επανάληψη πάνω σε ημιτελή εφαρμογή είναι χειρότερη από μια
+      # καθαρή αποτυχία.
       - name: Deploy Edge Functions
-        run: supabase functions deploy
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if supabase functions deploy; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              delay=$(( attempt * 30 ))
+              echo "::warning::functions deploy απέτυχε (προσπάθεια $attempt/3) — retry σε ${delay}s"
+              sleep "$delay"
+            fi
+          done
+          echo "::error::functions deploy απέτυχε και στις 3 προσπάθειες"
+          exit 1
 
   # Ένα ειδοποιητικό που ανοίγει αλλά δεν κλείνει ποτέ, παύει να είναι
   # ειδοποιητικό: μετά την πρώτη αποτυχία το κόκκινο μένει για πάντα, και το

@@ -176,7 +176,7 @@ export function priceForDate(date: string, opts: PricingOptions): DayPrice {
   const factors: PriceFactor[] = [];
 
   // 1) Εποχικότητα (blend με πραγματική ADR του μήνα αν υπάρχουν δεδομένα)
-  let seasonMult = MONTH_MULT[m];
+  const seasonMult = MONTH_MULT[m];
   factors.push({ label: `Εποχή (${SEASON_LABELS[monthSeason(m)]})`, mult: seasonMult });
 
   // 2) Ημέρα εβδομάδας (Παρ/Σαβ premium, Κυρ/Δευ ελαφριά έκπτωση)

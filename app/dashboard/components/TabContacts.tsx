@@ -13,6 +13,26 @@ import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, o
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 
+// ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
+// ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
+// render του πάνελ. Ο React έβλεπε νέο τύπο component κάθε φορά, άρα
+// αποσυναρμολογούσε και ξανάχτιζε ΟΛΟ το ντοσιέ — δεκαοκτώ κόμβοι, σε κάθε
+// πληκτρολόγηση ή ανανέωση. Δεν είναι μόνο σπατάλη: ό,τι state ζει μέσα τους
+// (scroll, focus, επιλογή κειμένου) χανόταν.
+const DossierRow = ({ icon: Ic, children, onCopy }: { icon: React.ComponentType<{ size?: number; color?: string; style?: React.CSSProperties }>; children: React.ReactNode; onCopy?: () => void }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <Ic size={14} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
+    <span style={{ flex: 1, fontSize: 13, color: 'var(--text-secondary)', minWidth: 0, wordBreak: 'break-word' }}>{children}</span>
+    {onCopy && <button type="button" onClick={onCopy} title="Αντιγραφή" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 4, flexShrink: 0 }}><Copy size={13} /></button>}
+  </div>
+)
+const DossierSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '15px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{title}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+  </div>
+)
+
 const supabase = createSupabaseClient()
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1042,19 +1062,6 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   }, [contact.id, contact.full_name, propertyId, refreshKey])
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey) }, [onClose])
 
-  const Row = ({ icon: Ic, children, onCopy }: { icon: React.ComponentType<{ size?: number; color?: string; style?: React.CSSProperties }>; children: React.ReactNode; onCopy?: () => void }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <Ic size={14} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
-      <span style={{ flex: 1, fontSize: 13, color: 'var(--text-secondary)', minWidth: 0, wordBreak: 'break-word' }}>{children}</span>
-      {onCopy && <button type="button" onClick={onCopy} title="Αντιγραφή" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 4, flexShrink: 0 }}><Copy size={13} /></button>}
-    </div>
-  )
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '15px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
-    </div>
-  )
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
@@ -1101,13 +1108,13 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           )}
 
           {(contact.phone || extra.phone2 || contact.email || extra.office_address || extra.schedule) && (
-            <Section title="Στοιχεία επικοινωνίας">
-              {contact.phone && <Row icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></Row>}
-              {extra.phone2 && <Row icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></Row>}
-              {contact.email && <Row icon={Mail} onCopy={() => copy(contact.email!, 'Το email')}>{contact.email}</Row>}
-              {extra.office_address && <Row icon={MapPin}>{extra.office_address}</Row>}
-              {extra.schedule && <Row icon={Clock}>{extra.schedule}</Row>}
-            </Section>
+            <DossierSection title="Στοιχεία επικοινωνίας">
+              {contact.phone && <DossierRow icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></DossierRow>}
+              {extra.phone2 && <DossierRow icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></DossierRow>}
+              {contact.email && <DossierRow icon={Mail} onCopy={() => copy(contact.email!, 'Το email')}>{contact.email}</DossierRow>}
+              {extra.office_address && <DossierRow icon={MapPin}>{extra.office_address}</DossierRow>}
+              {extra.schedule && <DossierRow icon={Clock}>{extra.schedule}</DossierRow>}
+            </DossierSection>
           )}
 
           {mapEmbed && (
@@ -1117,32 +1124,32 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           )}
 
           {(extra.afm || extra.license_number || extra.iban || extra.iban2) && (
-            <Section title="Επαγγελματικά και πληρωμές">
-              {extra.afm && <Row icon={FileText} onCopy={() => copy(extra.afm!, 'Το ΑΦΜ')}><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span> <span style={{ fontFamily: T.font.mono }}>{extra.afm}</span></Row>}
-              {extra.license_number && <Row icon={Shield}>{extra.license_number}</Row>}
-              {extra.iban && <Row icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</Row>}
-              {extra.iban2 && <Row icon={Landmark} onCopy={() => copy(extra.iban2!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban2}</span></Row>}
-            </Section>
+            <DossierSection title="Επαγγελματικά και πληρωμές">
+              {extra.afm && <DossierRow icon={FileText} onCopy={() => copy(extra.afm!, 'Το ΑΦΜ')}><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span> <span style={{ fontFamily: T.font.mono }}>{extra.afm}</span></DossierRow>}
+              {extra.license_number && <DossierRow icon={Shield}>{extra.license_number}</DossierRow>}
+              {extra.iban && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</DossierRow>}
+              {extra.iban2 && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban2!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban2}</span></DossierRow>}
+            </DossierSection>
           )}
 
           {(extra.last_contact || extra.next_appointment || ((extra.reminder_days || 0) > 0 && extra.reminder_set)) && (
-            <Section title="Παρακολούθηση">
-              {extra.next_appointment && <Row icon={CalendarPlus}><span style={{ color: overdue ? 'var(--negative)' : 'var(--text-secondary)' }}>Επόμενο ραντεβού: {fmtDate(extra.next_appointment)}{overdue ? ' (ληξιπρόθεσμο)' : ''}</span></Row>}
-              {extra.last_contact && <Row icon={History}>Τελευταία επαφή: {fmtDate(extra.last_contact)}</Row>}
-              {(extra.reminder_days || 0) > 0 && extra.reminder_set && <Row icon={Clock}>Υπενθύμιση: {fmtDate(extra.reminder_set)}</Row>}
-            </Section>
+            <DossierSection title="Παρακολούθηση">
+              {extra.next_appointment && <DossierRow icon={CalendarPlus}><span style={{ color: overdue ? 'var(--negative)' : 'var(--text-secondary)' }}>Επόμενο ραντεβού: {fmtDate(extra.next_appointment)}{overdue ? ' (ληξιπρόθεσμο)' : ''}</span></DossierRow>}
+              {extra.last_contact && <DossierRow icon={History}>Τελευταία επαφή: {fmtDate(extra.last_contact)}</DossierRow>}
+              {(extra.reminder_days || 0) > 0 && extra.reminder_set && <DossierRow icon={Clock}>Υπενθύμιση: {fmtDate(extra.reminder_set)}</DossierRow>}
+            </DossierSection>
           )}
 
           {(extra.tags || []).length > 0 && (
-            <Section title="Ετικέτες">
+            <DossierSection title="Ετικέτες">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 11, padding: '3px 10px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{t}</span>)}
               </div>
-            </Section>
+            </DossierSection>
           )}
 
           {(contact._freeNotes || (extra.notes_log || []).length > 0) && (
-            <Section title="Σημειώσεις">
+            <DossierSection title="Σημειώσεις">
               {contact._freeNotes && <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{contact._freeNotes}</div>}
               {(extra.notes_log || []).map(n => (
                 <div key={n.id} style={{ borderLeft: '2px solid var(--border-default)', paddingLeft: 12 }}>
@@ -1150,17 +1157,17 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
                   <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{fmtDate(n.ts)}</div>
                 </div>
               ))}
-            </Section>
+            </DossierSection>
           )}
 
           {(extra.files || []).length > 0 && (
-            <Section title="Αρχεία">
+            <DossierSection title="Αρχεία">
               {(extra.files || []).map((f, i) => (
                 <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 13 }}>
                   <FileText size={14} color="var(--text-tertiary)" />{f.name}
                 </a>
               ))}
-            </Section>
+            </DossierSection>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, paddingTop: 16, marginTop: 2, borderTop: '1px solid var(--border-subtle)' }}>

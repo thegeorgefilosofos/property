@@ -33,7 +33,7 @@ ok('unpay αφαιρεί μόνο το σωστό', JSON.stringify(applyExdate([
 }
 // δεν διπλογράφει σε επαναλαμβανόμενη πληρωμή
 {
-  let ex: string[] = ['2026-03-05']
+  const ex: string[] = ['2026-03-05']
   const r = applyExdate(ex, '2026-03-05', true)
   ok('διπλή πληρωμή δεν διπλογράφει', r === null && ex.length === 1)
 }

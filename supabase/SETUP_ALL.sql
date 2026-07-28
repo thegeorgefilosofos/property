@@ -1727,9 +1727,14 @@ create policy "own closing update" on public.book_closings for update using (aut
 drop policy if exists "own closing delete" on public.book_closings;
 create policy "own closing delete" on public.book_closings for delete using (auth.uid() = user_id);
 
--- ── Δεδομένα κοινότητας (ανώνυμα aggregates ανά ΤΚ, k-anonymity ≥5, με opt-out) ──
+-- ── Δεδομένα κοινότητας (ανώνυμα aggregates ανά ΤΚ, k-anonymity ≥5, με opt-IN) ──
+-- Κλειστό εξ ορισμού. Η ημερομηνία απόφασης καταγράφεται ξεχωριστά, γιατί το
+-- άρθρο 7§1 GDPR ζητά ΑΠΟΔΕΙΞΗ συγκατάθεσης — ένα boolean με προεπιλογή δεν
+-- ξεχωρίζει το «είπε ναι» από το «δεν ρωτήθηκε ποτέ».
 alter table if exists public.billing_profiles
-  add column if not exists share_market_data boolean not null default true;
+  add column if not exists share_market_data boolean not null default false;
+alter table if exists public.billing_profiles
+  add column if not exists share_market_data_decided_at timestamptz;
 create or replace function public.community_market_stats()
 returns table (
   postal_code text, sample_count int, median_gross_yield numeric,
@@ -1745,7 +1750,8 @@ language sql security definer set search_path = public stable as $$
     left join lateral (select actual_rent, target_rent from public.rent_config rc where rc.property_id = up.id limit 1) rc on true
     where up.postal_code is not null and btrim(up.postal_code) <> '' and up.value > 0
       and coalesce(rc.actual_rent, rc.target_rent, up.target_rent) > 0
-      and coalesce(bp.share_market_data, true) = true
+      -- ΧΩΡΙΣ προφίλ ⇒ ΕΚΤΟΣ. Με `true` έμπαινε κάθε χρήστης που δεν άνοιξε ποτέ τις Ρυθμίσεις.
+      and coalesce(bp.share_market_data, false) = true
   ), filtered as (
     select postal_code, value, rent, sqm, (rent * 12.0 / value) * 100.0 as gy
     from base where (rent * 12.0 / value) * 100.0 between 1 and 25

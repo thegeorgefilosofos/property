@@ -3,7 +3,7 @@
 // το URL και μπλοκάρουν αυτόματα τις πιασμένες ημερομηνίες. Πρόσβαση μόνο με το
 // μυστικό token του χρήστη: GET /bookings-feed?token=XXX&property=UUID.
 // Ιδιωτικότητα: ΔΕΝ διαρρέει όνομα επισκέπτη — γενικό SUMMARY «Μη διαθέσιμο».
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!

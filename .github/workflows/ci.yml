@@ -48,6 +48,16 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # Οι edge functions ΔΕΝ καλύπτονται από το tsc: το tsconfig.json εξαιρεί
+      # ρητά το `supabase/`, επειδή τρέχουν σε Deno και όχι σε Node. Μέχρι σήμερα
+      # αυτό σήμαινε ότι ο ΠΡΩΤΟΣ έλεγχος τύπων τους γινόταν τη στιγμή του deploy
+      # στην παραγωγή — και μάλιστα ΜΕΤΑ το `db push`, δηλαδή με τα migrations ήδη
+      # εφαρμοσμένα. Ένα σφάλμα τύπου σήμαινε βάση μπροστά, κώδικα πίσω.
+      #
+      # Η έκδοση 2.1.4 είναι αυτή που κάνει vendor το Supabase edge-runtime.
+      - name: Typecheck edge functions (Deno)
+        run: npx --yes deno@2.1.4 check supabase/functions/*/index.ts
+
       - name: Tests (domain + messaging verifiers)
         run: npm run test
 

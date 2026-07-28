@@ -400,7 +400,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       // Κλειδιά προσαρμοσμένων κατηγοριών (c_*): αν μια δαπάνη έχει αποθηκευτεί σε custom
       // κατηγορία, την προσμετράμε εκεί (αλλιώς θα «έπεφτε» στις Λοιπές δαπάνες).
-      let customKeys = new Set<string>();
+      const customKeys = new Set<string>();
       const catLabels: Record<string, string> = {};
       CATS.forEach(c => { catLabels[c.key] = c.label; });
       try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) arr.forEach((c: any) => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }

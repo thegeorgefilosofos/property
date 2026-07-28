@@ -8,8 +8,8 @@
 // Secret:  supabase secrets set ANTHROPIC_API_KEY="sk-ant-..."
 // Τρέχει μηνιαία μέσω pg_cron (βλ. migration 20260715130000_bank_rates_pg_cron.sql).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { authorizeCron } from '../_shared/auth.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
+import { authorizeCron, type MinimalSupabaseClient } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -97,7 +97,11 @@ const json = (body: unknown, status = 200) =>
 // service-role bearer, an optional env secret, or the shared cron secret from
 // public.cron_secrets (the zero-config path pg_cron uses).
 const CRON_SECRET = Deno.env.get('BANK_RATES_CRON_SECRET') || ''
-async function authorized(req: Request, sb: ReturnType<typeof createClient>): Promise<boolean> {
+// Ο ΙΔΙΟΣ τύπος που δέχεται το authorizeCron, εισαγόμενος αντί για ξαναγραμμένος.
+// Το `ReturnType<typeof createClient>` ΔΕΝ δουλεύει με το npm: specifier: εκεί το
+// createClient είναι generic const arrow, οπότε το ReturnType<> το στιγμιοτυποποιεί
+// με unknown/never και η κλήση σπάει με TS2345.
+async function authorized(req: Request, sb: MinimalSupabaseClient): Promise<boolean> {
   return authorizeCron(req, { serviceKey: SUPABASE_SERVICE_KEY, envSecret: CRON_SECRET, supabase: sb })
 }
 

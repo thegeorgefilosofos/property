@@ -1636,9 +1636,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
       <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
         {/* View switcher */}
         <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
-          {([['day','Ημέρα',<Clock size={13}/>],['week','Εβδομάδα',<CalendarDays size={13}/>],['month','Μήνας',<Calendar size={13}/>],['year','Έτος',<BarChart2 size={13}/>],['agenda','Ατζέντα',<List size={13}/>]] as [ViewMode,string,React.ReactNode][]).map(([v,label,icon])=>(
+          {([['day','Ημέρα',Clock],['week','Εβδομάδα',CalendarDays],['month','Μήνας',Calendar],['year','Έτος',BarChart2],['agenda','Ατζέντα',List]] as [ViewMode,string,typeof Clock][]).map(([v,label,Icon])=>(
             <button key={v} onClick={()=>setViewMode(v)} style={{ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontFamily: T.font.sans, fontWeight:viewMode===v?600:500, background:viewMode===v?'var(--accent)':'transparent', color:viewMode===v?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s', letterSpacing:'0.1px' }}>
-              {icon}{label}
+              <Icon size={13}/>{label}
             </button>
           ))}
         </div>

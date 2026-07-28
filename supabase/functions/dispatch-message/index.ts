@@ -15,7 +15,7 @@
 // channel falls back to email. Deploy: supabase functions deploy dispatch-message
 // (verify_jwt=false).
 // ─────────────────────────────────────────────────────────────────────────────
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { MSG, pickChannel, renderPush, renderViber, renderIMessage, renderWhatsApp, type ChannelPrefs } from '../_shared/messaging.ts'
 import type { Personal } from '../_shared/emailTemplates.ts'
 import { authorizeCron } from '../_shared/auth.ts'

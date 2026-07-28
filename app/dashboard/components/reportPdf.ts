@@ -8,6 +8,7 @@
 // ποσοστά «18,00%». XSS-ασφαλές (rEsc σε κάθε δυναμικό κείμενο).
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
+import { printFontFaces } from '@/lib/print/fonts';
 
 export const rEsc = (v: unknown): string => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
 export const rEur = (n: number | null | undefined): string => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -54,7 +55,7 @@ export const REPORT_CSS = `
 /** <head> με γραμματοσειρά Inter + κοινό CSS. Το title μπαίνει ξεσκαρταρισμένο. */
 export function reportHead(title: string): string {
   return `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>${rEsc(title)}</title>`
-    + `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">`
+    + printFontFaces()
     + `<style>${REPORT_CSS}</style></head>`;
 }
 

@@ -15,11 +15,14 @@ const MONO = "'Roboto Mono',monospace"
 type Crit = { label: string; status: 'pass' | 'fail' | 'unknown'; detail: string }
 
 export default function SpitiMouPanel({
-  amount, propertyValue, years, bankRatePct, incomeMonthly, marital, children,
+  amount, propertyValue, years, bankRatePct, incomeMonthly, marital, childCount,
   sqm, yearBuilt, banks, euribor, fmtEur, fmtPct, onOpenCalculator,
 }: {
   amount: number; propertyValue: number; years: number; bankRatePct: number
-  incomeMonthly?: number; marital?: 'single' | 'married' | 'single_parent'; children?: number
+  incomeMonthly?: number; marital?: 'single' | 'married' | 'single_parent';
+  /** Αριθμός εξαρτώμενων τέκνων για το εισοδηματικό όριο «Σπίτι μου ΙΙ».
+   *  ΔΕΝ είναι React children — γι' αυτό δεν λέγεται `children`. */
+  childCount?: number
   sqm?: number; yearBuilt?: number; banks: any[]; euribor: number
   fmtEur: (n: number) => string; fmtPct: (n: number) => string; onOpenCalculator?: () => void
 }) {
@@ -27,7 +30,7 @@ export default function SpitiMouPanel({
   const incomeAnnual = incomeMonthly && incomeMonthly > 0 ? Math.round(incomeMonthly * 12) : undefined
   const needs: UserLoanNeeds = {
     amount, propertyValue, years, purpose: 'first_home', ratePreference: 'fixed',
-    income: incomeAnnual, maritalStatus: marital ?? 'single', children: children ?? 0,
+    income: incomeAnnual, maritalStatus: marital ?? 'single', children: childCount ?? 0,
     propertySqm: sqm, propertyYearBuilt: yearBuilt, firstHome: true,
   }
   const elig = spitiMouEligibility(needs)

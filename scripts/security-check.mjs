@@ -34,6 +34,46 @@ const SECRET_PATTERNS = [
 // A tracked .env file (other than the example) must never exist.
 const TRACKED_ENV = /(^|\/)\.env(\.[a-z]+)?$/
 
+// ── Egress guard: hosts that must never appear in shipped source ────────────
+// Not secrets — silent privacy leaks. A third-party asset URL in a page or a
+// generated document hands that party the user's IP address on every render,
+// with no consent step and nothing visible to the user.
+//
+// Google Fonts is here because it actually happened: four report generators
+// carried `<link href="fonts.googleapis.com">`, so every printed statement
+// leaked the landlord's IP to Google. The app's CSP already said
+// `font-src 'self'` — but those documents open via `window.open('')` into
+// `about:blank`, where no CSP header exists to enforce anything. The lesson is
+// that a header cannot guard code it never covers. This scan can.
+//
+// Fonts are self-hosted in public/fonts/ and emitted by lib/print/fonts.ts.
+const EGRESS_PATTERNS = [
+  { name: 'Google Fonts stylesheet (leaks user IP)', re: /fonts\.googleapis\.com/ },
+  { name: 'Google Fonts asset host (leaks user IP)', re: /fonts\.gstatic\.com/ },
+  { name: 'External QR service (leaks payload in URL)', re: /api\.qrserver\.com/ },
+  // A CDN import inside an edge function puts a third party in the deploy path —
+  // and, worse, in the ROLLBACK path. On 2026-07-27 esm.sh returned 522 and no
+  // function could be deployed at all; had production been broken at that moment,
+  // `git revert` would have pointed straight back at the same dead host. The
+  // range (`@2`) was also resolved by the CDN at deploy time, so two deploys a
+  // week apart could ship different library code with nothing recording it.
+  // Use `npm:<pkg>@<exact-version>` instead.
+  { name: 'CDN import in an edge function (unreproducible deploy — use npm:)',
+    re: /from\s+['"]https:\/\/(esm\.sh|deno\.land\/x|unpkg\.com|cdn\.skypack\.dev)\// },
+]
+
+// Files allowed to name these hosts: the guard itself, the module that replaced
+// them, its test, and documentation that explains the history.
+const EGRESS_SKIP = [
+  /(^|\/)scripts\/security-check\.mjs$/,
+  /(^|\/)lib\/print\/fonts\.ts$/,
+  /(^|\/)lib\/print\/fonts\.test\.ts$/,
+  /(^|\/)lib\/qr\.ts$/,
+  /(^|\/)lib\/qr\.test\.ts$/,   // εξηγεί στα σχόλια γιατί έφυγε το qrserver
+  /(^|\/)proxy\.ts$/,
+  /(^|\/)docs\//,
+]
+
 function trackedFiles() {
   return execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(Boolean)
 }
@@ -45,10 +85,20 @@ for (const f of files) {
   if (TRACKED_ENV.test(f) && !/\.env\.example$/.test(f)) {
     findings.push(`Tracked env file must not be committed: ${f}`)
   }
-  if (SKIP.some(re => re.test(f))) continue
   let text
   try { text = readFileSync(f, 'utf8') } catch { continue }
   if (text.includes(String.fromCharCode(0))) continue // skip binary files
+
+  // Egress guard runs on its own allow-list: the secret SKIP list exempts all of
+  // docs/, but a leaking asset URL in a shipped file must be caught regardless.
+  if (!EGRESS_SKIP.some(re => re.test(f))) {
+    for (const { name, re } of EGRESS_PATTERNS) {
+      const m = text.match(re)
+      if (m) findings.push(`${name} in ${f}: “${m[0]}”`)
+    }
+  }
+
+  if (SKIP.some(re => re.test(f))) continue
   for (const { name, re } of SECRET_PATTERNS) {
     const m = text.match(re)
     if (m) {

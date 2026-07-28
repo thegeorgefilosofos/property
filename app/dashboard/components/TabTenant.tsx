@@ -139,6 +139,19 @@ function Label({ children }: { children: React.ReactNode }) {
 
 // Κεφαλίδα ενότητας: ίδια οπτική με το κοινό SecHdr (χωρίς διακοσμητική τελεία),
 // για ομοιομορφία με όλο το app.
+// Πλαίσιο πληροφορίας με έγχρωμη κουκκίδα. ΣΕ MODULE SCOPE, δίπλα στο
+// SectionTitle: ήταν ορισμένο μέσα στο component, οπότε τα έξι πλαίσια
+// υποχρεώσεων ξαναγεννιούνταν σε κάθε render της καρτέλας ενοικιαστή.
+const InfoBlock = ({ title, children, tone }: { title: string; children: React.ReactNode; tone?: string }) => (
+  <div style={{ padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
+    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+      <div style={{ width:5, height:5, borderRadius:'50%', background:tone||'var(--accent)' }}/>
+      <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{title}</span>
+    </div>
+    <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.7, paddingLeft:13 }}>{children}</div>
+  </div>
+);
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
@@ -1346,15 +1359,6 @@ function LegalTaxView({ tenant }:{ tenant:Tenant }) {
     </a>
   );
 
-  const InfoBlock=({title,children,tone}:{title:string;children:React.ReactNode;tone?:string})=>(
-    <div style={{ padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-        <div style={{ width:5, height:5, borderRadius:'50%', background:tone||'var(--accent)' }}/>
-        <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{title}</span>
-      </div>
-      <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.7, paddingLeft:13 }}>{children}</div>
-    </div>
-  );
 
   return (
     <div>

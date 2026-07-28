@@ -17,7 +17,7 @@
 // Deploy (once a domain is verified): supabase functions deploy schedule-email-outbox
 // then schedule it a couple of minutes before the drain (see the migration).
 // ─────────────────────────────────────────────────────────────────────────
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { scheduleBatch, policyFor, type OutboxRow } from '../_shared/emailPolicy.ts'
 import { CATALOG, DIGESTS } from '../_shared/emailCopy.ts'
 import { authorizeCron } from '../_shared/auth.ts'

@@ -24,12 +24,23 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
+/**
+ * The minimal shape of a Supabase client this module needs: we only ever call
+ * `.from('cron_secrets').select().eq().maybeSingle()`.
+ *
+ * Exported so callers can annotate their own helpers with the SAME type instead
+ * of re-declaring it. That matters: `ReturnType<typeof createClient>` does not
+ * work here — with the `npm:` specifier `createClient` is a generic const arrow,
+ * so `ReturnType<>` instantiates it with `unknown`/`never` and every call site
+ * fails with TS2345. One structural type, declared once, used by everyone.
+ */
+// deno-lint-ignore no-explicit-any
+export type MinimalSupabaseClient = { from: (table: string) => any }
+
 interface CronAuthOpts {
   serviceKey?: string        // SUPABASE_SERVICE_ROLE_KEY — accepted as Bearer
   envSecret?: string         // per-function *_CRON_SECRET env (optional)
-  // Any Supabase client; we only ever call .from('cron_secrets').select().eq().maybeSingle().
-  // deno-lint-ignore no-explicit-any
-  supabase?: { from: (table: string) => any }
+  supabase?: MinimalSupabaseClient
   dbSecretName?: string      // row name in public.cron_secrets (default 'email_cron')
 }
 

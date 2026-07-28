@@ -825,7 +825,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <MiniSection title="Σπίτι μου ΙΙ, για σένα" defaultOpen badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily: T.font.sans}}>50% άτοκο</span>}>
                 <SpitiMouPanel
                   amount={LA} propertyValue={cs.propertyValue} years={Y} bankRatePct={cs.effectiveRate}
-                  incomeMonthly={calcState.incomeMonthly} marital={calcState.marital} children={calcState.children}
+                  incomeMonthly={calcState.incomeMonthly} marital={calcState.marital} childCount={calcState.children}
                   sqm={calcState.sqm ?? propertySqm} yearBuilt={propertyYearBuilt}
                   banks={BANKS} euribor={euribor} fmtEur={fmtEur} fmtPct={fmtPct} onOpenCalculator={scrollToCalc}
                 />
