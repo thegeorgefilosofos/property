@@ -165,8 +165,8 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
 const BOTTOM_NAV = [
   { id:'overview', label:'Επισκόπηση', icon: ic('M3 9.5 12 3l9 6.5|M5 10v10h14V10') },
-  { id:'bills',    label:'Λογαριασμοί', icon: ic('M4 3h16v18l-3-2-3 2-3-2-3 2V3|M8 8h8|M8 12h8') },
-  { id:'expenses', label:'Δαπάνες',    icon: ic('M3 12h4l3 8 4-16 3 8h4') },
+  { id:'finances', label:'Δαπάνες',   icon: ic('M3 12h4l3 8 4-16 3 8h4') },
+  { id:'documents',label:'Αρχείο',    icon: ic('M4 4h6l2 3h8v13H4z') },
   { id:'calendar', label:'Ημερολόγιο', icon: ic('M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4') },
   { id:'more',     label:'Μενού',      icon: ic('M4 6h16|M4 12h16|M4 18h16') },
 ];
