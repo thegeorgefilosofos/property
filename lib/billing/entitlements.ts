@@ -16,7 +16,7 @@
 // και να το μοιράζονται client (UI gating) και server (RLS/trigger έχει δικό του).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLANS, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
+import { PLANS, propertyAllowance, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
 
 export type ProfileType = 'individual' | 'professional';
 
@@ -92,6 +92,8 @@ export interface EntitlementInput {
   compUntil?: string | null;
   /** Ημερομηνία δημιουργίας λογαριασμού (ISO) — βάση για τη δωρεάν δοκιμή. */
   createdAt?: string | null;
+  /** Επιπλέον ακίνητα που έχει αγοράσει (billing_profiles.extra_properties). */
+  extraProperties?: number | null;
   /** Χρόνος αναφοράς σε ms (default Date.now()), για ελεγξιμότητα. */
   now?: number;
 }
@@ -170,9 +172,15 @@ export function requiredPlanForFeature(f: Feature): PlanId {
   return FEATURE_MIN_PLAN[f];
 }
 
-/** Όριο ακινήτων με βάση το ενεργό πλάνο. */
+/**
+ * Όριο ακινήτων: όσα περιλαμβάνει το ενεργό πλάνο ΣΥΝ όσα έχει αγοράσει.
+ *
+ * ΠΡΕΠΕΙ να συμφωνεί με το `enforce_property_limit` της βάσης. Αν αποκλίνουν, ο
+ * χρήστης βλέπει «μπορείς να προσθέσεις» και τρώει σφάλμα βάσης στο πάτημα —
+ * ή, χειρότερα, βλέπει «όριο» ενώ έχει πληρώσει για παραπάνω.
+ */
 export function propertyLimit(input: EntitlementInput): number {
-  return PLANS[effectivePlan(input)].maxProperties;
+  return propertyAllowance(effectivePlan(input), input.extraProperties ?? 0);
 }
 
 export function canAddProperty(input: EntitlementInput, currentCount: number): boolean {

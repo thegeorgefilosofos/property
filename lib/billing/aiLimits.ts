@@ -104,10 +104,16 @@ const LIMITS: Record<PlanId, AiLimits> = {
   free:   { perMinute: PER_MINUTE, perDay: 15, perMonth: 60 },
   owner:  { perMinute: PER_MINUTE, perDay: 30, perMonth: 120 },
   agency: { perMinute: PER_MINUTE, perDay: 60, perMonth: 300 },
+  // ΓΡΑΦΕΙΟ (79,90 €) — 120/ημέρα, 600/μήνα
+  //   Χειρότερο κόστος 31,20 $ έναντι ~86,29 $ εσόδων: λόγος 36%, δηλαδή ΚΑΛΥΤΕΡΟ
+  //   περιθώριο από τα δύο μικρότερα. Σκόπιμο: το πλάνο αυτό επιδοτεί το δωρεάν
+  //   περισσότερο απ' όλα, και ο κάτοχός του δεν αγοράζει ερωτήσεις AI — αγοράζει
+  //   απεριόριστα ακίνητα και άνθρωπο στο τηλέφωνο.
+  office: { perMinute: PER_MINUTE, perDay: 120, perMonth: 600 },
 };
 
 /** Η σειρά που περιμένει η bump_ai_usage: δείκτης = user_plan_rank. */
-export const PLAN_RANK_ORDER: PlanId[] = ['free', 'owner', 'agency'];
+export const PLAN_RANK_ORDER: PlanId[] = ['free', 'owner', 'agency', 'office'];
 
 /** Τα όρια για ένα πλάνο. Άγνωστο/κενό πλάνο ⇒ δωρεάν (fail-closed στο κόστος). */
 export function aiLimitsFor(plan: PlanId | string | null | undefined): AiLimits {
@@ -135,11 +141,15 @@ export const MAX_PER_MINUTE = PER_MINUTE;
  */
 export const WARN_AT = 0.8;
 
+/** Πλάνο χωρίς ανώτερο. Το να του προτείνεις αναβάθμιση είναι κοροϊδία. */
+const isTopPlan = (plan: PlanId | string | null | undefined) =>
+  String(plan) === 'agency' || String(plan) === 'office';
+
 /** Μήνυμα όταν εξαντληθεί το ημερήσιο. Ποτέ κατηγορητήριο· πάντα με διέξοδο. */
 export function dailyExhaustedMessage(plan: PlanId | string | null | undefined): string {
   const l = aiLimitsFor(plan);
   const base = `Έφτασες τις ${l.perDay} ερωτήσεις για σήμερα. Το όριο ανανεώνεται τα μεσάνυχτα.`;
-  return String(plan) === 'agency'
+  return isTopPlan(plan)
     ? `${base} Αν το χρειάζεσαι συστηματικά ψηλότερα, γράψε μας — το ρυθμίζουμε.`
     : `${base} Με αναβάθμιση παίρνεις περισσότερες κάθε μέρα και μεγαλύτερο μηνιαίο πακέτο.`;
 }
@@ -148,7 +158,7 @@ export function dailyExhaustedMessage(plan: PlanId | string | null | undefined):
 export function monthlyExhaustedMessage(plan: PlanId | string | null | undefined): string {
   const l = aiLimitsFor(plan);
   const base = `Χρησιμοποίησες και τις ${l.perMonth} ερωτήσεις του μήνα.`;
-  return String(plan) === 'agency'
+  return isTopPlan(plan)
     ? `${base} Γράψε μας και ανοίγουμε επιπλέον για τον μήνα — δεν σε αφήνουμε στη μέση.`
     : `${base} Ανανεώνονται την 1η του επόμενου μήνα, ή αναβαθμίζεις τώρα και συνεχίζεις αμέσως.`;
 }

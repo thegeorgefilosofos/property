@@ -58,11 +58,13 @@ const EUR_TO_USD = 1.08
 
 // ── Κλιμάκωση: όποιος πληρώνει περισσότερα παίρνει περισσότερα ─────────────
 {
-  const f = aiLimitsFor('free'), o = aiLimitsFor('owner'), a = aiLimitsFor('agency')
-  ok('ημερήσιο: free < owner < agency', f.perDay < o.perDay && o.perDay < a.perDay)
-  ok('μηνιαίο: free < owner < agency', f.perMonth < o.perMonth && o.perMonth < a.perMonth)
+  const κλίμακα = PLAN_ORDER.map(p => aiLimitsFor(p))
+  ok('το ημερήσιο ανεβαίνει σε κάθε πλάνο, χωρίς εξαίρεση',
+    κλίμακα.every((l, i) => i === 0 || l.perDay > κλίμακα[i - 1].perDay))
+  ok('το μηνιαίο ανεβαίνει σε κάθε πλάνο, χωρίς εξαίρεση',
+    κλίμακα.every((l, i) => i === 0 || l.perMonth > κλίμακα[i - 1].perMonth))
   ok('το ανά λεπτό είναι ίδιο παντού (φράγμα κατάχρησης, όχι πώλησης)',
-    f.perMinute === o.perMinute && o.perMinute === a.perMinute && f.perMinute === MAX_PER_MINUTE)
+    κλίμακα.every(l => l.perMinute === MAX_PER_MINUTE))
 }
 
 // ── Οι συνδρομητές ΕΠΙΔΟΤΟΥΝ, δεν κοστίζουν ───────────────────────────────
@@ -70,7 +72,7 @@ const EUR_TO_USD = 1.08
 // ερωτήσεις» και να καλύπτεται το κόστος του δωρεάν. Ελέγχουμε ότι το κόστος
 // στη ΧΕΙΡΟΤΕΡΗ περίπτωση μένει κάτω από τα έσοδα, με πραγματικό περιθώριο.
 {
-  for (const id of ['owner', 'agency'] as PlanId[]) {
+  for (const id of ['owner', 'agency', 'office'] as PlanId[]) {
     const l = aiLimitsFor(id)
     const revenue = PLANS[id].priceMonthly * EUR_TO_USD
     const worstCost = l.perMonth * COST_PER_REQUEST_USD
@@ -97,8 +99,15 @@ const EUR_TO_USD = 1.08
 // Η bump_ai_usage διαβάζει p_day[rank+1]. Αν η σειρά εδώ αποκλίνει από τη σειρά
 // των rank στη βάση, ένας επαγγελματίας θα έπαιρνε σιωπηλά όρια δωρεάν χρήστη.
 {
-  ok('η σειρά rank είναι free → owner → agency',
-    PLAN_RANK_ORDER.join(',') === 'free,owner,agency')
+  // ΔΕΝ συγκρίνουμε με σταθερή συμβολοσειρά: θα χρειαζόταν αλλαγή σε κάθε νέο
+  // πλάνο και θα έσπαγε για λάθος λόγο. Αυτό που πρέπει να ισχύει ΠΑΝΤΑ είναι ότι
+  // η θέση κάθε πλάνου εδώ ταυτίζεται με το rank που επιστρέφει η βάση
+  // (user_plan_rank: 0 δωρεάν, 1 ιδιοκτήτης, 2 επαγγελματίας, 3 γραφείο).
+  const RANK_ΒΑΣΗΣ: Record<string, number> = { free: 0, owner: 1, agency: 2, office: 3 }
+  ok('η θέση κάθε πλάνου ταυτίζεται με το rank της βάσης',
+    PLAN_RANK_ORDER.every((p, i) => RANK_ΒΑΣΗΣ[p] === i))
+  ok('κανένα πλάνο δεν λείπει από τη σειρά rank',
+    PLAN_RANK_ORDER.length === Object.keys(RANK_ΒΑΣΗΣ).length)
   const d = dailyLimitsByRank(), m = monthlyLimitsByRank()
   ok('ο πίνακας ημερήσιων έχει μία θέση ανά πλάνο', d.length === PLAN_RANK_ORDER.length)
   ok('ο πίνακας μηνιαίων έχει μία θέση ανά πλάνο', m.length === PLAN_RANK_ORDER.length)
@@ -128,8 +137,13 @@ const EUR_TO_USD = 1.08
   }
   // Ο επαγγελματίας ΔΕΝ πρέπει να δέχεται πρόταση αναβάθμισης — δεν υπάρχει
   // ανώτερο πλάνο, και το να του προτείνεις ένα είναι κοροϊδία.
-  ok('ο επαγγελματίας δεν καλείται να «αναβαθμίσει»',
-    !/αναβαθμ/i.test(dailyExhaustedMessage('agency')) && !/αναβαθμ/i.test(monthlyExhaustedMessage('agency')))
+  // Ισχύει για ΚΑΘΕ πλάνο χωρίς ανώτερο, όχι μόνο για τον επαγγελματία: μόλις
+  // μπήκε το «Γραφείο», ένας σκέτος έλεγχος για 'agency' θα άφηνε τον κάτοχο του
+  // ακριβότερου πλάνου να διαβάζει «αναβάθμισε» — και δεν υπάρχει πού.
+  for (const κορυφή of ['agency', 'office'] as PlanId[]) {
+    ok(`το πλάνο «${κορυφή}» δεν καλείται να «αναβαθμίσει»`,
+      !/αναβαθμ/i.test(dailyExhaustedMessage(κορυφή)) && !/αναβαθμ/i.test(monthlyExhaustedMessage(κορυφή)))
+  }
   ok('ο δωρεάν ΚΑΛΕΙΤΑΙ να αναβαθμίσει', /αναβαθμ/i.test(monthlyExhaustedMessage('free')))
 
   // Το μήνυμα της δεξαμενής αφορά κάτι που ΔΕΝ έφταιξε ο χρήστης. Δεν επιτρέπεται
