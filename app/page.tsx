@@ -394,6 +394,34 @@ export default async function Landing() {
            του, με τις βάσεις των δύο ευθυγραμμισμένες. Κερδίζουμε και ύψος:
            η στοιβαγμένη κεφαλίδα ήταν περίπου 140px, η ζυγισμένη είναι 90px.
            Επί έξι ενότητες, 300px λιγότερη κύλιση χωρίς να λείψει λέξη. */
+        /* ── ΓΡΑΜΜΗ ΠΡΟΟΔΟΥ ΑΝΑΓΝΩΣΗΣ ───────────────────────────────────────
+           Δύο εικονοστοιχεία στην κορυφή που γεμίζουν όσο κατεβαίνει η σελίδα.
+           Σε σελίδα εννέα χιλιάδων εικονοστοιχείων, ο επισκέπτης δεν έχει καμία
+           αίσθηση του πόσο απομένει· η μπάρα του τη δίνει χωρίς να ζητήσει
+           τίποτα και χωρίς να καταλάβει χώρο.
+
+           ΧΩΡΙΣ ΚΑΘΟΛΟΥ JAVASCRIPT: το animation-timeline: scroll() δένει την
+           κίνηση απευθείας στη θέση κύλισης, οπότε δεν υπάρχει ακροατής, δεν
+           υπάρχει επανασχεδίαση ανά καρέ και δεν υπάρχει καθυστέρηση.
+
+           ΓΙΑΤΙ ΜΕΣΑ ΣΕ @supports: όπου δεν υποστηρίζεται, το animation-timeline
+           αγνοείται ΑΛΛΑ η κίνηση παραμένει. Με μηδενική διάρκεια θα πήγαινε
+           κατευθείαν στο τελικό καρέ, δηλαδή μια μόνιμα γεμάτη μπάρα που δεν
+           σημαίνει τίποτα. Έτσι, όπου δεν υπάρχει η δυνατότητα, δεν υπάρχει και
+           το στοιχείο. */
+        .lp-progress { display: none; }
+        @supports (animation-timeline: scroll()) {
+          .lp-progress {
+            display: block; position: fixed; inset: 0 0 auto 0; height: 2px;
+            z-index: 60; pointer-events: none; transform-origin: 0 50%;
+            background: linear-gradient(90deg, var(--accent), #5ee0ff);
+            animation: lpProgress linear both;
+            animation-timeline: scroll(root block);
+          }
+        }
+        @keyframes lpProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        @media (prefers-reduced-motion: reduce) { .lp-progress { display: none; } }
+
         .lp-hair {
           height: 1px; border: 0; margin: 0 0 clamp(18px, 2.4vw, 28px);
           background: linear-gradient(90deg,
@@ -521,6 +549,8 @@ export default async function Landing() {
       `}</style>
 
       <a href="#main" className="lp-skip">Μετάβαση στο περιεχόμενο</a>
+
+      <div className="lp-progress" aria-hidden="true" />
 
       {/* Το σταθερό στρώμα ατμόσφαιρας: πλέγμα, τρίτη αύρα, κόκκος, βινιέτα.
           Είναι `fixed` ώστε να μην υπάρχει ραφή ανάμεσα στις ενότητες καθώς
@@ -681,7 +711,7 @@ export default async function Landing() {
       {/* ── Scrollytelling: το προϊόν μένει sticky και αλλάζει πράξη όσο διαβάζεις.
              ΠΡΟΣΟΧΗ: χωρίς lp-reveal εδώ (transform στον πρόγονο σπάει το sticky). */}
       <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(28px, 3.6vw, 46px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
-        <SectionHead over="Πώς δουλεύει" title="Τρεις κινήσεις. Πλήρης έλεγχος." sub="Από τη φωτογραφία του εγγράφου μέχρι την απόφαση, χωρίς ενδιάμεσο πληκτρολόγιο." />
+        <SectionHead over="Πώς δουλεύει" title="Τρεις κινήσεις, και το ακίνητο μπαίνει σε τάξη" sub="Φωτογραφίζεις, ρωτάς, αποφασίζεις. Ό,τι μεσολαβεί το αναλαμβάνει η εφαρμογή." />
         <ScrollStory />
       </section>
 
@@ -757,6 +787,41 @@ export default async function Landing() {
         </div>
       </section>
 
+      {/* ── Γιατί υπάρχει ───────────────────────────────────────────────────
+             ΓΙΑΤΙ ΜΠΑΙΝΕΙ ΕΔΩ, ΑΚΡΙΒΩΣ ΠΡΙΝ ΤΗΝ ΤΙΜΗ: μέχρι αυτό το σημείο η
+             σελίδα έχει αποδείξει ΤΙ κάνει. Δεν έχει πει ποτέ ΓΙΑΤΙ. Ένας
+             επισκέπτης που θα δει τιμή σε δέκα δευτερόλεπτα θέλει πρώτα να
+             καταλάβει ότι απέναντί του υπάρχει κάποιος που ξέρει το πρόβλημα.
+
+             ΓΙΑΤΙ ΧΩΡΙΣ ΚΑΡΤΑ ΚΑΙ ΧΩΡΙΣ ΠΛΑΙΣΙΟ: όλη η σελίδα είναι κάρτες και
+             πλέγματα. Μια φωνή μέσα σε κάρτα γίνεται άλλη μια δυνατότητα. Γυμνό
+             κείμενο, σε μεγαλύτερο μέγεθος και με αέρα γύρω του, διαβάζεται ως
+             κάποιος που μιλάει.
+
+             ΤΙ ΔΕΝ ΛΕΕΙ: δεν επικαλείται βιογραφία, ιδρυτές ή ιστορίες που δεν
+             μπορεί να επαληθεύσει ο αναγνώστης. Περιγράφει ένα πρόβλημα που
+             αναγνωρίζει όποιος έχει ακίνητο στην Ελλάδα, και σταματά εκεί. */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(10px, 1.6vw, 20px)', paddingBottom: 'clamp(34px, 4.6vw, 62px)' }}>
+        <hr className="lp-hair" />
+        <div style={{ maxWidth: 760 }}>
+          <div className="lp-eyebrow">Γιατί υπάρχει</div>
+          <p style={{ fontSize: 'clamp(17px, 2.1vw, 21px)', lineHeight: 1.62, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.014em', fontWeight: 450 }}>
+            Ένα διαμέρισμα αρκεί για να χαθείς. Ο λογαριασμός του ρεύματος σε ένα συρτάρι,
+            το μισθωτήριο σε ένα email, η προθεσμία του ΕΝΦΙΑ στο μυαλό σου, και μια φορά
+            τον χρόνο ένας λογιστής που ζητά ακριβώς όσα δεν κράτησες.
+          </p>
+          <p style={{ fontSize: 15.5, lineHeight: 1.7, color: MUTED, margin: '0 0 20px', maxWidth: 660 }}>
+            Τα φύλλα Excel και οι εφαρμογές σημειώσεων δεν φταίνε. Απλώς δεν ξέρουν τι είναι
+            τα κοινόχρηστα, το Ε2 ή η Δήλωση Μίσθωσης, και δεν πρόκειται να μάθουν. Το
+            Property OS ξεκίνησε από εκεί: ένα εργαλείο που μιλάει τη γλώσσα του ελληνικού
+            ακινήτου, αντί για ένα ξένο εργαλείο μεταφρασμένο στα ελληνικά.
+          </p>
+          <Link href="/trust" className="lp-link" style={{ color: ACCENT, textDecoration: 'none', fontSize: 14.5, fontWeight: 650 }}>
+            Ποιοι είμαστε και πού βρίσκονται τα δεδομένα σου{' '}→
+          </Link>
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(30px, 4.2vw, 56px)' }}>
         <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Μείνε επειδή αξίζει." sub="Το πρώτο ακίνητο μένει δωρεάν για πάντα, και κάθε νέος λογαριασμός παίρνει 30 ημέρες δοκιμή του Ιδιοκτήτη χωρίς κάρτα. Αναβαθμίζεις μόνο όταν μεγαλώνει το χαρτοφυλάκιό σου." />
@@ -800,7 +865,7 @@ export default async function Landing() {
 
       {/* ── Σύσταση: δύο διακριτά προγράμματα, ιδιώτη και επαγγελματία ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(30px, 4.2vw, 56px)' }}>
-        <SectionHead over="Σύσταση" title="Μοιράσου το. Κερδίστε και οι δύο." sub="Κάθε ιδιοκτήτης που ξεκινά με τη σύστασή σου παίρνει δώρο, κι εσύ ανταμείβεσαι. Για τους επαγγελματίες, γίνεται σταθερή πηγή εισοδήματος." />
+        <SectionHead over="Σύσταση" title="Κάθε σύσταση ανταμείβει και τους δύο" sub="Κάθε ιδιοκτήτης που ξεκινά με τη σύστασή σου παίρνει δώρο, κι εσύ ανταμείβεσαι. Για τους επαγγελματίες, γίνεται σταθερή πηγή εισοδήματος." />
         <div className="lp-duo" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
           {REFERRAL.map((r, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 30px)' }}>
