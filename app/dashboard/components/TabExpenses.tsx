@@ -268,11 +268,11 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
       });
       setPreview(URL.createObjectURL(file));
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/anthropic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-5',
           max_tokens: 1000,
           messages: [{
             role: 'user',
@@ -302,8 +302,19 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
       });
 
       const data = await response.json();
-      const text = data.content?.[0]?.text || '';
-      const clean = text.replace(/```json|```/g, '').trim();
+      if (!response.ok || data?.error) {
+        const raw = String(data?.error || '');
+        setError(
+          response.status === 429
+            ? 'Έφτασες το όριο σαρώσεων για σήμερα. Δοκίμασε αύριο ή καταχώρησε τη δαπάνη με το χέρι.'
+            : raw.includes('ANTHROPIC_API_KEY')
+              ? 'Η σάρωση δεν είναι ρυθμισμένη σε αυτό το περιβάλλον.'
+              : 'Η υπηρεσία σάρωσης δεν απάντησε. Δοκίμασε σε λίγο ή καταχώρησε τη δαπάνη με το χέρι.'
+        );
+        return;
+      }
+      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '';
+      const clean = text.replace(/```json?|```/g, '').trim();
       const parsed = JSON.parse(clean);
 
       const today = new Date().toISOString().split('T')[0];
