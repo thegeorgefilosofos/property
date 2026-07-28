@@ -8,7 +8,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState } from '@/components/Theme';
+import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import DateField from './DateField';
 import { CustomSelect as Select } from './UIComponents';
@@ -136,7 +137,9 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const lbl = { ...TT.label, marginBottom: 6 } as React.CSSProperties;
   const onFieldFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
-  const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 12.5, fontWeight: 600, height: 34, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'all 0.15s' });
+  // Ύψος από την κοινή κλίμακα: το ίδιο segmented control ζει αυτούσιο και στο
+  // LeaseModal με το ίδιο literal 34, οπότε κάθε τοπική αλλαγή τα ξεσυγχρόνιζε.
+  const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 12.5, fontWeight: 600, height: T.h.md, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'all 0.15s' });
   const METHOD_HINT: Record<AdjMethod, string> = {
     percent: 'Σταθερό ποσοστό αύξησης, όπως το συμφωνήσατε στο μισθωτήριο.',
     cpi: 'Επίσημος Δείκτης Τιμών Καταναλωτή της ΕΛΣΤΑΤ. Βάλε την ετήσια μεταβολή.',
@@ -166,7 +169,10 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
         </div>
 
         <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
+          {/* Κοινά primitives αντί για δύο γυμνές γραμμές κειμένου: η ίδια «Φόρτωση…»
+              και το ίδιο «δεν υπάρχουν ακίνητα» υπήρχαν αυτούσια σε LeaseModal και
+              OwnerSplit, με διαφορετική στοίχιση σε κάθε παράθυρο. */}
+          {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Δεν υπάρχουν ακίνητα" hint="Πρόσθεσε ακίνητο για να συντάξεις δήλωση αναπροσαρμογής." /> : (
             <>
               <ScanButton label="Σάρωσε έγγραφο" hint="Γρήγορη καταχώρηση στοιχείων." onExtract={doc => {
                 if (doc.tenant_name) setTenant(doc.tenant_name);

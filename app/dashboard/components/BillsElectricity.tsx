@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Skeleton } from '@/components/Theme';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const fk = (n: number) => `${n.toFixed(4)} €`;
@@ -272,7 +272,10 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   const currentMonth = new Date().getMonth();
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
 
-  const [s, su] = useBillsSettings(propertyId, userId || '', 'electricity', ELEC_DEFAULTS);
+  // Το τρίτο στοιχείο (loading) αγνοούνταν: η καρτέλα «Ρεύμα» εμφάνιζε τα
+  // ELEC_DEFAULTS (ΔΕΗ, 250 kWh) σαν να ήταν τα αποθηκευμένα στοιχεία του χρήστη και
+  // μετά τα αντικαθιστούσε σιωπηλά — ο χρήστης προλάβαινε να διαβάσει λάθος κόστος.
+  const [s, su, loading] = useBillsSettings(propertyId, userId || '', 'electricity', ELEC_DEFAULTS);
 
   // State
   const [provider,         setProvider]         = useState('dei');
@@ -418,6 +421,19 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     </div>
   );
 
+  // Ο σκελετός μπαίνει ΜΕΤΑ από όλα τα hooks (κανόνας των hooks) και αντιγράφει το
+  // πραγματικό σχήμα της καρτέλας: κεφαλίδα + τρεις στοιβαγμένες κάρτες. Σκελετός
+  // KPIs θα υποσχόταν σειρά μετρικών που αυτή η καρτέλα δεν έχει καθόλου.
+  if (loading) return (
+    <div style={{ fontFamily: T.font.sans }}>
+      <div style={{ marginBottom: 16 }}>
+        <Skeleton w={110} h={20} r={6} />
+        <Skeleton w={320} h={12} r={6} style={{ marginTop: 8 }} />
+      </div>
+      {[220, 180, 140].map((h, i) => <Skeleton key={i} h={h} r={T.radius.card} style={{ marginBottom: 16 }} />)}
+    </div>
+  );
+
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
@@ -458,14 +474,14 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               const firstId = prov?.tariffs[0]?.id || '';
               setTariffId(firstId);
               save({ elecProvider: p, elecTariff: firstId });
-            }} style={{ width: '100%', height: 40, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
+            }} style={{ width: '100%', height: T.h.lg, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
               {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 7, fontFamily: T.font.sans }}>Τιμολόγιο</div>
             <select value={tariffId} onChange={e => { setTariffId(e.target.value); save({ elecTariff: e.target.value }); }}
-              style={{ width: '100%', height: 40, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
+              style={{ width: '100%', height: T.h.lg, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
               {providerObj.tariffs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
@@ -569,7 +585,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Ηλεκτρονικός Λογαριασμός</div>
               <button type="button" role="switch" aria-checked={useEbill}
                 onClick={() => { const v = !useEbill; setUseEbill(v); save({ useEbill: v }); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, height: 40, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, height: T.h.lg, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
                 <span style={{ width: 40, height: 26, borderRadius: 12, padding: 2, flexShrink: 0, background: useEbill ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
                   <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: useEbill ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
                 </span>

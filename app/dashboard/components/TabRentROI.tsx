@@ -8,7 +8,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
-import { Spinner, fe, fn, T } from '@/components/Theme';
+import { EmptyState, Skeleton, SkeletonKPIs, fe, fn, T } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -329,7 +329,7 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
   return (
     <div style={{ display: 'flex', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 2, gap: 2 }}>
       {options.map(([v, label]) => (
-        <button key={v} onClick={() => onChange(v)} style={{ height: 32, padding: '0 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontFamily: SANS, fontWeight: value === v ? 600 : 500, background: value === v ? 'var(--accent)' : 'transparent', color: value === v ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'all 0.15s' }}>{label}</button>
+        <button key={v} onClick={() => onChange(v)} style={{ height: T.h.sm, padding: '0 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontFamily: SANS, fontWeight: value === v ? 600 : 500, background: value === v ? 'var(--accent)' : 'transparent', color: value === v ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'all 0.15s' }}>{label}</button>
       ))}
     </div>
   );
@@ -821,7 +821,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     finally { setGenOfficial(false); }
   };
 
-  if (loading) return <div style={{ padding: 40 }}><Spinner label="Φόρτωση αποδόσεων…" /></div>;
+  // Σκελετός αντί για δείκτη: το σχήμα της καρτέλας είναι γνωστό εκ των προτέρων
+  // (σειρά μετρικών + κάρτες ανάλυσης), οπότε το περιεχόμενο δεν «πετάγεται» όταν φορτώσει.
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <SkeletonKPIs n={4} />
+      <div style={g4}>{[0, 1].map(i => <Skeleton key={i} h={140} r={14} />)}</div>
+    </div>
+  );
 
   const regimeLabel = pro ? (entity === 'company' ? 'Επιχείρηση · Νομικό πρόσωπο' : 'Επιχείρηση · Φυσικό πρόσωπο') : 'Ιδιώτης';
   const empty = term === 'short' ? (nVal <= 0 || grossAnnual <= 0) : (nVal <= 0 || nRent <= 0);
@@ -838,10 +845,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           {pro && <Seg value={entity} onChange={setEntity} options={[['sole', 'Φυσικό πρόσωπο'], ['company', 'Νομικό πρόσωπο']]} />}
           <Seg value={term} onChange={setTerm} options={[['long', 'Μακροχρόνια'], ['short', 'Βραχυχρόνια']]} />
           {!empty && (<>
-            <button onClick={printReport} className="acc-toggle" style={{ height: 36, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ArrowUpRight size={14} /> Αναφορά PDF
             </button>
-            <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: 36, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}
             </button>
           </>)}
@@ -898,7 +905,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             )}
           </div>
         )}
-        {empty && <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS }}>{term === 'short' ? 'Συμπλήρωσε αξία, πληρότητα και τιμή ανά νύχτα για να δεις τις αποδόσεις.' : 'Συμπλήρωσε αξία και ενοίκιο για να δεις τις αποδόσεις.'}</p>}
+        {empty && (
+          <EmptyState
+            icon={<Percent size={20} />}
+            title="Λείπουν στοιχεία για υπολογισμό"
+            hint={term === 'short' ? 'Συμπλήρωσε αξία, πληρότητα και τιμή ανά νύχτα.' : 'Συμπλήρωσε αξία ακινήτου και μηνιαίο μίσθωμα.'}
+          />
+        )}
       </div>
 
       {!empty && (<>

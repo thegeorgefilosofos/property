@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { T } from '@/components/Theme';
+import { T, Card, EmptyState } from '@/components/Theme';
+import { Receipt, CreditCard } from 'lucide-react';
 
 interface Expense {
   id: string; amount: number; category: string; expense_group: string | null;
@@ -42,13 +43,6 @@ const fmtEur2 = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDig
 const num = (n: number): React.CSSProperties => ({ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' } as React.CSSProperties);
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
-const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-elevated)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: 14,
-  padding: 18,
-};
-
 const SectionLabel = ({ label }: { label: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
@@ -354,7 +348,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginBottom: 14 }}>
 
         {/* Ανά πληρωτή */}
-        <div style={cardStyle}>
+        <Card pad="md" gap={false}>
           <SectionLabel label="Ποιος πληρώνει" />
           <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
             <DonutChart data={paidByData} size={124} />
@@ -368,18 +362,18 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               ))}
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Ανά ομάδα */}
-        <div style={cardStyle}>
+        <Card pad="md" gap={false}>
           <SectionLabel label="Πού πάνε τα χρήματα" />
           {groupData.length > 0
             ? <RankBars data={groupData} total={stats.total} />
-            : <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Καμία κίνηση στην περίοδο</div>}
-        </div>
+            : <EmptyState icon={<Receipt size={20} />} title="Καμία κίνηση στην περίοδο" hint="Άλλαξε περίοδο ή καταχώρησε δαπάνες για να δεις πού πάνε τα χρήματα." />}
+        </Card>
 
         {/* Σωρευτικές έτους */}
-        <div style={cardStyle}>
+        <Card pad="md" gap={false}>
           <SectionLabel label={`Σύνολο από την αρχή του ${thisYear}`} />
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', ...num(0), letterSpacing: '-0.02em' }}>
@@ -390,18 +384,18 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             </div>
           </div>
           <Area data={stats.ytdData} height={72} />
-        </div>
+        </Card>
       </div>
 
       {/* Row 2: 12 μήνες + τρόποι πληρωμής */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 14, marginBottom: 14 }}>
 
-        <div style={cardStyle}>
+        <Card pad="md" gap={false}>
           <SectionLabel label="Δαπάνες ανά μήνα" />
           <MonthBars data={stats.monthlyData} labels={stats.monthlyLabels} currentIdx={11} height={132} />
-        </div>
+        </Card>
 
-        <div className="po-fig-card" tabIndex={0} style={cardStyle}>
+        <Card className="po-fig-card" tabIndex={0} pad="md" gap={false}>
           <SectionLabel label="Τρόποι πληρωμής" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {Object.entries(stats.byPayment).sort(([, a], [, b]) => b - a).slice(0, 6).map(([m, amt], i) => {
@@ -419,7 +413,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               );
             })}
             {Object.keys(stats.byPayment).length === 0 && (
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Δεν έχει καταχωρηθεί τρόπος πληρωμής</div>
+              <EmptyState icon={<CreditCard size={20} />} title="Κανένας τρόπος πληρωμής" hint="Δήλωσε κάρτα ή μετρητά στις δαπάνες για να δεις κατανομή και επιστροφές χρημάτων." />
             )}
             {stats.totalCashback > 0 && (
               <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -428,7 +422,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

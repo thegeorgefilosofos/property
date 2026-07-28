@@ -143,7 +143,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
           {rows.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
               <button type="button" onClick={doImport} disabled={busy || !selectedCount}
-                style={{ height: 36, padding: '0 18px', borderRadius: T.radius.inner, border: 'none', background: selectedCount && !busy ? 'var(--accent)' : 'var(--bg-elevated)', color: selectedCount && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: selectedCount && !busy ? 'pointer' : 'default', transition: 'all 0.15s' }}>
+                style={{ height: T.h.md, padding: '0 18px', borderRadius: T.radius.inner, border: 'none', background: selectedCount && !busy ? 'var(--accent)' : 'var(--bg-elevated)', color: selectedCount && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: selectedCount && !busy ? 'pointer' : 'default', transition: 'all 0.15s' }}>
                 {busy ? 'Εισαγωγή…' : `Εισαγωγή ${selectedCount} δαπανών`}
               </button>
               {selectedCount > 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σύνολο <span style={{ fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{feAuto(selectedTotal)}</span></span>}

@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
-import { T, feAuto } from '@/components/Theme';
+import { T, feAuto, Card } from '@/components/Theme';
 
 interface Expense { category: string; amount: number; date: string }
 interface Stay { check_in: string | null; check_out: string | null; nights: number | null; total: number | null }
@@ -40,7 +40,6 @@ export default function AccountantPortal() {
   }, [token, year]);
 
   const wrap: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '0 clamp(16px,5vw,24px)' };
-  const card: React.CSSProperties = { background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' };
 
   // Σύνολα (ο φόρος εισοδήματος είναι προοδευτικός στο ΣΥΝΟΛΟ των ενοικίων)
   const props = data?.properties || [];
@@ -82,20 +81,20 @@ export default function AccountantPortal() {
         {state === 'loading' && <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: 60 }}>Φόρτωση…</div>}
 
         {state === 'notfound' && (
-          <div style={{ ...card, textAlign: 'center' }}>
+          <Card style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Ο σύνδεσμος δεν είναι έγκυρος</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>Ζήτησε από τον ιδιοκτήτη έναν ενημερωμένο σύνδεσμο.</div>
-          </div>
+          </Card>
         )}
 
         {state === 'ok' && data && (
           <>
-            <div style={card}>
+            <Card>
               <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 2 }}>{data.owner || 'Ιδιοκτήτης'}</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Οικονομική εικόνα ακινήτων · φορολογικό έτος {year}</div>
-            </div>
+            </Card>
 
-            <div style={card}>
+            <Card>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Σύνοψη έτους</div>
               {row('Συνολικά έσοδα από ενοίκια/βραχυχρόνια', feAuto(totalIncome))}
               {row('Συνολικές καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
@@ -103,10 +102,10 @@ export default function AccountantPortal() {
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
                 Οι αριθμοί είναι ενδεικτικοί, βάσει των καταχωρήσεων του ιδιοκτήτη. Ο φόρος υπολογίζεται με την κλίμακα ενοικίων (15% έως 35.000 €, 35% έως 45.000 €, 45% άνω). Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
               </div>
-            </div>
+            </Card>
 
             {perProp.map((x, i) => (
-              <div key={i} style={card}>
+              <Card key={i}>
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{x.p.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{[x.p.address, x.p.atak ? `ΑΤΑΚ ${x.p.atak}` : null].filter(Boolean).join(' · ') || 'Χωρίς στοιχεία'}</div>
                 {x.rentAnnual > 0 && row('Ενοίκια (ετήσια)', feAuto(x.rentAnnual))}
@@ -123,10 +122,10 @@ export default function AccountantPortal() {
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
             ))}
 
-            {props.length === 0 && <div style={{ ...card, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Δεν υπάρχουν ακίνητα για αυτή τη χρονιά.</div>}
+            {props.length === 0 && <Card style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Δεν υπάρχουν ακίνητα για αυτή τη χρονιά.</Card>}
             <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Powered by Property OS · read-only · <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Απόρρητο</a></div>
           </>
         )}

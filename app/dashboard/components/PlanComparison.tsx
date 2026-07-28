@@ -17,13 +17,22 @@ import { PLANS, PLAN_ORDER, annualPerMonth, type PlanId } from '@/lib/billing/pl
 import { isPlanAllowedForProfile } from '@/lib/billing/entitlements';
 import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto } from '@/components/Theme';
 
+// ── Ποια πλάνα συγκρίνονται εδώ ─────────────────────────────────────────────
+// ΟΧΙ όλα. Το «Γραφείο» είναι πλάνο για χαρτοφυλάκια άνω των 40 ακινήτων και δεν
+// αγοράζεται συγκρίνοντας γραμμές σε πίνακα — αγοράζεται με συνομιλία. Μπαίνοντάς
+// το ως τέταρτη στήλη θα στρίμωχνε τις τρεις που ΠΡΑΓΜΑΤΙΚΑ επιλέγει ο χρήστης,
+// ιδίως σε κινητό, για να διαφημίσει κάτι που αφορά ελάχιστους. Αναφέρεται με μία
+// γραμμή κάτω από τον πίνακα, εκεί που ανήκει.
+type ComparedPlan = Extract<PlanId, 'free' | 'owner' | 'agency'>;
+const COMPARED: ComparedPlan[] = ['free', 'owner', 'agency'];
+
 // ── Πίνακας δυνατοτήτων (μία πηγή, καθρεφτίζει τα entitlements) ─────────────
 type CellValue = boolean | string;
-interface FeatureRow { label: string; values: Record<PlanId, CellValue> }
+interface FeatureRow { label: string; values: Record<ComparedPlan, CellValue> }
 
 /** Το όριο ακινήτων γράφεται ΠΑΝΤΑ από τα PLANS, ποτέ με το χέρι: αλλιώς ο
  *  πίνακας αποκλίνει σιωπηλά από αυτό που επιβάλλει ο server. */
-const limitLabel = (id: PlanId): string => {
+const limitLabel = (id: ComparedPlan): string => {
   const n = PLANS[id].maxProperties;
   if (!Number.isFinite(n)) return 'Απεριόριστα';
   return n === 1 ? '1' : `Έως ${n}`;
@@ -87,11 +96,14 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
   // Κέρδος: κελί ανώτερου πλάνου που προσφέρει κάτι που δεν έχει το τρέχον.
   // boolean → true εκεί & false στο τρέχον. string («Ακίνητα») → κάθε ανώτερο
   // πλάνο (περισσότερα ακίνητα). Η στήλη του τρέχοντος δεν γίνεται ποτέ «κέρδος».
-  const isGain = (row: FeatureRow, id: PlanId): boolean => {
+  const isGain = (row: FeatureRow, id: ComparedPlan): boolean => {
     if (rankOf(id) <= curRank) return false;
     const v = row.values[id];
     if (typeof v === 'string') return true;
-    return v === true && row.values[currentPlan] === false;
+    // Το «Γραφείο» δεν εμφανίζεται στον πίνακα· αν ο χρήστης είναι ήδη εκεί,
+    // δεν έχει τίποτα να «κερδίσει» από τις στήλες που βλέπει.
+    const shown = COMPARED.includes(currentPlan as ComparedPlan) ? (currentPlan as ComparedPlan) : 'agency';
+    return v === true && row.values[shown] === false;
   };
 
   return (
@@ -110,7 +122,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
         } />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
-          {PLAN_ORDER.map(id => {
+          {COMPARED.map(id => {
             const p = PLANS[id];
             const isCurrent = id === currentPlan;
             const allowed = isPlanAllowedForProfile(profileType, id);
@@ -204,7 +216,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
             {/* Κεφαλίδα πίνακα: επανάληψη ονομάτων, μικρά & διακριτικά */}
             <div style={{ display: 'grid', gridTemplateColumns: MATRIX_GRID, alignItems: 'end', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 10 }}>
               <div />
-              {PLAN_ORDER.map(id => (
+              {COMPARED.map(id => (
                 <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
                 </div>
@@ -215,7 +227,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
             {MATRIX.map(row => (
               <div key={row.label} style={{ display: 'grid', gridTemplateColumns: MATRIX_GRID, alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.4, padding: '13px 12px 13px 2px' }}>{row.label}</div>
-                {PLAN_ORDER.map(id => {
+                {COMPARED.map(id => {
                   const v = row.values[id];
                   const gain = isGain(row, id);
                   let content: ReactNode;

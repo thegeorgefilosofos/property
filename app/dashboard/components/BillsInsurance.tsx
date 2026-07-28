@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe } from '@/components/Theme';
+import { T, fe, InfoBanner, Skeleton, SkeletonKPIs } from '@/components/Theme';
 
 const INSURANCEMARKET_URL = 'https://www.insurancemarket.gr/asfaleia-katoikias';
 const PRICEFOX_URL = 'https://www.pricefox.gr/asfalia-katoikias/';
@@ -335,7 +335,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     })();
   }, [propertyId]);
 
-  const [ps, updPs] = useBillsSettings(propertyId, userId, 'insurance', {
+  const [ps, updPs, loading] = useBillsSettings(propertyId, userId, 'insurance', {
     insProvider: 'hellas_direct', insPlanId: 'hd_basic',
     insCustomPrice: '', insCustomPlanName: '',
     insAgentName: '', insAgentPhone: '', insRenewalDate: '',
@@ -552,6 +552,15 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
+    </div>
+  );
+
+  // Πριν, όσο φόρτωναν οι ρυθμίσεις η καρτέλα έδειχνε ΤΙΠΟΤΑ ενδεικτικό: τα πεδία
+  // εμφανίζονταν άδεια και μετά γέμιζαν απότομα, σαν να έσβησε κάτι ο χρήστης.
+  if (loading) return (
+    <div style={{ fontFamily: T.font.sans }}>
+      <SkeletonKPIs n={3} />
+      {[0, 1].map(i => <Skeleton key={i} h={120} r={14} style={{ marginBottom: 12 }} />)}
     </div>
   );
 
@@ -787,9 +796,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         )}
 
         {(!parseFloat(effectiveSqm) || !parseFloat(insPropValue)) && (
-          <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Συμπλήρωσε εμβαδόν + αξία κτηρίου για Συγκριτική Εκτίμηση Ασφαλίστρων προγραμμάτων
-          </div>
+          // Τα σκληροκωδικοποιημένα rgba(26,115,232,…) αγνοούσαν τα tokens: στο σκούρο
+          // θέμα το πλαίσιο έμενε γαλάζιο-σε-γαλάζιο. Το InfoBanner παίρνει χρώμα από τον τόνο.
+          <InfoBanner tone="info">Συμπλήρωσε εμβαδόν + αξία κτηρίου για Συγκριτική Εκτίμηση Ασφαλίστρων προγραμμάτων</InfoBanner>
         )}
 
         {/* ── Current plan selection ────────────────────────────────────── */}
@@ -969,7 +978,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={() => { if (newSubName && newSubPrice) { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); } }}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 40, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: T.h.lg, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
               + Προσθήκη
             </button>
           </div>

@@ -125,7 +125,7 @@ export default function GuestCheckin() {
                   </div>
 
                   {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
-                  <button type="submit" disabled={sending || !fullName.trim() || !privacyConsent} style={{ height: 40, borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: (sending || !fullName.trim() || !privacyConsent) ? 'not-allowed' : 'pointer', opacity: (sending || !fullName.trim() || !privacyConsent) ? 0.6 : 1, fontFamily: 'inherit' }}>
+                  <button type="submit" disabled={sending || !fullName.trim() || !privacyConsent} style={{ height: T.h.lg, borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: (sending || !fullName.trim() || !privacyConsent) ? 'not-allowed' : 'pointer', opacity: (sending || !fullName.trim() || !privacyConsent) ? 0.6 : 1, fontFamily: 'inherit' }}>
                     {sending ? 'Αποστολή…' : 'Αποστολή στοιχείων'}
                   </button>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>

@@ -80,7 +80,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                 : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πλάνο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: 36, height: 36, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: T.h.md, height: T.h.md, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, margin: '22px 0 20px' }}>

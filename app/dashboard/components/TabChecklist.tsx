@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Btn, EmptyState, type KPIItem } from '@/components/Theme'
+import { T, fn, PageTitle, KPIGrid, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, type KPIItem } from '@/components/Theme'
+import { notify, notifyOk } from '@/components/Toast'
+import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
@@ -328,7 +330,7 @@ function CommentsEditor({ comments, onChange }: { comments: Comment[]; onChange:
         <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
-        {comments.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: 13, textAlign: 'center', padding: 16 }}>Δεν υπάρχουν σχόλια ακόμα</p>}
+        {comments.length === 0 && <EmptyState icon={<MessageSquare size={20} />} title="Δεν υπάρχουν σχόλια ακόμα" hint="Γράψε σημείωση για να κρατήσεις το ιστορικό της εκκρεμότητας." />}
         {comments.map(c => (
           <div key={c.id} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)', position: 'relative' }}>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{new Date(c.ts).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
@@ -1255,7 +1257,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 28px 16px', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
           <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}</h3>
-          <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: T.h.sm, height: T.h.sm, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="π.χ. Service καλοριφέρ" /></div>
@@ -1355,7 +1357,7 @@ function ExportMenu({ onExcel, onPdf, onHandover }: { onExcel: () => void; onPdf
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button type="button" onClick={() => setOpen(o => !o)} title="Εξαγωγή δεδομένων"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid ' + (open ? 'var(--accent)' : 'var(--border-default)'), background: open ? 'var(--accent-soft)' : 'transparent', color: open ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid ' + (open ? 'var(--accent)' : 'var(--border-default)'), background: open ? 'var(--accent-soft)' : 'transparent', color: open ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
         Εξαγωγή
         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="m6 9 6 6 6-6"/></svg>
@@ -1391,7 +1393,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const [editItem, setEditItem] = useState<ChecklistItem | null>(null)
   const [showTemplates, setShowTemplates] = useState(false)
   const [quickExpenseItem, setQuickExpenseItem] = useState<ChecklistItem | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
@@ -1405,8 +1406,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const prevPct = useRef(0)
   const branding = useReportBranding(userId)
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3200) }
-
+  // Το τοπικό toast έφευγε στον κοινό host: ο δικός του setTimeout δεν καθαριζόταν
+  // ποτέ σε unmount (διαρροή) και το z-index 9998 έκανε αυτή την καρτέλα να απαντά
+  // αλλιώς από κάθε άλλη.
   const fetchAll = useCallback(async () => {
     setLoading(true)
     const [{ data: itemData }, { data: contactData }, { data: tenantData }] = await Promise.all([
@@ -1528,7 +1530,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       }
     }
     setShowAddModal(false); setEditItem(null); fetchAll()
-    showToast(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε, μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
+    notifyOk(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε, μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
   }
 
   const togglingRef = useRef<Set<string>>(new Set())
@@ -1553,7 +1555,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           }).select('id').single()
           const recId = (rec as { id?: string } | null)?.id
           if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
-          showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
+          notifyOk(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
         }
       } else {
         // Επαναφορά (done → pending): η δαπάνη ξαναγίνεται εκκρεμής, το event ξανανοίγει.
@@ -1566,7 +1568,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   const duplicateItem = async (item: ChecklistItem) => {
     await supabase.from('checklist_items').insert({ property_id: item.property_id, user_id: item.user_id, description: item.description + ' (αντίγραφο)', category: item.category, priority: item.priority, recurring: item.recurring, due_date: item.due_date, status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: item._subtasks || [], comments: [], tags: item._tags || [] }), estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: (item.sort_order || 0) + 1 })
-    fetchAll(); showToast('Η εργασία αντιγράφηκε')
+    fetchAll(); notifyOk('Η εργασία αντιγράφηκε')
   }
 
   const deleteItem = async (id: string) => {
@@ -1574,7 +1576,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     if (it?.calendar_event_id) await supabase.from('calendar_events').delete().eq('id', it.calendar_event_id)
     if (it?.expense_id) await supabase.from('expenses').delete().eq('id', it.expense_id).eq('paid', false)
     await supabase.from('checklist_items').delete().eq('id', id)
-    setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); showToast('Η εκκρεμότητα διαγράφηκε')
+    setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); notify('Η εκκρεμότητα διαγράφηκε')
   }
 
   const addToCalendar = async (item: ChecklistItem) => {
@@ -1584,20 +1586,20 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Το Ημερολόγιο δέχεται low|medium|high|critical — το checklist έχει και «normal».
     // Χαρτογράφηση normal → medium, αλλιώς το Ημερολόγιο κρασάρει σε άγνωστη προτεραιότητα.
     // Ιδempotent: αν υπάρχει ήδη συνδεδεμένο event, μην δημιουργείς διπλότυπο.
-    if (item.calendar_event_id) { showToast('Ήδη στο ημερολόγιο'); return }
+    if (item.calendar_event_id) { notify('Ήδη στο ημερολόγιο', { tone: 'info' }); return }
     const calPriority = item.priority === 'normal' ? 'medium' : item.priority
     const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'checklist' }).select('id').single()
     const calId = (data as { id?: string } | null)?.id
     if (calId) await supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', item.id)
     fetchAll()
-    showToast(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο: ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
+    notifyOk(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο: ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
 
   const loadAADECalendar = async () => {
     const year = new Date().getFullYear()
     const rows = AADE_CALENDAR.map((item, i) => ({ property_id: propertyId, user_id: userId, description: item.description, category: item.category, priority: item.priority, recurring: 'yearly' as Recurring, status: 'pending', completed: false, due_date: `${year}-${String(item.month).padStart(2, '0')}-01`, note: serializeNote({ note: '', subtasks: [], comments: [], tags: ['ΑΑΔΕ'] }), estimated_cost: 0, actual_cost: 0, sort_order: i, template_id: 'aade_calendar' }))
     await supabase.from('checklist_items').insert(rows)
-    fetchAll(); showToast(`ΑΑΔΕ Ημερολόγιο ${year} φορτώθηκε`)
+    fetchAll(); notifyOk(`ΑΑΔΕ Ημερολόγιο ${year} φορτώθηκε`)
   }
 
   const loadTemplate = async (key: string) => {
@@ -1608,7 +1610,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       const { data } = await supabase.from('checklist_items').insert({ property_id: propertyId, user_id: userId, description: tItem.description, category: tItem.category, priority: tItem.priority, recurring: tItem.recurring || 'none', status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: [], comments: [], tags: [] }), estimated_cost: tItem.estimated_cost || 0, actual_cost: 0, sort_order: i, template_id: key, depends_on: tItem.depends_on_idx !== undefined && insertedIds[tItem.depends_on_idx] ? insertedIds[tItem.depends_on_idx] : null }).select('id').single()
       insertedIds.push(data?.id || '')
     }
-    fetchAll(); showToast(`"${tpl.label}" φορτώθηκε, ${tpl.items.length} εργασίες`)
+    fetchAll(); notifyOk(`«${tpl.label}» φορτώθηκε, ${tpl.items.length} εργασίες`)
   }
 
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -1635,7 +1637,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       const recId = (rec as { id?: string } | null)?.id
       if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
     }
-    setSelected(new Set()); fetchAll(); showToast(`${count} εργασίες ολοκληρώθηκαν${recurring.length ? `, ${recurring.length} επαναπρογραμματίστηκαν` : ''}`)
+    setSelected(new Set()); fetchAll(); notifyOk(`${count} εργασίες ολοκληρώθηκαν${recurring.length ? `, ${recurring.length} επαναπρογραμματίστηκαν` : ''}`)
   }
   const bulkDelete = async () => {
     const count = selected.size; if (!count) return
@@ -1643,7 +1645,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     await Promise.all(chosen.filter(it => it.calendar_event_id).map(it => supabase.from('calendar_events').delete().eq('id', it.calendar_event_id!)))
     await Promise.all(chosen.filter(it => it.expense_id).map(it => supabase.from('expenses').delete().eq('id', it.expense_id!).eq('paid', false)))
     await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id)))
-    setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); showToast(`${count} εργασίες διαγράφηκαν`)
+    setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); notify(`${count} εργασίες διαγράφηκαν`)
   }
 
   const stats = useMemo(() => {
@@ -1690,8 +1692,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto', fontFamily: T.font.sans }}>
-
-      {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 9998, boxShadow: '0 8px 32px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }} />{toast}</div>}
 
       {showCelebration && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9997, pointerEvents: 'none' }}>
@@ -1799,21 +1799,27 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
       {/* Content */}
       {loading ? (
-        <Spinner label="Φόρτωση…" />
+        // Σκελετός αντί για spinner: το σχήμα της καρτέλας (KPIs + λίστα) είναι γνωστό,
+        // οπότε ο χρήστης βλέπει πού θα εμφανιστεί τι και δεν «πηδά» η διάταξη.
+        <>
+          <SkeletonKPIs n={4} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2, 3].map(i => <Skeleton key={i} h={62} r={12} />)}</div>
+        </>
       ) : items.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '56px 24px 40px', maxWidth: 420, margin: '0 auto' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
-            <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          </div>
-          <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>Όλα καθαρά εδώ</h3>
-          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Ξεκίνα με ένα έτοιμο πρότυπο ή πρόσθεσε τη δική σου εκκρεμότητα.</p>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-            <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
-          </div>
-        </div>
+        <EmptyState
+          icon={<ClipboardCheck size={20} />}
+          title="Όλα καθαρά εδώ"
+          hint="Ξεκίνα με ένα έτοιμο πρότυπο ή πρόσθεσε τη δική σου εκκρεμότητα."
+          action={
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
+              <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
+            </div>
+          }
+        />
       ) : filtered.length === 0 ? (
         <EmptyState
+          icon={<SearchX size={20} />}
           title="Δεν βρέθηκαν αποτελέσματα"
           hint="Δοκίμασε διαφορετικά φίλτρα ή καθάρισε την αναζήτηση."
           action={<Btn variant="secondary" onClick={clearFilters}>Καθαρισμός φίλτρων</Btn>}
@@ -1907,7 +1913,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
       {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadAADE={loadAADECalendar} onClose={() => setShowTemplates(false)} profileType={profileType} smart={smartSuggestions} />}
       {showAddModal && <ItemModal item={editItem || undefined} contacts={contacts} allItems={items} onSave={saveItem} onClose={() => { setShowAddModal(false); setEditItem(null) }} />}
-      {quickExpenseItem && <QuickExpenseModal item={quickExpenseItem} propertyId={propertyId} userId={userId} onClose={() => setQuickExpenseItem(null)} onSaved={() => showToast('Δαπάνη καταχωρήθηκε')} />}
+      {quickExpenseItem && <QuickExpenseModal item={quickExpenseItem} propertyId={propertyId} userId={userId} onClose={() => setQuickExpenseItem(null)} onSaved={() => notifyOk('Δαπάνη καταχωρήθηκε')} />}
 
       {deleteId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>

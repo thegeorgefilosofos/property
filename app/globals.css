@@ -290,40 +290,13 @@ body {
   --ring-track:             #3c4043;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   GOOGLE TYPOGRAPHY SCALE — MD3 Type System
-   Exact weights, sizes, tracking from material.io/design/typography
-══════════════════════════════════════════════════════════════ */
-
-/* Display */
-.md-display-large   { font-family: 'Inter', sans-serif; font-size: 57px; font-weight: 400; line-height: 64px; letter-spacing: -0.25px; }
-.md-display-medium  { font-family: 'Inter', sans-serif; font-size: 45px; font-weight: 400; line-height: 52px; letter-spacing: 0; }
-.md-display-small   { font-family: 'Inter', sans-serif; font-size: 36px; font-weight: 400; line-height: 44px; letter-spacing: 0; }
-
-/* Headline */
-.md-headline-large  { font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 400; line-height: 40px; letter-spacing: 0; }
-.md-headline-medium { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 400; line-height: 36px; letter-spacing: 0; }
-.md-headline-small  { font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 400; line-height: 32px; letter-spacing: 0; }
-
-/* Title */
-.md-title-large     { font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 400; line-height: 28px; letter-spacing: 0; }
-.md-title-medium    { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 500; line-height: 24px; letter-spacing: 0.15px; }
-.md-title-small     { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: 0.1px; }
-
-/* Body */
-.md-body-large      { font-family: 'Inter', system-ui, sans-serif; font-size: 16px; font-weight: 400; line-height: 24px; letter-spacing: 0.5px; }
-.md-body-medium     { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0.25px; }
-.md-body-small      { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; font-weight: 400; line-height: 16px; letter-spacing: 0.4px; }
-
-/* Label */
-.md-label-large     { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: 0.1px; }
-.md-label-medium    { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; line-height: 16px; letter-spacing: 0.5px; }
-.md-label-small     { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; line-height: 16px; letter-spacing: 0.5px; }
-
-/* Mono */
-.font-mono          { font-family: 'Roboto Mono', 'Roboto Mono', monospace; }
-.font-display       { font-family: 'Inter', sans-serif; }
-.font-sans          { font-family: 'Inter', sans-serif; }
+/* ΑΦΑΙΡΕΘΗΚΕ: όλη η κλίμακα τυπογραφίας MD3 (.md-display-*, .md-headline-*,
+   .md-title-*, .md-body-*, .md-label-*) και οι .font-mono/.font-display/.font-sans.
+   ΓΙΑΤΙ: καμία δεν χρησιμοποιούνταν πουθενά. Η τυπογραφία του app ορίζεται
+   αποκλειστικά στο components/tokens.ts (T.font, TT) και εφαρμόζεται με inline
+   styles από τα primitives. Οι κλάσεις αυτές ήταν δεύτερο, νεκρό σύστημα που
+   έκανε όποιον έψαχνε «πού ορίζεται το μέγεθος του τίτλου» να βρίσκει λάθος πηγή.
+   ΜΗΝ τις ξαναγράψεις εδώ — άλλαξε το tokens.ts. */
 
 /* ══════════════════════════════════════════════════════════════
    GOOGLE MD3 COMPONENTS
@@ -400,109 +373,6 @@ body {
 }
 .btn-primary:hover:not(:disabled) { box-shadow: var(--shadow-md); }
 
-/* Outlined button */
-.btn-outlined {
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--border-default);
-}
-.btn-outlined:hover:not(:disabled) { background: var(--accent-dim); }
-
-/* Text button */
-.btn-text {
-  background: transparent;
-  color: var(--accent);
-  padding: 10px 12px;
-}
-.btn-text:hover:not(:disabled) { background: var(--accent-dim); }
-
-/* Tonal button (MD3 filled tonal) */
-.btn-tonal {
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
-}
-.btn-tonal:hover:not(:disabled) { box-shadow: var(--shadow-sm); }
-
-/* Ghost / elevated */
-.btn-ghost {
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  box-shadow: var(--shadow-sm);
-}
-.btn-ghost:hover:not(:disabled) {
-  box-shadow: var(--shadow-md);
-  color: var(--text-primary);
-}
-
-/* Danger */
-.btn-danger {
-  background: transparent;
-  color: var(--negative);
-  border: 1px solid var(--border-default);
-}
-.btn-danger:hover:not(:disabled) { background: var(--negative-dim); border-color: var(--negative); }
-
-/* Sizes */
-.btn-sm {
-  font-size: 12px;
-  height: 32px;
-  padding: 6px 16px;
-  border-radius: 14px;
-}
-.btn-lg {
-  font-size: 16px;
-  height: 48px;
-  padding: 12px 32px;
-  border-radius: 24px;
-}
-
-/* FAB — Floating Action Button */
-.fab {
-  width: 56px; height: 56px;
-  border-radius: 14px;
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
-  border: none;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px;
-  box-shadow: var(--shadow-lg);
-  transition: box-shadow 0.2s;
-}
-.fab:hover { box-shadow: var(--shadow-xl); }
-.fab-small { width: 40px; height: 40px; border-radius: 12px; font-size: 18px; }
-
-/* ══════════════════════════════════════════════════════════════
-   MD3 CHIPS — Google's exact chip style
-══════════════════════════════════════════════════════════════ */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  cursor: pointer;
-  border: 1px solid var(--border-default);
-  background: transparent;
-  color: var(--text-secondary);
-  transition: background 0.2s, box-shadow 0.2s;
-  white-space: nowrap;
-}
-.chip:hover { background: var(--bg-hover); color: var(--text-primary); }
-.chip.selected {
-  background: var(--md-secondary-container);
-  color: var(--md-on-secondary-container);
-  border-color: transparent;
-}
-.chip-filter { border-radius: 8px; }
-.chip-assist { border-radius: 8px; }
-
 /* ══════════════════════════════════════════════════════════════
    MD3 CARDS — Google's exact elevation system
 ══════════════════════════════════════════════════════════════ */
@@ -550,26 +420,6 @@ body {
 .client-card:hover .client-card-act { opacity: 1; }
 .client-card:has(.client-card-act button:focus-visible) .client-card-act { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .client-card:hover { transform: none; } }
-
-/* Filled card */
-.card-filled {
-  background: var(--md-surface-container);
-  border-radius: 12px;
-  padding: 16px;
-  border: none;
-}
-
-/* Outlined card */
-.card-outlined {
-  background: var(--bg-surface);
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid var(--border-default);
-  box-shadow: none;
-}
-
-.card-sm { padding: 12px; border-radius: 8px; }
-.card-lg { padding: 24px; border-radius: 14px; }
 
 /* KPI / Metric card — ταυτίζεται με το KPIGrid του Theme.tsx (μία αισθητική) */
 .kpi-card {
@@ -646,243 +496,16 @@ body {
   color: var(--text-secondary);
 }
 
-/* card-accent kept for compatibility */
-.card-accent {
-  background: var(--bg-surface);
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid var(--border-accent);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   MD3 FORM ELEMENTS — Google's exact style
-══════════════════════════════════════════════════════════════ */
-
-/* Google uses filled text fields internally */
-.form-label {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-  display: block;
-  margin-bottom: 6px;
-}
-
-/* Outlined text field (Gmail/Drive style) */
-.form-input {
-  width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 6px;            /* Google uses 4px on text fields */
-  padding: 10px 16px;
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.25px;
-  line-height: 20px;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.15s, border-width 0.1s;
-  height: 40px;
-}
-.form-input:hover:not(:focus)  { border-color: var(--text-primary); }
-.form-input:focus {
-  border-color: var(--accent);
-  border-width: 2px;
-  padding: 9px 15px;  /* compensate 2px border */
-}
-.form-input::placeholder { color: var(--text-tertiary); font-size: 14px; }
-
-.form-input-accent {
-  width: 100%;
-  background: var(--bg-surface);
-  border: 2px solid var(--accent);
-  border-radius: 6px;
-  padding: 9px 15px;
-  color: var(--accent);
-  font-family: 'Roboto Mono', monospace;
-  font-size: 16px;
-  font-weight: 500;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.form-select {
-  width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  padding: 10px 36px 10px 16px;
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.25px;
-  box-sizing: border-box;
-  outline: none;
-  cursor: pointer;
-  appearance: none;
-  height: 40px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  transition: border-color 0.15s;
-}
-.form-select:hover  { border-color: var(--text-primary); }
-.form-select:focus  { border-color: var(--accent); border-width: 2px; outline: none; }
-
-.form-textarea {
-  width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  padding: 10px 16px;
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.25px;
-  box-sizing: border-box;
-  outline: none;
-  resize: vertical;
-  min-height: 80px;
-  line-height: 20px;
-  transition: border-color 0.15s;
-}
-.form-textarea:hover:not(:focus) { border-color: var(--text-primary); }
-.form-textarea:focus { border-color: var(--accent); border-width: 2px; padding: 9px 15px; }
-.form-textarea::placeholder { color: var(--text-tertiary); }
-
-/* ── Google Switch (MD3 Switch) ── */
-.toggle-track {
-  width: 52px; height: 32px;
-  border-radius: 14px;
-  position: relative;
-  cursor: pointer;
-  transition: background 0.2s cubic-bezier(0.2,0,0,1);
-  border: none;
-  outline: 2px solid var(--border-default);
-  outline-offset: -2px;
-  flex-shrink: 0;
-}
-.toggle-track[data-on="true"]  {
-  background: var(--accent);
-  outline-color: var(--accent);
-}
-.toggle-track[data-on="false"] { background: transparent; }
-
-.toggle-thumb {
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  position: absolute;
-  top: 8px;
-  transition: all 0.2s cubic-bezier(0.2,0,0,1);
-}
-.toggle-thumb[data-on="true"]  { background: #fff; left: 28px; width: 24px; height: 24px; top: 4px; }
-.toggle-thumb[data-on="false"] { background: var(--border-default); left: 8px; }
-
-/* ══════════════════════════════════════════════════════════════
-   MD3 BADGES / STATUS
-══════════════════════════════════════════════════════════════ */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 14px;     /* Google: fully rounded badges */
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-.badge-accent   { background: var(--md-primary-container);   color: var(--md-on-primary-container); }
-.badge-positive { background: var(--md-tertiary-container);  color: var(--md-on-tertiary-container); }
-.badge-negative { background: var(--md-error-container);     color: var(--md-on-error-container); }
-.badge-warning  { background: var(--warning-soft);          color: var(--warning-on-container); }
-.badge-info     { background: var(--md-primary-container);   color: var(--md-on-primary-container); }
-.badge-muted    { background: var(--md-surface-container);   color: var(--text-secondary); }
-
-/* Status dot */
-.status-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
-
-/* ══════════════════════════════════════════════════════════════
-   MD3 TABLE — Google Sheets / Drive style
-══════════════════════════════════════════════════════════════ */
-.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.data-table th {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-default);
-  text-align: left;
-  background: var(--bg-elevated);
-  white-space: nowrap;
-}
-.data-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.25px;
-  vertical-align: middle;
-}
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td {
-  background: var(--bg-hover);
-  cursor: pointer;
-}
-.td-muted { color: var(--text-secondary) !important; }
-
-/* ══════════════════════════════════════════════════════════════
-   MD3 NOTIFICATIONS / SNACKBARS
-══════════════════════════════════════════════════════════════ */
-.notif-success {
-  background: var(--md-tertiary-container);
-  border-radius: 6px;
-  padding: 12px 16px;
-  color: var(--md-on-tertiary-container);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 16px;
-}
-.notif-error {
-  background: var(--md-error-container);
-  border-radius: 6px;
-  padding: 12px 16px;
-  color: var(--md-on-error-container);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 16px;
-}
-.notif-info {
-  background: var(--md-primary-container);
-  border-radius: 6px;
-  padding: 12px 16px;
-  color: var(--md-on-primary-container);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 16px;
-}
-
-/* Divider */
-.divider { border: none; border-top: 1px solid var(--border-subtle); margin: 16px 0; }
+/* ΑΦΑΙΡΕΘΗΚΕ: .status-dot — αχρησιμοποίητη· η μόνη ζωντανή τελεία κατάστασης
+   είναι η .prop-item-dot παρακάτω.
+   ΑΦΑΙΡΕΘΗΚΕ: όλος ο πίνακας .data-table (th/td/tr) και το .td-muted.
+   ΓΙΑΤΙ: κανένας πίνακας του app δεν τα φορούσε — οι πίνακες στήνονται με inline
+   styles από τα tokens. Έμενε μόνο ως τρίτη, ψεύτικη «πηγή αλήθειας».
+   ΑΦΑΙΡΕΘΗΚΕ: .notif-success/.notif-error/.notif-info.
+   ΓΙΑΤΙ: οι ειδοποιήσεις περνούν αποκλειστικά από components/Toast.tsx +
+   components/toastBus.ts (notify/notifyOk/notifyError). Αυτές οι κλάσεις ήταν
+   παλιό, νεκρό σύστημα snackbar — αν χρειαστείς ειδοποίηση, κάλεσε το toastBus.
+   ΑΦΑΙΡΕΘΗΚΕ: .divider — καμία χρήση· οι διαχωριστικές γραμμές μπαίνουν inline. */
 
 /* ══════════════════════════════════════════════════════════════
    LAYOUT — Google App Shell
@@ -932,47 +555,11 @@ body {
   background: var(--bg-surface);
 }
 
-/* Tab bar — Google's exact tab style */
-.app-tabs {
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  padding: 0 24px;
-  gap: 0;
-  flex-shrink: 0;
-  background: var(--bg-surface);
-  overflow-x: auto;
-}
-.app-tab {
-  padding: 0 16px;
-  height: 48px;              /* Google: 48px tab height */
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  color: var(--text-secondary);
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.2s, border-color 0.2s;
-  background: none;
-  border-left: none;
-  border-right: none;
-  border-top: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-}
-.app-tab:hover {
-  color: var(--accent);
-  background: var(--accent-dim);
-  border-radius: 6px 4px 0 0;
-}
-.app-tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  border-width: 3px;
-}
+/* ΑΦΑΙΡΕΘΗΚΕ: η οριζόντια μπάρα καρτελών .app-tabs / .app-tab (+ :hover, .active)
+   και τα responsive/scrollbar tweaks της πιο κάτω στο αρχείο.
+   ΓΙΑΤΙ: η πλοήγηση έχει περάσει εξ ολοκλήρου στο πλαϊνό μενού (.sidebar-item) και
+   στο .bottom-nav για κινητά. Κανένα στοιχείο δεν φορούσε .app-tab — το «app-tab»
+   που έβρισκε το grep ήταν το άσχετο .app-table μέσα στο TabChecklist.tsx. */
 
 .app-content {
   flex: 1;
@@ -1215,20 +802,8 @@ body {
   font-weight: 600;
 }
 
-/* Badge on sidebar item */
-.sidebar-item-badge {
-  margin-left: auto;
-  min-width: 20px;
-  height: 20px;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #fff;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 6px;
-}
+/* ΑΦΑΙΡΕΘΗΚΕ: .sidebar-item-badge — καμία χρήση. Ο μετρητής στο πλαϊνό μενού
+   μπαίνει στην κεφαλίδα της ομάδας (.sidebar-section-badge), όχι στο κάθε item. */
 
 .sidebar-footer {
   margin-top: auto;
@@ -1338,34 +913,16 @@ body {
 .prop-item:focus-within .prop-item-del { opacity: 1; }
 .prop-item-del:hover { background: var(--negative-dim); color: var(--negative); }
 
-/* Property header */
-.prop-header {
-  display: flex; align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-.prop-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: 0;
-  line-height: 28px;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-.prop-subtitle {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.25px;
-  color: var(--text-secondary);
-}
+/* ΑΦΑΙΡΕΘΗΚΕ: .prop-header / .prop-title / .prop-subtitle (και τα responsive
+   overrides τους παρακάτω). ΓΙΑΤΙ: η κεφαλίδα ακινήτου στο topbar γράφεται με
+   <h1> + inline styles· καμία από τις τρεις κλάσεις δεν εφαρμοζόταν σε στοιχείο. */
 
 /* KPI grid — ρευστό: γεμίζει όσες στήλες χωράνε, πέφτει σε 2/1 σε κινητό */
+/* ΑΦΑΙΡΕΘΗΚΑΝ οι .kpi-grid-4 και .kpi-grid-6: μόνο η -5 ζητείται στην πράξη.
+   Δεν παράγονται δυναμικά (δεν υπάρχει `kpi-grid-${n}` πουθενά) — αν χρειαστεί
+   άλλος αριθμός στηλών, πρόσθεσε τη συγκεκριμένη κλάση που θα χρησιμοποιηθεί. */
 .kpi-grid  { display: grid; gap: 12px; margin-bottom: 24px; }
-.kpi-grid-4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
 .kpi-grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
-.kpi-grid-6 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
 
 /* Section label — ΤΑΥΤΙΖΕΤΑΙ με το SecHdr του Theme.tsx ώστε οι επικεφαλίδες
    ενοτήτων να δείχνουν ΙΔΙΕΣ σε όλα τα tabs (τελεία + uppercase + λεπτή γραμμή). */
@@ -1385,9 +942,10 @@ body {
 .section-dot { display: none; }
 
 /* Utility grids — ρευστά ώστε να «σπάνε» σε κινητό χωρίς οριζόντια κύλιση */
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }
+/* ΑΦΑΙΡΕΘΗΚΑΝ οι .grid-2 και .grid-4: αχρησιμοποίητες. Επιβεβαιώθηκε ότι τα
+   ονόματα ΔΕΝ φτιάχνονται δυναμικά (κανένα `grid-${n}` στο repo), οπότε η
+   διαγραφή είναι ασφαλής. Ζωντανές μένουν οι .grid-3 και .grid-5/.grid-main. */
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 16px; }
-.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap: 16px; }
 
 /* ══════════════════════════════════════════════════════════════
    MD3 MOTION — Google's exact easing curves
@@ -1443,55 +1001,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   padding: 24px;
 }
 
-/* MD3 Dialog */
-.md-dialog {
-  background: var(--bg-surface);
-  border-radius: 24px;           /* MD3 dialog shape */
-  padding: 24px;
-  width: 100%;
-  max-width: 560px;
-  box-shadow: var(--shadow-xl);
-  max-height: 90vh;
-  display: flex; flex-direction: column;
-}
-.md-dialog-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 32px;
-  color: var(--text-primary);
-  margin-bottom: 16px;
-}
-
-/* Google Search bar */
-.google-search {
-  display: flex; align-items: center;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 24px;
-  padding: 8px 16px;
-  gap: 8px;
-  transition: box-shadow 0.2s;
-  box-shadow: var(--shadow-sm);
-}
-.google-search:focus-within {
-  box-shadow: var(--shadow-md);
-  border-color: transparent;
-}
-.google-search input {
-  border: none; outline: none; background: transparent;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px; color: var(--text-primary);
-  flex: 1; letter-spacing: 0.25px;
-}
-
-/* Material Symbols support */
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  font-size: 20px;
-  line-height: 1;
-  user-select: none;
-}
+/* ΑΦΑΙΡΕΘΗΚΕ: .md-dialog / .md-dialog-title (και το responsive override τους).
+   ΓΙΑΤΙ: το .md-scrim από πάνω ΧΡΗΣΙΜΟΠΟΙΕΙΤΑΙ (UpgradeModal), αλλά το κουτί του
+   διαλόγου στήνεται με inline styles ή με το <Modal> του components/Theme.tsx —
+   ποτέ με .md-dialog. Για νέο διάλογο χρησιμοποίησε το primitive Modal.
+   ΑΦΑΙΡΕΘΗΚΕ: .google-search (+ :focus-within, input) — καμία μπάρα αναζήτησης
+   δεν τη φορούσε· η καθολική αναζήτηση είναι το .cmdk (⌘K) παρακάτω.
+   ΑΦΑΙΡΕΘΗΚΕ: .material-symbols-outlined — υποστήριζε γραμματοσειρά εικονιδίων
+   που ΣΚΟΠΙΜΑ δεν φορτώνουμε (βλ. σχόλιο στην κορυφή: όλα τα εικονίδια είναι
+   inline SVG). Ήταν ενεργά παραπλανητική: υπονοούσε ότι υπάρχει icon font. */
 
 /* ══════════════════════════════════════════════════════════════
    SYSTEM PREFERENCE — Auto dark if no manual override
@@ -1633,8 +1151,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .nav-toggle { display: none; }
 .app-scrim  { display: none; }
 
-/* Βοηθητικές: εμφάνιση ανά συσκευή */
-.mobile-only  { display: none; }
+/* Βοηθητικές: εμφάνιση ανά συσκευή.
+   ΑΦΑΙΡΕΘΗΚΕ η .mobile-only (και το ταίρι της στο ≤640px): κανένα στοιχείο δεν τη
+   φορούσε. Η .desktop-only ΧΡΗΣΙΜΟΠΟΙΕΙΤΑΙ και μένει. */
 .desktop-only { display: initial; }
 
 /* Πλέγματα Επισκόπησης (τα inline του dashboard μεταφέρθηκαν εδώ ως κλάσεις) */
@@ -1694,16 +1213,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* ── ΚΙΝΗΤΟ (≤640px): πυκνότερη διάταξη ─────────────────────────────────── */
 @media (max-width: 640px) {
   .app-topbar { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; }
-  .app-tabs   { padding: 0 8px; }
-  .app-tab    { padding: 0 12px; height: 46px; font-size: 13px; }
   .app-content { padding: 14px 12px 28px; }
-
-  /* Τίτλος ακινήτου στο topbar — να μη «σπρώχνει» τα υπόλοιπα */
-  .app-topbar .prop-title { font-size: 18px; }
 
   /* Dialogs σε (σχεδόν) πλήρη οθόνη */
   .md-scrim  { padding: 12px; align-items: flex-end; }
-  .md-dialog { max-width: 100%; border-radius: 18px; max-height: 94vh; padding: 20px; }
 
   /* Κάρτες λίγο πιο συμπαγείς */
   .card { padding: 16px; }
@@ -1723,7 +1236,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
   /* Εναλλαγή ορατότητας ανά συσκευή */
   .desktop-only { display: none !important; }
-  .mobile-only  { display: initial !important; }
 }
 
 /* Ημερολόγιο: το πλάι (200px) πηγαίνει από κάτω σε πλήρες πλάτος σε στενές οθόνες */
@@ -1748,9 +1260,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .auth-main  { flex: 1 1 100% !important; width: 100% !important; padding: 32px 20px !important; }
 }
 
-/* Απόκρυψη μπάρας κύλισης στα οριζόντια tabs (μένει λειτουργική η κύλιση) */
-.app-tabs::-webkit-scrollbar { height: 0; }
-.app-tabs { scrollbar-width: none; }
+/* ΑΦΑΙΡΕΘΗΚΕ: η απόκρυψη μπάρας κύλισης των .app-tabs — έφυγε μαζί με την
+   οριζόντια μπάρα καρτελών (βλ. σχόλιο πιο πάνω· η πλοήγηση είναι sidebar + bottom-nav). */
 
 /* ══════════════════════════════════════════════════════════════════════════
    LOADERS / SKELETONS — αντικαθιστούν τα «Φόρτωση...» με Google-style shimmer
@@ -1763,9 +1274,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Διακριτική είσοδος καρτών προϋπολογισμού — απαλό fade + μικρή ανύψωση, χωρίς αναπήδηση/λάμψη. */
 @keyframes budgetRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .budget-rise { animation: budgetRise 0.28s cubic-bezier(0.2, 0, 0, 1) both; }
-/* Είσοδος του toast «Αναίρεση»: ανεβαίνει απαλά, μένει κεντραρισμένο (translateX -50%). */
-@keyframes budgetToastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
-.budget-toast-in { animation: budgetToastIn 0.24s cubic-bezier(0.2, 0, 0, 1) both; }
 .skeleton {
   background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-overlay) 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;
@@ -1855,7 +1363,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Πολύ μικρά κινητά (≤360px — iPhone SE, LG Optimus L70, κ.ά.) */
 @media (max-width: 360px) {
   .app-content { padding-left: 10px; padding-right: 10px; }
-  .app-tab     { padding: 0 10px; font-size: 12px; }
   .kpi-value   { font-size: 19px; }
   .card        { padding: 14px; }
   .cmdk-input  { font-size: 15px; }
@@ -1864,7 +1371,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* Foldables πολύ στενά (≤280px — Galaxy Fold κλειστό) — τελευταίο δίχτυ ασφαλείας */
 @media (max-width: 300px) {
-  .app-topbar .prop-title, .app-topbar h1 { font-size: 15px; }
+  /* Ο επιλογέας .app-topbar .prop-title αφαιρέθηκε μαζί με την κλάση· ο τίτλος
+     ακινήτου είναι <h1>, οπότε μόνο αυτός ο επιλογέας έκανε πράγματι δουλειά. */
+  .app-topbar h1 { font-size: 15px; }
   .kpi-value { font-size: 17px; }
 }
 

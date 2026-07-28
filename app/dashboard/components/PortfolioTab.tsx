@@ -18,8 +18,8 @@ import { reportHead, reportHeader, reportSection, reportDisclaimer, openReport, 
 import { useReportBranding } from '@/lib/reportBranding';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
-import { ShieldCheck } from 'lucide-react';
-import { notifyError } from '@/components/Toast';
+import { ShieldCheck, Building2 } from 'lucide-react';
+import { notifyOk, notifyError } from '@/components/Toast';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
@@ -68,9 +68,6 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [showStatements, setShowStatements] = useState(false);
   const [stmtOwner, setStmtOwner] = useState('');
   const [genOfficial, setGenOfficial] = useState(false);
-  const [toast, setToast] = useState('');
-
-  const showToast = useCallback((msg: string) => { setToast(msg); window.setTimeout(() => setToast(''), 3200); }, []);
 
   const load = useCallback(async () => {
     const [{ data: st }, { data: bl }, { data: ex }, { data: tn }, { data: ci }, { data: po }, { data: cl }] = await Promise.all([
@@ -165,10 +162,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     }));
     const { error } = await supabase.from('checklist_items').insert(inserts);
     setBulkSaving(false);
-    if (error) { showToast('Κάτι πήγε στραβά, δοκίμασε ξανά'); return; }
+    if (error) { notifyError('Κάτι πήγε στραβά, δοκίμασε ξανά'); return; }
     const n = inserts.length;
     setShowBulk(false); setBulkDesc(''); clearSelection();
-    showToast(`Η εργασία προστέθηκε σε ${n} ${n === 1 ? 'ακίνητο' : 'ακίνητα'}`);
+    notifyOk(`Η εργασία προστέθηκε σε ${n} ${n === 1 ? 'ακίνητο' : 'ακίνητα'}`);
   };
 
   // ── Καταστάσεις ιδιοκτήτη ───────────────────────────────────────────────
@@ -286,7 +283,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   if (!properties.length) return (
     <div>
       <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα όλων των ακινήτων σου" />
-      <EmptyState title="Δεν υπάρχουν ακόμη ακίνητα" hint="Πρόσθεσε το πρώτο σου ακίνητο για να δεις τη συγκεντρωτική εικόνα εδώ." />
+      <EmptyState icon={<Building2 size={20} />} title="Δεν υπάρχουν ακόμη ακίνητα" hint="Πρόσθεσε το πρώτο σου ακίνητο για να δεις τη συγκεντρωτική εικόνα εδώ." />
     </div>
   );
 
@@ -483,13 +480,6 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
               </>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Διακριτικό μήνυμα επιβεβαίωσης */}
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 1100, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 18px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', maxWidth: 'calc(100vw - 24px)' }}>
-          {toast}
         </div>
       )}
 

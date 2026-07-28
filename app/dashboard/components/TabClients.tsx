@@ -7,10 +7,12 @@
 // Σχεδίαση: near-monochrome μπλε· χρώμα μόνο σε γνήσια σήματα (φθορές/μαύρη λίστα).
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Users, SearchX, BedDouble } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Spinner, SecHdr, fe, fd,
+  T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, fe, fd,
 } from '@/components/Theme';
+import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import { money, intGr } from './xlsxStyle';
@@ -375,23 +377,32 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   const save = async () => {
     if (!form.full_name.trim()) return;
+    // Στιγμιότυπο της φόρμας ΠΡΙΝ από οποιοδήποτε await. Το native confirm πάγωνε
+    // τη σελίδα, άρα η φόρμα ΔΕΝ μπορούσε να αλλάξει όσο ρωτούσαμε. Ο δικός μας
+    // διάλογος δεν παγώνει τίποτα: χωρίς στιγμιότυπο θα αποθηκευόταν ό,τι έγραψε
+    // ο χρήστης ΜΕΤΑ τον έλεγχο διπλότυπου, δηλαδή άλλη εγγραφή από αυτή που
+    // εγκρίθηκε. Και το setSaving μπαίνει ΠΡΙΝ την ερώτηση, ώστε το κουμπί
+    // «Αποθήκευση» (disabled={saving}) να μη δέχεται δεύτερο πάτημα όσο περιμένει.
+    const f = form;
     // Εντοπισμός διπλότυπου σε νέα εγγραφή: ίδιο τηλέφωνο ή ίδιο ΑΦΜ.
     if (!editing) {
-      const np = normalizePhone(form.phone), afm = form.afm.trim();
+      const np = normalizePhone(f.phone), afm = f.afm.trim();
       const dup = clients.find(c => (np.length >= 8 && normalizePhone(c.phone) === np) || (afm.length === 9 && (c.afm || '') === afm));
       if (dup) {
         const by = np.length >= 8 && normalizePhone(dup.phone) === np ? 'αυτό το τηλέφωνο' : 'αυτό το ΑΦΜ';
-        if (!window.confirm(`Υπάρχει ήδη πελάτης με ${by}: «${dup.full_name}». Θέλεις σίγουρα να δημιουργήσεις νέα εγγραφή;`)) return;
+        setSaving(true);
+        const ok = await confirmDialog(`Υπάρχει ήδη πελάτης με ${by}: «${dup.full_name}». Θέλεις σίγουρα να δημιουργήσεις νέα εγγραφή;`);
+        if (!ok) { setSaving(false); return; }
       }
     }
     setSaving(true);
     const payload = {
-      user_id: userId, type: 'client', full_name: form.full_name.trim(),
-      afm: form.afm.trim() || null, phone: form.phone.trim() || null, email: form.email.trim() || null,
-      notes: form.notes.trim() || null,
-      rating: form.rating || 0, tags: form.tags, do_not_rent: form.do_not_rent, vip: form.vip,
-      address: form.address.trim() || null, id_number: form.id_number.trim() || null,
-      nationality: form.nationality.trim() || null, source: form.source.trim() || null,
+      user_id: userId, type: 'client', full_name: f.full_name.trim(),
+      afm: f.afm.trim() || null, phone: f.phone.trim() || null, email: f.email.trim() || null,
+      notes: f.notes.trim() || null,
+      rating: f.rating || 0, tags: f.tags, do_not_rent: f.do_not_rent, vip: f.vip,
+      address: f.address.trim() || null, id_number: f.id_number.trim() || null,
+      nationality: f.nationality.trim() || null, source: f.source.trim() || null,
       updated_at: new Date().toISOString(),
     };
     if (editing) await supabase.from('clients').update(payload).eq('id', editing.id);
@@ -400,7 +411,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   };
 
   const del = async (c: Client) => {
-    if (!confirm('Να διαγραφεί η καταχώρηση;')) return;
+    if (!(await confirmDialog('Να διαγραφεί η καταχώρηση;', { tone: 'negative' }))) return;
     await supabase.from('clients').delete().eq('id', c.id);
     if (openId === c.id) setOpenId(null);
     load();
@@ -519,7 +530,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     else await supabase.from('client_stays').insert(payload);
     setSavingStay(false); setStayFormOpen(false); loadStays();
   };
-  const delStay = async (s: Stay) => { if (!confirm('Να διαγραφεί η διαμονή;')) return; await supabase.from('client_stays').delete().eq('id', s.id); loadStays(); };
+  const delStay = async (s: Stay) => { if (!(await confirmDialog('Να διαγραφεί η διαμονή;', { tone: 'negative' }))) return; await supabase.from('client_stays').delete().eq('id', s.id); loadStays(); };
 
   // ── Σχόλια ────────────────────────────────────────────────────────────────
   const saveNote = async () => {
@@ -551,7 +562,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     loadDocs(openId);
   };
   const delDoc = async (d: ClientDoc) => {
-    if (!confirm('Να διαγραφεί οριστικά το έγγραφο;')) return;
+    if (!(await confirmDialog('Να διαγραφεί οριστικά το έγγραφο;', { tone: 'negative' }))) return;
     await supabase.storage.from('property-files').remove([d.file_path]);
     await supabase.from('client_documents').delete().eq('id', d.id);
     if (openId) loadDocs(openId);
@@ -625,7 +636,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     } finally { setIcalBusy(false); }
   };
   const delIcalFeed = async (f: IcalFeed) => {
-    if (!confirm('Να αφαιρεθεί ο σύνδεσμος αυτόματου συγχρονισμού; Οι ήδη εισαγμένες κρατήσεις παραμένουν.')) return;
+    if (!(await confirmDialog('Να αφαιρεθεί ο σύνδεσμος αυτόματου συγχρονισμού; Οι ήδη εισαγμένες κρατήσεις παραμένουν.', { tone: 'negative' }))) return;
     await supabase.from('ical_feeds').delete().eq('id', f.id);
     loadIcalFeeds();
   };
@@ -711,7 +722,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   );
   const initials = (form.full_name.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('') || '+').toUpperCase();
 
-  if (loading) return <Spinner label="Φόρτωση…" />;
+  // Ο γυμνός Spinner δεν έλεγε τίποτα για το τι έρχεται και το ύψος του δεν είχε
+  // σχέση με το τελικό περιεχόμενο — μόλις φόρτωναν τα δεδομένα η σελίδα πηδούσε.
+  // Το σχήμα (4 KPIs + πλέγμα καρτών) είναι γνωστό, άρα ο σκελετός το προδιαγράφει.
+  if (loading) return (
+    <>
+      <SkeletonKPIs n={4} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 14 }}>
+        {[0, 1, 2].map(i => <Skeleton key={i} h={190} r={T.radius.card} />)}
+      </div>
+    </>
+  );
 
   const unlinkedProps = props.filter(p => !p.client_id);
   const dc = openId ? clients.find(c => c.id === openId) || null : null;
@@ -743,7 +764,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       </div>
 
       {clients.length === 0 ? (
-        <EmptyState title="Δεν υπάρχουν επισκέπτες ακόμη" hint="Πρόσθεσε τους επισκέπτες σου, κατέγραψε τις διαμονές τους και σύνδεσέ τους με τα ακίνητά σου." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
+        <EmptyState icon={<Users size={20} />} title="Δεν υπάρχουν επισκέπτες ακόμη" hint="Πρόσθεσε τους επισκέπτες σου, κατέγραψε τις διαμονές τους και σύνδεσέ τους με τα ακίνητά σου." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
+      ) : filtered.length === 0 ? (
+        // Ο έλεγχος από πάνω κοιτούσε τα `clients`, αλλά το πλέγμα αποδίδει τα
+        // `filtered`: με αναζήτηση ή φίλτρο που δεν ταιριάζει σε κανέναν, ο χρήστης
+        // έβλεπε ΛΕΥΚΟ ΧΩΡΟ και κανέναν τρόπο να καταλάβει ότι φταίει το φίλτρο.
+        <EmptyState icon={<SearchX size={20} />} title="Δεν βρέθηκαν επισκέπτες" hint="Δοκίμασε διαφορετική αναζήτηση ή καθάρισε τα φίλτρα." action={<Btn variant="secondary" onClick={() => { setSearch(''); setSegment('all'); }}>Καθαρισμός φίλτρων</Btn>} />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 14 }}>
           {filtered.map(c => {
@@ -774,7 +800,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     </div>
                     <div className="client-card-act">
                       <button title="Διαγραφή" onClick={e => { e.stopPropagation(); del(c); }}
-                        style={{ background: 'none', border: 'none', borderRadius: 8, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, flexShrink: 0 }}
+                        style={{ background: 'none', border: 'none', borderRadius: 8, width: T.h.sm, height: T.h.sm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, flexShrink: 0 }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--negative)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -859,7 +885,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               </div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
-                <button onClick={() => setOpenId(null)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 38, height: 38, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}>×</button>
+                <button onClick={() => setOpenId(null)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}>×</button>
               </div>
             </div>
 
@@ -916,7 +942,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 ))}
                 {(propsByClient.get(dc.id) || []).length === 0 && unlinkedProps.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Κανένα ακίνητο</span>}
                 {unlinkedProps.length > 0 && (
-                  <select value="" onChange={e => { if (e.target.value) linkProperty(dc.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12, height: 36, width: 'auto', minWidth: 170, padding: '4px 12px' }}>
+                  <select value="" onChange={e => { if (e.target.value) linkProperty(dc.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12, height: T.h.md, width: 'auto', minWidth: 170, padding: '4px 12px' }}>
                     <option value="" disabled hidden>Πρόσθεσε ακίνητο</option>
                     {unlinkedProps.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -1154,7 +1180,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή από email</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Επικόλλησε το email κράτησης (Airbnb/Booking) και το AI βρίσκει όνομα, ημερομηνίες και ποσό</div>
               </div>
-              <button onClick={() => setEmailOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+              <button onClick={() => setEmailOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 22px' }}>
               {!emailDraft ? (
@@ -1199,7 +1225,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή iCal</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Συγχρονισμός κρατήσεων από Airbnb ή Booking</div>
               </div>
-              <button onClick={() => setIcalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+              <button onClick={() => setIcalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px' }}>
               <InfoBanner tone="info">Το iCal δίνει μόνο τις ημερομηνίες κράτησης, χωρίς όνομα επισκέπτη ή τιμή. Οι εισαγωγές καταχωρούνται σε συγκεντρωτικό πελάτη ανά κανάλι (π.χ. «Κρατήσεις Airbnb») για σωστή πληρότητα και ιστορικό. Αποθήκευσε τον σύνδεσμο για αυτόματο συγχρονισμό, ή επικόλλησε χειροκίνητα το .ics.</InfoBanner>
@@ -1300,14 +1326,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Αναφορές</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Έσοδα, κανάλια και πληρότητα φιλοξενίας</div>
               </div>
-              <button onClick={() => setReportsOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+              <button onClick={() => setReportsOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
             {/* Σώμα με κύλιση */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '2px 24px 24px' }}>
               {allStays.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, lineHeight: 1.6, padding: '52px 16px' }}>
-                  Δεν υπάρχουν καταγεγραμμένες διαμονές ακόμη. Πρόσθεσε διαμονές στους πελάτες για να δεις έσοδα ανά κανάλι, ανά μήνα και την πληρότητα της χρονιάς.
-                </div>
+                <EmptyState icon={<BedDouble size={20} />} title="Δεν υπάρχουν καταγεγραμμένες διαμονές ακόμη" hint="Πρόσθεσε διαμονές στους πελάτες για να δεις έσοδα ανά κανάλι, ανά μήνα και την πληρότητα της χρονιάς." />
               ) : (() => {
                 const yearOf = (s: Stay) => { const d = s.check_in || s.check_out; return d ? new Date(d).getFullYear() : null; };
                 const yearsAvail = Array.from(new Set(allStays.map(yearOf).filter((y): y is number => y != null)));
@@ -1346,7 +1370,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Έτος</span>
                       <div style={{ position: 'relative' }}>
                         <button type="button" onClick={() => setReportYearMenu(m => !m)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                           {reportYear}
                           <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
                         </button>
@@ -1447,7 +1471,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{editing ? 'Επεξεργασία στοιχείων επισκέπτη' : 'Νέος επισκέπτης'}</div>
               </div>
-              <button onClick={() => setModalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+              <button onClick={() => setModalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
             {/* Σώμα με κύλιση, οργανωμένο σε ενότητες */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '2px 24px 22px' }}>

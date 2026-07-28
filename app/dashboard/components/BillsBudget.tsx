@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput } from './UIComponents';
-import { T, feAuto, fn, Spinner } from '@/components/Theme';
+import { T, feAuto, fn, Skeleton, SkeletonKPIs } from '@/components/Theme';
+import { notify } from '@/components/Toast';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement } from '@/lib/accounting/statement';
@@ -285,8 +286,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [hoverRec,     setHoverRec]     = useState<string | null>(null);
   const [hoverWeek,    setHoverWeek]    = useState<string | null>(null);
   const [exclAmtDraft, setExclAmtDraft] = useState<Record<string, string>>({});  // ό,τι πληκτρολογεί ο χρήστης στο μερικό ποσό εξαίρεσης
-  const [toast,        setToast]        = useState<{ msg: string; undo: () => void } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [addingCat,    setAddingCat]    = useState(false);   // εμφάνιση πεδίου «νέα κατηγορία» (inline)
   const [showSettings, setShowSettings] = useState(false);   // εμφάνιση ρυθμίσεων προϋπολογισμού (inline)
   const [demoBusy,     setDemoBusy]     = useState(false);   // δημιουργία/αφαίρεση δείγματος δεδομένων
@@ -648,12 +647,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
   // Προσθήκη/απόκρυψη/επαναφορά κατηγορίας (αποθηκεύεται στις ρυθμίσεις budgets).
   const persistCats = (patch: Record<string, string>) => { const next = { ...budgets, ...patch }; setBudgets(next); saveBudgets(next); };
-  // Διακριτικό toast με «Αναίρεση» για σιωπηλές/μη αναστρέψιμες ενέργειες (διαγραφή, εξαίρεση).
-  const showToast = (msg: string, undo: () => void) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ msg, undo });
-    toastTimer.current = setTimeout(() => setToast(null), 6000);
-  };
+  // Το toast «Αναίρεση» πέρασε στον κοινό host: το τοπικό ζούσε σε z-index 60, δηλαδή
+  // ΚΑΤΩ από κάθε παράθυρο και sticky header, οπότε η αναίρεση συχνά δεν πατιόταν.
+  // Η διάρκεια δηλώνεται ρητά 6000ms — η προεπιλογή (3200ms) είναι πολύ σύντομη για
+  // να προλάβει ο χρήστης να αναιρέσει μια διαγραφή κατηγορίας ή μια εξαίρεση.
+  const UNDO_MS = 6000;
   const addCategory = (label: string) => {
     const name = label.trim().slice(0, 40); if (!name) return;
     // Κανένα διπλότυπο: αν υπάρχει ήδη ενεργή κατηγορία με το ίδιο όνομα, επανάφερε/άφησέ την.
@@ -670,7 +668,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     const snapHidden = budgets.__hidden, snapCustom = budgets.__custom;   // στιγμιότυπο για αναίρεση
     if (customCats.some(c => c.key === key)) persistCats({ __custom: JSON.stringify(customCats.filter(c => c.key !== key).map(c => ({ key: c.key, label: c.label }))) });
     else persistCats({ __hidden: JSON.stringify([...hiddenKeys, key]) });
-    showToast(`Η κατηγορία «${label}» αφαιρέθηκε`, () => persistCats({ __hidden: snapHidden ?? '[]', __custom: snapCustom ?? '[]' }));
+    notify(`Η κατηγορία «${label}» αφαιρέθηκε`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __hidden: snapHidden ?? '[]', __custom: snapCustom ?? '[]' }) } });
   };
   const restoreCategory = (key: string) => persistCats({ __hidden: JSON.stringify(hiddenKeys.filter(k => k !== key)) });
 
@@ -855,7 +853,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // (__dismissed) ώστε να μην ενοχλούν ξανά. Η εφαρμογή δείχνει toast «Αναίρεση».
   const dismissedSug: string[] = (() => { try { const a = JSON.parse(budgets.__dismissed || '[]'); return Array.isArray(a) ? a.map(String) : []; } catch { return []; } })();
   const dismissSuggestion = (key: string) => persistCats({ __dismissed: JSON.stringify([...dismissedSug, key].slice(-60)) });
-  const applyTarget = (k: string, val: number, msg: string) => { const prev = budgets[k]; updateBudget(k, String(val)); showToast(msg, () => updateBudget(k, prev ?? '')); };
+  const applyTarget = (k: string, val: number, msg: string) => { const prev = budgets[k]; updateBudget(k, String(val)); notify(msg, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => updateBudget(k, prev ?? '') } }); };
   const targetSuggestions: { key: string; text: string; apply: () => void }[] = (() => {
     if (!isCurMonth) return [];
     const out: { key: string; text: string; apply: () => void }[] = [];
@@ -976,7 +974,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     </button>
   );
 
-  if (loading) return <Spinner label="Φόρτωση…" />;
+  // Σκελετός αντί για spinner: το σχήμα (KPIs + κάρτες κατηγοριών) είναι σταθερό,
+  // οπότε η διάταξη δεν «πηδά» μόλις φτάσουν τα δεδομένα.
+  if (loading) return <><SkeletonKPIs n={4} />{[0, 1, 2].map(i => <Skeleton key={i} h={70} r={12} style={{ marginBottom: 10 }} />)}</>;
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -1012,7 +1012,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Θα προσθέσουμε ένα δείγμα δαπανών του μήνα, ώστε να ζωντανέψουν τα γραφήματα και οι κατηγορίες. Τα αφαιρείς με ένα άγγιγμα όποτε θες.</div>
           </div>
           <button type="button" onClick={seedDemo} disabled={demoBusy}
-            style={{ height: 36, padding: '0 18px', flexShrink: 0, borderRadius: T.radius.inner, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: demoBusy ? 'default' : 'pointer', transition: 'all 0.15s' }}>
+            style={{ height: T.h.md, padding: '0 18px', flexShrink: 0, borderRadius: T.radius.inner, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: demoBusy ? 'default' : 'pointer', transition: 'all 0.15s' }}>
             {demoBusy ? 'Δημιουργία…' : 'Δείξε μου'}
           </button>
         </div>
@@ -1545,7 +1545,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   </div>
                   <button type="button" disabled={!newCatName.trim()}
                     onClick={() => { addCategory(newCatName); setNewCatName(''); }}
-                    style={{ height: 36, padding: '0 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: newCatName.trim() ? 'color-mix(in srgb, var(--text-primary) 88%, transparent)' : 'var(--bg-elevated)', color: newCatName.trim() ? 'var(--bg-surface)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: newCatName.trim() ? 'pointer' : 'default', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                    style={{ height: T.h.md, padding: '0 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: newCatName.trim() ? 'color-mix(in srgb, var(--text-primary) 88%, transparent)' : 'var(--bg-elevated)', color: newCatName.trim() ? 'var(--bg-surface)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: newCatName.trim() ? 'pointer' : 'default', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                     Προσθήκη
                   </button>
                 </div>
@@ -1604,7 +1604,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       </span>
                       {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε */}
                       <button type="button" role="switch" aria-checked={!isEx} aria-label="Μετρά στον προϋπολογισμό"
-                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); showToast(`Εξαιρέθηκε «${it.label}»`, () => persistCats({ __excluded: snap ?? '{}' })); } }}
+                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); notify(`Εξαιρέθηκε «${it.label}»`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __excluded: snap ?? '{}' }) } }); } }}
                         style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: isEx ? 'var(--border-default)' : 'var(--accent)', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s' }}>
                         <span style={{ position: 'absolute', top: 2, left: isEx ? 2 : 18, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }} />
                       </button>
@@ -1673,20 +1673,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         </div>
       )}
 
-      {/* Διακριτικό toast «Αναίρεση» — για διαγραφή κατηγορίας ή εξαίρεση */}
-      {toast && (
-        <div className="budget-toast-in" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '11px 14px 11px 16px', borderRadius: 12, background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', boxShadow: 'var(--elev-3)', fontFamily: T.font.sans, maxWidth: 'calc(100vw - 32px)' }}>
-          <span style={{ fontSize: 12.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{toast.msg}</span>
-          <button type="button" onClick={() => { toast.undo(); if (toastTimer.current) clearTimeout(toastTimer.current); setToast(null); }}
-            style={{ border: 'none', background: 'transparent', color: 'var(--accent)', fontSize: 12.5, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', padding: 0, flexShrink: 0 }}>
-            Αναίρεση
-          </button>
-          <button type="button" aria-label="Κλείσιμο" onClick={() => { if (toastTimer.current) clearTimeout(toastTimer.current); setToast(null); }}
-            style={{ display: 'inline-flex', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 2, margin: '-2px -4px -2px 0', flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      )}
     </div>
   );
 }

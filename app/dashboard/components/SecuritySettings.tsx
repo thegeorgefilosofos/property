@@ -11,7 +11,7 @@
 
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, settingsField } from '@/components/Theme';
+import { T, Btn, settingsField, Spinner } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
 import { checkPassword } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
@@ -291,7 +291,7 @@ export default function SecuritySettings() {
         <div style={desc}>Πρόσθεσε ένα δεύτερο επίπεδο ασφάλειας με εφαρμογή επαλήθευσης. Προτείνουμε το Google Authenticator (δωρεάν, από App Store ή Google Play) ως την πιο ασφαλή και απλή επιλογή, αλλά λειτουργεί με οποιαδήποτε (Authy, Microsoft Authenticator, 1Password).</div>
 
         {mfaState === 'loading' && (
-          <div style={{ ...desc, marginTop: 12 }}>Έλεγχος κατάστασης…</div>
+          <Spinner size={18} label="Έλεγχος κατάστασης…" />
         )}
 
         {mfaUnavailable && (

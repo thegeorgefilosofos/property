@@ -1,0 +1,232 @@
+name: Health
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ΓΙΑΤΙ ΥΠΑΡΧΕΙ ΑΥΤΟ ΤΟ WORKFLOW:
+# Στις 27–28/07/2026 η δημόσια σελίδα ήταν κάτω περίπου 24 ώρες και το έμαθε ο
+# ιδιοκτήτης με το μάτι του. Το CI ήταν ΠΡΑΣΙΝΟ σε όλη τη διάρκεια: το build
+# περνούσε καθαρά, τα 74 test suites περνούσαν. Η αιτία ήταν σφάλμα στην
+# ΑΠΟΔΟΣΗ (SSR) — Server Components διάβαζαν τιμή από module 'use client' και
+# έπαιρναν undefined — άρα καμία μεταγλώττιση δεν μπορούσε να το δει.
+#
+# ΤΟ ΜΑΘΗΜΑ: ΤΟ ΠΡΑΣΙΝΟ CI ΔΕΝ ΣΗΜΑΙΝΕΙ ΟΤΙ Η ΣΕΛΙΔΑ ΑΝΟΙΓΕΙ.
+#
+# Το ci.yml ελέγχει αν ο ΚΩΔΙΚΑΣ είναι σωστός. Αυτό εδώ ελέγχει αν το ΠΡΟΪΟΝ
+# λειτουργεί — χτυπώντας την πραγματική παραγωγή σαν απλός επισκέπτης και
+# διαβάζοντας το σώμα της απάντησης, όχι μόνο τον κωδικό status.
+# Λεπτομέρειες: docs/dev/health.md
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  # Κάθε 15 λεπτά: ορίζει το χειρότερο παράθυρο άγνοιας. Η προηγούμενη διακοπή
+  # κράτησε ~24 ώρες· με αυτό το πρόγραμμα το αντίστοιχο ανώτατο όριο γίνεται
+  # ~15 λεπτά. (Ο προγραμματιστής του GitHub είναι best-effort και υπό φόρτο
+  # καθυστερεί — γι' αυτό δεν στηριζόμαστε σε ακρίβεια λεπτού.)
+  schedule:
+    - cron: '*/15 * * * *'
+
+  # Χειροκίνητη εκτέλεση: για επιβεβαίωση αμέσως μετά από μια διόρθωση, χωρίς
+  # να περιμένει κανείς τον επόμενο κύκλο.
+  workflow_dispatch: {}
+
+  # Μετά από κάθε push στο main: εκεί γεννιούνται οι διακοπές. Ο έλεγχος αμέσως
+  # μετά το deploy είναι η στιγμή με τη μεγαλύτερη αξία.
+  push:
+    branches: [main]
+
+# Τα ελάχιστα δικαιώματα: γράψιμο issues για την ειδοποίηση, ανάγνωση κώδικα
+# για το checkout. Τίποτα άλλο — το workflow δεν κάνει deploy και δεν γράφει
+# ποτέ στο repo.
+permissions:
+  contents: read
+  issues: write
+
+# Δύο έλεγχοι υγείας ταυτόχρονα (π.χ. schedule + push στο main) θα μπορούσαν να
+# ανοίξουν δύο issues για το ίδιο πρόβλημα, αφού ο έλεγχος «υπάρχει ήδη ανοιχτό;»
+# θα έτρεχε και στους δύο πριν προλάβει να δημιουργηθεί το πρώτο.
+concurrency:
+  group: health
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Χειρότερη περίπτωση: 7 διαδρομές × 3 προσπάθειες × (20s timeout + 5s
+    # αναμονή) ≈ 9 λεπτά, συν την αναμονή deploy.
+    timeout-minutes: 20
+    outputs:
+      report: ${{ steps.probe.outputs.report }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # Σκόπιμα ΧΩΡΙΣ `npm ci`: το health-check.mjs τρέχει με σκέτο node. Ο
+      # έλεγχος που μας λέει αν ζει η παραγωγή δεν επιτρέπεται να εξαρτάται από
+      # το αν το npm registry είναι διαθέσιμο εκείνη τη στιγμή.
+
+      - name: Ποια διεύθυνση ελέγχεται
+        id: target
+        env:
+          SECRET_URL: ${{ secrets.HEALTH_BASE_URL }}
+        run: |
+          set -euo pipefail
+          # Ο πιο ύπουλος τρόπος να αποτύχει ένα monitor είναι να ελέγχει
+          # σιωπηλά λάθος διεύθυνση και να μένει πράσινο ενώ το site είναι κάτω.
+          # Γι' αυτό η χρήση του default ΔΗΛΩΝΕΤΑΙ ρητά ως warning στο run.
+          if [ -n "${SECRET_URL:-}" ]; then
+            echo "Χρήση του secret HEALTH_BASE_URL."
+            echo "url=${SECRET_URL}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Το secret HEALTH_BASE_URL δεν έχει οριστεί — έλεγχος στο default https://propertyos-psi.vercel.app. Όταν συνδεθεί δικό μας domain, όρισέ το (docs/dev/health.md)."
+            echo "url=https://propertyos-psi.vercel.app" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ΓΙΑΤΙ ΠΕΡΙΜΕΝΟΥΜΕ: σε push στο main το Vercel μόλις ΞΕΚΙΝΑΕΙ το δικό του
+      # build· η παραγωγή σερβίρει ακόμη το ΠΡΟΗΓΟΥΜΕΝΟ deployment. Χωρίς
+      # αναμονή ο έλεγχος θα επιβεβαίωνε την παλιά έκδοση — δηλαδή θα έβγαινε
+      # πράσινος ακριβώς για το commit που μόλις έσπασε το site. Τα ~90
+      # δευτερόλεπτα καλύπτουν το συνηθισμένο build και την εναλλαγή του alias.
+      # Αν το deploy αργήσει περισσότερο, ο επόμενος 15λεπτος κύκλος το πιάνει.
+      - name: Αναμονή ολοκλήρωσης deploy (μόνο σε push στο main)
+        if: github.event_name == 'push'
+        run: sleep 90
+
+      - name: Έλεγχος δημόσιων σελίδων
+        id: probe
+        env:
+          HEALTH_BASE_URL: ${{ steps.target.outputs.url }}
+        run: |
+          # Χωρίς `set -e`: χρειαζόμαστε τον κωδικό εξόδου του script ΚΑΙ την
+          # έξοδό του. Αν το βήμα τερμάτιζε αμέσως στην αποτυχία, το issue θα
+          # έλεγε μόνο «απέτυχε» χωρίς να λέει ΠΟΙΑ σελίδα και ΓΙΑΤΙ.
+          set +e
+          node scripts/health-check.mjs 2>&1 | tee "$RUNNER_TEMP/health.txt"
+          code=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo 'report<<HEALTH_REPORT_EOF'
+            cat "$RUNNER_TEMP/health.txt"
+            echo 'HEALTH_REPORT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo '### Έλεγχος υγείας παραγωγής'
+            echo ''
+            echo '```'
+            cat "$RUNNER_TEMP/health.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$code"
+
+  # Ίδιο μοτίβο με το resolve-on-success του supabase-deploy.yml: ένα
+  # ειδοποιητικό που ανοίγει αλλά δεν κλείνει ποτέ παύει να είναι ειδοποιητικό —
+  # το κόκκινο μένει για πάντα και το επόμενο πραγματικό πρόβλημα δεν ξεχωρίζει
+  # από το παλιό. Όταν η παραγωγή ξαναπατήσει στα πόδια της, ο κύκλος κλείνει
+  # μόνος του και με σχόλιο που λέει ποιο run το έλυσε.
+  resolve-on-success:
+    needs: check
+    if: success()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Κλείσιμο του ανοιχτού issue διακοπής
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const title = 'Η παραγωγή δεν απαντά σωστά';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'health-failure',
+              per_page: 100,
+            });
+            for (const issue of open.filter(i => i.title === title)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ Οι δημόσιες σελίδες απαντούν ξανά σωστά — κλείνει αυτόματα.\n\n- Run: ${runUrl}\n- Commit: ${context.sha}`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              core.notice(`Έκλεισε το #${issue.number} — η παραγωγή είναι ξανά υγιής.`);
+            }
+
+  # Χωρίς επαναχρησιμοποίηση του ίδιου issue, ένας έλεγχος κάθε 15 λεπτά θα
+  # άνοιγε 96 issues την ημέρα (4×24) — και ο ιδιοκτήτης θα σταματούσε να τα
+  # διαβάζει την πρώτη μέρα. Ένα issue ανά διακοπή, με σχόλιο σε κάθε νέα
+  # αποτυχία, ώστε να φαίνεται και η διάρκεια.
+  notify-failure:
+    needs: check
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Άνοιγμα ή ενημέρωση issue διακοπής
+        uses: actions/github-script@v9
+        env:
+          # Η αναφορά περνάει από env και ΟΧΙ με άμεση παρεμβολή ${{ }} μέσα στο
+          # script: το κείμενο είναι πολύγραμμο και θα έσπαγε τη σύνταξη της JS.
+          REPORT: ${{ needs.check.outputs.report }}
+        with:
+          script: |
+            const title = 'Η παραγωγή δεν απαντά σωστά';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const report = (process.env.REPORT || '').trim();
+            const body = [
+              'Ο αυτόματος έλεγχος υγείας βρήκε ότι **δημόσιες σελίδες δεν απαντούν σωστά**.',
+              '',
+              'Προσοχή: αυτό δεν σημαίνει απαραίτητα ότι το CI είναι κόκκινο. Η διακοπή του',
+              'Ιουλίου 2026 συνέβη με απολύτως πράσινο CI — το σφάλμα ήταν στην απόδοση (SSR).',
+              '',
+              report ? '```\n' + report + '\n```' : '_Η αναφορά δεν είναι διαθέσιμη — δες το log του run._',
+              '',
+              `- Run: ${runUrl}`,
+              `- Commit: ${context.sha}`,
+              `- Αφορμή: ${context.eventName}`,
+              '',
+              'Πρώτα βήματα: άνοιξε τη σελίδα με browser, δες τα Runtime Logs του Vercel, και',
+              'τρέξε τοπικά `node scripts/check-server-imports.mjs` (σύνορο server/πελάτη).',
+              'Το issue κλείνει μόνο του μόλις ο έλεγχος ξαναγίνει πράσινος.',
+            ].join('\n');
+
+            // Ταυτότητα του issue είναι ο ΣΤΑΘΕΡΟΣ τίτλος: όσο υπάρχει ανοιχτό
+            // με αυτόν τον τίτλο, σχολιάζουμε εκεί αντί να ανοίξουμε καινούργιο.
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'health-failure',
+              per_page: 100,
+            });
+            const hit = open.find(i => i.title === title);
+            if (hit) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: hit.number,
+                body,
+              });
+              core.notice(`Η διακοπή συνεχίζεται — σχόλιο στο υπάρχον #${hit.number}.`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['health-failure'],
+              });
+              core.notice(`Άνοιξε το #${created.number} — η παραγωγή δεν απαντά σωστά.`);
+            }

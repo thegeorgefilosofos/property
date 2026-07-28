@@ -62,12 +62,34 @@ const toneVars = (tone: Tone) => {
 };
 
 // ═══ Card, η βασική επιφάνεια κάθε ενότητας ═══════════════════════════════
-export function Card({ children, style, className }: { children: ReactNode; style?: CSSProperties; className?: string }) {
+//
+// ΓΙΑΤΙ ΕΧΕΙ PROPS ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΜΙΑ ΣΤΑΘΕΡΗ ΕΠΙΦΑΝΕΙΑ: μετρήθηκαν 13 χειρόγραφα
+// αντίγραφα της «κάρτας ενότητας» στην εφαρμογή, με 5 διαφορετικά paddings και
+// δύο επιφάνειες που ΕΠΙΤΗΔΕΣ δεν έχουν ορατή περίμετρο (καρτέλα Λογιστικής).
+// Η αιτία δεν ήταν αμέλεια: το primitive δεν κάλυπτε αυτές τις πραγματικές
+// ανάγκες, οπότε όποιος τις είχε έγραφε δικό του αντικείμενο από την αρχή.
+// Οι προεπιλογές μένουν ΑΚΡΙΒΩΣ όπως πριν, ώστε καμία υπάρχουσα χρήση να μην
+// αλλάξει όψη.
+const CARD_PAD = { sm: T.sp.lg, md: 18, lg: T.sp.xl } as const;
+
+export function Card({ children, style, className, pad = 'sm', gap = true, elevation = 'raised', tabIndex }: {
+  children: ReactNode; style?: CSSProperties; className?: string;
+  /** Εστιάσιμη κάρτα: το tap σε κινητό αποκαλύπτει ό,τι το hover σε desktop (focus-within). */
+  tabIndex?: number;
+  /** Εσωτερικό περιθώριο: sm=16 (προεπιλογή), md=18, lg=20. */
+  pad?: 'sm' | 'md' | 'lg';
+  /** false = χωρίς κάτω περιθώριο, όταν η κάρτα ζει μέσα σε flex/grid με δικό του gap. */
+  gap?: boolean;
+  /** 'flat' = καμία ορατή περίμετρος, μόνο βάθος (η γλώσσα της καρτέλας Λογιστικής). */
+  elevation?: 'raised' | 'flat';
+}) {
+  const flat = elevation === 'flat';
   return (
-    <div className={className} style={{
-      background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
-      borderRadius: T.radius.card, padding: T.sp.lg, marginBottom: T.sp.lg,
-      boxShadow: 'var(--highlight-inset), var(--elev-1)', ...style,
+    <div className={className} tabIndex={tabIndex} style={{
+      background: 'var(--surface-raised)',
+      border: flat ? 'none' : '1px solid var(--border-raised)',
+      borderRadius: T.radius.card, padding: CARD_PAD[pad], marginBottom: gap ? T.sp.lg : 0,
+      boxShadow: flat ? 'var(--elev-1)' : 'var(--highlight-inset), var(--elev-1)', ...style,
     }}>
       {children}
     </div>
@@ -350,7 +372,7 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
 export function ExportButton({ onClick, onExportData, label = 'Εξαγωγή Excel', disabled }: { onClick: () => void; onExportData?: () => void; label?: string; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const icon = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>;
-  const base: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' };
+  const base: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' };
 
   if (!onExportData) {
     return (
@@ -437,7 +459,7 @@ export function EmptyState({ title, hint, action, icon }: { title: string; hint?
 // Ρυθμίσεων, ώστε να μη διαφέρουν μεταξύ τους. Το focus ring μπαίνει με την κλάση
 // `po-field` (globals.css), χωρίς ανά-input JS handlers.
 export const settingsField: CSSProperties = {
-  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
+  width: '100%', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
 };

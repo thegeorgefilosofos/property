@@ -8,7 +8,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Badge } from '@/components/Theme';
+import { T, TT, Btn, Badge, EmptyState, Spinner } from '@/components/Theme';
+import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { CustomSelect as Select } from './UIComponents';
 import ScanButton from './ScanButton';
@@ -146,7 +147,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
         </div>
 
         <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {loading ? <div style={{ ...TT.bodySm }}>Φόρτωση…</div> : props.length === 0 ? <div style={{ ...TT.bodySm }}>Δεν υπάρχουν ακίνητα.</div> : (
+          {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Δεν υπάρχουν ακίνητα" hint="Πρόσθεσε ακίνητο για να ορίσεις ποσοστά συνιδιοκτησίας." /> : (
             <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <div style={{ flex: '2 1 200px', minWidth: 0 }}>

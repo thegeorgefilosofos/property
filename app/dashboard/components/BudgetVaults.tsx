@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, InfoDot, CustomSelect } from './UIComponents';
-import { T, feAuto, Badge } from '@/components/Theme';
+import { T, feAuto, Badge, Skeleton } from '@/components/Theme';
 import { reservePlan, savingsSchedule } from '@/lib/billing/budgetPro';
 
 // ── Κουμπαράδες / Αποθεματικά (sinking funds) ─────────────────────────────────
@@ -173,7 +173,20 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
   // (επιβιώνει σε μετονομασία) ή, ως εφεδρεία, με το κανονικοποιημένο όνομα.
   const openSuggestions = suggestions.filter(sg => !vaults.some(v => v.srcKey === sg.key || norm(v.name) === norm(sg.name)));
 
-  if (!loaded) return null;
+  // Πριν, όσο διάβαζε τα δεδομένα η ενότητα ΔΕΝ αποδιδόταν καθόλου: εμφανιζόταν
+  // απότομα και έσπρωχνε προς τα κάτω ό,τι ήταν από κάτω της. Ο σκελετός κρατά τη
+  // θέση της. Ακολουθεί το `shut` (προεπιλογή: μαζεμένη) ώστε να μη δεσμεύει
+  // περισσότερο ύψος από όσο θα πιάσει τελικά — αλλιώς η μετακίνηση απλώς αλλάζει φορά.
+  if (!loaded) return (
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+      <Skeleton w={110} h={10} />
+      {!shut && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+          {[0, 1].map(i => <Skeleton key={i} h={56} r={12} />)}
+        </div>
+      )}
+    </div>
+  );
 
   const card: React.CSSProperties = { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 };
 
@@ -300,9 +313,9 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
               })()}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12 }}>
                 <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)} onTouchStart={() => setDoneHover(true)} onTouchEnd={() => setDoneHover(false)}
-                  style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: doneHover ? 'var(--accent-text)' : 'var(--bg-surface)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>Έτοιμο</button>
+                  style={{ height: T.h.md, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: doneHover ? 'var(--accent-text)' : 'var(--bg-surface)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>Έτοιμο</button>
                 <button onClick={() => remove(v.id)} onMouseEnter={() => setDelHover(true)} onMouseLeave={() => setDelHover(false)}
-                  style={{ height: 36, padding: '0 12px', borderRadius: T.radius.btn, background: 'transparent', border: 'none', color: delHover ? 'var(--negative)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'color 0.15s' }}>Διαγραφή</button>
+                  style={{ height: T.h.md, padding: '0 12px', borderRadius: T.radius.btn, background: 'transparent', border: 'none', color: delHover ? 'var(--negative)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'color 0.15s' }}>Διαγραφή</button>
               </div>
             </div>
           );

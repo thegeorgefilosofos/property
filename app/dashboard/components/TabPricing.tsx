@@ -10,7 +10,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, fe, fd } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd } from '@/components/Theme';
+import { notify, notifyOk, notifyError } from '@/components/Toast';
+import { Tag } from 'lucide-react';
 import { NumberInput } from './UIComponents';
 import { exportPricingWorkbook } from './pricingExport';
 import {
@@ -43,7 +45,6 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyR
   const [saveNote, setSaveNote] = useState<string | null>(null);
   // Στιγμιότυπο πρόβλεψης για «ζωντανό», χρήσιμο μήνυμα αποθήκευσης (όχι στείρο «αποθηκεύτηκαν»).
   const projRef = useRef<{ projRevenue: number; uplift: number; upliftPct: number; occPct: number } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [gapTitles, setGapTitles] = useState<Set<string>>(new Set()); // κενά ήδη στο Ημερολόγιο
   const compsKey = `pos-pricing-comps-${propertyId}`;
   const [comps, setComps] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(compsKey) || '[]'); } catch { return []; } });
@@ -185,8 +186,6 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyR
   const pastCount = useMemo(() => months.filter(([k]) => isPastMonth(k)).length, [months, pyear, nowYear]);
   const visibleMonths = useMemo(() => months.filter(([k]) => showPast || !isPastMonth(k)), [months, showPast, pyear, nowYear]);
 
-  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2600); };
-
   // Σταθερός τίτλος ανά κενό, για ταύτιση της εγγραφής στο Ημερολόγιο.
   const gapTitle = (g: Gap) => `Γέμισε κενές μέρες ${fd(g.start)} - ${fd(g.end)}`;
 
@@ -196,9 +195,9 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyR
     if (gapTitles.has(title)) {
       const { error } = await supabase.from('calendar_events').delete()
         .eq('property_id', propertyId).eq('source', 'pricing_gap').eq('title', title);
-      if (error) { flash(`Σφάλμα: ${error.message}`); return; }
+      if (error) { notifyError(`Σφάλμα: ${error.message}`); return; }
       setGapTitles(prev => { const n = new Set(prev); n.delete(title); return n; });
-      flash('Αφαιρέθηκε από το Ημερολόγιο');
+      notify('Αφαιρέθηκε από το Ημερολόγιο');
       return;
     }
     const rd = (() => { const wanted = addDaysIso(g.start, -5); return wanted < todayIso() ? todayIso() : wanted; })();
@@ -207,15 +206,15 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyR
       category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'pricing_gap',
       notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice, 0)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
     });
-    if (error) { flash(`Σφάλμα: ${error.message}`); return; }
+    if (error) { notifyError(`Σφάλμα: ${error.message}`); return; }
     setGapTitles(prev => new Set(prev).add(title));
-    flash('Προστέθηκε στο Ημερολόγιο');
+    notifyOk('Προστέθηκε στο Ημερολόγιο');
   };
   // Ενέργεια: αντιγραφή κειμένου προσφοράς last minute.
   const copyOffer = (g: Gap) => {
     const txt = `Τελευταία διαθεσιμότητα ${fd(g.start)} - ${fd(g.end)} (${g.nights} ${g.nights === 1 ? 'νύχτα' : 'νύχτες'}) σε ειδική τιμή ${fe(g.fillPrice, 0)} ανά νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}. Κλείσε τώρα, οι ημερομηνίες είναι περιορισμένες.`;
     navigator.clipboard?.writeText(txt);
-    flash('Το κείμενο προσφοράς αντιγράφηκε');
+    notifyOk('Το κείμενο προσφοράς αντιγράφηκε');
   };
 
   // Εξαγωγή επαγγελματικού .xlsx (Σύνοψη + Ημερήσιες τιμές + Ανά μήνα).
@@ -307,11 +306,15 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyR
       })()}
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Φόρτωση…</div>
+        // Σκελετός αντί για «Φόρτωση…»: το σχήμα του αποτελέσματος είναι γνωστό
+        // (μετρικές + πίνακας ημερήσιων τιμών), άρα η σελίδα δεν αναπηδά όταν έρθουν τα δεδομένα.
+        <><SkeletonKPIs n={4} /><Skeleton h={260} r={14} /></>
       ) : base <= 0 ? (
-        <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, lineHeight: 1.6 }}>
-          Όρισε μια βασική τιμή ανά νύχτα για να δεις τις προτεινόμενες τιμές. Αν καταχωρήσεις διαμονές (χειροκίνητα ή με εισαγωγή iCal), η αφετηρία υπολογίζεται αυτόματα από το ιστορικό σου.
-        </div>
+        <EmptyState
+          icon={<Tag size={20} />}
+          title="Δεν υπάρχει βασική τιμή"
+          hint="Όρισε τιμή ανά νύχτα, ή καταχώρησε διαμονές (χειροκίνητα ή με εισαγωγή iCal) για να υπολογιστεί αυτόματα από το ιστορικό σου."
+        />
       ) : (
         <>
           <KPIGrid items={kpis} />
@@ -451,10 +454,6 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyR
         </>
       )}
 
-      {/* Toast ενεργειών */}
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--text-primary)', color: 'var(--bg-surface)', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--elev-3)', zIndex: 2000 }}>{toast}</div>
-      )}
     </div>
   );
 }

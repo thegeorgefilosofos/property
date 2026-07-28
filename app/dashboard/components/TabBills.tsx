@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Skeleton } from '@/components/Theme';
 
 // ── Static imports, all components must be static for Next.js App Router ────
 import BillsDashboard    from './BillsDashboard';
@@ -91,9 +91,13 @@ export default function TabBills({
   const [activeTab,  setActiveTab]  = useState<TabId>('dashboard');
   const [strip,      setStrip]      = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', notifCount: 0, lastUpdate: 0 });
   const [realtimeOk, setRealtimeOk] = useState(false);
+  // Το `strip` ξεκινά με μηδενικά, οπότε η κεφαλίδα δεν έδειχνε κανένα chip και
+  // μετά τα chips εμφανίζονταν μονομιάς και έσπρωχναν τη γραμμή. Δύο σκελετοί
+  // κρατούν τη θέση τους όσο τρέχουν τα τρία παράλληλα ερωτήματα.
+  const [stripLoading, setStripLoading] = useState(true);
 
   const loadStrip = useCallback(async () => {
-    if (!propertyId) return;
+    if (!propertyId) { setStripLoading(false); return; }
     try {
       const now = new Date();
       const [{ data: bills }, { data: contacts }, { data: setts }] = await Promise.all([
@@ -106,11 +110,11 @@ export default function TabBills({
       const overdueCount = (bills ?? []).filter(b => !b.paid && b.due_date && new Date(b.due_date) < now).length;
 
       setStrip({ totalMonthly, overdueCount, tenantName: contacts?.[0]?.full_name ?? '', notifCount: 0, lastUpdate: Date.now() });
-    } catch (_) {}
+    } catch (_) {} finally { setStripLoading(false); }
   }, [propertyId]);
 
   useEffect(() => {
-    if (!propertyId) return;
+    if (!propertyId) { setStripLoading(false); return; }
     let mounted = true;
     loadStrip();
     const ch = supabase
@@ -156,13 +160,22 @@ export default function TabBills({
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: realtimeOk ? 'var(--positive)' : 'var(--border-default)', display: 'inline-block', animation: realtimeOk ? 'pulse 2s infinite' : 'none' }}/>
             Live
           </span>
-          {strip.tenantName && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{strip.tenantName}</span>}
-          {strip.totalMonthly > 0 && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.totalMonthly, 0)} / μήνα</span>}
-          {strip.overdueCount > 0 && (
-            <button onClick={() => setActiveTab('dashboard')}
-              style={{ padding: '4px 12px', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', cursor: 'pointer', fontFamily: T.font.sans }}>
-              {strip.overdueCount} ληξιπρόθεσμα
-            </button>
+          {stripLoading ? (
+            <>
+              <Skeleton w={90} h={24} r={T.radius.pill} />
+              <Skeleton w={110} h={24} r={T.radius.pill} />
+            </>
+          ) : (
+            <>
+              {strip.tenantName && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{strip.tenantName}</span>}
+              {strip.totalMonthly > 0 && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.totalMonthly, 0)} / μήνα</span>}
+              {strip.overdueCount > 0 && (
+                <button onClick={() => setActiveTab('dashboard')}
+                  style={{ padding: '4px 12px', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', cursor: 'pointer', fontFamily: T.font.sans }}>
+                  {strip.overdueCount} ληξιπρόθεσμα
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

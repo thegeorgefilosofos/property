@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn } from '@/components/Theme';
+import { T, Btn, Spinner } from '@/components/Theme';
 
 const MIN_WORDS = 12;
 
@@ -124,8 +124,10 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
     );
   }
 
-  if (loading && !embedded) {
-    return <div style={{ ...shell, color: 'var(--text-tertiary)', fontSize: 13, fontFamily: T.font.sans }}>Φόρτωση…</div>;
+  // Χωρίς το `!embedded`, μέσα σε παράθυρο η φόρτωση δεν έδειχνε ΤΙΠΟΤΑ: ο χρήστης
+  // άνοιγε τη φόρμα και έβλεπε άδειο κουτί μέχρι να απαντήσει ο server.
+  if (loading) {
+    return <div style={shell}><Spinner size={20} label="Φόρτωση…" /></div>;
   }
 
   return (

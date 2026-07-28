@@ -213,7 +213,11 @@ export default function TenantPortal() {
                 type="button"
                 onClick={submitPin}
                 disabled={pinChecking || !pin.trim()}
-                style={{ height: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (pinChecking || !pin.trim()) ? 'not-allowed' : 'pointer', opacity: (pinChecking || !pin.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
+                // minHeight αντί για height, και σκόπιμα 44 αντί για T.h.lg (40): δημόσια
+                // σελίδα που ανοίγει σχεδόν πάντα σε κινητό, όπου το 44 είναι το ελάχιστο
+                // αξιόπιστο μέγεθος στόχου αφής. Το minHeight αφήνει το κουμπί να ψηλώσει
+                // αν το κείμενο τυλιχτεί σε δύο γραμμές, αντί να το κόψει.
+                style={{ minHeight: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (pinChecking || !pin.trim()) ? 'not-allowed' : 'pointer', opacity: (pinChecking || !pin.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
               >
                 {pinChecking ? 'Έλεγχος…' : 'Είσοδος'}
               </button>
@@ -365,7 +369,7 @@ export default function TenantPortal() {
                   </div>
 
                   {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
-                  <button type="submit" disabled={sending || !title.trim()} style={{ height: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
+                  <button type="submit" disabled={sending || !title.trim()} style={{ minHeight: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
                     {sending ? 'Αποστολή…' : 'Αποστολή αιτήματος'}
                   </button>
                 </form>

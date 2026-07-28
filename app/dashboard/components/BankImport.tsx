@@ -1,9 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Check, ArrowRight, Landmark } from 'lucide-react'
+import { Check, ArrowRight, Landmark, SearchX } from 'lucide-react'
 import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
-import { feAuto, T } from '@/components/Theme'
+import { feAuto, T, EmptyState, Spinner } from '@/components/Theme'
 
 const MONTHS = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
 const hashOf = (t:BankTxn)=>`${t.date}|${t.amount}|${t.description}`.slice(0,200)
@@ -99,7 +99,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
 
           {step==='review'&&(<>
             {rentMatches.length===0&&expenses.length===0?(
-              <p style={{ fontSize:13, color:'var(--text-secondary)', fontFamily: T.font.sans, padding:'8px 0' }}>Δεν βρέθηκαν νέες αντιστοιχίσεις.{skipped>0?` (${skipped} κινήσεις είχαν ήδη εισαχθεί.)`:''}</p>
+              <EmptyState icon={<SearchX size={20}/>} title="Δεν βρέθηκαν νέες αντιστοιχίσεις" hint={skipped>0?`${skipped} κινήσεις είχαν ήδη εισαχθεί.`:'Έλεγξε ότι το αρχείο καλύπτει την περίοδο που περιμένεις.'}/>
             ):(<>
               {rentMatches.length>0&&(<>
                 <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Ενοίκια που εισπράχθηκαν</p>
@@ -141,7 +141,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
           </>)}
 
           {step==='saving'&&(
-            <p style={{ fontSize:13.5, color:'var(--text-secondary)', textAlign:'center', padding:'24px 0', fontFamily: T.font.sans }}>{savedMsg||'Καταχώριση…'}</p>
+            <Spinner size={20} label={savedMsg||'Καταχώριση…'}/>
           )}
         </div>
       </div>
