@@ -74,13 +74,13 @@ export default function LandingShowcase() {
       `}</style>
       <div ref={tiltRef} onMouseMove={onTilt} onMouseLeave={resetTilt} style={{ transition: 'transform 0.35s cubic-bezier(0.2, 0, 0, 1)', willChange: 'transform' }}>
       <div className="lp-mockup" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
-        style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 18, overflow: 'hidden' }}>
+        style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 14, overflow: 'hidden' }}>
         {/* chrome */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
           <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />
           <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />
           <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />
-          <div className="lp-hide-xs" style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: 7, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '5px 14px', fontSize: 12, color: 'var(--text-tertiary)' }}>
+          <div className="lp-hide-xs" style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: 7, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '5px 14px', fontSize: 12.5, color: 'var(--text-tertiary)' }}>
             <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             propertyos.gr/scan
           </div>
@@ -103,7 +103,7 @@ export default function LandingShowcase() {
           const on = i === active;
           return (
             <button key={t.key} role="tab" aria-selected={on} id={`tab-${t.key}`} aria-controls={`panel-${t.key}`} onClick={() => { setActive(i); setPaused(true); }}
-              style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${on ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : 'var(--border-subtle)'}`, background: on ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', borderRadius: 100, padding: '8px 16px', fontSize: 13, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'all .2s' }}>
+              style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${on ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : 'var(--border-subtle)'}`, background: on ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', borderRadius: 100, padding: '8px 16px', fontSize: 13.5, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'all .2s' }}>
               {t.label}
               {on && !paused && <span key={active} className="lp-progress" style={{ position: 'absolute', left: 0, bottom: 0, height: 2, background: 'var(--accent)' }} />}
             </button>
