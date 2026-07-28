@@ -39,6 +39,8 @@ on:
 permissions:
   contents: read
   issues: write
+  # Για την ανακάλυψη της τρέχουσας διεύθυνσης παραγωγής από τα deployments.
+  deployments: read
 
 # Δύο έλεγχοι υγείας ταυτόχρονα (π.χ. schedule + push στο main) θα μπορούσαν να
 # ανοίξουν δύο issues για το ίδιο πρόβλημα, αφού ο έλεγχος «υπάρχει ήδη ανοιχτό;»
@@ -69,18 +71,45 @@ jobs:
         id: target
         env:
           SECRET_URL: ${{ secrets.HEALTH_BASE_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           # Ο πιο ύπουλος τρόπος να αποτύχει ένα monitor είναι να ελέγχει
-          # σιωπηλά λάθος διεύθυνση και να μένει πράσινο ενώ το site είναι κάτω.
-          # Γι' αυτό η χρήση του default ΔΗΛΩΝΕΤΑΙ ρητά ως warning στο run.
+          # σιωπηλά λάθος διεύθυνση. Ο ΔΕΥΤΕΡΟΣ πιο ύπουλος είναι να ελέγχει λάθος
+          # διεύθυνση και να βγάζει ΨΕΥΤΙΚΟ συναγερμό — αυτό σε μαθαίνει να
+          # αγνοείς την ειδοποίηση, και τότε το monitor είναι χειρότερο από το
+          # τίποτα. Συνέβη ακριβώς αυτό: μια μαντεμένη διεύθυνση γύριζε 404 σε
+          # ΟΛΕΣ τις διαδρομές και άνοιξε issue ενώ η παραγωγή ήταν μια χαρά.
+          #
+          # ΓΙ' ΑΥΤΟ ΔΕΝ ΥΠΑΡΧΕΙ ΠΙΑ DEFAULT. Η διεύθυνση είτε δηλώνεται ρητά,
+          # είτε ρωτάμε το ίδιο το GitHub ποια είναι η τρέχουσα παραγωγή — το
+          # Vercel καταγράφει το `environment_url` σε κάθε deployment. Αν δεν
+          # βρεθεί με κανέναν από τους δύο τρόπους, ο έλεγχος ΠΑΡΑΛΕΙΠΕΤΑΙ
+          # θορυβωδώς αντί να τρέξει στα τυφλά.
+          url=""
           if [ -n "${SECRET_URL:-}" ]; then
-            echo "Χρήση του secret HEALTH_BASE_URL."
-            echo "url=${SECRET_URL}" >> "$GITHUB_OUTPUT"
+            echo "Πηγή διεύθυνσης: secret HEALTH_BASE_URL."
+            url="$SECRET_URL"
           else
-            echo "::warning::Το secret HEALTH_BASE_URL δεν έχει οριστεί — έλεγχος στο default https://propertyos-psi.vercel.app. Όταν συνδεθεί δικό μας domain, όρισέ το (docs/dev/health.md)."
-            echo "url=https://propertyos-psi.vercel.app" >> "$GITHUB_OUTPUT"
+            echo "Το secret HEALTH_BASE_URL δεν έχει οριστεί — ρωτάω το GitHub ποια είναι η τρέχουσα παραγωγή."
+            dep=$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=Production&per_page=1" --jq '.[0].id' 2>/dev/null || true)
+            if [ -z "$dep" ] || [ "$dep" = "null" ]; then
+              dep=$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=production&per_page=1" --jq '.[0].id' 2>/dev/null || true)
+            fi
+            if [ -n "$dep" ] && [ "$dep" != "null" ]; then
+              url=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$dep/statuses?per_page=10" \
+                --jq 'map(select(.state=="success" and .environment_url != null and .environment_url != "")) | .[0].environment_url' 2>/dev/null || true)
+              [ "$url" = "null" ] && url=""
+              [ -n "$url" ] && echo "Πηγή διεύθυνσης: GitHub Deployments (deployment #$dep)."
+            fi
           fi
+
+          if [ -z "$url" ]; then
+            echo "::warning::Δεν βρέθηκε διεύθυνση παραγωγής. Ο έλεγχος παραλείπεται — ΔΕΝ ανοίγει issue, γιατί ένας ψεύτικος συναγερμός είναι χειρότερος από κανέναν. Όρισε το secret HEALTH_BASE_URL (βλ. docs/dev/health.md)."
+          else
+            echo "Διεύθυνση: $url"
+          fi
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
 
       # ΓΙΑΤΙ ΠΕΡΙΜΕΝΟΥΜΕ: σε push στο main το Vercel μόλις ΞΕΚΙΝΑΕΙ το δικό του
       # build· η παραγωγή σερβίρει ακόμη το ΠΡΟΗΓΟΥΜΕΝΟ deployment. Χωρίς
@@ -89,11 +118,12 @@ jobs:
       # δευτερόλεπτα καλύπτουν το συνηθισμένο build και την εναλλαγή του alias.
       # Αν το deploy αργήσει περισσότερο, ο επόμενος 15λεπτος κύκλος το πιάνει.
       - name: Αναμονή ολοκλήρωσης deploy (μόνο σε push στο main)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.target.outputs.url != ''
         run: sleep 90
 
       - name: Έλεγχος δημόσιων σελίδων
         id: probe
+        if: steps.target.outputs.url != ''
         env:
           HEALTH_BASE_URL: ${{ steps.target.outputs.url }}
         run: |
