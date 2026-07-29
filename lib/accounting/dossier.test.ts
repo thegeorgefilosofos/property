@@ -222,5 +222,58 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
   eq('μετράει μόνο τα υπαρκτά', rd.done, 1);
 }
 
+// ═══ ΑΡΙΘΜΗΤΙΚΗ ΣΥΝΕΠΕΙΑ ΤΟΥ ΜΗΝΥΜΑΤΟΣ ═══════════════════════════════════
+//
+// ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Οι προηγούμενοι έλεγχοι επιβεβαίωναν μόνο ότι η φράση ΠΕΡΙΕΧΕΙ
+// «δικά σου» — και γι' αυτό δεν έπιασαν ένα αληθινό σφάλμα: το μήνυμα έβγαζε
+// «6 πράγματα λείπουν για να κλείσει η δήλωση, και τα 10 είναι δικά σου», επειδή
+// το πρώτο νούμερο μέτραγε μόνο τα επείγοντα και το δεύτερο όλα τα δικά του.
+//
+// Ο χρήστης που βλέπει αριθμητική αντίφαση σε οθόνη φορολογίας σταματά να
+// πιστεύει ΚΑΙ τα σωστά νούμερα. Άρα ο έλεγχος δεν κοιτά λέξεις: βγάζει τα
+// νούμερα από το κείμενο και απαιτεί το δεύτερο να είναι υποσύνολο του πρώτου,
+// σε ΚΑΘΕ συνδυασμό μορφής × καταστάσεων × «τι έχω ήδη».
+{
+  const forms: LegalForm[] = ['individual', 'sole_trader', 'partnership', 'company'];
+  const combos: PropertyStatus[][] = [
+    ['rent_long'], ['rent_short'], ['vacant'], ['own_use'], ['renovation'], ['for_sale'], ['disputed'],
+    ['rent_long', 'rent_short'], ['vacant', 'disputed', 'renovation'],
+  ];
+  let checked = 0, bad = 0;
+  for (const form of forms) {
+    for (const statuses of combos) {
+      const reqs = requirementsFor(ctx({ form, books: defaultBookkeeping(form), statuses, hasLoan: true, ownershipChanged: true }));
+      // Δοκιμάζουμε κάθε στάδιο συμπλήρωσης: τίποτα, τα μισά, όλα.
+      const stages = [[] as string[], reqs.filter((_, i) => i % 2 === 0).map(r => r.id), reqs.map(r => r.id)];
+      for (const have of stages) {
+        const rd = readiness(reqs, have);
+        const nums = (rd.message.match(/\d+/g) || []).map(Number);
+        checked++;
+        // Όπου το μήνυμα δίνει δύο νούμερα, το δεύτερο είναι υποσύνολο του πρώτου.
+        if (nums.length >= 2 && nums[1] > nums[0]) { bad++; continue; }
+        // Και κανένα νούμερο δεν ξεπερνά το σύνολο των απαιτήσεων.
+        if (nums.some(n => n > reqs.length)) bad++;
+      }
+    }
+  }
+  ok(`μήνυμα ετοιμότητας αριθμητικά συνεπές σε ${checked} συνδυασμούς`, bad === 0);
+}
+{
+  // Το ακριβές σενάριο που έσπαγε: πολλά δικά του εκκρεμή, λίγα επείγοντα.
+  const reqs: Parameters<typeof readiness>[0] = [
+    { id: 'b1', title: 'α', why: 'α', who: 'accountant', blocking: true },
+    { id: 'o1', title: 'β', why: 'β', who: 'owner', blocking: false },
+    { id: 'o2', title: 'γ', why: 'γ', who: 'owner', blocking: false },
+    { id: 'o3', title: 'δ', why: 'δ', who: 'owner', blocking: false },
+  ];
+  const rd = readiness(reqs, []);
+  const nums = (rd.message.match(/\d+/g) || []).map(Number);
+  ok('ένα επείγον, τρία δικά του: δεν λέει ότι τα επείγοντα είναι δικά του', !rd.message.includes('τα 3 είναι δικά σου'));
+  ok('δεν ισχυρίζεται ότι δεν χρειάζεται τίποτα', !rd.message.includes('Δεν χρειάζεται κάτι από εσένα'));
+  ok('αναφέρει τα εκκρεμή χωρίς προθεσμία', rd.message.includes('εκκρεμή') || rd.message.includes('εκκρεμές'));
+  ok('κανένα νούμερο δεν ξεπερνά το σύνολο', nums.every(n => n <= reqs.length));
+  eq('το yours παραμένει το σύνολο των δικών του, για την οθόνη', rd.yours, 3);
+}
+
 console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);
