@@ -28,7 +28,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, Btn, Card, EmptyState, Skeleton } from '@/components/Theme';
+import { T, TT, fe, Btn, Card, EmptyState, Skeleton } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
 import {
   mergeLedger, ledgerTotal, groupByMonth,
@@ -221,48 +221,70 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
         @media (hover: none) { .exp-act { opacity: 1; } }
         /* Η κεφαλίδα μήνα μένει ορατή όσο κυλάς μέσα του: σε λίστα εκατό
            γραμμών, χωρίς αυτό χάνεις σε ποιον μήνα βρίσκεσαι. */
+        /* Χωρίς γεμάτη μπάντα: μια τρίχα κάτω και τίποτα άλλο. Η γεμισμένη
+           κεφαλίδα έκοβε τη λίστα σε κομμάτια και τραβούσε περισσότερη προσοχή
+           από τα ίδια τα ποσά, που είναι το περιεχόμενο. */
         .exp-month {
           position: sticky; top: 0; z-index: 2;
           display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-          padding: 10px 14px; margin-top: 18px;
+          padding: 14px 14px 8px; margin-top: 10px;
           background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
         }
+        .exp-month:first-child { margin-top: 0; }
         @media (max-width: 560px) {
           .exp-row { grid-template-columns: 46px 1fr; row-gap: 6px; }
           .exp-row > :last-child { grid-column: 2; justify-self: start; }
         }
       `}</style>
 
-      {/* ── Κεφαλίδα ───────────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: T.sp.xl }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.15, margin: 0 }}>
-          Δαπάνες
-        </h1>
-        <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', marginTop: 5 }}>
-          Κάθε ευρώ που φεύγει, σε μία λίστα.
-        </div>
+      {/* ── Κεφαλίδα ───────────────────────────────────────────────────────────
+          Ο τίτλος ήταν 28 και το υπότιτλο 12,5: μεγέθη γραμμένα με το χέρι, εκτός
+          κλίμακας. Η οθόνη δεν έχει ανάγκη από αφίσα, έχει ανάγκη από ιεραρχία.
+          Πλέον όλα τα μεγέθη έρχονται από το TT, που είναι η μία πηγή αλήθειας
+          του συστήματος. Ό,τι δεν είναι στην κλίμακα, δεν μπαίνει στην οθόνη. */}
+      <div style={{ marginBottom: T.sp.lg }}>
+        <h1 style={{ ...TT.h1, margin: 0 }}>Δαπάνες</h1>
+        <div style={{ ...TT.caption, marginTop: 4 }}>Κάθε ευρώ που φεύγει, σε μία λίστα.</div>
       </div>
 
-      {/* ── Τρία νούμερα ───────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 1, background: 'var(--border-subtle)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, overflow: 'hidden', marginBottom: T.sp.lg }}>
+      {/* ── Τρία νούμερα ─────────────────────────────────────────────────────
+          Χωρίς πλαίσια και χωρίς γεμίσματα. Τρεις στήλες χωρισμένες με μία
+          τρίχα, όπως σε τραπεζική κατάσταση. Το κουτί γύρω από νούμερα δεν
+          προσθέτει πληροφορία, προσθέτει θόρυβο. */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
+        gap: T.sp.lg, padding: `${T.sp.md}px 0 ${T.sp.lg}px`,
+        borderBottom: '1px solid var(--border-subtle)', marginBottom: T.sp.lg,
+      }}>
         <Figure label="αυτόν τον μήνα" value={loading ? null : fe(monthTotal)} />
         <Figure label={unpaid.length === 1 ? 'απλήρωτο' : 'απλήρωτα'} value={loading ? null : fe(unpaidTotal)}
-          sub={unpaid.length ? `${unpaid.length} ${unpaid.length === 1 ? 'γραμμή' : 'γραμμές'}` : 'κανένα'}
-          tone={unpaid.length ? 'warn' : 'ok'} />
+          sub={unpaid.length ? `${unpaid.length} ${unpaid.length === 1 ? 'γραμμή' : 'γραμμές'}` : undefined}
+          tone={unpaid.length ? 'warn' : undefined} />
         <Figure label="φέτος" value={loading ? null : fe(ledgerTotal(entries.filter(e => e.date.startsWith(String(new Date().getFullYear())))))} />
       </div>
 
-      {/* ── Ενέργειες ──────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.md }}>
+      {/* ── Ενέργειες ────────────────────────────────────────────────────────
+          ΕΝΑ accent στην οθόνη. Η «Φωτογραφία» είναι ο γρηγορότερος δρόμος για
+          να μπει μια δαπάνη, άρα είναι Η κύρια ενέργεια και κρατά μόνη της το
+          μπλε. Οι υπόλοιπες είναι ουδέτερες. Όταν όλα φωνάζουν, τίποτα δεν
+          ακούγεται, και ο χρήστης δεν ξέρει πού να πατήσει πρώτα. */}
+      <div style={{ display: 'flex', gap: T.sp.sm, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.lg }}>
         {onScan && <Btn variant="primary" onClick={onScan}>Φωτογραφία</Btn>}
         <Btn variant="secondary" onClick={() => { setAdding(v => !v); setBulk(false); }}>{adding ? 'Άκυρο' : 'Νέα δαπάνη'}</Btn>
         <Btn variant="secondary" onClick={() => { setBulk(v => !v); setAdding(false); }}>{bulk ? 'Άκυρο' : 'Μαζικά'}</Btn>
         <div style={{ flex: 1 }} />
+        {/* Ίδιο ύψος και ίδιο σχήμα με τα κουμπιά δίπλα του. Πριν ήταν ψηλότερο
+            και πιο στρογγυλό, και η σειρά έμοιαζε στοιχισμένη κατά λάθος. */}
         <input
           value={q} onChange={ev => setQ(ev.target.value)}
           placeholder="Αναζήτηση"
           aria-label="Αναζήτηση δαπανών"
-          style={{ width: 200, height: T.h.md, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: T.font.sans, outline: 'none' }}
+          style={{
+            width: 190, height: T.h.md, padding: '0 14px', boxSizing: 'border-box',
+            borderRadius: T.radius.btn, border: '1px solid var(--border-default)',
+            background: 'var(--bg-surface)', color: 'var(--text-primary)',
+            fontSize: 13, fontFamily: T.font.sans, outline: 'none',
+          }}
         />
       </div>
 
@@ -276,17 +298,29 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
           onDone={async () => { setBulk(false); await load(); }} />
       )}
 
-      {/* ── Θέλουν ματιά ───────────────────────────────────────────────────── */}
+      {/* ── Θέλουν ματιά ─────────────────────────────────────────────────────
+          ΧΩΡΙΣ πορτοκαλί περίγραμμα. Ένα χρωματιστό πλαίσιο γύρω από μια
+          παρατήρηση διεκδικεί την ίδια προσοχή με ένα σφάλμα, και μετά από δύο
+          φορές ο χρήστης το αγνοεί μόνιμα. Μία τελεία φτάνει: το μάτι τη
+          βρίσκει, και η οθόνη μένει ένα χρώμα. */}
       {!loading && needsEye.length > 0 && (
-        <Card pad="sm" style={{ marginBottom: T.sp.md, borderColor: 'color-mix(in srgb, var(--warning) 35%, transparent)' }}>
-          <div style={{ fontSize: 13.5, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 3 }}>
-            {needsEye.length} {needsEye.length === 1 ? 'γραμμή θέλει μια ματιά' : 'γραμμές θέλουν μια ματιά'}
+        <div style={{
+          display: 'flex', gap: T.sp.md, alignItems: 'flex-start',
+          padding: `${T.sp.md}px ${T.sp.lg}px`, marginBottom: T.sp.lg,
+          background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+          borderRadius: T.radius.inner,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, marginTop: 6 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...TT.body, fontWeight: 600, marginBottom: 2 }}>
+              {needsEye.length} {needsEye.length === 1 ? 'γραμμή θέλει μια ματιά' : 'γραμμές θέλουν μια ματιά'}
+            </div>
+            <div style={TT.bodySm}>
+              Είτε δεν έχουν κατηγορία, είτε μοιάζουν διπλές. Δεν χάνεται τίποτα, αλλά μέχρι να
+              τακτοποιηθούν δεν μετρούν σωστά στον Προϋπολογισμό.
+            </div>
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            Είτε δεν έχουν κατηγορία, είτε μοιάζουν διπλές. Δεν χάνεται τίποτα, αλλά μέχρι να
-            τακτοποιηθούν δεν μετρούν σωστά στον Προϋπολογισμό.
-          </div>
-        </Card>
+        </div>
       )}
 
       {/* ── Η λίστα ────────────────────────────────────────────────────────── */}
@@ -314,12 +348,8 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
           {months.map(m => (
             <div key={m.month}>
               <div className="exp-month">
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                  {monthLabel(m.month)}
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                  {fe(m.total)}
-                </span>
+                <span style={TT.label}>{monthLabel(m.month)}</span>
+                <span style={{ ...TT.mono, fontWeight: 700, color: 'var(--text-secondary)' }}>{fe(m.total)}</span>
               </div>
               <div style={{ padding: '4px 0' }}>
                 {m.entries.map(e => (
@@ -335,41 +365,59 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
 }
 
 // ── Ένα νούμερο ───────────────────────────────────────────────────────────
-function Figure({ label, value, sub, tone }: { label: string; value: string | null; sub?: string; tone?: 'ok' | 'warn' }) {
+/**
+ * Ένα νούμερο με την ετικέτα του.
+ *
+ * Η ΕΤΙΚΕΤΑ ΠΑΝΩ, ΤΟ ΝΟΥΜΕΡΟ ΚΑΤΩ. Ο χρήστης σαρώνει πρώτα «τι είναι αυτό» και
+ * μετά διαβάζει το ποσό· ανάποδα, διαβάζει τρία ποσά χωρίς να ξέρει τι μετρούν
+ * και επιστρέφει πάνω. Το μηδέν μένει ΟΥΔΕΤΕΡΟ: κόκκινο μηδέν στα «απλήρωτα»
+ * θα σήμαινε πρόβλημα εκεί που δεν υπάρχει κανένα.
+ */
+function Figure({ label, value, sub, tone }: { label: string; value: string | null; sub?: string; tone?: 'warn' }) {
   return (
-    <div style={{ background: 'var(--bg-surface)', padding: '16px 18px' }}>
-      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1, color: tone === 'warn' ? 'var(--negative)' : 'var(--text-primary)' }}>
-        {value ?? <Skeleton w={80} h={20} />}
+    <div>
+      <div style={{ ...TT.label, marginBottom: 8 }}>{label}</div>
+      <div style={{ ...TT.kpi, fontSize: 20, color: tone === 'warn' ? 'var(--negative)' : 'var(--text-primary)' }}>
+        {value ?? <Skeleton w={78} h={18} />}
       </div>
-      <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 5 }}>
-        {label}{sub ? <span style={{ color: 'var(--text-tertiary)' }}> · {sub}</span> : null}
-      </div>
+      {sub && <div style={{ ...TT.caption, marginTop: 5 }}>{sub}</div>}
     </div>
   );
 }
 
 // ── Μία γραμμή ────────────────────────────────────────────────────────────
+/** Κανονικοποίηση για σύγκριση ετικέτας με τίτλο: πεζά, χωρίς τόνους. */
+const bare = (s: string): string =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
 function Row({ e, busy, onPaid }: { e: LedgerEntry; busy: boolean; onPaid: () => void }) {
   const cat = categoryLabel(e.category);
   const due = e.due ? dueText(e.due) : null;
+  // «Δόση δανείου» με από κάτω «Δόση Δανείου» δεν είναι δεύτερη πληροφορία,
+  // είναι η ίδια δύο φορές με άλλα κεφαλαία. Η δεύτερη γραμμή υπάρχει μόνο όταν
+  // λέει κάτι που δεν λέει ήδη ο τίτλος.
+  const showCat = cat && bare(cat) !== bare(e.title);
+  const meta = [showCat ? cat : '', e.recurring ? 'πάγιο' : ''].filter(Boolean).join(' · ');
+
   return (
     <div className="exp-row">
-      <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ ...TT.caption, fontVariantNumeric: 'tabular-nums' }}>
         {shortDate(e.date)}
       </span>
       <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ ...TT.body, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {e.title}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, fontSize: 12, color: 'var(--text-tertiary)', flexWrap: 'wrap' }}>
-          <span>{cat}</span>
-          {e.recurring && <span title="Επαναλαμβάνεται κάθε μήνα">· πάγιο</span>}
-          {due && (
-            <span style={{ color: due.late ? 'var(--negative)' : 'var(--warning)', fontWeight: 600 }}>
-              · {due.text}
-            </span>
-          )}
-        </span>
+        {(meta || due) && (
+          <span style={{ ...TT.caption, display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+            {meta && <span>{meta}</span>}
+            {due && (
+              <span style={{ color: due.late ? 'var(--negative)' : 'var(--warning)', fontWeight: 600 }}>
+                {meta ? '· ' : ''}{due.text}
+              </span>
+            )}
+          </span>
+        )}
       </span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {!e.paid && (

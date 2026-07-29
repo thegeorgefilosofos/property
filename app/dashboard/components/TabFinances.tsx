@@ -53,25 +53,50 @@ export default function TabFinances({
     { k: 'budget', label: 'Προϋπολογισμός' },
   ];
 
+  // ── ΕΝΑ ΣΤΟΙΧΕΙΟ ΕΛΕΓΧΟΥ, ΟΧΙ ΤΡΙΑ ─────────────────────────────────────────
+  //
+  // ΠΡΙΝ, σε μία σειρά, υπήρχαν ΤΡΕΙΣ διαφορετικές μεταχειρίσεις: γεμάτο μπλε
+  // κουμπί, διάφανο κουμπί μέσα στο ίδιο πλαίσιο, και υπογραμμισμένος σύνδεσμος
+  // χωρίς ύψος που έπαιρνε δικό του τετράγωνο περίγραμμα στο πληκτρολόγιο. Τρία
+  // σχήματα, δύο ύψη, δύο χρώματα, για την ίδια ακριβώς ενέργεια: αλλαγή όψης.
+  //
+  // ΤΩΡΑ όλα είναι τμήματα του ίδιου διακόπτη, με ένα ύψος και ένα σχήμα. Το
+  // ΕΝΕΡΓΟ δεν είναι μπλε: είναι ανασηκωμένη επιφάνεια με έντονο κείμενο. Το
+  // μπλε μένει ΜΟΝΟ για την κύρια ενέργεια της οθόνης, ώστε το μάτι να ξέρει
+  // πάντα πού να πάει. Δύο μπλε σημεία στην ίδια οθόνη είναι κανένα.
+  const tabs: { k: View | 'contracts'; label: string }[] = [
+    ...segs.map(s => ({ k: s.k as View | 'contracts', label: s.label })),
+    { k: 'contracts', label: 'Συμβόλαια' },
+  ];
+  const active: View | 'contracts' = contracts ? 'contracts' : view;
+
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: T.sp.lg }}>
-        <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, overflow: 'hidden' }}>
-          {segs.map(s => {
-            const on = view === s.k && !contracts;
-            return (
-              <button key={s.k} onClick={() => { setView(s.k); setContracts(false); }}
-                style={{ appearance: 'none', border: 'none', cursor: 'pointer', padding: '9px 20px', fontFamily: T.font.sans, fontSize: 13.5, fontWeight: on ? 700 : 500, background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'background .15s, color .15s' }}>
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <button onClick={() => setContracts(v => !v)}
-          style={{ appearance: 'none', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, color: contracts ? 'var(--accent)' : 'var(--text-tertiary)', fontWeight: contracts ? 700 : 500, padding: 0, textDecoration: contracts ? 'none' : 'underline', textUnderlineOffset: 3 }}>
-          {contracts ? 'Πίσω στις δαπάνες' : 'Συμβόλαια και πάροχοι'}
-        </button>
+      <div style={{
+        display: 'inline-flex', padding: 3, gap: 2, marginBottom: T.sp.xl,
+        background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+        borderRadius: T.radius.pill, maxWidth: '100%', overflowX: 'auto',
+      }}>
+        {tabs.map(t => {
+          const on = active === t.k;
+          return (
+            <button key={t.k}
+              onClick={() => { if (t.k === 'contracts') { setContracts(true); } else { setContracts(false); setView(t.k as View); } }}
+              aria-pressed={on}
+              style={{
+                appearance: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                height: T.h.md, padding: '0 18px', borderRadius: T.radius.pill,
+                fontFamily: T.font.sans, fontSize: 13, fontWeight: on ? 700 : 500,
+                background: on ? 'var(--bg-surface)' : 'transparent',
+                border: on ? '1px solid var(--border-default)' : '1px solid transparent',
+                color: on ? 'var(--text-primary)' : 'var(--text-secondary)',
+                boxShadow: on ? 'var(--elev-1)' : 'none',
+                transition: 'background .15s, color .15s',
+              }}>
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {contracts

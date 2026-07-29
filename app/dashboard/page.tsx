@@ -1125,9 +1125,40 @@ export default function Dashboard() {
   const statusLabel = selected ? (STATUS_LABELS[selected.status_detail||'']||selected.status_detail) : '';
   const getBadge = (id: string) => { if (id==='inventory'&&inventoryAlerts>0) return inventoryAlerts; if (id==='checklist'&&checklistAlerts>0) return checklistAlerts; return 0; };
 
+  // ── ΜΙΣΘΩΣΗ ΜΟΝΟ ΟΤΑΝ ΥΠΑΡΧΕΙ ΜΙΣΘΩΣΗ ────────────────────────────────────
+  //
+  // Ενοικιαστής, Πελάτης και Τιμολόγηση εμφανίζονταν πάντα, ακόμη και σε σπίτι
+  // υπό ανακαίνιση, σε ιδιοχρησία ή προς πώληση. Τρεις καρτέλες που δεν έχουν
+  // τι να δείξουν είναι τρεις υποσχέσεις που δεν τηρούνται, και κάνουν την
+  // εφαρμογή να μοιάζει γενική αντί για δική σου.
+  //
+  // ΤΙ ΜΕΤΡΑ ΩΣ ΜΙΣΘΩΣΗ: «Ενοικιάζεται» και «Εποχιακό». Το εποχιακό ΕΙΝΑΙ
+  // εκμίσθωση, απλώς βραχυχρόνια, και εκεί ακριβώς ζουν ο Πελάτης και η
+  // Τιμολόγηση. Μετρά επίσης όποιο ακίνητο έχει δηλωμένο τρόπο εκμετάλλευσης,
+  // ώστε να μη χαθούν εργαλεία από παλιά δεδομένα με κενό status.
+  //
+  // ΔΕΝ ΔΙΑΓΡΑΦΕΤΑΙ ΤΙΠΟΤΑ. Οι καρτέλες φεύγουν από την πλοήγηση, τα δεδομένα
+  // μένουν ακέραια, και επιστρέφουν τη στιγμή που το ακίνητο ξαναμπαίνει σε
+  // μίσθωση.
+  const LEASE_TABS = new Set(['tenant', 'clients', 'pricing']);
+  const isLet = !!selected && (
+    selected.status_detail === 'rented' ||
+    selected.status_detail === 'seasonal' ||
+    selected.rental_mode === 'long_term' ||
+    selected.rental_mode === 'short_term'
+  );
+  /** Έχει νόημα αυτή η καρτέλα για ΑΥΤΟ το ακίνητο, τώρα; */
+  const tabFitsProperty = (id: string) => !LEASE_TABS.has(id) || isLet;
+
+  // Αν ο χρήστης βρίσκεται σε καρτέλα μίσθωσης και αλλάξει την κατάσταση σε
+  // κάτι που δεν είναι μίσθωση, δεν τον αφήνουμε σε οθόνη που μόλις έπαψε να
+  // ισχύει. Παράγεται κατά την απόδοση, όχι σε effect: το effect θα έδειχνε για
+  // ένα καρέ την παλιά οθόνη.
+  const navSafe = tabFitsProperty(nav) ? nav : 'overview';
+
   // Εντολές command palette: μετάβαση σε tab, εναλλαγή ακινήτου, γρήγορες ενέργειες
   const cmdItems: CommandItem[] = [
-    ...NAV_ITEMS.filter(item => isTabRelevant(effProfileType, item.id)).map(item => ({
+    ...NAV_ITEMS.filter(item => isTabRelevant(effProfileType, item.id) && tabFitsProperty(item.id)).map(item => ({
       id: `nav-${item.id}`, label: item.label, hint: 'Μετάβαση', group: 'Πλοήγηση',
       keywords: item.id, action: () => { if (selected) setNav(item.id); },
     })),
@@ -1200,7 +1231,7 @@ export default function Dashboard() {
             if (group.label==='Εργαλεία' && effProfileType!=='professional') return null;
             // Σταδιακή αποκάλυψη: μένουν οι καρτέλες που έχουν ήδη νόημα για αυτόν
             // τον χρήστη — συν η ενεργή, ώστε να μη «φεύγει» κάτω από τα πόδια του.
-            const ids = group.ids.filter(id => isTabRelevant(effProfileType, id) && (id===nav || isTabVisible(id, disclosure)));
+            const ids = group.ids.filter(id => isTabRelevant(effProfileType, id) && tabFitsProperty(id) && (id===nav || isTabVisible(id, disclosure)));
             if (ids.length === 0) return null;
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
@@ -1230,7 +1261,7 @@ export default function Dashboard() {
           {(() => {
             const hidden = hiddenCount(
               NAV_GROUPS.flatMap(g => (g.label==='Εργαλεία' && effProfileType!=='professional') ? [] : g.ids)
-                        .filter(id => isTabRelevant(effProfileType, id) && id !== nav),
+                        .filter(id => isTabRelevant(effProfileType, id) && tabFitsProperty(id) && id !== nav),
               disclosure,
             );
             if (hidden === 0) return null;
@@ -1369,21 +1400,21 @@ export default function Dashboard() {
               {nav==='portfolio' && (isTabAllowed(ent,'portfolio')
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα όλων των ακινήτων σου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType}/>}
+              {navSafe==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType}/>}
               {nav==='comparison'&& (isTabAllowed(ent,'comparison')
                 ? <TabComparison properties={properties} userId={user.id}/>
                 : <FeatureLock title="Σύγκρινε τα ακίνητά σου δίπλα-δίπλα" benefit="Απόδοση, δαπάνες και πάροχοι όλων των ακινήτων σου σε έναν πίνακα, για να δεις καθαρά πού κερδίζεις και πού χρειάζεται να λάβεις αποφάσεις. Ξεκλειδώνει με το πλάνο Ιδιοκτήτης." requiredPlan="owner" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} plan={effPlan} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
-              {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
+              {navSafe==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
-              {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
+              {navSafe==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
               {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType} onNavigate={(t)=>setNav(t)}/>}
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>}
-              {nav==='clients'   && (isTabAllowed(ent,'clients')
+              {navSafe==='clients'   && (isTabAllowed(ent,'clients')
                 ? <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Πελατολόγιο και υποψήφιοι (CRM)" benefit="Οργάνωσε πελάτες, ιστορικό διαμονών, αξιολογήσεις και υποψήφιους σε ένα επαγγελματικό CRM. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
