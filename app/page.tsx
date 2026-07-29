@@ -249,10 +249,10 @@ export default async function Landing() {
            Το προϊόν φωτίζεται πάνω του σαν έκθεμα· η υπόλοιπη σελίδα μένει καθαρή. */
         /* Το hero δεν έχει δικό του φόντο πια: μοιράζεται το ενιαίο μπλε-μαύρο
            της σελίδας, ώστε να μην υπάρχει καμία ραφή από πάνω μέχρι κάτω. */
-        .lp-hero { background: transparent; color: #fff; border-bottom: none; }
+        .lp-hero { background: transparent; color: var(--text-primary); border-bottom: none; }
         .lp-hero .lp-aurora::before { opacity: .22; }
         .lp-hero .lp-aurora::after { opacity: .15; }
-        .lp-hero .lp-rotor { color: #8ab4f8; }
+        .lp-hero .lp-rotor { color: var(--accent); }
         /* Ticker: αδιάκοπη οριζόντια ροή δυνατοτήτων, παύση στο πέρασμα του κέρσορα. */
         /* ═══ ΑΤΜΟΣΦΑΙΡΑ ═══════════════════════════════════════════════════════
            ΓΙΑΤΙ ΑΛΛΑΞΕ: το φόντο ήταν δύο θολές κηλίδες πάνω σε επίπεδο σκούρο
@@ -299,13 +299,14 @@ export default async function Landing() {
           75% { transform: translate(2%,-4%); }        87.5% { transform: translate(-3%,3%); }
         }
         /* 2. Οι αύρες. Τρεις, σε τρεις αποχρώσεις της ΙΔΙΑΣ οικογένειας (γαλάζιο,
-              κυανό, βαθύ ινδικό): αρκετή ποικιλία για βάθος, καμία για καρναβάλι. */
+              μία απόχρωση, το accent): το βάθος βγαίνει από μέγεθος, θολούρα και
+              διαφάνεια — όχι από δεύτερο και τρίτο χρώμα εκτός παλέτας. */
         .lp-aurora { position: absolute; inset: -14% -18% auto; height: 118%; z-index: 0; pointer-events: none; }
         .lp-aurora::before, .lp-aurora::after,
         .lp-atmos .lp-orb { content: ''; position: absolute; border-radius: 50%; will-change: transform; }
         .lp-aurora::before { content: ''; width: min(56vw, 720px); aspect-ratio: 1; top: -8%; left: -8%; opacity: .15; filter: blur(100px); background: radial-gradient(circle, var(--accent), transparent 64%); animation: lpDrift 34s ease-in-out infinite alternate; }
-        .lp-aurora::after  { content: ''; width: min(44vw, 560px); aspect-ratio: 1; top: 12%; right: -8%; opacity: .11; filter: blur(80px);  background: radial-gradient(circle, #5ee0ff, transparent 66%); animation: lpDrift 46s ease-in-out -12s infinite alternate-reverse; }
-        .lp-atmos .lp-orb { width: min(70vw, 900px); aspect-ratio: 1; left: 50%; top: 34%; margin-left: -35vw; opacity: .085; filter: blur(130px); background: radial-gradient(circle, #6d5cff, transparent 62%); animation: lpDrift 62s ease-in-out -25s infinite alternate; }
+        .lp-aurora::after  { content: ''; width: min(44vw, 560px); aspect-ratio: 1; top: 12%; right: -8%; opacity: .11; filter: blur(80px);  background: radial-gradient(circle, var(--accent), transparent 66%); animation: lpDrift 46s ease-in-out -12s infinite alternate-reverse; }
+        .lp-atmos .lp-orb { width: min(70vw, 900px); aspect-ratio: 1; left: 50%; top: 34%; margin-left: -35vw; opacity: .085; filter: blur(130px); background: radial-gradient(circle, var(--accent), transparent 62%); animation: lpDrift 62s ease-in-out -25s infinite alternate; }
         @keyframes lpDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(5vw, 4vh, 0) scale(1.16); } }
 
         /* ═══ Η ΕΝΑΛΛΑΣΣΟΜΕΝΗ ΛΕΞΗ ════════════════════════════════════════════
@@ -408,7 +409,7 @@ export default async function Landing() {
           .lp-readbar {
             display: block; position: fixed; inset: 0 0 auto 0; height: 2px;
             z-index: 60; pointer-events: none; transform-origin: 0 50%;
-            background: linear-gradient(90deg, var(--accent), #5ee0ff);
+            background: var(--accent);
             animation: lpProgress linear both;
             animation-timeline: scroll(root block);
           }
@@ -543,7 +544,7 @@ export default async function Landing() {
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-base) 78%, transparent)', backdropFilter: 'saturate(180%) blur(14px)', WebkitBackdropFilter: 'saturate(180%) blur(14px)', borderBottom: `1px solid ${LINE}` }}>
         <nav style={{ ...wrap, height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15 }}>P</div>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', fontWeight: 700, fontSize: 15 }}>P</div>
             <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
           </div>
           {loggedIn ? (
@@ -626,14 +627,14 @@ export default async function Landing() {
           <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 1.75vw, 18.5px)', color: 'var(--text-hero)', lineHeight: 1.6, maxWidth: 760, margin: '0 auto 28px', textWrap: 'balance' }}>
             Ενοίκια, λογαριασμοί, δάνεια και φόροι σε ένα σημείο. Ρωτάς στα ελληνικά
             και ο βοηθός απαντά με{' '}
-            <em style={{ fontStyle: 'normal', color: '#fff', fontWeight: 600 }}>τα δικά σου</em> νούμερα.
+            <em style={{ fontStyle: 'normal', color: 'var(--text-primary)', fontWeight: 600 }}>τα δικά σου</em> νούμερα.
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
               <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
             ) : (<>
               <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
-              <Link href="/login" style={{ background: 'transparent', color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: '1px solid var(--border-strong)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
+              <Link href="/login" style={{ background: 'transparent', color: 'var(--text-primary)', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: '1px solid var(--border-strong)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
             </>)}
           </div>
           <div className="lp-rise-4" style={{ marginTop: 18, fontSize: 12.5, color: 'var(--text-tertiary)' }}>Το πρώτο ακίνητο δωρεάν για πάντα · Έτοιμο σε ένα λεπτό · Επιβεβαιώνεις εσύ κάθε καταχώρηση</div>
@@ -918,7 +919,7 @@ export default async function Landing() {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
             <div style={{ maxWidth: 320 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 8, background: ACCENT, color: '#fff', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: ACCENT, color: 'var(--accent-text)', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
                 <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
               </div>
               <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: 0 }}>Το λειτουργικό σύστημα του ελληνικού ακινήτου. Για ιδιοκτήτες και επαγγελματίες στην Ελλάδα.</p>

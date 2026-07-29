@@ -123,7 +123,7 @@ function FlagSwitch({ on, onChange, onLabel, offLabel, tone = 'negative' }: { on
   return (
     <button onClick={() => onChange(!on)} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
       <span style={{ width: 42, height: 26, borderRadius: 12, background: on ? c : 'transparent', border: `2px solid ${on ? c : 'var(--border-default)'}`, position: 'relative', transition: 'all .2s', flexShrink: 0, display: 'inline-block' }}>
-        <span style={{ position: 'absolute', top: '50%', left: on ? 'calc(100% - 20px)' : 2, transform: 'translateY(-50%)', width: 16, height: 16, borderRadius: '50%', background: on ? '#fff' : 'var(--text-secondary)', transition: 'all .2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+        <span style={{ position: 'absolute', top: '50%', left: on ? 'calc(100% - 20px)' : 2, transform: 'translateY(-50%)', width: 16, height: 16, borderRadius: '50%', background: on ? 'var(--bg-surface)' : 'var(--text-secondary)', transition: 'all .2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
       </span>
       <span style={{ fontSize: 13, fontWeight: 600, color: on ? c : 'var(--text-secondary)', fontFamily: T.font.sans }}>{on ? onLabel : offLabel}</span>
     </button>

@@ -758,7 +758,7 @@ export default function TabDocuments({
           {/* Αυτόματη αναγνώριση (AI) — έγγραφα (OCR) & φωτογραφίες (vision) */}
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ position: 'relative', width: 34, height: 20, borderRadius: T.radius.pill, background: autoDetect ? 'var(--accent)' : 'var(--border-default)', transition: `background 0.18s ${T.ease.standard}`, flexShrink: 0 }}>
-              <span style={{ position: 'absolute', top: 2, left: autoDetect ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: `left 0.18s ${T.ease.standard}` }}/>
+              <span style={{ position: 'absolute', top: 2, left: autoDetect ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: 'var(--bg-surface)', transition: `left 0.18s ${T.ease.standard}` }}/>
             </span>
             <input type="checkbox" checked={autoDetect} onChange={e => setAutoDetect(e.target.checked)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}/>
             <span style={{ display: 'flex', flexDirection: 'column' }}>

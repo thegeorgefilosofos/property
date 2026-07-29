@@ -780,7 +780,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
       <div style={{ position:'absolute', top:0, left:24, right:24, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)', opacity:0.7 }}/>
       {onClose&&<button aria-label="Κλείσιμο" onClick={onClose} style={{ position:'absolute', top:14, right:14, width:T.h.sm, height:T.h.sm, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>}
       <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginBottom:16, paddingRight:38 }}>
-        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:10, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 6px 16px -6px var(--accent)' }}><RefreshCw size={17}/></span>
+        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:10, flexShrink:0, background:'linear-gradient(135deg, var(--accent), var(--accent-hover))', color:'var(--accent-text)', boxShadow:'0 6px 16px -6px var(--accent)' }}><RefreshCw size={17}/></span>
         <div style={{ minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <p style={{ fontSize:15.5, fontFamily: T.font.sans, fontWeight:700, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
@@ -796,7 +796,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
           const isBusy=busy===k; const d=done[k]; const disabled=!has||(busy!==null&&!isBusy)
           return (
             <button key={k} onClick={()=>has&&runOne(k)} disabled={disabled} style={{ display:'flex', alignItems:'center', gap:11, padding:'13px 15px', background:isBusy?'color-mix(in srgb, var(--accent) 9%, var(--bg-surface))':'var(--bg-surface)', border:`1px solid ${isBusy?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:12, cursor:has&&!disabled?'pointer':'default', opacity:has?(disabled&&!isBusy?0.6:1):0.5, textAlign:'left', boxShadow:isBusy?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)', transition:'transform 0.14s, box-shadow 0.14s, border-color 0.14s, background 0.14s' }} onMouseEnter={e=>{if(has&&!disabled){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 20px -12px rgba(0,0,0,0.5)';e.currentTarget.style.borderColor='var(--accent-border)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=isBusy?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)';e.currentTarget.style.borderColor=isBusy?'var(--accent-border)':'var(--border-subtle)'}}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, flexShrink:0, background:isBusy?'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #000))':'var(--bg-elevated)', color:isBusy?'var(--accent-text)':'var(--text-tertiary)', border:isBusy?'none':'1px solid var(--border-subtle)', boxShadow:isBusy?'0 4px 12px -6px var(--accent)':'none' }}>{isBusy?<RefreshCw size={16} style={{ animation:'spin 1s linear infinite' }}/>:meta.icon}</span>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, flexShrink:0, background:isBusy?'linear-gradient(135deg, var(--accent), var(--accent-hover))':'var(--bg-elevated)', color:isBusy?'var(--accent-text)':'var(--text-tertiary)', border:isBusy?'none':'1px solid var(--border-subtle)', boxShadow:isBusy?'0 4px 12px -6px var(--accent)':'none' }}>{isBusy?<RefreshCw size={16} style={{ animation:'spin 1s linear infinite' }}/>:meta.icon}</span>
               <div style={{ flex:1, minWidth:0 }}>
                 <p style={{ fontSize:13.5, fontFamily: T.font.sans, fontWeight:600, color:isBusy?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
                 <p style={{ fontSize:11.5, color:d?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans, marginTop:1 }}>{isBusy?'Συγχρονισμός…':d?`Ενημερώθηκε · ${d.n}`:counts===null?'…':has?meta.unit(c!):'Τίποτα ακόμη'}</p>
@@ -986,7 +986,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
               <label style={lbl}>Κατάσταση</label>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                 {Object.entries(STATUSES).map(([k,v])=>(
-                  <button key={k} onClick={()=>setForm(f=>({...f,status:k as EventStatus}))} style={{ height:T.h.sm, padding:'0 14px', borderRadius:18, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:500, border:`1px solid ${form.status===k?v.color:'var(--border-subtle)'}`, background:form.status===k?`${v.color}18`:'transparent', color:form.status===k?v.color:'var(--text-secondary)', transition:'all 0.15s' }}>{v.label}</button>
+                  <button key={k} onClick={()=>setForm(f=>({...f,status:k as EventStatus}))} style={{ height:T.h.sm, padding:'0 14px', borderRadius:18, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:500, border:`1px solid ${form.status===k?v.color:'var(--border-subtle)'}`, background:form.status===k?`color-mix(in srgb, ${v.color} 10%, transparent)`:'transparent', color:form.status===k?v.color:'var(--text-secondary)', transition:'all 0.15s' }}>{v.label}</button>
                 ))}
               </div>
             </div>
@@ -995,7 +995,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <span style={{ fontFamily: T.font.sans, fontSize:13.5, fontWeight:500, color:'var(--text-primary)' }}>Επαναλαμβανόμενο</span>
                 <div onClick={()=>setForm(f=>({...f,recurring:!f.recurring}))} style={{ width:46, height:28, borderRadius:14, background:form.recurring?'var(--accent)':'var(--border-default)', position:'relative', transition:'all 0.2s', cursor:'pointer', flexShrink:0 }}>
-                  <span style={{ position:'absolute', top:2, left:form.recurring?'calc(100% - 26px)':2, width:24, height:24, borderRadius:'50%', background:'#fff', transition:'all 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}/>
+                  <span style={{ position:'absolute', top:2, left:form.recurring?'calc(100% - 26px)':2, width:24, height:24, borderRadius:'50%', background:'var(--bg-surface)', transition:'all 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}/>
                 </div>
               </div>
               {form.recurring&&(
@@ -1097,7 +1097,7 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
         <div style={{ position:'absolute', top:0, left:32, right:32, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)' }}/>
         <div style={{ padding:'24px 28px 18px', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
           <div style={{ display:'flex', gap:13 }}>
-            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius:12, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 8px 20px -8px var(--accent)' }}><CalendarPlus size={19}/></span>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius:12, flexShrink:0, background:'linear-gradient(135deg, var(--accent), var(--accent-hover))', color:'var(--accent-text)', boxShadow:'0 8px 20px -8px var(--accent)' }}><CalendarPlus size={19}/></span>
             <div>
               <h3 style={{ fontFamily: T.font.sans, fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Ζωντανή συνδρομή</h3>
               <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.5, fontFamily: T.font.sans }}>Σύνδεσε μία φορά, το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.</p>

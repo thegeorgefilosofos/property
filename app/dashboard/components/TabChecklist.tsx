@@ -115,15 +115,15 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id: 'checkin',     label: 'Παράδοση Ακινήτου',    color: 'var(--positive)', dot: '#34a853' },
-  { id: 'checkout',   label: 'Αποχώρηση Ενοικιαστή', color: 'var(--negative)', dot: '#ea4335' },
-  { id: 'maintenance',label: 'Συντήρηση',              color: 'var(--warning)', dot: '#f29900' },
-  { id: 'legal',      label: 'Νομικά / ΑΑΔΕ',         color: 'var(--info)', dot: '#1a73e8' },
-  { id: 'renovation', label: 'Ανακαίνιση',            color: 'var(--info)', dot: '#1967d2' },
-  { id: 'purchase',   label: 'Αγορά Ακινήτου',        color: 'var(--info)', dot: '#185fa5' },
-  { id: 'airbnb',     label: 'Short-term / Airbnb',   color: 'var(--negative)', dot: '#d93025' },
-  { id: 'financial',  label: 'Οικονομικά',            color: 'var(--accent)', dot: 'var(--accent)' },
-  { id: 'other',      label: 'Άλλο',                  color: 'var(--text-secondary)', dot: '#888' },
+  { id: 'checkin',     label: 'Παράδοση Ακινήτου',    color: 'var(--positive)' },
+  { id: 'checkout',   label: 'Αποχώρηση Ενοικιαστή', color: 'var(--negative)' },
+  { id: 'maintenance',label: 'Συντήρηση',              color: 'var(--warning)' },
+  { id: 'legal',      label: 'Νομικά / ΑΑΔΕ',         color: 'var(--info)' },
+  { id: 'renovation', label: 'Ανακαίνιση',            color: 'var(--info)' },
+  { id: 'purchase',   label: 'Αγορά Ακινήτου',        color: 'var(--info)' },
+  { id: 'airbnb',     label: 'Short-term / Airbnb',   color: 'var(--negative)' },
+  { id: 'financial',  label: 'Οικονομικά',            color: 'var(--accent)' },
+  { id: 'other',      label: 'Άλλο',                  color: 'var(--text-secondary)' },
 ]
 const PRIORITIES = [
   { value: 'critical', label: 'Κρίσιμο',  color: 'var(--negative)', bg: 'rgba(255,59,48,0.12)' },
@@ -159,8 +159,8 @@ const AADE_CALENDAR = [
   { month: 12, description: 'Προετοιμασία εγγράφων για φορολογική δήλωση', category: 'legal', priority: 'normal' as Priority },
 ]
 
-const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ description: string; category: string; priority: Priority; recurring?: Recurring; estimated_cost?: number; depends_on_idx?: number }> }> = {
-  checkin: { label: 'Νέος Ενοικιαστής', color: '#34a853', items: [
+const TEMPLATES: Record<string, { label: string; items: Array<{ description: string; category: string; priority: Priority; recurring?: Recurring; estimated_cost?: number; depends_on_idx?: number }> }> = {
+  checkin: { label: 'Νέος Ενοικιαστής', items: [
     { description: 'Φωτογράφηση κάθε δωματίου (before)', category: 'checkin', priority: 'critical' },
     { description: 'Παράδοση κλειδιών, καταγραφή αριθμού σετ', category: 'checkin', priority: 'critical' },
     { description: 'Καταγραφή μετρητή ΔΕΗ', category: 'checkin', priority: 'critical' },
@@ -174,7 +174,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Αλλαγή κωδικών WiFi', category: 'checkin', priority: 'normal' },
     { description: 'Μεταβίβαση λογαριασμών ΔΕΗ / ΕΥΔΑΠ', category: 'checkin', priority: 'normal' },
   ]},
-  checkout: { label: 'Αποχώρηση Ενοικιαστή', color: '#ea4335', items: [
+  checkout: { label: 'Αποχώρηση Ενοικιαστή', items: [
     { description: 'Επιστροφή κλειδιών, έλεγχος αριθμού', category: 'checkout', priority: 'critical' },
     { description: 'Τελική ανάγνωση μετρητή ΔΕΗ', category: 'checkout', priority: 'critical' },
     { description: 'Τελική ανάγνωση μετρητή ΕΥΔΑΠ', category: 'checkout', priority: 'critical' },
@@ -187,7 +187,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Αλλαγή κλειδαριάς', category: 'checkout', priority: 'normal', estimated_cost: 120 },
     { description: 'Ενημέρωση ΔΟΥ για λήξη μίσθωσης', category: 'legal', priority: 'normal' },
   ]},
-  maintenance: { label: 'Ετήσια Συντήρηση', color: '#fbbc04', items: [
+  maintenance: { label: 'Ετήσια Συντήρηση', items: [
     { description: 'Service καλοριφέρ / λέβητα', category: 'maintenance', priority: 'critical', recurring: 'yearly', estimated_cost: 80 },
     { description: 'Έλεγχος πυροσβεστήρων', category: 'maintenance', priority: 'critical', recurring: 'yearly', estimated_cost: 30 },
     { description: 'Τσεκ ηλεκτρολογικού πίνακα', category: 'maintenance', priority: 'high', recurring: 'yearly', estimated_cost: 60 },
@@ -199,7 +199,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Βαφή / ανανέωση κοινόχρηστων', category: 'maintenance', priority: 'low', recurring: 'yearly', estimated_cost: 200 },
     { description: 'Service ανελκυστήρα', category: 'maintenance', priority: 'high', recurring: 'quarterly', estimated_cost: 150 },
   ]},
-  legal: { label: 'Νομικά / ΑΑΔΕ', color: '#9334e6', items: [
+  legal: { label: 'Νομικά / ΑΑΔΕ', items: [
     { description: 'Κατάθεση Ε2 (δήλωση μισθωμάτων)', category: 'legal', priority: 'critical', recurring: 'yearly' },
     { description: 'Πληρωμή ΕΝΦΙΑ', category: 'legal', priority: 'critical', recurring: 'yearly' },
     { description: 'Ανανέωση ασφαλιστηρίου ακινήτου', category: 'legal', priority: 'critical', recurring: 'yearly', estimated_cost: 300 },
@@ -207,7 +207,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Έλεγχος βεβαίωσης μηχανικού', category: 'legal', priority: 'high' },
     { description: 'Πληρωμή δημοτικών τελών', category: 'financial', priority: 'normal', recurring: 'yearly' },
   ]},
-  renovation: { label: 'Ανακαίνιση', color: '#1967d2', items: [
+  renovation: { label: 'Ανακαίνιση', items: [
     { description: 'Αίτηση άδειας εργασιών', category: 'renovation', priority: 'critical' },
     { description: 'Επιλογή και ανάθεση εργολάβου', category: 'renovation', priority: 'critical', depends_on_idx: 0 },
     { description: 'Σύνταξη σύμβασης εργολάβου', category: 'renovation', priority: 'critical', depends_on_idx: 1 },
@@ -218,7 +218,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Φάση 3, Φινίρισμα', category: 'renovation', priority: 'normal', depends_on_idx: 6 },
     { description: 'Τελική επιθεώρηση και παραλαβή', category: 'renovation', priority: 'critical', depends_on_idx: 7 },
   ]},
-  airbnb: { label: 'Short-term / Airbnb', color: '#d93025', items: [
+  airbnb: { label: 'Short-term / Airbnb', items: [
     { description: 'Ρύθμιση smart lock / κωδικός check-in', category: 'airbnb', priority: 'critical', estimated_cost: 150 },
     { description: 'Δημιουργία οδηγού φιλοξενίας', category: 'airbnb', priority: 'critical' },
     { description: 'Καταχώρηση σε Airbnb / Booking.com', category: 'airbnb', priority: 'critical' },
@@ -228,7 +228,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Ανεφοδιασμός (σαπούνια, χαρτί κλπ)', category: 'airbnb', priority: 'normal', recurring: 'monthly', estimated_cost: 30 },
     { description: 'Τσεκ κλιματισμού πριν κάθε σεζόν', category: 'airbnb', priority: 'high', recurring: 'quarterly', estimated_cost: 70 },
   ]},
-  purchase: { label: 'Αγορά Ακινήτου', color: '#1967d2', items: [
+  purchase: { label: 'Αγορά Ακινήτου', items: [
     { description: 'Νομικός έλεγχος τίτλων ιδιοκτησίας', category: 'purchase', priority: 'critical', estimated_cost: 500 },
     { description: 'Τεχνικός έλεγχος ακινήτου από μηχανικό', category: 'purchase', priority: 'critical', estimated_cost: 300 },
     { description: 'Έλεγχος βαρών / υποθηκών κτηματολόγιο', category: 'purchase', priority: 'critical' },
@@ -1062,7 +1062,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, lineHeight: 1.4, paddingRight: 8, fontFamily: T.font.sans }}>{item.description}</div>
         <button type="button" onClick={e => { e.stopPropagation(); onToggle() }} style={{ width: 20, height: 20, borderRadius: 6, border: '2px solid ' + (item.status === 'done' ? 'var(--positive)' : 'var(--border-default)'), background: item.status === 'done' ? 'var(--positive)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-          {item.status === 'done' && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          {item.status === 'done' && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
         </button>
       </div>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: subtasks.length > 0 ? 8 : 0 }}>
@@ -1788,7 +1788,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             return (
               <button key={c.id} type="button" onClick={() => setFilterCat(filterCat === c.id ? 'all' : c.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === c.id ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === c.id ? 'var(--accent-soft)' : 'transparent', color: filterCat === c.id ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === c.id ? 700 : 400, transition: 'all 0.15s' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
                 {c.label}
                 <span style={{ fontSize: 10, opacity: 0.8, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{count}</span>
               </button>
@@ -1854,7 +1854,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             return (
               <div key={cat.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.dot, flexShrink: 0 }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--border-default), transparent)' }} />
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {catPct}%{catEst > 0 ? ` · ${catEst.toLocaleString('el-GR')}€` : ''}</span>

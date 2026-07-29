@@ -116,9 +116,12 @@ const CONDITION_COLOR: Record<string,string> = {
   'Άριστη':'var(--positive)','Καλή':'var(--info)','Μέτρια':'var(--warning)',
   'Κακή':'var(--negative)','Εκτός Λειτουργίας':'var(--text-tertiary)',
 }
-const ENERGY_COLOR: Record<string,string> = {
-  'A+++':'#059669','A++':'#00897b','A+':'#34d399','A':'#22c55e',
-  'B':'#fbbf24','C':'#e8710a','D':'#e8710a','E':'#c5221f','F':'#dc2626','G':'#991b1b',
+// Η ενεργειακή κλάση ΣΗΜΑΙΝΕΙ καλό/προσοχή/κακό — άρα χαρτογραφείται στα σημασιολογικά
+// tokens, όχι σε δική της δεκάχρωμη κλίμακα (πράσινα/πορτοκαλί/κόκκινα εκτός παλέτας).
+const ENERGY_TONE: Record<string,'positive'|'warning'|'negative'> = {
+  'A+++':'positive','A++':'positive','A+':'positive','A':'positive',
+  'B':'warning','C':'warning','D':'warning',
+  'E':'negative','F':'negative','G':'negative',
 }
 const CATEGORY_ICONS: Record<string,string> = {
   'Έπιπλα':'','Ηλεκτρικές Συσκευές':'','Ηλεκτρονικά':'',
@@ -272,11 +275,15 @@ function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon:React.
 }
 
 const Badge = ({label,color}:{label:string;color:string}) => (
-  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color,background:color+'18',border:`1px solid ${color}30`,whiteSpace:'nowrap'}}>{label}</span>
+  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color,background:`color-mix(in srgb, ${color} 10%, transparent)`,border:`1px solid color-mix(in srgb, ${color} 26%, transparent)`,whiteSpace:'nowrap'}}>{label}</span>
 )
 
-const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const c=ENERGY_COLOR[cls]||'var(--text-tertiary)'; return (
-  <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:700,color:c,background:c+'18',border:`1px solid ${c}30`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
+const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const tone=ENERGY_TONE[cls]
+  const fg = tone?`var(--${tone})`:'var(--text-secondary)'
+  const bg = tone?`var(--${tone}-soft)`:'var(--bg-elevated)'
+  const bd = tone?`var(--${tone}-border)`:'var(--border-subtle)'
+  return (
+  <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:700,color:fg,background:bg,border:`1px solid ${bd}`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
 ) }
 
 const DepBar = ({pct,left}:{pct:number;left:number}) => {
@@ -1529,7 +1536,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
                       ?<img src={item.photo_url} style={{width:'100%',height:'100%',objectFit:'cover',opacity:0.5}} alt=""/>
                       :<div style={{width:'100%',height:'100%',background:'var(--accent-soft)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>}
                   <span style={{position:'absolute',right:2,bottom:2,width:16,height:16,borderRadius:6,background:cp?'var(--accent)':'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    {busy?<span style={{width:9,height:9,border:'1.5px solid #fff',borderTopColor:'transparent',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>}
+                    {busy?<span style={{width:9,height:9,border:`1.5px solid ${cp?'var(--accent-text)':'#fff'}`,borderTopColor:'transparent',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={cp?'var(--accent-text)':'#fff'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>}
                   </span>
                   <input type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)uploadCondPhoto(item.id,f)}}/>
                 </label>

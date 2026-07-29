@@ -326,7 +326,7 @@ function SecHead({ children }: { children: React.ReactNode }) {
 function Tog({ value, onChange, colorOn = 'var(--accent)' }: { value: boolean; onChange: (v: boolean) => void; colorOn?: string }) {
   return (
     <button type="button" onClick={() => onChange(!value)} style={{ width: 46, height: 26, borderRadius: 12, border: 'none', cursor: 'pointer', background: value ? colorOn : 'var(--border-default)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-      <div style={{ position: 'absolute', top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.35)', transition: 'left 0.18s' }} />
+      <div style={{ position: 'absolute', top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.35)', transition: 'left 0.18s' }} />
     </button>
   )
 }
@@ -914,8 +914,8 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
       style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
-      {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
-      {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: '#000', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
+      {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
+      {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
       {(hov || showActions) && !bulkMode && (
         <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
           {/* Ορατές μόνο οι πιο συχνές ενέργειες — όλες οι υπόλοιπες μπαίνουν στο «···» */}
@@ -984,8 +984,8 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone}</span>
-              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 9, color: '#25d366', fontWeight: 800, background: 'rgba(37,211,102,0.1)', padding: '1px 5px', borderRadius: 6 }}>WA</a>}
-              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 9, color: '#7360f2', fontWeight: 800, background: 'rgba(115,96,242,0.1)', padding: '1px 5px', borderRadius: 6 }}>VB</a>}
+              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 9, color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>WA</a>}
+              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 9, color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>VB</a>}
             </div>
           )}
           {extra.phone2 && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.phone2}</span><span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>2ο</span></div>}
@@ -1224,8 +1224,8 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
       <StatusBadge status={extra.status || 'active'} />
       <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : hov ? 1 : 0, pointerEvents: bulkMode ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}
-        {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#25d366', background: 'rgba(37,211,102,0.1)', borderRadius: 6 }}>WA</a>}
-        {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#7360f2', background: 'rgba(115,96,242,0.1)', borderRadius: 6 }}>VB</a>}
+        {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>WA</a>}
+        {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>VB</a>}
         {contact.email && <a href={'mailto:' + contact.email} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Mail size={14} /></a>}
         <button type="button" onClick={onEdit} style={{ fontSize: 12, padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Επεξεργασία</button>
         <button type="button" onClick={onDelete} style={{ fontSize: 12, padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Διαγραφή</button>
@@ -1628,8 +1628,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   <div><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{c.full_name}</div><div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{meta.label}</div></div>
                   <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
                     {c.phone && <a href={'tel:' + c.phone} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', padding: 3 }}><Phone size={13} /></a>}
-                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: '#25d366', background: 'rgba(37,211,102,0.12)', padding: '2px 5px', borderRadius: 6 }}>WA</a>}
-                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: '#7360f2', background: 'rgba(115,96,242,0.12)', padding: '2px 5px', borderRadius: 6 }}>VB</a>}
+                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>WA</a>}
+                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>VB</a>}
                   </div>
                 </div>
               )
@@ -1932,7 +1932,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 28px', lineHeight: 1.5 }}>Αυτή η ενέργεια δεν αναιρείται.</p>
             <div style={{ display: 'flex', gap: 12 }}>
               <button type="button" onClick={() => setDeleteId(null)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-              <button type="button" onClick={() => handleDelete(deleteId!)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--negative)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Διαγραφή</button>
+              <button type="button" onClick={() => handleDelete(deleteId!)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Διαγραφή</button>
             </div>
           </div>
         </div>

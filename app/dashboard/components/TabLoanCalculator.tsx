@@ -29,7 +29,7 @@ const labelStyle: React.CSSProperties = {
 }
 const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperties => ({
   padding:'0 14px',height:T.h.md,borderRadius:18,border:`1px solid ${active?accentColor:'var(--border-subtle)'}`,
-  background:active?`${accentColor}14`:'none',color:active?accentColor:'var(--text-secondary)',
+  background:active?`color-mix(in srgb, ${accentColor} 10%, transparent)`:'none',color:active?accentColor:'var(--text-secondary)',
   cursor:'pointer',fontSize:12,fontFamily: T.font.sans,fontWeight:active?500:400,
   transition:'all 0.15s',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap' as const,
 })

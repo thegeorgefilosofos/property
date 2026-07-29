@@ -306,7 +306,7 @@ function AlertBar({ text, level='warning' }: { text:string; level?:'critical'|'w
   const color = level==='critical' ? 'var(--negative)' : level==='warning' ? 'var(--warning)' : 'var(--accent)';
   const bg    = level==='critical' ? 'var(--negative-dim)' : level==='warning' ? 'var(--warning-dim)' : 'var(--accent-dim)';
   return (
-    <div style={{ background:bg, border:`1px solid ${color}44`, borderLeft:`3px solid ${color}`, borderRadius:T.radius.inner, padding:'10px 16px', marginBottom:8, fontSize:'12px', color, fontFamily:T.font.sans, fontWeight:500, lineHeight:1.5 }}>
+    <div style={{ background:bg, border:`1px solid color-mix(in srgb, ${color} 26%, transparent)`, borderLeft:`3px solid ${color}`, borderRadius:T.radius.inner, padding:'10px 16px', marginBottom:8, fontSize:'12px', color, fontFamily:T.font.sans, fontWeight:500, lineHeight:1.5 }}>
       {text}
     </div>
   );
@@ -1117,7 +1117,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   const StatusPill=({p}:{p:RentPayment})=>{
     const st=payStatus(p);
     const cfg=st==='paid'?{c:'var(--positive)',bg:'var(--positive-dim)',l:'Πληρώθηκε'}:st==='overdue'?{c:'var(--negative)',bg:'var(--negative-dim)',l:'Ληξιπρόθεσμο'}:{c:'var(--text-secondary)',bg:'var(--bg-overlay)',l:'Εκκρεμεί'};
-    return <span style={{ ...s.badge(cfg.c,cfg.bg), border:`1px solid ${cfg.c}33`, fontFamily:T.font.sans }}>{cfg.l}</span>;
+    return <span style={{ ...s.badge(cfg.c,cfg.bg), border:`1px solid color-mix(in srgb, ${cfg.c} 26%, transparent)`, fontFamily:T.font.sans }}>{cfg.l}</span>;
   };
 
   return (
@@ -1763,7 +1763,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
                       <div style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{m.title}</div>
                       <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{gdt(m.created_at)}{m.contact?` · ${m.contact}`:''}{m.resolved_at?` · επιλύθηκε ${gdt(m.resolved_at)}`:''}</div>
                     </div>
-                    <span style={{ ...s.badge(st.c,st.bg), border:`1px solid ${st.c}33`, fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{st.label}</span>
+                    <span style={{ ...s.badge(st.c,st.bg), border:`1px solid color-mix(in srgb, ${st.c} 26%, transparent)`, fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{st.label}</span>
                   </div>
                   {m.description&&<div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:12, whiteSpace:'pre-wrap' as const }}>{m.description}</div>}
                   {(signed[m.id]?.length??0)>0&&(
@@ -2400,7 +2400,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               {DTABS.map(tb=>(
                 <button key={tb.id} onClick={()=>setDossierTab(tb.id)} style={{ ...s.tabBtn(dossierTab===tb.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                   {tb.label}
-                  {tb.badge&&tb.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'#fff', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
+                  {tb.badge&&tb.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'var(--text-inverse)', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
                 </button>
               ))}
             </div>
