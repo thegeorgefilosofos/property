@@ -1364,7 +1364,7 @@ export default function Dashboard() {
               {nav==='comparison'&& (isTabAllowed(ent,'comparison')
                 ? <TabComparison properties={properties} userId={user.id}/>
                 : <FeatureLock title="Σύγκρινε τα ακίνητά σου δίπλα-δίπλα" benefit="Απόδοση, δαπάνες και πάροχοι όλων των ακινήτων σου σε έναν πίνακα, για να δεις καθαρά πού κερδίζεις και πού χρειάζεται να λάβεις αποφάσεις. Ξεκλειδώνει με το πλάνο Ιδιοκτήτης." requiredPlan="owner" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
-              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType}/>}
+              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
