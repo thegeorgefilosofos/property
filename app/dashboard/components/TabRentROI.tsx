@@ -419,7 +419,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         const [pr, rc, exp, ln] = await Promise.all([
           supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type,name,postal_code').eq('id', propertyId).maybeSingle(),
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id', propertyId).maybeSingle(),
-          supabase.from('expenses').select('amount').eq('property_id', propertyId),
+          // ΓΙΑΤΙ ΜΕ ΗΜΕΡΟΜΗΝΙΑ. Το ερώτημα ήταν χωρίς φίλτρο έτους και το άθροισμα
+          // έμπαινε στο πεδίο με ετικέτα «Ετήσια έξοδα». Δηλαδή στον δεύτερο χρόνο
+          // χρήσης έδειχνε δύο χρονιές, στον τρίτο τρεις — και μαζί του χειροτέρευαν
+          // σιωπηλά η καθαρή απόδοση, η απόδοση μετά τον φόρο, ο βαθμός A–F και το
+          // IRR. Κανένα σφάλμα, κανένα κρασάρισμα: απλώς το ίδιο ακίνητο έβγαζε
+          // τριπλάσια έξοδα εδώ απ' ό,τι στη Λογιστική. Ίδιο φίλτρο με εκείνη.
+          supabase.from('expenses').select('amount,date').eq('property_id', propertyId)
+            .gte('date', `${new Date().getFullYear()}-01-01`).lte('date', `${new Date().getFullYear()}-12-31`),
           supabase.from('loans').select('amount,rate,property_value,loan_type,status').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }),
         ]);
         const p: any = pr.data || {}; const c: any = rc.data || {};

@@ -43,11 +43,14 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   const [loadingSugg, setLoadingSugg] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
+  // Η μηχανή δεν απάντησε. Το λέμε, δεν το καλύπτουμε με εφευρέσεις.
+  const [failed, setFailed] = useState(false);
 
   async function generateSuggestions() {
     setLoadingSugg(true);
     setSuggestions([]);
     setDismissedIds(new Set());
+    setFailed(false);
     try {
       // Send the signed-in user's own access token — the function derives identity
       // from it and verifies the property belongs to them (never trusts a body id).
@@ -68,14 +71,31 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
       if (data.suggestions?.length) setSuggestions(data.suggestions);
       else throw new Error('No suggestions');
     } catch {
-      // Fallback αν δεν υπάρχει API key ακόμα
-      setSuggestions([
-        { title: 'Πληρωμή ΕΝΦΙΑ', category: 'financial', amount: 200, recurring: true, recurring_interval: 'annual', priority: 'high', reason: 'Ετήσια υποχρέωση, συνήθως Σεπτέμβριος' },
-        { title: 'Ετήσιος έλεγχος ηλεκτρικής εγκατάστασης', category: 'maintenance', recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Υποχρεωτικός για ασφάλεια ακινήτου' },
-        { title: 'Service κλιματιστικού', category: 'maintenance', amount: 60, recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Συνιστάται πριν το καλοκαίρι' },
-        { title: 'Ανανέωση ασφαλιστηρίου', category: 'contract', recurring: true, recurring_interval: 'annual', priority: 'high', reason: 'Έλεγχος λήξης ασφάλισης ακινήτου' },
-        { title: 'Έλεγχος κεντρικής θέρμανσης', category: 'maintenance', amount: 80, recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Συνιστάται πριν τον χειμώνα' },
-      ]);
+      // ═══════════════════════════════════════════════════════════════════════
+      // ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ ΗΤΑΝ ΤΟ ΣΟΒΑΡΟΤΕΡΟ ΣΦΑΛΜΑ ΤΟΥ ΠΡΟΪΟΝΤΟΣ
+      //
+      // Υπήρχε «fallback αν δεν υπάρχει API key»: πέντε επινοημένες προτάσεις με
+      // καρφωμένα ποσά — «Πληρωμή ΕΝΦΙΑ, 200 €, ετήσια υποχρέωση, συνήθως
+      // Σεπτέμβριος», «Service κλιματιστικού 60 €», «Έλεγχος θέρμανσης 80 €».
+      //
+      // Τρία πράγματα το έκαναν χειρότερο από κάθε άλλο επινοημένο νούμερο:
+      //   1. Εμφανιζόταν ΚΑΤΩ ΑΠΟ ΤΟ ΣΗΜΑ ΤΗΣ ΝΟΑ, δηλαδή με τη μεγαλύτερη
+      //      αντιληπτή αυθεντία που έχει η οθόνη.
+      //   2. Το κουμπί «Στο ημερολόγιο» το ΕΓΡΑΦΕ στο calendar_events.amount, από
+      //      όπου τροφοδοτούσε το «Εκκρεμή ποσά». Σε έξι μήνες ο χρήστης δεν
+      //      θυμάται ότι δεν το έγραψε ο ίδιος: ξένο νούμερο μεταμφιεσμένο σε δικό του.
+      //   3. Το «συνήθως Σεπτέμβριος» ΑΝΤΙΦΑΣΚΕΙ με τη δική μας μηχανή
+      //      (lib/tax/greekTaxCalendar.ts — πρώτη δόση τέλος Μαρτίου), και το
+      //      πραγματικό `enfia` του ακινήτου αγνοούνταν εντελώς.
+      //
+      // Η θέση του προϊόντος είναι «είμαστε η ανεξάρτητη απόδειξη που ελέγχει το
+      // προσυμπληρωμένο του κράτους». Αυτή δεν επιβιώνει σε εργαλείο που
+      // προσυμπληρώνει με 200 € της φαντασίας του.
+      //
+      // Χωρίς απάντηση από τη μηχανή, δεν δείχνουμε προτάσεις. Λέμε γιατί.
+      // ═══════════════════════════════════════════════════════════════════════
+      setSuggestions([]);
+      setFailed(true);
     }
     setLoadingSugg(false);
   }
@@ -130,6 +150,13 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
 
       {/* Μία στήλη, χωρισμένη με γραμμές αντί για κάρτες: πέντε πλαίσια μέσα σε
           πλαίσιο διαβάζονται σαν θόρυβος, πέντε γραμμές σαν λίστα. */}
+      {failed && (
+        <p style={{ ...TT.bodySm, marginTop: 4, maxWidth: 620 }}>
+          Δεν κατάφερα να διαβάσω το ακίνητο αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο —
+          δεν θα σου δείξω προτάσεις με νούμερα που δεν προέρχονται από τα δικά σου στοιχεία.
+        </p>
+      )}
+
       {visibleSuggestions.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {suggestions.map((s, idx) => {

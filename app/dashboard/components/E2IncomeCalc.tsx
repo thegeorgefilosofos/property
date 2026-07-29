@@ -15,41 +15,61 @@ import { InfoHint } from './InfoHint';
 import { CustomSelect as Select } from './UIComponents';
 import { runE2Export } from './e2Export';
 import { notifyError } from '@/components/Toast';
+import { rentalIncomeTax, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax';
+import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
 
-// ── Κλίμακα ενοικίων 2026: νέος ενδιάμεσος 25% στα 12.000–24.000 ──────────────
-const RENTAL_TAX = [
-  { limit: 12_000, rate: 0.15 },
-  { limit: 24_000, rate: 0.25 },
-  { limit: 35_000, rate: 0.35 },
-  { limit: Infinity, rate: 0.45 },
-];
-function calcRentalTax(gross: number, deductible: number) {
-  const taxable = Math.max(0, gross - deductible);
-  let rem = taxable, tax = 0, prev = 0;
-  const breakdown: { label: string; taxable: number; tax: number }[] = [];
-  for (const b of RENTAL_TAX) {
-    if (rem <= 0) break;
-    const t = b.limit === Infinity ? rem : Math.min(rem, b.limit - prev);
-    const tx = t * b.rate;
-    if (t > 0) breakdown.push({ label: `${b.rate * 100}%`, taxable: t, tax: tx });
-    tax += tx; rem -= t; prev = b.limit;
-  }
-  const eff = taxable > 0 ? (tax / taxable) * 100 : 0;
-  return { tax, taxable, effectiveRate: eff, netAfterTax: gross - tax, breakdown, advance: tax * 0.55 };
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΡΕΙΣ ΔΙΟΡΘΩΣΕΙΣ, ΚΑΙ ΟΙ ΤΡΕΙΣ ΗΤΑΝ ΛΑΘΟΣ ΝΟΥΜΕΡΟ ΣΤΗΝ ΟΘΟΝΗ
+//
+// 1. ΔΙΠΛΗ ΚΛΙΜΑΚΑ. Εδώ υπήρχε αντίγραφο της φορολογικής κλίμακας, ενώ το
+//    lib/billing/greekTax.ts λέει ρητά στο σχόλιό του: «όλα τα εργαλεία ΠΡΕΠΕΙ να
+//    καλούν αυτό, ώστε να μη διαφέρει ο φόρος από καρτέλα σε καρτέλα». Όταν
+//    αλλάξει ο νόμος, το ένα από τα δύο θα έμενε πίσω — σιωπηλά.
+//
+// 2. ΠΡΟΚΑΤΑΒΟΛΗ 55%. Εμφανιζόταν γραμμή «Προκαταβολή 55% · Επόμενο έτος» ως
+//    βεβαιότητα, για ΚΑΘΕ ιδιοκτήτη. Η προκαταβολή αφορά ΕΠΙΧΕΙΡΗΜΑΤΙΚΟ εισόδημα
+//    (άρθρα 69-71) — το lib/accounting/statement.ts την εφαρμόζει σωστά μόνο όταν
+//    `business`. Για παθητικό εισόδημα ενοικίων φυσικού προσώπου είναι μηδέν. Η
+//    οθόνη έλεγε σε κάθε χρήστη ότι χρωστάει +55% φόρο που δεν χρωστάει.
+//
+// 3. ΑΝΑΛΥΤΙΚΗ ΕΚΠΤΩΣΗ ΔΑΠΑΝΩΝ. Ο υπολογισμός ήταν «ακαθάριστα − δαπάνες», ενώ το
+//    ίδιο το app λέει αλλού «για ιδιώτη τα έξοδα δεν εκπίπτουν αναλυτικά»: ισχύει
+//    τεκμαρτή έκπτωση 5%, και από 1/1/2026 μόνο με τραπεζική είσπραξη. Άρα το
+//    πεδίο «Εκπιπτόμενες Δαπάνες» παρήγαγε μικρότερο φόρο από τον πραγματικό.
+//
+// Ό,τι αφορά φόρο έφυγε από εδώ. Ο φόρος ζει σε ΕΝΑ σημείο, στη Λογιστική, με
+// ενοποίηση χαρτοφυλακίου — γιατί η κλίμακα είναι προοδευτική στο ΣΥΝΟΛΟ των
+// ενοικίων (Ε1) και όχι ανά ακίνητο.
+// ═══════════════════════════════════════════════════════════════════════════
 
 export default function E2IncomeCalc({ userId, propertyId }: { userId: string; propertyId?: string }) {
   void propertyId;
   const supabase = createClient();
   const [e2Rent, setE2Rent] = useState('');
-  const [e2Deductible, setE2Deductible] = useState('');
   const [e2Year, setE2Year] = useState(String(new Date().getFullYear() - 1));
 
+  // Ο φόρος έρχεται από τη ΜΙΑ μηχανή (lib/billing/greekTax.ts), με τεκμαρτή
+  // έκπτωση αντί για αναλυτικές δαπάνες — γιατί αυτό ισχύει για φυσικό πρόσωπο.
+  // Η ανάλυση ανά κλιμάκιο βγαίνει από τα ΙΔΙΑ κλιμάκια που κάνουν τον υπολογισμό,
+  // ώστε ο πίνακας να μη μπορεί να ξεσυγχρονιστεί από το ποσό.
   const e2Result = useMemo(() => {
-    const g = parseFloat(e2Rent) || 0;
-    if (g <= 0) return null;
-    return calcRentalTax(g, parseFloat(e2Deductible) || 0);
-  }, [e2Rent, e2Deductible]);
+    const gross = parseFloat(e2Rent) || 0;
+    if (gross <= 0) return null;
+    const taxable = gross * (1 - PRESUMPTIVE_DEDUCTION_RATE);
+    const tax = rentalIncomeTax(taxable);
+    const breakdown = RENTAL_TAX_BRACKETS_2026
+      .map(b => {
+        const slice = Math.min(taxable, b.to) - b.from;
+        return slice > 0 ? { label: `${Math.round(b.rate * 100)}%`, taxable: slice, tax: slice * b.rate } : null;
+      })
+      .filter((x): x is { label: string; taxable: number; tax: number } => x !== null);
+    return {
+      tax, taxable,
+      effectiveRate: taxable > 0 ? (tax / taxable) * 100 : 0,
+      netAfterTax: gross - tax,
+      breakdown,
+    };
+  }, [e2Rent]);
 
   const lbl = { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans } as const;
   const inp = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, height: 40, padding: '0 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, transition: 'border-color 0.14s' } as const;
@@ -78,11 +98,6 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
             <label style={lbl}>Ετήσια Μισθώματα {e2Year} (€)</label>
             <input type="number" style={inp} value={e2Rent} onChange={e => setE2Rent(e.target.value)}
               placeholder="π.χ. 8400 (700€/μήνα × 12)" />
-          </div>
-          <div>
-            <label style={lbl}>Εκπιπτόμενες Δαπάνες (€)</label>
-            <input type="number" style={inp} value={e2Deductible} onChange={e => setE2Deductible(e.target.value)}
-              placeholder="από Δαπάνες" />
           </div>
         </div>
 
@@ -132,10 +147,9 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
                 {sectionTitle('Κωδικοί Ε2, Τι να γράψεις')}
                 {[
                   { code: 'Κωδ. 101', label: 'Ακαθάριστα Μισθώματα', value: fe(parseFloat(e2Rent) || 0), color: 'var(--text-primary)' },
-                  { code: 'Κωδ. 102', label: 'Εκπιπτόμενες Δαπάνες', value: fe(parseFloat(e2Deductible) || 0), color: 'var(--text-primary)' },
-                  { code: 'Κωδ. 103', label: 'Καθαρό Φορολογητέο', value: fe(e2Result.taxable), color: 'var(--text-primary)' },
-                  { code: 'Κωδ. 401', label: 'Φόρος Εισοδήματος', value: fe(e2Result.tax), color: 'var(--text-primary)' },
-                  { code: 'Προκαταβολή 55%', label: 'Επόμενο έτος', value: fe(e2Result.advance), color: 'var(--text-primary)' },
+                  { code: 'Κωδ. 103', label: 'Ακαθάριστο από εκμίσθωση κατοικιών (Ε1)', value: fe(parseFloat(e2Rent) || 0), color: 'var(--text-primary)' },
+                  { code: 'Φορολογητέο', label: 'Μετά την τεκμαρτή έκπτωση 5%', value: fe(e2Result.taxable), color: 'var(--text-primary)' },
+                  { code: 'Φόρος', label: 'Εκτίμηση για αυτό το ακίνητο', value: fe(e2Result.tax), color: 'var(--text-primary)' },
                 ].map((row, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                     <div>
@@ -150,9 +164,9 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
               <div style={{ ...panel, marginBottom: 14 }}>
                 {sectionTitle('Σημαντικές Προθεσμίες')}
                 {[
-                  { label: 'Υποβολή Ε1/Ε2', desc: '30 Ιουνίου κάθε χρόνο', color: 'var(--text-primary)' },
-                  { label: 'Καταχώρηση Μισθωτηρίου', desc: 'Εντός 30 ημερών από υπογραφή', color: 'var(--text-primary)' },
-                  { label: 'Ηλεκτρονική Πληρωμή', desc: 'Έκπτωση 5% αν πληρώσεις online', color: 'var(--text-primary)' },
+                  { label: 'Υποβολή Ε1/Ε2', desc: 'Τα τελευταία έτη 15 Ιουλίου — επιβεβαίωσε στο myAADE', color: 'var(--text-primary)' },
+                  { label: 'Καταχώρηση Μισθωτηρίου', desc: 'Εντός 30 ημερών από την υπογραφή', color: 'var(--text-primary)' },
+                  { label: 'Είσπραξη μέσω τραπέζης', desc: 'Από 1/1/2026 απαραίτητη για την έκπτωση 5%', color: 'var(--text-primary)' },
                 ].map((d, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                     <div>
