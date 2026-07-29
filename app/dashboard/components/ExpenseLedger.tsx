@@ -35,10 +35,13 @@ import {
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
+import { parseBulk, bulkLimit } from '@/lib/expenses/bulk';
 
 interface Props {
   propertyId: string;
   userId: string;
+  /** Ενεργό πλάνο: ορίζει πόσες γραμμές δέχεται η μαζική καταχώρηση. */
+  plan?: string;
   /** Ανοίγει το υπάρχον παράθυρο σάρωσης της εφαρμογής. */
   onScan?: () => void;
 }
@@ -100,7 +103,7 @@ async function fetchLedger(
   };
 }
 
-export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
+export default function ExpenseLedger({ propertyId, userId, plan = 'free', onScan }: Props) {
   // Ένα instance ανά component. Χωρίς useMemo, κάθε render έφτιαχνε νέο client
   // και το κανάλι realtime ξαναδενόταν χωρίς λόγο.
   const supabase = useMemo(() => createClient(), []);
@@ -109,6 +112,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   const [expenses, setExpenses] = useState<LedgerExpense[]>([]);
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
+  const [bulk, setBulk] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -251,7 +255,8 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
       {/* ── Ενέργειες ──────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.md }}>
         {onScan && <Btn variant="primary" onClick={onScan}>Φωτογραφία</Btn>}
-        <Btn variant="secondary" onClick={() => setAdding(v => !v)}>{adding ? 'Άκυρο' : 'Νέα δαπάνη'}</Btn>
+        <Btn variant="secondary" onClick={() => { setAdding(v => !v); setBulk(false); }}>{adding ? 'Άκυρο' : 'Νέα δαπάνη'}</Btn>
+        <Btn variant="secondary" onClick={() => { setBulk(v => !v); setAdding(false); }}>{bulk ? 'Άκυρο' : 'Μαζικά'}</Btn>
         <div style={{ flex: 1 }} />
         <input
           value={q} onChange={ev => setQ(ev.target.value)}
@@ -264,6 +269,11 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
       {adding && (
         <QuickAdd propertyId={propertyId} userId={userId}
           onDone={async () => { setAdding(false); await load(); }} />
+      )}
+
+      {bulk && (
+        <BulkAdd propertyId={propertyId} userId={userId} plan={plan}
+          onDone={async () => { setBulk(false); await load(); }} />
       )}
 
       {/* ── Θέλουν ματιά ───────────────────────────────────────────────────── */}
@@ -382,6 +392,116 @@ function Row({ e, busy, onPaid }: { e: LedgerEntry; busy: boolean; onPaid: () =>
 // Κατηγορία, δηλαδή δύο αποφάσεις για ένα πράγμα. Εδώ η κατηγορία προτείνεται
 // μόνη της από αυτό που γράφεις, και η ομάδα προκύπτει. Ό,τι δεν είναι
 // απαραίτητο για να σταθεί η γραμμή, μπαίνει μετά.
+// ── Μαζική καταχώρηση ─────────────────────────────────────────────────────
+//
+// ΓΙΑΤΙ ΥΠΑΡΧΕΙ: η φόρμα των πέντε πεδίων είναι σωστή για τη μία δαπάνη τη
+// στιγμή που συμβαίνει. Δεν είναι σωστή για τον απολογισμό του μήνα, όπου ο
+// ιδιοκτήτης κάθεται με δεκαπέντε αποδείξεις μπροστά του. Εκεί θέλει να γράψει,
+// όχι να συμπληρώσει.
+//
+// ΓΙΑΤΙ ΠΑΝΤΑ ΜΕ ΕΛΕΓΧΟ ΠΡΙΝ: τίποτα δεν μπαίνει στη βάση χωρίς ο χρήστης να
+// δει πρώτα τι κατάλαβε η εφαρμογή. Η αυτόματη ανάγνωση κειμένου κάνει λάθη·
+// το να τα κάνει σιωπηλά, σε αριθμούς που θα καταλήξουν σε φορολογική δήλωση,
+// θα ήταν ασυγχώρητο.
+function BulkAdd({ propertyId, userId, plan, onDone }: {
+  propertyId: string; userId: string; plan: string; onDone: () => void;
+}) {
+  const supabase = useMemo(() => createClient(), []);
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const limit = bulkLimit(plan);
+  const parsed = useMemo(() => parseBulk(text, limit), [text, limit]);
+
+  const save = async () => {
+    const rows = parsed.rows.filter(r => !r.problem);
+    if (!rows.length) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('expenses').insert(rows.map(r => ({
+        property_id: propertyId, user_id: userId,
+        description: r.description,
+        amount: r.amount,
+        date: r.date,
+        category: r.category ? BY_SLUG[r.category].label : 'Άλλο',
+        paid: true,
+        paid_by: 'owner',
+      })));
+      if (error) throw error;
+      notify(`Μπήκαν ${rows.length} ${rows.length === 1 ? 'δαπάνη' : 'δαπάνες'}`);
+      onDone();
+    } catch { notifyError('Δεν αποθηκεύτηκαν. Δοκίμασε ξανά.'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Card pad="sm" style={{ marginBottom: T.sp.md }}>
+      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+        Μία γραμμή, μία δαπάνη
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', lineHeight: 1.55, marginBottom: 10 }}>
+        Γράψε ή επικόλλησε όπως θα το έγραφες σε χαρτί. Το ποσό, η ημερομηνία και η
+        κατηγορία βρίσκονται μόνα τους. Χωρίς ημερομηνία, μπαίνει η σημερινή.
+      </div>
+
+      <textarea
+        value={text} onChange={e => setText(e.target.value)}
+        rows={6} spellCheck={false}
+        aria-label="Δαπάνες, μία ανά γραμμή"
+        placeholder={'ΔΕΗ Ιουνίου 84,50 12/06\nΥδραυλικός 60\nΚοινόχρηστα 45,00 1/6'}
+        style={{
+          width: '100%', boxSizing: 'border-box', padding: '12px 14px',
+          borderRadius: T.radius.inner, border: '1px solid var(--border-default)',
+          background: 'var(--bg-surface)', color: 'var(--text-primary)',
+          fontSize: 13.5, fontFamily: T.font.sans, lineHeight: 1.7, outline: 'none', resize: 'vertical',
+        }}
+      />
+
+      {parsed.rows.length > 0 && (
+        <div style={{ marginTop: 12, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, overflow: 'hidden' }}>
+          {parsed.rows.map((r, i) => (
+            <div key={i} style={{
+              display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'baseline',
+              padding: '9px 13px', fontSize: 13,
+              borderTop: i ? '1px solid var(--border-subtle)' : 'none',
+              background: r.problem ? 'color-mix(in srgb, var(--warning) 7%, transparent)' : 'transparent',
+              color: r.problem ? 'var(--text-tertiary)' : 'var(--text-primary)',
+            }}>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {r.problem ? r.raw.trim() : r.description}
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
+                  {r.problem ? ` · ${r.problem}` : ` · ${r.categoryLabel}`}
+                </span>
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+                {r.problem ? '' : shortDate(r.date)}
+              </span>
+              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: r.problem ? 400 : 600 }}>
+                {r.problem ? '—' : fe(r.amount)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
+        <Btn variant="primary" onClick={save} disabled={saving || parsed.ready === 0}>
+          {saving ? 'Γίνεται…'
+            : parsed.ready === 0 ? 'Καταχώρηση'
+            : `Καταχώρηση ${parsed.ready} · ${fe(parsed.total)}`}
+        </Btn>
+        {/* Το όριο λέγεται μόνο όταν το συναντάς. Να το διαφημίζουμε από πριν θα
+            ήταν να ζητάμε λεφτά πριν δείξουμε ότι δουλεύει. */}
+        {parsed.overLimit > 0 && (
+          <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Το πλάνο σου δέχεται {limit} γραμμές τη φορά. Οι υπόλοιπες {parsed.overLimit} μένουν
+            στο πλαίσιο για να τις περάσεις σε δεύτερο γύρο.
+          </span>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: string; onDone: () => void }) {
   const supabase = createClient();
   const today = new Date().toISOString().slice(0, 10);

@@ -32,6 +32,9 @@ interface Props {
   propertyId: string; userId: string;
   propertyName?: string; propertyAddress?: string;
   profileType?: 'individual' | 'professional';
+  /** Το ενεργό πλάνο, όπως το υπολογίζει το entitlements. Ορίζει τι εργαλεία
+   *  βλέπει ο χρήστης μέσα στις Δαπάνες, όχι μόνο ποιες καρτέλες. */
+  plan?: string;
   /** Ανοίγει το παράθυρο σάρωσης της εφαρμογής. */
   onScan?: () => void;
 }
@@ -40,7 +43,7 @@ type View = 'expenses' | 'budget';
 
 export default function TabFinances({
   propertyId, userId, propertyName = '', propertyAddress = '',
-  profileType = 'individual', onScan,
+  profileType = 'individual', plan = 'free', onScan,
 }: Props) {
   const [view, setView] = useState<View>('expenses');
   const [contracts, setContracts] = useState(false);
@@ -74,7 +77,7 @@ export default function TabFinances({
       {contracts
         ? <TabBills propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />
         : view === 'expenses'
-          ? <ExpenseLedger propertyId={propertyId} userId={userId} onScan={onScan} />
+          ? <ExpenseLedger propertyId={propertyId} userId={userId} plan={plan} onScan={onScan} />
           : <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}
     </div>
   );
