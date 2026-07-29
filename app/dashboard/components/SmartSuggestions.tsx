@@ -1,16 +1,26 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SmartSuggestions, «Έξυπνες Προτάσεις». Ανάλυση με AI που προτείνει επερχόμενες
-// υποχρεώσεις (συντήρηση, φόροι, ανανεώσεις) και τις προσθέτει στο ημερολόγιο.
-// Ζει στην αρχική του ακινήτου (Επισκόπηση), όχι στις ρυθμίσεις, όπου είναι το
-// φυσικό της σημείο και δεν χάνεται.
+// Νόα · Προτάσεις — τι έρχεται σε αυτό το ακίνητο.
+// ─────────────────────────────────────────────────────────────────────────
+// Διαβάζει τα δεδομένα του ακινήτου και προτείνει επερχόμενες υποχρεώσεις
+// (συντήρηση, φόροι, ανανεώσεις), με ένα άγγιγμα στο ημερολόγιο. Ζει στην
+// Επισκόπηση, όχι στις ρυθμίσεις: εκεί είναι το φυσικό της σημείο.
+//
+// ΓΙΑΤΙ ΔΕΝ ΛΕΓΕΤΑΙ ΠΙΑ «ΕΞΥΠΝΕΣ ΠΡΟΤΑΣΕΙΣ»
+// Ήταν δεύτερο brand για το ίδιο ακριβώς πράγμα με τη συνομιλία: ίδια δεδομένα,
+// ίδια κρίση, άλλο όνομα. Ο χρήστης δεν είχε τρόπο να καταλάβει ότι μιλάει στο
+// ίδιο πρόσωπο, οπότε δεν χτιζόταν καμία σχέση. Τώρα η κάρτα λέει ποια μιλάει.
+//
+// ΤΟ ΥΦΟΣ: μία στήλη, ήρεμη ιεραρχία, τυπογραφία από τα tokens. Καμία έγχρωμη
+// κορδέλα, κανένα emoji· η προτεραιότητα φαίνεται από τη σειρά, όχι από χρώμα.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Sparkles, Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
-import { T, fe, EmptyState } from '@/components/Theme';
+import { Check, Plus, X, RotateCcw, CircleCheckBig, ListChecks } from 'lucide-react';
+import { T, TT, fe, EmptyState } from '@/components/Theme';
+import { ASSISTANT_INITIAL, suggestionsTitle, suggestionsSub } from '@/lib/assistant/identity';
 
 interface Suggestion {
   title: string;
@@ -90,66 +100,83 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   const visibleSuggestions = suggestions.filter((_, i) => !dismissedIds.has(i));
 
   return (
-    <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)', marginBottom: 16 }}>
+    <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)', marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sparkles size={15} color="var(--accent)" />
-          </div>
-          <div>
-            <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>Έξυπνες Προτάσεις</p>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Ανάλυση με <span title="Τεχνητή Νοημοσύνη (Artificial Intelligence)">AI</span> βάσει των δεδομένων του ακινήτου</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+          {/* Το σήμα είναι το αρχικό του ονόματος: ίδιο με το πλωτό κουμπί, ώστε
+              ο χρήστης να δει με μια ματιά ότι μιλάει στο ίδιο πρόσωπο. */}
+          <div aria-hidden style={{ width: 32, height: 32, flexShrink: 0, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, fontSize: 14, letterSpacing: '-0.01em' }}>{ASSISTANT_INITIAL}</div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ ...TT.h2, fontSize: 13 }}>{suggestionsTitle()}</p>
+            <p style={{ ...TT.caption, marginTop: 2 }}>{suggestionsSub()}</p>
           </div>
         </div>
         <button onClick={generateSuggestions} disabled={loadingSugg} style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-          background: loadingSugg ? 'transparent' : 'var(--accent-soft)',
-          border: '1px solid var(--accent-border)', borderRadius: 100,
-          cursor: loadingSugg ? 'not-allowed' : 'pointer',
-          color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
-        }}>
-          <Sparkles size={12} style={{ animation: loadingSugg ? 'spin 1s linear infinite' : 'none' }} />
-          {loadingSugg ? 'Ανάλυση…' : 'Ανάλυση ακινήτου'}
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          height: T.h.md, padding: '0 16px',
+          background: 'transparent',
+          border: `1px solid ${loadingSugg ? 'var(--border-subtle)' : 'var(--border-default)'}`,
+          borderRadius: T.radius.pill,
+          cursor: loadingSugg ? 'default' : 'pointer',
+          color: loadingSugg ? 'var(--text-tertiary)' : 'var(--text-primary)',
+          fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap',
+          transition: 'background 0.15s, border-color 0.15s',
+        }}
+          onMouseEnter={e => { if (!loadingSugg) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 45%, transparent)'; } }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = loadingSugg ? 'var(--border-subtle)' : 'var(--border-default)'; }}>
+          {loadingSugg ? 'Διαβάζει το ακίνητο…' : 'Δες τι έρχεται'}
         </button>
       </div>
 
+      {/* Μία στήλη, χωρισμένη με γραμμές αντί για κάρτες: πέντε πλαίσια μέσα σε
+          πλαίσιο διαβάζονται σαν θόρυβος, πέντε γραμμές σαν λίστα. */}
       {visibleSuggestions.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {suggestions.map((s, idx) => {
             if (dismissedIds.has(idx)) return null;
             const label = catLabels[s.category] || s.category;
             const isAdded = addingId === idx;
+            const first = visibleSuggestions[0] === s;
             return (
               <div key={idx} style={{
-                background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                borderLeft: '3px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px',
-                display: 'flex', alignItems: 'center', gap: 12,
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+                padding: '14px 2px', borderTop: first ? 'none' : '1px solid var(--border-subtle)',
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{s.title}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, padding: '2px 7px', borderRadius: T.radius.pill, color: 'var(--text-secondary)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>{label}</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{s.title}</span>
+                    {s.amount != null && <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(s.amount)}</span>}
+                  </div>
+                  <p style={{ ...TT.caption, marginTop: 3, maxWidth: 620 }}>{s.reason}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                    <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
                     {s.recurring && (
-                      <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <RotateCcw size={9} />{s.recurring_interval === 'annual' ? 'Ετήσιο' : s.recurring_interval === 'monthly' ? 'Μηνιαίο' : 'Τριμηνιαίο'}
+                      <span style={{ ...TT.caption, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <RotateCcw size={10} aria-hidden />{s.recurring_interval === 'annual' ? 'Ετήσιο' : s.recurring_interval === 'monthly' ? 'Μηνιαίο' : 'Τριμηνιαίο'}
                       </span>
                     )}
-                    {s.amount && <span style={{ fontSize: 10, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)' }}>~{fe(s.amount)}</span>}
                   </div>
-                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{s.reason}</p>
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <button onClick={() => addSuggestion(s, idx)} disabled={isAdded} style={{
-                    display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px',
-                    background: 'var(--accent-soft)', border: '1px solid var(--accent-border)',
-                    borderRadius: 100, cursor: 'pointer', color: 'var(--accent)', fontSize: 10, fontWeight: 600,
-                    fontFamily: T.font.sans, whiteSpace: 'nowrap',
-                  }}>
-                    {isAdded ? <Check size={10} /> : <Plus size={10} />}
-                    {isAdded ? 'Προστέθηκε' : 'Προσθήκη'}
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    height: T.h.sm, padding: '0 13px',
+                    background: 'transparent', border: `1px solid ${isAdded ? 'var(--border-subtle)' : 'var(--border-default)'}`,
+                    borderRadius: T.radius.pill, cursor: isAdded ? 'default' : 'pointer',
+                    color: isAdded ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                    fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap',
+                    transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                  }}
+                    onMouseEnter={e => { if (!isAdded) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isAdded ? 'var(--text-tertiary)' : 'var(--text-secondary)'; }}>
+                    {isAdded ? <Check size={12} aria-hidden /> : <Plus size={12} aria-hidden />}
+                    {isAdded ? 'Προστέθηκε' : 'Στο ημερολόγιο'}
                   </button>
-                  <button onClick={() => dismiss(idx)} style={{ padding: '5px 7px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
-                    <X size={11} />
+                  <button onClick={() => dismiss(idx)} aria-label={`Απόρριψη: ${s.title}`} title="Απόρριψη"
+                    style={{ width: T.h.sm, height: T.h.sm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: '50%', cursor: 'pointer', color: 'var(--text-tertiary)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                    <X size={13} aria-hidden />
                   </button>
                 </div>
               </div>
@@ -159,14 +186,13 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
       )}
 
       {suggestions.length > 0 && visibleSuggestions.length === 0 && (
-        <EmptyState icon={<CircleCheckBig size={20} />} title="Όλες οι προτάσεις διεκπεραιώθηκαν" hint="Τρέξε νέα ανάλυση όταν αλλάξουν δαπάνες, λογαριασμοί ή μίσθωση." />
+        <EmptyState icon={<CircleCheckBig size={20} />} title="Όλες οι προτάσεις διεκπεραιώθηκαν" hint="Ζήτα νέα ματιά όταν αλλάξουν δαπάνες, λογαριασμοί ή μίσθωση." />
       )}
 
       {suggestions.length === 0 && !loadingSugg && (
-        <EmptyState icon={<Sparkles size={20} />} title="Καμία πρόταση ακόμη" hint="Πάτα «Ανάλυση ακινήτου» για έξυπνες προτάσεις με βάση τα δεδομένα σου." />
+        <EmptyState icon={<ListChecks size={20} />} title="Καμία πρόταση ακόμη" hint="Πάτα «Δες τι έρχεται» για προτάσεις με βάση τα δικά σου δεδομένα." />
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

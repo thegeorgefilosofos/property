@@ -2,8 +2,9 @@
 import {
   requirementsFor, readiness, groupByWho, traps, defaultBookkeeping,
   statusForAccountant, statusesOf, WHO_LABEL,
-  type DossierContext, type Requirement,
+  type DossierContext, type Requirement, type LegalForm,
 } from './dossier';
+import type { PropertyStatus } from '../property/status';
 
 let pass = 0, fail = 0;
 function eq(name: string, got: unknown, want: unknown) {

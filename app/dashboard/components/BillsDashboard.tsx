@@ -72,10 +72,20 @@ const PERIOD_OPTIONS = [
   ...MONTHS_GR.map(m => ({ value: `${m} 2026`, label: `${m} 2026` })),
   { value: 'custom', label: 'Προσαρμοσμένο' },
 ];
-const MARKET_BENCHMARKS: Record<string, number> = {
-  electricity: 45, common: 40, internet: 25, water: 15, gas: 30,
-  insurance: 18, security: 25, streaming: 20, enfia: 30, dimotika: 8,
-};
+// ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ ΚΑΙ ΓΙΑΤΙ. Υπήρχε πίνακας MARKET_BENCHMARKS με δέκα καρφωμένα
+// ποσά (ρεύμα 45, κοινόχρηστα 40, ίντερνετ 25…) που παρουσιαζόταν στον χρήστη ως
+// «Μέσος Όρος Αγοράς»: σε σειρά γραφήματος, σε ειδοποίηση «30%+ πάνω από τον μέσο
+// όρο αγοράς», και σε στήλη του Excel. Δεν προερχόταν από κανένα δεδομένο.
+//
+// Ένας ιδιοκτήτης με δίκλινο στην Κοζάνη και ένας με ρετιρέ στο Κολωνάκι έβλεπαν
+// τον ίδιο «μέσο όρο». Όποιος το καταλάβει μία φορά, σταματά να πιστεύει ΚΑΙ τα
+// σωστά νούμερα της οθόνης — και έχει δίκιο.
+//
+// Η αντικατάσταση είναι ο ΔΙΚΟΣ ΤΟΥ μέσος όρος δωδεκαμήνου ανά κατηγορία: αληθινό
+// δεδομένο, και πιο χρήσιμο, γιατί η ερώτηση που κάνει ο ιδιοκτήτης δεν είναι
+// «πληρώνω περισσότερα από την Ελλάδα;» αλλά «πληρώνω περισσότερα από ό,τι
+// συνήθως;». Όταν δεν υπάρχει αρκετό ιστορικό, ΔΕΝ δείχνουμε σύγκριση.
+const MIN_MONTHS_FOR_BASELINE = 3;
 
 const cat = (v: string) => CATEGORIES.find(c => c.value === v) || CATEGORIES[CATEGORIES.length - 1];
 
@@ -142,7 +152,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     ['Λήγουν εντός 7 ημερών', dueSoon.length, null, 'Πάγιοι Λογαριασμοί', recurring.length],
     [''],
     ['━━━ ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ ━━━', null, null, null, null],
-    ['Κατηγορία', 'Λογαριασμοί', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Μέσος Όρος Αγοράς (€)', 'Απόκλιση %', '% Συνόλου'],
+    ['Κατηγορία', 'Λογαριασμοί', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Δικός σου μέσος όρος (€)', 'Απόκλιση %', '% Συνόλου'],
     ...[...byCategory]
       .sort((a, b) => b.monthly - a.monthly)
       .map(c => {
@@ -481,7 +491,13 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     const byCategory = CATEGORIES.map(c => ({
       ...c,
       monthly: bills.filter(b => b.category === c.value && b.recurring).reduce((s, b) => s + b.amount, 0),
-      benchmark: MARKET_BENCHMARKS[c.value] || 0,
+      // Ο δικός του μέσος όρος από τους μήνες που ΕΧΟΥΝ στοιχεία. Κάτω από
+      // MIN_MONTHS_FOR_BASELINE μένει 0, δηλαδή «καμία σύγκριση» — δεν εφευρίσκουμε βάση.
+      benchmark: (() => {
+        const vals = (history[c.value] || []).map(v => parseFloat(v) || 0).filter(v => v > 0);
+        if (vals.length < MIN_MONTHS_FOR_BASELINE) return 0;
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      })(),
     })).filter(c => c.monthly > 0);
 
     const historyTotals = Array(12).fill(0).map((_, i) =>
@@ -505,7 +521,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     byCategory.forEach(c => {
       const budget = parseFloat(budgets[c.value] || '0');
       if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, υπέρβαση budget (${fe(budget, 0)})` });
-      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, 30%+ πάνω από τον μέσο όρο αγοράς` });
+      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, 30%+ πάνω από τον δικό σου μέσο όρο (${fe(c.benchmark, 0)})` });
     });
 
     const areaData = MONTHS_GR.map((m, i) => {
@@ -929,7 +945,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                       <Cell key={index} fill={entry.pct > 25 ? 'var(--negative)' : entry.color}/>
                     ))}
                   </Bar>
-                  <Bar dataKey="benchmark" name="Μέσος Όρος Αγοράς" fill="var(--border-default)" fillOpacity={0.5} radius={[0, 4, 4, 0]}/>
+                  <Bar dataKey="benchmark" name="Ο δικός σου μέσος όρος" fill="var(--border-default)" fillOpacity={0.5} radius={[0, 4, 4, 0]}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>

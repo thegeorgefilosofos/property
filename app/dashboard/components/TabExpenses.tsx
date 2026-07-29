@@ -343,7 +343,7 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: preview ? 12 : 0 }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily: T.font.sans }}>
-          Σάρωση Απόδειξης με AI
+          Σάρωσε απόδειξη
         </span>
         <span style={{ fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:10, fontFamily: T.font.sans, fontWeight:500 }}>
           Claude Vision

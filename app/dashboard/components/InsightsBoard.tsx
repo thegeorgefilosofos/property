@@ -1,16 +1,23 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// InsightsBoard, ο «σύμβουλος» στην Επισκόπηση. Ήρεμη, ευανάγνωστη κάρτα με
-// προτεραιοποιημένα, ενεργήσιμα μηνύματα. Ουδέτερο χρώμα· η σοβαρότητα φαίνεται
-// από μια διακριτική κουκκίδα, όχι από θόρυβο.
+// Νόα · Η εικόνα σου — ο πίνακας της Επισκόπησης.
+// ─────────────────────────────────────────────────────────────────────────
+// Ήρεμη, ευανάγνωστη κάρτα με προτεραιοποιημένα, ενεργήσιμα μηνύματα. Ουδέτερο
+// χρώμα· η σοβαρότητα φαίνεται από μια διακριτική κουκκίδα, όχι από θόρυβο.
+//
+// Η μικρή ετικέτα «Νόα» στην κορυφή δεν είναι διακόσμηση: αυτός ο πίνακας και η
+// συνομιλία διαβάζουν ΤΑ ΙΔΙΑ δεδομένα με την ίδια κρίση. Όταν ο πίνακας ήταν
+// ανώνυμος, ο χρήστης έβλεπε δύο άσχετα χαρακτηριστικά αντί για ένα πρόσωπο που
+// τον παρακολουθεί — και δεν του περνούσε από το μυαλό να ρωτήσει «γιατί;».
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
 import type { Insight, InsightKind } from '@/lib/insights/engine';
 import { greeting } from '@/lib/insights/engine';
 import { vocative } from '@/lib/greekName';
-import { T } from '@/components/Theme';
+import { T, TT } from '@/components/Theme';
+import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 
 const DOT: Record<InsightKind, string> = {
   urgent: 'var(--negative)',
@@ -54,6 +61,8 @@ export default function InsightsBoard({ insights, name, onSaveName, onNavigate, 
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 'clamp(18px, 2.4vw, 24px)', marginBottom: 20, fontFamily: T.font.sans }}>
+      {/* Ποια μιλάει: μία γραμμή, στο μέγεθος ετικέτας, χωρίς άρθρο. */}
+      <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 6 }}>{ASSISTANT_NAME}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: insights.length ? 18 : 0 }}>
         {editing ? (
           <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
