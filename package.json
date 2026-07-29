@@ -11,6 +11,7 @@
     "security": "node scripts/security-check.mjs",
     "prices": "node scripts/price-freshness.mjs",
     "money": "node scripts/money-reads.mjs",
+    "module-init": "node scripts/check-module-init.mjs",
     "test": "node scripts/test.mjs"
   },
   "dependencies": {

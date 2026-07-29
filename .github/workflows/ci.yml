@@ -71,6 +71,14 @@ jobs:
       # οθόνες, με τρία διαφορετικά νούμερα για το ίδιο ακίνητο. Δεν κρασάρει
       # τίποτα: απλώς ο ιδιοκτήτης που θα εντοπίσει ΕΝΑ λάθος νούμερο παύει να
       # εμπιστεύεται όλα τα υπόλοιπα, και δίκαια. Ratchet: το χρέος μόνο πέφτει.
+      # Μία ανάθεση σε επίπεδο module πάνω σε πακέτο UMD έκλεισε την εφαρμογή
+      # έξω: `qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']`. Όταν
+      # ο bundler άλλαξε σχήμα interop, η γραμμή πέταξε ΠΡΙΝ αποδοθεί οτιδήποτε
+      # και δεν φόρτωσε ολόκληρος ο πίνακας ελέγχου. Κανένα error boundary δεν
+      # πιάνει chunk που δεν αξιολογήθηκε ποτέ.
+      - name: No module-scope work on packages — blocking
+        run: node scripts/check-module-init.mjs
+
       - name: Money reads through one core — blocking
         run: node scripts/money-reads.mjs
 

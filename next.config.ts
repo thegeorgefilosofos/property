@@ -20,8 +20,27 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // ── ΠΟΙΑ ΕΚΔΟΣΗ ΒΛΕΠΕΙ Ο ΧΡΗΣΤΗΣ ───────────────────────────────────────────
+  // Χωρίς αυτό, μια αναφορά σφάλματος δεν λέει ΠΟΤΕ αν το πρόβλημα υπάρχει
+  // ακόμη ή αν ο χρήστης κοιτά παλιά έκδοση. Χάθηκαν δύο γύροι διόρθωσης
+  // ακριβώς εκεί: το σφάλμα είχε ήδη λυθεί και το preview σέρβιρε το προηγούμενο
+  // build. Επτά χαρακτήρες commit στην οθόνη σφάλματος κλείνουν το ερώτημα.
+  env: {
+    NEXT_PUBLIC_BUILD_SHA:
+      (process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev",
+  },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Ο service worker ΔΕΝ επιτρέπεται να αποθηκευτεί. Αν ο browser κρατήσει
+      // παλιό sw.js, κρατά και τη στρατηγική cache που μπορεί να σερβίρει
+      // ασύμβατα αρχεία build. Είναι το μοναδικό αρχείο όπου η μηδενική
+      // αποθήκευση είναι απαίτηση ορθότητας και όχι προτίμηση.
+      {
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+      },
+    ];
   },
 };
 

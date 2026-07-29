@@ -45,6 +45,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 }}>
                 {error.message}{error.digest ? `\ndigest: ${error.digest}` : ''}
+                {`\nbuild: ${process.env.NEXT_PUBLIC_BUILD_SHA ?? 'dev'}`}
               </pre>
             )}
             {!busy && (
