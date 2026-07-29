@@ -1,7 +1,7 @@
 // npx tsx lib/expenses/taxonomy.test.ts
 import {
   resolveCategory, categoryLabel, categoryFamily, isDeductible,
-  searchCategories, categoriesOf, CATEGORIES, norm,
+  searchCategories, categoriesOf, budgetBucket, CATEGORIES, norm,
 } from './taxonomy';
 
 let pass = 0, fail = 0;
@@ -123,6 +123,34 @@ ok('κανένα διπλό label', new Set(CATEGORIES.map(c => c.label)).size =
 }
 ok('κάθε κατηγορία έχει τουλάχιστον ένα συνώνυμο', CATEGORIES.every(c => c.aliases.length > 0));
 ok('λογικό πλήθος για ένα κεφάλι', CATEGORIES.length >= 20 && CATEGORIES.length <= 32);
+
+// ── ΚΟΥΒΑΔΕΣ ΠΡΟΫΠΟΛΟΓΙΣΜΟΥ ────────────────────────────────────────────────
+// Το σφάλμα: ο Προϋπολογισμός ήξερε μόνο αγγλικά κλειδιά, οπότε κάθε ελληνική
+// καταχώρηση έπεφτε στις «Λοιπές δαπάνες». Η συντήρηση έδειχνε πάντα μηδέν.
+eq('ελληνικό ρεύμα βρίσκει κουβά', budgetBucket('Ρεύμα'), 'electricity');
+eq('πάροχος βρίσκει κουβά', budgetBucket('ΔΕΗ'), 'electricity');
+eq('υδραυλικός πάει συντήρηση', budgetBucket('Υδραυλικός'), 'maintenance');
+eq('ηλεκτρολόγος πάει συντήρηση', budgetBucket('Ηλεκτρολόγος'), 'maintenance');
+eq('ασανσέρ πάει συντήρηση', budgetBucket('Συντήρηση Ασανσέρ'), 'maintenance');
+eq('ΕΝΦΙΑ πάει υπηρεσίες', budgetBucket('ΕΝΦΙΑ'), 'services');
+eq('δημοτικά πάνε υπηρεσίες', budgetBucket('dimotika'), 'services');
+eq('δικηγόρος πάει υπηρεσίες', budgetBucket('Συμβολαιογράφος'), 'services');
+eq('αέριο πάει θέρμανση', budgetBucket('Φυσικό Αέριο'), 'heating');
+eq('πετρέλαιο πάει θέρμανση', budgetBucket('πετρελαιο θερμανσης'), 'heating');
+eq('συναγερμός δίπλα στην ασφάλεια', budgetBucket('Συναγερμός'), 'insurance');
+eq('συνδρομές δίπλα στην ασφάλεια', budgetBucket('streaming'), 'insurance');
+eq('κοινόχρηστα', budgetBucket('Κοινόχρηστα'), 'common');
+eq('άγνωστο πάει λοιπές', budgetBucket('ξψζ άγνωστο'), 'other');
+// Η ανακαίνιση δεν είναι συντήρηση: μία φορά 8.000 ευρώ δεν σημαίνει ότι ο
+// χρήστης ξέφυγε 400% από τον μηνιαίο στόχο συντήρησης.
+eq('ανακαίνιση δεν είναι συντήρηση', budgetBucket('Ανακαίνιση'), 'other');
+eq('έπιπλα δεν είναι συντήρηση', budgetBucket('Έπιπλα'), 'other');
+ok('κάθε κατηγορία προσγειώνεται σε έγκυρο κουβά',
+  CATEGORIES.every(c => ['electricity', 'water', 'internet', 'heating', 'insurance',
+    'services', 'common', 'maintenance', 'other'].includes(budgetBucket(c.slug))));
+ok('καμία κατηγορία πάγιου δεν χάνεται στις λοιπές',
+  ['electricity', 'water', 'gas', 'heating', 'internet', 'common', 'insurance']
+    .every(s => budgetBucket(s) !== 'other'));
 
 console.log(fail === 0 ? `✓ taxonomy: ${pass} έλεγχοι πέρασαν` : `✗ taxonomy: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);

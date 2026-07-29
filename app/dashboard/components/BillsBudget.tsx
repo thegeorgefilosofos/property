@@ -13,6 +13,8 @@ import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
 import BudgetVaults, { VaultSuggestion } from './BudgetVaults';
 import BudgetImport from './BudgetImport';
+import { mergeLedger, type LedgerBill, type LedgerExpense, type LedgerEntry } from '@/lib/expenses/ledger';
+import { budgetBucket } from '@/lib/expenses/taxonomy';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -287,6 +289,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [hoverWeek,    setHoverWeek]    = useState<string | null>(null);
   const [exclAmtDraft, setExclAmtDraft] = useState<Record<string, string>>({});  // ό,τι πληκτρολογεί ο χρήστης στο μερικό ποσό εξαίρεσης
   const [addingCat,    setAddingCat]    = useState(false);   // εμφάνιση πεδίου «νέα κατηγορία» (inline)
+  // Η μία σημείωση για την αλλαγή στα σύνολα. Διαβάζεται τεμπέλικα κατά την
+  // αρχικοποίηση και όχι σε effect: η πρώτη απόδοση είναι πάντα ο σκελετός
+  // (loading = true), οπότε δεν υπάρχει διαφορά server και client να συμφιλιωθεί.
+  const [ledgerNoteSeen, setLedgerNoteSeen] = useState(() => {
+    try { return localStorage.getItem('budget_ledger_note') === '1'; } catch { return true; }
+  });
+  const dismissLedgerNote = () => {
+    setLedgerNoteSeen(true);
+    try { localStorage.setItem('budget_ledger_note', '1'); } catch { /* ignore */ }
+  };
   const [showSettings, setShowSettings] = useState(false);   // εμφάνιση ρυθμίσεων προϋπολογισμού (inline)
   const [demoBusy,     setDemoBusy]     = useState(false);   // δημιουργία/αφαίρεση δείγματος δεδομένων
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
@@ -306,18 +318,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     return n;
   });
 
-  const mapCategory = (cat: string): CatKey | 'other' => {
-    const m: Record<string, CatKey> = {
-      electricity: 'electricity', water: 'water', eydap: 'water',
-      internet: 'internet', phone: 'internet', tv: 'internet',
-      heating: 'heating', gas: 'heating',
-      insurance: 'insurance', streaming: 'insurance',
-      taxes: 'services', enfia: 'services', municipal: 'services', services: 'services',
-      common: 'common', koinoxrista: 'common',
-      maintenance: 'maintenance', repair: 'maintenance',
-    };
-    return m[cat?.toLowerCase()] ?? 'other';
-  };
+  // Η αντιστοίχιση κατηγορίας σε κουβά ζει πλέον στο κοινό λεξιλόγιο
+  // (lib/expenses/taxonomy). Εδώ υπήρχε δικό της λεξικό με ΜΟΝΟ αγγλικά κλειδιά,
+  // ενώ ο χρήστης καταχωρούσε «Υδραυλικός» και «Ρεύμα» στα ελληνικά: κάθε
+  // χειροκίνητη δαπάνη προσγειωνόταν στις «Λοιπές», η Συντήρηση έδειχνε μηδέν.
 
   const loadData = useCallback(async () => {
     if (!propertyId) return;
@@ -327,26 +331,37 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const m     = String(now.getMonth() + 1).padStart(2, '0');
       const start   = `${y}-${m}-01`;
       const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
-      const dateEnd = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;      // για στήλες τύπου date
-      const end     = `${dateEnd}T23:59:59`;                                 // για timestamptz (created_at)
+      const dateEnd = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;      // τέλος τρέχοντος μήνα
       // Ιστορικό 13 μηνών (τρέχων + 12 πίσω) για πρόβλεψη/ετήσια εικόνα/τάσεις.
       const histStart = `${ymOf(new Date(y, now.getMonth() - 12, 1))}-01`;
+      // Παράθυρο ανάγνωσης λογαριασμών: έναν χρόνο πιο πίσω από το ιστορικό.
+      const wideStart = `${ymOf(new Date(y, now.getMonth() - 24, 1))}-01`;
       // Αρχή τρέχουσας εβδομάδας (Δευτέρα) — για το εβδομαδιαίο εργαλείο (σωστό και στα όρια μήνα).
       const dow       = (now.getDay() + 6) % 7;   // Δευτέρα = 0
       const weekStartD = new Date(y, now.getMonth(), now.getDate() - dow);
       const weekStart  = `${weekStartD.getFullYear()}-${String(weekStartD.getMonth() + 1).padStart(2, '0')}-${String(weekStartD.getDate()).padStart(2, '0')}`;
 
-      const [budgetRes, billsRes, settRes, expRes, histBillsRes, histExpRes, weekBillsRes, weekExpRes] = await Promise.all([
+      // ── ΜΙΑ ΑΝΑΓΝΩΣΗ, ΜΙΑ ΑΛΗΘΕΙΑ ────────────────────────────────────────
+      // ΠΡΙΝ: έξι ερωτήματα (λογαριασμοί και δαπάνες, επί μήνα/ιστορικό/εβδομάδα),
+      // με τις συνδεδεμένες δαπάνες κρυμμένες μέσω .is('bill_id', null) για να μη
+      // διπλομετρηθούν. Δύο συνέπειες, και οι δύο λάθος:
+      //   • ο λογαριασμός μετρούσε με το ποσό του, όχι με ό,τι ΟΝΤΩΣ πληρώθηκε.
+      //     Διόρθωνες τη δαπάνη σε 92 ευρώ και ο προϋπολογισμός έμενε στα 80.
+      //   • οι λογαριασμοί φιλτράρονταν με created_at, δηλαδή με το πότε τους
+      //     ΚΑΤΑΧΩΡΗΣΕΣ. Λογαριασμός Ιανουαρίου καταχωρημένος τον Φεβρουάριο
+      //     χάλαγε δύο μήνες με μία κίνηση.
+      // ΤΩΡΑ: μία ανάγνωση, συγχώνευση από τον ίδιο πυρήνα που τροφοδοτεί την
+      // οθόνη Δαπάνες, και τα τρία παράθυρα κόβονται από την ίδια λίστα. Ό,τι
+      // δείχνουν οι Δαπάνες, αθροίζει ο Προϋπολογισμός.
+      const [budgetRes, settRes, allBillsRes, allExpRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
-        supabase.from('bills').select('id,name,category,amount,paid,due_date,created_at').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
-        // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
-        // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
-        supabase.from('expenses').select('id,amount,date,bill_id,expense_group,category,description').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
-        supabase.from('bills').select('id,category,amount,created_at').eq('property_id', propertyId).gte('created_at', histStart),
-        supabase.from('expenses').select('id,amount,date,expense_group,description,category').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
-        supabase.from('bills').select('id,category,amount').eq('property_id', propertyId).gte('created_at', `${weekStart}T00:00:00`),
-        supabase.from('expenses').select('id,amount,category,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', weekStart),
+        // Ευρύτερο παράθυρο κατά έναν χρόνο: η ημερομηνία που ΜΕΤΡΑ για έναν
+        // λογαριασμό (πληρωμή ή λήξη) δεν είναι το created_at, οπότε ένας
+        // λογαριασμός καταχωρημένος νωρίτερα μπορεί να ανήκει μέσα στο παράθυρο.
+        // Το τελικό κόψιμο γίνεται μετά τη συγχώνευση, όπου η ημερομηνία είναι μία.
+        supabase.from('bills').select('id,name,category,amount,paid,paid_at,due_date,recurring,created_at').eq('property_id', propertyId).gte('created_at', wideStart),
+        supabase.from('expenses').select('id,bill_id,description,category,expense_group,amount,date,paid,store_vendor,is_recurring').eq('property_id', propertyId).gte('date', histStart),
       ]);
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
@@ -405,7 +420,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) arr.forEach((c: any) => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
       // Μετονομασίες (override) βασικών/custom κατηγοριών — για σωστές ετικέτες στην ανάλυση.
       try { const o = JSON.parse(String((budgetRes.data?.data as { __labels?: string } | null)?.__labels ?? '{}')); if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v) catLabels[k] = String(v); }); } catch { /* ignore */ }
-      const catOf = (raw: string): string => { const r = String(raw ?? ''); return customKeys.has(r) ? r : mapCategory(r); };
+      // Προσαρμοσμένη κατηγορία του χρήστη μένει ως έχει· οτιδήποτε άλλο περνά
+      // από το κοινό λεξιλόγιο, ελληνικά και αγγλικά μαζί.
+      const catOf = (raw: string): string => { const r = String(raw ?? ''); return customKeys.has(r) ? r : budgetBucket(r); };
       const catLabelOf = (k: string): string => catLabels[k] ?? 'Λοιπές δαπάνες';
       // Εξαιρέσεις: δαπάνες/λογαριασμοί που ΔΕΝ μετράνε (ή μετράνε μερικώς) στον προϋπολογισμό.
       // Χωρίς 'amount' → εξαιρείται ΟΛΟ το ποσό· με 'amount' → εξαιρείται μόνο αυτό το μέρος
@@ -421,31 +438,64 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // Το ποσό που ΟΝΤΩΣ μετρά στον προϋπολογισμό (ολικό μείον το εξαιρούμενο μέρος).
       const counted = (id: any, full: number): number => Math.max(0, (full || 0) - exclAmt(id, full || 0));
 
+      // ── Η ΕΝΙΑΙΑ ΛΙΣΤΑ ────────────────────────────────────────────────────
+      const { entries: ledger } = mergeLedger(
+        (allBillsRes.data ?? []) as LedgerBill[],
+        (allExpRes.data ?? []) as LedgerExpense[],
+      );
+      // Ταυτότητα γραμμής για τις εξαιρέσεις. Προτεραιότητα στον λογαριασμό,
+      // γιατί πριν τη συγχώνευση η γραμμή του μήνα ΗΤΑΝ ο λογαριασμός: όποιος
+      // είχε εξαιρέσει κάτι, το κρατά εξαιρεμένο και μετά την αλλαγή.
+      const idOf = (e: LedgerEntry): string => String(e.billId ?? e.expenseId ?? '');
+      // Η εξαίρεση ισχύει με όποιο από τα δύο κλειδιά κι αν γράφτηκε.
+      const countedEntry = (e: LedgerEntry): number => {
+        const byBill = e.billId ? counted(e.billId, e.amount) : e.amount;
+        const byExp = e.expenseId ? counted(e.expenseId, e.amount) : e.amount;
+        return Math.min(byBill, byExp);
+      };
+      // Η ομάδα «συντήρηση» της παλιάς φόρμας υπερισχύει, γιατί ο χρήστης την
+      // επέλεξε ρητά· αλλιώς αποφασίζει η κατηγορία.
+      const bucketOf = (e: LedgerEntry): string =>
+        e.group === 'maintenance' ? 'maintenance' : catOf(e.category);
+
+      const inWindow = ledger.filter(e => e.date >= histStart && e.date <= dateEnd);
+      const monthRows = inWindow.filter(e => e.date >= start);
+      const weekRows = inWindow.filter(e => e.date >= weekStart);
+
       // Ιστορικά σύνολα ανά μήνα και ανά μήνα/κατηγορία — καθαρά από καταγεγραμμένες
       // εγγραφές (όχι εκτιμήσεις από ρυθμίσεις), ώστε τάση/ετήσιο να είναι έντιμα.
       const mTotals: Record<string, number> = {};
       const cMonth: Record<string, Record<string, number>> = {};
-      const addHist = (ym: string, key: string, amt: number) => {
+      inWindow.forEach(e => {
+        const amt = countedEntry(e);
+        if (amt <= 0) return;
+        const ym = e.date.slice(0, 7);
         if (!ym) return;
+        const key = bucketOf(e);
         mTotals[ym] = (mTotals[ym] ?? 0) + amt;
         (cMonth[ym] ??= {})[key] = (cMonth[ym][key] ?? 0) + amt;
-      };
-      (histBillsRes.data ?? []).forEach((b: any) => { const amt = counted(b.id, b.amount || 0); if (amt <= 0) return; addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), amt); });
-      (histExpRes.data ?? []).forEach((e: any) => { const amt = counted(e.id, e.amount || 0); if (amt <= 0) return; addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')), amt); });
+      });
       setMonthTotals(mTotals);
       setCatMonth(cMonth);
 
-      // ── Επαναλαμβανόμενες χρεώσεις / συνδρομές: ανάλυση 12μηνου ιστορικού δαπανών ──
-      // (καθαρός πυρήνας detectRecurring) — αναδεικνύει «κρυφές» συνδρομές και το ετήσιο βάρος τους.
-      const recurTxns = (histExpRes.data ?? [])
-        .filter((e: any) => (e.description ?? '').trim().length >= 3)
-        .map((e: any) => ({ date: String(e.date ?? '').slice(0, 10), amount: Number(e.amount) || 0, description: String(e.description ?? ''), category: mapCategory(String(e.category ?? '')) }));
-      setRecurring(detectRecurring(recurTxns));
+      // ── Επαναλαμβανόμενες χρεώσεις / συνδρομές: ανάλυση 12μηνου ιστορικού ──
+      // (καθαρός πυρήνας detectRecurring) — αναδεικνύει «κρυφές» συνδρομές και το
+      // ετήσιο βάρος τους. Πλέον βλέπει και τους λογαριασμούς, όχι μόνο τις
+      // χειροκίνητες δαπάνες: εκεί κρύβονται οι πραγματικές πάγιες χρεώσεις.
+      setRecurring(detectRecurring(
+        inWindow
+          .filter(e => e.title.trim().length >= 3)
+          .map(e => ({ date: e.date, amount: e.amount, description: e.title, category: bucketOf(e) })),
+      ));
 
       // ── Εβδομαδιαίο εργαλείο: δαπάνες τρέχουσας εβδομάδας ανά κατηγορία ──
       const wk: Record<string, number> = {};
-      (weekBillsRes.data ?? []).forEach((b: any) => { const amt = counted(b.id, Number(b.amount) || 0); if (amt <= 0) return; const k = mapCategory(String(b.category ?? '')); wk[k] = (wk[k] ?? 0) + amt; });
-      (weekExpRes.data ?? []).forEach((e: any) => { const amt = counted(e.id, Number(e.amount) || 0); if (amt <= 0) return; const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + amt; });
+      weekRows.forEach(e => {
+        const amt = countedEntry(e);
+        if (amt <= 0) return;
+        const k = bucketOf(e);
+        wk[k] = (wk[k] ?? 0) + amt;
+      });
       setWeekActuals(wk);
 
       if (budgetRes.data?.data) {
@@ -458,26 +508,24 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const items: MonthItem[] = [];
       // Ανάλυση ανά κατηγορία: οι επιμέρους πληρωμές (πάροχος/περιγραφή, ποσό, ημερομηνία).
       const bd: Record<string, { label: string; amount: number; date: string; paid: boolean; kind: 'bill' | 'expense' }[]> = {};
-      // Καταγεγραμμένοι λογαριασμοί του μήνα. Άγνωστες κατηγορίες → «Λοιπές δαπάνες»
-      // (συνέπεια με τα έξοδα)· δεν χάνεται τίποτα από το σύνολο. Εξαιρέσεις δεν μετρώνται.
-      (billsRes.data ?? []).forEach((b: any) => {
-        const key = mapCategory(b.category ?? '');
+      // Οι γραμμές του μήνα, λογαριασμοί και δαπάνες μαζί. Άγνωστες κατηγορίες →
+      // «Λοιπές δαπάνες»· δεν χάνεται τίποτα από το σύνολο. Εξαιρέσεις δεν μετρώνται.
+      monthRows.forEach(e => {
+        const key = bucketOf(e);
         const label = catLabelOf(key);
-        const full = Number(b.amount) || 0;
-        if (b.id != null) items.push({ id: String(b.id), kind: 'bill', label, amount: full, catKey: key });
-        const amt = counted(b.id, full);
+        const id = idOf(e);
+        if (id) items.push({ id, kind: e.billId ? 'bill' : 'expense', label: e.title || label, amount: e.amount, catKey: key });
+        const amt = countedEntry(e);
         if (amt <= 0) return;
         billActuals[key] = (billActuals[key] ?? 0) + amt;
-        (bd[key] ??= []).push({ label: String(b.name ?? '').trim() || label, amount: amt, date: String(b.due_date ?? b.created_at ?? '').slice(0, 10), paid: !!b.paid, kind: 'bill' });
+        (bd[key] ??= []).push({ label: e.title || label, amount: amt, date: e.date, paid: e.paid, kind: e.billId ? 'bill' : 'expense' });
       });
 
       // Κατηγορίες με ΚΑΤΑΓΕΓΡΑΜΜΕΝΗ εγγραφή τον μήνα (ανεξάρτητα από εξαίρεση/ποσό):
       // αν ο χρήστης κατέγραψε π.χ. τον λογαριασμό Internet και μετά τον εξαίρεσε, ΔΕΝ
       // θέλει την εκτίμηση του παρόχου να τον ξαναβάζει — γι' αυτό ελέγχουμε «καταγράφηκε;»
       // και όχι το (μηδενισμένο από την εξαίρεση) billActuals.
-      const recorded = new Set<string>();
-      (billsRes.data ?? []).forEach((b: any) => recorded.add(mapCategory(b.category ?? '')));
-      (expRes.data ?? []).forEach((e: any) => recorded.add(e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? ''))));
+      const recorded = new Set<string>(monthRows.map(bucketOf));
 
       const getSett = (sec: string) => settRes.data?.find(x => x.section === sec)?.data as Record<string, unknown> | undefined;
       const prov = getSett('providers');
@@ -495,19 +543,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       }
       const ins = getSett('insurance');
       if (ins && !recorded.has('insurance')) billActuals.insurance = parseFloat(String(ins.insCustomPrice)) || 0;
-
-      // Έξοδα εκτός λογαριασμών του μήνα: η συντήρηση πάει στη «Συντήρηση»,
-      // τα υπόλοιπα στις «Λοιπές δαπάνες» (πιο έντιμη ανάλυση από ένα ενιαίο νούμερο).
-      (expRes.data ?? []).forEach((e: any) => {
-        const full = e.amount || 0;
-        const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? ''));
-        const label = String(e.description ?? '').trim() || catLabelOf(k);
-        if (e.id != null) items.push({ id: String(e.id), kind: 'expense', label, amount: full, catKey: k });
-        const amt = counted(e.id, full);
-        if (amt <= 0) return;
-        billActuals[k] = (billActuals[k] || 0) + amt;
-        (bd[k] ??= []).push({ label, amount: amt, date: String(e.date ?? '').slice(0, 10), paid: true, kind: 'expense' });
-      });
 
       Object.values(bd).forEach(list => list.sort((a, b) => (a.date < b.date ? 1 : -1)));
       setActuals(billActuals);
@@ -1003,6 +1038,20 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           </div>
         </div>
       </div>
+
+      {/* Μία γραμμή, μία φορά. Τα σύνολα άλλαξαν και ο χρήστης δικαιούται να ξέρει
+          γιατί — χωρίς πανό, χωρίς παράθυρο, χωρίς να ζητά κλικ για να συνεχίσει. */}
+      {!ledgerNoteSeen && (monthItems.length > 0 || Object.keys(monthTotals).length > 0) && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, fontFamily: T.font.sans, fontSize: 11.5, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            Τα σύνολα μετρούν πλέον λογαριασμούς και δαπάνες μαζί, με το ποσό που όντως πληρώθηκε και στον μήνα που πληρώθηκε. Αν κάποιο νούμερο δείχνει αλλαγμένο, τώρα είναι το σωστό.
+          </span>
+          <button type="button" onClick={dismissLedgerNote}
+            style={{ flexShrink: 0, appearance: 'none', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>
+            Το κατάλαβα
+          </button>
+        </div>
+      )}
 
       {/* «Δείξε μου» — δείγμα μήνα όταν ο προϋπολογισμός είναι άδειος */}
       {isCurMonth && demoIds.length === 0 && monthItems.length === 0 && Object.keys(monthTotals).length === 0 && (
