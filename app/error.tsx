@@ -36,6 +36,25 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             ? 'Καθαρίζουμε τα αποθηκευμένα αρχεία και ξαναφορτώνουμε. Τα δεδομένα και η σύνδεσή σου δεν επηρεάζονται.'
             : 'Παρουσιάστηκε ένα απρόσμενο σφάλμα.'}
         </p>
+        {/* ΤΟ ΜΗΝΥΜΑ, ΟΡΑΤΟ.
+            Μια οθόνη που λέει μόνο «κάτι πήγε στραβά» δεν βοηθά κανέναν: ούτε
+            τον χρήστη να καταλάβει αν φταίει το δίκτυό του, ούτε εμάς να
+            διορθώσουμε. Το κείμενο είναι τεχνικό και μένει διακριτικό, αλλά
+            είναι εκεί και αντιγράφεται με ένα κλικ. */}
+        {!busy && (error.message || error.digest) && (
+          <pre
+            onClick={() => { try { void navigator.clipboard.writeText(`${error.message}\n${error.digest ?? ''}`); } catch { /* χωρίς άδεια */ } }}
+            title="Κλικ για αντιγραφή"
+            style={{
+              textAlign: 'left', margin: '0 0 18px', padding: '10px 12px', cursor: 'copy',
+              background: 'var(--bg-elevated, #f1f3f4)', border: '1px solid var(--border-subtle, #dadce0)',
+              borderRadius: 10, fontSize: 11.5, lineHeight: 1.5, color: 'var(--text-secondary, #5f6368)',
+              whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 160, overflow: 'auto',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            }}>
+            {error.message}{error.digest ? `\ndigest: ${error.digest}` : ''}
+          </pre>
+        )}
         {!busy && (
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={reset}

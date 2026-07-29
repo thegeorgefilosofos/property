@@ -9,12 +9,18 @@ import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } f
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const fk = (n: number) => `${n.toFixed(4)} €`;
-// Η ημερομηνία έρχεται από ΤΟ ΙΔΙΟ αρχείο που ελέγχει το workflow φρεσκάδας
-// (.github/workflows/price-freshness.yml). Όσο ήταν σταθερά μέσα στο component,
-// μπορούσε να γεράσει χωρίς να το προσέξει κανείς, ενώ ο χρήστης τη διάβαζε ως
-// εγγύηση. Τώρα, αν παλιώσει, ανοίγει issue από μόνο του.
-import priceSources from '@/data/price-sources.json';
-const LAST_UPDATED = priceSources.electricity.label;
+// Η ημερομηνία τελευταίου ελέγχου των τιμών.
+//
+// ΓΙΑΤΙ ΓΡΑΜΜΕΝΗ ΕΔΩ ΚΑΙ ΟΧΙ ΜΕ import ΤΟΥ JSON: ένα `import ... from '.json'`
+// σε module scope, μέσα σε αρχείο που φορτώνεται σε ΚΑΘΕ άνοιγμα του πίνακα
+// ελέγχου, είναι εξάρτηση από τον τρόπο που ο bundler κάνει interop τα JSON. Αν
+// αστοχήσει, δεν σκάει μια οθόνη: δεν φορτώνει ΟΛΗ η εφαρμογή, επειδή το
+// σφάλμα συμβαίνει πριν καν αποδοθεί τίποτα. Δεν αξίζει τέτοιο ρίσκο για μια
+// ετικέτα ημερομηνίας.
+//
+// Η συνέπεια με το data/price-sources.json, που είναι η πηγή αλήθειας για το
+// workflow φρεσκάδας, φυλάσσεται από test: αν αποκλίνουν, κοκκινίζει το CI.
+const LAST_UPDATED = 'Ιούλιος 2026';
 const RAAYEY_URL  = 'https://energycost.gr/%CF%85%CF%80%CE%BF%CE%BB%CE%BF%CE%B3%CE%B9%CF%83%CE%BC%CF%8C%CF%82-%CF%84%CE%B9%CE%BC%CE%AE%CF%82-%CE%B2%CE%AC%CF%83%CE%B5%CE%B9-%CE%BA%CE%B1%CF%84%CE%B1%CE%BD%CE%AC%CE%BB%CF%89%CF%83%CE%B7%CF%82-2/';
 // Ο υπολογισμός κόστους ζει σε ένα σημείο, με tests. Δείτε lib/energy/tariff.ts
 // για τον λόγο: εδώ υπήρχαν δύο διαφορετικοί τύποι για το ίδιο νούμερο.

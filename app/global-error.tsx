@@ -31,6 +31,22 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                 ? 'Καθαρίζουμε τα αποθηκευμένα αρχεία και ξαναφορτώνουμε. Τα δεδομένα και η σύνδεσή σου δεν επηρεάζονται.'
                 : 'Παρουσιάστηκε ένα απρόσμενο σφάλμα.'}
             </p>
+            {/* Το μήνυμα ορατό: αλλιώς ούτε ο χρήστης καταλαβαίνει τι έγινε ούτε
+                εμείς μπορούμε να το διορθώσουμε. Κλικ για αντιγραφή. */}
+            {!busy && (error.message || error.digest) && (
+              <pre
+                onClick={() => { try { void navigator.clipboard.writeText(`${error.message}\n${error.digest ?? ''}`); } catch { /* χωρίς άδεια */ } }}
+                title="Κλικ για αντιγραφή"
+                style={{
+                  textAlign: 'left', margin: '0 0 18px', padding: '10px 12px', cursor: 'copy',
+                  background: '#fff', border: '1px solid #dadce0', borderRadius: 10,
+                  fontSize: 11.5, lineHeight: 1.5, color: '#5f6368',
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 160, overflow: 'auto',
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                }}>
+                {error.message}{error.digest ? `\ndigest: ${error.digest}` : ''}
+              </pre>
+            )}
             {!busy && (
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={reset}
