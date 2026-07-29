@@ -268,6 +268,78 @@ const ELEC_DEFAULTS = {
   contractStart: '', contractMonths: '', manualMonthly: '',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΣΥΓΚΡΙΣΗ ΩΣ ΕΙΔΟΠΟΙΗΣΗ, ΟΧΙ ΩΣ ΚΑΡΤΕΛΑ.
+//
+// Ο ιδιοκτήτης δεν ανοίγει καρτέλα «σύγκριση παρόχων» — δεν ξύπνησε το πρωί
+// θέλοντας να συγκρίνει τιμολόγια. Θέλει να του πουν, μία φορά, ότι πληρώνει
+// παραπάνω. Αυτή η συνάρτηση απαντά ΜΟΝΟ όταν υπάρχει πραγματική διαφορά πάνω
+// σε ΠΡΑΓΜΑΤΙΚΗ κατανάλωση: αν δεν ξέρουμε πόσες κιλοβατώρες καίει (ούτε από
+// ιστορικό, ούτε από τους λογαριασμούς του), επιστρέφει null. Σύγκριση πάνω σε
+// μαντεψιά είναι χειρότερη από καμία σύγκριση: οδηγεί σε αλλαγή παρόχου με
+// λάθος κριτήριο.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Το ελάχιστο μηνιαίο όφελος που αξίζει να διακόψει τον χρήστη. */
+const SWITCH_NOISE = 5;
+
+export interface SwitchFinding {
+  /** Τι πληρώνει σήμερα, τον μήνα. */
+  current: number;
+  /** Τι θα πλήρωνε με την καλύτερη εναλλακτική. */
+  best: number;
+  /** Πάντα θετικό: πόσα τον μήνα. */
+  savingsMonthly: number;
+  /** Πώς λέγεται η εναλλακτική («ΔΕΗ myHome Enter»). */
+  bestLabel: string;
+  /** Πάνω σε τι στηρίζεται το νούμερο, με τα λόγια του χρήστη. */
+  basedOn: string;
+}
+
+export function electricitySwitchFinding(
+  s: Record<string, unknown> | null | undefined,
+  billsKwh: number[],
+): SwitchFinding | null {
+  if (!s) return null;
+  const usageEst = estimateUsage(
+    (s.kwhHistory as string[]) ?? [], billsKwh, parseFloat(String(s.kwhMonthly ?? '')),
+  );
+  // Χωρίς αξιόπιστη κατανάλωση, καμία ειδοποίηση.
+  if (usageEst.source === 'unknown' || !usageEst.reliable) return null;
+
+  const providerObj = PROVIDERS.find(p => p.value === (s.elecProvider ?? 'dei')) || PROVIDERS[0];
+  const tariff = providerObj.tariffs.find(t => t.id === s.elecTariff) || providerObj.tariffs[0];
+  if (!tariff) return null;
+
+  const usage: Usage = {
+    kwhMonthly: usageEst.kwhMonthly,
+    nightPct: parseFloat(String(s.nightPct ?? '')) || 30,
+    ebill: s.useEbill === undefined ? true : Boolean(s.useEbill),
+    manualMonthly: parseFloat(String(s.manualMonthly ?? '')) || 0,
+  };
+  const current = monthlyCost(tariff as Tariff, usage).total;
+
+  const ranked = compareTariffs(
+    PROVIDERS.flatMap(p => p.tariffs.map(t => ({ ...t, providerLabel: p.label }))) as (LocalTariff & { providerLabel: string })[],
+    usage, tariff.id, current,
+  ).filter(r => r.tariff.segment === tariff.segment);
+
+  const best = ranked[0];
+  if (!best || best.isCurrent) return null;
+  const savings = current - best.cost.total;
+  if (!(savings >= SWITCH_NOISE)) return null;
+
+  return {
+    current, best: best.cost.total, savingsMonthly: savings,
+    bestLabel: `${best.tariff.providerLabel} ${best.tariff.name}`,
+    basedOn: usageEst.source === 'history'
+      ? `${usageEst.kwhMonthly} kWh τον μήνα, από το ιστορικό σου`
+      : usageEst.source === 'bills'
+      ? `${usageEst.kwhMonthly} kWh τον μήνα, από τους λογαριασμούς σου`
+      : `${usageEst.kwhMonthly} kWh τον μήνα`,
+  };
+}
+
 export default function BillsElectricity({ propertyId, userId, onNavigateTab }: { propertyId: string; userId?: string; onNavigateTab?: (tab: string) => void }) {
   const supabase   = createClient();
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
@@ -316,7 +388,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     (async () => {
       try {
         const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'insurance').maybeSingle();
-        if (data?.data) { const d = data.data as any; setInsData({ eq: !!d.insCustomEarthquake, fl: !!d.insCustomFlood }); }
+        if (data?.data) { const d = data.data as Record<string, unknown>; setInsData({ eq: !!d.insCustomEarthquake, fl: !!d.insCustomFlood }); }
       } catch (_) {}
     })();
   }, [propertyId]);

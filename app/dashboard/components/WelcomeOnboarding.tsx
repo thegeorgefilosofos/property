@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
+import { defaultBookkeeping, type LegalForm, type BookKeeping } from '@/lib/accounting/dossier';
 
 interface Props {
   userId: string;
@@ -24,7 +25,7 @@ const SLIDES = [
   {
     icon: 'M3 9.5 12 3l9 6.5|M5 10v10h14V10',
     title: 'Καλωσόρισες στο Property OS',
-    body: 'Όλη η διαχείριση των ακινήτων σου σε ένα σημείο: έσοδα, δαπάνες, λογαριασμοί, ενοικιαστές και επισκέπτες, με έναν βοηθό τεχνητής νοημοσύνης δίπλα σου.',
+    body: 'Όλη η διαχείριση των ακινήτων σου σε ένα σημείο: έσοδα, δαπάνες, λογαριασμοί, ενοικιαστές και επισκέπτες — και τη Νόα δίπλα σου, να απαντάει για τα δικά σου νούμερα.',
   },
   {
     icon: 'M20 12V7H4v10h10|M4 11h16|M16 19l2 2 4-4',
@@ -48,6 +49,32 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   const chooseProfile = (v: 'individual' | 'professional') => {
     setProfile(v); onProfile?.(v);
     supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' }).then(() => {});
+  };
+
+  // ── Νομική μορφή ─────────────────────────────────────────────────────────
+  // ΓΙΑΤΙ ΡΩΤΑΜΕ. Από αυτό κρίνεται αν ο χρήστης θα δει ποτέ ΕΦΚΑ, Ε3, απόσβεση
+  // κτιρίου και τη λέξη «ισολογισμός». Δεν συμπεραίνεται από τον τύπο προφίλ: ένας
+  // επαγγελματίας διαχειριστής δεν είναι απαραίτητα επιχείρηση, και ένας «ιδιώτης»
+  // μπορεί να έχει ατομική. Λάθος μαντεψιά είτε κρύβει υποχρεωτικές καταστάσεις
+  // από μια ΙΚΕ, είτε τρομάζει κάποιον με ένα κληρονομικό διαμέρισμα.
+  //
+  // ΓΙΑΤΙ ΣΤΑΔΙΑΚΑ. Πρώτα ένα ναι/όχι. Ο 25χρονος που κληρονόμησε πατά «Φυσικό
+  // πρόσωπο» και δεν βλέπει ΠΟΤΕ τις λέξεις «απλογραφικά» και «διπλογραφικά» —
+  // αυτές εμφανίζονται μόνο σε όποιον δήλωσε ότι έχει επιχείρηση.
+  const [hasBiz, setHasBiz] = useState<boolean | null>(null);
+  const [legalForm, setLegalForm] = useState<LegalForm>('individual');
+  const [books, setBooks] = useState<BookKeeping>('none');
+
+  const saveLegal = (form: LegalForm, bk: BookKeeping) => {
+    setLegalForm(form); setBooks(bk);
+    supabase.from('billing_profiles').upsert({ user_id: userId, legal_form: form, bookkeeping: bk }, { onConflict: 'user_id' }).then(() => {});
+  };
+  // Η μορφή προτείνει βιβλία (ΙΚΕ → διπλογραφικά, ατομική/ΟΕ → απλογραφικά) αλλά
+  // ο χρήστης έχει τον τελευταίο λόγο: μια Ο.Ε. μπορεί κάλλιστα να είναι διπλογραφικά.
+  const chooseForm = (form: LegalForm) => saveLegal(form, defaultBookkeeping(form));
+  const chooseBiz = (v: boolean) => {
+    setHasBiz(v);
+    if (v) chooseForm('sole_trader'); else saveLegal('individual', 'none');
   };
 
   const mark = async (patch: Record<string, boolean>) => {
@@ -117,6 +144,28 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
     background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
     padding: '8px 6px', width: '100%', textAlign: 'center',
   };
+  // Μία ετικέτα ενότητας και δύο σχήματα επιλογής για ΟΛΕΣ τις ερωτήσεις αυτής
+  // της οθόνης: κάρτα για τη βασική επιλογή, pill για τη λεπτομέρεια. Χωρίς αυτά
+  // η ίδια επιλογή γραφόταν τρεις φορές με τρεις μικροδιαφορές.
+  const capLabel: React.CSSProperties = {
+    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+    color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: 10,
+  };
+  const choice = (on: boolean): React.CSSProperties => ({
+    textAlign: 'center', cursor: 'pointer', borderRadius: 10, padding: '11px 8px',
+    border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+    background: on ? 'var(--accent-soft)' : 'var(--surface-raised)',
+    boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none',
+    transition: 'all 0.15s', fontFamily: T.font.sans,
+  });
+  const pill = (on: boolean): React.CSSProperties => ({
+    flex: 1, minWidth: 88, cursor: 'pointer', borderRadius: 100, padding: '7px 12px',
+    border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+    background: on ? 'var(--accent-soft)' : 'var(--surface-raised)',
+    color: on ? 'var(--accent)' : 'var(--text-secondary)',
+    fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, transition: 'all 0.15s',
+  });
+
   const press = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.985)'; };
   const release = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'none'; };
   const brighten = (e: React.MouseEvent<HTMLButtonElement>) => { if (!busy) e.currentTarget.style.filter = 'brightness(1.06)'; };
@@ -141,19 +190,50 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
         {/* Επιλογή τύπου προφίλ (μόνο στο πρώτο slide) */}
         {step === 0 && (
           <div style={{ padding: '18px 24px 0' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: 10 }}>Τι σε περιγράφει;</div>
+            <div style={capLabel}>Τι σε περιγράφει;</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {([['individual', 'Ιδιώτης', 'δικά μου ακίνητα'], ['professional', 'Επαγγελματίας', 'διαχείριση πολλών']] as const).map(([v, t, sub]) => {
                 const on = profile === v;
                 return (
-                  <button key={v} onClick={() => chooseProfile(v)}
-                    style={{ textAlign: 'center', cursor: 'pointer', borderRadius: 10, padding: '11px 8px', border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface-raised)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none', transition: 'all 0.15s', fontFamily: T.font.sans }}>
+                  <button key={v} onClick={() => chooseProfile(v)} style={choice(on)}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)' }}>{t}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>
                   </button>
                 );
               })}
             </div>
+
+            {/* Νομική μορφή: ένα ναι/όχι, και τα υπόλοιπα μόνο αν χρειάζονται. */}
+            <div style={{ ...capLabel, marginTop: 18 }}>Φορολογικά, τι είσαι;</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {([[false, 'Φυσικό πρόσωπο', 'μόνο δήλωση'], [true, 'Έχω επιχείρηση', 'ή ελεύθ. επαγγελματίας']] as const).map(([v, t, sub]) => (
+                <button key={String(v)} onClick={() => chooseBiz(v)} style={choice(hasBiz === v)}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: hasBiz === v ? 'var(--accent)' : 'var(--text-primary)' }}>{t}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>
+                </button>
+              ))}
+            </div>
+
+            {hasBiz === true && (
+              <>
+                <div style={{ ...capLabel, marginTop: 14 }}>Μορφή</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {([['sole_trader', 'Ατομική'], ['partnership', 'ΟΕ / ΕΕ'], ['company', 'ΑΕ / ΕΠΕ / ΙΚΕ']] as const).map(([v, t]) => (
+                    <button key={v} onClick={() => chooseForm(v)} style={pill(legalForm === v)}>{t}</button>
+                  ))}
+                </div>
+
+                <div style={{ ...capLabel, marginTop: 14 }}>Βιβλία</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {([['single_entry', 'Απλογραφικά'], ['double_entry', 'Διπλογραφικά']] as const).map(([v, t]) => (
+                    <button key={v} onClick={() => saveLegal(legalForm, v)} style={pill(books === v)}>{t}</button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.45 }}>
+                  Δεν είσαι σίγουρος; Άσε την πρόταση όπως είναι — αλλάζει από τις Ρυθμίσεις όποτε θέλεις.
+                </div>
+              </>
+            )}
           </div>
         )}
 

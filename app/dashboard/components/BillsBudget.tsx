@@ -300,6 +300,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     try { localStorage.setItem('budget_ledger_note', '1'); } catch { /* ignore */ }
   };
   const [showSettings, setShowSettings] = useState(false);   // εμφάνιση ρυθμίσεων προϋπολογισμού (inline)
+  // «Περισσότερα»: τα σπάνια εργαλεία (αποθεματικά/κουμπαράδες, εισαγωγή αρχείου).
+  // Ο απλός ιδιοκτήτης θέλει έσοδα, έξοδα και τι πάει στον λογιστή — δεν φτιάχνει
+  // κουμπαρά. Δεν καταργήθηκαν· έφυγαν από τον δρόμο του.
+  const [showMore,     setShowMore]     = useState(false);
   const [demoBusy,     setDemoBusy]     = useState(false);   // δημιουργία/αφαίρεση δείγματος δεδομένων
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
@@ -1090,10 +1094,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div className="po-fig-card" tabIndex={0}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{hasIncome ? (isPro ? 'Διαθέσιμη ταμειακή ροή' : 'Ασφαλές διαθέσιμο') : 'Μηνιαίο κόστος ακινήτου'}</span>
-                  <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις εισφορές των αποθεματικών. Δηλαδή η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις μηνιαίες εισφορές των κουμπαράδων. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των πάγιων λογαριασμών, της δόσης του δανείου και των εισφορών των κουμπαράδων. Δηλαδή τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
+                  <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις εισφορές των αποθεματικών. Δηλαδή η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις μηνιαίες εισφορές των αποθεματικών. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των πάγιων λογαριασμών, της δόσης του δανείου και των εισφορών των αποθεματικών. Δηλαδή τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
                 </div>
                 <div className="po-fig" data-tone={hasIncome ? (safeRaw < 0 ? 'negative' : 'accent') : undefined} style={{ fontSize: 28, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{feAuto(val, 0)}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{hasIncome ? 'μετά από λογαριασμούς, δόση και κουμπαράδες' : 'λογαριασμοί, δόση και κουμπαράδες'}</div>
+                {/* Η λέξη «κουμπαράδες» λέγεται μόνο όταν υπάρχει κουμπαράς. Αλλιώς
+                    ονομάζει κάτι που ο ιδιοκτήτης δεν έχει και δεν του ζητήθηκε. */}
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>
+                  {hasIncome
+                    ? (vaultMonthly > 0 ? 'μετά από λογαριασμούς, δόση και αποθεματικά' : 'μετά από λογαριασμούς και δόση')
+                    : (vaultMonthly > 0 ? 'λογαριασμοί, δόση και αποθεματικά' : 'λογαριασμοί και δόση')}
+                </div>
               </div>
             </div>
             {hasIncome && (
@@ -1101,7 +1111,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div style={{ display: 'flex', height: 8, borderRadius: 6, overflow: 'hidden', marginTop: 16, marginBottom: 10, background: 'var(--bg-overlay)' }}>
                   <div title="Λογαριασμοί" style={{ width: `${seg(committedBills)}%`, background: 'color-mix(in srgb, var(--text-primary) 32%, transparent)' }}/>
                   <div title="Δόση δανείου" style={{ width: `${seg(loanMonthly)}%`, background: 'color-mix(in srgb, var(--text-primary) 20%, transparent)' }}/>
-                  <div title="Κουμπαράδες" style={{ width: `${seg(vaultMonthly)}%`, background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)' }}/>
+                  <div title="Αποθεματικά" style={{ width: `${seg(vaultMonthly)}%`, background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)' }}/>
                   <div title="Διαθέσιμο" style={{ flex: 1, background: safeRaw < 0 ? 'var(--negative)' : 'var(--accent)' }}/>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 10.5, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
@@ -1109,14 +1119,14 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     { l: 'Έσοδα', v: income },
                     { l: 'Λογαριασμοί', v: committedBills },
                     { l: 'Δόση', v: loanMonthly },
-                    { l: 'Κουμπαράδες', v: vaultMonthly },
+                    { l: 'Αποθεματικά', v: vaultMonthly },
                     { l: 'Διαθέσιμο', v: safeRaw },
                   ].filter(x => x.v !== 0).map(x => (
                     <span key={x.l} style={{ fontVariantNumeric: 'tabular-nums' }}>{x.l} <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num }}>{feAuto(x.v, 0)}</strong></span>
                   ))}
                 </div>
                 {isShortfall && (
-                  <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {feAuto(monthlyCost - income, 0)}. Μείωσε τις εισφορές των κουμπαράδων ή αναθεώρησε τους στόχους.</div>
+                  <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {feAuto(monthlyCost - income, 0)}. Μείωσε τις εισφορές των αποθεματικών ή αναθεώρησε τους στόχους.</div>
                 )}
               </>
             )}
@@ -1148,7 +1158,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     <KPI label="Μηνιαίο ενοίκιο" value={feAuto(income, 0)} />
                     <KPI label="Ετησίως" value={feAuto(income * 12, 0)} />
                     <KPI label="Αναμενόμενα φέτος" value={feAuto(incomeYtd, 0)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
-                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${feAuto(Math.abs(netFlow), 0)}`} color={netFlow < 0 ? 'var(--negative)' : undefined} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, κουμπαράδες)." />
+                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${feAuto(Math.abs(netFlow), 0)}`} color={netFlow < 0 ? 'var(--negative)' : undefined} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, αποθεματικά)." />
                   </>
                 )}
               </div>
@@ -1473,9 +1483,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         );
       })()}
 
-      {/* Κουμπαράδες / αποθεματικά (sinking funds) */}
-      {<BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />}
-
       {/* Category rows */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         {secHdr('Ανά Κατηγορία', 'cats', undefined,
@@ -1711,14 +1718,33 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         </div>
       )}
 
-      {/* Μαζική εισαγωγή δαπανών από αρχείο (CSV / Excel) — σωστή κατηγορία & μήνας */}
-      {(
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
-          {secHdr('Εισαγωγή δεδομένων', 'import', undefined,
-            <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση, ώστε οι δαπάνες να μπαίνουν στον σωστό μήνα και στη σωστή κατηγορία." />)}
-          {!collapsed.has('import') && (
-            <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
-          )}
+      {/* ── Περισσότερα ──────────────────────────────────────────────────────
+          Ό,τι χρειάζεται σπάνια, πίσω από μία λέξη: τα αποθεματικά («κουμπαράδες»)
+          και η εισαγωγή αρχείου. Καμία λειτουργία δεν χάθηκε — απλώς δεν είναι
+          πια το πρώτο πράγμα που βλέπει κάποιος που ήρθε να δει τι ξόδεψε. */}
+      <button type="button" onClick={() => setShowMore(v => !v)} aria-expanded={showMore}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '11px 16px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, cursor: 'pointer', fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Περισσότερα</span>
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>αποθεματικά, εισαγωγή αρχείου</span>
+        <span style={{ flex: 1 }} />
+        <span aria-hidden style={{ display: 'flex', color: 'var(--text-tertiary)' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showMore ? 'none' : 'rotate(-90deg)', transition: 'transform 0.18s' }}><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </button>
+
+      {showMore && (
+        <div style={{ marginTop: 12 }}>
+          {/* Αποθεματικά / κουμπαράδες (sinking funds) */}
+          <BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />
+
+          {/* Μαζική εισαγωγή δαπανών από αρχείο (CSV / Excel) — σωστή κατηγορία & μήνας */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
+            {secHdr('Εισαγωγή δεδομένων', 'import', undefined,
+              <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση, ώστε οι δαπάνες να μπαίνουν στον σωστό μήνα και στη σωστή κατηγορία." />)}
+            {!collapsed.has('import') && (
+              <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
+            )}
+          </div>
         </div>
       )}
 

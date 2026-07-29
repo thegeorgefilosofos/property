@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
-import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, tabFitsStatus, isShortTerm, type PropertyStatus } from '@/lib/property/status';
+import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, type PropertyStatus } from '@/lib/property/status';
+import { tabDecision, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
+import { HAS_BUSINESS } from '@/lib/accounting/dossier';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabPricing   from './components/TabPricing';
@@ -19,6 +21,7 @@ import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
+import TabPlan from './components/TabPlan';
 import TabClients from './components/TabClients';
 import PortfolioTab from './components/PortfolioTab';
 import AddPropertyWizard from './components/AddPropertyWizard';
@@ -47,7 +50,7 @@ import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
 import FeatureLock, { LockBadge } from './components/FeatureLock';
 import { PLANS } from '@/lib/billing/plans';
-import { effectivePlan, isTabAllowed, isTabRelevant, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
+import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
 import { isTabVisible, hiddenCount, reveal, sanitizeRevealed, coreTabs, type DisclosureSignals } from '@/lib/nav/disclosure';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
@@ -110,6 +113,7 @@ const NAV_ITEMS = [
   { id:'finances',   label:'Δαπάνες' },
   { id:'accounting', label:'Λογιστική' },
   { id:'loan',       label:'Δάνειο' },
+  { id:'plan',       label:'Σχέδιο' },
   { id:'tenant',     label:'Ενοικιαστής' },
   { id:'clients',    label:'Πελάτης' },
   { id:'pricing',    label:'Τιμολόγηση' },
@@ -135,6 +139,8 @@ const NAV_ICON: Record<string,string> = {
   accounting:'M4 3h16v18H4z|M8 7h8|M8 11h8|M8 15h5|M16 19l1.5 1.5L21 17',
   calendar:  'M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4',
   tenant:    'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  plan:      'M5 21V4|M5 4h11l-2.5 3.5L16 11H5',
+
   roi:       'M3 17l6-6 4 4 8-8|M21 7v6h-6',
   pricing:   'M20 12V7H4v10h10|M4 11h16|M16 19l2 2 4-4',
   loan:      'M3 21h18|M5 21V10l7-5 7 5v11|M9 21v-6h6v6',
@@ -154,6 +160,10 @@ const NAV_ICON: Record<string,string> = {
 // μου» / «Χαρτοφυλάκιό μου» και το πότε ενεργοποιείται η «Σύγκριση ακινήτων»).
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',                    ids: ['calendar'] },
+  // Το Σχέδιο δεν ανήκει σε ομάδα: εμφανίζεται μόνο σε ακίνητο κενό, προς πώληση,
+  // σε ανακαίνιση ή σε νομική εκκρεμότητα — και τότε είναι η κύρια δουλειά του
+  // ιδιοκτήτη, όχι ένα εργαλείο ανάμεσα σε άλλα.
+  { label: '',                    ids: ['plan'] },
   { label: 'Οικονομικά',          ids: ['finances','accounting','loan'] },
   { label: 'Μίσθωση',             ids: ['tenant','clients','pricing'] },
   { label: 'Εργαλεία',            ids: ['inventory','documents','checklist','contacts'] },
@@ -161,6 +171,13 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',                    ids: ['referral'] },
   { label: '',                    ids: ['settings'] },
 ];
+
+// Καρτέλες που ΔΕΝ περνούν από τη σταδιακή αποκάλυψη (lib/nav/disclosure.ts).
+// Ο κανόνας τους είναι η ίδια η κατάσταση του ακινήτου, και η μηχανή ορατότητας τον
+// ξέρει ήδη: όταν αυτή τις ανάβει, είναι ακριβώς αυτό που χρειάζεται ο χρήστης τώρα.
+// Αν περνούσαν κι από την αποκάλυψη, ο ιδιοκτήτης ενός κενού ακινήτου δεν θα έβλεπε
+// ποτέ το «Σχέδιο»: θα έπρεπε πρώτα να επισκεφθεί μια καρτέλα που δεν εμφανίζεται.
+const SELF_DISCLOSING = new Set(['plan']);
 
 // Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
@@ -312,7 +329,10 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType }: { prop: Property; userId: string; ownerName?: string; onSaveOwnerName?: (n: string) => void | Promise<void>; onNavigate: (tab: string) => void; onCleanDemo?: () => void; profileType: 'individual'|'professional' }) {
+function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property; userId: string; ownerName?: string; onSaveOwnerName?: (n: string) => void | Promise<void>; onNavigate: (tab: string) => void; onCleanDemo?: () => void; profileType: 'individual'|'professional';
+  /** Οδηγεί κάπου αυτό το βήμα; Βήμα που δείχνει σε καρτέλα η οποία δεν αφορά τον
+   *  χρήστη είναι νεκρός σύνδεσμος: το πάτημα θα τον γύριζε στην Επισκόπηση. */
+  tabVisible: (id: string) => boolean }) {
   const isDemo = (prop.name || '').startsWith('Demo —');
   const supabase = createClient();
   const branding = useReportBranding(userId);
@@ -538,7 +558,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
         { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
         { key:'inv',     label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
-      ] as SetupStep[]}/>
+      ].filter(s => tabVisible(s.nav)) as SetupStep[]}/>
 
       <div className="kpi-grid kpi-grid-5" style={{marginBottom:24}}>
         {[
@@ -832,6 +852,24 @@ export default function Dashboard() {
   const [compUntil, setCompUntil] = useState<string|null>(null); // δωρεάν πρόσβαση: λήξη (ISO)
   const [ownerName, setOwnerName] = useState('');         // όνομα ιδιοκτήτη για προσφώνηση (billing_profiles.owner_name)
   const [profileType, setProfileType] = useState<'individual'|'professional'>('individual'); // τύπος προφίλ → οδηγεί το interface
+  // ΝΟΜΙΚΗ ΜΟΡΦΗ (φυσικό / νομικό πρόσωπο): ένα από τα τρία κριτήρια ορατότητας.
+  //
+  // ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ ΤΟ profile_type. Το «Επαγγελματίας» περιγράφει τον ρόλο
+  // στην εφαρμογή (διαχειρίζεται ξένα ακίνητα)· η νομική μορφή περιγράφει τον
+  // φορολογούμενο. Ένας μεσίτης μπορεί να είναι ατομική επιχείρηση και ένας
+  // ιδιώτης με τρία ακίνητα να τα έχει σε ΙΚΕ. Η μαντεψιά από το ένα στο άλλο θα
+  // έδειχνε ΕΦΚΑ και αποσβέσεις κτιρίου σε κάποιον που δεν έχει επιχείρηση.
+  //
+  // Η στήλη `legal_form` υπάρχει πλέον στο billing_profiles (migration
+  // 20260729120000_legal_form.sql) και διαβάζεται παρακάτω. Οι τέσσερις τιμές της
+  // βάσης διπλώνουν στις δύο που χρειάζεται η μηχανή ορατότητας: ό,τι έχει
+  // επιχειρηματική δραστηριότητα (ατομική, Ο.Ε./Ε.Ε., εταιρεία) μετρά ως 'company'
+  // εδώ, γιατί το ερώτημα που απαντά αυτό το πεδίο είναι «να δείξω ΕΦΚΑ, Ε3 και
+  // απόσβεση κτιρίου;». Ο ΙΣΟΛΟΓΙΣΜΟΣ δεν κρίνεται από εδώ — κρέμεται από τα
+  // βιβλία (`bookkeeping`), γιατί μια Ο.Ε. μπορεί να είναι απλογραφικά.
+  // Αν λείπει ή είναι άγνωστη η τιμή, μένει το ασφαλές 'individual': κρύβει τα
+  // εταιρικά αντί να τα εφευρίσκει σε κάποιον που δεν έχει επιχείρηση.
+  const [legalForm, setLegalForm] = useState<LegalForm>('individual');
   const [isPartner, setIsPartner] = useState(false);      // ιδιότητα Συνεργάτη (referral_partners)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
   const [kbdHint, setKbdHint] = useState('Ctrl K');       // ένδειξη συντόμευσης ανά πλατφόρμα (Mac → ⌘K)
@@ -872,15 +910,24 @@ export default function Dashboard() {
   const proEligible = planAtLeast(effPlan, 'agency');
   const effProfileType: 'individual' | 'professional' = proEligible ? profileType : 'individual';
 
+  // ── ΤΙ ΑΦΟΡΑ ΑΥΤΟΝ ΤΟΝ ΧΡΗΣΤΗ ────────────────────────────────────────────
+  // Τα τρία κριτήρια, μαζεμένα σε ένα αντικείμενο: νομική μορφή και ΟΛΑ τα ακίνητα
+  // (η κατάσταση του επιλεγμένου δίνεται χωριστά, ανά απόφαση). Καμία μαντεψιά εδώ —
+  // η λογική ζει στο lib/property/visibility.ts.
+  const ownerCtx: OwnerContext = useMemo(() => ({ legalForm, properties }), [legalForm, properties]);
+
+  // «Δείξε μου τα πάντα»: ρητή επιλογή του χρήστη. Fail-open: αν οι προτιμήσεις δεν
+  // διαβάστηκαν (σφάλμα δικτύου), δείχνουμε τα πάντα. Καλύτερα ένα γεμάτο μενού παρά
+  // να «εξαφανιστούν» καρτέλες επειδή έπεσε ένα ερώτημα.
+  const showAllTabsPref = navShowAll || !navPrefsLoaded;
+
   // ── Σταδιακή αποκάλυψη καρτελών ──────────────────────────────────────────
-  // Fail-open: αν οι προτιμήσεις δεν διαβάστηκαν (σφάλμα δικτύου), δείχνουμε τα
-  // πάντα. Καλύτερα ένα γεμάτο μενού παρά να «εξαφανιστούν» καρτέλες.
   const disclosure = useMemo(() => ({
     profileType: effProfileType,
     revealed: revealedTabs,
-    showAll: navShowAll || !navPrefsLoaded,
+    showAll: showAllTabsPref,
     signals: { ...navSignals, isShortTerm: isShortTerm(selected), openTasks: checklistAlerts },
-  }), [effProfileType, revealedTabs, navShowAll, navPrefsLoaded, navSignals, selected, checklistAlerts]);
+  }), [effProfileType, revealedTabs, showAllTabsPref, navSignals, selected, checklistAlerts]);
 
   // Κάθε επίσκεψη σε καρτέλα την αποκαλύπτει μόνιμα — από όπου κι αν ήρθε
   // (μενού, ⌘K, βοηθός, πλακίδιο Επισκόπησης). Ένα σημείο, καμία διαρροή.
@@ -950,7 +997,7 @@ export default function Dashboard() {
       // Ιδιότητα Συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan, owner_name, profile_type, comp_plan, comp_until').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); });
+      supabase.from('billing_profiles').select('plan, owner_name, profile_type, comp_plan, comp_until, legal_form').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); setLegalForm(HAS_BUSINESS.has((data as { legal_form?: string|null } | null)?.legal_form ?? '') ? 'company' : 'individual'); });
       // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,
       // idempotent). Εφαρμόζεται για την επόμενη φόρτωση· δεν είναι gameable από τον client.
       supabase.rpc('sync_comp_from_referrals').then(() => {});
@@ -1125,36 +1172,37 @@ export default function Dashboard() {
   const statusLabel = selected ? statusLabelOf(selected) : '';
   const getBadge = (id: string) => { if (id==='inventory'&&inventoryAlerts>0) return inventoryAlerts; if (id==='checklist'&&checklistAlerts>0) return checklistAlerts; return 0; };
 
-  // ── ΜΙΣΘΩΣΗ ΜΟΝΟ ΟΤΑΝ ΥΠΑΡΧΕΙ ΜΙΣΘΩΣΗ ────────────────────────────────────
+  // ── ΜΙΑ ΑΠΟΦΑΣΗ ΟΡΑΤΟΤΗΤΑΣ, ΕΝΑ ΣΗΜΕΙΟ ───────────────────────────────────
   //
-  // Ενοικιαστής, Πελάτης και Τιμολόγηση εμφανίζονταν πάντα, ακόμη και σε σπίτι
-  // υπό ανακαίνιση, σε ιδιοχρησία ή προς πώληση. Τρεις καρτέλες που δεν έχουν
-  // τι να δείξουν είναι τρεις υποσχέσεις που δεν τηρούνται, και κάνουν την
-  // εφαρμογή να μοιάζει γενική αντί για δική σου.
+  // Πριν αποφάσιζαν ΔΥΟ φίλτρα που δεν ήξεραν το ένα το άλλο: το `isTabRelevant`
+  // κοιτούσε μόνο τον τύπο προφίλ, το `tabFitsStatus` μόνο την κατάσταση του
+  // ακινήτου. Κανένα δεν ήξερε πόσα ακίνητα έχει ο χρήστης ούτε αν είναι φυσικό ή
+  // νομικό πρόσωπο — δύο από τα τρία κριτήρια που ορίζουν τι βλέπει ο καθένας.
+  // Τώρα αποφασίζει ένα αρχείο, το lib/property/visibility.ts· εδώ μένει η όψη.
   //
-  // ΤΙ ΜΕΤΡΑ ΩΣ ΜΙΣΘΩΣΗ: «Ενοικιάζεται» και «Εποχιακό». Το εποχιακό ΕΙΝΑΙ
-  // εκμίσθωση, απλώς βραχυχρόνια, και εκεί ακριβώς ζουν ο Πελάτης και η
-  // Τιμολόγηση. Μετρά επίσης όποιο ακίνητο έχει δηλωμένο τρόπο εκμετάλλευσης,
-  // ώστε να μη χαθούν εργαλεία από παλιά δεδομένα με κενό status.
+  // ΔΥΟ ΕΡΩΤΗΣΕΙΣ ΠΟΥ ΔΕΝ ΜΠΕΡΔΕΥΟΝΤΑΙ:
+  //   • «Με αφορά;»          → tabDecision — κρύβει, με γραμμένο λόγο
+  //   • «Θέλει αναβάθμιση;»  → isTabAllowed / FeatureLock — κλειδώνει, δεν κρύβει
+  // Καρτέλα που δεν σε αφορά ΔΕΝ γίνεται ποτέ upsell: το λουκέτο πάνω σε κάτι που
+  // δεν θα χρειαστείς είναι υπόσχεση αξίας που δεν υπάρχει.
   //
   // ΔΕΝ ΔΙΑΓΡΑΦΕΤΑΙ ΤΙΠΟΤΑ. Οι καρτέλες φεύγουν από την πλοήγηση, τα δεδομένα
-  // μένουν ακέραια, και επιστρέφουν τη στιγμή που το ακίνητο ξαναμπαίνει σε
-  // μίσθωση.
-  // Ο κανόνας ζει στο lib/property/status.ts, με 58 ελέγχους από πάνω του:
-  // ο Ενοικιαστής ανήκει στη ΜΑΚΡΟΧΡΟΝΙΑ, ο Πελάτης και η Τιμολόγηση στη
-  // ΒΡΑΧΥΧΡΟΝΙΑ. Ο ιδιοκτήτης με Airbnb δεν έχει «ενοικιαστή», έχει επισκέπτες·
-  // ο ιδιοκτήτης με τριετές μισθωτήριο δεν τιμολογεί ανά διανυκτέρευση.
-  const tabFitsProperty = (id: string) => tabFitsStatus(id, selected);
+  // μένουν ακέραια, και επιστρέφουν τη στιγμή που το ακίνητο αλλάζει κατάσταση.
+  const decide = (id: string) => tabDecision(id, ownerCtx, selected);
 
-  // Αν ο χρήστης βρίσκεται σε καρτέλα μίσθωσης και αλλάξει την κατάσταση σε
-  // κάτι που δεν είναι μίσθωση, δεν τον αφήνουμε σε οθόνη που μόλις έπαψε να
-  // ισχύει. Παράγεται κατά την απόδοση, όχι σε effect: το effect θα έδειχνε για
-  // ένα καρέ την παλιά οθόνη.
-  const navSafe = tabFitsProperty(nav) ? nav : 'overview';
+  // Ορατή στην πλοήγηση: ό,τι αφορά τον χρήστη — και, αν ζήτησε «δείξε τα όλα»,
+  // και τα υπόλοιπα, αχνά και με τον λόγο ως tooltip.
+  const navVisible = (id: string) => decide(id).visible || showAllTabsPref;
+
+  // Αν ο χρήστης βρίσκεται σε καρτέλα που μόλις έπαψε να τον αφορά (άλλαξε την
+  // κατάσταση, διέγραψε ακίνητο), δεν τον αφήνουμε σε οθόνη που δεν ισχύει.
+  // Παράγεται κατά την απόδοση, όχι σε effect: το effect θα έδειχνε για ένα καρέ
+  // την παλιά οθόνη.
+  const navSafe = navVisible(nav) ? nav : 'overview';
 
   // Εντολές command palette: μετάβαση σε tab, εναλλαγή ακινήτου, γρήγορες ενέργειες
   const cmdItems: CommandItem[] = [
-    ...NAV_ITEMS.filter(item => isTabRelevant(effProfileType, item.id) && tabFitsProperty(item.id)).map(item => ({
+    ...NAV_ITEMS.filter(item => isTabPurchasable(effProfileType, item.id) && navVisible(item.id)).map(item => ({
       id: `nav-${item.id}`, label: item.label, hint: 'Μετάβαση', group: 'Πλοήγηση',
       keywords: item.id, action: () => { if (selected) setNav(item.id); },
     })),
@@ -1225,13 +1273,24 @@ export default function Dashboard() {
             // δωρεάν και στα δύο προφίλ· εμφανίζονται όμως σε ΕΝΑ σημείο ανά προφίλ —
             // στον Ιδιώτη μέσα στην Επισκόπηση, στον Επαγγελματία στην πλαϊνή μπάρα.
             if (group.label==='Εργαλεία' && effProfileType!=='professional') return null;
-            // Σταδιακή αποκάλυψη: μένουν οι καρτέλες που έχουν ήδη νόημα για αυτόν
-            // τον χρήστη — συν η ενεργή, ώστε να μη «φεύγει» κάτω από τα πόδια του.
-            const ids = group.ids.filter(id => isTabRelevant(effProfileType, id) && tabFitsProperty(id) && (id===nav || isTabVisible(id, disclosure)));
-            if (ids.length === 0) return null;
+            // ΤΡΙΑ ΦΙΛΤΡΑ, ΤΡΕΙΣ ΔΙΑΦΟΡΕΤΙΚΕΣ ΕΡΩΤΗΣΕΙΣ:
+            //   1. Θα το φτάσει ποτέ με πλάνο του προφίλ του; (αλλιώς ούτε λουκέτο)
+            //   2. Έχει ήδη νόημα να το δει τώρα; (σταδιακή αποκάλυψη, συν η ενεργή
+            //      καρτέλα ώστε να μη «φεύγει» κάτω από τα πόδια του)
+            //   3. Τον αφορά; (κατάσταση, πλήθος ακινήτων, νομική μορφή)
+            // Το τρίτο κρατά και τον ΛΟΓΟ: με «δείξε τα όλα» η καρτέλα μένει αχνή και
+            // ο λόγος γίνεται tooltip, αντί να εξαφανίζεται χωρίς εξήγηση.
+            const items = group.ids
+              .filter(id => isTabPurchasable(effProfileType, id)
+                         && (id===nav || SELF_DISCLOSING.has(id) || isTabVisible(id, disclosure)))
+              .map(id => ({ id, d: decide(id) }))
+              .filter(x => x.d.visible || showAllTabsPref);
+            if (items.length === 0) return null;
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
-            const groupBadge = ids.reduce((s,id)=>s+getBadge(id),0);
+            // Μόνο οι σχετικές μετρούν στο έμβλημα της κλειστής ομάδας: η αχνή καρτέλα
+            // δεν εμφανίζει έμβλημα, άρα δεν πρέπει να υπόσχεται και ειδοποιήσεις.
+            const groupBadge = items.reduce((s,x)=>s+(x.d.visible?getBadge(x.id):0),0);
             return (
             <div className="sidebar-section" key={gi}>
               {hasHeader && (
@@ -1242,11 +1301,16 @@ export default function Dashboard() {
                   <span className="sidebar-section-chevron" aria-hidden style={{display:'inline-flex',transform:open?'rotate(90deg)':'none',transition:'transform .15s'}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
                 </button>
               )}
-              {open && ids.map(id => { const badge=getBadge(id); const locked=!isTabAllowed(ent, id); return (
-                <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected} title={locked ? 'Διαθέσιμο σε ανώτερο πλάνο' : undefined}>
+              {open && items.map(({ id, d }) => { const badge=getBadge(id); const locked=!isTabAllowed(ent, id); return (
+                // Η μη-σχετική καρτέλα (ορατή μόνο με «δείξε τα όλα») είναι αχνή και
+                // λέει γιατί. Χωρίς λουκέτο και χωρίς έμβλημα: δεν της ζητάμε τίποτα,
+                // την αφήνουμε στη θέση της για όποιον θέλει να ξέρει ότι υπάρχει.
+                <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}
+                  style={d.visible ? undefined : { opacity: 0.45 }}
+                  title={d.visible ? (locked ? 'Διαθέσιμο σε ανώτερο πλάνο' : undefined) : d.reason}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{id==='referral' && effProfileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
-                  {locked ? <LockBadge/> : (badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily: T.font.sans,fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>)}
+                  {!d.visible ? null : locked ? <LockBadge/> : (badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily: T.font.sans,fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>)}
                 </button>
               );})}
             </div>
@@ -1255,9 +1319,12 @@ export default function Dashboard() {
           {/* Οι κρυμμένες καρτέλες δεν είναι μυστικό: λέμε πόσες είναι και ανοίγουν
               με ένα κλικ. Χωρίς αυτό, η σταδιακή αποκάλυψη γίνεται εξαφάνιση. */}
           {(() => {
+            // Μετρώνται μόνο όσες ΑΦΟΡΟΥΝ τον χρήστη: το «+3» δεν πρέπει να υπόσχεται
+            // καρτέλες που, μόλις τις αποκαλύψει, θα του πουν ότι δεν τον αφορούν.
             const hidden = hiddenCount(
               NAV_GROUPS.flatMap(g => (g.label==='Εργαλεία' && effProfileType!=='professional') ? [] : g.ids)
-                        .filter(id => isTabRelevant(effProfileType, id) && tabFitsProperty(id) && id !== nav),
+                        .filter(id => isTabPurchasable(effProfileType, id) && decide(id).visible
+                                   && id !== nav && !SELF_DISCLOSING.has(id)),
               disclosure,
             );
             if (hidden === 0) return null;
@@ -1341,7 +1408,7 @@ export default function Dashboard() {
                   {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
                 </div>
               </div>
-              {nav==='inventory'&&properties.length>1&&(
+              {navSafe==='inventory'&&properties.length>1&&(
                 <button onClick={()=>setShowCopyInventory(true)} style={{height:T.h.md,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
               )}
               <button onClick={()=>setNav('referral')} title={isPartner?'Είσαι Συνεργάτης Property OS · Πρόγραμμα Συνεργατών':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'} · Πρόγραμμα ${effProfileType==='professional'?'Συνεργατών':'Πρόσκλησης'}`} aria-label="Η ιδιότητά μου και το πρόγραμμα πρόσκλησης" style={{display:'flex',alignItems:'center',height:T.h.md,padding:0,border:'none',background:'transparent',cursor:'pointer',marginRight:8,borderRadius:'50%',transition:'transform .15s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
@@ -1392,7 +1459,7 @@ export default function Dashboard() {
                 σφάλμα σε μία να μην κρατά κλειδωμένες τις υπόλοιπες. */}
             <TabBoundary name={nav} key={nav}>
             <div className="app-content">
-              {['contacts','documents','checklist','inventory'].includes(nav) && (
+              {['contacts','documents','checklist','inventory'].includes(navSafe) && (
                 <button onClick={()=>setNav('overview')} title="Πίσω στην Επισκόπηση" aria-label="Πίσω στην Επισκόπηση"
                   style={{display:'inline-flex',alignItems:'center',gap:6,marginBottom:14,padding:'4px 4px 4px 0',border:'none',background:'transparent',color:'var(--text-tertiary)',fontFamily: T.font.sans,fontSize:13,fontWeight:600,cursor:'pointer'}}
                   onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}>
@@ -1400,21 +1467,24 @@ export default function Dashboard() {
                   Επισκόπηση
                 </button>
               )}
-              {nav==='portfolio' && (isTabAllowed(ent,'portfolio')
+              {navSafe==='portfolio' && (isTabAllowed(ent,'portfolio')
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα όλων των ακινήτων σου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
-              {navSafe==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType}/>}
-              {nav==='comparison'&& (isTabAllowed(ent,'comparison')
+              {navSafe==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
+              {navSafe==='comparison'&& (isTabAllowed(ent,'comparison')
                 ? <TabComparison properties={properties} userId={user.id}/>
                 : <FeatureLock title="Σύγκρινε τα ακίνητά σου δίπλα-δίπλα" benefit="Απόδοση, δαπάνες και πάροχοι όλων των ακινήτων σου σε έναν πίνακα, για να δεις καθαρά πού κερδίζεις και πού χρειάζεται να λάβεις αποφάσεις. Ξεκλειδώνει με το πλάνο Ιδιοκτήτης." requiredPlan="owner" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} plan={effPlan} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
+              {/* ΜΙΑ καρτέλα για τέσσερις καταστάσεις (κενό, προς πώληση, ανακαίνιση,
+                  νομική εκκρεμότητα): το περιεχόμενο αλλάζει, η θέση στο μενού μένει. */}
+              {navSafe==='plan'      && <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>}
               {navSafe==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
-              {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
+              {navSafe==='roi'   && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
               {navSafe==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
               {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType} onNavigate={(t)=>setNav(t)}/>}
-              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
+              {navSafe==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>}
               {navSafe==='clients'   && (isTabAllowed(ent,'clients')

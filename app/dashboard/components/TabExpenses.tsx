@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
+import ExpenseCompare from './ExpenseCompare';
+import type { Spend } from '@/lib/expenses/compare';
 import { T, Card, Skeleton, EmptyState, Btn, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
@@ -1294,15 +1296,13 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     downloadCsv(`dapanes_${new Date().toISOString().slice(0,10)}`, headers, rows, { mode });
   };
 
-  // ── Year-over-year ──
-  const yoyData = useMemo(() => {
-    const thisYear = new Date().getFullYear();
-    const lastYear = thisYear - 1;
-    const thisYTD = expenses.filter(e => new Date(e.date+'T00:00:00').getFullYear()===thisYear).reduce((s,e)=>s+e.amount,0);
-    const lastYTD = expenses.filter(e => new Date(e.date+'T00:00:00').getFullYear()===lastYear).reduce((s,e)=>s+e.amount,0);
-    const change = lastYTD > 0 ? ((thisYTD-lastYTD)/lastYTD)*100 : null;
-    return { thisYTD, lastYTD, change, thisYear, lastYear };
-  }, [expenses]);
+  // ── Η σύγκριση μήνα ──
+  // Η μηχανή (lib/expenses/compare.ts) θέλει μόνο τέσσερα πεδία. Το `recurring`
+  // περνά ώστε να ξεχωρίζει το ετήσιο που έτυχε από την πραγματική υπέρβαση.
+  const spends = useMemo<Spend[]>(() => expenses.map(e => ({
+    date: e.date, amount: e.amount, category: e.category,
+    title: e.description, recurring: e.is_recurring,
+  })), [expenses]);
 
   // ── Cashback summary ──
   const cashbackStats = useMemo(() => {
@@ -1523,49 +1523,25 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         ))}
       </div>
 
-      {/* ── YoY + Cashback summary row ── */}
-      {(yoyData.lastYTD > 0 || cashbackStats.ytdCashback > 0) && (
-        <div style={{ display:'grid', gridTemplateColumns:yoyData.lastYTD>0&&cashbackStats.ytdCashback>0?'1fr 1fr':'1fr', gap:10, marginBottom:12 }}>
-          {yoyData.lastYTD > 0 && (
-            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:16 }}>
-              <div>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily: T.font.sans, marginBottom:6 }}>
-                  Φέτος έναντι πέρσι, ίδια περίοδος
-                </div>
-                <div style={{ display:'flex', gap:18, alignItems:'baseline' }}>
-                  <div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.thisYTD)}</div>
-                    <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{yoyData.thisYear}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-secondary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.lastYTD)}</div>
-                    <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{yoyData.lastYear}</div>
-                  </div>
-                  {yoyData.change !== null && (
-                    <div style={{ fontSize:13, fontWeight:600, color:yoyData.change>0?'var(--warning)':'var(--positive)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>
-                      {yoyData.change>0?'+':'−'}{Math.abs(yoyData.change).toFixed(0)}%
-                    </div>
-                  )}
-                </div>
+      {/* ── Τι άλλαξε από τον προηγούμενο μήνα, και πού πήγε ──
+          Ο ιδιοκτήτης το βλέπει χωρίς να το ζητήσει. Όλη η λογική (ημιτελής
+          μήνας, μηδενική βάση, εφάπαξ μεγάλη δαπάνη) ζει στη μηχανή. */}
+      <ExpenseCompare spends={spends} />
+
+      {cashbackStats.ytdCashback > 0 && (
+        <div className="po-fig-card" tabIndex={0} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px', marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily: T.font.sans, marginBottom:6 }}>
+            Επιστροφές χρημάτων φέτος
+          </div>
+          <div style={{ display:'flex', gap:16, alignItems:'baseline', flexWrap:'wrap' }}>
+            <div className="po-fig" data-tone="positive" style={{ fontSize:16, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(cashbackStats.ytdCashback)}</div>
+            <div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily: T.font.sans }}>{cashbackStats.cashbackCount} αγορές</div>
+            {cashbackStats.bestCashback && (
+              <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                Καλύτερη: {cashbackStats.bestCashback.description} (+{fmtEur(cashbackStats.bestCashback.cashback_amount||0)})
               </div>
-            </div>
-          )}
-          {cashbackStats.ytdCashback > 0 && (
-            <div className="po-fig-card" tabIndex={0} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px' }}>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily: T.font.sans, marginBottom:6 }}>
-                Επιστροφές χρημάτων φέτος
-              </div>
-              <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
-                <div className="po-fig" data-tone="positive" style={{ fontSize:16, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(cashbackStats.ytdCashback)}</div>
-                <div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily: T.font.sans }}>{cashbackStats.cashbackCount} αγορές</div>
-                {cashbackStats.bestCashback && (
-                  <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                    Καλύτερη: {cashbackStats.bestCashback.description} (+{fmtEur(cashbackStats.bestCashback.cashback_amount||0)})
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -1575,17 +1551,11 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
         const thisMonth = now.getMonth();
         const thisYear = now.getFullYear();
-        const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-        const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
 
-        const byMonth = (m: number, y: number) => expenses
-          .filter(e => { const d=new Date(e.date+'T00:00:00'); return d.getMonth()===m&&d.getFullYear()===y; })
-          .reduce((s,e)=>s+e.amount,0);
-
-        const thisMonthTotal = byMonth(thisMonth, thisYear);
-        const lastMonthTotal = byMonth(lastMonth, lastMonthYear);
-        const momChange = lastMonthTotal > 0 ? ((thisMonthTotal-lastMonthTotal)/lastMonthTotal)*100 : 0;
-
+        // Η σύγκριση με τον προηγούμενο μήνα ΔΕΝ γίνεται εδώ: ζει στην κάρτα
+        // «Τον <μήνα> σε σχέση με» (ExpenseCompare), πάνω στη δοκιμασμένη μηχανή
+        // που ξέρει τον ημιτελή μήνα και τη μηδενική βάση. Δύο απαντήσεις για την
+        // ίδια ερώτηση, στην ίδια οθόνη, είναι μία απάντηση παραπάνω.
         const ytdExpenses = expenses.filter(e => new Date(e.date+'T00:00:00').getFullYear()===thisYear);
         const ytdTotal = ytdExpenses.reduce((s,e)=>s+e.amount,0);
         const monthsElapsed = thisMonth + 1;
@@ -1626,29 +1596,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         // Build insight cards
         type Card = { icon:string; title:string; value:string; sub:string; accent:string; urgent?:boolean };
         const cards: Card[] = [];
-
-        // Σε σχέση με τον προηγούμενο μήνα (χωρίς παραπλανητικό «-100%» όταν δεν έχει μπει τίποτα ακόμη)
-        if (lastMonthTotal > 0) {
-          if (thisMonthTotal <= 0) {
-            cards.push({
-              icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
-              title: MONTHS_GR[thisMonth],
-              value: 'Καμία δαπάνη ακόμη',
-              sub: `Τον προηγούμενο μήνα είχες ${fmtEur(lastMonthTotal)}`,
-              accent: 'var(--text-secondary)',
-            });
-          } else {
-            const up = momChange > 0;
-            cards.push({
-              icon: up ? 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' : 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
-              title: `Σε σχέση με τον ${MONTHS_GR[lastMonth]}`,
-              value: `${up?'+':'−'}${Math.abs(momChange).toFixed(0)}%`,
-              sub: `${fmtEur(thisMonthTotal)} τώρα, ${fmtEur(lastMonthTotal)} τον προηγούμενο μήνα`,
-              accent: up ? 'var(--negative)' : 'var(--positive)',
-              urgent: momChange > 25,
-            });
-          }
-        }
 
         // Πρόβλεψη έτους
         if (projectedAnnual > 0) {

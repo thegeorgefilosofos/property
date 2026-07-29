@@ -275,6 +275,72 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
   // Καμία ταξινόμηση εδώ. Τη σειρά την ορίζει η καταλληλότητα, όχι η τιμή.
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΣΥΓΚΡΙΣΗ ΑΣΦΑΛΕΙΩΝ ΩΣ ΕΙΔΟΠΟΙΗΣΗ, ΟΧΙ ΩΣ ΚΑΡΤΕΛΑ.
+//
+// Επιστρέφει κάτι ΜΟΝΟ όταν και τα τρία ισχύουν:
+//   1. ξέρουμε τι πληρώνει σήμερα (το έχει γράψει ο ίδιος),
+//   2. ξέρουμε τετραγωνικά και αξία, ώστε το μοντέλο τιμής να έχει πάνω σε τι
+//      να πατήσει (χωρίς αυτά το computeLiveQuotes επιστρέφει κενό),
+//   3. υπάρχει πρόγραμμα με ΤΟΥΛΑΧΙΣΤΟΝ τις ίδιες καλύψεις και χαμηλότερη τιμή.
+//
+// Το (3) είναι το κρίσιμο: μια φθηνότερη ασφάλεια χωρίς σεισμό, σε κάποιον που
+// έχει σεισμό, δεν είναι εξοικονόμηση — είναι λιγότερη ασφάλεια στην ίδια τιμή
+// ανά κάλυψη. Η παλιά καρτέλα κατέτασσε κατά τιμή και άφηνε τον χρήστη να το
+// προσέξει μόνος του.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const INS_SWITCH_NOISE = 3;   // €/μήνα — κάτω από αυτό δεν διακόπτουμε κανέναν
+
+export interface InsuranceSwitchFinding {
+  current: number;
+  best: number;
+  savingsMonthly: number;
+  bestLabel: string;
+  basedOn: string;
+}
+
+export function insuranceSwitchFinding(
+  s: Record<string, unknown> | null | undefined,
+): InsuranceSwitchFinding | null {
+  if (!s) return null;
+  const company = INSURANCE_COMPANIES.find(c => c.value === s.insProvider);
+  const plan = (company?.plans ?? []).find(p => p.id === s.insPlanId) as
+    | { monthly?: number; name?: string; earthquake?: boolean; flood?: boolean; natural?: boolean }
+    | undefined;
+
+  const current = parseFloat(String(s.insCustomPrice ?? '')) || plan?.monthly || 0;
+  if (!(current > 0)) return null;
+
+  const sqm = parseFloat(String(s.insSqm ?? '')) || 0;
+  const propValue = parseFloat(String(s.insPropValue ?? '')) || 0;
+  const contentValue = parseFloat(String(s.insContentValue ?? '')) || 0;
+  if (!sqm || !propValue) return null;
+
+  // Οι καλύψεις που ΕΧΕΙ σήμερα: ό,τι δηλώθηκε χειροκίνητα ή ό,τι φέρνει το πρόγραμμα.
+  const needEq = Boolean(s.insCustomEarthquake) || Boolean(plan?.earthquake);
+  const needFl = Boolean(s.insCustomFlood) || Boolean(plan?.flood);
+  const needNa = Boolean(s.insCustomNatural) || Boolean(plan?.natural);
+
+  const cheaper = computeLiveQuotes(
+    sqm, propValue, contentValue,
+    String(s.insFloor ?? 'second'), String(s.insAge ?? '10_20'),
+  )
+    .filter(q => q.plan !== s.insPlanId)
+    .filter(q => (!needEq || q.earthquake) && (!needFl || q.flood) && (!needNa || q.natural))
+    .sort((a, b) => a.monthlyEstimate - b.monthlyEstimate)[0];
+
+  if (!cheaper) return null;
+  const savings = current - cheaper.monthlyEstimate;
+  if (!(savings >= INS_SWITCH_NOISE)) return null;
+
+  return {
+    current, best: cheaper.monthlyEstimate, savingsMonthly: savings,
+    bestLabel: `${cheaper.companyLabel} ${cheaper.planLabel}`,
+    basedOn: `${sqm} τ.μ., ίδιες ή καλύτερες καλύψεις — εκτίμηση, όχι προσφορά`,
+  };
+}
+
 // ─── ΑΑΔΕ API Integration (Ready for when API launches) ──────────────────────
 // Structure ready, replace fetchENFIAFromAADE with real call when API opens
 interface AADEEnfiaData {

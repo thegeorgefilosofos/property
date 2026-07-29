@@ -54,10 +54,19 @@ export const TAB_MIN_PLAN: Record<string, PlanId> = {
   clients:    'agency',
 };
 
-// Καρτέλες που, όταν είναι κλειδωμένες για το τρέχον προφίλ, δεν έχει νόημα να
-// εμφανίζονται καθόλου (ο Ιδιώτης δεν μπορεί ποτέ να φτάσει στο Επαγγελματία).
-// Εμφανίζονται (κλειδωμένες) ΜΟΝΟ στους επαγγελματίες.
-export const PROFESSIONAL_ONLY_TABS = new Set(['portfolio', 'clients']);
+// Καρτέλες που ο Ιδιώτης δεν μπορεί να ξεκλειδώσει ΜΕ ΚΑΝΕΝΑ πλάνο: τα πλάνα του
+// σταματούν στο «Ιδιοκτήτης» και αυτές θέλουν «Επαγγελματίας». Δεν εμφανίζονται
+// καθόλου — ούτε κλειδωμένες — γιατί ένα λουκέτο που δεν ανοίγει ποτέ δεν είναι
+// πρόσκληση αναβάθμισης, είναι αδιέξοδο.
+//
+// ΠΑΡΑΓΕΤΑΙ, ΔΕΝ ΓΡΑΦΕΤΑΙ ΞΑΝΑ. Ήταν χειρόγραφη λίστα δίπλα στο TAB_MIN_PLAN, δηλαδή
+// δεύτερη πηγή για την ίδια πληροφορία: αν κάποιος κατέβαζε το `clients` σε πλάνο
+// «Ιδιοκτήτης», η λίστα θα το κρατούσε κρυφό από τους ιδιώτες που πλέον το πληρώνουν.
+export const PROFESSIONAL_ONLY_TABS: ReadonlySet<string> = new Set(
+  Object.entries(TAB_MIN_PLAN)
+    .filter(([, min]) => !ALLOWED_PLANS.individual.includes(min))
+    .map(([tab]) => tab),
+);
 
 // Φιλικές ελληνικές ετικέτες για τα μηνύματα αναβάθμισης.
 export const FEATURE_LABEL: Record<Feature, string> = {
@@ -198,8 +207,24 @@ export function paidPlanForProfile(profile: ProfileType): PlanId {
   return allowed[allowed.length - 1];
 }
 
-/** Πρέπει η καρτέλα να εμφανίζεται στην μπάρα για αυτό το προφίλ; (ανεξάρτητα από lock) */
-export function isTabRelevant(profile: ProfileType, tabId: string): boolean {
-  if (PROFESSIONAL_ONLY_TABS.has(tabId)) return profile === 'professional';
-  return true;
+/**
+ * Μπορεί ΠΟΤΕ αυτό το προφίλ να ξεκλειδώσει αυτή την καρτέλα;
+ *
+ * ΤΙ ΔΕΝ ΑΠΑΝΤΑ: αν η καρτέλα αφορά τον χρήστη. Αυτό το κρίνει το
+ * lib/property/visibility.ts, από την κατάσταση του ακινήτου, το πλήθος των
+ * ακινήτων και τη νομική μορφή — και είναι η ΜΟΝΑΔΙΚΗ πηγή γι' αυτό.
+ *
+ * Εδώ κρίνεται μόνο το εμπορικό σκέλος, και χρησιμεύει σε ένα πράγμα: να μη
+ * δείχνουμε κλειδωμένη μια καρτέλα που ο χρήστης δεν μπορεί να αγοράσει με
+ * κανένα πλάνο του προφίλ του. Οι υπόλοιπες κλειδωμένες ΦΑΙΝΟΝΤΑΙ — εκεί το
+ * λουκέτο είναι αληθινή πρόσκληση.
+ */
+export function isTabPurchasable(profile: ProfileType, tabId: string): boolean {
+  // Το κορυφαίο πλάνο που ΜΠΟΡΕΙ να αγοράσει το προφίλ, όχι το τρέχον: η ερώτηση
+  // είναι «θα το φτάσει ποτέ;», όχι «το έχει τώρα;».
+  return planAtLeast(paidPlanForProfile(profile), requiredPlanForTab(tabId));
 }
+
+/** @deprecated Ασαφές όνομα: «relevant» σημαίνει πλέον «αφορά τον χρήστη» και
+ *  ζει στο lib/property/visibility.ts. Χρησιμοποίησε το `isTabPurchasable`. */
+export const isTabRelevant = isTabPurchasable;

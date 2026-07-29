@@ -3,7 +3,7 @@ import {
   ALLOWED_PLANS, FEATURE_MIN_PLAN, TAB_MIN_PLAN, PROFESSIONAL_ONLY_TABS,
   planAtLeast, effectivePlan, activeComp, hasFeature, isTabAllowed,
   requiredPlanForTab, requiredPlanForFeature, propertyLimit, canAddProperty,
-  isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant,
+  isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant, isTabPurchasable,
   trialState,
   type EntitlementInput,
 } from './entitlements';
@@ -129,6 +129,13 @@ ok(isTabRelevant('individual', 'clients') === false, 'ιδιώτης δεν βλ
 ok(isTabRelevant('professional', 'portfolio') === true, 'επαγγελματίας βλέπει χαρτοφυλάκιο (έστω κλειδωμένο)');
 ok(isTabRelevant('individual', 'comparison') === true, 'ιδιώτης βλέπει σύγκριση (μπορεί να πάρει owner)');
 ok(isTabRelevant('individual', 'overview') === true, 'ιδιώτης βλέπει overview');
+// Το νέο, ρητό όνομα: «θα το φτάσει ποτέ αυτό το προφίλ;» — τίποτα άλλο.
+ok(isTabPurchasable('individual', 'portfolio') === false, 'ο ιδιώτης δεν αγοράζει ποτέ χαρτοφυλάκιο');
+ok(isTabPurchasable('individual', 'comparison') === true, 'ο ιδιώτης φτάνει τη σύγκριση με το πλάνο Ιδιοκτήτης');
+ok(isTabPurchasable('professional', 'overview') === true, 'ο επαγγελματίας βλέπει και τις δωρεάν καρτέλες');
+ok(isTabPurchasable('professional', 'clients') === true, 'ο επαγγελματίας φτάνει το πελατολόγιο');
+// Η λίστα παράγεται από το TAB_MIN_PLAN — καμία δεύτερη πηγή αλήθειας.
+ok([...PROFESSIONAL_ONLY_TABS].sort().join(',') === 'clients,portfolio', 'παράγεται ακριβώς από τα πλάνα των καρτελών');
 
 // ── Όριο ακινήτων ──
 ok(propertyLimit(free) === 1, 'free → 1 ακίνητο');

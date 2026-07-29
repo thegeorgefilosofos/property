@@ -70,6 +70,25 @@ export function defaultBookkeeping(form: LegalForm): BookKeeping {
   return 'single_entry';   // ατομική και ΟΕ/ΕΕ: απλογραφικά, εκτός αν δηλωθεί αλλιώς
 }
 
+/**
+ * Έχει επιχειρηματική δραστηριότητα;
+ *
+ * ΓΙΑΤΙ ΥΠΑΡΧΕΙ ΞΕΧΩΡΙΣΤΑ. Η μηχανή ορατότητας δουλεύει με δύο τιμές
+ * ('individual' | 'company') γιατί απαντά ΕΝΑ ερώτημα: «να δείξω ΕΦΚΑ, Ε3 και
+ * απόσβεση κτιρίου;». Η ατομική επιχείρηση ΔΕΝ είναι νομικό πρόσωπο, αλλά έχει
+ * ακριβώς αυτές τις υποχρεώσεις — άρα εδώ μετρά ως επιχείρηση. Αν διπλώναμε με
+ * κριτήριο «νομικό πρόσωπο», ένας ελεύθερος επαγγελματίας δεν θα έβλεπε ποτέ το
+ * Ε3 του.
+ *
+ * Ο ΙΣΟΛΟΓΙΣΜΟΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΑΠΟ ΕΔΩ: κρέμεται από τα βιβλία, γιατί μια Ο.Ε.
+ * μπορεί να είναι απλογραφικά. Γι' αυτό το `bookkeeping` είναι χωριστό πεδίο.
+ */
+export const HAS_BUSINESS: ReadonlySet<string> = new Set<LegalForm>(['sole_trader', 'partnership', 'company']);
+
+export function hasBusinessActivity(form: LegalForm): boolean {
+  return HAS_BUSINESS.has(form);
+}
+
 export interface Requirement {
   id: string;
   title: string;

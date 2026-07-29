@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, Skeleton, ExportButton, EmptyState } from '@/components/Theme';
+import { T, fe, fn, Skeleton, ExportButton, EmptyState, InfoBanner } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
+import { comparableGroups } from '@/lib/property/visibility';
 import { downloadCsv } from './exportCsv';
 import { money, dec2, percent } from './xlsxStyle';
 import { runE2Export } from './e2Export';
@@ -14,6 +15,9 @@ interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
   sqm: number | null; value: number | null; target_rent: number | null;
   status_detail: string | null;
+  // Χρειάζονται για να κριθεί αν η σύγκριση είναι έντιμη: έτος κατασκευής και
+  // περιοχή αλλάζουν το συμπέρασμα όσο και το ίδιο το ακίνητο.
+  year_built?: number | null; postal_code?: string | null; rental_mode?: string | null;
 }
 interface Props { properties: Property[]; userId: string; }
 
@@ -38,6 +42,15 @@ const STATUS_LABELS: Record<string, string> = {
   for_sale: 'Προς Πώληση', seasonal: 'Εποχιακό', disputed: 'Αμφισβητούμενο',
 };
 
+// Ο τύπος ακινήτου με ανθρώπινα λόγια, για τον τίτλο της ομάδας. Ό,τι δεν
+// αναγνωρίζεται εμφανίζεται όπως το έγραψε ο χρήστης.
+const TYPE_LABELS: Record<string, string> = {
+  apartment: 'Διαμερίσματα', house: 'Μονοκατοικίες', studio: 'Στούντιο',
+  maisonette: 'Μεζονέτες', office: 'Γραφεία', shop: 'Καταστήματα',
+  warehouse: 'Αποθήκες', land: 'Οικόπεδα', parking: 'Θέσεις parking',
+  storage: 'Αποθήκες κτιρίου', villa: 'Βίλες', other: 'Άλλα',
+};
+
 // Ελληνικές επεξηγήσεις για όρους/συντομογραφίες (εμφανίζονται ως tooltip στη μετρική)
 const METRIC_TIPS: Record<string, string> = {
   'Τιμή ανά τετραγωνικό': 'Εμπορική αξία ανά τετραγωνικό μέτρο (€/τ.μ.)',
@@ -50,6 +63,19 @@ export default function TabComparison({ properties, userId }: Props) {
   const supabase = createClient();
   const [agg, setAgg] = useState<Record<string, Agg>>({});
   const [loading, setLoading] = useState(true);
+  // Ποια ομάδα κοιτάζει ο χρήστης. `null` σημαίνει «η μεγαλύτερη», που είναι και
+  // η πιο χρήσιμη προεπιλογή: εκεί έχει τα περισσότερα να συγκρίνει.
+  const [groupKey, setGroupKey] = useState<string | null>(null);
+
+  // ΜΟΝΟ ΟΜΟΕΙΔΗ ΣΥΓΚΡΙΝΟΝΤΑΙ. Ένα διαμέρισμα κι ένα κατάστημα δεν έχουν κοινή
+  // αγορά: η «καλύτερη απόδοση» ανάμεσά τους είναι αριθμός χωρίς νόημα. Η
+  // ομαδοποίηση και η κρίση του πόσο διαφέρουν ζουν στο lib/property/visibility.ts,
+  // ώστε το μενού και αυτή η οθόνη να λένε πάντα το ίδιο πράγμα.
+  const groups = useMemo(() => comparableGroups(properties), [properties]);
+  const group = groups.find(g => g.key === groupKey) ?? groups[0] ?? null;
+  const inGroup = group ? properties.filter(p => group.ids.includes(p.id)) : [];
+  const typeLabel = (key: string, sample: Property | undefined) =>
+    TYPE_LABELS[key] ?? sample?.prop_type ?? key;
 
   const load = useCallback(async () => {
     const ids = properties.map(p => p.id);
@@ -73,19 +99,26 @@ export default function TabComparison({ properties, userId }: Props) {
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
-  if (properties.length < 2) {
+  if (!group) {
+    // Δύο διαφορετικές ελλείψεις, δύο διαφορετικές απαντήσεις: άλλο «δεν έχεις
+    // δεύτερο ακίνητο» και άλλο «τα δύο σου ακίνητα δεν συγκρίνονται μεταξύ τους».
+    const single = properties.length < 2;
     return (
       <div style={{ fontFamily: T.font.sans }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 20px' }}>Σύγκριση Ακινήτων</h1>
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8 }}>
-          <EmptyState icon={<Building2 size={20} />} title="Χρειάζονται τουλάχιστον δύο ακίνητα" hint="Πρόσθεσε ένα δεύτερο ακίνητο για να τα συγκρίνεις ως προς αξία, ενοίκιο, απόδοση, λογαριασμούς και δαπάνες." />
+          <EmptyState icon={<Building2 size={20} />}
+            title={single ? 'Χρειάζονται τουλάχιστον δύο ακίνητα' : 'Δεν υπάρχουν δύο ακίνητα ίδιου τύπου'}
+            hint={single
+              ? 'Πρόσθεσε ένα δεύτερο ακίνητο για να τα συγκρίνεις ως προς αξία, ενοίκιο, απόδοση, λογαριασμούς και δαπάνες.'
+              : 'Η σύγκριση γίνεται μόνο ανάμεσα σε ακίνητα του ίδιου τύπου — ένα διαμέρισμα κι ένα κατάστημα δεν έχουν κοινή αγορά. Συμπλήρωσε τον τύπο στα στοιχεία κάθε ακινήτου ή πρόσθεσε ένα δεύτερο ίδιου τύπου.'} />
         </div>
       </div>
     );
   }
 
-  // Μετρικές ανά ακίνητο
-  const rowsData = properties.map(p => {
+  // Μετρικές ανά ακίνητο (μόνο της ομάδας που κοιτάζει ο χρήστης)
+  const rowsData = inGroup.map(p => {
     const a = agg[p.id] || { expensesYTD: 0, monthlyBills: 0, monthlyRent: 0, budgetMonthly: 0 };
     const value = p.value || 0;
     const sqm = p.sqm || 0;
@@ -127,12 +160,16 @@ export default function TabComparison({ properties, userId }: Props) {
       const tax = rentalIncomeTax(annualRent);
       return [r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '', money(r.value), dec2(r.sqm), money(r.perSqm), money(r.rent), money(annualRent), percent(r.grossYield), money(r.monthlyBills), money(r.expensesYTD), money(r.netMonthly), money(netYear), money(tax)];
     });
-    // Γραμμή συνόλων χαρτοφυλακίου
+    // Γραμμή συνόλων της ομάδας (όχι όλου του χαρτοφυλακίου: εξάγεται ό,τι φαίνεται).
     const sum = (f: (r: typeof rowsData[number]) => number) => rowsData.reduce((s, r) => s + f(r), 0);
     const totAnnualRent = sum(r => r.rent * 12);
     rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), dec2(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(totAnnualRent), '', money(sum(r => r.monthlyBills)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(rentalIncomeTax(totAnnualRent))]);
+    // Η προειδοποίηση ταξιδεύει ΜΑΖΙ με τα νούμερα. Ένα αρχείο που φτάνει στον
+    // λογιστή χωρίς αυτή είναι ακριβώς η παραπλανητική σύγκριση που θέλαμε να
+    // αποφύγουμε — μόνο που τώρα δεν υπάρχει οθόνη να την εξηγήσει.
+    if (group.warning) rows.push([group.warning]);
     // Κοινός, θωρακισμένος exporter (BOM, «;», escaping + εξουδετέρωση formula-injection).
-    downloadCsv(`xartofylakio_${new Date().toISOString().slice(0, 10)}`, cols, rows);
+    downloadCsv(`sygkrisi_akiniton_${new Date().toISOString().slice(0, 10)}`, cols, rows);
   };
 
   const th: React.CSSProperties = { fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' };
@@ -144,7 +181,7 @@ export default function TabComparison({ properties, userId }: Props) {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.15 }}>Σύγκριση Ακινήτων</h1>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
-            {properties.length} ακίνητα, αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
+            {rowsData.length} {typeLabel(group.key, inGroup[0]).toLowerCase()}, αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
           </div>
         </div>
         {!loading && (
@@ -155,6 +192,31 @@ export default function TabComparison({ properties, userId }: Props) {
         )}
       </div>
 
+      {/* Περισσότερες από μία ομάδες: ο χρήστης διαλέγει ποια κοιτάζει. Η επιλογή
+          μπαίνει μόνο όταν υπάρχει κάτι να επιλεγεί — με μία ομάδα θα ήταν θόρυβος. */}
+      {groups.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          {groups.map(g => {
+            const on = g.key === group.key;
+            return (
+              <button key={g.key} type="button" onClick={() => setGroupKey(g.key)} aria-pressed={on}
+                style={{ height: T.h.sm, padding: '0 12px', borderRadius: 8, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
+                  border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+                  background: on ? 'var(--accent-dim)' : 'transparent',
+                  color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                {typeLabel(g.key, properties.find(p => p.id === g.ids[0]))} ({g.ids.length})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Η ΠΡΟΕΙΔΟΠΟΙΗΣΗ ΔΕΝ ΕΙΝΑΙ ΨΙΛΑ ΓΡΑΜΜΑΤΑ. Δύο διαμερίσματα είναι συγκρίσιμα
+          ως κατηγορία, αλλά 45 τ.μ. του 1975 δίπλα σε 140 τ.μ. του 2018 βγάζουν
+          «το δεύτερο αποδίδει καλύτερα» — αληθές και εντελώς άχρηστο. Ο χρήστης
+          έχει δικαίωμα να δει τη σύγκριση· έχει και δικαίωμα να ξέρει τι κοιτάζει. */}
+      {group.warning && <InfoBanner tone="warning">{group.warning}</InfoBanner>}
+
       {loading ? (
         // Σκελετός αντί για spinner: το σχήμα του πίνακα σύγκρισης είναι γνωστό εκ
         // των προτέρων, οπότε ο χώρος δεσμεύεται από την αρχή και η σελίδα δεν
@@ -163,7 +225,7 @@ export default function TabComparison({ properties, userId }: Props) {
       ) : (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8, overflowX: 'auto' }}>
           <div className="table-wrap">
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 120 + properties.length * 160 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 120 + rowsData.length * 160 }}>
             <thead>
               <tr>
                 <th style={{ ...th, position: 'sticky', left: 0, zIndex: 1 }}>Μετρική</th>
@@ -198,7 +260,7 @@ export default function TabComparison({ properties, userId }: Props) {
         </div>
       )}
       <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-        Το «Καθαρό ανά μήνα» είναι εκτίμηση: ενοίκιο − μηνιαίοι λογαριασμοί − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.
+        Συγκρίνονται μόνο ακίνητα ίδιου τύπου. Το «Καθαρό ανά μήνα» είναι εκτίμηση: ενοίκιο − μηνιαίοι λογαριασμοί − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.
       </div>
     </div>
   );

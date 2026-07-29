@@ -1,5 +1,20 @@
 'use client';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΙΑ ΟΘΟΝΗ ΓΙΑ ΤΟΥΣ ΛΟΓΑΡΙΑΣΜΟΥΣ.
+//
+// ΤΙ ΥΠΗΡΧΕ: επτά καρτέλες (Επισκόπηση, Ρεύμα, Αέριο, Κοινόχρηστα, Πάροχοι,
+// Ασφάλεια, Υπηρεσίες). Ο ιδιοκτήτης που ήθελε να δει τη ΔΕΗ του έπρεπε πρώτα να
+// μαντέψει σε ποια από τις επτά μένει — και η σωστή απάντηση ήταν «στην
+// Επισκόπηση», γιατί εκεί ζει η λίστα των λογαριασμών. Οι υπόλοιπες έξι δεν
+// είναι λογαριασμοί: είναι ΕΡΓΑΛΕΙΑ πάνω σε μια κατηγορία (σύγκριση τιμολογίων,
+// ρυθμίσεις παρόχου, τιμές αγοράς).
+//
+// ΤΙ ΙΣΧΥΕΙ ΤΩΡΑ: μία λίστα λογαριασμών με φίλτρο κατηγορίας, μπροστά. Τα έξι
+// εργαλεία πίσω από ένα «Περισσότερα». Καμία λειτουργία δεν αφαιρέθηκε — άλλαξε
+// μόνο ποιο πράγμα βλέπεις πρώτο.
+// ═══════════════════════════════════════════════════════════════════════════
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, Skeleton } from '@/components/Theme';
@@ -12,6 +27,7 @@ import BillsCommon       from './BillsCommon';
 import BillsProviders    from './BillsProviders';
 import BillsInsurance    from './BillsInsurance';
 import BillsServices     from './BillsServices';
+import ExpenseSwitchAlert from './ExpenseSwitchAlert';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -21,65 +37,47 @@ interface Props {
   propertyAddress?: string;
 }
 
-type TabId =
-  | 'dashboard' | 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'services';
+/** Τα εργαλεία που ζουν πίσω από το «Περισσότερα». */
+type ToolId = 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'services';
 
-interface TabDef {
-  id:    TabId;
-  label: string;
-  icon:  string;
-  desc:  string;
-}
-interface TabGroup { label: string; tabs: TabDef[]; }
+interface ToolDef { id: ToolId; label: string; icon: string; desc: string }
 
 interface StripData {
   totalMonthly: number;
   overdueCount: number;
   tenantName:   string;
-  notifCount:   number;
-  lastUpdate:   number;
+  /** Ώρα τελευταίας ανάγνωσης, ήδη μορφοποιημένη. Το «πριν 3 λεπτά» απαιτούσε
+   *  `Date.now()` μέσα στην απόδοση: ακάθαρτο, και μπαγιάτικο μόλις σταματήσει
+   *  να ξαναποδίδεται. Η ώρα δεν παλιώνει. */
+  updatedAt:    string;
 }
 
 // ─── SVG icons ────────────────────────────────────────────────────────────────
 const ICONS: Record<string, string> = {
-  dashboard:  'M4 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5zm10 0a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V5zM4 15a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4zm10-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-6z',
-  bolt:       'M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z',
-  flame:      'M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z M12 13a2 2 0 1 1-2-2c.5 0 1 .5 1 1.5 0 1-.5.5-.5 1.5a1.5 1.5 0 0 0 1.5 1.5z',
-  building:   'M3 21h18M5 21V7l8-4 8 4v14M9 21V15h6v6M9 11h1m4 0h1M9 7h1m4 0h1',
-  wifi:       'M12 18h.01M8.5 14.5A5.5 5.5 0 0 1 12 13a5.5 5.5 0 0 1 3.5 1.5M5 11a9 9 0 0 1 14 0M1.5 7.5a14 14 0 0 1 21 0',
-  shield:     'M12 3l8 4v5c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z',
-  wrench:     'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
-  bell:       'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',
-  chart:      'M18 20V10M12 20V4M6 20v-6',
-  bank:       'M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3',
-  camera:     'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-  buildings:  'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M2 22h20M10 10h4M10 14h4M10 18h4M10 6h4',
+  bolt:     'M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z',
+  flame:    'M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z M12 13a2 2 0 1 1-2-2c.5 0 1 .5 1 1.5 0 1-.5.5-.5 1.5a1.5 1.5 0 0 0 1.5 1.5z',
+  building: 'M3 21h18M5 21V7l8-4 8 4v14M9 21V15h6v6M9 11h1m4 0h1M9 7h1m4 0h1',
+  wifi:     'M12 18h.01M8.5 14.5A5.5 5.5 0 0 1 12 13a5.5 5.5 0 0 1 3.5 1.5M5 11a9 9 0 0 1 14 0M1.5 7.5a14 14 0 0 1 21 0',
+  shield:   'M12 3l8 4v5c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z',
+  wrench:   'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
 };
 
 const TabIcon = ({ name, size = 13 }: { name: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d={ICONS[name] ?? ICONS.dashboard}/>
+    <path d={ICONS[name] ?? ICONS.bolt}/>
   </svg>
 );
 
-// ─── Tab definitions ──────────────────────────────────────────────────────────
-const TAB_GROUPS: TabGroup[] = [
-  {
-    label: 'Λογαριασμοί',
-    tabs: [
-      { id: 'dashboard',     label: 'Επισκόπηση',          icon: 'dashboard', desc: 'Σύνοψη, ανάλυση, γραφήματα, ημερολόγιο πληρωμών' },
-      { id: 'electricity',   label: 'Ρεύμα',                icon: 'bolt',      desc: 'Πάροχος, κατανάλωση kWh, τιμολόγιο, σύγκριση παρόχων' },
-      { id: 'gas',           label: 'Φυσικό Αέριο',         icon: 'flame',     desc: 'Πάροχος αερίου, διαχειριστής δικτύου, σύγκριση τιμολογίων' },
-      { id: 'common',        label: 'Κοινόχρηστα',          icon: 'building',  desc: 'Διαχείριση κτηρίου, ταμείο, ιστορικό' },
-      { id: 'providers',     label: 'Πάροχοι',              icon: 'wifi',      desc: 'Internet, Νερό, Θέρμανση, Φυσικό Αέριο, Security' },
-      { id: 'insurance',     label: 'Ασφάλεια & Συνδρομές', icon: 'shield',    desc: 'Ασφάλεια κατοικίας, streaming, cloud, live σύγκριση' },
-      { id: 'services',      label: 'Υπηρεσίες',            icon: 'wrench',    desc: 'ΕΝΦΙΑ, Δημοτικά Τέλη, καθαρισμός, κηπουρός, πισίνα' },
-    ],
-  },
+// ─── Τα εργαλεία ──────────────────────────────────────────────────────────────
+const TOOLS: ToolDef[] = [
+  { id: 'electricity', label: 'Ρεύμα',                icon: 'bolt',     desc: 'Πάροχος, κατανάλωση, σύγκριση τιμολογίων' },
+  { id: 'gas',         label: 'Φυσικό αέριο',         icon: 'flame',    desc: 'Πάροχος αερίου και σύγκριση τιμολογίων' },
+  { id: 'common',      label: 'Κοινόχρηστα',          icon: 'building', desc: 'Διαχείριση κτηρίου, ταμείο, ιστορικό' },
+  { id: 'providers',   label: 'Πάροχοι',              icon: 'wifi',     desc: 'Internet, νερό, θέρμανση, security' },
+  { id: 'insurance',   label: 'Ασφάλεια & συνδρομές', icon: 'shield',   desc: 'Ασφάλεια κατοικίας, streaming, cloud' },
+  { id: 'services',    label: 'Υπηρεσίες',            icon: 'wrench',   desc: 'ΕΝΦΙΑ, δημοτικά τέλη, καθαρισμός, κηπουρός' },
 ];
-
-const ALL_TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function TabBills({
@@ -87,34 +85,38 @@ export default function TabBills({
 }: Props) {
   const supabase   = createClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const toolsRef   = useRef<HTMLDivElement | null>(null);
 
-  const [activeTab,  setActiveTab]  = useState<TabId>('dashboard');
-  const [strip,      setStrip]      = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', notifCount: 0, lastUpdate: 0 });
+  const [openTools,  setOpenTools]  = useState(false);
+  const [tool,       setTool]       = useState<ToolId | null>(null);
+  const [strip,      setStrip]      = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', updatedAt: '' });
   const [realtimeOk, setRealtimeOk] = useState(false);
   // Το `strip` ξεκινά με μηδενικά, οπότε η κεφαλίδα δεν έδειχνε κανένα chip και
   // μετά τα chips εμφανίζονταν μονομιάς και έσπρωχναν τη γραμμή. Δύο σκελετοί
-  // κρατούν τη θέση τους όσο τρέχουν τα τρία παράλληλα ερωτήματα.
+  // κρατούν τη θέση τους όσο τρέχουν τα παράλληλα ερωτήματα.
   const [stripLoading, setStripLoading] = useState(true);
 
   const loadStrip = useCallback(async () => {
-    if (!propertyId) { setStripLoading(false); return; }
+    if (!propertyId) return;
     try {
       const now = new Date();
-      const [{ data: bills }, { data: contacts }, { data: setts }] = await Promise.all([
+      const [{ data: bills }, { data: contacts }] = await Promise.all([
         supabase.from('bills').select('amount,paid,due_date,recurring').eq('property_id', propertyId),
         supabase.from('contacts').select('full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
-        supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['services','insurance']),
       ]);
 
       const totalMonthly = (bills ?? []).filter(b => b.recurring).reduce((s, b) => s + (b.amount ?? 0), 0);
       const overdueCount = (bills ?? []).filter(b => !b.paid && b.due_date && new Date(b.due_date) < now).length;
 
-      setStrip({ totalMonthly, overdueCount, tenantName: contacts?.[0]?.full_name ?? '', notifCount: 0, lastUpdate: Date.now() });
+      setStrip({
+        totalMonthly, overdueCount, tenantName: contacts?.[0]?.full_name ?? '',
+        updatedAt: now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
+      });
     } catch (_) {} finally { setStripLoading(false); }
   }, [propertyId]);
 
   useEffect(() => {
-    if (!propertyId) { setStripLoading(false); return; }
+    if (!propertyId) return;
     let mounted = true;
     loadStrip();
     const ch = supabase
@@ -125,42 +127,41 @@ export default function TabBills({
     return () => { mounted = false; supabase.removeChannel(ch); channelRef.current = null; };
   }, [propertyId, loadStrip]);
 
-  const navigateTo = useCallback((tab: string) => {
-    const found = ALL_TABS.find(t => t.id === tab);
-    if (found) setActiveTab(found.id);
+  // Άνοιγμα εργαλείου από αλλού (π.χ. από την ειδοποίηση «πληρώνεις παραπάνω»).
+  const openTool = useCallback((id: ToolId) => {
+    setOpenTools(true);
+    setTool(id);
+    // Το requestAnimationFrame περιμένει να αποδοθεί το πάνελ πριν κυλήσει σε αυτό.
+    requestAnimationFrame(() => toolsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }, []);
 
-  const timeSince = () => {
-    if (!strip.lastUpdate) return '';
-    const sec = Math.floor((Date.now() - strip.lastUpdate) / 1000);
-    if (sec < 60) return 'μόλις τώρα';
-    if (sec < 120) return '1 λεπτό πριν';
-    return `${Math.floor(sec / 60)} λεπτά πριν`;
-  };
+  // Χωρίς propertyId δεν τρέχει κανένα ερώτημα, άρα δεν υπάρχει τίποτα να
+  // περιμένει ο σκελετός. Παράγωγη τιμή, ώστε το effect να μην γράφει state.
+  const showSkeleton = stripLoading && !!propertyId;
 
-  const activeTabDef = ALL_TABS.find(t => t.id === activeTab) ?? ALL_TABS[0];
+  const activeTool = TOOLS.find(t => t.id === tool) ?? null;
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }`}</style>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3, fontFamily: T.font.sans }}>
-            Λογαριασμοί & Πάγιες Δαπάνες
+            Λογαριασμοί & πάγιες δαπάνες
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-            {activeTabDef.desc}
+            Όλοι οι λογαριασμοί του ακινήτου σε μία λίστα, με φίλτρο κατηγορίας.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <span title={realtimeOk ? `Live · ${timeSince()}` : 'Εκτός σύνδεσης'}
+          <span title={realtimeOk ? (strip.updatedAt ? `Live · ενημερώθηκε ${strip.updatedAt}` : 'Live') : 'Εκτός σύνδεσης'}
             style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: realtimeOk ? 'var(--positive)' : 'var(--text-tertiary)', cursor: 'default', fontFamily: T.font.sans }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: realtimeOk ? 'var(--positive)' : 'var(--border-default)', display: 'inline-block', animation: realtimeOk ? 'pulse 2s infinite' : 'none' }}/>
             Live
           </span>
-          {stripLoading ? (
+          {showSkeleton ? (
             <>
               <Skeleton w={90} h={24} r={T.radius.pill} />
               <Skeleton w={110} h={24} r={T.radius.pill} />
@@ -170,49 +171,62 @@ export default function TabBills({
               {strip.tenantName && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{strip.tenantName}</span>}
               {strip.totalMonthly > 0 && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.totalMonthly, 0)} / μήνα</span>}
               {strip.overdueCount > 0 && (
-                <button onClick={() => setActiveTab('dashboard')}
-                  style={{ padding: '4px 12px', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', cursor: 'pointer', fontFamily: T.font.sans }}>
+                <span style={{ padding: '4px 12px', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.sans }}>
                   {strip.overdueCount} ληξιπρόθεσμα
-                </button>
+                </span>
               )}
             </>
           )}
         </div>
       </div>
 
-      {/* ── Tab navigation, unified single container ──────────────────── */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '6px 6px 6px 6px', marginBottom: 20 }}>
-        {TAB_GROUPS.map((group, gIdx) => (
-          <div key={group.label} style={{ marginBottom: gIdx < TAB_GROUPS.length - 1 ? 4 : 0 }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3, paddingLeft: 4, paddingTop: gIdx === 0 ? 0 : 2, fontFamily: T.font.sans }}>
-              {group.label}
-            </div>
-            <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              {group.tabs.map((tab: TabDef) => {
-                const isActive = activeTab === tab.id;
+      {/* ── «Πληρώνεις παραπάνω» — μόνο όταν υπάρχει πραγματική διαφορά ── */}
+      <ExpenseSwitchAlert propertyId={propertyId} onOpen={openTool} />
+
+      {/* ── Η οθόνη: μία λίστα λογαριασμών ─────────────────────────────── */}
+      <BillsDashboard propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress}/>
+
+      {/* ── Περισσότερα: τα εργαλεία ανά κατηγορία ─────────────────────── */}
+      <div ref={toolsRef}>
+        <button type="button" onClick={() => setOpenTools(v => !v)} aria-expanded={openTools}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, cursor: 'pointer', fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Περισσότερα</span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ρυθμίσεις παρόχων, συγκρίσεις τιμολογίων, κοινόχρηστα</span>
+          <span style={{ flex: 1 }} />
+          <span aria-hidden style={{ display: 'flex', color: 'var(--text-tertiary)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openTools ? 'none' : 'rotate(-90deg)', transition: 'transform 0.18s' }}><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+
+        {openTools && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: activeTool ? 16 : 0 }}>
+              {TOOLS.map(t => {
+                const on = tool === t.id;
                 return (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: T.radius.inner, border: 'none', cursor: 'pointer', position: 'relative', fontSize: 11, fontWeight: isActive ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? 'var(--accent-text)' : 'var(--text-secondary)' }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
-                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
-                    <TabIcon name={tab.icon} size={12}/>
-                    {tab.label}
+                  <button key={t.id} type="button" title={t.desc}
+                    onClick={() => setTool(on ? null : t.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, cursor: 'pointer', fontSize: 11.5, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+                    <TabIcon name={t.icon} size={12}/>
+                    {t.label}
                   </button>
                 );
               })}
             </div>
-          </div>
-        ))}
-      </div>
 
-      {/* ── Content ──────────────────────────────────────────────────── */}
-      {activeTab === 'dashboard'      && <BillsDashboard    propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress}/>}
-      {activeTab === 'electricity'    && <BillsElectricity  propertyId={propertyId} userId={userId} onNavigateTab={navigateTo}/>}
-      {activeTab === 'gas'            && <BillsGas          propertyId={propertyId} userId={userId} onNavigateTab={navigateTo}/>}
-      {activeTab === 'common'         && <BillsCommon       propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'providers'      && <BillsProviders    propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'insurance'      && <BillsInsurance    propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'services'       && <BillsServices     propertyId={propertyId} userId={userId}/>}
+            {activeTool && (
+              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                {tool === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId}/>}
+                {tool === 'gas'         && <BillsGas         propertyId={propertyId} userId={userId}/>}
+                {tool === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
+                {tool === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId}/>}
+                {tool === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}
+                {tool === 'services'    && <BillsServices    propertyId={propertyId} userId={userId}/>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
