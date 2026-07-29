@@ -215,7 +215,8 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
       // 8,50 τον μήνα αλλά 85 τον χρόνο, όχι 102. Ο παλιός τύπος έδειχνε την
       // ετήσια πληρωμή περίπου 20% ακριβότερη απ όσο πραγματικά είναι, δηλαδή
       // έκρυβε ακριβώς την έκπτωση που κάνει την ετήσια πληρωμή συμφέρουσα.
-      const annualRatio = ((p as any).annual && base) ? (p as any).annual / (base * 12) : 1;
+      const declaredAnnual = (p as { annual?: number }).annual;
+      const annualRatio = (declaredAnnual && base) ? declaredAnnual / (base * 12) : 1;
       return {
         company:       c.value,
         companyLabel:  c.label,
