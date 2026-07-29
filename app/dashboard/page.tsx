@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
+import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, tabFitsStatus, isShortTerm, type PropertyStatus } from '@/lib/property/status';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabPricing   from './components/TabPricing';
@@ -74,19 +75,18 @@ interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 // Κατάσταση ακινήτου: μία κλιμακωτή ράμπα από το μπλε της landing (var(--accent),
 // #1a73e8) — 7 ομοιογενείς αποχρώσεις, από βαθύ προς ανοιχτό, στη λογική σειρά των
 // καταστάσεων. Τυποποιημένο, μονοχρωματικό, premium (όχι φανάρι πολλών χρωμάτων).
-const STATUS_COLORS: Record<string,string> = {
-  rented:    '#0b57d0',
-  vacant:    '#1a73e8',
-  own_use:   '#3385ec',
-  seasonal:  '#4d97ef',
+// Οι ετικέτες και οι κανόνες της κατάστασης ζουν στο lib/property/status.ts.
+// Υπήρχαν ΔΥΟ στήλες για το ίδιο πράγμα (status_detail και rental_mode) που
+// μπορούσαν να διαφωνήσουν, και κάθε οθόνη έλυνε τη διαφωνία με δικό της κανόνα.
+// Εδώ μένει μόνο η όψη: μία απόχρωση ανά κατάσταση.
+const STATUS_COLORS: Record<PropertyStatus,string> = {
+  rent_long: '#0b57d0',
+  rent_short:'#1a73e8',
+  vacant:    '#3385ec',
+  own_use:   '#4d97ef',
   renovation:'#66a8f2',
   for_sale:  '#80baf6',
   disputed:  '#99cbf9',
-};
-// Σειρά κατά χρησιμότητα (πιο συνηθισμένες πρώτα).
-const STATUS_LABELS: Record<string,string> = {
-  rented:'Ενοικιάζεται', vacant:'Κενό', own_use:'Ιδιοχρησία', seasonal:'Εποχιακό',
-  renovation:'Ανακαίνιση', for_sale:'Προς Πώληση', disputed:'Αμφισβητούμενο',
 };
 const PROP_TYPE_LABELS: Record<string,string> = {
   apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
@@ -281,7 +281,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {otherProperties.map(p => (
                   <div key={p.id} onClick={()=>setSourceId(p.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderRadius:12,border:`1px solid ${sourceId===p.id?'var(--accent)':'var(--border-default)'}`,background:sourceId===p.id?'var(--accent-dim)':'transparent',cursor:'pointer',transition:'all 0.2s'}}>
-                    <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)',flexShrink:0}}/>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[readStatus(p)],flexShrink:0}}/>
                     <div>
                       <p style={{fontFamily: T.font.sans,fontSize:14,fontWeight:500,color:'var(--text-primary)'}}>{p.name}</p>
                       <p style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>{PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type}{p.address?` · ${p.address}`:''}</p>
@@ -503,14 +503,14 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         <button onClick={()=>printPropertyStatement({
           propName: prop.name, address: prop.address||undefined, postalCode: prop.postal_code||undefined,
           propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
-          status: STATUS_LABELS[prop.status_detail||'']||undefined, year, propValue: propValue||undefined,
+          status: statusLabelOf(prop), year, propValue: propValue||undefined,
           objValue: prop.obj_value!=null?Number(prop.obj_value):undefined, enfia: prop.enfia!=null?Number(prop.enfia):undefined,
           sqm: prop.sqm||undefined, bedrooms: prop.bedrooms!=null?prop.bedrooms:undefined,
           floor: prop.floor!=null?prop.floor:undefined, yearBuilt: prop.year_built!=null?prop.year_built:undefined,
           energyClass: prop.pea_class||undefined, atak: prop.atak||undefined,
           ownership: prop.ownership!=null?Number(prop.ownership):undefined,
           coOwners: Array.isArray(prop.co_owners)?prop.co_owners:undefined,
-          shortTerm: prop.rental_mode==='short_term'||prop.status_detail==='seasonal',
+          shortTerm: isShortTerm(prop),
           monthlyRent: rent, annualRent, grossYield, netYield,
           expensesYTD: totalExpYTD, categories: catEntries, branding,
         })}
@@ -879,7 +879,7 @@ export default function Dashboard() {
     profileType: effProfileType,
     revealed: revealedTabs,
     showAll: navShowAll || !navPrefsLoaded,
-    signals: { ...navSignals, isShortTerm: selected?.rental_mode === 'short_term' || selected?.status_detail === 'seasonal', openTasks: checklistAlerts },
+    signals: { ...navSignals, isShortTerm: isShortTerm(selected), openTasks: checklistAlerts },
   }), [effProfileType, revealedTabs, navShowAll, navPrefsLoaded, navSignals, selected, checklistAlerts]);
 
   // Κάθε επίσκεψη σε καρτέλα την αποκαλύπτει μόνιμα — από όπου κι αν ήρθε
@@ -1013,9 +1013,9 @@ export default function Dashboard() {
     else setShowUpgrade(true);
   };
 
-  const updateStatus = async (status: string) => {
+  const updateStatus = async (status: PropertyStatus) => {
     if (!selected||!user) return;
-    await supabase.from('user_properties').update({ status_detail: status }).eq('id', selected.id);
+    await supabase.from('user_properties').update(writeStatus(status)).eq('id', selected.id);
     setStatusDropdown(false);
     await fetchProperties(user.id);
   };
@@ -1121,8 +1121,8 @@ export default function Dashboard() {
   );
 
   const userInitials = user?.email?.substring(0,2).toUpperCase() || 'GF';
-  const statusColor = selected ? (STATUS_COLORS[selected.status_detail||'']||'var(--text-secondary)') : 'var(--text-secondary)';
-  const statusLabel = selected ? (STATUS_LABELS[selected.status_detail||'']||selected.status_detail) : '';
+  const statusColor = selected ? STATUS_COLORS[readStatus(selected)] : 'var(--text-secondary)';
+  const statusLabel = selected ? statusLabelOf(selected) : '';
   const getBadge = (id: string) => { if (id==='inventory'&&inventoryAlerts>0) return inventoryAlerts; if (id==='checklist'&&checklistAlerts>0) return checklistAlerts; return 0; };
 
   // ── ΜΙΣΘΩΣΗ ΜΟΝΟ ΟΤΑΝ ΥΠΑΡΧΕΙ ΜΙΣΘΩΣΗ ────────────────────────────────────
@@ -1140,15 +1140,11 @@ export default function Dashboard() {
   // ΔΕΝ ΔΙΑΓΡΑΦΕΤΑΙ ΤΙΠΟΤΑ. Οι καρτέλες φεύγουν από την πλοήγηση, τα δεδομένα
   // μένουν ακέραια, και επιστρέφουν τη στιγμή που το ακίνητο ξαναμπαίνει σε
   // μίσθωση.
-  const LEASE_TABS = new Set(['tenant', 'clients', 'pricing']);
-  const isLet = !!selected && (
-    selected.status_detail === 'rented' ||
-    selected.status_detail === 'seasonal' ||
-    selected.rental_mode === 'long_term' ||
-    selected.rental_mode === 'short_term'
-  );
-  /** Έχει νόημα αυτή η καρτέλα για ΑΥΤΟ το ακίνητο, τώρα; */
-  const tabFitsProperty = (id: string) => !LEASE_TABS.has(id) || isLet;
+  // Ο κανόνας ζει στο lib/property/status.ts, με 58 ελέγχους από πάνω του:
+  // ο Ενοικιαστής ανήκει στη ΜΑΚΡΟΧΡΟΝΙΑ, ο Πελάτης και η Τιμολόγηση στη
+  // ΒΡΑΧΥΧΡΟΝΙΑ. Ο ιδιοκτήτης με Airbnb δεν έχει «ενοικιαστή», έχει επισκέπτες·
+  // ο ιδιοκτήτης με τριετές μισθωτήριο δεν τιμολογεί ανά διανυκτέρευση.
+  const tabFitsProperty = (id: string) => tabFitsStatus(id, selected);
 
   // Αν ο χρήστης βρίσκεται σε καρτέλα μίσθωσης και αλλάξει την κατάσταση σε
   // κάτι που δεν είναι μίσθωση, δεν τον αφήνουμε σε οθόνη που μόλις έπαψε να
@@ -1207,7 +1203,7 @@ export default function Dashboard() {
           <div className="sidebar-section-label">{effProfileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
           {properties.map(p => (
             <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p);setNav('overview');setSidebarOpen(false);}}}>
-              <div className="prop-item-dot" style={{background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)'}}/>
+              <div className="prop-item-dot" style={{background:STATUS_COLORS[readStatus(p)]}}/>
               <span className="prop-item-name">{p.name}</span>
               <button className="prop-item-del" title="Διαγραφή ακινήτου και όλων των δεδομένων του" aria-label={`Διαγραφή ακινήτου ${p.name}`}
                 onClick={e=>{ e.stopPropagation(); deletePropertyById(p.id, p.name); }}
@@ -1309,12 +1305,19 @@ export default function Dashboard() {
                       <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
                       <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,maxHeight:'min(440px, calc(100vh - 96px))',overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
                         <div style={{fontFamily: T.font.sans,fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
-                        {Object.entries(STATUS_LABELS).map(([k,v]) => {
-                          const active = (selected.status_detail||'')===k;
+                        {STATUSES.map(({ key: k, label: v, hint }) => {
+                          const active = readStatus(selected)===k;
                           return (
-                            <button key={k} role="menuitem" onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:14,fontWeight:active?600:400,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                              <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[k]||'var(--text-secondary)',flexShrink:0}}/>
-                              <span style={{flex:1}}>{v}</span>
+                            <button key={k} role="menuitem" onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'flex-start',gap:12,width:'100%',padding:'10px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:14,fontWeight:active?600:400,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                              <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[k],flexShrink:0,marginTop:4}}/>
+                              {/* Η εξήγηση δεν είναι διακόσμηση: «Βραχυχρόνια»
+                                  και «Μακροχρόνια» καθορίζουν ΠΟΙΑ εργαλεία
+                                  εμφανίζονται, οπότε η επιλογή πρέπει να είναι
+                                  συνειδητή και όχι μαντεψιά. */}
+                              <span style={{flex:1,minWidth:0}}>
+                                <span style={{display:'block'}}>{v}</span>
+                                <span style={{display:'block',fontSize:11.5,color:'var(--text-tertiary)',fontWeight:400,marginTop:1,lineHeight:1.4}}>{hint}</span>
+                              </span>
                               {active && <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
                             </button>
                           );
@@ -1455,13 +1458,13 @@ export default function Dashboard() {
             name: selected.name,
             propType: PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type||undefined,
             address: selected.address||undefined, value: selected.value||undefined,
-            sqm: selected.sqm||undefined, status: STATUS_LABELS[selected.status_detail||'']||undefined,
+            sqm: selected.sqm||undefined, status: statusLabelOf(selected),
             targetRent: selected.target_rent||undefined,
           }}
           allProperties={properties.map(p=>({
             name: p.name, propType: PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type||undefined,
             value: p.value||undefined, targetRent: p.target_rent||undefined,
-            sqm: p.sqm||undefined, status: STATUS_LABELS[p.status_detail||'']||undefined,
+            sqm: p.sqm||undefined, status: statusLabelOf(p),
           }))}
           onNavigate={(tab)=>setNav(tab)}
           onScan={()=>setQuickAddOpen(true)}
