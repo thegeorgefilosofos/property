@@ -1,0 +1,523 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Ο ΦΑΚΕΛΟΣ ΓΙΑ ΤΟΝ ΛΟΓΙΣΤΗ.
+//
+// ΤΡΕΙΣ ΑΝΘΡΩΠΟΙ ΣΧΕΔΙΑΣΑΝ ΑΥΤΟ ΤΟ ΑΡΧΕΙΟ
+//
+// Ο 25ΧΡΟΝΟΣ ΠΟΥ ΚΛΗΡΟΝΟΜΗΣΕ. Δεν έχει πληρώσει ποτέ λογαριασμό· τους πλήρωναν
+// οι γονείς. Δεν ξέρει τι είναι ΑΤΑΚ, δεν ξέρει ότι υπάρχει Ε2, δεν ξέρει ότι
+// χρωστάει ΕΝΦΙΑ. Η ερώτησή του δεν είναι «πόσο αποδίδει» — είναι «τι πρέπει να
+// κάνω και μέχρι πότε».
+//
+// Ο ΦΟΙΤΗΤΗΣ ΜΕ ΤΟ ΕΞΟΧΙΚΟ. Θέλει να το βάλει στο Airbnb και ρωτάει αν
+// συμφέρει. Δεν ξέρει ότι με τρία ακίνητα γίνεται επιχείρηση, ούτε ότι
+// χρειάζεται ΑΜΑ πριν την πρώτη κράτηση. Θα το μάθει από πρόστιμο, ή από εμάς.
+//
+// Ο 50ΑΡΗΣ ΠΟΥ ΑΓΧΩΝΕΤΑΙ. Έχει τα χαρτιά, αλλά σε τρία συρτάρια. Το άγχος του
+// δεν είναι ο φόρος· είναι ότι θα πάει στον λογιστή και θα του λείπει κάτι.
+//
+// Η ΑΠΑΝΤΗΣΗ ΚΑΙ ΓΙΑ ΤΟΥΣ ΤΡΕΙΣ ΕΙΝΑΙ Η ΙΔΙΑ: μια λίστα που ξέρει ΠΟΙΟΣ κάνει
+// τι. Το μισό άγχος φεύγει μόλις καταλάβεις ότι από τα έντεκα πράγματα, τα έξι
+// τα βγάζει το εργαλείο, τα τρία τα κάνει ο λογιστής, και μόνο δύο είναι δικά
+// σου. Γι' αυτό το `who` είναι το σημαντικότερο πεδίο εδώ — πιο σημαντικό από
+// τον τίτλο.
+//
+// ΤΙ ΔΕΝ ΚΑΝΕΙ ΑΥΤΟ ΤΟ ΑΡΧΕΙΟ
+// Δεν συμβουλεύει φορολογικά και δεν υπολογίζει φόρο. Λέει ΤΙ ΧΑΡΤΙΑ χρειάζονται
+// και ποιος τα φέρνει. Τα ποσοστά και οι κωδικοί των εντύπων αλλάζουν κάθε
+// χρόνο· τα ΠΑΡΑΣΤΑΤΙΚΑ δεν αλλάζουν. Χτίζουμε πάνω στο σταθερό.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { readStatus, type PropertyStatus, type StatusRow } from '@/lib/property/status';
+
+/** Ποιος φέρνει το κάθε πράγμα. Το σημαντικότερο πεδίο του αρχείου. */
+export type Who =
+  | 'app'         // το βγάζει το PropertyOS, ο χρήστης δεν κάνει τίποτα
+  | 'owner'       // πρέπει να το βρει ο ιδιοκτήτης
+  | 'accountant'; // το ετοιμάζει ο λογιστής από όσα του δώσεις
+
+export const WHO_LABEL: Record<Who, string> = {
+  app: 'Το ετοιμάζουμε εμείς',
+  owner: 'Χρειάζεται από εσένα',
+  accountant: 'Το κάνει ο λογιστής',
+};
+
+export type LegalForm = 'individual' | 'sole_trader' | 'partnership' | 'company';
+
+export const LEGAL_FORM_LABEL: Record<LegalForm, string> = {
+  individual: 'Φυσικό πρόσωπο',
+  sole_trader: 'Ατομική επιχείρηση',
+  partnership: 'ΟΕ / ΕΕ',
+  company: 'ΑΕ / ΕΠΕ / ΙΚΕ',
+};
+
+/**
+ * Απλογραφικά ή διπλογραφικά.
+ *
+ * ΓΙΑΤΙ ΕΧΕΙ ΣΗΜΑΣΙΑ ΣΤΗΝ ΟΘΟΝΗ: ο ισολογισμός υπάρχει ΜΟΝΟ στα διπλογραφικά.
+ * Ένας ιδιώτης με ένα διαμέρισμα δεν πρέπει να δει ποτέ τη λέξη, και μια ΙΚΕ
+ * πρέπει να τη δει με έμφαση. Η ίδια οθόνη για τους δύο είναι λάθος και για
+ * τους δύο.
+ *
+ * Οι ΟΕ/ΕΕ περνούν σε διπλογραφικά πάνω από όριο τζίρου που ορίζεται στα ΕΛΠ
+ * (ν. 4308/2014) και αναπροσαρμόζεται. Εδώ δηλώνεται ρητά από τον χρήστη αντί
+ * να μαντεύεται: μια λάθος μαντεψιά θα έκρυβε υποχρεωτικές καταστάσεις.
+ */
+export type BookKeeping = 'none' | 'single_entry' | 'double_entry';
+
+export function defaultBookkeeping(form: LegalForm): BookKeeping {
+  if (form === 'individual') return 'none';
+  if (form === 'company') return 'double_entry';
+  return 'single_entry';   // ατομική και ΟΕ/ΕΕ: απλογραφικά, εκτός αν δηλωθεί αλλιώς
+}
+
+export interface Requirement {
+  id: string;
+  title: string;
+  /** Γιατί το θέλει ο λογιστής, σε μία φράση χωρίς ορολογία. */
+  why: string;
+  who: Who;
+  /** Πού βρίσκεται, όταν δεν το έχει ο ίδιος. */
+  source?: string;
+  /** Χωρίς αυτό ΔΕΝ γίνεται η δήλωση. Ξεχωρίζει από το «καλό να υπάρχει». */
+  blocking: boolean;
+  /** Προειδοποίηση για παγίδα που κοστίζει χρήματα. */
+  trap?: string;
+}
+
+export interface DossierContext {
+  form: LegalForm;
+  books: BookKeeping;
+  /** Οι καταστάσεις όλων των ακινήτων του χρήστη. */
+  statuses: readonly PropertyStatus[];
+  /** Έγιναν δαπάνες ανακαίνισης ή βελτίωσης μέσα στο έτος; */
+  hasRenovation?: boolean;
+  /** Υπάρχει δάνειο; */
+  hasLoan?: boolean;
+  /** Άλλαξε κάτι στην ιδιοκτησία μέσα στο έτος (αγορά, πώληση, κληρονομιά); */
+  ownershipChanged?: boolean;
+}
+
+// ── ΤΑ ΚΟΙΝΑ ───────────────────────────────────────────────────────────────
+
+const COMMON: Requirement[] = [
+  {
+    id: 'atak',
+    title: 'ΑΤΑΚ του ακινήτου',
+    why: 'Ο μοναδικός αριθμός που ταυτοποιεί το ακίνητο. Χωρίς αυτόν δεν συνδέεται τίποτα.',
+    who: 'owner',
+    source: 'myAADE, στην περιουσιακή κατάσταση Ε9',
+    blocking: true,
+  },
+  {
+    id: 'enfia',
+    title: 'Εκκαθαριστικό ΕΝΦΙΑ',
+    why: 'Επαληθεύει ότι τα στοιχεία του ακινήτου είναι σωστά, και είναι δαπάνη.',
+    who: 'owner',
+    source: 'myAADE',
+    blocking: false,
+  },
+  {
+    id: 'expenses',
+    title: 'Συγκεντρωτική δαπανών του έτους',
+    why: 'Μία σελίδα με ό,τι πληρώθηκε, ανά κατηγορία.',
+    who: 'app',
+    blocking: false,
+  },
+];
+
+// ── ΑΝΑ ΚΑΤΑΣΤΑΣΗ ΑΚΙΝΗΤΟΥ ─────────────────────────────────────────────────
+
+const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
+  own_use: [
+    {
+      id: 'e1_residence',
+      title: 'Στοιχεία κύριας κατοικίας για το Ε1',
+      why: 'Τετραγωνικά, ΑΤΑΚ και ποσοστό. Από αυτά υπολογίζεται το τεκμήριο διαβίωσης.',
+      who: 'app',
+      blocking: true,
+      trap: 'Τα τετραγωνικά πρέπει να είναι χωρισμένα σε κύριους και βοηθητικούς χώρους. Το τεκμήριο τα μετράει διαφορετικά.',
+    },
+  ],
+
+  rent_long: [
+    {
+      id: 'e2',
+      title: 'Ε2 — Αναλυτική κατάσταση μισθωμάτων',
+      why: 'Το βασικό έντυπο για κάθε εισόδημα από ακίνητο.',
+      who: 'app',
+      blocking: true,
+    },
+    {
+      id: 'lease_declaration',
+      title: 'Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης',
+      why: 'Πρέπει να έχει υποβληθεί όταν έγινε η μίσθωση, όχι τώρα.',
+      who: 'owner',
+      source: 'myAADE',
+      blocking: true,
+      trap: 'Αν δεν υποβλήθηκε στην ώρα της, η μίσθωση δεν αναγνωρίζεται και επιβάλλεται πρόστιμο.',
+    },
+    {
+      id: 'lease_contract',
+      title: 'Μισθωτήριο συμβόλαιο',
+      why: 'Δείχνει ποσό, διάρκεια και ΑΦΜ μισθωτή.',
+      who: 'app',
+      blocking: false,
+    },
+    {
+      id: 'rent_receipts',
+      title: 'Αποδείξεις είσπραξης ή κινήσεις τραπέζης',
+      why: 'Τεκμηριώνουν ότι τα ενοίκια όντως εισπράχθηκαν.',
+      who: 'owner',
+      source: 'e-banking',
+      blocking: false,
+    },
+    {
+      id: 'unpaid_rent',
+      title: 'Νομικές ενέργειες για ανείσπρακτα',
+      why: 'Μόνο έτσι δεν φορολογείσαι για ενοίκια που δεν πήρες.',
+      who: 'owner',
+      source: 'δικηγόρος',
+      blocking: false,
+      trap: 'Η αγωγή ή η διαταγή πληρωμής πρέπει να έχει κατατεθεί ΠΡΙΝ την υποβολή της δήλωσης. Η σειρά είναι απαράβατη.',
+    },
+  ],
+
+  rent_short: [
+    {
+      id: 'ama',
+      title: 'ΑΜΑ — Αριθμός Μητρώου Ακινήτου',
+      why: 'Χωρίς αυτόν δεν επιτρέπεται νόμιμα καμία κράτηση.',
+      who: 'owner',
+      source: 'Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής, myAADE',
+      blocking: true,
+      trap: 'Πρέπει να αναγράφεται σε κάθε καταχώρηση σε Airbnb και Booking.',
+    },
+    {
+      id: 'short_stays',
+      title: 'Δηλώσεις Βραχυχρόνιας Διαμονής',
+      why: 'Μία ανά μίσθωση, μέσα στην προθεσμία.',
+      who: 'owner',
+      source: 'myAADE',
+      blocking: true,
+    },
+    {
+      id: 'platform_statements',
+      title: 'Ετήσιες καταστάσεις πλατφορμών',
+      why: 'Τα ακαθάριστα έσοδα, όπως τα βλέπει και η ΑΑΔΕ.',
+      who: 'owner',
+      source: 'Airbnb, Booking, από τον λογαριασμό σου',
+      blocking: true,
+      trap: 'Δήλωσε τα ΑΚΑΘΑΡΙΣΤΑ, πριν την προμήθεια της πλατφόρμας. Η προμήθεια είναι δαπάνη, όχι μείωση εσόδου.',
+    },
+    {
+      id: 'climate_levy',
+      title: 'Τέλος ανθεκτικότητας στην κλιματική κρίση',
+      why: 'Εισπράττεται από τον επισκέπτη και αποδίδεται στο κράτος.',
+      who: 'owner',
+      source: 'myAADE',
+      blocking: false,
+      trap: 'Δεν είναι έσοδό σου. Το κρατάς για λογαριασμό του κράτους και το αποδίδεις.',
+    },
+    {
+      id: 'e2_short',
+      title: 'Ε2 με ένδειξη βραχυχρόνιας',
+      why: 'Ξεχωριστή γραμμή από τη μακροχρόνια.',
+      who: 'app',
+      blocking: true,
+    },
+  ],
+
+  vacant: [
+    {
+      id: 'e2_vacant',
+      title: 'Ε2 με ένδειξη κενού και τους μήνες',
+      why: 'Δηλώνεται ότι δεν απέδωσε, και για πόσο.',
+      who: 'app',
+      blocking: true,
+      trap: 'Οι μήνες πρέπει να είναι ακριβείς. Λάθος εδώ σημαίνει φόρο για ενοίκια που δεν υπήρξαν.',
+    },
+    {
+      id: 'vacancy_proof',
+      title: 'Απόδειξη ότι ήταν κενό',
+      why: 'Μηδενικοί ή ελάχιστοι λογαριασμοί, ή διακοπή ρεύματος.',
+      who: 'app',
+      blocking: false,
+      trap: 'Ζητείται σε έλεγχο. Κράτα τους λογαριασμούς ακόμη κι όταν είναι μηδενικοί.',
+    },
+  ],
+
+  renovation: [
+    {
+      id: 'reno_invoices',
+      title: 'Τιμολόγια με το ΑΦΜ σου',
+      why: 'Αποδείξεις λιανικής δεν αναγνωρίζονται.',
+      who: 'owner',
+      blocking: true,
+      trap: 'Η πληρωμή πρέπει να έγινε ηλεκτρονικά. Μετρητά σημαίνει καμία έκπτωση, όσο σωστό κι αν είναι το τιμολόγιο.',
+    },
+    {
+      id: 'reno_permit',
+      title: 'Άδεια μικρής κλίμακας ή βεβαίωση μηχανικού',
+      why: 'Όπου απαιτείται από το είδος των εργασιών.',
+      who: 'owner',
+      source: 'μηχανικός',
+      blocking: false,
+    },
+    {
+      id: 'pea',
+      title: 'ΠΕΑ πριν και μετά',
+      why: 'Για ενεργειακές παρεμβάσεις και για τα προγράμματα επιδότησης.',
+      who: 'owner',
+      source: 'ενεργειακός επιθεωρητής',
+      blocking: false,
+    },
+  ],
+
+  for_sale: [
+    {
+      id: 'acquisition_cost',
+      title: 'Τεκμηρίωση κόστους κτήσης',
+      why: 'Συμβόλαιο αγοράς ή αποδοχή κληρονομιάς, και όλες οι βελτιώσεις.',
+      who: 'owner',
+      blocking: false,
+      trap: 'Οι δαπάνες ΒΕΛΤΙΩΣΗΣ προσαυξάνουν το κόστος κτήσης και μειώνουν το κέρδος. Οι δαπάνες συντήρησης όχι. Κράτα τα τιμολόγια χωριστά.',
+    },
+  ],
+
+  disputed: [
+    {
+      id: 'legal_docs',
+      title: 'Δικαστικά έγγραφα με ημερομηνίες',
+      why: 'Αγωγή, διαταγή πληρωμής, εξώδικο.',
+      who: 'owner',
+      source: 'δικηγόρος',
+      blocking: true,
+      trap: 'Η ημερομηνία κατάθεσης κρίνει αν τα ανείσπρακτα φορολογούνται ή όχι.',
+    },
+    {
+      id: 'legal_fees',
+      title: 'Τιμολόγια δικηγόρου',
+      why: 'Δαπάνη που τεκμηριώνεται.',
+      who: 'owner',
+      blocking: false,
+    },
+  ],
+};
+
+// ── ΑΝΑ ΝΟΜΙΚΗ ΜΟΡΦΗ ───────────────────────────────────────────────────────
+
+const SINGLE_ENTRY: Requirement[] = [
+  {
+    id: 'e3',
+    title: 'Ε3 — Κατάσταση Οικονομικών Στοιχείων',
+    why: 'Τα έσοδα και τα έξοδα της δραστηριότητας.',
+    who: 'accountant',
+    blocking: true,
+  },
+  {
+    id: 'books_single',
+    title: 'Βιβλίο Εσόδων-Εξόδων',
+    why: 'Η βάση για το Ε3.',
+    who: 'accountant',
+    blocking: true,
+  },
+  {
+    id: 'vat_returns',
+    title: 'Περιοδικές δηλώσεις ΦΠΑ',
+    why: 'Υποβάλλονται μέσα στη χρονιά, ελέγχονται στο τέλος.',
+    who: 'accountant',
+    blocking: false,
+  },
+  {
+    id: 'efka',
+    title: 'Βεβαίωση εισφορών ΕΦΚΑ',
+    why: 'Εκπίπτουν από το εισόδημα.',
+    who: 'owner',
+    source: 'ΕΦΚΑ',
+    blocking: false,
+  },
+];
+
+/**
+ * ΤΑ ΔΙΠΛΟΓΡΑΦΙΚΑ, ΚΑΙ ΜΟΝΟ ΤΑ ΔΙΠΛΟΓΡΑΦΙΚΑ.
+ *
+ * Ο ισολογισμός εμφανίζεται ΕΔΩ και πουθενά αλλού. Ένας ιδιώτης με ένα
+ * διαμέρισμα δεν πρέπει να δει ποτέ τη λέξη· μια ΙΚΕ πρέπει να τη δει με
+ * έμφαση. Η ίδια οθόνη για τους δύο είναι λάθος και για τους δύο.
+ */
+const DOUBLE_ENTRY: Requirement[] = [
+  {
+    id: 'balance_sheet',
+    title: 'Ισολογισμός',
+    why: 'Η εικόνα της εταιρείας στις 31 Δεκεμβρίου.',
+    who: 'accountant',
+    blocking: true,
+  },
+  {
+    id: 'income_statement',
+    title: 'Κατάσταση Αποτελεσμάτων',
+    why: 'Τι απέδωσε η χρήση.',
+    who: 'accountant',
+    blocking: true,
+  },
+  {
+    id: 'notes',
+    title: 'Προσάρτημα',
+    why: 'Οι επεξηγήσεις που συνοδεύουν τις καταστάσεις.',
+    who: 'accountant',
+    blocking: true,
+  },
+  {
+    id: 'form_n',
+    title: 'Έντυπο Ν — δήλωση νομικού προσώπου',
+    why: 'Η φορολογική δήλωση της εταιρείας.',
+    who: 'accountant',
+    blocking: true,
+  },
+  {
+    id: 'e3_company',
+    title: 'Ε3',
+    why: 'Συνοδεύει το έντυπο Ν.',
+    who: 'accountant',
+    blocking: true,
+  },
+  {
+    id: 'gemi',
+    title: 'Δημοσίευση στο ΓΕΜΗ',
+    why: 'Υποχρεωτική για τα νομικά πρόσωπα.',
+    who: 'accountant',
+    blocking: false,
+  },
+  {
+    id: 'inventory_count',
+    title: 'Φυσική απογραφή 31/12',
+    why: 'Κλείνει τη χρήση.',
+    who: 'owner',
+    blocking: false,
+  },
+];
+
+const EXTRAS: Requirement[] = [
+  {
+    id: 'e9',
+    title: 'Ε9 — Δήλωση Στοιχείων Ακινήτων',
+    why: 'Υποβάλλεται μόνο όταν αλλάζει κάτι στην ιδιοκτησία.',
+    who: 'accountant',
+    blocking: true,
+    trap: 'Λάθος Ε9 σημαίνει λάθος ΕΝΦΙΑ για όλα τα επόμενα χρόνια, όχι μόνο φέτος.',
+  },
+  {
+    id: 'loan_interest',
+    title: 'Βεβαίωση τόκων δανείου',
+    why: 'Εκδίδεται μία φορά τον χρόνο από την τράπεζα.',
+    who: 'owner',
+    source: 'e-banking ή υποκατάστημα',
+    blocking: false,
+  },
+];
+
+// ── Η ΣΥΝΘΕΣΗ ──────────────────────────────────────────────────────────────
+
+/**
+ * Ο πλήρης κατάλογος για αυτόν τον χρήστη, χωρίς διπλά.
+ *
+ * Η ΣΕΙΡΑ ΔΕΝ ΕΙΝΑΙ ΤΥΧΑΙΑ: πρώτα ό,τι μπλοκάρει, μετά ό,τι είναι δικό σου,
+ * τέλος ό,τι κάνουν άλλοι. Ο χρήστης πρέπει να δει πρώτο αυτό που θα τον
+ * σταματήσει, και δίπλα του να καταλάβει ότι είναι λίγα.
+ */
+export function requirementsFor(ctx: DossierContext): Requirement[] {
+  const seen = new Set<string>();
+  const out: Requirement[] = [];
+  const push = (r: Requirement) => { if (!seen.has(r.id)) { seen.add(r.id); out.push(r); } };
+
+  COMMON.forEach(push);
+  for (const s of new Set(ctx.statuses)) BY_STATUS[s]?.forEach(push);
+
+  if (ctx.hasRenovation) BY_STATUS.renovation.forEach(push);
+  if (ctx.hasLoan) push(EXTRAS.find(r => r.id === 'loan_interest')!);
+  if (ctx.ownershipChanged) push(EXTRAS.find(r => r.id === 'e9')!);
+
+  if (ctx.books === 'single_entry') SINGLE_ENTRY.forEach(push);
+  if (ctx.books === 'double_entry') DOUBLE_ENTRY.forEach(push);
+
+  const rank = (r: Requirement): number =>
+    (r.blocking ? 0 : 10) + (r.who === 'owner' ? 0 : r.who === 'app' ? 1 : 2);
+  return out.sort((a, b) => rank(a) - rank(b));
+}
+
+// ── ΠΟΣΟ ΕΤΟΙΜΟΣ ΕΙΣΑΙ ─────────────────────────────────────────────────────
+
+export interface Readiness {
+  total: number;
+  done: number;
+  /** Λείπουν και ΜΠΛΟΚΑΡΟΥΝ τη δήλωση. */
+  blocking: Requirement[];
+  /** Λείπουν αλλά δεν μπλοκάρουν. */
+  pending: Requirement[];
+  /** Πόσα από όσα λείπουν είναι δική σου δουλειά. Το νούμερο που ηρεμεί. */
+  yours: number;
+  /** Μία φράση για την οθόνη. */
+  message: string;
+}
+
+/**
+ * Η ετοιμότητα, με το νούμερο που ηρεμεί.
+ *
+ * Το «7 από 11» δεν λέει τίποτα μόνο του. Το «λείπουν 4, και μόνο τα 2 είναι
+ * δικά σου» λέει τα πάντα: ο χρήστης καταλαβαίνει ότι η δουλειά του είναι
+ * μικρή και μετρήσιμη. Αυτή είναι όλη η διαφορά ανάμεσα σε λίστα και σε
+ * ανακούφιση.
+ */
+export function readiness(reqs: readonly Requirement[], haveIds: readonly string[]): Readiness {
+  const have = new Set(haveIds);
+  const missing = reqs.filter(r => !have.has(r.id));
+  const blocking = missing.filter(r => r.blocking);
+  const pending = missing.filter(r => !r.blocking);
+  const yours = missing.filter(r => r.who === 'owner').length;
+  const done = reqs.length - missing.length;
+
+  let message: string;
+  if (missing.length === 0) {
+    message = 'Ο φάκελος είναι πλήρης. Μπορείς να τον στείλεις στον λογιστή σου.';
+  } else if (blocking.length === 0) {
+    message = yours === 0
+      ? `Λείπουν ${pending.length}, κανένα δεν σε αφορά. Τα ετοιμάζουμε εμείς ή ο λογιστής.`
+      : `Λείπουν ${missing.length}, από τα οποία ${yours === 1 ? 'ένα είναι' : `${yours} είναι`} δικά σου.`;
+  } else {
+    const b = blocking.length === 1 ? 'Ένα πράγμα λείπει' : `${blocking.length} πράγματα λείπουν`;
+    message = yours === 0
+      ? `${b} για να κλείσει η δήλωση. Δεν χρειάζεται κάτι από εσένα.`
+      : `${b} για να κλείσει η δήλωση, και ${yours === 1 ? 'το ένα είναι' : `τα ${yours} είναι`} δικά σου.`;
+  }
+
+  return { total: reqs.length, done, blocking, pending, yours, message };
+}
+
+/** Ομαδοποίηση για την οθόνη: τρεις στήλες, μία ανά υπεύθυνο. */
+export function groupByWho(reqs: readonly Requirement[]): { who: Who; label: string; items: Requirement[] }[] {
+  const order: Who[] = ['owner', 'app', 'accountant'];
+  return order
+    .map(who => ({ who, label: WHO_LABEL[who], items: reqs.filter(r => r.who === who) }))
+    .filter(g => g.items.length > 0);
+}
+
+/** Οι παγίδες που κοστίζουν χρήματα, χωρίς διπλά. Εμφανίζονται μία φορά,
+ *  μαζεμένες, γιατί σκόρπιες σε δώδεκα γραμμές δεν διαβάζονται. */
+export function traps(reqs: readonly Requirement[]): { title: string; trap: string }[] {
+  return reqs.filter(r => r.trap).map(r => ({ title: r.title, trap: r.trap as string }));
+}
+
+/** Η κατάσταση σε μορφή που καταλαβαίνει ο λογιστής. */
+export const statusForAccountant = (s: PropertyStatus): string => ({
+  rent_long: 'Εκμίσθωση',
+  rent_short: 'Βραχυχρόνια μίσθωση',
+  vacant: 'Κενό',
+  own_use: 'Ιδιοχρησιμοποίηση',
+  renovation: 'Σε ανακαίνιση',
+  for_sale: 'Προς πώληση',
+  disputed: 'Νομική εκκρεμότητα',
+}[s]);
+
+/** Οι καταστάσεις των ακινήτων, από γραμμές βάσης. */
+export const statusesOf = (rows: readonly StatusRow[]): PropertyStatus[] =>
+  rows.map(readStatus);
