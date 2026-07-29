@@ -9,8 +9,12 @@ import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } f
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const fk = (n: number) => `${n.toFixed(4)} €`;
-// FIX: was 'Ιούνιος 2026', updated to reflect latest confirmed source data (DEI July 2026 extraction, Protergia/Zenith/Enerwave June 2026)
-const LAST_UPDATED = 'Ιούλιος 2026';
+// Η ημερομηνία έρχεται από ΤΟ ΙΔΙΟ αρχείο που ελέγχει το workflow φρεσκάδας
+// (.github/workflows/price-freshness.yml). Όσο ήταν σταθερά μέσα στο component,
+// μπορούσε να γεράσει χωρίς να το προσέξει κανείς, ενώ ο χρήστης τη διάβαζε ως
+// εγγύηση. Τώρα, αν παλιώσει, ανοίγει issue από μόνο του.
+import priceSources from '@/data/price-sources.json';
+const LAST_UPDATED = priceSources.electricity.label;
 const RAAYEY_URL  = 'https://energycost.gr/%CF%85%CF%80%CE%BF%CE%BB%CE%BF%CE%B3%CE%B9%CF%83%CE%BC%CF%8C%CF%82-%CF%84%CE%B9%CE%BC%CE%AE%CF%82-%CE%B2%CE%AC%CF%83%CE%B5%CE%B9-%CE%BA%CE%B1%CF%84%CE%B1%CE%BD%CE%AC%CE%BB%CF%89%CF%83%CE%B7%CF%82-2/';
 // Ο υπολογισμός κόστους ζει σε ένα σημείο, με tests. Δείτε lib/energy/tariff.ts
 // για τον λόγο: εδώ υπήρχαν δύο διαφορετικοί τύποι για το ίδιο νούμερο.

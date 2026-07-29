@@ -9,6 +9,7 @@
     "lint": "eslint",
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
     "security": "node scripts/security-check.mjs",
+    "prices": "node scripts/price-freshness.mjs",
     "test": "node scripts/test.mjs"
   },
   "dependencies": {
