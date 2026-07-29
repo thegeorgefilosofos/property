@@ -14,13 +14,42 @@
  * ρητή συγκατάθεση και καθαρισμό στο logout — όχι εδώ.
  *
  * Στρατηγική:
- *   navigate  → network-first, με fallback στη σελίδα /offline
- *   στατικά   → stale-while-revalidate (γρήγορα και πάντα φρέσκα την επόμενη)
+ *   navigate           → network-first, με fallback στη σελίδα /offline
+ *   /_next/static/     → NETWORK-FIRST (δες παρακάτω γιατί), cache μόνο ως δίχτυ
+ *   fonts/icons        → stale-while-revalidate
  *   όλα τα άλλα (API, Supabase, POST) → σκέτο δίκτυο, χωρίς άγγιγμα
+ *
+ * ═══ ΓΙΑΤΙ ΤΑ ΑΡΧΕΙΑ ΤΟΥ BUILD ΔΕΝ ΕΙΝΑΙ STALE-WHILE-REVALIDATE ═══════════
+ *
+ * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΕΚΛΕΙΣΕ ΤΗΝ ΕΦΑΡΜΟΓΗ:
+ * Η προηγούμενη έκδοση σέρβιρε τα `/_next/static/` με stale-while-revalidate,
+ * δηλαδή ΠΡΩΤΑ ό,τι είχε αποθηκευμένο και ανανέωνε στο παρασκήνιο. Αυτό είναι
+ * σωστό ΜΟΝΟ όταν το όνομα του αρχείου αλλάζει μαζί με το περιεχόμενό του.
+ *
+ * Με το Turbopack ΔΕΝ ισχύει. Τα ονόματα των chunk βγαίνουν από τη διαδρομή του
+ * module και όχι από hash περιεχομένου: `08ij7tla2f_q_.js` μένει `08ij7tla2f_q_.js`
+ * σε κάθε build, με ΑΛΛΟ περιεχόμενο μέσα.
+ *
+ * Το αποτέλεσμα ήταν θανατηφόρο και σιωπηλό:
+ *   • Η σελίδα (navigate) ερχόταν ΚΑΙΝΟΥΡΓΙΑ, γιατί είναι network-first.
+ *   • Τα chunk έρχονταν ΠΑΛΙΑ, από την cache, με το ίδιο όνομα.
+ *   • Το νέο HTML ζητούσε modules που το παλιό chunk δεν είχε.
+ *   • React error boundary: «Κάτι πήγε στραβά».
+ *
+ * Η αρχική σελίδα επιβίωνε επειδή έχει ελάχιστα chunk. Το dashboard, με δεκάδες,
+ * έσπαγε πάντα. Και δεν υπήρχε διέξοδος: ο χρήστης δεν μπορούσε να φτάσει καν
+ * στην αποσύνδεση που καθαρίζει τις caches.
+ *
+ * ΤΟ ΚΟΣΤΟΣ ΤΗΣ ΔΙΟΡΘΩΣΗΣ ΕΙΝΑΙ ΣΧΕΔΟΝ ΜΗΔΕΝ: τα αρχεία του build σερβίρονται με
+ * `immutable` cache headers, οπότε το network-first χτυπά τη ΔΙΚΗ ΤΟΥ HTTP cache
+ * του browser και δεν κατεβάζει τίποτα ξανά. Η cache του service worker μένει
+ * μόνο ως δίχτυ για όταν πέσει το δίκτυο.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-// Άλλαξε την έκδοση όποτε αλλάξει η λογική: οι παλιές caches σβήνονται στο activate.
-const VERSION = 'v1';
+// Άλλαξε την έκδοση όποτε αλλάξει η λογική: οι παλιές caches σβήνονται στο
+// activate. Το v2 είναι αυτό που ΞΕΚΛΕΙΔΩΝΕΙ τις ήδη χαλασμένες εγκαταστάσεις:
+// σβήνει το δηλητηριασμένο pos-static-v1 με τα ασύμβατα chunk.
+const VERSION = 'v2';
 const SHELL_CACHE = `pos-shell-${VERSION}`;
 const STATIC_CACHE = `pos-static-${VERSION}`;
 const OFFLINE_URL = '/offline';
@@ -54,11 +83,20 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-/** Στατικό αρχείο που είναι ασφαλές να αποθηκευτεί; Μόνο δικά μας assets. */
-function isCacheableStatic(url) {
-  if (url.origin !== self.location.origin) return false;
-  return url.pathname.startsWith('/_next/static/')
-      || url.pathname.startsWith('/fonts/')
+/**
+ * Αρχείο του build (JavaScript, CSS). Το όνομά του ΞΑΝΑΧΡΗΣΙΜΟΠΟΙΕΙΤΑΙ σε
+ * επόμενο build με άλλο περιεχόμενο, άρα δεν επιτρέπεται να σερβιριστεί παλιό.
+ */
+function isBuildAsset(url) {
+  return url.pathname.startsWith('/_next/static/');
+}
+
+/**
+ * Αρχείο με σταθερό όνομα ΚΑΙ σταθερό περιεχόμενο, δικό μας. Γραμματοσειρές και
+ * εικονίδια αλλάζουν σχεδόν ποτέ, και όταν αλλάξουν, αλλάζει και το όνομα.
+ */
+function isStableAsset(url) {
+  return url.pathname.startsWith('/fonts/')
       || url.pathname.startsWith('/icons/')
       || url.pathname === '/favicon.ico';
 }
@@ -82,9 +120,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (!isCacheableStatic(url)) return;
+  // Αρχεία του build: ΠΑΝΤΑ δίκτυο πρώτα. Η cache είναι μόνο δίχτυ για offline.
+  // Ένα παλιό chunk με το ίδιο όνομα και άλλο περιεχόμενο κλειδώνει την
+  // εφαρμογή σε «Κάτι πήγε στραβά», χωρίς τρόπο διαφυγής για τον χρήστη.
+  if (isBuildAsset(url)) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        try {
+          const res = await fetch(req);
+          if (res && res.ok) cache.put(req, res.clone());
+          return res;
+        } catch {
+          const hit = await cache.match(req);
+          return hit || Response.error();
+        }
+      })
+    );
+    return;
+  }
 
-  // Στατικά: σερβίρουμε αμέσως ό,τι έχουμε και ανανεώνουμε στο παρασκήνιο.
+  if (!isStableAsset(url)) return;
+
+  // Σταθερά αρχεία: σερβίρουμε αμέσως ό,τι έχουμε και ανανεώνουμε στο παρασκήνιο.
   event.respondWith(
     caches.open(STATIC_CACHE).then(async (cache) => {
       const hit = await cache.match(req);
