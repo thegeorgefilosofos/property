@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
+import TabBoundary  from './components/TabBoundary';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabPricing   from './components/TabPricing';
@@ -1348,6 +1349,14 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
+            {/* ΚΑΘΕ ΚΑΡΤΕΛΑ ΣΕ ΔΙΚΟ ΤΗΣ ΔΙΧΤΥ.
+                Είκοσι δύο καρτέλες ζουν σε ΕΝΑ δέντρο React. Χωρίς αυτό, ένα
+                σφάλμα σε οποιαδήποτε ανέβαινε ως το boundary ΟΛΗΣ της διαδρομής
+                και η εφαρμογή δεν άνοιγε καθόλου: ο ιδιοκτήτης έχανε ενοίκια,
+                ημερολόγιο και έγγραφα επειδή κάπου αλλού κάτι βρήκε ένα null.
+                Το `key` ξαναστήνει το δίχτυ σε κάθε αλλαγή καρτέλας, ώστε ένα
+                σφάλμα σε μία να μην κρατά κλειδωμένες τις υπόλοιπες. */}
+            <TabBoundary name={nav} key={nav}>
             <div className="app-content">
               {['contacts','documents','checklist','inventory'].includes(nav) && (
                 <button onClick={()=>setNav('overview')} title="Πίσω στην Επισκόπηση" aria-label="Πίσω στην Επισκόπηση"
@@ -1381,6 +1390,7 @@ export default function Dashboard() {
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType} navShowAll={navShowAll} onNavShowAllChange={setNavShowAllPref}/>}
             </div>
+            </TabBoundary>
           </>
         )}
       </main>
