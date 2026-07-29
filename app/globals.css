@@ -57,59 +57,25 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   GOOGLE MATERIAL 3 — LIGHT (DEFAULT)
-   Source: material.io/design/color/the-color-system
+   ΧΡΩΜΑΤΙΚΟ ΣΥΣΤΗΜΑ — ΑΝΟΙΧΤΟ ΘΕΜΑ (ΠΡΟΕΠΙΛΟΓΗ)
+   ─────────────────────────────────────────────────────────────
+   ΜΙΑ πηγή αλήθειας. Κάθε χρώμα εδώ έχει ΣΗΜΑΣΙΑ, όχι απόχρωση:
+   ένα στοιχείο δεν είναι «πράσινο», είναι --positive. Αν αλλάξει
+   η απόχρωση, αλλάζει σε ένα σημείο και ακολουθεί όλο το app.
+
+   ΚΑΝΟΝΑΣ: κανένα component δεν γράφει ωμό hex. Το επιβάλλει το
+   scripts/color-ratchet.mjs στο CI. Τον Ιούλιο 2026 μετρήθηκαν
+   232 μοναδικά hex σε 47 από τα 120 .tsx — τρεις ξένες παλέτες
+   (Material, Tailwind, αυθαίρετα) μπλεγμένες. Από εκεί ξεκίνησε
+   αυτό το αρχείο.
+
+   ΤΙ ΣΒΗΣΤΗΚΕ: 90 ορισμοί --md-* και --google-* που δεν τους
+   χρησιμοποιούσε ΚΑΝΕΝΑ component. Έμοιαζαν με σύστημα και ήταν
+   νεκρό βάρος: όποιος τα διάβαζε (άνθρωπος ή μοντέλο) διάλεγε
+   ένα στην τύχη και μεγάλωνε το χάος.
 ══════════════════════════════════════════════════════════════ */
 :root,
 [data-mode="light"] {
-
-  /* ── MD3 Primary — Google Blue ── */
-  --md-primary:            #1967D2;
-  --md-on-primary:         #ffffff;
-  --md-primary-container:  #d2e3fc;
-  --md-on-primary-container: #041e49;
-
-  /* ── MD3 Secondary — Google Grey-Blue ── */
-  --md-secondary:          #444746;
-  --md-on-secondary:       #ffffff;
-  --md-secondary-container:#dde3ea;
-  --md-on-secondary-container: #141d1e;
-
-  /* ── MD3 Tertiary — Google Green ── */
-  --md-tertiary:           #188038;
-  --md-on-tertiary:        #ffffff;
-  --md-tertiary-container: #ceead6;
-  --md-on-tertiary-container: #0d652d;
-
-  /* ── MD3 Error ── */
-  --md-error:              #c5221f;
-  --md-on-error:           #ffffff;
-  --md-error-container:    #fce8e6;
-  --md-on-error-container: #a50e0e;
-
-  /* ── MD3 Surface (Google's exact surface system) ── */
-  --md-surface:            #f8f9fa;   /* Google property bg */
-  --md-surface-dim:        #d9dbe0;
-  --md-surface-bright:     #ffffff;
-  --md-surface-container-lowest:  #ffffff;
-  --md-surface-container-low:     #f1f3f4;
-  --md-surface-container:         #e8eaed;
-  --md-surface-container-high:    #dde1e7;
-  --md-surface-container-highest: #c6cbd2;
-
-  --md-on-surface:         #1f2328;   /* Google's text primary */
-  --md-on-surface-variant: #444746;   /* Google's text secondary */
-
-  /* ── MD3 Outline ── */
-  --md-outline:            #747775;
-  --md-outline-variant:    #c4c7c5;   /* Google's divider */
-
-  /* ── Google-specific semantic ── */
-  --google-blue:   #1967D2;
-  --google-red:    #c5221f;
-  --google-yellow: #f9ab00;
-  --google-green:  #188038;
-  --google-grey:   #5f6368;
 
   /* ── Map to Property OS vars (used by components) ── */
   --bg-base:       #f8f9fa;
@@ -190,46 +156,15 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   GOOGLE MATERIAL 3 — DARK
-   Source: material.io/design/color/dark-theme
+   ΧΡΩΜΑΤΙΚΟ ΣΥΣΤΗΜΑ — ΣΚΟΤΕΙΝΟ ΘΕΜΑ
+   ─────────────────────────────────────────────────────────────
+   ΤΑ ΙΔΙΑ ΟΝΟΜΑΤΑ, άλλες τιμές. Γι' αυτό ακριβώς απαγορεύεται το
+   ωμό hex στα components: ένα καρφωμένο #fff ή #111 δουλεύει σε
+   ένα από τα δύο θέματα και σπάει σιωπηλά στο άλλο.
 ══════════════════════════════════════════════════════════════ */
 [data-mode="dark"] {
 
-  --md-primary:            #aecbfa;
-  --md-on-primary:         #0a2d6b;
-  --md-primary-container:  #1557b0;
-  --md-on-primary-container: #d3e3fd;
-
-  --md-secondary:          #bec8ca;
-  --md-on-secondary:       #283234;
-  --md-secondary-container:#3e4748;
-  --md-on-secondary-container: #dde3ea;
-
-  --md-tertiary:           #6dd58c;
-  --md-on-tertiary:        #003919;
-  --md-tertiary-container: #00522a;
-  --md-on-tertiary-container: #8af2a7;
-
-  --md-error:              #f2b8b5;
-  --md-on-error:           #601410;
-  --md-error-container:    #8c1d18;
-  --md-on-error-container: #f9dedc;
-
   /* Google dark surfaces — exactly like Google Calendar/Drive dark */
-  --md-surface:            #1f1f1f;
-  --md-surface-dim:        #131313;
-  --md-surface-bright:     #383838;
-  --md-surface-container-lowest:  #0d0d0d;
-  --md-surface-container-low:     #1c1b1f;
-  --md-surface-container:         #201f23;
-  --md-surface-container-high:    #2b2b2b;
-  --md-surface-container-highest: #363636;
-
-  --md-on-surface:         #e3e3e3;
-  --md-on-surface-variant: #c4c7c5;
-
-  --md-outline:            #8e918f;
-  --md-outline-variant:    #444746;
 
   /* Map to Property OS vars */
   --bg-base:       #202124;
@@ -321,8 +256,8 @@ body {
 
 /* ── Selection ── */
 ::selection {
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--text-primary);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -876,7 +811,7 @@ body {
   margin: 2px 8px;
 }
 .prop-item:hover { background: var(--bg-hover); }
-.prop-item.active { background: var(--md-secondary-container); }
+.prop-item.active { background: var(--bg-active); }
 
 .prop-item-dot {
   width: 8px; height: 8px;
@@ -895,7 +830,7 @@ body {
 }
 .prop-item.active .prop-item-name {
   font-weight: 700;
-  color: var(--md-on-secondary-container);
+  color: var(--text-primary);
 }
 /* Κουμπί διαγραφής ακινήτου: εμφανίζεται όταν ο κέρσορας πλησιάζει το ακίνητο. */
 .prop-item-del {
@@ -951,28 +886,12 @@ body {
    MD3 MOTION — Google's exact easing curves
 ══════════════════════════════════════════════════════════════ */
 :root {
-  --md-easing-standard:          cubic-bezier(0.2, 0, 0, 1);
-  --md-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
-  --md-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
-  --md-easing-emphasized:        cubic-bezier(0.2, 0, 0, 1);
-  --md-duration-short1: 50ms;
-  --md-duration-short2: 100ms;
-  --md-duration-medium1: 200ms;
-  --md-duration-medium2: 300ms;
-  --md-duration-long1: 450ms;
 }
 
 /* ══════════════════════════════════════════════════════════════
    GOOGLE SHAPE SYSTEM — MD3 border radius tokens
 ══════════════════════════════════════════════════════════════ */
 :root {
-  --md-shape-none:        0px;
-  --md-shape-extra-small: 4px;    /* text fields, menus */
-  --md-shape-small:       8px;    /* chips, small cards */
-  --md-shape-medium:      12px;   /* cards, dialogs */
-  --md-shape-large:       16px;   /* large cards */
-  --md-shape-extra-large: 28px;   /* bottom sheets */
-  --md-shape-full:        1000px; /* pills, FAB */
 }
 
 /* Hide number spinners */
@@ -1063,19 +982,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     --highlight-inset-strong: inset 0 1px 0 rgba(255,255,255,.10);
     --well-inset:             inset 0 1px 2px rgba(0,0,0,.32), inset 0 0 0 1px rgba(0,0,0,.15);
     --ring-track:             #3c4043;
-    --md-primary:            #aecbfa;
-    --md-on-primary:         #0a2d6b;
-    --md-primary-container:  #1557b0;
-    --md-on-primary-container: #d3e3fd;
-    --md-surface-container:         #201f23;
-    --md-surface-container-high:    #2b2b2b;
-    --md-secondary-container:#3e4748;
-    --md-on-secondary-container: #dde3ea;
-    --md-tertiary-container: #00522a;
-    --md-on-tertiary-container: #8af2a7;
-    --md-error-container:    #8c1d18;
-    --md-on-error-container: #f9dedc;
-    --md-outline-variant:    #444746;
   }
 }
 
@@ -1346,7 +1252,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-size: 14px; color: var(--text-primary); font-family: 'Inter', sans-serif;
   border-radius: 10px;
 }
-.cmdk-item.active { background: var(--md-secondary-container); }
+.cmdk-item.active { background: var(--bg-active); }
 .cmdk-item-hint { margin-left: auto; font-size: 11px; color: var(--text-tertiary); }
 .cmdk-empty { padding: 28px; text-align: center; color: var(--text-tertiary); font-size: 13px; font-family: 'Inter', sans-serif; }
 

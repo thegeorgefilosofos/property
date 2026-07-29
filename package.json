@@ -12,6 +12,7 @@
     "prices": "node scripts/price-freshness.mjs",
     "money": "node scripts/money-reads.mjs",
     "module-init": "node scripts/check-module-init.mjs",
+    "color:ratchet": "node scripts/color-ratchet.mjs",
     "test": "node scripts/test.mjs"
   },
   "dependencies": {
