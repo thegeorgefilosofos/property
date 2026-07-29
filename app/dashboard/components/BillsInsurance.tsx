@@ -5,9 +5,31 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, InfoBanner, Skeleton, SkeletonKPIs } from '@/components/Theme';
+import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
 
 const INSURANCEMARKET_URL = 'https://www.insurancemarket.gr/asfaleia-katoikias';
 const PRICEFOX_URL = 'https://www.pricefox.gr/asfalia-katoikias/';
+
+/**
+ * Μάρκες που ανήκουν στην ίδια ασφαλιστική επιχείρηση.
+ *
+ * Το Anytime είναι το ψηφιακό κανάλι της Interamerican, όχι δεύτερη εταιρεία.
+ * Χωρίς αυτό, μια πρόταση «συγκρίναμε 9 εταιρείες» θα μετρούσε την ίδια
+ * επιχείρηση δύο φορές. Τα προγράμματα μένουν και τα δύο, γιατί είναι
+ * πραγματικά διαφορετικά προϊόντα με διαφορετική τιμή, αλλά η ΕΠΙΧΕΙΡΗΣΗ
+ * μετριέται μία.
+ *
+ * Η αυθεντική πηγή για το ποιες ασφαλιστικές λειτουργούν σήμερα και με ποιο
+ * όνομα είναι το δημόσιο μητρώο ασφαλιστικών επιχειρήσεων της Τράπεζας της
+ * Ελλάδος. Ο κατάλογος οφείλει να διασταυρώνεται εκεί σε κάθε ενημέρωση.
+ */
+const BRAND_PARENT: Record<string, string> = {
+  anytime: 'interamerican',
+};
+
+/** Πόσες ΕΠΙΧΕΙΡΗΣΕΙΣ, όχι πόσες μάρκες. */
+const distinctInsurers = (companyIds: string[]): number =>
+  new Set(companyIds.map(c => BRAND_PARENT[c] ?? c)).size;
 
 // ─── Insurance data ────────────────────────────────────────────────────────────
 const INSURANCE_COMPANIES = [
@@ -193,7 +215,22 @@ interface LiveQuote {
   savings?: number; // vs current plan
 }
 
-function computeLiveQuotes(sqm: number, propValue: number, contentValue: number, floor: string, age: string, city: string): LiveQuote[] {
+/**
+ * Το ΕΝΔΕΙΚΤΙΚΟ κόστος κάθε προγράμματος για το ακίνητο.
+ *
+ * ΤΙ ΕΙΝΑΙ ΚΑΙ ΤΙ ΔΕΝ ΕΙΝΑΙ: είναι μοντέλο τιμής πάνω στις δημοσιευμένες τιμές
+ * εκκίνησης των εταιρειών. ΔΕΝ είναι προσφορά. Πραγματική τιμή ασφάλισης
+ * κατοικίας δεν υπάρχει δημοσιευμένη: παράγεται από τα στοιχεία του
+ * συγκεκριμένου ακινήτου και προσώπου, και τη δίνει μόνο η ασφαλιστική. Γι'
+ * αυτό κάθε ποσό εδώ φέρει `confidence: 'estimated'` και η οθόνη στέλνει τον
+ * χρήστη στην πηγή για την πραγματική προσφορά.
+ *
+ * ΠΡΟΣΟΧΗ ΣΤΟ ΤΙ ΚΑΝΕΙ Ο ΣΥΝΤΕΛΕΣΤΗΣ: ανεβοκατεβάζει ΟΛΑ τα προγράμματα μαζί,
+ * άρα ΔΕΝ αλλάζει σειρά. Η σειρά βγαίνει από τη μηχανή αναγκών
+ * (lib/insurance/match.ts) και όχι από εδώ. Παλιά δεν υπήρχε τέτοια μηχανή, και
+ * η «εξατομικευμένη σύγκριση» έβγαζε ακριβώς την ίδια κατάταξη για κάθε ακίνητο.
+ */
+function computeLiveQuotes(sqm: number, propValue: number, contentValue: number, floor: string, age: string): LiveQuote[] {
   if (!sqm || !propValue) return [];
 
   // Pricing factors based on property characteristics
@@ -202,8 +239,11 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
   const contentF     = Math.max(0.9, Math.min(1.4, (contentValue || 20000) / 20000));
   const floorRisk    = floor === 'ground' ? 1.15 : floor === 'basement' ? 1.25 : 1.0;
   const ageRisk      = age === 'over_30' ? 1.20 : age === '25_30' ? 1.10 : age === 'under_5' ? 0.90 : 1.0;
-  const cityRisk     = city.toLowerCase().includes('αθήν') || city.toLowerCase().includes('athen') ? 1.05 : 1.0;
-  const totalFactor  = sqmFactor * valueFactor * contentF * floorRisk * ageRisk * cityRisk;
+  // Η σεισμική ζώνη ΔΕΝ βγαίνει από το όνομα της πόλης. Ο παλιός κώδικας έψαχνε
+  // αν το κείμενο περιείχε «Αθήν» και πρόσθετε 5%. Η ζώνη ορίζεται από χάρτη
+  // κανονισμού, όχι από αλφαριθμητικά, και η Αθήνα δεν είναι καν η πιο
+  // επιβαρυμένη περιοχή. Αφαιρέθηκε αντί να αντικατασταθεί με άλλη μαντεψιά.
+  const totalFactor  = sqmFactor * valueFactor * contentF * floorRisk * ageRisk;
 
   return INSURANCE_COMPANIES
     .filter(c => c.value !== 'other')
@@ -231,8 +271,8 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
         url:           c.url,
         confidence:    'estimated' as const,
       };
-    }))
-    .sort((a, b) => a.monthlyEstimate - b.monthlyEstimate);
+    }));
+  // Καμία ταξινόμηση εδώ. Τη σειρά την ορίζει η καταλληλότητα, όχι η τιμή.
 }
 
 // ─── ΑΑΔΕ API Integration (Ready for when API launches) ──────────────────────
@@ -301,6 +341,12 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     sqm?: string; zone?: string; floor?: string; age?: string;
     propValue?: string; contentValue?: string; city?: string;
     propertyType?: string; isRented?: boolean;
+    // Τα τέσσερα που κρίνουν την πρόταση, και που δεν φορτώνονταν ποτέ.
+    yearBuilt?: number | null;
+    rentalMode?: 'long_term' | 'short_term' | '';
+    furnished?: boolean;
+    hasLoan?: boolean;
+    monthlyRent?: number | null;
   }>({});
   const [calendarSynced, setCalendarSynced] = useState(false);
   // ── ΑΑΔΕ API state ───────────────────────────────────────────────────────
@@ -326,7 +372,20 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         const { data: svc } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'services').maybeSingle();
         // Property name/address from properties table for city detection
         const { data: prop } = await supabase.from('properties').select('address,city,sqm,prop_type,status_detail').eq('id', propertyId).maybeSingle();
-        if (svc?.data || prop) {
+        // ΤΑ ΔΕΔΟΜΕΝΑ ΠΟΥ ΑΛΛΑΖΟΥΝ ΤΗΝ ΠΡΟΤΑΣΗ. Το έτος κατασκευής, το δάνειο
+        // και ο τρόπος εκμετάλλευσης δεν φορτώνονταν ποτέ σε αυτή την οθόνη,
+        // οπότε η «εξατομικευμένη» σύγκριση δεν είχε τι να εξατομικεύσει.
+        const [{ data: up }, { data: loans }, { data: tenants }] = await Promise.all([
+          supabase.from('user_properties').select('year_built,rental_mode,furnished,target_rent').eq('id', propertyId).maybeSingle(),
+          supabase.from('loans').select('status').eq('property_id', propertyId),
+          supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
+        ]);
+        const activeLoan = (loans ?? []).some(l => (l as { status?: string }).status !== 'closed' && (l as { status?: string }).status !== 'inactive');
+        const activeRent = (tenants ?? [])
+          .filter(t => (t as { status?: string }).status !== 'past' && !(t as { move_out_date?: string }).move_out_date)
+          .reduce((s, t) => s + (Number((t as { monthly_rent?: number }).monthly_rent) || 0), 0);
+        const u = (up ?? {}) as { year_built?: number; rental_mode?: string; furnished?: boolean; target_rent?: number };
+        if (svc?.data || prop || up) {
           const d = (svc?.data as any) || {};
           setCrossProperty({
             sqm:          d.enfiaSqm       || prop?.sqm       || '',
@@ -336,6 +395,11 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
             city:         prop?.city       || prop?.address   || '',
             propertyType: prop?.prop_type  || '',
             isRented:     prop?.status_detail === 'rented',
+            yearBuilt:    Number(u.year_built) || null,
+            rentalMode:   u.rental_mode === 'long_term' || u.rental_mode === 'short_term' ? u.rental_mode : '',
+            furnished:    !!u.furnished,
+            hasLoan:      activeLoan,
+            monthlyRent:  activeRent || Number(u.target_rent) || null,
           });
         }
       } catch (_) {}
@@ -382,18 +446,20 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
     if (quotesTimer.current) clearTimeout(quotesTimer.current);
     setQuotesLoading(true);
+    // Μικρή καθυστέρηση επειδή ο χρήστης πληκτρολογεί, ΟΧΙ για να μιμηθεί
+    // κλήση σε διακομιστή. Ο παλιός κώδικας περίμενε 800ms με τη σημείωση
+    // «Simulate API latency»: έδειχνε στον χρήστη ότι κάτι ρωτιέται κάπου, ενώ
+    // ο υπολογισμός γινόταν τοπικά. Το ψεύτικο περίμενε είναι ψέμα στην οθόνη.
     quotesTimer.current = setTimeout(() => {
-      // Simulate API latency (replace with real fetch)
-      const quotes = computeLiveQuotes(sqm, pVal, cVal, effectiveFloor, effectiveAge, effectiveCity);
-      // Add savings vs current plan
+      const quotes = computeLiveQuotes(sqm, pVal, cVal, effectiveFloor, effectiveAge);
       const currentMonthly = parseFloat(insCustomPrice) || ((insCompany?.plans ?? []).find(p => p.id === insPlanId) as any)?.monthly || 0;
       const withSavings = quotes.map(q => ({ ...q, savings: currentMonthly > 0 ? currentMonthly - q.monthlyEstimate : undefined }));
       setLiveQuotes(withSavings);
       setQuotesLoading(false);
-    }, 800);
+    }, 250);
 
     return () => { if (quotesTimer.current) clearTimeout(quotesTimer.current); };
-  }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, effectiveCity, insCustomPrice, insPlanId]);
+  }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId]);
 
   // ── ΑΑΔΕ connect ─────────────────────────────────────────────────────────
   const connectAADE = async () => {
@@ -513,22 +579,50 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     })();
   }, [propertyId, insRenewalDate]);
 
-  const filteredQuotes = liveQuotes.filter(q =>
+  // ── ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ ────────────────────────────────────────
+  // Οι ανάγκες βγαίνουν από όσα ξέρουμε γι' αυτό το συγκεκριμένο ακίνητο, με
+  // γραμμένη την αιτιολογία της καθεμιάς. Όπου το δεδομένο λείπει, η ανάγκη δεν
+  // ανεβαίνει σε «απαραίτητη»: δεν φτιάχνουμε επείγον από άγνοια.
+  const risk: PropertyRisk = {
+    sqm: parseFloat(effectiveSqm) || null,
+    buildYear: crossProperty.yearBuilt ?? null,
+    floor: effectiveFloor === 'basement' ? 'basement'
+      : effectiveFloor === 'ground' ? 'ground'
+      : effectiveFloor === 'top' ? 'top' : 'mid',
+    hasLoan: !!crossProperty.hasLoan,
+    rentalMode: crossProperty.rentalMode ?? '',
+    furnished: !!crossProperty.furnished,
+    contentsValue: parseFloat(insContentValue) || null,
+    monthlyRent: crossProperty.monthlyRent ?? null,
+  };
+  const needs = assessNeeds(risk);
+
+  // Η ΚΑΤΑΤΑΞΗ: πρώτα καταλληλότητα, μετά τιμή. Ένα πρόγραμμα που δεν καλύπτει
+  // σεισμό, σε ακίνητο με δάνειο, δεν είναι φθηνό. Είναι άχρηστο, γιατί η
+  // τράπεζα δεν το δέχεται.
+  const ranked = matchPlans(
+    liveQuotes.map(q => ({
+      id: q.plan, name: q.planLabel, company: q.company, companyLabel: q.companyLabel,
+      monthly: q.monthlyEstimate, annual: q.annualEstimate,
+      earthquake: q.earthquake, flood: q.flood, covers: q.covers, url: q.url,
+    })),
+    needs,
+  );
+  const quoteOf = (id: string) => liveQuotes.find(q => q.plan === id)!;
+  const orderedQuotes = ranked.map(r => quoteOf(r.plan.id)).filter(Boolean);
+  const matchOf = new Map(ranked.map(r => [r.plan.id, r]));
+
+  const filteredQuotes = orderedQuotes.filter(q =>
     quotesFilter === 'all'       ? true :
     quotesFilter === 'earthquake' ? q.earthquake :
     quotesFilter === 'flood'      ? q.flood :
     quotesFilter === 'natural'    ? q.natural : true
   );
 
-  // ── Πρόταση ιδανικού προγράμματος βάσει του ακινήτου (liveQuotes ταξινομημένα κατά τιμή) ──
-  const recommended: { q: LiveQuote; reason: string } | null = (() => {
-    if (!liveQuotes.length) return null;
-    const full = liveQuotes.filter(q => q.earthquake && q.flood && q.natural);
-    if (full.length) return { q: full[0], reason: 'Πλήρης κάλυψη, σεισμός, πλημμύρα & φυσικά φαινόμενα στην καλύτερη τιμή' };
-    const fl = liveQuotes.filter(q => q.flood && q.natural);
-    if (fl.length) return { q: fl[0], reason: 'Κάλυψη πλημμύρας & φυσικών φαινομένων στην καλύτερη τιμή' };
-    return { q: liveQuotes[0], reason: 'Καλύτερη σχέση τιμής και κάλυψης για το ακίνητό σου' };
-  })();
+  // Η πρόταση, με τον λόγο της γραμμένο. Ο χρήστης αποφασίζει, αλλά οφείλει να
+  // έχει τα στοιχεία για να διαφωνήσει τεκμηριωμένα.
+  const recommended: { q: LiveQuote; reason: string } | null =
+    ranked.length ? { q: quoteOf(ranked[0].plan.id), reason: explain(ranked[0], ranked, needs) } : null;
 
   const toggleStreaming = (svc: string) => {
     if ((activeStreaming || []).find(a => a.service === svc)) {
@@ -693,10 +787,16 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: quotesLoading ? 'var(--text-tertiary)' : liveQuotes.length > 0 ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.3s' }}/>
                 <span title="quotes: προσφορές / εκτιμήσεις ασφαλίστρων ανά εταιρεία και πρόγραμμα" style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                  {quotesLoading ? 'Υπολογισμός quotes...' : `Συγκριτική Εκτίμηση —${liveQuotes.length} προγράμματα`}
+                  {quotesLoading
+                    ? 'Υπολογισμός…'
+                    : `${liveQuotes.length} προγράμματα από ${distinctInsurers(liveQuotes.map(q => q.company))} ασφαλιστικές`}
                 </span>
+                {/* Η λέξη «ενδεικτικές» δεν είναι νομικίστικη προφύλαξη, είναι
+                    η αλήθεια: πραγματική τιμή ασφάλισης κατοικίας δεν υπάρχει
+                    δημοσιευμένη, παράγεται από τα στοιχεία του συγκεκριμένου
+                    ακινήτου και προσώπου και τη δίνει μόνο η ασφαλιστική. */}
                 <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
-                  Εκτίμηση βάσει στοιχείων
+                  Ενδεικτικές τιμές, όχι προσφορές
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
@@ -717,6 +817,36 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 </button>
               </div>
             </div>
+
+            {/* ── ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ ────────────────────────────
+                Πριν από κάθε τιμή. Η κατάταξη βγαίνει από εδώ και ο χρήστης
+                πρέπει να μπορεί να δει τα κριτήρια και να διαφωνήσει: αν η
+                μηχανή λέει «απαραίτητος ο σεισμός επειδή έχεις δάνειο», αυτό
+                είναι ελέγξιμο. Ένα σκορ χωρίς αιτιολογία δεν είναι. */}
+            {!quotesLoading && needs.length > 0 && (
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, marginBottom: 8 }}>
+                  Τι χρειάζεται αυτό το ακίνητο
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                  {needs.filter(n => n.weight === 'required' || n.weight === 'important').map(n => (
+                    <div key={n.need} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11, fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                      <span style={{
+                        flexShrink: 0, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.04em',
+                        padding: '2px 7px', borderRadius: T.radius.pill,
+                        color: n.weight === 'required' ? 'var(--accent-text)' : 'var(--text-secondary)',
+                        background: n.weight === 'required' ? 'var(--accent)' : 'var(--bg-surface)',
+                        border: n.weight === 'required' ? 'none' : '1px solid var(--border-subtle)',
+                      }}>
+                        {n.weight === 'required' ? 'ΑΠΑΡΑΙΤΗΤΟ' : 'ΚΑΛΟ ΝΑ ΥΠΑΡΧΕΙ'}
+                      </span>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, flexShrink: 0 }}>{NEED_LABEL[n.need]}</span>
+                      <span style={{ color: 'var(--text-tertiary)', minWidth: 0 }}>{n.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Προτεινόμενο πρόγραμμα βάσει ακινήτου */}
             {!quotesLoading && recommended && (
@@ -744,7 +874,10 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                     <div key={q.plan}
                       onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
                       style={{ background: isCurrent ? 'rgba(26,115,232,0.07)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
-                      {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΛΥΤΕΡΗ ΤΙΜΗ</div>}
+                      {/* ΟΧΙ «ΚΑΛΥΤΕΡΗ ΤΙΜΗ». Η πρώτη θέση ανήκει στο πιο
+                          ΚΑΤΑΛΛΗΛΟ, που συχνά δεν είναι το φθηνότερο. Η παλιά
+                          ετικέτα έλεγε ψέματα για το ίδιο το κριτήριο. */}
+                      {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΤΑΛΛΗΛΟΤΕΡΟ</div>}
                       {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
                       <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
@@ -758,6 +891,14 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                         {q.flood     && <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
                         {q.natural   && <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές Καταστροφές</span>}
                       </div>
+                      {/* ΤΙ ΤΟΥ ΛΕΙΠΕΙ, ΓΡΑΜΜΕΝΟ ΠΑΝΩ ΣΤΗΝ ΚΑΡΤΑ. Ένα φθηνό
+                          πρόγραμμα χωρίς σεισμό δεν κρύβεται, αλλά ούτε
+                          παρουσιάζεται σαν ισοδύναμο. */}
+                      {(matchOf.get(q.plan)?.missingRequired.length ?? 0) > 0 && (
+                        <div style={{ fontSize: 9, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.4, fontWeight: 600 }}>
+                          Δεν καλύπτει {matchOf.get(q.plan)!.missingRequired.map(n => NEED_LABEL[n].toLowerCase()).join(', ')}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
