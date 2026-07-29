@@ -1,4 +1,4 @@
 {
   "_comment": "Lint-debt ceiling enforced by scripts/lint-ratchet.mjs in CI. The count may only go DOWN. When you fix lint errors, lower maxErrors to the new count so the gain is locked in. Never raise it.",
-  "maxErrors": 530
+  "maxErrors": 529
 }

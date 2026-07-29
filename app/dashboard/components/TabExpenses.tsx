@@ -7,6 +7,7 @@ import ExpenseAnalytics from './ExpenseAnalytics';
 import { T, Card, Skeleton, EmptyState, Btn, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
+import { mergeLedger, type LedgerBill, type LedgerExpense } from '@/lib/expenses/ledger';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf';
@@ -1047,12 +1048,34 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         setTargetRent(prop.target_rent||0);
         setInsuranceExpiry(prop.insurance_expiry||null);
       }
-      // Bills: sum current month fixed bills
+      // ── ΛΟΓΑΡΙΑΣΜΟΙ ΠΟΥ ΔΕΝ ΕΓΙΝΑΝ ΑΚΟΜΗ ΔΑΠΑΝΗ ────────────────────────
+      //
+      // ΤΙ ΕΚΑΝΕ ΠΡΙΝ, ΚΑΙ ΓΙΑΤΙ ΗΤΑΝ ΛΑΘΟΣ ΔΥΟ ΦΟΡΕΣ:
+      // Το σχόλιο έλεγε «sum current month fixed bills», η μεταβλητή monthStart
+      // υπολογιζόταν, και το ερώτημα δεν είχε ΚΑΝΕΝΑ φίλτρο ημερομηνίας. Άθροιζε
+      // ΚΑΘΕ λογαριασμό που είχε καταχωρηθεί ποτέ, όλων των ετών, πληρωμένο και
+      // απλήρωτο, και το αποτέλεσμα διαιρούνταν διά 12 ως «μηνιαίο». Χρήστης με
+      // τρία χρόνια ιστορικό έβλεπε περίπου τριπλάσιο μηνιαίο βάρος.
+      // Και επιπλέον: οι δαπάνες που φορτώνονται παραπάνω περιλαμβάνουν ΚΑΙ τις
+      // συνδεδεμένες με αυτούς τους λογαριασμούς, άρα το ίδιο ευρώ μετριόταν
+      // δεύτερη φορά μέσα στο totalMonthly.
+      //
+      // Το νούμερο κατέληγε στο breakevenRent, δηλαδή στο «πόσο ενοίκιο χρειάζεσαι
+      // για να βγεις». Ένας ιδιοκτήτης που το πίστεψε ζητούσε ενοίκιο υπολογισμένο
+      // σε φουσκωμένα έξοδα.
+      //
+      // ΤΩΡΑ: η συγχώνευση κρατά κάθε ευρώ μία φορά (ο λογαριασμός που έγινε
+      // δαπάνη μετριέται ως δαπάνη), και μένει μόνο ό,τι ΔΕΝ έχει γίνει ακόμη
+      // δαπάνη, δηλαδή οι απλήρωτοι λογαριασμοί των τελευταίων δώδεκα μηνών.
       const now = new Date();
-      const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-      const { data:bills } = await supabase.from('bills')
-        .select('amount,avg_amount').eq('property_id', propertyId);
-      if (bills) setBillsTotal(bills.reduce((s:number,b:any) => s+(b.avg_amount||b.amount||0), 0));
+      const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString().slice(0, 10);
+      const [{ data: bills }, { data: linked }] = await Promise.all([
+        supabase.from('bills').select('id,name,category,amount,due_date,paid,paid_at,recurring,created_at').eq('property_id', propertyId),
+        supabase.from('expenses').select('id,bill_id,description,category,expense_group,amount,date,paid,store_vendor,is_recurring').eq('property_id', propertyId).gte('date', yearAgo),
+      ]);
+      const { entries } = mergeLedger((bills ?? []) as LedgerBill[], (linked ?? []) as LedgerExpense[]);
+      const unbilled = entries.filter(e => e.expenseId === null && e.date >= yearAgo);
+      setBillsTotal(unbilled.reduce((s, e) => s + e.amount, 0));
     };
     fetchCrossData();
   }, [propertyId]);
@@ -1575,7 +1598,9 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           .forEach(e => { catMap[e.category]=(catMap[e.category]||0)+e.amount; });
         const topCat = Object.entries(catMap).sort(([,a],[,b])=>b-a)[0];
 
-        // Breakeven
+        // Breakeven. Το billsTotal είναι πλέον δωδεκάμηνο σύνολο ΜΟΝΟ των
+        // λογαριασμών που δεν έχουν γίνει δαπάνη, οπότε το /12 βγάζει σωστό
+        // μηνιαίο και δεν επικαλύπτεται με το avgMonthly των δαπανών.
         const totalMonthly = avgMonthly + loanPayment + billsTotal/12;
         const breakevenRent = Math.ceil(totalMonthly * 1.15);
 

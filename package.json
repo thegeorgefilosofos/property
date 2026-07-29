@@ -10,6 +10,7 @@
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
     "security": "node scripts/security-check.mjs",
     "prices": "node scripts/price-freshness.mjs",
+    "money": "node scripts/money-reads.mjs",
     "test": "node scripts/test.mjs"
   },
   "dependencies": {

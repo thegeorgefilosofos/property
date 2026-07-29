@@ -66,6 +66,20 @@ jobs:
       - name: Typecheck edge functions (Deno)
         run: npx --yes deno@2.1.4 check supabase/functions/*/index.ts
 
+      # Τα χρήματα ζουν σε δύο πίνακες (bills και expenses) και κάθε οθόνη που
+      # τα αθροίζει μόνη της μπορεί να βγάλει άλλο σύνολο. Βρέθηκαν τρεις τέτοιες
+      # οθόνες, με τρία διαφορετικά νούμερα για το ίδιο ακίνητο. Δεν κρασάρει
+      # τίποτα: απλώς ο ιδιοκτήτης που θα εντοπίσει ΕΝΑ λάθος νούμερο παύει να
+      # εμπιστεύεται όλα τα υπόλοιπα, και δίκαια. Ratchet: το χρέος μόνο πέφτει.
+      - name: Money reads through one core — blocking
+        run: node scripts/money-reads.mjs
+
+      # Οι αποθηκευμένες τιμές παρόχων γερνάνε σιωπηλά ενώ η οθόνη δείχνει
+      # ημερομηνία ελέγχου στον χρήστη ως εγγύηση. Εδώ προειδοποιεί· το
+      # προγραμματισμένο workflow ανοίγει issue.
+      - name: Price freshness (προειδοποιητικό)
+        run: npm run prices
+
       - name: Tests (domain + messaging verifiers)
         run: npm run test
 
