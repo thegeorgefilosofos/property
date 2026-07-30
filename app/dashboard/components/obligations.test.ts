@@ -172,10 +172,9 @@ const ALLOWED = new Set<string>([
   // TabTenant.tsx: ο σύνδεσμος του Ε2 λέει «Έως 30 Ιουνίου κάθε έτους» — τρίτη
   // ημερομηνία για την ίδια δήλωση. Να αντικατασταθεί από τη μηχανή.
   'app/dashboard/components/TabTenant.tsx',
-  // E2IncomeCalc.tsx / BillsBudget.tsx / assistantPersona.ts: ενημερωτικό κείμενο
+  // BillsBudget.tsx / assistantPersona.ts: ενημερωτικό κείμενο
   // με ρητή παραπομπή στην πηγή, όχι υπολογισμός προθεσμίας. Θα ήταν καλύτερα να
   // παίρνουν τη διατύπωση από τη μηχανή, δεν αντιφάσκουν όμως με αυτήν.
-  'app/dashboard/components/E2IncomeCalc.tsx',
   'app/dashboard/components/BillsBudget.tsx',
   'app/dashboard/components/assistantPersona.ts',
 ])

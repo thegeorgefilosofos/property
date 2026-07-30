@@ -9,7 +9,7 @@ import { REGULATORY_UPDATES_2026, type RegulatoryUpdate, type UpdateAudience } f
 import { transferCosts } from '@/lib/accounting/transfer'
 import { InfoHint } from './InfoHint'
 import BankImport from './BankImport'
-import E2IncomeCalc from './E2IncomeCalc'
+import E2ReconcileCard from './E2ReconcileCard'
 import { Landmark, Lock, Unlock } from 'lucide-react'
 import {
   buildLedger, cashflowByYear, reconcile, reconSummary,
@@ -1151,7 +1151,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       )}
 
       <div style={{ marginTop:24 }}>
-        <E2IncomeCalc userId={userId} propertyId={propertyId} />
+        <E2ReconcileCard userId={userId} year={year} />
       </div>
 
 

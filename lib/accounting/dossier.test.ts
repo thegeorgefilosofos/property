@@ -276,5 +276,33 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
   eq('το yours παραμένει το σύνολο των δικών του, για την οθόνη', rd.yours, 3);
 }
 
+// ═══ ΤΟ ΠΡΟΣΥΜΠΛΗΡΩΜΕΝΟ Ε2 ════════════════════════════════════════════════
+//
+// Η θέση του προϊόντος: δεν είμαστε ο δεύτερος τρόπος να συμπληρώσεις τη δήλωση,
+// είμαστε η ανεξάρτητη απόδειξη που ελέγχει την πρώτη. Αυτό δεν στέκει αν ο
+// φάκελος δεν ζητά ΠΟΤΕ από τον ιδιοκτήτη το προσυμπληρωμένο του.
+{
+  for (const st of ['rent_long', 'rent_short'] as PropertyStatus[]) {
+    const r = requirementsFor(ctx({ statuses: [st] }));
+    const pre = r.find(x => x.id === 'e2_prefilled');
+    ok(`${st}: ζητείται το προσυμπληρωμένο`, !!pre);
+    eq(`${st}: το φέρνει ο ιδιοκτήτης`, pre?.who, 'owner');
+    ok(`${st}: μπλοκάρει τη δήλωση`, pre?.blocking === true);
+    ok(`${st}: λέει πού θα το βρει`, (pre?.source || '').includes('myAADE'));
+    ok(`${st}: προειδοποιεί ότι το λάθος γίνεται δικό του`, (pre?.trap || '').length > 40);
+  }
+  // Σε ακίνητο που δεν αποδίδει δεν υπάρχει μίσθωμα να ελεγχθεί.
+  for (const st of ['own_use', 'vacant'] as PropertyStatus[]) {
+    const r = requirementsFor(ctx({ statuses: [st] }));
+    ok(`${st}: δεν ζητείται προσυμπληρωμένο`, !r.some(x => x.id === 'e2_prefilled'));
+  }
+  // Με δύο καταστάσεις μίσθωσης μαζί, μία φορά — όχι δύο.
+  const both = requirementsFor(ctx({ statuses: ['rent_long', 'rent_short'] }));
+  eq('χωρίς διπλή εγγραφή', both.filter(x => x.id === 'e2_prefilled').length, 1);
+  // Και η παγίδα της βραχυχρόνιας λέει το σωστό πράγμα.
+  const short = requirementsFor(ctx({ statuses: ['rent_short'] })).find(x => x.id === 'e2_prefilled');
+  ok('βραχυχρόνια: εξηγεί τα ακαθάριστα της πλατφόρμας', /ΑΚΑΘΑΡΙΣΤΑ/.test(short?.trap || ''));
+}
+
 console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);
