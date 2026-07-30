@@ -1651,7 +1651,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ width: 140, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Τηλέφωνο</div>
             <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Email</div>
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
-            <div style={{ width: 100, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Κατάσταση</div>
+            <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>ΑΦΜ</div>
           </div>
           {processed.map(c => <CompactRow key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
         </div>

@@ -245,9 +245,14 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
       const extra: Record<string, string> = {};
       if (afm) extra.afm = afm;
       const role = inferRole(`${fullName} ${CATEGORY_LABELS[edited.category || ''] || ''}`) || 'other';
+      // Τηλέφωνο και email από το ΙΔΙΟ χαρτί. Πριν έμπαιναν null και έβγαινε
+      // επαφή που δεν μπορείς να καλέσεις — ο χρήστης έπρεπε να τα ξαναγράψει
+      // με το χέρι, ενώ ήταν τυπωμένα μπροστά του.
+      const phone = (edited.provider_phone || '').trim() || null;
+      const email = (edited.provider_email || '').trim() || null;
       const { error: insErr } = await supabase.from('contacts').insert({
         property_id: propertyId, user_id: userId, role,
-        full_name: fullName, phone: null, email: null,
+        full_name: fullName, phone, email,
         notes: JSON.stringify({ __v: 2, extra, notes: '' }),
       });
       if (insErr) { setContactState('error'); return; }

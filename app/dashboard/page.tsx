@@ -8,6 +8,7 @@ import TabBoundary  from './components/TabBoundary';
 import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, type PropertyStatus } from '@/lib/property/status';
 import { tabDecision, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
 import { HAS_BUSINESS } from '@/lib/accounting/dossier';
+import AmaStrip from './components/AmaStrip';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabPricing   from './components/TabPricing';
@@ -1546,9 +1547,19 @@ export default function Dashboard() {
               {navSafe==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>}
-              {navSafe==='clients'   && (isTabAllowed(ent,'clients')
-                ? <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
-                : <FeatureLock title="Πελατολόγιο και υποψήφιοι (CRM)" benefit="Οργάνωσε πελάτες, ιστορικό διαμονών, αξιολογήσεις και υποψήφιους σε ένα επαγγελματικό CRM. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
+              {/* Ο ΕΛΕΓΧΟΣ ΤΟΥ ΑΜΑ ΕΙΝΑΙ ΕΞΩ ΑΠΟ ΤΟ FeatureLock, ΣΚΟΠΙΜΑ.
+                  Ο ΑΜΑ που λείπει ή δεν αναγράφεται στην αγγελία κλείνει την
+                  καταχώριση — 12.145 στάλθηκαν για απενεργοποίηση το 2025. Κανείς
+                  δεν πληρώνει συνδρομή για να μάθει ότι έχει πρόβλημα. Το CRM από
+                  κάτω κλειδώνει· η προειδοποίηση ποτέ. */}
+              {navSafe==='clients'   && (
+                <>
+                  <AmaStrip userId={user.id} propertyId={selected.id}/>
+                  {isTabAllowed(ent,'clients')
+                    ? <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
+                    : <FeatureLock title="Πελατολόγιο και υποψήφιοι (CRM)" benefit="Οργάνωσε πελάτες, ιστορικό διαμονών και υποψήφιους σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />}
+                </>
+              )}
               {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType} navShowAll={navShowAll} onNavShowAllChange={setNavShowAllPref}/>}

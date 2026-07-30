@@ -37,6 +37,8 @@ export const SYSTEM_PROMPT = `Είσαι ο κορυφαίος βοηθός δι
   "title": "σύντομος περιγραφικός τίτλος",
   "provider": "πάροχος/αντισυμβαλλόμενος/ασφαλιστική/φορέας/συμβολαιογράφος",
   "provider_afm": "ΑΦΜ του ΕΚΔΟΤΗ του παραστατικού, 9 ψηφία χωρίς κενά, ή null",
+  "provider_phone": "τηλέφωνο του ΕΚΔΟΤΗ όπως τυπώνεται στο παραστατικό, ή null",
+  "provider_email": "email του ΕΚΔΟΤΗ όπως τυπώνεται στο παραστατικό, ή null",
   "category": "(μόνο για bill/payment) electricity|water|gas|internet|insurance|streaming|taxes|municipal|security|common|maintenance|elevator|pool|gardener|cleaner|plumber|electrician|other",
   "amount": συνολικό πληρωτέο ποσό σε ευρώ ή null,
   "due_date": "YYYY-MM-DD (λήξη πληρωμής) ή null",

@@ -388,16 +388,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         const lastBooking = arr.map((s: any) => s.check_in).filter(Boolean).sort().slice(-1)[0] || null;
         const lastNote = arr.slice().sort((a: any, b: any) => String(a.check_in || '').localeCompare(String(b.check_in || ''))).map((s: any) => s.notes).filter((n: any) => n && String(n).trim()).slice(-1)[0];
         const bits: string[] = [c.full_name, CLIENT_TYPE_LABELS[c.type as ClientType] || c.type];
-        if (c.vip) bits.push('VIP');
+
         if (cs.stayCount >= 2) bits.push('επαναλαμβανόμενος (2+ διαμονές)');
         if (c.phone) bits.push(`τηλ ${c.phone}`);
         if (c.afm) bits.push(`ΑΦΜ ${c.afm}`);
-        if (typeof c.rating === 'number') bits.push(`βαθμολογία ${c.rating}/5`);
+
         if (cs.stayCount) bits.push(`${cs.stayCount} διαμονές, ${cs.nights} νύχτες, συνολικά έσοδα ${eur(cs.revenue)}`);
         if (cs.stayCount) bits.push(`έσοδα: τελευταίος μήνας ${eur(revSince(arr, 30))}, εξάμηνο ${eur(revSince(arr, 182))}, έτος ${eur(revSince(arr, 365))}`);
         if (lastBooking) bits.push(`τελευταία κράτηση ${lastBooking}`);
         if (cs.hasDamage) bits.push(`φθορές ${eur(cs.damageTotal)}`);
-        if (c.do_not_rent) bits.push('ΠΡΟΣΟΧΗ/μαύρη λίστα');
+
         if (c.budget) bits.push(`προϋπολογισμός ${eur(c.budget)}`);
         if (c.needs) bits.push(`ανάγκες: ${c.needs}`);
         if (lastNote) bits.push(`σημείωση τελευταίας διαμονής: «${String(lastNote).slice(0, 160)}»`);
