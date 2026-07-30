@@ -61,6 +61,11 @@ const ORIGIN = {
 // διαφορετικό πράγμα σε δύο αρχεία. Η νέα ονομασία λέει τι ακριβώς μετράει.
 const RENAMED = {
   hiddenCount: 'χρησιμοποίησε hiddenTabCount (καρτέλες, lib/nav/disclosure.ts) ή hiddenFieldCount (πεδία, lib/property/fields.ts)',
+  // Απαντούσε «ποια καρτέλα σε ποια κατάσταση» από πίνακα που κάλυπτε 3 από τις
+  // 6 καρτέλες και έλεγε «ναι» για τις υπόλοιπες: 13 λάθος απαντήσεις στις 42,
+  // μεταξύ τους «δείξε Αποδόσεις» σε ιδιοχρησία και σε κενό ακίνητο.
+  tabFitsStatus: 'χρησιμοποίησε tabDecision (lib/property/visibility.ts) — ξέρει κατάσταση, πλήθος ΚΑΙ νομική μορφή, και επιστρέφει τον λόγο',
+  STATUS_DEPENDENT_TABS: 'το «ποια καρτέλα σε ποια κατάσταση» ζει στο BY_STATUS του lib/property/visibility.ts',
 }
 
 const SCAN_DIRS = ['lib', 'app', 'components']

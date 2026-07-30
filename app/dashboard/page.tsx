@@ -178,7 +178,13 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
 // ξέρει ήδη: όταν αυτή τις ανάβει, είναι ακριβώς αυτό που χρειάζεται ο χρήστης τώρα.
 // Αν περνούσαν κι από την αποκάλυψη, ο ιδιοκτήτης ενός κενού ακινήτου δεν θα έβλεπε
 // ποτέ το «Σχέδιο»: θα έπρεπε πρώτα να επισκεφθεί μια καρτέλα που δεν εμφανίζεται.
-const SELF_DISCLOSING = new Set(['plan']);
+//
+// Οι τρεις που προστέθηκαν είχαν ΤΟΝ ΙΔΙΟ κανόνα γραμμένο και στα δύο αρχεία:
+// Τιμολόγηση (βραχυχρόνια), Αποδόσεις (εκμισθώνεται), Σύγκριση (δύο ακίνητα).
+// Το αντίγραφο στην αποκάλυψη έφυγε — εδώ δηλώνεται ότι την απόφαση την παίρνει
+// η κατάσταση. Η εμφάνιση δεν αλλάζει: οι δύο κανόνες έλεγαν το ίδιο πράγμα, και
+// η πλοήγηση τους συνδύαζε ούτως ή άλλως με «και».
+const SELF_DISCLOSING = new Set(['plan', 'pricing', 'roi', 'comparison']);
 
 // Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
@@ -986,10 +992,10 @@ export default function Dashboard() {
     profileType: effProfileType,
     revealed: revealedTabs,
     showAll: showAllTabsPref,
-    // Το `isRented` βγαίνει από τη ΜΙΑ πηγή κατάστασης, όχι από ωμό πεδίο:
-    // εποχική, βραχυχρόνια και μακροχρόνια είναι όλες «αποδίδει».
-    signals: { ...navSignals, isShortTerm: isShortTerm(selected), isRented: readStatus(selected) === 'rent_long' || readStatus(selected) === 'rent_short', openTasks: checklistAlerts },
-  }), [effProfileType, revealedTabs, showAllTabsPref, navSignals, selected, checklistAlerts]);
+    // Μόνο σήματα ΣΥΣΣΩΡΕΥΣΗΣ. Η κατάσταση του ακινήτου δεν περνά από εδώ: την
+    // κρίνει το tabDecision, και ήταν γραμμένη και στα δύο σημεία.
+    signals: { ...navSignals, openTasks: checklistAlerts },
+  }), [effProfileType, revealedTabs, showAllTabsPref, navSignals, checklistAlerts]);
 
   // Κάθε επίσκεψη σε καρτέλα την αποκαλύπτει μόνιμα — από όπου κι αν ήρθε
   // (μενού, ⌘K, βοηθός, πλακίδιο Επισκόπησης). Ένα σημείο, καμία διαρροή.
@@ -1098,7 +1104,6 @@ export default function Dashboard() {
           setNavPrefsLoaded(true);
         }
         setNavSignals({
-          propertyCount: count || 0,
           hasLoan: (loanRes.count || 0) > 0,
           hasDocuments: (docCount || 0) > 0,
           hasContacts: (contactRes.count || 0) > 0,

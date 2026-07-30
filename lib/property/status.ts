@@ -35,8 +35,6 @@ export interface StatusDef {
   label: string;
   /** Τι σημαίνει, σε μία φράση. Εμφανίζεται στο μενού επιλογής. */
   hint: string;
-  /** Καρτέλες που έχουν νόημα ΜΟΝΟ σε αυτή την κατάσταση. */
-  tabs: readonly string[];
 }
 
 /**
@@ -44,21 +42,37 @@ export interface StatusDef {
  * 90% των ακινήτων και εκεί ζει όλη η λειτουργικότητα της εφαρμογής.
  */
 export const STATUSES: readonly StatusDef[] = [
-  { key: 'rent_long',  label: 'Μακροχρόνια μίσθωση', hint: 'Ενοικιαστής με συμβόλαιο και μηνιαίο ενοίκιο', tabs: ['tenant'] },
-  { key: 'rent_short', label: 'Βραχυχρόνια μίσθωση', hint: 'Airbnb, Booking, διαμονές ανά ημέρα',          tabs: ['clients', 'pricing'] },
-  { key: 'vacant',     label: 'Κενό',                hint: 'Δεν αποδίδει αυτή τη στιγμή',                  tabs: [] },
-  { key: 'own_use',    label: 'Ιδιοχρησία',          hint: 'Το χρησιμοποιείς εσύ ή οικείο πρόσωπο',        tabs: [] },
-  { key: 'renovation', label: 'Ανακαίνιση',          hint: 'Σε εργασίες, εκτός εκμετάλλευσης',             tabs: [] },
-  { key: 'for_sale',   label: 'Προς πώληση',         hint: 'Σε διαδικασία πώλησης',                        tabs: [] },
-  { key: 'disputed',   label: 'Αμφισβητούμενο',      hint: 'Νομική εκκρεμότητα ή διαφορά',                 tabs: [] },
+  { key: 'rent_long',  label: 'Μακροχρόνια μίσθωση', hint: 'Ενοικιαστής με συμβόλαιο και μηνιαίο ενοίκιο' },
+  { key: 'rent_short', label: 'Βραχυχρόνια μίσθωση', hint: 'Airbnb, Booking, διαμονές ανά ημέρα' },
+  { key: 'vacant',     label: 'Κενό',                hint: 'Δεν αποδίδει αυτή τη στιγμή' },
+  { key: 'own_use',    label: 'Ιδιοχρησία',          hint: 'Το χρησιμοποιείς εσύ ή οικείο πρόσωπο' },
+  { key: 'renovation', label: 'Ανακαίνιση',          hint: 'Σε εργασίες, εκτός εκμετάλλευσης' },
+  { key: 'for_sale',   label: 'Προς πώληση',         hint: 'Σε διαδικασία πώλησης' },
+  { key: 'disputed',   label: 'Αμφισβητούμενο',      hint: 'Νομική εκκρεμότητα ή διαφορά' },
 ] as const;
 
 export const BY_KEY: Record<PropertyStatus, StatusDef> =
   STATUSES.reduce((a, s) => { a[s.key] = s; return a; }, {} as Record<PropertyStatus, StatusDef>);
 
-/** Όλες οι καρτέλες που εξαρτώνται από κατάσταση, σε οποιαδήποτε κατάσταση. */
-export const STATUS_DEPENDENT_TABS: ReadonlySet<string> =
-  new Set(STATUSES.flatMap(s => s.tabs));
+// ΤΟ «ΠΟΙΑ ΚΑΡΤΕΛΑ ΣΕ ΠΟΙΑ ΚΑΤΑΣΤΑΣΗ» ΔΕΝ ΖΕΙ ΕΔΩ — ΚΑΙ ΝΑ ΓΙΑΤΙ.
+//
+// Υπήρχε: ένα πεδίο `tabs` ανά κατάσταση, ένα `STATUS_DEPENDENT_TABS` και ένα
+// `tabFitsStatus`. Ο πίνακας όμως κάλυπτε ΜΟΝΟ τρεις καρτέλες (Ενοικιαστής,
+// Πελάτες, Τιμολόγηση) και ό,τι έλειπε το θεωρούσε «επιτρέπεται πάντα». Όταν
+// προστέθηκαν Αποδόσεις, Απογραφή και Σχέδιο, κανείς δεν τον ενημέρωσε.
+//
+// Μετρημένο, τρέχοντας τους δύο πίνακες δίπλα-δίπλα σε όλες τις καταστάσεις:
+// 13 διαφωνίες στις 42 απαντήσεις. Το `tabFitsStatus` έλεγε «ναι, δείξε τις
+// Αποδόσεις» για ακίνητο σε ΙΔΙΟΧΡΗΣΙΑ και για ΚΕΝΟ — δηλαδή απόδοση χωρίς
+// έσοδο, ακριβώς το επινοημένο νούμερο που καθαρίστηκε από όλο το app.
+//
+// Σώθηκε από το ότι καμία οθόνη δεν το καλούσε· το καλούσε μόνο το test του.
+// Αυτό δεν είναι ασφάλεια, είναι τύχη: μια εξαγόμενη συνάρτηση με το σωστό
+// όνομα και λάθος απαντήσεις περιμένει τον επόμενο που θα τη χρειαστεί.
+//
+// Η ΜΙΑ πηγή είναι το lib/property/visibility.ts (`tabDecision`), που ξέρει και
+// τις τρεις διαστάσεις: κατάσταση, πλήθος ακινήτων, νομική μορφή — και
+// επιστρέφει και τον ΛΟΓΟ, ώστε η οθόνη να εξηγεί αντί να εξαφανίζει.
 
 export interface StatusRow {
   status_detail?: string | null;
@@ -113,19 +127,5 @@ export const isLet = (row: StatusRow | null | undefined): boolean => {
 };
 
 export const isShortTerm = (row: StatusRow | null | undefined): boolean => readStatus(row) === 'rent_short';
-
-/**
- * Έχει νόημα αυτή η καρτέλα για ΑΥΤΟ το ακίνητο;
- *
- * Καρτέλα που δεν εξαρτάται από κατάσταση επιτρέπεται πάντα. Καρτέλα που
- * εξαρτάται, μόνο στην κατάσταση όπου ανήκει: ο Ενοικιαστής στη μακροχρόνια,
- * ο Πελάτης και η Τιμολόγηση στη βραχυχρόνια. Ο ιδιοκτήτης με ένα Airbnb δεν
- * έχει «ενοικιαστή», έχει επισκέπτες· ο ιδιοκτήτης με τριετές μισθωτήριο δεν
- * τιμολογεί ανά διανυκτέρευση.
- */
-export function tabFitsStatus(tabId: string, row: StatusRow | null | undefined): boolean {
-  if (!STATUS_DEPENDENT_TABS.has(tabId)) return true;
-  return BY_KEY[readStatus(row)].tabs.includes(tabId);
-}
 
 export const statusLabel = (row: StatusRow | null | undefined): string => BY_KEY[readStatus(row)].label;

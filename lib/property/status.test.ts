@@ -1,7 +1,7 @@
 // npx tsx lib/property/status.test.ts
 import {
-  readStatus, writeStatus, isLet, isShortTerm, tabFitsStatus, statusLabel,
-  STATUSES, BY_KEY, STATUS_DEPENDENT_TABS, type PropertyStatus,
+  readStatus, writeStatus, isLet, isShortTerm, statusLabel,
+  STATUSES, BY_KEY, type PropertyStatus,
 } from './status';
 
 let pass = 0, fail = 0;
@@ -49,34 +49,11 @@ for (const s of STATUSES) {
   eq(`κύκλος γράψε-διάβασε: ${s.key}`, readStatus(writeStatus(s.key)), s.key);
 }
 
-// ── ΠΟΙΕΣ ΚΑΡΤΕΛΕΣ ΕΜΦΑΝΙΖΟΝΤΑΙ ───────────────────────────────────────────
-// Ο ιδιοκτήτης με Airbnb δεν έχει «ενοικιαστή», έχει επισκέπτες. Ο ιδιοκτήτης
-// με τριετές μισθωτήριο δεν τιμολογεί ανά διανυκτέρευση.
-{
-  const long = { status_detail: 'rented', rental_mode: 'long_term' };
-  eq('μακροχρόνια: Ενοικιαστής ναι', tabFitsStatus('tenant', long), true);
-  eq('μακροχρόνια: Πελάτης όχι', tabFitsStatus('clients', long), false);
-  eq('μακροχρόνια: Τιμολόγηση όχι', tabFitsStatus('pricing', long), false);
-}
-{
-  const short = { status_detail: 'seasonal', rental_mode: 'short_term' };
-  eq('βραχυχρόνια: Πελάτης ναι', tabFitsStatus('clients', short), true);
-  eq('βραχυχρόνια: Τιμολόγηση ναι', tabFitsStatus('pricing', short), true);
-  eq('βραχυχρόνια: Ενοικιαστής όχι', tabFitsStatus('tenant', short), false);
-}
-for (const k of ['vacant', 'own_use', 'renovation', 'for_sale', 'disputed'] as const) {
-  const row = { status_detail: k };
-  ok(`${k}: καμία καρτέλα μίσθωσης`,
-    !tabFitsStatus('tenant', row) && !tabFitsStatus('clients', row) && !tabFitsStatus('pricing', row));
-}
-
-// Οι καρτέλες που ΔΕΝ εξαρτώνται από κατάσταση επιτρέπονται πάντα. Χωρίς αυτό,
-// μια νέα καρτέλα θα εξαφανιζόταν σιωπηλά επειδή δεν αναφέρεται πουθενά.
-for (const k of STATUSES.map(s => s.key)) {
-  const row = writeStatus(k);
-  ok(`${k}: οι ανεξάρτητες καρτέλες μένουν`,
-    ['overview', 'finances', 'calendar', 'documents', 'settings', 'accounting'].every(t => tabFitsStatus(t, row)));
-}
+// ── ΠΟΙΕΣ ΚΑΡΤΕΛΕΣ ΕΜΦΑΝΙΖΟΝΤΑΙ — ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ ────────────────────────
+// Ήταν εδώ, με πίνακα που κάλυπτε μόνο τρεις καρτέλες και έλεγε «ναι» για
+// όλες τις υπόλοιπες. Οι έλεγχοι ζουν τώρα στο visibility.test.ts και στο
+// navMatrix.test.ts, όπου ελέγχεται ΚΑΙ η κατάσταση ΚΑΙ το πλήθος ΚΑΙ η
+// νομική μορφή — δηλαδή ο πλήρης κανόνας, όχι το ένα τρίτο του.
 
 // ── ΒΟΗΘΗΤΙΚΑ ──────────────────────────────────────────────────────────────
 eq('εκμισθώνεται: μακροχρόνια', isLet({ rental_mode: 'long_term' }), true);
@@ -91,16 +68,6 @@ eq('ετικέτα', statusLabel({ status_detail: 'seasonal' }), 'Βραχυχρ
 ok('κανένα διπλό κλειδί', new Set(STATUSES.map(s => s.key)).size === STATUSES.length);
 ok('κανένα διπλό όνομα', new Set(STATUSES.map(s => s.label)).size === STATUSES.length);
 ok('κάθε κατάσταση έχει εξήγηση', STATUSES.every(s => s.hint.trim().length > 10));
-// Καμία καρτέλα δεν ανήκει σε δύο καταστάσεις: αλλιώς η ίδια οθόνη θα
-// εμφανιζόταν σε δύο διαφορετικά συμφραζόμενα με άλλο νόημα.
-{
-  const seen = new Set<string>();
-  let dupe = '';
-  for (const s of STATUSES) for (const t of s.tabs) { if (seen.has(t)) dupe = t; seen.add(t); }
-  eq('καμία καρτέλα σε δύο καταστάσεις', dupe, '');
-}
-eq('οι εξαρτώμενες καρτέλες είναι ακριβώς τρεις',
-  [...STATUS_DEPENDENT_TABS].sort(), ['clients', 'pricing', 'tenant']);
 ok('οι δύο μισθώσεις είναι πρώτες στο μενού',
   STATUSES[0].key === 'rent_long' && STATUSES[1].key === 'rent_short');
 ok('κάθε κλειδί βρίσκεται στο ευρετήριο',

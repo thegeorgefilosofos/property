@@ -22,7 +22,7 @@ ok('οι Ρυθμίσεις είναι πάντα ορατές', isTabVisible('s
 ok('η Λογιστική είναι βασική (ο λόγος που ήρθε)', isTabVisible('accounting'))
 
 // ── Νέος χρήστης, ένα ακίνητο, κανένα δεδομένο ─────────────────────────────
-const fresh = { profileType: 'individual' as const, signals: { propertyCount: 1, daysSinceSignup: 0 } }
+const fresh = { profileType: 'individual' as const, signals: { daysSinceSignup: 0 } }
 ok('νέος χρήστης βλέπει ακριβώς 6 καρτέλες', disclosedTabs(ALL, fresh).length === 6)
 ok('νέος χρήστης δεν βλέπει Δάνειο', !isTabVisible('loan', fresh))
 ok('νέος χρήστης δεν βλέπει Τιμολόγηση', !isTabVisible('pricing', fresh))
@@ -33,14 +33,16 @@ ok('η σειρά διατηρείται', disclosedTabs(ALL, fresh)[0] === 'ove
 
 // ── Τα δεδομένα αποκαλύπτουν ────────────────────────────────────────────────
 ok('δάνειο → εμφανίζεται το Δάνειο', isTabVisible('loan', { signals: { hasLoan: true } }))
-ok('βραχυχρόνια → εμφανίζεται η Τιμολόγηση', isTabVisible('pricing', { signals: { isShortTerm: true } }))
-ok('δεύτερο ακίνητο → Σύγκριση', isTabVisible('comparison', { signals: { propertyCount: 2 } }))
-// ΟΙ ΑΠΟΔΟΣΕΙΣ ΚΡΕΜΟΝΤΑΙ ΑΠΟ ΤΗ ΜΙΣΘΩΣΗ, ΟΧΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ.
-// Ο ιδιοκτήτης ΕΝΟΣ νοικιασμένου διαμερίσματος πρέπει να δει την απόδοσή του:
-// είναι ακριβώς το νούμερο για το οποίο έψαξε εργαλείο.
-ok('ένα νοικιασμένο ακίνητο → Αποδόσεις', isTabVisible('roi', { signals: { propertyCount: 1, isRented: true } }))
-ok('δέκα ακίνητα χωρίς μίσθωση → ΟΧΙ Αποδόσεις', !isTabVisible('roi', { signals: { propertyCount: 10, isRented: false } }))
-ok('ένα ακίνητο → όχι Σύγκριση', !isTabVisible('comparison', { signals: { propertyCount: 1 } }))
+// ΤΡΕΙΣ ΚΑΡΤΕΛΕΣ ΔΕΝ ΚΡΙΝΟΝΤΑΙ ΕΔΩ, ΚΑΙ ΤΟ ΛΕΜΕ ΡΗΤΑ.
+// Τιμολόγηση, Αποδόσεις και Σύγκριση εξαρτώνται από την ΚΑΤΑΣΤΑΣΗ και το ΠΛΗΘΟΣ
+// των ακινήτων — γνώση που ζει στο lib/property/visibility.ts. Είχαμε αντίγραφο
+// του κανόνα και εδώ, γραμμένο αλλιώς. Οι έλεγχοί τους είναι στο
+// visibility.test.ts και στο navMatrix.test.ts· εδώ ελέγχουμε μόνο ότι αυτό το
+// αρχείο ΔΕΝ έχει πια γνώμη γι' αυτές.
+for (const t of ['pricing', 'roi', 'comparison']) {
+  ok(`${t}: καμία γνώμη από τη σταδιακή αποκάλυψη`, !isTabVisible(t, { signals: { hasLoan: true, hasInventory: true, openTasks: 5, daysSinceSignup: 400 } }))
+  ok(`${t}: εμφανίζεται όμως μετά από επίσκεψη`, isTabVisible(t, { revealed: [t] }))
+}
 ok('απογραφή με είδη → Απογραφή', isTabVisible('inventory', { signals: { hasInventory: true } }))
 ok('έγγραφα → Αρχείο', isTabVisible('documents', { signals: { hasDocuments: true } }))
 ok('επαφές → Επαφές', isTabVisible('contacts', { signals: { hasContacts: true } }))
@@ -57,7 +59,7 @@ ok('reveal δεν διπλογράφει', reveal(['loan'], 'loan').length === 1
 ok('reveal επιστρέφει ΙΔΙΑ αναφορά όταν δεν αλλάζει κάτι', (() => { const a = ['loan']; return reveal(a, 'loan') === a })())
 
 // ── «Δες τα όλα» ───────────────────────────────────────────────────────────
-const all = { profileType: 'individual' as const, showAll: true, signals: { propertyCount: 1 } }
+const all = { profileType: 'individual' as const, showAll: true, signals: {} }
 ok('showAll δείχνει τα πάντα', disclosedTabs(ALL, all).length === ALL.length)
 ok('showAll → μηδέν κρυφές', hiddenTabCount(ALL, all) === 0)
 
@@ -75,7 +77,7 @@ ok('sanitize σε null → κενό', sanitizeRevealed(null, ALL).length === 0)
 ok('sanitize σε string → κενό', sanitizeRevealed('loan', ALL).length === 0)
 
 // ── Ο επαγγελματίας δεν χάνει τα εργαλεία του ──────────────────────────────
-const pro = { profileType: 'professional' as const, signals: { propertyCount: 1, daysSinceSignup: 0 } }
+const pro = { profileType: 'professional' as const, signals: { daysSinceSignup: 0 } }
 ok('ο επαγγελματίας βλέπει Χαρτοφυλάκιο από την αρχή', isTabVisible('portfolio', pro))
 ok('ο επαγγελματίας βλέπει Πελάτη από την αρχή', isTabVisible('clients', pro))
 ok('ο επαγγελματίας βλέπει 8 καρτέλες', disclosedTabs(ALL, pro).length === 8)
