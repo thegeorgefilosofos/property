@@ -169,7 +169,7 @@ const DEFAULT_MAINTENANCE = [
   {task:'Έλεγχος αντλίας θερμότητας',interval_months:12,category:'Θέρμανση & Ψύξη'},
 ]
 
-// Οι υπολογισμοί απόσβεσης διοχετεύονται στην καθαρή μηχανή του lib (μία πηγή αλήθειας).
+// Οι υπολογισμοί υπολειπόμενης αξίας διοχετεύονται στην καθαρή μηχανή του lib (μία πηγή αλήθειας).
 const calcCurrentValue = (item: InventoryItem) => depreciate(item).bookValue
 const calcDepreciationPct = (item: InventoryItem) => depreciate(item).depreciatedPct
 const calcYearsLeft = (item: InventoryItem) => depreciate(item).yearsRemaining
@@ -989,7 +989,7 @@ function OverviewTab({items,repairs,kwhPrice,kwhControl,handovers=[],onOpenHando
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
       <KPIGrid items={[
         {label:'Αντικείμενα',value:String(items.length),sub:`${byCategory.length} ${byCategory.length===1?'κατηγορία':'κατηγορίες'}`},
-        {label:'Τρέχουσα Αξία',value:fmtEur(totalCurrent),sub:summary.totalOriginal>0?`από ${fmtEur(summary.totalOriginal)}`:'μετά απόσβεση'},
+        {label:'Εκτ. υπολειπόμενη αξία',value:fmtEur(totalCurrent),sub:summary.totalOriginal>0?`από ${fmtEur(summary.totalOriginal)} αξία αγοράς`:'εκτίμηση, όχι φορολογική απόσβεση'},
         declaredRepl.length>0
           ?{label:'Δηλωμένο κόστος αντικατάστασης',value:fmtEur(totalDeclaredRepl),sub:missingRepl>0?`λείπει σε ${missingRepl} από ${items.length}`:`σε όλα τα ${items.length} αντικείμενα`}
           :{label:'Δηλωμένο κόστος αντικατάστασης',value:'—',sub:'το ζητά η ασφαλιστική'},
@@ -1842,7 +1842,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
         {[
           {title:'Απογραφή PDF',desc:'Πλήρης έκθεση με αξίες, ενεργειακές κλάσεις, ηλικία, tags, προέλευση και εγγυήσεις.',fn:exportPDF,primary:true},
-          {title:'Έκθεση Ασφάλισης',desc:'Εικονογραφημένη έκθεση με φωτογραφία & ασφαλιστέα αξία ανά αντικείμενο, έτοιμη για τον ασφαλιστή.',fn:exportInsurancePDF,primary:false},
+          {title:'Έκθεση Ασφάλισης',desc:'Φωτογραφία και δηλωμένο κόστος αντικατάστασης ανά αντικείμενο, έτοιμη για τον ασφαλιστή. Όπου δεν έχεις δηλώσει κόστος, το γράφει ρητά αντί να το μαντέψει.',fn:exportInsurancePDF,primary:false},
           {title:'Εξαγωγή CSV',desc:'Excel-συμβατό αρχείο με όλα τα πεδία, ιδανικό για λογιστή ή αρχειοθέτηση.',fn:exportCSV,primary:false},
         ].map(({title,desc,fn,primary})=>(
           <div key={title} style={cardStyle}>
@@ -2112,7 +2112,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           </div>
         : activeTab==='handover' ? null : (()=>{
             // 3 έξυπνα, συνδυασμένα KPI αντί για 6 — clean & minimal (Google λογική):
-            // πλήθος · αξία · ό,τι χρειάζεται προσοχή (εγγυήσεις/κατάσταση/απόσβεση/συντήρηση).
+            // πλήθος · αξία · ό,τι χρειάζεται προσοχή (εγγυήσεις/κατάσταση/αντικατάσταση/συντήρηση).
             const attention = actionCount + overdueCount
             const bits:string[]=[]
             if(warrantyExpiringCount>0) bits.push(`${warrantyExpiringCount} εγγυήσεις`)
@@ -2123,7 +2123,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             return (
               <KPIGrid items={[
                 {label:'Αντικείμενα',value:fn(items.length),sub:`${cats} ${cats===1?'κατηγορία':'κατηγορίες'}`},
-                {label:'Συνολική Αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)} αξία αγοράς`:'τρέχουσα μετά απόσβεση'},
+                {label:'Εκτ. υπολειπόμενη αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)} αξία αγοράς`:'εκτίμηση, όχι φορολογική απόσβεση'},
                 {label:'Χρειάζονται Προσοχή',value:fn(attention),tone:overdueCount>0||badConditionCount>0?'negative':attention>0?'warning':'neutral',sub:attention>0?bits.slice(0,3).join(' · '):'όλα εντάξει'},
               ]}/>
             )
