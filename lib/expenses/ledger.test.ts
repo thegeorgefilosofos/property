@@ -166,5 +166,40 @@ const exp = (o: Partial<LedgerExpense> & { id: string }): LedgerExpense => o;
   ok('η δαπάνη χωρίς ομάδα δεν χάθηκε', r.entries.some(e => e.title === 'Κοινόχρηστα'));
 }
 
+
+// ═══ Η ΔΙΠΛΗ ΑΦΑΙΡΕΣΗ ΤΗΣ ΣΥΓΚΡΙΣΗΣ ══════════════════════════════════════
+// Η οθόνη Σύγκρισης άθροιζε χωριστά «όλες τις δαπάνες» και «όλους τους πάγιους
+// λογαριασμούς», και αφαιρούσε ΚΑΙ ΤΑ ΔΥΟ από το ενοίκιο. Ο πληρωμένος πάγιος
+// όμως είναι ΕΝΑ γεγονός σε δύο πίνακες. Το τεστ κρατά το συμβόλαιο που το
+// εμποδίζει να ξανασυμβεί: το σύνολο του πυρήνα ΔΕΝ αλλάζει όταν ο ίδιος
+// πάγιος υπάρχει και ως λογαριασμός και ως δαπάνη.
+{
+  const bills = Array.from({ length: 12 }, (_, i) => bill({
+    id: `R${i}`, name: 'ΔΕΗ', category: 'electricity', amount: 100, recurring: true,
+    due_date: `2026-${String(i + 1).padStart(2, '0')}-20`,
+    paid: true, paid_at: `2026-${String(i + 1).padStart(2, '0')}-10`,
+  }));
+  const expenses = bills.map((b, i) => exp({
+    id: `RE${i}`, bill_id: b.id, description: 'ΔΕΗ', category: 'Ρεύμα', amount: 100,
+    date: `2026-${String(i + 1).padStart(2, '0')}-10`, expense_group: 'fixed', is_recurring: true,
+  }));
+  const r = mergeLedger(bills, expenses);
+
+  eq('δώδεκα γραμμές, όχι εικοσιτέσσερις', r.entries.length, 12);
+  eq('1.200 €, όχι 2.400 €', ledgerTotal(r.entries), 1200);
+  eq('κανένα διπλό', r.duplicates.length, 0);
+
+  // Το ΩΜΟ άθροισμα των δύο πινάκων — αυτό που έκανε η οθόνη — δίνει διπλάσιο.
+  const naive = bills.reduce((s, b) => s + (b.amount ?? 0), 0)
+              + expenses.reduce((s, e) => s + (e.amount ?? 0), 0);
+  eq('το ωμό άθροισμα όντως διπλασιάζει', naive, 2400);
+  ok('ο πυρήνας μετράει το μισό του ωμού', ledgerTotal(r.entries) * 2 === naive);
+
+  // Τα πάγια είναι ΥΠΟΣΥΝΟΛΟ του έτους: δεν αφαιρούνται ξεχωριστά.
+  const recurring = ledgerTotal(r.entries.filter(e => e.recurring));
+  ok('τα πάγια δεν ξεπερνούν το σύνολο', recurring <= ledgerTotal(r.entries));
+  eq('πάγια ανά μήνα = 100 €', recurring / 12, 100);
+}
+
 console.log(fail === 0 ? `✓ ledger: ${pass} έλεγχοι πέρασαν` : `✗ ledger: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);
