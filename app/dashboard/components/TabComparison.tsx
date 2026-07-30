@@ -9,7 +9,7 @@ import { downloadCsv } from './exportCsv';
 import { money, dec2, percent } from './xlsxStyle';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import { resolveValue } from '@/lib/billing/propertyFacts';
-import { mergeLedger, ledgerTotal } from '@/lib/expenses/ledger';
+import { mergeLedger, ledgerTotal, recurringMonthly } from '@/lib/expenses/ledger';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -28,7 +28,7 @@ interface Props { properties: Property[]; userId: string; }
 interface Agg {
   /** Δαπάνες του έτους, κάθε ευρώ ΜΙΑ φορά (από τον κοινό πυρήνα). */
   expensesYTD: number;
-  /** Πάγια του έτους ÷ 12: τι κοστίζει κατά μέσο όρο ο μήνας σε επαναλαμβανόμενα. */
+  /** Ο μέσος μήνας σε πάγια, διαιρεμένος με το ΕΥΡΟΣ του ιστορικού (όχι με 12). */
   recurringMonthly: number;
   monthlyRent: number;
   budgetMonthly: number;
@@ -127,10 +127,11 @@ export default function TabComparison({ properties, userId }: Props) {
       const ofYear = entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
       m[id] = {
         expensesYTD: ledgerTotal(ofYear),
-        // ΜΕΤΡΗΜΕΝΟ, ΟΧΙ ΔΗΛΩΜΕΝΟ: ο μέσος μήνας σε πάγια, από ό,τι ΟΝΤΩΣ έτρεξε
-        // φέτος. Η παλιά στήλη άθροιζε τις 12 μηνιαίες εγγραφές του ίδιου παγίου
-        // και τις έλεγε «μηνιαίο» — 1.200 € για λογαριασμό των 100 €.
-        recurringMonthly: ledgerTotal(ofYear.filter(e => e.recurring)) / 12,
+        // ΜΕΤΡΗΜΕΝΟ, ΟΧΙ ΔΗΛΩΜΕΝΟ: ο μέσος μήνας σε πάγια, από ό,τι ΟΝΤΩΣ έτρεξε.
+        // Η διαίρεση γίνεται με το ΕΥΡΟΣ του ιστορικού, όχι με σταθερό 12: όποιος
+        // ξεκίνησε τον Οκτώβριο θα έβλεπε τα πάγιά του τέσσερις φορές μικρότερα.
+        // Χωρίς αρκετό ιστορικό δεν δίνεται μέσος όρος — μηδέν αντί για εικασία.
+        recurringMonthly: recurringMonthly(ofYear).perMonth ?? 0,
         monthlyRent: 0,
         budgetMonthly: 0,
       };

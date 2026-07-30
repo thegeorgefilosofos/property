@@ -18,6 +18,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, Skeleton } from '@/components/Theme';
+import { mergeLedger, recurringMonthly } from '@/lib/expenses/ledger';
 
 // ── Static imports, all components must be static for Next.js App Router ────
 import BillsDashboard    from './BillsDashboard';
@@ -43,7 +44,15 @@ type ToolId = 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'se
 interface ToolDef { id: ToolId; label: string; icon: string; desc: string }
 
 interface StripData {
-  totalMonthly: number;
+  /**
+   * Ο μέσος μήνας σε πάγια, ΜΕΤΡΗΜΕΝΟΣ. `null` όταν το ιστορικό δεν φτάνει.
+   *
+   * Ήταν `sum(λογαριασμοί με recurring)` με ετικέτα «/ μήνα». Κάθε γραμμή του
+   * `bills` όμως είναι ΜΙΑ ΠΕΡΙΟΔΟΣ — ο χρήστης διαλέγει «Ιούλιος 2026» — και το
+   * `recurring` είναι χαρακτηρισμός («Πάγιο» απέναντι σε «Εφάπαξ»), όχι
+   * πρόγραμμα. Δώδεκα λογαριασμοί ΔΕΗ των 100 € έδειχναν «1.200 € / μήνα».
+   */
+  recurringPerMonth: number | null;
   overdueCount: number;
   tenantName:   string;
   /** Ώρα τελευταίας ανάγνωσης, ήδη μορφοποιημένη. Το «πριν 3 λεπτά» απαιτούσε
@@ -89,7 +98,7 @@ export default function TabBills({
 
   const [openTools,  setOpenTools]  = useState(false);
   const [tool,       setTool]       = useState<ToolId | null>(null);
-  const [strip,      setStrip]      = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', updatedAt: '' });
+  const [strip,      setStrip]      = useState<StripData>({ recurringPerMonth: null, overdueCount: 0, tenantName: '', updatedAt: '' });
   const [realtimeOk, setRealtimeOk] = useState(false);
   // Το `strip` ξεκινά με μηδενικά, οπότε η κεφαλίδα δεν έδειχνε κανένα chip και
   // μετά τα chips εμφανίζονταν μονομιάς και έσπρωχναν τη γραμμή. Δύο σκελετοί
@@ -100,16 +109,20 @@ export default function TabBills({
     if (!propertyId) return;
     try {
       const now = new Date();
-      const [{ data: bills }, { data: contacts }] = await Promise.all([
-        supabase.from('bills').select('amount,paid,due_date,recurring').eq('property_id', propertyId),
+      // Οι δαπάνες χρειάζονται για να μη μετρηθεί δύο φορές ο πληρωμένος πάγιος:
+      // ο λογαριασμός είναι το πρόγραμμα, η δαπάνη το γεγονός, δεμένα με bill_id.
+      const [{ data: bills }, { data: expenses }, { data: contacts }] = await Promise.all([
+        supabase.from('bills').select('id,name,amount,paid,paid_at,due_date,created_at,category,recurring').eq('property_id', propertyId),
+        supabase.from('expenses').select('id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor').eq('property_id', propertyId),
         supabase.from('contacts').select('full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
       ]);
 
-      const totalMonthly = (bills ?? []).filter(b => b.recurring).reduce((s, b) => s + (b.amount ?? 0), 0);
+      const { entries } = mergeLedger((bills ?? []) as never[], (expenses ?? []) as never[]);
+      const recurringPerMonth = recurringMonthly(entries).perMonth;
       const overdueCount = (bills ?? []).filter(b => !b.paid && b.due_date && new Date(b.due_date) < now).length;
 
       setStrip({
-        totalMonthly, overdueCount, tenantName: contacts?.[0]?.full_name ?? '',
+        recurringPerMonth, overdueCount, tenantName: contacts?.[0]?.full_name ?? '',
         updatedAt: now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
       });
     } catch (_) {} finally { setStripLoading(false); }
@@ -169,7 +182,7 @@ export default function TabBills({
           ) : (
             <>
               {strip.tenantName && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{strip.tenantName}</span>}
-              {strip.totalMonthly > 0 && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.totalMonthly, 0)} / μήνα</span>}
+              {strip.recurringPerMonth !== null && strip.recurringPerMonth > 0 && <span title="Ο μέσος μήνας σε πάγια, μετρημένος από τους λογαριασμούς που έχεις καταχωρήσει (σύνολο παγίων ÷ οι μήνες που καλύπτουν). Εμφανίζεται μόλις υπάρχουν δύο περίοδοι — με μία δεν υπάρχει μέσος όρος." style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.recurringPerMonth, 0)} / μήνα</span>}
               {strip.overdueCount > 0 && (
                 <span style={{ padding: '4px 12px', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.sans }}>
                   {strip.overdueCount} ληξιπρόθεσμα

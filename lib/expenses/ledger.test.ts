@@ -1,5 +1,5 @@
 // npx tsx lib/expenses/ledger.test.ts
-import { mergeLedger, ledgerTotal, ledgerUnpaid, groupByMonth, type LedgerBill, type LedgerExpense } from './ledger';
+import { mergeLedger, ledgerTotal, ledgerUnpaid, groupByMonth, recurringMonthly, type LedgerBill, type LedgerExpense } from './ledger';
 
 let pass = 0, fail = 0;
 function eq(name: string, got: unknown, want: unknown) {
@@ -199,6 +199,62 @@ const exp = (o: Partial<LedgerExpense> & { id: string }): LedgerExpense => o;
   const recurring = ledgerTotal(r.entries.filter(e => e.recurring));
   ok('τα πάγια δεν ξεπερνούν το σύνολο', recurring <= ledgerTotal(r.entries));
   eq('πάγια ανά μήνα = 100 €', recurring / 12, 100);
+}
+
+
+// ═══ ΠΑΓΙΑ ΑΝΑ ΜΗΝΑ — ΜΕΤΡΗΜΕΝΑ, ΟΧΙ ΑΘΡΟΙΣΜΕΝΑ ═════════════════════════════
+// Κάθε γραμμή του `bills` είναι μία ΠΕΡΙΟΔΟΣ· το `recurring` είναι χαρακτηρισμός.
+// Άρα «άθροισε τους πάγιους» δεν είναι ποτέ μηνιαίο νούμερο.
+{
+  const mk = (m: number, amount: number, id: string) => exp({
+    id, description: 'ΔΕΗ', category: 'Ρεύμα', amount, is_recurring: true,
+    date: `2026-${String(m).padStart(2, '0')}-10`, expense_group: 'fixed',
+  });
+
+  // Μηνιαίος, δώδεκα περίοδοι: 1.200 € συνολικά, 100 € ο μήνας.
+  {
+    const r = mergeLedger([], Array.from({ length: 12 }, (_, i) => mk(i + 1, 100, `m${i}`)));
+    const a = recurringMonthly(r.entries);
+    eq('μηνιαίος: 100 €/μήνα', a.perMonth, 100);
+    eq('μηνιαίος: εύρος 12 μήνες', a.months, 12);
+    eq('μηνιαίος: σύνολο 1.200 €', a.total, 1200);
+  }
+
+  // ΔΙΜΗΝΟΣ (ΕΥΔΑΠ): τρεις καταχωρήσεις των 80 € σε εύρος πέντε μηνών.
+  // Με διαίρεση «μήνες που έχουν γραμμή» θα έβγαινε 80 €/μήνα — διπλάσιο.
+  {
+    const r = mergeLedger([], [mk(1, 80, 'd1'), mk(3, 80, 'd2'), mk(5, 80, 'd3')]);
+    const a = recurringMonthly(r.entries);
+    eq('δίμηνος: εύρος 5 μήνες, όχι 3', a.months, 5);
+    eq('δίμηνος: 48 €/μήνα, όχι 80', a.perMonth, 48);
+  }
+
+  // ΜΕΡΙΚΟ ΕΤΟΣ: ξεκίνησε Οκτώβριο. Με σταθερό 12 θα έβλεπε 75 € αντί 300 €.
+  {
+    const r = mergeLedger([], [mk(10, 300, 'p1'), mk(11, 300, 'p2'), mk(12, 300, 'p3')]);
+    const a = recurringMonthly(r.entries);
+    eq('μερικό έτος: εύρος 3 μήνες', a.months, 3);
+    eq('μερικό έτος: 300 €/μήνα, όχι 225', a.perMonth, 300);
+  }
+
+  // ΕΝΑΣ ΜΗΝΑΣ: δεν υπάρχει μέσος όρος, υπάρχει ένας μήνας. Δεν μαντεύουμε.
+  {
+    const a = recurringMonthly(mergeLedger([], [mk(7, 100, 's1')]).entries);
+    eq('ένας μήνας: κανένας μέσος όρος', a.perMonth, null);
+    eq('ένας μήνας: το σύνολο υπάρχει', a.total, 100);
+  }
+
+  // ΤΑ ΕΦΑΠΑΞ ΔΕΝ ΕΙΝΑΙ ΠΑΓΙΑ: μια επισκευή δεν επιβαρύνει κάθε μήνα.
+  {
+    const oneOff = exp({ id: 'x', description: 'Υδραυλικός', category: 'Συντήρηση',
+      amount: 5000, date: '2026-03-04', expense_group: 'maintenance' });
+    const r = mergeLedger([], [mk(1, 100, 'r1'), mk(2, 100, 'r2'), oneOff]);
+    const a = recurringMonthly(r.entries);
+    eq('η έκτακτη επισκευή δεν μπαίνει στα πάγια', a.total, 200);
+    eq('πάγια ανά μήνα 100 €', a.perMonth, 100);
+  }
+
+  eq('χωρίς πάγια: τίποτα', recurringMonthly([]).perMonth, null);
 }
 
 console.log(fail === 0 ? `✓ ledger: ${pass} έλεγχοι πέρασαν` : `✗ ledger: ${fail} απέτυχαν από ${pass + fail}`);
