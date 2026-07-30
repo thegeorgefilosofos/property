@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, TT, feAuto } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
+import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
@@ -183,8 +184,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const todayStr = now.toISOString().split('T')[0];
     const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
-      supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
-      supabase.from('bills').select('id,name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
+      supabase.from('expenses').select('id,bill_id,amount,category,date,description,paid,expense_group,is_recurring,store_vendor,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
+      supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
       supabase.from('property_settings').select('insurance_company,insurance_expiry,insurance_amount').eq('property_id', propertyId).maybeSingle(),
       supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date').limit(10),
@@ -197,10 +198,29 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('checklist_items').select('description,category,priority,due_date,status,estimated_cost,assigned_contact_name').eq('property_id', propertyId).eq('user_id', userId).neq('status', 'done').neq('status', 'skipped').order('due_date', { ascending: true, nullsFirst: false }).limit(60),
     ]);
     const expenses = exp || [];
-    const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const paid = expenses.filter(e => (e as any).paid !== false).reduce((s, e) => s + (e.amount || 0), 0);
+
+    // ── ΤΑ ΝΟΥΜΕΡΑ ΠΟΥ ΘΑ ΠΕΙ Η ΝΟΑ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟΝ ΚΟΙΝΟ ΠΥΡΗΝΑ ────────────
+    //
+    // Πριν, τα σύνολα υπολογίζονταν ΜΟΝΟ από τον πίνακα `expenses`. Ο απλήρωτος
+    // λογαριασμός όμως δεν έχει δαπάνη πίσω του — η δαπάνη γεννιέται στην
+    // πληρωμή. Άρα:
+    //   • η καθαρή απόδοση που έλεγε ήταν ΑΙΣΙΟΔΟΞΗ: αγνοούσε ό,τι χρωστάς·
+    //   • το «εκκρεμείς» μετρούσε μόνο δαπάνες με paid=false, δηλαδή σχεδόν
+    //     πάντα 0 — ενώ ο ιδιοκτήτης μπορεί να έχει ΕΝΦΙΑ και ΔΕΗ απλήρωτα.
+    //
+    // Και το χειρότερο: οι Δαπάνες και η Σύγκριση ΜΕΤΡΟΥΝ τους απλήρωτους. Ο
+    // ίδιος χρήστης έπαιρνε άλλη απάντηση από την οθόνη και άλλη από τη Νόα,
+    // για το ίδιο ακίνητο την ίδια στιγμή. Σε βοηθό που δίνει συμβουλή με λόγια,
+    // αυτό δεν διαβάζεται ως διαφορά πίνακα — διαβάζεται ως λάθος συμβουλή.
+    const ledger = mergeLedger((bil || []) as never[], expenses as never[]);
+    const ofYear = ledger.entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
+    const total = ledgerTotal(ofYear);
+    // Ταμειακή βάση για τη φορολογική εικόνα: ό,τι ΟΝΤΩΣ πληρώθηκε.
+    const paid = ledgerTotal(ofYear.filter(e => e.paid));
+    const owed = ledgerTotal(ledgerUnpaid(ofYear));
+
     const catMap: Record<string, number> = {};
-    expenses.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + (e.amount || 0); });
+    ofYear.forEach(e => { const k = e.category || 'Άλλο'; catMap[k] = (catMap[k] || 0) + e.amount; });
     const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const unpaid = (bil || []).filter(b => !b.paid);
     openBillsRef.current = unpaid.map((b: any) => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
@@ -323,7 +343,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       propContext.status ? `Κατάσταση: ${propContext.status}` : '',
       `Ενοίκιο: ${eur(rent)}/μήνα (ετήσιο ${eur(rent * 12)})`,
       value ? `Απόδοση: μεικτή ${grossY.toFixed(1)}%, καθαρή ${netY.toFixed(1)}%` : '',
-      `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(total - paid)})`,
+      `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(owed)}). Κάθε ευρώ μετρημένο μία φορά· οι απλήρωτοι λογαριασμοί μετρούν στην ημερομηνία που λήγουν — ίδιος υπολογισμός με τις Δαπάνες και τη Σύγκριση.`,
       topCats.length ? `Μεγαλύτερες κατηγορίες: ${topCats.map(([c, a]) => `${c} ${eur(a)}`).join(', ')}` : '',
       unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${(b as any).name || 'λογαριασμός'} ${eur(b.amount)}${(b as any).due_date ? ` λήξη ${(b as any).due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
       openRentRef.current.length ? `Ανεξόφλητες δόσεις ενοικίου (${openRentRef.current.length}): ${openRentRef.current.slice(0, 12).map(r => `${r.label} ${eur(r.amount)}`).join('; ')}` : '',

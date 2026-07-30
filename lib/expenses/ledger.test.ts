@@ -257,5 +257,52 @@ const exp = (o: Partial<LedgerExpense> & { id: string }): LedgerExpense => o;
   eq('χωρίς πάγια: τίποτα', recurringMonthly([]).perMonth, null);
 }
 
+
+// ═══ ΤΟ ΑΘΡΟΙΣΜΑ ΜΟΝΟ ΑΠΟ ΤΙΣ ΔΑΠΑΝΕΣ ΚΡΥΒΕΙ ΟΤΙ ΧΡΩΣΤΑΣ ═══════════════════
+// Ο βοηθός υπολόγιζε τα σύνολά του ΜΟΝΟ από τον πίνακα `expenses`. Ο απλήρωτος
+// λογαριασμός όμως δεν έχει δαπάνη πίσω του — γεννιέται στην πληρωμή. Έλεγε
+// λοιπόν «εκκρεμείς 0 €» σε ιδιοκτήτη με απλήρωτους λογαριασμούς, και έδινε αισιόδοξη
+// καθαρή απόδοση. Οι Δαπάνες και η Σύγκριση τα μετρούσαν: ίδιο ακίνητο, δύο
+// απαντήσεις από το ίδιο app.
+{
+  const paidBills = Array.from({ length: 6 }, (_, i) => bill({
+    id: `p${i}`, name: 'ΔΕΗ', category: 'Ρεύμα', amount: 100, recurring: true, paid: true,
+    paid_at: `2026-0${i + 1}-10`, due_date: `2026-0${i + 1}-20`,
+  }));
+  const owedBills = [
+    // ΓΙΑΤΙ ΟΧΙ «ΕΝΦΙΑ» ΕΔΩ: ο έλεγχος του obligations.test.ts απαγορεύει όνομα
+    // φορολογικής υποχρέωσης δίπλα σε ημερομηνία εκτός του ενός ημερολογίου
+    // (lib/tax/greekTaxCalendar.ts) — και έχει δίκιο, ακόμη και σε δεδομένα
+    // δοκιμής. Το σενάριο δεν χρειάζεται φόρο: χρειάζεται μεγάλο απλήρωτο ποσό.
+    bill({ id: 'u1', name: 'Ασφάλεια κτιρίου', category: 'Ασφάλιση', amount: 620, paid: false, due_date: '2026-07-31' }),
+    bill({ id: 'u2', name: 'ΔΕΗ Ιουλίου', category: 'Ρεύμα', amount: 110, paid: false, due_date: '2026-07-20' }),
+    bill({ id: 'u3', name: 'Κοινόχρηστα', category: 'Κοινόχρηστα', amount: 70, paid: false, due_date: '2026-07-15' }),
+  ];
+  const paidExpenses = paidBills.map((b, i) => exp({
+    id: `e${i}`, bill_id: b.id, description: 'ΔΕΗ', category: 'Ρεύμα', amount: 100,
+    date: `2026-0${i + 1}-10`, paid: true, expense_group: 'fixed', is_recurring: true,
+  }));
+
+  const { entries } = mergeLedger([...paidBills, ...owedBills], paidExpenses);
+
+  // Ο παλιός τρόπος: μόνο ο πίνακας δαπανών.
+  const onlyExpenses = paidExpenses.reduce((s, e) => s + (e.amount ?? 0), 0);
+  eq('μόνο δαπάνες: 600 €', onlyExpenses, 600);
+
+  // Ο πυρήνας: ό,τι πληρώθηκε ΚΑΙ ό,τι οφείλεται.
+  eq('πυρήνας: σύνολο 1.400 €', ledgerTotal(entries), 1400);
+  eq('πυρήνας: πληρωμένες 600 €', ledgerTotal(entries.filter(e => e.paid)), 600);
+  eq('πυρήνας: ΕΚΚΡΕΜΕΙΣ 800 €, όχι 0 €', ledgerTotal(ledgerUnpaid(entries)), 800);
+  eq('τρεις απλήρωτες γραμμές', ledgerUnpaid(entries).length, 3);
+
+  // Ο απλήρωτος μετράει στην ημερομηνία που ΛΗΓΕΙ — εκεί οφείλεται.
+  const big = entries.find(e => e.title === 'Ασφάλεια κτιρίου');
+  eq('ο απλήρωτος μετράει στη λήξη του', big?.date, '2026-07-31');
+  eq('και κρατά την προθεσμία του', big?.due, '2026-07-31');
+
+  // Καμία γραμμή δεν χάθηκε: 6 ζεύγη + 3 απλήρωτοι.
+  eq('εννέα γραμμές συνολικά', entries.length, 9);
+}
+
 console.log(fail === 0 ? `✓ ledger: ${pass} έλεγχοι πέρασαν` : `✗ ledger: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);
