@@ -3,7 +3,7 @@
 // Χρησιμοποιείται από το TabClients.tsx και από τα tests.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { isValidAfm, normalizePhone } from '../core/greek';
+import { isValidAfm, nightsBetween, normalizePhone } from '../core/greek';
 
 export type ClientType = 'owner' | 'lead' | 'client';
 export const CLIENT_TYPES: ClientType[] = ['owner', 'lead', 'client'];
@@ -60,13 +60,15 @@ export interface StayLike {
   damages?: boolean | null; damage_cost?: number | null;
 }
 
-/** Διανυκτερεύσεις μεταξύ δύο ημερομηνιών (>= 0). Αν λείπει κάτι, 0. */
-export function stayNights(checkIn?: string | null, checkOut?: string | null): number {
-  if (!checkIn || !checkOut) return 0;
-  const a = new Date(checkIn).getTime(), b = new Date(checkOut).getTime();
-  if (isNaN(a) || isNaN(b) || b <= a) return 0;
-  return Math.round((b - a) / 86400000);
-}
+/**
+ * Διανυκτερεύσεις διαμονής (>= 0). Αν λείπει κάτι, 0.
+ *
+ * Είναι ΤΟ ΙΔΙΟ πράγμα με το `nightsBetween` — κρατά το δικό του όνομα επειδή
+ * έτσι το διαβάζουν οι οθόνες των Πελατών, αλλά ΔΕΝ ξαναϋπολογίζει: οι νύχτες
+ * είναι η βάση για τα έσοδα, το ΑΔΡ και το τέλος ανθεκτικότητας, και δύο
+ * υπολογισμοί θα ήταν δύο διαφορετικά νούμερα για την ίδια διαμονή.
+ */
+export const stayNights = nightsBetween;
 
 /** Συνολικό ποσό διαμονής: total αν δόθηκε, αλλιώς nights × nightly_rate. */
 export function stayTotal(s: StayLike): number {
