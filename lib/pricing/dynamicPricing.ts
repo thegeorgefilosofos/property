@@ -25,7 +25,16 @@ export interface PricingOptions {
   weekendPremium?: number;      // προσαρμογή Παρ/Σαβ (default 0.18 = +18%)
 }
 
-export interface PriceFactor { label: string; mult: number }
+/**
+ * Ένας πολλαπλασιαστής της τιμής, με ΤΗΝ ΠΗΓΗ ΤΟΥ.
+ *
+ * Το `source` δεν είναι διακόσμηση. Ο πίνακας «Λεπτομέρεια ημέρας» έδειχνε
+ * σωστά κάθε πολλαπλασιαστή ονομαστικά, αλλά ο χρήστης δεν μπορούσε να ξέρει
+ * ποιος βγαίνει από ημερολόγιο (αργία, ημέρα εβδομάδας), ποιος από τα δικά του
+ * δεδομένα (κλεισμένες ημερομηνίες) και ποιος από παραδοχή μας (εποχικότητα).
+ * Η διάκριση είναι όλη η διαφορά μεταξύ μέτρησης και εικασίας.
+ */
+export interface PriceFactor { label: string; mult: number; source: string }
 
 export interface DayPrice {
   date: string;
@@ -130,19 +139,19 @@ export function suggestBase(stays: PricingStay[]): number {
   return adr > 0 ? Math.round(adr) : 0;
 }
 
-/**
- * Αρχική εκτίμηση βάσης όταν ΔΕΝ υπάρχει ιστορικό, από δύο σήματα:
- *   • μηνιαίο (μακροχρόνιο) ενοίκιο ÷ 30 × 2,2 (τυπική σχέση βραχυ/μακρο ADR)
- *   • εμβαδόν × ~1,6 €/τ.μ./νύχτα (ενδεικτικό αστικό)
- * Παίρνει το μεγαλύτερο διαθέσιμο σήμα, στρογγυλεμένο. Είναι αφετηρία που ο
- * χρήστης προσαρμόζει· χωρίς τοποθεσία κάθε εκτίμηση είναι κατά προσέγγιση.
- */
-export function suggestBaseFallback(monthlyRent?: number | null, sqm?: number | null): number {
-  const rentBased = monthlyRent && monthlyRent > 0 ? (monthlyRent / 30) * 2.2 : 0;
-  const sqmBased = sqm && sqm > 0 ? sqm * 1.6 : 0;
-  const b = Math.max(rentBased, sqmBased);
-  return b > 0 ? Math.max(5, Math.round(b / 5) * 5) : 0;
-}
+// ── ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ ────────────────────────────────────────────
+//
+// `suggestBaseFallback(rent, sqm)`: πρότεινε βάση χωρίς ίχνος ιστορικού, από
+// `(ενοίκιο/30) × 2,2` και `τ.μ. × 1,6 €/νύχτα`, με `Math.max` ΠΡΟΣ ΤΑ ΠΑΝΩ.
+// Καμία πηγή, κανένας γεωγραφικός διαχωρισμός: 60 τ.μ. στη Λάρισα έβγαζαν
+// 96 €/νύχτα, ίδια με 60 τ.μ. στη Μύκονο. Και επειδή το UI το καλούσε πριν
+// δείξει το EmptyState, ο χρήστης έβλεπε έναν αριθμό αντί για την ερώτηση.
+// → Χωρίς ιστορικό δεν προτείνουμε καμία βάση. Μένει η βαθμονόμηση από τον
+//   ανταγωνισμό, όπου τα νούμερα τα βάζει ο χρήστης από πραγματικές αγγελίες:
+//   η μόνη τίμια πηγή που έχουμε για τοπική τιμή.
+//
+// `projectRevenue()` / `OCC_BY_SEASON`: δες το σχόλιο πριν από το
+// `estimateSeasonalOccupancy`.
 
 // ── Πληρότητα γύρω από μια ημερομηνία (demand pace) ─────────────────────────
 function occupancyMult(date: string, booked?: Set<string>): number {
@@ -175,9 +184,13 @@ export function priceForDate(date: string, opts: PricingOptions): DayPrice {
   const m = Number(date.slice(5, 7)) - 1;
   const factors: PriceFactor[] = [];
 
-  // 1) Εποχικότητα (blend με πραγματική ADR του μήνα αν υπάρχουν δεδομένα)
+  // 1) Εποχικότητα. ΠΑΡΑΔΟΧΗ ΜΑΣ, και το λέει: ένας πίνακας ανά μήνα, ο ίδιος
+  //    για Σαντορίνη και Ιωάννινα. Δεν έχουμε τοπικά δεδομένα εποχικότητας.
   const seasonMult = MONTH_MULT[m];
-  factors.push({ label: `Εποχή (${SEASON_LABELS[monthSeason(m)]})`, mult: seasonMult });
+  factors.push({
+    label: `Εποχή (${SEASON_LABELS[monthSeason(m)]})`, mult: seasonMult,
+    source: 'παραδοχή της εφαρμογής για την ελληνική τουριστική εποχικότητα, ίδια για όλη τη χώρα',
+  });
 
   // 2) Ημέρα εβδομάδας (Παρ/Σαβ premium, Κυρ/Δευ ελαφριά έκπτωση)
   const wknd = opts.weekendPremium ?? 0.18;
@@ -185,22 +198,36 @@ export function priceForDate(date: string, opts: PricingOptions): DayPrice {
   const isWeekend = dow === 5 || dow === 6;
   if (isWeekend) dowMult = 1 + wknd;
   else if (dow === 0 || dow === 1) dowMult = 0.95;
-  if (dowMult !== 1) factors.push({ label: isWeekend ? 'Σαββατοκύριακο' : 'Καθημερινή', mult: dowMult });
+  if (dowMult !== 1) factors.push({
+    label: isWeekend ? 'Σαββατοκύριακο' : 'Καθημερινή', mult: dowMult,
+    source: isWeekend ? 'ημερολόγιο, και το premium που όρισες εσύ στις ρυθμίσεις' : 'ημερολόγιο (Κυριακή/Δευτέρα)',
+  });
 
-  // 3) Αργία / υψηλή ζήτηση (μεγαλύτερο premium στην αιχμή: μια αργία τον
-  //    Αύγουστο αξίζει πολύ περισσότερο από μια αργία τον χειμώνα).
+  // 3) Αργία (μεγαλύτερο premium στην αιχμή: μια αργία τον Αύγουστο αξίζει
+  //    περισσότερο από μια αργία τον χειμώνα).
   const holidayName = holidayFor(date);
   const seasonNow = monthSeason(m);
   const holidayMult = holidayName ? (seasonNow === 'peak' ? 1.40 : seasonNow === 'high' ? 1.30 : 1.22) : 1;
-  if (holidayName) factors.push({ label: holidayName, mult: holidayMult });
+  if (holidayName) factors.push({
+    label: holidayName, mult: holidayMult,
+    source: 'ελληνικό ημερολόγιο αργιών (το Πάσχα υπολογισμένο, όχι καρφωμένο)',
+  });
 
   // 4) Lead time (last-minute)
   const lm = leadMult(date, opts.today, opts.bookedDates);
-  if (lm !== 1) factors.push({ label: 'Last minute', mult: lm });
+  if (lm !== 1) factors.push({
+    label: 'Last minute', mult: lm,
+    source: 'πόσες ημέρες απομένουν και η ημέρα είναι ακόμη κενή στα δικά σου δεδομένα',
+  });
 
-  // 5) Πληρότητα γύρω από την ημερομηνία
+  // 5) Πληρότητα γύρω από την ημερομηνία. ΔΙΚΑ ΤΟΥ ΔΕΔΟΜΕΝΑ — γι' αυτό δεν
+  //    λέγεται πια «Ζήτηση περιόδου»: δεδομένο ζήτησης δεν έχουμε, κλεισμένες
+  //    ημερομηνίες έχουμε.
   const occ = occupancyMult(date, opts.bookedDates);
-  if (occ !== 1) factors.push({ label: 'Ζήτηση περιόδου', mult: occ });
+  if (occ !== 1) factors.push({
+    label: 'Κλεισμένες γειτονικές ημέρες', mult: occ,
+    source: 'οι δικές σου κρατήσεις ±3 ημέρες (χειροκίνητες και από iCal)',
+  });
 
   let price = opts.base * seasonMult * dowMult * holidayMult * lm * occ;
 
@@ -244,72 +271,95 @@ export function suggestGuardrails(base: number): { min: number; max: number } {
   return { min: round5(base * 0.6), max: round5(base * 2.2) };
 }
 
-// ── Προβολή εσόδων & κέρδος έναντι σταθερής τιμής ───────────────────────────
-// Εκτιμώμενη πληρότητα ανά εποχή (ενδεικτική· ρεαλιστική για ελληνική αγορά).
-export const OCC_BY_SEASON: Record<Season, number> = { peak: 0.90, high: 0.72, mid: 0.52, low: 0.32 };
+// ── ΠΛΗΡΟΤΗΤΑ ΑΝΑ ΕΠΟΧΗ — ΜΟΝΟ ΜΕΤΡΗΜΕΝΗ, Ή ΚΑΘΟΛΟΥ ───────────────────────
+//
+// ΤΙ ΕΦΥΓΕ ΚΑΙ ΓΙΑΤΙ. Εδώ ζούσαν δύο πράγματα που δεν άντεχαν έλεγχο:
+//
+// 1. `OCC_BY_SEASON = {peak:0.90, high:0.72, mid:0.52, low:0.32}`, με το σχόλιο
+//    «ρεαλιστική για ελληνική αγορά». Καμία πηγή, κανένας γεωγραφικός
+//    διαχωρισμός. Ένα διαμέρισμα στα Ιωάννινα έβλεπε 90% πληρότητα αιχμής.
+//
+// 2. `projectRevenue()` και το KPI «Εκτιμώμενο επιπλέον κέρδος». Ήταν
+//    ΤΑΥΤΟΛΟΓΙΑ: `proj = Σ(τιμή × πληρότητα)` και `flat = Σ(βάση × πληρότητα)`,
+//    όπου `τιμή = βάση × πολλαπλασιαστές` με μέσο όρο 1,123. Άρα το «κέρδος»
+//    ήταν μαθηματικά αδύνατο να βγει αρνητικό: το app έλεγε «ανέβασε τις τιμές
+//    12% και θα βγάλεις 12% περισσότερα, με την ίδια πληρότητα». Χειρότερα, η
+//    στάθμιση χρησιμοποιούσε πληρότητα υψηλότερη ακριβώς στους μήνες με τους
+//    μεγαλύτερους πολλαπλασιαστές, οπότε το ψεύτικο κέρδος διογκωνόταν.
+//    Πρόβλεψη εσόδων χωρίς ελαστικότητα ζήτησης δεν είναι πρόβλεψη — και
+//    ελαστικότητα ζήτησης δεν έχουμε. Μένει το εύρος τιμής, που είναι πρόταση
+//    και το λέει.
+//
+// 3. Η ετικέτα «από το ιστορικό σου» με κατώφλι `stays.length >= 4` (~12 νύχτες)
+//    και prior βάρους 20: το 62% της εκτίμησης ήταν ο επινοημένος prior. Η
+//    ετικέτα έλεγε ψέματα για την προέλευση του αριθμού.
+//
+// ΤΙ ΜΕΝΕΙ. Πληρότητα ΜΟΝΟ από πραγματικές νύχτες, με κατώφλι, χωρίς prior. Κάτω
+// από το κατώφλι επιστρέφεται `null` για την εποχή: το UI γράφει «δεν έχουμε
+// αρκετό ιστορικό», που είναι η αλήθεια και είναι χρήσιμη.
 
-export interface Projection {
-  availableNights: number;   // διαθέσιμες νύχτες στο διάστημα (μη κλεισμένες)
-  expectedNights: number;    // αναμενόμενες κρατημένες νύχτες (εκτίμηση)
-  occPct: number;            // εκτιμώμενη πληρότητα %
-  projRevenue: number;       // προβλεπόμενα έσοδα με δυναμική τιμή
-  flatRevenue: number;       // προβλεπόμενα έσοδα με σταθερή τιμή (βάση)
-  uplift: number;            // διαφορά (€) υπέρ της δυναμικής
-  upliftPct: number;         // % βελτίωση
-}
+/** Ελάχιστες πραγματικές νύχτες ανά εποχή για να βγει πληρότητα (≈ ένας μήνας). */
+export const MIN_NIGHTS_FOR_OCCUPANCY = 24;
 
-/** Νύχτες ανά ημερολογιακό μήνα (0..11) από όλες τις διαμονές, όλων των ετών. */
-function staysNightsByMonth(stays: PricingStay[]): number[] {
-  const out = new Array(12).fill(0);
+/**
+ * Νύχτες ανά ΣΥΓΚΕΚΡΙΜΕΝΟ μήνα ('YYYY-MM'), όχι ανά μήνα-του-έτους.
+ *
+ * Η διάκριση δεν είναι λεπτομέρεια: αν αθροίσεις τρεις γεμάτους Αυγούστους σε
+ * έναν «Αύγουστο» και διαιρέσεις με 31 ημέρες, βγάζεις 300% πληρότητα και το
+ * κλειδώνεις στο 100%. Ο παρονομαστής πρέπει να μεγαλώνει μαζί με τα δεδομένα.
+ */
+function staysNightsByYearMonth(stays: PricingStay[]): Map<string, number> {
+  const out = new Map<string, number>();
+  const add = (key: string, n: number) => out.set(key, (out.get(key) || 0) + n);
   for (const s of stays) {
     if (s.check_in && s.check_out) {
       let d = s.check_in.slice(0, 10); const end = s.check_out.slice(0, 10); let g = 0;
-      while (d < end && g++ < 400) { out[Number(d.slice(5, 7)) - 1]++; d = addDays(d, 1); }
+      while (d < end && g++ < 400) { add(d.slice(0, 7), 1); d = addDays(d, 1); }
     } else if (s.check_in) {
-      out[new Date(s.check_in).getUTCMonth()] += (s.nights ?? 0);
+      add(s.check_in.slice(0, 7), Math.max(0, s.nights ?? 0));
     }
   }
   return out;
 }
 
-/**
- * Εκτιμώμενη πληρότητα ανά εποχή από το ΔΙΚΟ σου ιστορικό, αναμεμειγμένη με μια
- * λογική βάση (prior). Με λίγα δεδομένα μένει κοντά στη βάση· με πολλά, κινείται
- * προς την πραγματική σου πληρότητα. Επιστρέφει τιμές στο [0,1].
- */
-export function estimateSeasonalOccupancy(stays: PricingStay[]): Record<Season, number> {
-  const nbm = staysNightsByMonth(stays);
-  const booked: Record<Season, number> = { peak: 0, high: 0, mid: 0, low: 0 };
-  const monthsObs: Record<Season, number> = { peak: 0, high: 0, mid: 0, low: 0 };
-  for (let m = 0; m < 12; m++) { const se = monthSeason(m); booked[se] += nbm[m]; if (nbm[m] > 0) monthsObs[se]++; }
-  const out = {} as Record<Season, number>;
-  const W = 20; // βάρος prior (σε νύχτες)
-  (['peak', 'high', 'mid', 'low'] as Season[]).forEach(se => {
-    const dataNights = booked[se];
-    const observed = Math.min(1, dataNights / (Math.max(1, monthsObs[se]) * 30.4));
-    out[se] = dataNights > 0 ? (W * OCC_BY_SEASON[se] + dataNights * observed) / (W + dataNights) : OCC_BY_SEASON[se];
-  });
-  return out;
+export interface SeasonalOccupancy {
+  /** Πληρότητα ανά εποχή στο [0,1], ή `null` όταν λείπει αρκετό ιστορικό. */
+  occ: Record<Season, number | null>;
+  /** Πόσες πραγματικές νύχτες μετρήθηκαν ανά εποχή (η απόδειξη του αριθμού). */
+  nights: Record<Season, number>;
+  /** Υπάρχει έστω μία εποχή με αρκετό ιστορικό; */
+  any: boolean;
 }
 
-/** Προβολή εσόδων στο διάστημα, με πληρότητα ανά εποχή (προσωπική ή προεπιλογή). */
-export function projectRevenue(rows: DayPrice[], base: number, occBySeason: Record<Season, number> = OCC_BY_SEASON): Projection {
-  const avail = rows.filter(r => !r.booked);
-  let exp = 0, proj = 0, flat = 0;
-  for (const r of avail) {
-    const o = occBySeason[r.season];
-    exp += o; proj += r.price * o; flat += base * o;
+/**
+ * Πληρότητα ανά εποχή ΜΟΝΟ από μετρημένες νύχτες.
+ *
+ * Παρονομαστής: οι ημέρες των μηνών που ανήκουν στην εποχή και έχουν έστω μία
+ * κράτηση — δηλαδή οι μήνες που το ακίνητο αποδεδειγμένα ήταν στην αγορά. Κάτω
+ * από `MIN_NIGHTS_FOR_OCCUPANCY` νύχτες, η εποχή επιστρέφει `null`: κανένα
+ * prior, κανένα «ενδεικτικό» νούμερο που θα το διάβαζε ως μέτρηση.
+ */
+export function estimateSeasonalOccupancy(stays: PricingStay[]): SeasonalOccupancy {
+  const seasons: Season[] = ['peak', 'high', 'mid', 'low'];
+  const nights: Record<Season, number> = { peak: 0, high: 0, mid: 0, low: 0 };
+  const openDays: Record<Season, number> = { peak: 0, high: 0, mid: 0, low: 0 };
+  for (const [ym, n] of staysNightsByYearMonth(stays)) {
+    if (n <= 0) continue;
+    const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7)) - 1;
+    if (!(y > 0) || m < 0 || m > 11) continue;
+    const se = monthSeason(m);
+    nights[se] += n;
+    openDays[se] += new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
   }
-  const uplift = Math.round(proj - flat);
-  return {
-    availableNights: avail.length,
-    expectedNights: Math.round(exp),
-    occPct: avail.length ? Math.round((exp / avail.length) * 100) : 0,
-    projRevenue: Math.round(proj),
-    flatRevenue: Math.round(flat),
-    uplift,
-    upliftPct: flat > 0 ? Math.round((uplift / flat) * 100) : 0,
-  };
+  const occ = {} as Record<Season, number | null>;
+  let any = false;
+  for (const se of seasons) {
+    if (nights[se] >= MIN_NIGHTS_FOR_OCCUPANCY && openDays[se] > 0) {
+      occ[se] = Math.min(1, nights[se] / openDays[se]);
+      any = true;
+    } else occ[se] = null;
+  }
+  return { occ, nights, any };
 }
 
 // ── Κενές μέρες προς πλήρωση (actionable gaps) ──────────────────────────────

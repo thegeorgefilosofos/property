@@ -9,16 +9,46 @@ import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, Skeleton, S
 import { PackageOpen, SearchX, Zap, ShieldCheck, ClipboardCheck } from 'lucide-react'
 import { downloadCsv, csvDate, csvSafe } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
-import { depreciate, replacementSuggestion, portfolioSummary, USEFUL_LIFE_YEARS } from '@/lib/inventory/depreciation'
+import { depreciate, replacementSuggestion, portfolioSummary, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
+import { formFields, INVENTORY_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields'
+import { readStatus, statusLabel, type StatusRow } from '@/lib/property/status'
 import { reportAccent } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
-import { notifyError } from '@/components/Toast';
+import { notifyError, notifyOk } from '@/components/Toast';
 import { confirmDialog } from '@/components/confirmBus';
 
 const supabase = createSupabaseClient()
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΕΣΣΕΡΑ ΕΠΙΝΟΗΜΕΝΑ ΝΟΥΜΕΡΑ ΠΟΥ ΕΦΥΓΑΝ ΑΠΟ ΑΥΤΗ ΤΗΝ ΟΘΟΝΗ
+//
+// 1. «Ασφαλιστέα Αξία» = τρέχουσα × 1,1, ως KPI ισότιμο με πραγματικά νούμερα.
+//    Η ασφαλιστέα αξία εξοπλισμού είναι κόστος ΑΝΤΙΚΑΤΑΣΤΑΣΗΣ ΜΕ ΚΑΙΝΟΥΡΓΙΟ, όχι
+//    αποσβεσμένη αξία +10%. Όποιος ασφαλιζόταν με βάση αυτό ήταν υπασφαλισμένος
+//    και θα το μάθαινε ΜΕΤΑ τη ζημιά. → Τώρα αθροίζονται μόνο τα ΔΗΛΩΜΕΝΑ κόστη
+//    αντικατάστασης, και λέγεται ρητά για πόσα αντικείμενα λείπει το νούμερο.
+//
+// 2. «Αναβάθμιση N συσκευών → X €/χρόνο» σε πράσινο πλαίσιο. Τρία επινοημένα
+//    μαζί: σταθερά 0,5 (κάθε αντικατάσταση κόβει τη μισή κατανάλωση), η κλάση A
+//    μετρημένη στα «κακά», και τιμή ρεύματος 0,22 €/kWh που σωζόταν σιωπηλά ως
+//    δεδομένο σε κάθε άκυρη είσοδο — και χωρίς να αφαιρείται το κόστος αγοράς
+//    («θα κερδίσεις 180 €/χρόνο» για συσκευή 1.200 €). → Μένει μόνο η ΜΕΤΡΗΣΗ:
+//    τι κοστίζει η συσκευή τον μήνα, ΣΤΗΝ ΤΙΜΗ ΠΟΥ ΔΗΛΩΝΕΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΣΟΥ.
+//    Χωρίς τιμή δεν εμφανίζεται κόστος: εμφανίζονται kWh και ζητείται η τιμή.
+//
+// 3. «Απόσβεση» ως τίτλος σε επαγγελματία. Ο επαγγελματίας έχει ΝΟΜΙΜΟΥΣ
+//    συντελεστές (ΚΦΕ άρθρο 24) που δεν είναι αυτοί. → Παντού «εκτιμώμενη
+//    υπολειπόμενη αξία», με ρητή σημείωση, και το μπλοκ «Χαρτοφυλακίου» έφυγε.
+//
+// 4. «Εξοικονόμηση από εκπτώσεις» σε πράσινο: δεν είναι εξοικονόμηση, είναι η
+//    έκπτωση που πήρες κάποτε. Μαζί έφυγαν τα πέντε πεδία που το τροφοδοτούσαν.
+//
+// ΚΑΙ ΠΟΙΑ ΠΕΔΙΑ ΒΛΕΠΕΙ Ο ΧΡΗΣΤΗΣ: το αποφασίζει το lib/property/fields.ts, όχι
+// αυτή η φόρμα. Απογραφή εξοπλισμού υπάρχει ΜΟΝΟ σε επιπλωμένο ακίνητο που
+// νοικιάζεται· σε ιδιοχρησία ή κενό δεν υπάρχει εξοπλισμός να παραδοθεί.
+// ═══════════════════════════════════════════════════════════════════════════
 
 const DOCS_BUCKET = 'inventory-docs'
 // Ανοίγει απόδειξη/εγγύηση με προσωρινό signed URL (1 ώρα). Legacy fallback αν αποθηκεύτηκε public URL.
@@ -37,10 +67,14 @@ interface InventoryItem {
   purchase_date: string; warranty_expiry: string; condition: string
   notes: string; photo_url: string; photos: string[]
   energy_class: string; power_watts: number; daily_hours_use: number
-  standby_watts: number; replacement_cost: number
-  smart_device: boolean; smart_notes: string; tags: string[]
-  provenance: string; original_price: number; discount_pct: number
-  store_vendor: string; receipt_number: string
+  replacement_cost: number
+  // ΠΑΛΙΕΣ ΣΤΗΛΕΣ, ΔΕΝ ΓΡΑΦΟΝΤΑΙ ΠΙΑ. Μένουν στον τύπο επειδή μένουν στη βάση και
+  // το select('*') τις επιστρέφει: τα δεδομένα όσων τις συμπλήρωσαν δεν χάνονται.
+  // Καμία οθόνη δεν τις ζητά και καμία εξαγωγή δεν τις δείχνει.
+  standby_watts?: number
+  smart_device?: boolean; smart_notes?: string; tags?: string[]
+  provenance?: string; original_price?: number; discount_pct?: number
+  store_vendor?: string; receipt_number?: string
   receipt_doc_url?: string; receipt_doc_name?: string
   created_at: string; updated_at: string
 }
@@ -102,16 +136,6 @@ const STARTER_PACK:{name:string;category:string;room:string}[] = [
 ]
 const CONDITIONS = ['Άριστη','Καλή','Μέτρια','Κακή','Εκτός Λειτουργίας']
 const ENERGY_CLASSES = ['A+++','A++','A+','A','B','C','D','E','F','G']
-const PROVENANCE_OPTIONS = [
-  {value:'new', label:'Νέο, Αγορά από κατάστημα'},
-  {value:'used', label:'Μεταχειρισμένο'},
-  {value:'refurbished', label:'Ανακατασκευασμένο (Refurbished)'},
-  {value:'gift', label:'Δώρο'},
-  {value:'previous_home', label:'Από προηγούμενο σπίτι'},
-  {value:'family', label:'Από οικογένεια / φίλο'},
-  {value:'inherited', label:'Κληρονομιά'},
-  {value:'discount', label:'Αγορά με έκπτωση'},
-]
 const CONDITION_COLOR: Record<string,string> = {
   'Άριστη':'var(--positive)','Καλή':'var(--info)','Μέτρια':'var(--warning)',
   'Κακή':'var(--negative)','Εκτός Λειτουργίας':'var(--text-tertiary)',
@@ -127,14 +151,15 @@ const CATEGORY_ICONS: Record<string,string> = {
   'Έπιπλα':'','Ηλεκτρικές Συσκευές':'','Ηλεκτρονικά':'',
   'Υδραυλικά':'','Θέρμανση & Ψύξη':'','Φωτιστικά':'','Διακόσμηση':'','Λοιπά':'',
 }
-// Ωφέλιμη ζωή ανά κατηγορία: πηγή αλήθειας στο lib/inventory/depreciation.ts (μοιράζεται με τα τεστ).
-const DEPRECIATION_YEARS = USEFUL_LIFE_YEARS
-const REPLACEMENT_RANGES: Record<string,{min:number;max:number}> = {
-  'Ηλεκτρικές Συσκευές':{min:200,max:1200},'Ηλεκτρονικά':{min:150,max:2000},
-  'Θέρμανση & Ψύξη':{min:300,max:3000},'Φωτιστικά':{min:30,max:500},
-  'Έπιπλα':{min:100,max:3000},'Υδραυλικά':{min:50,max:800},'Λοιπά':{min:50,max:500},
-}
-const AVAILABLE_TAGS = ['Ενεργοβόρο','Υπό Παρακολούθηση','Νέο','Αντικ. Σύντομα','Έξυπνη','Εγγύηση Ενεργή','Επισκευάστηκε','Σημαντικό']
+// Τυπική διάρκεια ζωής ανά κατηγορία: ζει ΜΟΝΟ στο lib/inventory/depreciation.ts
+// (USEFUL_LIFE_YEARS), μαζί με τα τεστ της και τη σημείωση ότι δεν είναι ΚΦΕ.
+// Το REPLACEMENT_RANGES έφυγε: «Ηλεκτρονικά: 150–2000 €» παρουσιαζόταν ως «στοιχείο
+// αγοράς» κάτω από το πεδίο κόστους αντικατάστασης. Ένα εύρος 1:13 δεν είναι
+// εκτίμηση, είναι υπόδειξη να γράψει ο χρήστης ό,τι να 'ναι.
+// Τα AVAILABLE_TAGS έφυγαν: οι οκτώ έτοιμες ετικέτες («Νέο», «Εγγύηση Ενεργή»,
+// «Ενεργοβόρο», «Αντικ. Σύντομα») επικαλύπτονταν με πεδία που το app υπολογίζει
+// ΜΟΝΟ ΤΟΥ από την ημερομηνία αγοράς, την εγγύηση και την ενεργειακή κλάση —
+// δηλαδή ζητούσαν από τον χρήστη να συντηρεί με το χέρι ό,τι ήξερε ήδη η μηχανή.
 const DEFAULT_MAINTENANCE = [
   {task:'Ετήσιος έλεγχος λέβητα',interval_months:12,category:'Θέρμανση & Ψύξη'},
   {task:'Καθαρισμός φίλτρων κλιματιστικού',interval_months:3,category:'Θέρμανση & Ψύξη'},
@@ -157,11 +182,11 @@ const calcAgeDisplay = (d: string) => {
   if (m===0) return `${y} χρόνια`
   return `${y} χρόνια ${m} μήνες`
 }
+// Χωρίς «κατανάλωση αναμονής»: κανείς δεν ξέρει τα standby watt του ψυγείου του,
+// άρα το πεδίο έμενε κενό και πρόσθετε μόνο άλλη μία σειρά στη φόρμα.
 const calcMonthlyKwh = (item: InventoryItem) => {
   if (!item.power_watts||!item.daily_hours_use) return 0
-  const active = (item.power_watts/1000)*item.daily_hours_use*30
-  const standby = item.standby_watts ? (item.standby_watts/1000)*(24-item.daily_hours_use)*30 : 0
-  return Math.round((active+standby)*10)/10
+  return Math.round(((item.power_watts/1000)*item.daily_hours_use*30)*10)/10
 }
 const calcMonthlyCost = (item: InventoryItem, price: number) => Math.round(calcMonthlyKwh(item)*price*100)/100
 const fmtEur = (n: number) => fe(n, 0)
@@ -185,7 +210,6 @@ const needsAction = (item: InventoryItem) => {
   const d = daysUntil(item.warranty_expiry)
   return item.condition==='Κακή'||item.condition==='Εκτός Λειτουργίας'||calcDepreciationPct(item)>=100||(d>=0&&d<=90)
 }
-const provenanceLabel = (p: string) => PROVENANCE_OPTIONS.find(o=>o.value===p)?.label.split('—')[0].trim()||''
 
 // ── MD3 Design Tokens ──────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
@@ -207,21 +231,6 @@ const labelStyle: React.CSSProperties = {
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <SecHdr label={label} right={right}/>
 )
-
-// Ενιαίο, minimal chip (χώρος, ετικέτες): σταθερό ύψος, καθαρό active state.
-const chipStyle = (active:boolean):React.CSSProperties => ({
-  display:'inline-flex',alignItems:'center',height:34,padding:'0 14px',borderRadius:T.radius.pill,
-  fontSize:12.5,fontWeight:active?500:400,fontFamily:T.font.sans,cursor:'pointer',whiteSpace:'nowrap',
-  border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,
-  background:active?'var(--accent-soft)':'transparent',
-  color:active?'var(--accent)':'var(--text-secondary)',
-  transition:'all 0.15s',boxSizing:'border-box',
-})
-const chipHover = (e:React.MouseEvent<HTMLButtonElement>,active:boolean,on:boolean)=>{
-  if(active) return
-  e.currentTarget.style.borderColor = on?'var(--border-default)':'var(--border-subtle)'
-  e.currentTarget.style.color = on?'var(--text-primary)':'var(--text-secondary)'
-}
 
 // Custom checkbox — Material/Google αισθητική: τετράγωνο με 2dp γωνίες, 2px border, καθαρό check.
 function SelectBox({checked,indeterminate,onChange,size=18}:{checked:boolean;indeterminate?:boolean;onChange:()=>void;size?:number}) {
@@ -286,18 +295,21 @@ const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const tone=E
   <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:700,color:fg,background:bg,border:`1px solid ${bd}`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
 ) }
 
+// Η μπάρα δείχνει ΤΙ ΜΕΝΕΙ, όχι «Απόσβεση»: το ίδιο νούμερο, με το όνομα που δεν
+// μπερδεύεται με τη φορολογική απόσβεση του ΚΦΕ. Γεμάτη μπάρα = αξία που κρατάει.
 const DepBar = ({pct,left}:{pct:number;left:number}) => {
-  const c = pct<40?'var(--positive)':pct<70?'var(--warning)':'var(--negative)'
+  const remaining = Math.max(0, 100 - pct)
+  const c = remaining>60?'var(--positive)':remaining>30?'var(--warning)':'var(--negative)'
   return (
-    <div>
+    <div title={NOT_TAX_DEPRECIATION_NOTE}>
       <div style={{height:3,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
-        <div style={{height:'100%',width:`${pct}%`,background:c,borderRadius:3,transition:'width 0.4s'}}/>
+        <div style={{height:'100%',width:`${remaining}%`,background:c,borderRadius:3,transition:'width 0.4s'}}/>
       </div>
       <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
-        <span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>Απόσβεση {pct}%</span>
+        <span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>Εκτ. υπολειπόμενη αξία {remaining}%</span>
         {left>0
           ?<span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>~{left} χρόνια</span>
-          :<span style={{fontSize:9,color:'var(--negative)',fontWeight:700,fontFamily:T.font.sans}}>Πλήρης</span>
+          :<span style={{fontSize:9,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Τέλος εκτ. ζωής</span>
         }
       </div>
     </div>
@@ -493,7 +505,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const [errors,setErrors] = useState<string[]>([])
   const [importing,setImporting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const TEMPLATE = `Ονομασία,Κατηγορία,Δωμάτιο,Μάρκα,Μοντέλο,Σειριακός,Κατάσταση,Αξία Αγοράς,Ημ/νία Αγοράς,Λήξη Εγγύησης,Ενεργ.Κλάση,Ισχύς (W),Ώρες/Ημέρα,Προέλευση,Κατάστημα\nΠλυντήριο,Ηλεκτρικές Συσκευές,Κουζίνα,Bosch,WAU28,SN123,Καλή,650,2021-03-15,2026-03-15,A+,2100,1,new,Κωτσόβολος`
+  const TEMPLATE = `Ονομασία,Κατηγορία,Δωμάτιο,Μάρκα,Μοντέλο,Σειριακός,Κατάσταση,Αξία Αγοράς,Ημ/νία Αγοράς,Λήξη Εγγύησης,Ενεργ.Κλάση,Ισχύς (W),Ώρες/Ημέρα,Κόστος Αντικατάστασης\nΠλυντήριο,Ηλεκτρικές Συσκευές,Κουζίνα,Bosch,WAU28,SN123,Καλή,650,2021-03-15,2026-03-15,A+,2100,1,700`
   const downloadTemplate = () => {
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+TEMPLATE],{type:'text/csv;charset=utf-8;'}));a.download='template.csv';a.click()
   }
@@ -506,14 +518,14 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
       if(!cols[0])continue
       const cat=cols[1]||'Λοιπά'; const cond=cols[6]||'Καλή'
       if(!['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].includes(cat))errs.push(`Γραμμή ${i+1}: Άγνωστη κατηγορία "${cat}"`)
-      parsed.push({name:cols[0],category:cat,room:cols[2]||'',brand:cols[3]||'',model:cols[4]||'',serial_number:cols[5]||'',condition:CONDITIONS.includes(cond)?cond:'Καλή',purchase_value:parseFloat(cols[7])||0,purchase_date:cols[8]||'',warranty_expiry:cols[9]||'',energy_class:cols[10]||'',power_watts:parseFloat(cols[11])||0,daily_hours_use:parseFloat(cols[12])||0,provenance:cols[13]||'new',store_vendor:cols[14]||''})
+      parsed.push({name:cols[0],category:cat,room:cols[2]||'',brand:cols[3]||'',model:cols[4]||'',serial_number:cols[5]||'',condition:CONDITIONS.includes(cond)?cond:'Καλή',purchase_value:parseFloat(cols[7])||0,purchase_date:cols[8]||'',warranty_expiry:cols[9]||'',energy_class:cols[10]||'',power_watts:parseFloat(cols[11])||0,daily_hours_use:parseFloat(cols[12])||0,replacement_cost:parseFloat(cols[13])||0})
     }
     setRows(parsed);setErrors(errs);if(parsed.length>0)setStep('preview')
   }
   const handleFile=(file:File)=>{const r=new FileReader();r.onload=e=>parseCSV(e.target?.result as string);r.readAsText(file,'UTF-8')}
   const handleImport=async()=>{
     setImporting(true)
-    const {error}=await supabase.from('inventory_items').insert(rows.map(r=>({...r,property_id:propertyId,user_id:userId,photos:[],tags:[]})))
+    const {error}=await supabase.from('inventory_items').insert(rows.map(r=>({...r,property_id:propertyId,user_id:userId,photos:[]})))
     if(error){notifyError('Σφάλμα: '+error.message);setImporting(false);return}
     onImported();onClose()
   }
@@ -555,12 +567,14 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   )
 }
 
+// 28 πεδία ανά αντικείμενο έγιναν 13, και το ποιο βλέπει ο χρήστης το κρίνει το
+// μητρώο (INVENTORY_FIELDS), όχι αυτό το αντικείμενο. Οι στήλες της βάσης δεν
+// αγγίζονται — απλώς δεν ζητάμε πια δεδομένα που δεν κάνουν τίποτα.
 const EMPTY_ITEM: Partial<InventoryItem> = {
   name:'',category:'Ηλεκτρικές Συσκευές',room:'',brand:'',model:'',serial_number:'',
   purchase_value:0,purchase_date:'',warranty_expiry:'',condition:'Καλή',notes:'',
-  photo_url:'',photos:[],tags:[],energy_class:'',power_watts:0,daily_hours_use:0,
-  standby_watts:0,replacement_cost:0,smart_device:false,smart_notes:'',
-  provenance:'new',original_price:0,discount_pct:0,store_vendor:'',receipt_number:'',
+  photo_url:'',photos:[],energy_class:'',power_watts:0,daily_hours_use:0,
+  replacement_cost:0,
 }
 
 // Σύστημα αναγνώρισης εξοπλισμού από φωτογραφία (συσκευασία/ετικέτα/booklet/απόδειξη).
@@ -568,30 +582,41 @@ const ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οι�
 {"name":"","brand":"","model":"","serial_number":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό","energy_class":"π.χ. A+++ ή κενό","power_watts":"αριθμός W ή κενό","store":"","purchase_date":"YYYY-MM-DD ή κενό"}
 Διάβασε ό,τι φαίνεται με ακρίβεια· άφησε κενά όσα δεν διακρίνονται. Το name να είναι περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Χωρίς κείμενο εκτός του JSON.`
 
-function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void;propertyId:string}) {
-  const [form,setForm] = useState<Partial<InventoryItem>>(item?{...item,photos:item.photos||[],tags:item.tags||[]}:{...EMPTY_ITEM})
+// Ετικέτα πεδίου ΜΕ ΤΟ «ΓΙΑΤΙ» ΤΟΥ. Δεν είναι διακόσμηση: όποιος δεν καταλαβαίνει
+// γιατί ζητάμε κάτι δεν το συμπληρώνει, και μετά λείπει από τη δήλωση. Το κείμενο
+// έρχεται από το μητρώο (lib/property/fields.ts) — μία πηγή, ίδια λόγια παντού.
+function Field({d,children}:{d?:FieldDecision;children:React.ReactNode}) {
+  if(!d) return null
+  return (
+    <div>
+      <label style={labelStyle}>{d.label}{d.critical?' *':''}</label>
+      {children}
+      <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>{d.why}</p>
+    </div>
+  )
+}
+
+function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void;propertyId:string;ctx:FieldContext;kwhPrice:number}) {
+  const [form,setForm] = useState<Partial<InventoryItem>>(item?{...item,photos:item.photos||[]}:{...EMPTY_ITEM})
   const [saving,setSaving] = useState(false)
   const [scanning,setScanning] = useState(false)
   const scanRef = useRef<HTMLInputElement>(null)
   const set = (k:keyof InventoryItem,v:any) => setForm(f=>({...f,[k]:v}))
-  const isElectric = ['Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Θέρμανση & Ψύξη','Φωτιστικά'].includes(form.category||'')
-  // «Περισσότερα»: ανοιχτό εξ αρχής όταν επεξεργαζόμαστε αντικείμενο με προχωρημένα στοιχεία.
-  const [showMore,setShowMore] = useState<boolean>(!!(item&&(item.provenance&&item.provenance!=='new'||item.original_price||item.replacement_cost||item.energy_class||item.power_watts||item.smart_device||item.receipt_number)))
+  const isElectric = ['Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Φωτιστικά','Θέρμανση & Ψύξη'].includes(form.category||'')
+  // Ποια πεδία βλέπει ΑΥΤΟΣ ο χρήστης, σε ΑΥΤΗ τη φόρμα, τώρα.
+  const fields = formFields(INVENTORY_FIELDS, ctx)
+  const byId = new Map<string,FieldDecision>([...fields.core, ...fields.more].map(d=>[d.id,d]))
+  const f = (id:string) => byId.get(id)
+  // «Περισσότερα»: ανοιχτό εξ αρχής όταν το αντικείμενο έχει ήδη τέτοια στοιχεία.
+  const [showMore,setShowMore] = useState<boolean>(!!(item&&(item.replacement_cost||item.energy_class||item.power_watts||item.serial_number||item.brand||item.notes)))
   const liveKwh = (form.power_watts||0)>0&&(form.daily_hours_use||0)>0
-    ? (((form.power_watts||0)/1000)*(form.daily_hours_use||0)*30+(((form.standby_watts||0)/1000)*(24-(form.daily_hours_use||0))*30)) : 0
-  const replRange = REPLACEMENT_RANGES[form.category||'']
-  const discountedPrice = form.original_price && form.discount_pct
-    ? Math.round(form.original_price*(1-form.discount_pct/100)) : 0
+    ? ((form.power_watts||0)/1000)*(form.daily_hours_use||0)*30 : 0
   const handleSave = async() => {
     if(!form.name?.trim()){notifyError('Το όνομα είναι υποχρεωτικό.');return}
     const primaryUrl = form.photo_url||(form.photos&&form.photos.length>0?form.photos[0]:'')
     setSaving(true)
     await onSave({...form,photo_url:primaryUrl})
     setSaving(false)
-  }
-  const toggleTag = (tag:string) => {
-    const tags=form.tags||[]
-    set('tags',tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag])
   }
   const [docUp,setDocUp] = useState(false)
   // Οι αποδείξεις πάνε σε ΙΔΙΩΤΙΚΟ bucket, με path ανά ακίνητο· αποθηκεύουμε το PATH και ανοίγουμε με signed URL.
@@ -634,7 +659,6 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
           warranty_expiry:f.warranty_expiry||d.warranty_expiry||'',
           energy_class:f.energy_class||(ENERGY_CLASSES.includes(d.energy_class)?d.energy_class:''),
           power_watts:f.power_watts||num(d.power_watts),
-          store_vendor:f.store_vendor||d.store||'',
           purchase_date:f.purchase_date||d.purchase_date||'',
         }))
         if(d.energy_class||d.power_watts||d.price) setShowMore(true)
@@ -703,130 +727,121 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
             </div>
           )}
 
-          {/* Ταυτότητα αντικειμένου */}
-          <div>
-            <label style={labelStyle}>Ονομασία *</label>
+          {/* Ταυτότητα αντικειμένου — μόνο όσα ορίζει το μητρώο, με το «γιατί» τους */}
+          <Field d={f('inv.name')}>
             <TextInput value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
-          </div>
+          </Field>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
-            <div><label style={labelStyle}>Κατηγορία</label><CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(c=>({value:c,label:c}))}/></div>
-            <div><label style={labelStyle}>Κατάσταση</label><CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/></div>
-            <div><label style={labelStyle}>Μάρκα</label><TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Παράδειγμα: Bosch"/></div>
-            <div><label style={labelStyle}>Μοντέλο</label><TextInput value={form.model||''} onChange={v=>set('model',v)} placeholder="Παράδειγμα: WAU28PI0GR"/></div>
-            <div><label style={labelStyle}>Σειριακός Αριθμός</label><TextInput value={form.serial_number||''} onChange={v=>set('serial_number',v)} placeholder="SN / IMEI"/></div>
+            <Field d={f('inv.category')}>
+              <CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(c=>({value:c,label:c}))}/>
+            </Field>
+            <Field d={f('inv.condition')}>
+              <CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/>
+            </Field>
           </div>
-          <div><label style={labelStyle}>Χώρος Τοποθέτησης</label><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></div>
+          <Field d={f('inv.room')}><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></Field>
 
-          {/* Αγορά & Εγγύηση */}
-          <SectionLabel label="Αγορά & Εγγύηση"/>
+          {/* Αγορά */}
+          <SectionLabel label="Αγορά"/>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
-            <div><label style={labelStyle}>Ημερομηνία Αγοράς</label><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></div>
-            <div><label style={labelStyle}>Αξία (€)</label><NumberInput value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></div>
-            <div><label style={labelStyle}>Λήξη Εγγύησης</label><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></div>
-            <div><label style={labelStyle}>Κατάστημα / Πηγή</label><TextInput value={form.store_vendor||''} onChange={v=>set('store_vendor',v)} placeholder="Παράδειγμα: Κωτσόβολος"/></div>
+            <Field d={f('inv.purchase_date')}><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></Field>
+            <Field d={f('inv.value')}><NumberInput value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></Field>
           </div>
-          {form.purchase_date&&(form.purchase_value||0)>0&&(
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:8,padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
-              {[
-                {label:'Τρέχουσα Αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem))},
-                {label:'Απόσβεση',value:`${calcDepreciationPct({...form,id:'',user_id:''} as InventoryItem)}%`},
-                {label:'Υπολ. Ζωή',value:`~${calcYearsLeft({...form,id:'',user_id:''} as InventoryItem)} χρ.`},
-              ].map((k,i)=>(
-                <div key={i} style={{textAlign:'center'}}>
-                  <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
-                  <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
-                </div>
-              ))}
-            </div>
-          )}
 
-          {/* Περισσότερα — προέλευση, κόστος αντικατάστασης, ενέργεια, έξυπνη */}
-          <button onClick={()=>setShowMore(m=>!m)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',textAlign:'left',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:T.font.sans}}>
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{color:'var(--text-tertiary)',transform:showMore?'rotate(90deg)':'none',transition:'transform 0.15s'}}><path d="m9 18 6-6-6-6"/></svg>
-            <span style={{flex:1,fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>Περισσότερα{isElectric?': προέλευση, ενέργεια & έξυπνη':': προέλευση & κόστος'}</span>
-          </button>
-          {showMore&&(<>
-            <div>
-              <label style={labelStyle}>Προέλευση</label>
-              <CustomSelect value={form.provenance||'new'} onChange={v=>set('provenance',v)} options={PROVENANCE_OPTIONS.map(o=>({value:o.value,label:o.label}))}/>
-            </div>
-            {(form.provenance==='new'||form.provenance==='discount')&&(
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10}}>
-                <div><label style={labelStyle}>Αρχική Τιμή (€)</label><NumberInput value={String(form.original_price||0)} onChange={v=>{const orig=parseFloat(v)||0;const disc=form.discount_pct||0;setForm(f=>({...f,original_price:orig,purchase_value:disc>0?Math.round(orig*(1-disc/100)):orig}))}} suffix="€" min={0}/></div>
-                <div><label style={labelStyle}>Έκπτωση (%)</label><NumberInput value={String(form.discount_pct||0)} onChange={v=>{const disc=parseFloat(v)||0;const orig=form.original_price||0;setForm(f=>({...f,discount_pct:disc,purchase_value:orig>0?Math.round(orig*(1-disc/100)):f.purchase_value}))}} suffix="%" min={0} max={100}/></div>
-                {discountedPrice>0&&(form.original_price||0)>0&&(
-                  <div style={{gridColumn:'1/-1',padding:'8px 12px',background:'var(--positive-dim)',borderRadius:8,border:'1px solid var(--positive-border)'}}>
-                    <span style={{fontSize:12,color:'var(--positive)',fontFamily:T.font.sans}}>Εξοικονόμηση: <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtEur((form.original_price||0)-discountedPrice)}</strong> ({form.discount_pct}%)</span>
-                  </div>
-                )}
-              </div>
-            )}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
-              <div>
-                <label style={labelStyle}>Κόστος Αντικατάστασης (€)</label>
-                <NumberInput value={String(form.replacement_cost||0)} onChange={v=>set('replacement_cost',parseFloat(v)||0)} suffix="€" min={0}/>
-                {replRange&&!form.replacement_cost&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>Εκτίμηση: {fmtEur(replRange.min)}–{fmtEur(replRange.max)}</p>}
-              </div>
-              <div><label style={labelStyle}>Αριθμός Απόδειξης / Τιμολόγιο</label><TextInput value={form.receipt_number||''} onChange={v=>set('receipt_number',v)} placeholder="Παράδειγμα: ΑΠΥ-2024-001"/></div>
-            </div>
-            <div>
-              <label style={labelStyle}>Απόδειξη / Εγγύηση (αρχείο)</label>
+          {/* Η ΑΠΟΔΕΙΞΗ ΕΙΝΑΙ CORE, ΟΧΙ «ΠΕΡΙΣΣΟΤΕΡΑ»: χωρίς παραστατικό η δαπάνη
+              δεν εκπίπτει, και το χαρτί δεν ξαναβρίσκεται έξι μήνες μετά. */}
+          {f('inv.receipt') && (
+            <Field d={f('inv.receipt')}>
               {form.receipt_doc_url
                 ?<div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
                     <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
                     <button onClick={()=>openInventoryDoc(form.receipt_doc_url)} style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}>Άνοιγμα</button>
-                    <button onClick={async()=>{const old=form.receipt_doc_url;setForm(f=>({...f,receipt_doc_url:'',receipt_doc_name:''}));/* Διέγραψε αμέσως μόνο αν είναι αρχείο αυτής της συνεδρίας· το αρχικά αποθηκευμένο καθαρίζεται με το save. */ if(old&&old!==item?.receipt_doc_url&&!/^https?:\/\//.test(old))await supabase.storage.from(DOCS_BUCKET).remove([old])}} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                    <button onClick={async()=>{const old=form.receipt_doc_url;setForm(f2=>({...f2,receipt_doc_url:'',receipt_doc_name:''}));/* Διέγραψε αμέσως μόνο αν είναι αρχείο αυτής της συνεδρίας· το αρχικά αποθηκευμένο καθαρίζεται με το save. */ if(old&&old!==item?.receipt_doc_url&&!/^https?:\/\//.test(old))await supabase.storage.from(DOCS_BUCKET).remove([old])}} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                   </div>
                 :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                    {docUp?'Ανέβασμα…':'Επισύναψη PDF ή φωτογραφίας'}
-                    <input type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)uploadReceiptDoc(f)}}/>
+                    {docUp?'Ανέβασμα…':'Φωτογράφισε ή επισύναψε την απόδειξη'}
+                    <input type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const fl=e.target.files?.[0];if(fl)uploadReceiptDoc(fl)}}/>
                   </label>}
+            </Field>
+          )}
+
+          {form.purchase_date&&(form.purchase_value||0)>0&&(
+            <div style={{padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:8}}>
+                {[
+                  {label:'Εκτ. υπολειπόμενη αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem))},
+                  {label:'Ποσοστό που μένει',value:`${Math.max(0,100-calcDepreciationPct({...form,id:'',user_id:''} as InventoryItem))}%`},
+                  {label:'Εκτ. χρόνια ζωής',value:`~${calcYearsLeft({...form,id:'',user_id:''} as InventoryItem)} χρ.`},
+                ].map((k,i)=>(
+                  <div key={i} style={{textAlign:'center'}}>
+                    <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
+                    <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
+                  </div>
+                ))}
+              </div>
+              <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:8}}>{NOT_TAX_DEPRECIATION_NOTE}</p>
             </div>
+          )}
+
+          {/* Περισσότερα — υπαρκτά αλλά σπάνια, κλειστά εξ αρχής */}
+          {fields.more.length>0 && (
+            <button onClick={()=>setShowMore(m=>!m)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',textAlign:'left',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:T.font.sans}}>
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{color:'var(--text-tertiary)',transform:showMore?'rotate(90deg)':'none',transition:'transform 0.15s'}}><path d="m9 18 6-6-6-6"/></svg>
+              <span style={{flex:1,fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>Περισσότερα: εγγύηση, ταυτότητα συσκευής{isElectric?', ενέργεια':''} και κόστος αντικατάστασης</span>
+            </button>
+          )}
+          {showMore&&(<>
+            <Field d={f('inv.warranty')}><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></Field>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+              <Field d={f('inv.brand_model')}>
+                <div style={{display:'flex',gap:8}}>
+                  <TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Bosch"/>
+                  <TextInput value={form.model||''} onChange={v=>set('model',v)} placeholder="WAU28PI0GR"/>
+                </div>
+              </Field>
+              <Field d={f('inv.serial')}><TextInput value={form.serial_number||''} onChange={v=>set('serial_number',v)} placeholder="SN / IMEI"/></Field>
+            </div>
+            <Field d={f('inv.replacement_cost')}>
+              <NumberInput value={String(form.replacement_cost||0)} onChange={v=>set('replacement_cost',parseFloat(v)||0)} suffix="€" min={0}/>
+            </Field>
             {isElectric&&(<>
               <SectionLabel label="Ενέργεια"/>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
-                <div><label style={labelStyle}>Ενεργειακή Κλάση</label><CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'— Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/></div>
-                <div><label style={labelStyle} title="W = Watt: μονάδα ισχύος/κατανάλωσης ρεύματος">Ισχύς Λειτουργίας (W)</label><NumberInput value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
-                <div><label style={labelStyle}>Ώρες χρήσης ανά ημέρα</label><NumberInput value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες" min={0} max={24}/></div>
-                <div><label style={labelStyle}>Κατανάλωση Αναμονής (W)</label><NumberInput value={String(form.standby_watts||0)} onChange={v=>set('standby_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
-              </div>
+              <Field d={f('inv.energy_class')}>
+                <CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'— Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/>
+              </Field>
+              <Field d={f('inv.power_use')}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:12}}>
+                  <NumberInput value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/>
+                  <NumberInput value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες/ημέρα" min={0} max={24}/>
+                </div>
+              </Field>
+              {/* ΤΟ ΚΟΣΤΟΣ ΕΜΦΑΝΙΖΕΤΑΙ ΜΟΝΟ ΜΕ ΔΗΛΩΜΕΝΗ ΤΙΜΗ ΡΕΥΜΑΤΟΣ. Πριν, εδώ
+                  πολλαπλασιαζόταν με σταθερά 0,22 €/kWh — νούμερο που κανείς δεν είχε
+                  δηλώσει και που άλλαζε το συμπέρασμα κάθε συσκευής. */}
               {liveKwh>0&&(
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:8,padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
-                  {[{label:'kWh/μήνα',value:`${liveKwh.toFixed(1)}`},{label:'kWh/έτος',value:`${(liveKwh*12).toFixed(0)}`},{label:'Κόστος/μήνα',value:fmtEurC(liveKwh*0.22)},{label:'Κόστος/έτος',value:fmtEurC(liveKwh*0.22*12)}].map((k,i)=>(
+                  {[{label:'kWh/μήνα',value:liveKwh.toFixed(1)},{label:'kWh/έτος',value:(liveKwh*12).toFixed(0)},
+                    {label:'Κόστος/μήνα',value:kwhPrice>0?fmtEurC(liveKwh*kwhPrice):'—'},
+                    {label:'Κόστος/έτος',value:kwhPrice>0?fmtEurC(liveKwh*kwhPrice*12):'—'}].map((k,i)=>(
                     <div key={i} style={{textAlign:'center'}}>
                       <p style={{fontSize:13,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
                       <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
                     </div>
                   ))}
+                  <p style={{gridColumn:'1/-1',fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
+                    {kwhPrice>0
+                      ? `Στην τιμή ${kwhPrice.toFixed(3)} €/kWh που προκύπτει από τον λογαριασμό ρεύματός σου.`
+                      : 'Για να δεις κόστος σε ευρώ, σάρωσε έναν λογαριασμό ρεύματος ή δήλωσε την τιμή €/kWh στην Επισκόπηση. Δεν βάζουμε δική μας τιμή.'}
+                  </p>
                 </div>
-              )}
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
-                <div>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Έξυπνη Συσκευή</p>
-                  <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:T.font.sans}}>Συνδέεται με εφαρμογή, έξυπνη πρίζα ή αυτοματισμό</p>
-                </div>
-                <Toggle on={form.smart_device||false} onChange={(v:boolean)=>set('smart_device',v)}/>
-              </div>
-              {form.smart_device&&(
-                <div><label style={labelStyle}>App / Σύστημα Ελέγχου</label><TextInput value={form.smart_notes||''} onChange={v=>set('smart_notes',v)} placeholder="Παράδειγμα: Shelly 1PM + Home Assistant"/></div>
               )}
             </>)}
+            <Field d={f('inv.notes')}>
+              <Textarea value={form.notes||''} onChange={v=>set('notes',v)} placeholder="Παρατηρήσεις, ιστορικό, χαρακτηριστικά…" rows={2}/>
+            </Field>
           </>)}
-
-          {/* Ετικέτες & σημειώσεις */}
-          <div>
-            <label style={labelStyle}>Ετικέτες</label>
-            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-              {AVAILABLE_TAGS.map(tag=>{
-                const active=(form.tags||[]).includes(tag)
-                return <button key={tag} onClick={()=>toggleTag(tag)} style={chipStyle(active)}
-                  onMouseEnter={e=>chipHover(e,active,true)} onMouseLeave={e=>chipHover(e,active,false)}>{tag}</button>
-              })}
-            </div>
-          </div>
-          <Textarea label="Σημειώσεις" value={form.notes||''} onChange={v=>set('notes',v)} placeholder="Παρατηρήσεις, ιστορικό, χαρακτηριστικά…" rows={2}/>
         </div>
         <div style={{padding:'16px 28px 24px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:10,justifyContent:'flex-end',flexShrink:0,background:'var(--bg-surface)'}}>
           <button onClick={onClose} style={{padding:'0 20px',height:T.h.lg,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
@@ -930,7 +945,10 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
   )
 }
 
-function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl,handovers=[],onOpenHandover}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;profileType?:'individual'|'professional';kwhControl?:React.ReactNode;handovers?:InventoryHandover[];onOpenHandover?:()=>void}) {
+// Χωρίς `profileType`: ο επαγγελματίας δεν βλέπει πια ΔΙΑΦΟΡΕΤΙΚΑ νούμερα αξίας.
+// Έβλεπε τέσσερα επιπλέον κελιά κάτω από τον τίτλο «Απόσβεση», που είναι ακριβώς
+// ο χρήστης για τον οποίο η λέξη σημαίνει κάτι νομικά διαφορετικό.
+function OverviewTab({items,repairs,kwhPrice,kwhControl,handovers=[],onOpenHandover}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;kwhControl?:React.ReactNode;handovers?:InventoryHandover[];onOpenHandover?:()=>void}) {
   const summary = portfolioSummary(items)
   const needReplacement = items.filter(i=>replacementSuggestion(i).suggested)
   const totalPurchase = items.reduce((s,i)=>s+(i.purchase_value||0),0)
@@ -943,9 +961,12 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
   const topEnergy = [...electricItems].sort((a,b)=>calcMonthlyCost(b,kwhPrice)-calcMonthlyCost(a,kwhPrice)).slice(0,5)
   const warrantySoon = items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90})
   const badCondition = items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας')
-  const badEnergy = electricItems.filter(i=>!['A+++','A++','A+'].includes(i.energy_class||''))
-  const potSavings = badEnergy.reduce((s,i)=>s+calcMonthlyCost(i,kwhPrice)*12*0.5,0)
-  const totalDiscount = items.reduce((s,i)=>s+((i.original_price||0)-(i.purchase_value||0)),0)
+  // ΑΣΦΑΛΙΣΤΕΑ ΑΞΙΑ = ΑΘΡΟΙΣΜΑ ΔΗΛΩΜΕΝΩΝ ΚΟΣΤΩΝ ΑΝΤΙΚΑΤΑΣΤΑΣΗΣ. Τίποτα δεν
+  // συμπληρώνεται από εμάς: αν λείπει, λέγεται σε πόσα αντικείμενα λείπει, γιατί
+  // ένα άθροισμα με κενά είναι υπασφάλιση που φαίνεται μόνο μετά τη ζημιά.
+  const declaredRepl = items.filter(i=>(i.replacement_cost||0)>0)
+  const totalDeclaredRepl = declaredRepl.reduce((s,i)=>s+(i.replacement_cost||0),0)
+  const missingRepl = items.length - declaredRepl.length
   // Ενοποιημένο «κέντρο ενεργειών»: ό,τι χρειάζεται προσοχή, σε μία λίστα με προτεραιότητα (χωρίς 3 σκόρπιες κάρτες).
   const attention = (() => {
     const out: {item:InventoryItem;sev:string;label:string;rank:number;kind:'cond'|'repl'|'warr'}[] = []
@@ -969,10 +990,14 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
       <KPIGrid items={[
         {label:'Αντικείμενα',value:String(items.length),sub:`${byCategory.length} ${byCategory.length===1?'κατηγορία':'κατηγορίες'}`},
         {label:'Τρέχουσα Αξία',value:fmtEur(totalCurrent),sub:summary.totalOriginal>0?`από ${fmtEur(summary.totalOriginal)}`:'μετά απόσβεση'},
-        {label:'Ασφαλιστέα Αξία',value:fmtEur(Math.round(totalCurrent*1.1)),sub:'+10% περιθώριο'},
-        electricItems.length>0
-          ?{label:'Ρεύμα/Μήνα',value:fmtEurC(totalMonthlyCost),sub:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh`,tone:'accent' as const}
-          :{label:'Ρεύμα/Μήνα',value:'—',sub:'Πρόσθεσε Watt'},
+        declaredRepl.length>0
+          ?{label:'Δηλωμένο κόστος αντικατάστασης',value:fmtEur(totalDeclaredRepl),sub:missingRepl>0?`λείπει σε ${missingRepl} από ${items.length}`:`σε όλα τα ${items.length} αντικείμενα`}
+          :{label:'Δηλωμένο κόστος αντικατάστασης',value:'—',sub:'το ζητά η ασφαλιστική'},
+        electricItems.length>0&&kwhPrice>0
+          ?{label:'Ρεύμα/Μήνα',value:fmtEurC(totalMonthlyCost),sub:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh · ${kwhPrice.toFixed(3)} €/kWh`,tone:'accent' as const}
+          :electricItems.length>0
+            ?{label:'Ρεύμα/Μήνα',value:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh`,sub:'δήλωσε τιμή €/kWh'}
+            :{label:'Ρεύμα/Μήνα',value:'—',sub:'Πρόσθεσε Watt'},
       ]}/>
 
       {/* Κέντρο ενεργειών — μία σαφής απάντηση στο «τι πρέπει να κάνω». */}
@@ -1011,47 +1036,31 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
 
       <div style={{display:'grid',gridTemplateColumns:'3fr 2fr',gap:16}}>
         <div style={cardStyle}>
-          <SectionLabel label={profileType==='professional'?'Απόσβεση & Αξία Χαρτοφυλακίου':'Αξία & Απόσβεση'} right={<span style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>εκτιμήσεις</span>}/>
+          {/* Ήταν «Απόσβεση & Αξία Χαρτοφυλακίου» για τον επαγγελματία, με τέσσερα
+              κελιά και «Μέση απόσβεση X%» από δικούς μας συντελεστές. Ο επαγγελματίας
+              έχει ΝΟΜΙΜΟΥΣ συντελεστές (ΚΦΕ άρ. 24)· ένα δεύτερο, διαφορετικό νούμερο
+              κάτω από τη λέξη «Απόσβεση» ήταν πρόσκληση να μπει σε δήλωση. */}
+          <SectionLabel label="Εκτιμώμενη υπολειπόμενη αξία" right={<span style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>εκτιμήσεις</span>}/>
           {summary.totalOriginal>0?(
             <div style={{marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6,gap:8}}>
-                <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Διατηρούμενη αξία</span>
+                <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Αξία που κρατάει</span>
                 <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(summary.totalBookValue)} <span style={{color:'var(--text-tertiary)',fontWeight:400}}>/ {fmtEur(summary.totalOriginal)}</span></span>
               </div>
               <div style={{height:6,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
                 <div style={{height:'100%',width:`${summary.totalOriginal>0?Math.round((summary.totalBookValue/summary.totalOriginal)*100):0}%`,background:'var(--accent)',borderRadius:3,transition:'width 0.5s'}}/>
               </div>
-              <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:5,fontFamily:T.font.sans}}>Μέση απόσβεση {summary.avgDepreciatedPct}% · εκτιμ. απομείωση −{fmtEur(summary.totalDepreciation)}</p>
+              <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:5,fontFamily:T.font.sans,lineHeight:1.5}}>
+                Μένει κατά μέσο όρο το {Math.max(0,100-summary.avgDepreciatedPct)}% της αξίας αγοράς. {NOT_TAX_DEPRECIATION_NOTE}
+              </p>
             </div>
           ):(
-            <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'6px 0 12px'}}>Πρόσθεσε τιμές αγοράς στα αντικείμενα για ανάλυση αξίας & απόσβεσης.</p>
+            <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'6px 0 12px'}}>Πρόσθεσε τιμές αγοράς στα αντικείμενα για να δεις τι αξία κρατάει ο εξοπλισμός σου.</p>
           )}
-          {profileType==='professional'&&summary.totalOriginal>0&&(
-            <>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:8}}>
-                {[
-                  {label:'Αξία Αγοράς',value:fmtEur(summary.totalOriginal),color:'var(--text-primary)'},
-                  {label:'Τρέχουσα Αξία',value:fmtEur(summary.totalBookValue),color:'var(--text-primary)'},
-                  {label:'Προς Αντικατάσταση',value:String(summary.needAttentionCount),color:summary.needAttentionCount>0?'var(--warning)':'var(--text-primary)'},
-                  {label:'Προϋπ. Αντικατάστασης',value:fmtEur(summary.replacementBudget),color:'var(--text-primary)'},
-                ].map((k,i)=>(
-                  <div key={i} style={{textAlign:'center',padding:'10px 6px',background:'var(--bg-elevated)',borderRadius:8}}>
-                    <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:k.color,marginBottom:3}}>{k.value}</p>
-                    <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
-                  </div>
-                ))}
-              </div>
-              {summary.replacementBudget>0&&(
-                <div style={{marginTop:12,padding:'10px 14px',background:'var(--warning-soft)',borderRadius:T.radius.inner,border:'1px solid var(--warning-border)'}}>
-                  <p style={{fontSize:12,color:'var(--warning)',fontFamily:T.font.sans}}>Εκτιμώμενος προϋπολογισμός αντικατάστασης για {summary.needAttentionCount} {summary.needAttentionCount===1?'αντικείμενο':'αντικείμενα'}: <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtEur(summary.replacementBudget)}</strong></p>
-                </div>
-              )}
-            </>
-          )}
-          {(totalDiscount>0||totalRepairs>0)&&(
-            <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',flexDirection:'column',gap:6}}>
-              {totalDiscount>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Εξοικονόμηση από εκπτώσεις</span><span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--positive)',fontWeight:600}}>{fmtEur(totalDiscount)}</span></div>}
-              {totalRepairs>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Επισκευές έως τώρα</span><span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtEur(totalRepairs)}</span></div>}
+          {totalRepairs>0&&(
+            <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between'}}>
+              <span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Επισκευές έως τώρα</span>
+              <span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtEur(totalRepairs)}</span>
             </div>
           )}
         </div>
@@ -1076,11 +1085,14 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
                   </div>
                 )
               })}
-              {potSavings>0&&(
-                <div style={{marginTop:12,padding:'8px 12px',background:'var(--positive-dim)',borderRadius:8,border:'1px solid var(--positive-border)'}}>
-                  <p style={{fontSize:12,color:'var(--positive)',fontFamily:T.font.sans}}>Αναβάθμιση {badEnergy.length} συσκευών → <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtEurC(potSavings)}/χρόνο</strong></p>
-                </div>
-              )}
+              {/* Εδώ ήταν το πράσινο «Αναβάθμιση N συσκευών → X €/χρόνο». Μένει η
+                  μέτρηση και η πηγή της τιμής — καμία υπόσχεση εξοικονόμησης χωρίς
+                  το κόστος αγοράς και χωρίς μετρημένη κατανάλωση της νέας συσκευής. */}
+              <p style={{marginTop:12,fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.5}}>
+                {kwhPrice>0
+                  ? `Υπολογισμένο στα ${kwhPrice.toFixed(3)} €/kWh, όπως προκύπτει από τον λογαριασμό ρεύματός σου.`
+                  : 'Δεν έχεις δηλώσει τιμή €/kWh, οπότε δείχνουμε μόνο κατανάλωση. Σάρωσε έναν λογαριασμό ρεύματος ή γράψε την τιμή δίπλα.'}
+              </p>
             </>
           )}
         </div>
@@ -1129,13 +1141,13 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
 
 type SortKey = 'name'|'value'|'energy'|'age'|'depreciation'
 
-function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder,onBulkDelete,onBulkRoom,onBulkTag}:{
+function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder,onBulkDelete,onBulkRoom}:{
   items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number
   onAdd:()=>void;onEdit:(i:InventoryItem)=>void;onDelete:(id:string)=>void
   onRepair:(i:InventoryItem)=>void;onQR:(i:InventoryItem)=>void
   onUpdateCondition:(id:string,c:string)=>void
   onWarrantyReminder:(i:InventoryItem)=>void
-  onBulkDelete:(ids:string[])=>void;onBulkRoom:(ids:string[],room:string)=>void;onBulkTag:(ids:string[],tag:string)=>void
+  onBulkDelete:(ids:string[])=>void;onBulkRoom:(ids:string[],room:string)=>void
 }) {
   const [selectMode,setSelectMode] = useState(false)
   const [selected,setSelected] = useState<Set<string>>(new Set())
@@ -1143,21 +1155,18 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
   const exitSelect = () => {setSelectMode(false);setSelected(new Set())}
   const [filterCat,setFilterCat] = useState('Όλες')
   const [filterRoom,setFilterRoom] = useState('Όλα')
-  const [filterTag,setFilterTag] = useState('Όλα')
   const [search,setSearch] = useState('')
   const [viewMode,setViewMode] = useState<'grid'|'list'>('grid')
   const [sortKey,setSortKey] = useState<SortKey>('name')
   const [sortDir,setSortDir] = useState<'asc'|'desc'>('asc')
   const [showNeedsAction,setShowNeedsAction] = useState(false)
   const allRooms = [...new Set(items.map(i=>i.room).filter(Boolean))]
-  const allTags = [...new Set(items.flatMap(i=>i.tags||[]))]
   const actionCount = items.filter(needsAction).length
   const filtered = items
     .filter(item=>{
       if(showNeedsAction&&!needsAction(item)) return false
       if(filterCat!=='Όλες'&&item.category!==filterCat) return false
       if(filterRoom!=='Όλα'&&item.room!==filterRoom) return false
-      if(filterTag!=='Όλα'&&!(item.tags||[]).includes(filterTag)) return false
       if(search&&!item.name.toLowerCase().includes(search.toLowerCase())&&!(item.brand||'').toLowerCase().includes(search.toLowerCase())) return false
       return true
     })
@@ -1181,7 +1190,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
     // εξαρτάται από τον κόμβο του κουμπιού, άρα η διαγραφή εκτελείται κανονικά.
     {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:async()=>{ if(await confirmDialog(`Διαγραφή «${item.name}»;`,{tone:'negative'})) onDelete(item.id) }},
   ]
-  const SORT_LABELS:Record<SortKey,string> = {name:'Όνομα',value:'Αξία',energy:'Ρεύμα/μήνα',age:'Ηλικία',depreciation:'Απόσβεση'}
+  const SORT_LABELS:Record<SortKey,string> = {name:'Όνομα',value:'Αξία',energy:'Ρεύμα/μήνα',age:'Ηλικία',depreciation:'Υπολειπόμενη αξία'}
   // Οι μαζικές ενέργειες δρουν ΜΟΝΟ σε ό,τι είναι επιλεγμένο ΚΑΙ ορατό στα τρέχοντα φίλτρα.
   const visIds = filtered.filter(i=>selected.has(i.id)).map(i=>i.id)
 
@@ -1191,7 +1200,6 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
         <div style={{flex:1,minWidth:180}}><TextInput value={search} onChange={setSearch} placeholder="Αναζήτηση αντικειμένου, μάρκας…"/></div>
         <div style={{width:150}}><CustomSelect value={filterCat} onChange={setFilterCat} options={['Όλες',...['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].filter(c=>items.some(i=>i.category===c))].map(c=>({value:c,label:c==='Όλες'?'Όλες Κατηγορίες':c}))}/></div>
         {allRooms.length>0&&<div style={{width:140}}><CustomSelect value={filterRoom} onChange={setFilterRoom} options={[{value:'Όλα',label:'Όλα Δωμάτια'},...allRooms.map(r=>({value:r,label:r}))]}/></div>}
-        {allTags.length>0&&<div style={{width:130}}><CustomSelect value={filterTag} onChange={setFilterTag} options={[{value:'Όλα',label:'Όλες οι ετικέτες'},...allTags.map(t=>({value:t,label:t}))]}/></div>}
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <div style={{width:150}}><CustomSelect value={sortKey} onChange={v=>setSortKey(v as SortKey)} options={(Object.keys(SORT_LABELS) as SortKey[]).map(k=>({value:k,label:`Ταξ.: ${SORT_LABELS[k]}`}))}/></div>
           <button title={sortDir==='asc'?'Αύξουσα':'Φθίνουσα'} aria-label="Κατεύθυνση ταξινόμησης" onClick={()=>setSortDir(d=>d==='asc'?'desc':'asc')} style={{width:T.h.md,height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',cursor:'pointer',fontFamily:T.font.sans,fontSize:14,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{sortDir==='asc'?<path d="M12 19V5M5 12l7-7 7 7"/>:<path d="M12 5v14M19 12l-7 7-7-7"/>}</svg></button>
@@ -1215,7 +1223,6 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
           <span style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{visIds.length} επιλεγμένα</span>
           <div style={{flex:1}}/>
           <BulkPicker label="Δωμάτιο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M4 21V7l8-4v18M20 21V11l-8-4"/></svg>} options={ROOM_PRESETS} onPick={r=>{if(visIds.length){onBulkRoom(visIds,r);exitSelect()}}}/>
-          <BulkPicker label="Ετικέτα" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>} options={[...AVAILABLE_TAGS]} onPick={t=>{if(visIds.length){onBulkTag(visIds,t);exitSelect()}}}/>
           <button onClick={async()=>{ /* Ρητό στιγμιότυπο ΠΡΙΝ την ερώτηση: ο διάλογος δεν παγώνει πια τη σελίδα, άρα φίλτρο και επιλογή μπορούν να αλλάξουν όσο περιμένουμε απάντηση. Διαγράφονται ακριβώς όσα ανακοίνωσε το μήνυμα. */
             const ids=visIds
             if(ids.length && await confirmDialog(`Διαγραφή ${ids.length} αντικειμένων;`,{tone:'negative'})){ onBulkDelete(ids); exitSelect() } }} disabled={visIds.length===0} style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:visIds.length?'pointer':'not-allowed',border:'1px solid var(--negative-border)',background:visIds.length?'var(--negative-dim)':'var(--bg-elevated)',color:visIds.length?'var(--negative)':'var(--text-tertiary)'}}>
@@ -1769,34 +1776,42 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   const totalRepairs=repairs.reduce((s,r)=>s+(r.cost||0),0)
   const electricItems=items.filter(i=>i.power_watts>0&&i.daily_hours_use>0)
   const totalMonthlyCost=electricItems.reduce((s,i)=>s+calcMonthlyCost(i,kwhPrice),0)
+  // Η ασφαλιστέα αξία είναι ΜΟΝΟ ό,τι έχει δηλωθεί ως κόστος αντικατάστασης.
+  // Το «τρέχουσα × 1,1» έφυγε από παντού: έβγαζε νούμερο για κάθε αντικείμενο,
+  // ακόμη κι όταν κανείς δεν είχε πει πόσο κοστίζει σήμερα το καινούργιο.
+  const declaredRepl=items.filter(i=>(i.replacement_cost||0)>0)
+  const totalDeclaredRepl=declaredRepl.reduce((s,i)=>s+(i.replacement_cost||0),0)
+  const missingRepl=items.length-declaredRepl.length
   const exportCSV=()=>{
-    const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Προέλευση','Κατάστημα','Αριθμός Απόδειξης','Αξία Αγοράς','Αρχ.Τιμή','Έκπτωση%','Τρέχουσα Αξία','Κόστος Αντικ.','Απόσβεση%','Ηλ.Κλάση','Watt','Ώρες/ημ','kWh/μήνα','Κόστος Ρεύμ./μήνα','Smart','Tags','Ηλικία','Ημ/νία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
-    const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,provenanceLabel(i.provenance)||i.provenance||'Νέο',i.store_vendor||'',i.receipt_number||'',i.purchase_value?csvEur(i.purchase_value):'',i.original_price?csvEur(i.original_price):'',i.discount_pct?csvPct(i.discount_pct):'',csvEur(calcCurrentValue(i)),i.replacement_cost?csvEur(i.replacement_cost):'',csvPct(calcDepreciationPct(i)),i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?csvEur(calcMonthlyCost(i,kwhPrice)):'',i.smart_device?'Ναι':'Όχι',(i.tags||[]).join(';'),calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
+    const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία Αγοράς','Εκτ. Υπολειπόμενη Αξία','Εκτ. Υπολειπ. %','Κόστος Αντικατάστασης','Ηλ.Κλάση','Watt','Ώρες/ημ','kWh/μήνα','Κόστος Ρεύμ./μήνα','Ηλικία','Ημ/νία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
+    const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,i.purchase_value?csvEur(i.purchase_value):'',csvEur(calcCurrentValue(i)),csvPct(Math.max(0,100-calcDepreciationPct(i))),i.replacement_cost?csvEur(i.replacement_cost):'',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?csvEur(calcMonthlyCost(i,kwhPrice)):'',calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
     const csv=[headers,...rows].map(row=>row.map(cell=>{const s=csvSafe(String(cell??''));return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n')
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='απογραφη.csv';a.click()
   }
   const exportPDF=()=>{
     const byCat=['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
     const catRows=byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>reportRow(`${cat} (${count})`,rEur(val))).join('')
-    const detailRows=items.map(i=>`<tr><td><strong>${rEsc(i.name)}</strong>${i.brand?`<br><small class="muted">${rEsc(i.brand)} ${rEsc(i.model||'')}</small>`:''}</td><td>${rEsc(i.energy_class||'—')}</td><td>${rEsc(i.condition)}</td><td>${rEsc(provenanceLabel(i.provenance)||'Νέο')}</td><td class="n">${rEsc(i.purchase_value?rEur(i.purchase_value):'—')}</td><td class="n">${rEsc(rEur(calcCurrentValue(i)))}</td><td class="n">${rEsc(rPct(calcDepreciationPct(i)))}</td><td class="n">${rEsc(calcMonthlyKwh(i)>0?calcMonthlyKwh(i)+' kWh':'—')}</td><td>${rEsc(i.warranty_expiry?fmtDate(i.warranty_expiry):'—')}</td></tr>`).join('')
+    const detailRows=items.map(i=>`<tr><td><strong>${rEsc(i.name)}</strong>${i.brand?`<br><small class="muted">${rEsc(i.brand)} ${rEsc(i.model||'')}</small>`:''}</td><td>${rEsc(i.energy_class||'—')}</td><td>${rEsc(i.condition)}</td><td class="n">${rEsc(i.purchase_value?rEur(i.purchase_value):'—')}</td><td class="n">${rEsc(rEur(calcCurrentValue(i)))}</td><td class="n">${rEsc(rPct(Math.max(0,100-calcDepreciationPct(i))))}</td><td class="n">${rEsc((i.replacement_cost||0)>0?rEur(i.replacement_cost):'—')}</td><td class="n">${rEsc(calcMonthlyKwh(i)>0?calcMonthlyKwh(i)+' kWh':'—')}</td><td>${rEsc(i.warranty_expiry?fmtDate(i.warranty_expiry):'—')}</td></tr>`).join('')
     const html = reportHead('Απογραφή ακινήτου')
       + `<body><div class="page">`
       + reportHeader(null, 'Απογραφή ακινήτου')
       + `<h1>Απογραφή Ακινήτου</h1>`
       + `<div class="sub">${rEsc(String(items.length))} αντικείμενα</div>`
       + reportSection('Σύνοψη')
-      + `<div class="kpis">${reportKpi('Τρέχουσα Αξία', rEur(totalCurrent))}${reportKpi('Ασφαλιστέα (+10%)', rEur(Math.round(totalCurrent*1.1)))}${reportKpi('Επισκευές', rEur(totalRepairs))}${electricItems.length>0?reportKpi('Ρεύμα/Μήνα', rEur(totalMonthlyCost)):''}</div>`
+      + `<div class="kpis">${reportKpi('Εκτ. υπολειπόμενη αξία', rEur(totalCurrent))}${reportKpi('Δηλωμένο κόστος αντικατάστασης', declaredRepl.length>0?rEur(totalDeclaredRepl):'—')}${reportKpi('Επισκευές', rEur(totalRepairs))}${electricItems.length>0&&kwhPrice>0?reportKpi('Ρεύμα/Μήνα', rEur(totalMonthlyCost)):''}</div>`
       + reportSection('Ανά Κατηγορία')
       + `<table><tbody>${catRows}</tbody></table>`
       + reportSection('Αναλυτικός Κατάλογος')
-      + `<table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th>Προέλευση</th><th class="n">Αξία Αγοράς</th><th class="n">Τρέχουσα</th><th class="n">Απόσβεση</th><th class="n">kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>${detailRows}</tbody></table>`
-      + reportDisclaimer('Η παρούσα απογραφή έχει ενημερωτικό χαρακτήρα. Οι τρέχουσες αξίες προκύπτουν από γραμμική απόσβεση βάσει της ωφέλιμης ζωής κάθε κατηγορίας και δεν αποτελούν επίσημη εκτίμηση. Η ασφαλιστέα αξία (+10%) είναι ενδεικτική.')
+      + `<table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th class="n">Αξία Αγοράς</th><th class="n">Εκτ. υπολειπόμενη</th><th class="n">% που μένει</th><th class="n">Κόστος αντικ.</th><th class="n">kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>${detailRows}</tbody></table>`
+      + reportDisclaimer(`Η παρούσα απογραφή έχει ενημερωτικό χαρακτήρα. Οι υπολειπόμενες αξίες προκύπτουν από γραμμική μείωση πάνω σε τυπική διάρκεια ζωής ανά κατηγορία και δεν αποτελούν επίσημη εκτίμηση. ${NOT_TAX_DEPRECIATION_NOTE} Το κόστος αντικατάστασης είναι όσο έχει δηλώσει ο ιδιοκτήτης· όπου λείπει, δεν συμπληρώνεται από εμάς.${missingRepl>0?` Λείπει σε ${missingRepl} από ${items.length} αντικείμενα.`:''}`)
       + `</div></body></html>`
     openReport(html)
   }
-  // Εικονογραφημένη έκθεση για ασφαλιστική — μία «κάρτα» ανά αντικείμενο με φωτογραφία & ασφαλιστέα αξία.
-  const insurableOf=(i:InventoryItem)=> i.replacement_cost>0?i.replacement_cost:Math.round(calcCurrentValue(i)*1.1)
-  const totalInsurable=items.reduce((s,i)=>s+insurableOf(i),0)
+  // Εικονογραφημένη έκθεση για ασφαλιστική — μία «κάρτα» ανά αντικείμενο με φωτογραφία
+  // και ΤΟ ΔΗΛΩΜΕΝΟ κόστος αντικατάστασης. Όπου λείπει, γράφεται «δεν δηλώθηκε»:
+  // ο ασφαλιστής πρέπει να δει το κενό, όχι ένα νούμερο που φτιάξαμε εμείς.
+  const insurableOf=(i:InventoryItem)=> (i.replacement_cost||0)>0?i.replacement_cost:0
+  const totalInsurable=totalDeclaredRepl
   const exportInsurancePDF=()=>{
     const accent = reportAccent(null)
     const w=window.open('','_blank');if(!w)return
@@ -1809,15 +1824,15 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
         ${i.serial_number?`<div class="sn">SN: ${esc(i.serial_number)}</div>`:''}
         <div class="row"><span>Κατάσταση</span><span>${esc(i.condition)}</span></div>
         <div class="row"><span>Αξία αγοράς</span><span>${esc(i.purchase_value?eur(i.purchase_value):'—')}</span></div>
-        <div class="row val"><span>Ασφαλιστέα αξία</span><span>${esc(eur(insurableOf(i)))}</span></div>
+        <div class="row val"><span>Κόστος αντικατάστασης</span><span>${insurableOf(i)>0?esc(eur(insurableOf(i))):'δεν δηλώθηκε'}</span></div>
         </div></div>`}
     w.document.write(`<html><head><title>Έκθεση Ασφάλισης Περιεχομένου</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial,sans-serif;font-size:11px;color:#111;padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:16px}.mark{width:32px;height:32px;border-radius:7px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}.bn{font-size:15px;font-weight:700;color:#111}h1{font-size:22px;font-weight:700;color:#111;margin-bottom:2px}.sub{color:#6b7280;margin-bottom:20px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:24px}.kpi{flex:1;background:#f8f9fa;border:1px solid #d1d5db;border-radius:10px;padding:14px}.kpi-v{font-size:19px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:700;margin-top:2px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.c{border:1px solid #d1d5db;border-radius:10px;overflow:hidden;display:flex;page-break-inside:avoid}.ph{width:120px;flex-shrink:0;background:#f8f9fa}.ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}.noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:10px}.cb{padding:10px 12px;flex:1;min-width:0}.nm{font-size:13px;font-weight:600;color:#111;margin-bottom:2px}.mt{font-size:10px;color:#6b7280;margin-bottom:6px}.sn{font-size:9px;color:#6b7280;font-family:'Roboto Mono',monospace;margin-bottom:6px}.row{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;border-top:1px solid #e5e7eb;color:#374151}.row span:last-child{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:#111}.row.val span{color:#111}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #d1d5db;font-size:9.5px;color:#6b7280;line-height:1.6}@media print{button{display:none}}</style></head><body>
     <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
     <div class="hd"><div class="mark">P</div><div class="bn">Property OS</div></div>
     <h1>Έκθεση Ασφάλισης Περιεχομένου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα · φωτογραφική τεκμηρίωση</div>
-    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(eur(totalInsurable))}</div><div class="kpi-l">Συνολική ασφαλιστέα αξία</div></div><div class="kpi"><div class="kpi-v">${esc(eur(totalCurrent))}</div><div class="kpi-l">Τρέχουσα αξία</div></div><div class="kpi"><div class="kpi-v">${esc(items.length)}</div><div class="kpi-l">Αντικείμενα</div></div></div>
+    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(eur(totalInsurable))}</div><div class="kpi-l">Δηλωμένο κόστος αντικατάστασης</div></div><div class="kpi"><div class="kpi-v">${esc(eur(totalCurrent))}</div><div class="kpi-l">Εκτ. υπολειπόμενη αξία</div></div><div class="kpi"><div class="kpi-v">${esc(items.length)}</div><div class="kpi-l">Αντικείμενα${missingRepl>0?` (λείπει σε ${missingRepl})`:''}</div></div></div>
     <div class="grid">${items.map(card).join('')}</div>
-    <div class="footer">Η ασφαλιστέα αξία υπολογίζεται από το δηλωμένο κόστος αντικατάστασης ή, ελλείψει αυτού, από την τρέχουσα αξία +10%. Οι φωτογραφίες αποτελούν τεκμηρίωση του ιδιοκτήτη κατά την ημερομηνία έκδοσης. Property OS.</div>
+    <div class="footer">Η ασφαλιστέα αξία εξοπλισμού είναι το κόστος ΑΝΤΙΚΑΤΑΣΤΑΣΗΣ ΜΕ ΚΑΙΝΟΥΡΓΙΟ, όχι η υπολειπόμενη αξία. Εδώ αθροίζονται μόνο τα ποσά που δήλωσε ο ιδιοκτήτης· ${missingRepl>0?`για ${missingRepl} από ${items.length} αντικείμενα δεν έχει δηλωθεί και ΔΕΝ έχουν υπολογιστεί — η κάλυψη πρέπει να συμπληρωθεί πριν την ασφάλιση.`:'έχει δηλωθεί για όλα τα αντικείμενα.'} Οι φωτογραφίες αποτελούν τεκμηρίωση του ιδιοκτήτη κατά την ημερομηνία έκδοσης. Property OS.</div>
     <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
     w.document.close()
   }
@@ -1845,7 +1860,12 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
       </div>
       <div style={{padding:'14px 16px',background:'var(--bg-elevated)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)'}}>
         <p style={{fontSize:12,color:'var(--text-primary)',fontWeight:500,fontFamily:T.font.sans,marginBottom:4}}>Ασφάλιση Περιεχομένου</p>
-        <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:T.font.sans}}>Ασφαλιστέα αξία: <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)'}}>{fmtEur(Math.round(totalCurrent*1.1))}</strong> (τρέχουσα +10% περιθώριο ασφαλείας για το κόστος αντικατάστασης).</p>
+        <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:T.font.sans}}>
+          Άθροισμα δηλωμένων κοστών αντικατάστασης: <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)'}}>{totalDeclaredRepl>0?fmtEur(totalDeclaredRepl):'—'}</strong>.{' '}
+          {missingRepl>0
+            ? `Λείπει από ${missingRepl} από τα ${items.length} αντικείμενα. Ασφάλιση με ελλιπές άθροισμα σημαίνει υπασφάλιση, και φαίνεται μόνο μετά τη ζημιά.`
+            : 'Έχει δηλωθεί για όλα τα αντικείμενα.'}
+        </p>
       </div>
     </div>
   )
@@ -1867,29 +1887,38 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const [repairs,setRepairs] = useState<InventoryRepair[]>([])
   const [handovers,setHandovers] = useState<InventoryHandover[]>([])
   const [schedules,setSchedules] = useState<MaintenanceSchedule[]>([])
-  const [kwhPrice,setKwhPrice] = useState(0.22)
-  const [kwInput,setKwInput] = useState('0.22')
+  // ΚΑΜΙΑ ΠΡΟΕΠΙΛΟΓΗ 0,22 €/kWh. Ήταν σταθερά που (α) πολλαπλασίαζε κάθε συσκευή
+  // και (β) ΓΡΑΦΟΤΑΝ ΣΤΗ ΒΑΣΗ ως δήλωση του χρήστη σε κάθε άκυρη είσοδο. Η τιμή
+  // έρχεται από τον λογαριασμό ρεύματος που το app ήδη διαβάζει (bills_electricity)
+  // ή από ρητή δήλωση. Όσο λείπει, δείχνουμε kWh και όχι ευρώ.
+  const [kwhPrice,setKwhPrice] = useState(0)
+  const [kwInput,setKwInput] = useState('')
   const [loading,setLoading] = useState(true)
   const [showItemForm,setShowItemForm] = useState(false)
   const [editingItem,setEditingItem] = useState<InventoryItem|null>(null)
   const [repairItem,setRepairItem] = useState<InventoryItem|null>(null)
   const [qrItem,setQrItem] = useState<InventoryItem|null>(null)
   const [showBulkImport,setShowBulkImport] = useState(false)
+  // Η επίπλωση δηλώνεται στην καρτέλα του ενοικιαστή (tenants.furnishing). Δεν τη
+  // ξαναρωτάμε εδώ — «τίποτα με το χέρι δύο φορές».
+  const [furnishing,setFurnishing] = useState<string|null>(null)
 
   const fetchData = useCallback(async()=>{
     setLoading(true)
-    const [iR,rR,hR,sR,bR,psR] = await Promise.all([
+    const [iR,rR,hR,sR,bR,psR,tR] = await Promise.all([
       supabase.from('inventory_items').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
       supabase.from('inventory_repairs').select('*').eq('user_id',userId).order('repair_date',{ascending:false}),
       supabase.from('inventory_handovers').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
       supabase.from('inventory_maintenance').select('*').eq('property_id',propertyId).order('next_due'),
       supabase.from('bills_electricity').select('price_per_kwh').eq('property_id',propertyId).limit(1),
       supabase.from('property_settings').select('kwh_price').eq('property_id',propertyId).eq('user_id',userId).limit(1),
+      supabase.from('tenants').select('furnishing').eq('property_id',propertyId).limit(1),
     ])
+    setFurnishing((tR.data?.[0] as {furnishing?:string}|undefined)?.furnishing ?? null)
     if(iR.data){
       // Καμία εγγραφή κατά την ανάγνωση: οι υπενθυμίσεις ημερολογίου δημιουργούνται
       // ΜΟΝΟ με ρητή ενέργεια του χρήστη (κουμπί «Ημερολόγιο»), όχι αυτόματα σε κάθε load.
-      const loadedItems=iR.data.map((i:any)=>({...i,photos:i.photos||[],tags:i.tags||[]}))
+      const loadedItems=iR.data.map((i:any)=>({...i,photos:i.photos||[]}))
       setItems(loadedItems)
     }
     if(rR.data)setRepairs(rR.data)
@@ -1906,8 +1935,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     await supabase.from('property_settings').upsert({property_id:propertyId,user_id:userId,kwh_price:price,updated_at:new Date().toISOString()},{onConflict:'property_id,user_id'})
   }
   const handleSaveItem=async(data:Partial<InventoryItem>)=>{
-    if(data.original_price&&data.discount_pct&&!data.purchase_value){data.purchase_value=Math.round((data.original_price)*(1-data.discount_pct/100))}
-    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],tags:data.tags||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,standby_watts:data.standby_watts||0,replacement_cost:data.replacement_cost||0,smart_device:data.smart_device||false,smart_notes:data.smart_notes||'',provenance:data.provenance||'new',original_price:data.original_price||0,discount_pct:data.discount_pct||0,store_vendor:data.store_vendor||'',receipt_number:data.receipt_number||'',receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
+    // Γράφονται ΜΟΝΟ τα πεδία που ζητάει πλέον η φόρμα. Οι στήλες που έμειναν στη
+    // βάση (provenance, discount_pct, smart_device, standby_watts…) δεν αγγίζονται:
+    // τα παλιά δεδομένα μένουν ακέραια, απλώς δεν παράγονται καινούργια.
+    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,replacement_cost:data.replacement_cost||0,receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
     if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)notifyError('Σφάλμα: '+error.message)
       // Καθάρισε την ΠΑΛΙΑ απόδειξη αν αντικαταστάθηκε/αφαιρέθηκε (αποφυγή orphan στο storage).
       else{const oldDoc=editingItem.receipt_doc_url;if(oldDoc&&oldDoc!==payload.receipt_doc_url&&!/^https?:\/\//.test(oldDoc))await supabase.storage.from(DOCS_BUCKET).remove([oldDoc])}}
@@ -1921,12 +1952,11 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleUpdateCondition=async(id:string,condition:string)=>{await supabase.from('inventory_items').update({condition,updated_at:new Date().toISOString()}).eq('id',id);setItems(prev=>prev.map(i=>i.id===id?{...i,condition}:i))}
   const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){notifyError('Σφάλμα: '+error.message);return}await cleanupDocs(its);fetchData()}
   const handleBulkRoom=async(ids:string[],room:string)=>{if(!ids.length)return;await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids);fetchData()}
-  const handleBulkTag=async(ids:string[],tag:string)=>{if(!ids.length)return;const sel=items.filter(i=>ids.includes(i.id));await Promise.all(sel.map(i=>{const tags=Array.from(new Set([...(i.tags||[]),tag]));return supabase.from('inventory_items').update({tags,updated_at:new Date().toISOString()}).eq('id',i.id)}));fetchData()}
   const [cloning,setCloning] = useState(false)
   const otherProps = properties.filter(p=>p.id!==propertyId).map(p=>({id:p.id,label:p.address||p.nickname||p.name||'Ακίνητο'}))
   const insertStarterPack = async() => {
     setCloning(true)
-    const rows=STARTER_PACK.map(s=>({property_id:propertyId,user_id:String(userId),name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],tags:[],purchase_value:0,provenance:'new'}))
+    const rows=STARTER_PACK.map(s=>({property_id:propertyId,user_id:String(userId),name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],purchase_value:0}))
     const {error}=await supabase.from('inventory_items').insert(rows)
     setCloning(false)
     if(error){notifyError('Σφάλμα: '+error.message);return}
@@ -1946,7 +1976,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     if(!item.warranty_expiry){notifyError('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return}
     const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
     if(error){notifyError('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
-    notifyError(`Προστέθηκε υπενθύμιση εγγύησης στο ημερολόγιο για «${item.name}».`)
+    // ΗΤΑΝ notifyError: μήνυμα ΕΠΙΤΥΧΙΑΣ σε κόκκινο toast. Ο χρήστης νόμιζε ότι απέτυχε
+    // και το ξαναπατούσε, φτιάχνοντας διπλές εγγραφές ημερολογίου.
+    notifyOk(`Προστέθηκε υπενθύμιση εγγύησης στο ημερολόγιο για «${item.name}».`)
   }
   const exportInventoryCsv=()=>downloadCsv(
     `apografi_${new Date().toISOString().slice(0,10)}`,
@@ -1962,6 +1994,21 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     {key:'overview',label:'Επισκόπηση'},
   ] as const
 
+  // ═══ ΠΟΙΟΣ ΒΛΕΠΕΙ ΑΠΟΓΡΑΦΗ ΕΞΟΠΛΙΣΜΟΥ ═══════════════════════════════════
+  // Ένα κενό διαμέρισμα, μια ιδιοχρησία ή ένα γυμνό ενοίκιο δεν έχουν εξοπλισμό να
+  // παραδώσουν. Η βραχυχρόνια είναι εξ ορισμού επιπλωμένη (δεν νοικιάζεται γυμνό
+  // διαμέρισμα ανά νύχτα)· στη μακροχρόνια το κρίνει η δήλωση επίπλωσης της
+  // καρτέλας ενοικιαστή. ΔΙΧΤΥ ΑΣΦΑΛΕΙΑΣ: αν υπάρχουν ήδη αντικείμενα, η καρτέλα
+  // εμφανίζεται ΠΑΝΤΑ — δεν κρύβουμε ποτέ δεδομένα που ο χρήστης έχει καταχωρίσει.
+  const propRow = (properties as StatusRow[]).find((p:any)=>p?.id===propertyId) || null
+  const status = readStatus(propRow)
+  const declaredFurnished = status==='rent_short' || furnishing==='furnished' || furnishing==='turnkey'
+  const fieldCtx: FieldContext = {
+    status, business: profileType==='professional', doubleEntry: false,
+    propertyCount: properties.length||1, furnished: declaredFurnished||items.length>0,
+  }
+  const inventoryApplies = declaredFurnished || items.length>0
+
   const overdueCount=schedules.filter(s=>daysUntil(s.next_due)<0).length
   const warnCount=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30}).length
   const actionCount=items.filter(needsAction).length
@@ -1975,10 +2022,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const kwhControl=(
     <div title="kWh = κιλοβατώρα· τιμή ρεύματος σε € ανά kWh, για τον υπολογισμό κόστους" style={{display:'inline-flex',alignItems:'center',height:28,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.pill,overflow:'hidden'}}>
       <span style={{padding:'0 8px',fontSize:9,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:T.font.sans}}>€/kWh</span>
-      <input type="text" inputMode="decimal" value={kwInput}
+      <input type="text" inputMode="decimal" value={kwInput} placeholder="—" aria-label="Τιμή ρεύματος σε ευρώ ανά kWh, από τον λογαριασμό σου"
         onChange={e=>{const raw=e.target.value.replace(',','.');setKwInput(raw);if(/^\d*\.?\d*$/.test(raw)&&raw!=='')setKwhPrice(parseFloat(raw)||0)}}
-        onFocus={e=>{if(kwInput==='0')setKwInput('');e.target.select()}}
-        onBlur={()=>{const n=parseFloat(kwInput);if(isNaN(n)||kwInput===''){setKwInput('0.22');setKwhPrice(0.22);saveKwh(0.22)}else{setKwInput(String(n));setKwhPrice(n);saveKwh(n)}}}
+        onFocus={e=>{e.target.select()}}
+        onBlur={()=>{const n=parseFloat(kwInput);if(isNaN(n)||n<=0){setKwInput('');setKwhPrice(0)}else{setKwInput(String(n));setKwhPrice(n);saveKwh(n)}}}
         style={{width:52,background:'transparent',border:'none',outline:'none',padding:'0 8px',fontSize:12,color:'var(--text-primary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',textAlign:'right'}}
       />
     </div>
@@ -1986,7 +2033,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
   return (
     <div style={{minWidth:0,width:'100%'}}>
-      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}} propertyId={propertyId}/>}
+      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}} propertyId={propertyId} ctx={fieldCtx} kwhPrice={kwhPrice}/>}
       {repairItem&&<RepairModal item={repairItem} repairs={repairs} onAdd={handleAddRepair} onClose={()=>setRepairItem(null)} propertyId={propertyId} userId={userId}/>}
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
@@ -2001,7 +2048,27 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         </div>}
       />}
 
-      {!loading&&(items.length===0
+      {/* ═══ ΟΤΑΝ Η ΑΠΟΓΡΑΦΗ ΔΕΝ ΑΦΟΡΑ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ ═════════════════════════
+          Δεν δείχνουμε άδεια φόρμα 28 πεδίων σε κάποιον που μένει στο σπίτι του ή
+          που το έχει κλειστό. Λέμε ΓΙΑΤΙ δεν την βλέπει και πού δηλώνεται η
+          επίπλωση — δεν του ζητάμε να το ξαναδηλώσει εδώ. */}
+      {!loading && !inventoryApplies && (
+        <div className="card" style={{marginTop:8,padding:'clamp(28px,5vw,44px) 24px',textAlign:'center'}}>
+          <div style={{width:56,height:56,borderRadius:16,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-tertiary)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
+            <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M10 12h4"/></svg>
+          </div>
+          <p style={{fontSize:17,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>
+            {status==='rent_long' ? 'Το ακίνητο δεν έχει δηλωθεί επιπλωμένο' : `Δεν υπάρχει απογραφή εξοπλισμού σε ακίνητο «${statusLabel(propRow)}»`}
+          </p>
+          <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:520,margin:'0 auto',lineHeight:1.65}}>
+            {status==='rent_long'
+              ? 'Η απογραφή υπάρχει για να παραδίδεις και να παραλαμβάνεις εξοπλισμό με απόδειξη, και για να τον ασφαλίζεις. Σε γυμνό διαμέρισμα δεν υπάρχει τίποτα από τα δύο. Αν το νοικιάζεις επιπλωμένο, δήλωσέ το στην καρτέλα «Ενοικιαστής» → Επίπλωση, και η απογραφή εμφανίζεται εδώ αυτόματα.'
+              : 'Ο εξοπλισμός καταγράφεται όταν παραδίδεται σε κάποιον άλλον. Μόλις το ακίνητο μπει σε μίσθωση, η απογραφή εμφανίζεται εδώ με τα δικά της πεδία — χωρίς να ξαναδηλώσεις τίποτα.'}
+          </p>
+        </div>
+      )}
+
+      {!loading&&inventoryApplies&&(items.length===0
         ? <div className="card" style={{textAlign:'center',padding:'clamp(40px,7vw,68px) 24px',marginTop:8}}>
             {handoverSeed&&(
               <div style={{display:'flex',alignItems:'center',gap:10,textAlign:'left',maxWidth:520,margin:'0 auto 24px',padding:'12px 16px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
@@ -2015,7 +2082,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την Απογραφή'}</p>
             <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:440,margin:'0 auto 22px',lineHeight:1.6}}>Κατέγραψε έπιπλα, συσκευές και εξοπλισμό: αξία, εγγυήσεις και κατανάλωση, όλα οργανωμένα και εύκολα.</p>
             <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:14}}>
-              <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>
+              {/* Η σάρωση είναι το ΚΥΡΙΟ μονοπάτι: ανοίγει η φόρμα με τη φωτογραφία
+                  πρώτη και το AI συμπληρώνει μάρκα, μοντέλο, αξία και εγγύηση. */}
+              <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Φωτογράφισε αντικείμενο</Btn>
               <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
             </div>
             <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',alignItems:'center',marginBottom:28}}>
@@ -2092,9 +2161,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         ?<><SkeletonKPIs n={4}/><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14}}>{[0,1,2,3,4,5].map(i=><Skeleton key={i} h={180} r={14}/>)}</div></>
         :(
           <>
-            {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder} onBulkDelete={handleBulkDelete} onBulkRoom={handleBulkRoom} onBulkTag={handleBulkTag}/>}
+            {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder} onBulkDelete={handleBulkDelete} onBulkRoom={handleBulkRoom}/>}
             {activeTab==='care'&&<CareTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
-            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType} kwhControl={kwhControl} handovers={handovers} onOpenHandover={()=>setActiveTab('handover')}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
+            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} kwhControl={kwhControl} handovers={handovers} onOpenHandover={()=>setActiveTab('handover')}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
           </>
         )
       }

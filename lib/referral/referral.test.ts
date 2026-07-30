@@ -7,10 +7,10 @@ import {
   REFEREE_FREE_SLOT_MONTHS, REFEREE_OWNER_MONTHS, REFEREE_AGENCY_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
-  progress, currentStreak, isPartner, streakProgress,
-  partnerCommission, partnerCommissionFromSubs,
-  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE, PARTNER_MONTHLY_FREE_MONTHS,
+  progress, currentStreak, isPartner, streakProgress, partnerFreeMonths,
+  STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
 } from './referral';
+import * as referral from './referral';
 
 let p = 0, f = 0;
 const ok = (c: boolean, m: string) => { if (c) p++; else { f++; console.error('✗', m); } };
@@ -86,12 +86,16 @@ ok(streakProgress([5, 5, 5, 5]).current === STREAK_TARGET_MONTHS, 'πρόοδο�
 ok(streakProgress([5, 5, 5]).pct === 100, 'σερί ολοκληρωμένο → 100%');
 ok(PARTNER_MONTHLY_FREE_MONTHS === 1, 'κάθε επιτυχημένος μήνας Συνεργάτη → 1 μήνας δωρεάν');
 
-// ── Προμήθεια Συνεργάτη ──
-ok(partnerCommission(100) === 20, 'προμήθεια 20% στα 100€');
-ok(partnerCommission(-50) === 0, 'αρνητικά έσοδα → 0 προμήθεια');
-ok(Math.abs(partnerCommission(24.9) - 4.98) < 1e-9, 'προμήθεια σε 24,90€');
-ok(partnerCommissionFromSubs([9.9, 24.9, 9.9]) === PARTNER_COMMISSION_RATE * (9.9 + 24.9 + 9.9), 'προμήθεια από λίστα συνδρομών');
-ok(partnerCommissionFromSubs([9.9, -3, 24.9]) === PARTNER_COMMISSION_RATE * (9.9 + 24.9), 'αγνοεί μη-θετικά');
+// ── Ανταμοιβή Συνεργάτη: ΔΩΡΕΑΝ ΜΗΝΕΣ, ΟΧΙ ΜΕΤΡΗΤΑ ──
+// Η οθόνη υποσχόταν «20% προμήθεια κάθε μήνα» πάνω σε μηχανή που δέχεται μόνο
+// kind='months'|'slot': κανένα ledger, κανένα payout, και η στρατηγική αποκλείει
+// ρητά τις πληρωμές. Ό,τι δεν μπορεί να πληρωθεί δεν υπάρχει στον κώδικα.
+ok(partnerFreeMonths([5, 5, 5]) === 3 * PARTNER_MONTHLY_FREE_MONTHS, 'Συνεργάτης: κάθε μήνας στόχου → ένας δωρεάν');
+ok(partnerFreeMonths([5, 5]) === 0, 'χωρίς την ιδιότητα Συνεργάτη → κανένας δωρεάν μήνας');
+ok(partnerFreeMonths([5, 5, 4]) === 0, 'σπασμένο σερί → κανένας δωρεάν μήνας');
+ok(partnerFreeMonths([]) === 0, 'κενό ιστορικό → 0');
+ok(!('partnerCommission' in referral) && !('PARTNER_COMMISSION_RATE' in referral),
+  'καμία προμήθεια σε μετρητά δεν επιστρέφει στη μηχανή');
 
 console.log(`\nreferral/referral.ts — ${p} passed, ${f} failed`);
 if (f > 0) process.exit(1);

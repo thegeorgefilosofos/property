@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn, fd } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
+import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
 const PEA_CLASSES = ['A+', 'A', 'B+', 'B', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η'];
@@ -123,7 +124,7 @@ interface ExistingProperty {
   obj_value?: number | string | null; enfia?: number | string | null; pea_class?: string | null;
   heating?: string | null; purchase_date?: string | null; parking_spaces?: number | string | null;
   storage_sqm?: number | string | null; bedrooms?: number | string | null; rental_mode?: string | null;
-  co_owners?: string[] | null;
+  co_owners?: string[] | null; ama?: string | null;
 }
 const s = (v: number | string | null | undefined) => (v == null ? '' : String(v));
 
@@ -137,6 +138,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [propType, setPropType] = useState(existing?.prop_type || 'apartment');
   const [status, setStatus] = useState(existing?.status_detail && existing.status_detail !== 'seasonal' ? existing.status_detail : 'vacant');
   const [airbnb, setAirbnb] = useState(existing?.status_detail === 'seasonal' || existing?.rental_mode === 'short_term');
+  // ΑΜΑ: πεδίο ΤΟΥ ΑΚΙΝΗΤΟΥ, ζητούμενο τη στιγμή που η κατάσταση γίνεται
+  // βραχυχρόνια — όχι κρυμμένο σε accordion άλλης καρτέλας πίσω από τρίτο
+  // διακόπτη. Το 2025 στάλθηκαν 12.145 καταχωρίσεις για απενεργοποίηση επειδή
+  // ο ΑΜΑ έλειπε ή ήταν άκυρος.
+  const [ama, setAma] = useState(cleanAma(existing?.ama || ''));
 
   const [name, setName] = useState(existing?.name || '');
   const [address, setAddress] = useState(existing?.address || '');
@@ -236,6 +242,10 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       storage_sqm: isLandLike ? null : num(storageSqm),
       bedrooms: isLandLike ? null : (bedrooms ? parseInt(bedrooms) : null),
       rental_mode: rentalModeFromAirbnb(airbnb),
+      // Ο ΑΜΑ γράφεται μόνο όταν το ακίνητο είναι βραχυχρόνιο. Αν γυρίσει σε
+      // μακροχρόνια, ΔΕΝ σβήνεται (μπορεί να ξαναγίνει Airbnb και ο αριθμός
+      // μένει ο ίδιος) — απλώς παύει να ζητείται.
+      ...(airbnb ? { ama: isValidAmaFormat(ama) ? ama : null } : {}),
     };
     let propertyId: string | null = existing?.id ?? null;
     let err: { message?: string } | null = null;
@@ -365,6 +375,27 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <div style={{ position: 'absolute', top: 3, left: airbnb ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
                 </div>
               </button>
+
+              {/* Ο ΑΜΑ ΕΜΦΑΝΙΖΕΤΑΙ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΤΟ ΑΚΙΝΗΤΟ ΓΙΝΕΤΑΙ ΒΡΑΧΥΧΡΟΝΙΟ.
+                  Δεν υπάρχει ξεχωριστός διακόπτης και δεν κρύβεται σε accordion
+                  άλλης καρτέλας: η κατάσταση του ακινήτου είναι η ερώτηση, ο ΑΜΑ
+                  είναι η αμέσως επόμενη. Δεν είναι υποχρεωτικό πεδίο εδώ (ο
+                  χρήστης μπορεί να μην τον έχει ακόμη) — αν λείψει, η μόνιμη
+                  γραμμή στους «Επισκέπτες» και στην «Τιμολόγηση» τον ζητά ξανά. */}
+              {airbnb && (
+                <div style={{ marginTop: -8 }}>
+                  <Field label="Αριθμός Μητρώου Ακινήτου (ΑΜΑ)">
+                    <input style={inputStyle} value={ama} onChange={e => setAma(cleanAma(e.target.value))}
+                      inputMode="numeric" placeholder="Μόνο ψηφία, από το Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής (myAADE)"
+                      onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: amaLengthLooksUnusual(ama) ? 'var(--warning)' : 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
+                    {amaLengthLooksUnusual(ama)
+                      ? `Ο αριθμός έχει ${ama.length} ψηφία, που είναι ασυνήθιστο. Έλεγξέ τον στο myAADE πριν συνεχίσεις.`
+                      : 'Ο ΑΜΑ πρέπει να αναγράφεται σε κάθε καταχώριση σε Airbnb και Booking. Το 2025 στάλθηκαν 12.145 καταχωρίσεις για απενεργοποίηση επειδή έλειπε ή ήταν άκυρος.'}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

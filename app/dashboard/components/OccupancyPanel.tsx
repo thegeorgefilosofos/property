@@ -1,67 +1,86 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// OccupancyPanel, Πληρότητα & Βραχυχρόνια μίσθωση (Airbnb/επιπλωμένο).
-// Ελληνικό-specific: αριθμός ΑΜΑ (Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής, ΑΑΔΕ).
-// Παρακολουθεί νύχτες/μήνα → ποσοστό πληρότητας, έσοδα, σύγκριση με μακροχρόνια.
-// Αποθηκεύεται στο bills_settings (section 'occupancy'), κανένα νέο migration.
-// Ενιαία πεδία (UIComponents) για ομοιόμορφη, ευθυγραμμισμένη εμφάνιση.
+// ΠΛΗΡΟΤΗΤΑ & ΒΡΑΧΥΧΡΟΝΙΑ — από τα πραγματικά δεδομένα, όχι από πληκτρολόγηση.
+//
+// ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ
+//
+// 1. Ο ΤΡΙΤΟΣ ΑΝΕΞΑΡΤΗΤΟΣ ΔΙΑΚΟΠΤΗΣ «Βραχυχρόνια μίσθωση». Το `readStatus`
+//    (lib/property/status.ts) ήδη ήξερε ότι το ακίνητο είναι `rent_short` — ο
+//    διακόπτης ήταν τέταρτη πηγή αλήθειας που μπορούσε να διαφωνήσει με τις
+//    άλλες τρεις. Τώρα το πάνελ ΡΩΤΑΕΙ το readStatus.
+//
+// 2. Ο ΑΜΑ ΩΣ ΕΛΕΥΘΕΡΟ ΚΕΙΜΕΝΟ σε `bills_settings`, μέσα σε κλειστό accordion,
+//    πίσω από εκείνον τον διακόπτη. Ήταν το πιο ακριβό λάθος του προϊόντος:
+//    12.145 καταχωρίσεις στάλθηκαν για απενεργοποίηση το 2025 λόγω ΑΜΑ που
+//    έλειπε ή ήταν άκυρος. Ο ΑΜΑ είναι πλέον πεδίο ΤΟΥ ΑΚΙΝΗΤΟΥ και ζητείται
+//    αυτόματα, στην κορυφή των «Επισκέπτες» και «Τιμολόγηση» (AmaStrip).
+//
+// 3. ΔΩΔΕΚΑ ΠΕΔΙΑ ΧΕΙΡΟΚΙΝΗΤΗΣ ΚΑΤΑΧΩΡΗΣΗΣ «νύχτες ανά μήνα», τη στιγμή που το
+//    `client_stays` έχει ΚΑΘΕ κράτηση με ημερομηνίες — από iCal ή από email.
+//    Ο χρήστης πληκτρολογούσε δεδομένα που το app ήδη είχε, και τα δύο σύνολα
+//    μπορούσαν να διαφωνήσουν.
+//
+// 4. ΤΡΕΙΣ ΕΠΙΝΟΗΜΕΝΕΣ ΠΡΟΕΠΙΛΟΓΕΣ: προμήθεια «15%», καθαρισμός «40 €», μέσες
+//    νύχτες ανά κράτηση «3». Καμία πηγή, καμία σχέση με το συγκεκριμένο ακίνητο,
+//    και τροφοδοτούσαν «Καθαρά έσοδα» που ο χρήστης διάβαζε ως μέτρηση. Η
+//    προμήθεια πλέον έρχεται από τις ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ διαμονές ή δεν εμφανίζεται.
+//
+// 5. Η ΠΛΗΡΟΤΗΤΑ ΔΙΑ 365. Το εποχιακό εξοχικό έβγαινε στο «16%». Παρονομαστής
+//    είναι πλέον οι διαθέσιμες ημέρες (lib/clients/reports.ts, yearOccupancy).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, Skeleton } from '@/components/Theme';
-import { NumberInput, TextInput } from './UIComponents';
-import { shortTermNet } from '@/lib/billing/greekTax';
+import { T, fe, Skeleton, Btn } from '@/components/Theme';
+import { readStatus, type StatusRow } from '@/lib/property/status';
+import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
+import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 
-const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-const DAYS = [31,28,31,30,31,30,31,31,30,31,30,31];
+const MONTHS = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
 
-interface OccData { shortTerm: boolean; ama: string; nightlyRate: string; nights: string[]; platformFeePct: string; cleaningPerStay: string; avgNightsPerStay: string; }
-const INIT: OccData = { shortTerm: false, ama: '', nightlyRate: '', nights: Array(12).fill(''), platformFeePct: '15', cleaningPerStay: '40', avgNightsPerStay: '3' };
+interface StayRow extends ReportStay { declared_at?: string | null }
+interface PropInfo extends StatusRow { prop_type?: string | null; sqm?: number | null }
 
-export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: { propertyId: string; userId: string; longTermMonthly: number }) {
+export default function OccupancyPanel({ propertyId, userId, longTermMonthly, onOpenClients }: {
+  propertyId: string; userId: string; longTermMonthly: number; onOpenClients?: () => void;
+}) {
   const supabase = createClient();
-  const [d, setD] = useState<OccData>(INIT);
+  const [prop, setProp] = useState<PropInfo | null>(null);
+  const [stays, setStays] = useState<StayRow[]>([]);
   const [open, setOpen] = useState(false);
-  // Χωρίς αυτόν τον δείκτη, το πάνελ έδειχνε το INIT (διακόπτης «κλειστός», μηδενικές
-  // νύχτες) σαν να ήταν αποθηκευμένα δεδομένα: όποιος άνοιγε την κάρτα πριν γυρίσει
-  // το ερώτημα έβλεπε «Βραχυχρόνια: όχι» και μετά τον διακόπτη να αναπηδά μόνος του.
   const [loading, setLoading] = useState(true);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const year = new Date().getFullYear();
 
   const load = useCallback(async () => {
     try {
-      const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'occupancy').maybeSingle();
-      if (data?.data) setD({ ...INIT, ...(data.data as Partial<OccData>) });
+      const [{ data: p }, { data: s }] = await Promise.all([
+        supabase.from('user_properties').select('status_detail,rental_mode,prop_type,sqm').eq('id', propertyId).maybeSingle(),
+        supabase.from('client_stays')
+          .select('check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at')
+          .eq('user_id', userId).eq('property_id', propertyId),
+      ]);
+      setProp((p || null) as PropInfo | null);
+      setStays((s || []) as StayRow[]);
     } finally { setLoading(false); }
-  }, [propertyId]);
+  }, [propertyId, userId]);
   useEffect(() => { load(); }, [load]);
 
-  const persist = (next: OccData) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      supabase.from('bills_settings').upsert({ property_id: propertyId, user_id: String(userId), section: 'occupancy', data: next, updated_at: new Date().toISOString() }, { onConflict: 'property_id,section' }).then(() => {});
-    }, 700);
-  };
-  const upd = (patch: Partial<OccData>) => setD(prev => { const next = { ...prev, ...patch }; persist(next); return next; });
-  const setNight = (i: number, v: string) => setD(prev => { const n = [...prev.nights]; n[i] = v; const next = { ...prev, nights: n }; persist(next); return next; });
+  // Η ΚΑΤΑΣΤΑΣΗ ΑΠΟΦΑΣΙΖΕΙ, ΟΧΙ ΔΙΑΚΟΠΤΗΣ. Ίδια πηγή με τις καρτέλες.
+  const isShort = readStatus(prop) === 'rent_short';
+  if (!loading && !isShort) return null;
 
-  // Υπολογισμοί
-  const rate = parseFloat(d.nightlyRate) || 0;
-  const nightsNum = d.nights.map(v => parseInt(v) || 0);
-  const totalNights = nightsNum.reduce((s, v) => s + v, 0);
-  const totalDays = DAYS.reduce((a, b) => a + b, 0);
-  const occupancyPct = totalDays > 0 ? (totalNights / totalDays) * 100 : 0;
-  const peakMonth = nightsNum.reduce((best, v, i) => v > nightsNum[best] ? i : best, 0);
-  // Καθαρά έσοδα: μεικτά − προμήθειες πλατφορμών − καθαρισμός − Τέλος Ανθεκτικότητας.
-  const net = shortTermNet({ nightsByMonth: nightsNum, nightlyRate: rate, platformFeePct: parseFloat(d.platformFeePct) || 0, cleaningPerStay: parseFloat(d.cleaningPerStay) || 0, avgNightsPerStay: parseFloat(d.avgNightsPerStay) || 0 });
-  const stRevenue = net.grossRevenue;
+  const occ = yearOccupancy(stays, year);
+  const tot = totals(stays.filter(s => (s.check_in || '').slice(0, 4) === String(year)));
+  const isHouse = ['house', 'villa'].includes(String(prop?.prop_type || '').toLowerCase());
+  const tax = shortTermYearSummary(stays, year, { sqm: prop?.sqm ?? null, isHouse });
   const ltRevenue = longTermMonthly * 12;
-  const diff = net.net - ltRevenue;
+  // Σύγκριση με τη μακροχρόνια: ακαθάριστα μείον προμήθειες, τέλος και φόρο —
+  // ό,τι πραγματικά μένει. Δεν συγκρίνουμε ακαθάριστα με ακαθάριστα.
+  const diff = tax.net - ltRevenue;
 
-  const kpi = (label: string, value: string, tone = 'var(--text-primary)') => (
-    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
+  const kpi = (label: string, value: string, tone = 'var(--text-primary)', title?: string) => (
+    <div title={title} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: tone, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
     </div>
@@ -73,88 +92,91 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}><span title="Ποσοστό κρατημένων νυχτών προς τις διαθέσιμες (occupancy)">Πληρότητα</span> & Βραχυχρόνια</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb και επιπλωμένο: <span title="Αριθμός Μητρώου Ακινήτου: αριθμός εγγραφής βραχυχρόνιας μίσθωσης στην ΑΑΔΕ">ΑΜΑ</span>, πληρότητα, σύγκριση με μακροχρόνια</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Από τις καταγεγραμμένες κρατήσεις σου, όχι από πληκτρολόγηση</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {d.shortTerm && totalNights > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{occupancyPct.toFixed(0)}%</span>}
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6"/></svg>
+          {!loading && occ.availableDays > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{occ.pct}%</span>}
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
         </div>
       </div>
 
       {open && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-          {/* Ο σκελετός καλύπτει ΜΟΝΟ τη σειρά του διακόπτη — το μόνο σχήμα που είναι
-              βέβαιο πριν φορτώσουν τα δεδομένα. Σκελετός με KPIs θα υποσχόταν πίνακα
-              μετρικών που στα περισσότερα ακίνητα δεν εμφανίζεται ποτέ (βραχυχρόνια
-              απενεργοποιημένη), δηλαδή θα αντικαθιστούσε το ένα ψέμα με ένα άλλο. */}
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Skeleton w={40} h={26} r={12} />
               <Skeleton w={260} h={13} r={6} />
             </div>
-          ) : (<>
-          {/* Toggle */}
-          <button type="button" role="switch" aria-checked={d.shortTerm} onClick={() => upd({ shortTerm: !d.shortTerm })}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: d.shortTerm ? 18 : 0 }}>
-            <span style={{ width: 40, height: 26, borderRadius: 12, padding: 2, flexShrink: 0, background: d.shortTerm ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
-              <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: d.shortTerm ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
-            </span>
-            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 600 }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</span>
-          </button>
-
-          {d.shortTerm && (
+          ) : stays.length === 0 ? (
+            // Οι κενές οθόνες διδάσκουν. Το πάνελ δεν ζητά πλέον να πληκτρολογήσεις
+            // δεδομένα που το app μπορεί να φέρει μόνο του — λέει πώς να τα φέρεις.
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+              Δεν υπάρχουν καταγεγραμμένες κρατήσεις για αυτό το ακίνητο, οπότε δεν υπάρχει πληρότητα να μετρηθεί.
+              Σύνδεσε το ημερολόγιο Airbnb ή Booking (εισαγωγή iCal) στους «Επισκέπτες» και οι κρατήσεις θα έρχονται μόνες τους,
+              με ημερομηνίες και ποσά.
+              {onOpenClients && <div style={{ marginTop: 12 }}><Btn variant="secondary" onClick={onOpenClients}>Άνοιγμα «Επισκέπτες»</Btn></div>}
+            </div>
+          ) : (
             <>
-              {/* ── Βασικά στοιχεία, ενιαία πεδία ─────────────────────────── */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12, marginBottom: 18 }}>
-                <TextInput label="Αριθμός Μητρώου (ΑΜΑ)" value={d.ama} onChange={v => upd({ ama: v })} placeholder="π.χ. 0000000000000" />
-                <NumberInput label="Τιμή ανά νύχτα" value={d.nightlyRate} onChange={v => upd({ nightlyRate: v })} suffix="€" step={5} placeholder="60" />
-                <NumberInput label="Προμήθεια πλατφόρμας" value={d.platformFeePct} onChange={v => upd({ platformFeePct: v })} suffix="%" step={1} max={100} />
-                <NumberInput label="Καθαρισμός ανά διαμονή" value={d.cleaningPerStay} onChange={v => upd({ cleaningPerStay: v })} suffix="€" step={5} />
-                <NumberInput label="Μέσες νύχτες ανά κράτηση" value={d.avgNightsPerStay} onChange={v => upd({ avgNightsPerStay: v })} suffix="νύχτες" step={1} min={1} />
-              </div>
-
-              {/* ── Νύχτες με κράτηση ανά μήνα ───────────────────────────── */}
+              {/* Νύχτες ανά μήνα — ΑΠΟ ΤΙΣ ΚΡΑΤΗΣΕΙΣ, χωρίς κανένα πεδίο εισόδου. */}
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Νύχτες με κράτηση ανά μήνα</span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σύνολο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{totalNights}</strong> / {totalDays}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Νύχτες με κράτηση ανά μήνα ({year})</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                  Σύνολο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{occ.bookedNights}</strong> / {occ.availableDays} διαθέσιμες ημέρες
+                </span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 6, marginBottom: 18 }}>
                 {MONTHS.map((m, i) => {
-                  const isPeak = totalNights > 0 && i === peakMonth;
+                  const n = occ.nightsByMonth[i];
+                  const inWindow = occ.openFromMonth != null && i >= occ.openFromMonth && i <= (occ.openToMonth ?? 11);
                   return (
                     <div key={m} style={{ textAlign: 'center', minWidth: 0 }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: isPeak ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 4 }}>{m}</div>
-                      <input value={d.nights[i]} onChange={e => setNight(i, e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" placeholder="0"
-                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: `1px solid ${isPeak ? 'var(--accent-border)' : 'var(--border-default)'}`, borderRadius: 6, padding: '9px 2px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, textAlign: 'center', outline: 'none', transition: 'border-color 0.15s' }}
-                        onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                        onBlur={e => { e.currentTarget.style.borderColor = isPeak ? 'var(--accent-border)' : 'var(--border-default)'; e.currentTarget.style.boxShadow = 'none'; }} />
+                      <div style={{ fontSize: 10, fontWeight: 600, color: n > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 4 }}>{m}</div>
+                      <div style={{
+                        background: 'var(--bg-surface)', border: `1px solid ${n > 0 ? 'var(--accent-border)' : 'var(--border-default)'}`,
+                        borderRadius: 6, padding: '9px 2px', fontSize: 13, fontWeight: 600,
+                        color: n > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                        fontFamily: T.font.mono, opacity: inWindow || n > 0 ? 1 : 0.45,
+                      }}>{n}</div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* ── Αποτελέσματα ─────────────────────────────────────────── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 148px), 1fr))', gap: 10, marginBottom: 14 }}>
-                {kpi('Πληρότητα', `${occupancyPct.toFixed(0)}%`, 'var(--accent)')}
-                {kpi('Νύχτες / έτος', String(totalNights))}
-                {kpi('Μεικτά έσοδα', fe(stRevenue))}
-                {kpi('Προμήθειες πλατφορμών', `− ${fe(net.platformFees)}`, 'var(--text-secondary)')}
-                {kpi('Καθαρισμός', `− ${fe(net.cleaningTotal)}`, 'var(--text-secondary)')}
-                {kpi('Τέλος ανθεκτικότητας', `− ${fe(net.levy)}`, 'var(--text-secondary)')}
-                {kpi('Καθαρά έσοδα', fe(net.net), 'var(--text-primary)')}
-                {kpi('Διαφορά vs μακροχρόνια', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, diff >= 0 ? 'var(--positive)' : 'var(--negative)')}
+                {kpi('Πληρότητα', `${occ.pct}%`, 'var(--accent)',
+                  occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS[occ.openFromMonth]}–${MONTHS[occ.openToMonth!]}). Όχι σε 365: το ακίνητο δεν ήταν στην αγορά όλο τον χρόνο.` : undefined)}
+                {occ.peak && kpi('Υψηλή περίοδος', `${occ.peak.pct}%`, 'var(--text-primary)',
+                  `${MONTHS[occ.peak.fromMonth]}–${MONTHS[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από τα δικά σου δεδομένα.`)}
+                {kpi('Νύχτες / έτος', String(occ.bookedNights))}
+                {kpi('Δηλωτέα ακαθάριστα', fe(tot.revenue), 'var(--text-primary)', 'Τι πλήρωσαν οι επισκέπτες μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται — είναι δαπάνη.')}
+                {tot.climateLevy > 0 && kpi('Τέλος ανθεκτικότητας', `− ${fe(tot.climateLevy)}`, 'var(--text-secondary)', 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.')}
+                {tot.platformFees > 0 && kpi('Προμήθειες πλατφορμών', `− ${fe(tot.platformFees)}`, 'var(--text-secondary)', 'Δαπάνη που εκπίπτει.')}
+                {kpi('Εκτιμώμενος φόρος', `− ${fe(tax.incomeTax)}`, 'var(--text-secondary)', 'Κλίμακα εισοδήματος από ακίνητα, επί του 95% των ακαθαρίστων (τεκμαρτή έκπτωση 5%). Ενδεικτικό — επιβεβαίωσε με τον λογιστή.')}
+                {kpi('Μένει καθαρά', fe(tax.net), 'var(--text-primary)', 'Ακαθάριστα − φόρος − τέλος ανθεκτικότητας − τέλος παρεπιδημούντων.')}
+                {longTermMonthly > 0 && kpi('Διαφορά vs μακροχρόνια', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, diff >= 0 ? 'var(--positive)' : 'var(--negative)', `Έναντι ${fe(ltRevenue)} ετησίως από μακροχρόνια μίσθωση (χωρίς φόρο).`)}
               </div>
+
+              {tot.unresolved > 0 && (
+                <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  {tot.unresolved} από τις {tot.count} διαμονές του {year} έχουν <strong>απροσδιόριστο ποσό</strong>: καταγράφηκαν πριν το app ξεχωρίσει τα ακαθάριστα από το payout. Τα παραπάνω ποσά είναι εκτίμηση όσο δεν συμπληρωθεί «τι πλήρωσε ο επισκέπτης» στους «Επισκέπτες».
+                </div>
+              )}
+              {tot.undeclared > 0 && (
+                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <strong style={{ color: 'var(--negative)' }}>{tot.undeclared} αδήλωτες διαμονές.</strong> Η Δήλωση Βραχυχρόνιας Διαμονής υποβάλλεται στο myAADE <strong>μία ανά κράτηση</strong>. Σημείωσέ τες στους «Επισκέπτες» καθώς τις υποβάλλεις.
+                </div>
+              )}
 
               <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-strong)', marginTop: 6, flexShrink: 0 }} />
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span> και αναγραφή του <strong title="Αριθμός Μητρώου Ακινήτου (βραχυχρόνια μίσθωση)">ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking). Τα έσοδα δηλώνονται στο <span title="Έντυπο δήλωσης εισοδήματος από ακίνητα (ενοίκια)">Ε2</span>. Τα καθαρά έσοδα αφαιρούν προμήθειες πλατφορμών, καθαρισμό και το <strong>Τέλος Ανθεκτικότητας στην Κλιματική Κρίση</strong>, όχι όμως τον φόρο εισοδήματος. Το τέλος <strong>δεν είναι ενιαίο</strong>: εξαρτάται από τον τύπο του ακινήτου και την περίοδο (ενδεικτικά 2025, διαμερίσματα/κατοικίες περίπου 8 € την υψηλή περίοδο και 2 € τη χαμηλή ανά διανυκτέρευση· μονοκατοικίες άνω των 80 τ.μ. περίπου 15 € και 4 €). Τα ακριβή ποσά και οι μήνες ορίζονται από την <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span>, επιβεβαίωσέ τα εκεί ή με τον λογιστή σου.
+                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span> και αναγραφή του <strong title="Αριθμός Μητρώου Ακινήτου (βραχυχρόνια μίσθωση)">ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking) — ο έλεγχος βρίσκεται στην κορυφή των «Επισκέπτες» και της «Τιμολόγησης». Τα έσοδα δηλώνονται στο <span title="Έντυπο δήλωσης εισοδήματος από ακίνητα (ενοίκια)">Ε2</span> <strong>ακαθάριστα</strong>: η προμήθεια της πλατφόρμας είναι δαπάνη, όχι μείωση εσόδου. Το <strong>Τέλος Ανθεκτικότητας στην Κλιματική Κρίση</strong> δεν είναι έσοδό σου — το εισπράττεις από τον επισκέπτη και το αποδίδεις. Δεν είναι ενιαίο: εξαρτάται από τον τύπο του ακινήτου και την περίοδο. Τα ακριβή ποσά ορίζονται από την ΑΑΔΕ, επιβεβαίωσέ τα εκεί ή με τον λογιστή σου.
                 </div>
               </div>
             </>
           )}
-          </>)}
         </div>
       )}
     </div>

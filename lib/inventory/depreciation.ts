@@ -1,14 +1,23 @@
 // lib/inventory/depreciation.ts
-// Καθαρή (pure) μηχανή απόσβεσης & προτάσεων αντικατάστασης για την Απογραφή.
+// Καθαρή (pure) μηχανή ΕΚΤΙΜΩΜΕΝΗΣ ΥΠΟΛΕΙΠΟΜΕΝΗΣ ΑΞΙΑΣ & προτάσεων αντικατάστασης.
 // Χωρίς εξαρτήσεις από React/DOM/Supabase — ελέγχεται με: npx tsx lib/inventory/depreciation.test.ts
 //
-// Μοντέλο: γραμμική (straight-line) απόσβεση πάνω σε «ωφέλιμη ζωή» ανά κατηγορία.
-// Όλες οι τιμές είναι ΕΚΤΙΜΗΣΕΙΣ — δεν αποτελούν λογιστική/φορολογική συμβουλή.
+// ΔΕΝ ΕΙΝΑΙ ΦΟΡΟΛΟΓΙΚΗ ΑΠΟΣΒΕΣΗ. Ο επαγγελματίας που βάζει εξοπλισμό στα βιβλία
+// έχει ΝΟΜΙΜΟΥΣ συντελεστές (ΚΦΕ ν.4172/2013, άρθρο 24) και δεν είναι αυτοί εδώ.
+// Γι' αυτό η λέξη «απόσβεση» δεν εμφανίζεται πουθενά στην οθόνη: ένας χρήστης που
+// τη διαβάζει σε προϊόν ακινήτων εύλογα νομίζει ότι είναι το νούμερο της δήλωσης.
+//
+// ΤΙ ΕΙΝΑΙ: γραμμική μείωση της αξίας πάνω σε μια τυπική διάρκεια ζωής ανά
+// κατηγορία, για να απαντηθούν δύο πρακτικές ερωτήσεις — «πόσο αξίζει σήμερα ο
+// εξοπλισμός που παραδίδω» και «τι θα χρειαστεί αντικατάσταση φέτος».
 
 const MS_PER_YEAR = 1000 * 60 * 60 * 24 * 365
 
-// ── Ωφέλιμη ζωή ανά κατηγορία (χρόνια), βάσει ελληνικής αγοράς ─────────────
-// Λευκές συσκευές ~8-10, ηλεκτρονικά ~5, έπιπλα ~10-12, θέρμανση/ψύξη ~12-15.
+// ── Τυπική διάρκεια ζωής ανά κατηγορία (χρόνια) ────────────────────────────
+// ΕΚΤΙΜΗΣΕΙΣ ΠΡΟΪΟΝΤΟΣ, όχι δημοσιευμένος πίνακας και ΟΧΙ συντελεστές του ΚΦΕ:
+// δεν υπάρχει επίσημη ελληνική πηγή για «πόσα χρόνια ζει ένα πλυντήριο». Χρησιμεύουν
+// για να ταξινομηθεί τι γερνάει πρώτο, όχι για να μπει νούμερο σε δήλωση. Ο χρήστης
+// που έχει την πραγματική αξία τη γράφει στο «Κόστος αντικατάστασης».
 export const USEFUL_LIFE_YEARS: Record<string, number> = {
   'Έπιπλα': 12,
   'Ηλεκτρικές Συσκευές': 9,
@@ -20,6 +29,13 @@ export const USEFUL_LIFE_YEARS: Record<string, number> = {
   'Λοιπά': 8,
 }
 export const DEFAULT_USEFUL_LIFE = 8
+
+/**
+ * Η σημείωση που ΠΡΕΠΕΙ να συνοδεύει κάθε νούμερο υπολειπόμενης αξίας στην οθόνη
+ * και σε κάθε εξαγωγή. Ζει εδώ ώστε να λέγεται με τα ίδια λόγια σε PDF, CSV και UI.
+ */
+export const NOT_TAX_DEPRECIATION_NOTE =
+  'Εκτίμηση υπολειπόμενης αξίας, όχι φορολογική απόσβεση: για τη δήλωση ισχύουν οι συντελεστές του ΚΦΕ (ν.4172/2013, άρθρο 24).'
 
 export function usefulLifeYears(category?: string): number {
   if (!category) return DEFAULT_USEFUL_LIFE
@@ -39,11 +55,12 @@ export interface DepreciableItem {
 }
 
 export interface Depreciation {
-  hasData: boolean        // υπάρχει ημ/νία αγοράς ώστε να υπολογιστεί απόσβεση
+  hasData: boolean        // υπάρχει ημ/νία αγοράς ώστε να υπολογιστεί μείωση αξίας
   ageYears: number        // ηλικία σε χρόνια (0 αν άγνωστη)
-  usefulLife: number      // ωφέλιμη ζωή κατηγορίας (χρόνια)
-  bookValue: number       // τρέχουσα λογιστική/εκτιμώμενη αξία (€)
-  depreciatedPct: number  // ποσοστό απόσβεσης 0-100
+  usefulLife: number      // τυπική διάρκεια ζωής κατηγορίας (χρόνια)
+  bookValue: number       // εκτιμώμενη υπολειπόμενη αξία (€)
+  depreciatedPct: number  // εκτιμώμενη απομείωση 0-100 (ΟΧΙ φορολογική απόσβεση)
+  remainingPct: number    // εκτιμώμενη υπολειπόμενη αξία 0-100 — αυτό δείχνει η οθόνη
   yearsRemaining: number  // εκτιμ. χρόνια που απομένουν (0..life)
 }
 
@@ -63,25 +80,27 @@ export function daysUntil(dateStr?: string | null, now: number = Date.now()): nu
   return Math.ceil((t - now) / (1000 * 60 * 60 * 24))
 }
 
-// ── Κεντρικός υπολογισμός απόσβεσης (γραμμική) ────────────────────────────
+// ── Κεντρικός υπολογισμός υπολειπόμενης αξίας (γραμμικός) ─────────────────
 export function depreciate(item: DepreciableItem, now: number = Date.now()): Depreciation {
   const life = usefulLifeYears(item.category)
   const value = item.purchase_value || 0
   const age = yearsSince(item.purchase_date, now)
 
   if (age === null) {
-    // Χωρίς ημ/νία αγοράς: δεν αποσβένουμε — αξία = αξία αγοράς (ό,τι γνωρίζουμε).
-    return { hasData: false, ageYears: 0, usefulLife: life, bookValue: value, depreciatedPct: 0, yearsRemaining: life }
+    // Χωρίς ημ/νία αγοράς δεν μειώνουμε τίποτα — αξία = αξία αγοράς (ό,τι γνωρίζουμε).
+    return { hasData: false, ageYears: 0, usefulLife: life, bookValue: value, depreciatedPct: 0, remainingPct: 100, yearsRemaining: life }
   }
 
   const remainingFraction = Math.max(0, 1 - age / life)
+  const pct = age >= life ? 100 : Math.floor((age / life) * 100)
   return {
     hasData: true,
     ageYears: age,
     usefulLife: life,
     bookValue: Math.round(value * remainingFraction),
-    // floor: το 100% («πλήρης απόσβεση») εμφανίζεται ΜΟΝΟ όταν age >= life, ποτέ νωρίτερα.
-    depreciatedPct: age >= life ? 100 : Math.floor((age / life) * 100),
+    // floor: το 100% («τέλος εκτιμώμενης ζωής») εμφανίζεται ΜΟΝΟ όταν age >= life.
+    depreciatedPct: pct,
+    remainingPct: 100 - pct,
     // ceil: δείχνει ≥1 χρόνο όσο απομένει έστω λίγος χρόνος· 0 μόνο στο τέλος ζωής.
     yearsRemaining: age >= life ? 0 : Math.max(1, Math.ceil(life - age)),
   }
@@ -94,15 +113,15 @@ export interface ReplacementSuggestion {
   severity: 'none' | 'soft' | 'due'
 }
 
-// suggested όταν: σχεδόν πλήρης απόσβεση (>=90%), Ή κακή κατάσταση,
-// Ή εγγύηση έληξε πολύ καιρό (>2 χρόνια) σε αντικείμενο ήδη σημαντικά αποσβεσμένο.
+// suggested όταν: τέλος εκτιμώμενης ζωής (>=90%), Ή κακή κατάσταση,
+// Ή εγγύηση έληξε πολύ καιρό (>2 χρόνια) σε αντικείμενο που έχει ήδη γεράσει.
 export function replacementSuggestion(item: DepreciableItem, now: number = Date.now()): ReplacementSuggestion {
   const dep = depreciate(item, now)
   const reasons: string[] = []
   let due = false
 
-  if (dep.hasData && dep.depreciatedPct >= 100) { reasons.push('Πλήρης απόσβεση'); due = true }
-  else if (dep.hasData && dep.depreciatedPct >= 90) { reasons.push('Σχεδόν πλήρης απόσβεση'); due = true }
+  if (dep.hasData && dep.depreciatedPct >= 100) { reasons.push('Έφτασε το τέλος της εκτιμώμενης ζωής του') ; due = true }
+  else if (dep.hasData && dep.depreciatedPct >= 90) { reasons.push('Πλησιάζει το τέλος της εκτιμώμενης ζωής του'); due = true }
 
   if (item.condition === 'Εκτός Λειτουργίας') { reasons.push('Εκτός λειτουργίας'); due = true }
   else if (item.condition === 'Κακή') { reasons.push('Κακή κατάσταση'); due = true }
@@ -115,9 +134,9 @@ export function replacementSuggestion(item: DepreciableItem, now: number = Date.
 
   if (due) return { suggested: true, reasons, severity: 'due' }
 
-  // Ήπια ένδειξη: πλησιάζει το τέλος ωφέλιμης ζωής (>=75%) χωρίς άλλο πρόβλημα.
+  // Ήπια ένδειξη: πλησιάζει το τέλος της εκτιμώμενης ζωής (>=75%) χωρίς άλλο πρόβλημα.
   if (dep.hasData && dep.depreciatedPct >= 75) {
-    return { suggested: false, reasons: ['Πλησιάζει το τέλος ωφέλιμης ζωής'], severity: 'soft' }
+    return { suggested: false, reasons: ['Πλησιάζει το τέλος της εκτιμώμενης ζωής του'], severity: 'soft' }
   }
   return { suggested: false, reasons: [], severity: 'none' }
 }
@@ -127,8 +146,8 @@ export interface PortfolioSummary {
   count: number
   totalOriginal: number         // σύνολο αξίας αγοράς (€)
   totalBookValue: number        // σύνολο τρέχουσας εκτιμώμενης αξίας (€)
-  totalDepreciation: number     // απώλεια αξίας = original - book (€)
-  avgDepreciatedPct: number     // μέση απόσβεση (σταθμισμένη με αξία) 0-100
+  totalDepreciation: number     // εκτιμώμενη απώλεια αξίας = original - book (€)
+  avgDepreciatedPct: number     // μέση εκτιμώμενη απομείωση (σταθμισμένη με αξία) 0-100
   needAttentionCount: number    // πόσα προτείνονται για αντικατάσταση (severity 'due')
   watchCount: number            // πόσα σε ήπια παρακολούθηση (severity 'soft')
   replacementBudget: number     // εκτιμ. προϋπολογισμός αντικατάστασης όσων χρήζουν (€)

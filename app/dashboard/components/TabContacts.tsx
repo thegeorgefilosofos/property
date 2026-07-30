@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } f
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
-import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Upload, Check, Minus, SearchX } from 'lucide-react'
+import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ExportButton, type KPIItem } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
@@ -14,6 +14,7 @@ import { brandName, useReportBranding, type ReportBranding } from '@/lib/reportB
 import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
+import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -37,18 +38,56 @@ const DossierSection = ({ title, children }: { title: string; children: React.Re
 
 const supabase = createSupabaseClient()
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΙ ΑΛΛΑΞΕ ΣΕ ΑΥΤΗ ΤΗΝ ΟΘΟΝΗ ΚΑΙ ΓΙΑΤΙ
+//
+// 1. ΑΠΟΡΡΗΤΟ. Το πεδίο διεύθυνσης έστελνε ΚΑΘΕ ΠΛΗΚΤΡΟΛΟΓΗΣΗ στο
+//    nominatim.openstreetmap.org (debounce 450ms, κάθε είσοδος ≥4 χαρακτήρων).
+//    Έφευγαν διευθύνσεις γραφείων ΤΡΙΤΩΝ ΠΡΟΣΩΠΩΝ εκτός της υποδομής μας, χωρίς
+//    αναφορά στην Πολιτική Απορρήτου, ενώ η ίδια εφαρμογή υπόσχεται στον χρήστη ότι
+//    ξέρει ποιος βλέπει τα δεδομένα του. Επιπλέον η πολιτική του Nominatim
+//    ΑΠΑΓΟΡΕΥΕΙ autocomplete και απαιτεί δικό User-Agent: σε παραγωγή θα
+//    μπλοκαριζόταν σιωπηλά. → Απλό πεδίο κειμένου. Ο χάρτης δεν φορτώνεται πια
+//    μόνος του σε iframe (που στέλνει τη διεύθυνση στην Google με το που ανοίγει το
+//    ντοσιέ) αλλά ανοίγει με ΡΗΤΟ κλικ του χρήστη.
+//
+// 2. Η ΣΑΡΩΣΗ ΕΞΑΦΑΝΙΖΟΤΑΝ ΑΚΡΙΒΩΣ ΟΤΑΝ ΧΡΕΙΑΖΟΤΑΝ. Όλα τα κουμπιά της κεφαλίδας,
+//    μαζί με το «Σάρωσε κάρτα», αποδίδονταν μόνο αν υπήρχε ΗΔΗ επαφή. Ο νέος
+//    χρήστης δεν έβλεπε καθόλου τη σάρωση και ο μόνος δρόμος για την πρώτη επαφή
+//    ήταν η φόρμα των 20 πεδίων. → «Φωτογράφισε κάρτα ή τιμολόγιο» ως κύριο CTA,
+//    πάντα ορατό, και στην κενή κατάσταση.
+//
+// 3. Ο ΚΥΚΛΟΣ ΠΑΡΑΣΤΑΤΙΚΟ ↔ ΕΠΑΦΗ ΗΤΑΝ ΣΠΑΣΜΕΝΟΣ. Οι δαπάνες ταίριαζαν με
+//    `description.ilike.*όνομα*`: ο «Παπαδόπουλος Υδραυλικός» δεν έβρισκε τη δαπάνη
+//    «Συντήρηση — Παπαδόπουλος». Το ΑΦΜ αποθηκευόταν, υπάρχει και στα σαρωμένα
+//    έγγραφα, και ποτέ δεν συνέδεε τα δύο. → Ταίριασμα με ΑΦΜ (contacts.afm ↔
+//    property_documents.provider_afm) και «όλα τα παραστατικά αυτού του παρόχου».
+//
+// 4. ΕΞΙ ΠΕΔΙΑ ΧΩΡΙΣ ΚΑΜΙΑ ΕΝΕΡΓΕΙΑ έφυγαν (αριθμός μητρώου/άδειας, δεύτερος IBAN,
+//    ωράριο, τελευταία επαφή, αξιολόγηση με αστέρια, «κατάσταση σχέσης» που κόλλαγε
+//    την ετικέτα «Προβληματικός» πάνω σε όνομα ανθρώπου), μαζί με την «Υπενθύμιση
+//    επικοινωνίας» που υποσχόταν ρυθμό και έδινε μία παγωμένη ημερομηνία, και τις
+//    δύο διαδρομές εισαγωγής αρχείου (.vcf/.csv) που η φωτογράφιση καλύπτει.
+//    Ποια πεδία μένουν το ορίζει το lib/property/fields.ts (CONTACT_FIELDS).
+// ═══════════════════════════════════════════════════════════════════════════
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ContactExtra {
   phone2?: string; whatsapp?: boolean; viber?: boolean; website?: string
-  office_address?: string; afm?: string; license_number?: string
-  iban?: string; iban2?: string; iris?: boolean
-  schedule?: string; rating?: number; preferred?: boolean
-  last_contact?: string; next_appointment?: string; specialty?: string
+  office_address?: string; afm?: string
+  iban?: string; iris?: boolean
+  preferred?: boolean
+  next_appointment?: string; specialty?: string
   tags?: string[]; avatar_url?: string
   notes_log?: { id: string; text: string; ts: string }[]
+  files?: { name: string; url: string; size: string; uploaded: string }[]
+  // ΠΑΛΙΑ ΠΕΔΙΑ, ΔΕΝ ΓΡΑΦΟΝΤΑΙ ΠΙΑ. Παραμένουν στον τύπο επειδή ζουν μέσα στο JSON
+  // του `notes` παλιών επαφών — δεν σβήνουμε δεδομένα χρήστη, απλώς δεν τα ζητάμε
+  // και δεν τα δείχνουμε: κανένα δεν προκαλούσε καμία ενέργεια στο app.
+  license_number?: string; iban2?: string; schedule?: string
+  rating?: number; last_contact?: string
   reminder_days?: number; reminder_set?: string
   status?: 'active' | 'pending' | 'inactive' | 'problematic'
-  files?: { name: string; url: string; size: string; uploaded: string }[]
   // Πεδίο εμβέλειας (μόνο για επαγγελματικό προφίλ). Αποθηκεύεται εντός του JSON `notes`
   // αφού δεν υπάρχει διαθέσιμη ειδική στήλη — βλ. σημείωση στην αναφορά.
   scope?: 'property' | 'portfolio'; scope_property_id?: string
@@ -63,7 +102,7 @@ interface TabContactsProps {
   profileType?: 'individual' | 'professional'
   properties?: { id: string; name: string }[]
 }
-type SortMode = 'recent' | 'alpha' | 'rating'
+type SortMode = 'recent' | 'alpha'
 type ViewMode = 'cards' | 'compact'
 
 // ─── Design System ────────────────────────────────────────────────────────────
@@ -212,14 +251,10 @@ const ROLE_SELECT_OPTIONS = GROUPS.flatMap(g => [
   ...g.roles.map(r => ({ value: r.value, label: r.label, disabled: false })),
 ])
 
-const PRESET_TAGS = ['Αξιόπιστος', 'VIP', 'Ακριβός', 'Γρήγορος', 'Προτεινόμενος', 'Προσοχή', 'Εκκρεμεί πληρωμή', 'Συνεργάτης', 'Επείγον', 'Σταθερός']
-const REMINDER_LABELS: Record<number, string> = { 0: 'Καμία', 7: '7 ημέρες', 14: '14 ημέρες', 30: '30 ημέρες', 60: '60 ημέρες', 90: '90 ημέρες' }
-const STATUS_OPTIONS = [
-  { value: 'active',      label: 'Ενεργός',       color: 'var(--positive)', bg: 'var(--positive-soft)',  dot: 'var(--positive)' },
-  { value: 'pending',     label: 'Σε αναμονή',    color: 'var(--warning)', bg: 'var(--warning-soft)', dot: 'var(--warning)' },
-  { value: 'inactive',    label: 'Ανενεργός',     color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)', dot: 'var(--text-tertiary)' },
-  { value: 'problematic', label: 'Προβληματικός', color: 'var(--negative)', bg: 'var(--negative-soft)',  dot: 'var(--negative)' },
-]
+// Οι έτοιμες ετικέτες έφυγαν. Ήταν «VIP», «Ακριβός», «Προσοχή», «Προβληματικός»:
+// χαρακτηρισμοί ΠΡΟΣΩΠΩΝ που τους πρότεινε το ίδιο το app, δίπλα σε ονοματεπώνυμο
+// και ΑΦΜ. Οι ετικέτες μένουν ως ελεύθερο κείμενο — τις γράφει ο χρήστης, για να
+// φιλτράρει τη δική του λίστα, και κανείς δεν του υποβάλλει κρίση για τρίτον.
 
 // ─── Serialize / Parse ────────────────────────────────────────────────────────
 function parseContact(c: Contact): Contact {
@@ -232,10 +267,8 @@ function serializeNotes(extra: ContactExtra, freeNotes: string): string {
 }
 const EMPTY_EXTRA: ContactExtra = {
   phone2: '', whatsapp: false, viber: false, website: '', office_address: '',
-  afm: '', license_number: '', iban: '', iban2: '', iris: false, schedule: '',
-  rating: 0, preferred: false, last_contact: '', next_appointment: '',
-  specialty: '', tags: [], avatar_url: '', notes_log: [],
-  reminder_days: 0, reminder_set: '', status: 'active', files: [],
+  afm: '', iban: '', iris: false, preferred: false, next_appointment: '',
+  specialty: '', tags: [], avatar_url: '', notes_log: [], files: [],
   scope: 'property', scope_property_id: '',
 }
 const EMPTY_FORM = { full_name: '', role: 'other', phone: '', email: '', freeNotes: '', extra: { ...EMPTY_EXTRA } }
@@ -256,64 +289,30 @@ function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; o
 function Txt({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} style={{ ...iStyle, height: 'auto', resize: 'vertical', lineHeight: 1.6 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
 }
-function FL({ children }: { children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
-}
-// ─── Address Autocomplete ───────────────────────────────────────────────────
-// Πρόταση διευθύνσεων χωρίς κλειδί (OpenStreetMap Nominatim). Αν αποτύχει η
-// αναζήτηση, λειτουργεί ως απλό πεδίο κειμένου — καμία διακοπή στη ροή.
-function AddressAutocomplete({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
-  const [sugg, setSugg] = useState<string[]>([])
-  const [open, setOpen] = useState(false)
-  const [active, setActive] = useState(-1)
-  const tRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const boxRef = useRef<HTMLDivElement>(null)
-  useEffect(() => () => { if (tRef.current) clearTimeout(tRef.current) }, [])
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', onDown); return () => document.removeEventListener('mousedown', onDown)
-  }, [])
-  const query = (text: string) => {
-    if (tRef.current) clearTimeout(tRef.current)
-    if (text.trim().length < 4) { setSugg([]); setOpen(false); return }
-    tRef.current = setTimeout(async () => {
-      try {
-        const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=5&accept-language=el&countrycodes=gr&q=' + encodeURIComponent(text), { headers: { 'Accept': 'application/json' } })
-        const data = await r.json()
-        const list = Array.isArray(data) ? data.map((d: { display_name?: string }) => d.display_name || '').filter(Boolean) : []
-        setSugg(list); setActive(-1); setOpen(list.length > 0)
-      } catch { setSugg([]); setOpen(false) }
-    }, 450)
-  }
-  const pick = (s: string) => { onChange(s); setOpen(false); setSugg([]) }
+// Πεδίο ΜΕ ΤΟ «ΓΙΑΤΙ» ΤΟΥ, από το μητρώο. Αν το πεδίο δεν αφορά αυτόν τον χρήστη,
+// δεν αποδίδεται καθόλου — δεν κλειδώνεται και δεν εμφανίζεται γκριζαρισμένο.
+function CField({ d, required, children }: { d?: FieldDecision; required?: boolean; children: React.ReactNode }) {
+  if (!d) return null
   return (
-    <div ref={boxRef} style={{ position: 'relative' }}>
-      <input type="text" value={value} placeholder={placeholder}
-        onChange={e => { onChange(e.target.value); query(e.target.value) }}
-        onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; if (sugg.length) setOpen(true) }}
-        onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }}
-        onKeyDown={e => {
-          if (!open) return
-          if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, sugg.length - 1)) }
-          else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(a - 1, 0)) }
-          else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); pick(sugg[active]) }
-          else if (e.key === 'Escape') setOpen(false)
-        }}
-        style={iStyle} />
-      {open && sugg.length > 0 && (
-        <div role="listbox" style={{ position: 'absolute', top: 46, left: 0, right: 0, zIndex: 30, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, boxShadow: '0 12px 40px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
-          {sugg.map((s, i) => (
-            <button key={i} type="button" role="option" aria-selected={i === active}
-              onMouseDown={e => { e.preventDefault(); pick(s) }} onMouseEnter={() => setActive(i)}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 9, width: '100%', textAlign: 'left', padding: '10px 13px', border: 'none', borderBottom: i < sugg.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: i === active ? 'var(--accent-soft)' : 'transparent', color: 'var(--text-primary)', fontSize: 12.5, lineHeight: 1.45, cursor: 'pointer', fontFamily: T.font.sans }}>
-              <MapPin size={13} color="var(--accent)" style={{ flexShrink: 0, marginTop: 2 }} />{s}
-            </button>
-          ))}
-        </div>
-      )}
+    <div>
+      <FL>{d.label}{required || d.critical ? ' *' : ''}</FL>
+      {children}
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 6 }}>{d.why}</div>
     </div>
   )
 }
+function FL({ children }: { children: React.ReactNode }) {
+  return <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
+}
+// ΕΔΩ ΗΤΑΝ ΤΟ AddressAutocomplete (52 γραμμές). Έστελνε ΚΑΘΕ πληκτρολόγηση του
+// χρήστη σε τρίτο εξυπηρετητή (nominatim.openstreetmap.org) για να προτείνει
+// διευθύνσεις: δηλαδή διευθύνσεις γραφείων τρίτων προσώπων έφευγαν εκτός της
+// υποδομής μας, χωρίς να αναφέρεται πουθενά στην Πολιτική Απορρήτου, στην ίδια
+// εφαρμογή που υπόσχεται στον χρήστη ότι ξέρει ποιος βλέπει τα δεδομένα του.
+// Και η ίδια η πολιτική χρήσης του Nominatim απαγορεύει ρητά το autocomplete —
+// σε παραγωγή η υπηρεσία θα μπλόκαρε και το πεδίο θα σταματούσε σιωπηλά.
+// Το πεδίο είναι πλέον απλό κείμενο. Ο χάρτης ανοίγει με ρητό κλικ του χρήστη.
+
 // Επικεφαλίδα ενότητας φόρμας — διακριτική, premium, με λεπτή γραμμή.
 function SecHead({ children }: { children: React.ReactNode }) {
   return (
@@ -330,29 +329,9 @@ function Tog({ value, onChange, colorOn = 'var(--accent)' }: { value: boolean; o
     </button>
   )
 }
-function StarRating({ value, onChange }: { value: number; onChange?: (n: number) => void }) {
-  const [hover, setHover] = useState(0)
-  return (
-    <div style={{ display: 'flex', gap: 3 }}>
-      {[1,2,3,4,5].map(n => (
-        <Star key={n} size={onChange ? 22 : 13}
-          fill={n <= (hover || value) ? 'var(--accent)' : 'none'}
-          color={n <= (hover || value) ? 'var(--accent)' : 'var(--border-default)'}
-          onClick={() => onChange && onChange(n === value ? 0 : n)}
-          onMouseEnter={() => onChange && setHover(n)} onMouseLeave={() => onChange && setHover(0)}
-          style={{ cursor: onChange ? 'pointer' : 'default', flexShrink: 0 }} />
-      ))}
-    </div>
-  )
-}
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_OPTIONS.find(o => o.value === status) || STATUS_OPTIONS[0]
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: T.radius.pill, background: s.bg, fontSize: 11, fontWeight: 600, color: s.color, fontFamily: T.font.sans }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />{s.label}
-    </span>
-  )
-}
+// Τα αστέρια αξιολόγησης και το «badge κατάστασης σχέσης» έφυγαν: ένα σκορ και μια
+// ετικέτα «Προβληματικός» πάνω σε άνθρωπο, χωρίς καμία ενέργεια πίσω τους. Ό,τι
+// χρειάζεται ο χρήστης το λένε τα γεγονότα — πληρωμές, παραστατικά, ραντεβού.
 
 // ─── Quick action button (calm, uniform, hover-revealed) ──────────────────────
 function QuickAct({ as, href, target, rel, onClick, title, label, children }: {
@@ -387,16 +366,6 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-        {PRESET_TAGS.filter(t => !tags.includes(t)).map(t => (
-          <button key={t} type="button" onClick={() => add(t)}
-            style={{ padding: '4px 11px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'transparent', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
-            + {t}
-          </button>
-        ))}
-      </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add(input))} placeholder="Νέα ετικέτα…" style={{ ...iStyle, flex: 1 }} />
         <button type="button" onClick={() => add(input)} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
@@ -406,34 +375,9 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
 }
 
 // ─── Notes Log ────────────────────────────────────────────────────────────────
-// ─── Avatar Upload ────────────────────────────────────────────────────────────
-function AvatarUpload({ avatarUrl, initials, onChange }: { avatarUrl: string; initials: string; onChange: (url: string) => void }) {
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return; setUploading(true)
-    const { path, error } = await uploadUserScoped(supabase, 'avatars', `contacts/${Date.now()}.${file.name.split('.').pop()}`, file, { upsert: true })
-    if (!error) { const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path); onChange(pub.publicUrl) }
-    setUploading(false)
-  }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 18px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-border)' }} />
-          : <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--accent-soft)', border: '2px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.sans }}>{initials || '?'}</div>}
-        <button type="button" onClick={() => fileRef.current?.click()} style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg-elevated)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', fontSize: 13, fontWeight: 700 }}>
-          {uploading ? '…' : '+'}
-        </button>
-      </div>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>Φωτογραφία Επαφής</div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>JPG, PNG έως 5MB</div>
-        {avatarUrl && <button type="button" onClick={() => onChange('')} style={{ fontSize: 12, color: 'var(--negative)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Αφαίρεση φωτογραφίας</button>}
-      </div>
-      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
-    </div>
-  )
-}
+// Το «ανέβασμα φωτογραφίας επαφής» έφυγε από τη φόρμα: ήταν το ΠΡΩΤΟ πράγμα που
+// έβλεπε ο χρήστης όταν καταχωρούσε υδραυλικό, και δεν κάνει τίποτα. Όσες επαφές
+// έχουν ήδη φωτογραφία συνεχίζουν να τη δείχνουν στην κάρτα και στο ντοσιέ.
 
 // ─── File Uploader ────────────────────────────────────────────────────────────
 function FileUploader({ files, onChange, contactId }: { files: { name: string; url: string; size: string; uploaded: string }[]; onChange: (f: { name: string; url: string; size: string; uploaded: string }[]) => void; contactId?: string }) {
@@ -495,26 +439,57 @@ function QRCodeModal({ contact, onClose }: { contact: Contact; onClose: () => vo
   )
 }
 
+// ─── ΤΑΙΡΙΑΣΜΑ ΕΠΑΦΗΣ ↔ ΠΑΡΑΣΤΑΤΙΚΩΝ ─────────────────────────────────────────
+// ΤΟ ΑΦΜ ΕΙΝΑΙ Ο ΣΥΝΔΕΣΜΟΣ. Το όνομα δεν είναι: ο «Παπαδόπουλος Υδραυλικός» δεν
+// βρίσκει τη δαπάνη «Συντήρηση — Παπαδόπουλος», και η «ΔΕΗ Α.Ε.» δεν βρίσκει τη
+// «ΔΕΗ». Το ΑΦΜ γράφεται μία φορά, είναι ένα, και υπάρχει και στα σαρωμένα έγγραφα
+// (property_documents.provider_afm). Το ταίριασμα με ελεύθερο κείμενο μένει ΜΟΝΟ
+// ως εφεδρεία για παλιές δαπάνες που δεν έχουν contact_id.
+const digitsOf = (v?: string | null) => (v || '').replace(/\D/g, '')
+
+/** Όλα τα παραστατικά αυτού του παρόχου, με ΑΦΜ. Αυτό ζητά ο λογιστής. */
+async function fetchSupplierDocs(afm: string, propertyId: string) {
+  if (digitsOf(afm).length !== 9) return []
+  // Αμυντικά: αν η στήλη δεν υπάρχει ακόμη στη βάση, γυρνάμε κενό αντί να σκάσουμε.
+  const { data, error } = await supabase
+    .from('property_documents')
+    .select('id,title,category,doc_date,issue_date,amount,file_path')
+    .eq('property_id', propertyId).eq('provider_afm', digitsOf(afm))
+    .order('doc_date', { ascending: false }).limit(50)
+  if (error) return []
+  return (data || []) as SupplierDoc[]
+}
+interface SupplierDoc { id: string; title: string | null; category: string | null; doc_date: string | null; issue_date: string | null; amount: number | null; file_path: string }
+
 // ─── History Modal ────────────────────────────────────────────────────────────
 function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; propertyId: string; onClose: () => void }) {
   const [expenses, setExpenses] = useState<{ id: string; description: string; amount: number; date: string }[]>([])
+  const [docs, setDocs] = useState<SupplierDoc[]>([])
   const [loading, setLoading] = useState(true)
+  const afm = digitsOf(contact._extra?.afm)
   useEffect(() => {
     async function load() {
       setLoading(true)
+      // 1) contact_id: το σωστό, για ό,τι καταχωρήθηκε μέσα από την επαφή.
+      // 2) όνομα: εφεδρεία για παλιές δαπάνες, γι' αυτό και δεν είναι μόνη της.
       const nm = (contact.full_name || '').replace(/[,()*%\\]/g, ' ').trim()
       const filter = nm.length >= 3 ? `contact_id.eq.${contact.id},description.ilike.*${nm}*` : `contact_id.eq.${contact.id}`
-      const { data } = await supabase.from('expenses').select('id,description,amount,date').eq('property_id', propertyId).or(filter).order('date', { ascending: false }).limit(20)
-      setExpenses(data || []); setLoading(false)
+      const [{ data }, d] = await Promise.all([
+        supabase.from('expenses').select('id,description,amount,date').eq('property_id', propertyId).or(filter).order('date', { ascending: false }).limit(20),
+        fetchSupplierDocs(afm, propertyId),
+      ])
+      setExpenses(data || []); setDocs(d); setLoading(false)
     }
     load()
-  }, [contact.id, propertyId, contact.full_name])
+  }, [contact.id, propertyId, contact.full_name, afm])
   const notesLog = contact._extra?.notes_log || []
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
+  const docsTotal = docs.reduce((s, d) => s + (d.amount || 0), 0)
   const timeline = [
     ...expenses.map(e => ({ date: e.date, title: e.description, sub: e.amount?.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }), color: 'var(--text-secondary)' })),
+    ...docs.map(d => ({ date: (d.issue_date || d.doc_date || '').slice(0, 10), title: d.title || d.category || 'Παραστατικό', sub: d.amount ? d.amount.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }) : 'Παραστατικό', color: 'var(--accent)' })),
     ...notesLog.map(n => ({ date: n.ts.split('T')[0], title: n.text, sub: 'Σημείωση', color: 'var(--accent)' })),
-  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15)
+  ].filter(x => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20)
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 540, maxHeight: '85vh', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
@@ -528,14 +503,21 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
           ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 24 }}>
-                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : '—', color: 'var(--text-primary)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
+                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : '—', color: 'var(--text-primary)' },
+                  { label: 'Παραστατικά με το ΑΦΜ του', value: docs.length > 0 ? `${docs.length}${docsTotal > 0 ? ' · ' + fe(docsTotal) : ''}` : (afm.length === 9 ? '0' : '—'), color: 'var(--text-primary)' },
+                  { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
                   <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                     <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
                   </div>
                 ))}
               </div>
-              {timeline.length === 0 ? <EmptyState icon={<History size={20} />} title="Δεν υπάρχει ιστορικό ακόμα" hint="Δαπάνες, σημειώσεις και ραντεβού με αυτή την επαφή εμφανίζονται εδώ χρονολογικά." /> : (
+              {afm.length !== 9 && (
+                <div style={{ marginBottom: 18, padding: '11px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  Χωρίς ΑΦΜ, τα παραστατικά αυτού του παρόχου δεν συνδέονται με την επαφή: το ταίριασμα γίνεται με το όνομα και αστοχεί. Συμπλήρωσέ το μία φορά στην επεξεργασία της επαφής.
+                </div>
+              )}
+              {timeline.length === 0 ? <EmptyState icon={<History size={20} />} title="Δεν υπάρχει ιστορικό ακόμα" hint="Δαπάνες, παραστατικά με το ΑΦΜ του και σημειώσεις εμφανίζονται εδώ χρονολογικά." /> : (
                 <div style={{ position: 'relative' }}>
                   <div style={{ position: 'absolute', left: 15, top: 0, bottom: 0, width: 1, background: 'var(--border-subtle)' }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -563,12 +545,11 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
 function printContactCard(contact: Contact, branding?: ReportBranding | null) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: '#888', groupLabel: '' }
   const extra = contact._extra || {}
-  const status = STATUS_OPTIONS.find(s => s.value === (extra.status || 'active')) || STATUS_OPTIONS[0]
   const html = `<html><head><title>${esc(contact.full_name)}</title><style>body{font-family:Inter,sans-serif;padding:40px;max-width:420px;margin:0 auto;color:#111}h1{font-size:22px;margin:0 0 2px}p{margin:3px 0;font-size:13px;color:#555}.cat{font-size:11px;color:${meta.groupColor};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}.role{font-size:13px;color:#444;margin-bottom:6px}.status{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:14px}.row{display:flex;gap:6px;align-items:flex-start;margin:5px 0;font-size:13px;color:#333}.label{min-width:80px;color:#888;font-size:11px;text-transform:uppercase;padding-top:1px}.tag{padding:2px 8px;border-radius:20px;background:#f3f4f6;font-size:11px}hr{border:none;border-top:1px solid #eee;margin:14px 0}.badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px}</style></head><body>
     <div class="cat">${esc(meta.groupLabel)}</div>
     <h1>${esc(contact.full_name)}</h1>
     <div class="role">${esc(meta.label)}</div>
-    <div class="status" style="background:${status.bg};color:${status.color}">${esc(status.label)}</div><hr>
+    <hr>
     ${contact.phone ? `<div class="row"><span class="label">Τηλέφωνο</span><span>${esc(contact.phone)}${extra.whatsapp ? '<span class="badge" style="background:#dcfce7;color:#166534">WA</span>' : ''}${extra.viber ? '<span class="badge" style="background:#ede9fe;color:#5b21b6">VB</span>' : ''}</span></div>` : ''}
     ${extra.phone2 ? `<div class="row"><span class="label">2ο Τηλέφωνο</span><span>${esc(extra.phone2)}</span></div>` : ''}
     ${contact.email ? `<div class="row"><span class="label">Email</span><span>${esc(contact.email)}</span></div>` : ''}
@@ -576,8 +557,6 @@ function printContactCard(contact: Contact, branding?: ReportBranding | null) {
     ${extra.office_address ? `<div class="row"><span class="label">Διεύθυνση</span><span>${esc(extra.office_address)}</span></div>` : ''}
     ${extra.afm ? `<div class="row"><span class="label">ΑΦΜ</span><span>${esc(extra.afm)}</span></div>` : ''}
     ${extra.iban ? `<div class="row"><span class="label">IBAN</span><span style="font-family:monospace">${esc(extra.iban)}${extra.iris ? '<span class="badge" style="background:#fef3c7;color:#92400e">IRIS</span>' : ''}</span></div>` : ''}
-    ${extra.iban2 ? `<div class="row"><span class="label">IBAN 2</span><span style="font-family:monospace">${esc(extra.iban2)}</span></div>` : ''}
-    ${extra.schedule ? `<div class="row"><span class="label">Ωράριο</span><span>${esc(extra.schedule)}</span></div>` : ''}
     ${(extra.tags || []).length > 0 ? `<div style="margin-top:12px">${(extra.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div>` : ''}
     ${contact._freeNotes ? `<hr><p style="line-height:1.6">${esc(contact._freeNotes)}</p>` : ''}
     <hr><p style="font-size:10px;color:#bbb">${branding?.companyName ? brandName(branding)+' · ' : 'Property OS · '}${esc(new Date().toLocaleDateString('el-GR'))}</p></body></html>`
@@ -631,7 +610,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
   )
 }
 
-// ─── Excel Export (SheetJS, same pattern as TabExpenses) ─────────────────────
+// ─── Excel Export (SheetJS, ίδιο μοτίβο με τα υπόλοιπα φύλλα) ───────────────
 async function exportContactsExcel(contacts: Contact[]) {
   const XLSX = await import('xlsx')
   const today = new Date().toLocaleDateString('el-GR')
@@ -648,7 +627,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   const withViber = contacts.filter(c => c._extra?.viber).length
   const withIBAN = contacts.filter(c => c._extra?.iban).length
   const withIRIS = contacts.filter(c => c._extra?.iris).length
-  const avgRating = contacts.filter(c => (c._extra?.rating || 0) > 0).reduce((s, c) => s + (c._extra?.rating || 0), 0) / (contacts.filter(c => (c._extra?.rating || 0) > 0).length || 1)
+  const withAfm = contacts.filter(c => c._extra?.afm).length
 
   const summaryData: (string | number)[][] = [
     ['Property OS, Κατάσταση Επαφών', ''],
@@ -662,7 +641,7 @@ async function exportContactsExcel(contacts: Contact[]) {
     ['Με Viber', withViber],
     ['Με IBAN', withIBAN],
     ['Με IRIS', withIRIS],
-    ['Μέση Αξιολόγηση', Math.round(avgRating * 10) / 10],
+    ['Με ΑΦΜ (ταιριάζουν με παραστατικά)', withAfm],
     [''],
     ['ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ', '', ''],
     ['Κατηγορία', 'Αριθμός Επαφών', 'Ποσοστό %'],
@@ -672,13 +651,6 @@ async function exportContactsExcel(contacts: Contact[]) {
       Math.round(((byGroup[g.id] || 0) / contacts.length) * 1000) / 10,
     ]),
     ['ΣΥΝΟΛΟ', contacts.length, 100],
-    [''],
-    ['ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΑΣΤΑΣΗ', '', ''],
-    ['Κατάσταση', 'Αριθμός'],
-    ...STATUS_OPTIONS.map(s => [
-      s.label,
-      contacts.filter(c => (c._extra?.status || 'active') === s.value).length,
-    ]),
   ]
   const ws1 = XLSX.utils.aoa_to_sheet(summaryData)
   ws1['!cols'] = [{ wch: 36 }, { wch: 18 }, { wch: 12 }]
@@ -686,11 +658,11 @@ async function exportContactsExcel(contacts: Contact[]) {
 
   // ── Sheet 2: Αναλυτικές Επαφές ─────────────────────────────────────────
   const headers = [
-    'Ονοματεπώνυμο', 'Κατηγορία', 'Ρόλος', 'Κατάσταση', 'Αξιολόγηση',
-    'Κύριο Τηλέφωνο', 'WhatsApp', 'Viber', 'Δεύτερο Τηλέφωνο', 'Email',
-    'Ιστοσελίδα', 'Διεύθυνση Γραφείου', 'Ωράριο Εργασίας',
-    'ΑΦΜ', 'Αρ. Μητρώου/Άδειας', 'IBAN', 'IBAN 2', 'IRIS',
-    'Τελευταία Επαφή', 'Επόμενο Ραντεβού', 'Υπενθύμιση (ημέρες)',
+    'Ονοματεπώνυμο', 'Κατηγορία', 'Ρόλος',
+    'Κύριο Τηλέφωνο', 'WhatsApp', 'Viber', 'Κινητό', 'Email',
+    'Ιστοσελίδα', 'Διεύθυνση Γραφείου',
+    'ΑΦΜ', 'IBAN', 'IRIS',
+    'Επόμενο Ραντεβού',
     'Ετικέτες', 'Αρχεία', 'Ελεύθερες Σημειώσεις', 'Σημειώσεις (log)',
   ]
   const detailRows: (string | number)[][] = [headers]
@@ -698,16 +670,13 @@ async function exportContactsExcel(contacts: Contact[]) {
   GROUPS.forEach(g => {
     const grpContacts = contacts.filter(c => ROLE_META[c.role]?.groupId === g.id)
     if (grpContacts.length === 0) return
-    detailRows.push([g.label, `${grpContacts.length} επαφές`, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
+    detailRows.push([g.label, `${grpContacts.length} επαφές`, ...Array(headers.length - 2).fill('')])
     grpContacts.sort((a, b) => a.full_name.localeCompare(b.full_name, 'el')).forEach(c => {
       const ex = c._extra || {}
-      const status = STATUS_OPTIONS.find(s => s.value === (ex.status || 'active'))?.label || ''
       detailRows.push([
         c.full_name,
         ROLE_META[c.role]?.groupLabel || '',
         ROLE_META[c.role]?.label || c.role,
-        status,
-        ex.rating || '',
         c.phone || '',
         ex.whatsapp ? 'ΝΑΙ' : 'ΟΧΙ',
         ex.viber ? 'ΝΑΙ' : 'ΟΧΙ',
@@ -715,37 +684,32 @@ async function exportContactsExcel(contacts: Contact[]) {
         c.email || '',
         ex.website || '',
         ex.office_address || '',
-        ex.schedule || '',
         ex.afm || '',
-        ex.license_number || '',
         ex.iban || '',
-        ex.iban2 || '',
         ex.iris ? 'ΝΑΙ' : 'ΟΧΙ',
-        ex.last_contact ? new Date(ex.last_contact + 'T00:00:00').toLocaleDateString('el-GR') : '',
         ex.next_appointment ? new Date(ex.next_appointment + 'T00:00:00').toLocaleDateString('el-GR') : '',
-        ex.reminder_days || '',
         (ex.tags || []).join('; '),
         (ex.files || []).length,
         c._freeNotes || '',
         (ex.notes_log || []).map((n: {ts: string; text: string}) => `[${new Date(n.ts).toLocaleDateString('el-GR')}] ${n.text}`).join(' | '),
       ])
     })
-    detailRows.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
+    detailRows.push(Array(headers.length).fill(''))
   })
 
   const ws2 = XLSX.utils.aoa_to_sheet(detailRows)
   ws2['!cols'] = [
-    { wch: 26 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 10 },
+    { wch: 26 }, { wch: 22 }, { wch: 22 },
     { wch: 14 }, { wch: 9 }, { wch: 9 }, { wch: 14 }, { wch: 26 },
-    { wch: 22 }, { wch: 22 }, { wch: 22 },
-    { wch: 12 }, { wch: 18 }, { wch: 28 }, { wch: 28 }, { wch: 9 },
-    { wch: 14 }, { wch: 16 }, { wch: 12 },
+    { wch: 22 }, { wch: 22 },
+    { wch: 12 }, { wch: 28 }, { wch: 9 },
+    { wch: 16 },
     { wch: 26 }, { wch: 8 }, { wch: 32 }, { wch: 48 },
   ]
   XLSX.utils.book_append_sheet(wb, ws2, 'Αναλυτικές Επαφές')
 
   // ── Sheet 3: Κατάλογος Επαφών (ταχεία αναφορά) ─────────────────────────
-  const dirHeaders = ['Ονοματεπώνυμο', 'Ρόλος', 'Τηλέφωνο', 'Email', 'Κατάσταση', 'Αξιολόγηση', 'WhatsApp', 'IRIS']
+  const dirHeaders = ['Ονοματεπώνυμο', 'Ρόλος', 'Τηλέφωνο', 'Email', 'ΑΦΜ', 'WhatsApp', 'IRIS']
   const dirRows: (string | number)[][] = [dirHeaders]
   contacts
     .sort((a, b) => a.full_name.localeCompare(b.full_name, 'el'))
@@ -756,14 +720,13 @@ async function exportContactsExcel(contacts: Contact[]) {
         ROLE_META[c.role]?.label || c.role,
         c.phone || '—',
         c.email || '—',
-        STATUS_OPTIONS.find(s => s.value === (ex.status || 'active'))?.label || '',
-        (ex.rating ? ex.rating + '/5' : '—'),
+        ex.afm || '—',
         ex.whatsapp ? 'WA' : '',
         ex.iris ? 'IRIS' : '',
       ])
     })
   const ws3 = XLSX.utils.aoa_to_sheet(dirRows)
-  ws3['!cols'] = [{ wch: 26 }, { wch: 24 }, { wch: 16 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 6 }]
+  ws3['!cols'] = [{ wch: 26 }, { wch: 24 }, { wch: 16 }, { wch: 28 }, { wch: 12 }, { wch: 10 }, { wch: 6 }]
   XLSX.utils.book_append_sheet(wb, ws3, 'Κατάλογος')
 
   XLSX.writeFile(wb, `επαφες_${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -789,7 +752,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
     + reportKpi('WhatsApp', String(contacts.filter(c => c._extra?.whatsapp).length))
     + reportKpi('Viber', String(contacts.filter(c => c._extra?.viber).length))
     + reportKpi('Με IBAN', String(contacts.filter(c => c._extra?.iban).length))
-    + reportKpi('Με IRIS', String(contacts.filter(c => c._extra?.iris).length))
+    + reportKpi('Με ΑΦΜ', String(contacts.filter(c => c._extra?.afm).length))
     + `</div>`
 
   const preferredSection = preferred.length
@@ -810,7 +773,6 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
   const groupSections = GROUPS.filter(g => byGroup[g.id]?.length).map(g => {
     const rows = byGroup[g.id].map(c => {
       const ex = c._extra || {}
-      const statusMeta = STATUS_OPTIONS.find(s => s.value === (ex.status || 'active')) || STATUS_OPTIONS[0]
       const role = ROLE_META[c.role]?.label || c.role
       const iban = ex.iban ? `···${rEsc(ex.iban.slice(-4))}${mark(ex.iris, 'IRIS')}` : '—'
       return `<tr>`
@@ -818,15 +780,14 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
         +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
         + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}${mark(ex.whatsapp, 'WA')}${mark(ex.viber, 'VB')}</td>`
         + `<td>${rEsc(c.email || '—')}</td>`
-        + `<td>${rEsc(statusMeta.label)}</td>`
-        + `<td class="n">${ex.rating ? rEsc(ex.rating + '/5') : '—'}</td>`
+        + `<td class="tnum">${ex.afm ? rEsc(ex.afm) : '—'}</td>`
         + `<td class="tnum">${iban}</td>`
         + `</tr>`
     }).join('')
     return reportSection(`${g.label} · ${byGroup[g.id].length} επαφές`)
       + `<table><thead><tr>`
       +   `<th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Email</th>`
-      +   `<th>Κατάσταση</th><th class="n">Αξιολ.</th><th>IBAN</th>`
+      +   `<th>ΑΦΜ</th><th>IBAN</th>`
       + `</tr></thead><tbody>${rows}</tbody></table>`
   }).join('')
 
@@ -905,7 +866,6 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
   }, [showActions])
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
   const dueDays = extra.next_appointment ? daysUntil(extra.next_appointment) : null
-  const reminderDue = extra.reminder_set ? (daysUntil(extra.reminder_set) || 0) <= 0 : false
   const GroupIcon = meta.GroupIcon || Users
 
   return (
@@ -915,7 +875,6 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
-      {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
       {(hov || showActions) && !bulkMode && (
         <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
           {/* Ορατές μόνο οι πιο συχνές ενέργειες — όλες οι υπόλοιπες μπαίνουν στο «···» */}
@@ -965,8 +924,6 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-          <StatusBadge status={extra.status || 'active'} />
-          {(extra.rating || 0) > 0 && <StarRating value={extra.rating || 0} />}
           {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
           {scopeLabel && (
             <span title={scopePortfolio ? 'Ισχύει για όλο το χαρτοφυλάκιο' : 'Ανήκει σε συγκεκριμένο ακίνητο'} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: scopePortfolio ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: '1px solid ' + (scopePortfolio ? 'var(--accent-border)' : 'var(--border-subtle)'), color: scopePortfolio ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 500, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -992,14 +949,11 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
           {contact.email && <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}><Mail size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email}</span></div>}
           {extra.website && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Globe size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{extra.website}</span></div>}
           {extra.office_address && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{extra.office_address}</span></div>}
-          {extra.schedule && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{extra.schedule}</span></div>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
           {extra.afm && <span title="Αριθμός Φορολογικού Μητρώου" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>ΑΦΜ {extra.afm}</span>}
           {extra.iban && <span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN ···{extra.iban.slice(-4)}{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ color: 'var(--text-secondary)', fontWeight: 700, marginLeft: 4 }}>IRIS</span>}</span>}
-          {extra.iban2 && <span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN2 ···{extra.iban2.slice(-4)}</span>}
           {extra.next_appointment && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: overdue ? 'var(--negative-soft)' : 'var(--accent-soft)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--accent-border)'), color: overdue ? 'var(--negative)' : 'var(--accent)' }}>{overdue ? `Ραντεβού ${Math.abs(dueDays || 0)} ημέρες πριν` : `Ραντεβού ${fmtDate(extra.next_appointment)}`}</span>}
-          {extra.last_contact && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Τελ. επαφή {fmtDate(extra.last_contact)}</span>}
           {(extra.notes_log || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{(extra.notes_log || []).length} σημειώσεις</span>}
           {(extra.files || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>{(extra.files || []).length} αρχεία</span>}
         </div>
@@ -1052,22 +1006,27 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   const GroupIcon = meta.GroupIcon || Users
   const digits = (p?: string | null) => { const d = (p || '').replace(/\D/g, ''); return d.length === 10 ? '30' + d : d }
   const site = extra.website ? (/^https?:\/\//.test(extra.website) ? extra.website : 'https://' + extra.website) : ''
-  const mapEmbed = extra.office_address ? 'https://maps.google.com/maps?q=' + encodeURIComponent(extra.office_address) + '&z=15&output=embed' : ''
+  const mapLink = extra.office_address ? 'https://maps.google.com/maps?q=' + encodeURIComponent(extra.office_address) : ''
   const copy = (t: string, label: string) => { try { navigator.clipboard.writeText(t); notify(label + ' αντιγράφηκε') } catch { /* ignore */ } }
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
   // Σύνδεση με δαπάνες: σύνολο + πλήθος πληρωμών προς αυτόν τον επαγγελματία.
-  const [exp, setExp] = useState<{ total: number; count: number }>({ total: 0, count: 0 })
+  const [exp, setExp] = useState<{ total: number; count: number; docs: number }>({ total: 0, count: 0, docs: 0 })
+  const afm = digitsOf(extra.afm)
   useEffect(() => {
     let live = true
-    // Ταιριάζει με contact_id (νέες δαπάνες) ή με το όνομα στην περιγραφή (παλιές).
+    // Ταιριάζει με contact_id (νέες δαπάνες) ή με το όνομα στην περιγραφή (παλιές),
+    // ΚΑΙ με το ΑΦΜ για τα σαρωμένα παραστατικά του ίδιου παρόχου.
     const nm = (contact.full_name || '').replace(/[,()*%\\]/g, ' ').trim()
     const filter = nm.length >= 3 ? `contact_id.eq.${contact.id},description.ilike.*${nm}*` : `contact_id.eq.${contact.id}`
-    supabase.from('expenses').select('amount').eq('property_id', propertyId).or(filter).then(({ data }) => {
+    Promise.all([
+      supabase.from('expenses').select('amount').eq('property_id', propertyId).or(filter),
+      fetchSupplierDocs(afm, propertyId),
+    ]).then(([{ data }, docs]) => {
       if (!live || !data) return
-      setExp({ total: data.reduce((s: number, e: { amount: number }) => s + (e.amount || 0), 0), count: data.length })
+      setExp({ total: data.reduce((s: number, e: { amount: number }) => s + (e.amount || 0), 0), count: data.length, docs: docs.length })
     })
     return () => { live = false }
-  }, [contact.id, contact.full_name, propertyId, refreshKey])
+  }, [contact.id, contact.full_name, propertyId, refreshKey, afm])
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey) }, [onClose])
 
 
@@ -1086,8 +1045,6 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{contact.full_name}</div>
               <div style={{ fontSize: 12.5, color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}><GroupIcon size={13} />{meta.label || contact.role}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                <StatusBadge status={extra.status || 'active'} />
-                {(extra.rating || 0) > 0 && <StarRating value={extra.rating || 0} />}
                 {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
               </div>
             </div>
@@ -1104,47 +1061,48 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {exp.count > 0 && (
+          {(exp.count > 0 || exp.docs > 0) && (
             <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
               <div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}{exp.docs > 0 ? ` · ${exp.docs} ${exp.docs === 1 ? 'παραστατικό' : 'παραστατικά'} με το ΑΦΜ του` : ''}</div>
               </div>
               <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>Πλήρες ιστορικό ›</span>
             </button>
           )}
 
-          {(contact.phone || extra.phone2 || contact.email || extra.office_address || extra.schedule) && (
+          {(contact.phone || extra.phone2 || contact.email || extra.office_address) && (
             <DossierSection title="Στοιχεία επικοινωνίας">
               {contact.phone && <DossierRow icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></DossierRow>}
               {extra.phone2 && <DossierRow icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></DossierRow>}
               {contact.email && <DossierRow icon={Mail} onCopy={() => copy(contact.email!, 'Το email')}>{contact.email}</DossierRow>}
               {extra.office_address && <DossierRow icon={MapPin}>{extra.office_address}</DossierRow>}
-              {extra.schedule && <DossierRow icon={Clock}>{extra.schedule}</DossierRow>}
             </DossierSection>
           )}
 
-          {mapEmbed && (
-            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              <iframe title="Χάρτης τοποθεσίας" src={mapEmbed} style={{ width: '100%', height: 170, border: 0, display: 'block' }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-            </div>
+          {/* Ο χάρτης ΔΕΝ φορτώνεται μόνος του. Το iframe έστελνε τη διεύθυνση
+              γραφείου τρίτου προσώπου στην Google με το που άνοιγε το ντοσιέ, χωρίς
+              ο χρήστης να ζητήσει χάρτη. Τώρα ανοίγει με ρητό κλικ, σε νέα καρτέλα. */}
+          {mapLink && (
+            <a href={mapLink} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '13px 16px', color: 'var(--text-secondary)', fontSize: 13, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <MapPin size={15} color="var(--accent)" style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0 }}>Άνοιγμα διεύθυνσης στον χάρτη</span>
+              <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>›</span>
+            </a>
           )}
 
-          {(extra.afm || extra.license_number || extra.iban || extra.iban2) && (
+          {(extra.afm || extra.iban) && (
             <DossierSection title="Επαγγελματικά και πληρωμές">
               {extra.afm && <DossierRow icon={FileText} onCopy={() => copy(extra.afm!, 'Το ΑΦΜ')}><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span> <span style={{ fontFamily: T.font.mono }}>{extra.afm}</span></DossierRow>}
-              {extra.license_number && <DossierRow icon={Shield}>{extra.license_number}</DossierRow>}
               {extra.iban && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</DossierRow>}
-              {extra.iban2 && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban2!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban2}</span></DossierRow>}
             </DossierSection>
           )}
 
-          {(extra.last_contact || extra.next_appointment || ((extra.reminder_days || 0) > 0 && extra.reminder_set)) && (
+          {extra.next_appointment && (
             <DossierSection title="Παρακολούθηση">
-              {extra.next_appointment && <DossierRow icon={CalendarPlus}><span style={{ color: overdue ? 'var(--negative)' : 'var(--text-secondary)' }}>Επόμενο ραντεβού: {fmtDate(extra.next_appointment)}{overdue ? ' (ληξιπρόθεσμο)' : ''}</span></DossierRow>}
-              {extra.last_contact && <DossierRow icon={History}>Τελευταία επαφή: {fmtDate(extra.last_contact)}</DossierRow>}
-              {(extra.reminder_days || 0) > 0 && extra.reminder_set && <DossierRow icon={Clock}>Υπενθύμιση: {fmtDate(extra.reminder_set)}</DossierRow>}
+              <DossierRow icon={CalendarPlus}><span style={{ color: overdue ? 'var(--negative)' : 'var(--text-secondary)' }}>Επόμενο ραντεβού: {fmtDate(extra.next_appointment)}{overdue ? ' (ληξιπρόθεσμο)' : ''}</span></DossierRow>
             </DossierSection>
           )}
 
@@ -1207,13 +1165,14 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)' }
   const extra = contact._extra || {}; const [hov, setHov] = useState(false)
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
-  const statusMeta = STATUS_OPTIONS.find(s => s.value === (extra.status || 'active')) || STATUS_OPTIONS[0]
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       onClick={bulkMode ? onSelect : undefined}
       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: selected ? 'var(--accent-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s', borderBottom: '1px solid var(--border-subtle)', cursor: bulkMode ? 'pointer' : 'default' }}>
       {bulkMode && <SelectBox checked={!!selected} onToggle={onSelect} size={18} />}
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : statusMeta.dot, flexShrink: 0 }} />
+      {/* Η κουκκίδα σημαίνει ΕΝΑ πράγμα: ληξιπρόθεσμο ραντεβού. Πριν έδειχνε
+          «κατάσταση σχέσης» — τέσσερα χρώματα για μια επιλογή χωρίς συνέπεια. */}
+      <div title={overdue ? 'Ληξιπρόθεσμο ραντεβού' : undefined} style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : 'var(--border-default)', flexShrink: 0 }} />
       <div onClick={() => onOpen && !bulkMode && onOpen()} style={{ width: 200, minWidth: 0, cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.full_name}</div>
         <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>{meta.label}{scopePortfolio && <span title="Όλο το χαρτοφυλάκιο" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent)' }}><Globe size={10} /></span>}</div>
@@ -1221,7 +1180,7 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
       <div style={{ width: 140, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone || '—'}</div>
       <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || '—'}</div>
       <div style={{ display: 'flex', gap: 4, maxWidth: 160, flexWrap: 'wrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}</div>
-      <StatusBadge status={extra.status || 'active'} />
+      <div style={{ width: 120, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.afm ? 'ΑΦΜ ' + extra.afm : ''}</div>
       <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : hov ? 1 : 0, pointerEvents: bulkMode ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}
         {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>WA</a>}
@@ -1272,8 +1231,6 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const cardRef = useRef<HTMLInputElement>(null)
   const [dup, setDup] = useState<Contact | null>(null)   // υποψήφιο διπλότυπο (ίδιο τηλέφωνο/ΑΦΜ)
   const [roleOther, setRoleOther] = useState('')   // ελεύθερο κείμενο όταν επιλεγεί «Άλλο»
-  const [importing, setImporting] = useState(false)
-  const importRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [quickExpense, setQuickExpense] = useState<Contact | null>(null)
   const [quickCalendar, setQuickCalendar] = useState<Contact | null>(null)
@@ -1333,66 +1290,15 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       notify(has(d.full_name) ? 'Έλεγξε τα στοιχεία και αποθήκευσε' : 'Συμπλήρωσε τα στοιχεία που λείπουν', { tone: 'info' })
     } catch { setScanning(false); notifyError('Παρουσιάστηκε σφάλμα στη σάρωση') }
   }
-  // ── Εισαγωγή από αρχείο (.vcf / .csv) ──
-  const importFromFile = async (file: File) => {
-    setImporting(true)
-    try {
-      const text = await file.text()
-      const rows: { name: string; phone?: string; email?: string; role?: string }[] = []
-      if (/\.vcf$/i.test(file.name) || /BEGIN:VCARD/i.test(text)) {
-        text.split(/END:VCARD/i).forEach(block => {
-          if (!/BEGIN:VCARD/i.test(block)) return
-          const fn = (block.match(/\nFN[^:\n]*:(.+)/i)?.[1] || '').trim()
-          const org = (block.match(/\nORG[^:\n]*:(.+)/i)?.[1] || '').split(';')[0].trim()
-          const tel = (block.match(/\nTEL[^:\n]*:(.+)/i)?.[1] || '').trim()
-          const em = (block.match(/\nEMAIL[^:\n]*:(.+)/i)?.[1] || '').trim()
-          const nm = fn || org
-          if (nm) rows.push({ name: nm, phone: tel, email: em, role: org })
-        })
-      } else {
-        const lines = text.split(/\r?\n/).filter(l => l.trim())
-        const start = /name|όνομα|ονομα/i.test(lines[0] || '') ? 1 : 0
-        for (let i = start; i < lines.length; i++) {
-          const cols = lines[i].split(/[,;]/).map(s => s.trim().replace(/^"|"$/g, ''))
-          if (cols[0]) rows.push({ name: cols[0], phone: cols[1], email: cols[2], role: cols[3] })
-        }
-      }
-      if (!rows.length) { setImporting(false); notify('Δεν βρέθηκαν επαφές στο αρχείο', { tone: 'warning' }); return }
-      const seen = new Set(contacts.map(c => onlyDigits(c.phone)).filter(p => p.length >= 8))
-      let added = 0
-      for (const r of rows) {
-        const ph = onlyDigits(r.phone)
-        if (ph && ph.length >= 8 && seen.has(ph)) continue
-        const role = (r.role && ROLE_META[r.role.toLowerCase()]) ? r.role.toLowerCase() : (inferRole([r.role, r.name].filter(Boolean).join(' ')) || 'other')
-        const { error: e } = await supabase.from('contacts').insert({ property_id: propertyId, user_id: userId, full_name: r.name.slice(0, 120), role, phone: r.phone?.trim() || null, email: r.email?.trim() || null, notes: serializeNotes({} as ContactExtra, '') })
-        if (!e) { added++; if (ph) seen.add(ph) }
-      }
-      setImporting(false); fetchContacts()
-      if (added) notifyOk(`Εισήχθησαν ${added} επαφές`); else notify('Καμία νέα επαφή (πιθανά διπλότυπα)', { tone: 'warning' })
-    } catch { setImporting(false); notifyError('Σφάλμα εισαγωγής αρχείου') }
-  }
-  // ── Επιλογή από τις επαφές του τηλεφώνου (Contacts Picker API, mobile) ──
-  const supportsPicker = typeof navigator !== 'undefined' && !!(navigator as unknown as { contacts?: { select?: unknown } }).contacts?.select
-  const pickFromPhone = async () => {
-    const api = (navigator as unknown as { contacts?: { select?: (p: string[], o: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[]; email?: string[] }>> } }).contacts
-    if (!api?.select) { notify('Δεν υποστηρίζεται σε αυτή τη συσκευή', { tone: 'warning' }); return }
-    try {
-      const picked = await api.select(['name', 'tel', 'email'], { multiple: true })
-      if (!picked?.length) return
-      const seen = new Set(contacts.map(c => onlyDigits(c.phone)).filter(p => p.length >= 8))
-      let added = 0
-      for (const p of picked) {
-        const name = (p.name?.[0] || '').trim(); const phone = (p.tel?.[0] || '').trim(); const email = (p.email?.[0] || '').trim()
-        if (!name) continue
-        const ph = onlyDigits(phone)
-        if (ph && ph.length >= 8 && seen.has(ph)) continue
-        const { error: e } = await supabase.from('contacts').insert({ property_id: propertyId, user_id: userId, full_name: name.slice(0, 120), role: 'other', phone: phone || null, email: email || null, notes: serializeNotes({} as ContactExtra, '') })
-        if (!e) { added++; if (ph) seen.add(ph) }
-      }
-      fetchContacts()
-      if (added) notifyOk(`Προστέθηκαν ${added} επαφές`); else notify('Καμία νέα επαφή', { tone: 'warning' })
-    } catch { /* ο χρήστης ακύρωσε */ }
-  }
+  // ΕΔΩ ΗΤΑΝ ΔΥΟ ΔΙΑΔΡΟΜΕΣ ΕΙΣΑΓΩΓΗΣ (~60 γραμμές): αρχείο .vcf/.csv και Contacts
+  // Picker του κινητού. Έφυγαν και οι δύο. Η πρώτη έσπαγε σε κάθε πραγματικό CSV
+  // (έκοβε σε «,» ή «;» χωρίς να σέβεται εισαγωγικά, οπότε ένα «Παπαδόπουλος, ΑΕ»
+  // γινόταν δύο στήλες)· η δεύτερη δουλεύει σε ελάχιστα προγράμματα περιήγησης και
+  // φέρνει ονόματα χωρίς ειδικότητα, χωρίς ΑΦΜ, χωρίς IBAN — δηλαδή επαφές που
+  // πρέπει να ξανασυμπληρωθούν με το χέρι. Και τα δύο τα καλύπτει η ΦΩΤΟΓΡΑΦΙΑ της
+  // κάρτας ή του τιμολογίου, που διαβάζει όνομα, ειδικότητα, τηλέφωνο, ΑΦΜ και IBAN
+  // με μία κίνηση.
+
   // ── Εξαγωγή vCard ──
   const vcardFor = (c: Contact) => ['BEGIN:VCARD', 'VERSION:3.0', `FN:${c.full_name}`, c._extra?.specialty ? `TITLE:${c._extra.specialty}` : '', c.phone ? `TEL:${c.phone}` : '', c._extra?.phone2 ? `TEL:${c._extra.phone2}` : '', c.email ? `EMAIL:${c.email}` : '', c._extra?.website ? `URL:${c._extra.website}` : '', c._extra?.office_address ? `ADR:;;${c._extra.office_address};;;;` : '', 'END:VCARD'].filter(Boolean).join('\n')
   const downloadVcf = (list: Contact[], name: string) => {
@@ -1400,7 +1306,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url)
   }
 
-  const openEdit = (c: Contact) => { const known = !!ROLE_META[c.role]; setRoleOther(known ? '' : (c.role || '')); setEditContact(c); setForm({ full_name: c.full_name, role: known ? c.role : 'other', phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.rating || c._extra?.next_appointment)); setShowModal(true) }
+  const openEdit = (c: Contact) => { const known = !!ROLE_META[c.role]; setRoleOther(known ? '' : (c.role || '')); setEditContact(c); setForm({ full_name: c.full_name, role: known ? c.role : 'other', phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.iban || c._extra?.next_appointment)); setShowModal(true) }
   const closeModal = () => { setShowModal(false); setEditContact(null); setError(null) }
   const setExtra = (key: keyof ContactExtra, value: unknown) => setForm(f => ({ ...f, extra: { ...f.extra, [key]: value } }))
 
@@ -1425,7 +1331,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     try {
       const src = `contact:${contactId}:reminder`
       await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', src)
-      const date = form.extra.next_appointment || (((form.extra.reminder_days || 0) > 0) ? form.extra.reminder_set : '')
+      // ΜΟΝΟ το ραντεβού. Η «Υπενθύμιση επικοινωνίας» υποσχόταν ρυθμό (κάθε 30
+      // ημέρες) και έγραφε μία παγωμένη ημερομηνία, υπολογισμένη μία φορά στο κλικ.
+      const date = form.extra.next_appointment || ''
       if (date) await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: `Επικοινωνία: ${name}`, category: 'reminder', event_date: date, amount: null, priority: 'medium', status: 'pending', recurring: false, source: src, notes: form.extra.specialty || null })
     } catch { /* best-effort */ }
   }
@@ -1508,7 +1416,6 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       return matchGroup && matchTag && matchScope && (!q || c.full_name.toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q) || (ex.specialty || '').toLowerCase().includes(q) || (ex.afm || '').includes(q) || (ex.iban || '').includes(q) || (ex.tags || []).some((t: string) => t.toLowerCase().includes(q)))
     })
     if (sortMode === 'alpha') list = [...list].sort((a, b) => a.full_name.localeCompare(b.full_name, 'el'))
-    if (sortMode === 'rating') list = [...list].sort((a, b) => (b._extra?.rating || 0) - (a._extra?.rating || 0))
     return [...list.filter(c => c._extra?.preferred), ...list.filter(c => !c._extra?.preferred)]
   }, [contacts, search, filterGroup, filterTag, filterScope, sortMode, isPro])
 
@@ -1517,17 +1424,25 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const preferred = contacts.filter(c => c._extra?.preferred)
   const overdueContacts = contacts.filter(c => c._extra?.next_appointment && isOverdue(c._extra.next_appointment))
   const allTags = [...new Set(contacts.flatMap(c => c._extra?.tags || []))]
-  const tenantsCount = contacts.filter(c => ROLE_META[c.role]?.groupId === 'tenants').length
-  const technicalCount = contacts.filter(c => ROLE_META[c.role]?.groupId === 'technical').length
-  const providersCount = contacts.filter(c => ['electricity', 'telecom'].includes(ROLE_META[c.role]?.groupId || '')).length
+  // ΠΕΝΤΕ ΠΛΗΘΗ ΕΓΙΝΑΝ ΤΡΙΑ, ΚΑΙ ΤΟ ΣΗΜΑ ΑΝΕΒΗΚΕ ΠΑΝΩ. Πριν, η μόνη γραμμή που
+  // ζητούσε ενέργεια (ληγμένα ραντεβού) ήταν ΚΑΤΩ από πέντε μετρητές που δεν
+  // ζητούν τίποτα. Ένα πλήθος δεν είναι κρίση: «4 τεχνικοί» δεν σε βάζει να κάνεις
+  // κάτι. Το «λείπει ΑΦΜ» σε βάζει, γιατί χωρίς αυτό δεν δένουν τα παραστατικά.
+  const missingAfm = contacts.filter(c => digitsOf(c._extra?.afm).length !== 9).length
   const kpiItems: KPIItem[] = [
+    { label: 'Ληγμένα ραντεβού', value: fn(overdueContacts.length), tone: overdueContacts.length > 0 ? 'negative' : 'neutral' },
+    { label: 'Χωρίς ΑΦΜ', value: fn(missingAfm), tone: missingAfm > 0 ? 'warning' : 'neutral' },
     { label: 'Σύνολο Επαφών', value: fn(contacts.length) },
-    { label: 'Ενοικιαστές', value: fn(tenantsCount), tone: 'neutral' },
-    { label: 'Τεχνικοί & Μάστορες', value: fn(technicalCount), tone: 'neutral' },
-    { label: 'Πάροχοι Ρεύματος & Internet', value: fn(providersCount) },
-    { label: 'Προτιμώμενες', value: fn(preferred.length), tone: 'neutral' },
   ]
-  const initials = form.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
+  // Ποια πεδία βλέπει ΑΥΤΟΣ ο χρήστης. Η «εμβέλεια» π.χ. δεν έχει νόημα με ένα
+  // ακίνητο, οπότε δεν υπάρχει καθόλου — δεν είναι ρύθμιση, είναι θόρυβος.
+  const contactCtx: FieldContext = {
+    status: 'rent_long', business: isPro, doubleEntry: false,
+    propertyCount: Math.max(properties.length, 1),
+  }
+  const contactFields = formFields(CONTACT_FIELDS, contactCtx)
+  const contactById = new Map<string, FieldDecision>([...contactFields.core, ...contactFields.more].map(d => [d.id, d]))
+  const cf = (id: string) => contactById.get(id)
   const detail = detailId ? (contacts.find(c => c.id === detailId) || null) : null   // ζωντανό (ανανεώνεται μετά από edit/refresh)
 
   return (
@@ -1535,7 +1450,6 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
 
       <input ref={cardRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runCardScan(f); e.currentTarget.value = '' }} />
-      <input ref={importRef} type="file" accept=".vcf,.csv,text/vcard,text/csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) importFromFile(f); e.currentTarget.value = '' }} />
       {scanning && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '26px 32px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
@@ -1546,15 +1460,17 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
+      {/* ΤΑ ΚΟΥΜΠΙΑ ΤΗΣ ΚΕΦΑΛΙΔΑΣ ΑΠΟΔΙΔΟΝΤΑΙ ΠΑΝΤΑ. Πριν, όλα μαζί — και η σάρωση —
+          εμφανίζονταν ΜΟΝΟ αν υπήρχε ήδη επαφή: ο νέος χρήστης δεν έβλεπε ποτέ τη
+          σάρωση και ο μόνος δρόμος για την πρώτη του επαφή ήταν η φόρμα. Το κύριο
+          κουμπί είναι η ΦΩΤΟΓΡΑΦΙΑ, όχι η χειροκίνητη καταχώριση. */}
       {!embedded && <PageTitle
         title="Επαφές"
         sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
-        right={contacts.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Btn variant="secondary" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>
-          <Btn variant="secondary" onClick={() => importRef.current?.click()}>{importing ? 'Εισαγωγή…' : 'Εισαγωγή'}</Btn>
-          {supportsPicker && <Btn variant="secondary" onClick={pickFromPhone}>Από τηλέφωνο</Btn>}
-          <Btn variant="secondary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωσε κάρτα'}</Btn>
-          <details className="po-menu" style={{ position: 'relative' }}>
+        right={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {contacts.length > 0 && <Btn variant="secondary" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>}
+          <Btn variant="secondary" onClick={openAdd}>Νέα επαφή</Btn>
+          {contacts.length > 0 && <details className="po-menu" style={{ position: 'relative' }}>
             <summary style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
               Εξαγωγή
               <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" /></svg>
@@ -1572,13 +1488,13 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                 </button>
               ))}
             </div>
-          </details>
-          <Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>
-        </div> : undefined}
+          </details>}
+          <Btn variant="primary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Φωτογράφισε κάρτα ή τιμολόγιο'}</Btn>
+        </div>}
       />}
 
       {/* columns={7} → μικρότερο min-width ώστε και τα 5 KPI να μπαίνουν σε ΜΙΑ ζυγισμένη σειρά (και να «σπάνε» ομαλά σε κινητό) */}
-      {contacts.length > 0 && <KPIGrid items={kpiItems} columns={7} />}
+      {contacts.length > 0 && <KPIGrid items={kpiItems} columns={3} />}
 
       {overdueContacts.length > 0 && (
         <InfoBanner tone="warning">
@@ -1656,7 +1572,6 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         <select value={sortMode} onChange={e => setSortMode(e.target.value as SortMode)} style={{ ...iStyle, minWidth: 160, width: 'auto', cursor: 'pointer' }}>
           <option value="recent">Πιο πρόσφατες</option>
           <option value="alpha">Αλφαβητικά</option>
-          <option value="rating">Αξιολόγηση</option>
         </select>
         <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', background: 'var(--bg-elevated)', padding: 3, gap: 2 }}>
           {(['cards', 'compact'] as ViewMode[]).map(v => (
@@ -1719,12 +1634,10 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         <EmptyState
           icon={<Users size={20} />}
           title="Δεν υπάρχουν επαφές"
-          hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου."
+          hint="Φωτογράφισε την επαγγελματική κάρτα ή ένα τιμολόγιό του: διαβάζονται όνομα, ειδικότητα, τηλέφωνο, ΑΦΜ και IBAN, και τα ελέγχεις πριν αποθηκευτούν."
           action={<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
-            <ContactActionTile Icon={UserPlus} label="Νέα επαφή" sub="Χειροκίνητα" onClick={openAdd} primary />
-            <ContactActionTile Icon={Camera} label="Σάρωσε κάρτα" sub={scanning ? 'Ανάλυση…' : 'Με τεχνητή νοημοσύνη'} onClick={() => cardRef.current?.click()} />
-            <ContactActionTile Icon={Upload} label="Εισαγωγή" sub={importing ? 'Εισαγωγή…' : 'vCard ή CSV'} onClick={() => importRef.current?.click()} />
-            {supportsPicker && <ContactActionTile Icon={Users} label="Από τηλέφωνο" sub="Επιλογή επαφών" onClick={pickFromPhone} />}
+            <ContactActionTile Icon={Camera} label="Φωτογράφισε κάρτα" sub={scanning ? 'Ανάλυση…' : 'ή τιμολόγιο του συνεργάτη'} onClick={() => cardRef.current?.click()} primary />
+            <ContactActionTile Icon={UserPlus} label="Γράψ' την με το χέρι" sub="Τέσσερα πεδία" onClick={openAdd} />
           </div>}
         />
       ) : processed.length === 0 ? (
@@ -1777,57 +1690,30 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ padding: '22px 28px', overflowY: 'auto', flex: 1 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-                {/* ── Στοιχεία ── */}
+                {/* ── Στοιχεία ──
+                    Ποια πεδία υπάρχουν εδώ το ορίζει το CONTACT_FIELDS, και κάθε ένα
+                    δείχνει ΓΡΑΜΜΕΝΟ το γιατί το ζητάμε. Η φωτογραφία επαφής έφυγε:
+                    ένα πορτρέτο του υδραυλικού δεν κάνει τίποτα, και ήταν το πρώτο
+                    πράγμα που έβλεπε ο χρήστης ανοίγοντας τη φόρμα. */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 2 }}>
-                    <AvatarUpload avatarUrl={form.extra.avatar_url || ''} initials={initials} onChange={v => setExtra('avatar_url', v)} />
-                  </div>
-                  <div><FL>Ονοματεπώνυμο ή επωνυμία *</FL><Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος ή ΔΕΗ Α.Ε." /></div>
-                  <div>
-                    <FL>Κατηγορία ή ειδικότητα</FL>
+                  <CField d={cf('contact.name')} required>
+                    <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος ή ΔΕΗ Α.Ε." />
+                  </CField>
+                  <CField d={cf('contact.role')}>
                     <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
                       {ROLE_SELECT_OPTIONS.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
                     </select>
                     {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Γράψε ελεύθερα κατηγορία ή όνομα εταιρείας" /></div>}
-                  </div>
-                  {isPro && (
-                    <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                      <FL>Εμβέλεια επαφής</FL>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {([{ v: 'property' as const, label: 'Συγκεκριμένο ακίνητο', Icon: Building2 }, { v: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe }]).map(o => {
-                          const active = (form.extra.scope || 'property') === o.v; const Ico = o.Icon; return (
-                            <button key={o.v} type="button" onClick={() => setExtra('scope', o.v)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent-border)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
-                              <Ico size={14} />{o.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                      {(form.extra.scope || 'property') !== 'portfolio' && properties.length > 0 && (
-                        <div style={{ marginTop: 12 }}>
-                          <select value={form.extra.scope_property_id || propertyId} onChange={e => setExtra('scope_property_id', e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>
-                            {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                        </div>
-                      )}
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
-                        {(form.extra.scope || 'property') === 'portfolio' ? 'Κοινή επαφή, διαθέσιμη σε όλο το χαρτοφυλάκιο.' : 'Η επαφή αφορά το επιλεγμένο ακίνητο.'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ── Επικοινωνία ── */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <SecHead>Επικοινωνία</SecHead>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                    <div><FL>Τηλέφωνο</FL><Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="2101234567" /></div>
-                    <div><FL>Κινητό</FL><Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="6941234567" /></div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
-                  </div>
-                  <div><FL>Email</FL><Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" /></div>
+                  </CField>
+                  <CField d={cf('contact.phone')}>
+                    <Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="2101234567" />
+                  </CField>
+                  {/* ΤΟ ΑΦΜ ΕΙΝΑΙ CORE. Είναι το μόνο πεδίο που συνδέει την επαφή με τα
+                      παραστατικά της: χωρίς αυτό το ταίριασμα γίνεται με το όνομα και
+                      αστοχεί σε κάθε «Συντήρηση — Παπαδόπουλος». */}
+                  <CField d={cf('contact.afm')}>
+                    <Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v.replace(/\D/g, '').slice(0, 9))} placeholder="123456789" />
+                  </CField>
                 </div>
 
                 {/* ── Πτυσσόμενες λεπτομέρειες ── */}
@@ -1838,73 +1724,83 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
                 {showMore && (
                   <>
-                    {/* ── Επαγγελματικά & πληρωμές ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <SecHead>Επαγγελματικά και πληρωμές</SecHead>
-                      <div><FL>Υπο-ειδικότητα</FL><Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: ειδικός σε κεντρική θέρμανση" /></div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                        <div><FL><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span></FL><Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v)} placeholder="123456789" /></div>
-                        <div><FL>Αριθμός μητρώου ή άδειας</FL><Inp value={form.extra.license_number || ''} onChange={v => setExtra('license_number', v)} placeholder="Παράδειγμα: άδεια μεσίτη 123" /></div>
-                      </div>
-                      <div><FL><span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)">IBAN</span></FL><Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR16 0110 1250 0000 0001 2300 695" /></div>
-                      <div><FL>Δεύτερος IBAN</FL><Inp value={form.extra.iban2 || ''} onChange={v => setExtra('iban2', v)} placeholder="Αν υπάρχει" /></div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                        <div><div title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>IRIS</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>Δέχεται άμεσες πληρωμές μέσω IRIS</div></div>
-                        <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} />
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                        <div><FL>Ιστοσελίδα</FL><Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" /></div>
-                        <div><FL>Ωράριο</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="Δευτέρα-Παρασκευή 09:00-17:00" /></div>
-                      </div>
-                      <div><FL>Διεύθυνση γραφείου</FL><AddressAutocomplete value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Πληκτρολόγησε και διάλεξε από τις προτάσεις…" /></div>
+                      <SecHead>Επικοινωνία και πληρωμές</SecHead>
+                      <CField d={cf('contact.email')}>
+                        <Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" />
+                      </CField>
+                      <CField d={cf('contact.mobile')}>
+                        <Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="6941234567" />
+                      </CField>
+                      <CField d={cf('contact.messaging')}>
+                        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
+                        </div>
+                      </CField>
+                      <CField d={cf('contact.iban')}>
+                        <Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR16 0110 1250 0000 0001 2300 695" />
+                      </CField>
+                      <CField d={cf('contact.iris')}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                          <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Δέχεται πληρωμή με IRIS</span>
+                          <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} />
+                        </div>
+                      </CField>
                     </div>
 
-                    {/* ── Σχέση & αξιολόγηση ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <SecHead>Σχέση και αξιολόγηση</SecHead>
+                      <SecHead>Στοιχεία συνεργάτη</SecHead>
+                      <CField d={cf('contact.specialty')}>
+                        <Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: ειδικός σε κεντρική θέρμανση" />
+                      </CField>
+                      <CField d={cf('contact.website')}>
+                        <Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" />
+                      </CField>
+                      {/* ΑΠΛΟ ΠΕΔΙΟ ΚΕΙΜΕΝΟΥ. Ήταν autocomplete που έστελνε κάθε
+                          πληκτρολόγηση σε τρίτο εξυπηρετητή — διεύθυνση γραφείου
+                          τρίτου προσώπου, εκτός της υποδομής μας. */}
+                      <CField d={cf('contact.address')}>
+                        <Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Οδός, αριθμός, πόλη" />
+                      </CField>
+                      <CField d={cf('contact.next_appointment')}>
+                        <DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} />
+                      </CField>
+                      <CField d={cf('contact.scope')}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {([{ v: 'property' as const, label: 'Συγκεκριμένο ακίνητο', Icon: Building2 }, { v: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe }]).map(o => {
+                            const active = (form.extra.scope || 'property') === o.v; const Ico = o.Icon; return (
+                              <button key={o.v} type="button" onClick={() => setExtra('scope', o.v)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent-border)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
+                                <Ico size={14} />{o.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {(form.extra.scope || 'property') !== 'portfolio' && properties.length > 0 && (
+                          <div style={{ marginTop: 12 }}>
+                            <select value={form.extra.scope_property_id || propertyId} onChange={e => setExtra('scope_property_id', e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>
+                              {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                          </div>
+                        )}
+                      </CField>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                        <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εμφάνιση στη γρήγορη πρόσβαση</div></div>
+                        <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ανεβαίνει στη γρήγορη πρόσβαση, για να τη βρίσκεις αμέσως</div></div>
                         <Tog value={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} />
                       </div>
-                      <div><FL>Αξιολόγηση</FL><StarRating value={form.extra.rating || 0} onChange={v => setExtra('rating', v)} /></div>
-                      <div>
-                        <FL>Κατάσταση σχέσης</FL>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {STATUS_OPTIONS.map(s => { const active = (form.extra.status || 'active') === s.value; return (
-                            <button key={s.value} type="button" onClick={() => setExtra('status', s.value)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? s.color : 'var(--border-subtle)'), background: active ? s.bg : 'transparent', color: active ? s.color : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 700 : 400, transition: 'all 0.15s' }}>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />{s.label}
-                            </button>
-                          )})}
-                        </div>
-                      </div>
-                      <div><FL>Ετικέτες</FL><TagEditor tags={form.extra.tags || []} onChange={v => setExtra('tags', v)} /></div>
                     </div>
 
-                    {/* ── Παρακολούθηση ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <SecHead>Παρακολούθηση</SecHead>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                        <div><FL>Τελευταία επαφή</FL><DatePicker value={form.extra.last_contact || ''} onChange={v => setExtra('last_contact', v)} /></div>
-                        <div><FL>Επόμενο ραντεβού</FL><DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} /></div>
-                      </div>
-                      <div>
-                        <FL>Υπενθύμιση επικοινωνίας</FL>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                          {([0, 7, 14, 30, 60, 90] as const).map(d => { const active = (form.extra.reminder_days || 0) === d; return (
-                            <button key={d} type="button" onClick={() => { setExtra('reminder_days', d); setExtra('reminder_set', d > 0 ? new Date(Date.now() + d * 86400000).toISOString().split('T')[0] : '') }} style={{ padding: '6px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: active ? 700 : 400 }}>
-                              {REMINDER_LABELS[d]}
-                            </button>
-                          )})}
-                        </div>
-                        {(form.extra.reminder_days || 0) > 0 && form.extra.reminder_set && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Υπενθύμιση: <strong style={{ color: 'var(--accent)' }}>{fmtDate(form.extra.reminder_set)}</strong></div>}
-                      </div>
-                    </div>
-
-                    {/* ── Σημειώσεις & αρχεία ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       <SecHead>Σημειώσεις και αρχεία</SecHead>
-                      <div><FL>Σημειώσεις</FL><Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ιστορικό, τιμές, συμφωνίες…" rows={4} /></div>
-                      <div><FL>Αρχεία</FL><FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} /></div>
+                      <CField d={cf('contact.tags')}>
+                        <TagEditor tags={form.extra.tags || []} onChange={v => setExtra('tags', v)} />
+                      </CField>
+                      <CField d={cf('contact.notes')}>
+                        <Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ιστορικό, τιμές, συμφωνίες…" rows={4} />
+                      </CField>
+                      <CField d={cf('contact.files')}>
+                        <FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} />
+                      </CField>
                     </div>
                   </>
                 )}

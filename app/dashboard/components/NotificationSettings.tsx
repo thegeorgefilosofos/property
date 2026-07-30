@@ -16,6 +16,8 @@ interface NotifPrefs {
   dunning_enabled: boolean
   dunning_every_days: number
   dunning_max: number
+  /** Αλλαγές νομοθεσίας που αφορούν τα ακίνητα του χρήστη. */
+  legal_updates: boolean
 }
 
 const DEFAULT: NotifPrefs = {
@@ -29,6 +31,12 @@ const DEFAULT: NotifPrefs = {
   dunning_enabled: true,
   dunning_every_days: 7,
   dunning_max: 3,
+  // ΠΡΟΕΠΙΛΟΓΗ ΑΝΑΜΜΕΝΗ, ΚΑΙ ΕΙΝΑΙ ΑΠΟΦΑΣΗ. Οι υπόλοιποι διακόπτες αφορούν
+  // υπενθυμίσεις για πράγματα που ο χρήστης έχει ήδη καταχωρίσει. Αυτός αφορά
+  // αλλαγές που συμβαίνουν ΧΩΡΙΣ να το ξέρει και του κοστίζουν: από 1/1/2026 τα
+  // ενοίκια κατοικίας πρέπει να εισπράττονται μέσω τραπέζης, αλλιώς χάνεται η
+  // τεκμαρτή έκπτωση 5%. Κανείς δεν ψάχνει ρύθμιση για κάτι που αγνοεί ότι ισχύει.
+  legal_updates: true,
 }
 
 // Γραμμή διακόπτη με τίτλο/περιγραφή, με το κοινό MD3 Toggle (ίδιο με όλες τις Ρυθμίσεις).
@@ -74,10 +82,17 @@ export default function NotificationSettings({ userId }: { userId: string }) {
 
   async function save() {
     setSaving(true); setSaveErr(false); setSaved(false)
-    const { error } = await supabase.from('notification_preferences').upsert(
-      { ...prefs, user_id: userId, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    )
+    const row = { ...prefs, user_id: userId, updated_at: new Date().toISOString() }
+    let { error } = await supabase.from('notification_preferences').upsert(row, { onConflict: 'user_id' })
+    // ΑΜΥΝΤΙΚΗ ΓΡΑΦΗ: η στήλη `legal_updates` προστίθεται με migration
+    // (supabase/migrations/20260730092000_checklist_actuals.sql). Αν δεν έχει
+    // τρέξει ακόμη στη βάση, ξαναδοκιμάζουμε ΧΩΡΙΣ αυτήν, ώστε ο χρήστης να μη
+    // χάνει και τις επτά υπόλοιπες ρυθμίσεις του εξαιτίας μιας νέας.
+    if (error && /legal_updates/i.test(error.message)) {
+      const { legal_updates: _omit, ...rest } = row
+      void _omit
+      ;({ error } = await supabase.from('notification_preferences').upsert(rest, { onConflict: 'user_id' }))
+    }
     setSaving(false)
     if (error) { setSaveErr(true); return }
     setSaved(true)
@@ -183,6 +198,20 @@ export default function NotificationSettings({ userId }: { userId: string }) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── Αλλαγές νομοθεσίας ── */}
+        {/* Η ΜΗΧΑΝΗ ΥΠΗΡΧΕ ΚΑΙ ΗΤΑΝ ΑΠΟΣΥΝΔΕΔΕΜΕΝΗ. Το lib/accounting/updates2026.ts
+            κρατά τους ισχύοντες κανόνες με νομική βάση, ισχύ και επίσημη πηγή, και
+            κανένας διακόπτης δεν τους αφορούσε: επτά διακόπτες για προθεσμίες
+            ημερολογίου, κανένας για το ότι άλλαξε ο νόμος. */}
+        <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+          <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+            Νομοθεσία
+          </p>
+          <NotifRow val={prefs.legal_updates} onChange={v => setPrefs(p => ({ ...p, legal_updates: v }))}
+            label="Αλλαγές νομοθεσίας που αφορούν τα ακίνητά μου"
+            desc="Μόνο όσες ζητούν κίνηση από εσένα, με τη νομική βάση και σύνδεσμο στην επίσημη πηγή. Εμφανίζονται και ως εκκρεμότητες στο ακίνητο που αφορούν."/>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>

@@ -55,6 +55,11 @@ ok(has(base({ bills: [{ type: 'electricity', amount: 2000, paid: true, due_date:
 
 // 12. Δυνατή απόδοση → positive
 ok(get(base({ netYield: 6 }), 'yield-strong')?.kind === 'positive', 'high yield = positive');
+// 12β. Κανένας ισχυρισμός αγοράς χωρίς πηγή: ούτε «μέσος όρος αγοράς», ούτε
+// «τυπική απόδοση χρηματιστηρίου ~7%». Η σύγκριση ζει στις Αποδόσεις, με πηγές.
+{ const all = computeInsights(base({ netYield: 6 })).concat(computeInsights(base({ netYield: 2 })));
+  ok(all.every(i => !/μέσο όρο της αγοράς|χρηματιστηρίου/.test(i.detail)), 'no unsourced market claims');
+  ok(get(base({ netYield: 6 }), 'yield-strong')?.action?.tab === 'roi', 'strong yield points to sourced comparison'); }
 // 13. Χαμηλή απόδοση → opportunity
 ok(get(base({ netYield: 2 }), 'yield-low')?.kind === 'opportunity', 'low yield = opportunity');
 

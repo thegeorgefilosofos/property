@@ -1,7 +1,8 @@
 // Τεστ για lib/inventory/depreciation.ts — τρέξε με: npx tsx lib/inventory/depreciation.test.ts
 import {
   usefulLifeYears, depreciate, replacementSuggestion, portfolioSummary,
-  yearsSince, daysUntil, DEFAULT_USEFUL_LIFE, type DepreciableItem,
+  yearsSince, daysUntil, DEFAULT_USEFUL_LIFE, NOT_TAX_DEPRECIATION_NOTE,
+  type DepreciableItem,
 } from './depreciation'
 
 let passed = 0, failed = 0
@@ -43,6 +44,9 @@ near('half years left ~3', half.yearsRemaining, 3, 1)
 const old = depreciate({ category: 'Ηλεκτρονικά', purchase_value: 800, purchase_date: yearsAgo(10) }, NOW)
 ok('old bookValue 0', old.bookValue === 0)
 ok('old pct clamped 100', old.depreciatedPct === 100)
+ok('old remainingPct 0', old.remainingPct === 0)
+ok('remainingPct = 100 - depreciatedPct', half.remainingPct === 100 - half.depreciatedPct)
+ok('χωρίς ημ/νία: υπολειπόμενη 100%', noDate.remainingPct === 100)
 ok('old yearsRemaining 0', old.yearsRemaining === 0)
 
 // ── replacement suggestion ──
@@ -51,7 +55,13 @@ ok('new item not suggested', rNew.suggested === false && rNew.severity === 'none
 
 const rDep = replacementSuggestion({ category: 'Ηλεκτρονικά', purchase_value: 500, purchase_date: yearsAgo(10), condition: 'Καλή' }, NOW)
 ok('fully depreciated → due', rDep.suggested === true && rDep.severity === 'due')
-ok('fully depreciated reason', rDep.reasons.some(r => r.includes('απόσβεση')))
+ok('end-of-life reason, χωρίς τη λέξη «απόσβεση»', rDep.reasons.some(r => r.includes('εκτιμώμενης ζωής')))
+// Η λέξη «απόσβεση» δεν επιτρέπεται σε κανένα κείμενο που φτάνει στον χρήστη:
+// ο επαγγελματίας έχει ΝΟΜΙΜΟΥΣ συντελεστές (ΚΦΕ άρ. 24) που δεν είναι αυτοί.
+ok('κανένας λόγος δεν λέει «απόσβεση»', [rDep, rBadPreview(), rSoftPreview()].every(r => r.reasons.every(x => !/απόσβεσ/i.test(x))))
+function rBadPreview() { return replacementSuggestion({ category: 'Έπιπλα', purchase_value: 1, purchase_date: yearsAgo(1), condition: 'Κακή' }, NOW) }
+function rSoftPreview() { return replacementSuggestion({ category: 'Ηλεκτρονικά', purchase_value: 1, purchase_date: yearsAgo(4), condition: 'Καλή' }, NOW) }
+ok('NOT_TAX note αναφέρει τον ΚΦΕ', /ΚΦΕ/.test(NOT_TAX_DEPRECIATION_NOTE) && /άρθρο 24/.test(NOT_TAX_DEPRECIATION_NOTE))
 
 const rBad = replacementSuggestion({ category: 'Έπιπλα', purchase_value: 500, purchase_date: yearsAgo(1), condition: 'Εκτός Λειτουργίας' }, NOW)
 ok('broken condition → due even if new', rBad.suggested === true)
