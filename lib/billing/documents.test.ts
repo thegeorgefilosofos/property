@@ -2,8 +2,11 @@
 // Τρέξε με: npx tsx lib/billing/documents.test.ts
 import {
   classifyDocType, validateDoc, planDocSave, docSummaryLine,
-  DOC_TYPES, DOC_TYPE_LABELS, type ScannedDoc, type DocType,
+  DOC_TYPES, DOC_TYPE_LABELS, DOC_FIELD_LABELS, ARCHIVE_CATEGORIES,
+  archiveCategoryFor, resolveBillCategory, normalizeScannedDoc,
+  type ScannedDoc, type DocType,
 } from './documents';
+import { matchPaymentToBills } from './parse';
 
 let passed = 0, failed = 0;
 const fails: string[] = [];
@@ -196,6 +199,146 @@ const strong: Record<DocType, Partial<ScannedDoc>> = {
 (Object.keys(strong) as DocType[]).forEach(t => {
   eq(`round-trip ${t}`, classifyDocType(doc({ doc_type: 'other', ...strong[t] })), t);
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΑ ΠΕΝΤΕ ΠΕΔΙΑ ΣΤΟ ΠΑΡΑΣΤΑΤΙΚΟ + ΕΝΑ ΣΗΜΕΙΟ ΓΙΑ ΤΟΝ ΦΑΚΕΛΟ
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Ένα σημείο αλήθειας για τον φάκελο του Αρχείου ─────────────────────────
+eq('φάκελος: λογαριασμός ρεύματος', archiveCategoryFor(doc({ doc_type: 'bill', category: 'electricity' })), 'Λογαριασμός Ρεύματος');
+eq('φάκελος: απόδειξη ρεύματος (ίδιο ράφι)', archiveCategoryFor(doc({ doc_type: 'payment', category: 'electricity' })), 'Λογαριασμός Ρεύματος');
+eq('φάκελος: νερό από ΟΝΟΜΑ παρόχου χωρίς κατηγορία', archiveCategoryFor(doc({ doc_type: 'bill', provider: 'ΕΥΔΑΠ' })), 'Λογαριασμός Νερού');
+eq('φάκελος: ρεύμα από ΟΝΟΜΑ παρόχου (ΔΕΗ)', archiveCategoryFor(doc({ doc_type: 'bill', provider: 'ΔΕΗ Α.Ε.' })), 'Λογαριασμός Ρεύματος');
+eq('φάκελος: αέριο', archiveCategoryFor(doc({ doc_type: 'bill', category: 'gas' })), 'Λογαριασμός Φυσικού Αερίου');
+eq('φάκελος: άγνωστος πάροχος → Άλλο Έγγραφο', archiveCategoryFor(doc({ doc_type: 'bill', provider: 'Κάτι Άγνωστο' })), 'Άλλο Έγγραφο');
+eq('φάκελος: μισθωτήριο', archiveCategoryFor(doc({ doc_type: 'lease' })), 'Μισθωτήριο / Συμβόλαιο');
+// Κάθε ράφι που δίνει η συνάρτηση ΠΡΕΠΕΙ να υπάρχει στην ταξινομία του Αρχείου.
+(['bill', 'payment', 'lease', 'deed', 'insurance', 'tax', 'government', 'other'] as DocType[]).forEach(t => {
+  check(`ταξινομία: το ράφι του ${t} υπάρχει`, (ARCHIVE_CATEGORIES as readonly string[]).includes(archiveCategoryFor(doc({ doc_type: t }))));
+});
+['electricity', 'water', 'gas', 'internet', 'common', 'insurance', 'taxes', 'municipal', 'security', 'elevator', 'pool', 'cleaner'].forEach(c => {
+  check(`ταξινομία: το ράφι της κατηγορίας ${c} υπάρχει`, (ARCHIVE_CATEGORIES as readonly string[]).includes(archiveCategoryFor(doc({ doc_type: 'bill', category: c }))));
+});
+// Η διόρθωση ζει ΜΕΣΑ στο σχέδιο: planDocSave και archiveCategoryFor δεν αποκλίνουν.
+{
+  const d = doc({ doc_type: 'bill', category: 'water', provider: 'ΕΥΔΑΠ', amount: 42 });
+  eq('planDocSave.archive.category === archiveCategoryFor', planDocSave(d, TODAY).archive!.category, archiveCategoryFor(d));
+}
+
+// ── resolveBillCategory ────────────────────────────────────────────────────
+eq('κατηγορία: έγκυρη από OCR', resolveBillCategory({ category: 'gas' }), 'gas');
+eq('κατηγορία: από πάροχο όταν λείπει', resolveBillCategory({ provider: 'COSMOTE' }), 'internet');
+eq('κατηγορία: «other» + πάροχος ΔΕΗ → electricity', resolveBillCategory({ category: 'other', provider: 'ΔΕΗ' }), 'electricity');
+eq('κατηγορία: τίποτα → other', resolveBillCategory({}), 'other');
+
+// ── validateDoc: ΑΦΜ & περίοδος είναι recommended, ΟΧΙ blocking ─────────────
+{
+  const v = validateDoc(doc({ doc_type: 'bill', amount: 88.5, provider: 'ΔΕΗ', due_date: '2026-07-20' }));
+  eq('θολό χαρτί: το ΑΦΜ δεν μπλοκάρει', v.blocking, []);
+  check('ζητάμε ΑΦΜ', v.recommended.includes('provider_afm'));
+  check('ζητάμε περίοδο', v.recommended.includes('period_from'));
+  eq('τίποτα άκυρο', v.invalid, []);
+}
+{
+  const v = validateDoc(doc({
+    doc_type: 'bill', amount: 88.5, provider: 'ΔΕΗ', due_date: '2026-07-20',
+    provider_afm: '090000045', period_from: '2026-06-01', period_to: '2026-06-30',
+  }));
+  eq('πλήρες: τίποτα σε recommended', v.recommended, []);
+  eq('πλήρες: τίποτα σε invalid', v.invalid, []);
+}
+// Άκυρο checksum: το λέμε, δεν το περνάμε για σωστό — και ΔΕΝ μπλοκάρουμε.
+{
+  const v = validateDoc(doc({ doc_type: 'bill', amount: 10, provider_afm: '090000046' }));
+  check('άκυρο ΑΦΜ → invalid', v.invalid.includes('provider_afm'));
+  check('άκυρο ΑΦΜ δεν μπλοκάρει την αποθήκευση', !v.blocking.includes('provider_afm'));
+}
+{
+  const v = validateDoc(doc({ doc_type: 'bill', amount: 10, period_from: '2026-07-01', period_to: '2026-06-01' }));
+  check('ανάποδη περίοδος → invalid', v.invalid.includes('period_from'));
+}
+{
+  const v = validateDoc(doc({ doc_type: 'lease', tenant_name: 'Α', monthly_rent: 600, afm: '111111111' }));
+  check('άκυρο ΑΦΜ ενοικιαστή → invalid', v.invalid.includes('afm'));
+}
+check('κάθε νέο πεδίο έχει ελληνική ετικέτα', ['provider_afm', 'period_from', 'period_to', 'issue_date'].every(k => !!DOC_FIELD_LABELS[k]));
+
+// ── normalizeScannedDoc: μεταφράζει, δεν μαντεύει ──────────────────────────
+{
+  const n = normalizeScannedDoc(doc({ doc_type: 'bill', period: 'Ιούνιος 2026', provider_afm: '090 000 045' }));
+  eq('normalize: ΑΦΜ μόνο ψηφία', n.provider_afm, '090000045');
+  eq('normalize: περίοδος από κείμενο (από)', n.period_from, '2026-06-01');
+  eq('normalize: περίοδος από κείμενο (έως)', n.period_to, '2026-06-30');
+  eq('normalize: το κείμενο διατηρείται για την οθόνη', n.period, 'Ιούνιος 2026');
+}
+{
+  const n = normalizeScannedDoc(doc({ doc_type: 'bill', period: 'εκκαθαριστικός λογαριασμός' }));
+  eq('normalize: χωρίς μήνα δεν επινοεί (από)', n.period_from, undefined);
+  eq('normalize: χωρίς μήνα δεν επινοεί (έως)', n.period_to, undefined);
+}
+{
+  const n = normalizeScannedDoc(doc({ doc_type: 'bill', period: 'Ιούνιος 2026', period_from: '2026-06-05', period_to: '2026-07-04' }));
+  eq('normalize: δεν πατάει ό,τι έδωσε το AI', [n.period_from, n.period_to], ['2026-06-05', '2026-07-04']);
+}
+
+// ── planDocSave: το παραστατικό κρατά ΠΟΣΟ, ΑΦΜ, ΠΕΡΙΟΔΟ, ΕΚΔΟΣΗ ───────────
+{
+  const p = planDocSave(doc({
+    doc_type: 'bill', category: 'electricity', provider: 'ΔΕΗ', amount: 88.5,
+    due_date: '2026-07-20', issue_date: '2026-07-01', provider_afm: '090000045',
+    period_from: '2026-06-01', period_to: '2026-06-30', period: 'Ιούνιος 2026',
+  }), TODAY);
+  eq('αρχείο: ποσό', p.archive!.amount, 88.5);
+  eq('αρχείο: ΑΦΜ παρόχου', p.archive!.provider_afm, '090000045');
+  eq('αρχείο: περίοδος από', p.archive!.period_from, '2026-06-01');
+  eq('αρχείο: περίοδος έως', p.archive!.period_to, '2026-06-30');
+  eq('αρχείο: ημ. έκδοσης', p.archive!.issue_date, '2026-07-01');
+  eq('αρχείο: ράφι ρεύματος', p.archive!.category, 'Λογαριασμός Ρεύματος');
+  eq('λογαριασμός: γράφεται και η περίοδος', p.bill!.period, 'Ιούνιος 2026');
+}
+// Άκυρο ΑΦΜ ΔΕΝ αποθηκεύεται ως σωστό.
+{
+  const p = planDocSave(doc({ doc_type: 'bill', category: 'water', provider: 'ΕΥΔΑΠ', amount: 42, provider_afm: '090000046' }), TODAY);
+  eq('αρχείο: άκυρο ΑΦΜ δεν γράφεται', p.archive!.provider_afm, undefined);
+}
+// Χωρίς ποσό → undefined (NULL), ΠΟΤΕ 0: το μηδέν θα μολύνει κάθε άθροισμα.
+{
+  const p = planDocSave(doc({ doc_type: 'other', title: 'Βεβαίωση' }), TODAY);
+  eq('αρχείο: χωρίς ποσό → undefined', p.archive!.amount, undefined);
+}
+{
+  const p = planDocSave(doc({ doc_type: 'bill', category: 'gas', provider: 'ΔΕΠΑ', amount: 0 }), TODAY);
+  eq('αρχείο: ποσό 0 → undefined', p.archive!.amount, undefined);
+}
+// Ασφαλιστήριο: το ασφάλιστρο ΕΙΝΑΙ το ποσό του παραστατικού.
+{
+  const p = planDocSave(doc({ doc_type: 'insurance', provider: 'Interamerican', premium: 240, expiry_date: '2027-01-01' }), TODAY);
+  eq('αρχείο: ασφάλιστρο ως ποσό', p.archive!.amount, 240);
+}
+// Η περίοδος από ΚΕΙΜΕΝΟ φτάνει στο αρχείο όταν προηγηθεί normalizeScannedDoc.
+{
+  const p = planDocSave(normalizeScannedDoc(doc({ doc_type: 'bill', category: 'water', provider: 'ΕΥΔΑΠ', amount: 55, period: '01/04/2026 - 30/06/2026' })), TODAY);
+  eq('αρχείο: περίοδος από ελεύθερο κείμενο', [p.archive!.period_from, p.archive!.period_to], ['2026-04-01', '2026-06-30']);
+}
+// Ό,τι γράφεται στο αρχείο μπορεί να ξαναδιαβαστεί ως υποψήφιος ταιριάσματος:
+// το παραστατικό και ο λογαριασμός μιλούν την ίδια γλώσσα.
+{
+  const scanned = normalizeScannedDoc(doc({
+    doc_type: 'payment', category: 'electricity', provider: 'ΔΕΗ', amount: 88.5,
+    issue_date: '2026-07-30', provider_afm: '090000045', period: 'Ιούλιος 2026',
+  }));
+  const a = planDocSave(scanned, TODAY).archive!;
+  const twoBills = [
+    { id: 'jun', category: 'electricity', amount: 88.5, due_date: '2026-07-20', provider: 'ΔΕΗ', period: 'Ιούνιος 2026' },
+    { id: 'jul', category: 'electricity', amount: 88.5, due_date: '2026-08-20', provider: 'ΔΕΗ', period: 'Ιούλιος 2026' },
+  ];
+  const r = matchPaymentToBills({
+    amount: a.amount!, date: a.issue_date!, category: 'electricity',
+    provider: a.supplier, provider_afm: a.provider_afm,
+    period_from: a.period_from, period_to: a.period_to,
+  }, twoBills);
+  eq('end-to-end: η απόδειξη Ιουλίου εξοφλεί τον Ιούλιο', [r.verdict, r.best?.bill.id], ['confident', 'jul']);
+}
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\ndocuments.ts — ${passed} passed, ${failed} failed`);

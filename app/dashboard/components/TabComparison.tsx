@@ -7,14 +7,17 @@ import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
 import { downloadCsv } from './exportCsv';
 import { money, dec2, percent } from './xlsxStyle';
-import { runE2Export } from './e2Export';
-import { rentalIncomeTax } from '@/lib/billing/greekTax';
-import { notifyError } from '@/components/Toast';
+import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
+import { resolveValue } from '@/lib/billing/propertyFacts';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
   sqm: number | null; value: number | null; target_rent: number | null;
   status_detail: string | null;
+  // Η αντικειμενική αξία δεν είναι «λιγότερο πραγματική» από την εμπορική: είναι
+  // ο μόνος αριθμός που ο ιδιοκτήτης βρίσκει σίγουρα (Ε9). Η Επισκόπηση τη
+  // χρησιμοποιεί ως εφεδρική εδώ και καιρό — η Σύγκριση όχι, και έδειχνε 0,0%.
+  obj_value?: number | null;
   // Χρειάζονται για να κριθεί αν η σύγκριση είναι έντιμη: έτος κατασκευής και
   // περιοχή αλλάζουν το συμπέρασμα όσο και το ίδιο το ακίνητο.
   year_built?: number | null; postal_code?: string | null; rental_mode?: string | null;
@@ -53,9 +56,8 @@ const TYPE_LABELS: Record<string, string> = {
 
 // Ελληνικές επεξηγήσεις για όρους/συντομογραφίες (εμφανίζονται ως tooltip στη μετρική)
 const METRIC_TIPS: Record<string, string> = {
-  'Τιμή ανά τετραγωνικό': 'Εμπορική αξία ανά τετραγωνικό μέτρο (€/τ.μ.)',
-  'Μεικτή Απόδοση': 'Ακαθάριστη ετήσια απόδοση: (μηνιαίο ενοίκιο × 12) ÷ εμπορική αξία',
-  'Μηνιαίος Στόχος': 'Ο μηνιαίος στόχος δαπανών από τον Προϋπολογισμό του ακινήτου (συνολικός στόχος ή άθροισμα των στόχων ανά κατηγορία).',
+  'Μεικτή Απόδοση': 'Ακαθάριστη ετήσια απόδοση: (μηνιαίο ενοίκιο × 12) ÷ αξία ακινήτου. Χρησιμοποιείται η εμπορική αξία· αν λείπει, η αντικειμενική (Ε9) — ίδιος κανόνας με την Επισκόπηση.',
+  'Μερίδιο Φόρου Ενοικίου': 'Ο φόρος εισοδήματος από ενοίκια είναι προοδευτικός στο ΣΥΝΟΛΟ των ακινήτων σου (Ε1), όχι ανά ακίνητο. Εδώ φαίνεται το μερίδιο κάθε ακινήτου από τον ένα φόρο, κατ’ αναλογία του φορολογητέου του. Γι’ αυτό οι γραμμές αθροίζουν στη γραμμή ΣΥΝΟΛΟ της εξαγωγής.',
   'Καθαρό ανά μήνα (εκτ.)': 'Εκτίμηση: ενοίκιο − μηνιαίοι λογαριασμοί − (δαπάνες έτους ÷ 12)',
 };
 
@@ -99,6 +101,17 @@ export default function TabComparison({ properties, userId }: Props) {
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
+  // ── ΦΟΡΟΣ ΣΕ ΕΠΙΠΕΔΟ ΦΟΡΟΛΟΓΟΥΜΕΝΟΥ ─────────────────────────────────────────
+  // Η κλίμακα είναι προοδευτική στο ΣΥΝΟΛΟ των ενοικίων (Ε1). Άρα η ενοποίηση
+  // γίνεται πάνω σε ΟΛΑ τα ακίνητα του χρήστη, όχι μόνο σε αυτά της ομάδας που
+  // κοιτάζει — αλλιώς ο φόρος θα άλλαζε κάθε φορά που πατά άλλη καρτέλα ομάδας.
+  const portfolioTax = useMemo(() => consolidateRentTax(properties.map(p => ({
+    id: p.id,
+    annualRent: ((agg[p.id]?.monthlyRent || p.target_rent || 0)) * 12,
+    shortTerm: p.rental_mode === 'short_term',
+  }))), [properties, agg]);
+
+
   if (!group) {
     // Δύο διαφορετικές ελλείψεις, δύο διαφορετικές απαντήσεις: άλλο «δεν έχεις
     // δεύτερο ακίνητο» και άλλο «τα δύο σου ακίνητα δεν συγκρίνονται μεταξύ τους».
@@ -120,30 +133,35 @@ export default function TabComparison({ properties, userId }: Props) {
   // Μετρικές ανά ακίνητο (μόνο της ομάδας που κοιτάζει ο χρήστης)
   const rowsData = inGroup.map(p => {
     const a = agg[p.id] || { expensesYTD: 0, monthlyBills: 0, monthlyRent: 0, budgetMonthly: 0 };
-    const value = p.value || 0;
+    // ΙΔΙΑ ΠΗΓΗ ΑΛΗΘΕΙΑΣ ΜΕ ΤΗΝ ΕΠΙΣΚΟΠΗΣΗ. Πριν ήταν `p.value || 0`: ο
+    // ιδιοκτήτης που είχε συμπληρώσει μόνο αντικειμενική αξία (η συνηθέστερη
+    // περίπτωση — τη βρίσκει στο Ε9) έβλεπε «4,2%» στην Επισκόπηση και «0,0%» εδώ.
+    const value = resolveValue(p.value, p.obj_value).value;
     const sqm = p.sqm || 0;
     const rent = a.monthlyRent || p.target_rent || 0;
     const perSqm = sqm > 0 ? value / sqm : 0;
     const grossYield = value > 0 ? (rent * 12 / value) * 100 : 0;
     const netMonthly = rent - a.monthlyBills - a.expensesYTD / 12;
-    return { p, value, sqm, rent, perSqm, grossYield, monthlyBills: a.monthlyBills, expensesYTD: a.expensesYTD, netMonthly, budgetMonthly: a.budgetMonthly };
+    const taxShare = taxShareOf(portfolioTax, p.id);
+    return { p, value, sqm, rent, perSqm, grossYield, monthlyBills: a.monthlyBills, expensesYTD: a.expensesYTD, netMonthly, budgetMonthly: a.budgetMonthly, taxShare };
   });
 
-  type Dir = 'high' | 'low' | 'none';
+  // ΜΟΝΟ ΜΕΤΡΙΚΕΣ ΜΕ ΚΑΤΕΥΘΥΝΣΗ. Οι τέσσερις σειρές με dir:'none' (Εμπορική Αξία,
+  // Εμβαδόν, Τιμή/τ.μ., Μηνιαίος Στόχος) ήταν εξ ορισμού χωρίς «καλύτερη τιμή»:
+  // στατικά στοιχεία ταυτότητας, που ο χρήστης έχει δει, και που εδώ μόνο
+  // μεγάλωναν τον πίνακα. Τα τρία πρώτα μετακόμισαν στην κεφαλίδα της στήλης, όπου
+  // λένε ποιο ακίνητο κοιτάζεις· ο μηνιαίος στόχος ζει στον Προϋπολογισμό.
+  type Dir = 'high' | 'low';
   const metrics: { label: string; get: (r: typeof rowsData[number]) => number; fmt: (n: number) => string; dir: Dir }[] = [
-    { label: 'Εμπορική Αξία',        get: r => r.value,       fmt: n => fe(n, 0),               dir: 'none' },
-    { label: 'Εμβαδόν',              get: r => r.sqm,         fmt: n => `${fn(n)} τετραγωνικά`, dir: 'none' },
-    { label: 'Τιμή ανά τετραγωνικό', get: r => r.perSqm,      fmt: n => fe(n, 0),               dir: 'none' },
     { label: 'Μηνιαίο Ενοίκιο',      get: r => r.rent,        fmt: n => fe(n, 0),               dir: 'high' },
     { label: 'Μεικτή Απόδοση',       get: r => r.grossYield,  fmt: n => `${n.toFixed(1)}%`,     dir: 'high' },
     { label: 'Μηνιαίοι Λογαριασμοί', get: r => r.monthlyBills,fmt: n => fe(n, 0),               dir: 'low'  },
-    { label: 'Μηνιαίος Στόχος',      get: r => r.budgetMonthly, fmt: n => n > 0 ? fe(n, 0) : '—', dir: 'none' },
     { label: 'Δαπάνες Έτους',        get: r => r.expensesYTD, fmt: n => fe(n, 0),               dir: 'low'  },
+    { label: 'Μερίδιο Φόρου Ενοικίου', get: r => r.taxShare,  fmt: n => fe(n, 0),               dir: 'low'  },
     { label: 'Καθαρό ανά μήνα (εκτ.)', get: r => r.netMonthly, fmt: n => fe(n, 0),              dir: 'high' },
   ];
 
   const bestId = (m: typeof metrics[number]): string | null => {
-    if (m.dir === 'none') return null;
     const vals = rowsData.map(r => ({ id: r.p.id, v: m.get(r) })).filter(x => x.v !== 0 || m.dir === 'low');
     if (!vals.length) return null;
     return vals.reduce((best, x) => (m.dir === 'high' ? x.v > best.v : x.v < best.v) ? x : best).id;
@@ -153,20 +171,28 @@ export default function TabComparison({ properties, userId }: Props) {
   //    UTF-8 BOM ώστε να φαίνονται σωστά τα ελληνικά). Χρήσιμο για λογιστή. ──
   const exportCSV = () => {
     // Κοινοί, τυποποιημένοι formatters: «1.234,56 €», «5,20 %», «85,5» (τ.μ.).
-    const cols = ['Ακίνητο', 'Κατάσταση', 'Εμπορική Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Μηνιαίοι Λογαριασμοί (€)', 'Δαπάνες Έτους (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Εκτ. Φόρος Ενοικίου (€)'];
-    const rows = rowsData.map(r => {
-      const annualRent = r.rent * 12;
-      const netYear = r.netMonthly * 12;
-      const tax = rentalIncomeTax(annualRent);
-      return [r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '', money(r.value), dec2(r.sqm), money(r.perSqm), money(r.rent), money(annualRent), percent(r.grossYield), money(r.monthlyBills), money(r.expensesYTD), money(r.netMonthly), money(netYear), money(tax)];
-    });
+    // ΤΟ ΑΘΡΟΙΣΜΑ ΤΩΝ ΓΡΑΜΜΩΝ ΙΣΟΥΤΑΙ ΜΕ ΤΗ ΓΡΑΜΜΗ ΣΥΝΟΛΟ. Πριν, ο φόρος
+    // υπολογιζόταν ανά γραμμή με τη προοδευτική κλίμακα ΚΑΙ ξεχωριστά στο σύνολο —
+    // δηλαδή δύο ασυμβίβαστοι αριθμοί στο ίδιο αρχείο, το οποίο φτάνει στον
+    // λογιστή. Τώρα η στήλη είναι το ΜΕΡΙΔΙΟ κάθε ακινήτου από τον ΕΝΑ φόρο του
+    // φορολογούμενου, άρα προσθέτεται σωστά.
+    const cols = ['Ακίνητο', 'Κατάσταση', 'Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Μηνιαίοι Λογαριασμοί (€)', 'Δαπάνες Έτους (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Μερίδιο Φόρου Ενοικίου (€)'];
+    const rows = rowsData.map(r => [
+      r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '',
+      money(r.value), dec2(r.sqm), money(r.perSqm), money(r.rent), money(r.rent * 12),
+      percent(r.grossYield), money(r.monthlyBills), money(r.expensesYTD),
+      money(r.netMonthly), money(r.netMonthly * 12), money(r.taxShare),
+    ]);
     // Γραμμή συνόλων της ομάδας (όχι όλου του χαρτοφυλακίου: εξάγεται ό,τι φαίνεται).
     const sum = (f: (r: typeof rowsData[number]) => number) => rowsData.reduce((s, r) => s + f(r), 0);
-    const totAnnualRent = sum(r => r.rent * 12);
-    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), dec2(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(totAnnualRent), '', money(sum(r => r.monthlyBills)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(rentalIncomeTax(totAnnualRent))]);
+    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), dec2(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(sum(r => r.rent * 12)), '', money(sum(r => r.monthlyBills)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(sum(r => r.taxShare))]);
     // Η προειδοποίηση ταξιδεύει ΜΑΖΙ με τα νούμερα. Ένα αρχείο που φτάνει στον
     // λογιστή χωρίς αυτή είναι ακριβώς η παραπλανητική σύγκριση που θέλαμε να
     // αποφύγουμε — μόνο που τώρα δεν υπάρχει οθόνη να την εξηγήσει.
+    rows.push([`${CONSOLIDATION_NOTE} Συνολικά ${portfolioTax.count} ακίνητα με εισόδημα, ενοίκια ${money(portfolioTax.totalAnnualRent)} €, φόρος ${money(portfolioTax.totalTax)} €.`]);
+    if (rowsData.length < portfolioTax.count) {
+      rows.push([`Προσοχή: το αρχείο περιέχει ${rowsData.length} από τα ${portfolioTax.count} ακίνητα με εισόδημα (εξάγεται η ομάδα που εμφανίζεται στην οθόνη). Το άθροισμα της στήλης φόρου είναι μέρος του συνολικού φόρου, όχι ο συνολικός φόρος.`]);
+    }
     if (group.warning) rows.push([group.warning]);
     // Κοινός, θωρακισμένος exporter (BOM, «;», escaping + εξουδετέρωση formula-injection).
     downloadCsv(`sygkrisi_akiniton_${new Date().toISOString().slice(0, 10)}`, cols, rows);
@@ -184,9 +210,13 @@ export default function TabComparison({ properties, userId }: Props) {
             {rowsData.length} {typeLabel(group.key, inGroup[0]).toLowerCase()}, αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
           </div>
         </div>
+        {/* ΤΟ «Εξαγωγή Ε2» ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Ζούσε σε μια οθόνη που απαιτεί δύο
+            ακίνητα ΙΔΙΟΥ ΤΥΠΟΥ και πλάνο «Ιδιοκτήτης»: ο ιδιοκτήτης ενός ακινήτου
+            — δηλαδή ο μισός κόσμος — δεν το έφτανε ποτέ, παρότι το Ε2 τον αφορά
+            ακριβώς όσο και τους άλλους. Και ήταν διπλότυπο του κουμπιού στο
+            E2IncomeCalc. Ένα σημείο για το Ε2: Λογιστική → Αναλυτική Κατάσταση Ε2. */}
         {!loading && (
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-            <ExportButton label="Εξαγωγή Ε2" onClick={async () => { const y = new Date().getFullYear() - 1; const n = await runE2Export(supabase, userId, y); if (!n) notifyError('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }} />
             <ExportButton onClick={exportCSV} />
           </div>
         )}
@@ -233,6 +263,13 @@ export default function TabComparison({ properties, userId }: Props) {
                   <th key={r.p.id} style={th}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0 }}>{r.p.name}</div>
                     <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 2 }}>{STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || ''}</div>
+                    {/* Ταυτότητα, όχι μετρική: αξία, εμβαδόν και τιμή/τ.μ. λένε ποιο
+                        ακίνητο κοιτάζεις. Δεν έχουν «καλύτερη τιμή», γι' αυτό δεν
+                        είναι πια γραμμές του πίνακα. */}
+                    <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (από το Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
+                      style={{ fontSize: 9.5, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
+                      {[r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value > 0 ? fe(r.value, 0) : null, r.perSqm > 0 ? `${fe(r.perSqm, 0)}/τ.μ.` : null].filter(Boolean).join(' · ') || '—'}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -259,8 +296,9 @@ export default function TabComparison({ properties, userId }: Props) {
           </div>
         </div>
       )}
-      <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+      <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
         Συγκρίνονται μόνο ακίνητα ίδιου τύπου. Το «Καθαρό ανά μήνα» είναι εκτίμηση: ενοίκιο − μηνιαίοι λογαριασμοί − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.
+        {portfolioTax.count > 1 && <> {CONSOLIDATION_NOTE} Σύνολο ενοικίων {fe(portfolioTax.totalAnnualRent, 0)}, φόρος {fe(portfolioTax.totalTax, 0)} για {portfolioTax.count} ακίνητα.</>}
       </div>
     </div>
   );

@@ -11,12 +11,20 @@
 import { useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
-import { matchBillToPayment, type PendingBill } from '@/lib/billing/parse';
 import {
-  classifyDocType, validateDoc, planDocSave, docSummaryLine,
+  validateDoc, docSummaryLine,
   DOC_TYPES, DOC_FIELD_LABELS, type ScannedDoc, type DocType,
 } from '@/lib/billing/documents';
+import {
+  scanDocument, commitScannedDoc, MAX_SCAN_MB, SYSTEM_PROMPT as SCAN_SYSTEM_PROMPT,
+  type ReconcileQuestion,
+} from './scanDoc';
 import { inferRole } from '@/lib/contacts/roles';
+
+// Το prompt ζει στο scanDoc.ts (μαζί με όλη τη μηχανή σάρωσης). Επανεξάγεται εδώ
+// επειδή οθόνες που δεν ανήκουν σε αυτή τη ροή (Ενοικιαστής, Αρχείο) το εισάγουν
+// ιστορικά από εδώ — η αλλαγή διαδρομής θα ήταν άσκοπη ρήξη.
+export const SYSTEM_PROMPT = SCAN_SYSTEM_PROMPT;
 
 interface Props { propertyId: string; userId?: string; onSaved?: () => void; }
 
@@ -31,18 +39,27 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // Ποια πεδία δείχνει η φόρμα ανά τύπο εγγράφου.
 type FieldDef = { key: keyof ScannedDoc; label: string; type?: 'number' | 'date' };
+// ΤΑ ΠΕΝΤΕ ΠΕΔΙΑ ΤΑΙΡΙΑΣΜΑΤΟΣ είναι ΟΡΑΤΑ και διορθώσιμα για λογαριασμό/απόδειξη:
+// πάροχος, ΑΦΜ παρόχου, ποσό, ημερομηνία έκδοσης, περίοδος από–έως. Πριν, το ΑΦΜ
+// υπήρχε μόνο στο μπλοκ μισθωτηρίου και η περίοδος ήταν ελεύθερο κείμενο — δηλαδή
+// δύο από τα πέντε δεν έφταναν ποτέ στη βάση.
 const TYPE_FIELDS: Record<DocType, FieldDef[]> = {
   bill: [
     { key: 'provider', label: 'Πάροχος' },
+    { key: 'provider_afm', label: 'ΑΦΜ παρόχου' },
     { key: 'amount', label: 'Ποσό (€)', type: 'number' },
+    { key: 'issue_date', label: 'Ημ. έκδοσης', type: 'date' },
     { key: 'due_date', label: 'Ημ. λήξης', type: 'date' },
-    { key: 'period', label: 'Περίοδος' },
+    { key: 'period_from', label: 'Περίοδος από', type: 'date' },
+    { key: 'period_to', label: 'Περίοδος έως', type: 'date' },
   ],
   payment: [
     { key: 'provider', label: 'Δικαιούχος / Πάροχος' },
+    { key: 'provider_afm', label: 'ΑΦΜ παρόχου' },
     { key: 'amount', label: 'Ποσό (€)', type: 'number' },
     { key: 'issue_date', label: 'Ημ. πληρωμής', type: 'date' },
-    { key: 'period', label: 'Αφορά περίοδο' },
+    { key: 'period_from', label: 'Αφορά περίοδο από', type: 'date' },
+    { key: 'period_to', label: 'Αφορά περίοδο έως', type: 'date' },
   ],
   lease: [
     { key: 'tenant_name', label: 'Ονοματεπώνυμο ενοικιαστή' },
@@ -86,79 +103,35 @@ const TYPE_FIELDS: Record<DocType, FieldDef[]> = {
   ],
 };
 
-// Εξάγεται ώστε το Αρχείο (TabDocuments) να επαναχρησιμοποιεί ΤΟ ΙΔΙΟ prompt OCR
-// για αυτόματη αναγνώριση/αρχειοθέτηση κατά το bulk upload (καμία διπλή λογική).
-export const SYSTEM_PROMPT = `Είσαι ο κορυφαίος βοηθός διαχείρισης ακινήτων στον κόσμο. Ο χρήστης ανεβάζει ΟΠΟΙΟΔΗΠΟΤΕ έγγραφο σχετικό με το ακίνητό του. Αναγνώρισε ΤΙ ΕΙΝΑΙ και εξήγαγε τα σωστά στοιχεία. Επέστρεψε ΜΟΝΟ valid JSON, χωρίς markdown:
-{
-  "doc_type": "bill|payment|lease|deed|insurance|tax|government|other",
-  "title": "σύντομος περιγραφικός τίτλος",
-  "provider": "πάροχος/αντισυμβαλλόμενος/ασφαλιστική/φορέας/συμβολαιογράφος",
-  "category": "(μόνο για bill/payment) electricity|water|gas|internet|insurance|streaming|taxes|municipal|security|common|maintenance|elevator|pool|gardener|cleaner|plumber|electrician|other",
-  "amount": συνολικό ποσό σε ευρώ ή null,
-  "due_date": "YYYY-MM-DD (λήξη πληρωμής) ή null",
-  "issue_date": "YYYY-MM-DD (έκδοση/πληρωμή) ή null",
-  "period": "περίοδος ή null",
-  "tenant_name": "(μισθωτήριο) ονοματεπώνυμο ενοικιαστή/μισθωτή ή null",
-  "landlord_name": "(μισθωτήριο) ονοματεπώνυμο εκμισθωτή/ιδιοκτήτη ή null",
-  "owners": "(τίτλος/συμβόλαιο/μισθωτήριο) πίνακας συνιδιοκτητών: [{\"name\":\"ονοματεπώνυμο\",\"afm\":\"ΑΦΜ ή null\",\"pct\":ποσοστό ιδιοκτησίας 0-100 ή null}] ή null",
-  "monthly_rent": "(μισθωτήριο) μηνιαίο ενοίκιο € ή null",
-  "lease_start": "(μισθωτήριο) YYYY-MM-DD ή null",
-  "lease_end": "(μισθωτήριο) YYYY-MM-DD ή null",
-  "deposit": "(μισθωτήριο) εγγύηση € ή null",
-  "afm": "ΑΦΜ ή null",
-  "purchase_price": "(τίτλος/συμβόλαιο) τίμημα αγοράς € ή null",
-  "purchase_date": "(τίτλος) YYYY-MM-DD ή null",
-  "obj_value": "(τίτλος) αντικειμενική αξία € ή null",
-  "atak": "(τίτλος) ΑΤΑΚ ακινήτου ή null",
-  "year_built": "έτος κατασκευής ή null",
-  "sqm": "τετραγωνικά μέτρα ή null",
-  "policy_number": "(ασφαλιστήριο) αριθμός συμβολαίου ή null",
-  "premium": "(ασφαλιστήριο) ασφάλιστρο € ή null",
-  "coverage": "(ασφαλιστήριο) ποσό κάλυψης € ή null",
-  "expiry_date": "(ασφαλιστήριο) YYYY-MM-DD λήξη ή null",
-  "tax_year": "(φορολογικό) έτος ή null",
-  "kwh": "(ρεύμα) κιλοβατώρες ή null",
-  "cubic_meters": "(νερό/αέριο) m³ ή null",
-  "millesimi": "(κοινόχρηστα) χιλιοστά ή null",
-  "vat_rate": "ΦΠΑ % ή null",
-  "account_num": "αριθμός παροχής/λογαριασμού ή null",
-  "notes": "οτιδήποτε άλλο σημαντικό",
-  "confidence": 0-100
-}
-ΚΑΝΟΝΕΣ ΑΝΑΓΝΩΡΙΣΗΣ: μισθωτήριο/συμφωνητικό μίσθωσης→"lease". Ασφαλιστήριο/ασφάλεια ακινήτου→"insurance". ΕΝΦΙΑ/Ε9/εκκαθαριστικό/φόρος→"tax". Τίτλος ιδιοκτησίας/συμβόλαιο αγοραπωλησίας→"deed". ΑΜΑ/πολεοδομία/βεβαίωση/δημόσιο έγγραφο→"government". Απόδειξη/βεβαίωση πληρωμής→"payment". Λογαριασμός ΔΕΗ/ΕΥΔΑΠ/αερίου/internet/κοινοχρήστων→"bill". Ημερομηνίες πάντα YYYY-MM-DD. Τελεία για δεκαδικά. Ό,τι δεν υπάρχει→null.`;
 
-// Πεδίο εισόδου (ίδιο look με BillsAIScan).
-const Field = ({ label, value, onChange, type = 'text', invalid = false }: {
-  label: string; value: string | number; onChange: (v: string) => void; type?: string; invalid?: boolean;
-}) => (
-  <div>
-    <label style={{ fontSize: 9, fontWeight: 700, color: invalid ? 'var(--warning)' : 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
-      {label}{invalid ? ' • λείπει' : ''}
-    </label>
-    <input
-      type={type}
-      value={String(value ?? '')}
-      onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
-      onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-      onBlur={e => (e.target.style.borderColor = invalid ? 'var(--warning)' : 'var(--border-default)')}
-    />
-  </div>
-);
+// Πεδίο εισόδου. Τρεις καταστάσεις, όχι δύο: εντάξει · «λείπει» (η OCR δεν το
+// διάβασε και το ζητάμε) · «δεν είναι έγκυρο» (το διαβάσαμε αλλά δεν βγάζει
+// νόημα — π.χ. ΑΦΜ που δεν περνά το checksum της ΑΑΔΕ). Η διάκριση μετράει:
+// «λείπει» είναι δουλειά του χρήστη, «άκυρο» είναι λάθος ανάγνωση.
+const Field = ({ label, value, onChange, type = 'text', invalid = false, bad = false, hint }: {
+  label: string; value: string | number; onChange: (v: string) => void;
+  type?: string; invalid?: boolean; bad?: boolean; hint?: string;
+}) => {
+  const tone = bad ? 'var(--negative)' : invalid ? 'var(--warning)' : '';
+  return (
+    <div>
+      <label style={{ fontSize: 9, fontWeight: 700, color: tone || 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
+        {label}{bad ? ' • δεν είναι έγκυρο' : invalid ? ' • λείπει' : ''}
+      </label>
+      <input
+        type={type}
+        value={String(value ?? '')}
+        onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${tone || 'var(--border-default)'}`, borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
+        onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+        onBlur={e => (e.target.style.borderColor = tone || 'var(--border-default)')}
+      />
+      {hint && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.sans }}>{hint}</div>}
+    </div>
+  );
+};
 
 const NUM_KEYS = new Set<keyof ScannedDoc>(['amount', 'monthly_rent', 'deposit', 'premium', 'coverage', 'purchase_price', 'obj_value', 'year_built', 'sqm', 'tax_year', 'kwh', 'cubic_meters', 'millesimi', 'vat_rate']);
-
-// Ανθεκτική μετατροπή αριθμού (χειρίζεται «1.200,50», «1,234.56», «€», κενά).
-// Το AI μπορεί να επιστρέψει string· χωρίς αυτό, μη-αριθμητικά θα έσπαγαν το insert.
-const numify = (v: unknown): number | undefined => {
-  if (typeof v === 'number') return isFinite(v) ? v : undefined;
-  if (typeof v !== 'string') return undefined;
-  const raw = v.replace(/[€\s]/g, '');
-  if (!/\d/.test(raw)) return undefined;
-  const clean = /,\d{1,2}$/.test(raw) ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
-  const n = parseFloat(clean.replace(/[^0-9.\-]/g, ''));
-  return isFinite(n) ? n : undefined;
-};
 
 export default function DocumentScan({ propertyId, userId = '', onSaved }: Props) {
   const supabase = createClient();
@@ -174,13 +147,24 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   const [error, setError] = useState('');
   const [savedInfo, setSavedInfo] = useState<string[]>([]);
   const [newField, setNewField] = useState({ label: '', value: '' });
+  // Ερώτηση συμφωνίας: όταν η βεβαιότητα ταιριάσματος με εκκρεμή λογαριασμό είναι
+  // χαμηλή, ΔΕΝ εξοφλούμε σιωπηλά — ρωτάμε ποιον (ή κανέναν).
+  const [ask, setAsk] = useState<ReconcileQuestion | null>(null);
   // Πρόταση αποθήκευσης του εκδότη (προμηθευτή/επαγγελματία) στις Επαφές, μετά τη
   // σάρωση λογαριασμού/απόδειξης. Ποτέ αυτόματα — μόνο με ρητή επιβεβαίωση χρήστη.
   const [contactState, setContactState] =
     useState<'cta' | 'saving' | 'saved' | 'exists' | 'error' | 'dismissed'>('cta');
 
   const setF = (key: keyof ScannedDoc, raw: string) =>
-    setEdited(p => p ? { ...p, [key]: NUM_KEYS.has(key) ? (parseFloat(raw) || undefined) : raw } : p);
+    setEdited(p => {
+      if (!p) return p;
+      const next: ScannedDoc = { ...p, [key]: NUM_KEYS.has(key) ? (parseFloat(raw) || undefined) : raw };
+      // Όταν ο χρήστης διορθώνει τις ημερομηνίες της περιόδου, το ελεύθερο κείμενο
+      // («Ιούνιος 2026») που είχε διαβάσει η OCR παύει να ισχύει — δεν το κρατάμε
+      // για να μη γραφτεί ένα όνομα λογαριασμού που λέει άλλο μήνα από τις στήλες.
+      if (key === 'period_from' || key === 'period_to') next.period = undefined;
+      return next;
+    });
 
   const loadFile = useCallback(async (f: File) => {
     if (!f.type.startsWith('image/') && f.type !== 'application/pdf' && !f.name.match(/\.(csv|xlsx|xls|txt)$/i)) {
@@ -188,231 +172,46 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
     }
     // Όριο μεγέθους: προστατεύει και την αποθήκευση και την πληρωμένη κλήση AI από
     // τεράστια αρχεία (το base64 φουσκώνει ~33%, οπότε 10MB ≈ 13MB payload).
-    const MAX_FILE_MB = 10;
-    if (f.size > MAX_FILE_MB * 1024 * 1024) {
-      setError(`Το αρχείο είναι πολύ μεγάλο (${(f.size / 1048576).toFixed(1)}MB). Όριο ${MAX_FILE_MB}MB.`); return;
+    if (f.size > MAX_SCAN_MB * 1024 * 1024) {
+      setError(`Το αρχείο είναι πολύ μεγάλο (${(f.size / 1048576).toFixed(1)}MB). Όριο ${MAX_SCAN_MB}MB.`); return;
     }
-    setFile(f);
+    setFile(f); setEdited(null); setError(''); setAsk(null); setStep('review');
+    // Προεπισκόπηση (μόνο για να βλέπει ο χρήστης τι σάρωσε).
     const reader = new FileReader();
-    reader.onload = e => {
-      const dataUrl = e.target?.result as string;
-      const base64 = dataUrl.split(',')[1];
-      const mimeType = f.type || 'image/jpeg';
-      setImage(dataUrl); setEdited(null); setError(''); setStep('review');
-      scanDoc(base64, mimeType);
-    };
+    reader.onload = e => setImage(String(e.target?.result || ''));
     reader.readAsDataURL(f);
+    // Η ΑΝΑΓΝΩΣΗ γίνεται από τη ΜΙΑ μηχανή σάρωσης (scanDoc.ts) — καμία δεύτερη
+    // υλοποίηση prompt/parse εδώ. Ό,τι διορθώσουμε εκεί, διορθώνεται παντού.
+    setScanning(true);
+    const r = await scanDocument(f);
+    setScanning(false);
+    if (r.doc) setEdited(r.doc);
+    else { setError(r.error || 'unreadable'); setEdited({ doc_type: 'other', confidence: 0 }); }
   }, []);
 
-  const scanDoc = async (base64: string, mimeType: string) => {
-    setScanning(true); setError('');
-    const isPdf = mimeType === 'application/pdf';
-    const contentPart = isPdf
-      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
-      : { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } };
-
-    const attempt = async (hint: string): Promise<{ doc?: ScannedDoc; err?: string }> => {
-      const res = await fetch('/api/anthropic', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-5', max_tokens: 1500, system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: [contentPart, { type: 'text', text: `Αναγνώρισε και ανάλυσε αυτό το έγγραφο. ${hint}` }] }],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data?.error) {
-        return { err: String(data?.error || '').includes('ANTHROPIC_API_KEY') ? 'key_missing' : 'service' };
-      }
-      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
-      try {
-        const e = JSON.parse(text.replace(/```json?|```/g, '').trim()) as ScannedDoc;
-        if (e && typeof e === 'object') return { doc: e };
-      } catch { /* fallthrough */ }
-      return { err: 'unreadable' };
-    };
-
-    const blank = (): ScannedDoc => ({ doc_type: 'other', confidence: 0 });
-    try {
-      let r = await attempt('Διάβασε κάθε στοιχείο με ακρίβεια.');
-      if (r.err === 'unreadable') {
-        r = await attempt('ΠΡΟΣΟΧΗ: η εικόνα ίσως είναι θαμπή ή στραβή. Κοίτα ξανά προσεκτικά και εντόπισε οπωσδήποτε τον τύπο του εγγράφου και τα βασικά στοιχεία.');
-      }
-      if (r.err) { setError(r.err); setEdited(blank()); return; }
-      const doc = r.doc!;
-      // Ντετερμινιστική εξομάλυνση αριθμών από το AI (μπορεί να δώσει strings) —
-      // ώστε να μη σπάσει καμία αριθμητική στήλη στη βάση.
-      const dref = doc as unknown as Record<string, unknown>;
-      NUM_KEYS.forEach(k => { if (dref[k] != null) dref[k] = numify(dref[k]); });
-      // Ντετερμινιστική επιδιόρθωση τύπου (ποτέ δεν εμπιστευόμαστε τυφλά το AI).
-      doc.doc_type = classifyDocType(doc);
-      if (typeof doc.confidence !== 'number') doc.confidence = 70;
-      setEdited(doc);
-    } catch {
-      setError('unreadable'); setEdited(blank());
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  // Ανέβασμα του πρωτότυπου αρχείου στο Αρχείο (property_documents), πάντα.
-  const archiveFile = async (a: { category: string; note?: string; date?: string; supplier?: string }, title?: string) => {
-    if (!file) return false;
-    const safe = file.name.replace(/[^\w.\-]+/g, '_');
-    const path = `${userId}/${propertyId}/document/${Date.now()}_${safe}`;
-    const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined });
-    if (upErr) return false;
-    const base = {
-      property_id: propertyId, user_id: userId, kind: 'document', category: a.category,
-      title: (title || file.name).slice(0, 200), notes: a.note || null,
-      doc_date: a.date || null, file_path: path, file_name: file.name,
-      mime: file.type || null, size_bytes: file.size,
-    };
-    // Ο πάροχος βοηθά το Αρχείο να ομαδοποιήσει «ανά πάροχο». Σε παλιότερη βάση
-    // χωρίς τη στήλη supplier, ξαναδοκιμάζουμε χωρίς αυτήν (όπως και η χειροκίνητη ροή).
-    let { error } = await supabase.from('property_documents').insert({ ...base, supplier: a.supplier || null });
-    if (error && /supplier/i.test(error.message)) ({ error } = await supabase.from('property_documents').insert(base));
-    return !error;
-  };
-
-  // Στρίψιμο null/undefined από payload, για ΕΝΗΜΕΡΩΣΗ ώστε να μη σβήνουμε
-  // υπάρχοντα στοιχεία (π.χ. ενοικιαστή) με κενές τιμές από μερική ανάγνωση.
-  const stripEmpty = (o: Record<string, unknown>) =>
-    Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== ''));
+  // Στρίψιμο null/undefined από payload (χρησιμοποιείται στις Επαφές παρακάτω).
   const nrm = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
-  const save = async () => {
+  // Η ΚΑΤΑΧΩΡΙΣΗ. Όλη η εγγραφή (8 πίνακες + αρχειοθέτηση + συμφωνία) ζει στο
+  // scanDoc.ts ώστε να είναι ΙΔΙΑ από κάθε οθόνη. Εδώ μένει μόνο η οθόνη.
+  // `choice`: undefined → άσε τη μηχανή να κρίνει (και να ρωτήσει αν δεν ξέρει)·
+  //           string    → ο χρήστης διάλεξε ποιον λογαριασμό εξοφλεί·
+  //           null      → ο χρήστης είπε «κανέναν».
+  const save = async (choice?: string | null) => {
     if (!edited) return;
     setSaving(true); setError('');
-    const today = new Date().toISOString().split('T')[0];
-    const plan = planDocSave(edited, today);
-    const done: string[] = [];
-    const add = (s: string) => { if (!done.includes(s)) done.push(s); };
-
-    try {
-      let billId: string | undefined;
-      let reconciled = false;
-
-      // 0) Πληρωμή: πρώτα προσπάθησε να εξοφλήσεις ΥΠΑΡΧΟΝΤΑ εκκρεμή λογαριασμό
-      // (αποφυγή διπλοεγγραφής). Αν βρεθεί ταίρι, δεν δημιουργούμε νέο.
-      if (plan.reconcile && edited.amount) {
-        const cat = (plan.bill?.category as string) || 'other';
-        const { data: pend } = await supabase.from('bills')
-          .select('id,category,amount,due_date,created_at')
-          .eq('property_id', propertyId).eq('paid', false);
-        const match = matchBillToPayment(
-          { amount: edited.amount, date: edited.issue_date || today, category: cat },
-          (pend || []) as PendingBill[], new Set<string>());
-        if (match) {
-          await supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', match.id);
-          const { data: updExp } = await supabase.from('expenses').update({ paid: true }).eq('bill_id', match.id).select('id');
-          await supabase.from('calendar_events').update({ status: 'paid' }).eq('bill_id', match.id);
-          // Αν ο εξοφλημένος λογαριασμός δεν είχε συνδεδεμένο έξοδο (π.χ. μπήκε
-          // χειροκίνητα αλλού), δημιούργησέ το τώρα ώστε η πληρωμή να φαίνεται.
-          if ((!updExp || !updExp.length) && plan.expense) {
-            const { error: expErr } = await supabase.from('expenses')
-              .insert({ property_id: propertyId, user_id: userId, bill_id: match.id, ...plan.expense, paid: true });
-            add(expErr ? 'Λογαριασμός εξοφλήθηκε' : 'Δαπάνες');
-          } else { add('Δαπάνες'); }
-          reconciled = true;
-          add('Λογαριασμός εξοφλήθηκε');
-        }
-      }
-
-      // 1) Λογαριασμός → bills (κρατάμε id για σύνδεση). Παραλείπεται αν έγινε συμφωνία.
-      // ΔΕΝ κάνουμε throw: αν αποτύχει, συνεχίζουμε ώστε το έγγραφο να αρχειοθετηθεί.
-      if (plan.bill && !reconciled) {
-        const { data: billRow, error: billErr } = await supabase.from('bills')
-          .insert({ property_id: propertyId, user_id: userId, ...plan.bill })
-          .select('id').single();
-        if (!billErr) { billId = billRow?.id as string | undefined; add('Λογαριασμοί'); }
-      }
-
-      // 2) Έξοδο → expenses (σύνδεση bill_id), με προστασία διπλοεγγραφής.
-      // Το dedup λαμβάνει υπόψη και την περιγραφή ώστε δύο διαφορετικά έξοδα ίδιου
-      // ποσού/ημέρας να μη μπερδεύονται· ταιριάζει μόνο εγγραφές από σάρωση.
-      if (plan.expense && !reconciled) {
-        const amt = plan.expense.amount as number;
-        const cat = plan.expense.category as string;
-        const d = plan.expense.date as string;
-        const desc = plan.expense.description as string;
-        const { data: dup } = await supabase.from('expenses').select('id,description')
-          .eq('property_id', propertyId).eq('category', cat).eq('amount', amt).eq('date', d).limit(5);
-        const isDup = (dup || []).some(x => nrm(x.description as string) === nrm(desc));
-        if (isDup) { add('Δαπάνες (υπάρχει ήδη)'); }
-        else {
-          const { error: expErr } = await supabase.from('expenses')
-            .insert({ property_id: propertyId, user_id: userId, bill_id: billId, ...plan.expense });
-          if (!expErr) add('Δαπάνες');
-        }
-      }
-
-      // 3) Ημερολόγιο → calendar_events (σύνδεση bill_id αν υπάρχει).
-      if (plan.calendar && !reconciled) {
-        for (const ev of plan.calendar) {
-          const { error: cErr } = await supabase.from('calendar_events')
-            .insert({ property_id: propertyId, user_id: userId, bill_id: billId, ...ev });
-          if (!cErr) add('Ημερολόγιο');
-        }
-      }
-
-      // 4) Ενοικιαστής → tenants. Αν υπάρχει ίδιος ενοικιαστής (ίδιο όνομα),
-      // συμπληρώνουμε ΜΟΝΟ όσα πεδία έχουν τιμή (χωρίς να σβήνουμε τα υπάρχοντα).
-      // Αν το όνομα διαφέρει, είναι νέος ενοικιαστής → νέα εγγραφή (διατηρείται το ιστορικό).
-      if (plan.tenant) {
-        const { data: existing } = await supabase.from('tenants').select('id,full_name')
-          .eq('property_id', propertyId).eq('user_id', userId)
-          .order('updated_at', { ascending: false }).limit(1);
-        const cur = existing && existing.length ? existing[0] : null;
-        const sameTenant = cur && nrm(cur.full_name as string) === nrm(plan.tenant.full_name as string);
-        const q = sameTenant
-          ? supabase.from('tenants').update(stripEmpty(plan.tenant)).eq('id', cur!.id)
-          : supabase.from('tenants').insert({ property_id: propertyId, user_id: userId, ...stripEmpty(plan.tenant) });
-        const { error: tErr } = await q;
-        if (!tErr) add('Ενοικιαστής');
-      }
-
-      // 5) Στοιχεία ακινήτου → user_properties (ασφαλείς στήλες, αμυντικά).
-      if (plan.property) {
-        const { error: pErr } = await supabase.from('user_properties').update(plan.property).eq('id', propertyId);
-        if (!pErr) add('Στοιχεία ακινήτου');
-      }
-
-      // 6) Ασφάλεια → property_settings (καρτέλα Ρυθμίσεις), αμυντικά.
-      if (plan.settings) {
-        const { error: sErr } = await supabase.from('property_settings')
-          .upsert({ property_id: propertyId, user_id: userId, ...plan.settings }, { onConflict: 'property_id' });
-        if (!sErr) add('Ασφάλεια');
-      }
-
-      // 7) Κοινόχρηστα → bills_settings section 'common'.
-      if (plan.commonMonthAmount != null || plan.commonMillesimi != null) {
-        const { data: cur } = await supabase.from('bills_settings').select('data')
-          .eq('property_id', propertyId).eq('section', 'common').maybeSingle();
-        const dd = (cur?.data as Record<string, unknown>) || {};
-        const history = Array.isArray(dd.history) ? [...(dd.history as string[])] : Array(12).fill('');
-        if (plan.commonMonthAmount != null) history[new Date().getMonth()] = String(plan.commonMonthAmount);
-        const nextData = { ...dd, history, ...(plan.commonMillesimi != null && !dd.millesimi ? { millesimi: String(plan.commonMillesimi) } : {}) };
-        const { error: kErr } = await supabase.from('bills_settings')
-          .upsert({ property_id: propertyId, user_id: String(userId), section: 'common', data: nextData, updated_at: new Date().toISOString() }, { onConflict: 'property_id,section' });
-        if (!kErr) add('Κοινόχρηστα');
-      }
-
-      // 8) Αρχειοθέτηση του πρωτότυπου, πάντα, ώστε τίποτα να μη χάνεται.
-      if (plan.archive) {
-        const ok = await archiveFile(plan.archive, edited.title || edited.provider);
-        if (ok) add('Αρχείο');
-      }
-
-      // Ειλικρινής αναφορά: αν ΤΙΠΟΤΑ δεν αποθηκεύτηκε, μη λες ψέματα «Καταχωρήθηκε».
-      if (!done.length) { setError('save'); return; }
-      setSavedInfo(done);
-      setStep('done');
-      onSaved?.();
-    } catch {
-      setError('save');
-    } finally {
-      setSaving(false);
-    }
+    const r = await commitScannedDoc({
+      doc: edited, file, propertyId, userId,
+      ...(choice !== undefined ? { reconcileChoice: choice } : {}),
+    });
+    setSaving(false);
+    // Χαμηλή βεβαιότητα ταιριάσματος: ΤΙΠΟΤΑ δεν γράφτηκε, ρωτάμε τον χρήστη.
+    if (r.ask) { setAsk(r.ask); return; }
+    if (r.error || !r.saved.length) { setError('save'); return; }
+    setAsk(null);
+    setSavedInfo(r.saved);
+    setStep('done');
+    onSaved?.();
   };
 
   // Κράτα μόνο ψηφία (για ΑΦΜ/τηλέφωνο) ώστε η σύγκριση/αποθήκευση να είναι καθαρή.
@@ -426,7 +225,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
     if (!fullName) return;
     setContactState('saving');
     try {
-      const afm = digits(edited.afm);
+      // Ο εκδότης ενός λογαριασμού έχει το ΑΦΜ του στο provider_afm (το `afm` είναι
+      // του αντισυμβαλλόμενου, π.χ. ενοικιαστή) — αλλιώς η επαφή έμπαινε χωρίς ΑΦΜ.
+      const afm = digits(edited.provider_afm || edited.afm);
       // DEDUP: φέρνουμε τις επαφές του ακινήτου/χρήστη και ελέγχουμε στη JS (το
       // ΑΦΜ βρίσκεται μέσα στο JSON του notes, δεν κάνει εύκολα query).
       const { data: existing } = await supabase.from('contacts')
@@ -457,7 +258,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   const reset = () => {
     setStep('upload'); setFile(null); setImage(''); setEdited(null);
     setSaving(false); setError(''); setSavedInfo([]); setNewField({ label: '', value: '' });
-    setContactState('cta');
+    setContactState('cta'); setAsk(null);
   };
 
   // ── Οθόνη επιτυχίας ─────────────────────────────────────────────────────────
@@ -482,7 +283,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
           const supplierName = (edited.provider || '').trim();
           const isInvoiceLike = edited.doc_type === 'bill' || edited.doc_type === 'payment';
           if (!userId || !isInvoiceLike || !supplierName) return null;
-          const afm = digits(edited.afm);
+          const afm = digits(edited.provider_afm || edited.afm);
 
           if (contactState === 'saved' || contactState === 'exists') {
             const okSaved = contactState === 'saved';
@@ -541,8 +342,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   }
 
   const typeMeta = edited ? DOC_TYPES.find(t => t.id === edited.doc_type) : null;
-  const v = edited ? validateDoc(edited) : { blocking: [], recommended: [] };
+  const v = edited ? validateDoc(edited) : { blocking: [], recommended: [], invalid: [] };
   const canSave = v.blocking.length === 0;
+  const label = (f: string) => DOC_FIELD_LABELS[f] || f;
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -643,13 +445,21 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
               )}
             </div>
 
-            {/* Προειδοποίηση ελλείψεων */}
+            {/* Τι δεν διάβασα και τι δεν βγάζει νόημα — ξεχωριστά, και τα δύο ειλικρινά. */}
+            {v.invalid.length > 0 && (
+              <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  Διάβασα <strong>{v.invalid.map(label).join(', ')}</strong> αλλά δεν είναι έγκυρο{v.invalid.length > 1 ? 'α' : ''}
+                  {v.invalid.includes('provider_afm') || v.invalid.includes('afm') ? ' (το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ)' : ''}. Διόρθωσέ το ή άφησέ το κενό — δεν το αποθηκεύω για σωστό.
+                </div>
+              </div>
+            )}
             {(v.blocking.length > 0 || v.recommended.length > 0) && (
               <div style={{ background: v.blocking.length ? 'var(--warning-soft)' : 'var(--bg-elevated)', border: `1px solid ${v.blocking.length ? 'var(--warning-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                   {v.blocking.length
-                    ? <>Χρειάζονται τα βασικά: <strong>{v.blocking.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>. Συμπλήρωσέ τα για να αποθηκεύσω σωστά.</>
-                    : <>Καλό θα ήταν να συμπληρώσεις: <strong>{v.recommended.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>. Μπορείς και να αποθηκεύσεις έτσι.</>}
+                    ? <>Χρειάζονται τα βασικά: <strong>{v.blocking.map(label).join(', ')}</strong>. Συμπλήρωσέ τα για να αποθηκεύσω σωστά.</>
+                    : <>Δεν διάβασα: <strong>{v.recommended.map(label).join(', ')}</strong>. Μπορείς να αποθηκεύσεις έτσι, αλλά με αυτά ο έλεγχος «πληρώθηκε» γίνεται σίγουρος.</>}
                 </div>
               </div>
             )}
@@ -665,12 +475,19 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                   </select>
                 </div>
               )}
-              {TYPE_FIELDS[edited.doc_type].map(f => (
-                <Field key={String(f.key)} label={f.label} type={f.type}
-                  value={(edited[f.key] as string | number) ?? ''}
-                  invalid={v.blocking.includes(String(f.key))}
-                  onChange={val => setF(f.key, val)} />
-              ))}
+              {TYPE_FIELDS[edited.doc_type].map(f => {
+                const k = String(f.key);
+                return (
+                  <Field key={k} label={f.label} type={f.type}
+                    value={(edited[f.key] as string | number) ?? ''}
+                    invalid={v.blocking.includes(k) || v.recommended.includes(k)
+                      || (k === 'period_to' && v.recommended.includes('period_from'))}
+                    bad={v.invalid.includes(k) || (k === 'period_to' && v.invalid.includes('period_from'))}
+                    // Ό,τι έγραφε το χαρτί για την περίοδο, ορατό δίπλα στις ημερομηνίες.
+                    hint={k === 'period_from' && edited.period ? `Στο χαρτί: ${edited.period}` : undefined}
+                    onChange={val => setF(f.key, val)} />
+                );
+              })}
             </div>
 
             {/* Σημειώσεις + προσθήκη δικού σου πεδίου */}
@@ -702,6 +519,34 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                 title="Προσθήκη πεδίου" style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 6, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>+</button>
             </div>
 
+            {/* Ερώτηση συμφωνίας. Εμφανίζεται ΠΡΙΝ γραφτεί οτιδήποτε: η μηχανή βρήκε
+                υποψηφίους αλλά δεν έχει αρκετή απόδειξη. Δίνουμε τους λόγους κάθε
+                υποψηφίου, ώστε η επιλογή του χρήστη να είναι τεκμηριωμένη. */}
+            {ask && (
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--accent-border)', borderRadius: T.radius.card, padding: '14px 16px', marginTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{ask.question}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
+                  Δεν διαλέγω μόνος μου: αν εξοφλήσω τον λάθος, θα δεις πληρωμένο κάτι που χρωστάς.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {ask.options.map(o => (
+                    <button key={o.id} onClick={() => save(o.id)} disabled={saving}
+                      style={{ textAlign: 'left', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 14px', cursor: saving ? 'default' : 'pointer', fontFamily: T.font.sans }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
+                      {o.reasons.length > 0 && (
+                        <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>{o.reasons.join(' · ')}</div>
+                      )}
+                    </button>
+                  ))}
+                  <button onClick={() => save(null)} disabled={saving}
+                    style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, padding: '10px 14px', cursor: saving ? 'default' : 'pointer', fontFamily: T.font.sans }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν από αυτούς</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 3 }}>Θα καταχωρηθεί ως νέα, ξεχωριστή πληρωμή</div>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Αποθήκευση */}
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, gap: 12 }}>
               <div style={{ minWidth: 0 }}>
@@ -710,9 +555,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                   {edited.amount ? fe(edited.amount) : edited.monthly_rent ? `${fe(edited.monthly_rent)}/μήνα` : edited.premium ? fe(edited.premium) : '—'}
                 </div>
               </div>
-              <button onClick={save} disabled={saving || !canSave}
-                style={{ background: canSave ? 'var(--accent)' : 'var(--bg-elevated)', color: canSave ? 'var(--accent-text)' : 'var(--text-tertiary)', border: canSave ? 'none' : '1px solid var(--border-default)', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
-                {saving ? 'Αποθήκευση…' : !canSave ? 'Συμπλήρωσε τα βασικά' : 'Καταχώρηση →'}
+              <button onClick={() => save()} disabled={saving || !canSave || !!ask}
+                style={{ background: canSave && !ask ? 'var(--accent)' : 'var(--bg-elevated)', color: canSave && !ask ? 'var(--accent-text)' : 'var(--text-tertiary)', border: canSave && !ask ? 'none' : '1px solid var(--border-default)', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: canSave && !ask ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                {saving ? 'Αποθήκευση…' : ask ? 'Διάλεξε παραπάνω' : !canSave ? 'Συμπλήρωσε τα βασικά' : 'Καταχώρηση →'}
               </button>
             </div>
           </div>

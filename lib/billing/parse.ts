@@ -4,6 +4,10 @@
 // tests να καλύπτουν τον ΠΡΑΓΜΑΤΙΚΟ κώδικα, όχι αντίγραφο.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Ο έλεγχος ΑΦΜ υπάρχει ήδη μία φορά στο app (αλγόριθμος ΑΑΔΕ, mod-11, με tests).
+// Τον εισάγουμε — δεν τον αντιγράφουμε.
+import { isValidAfm } from '../tax/leaseDeclaration';
+
 export type Category =
   | 'electricity' | 'water' | 'gas' | 'internet' | 'streaming' | 'insurance'
   | 'taxes' | 'municipal' | 'security' | 'common' | 'maintenance'
@@ -182,20 +186,314 @@ export function amountTolerance(amount: number): number {
   return Math.max(0.20, amount * 0.01);
 }
 
-export function matchBillToPayment(
-  t: { amount: number; date: string; category: string },
-  pendingBills: PendingBill[],
-  used: Set<string>,
-): PendingBill | null {
-  const tol = amountTolerance(t.amount);
-  const cands = pendingBills.filter(b => !used.has(b.id)
-    && Math.abs((b.amount || 0) - t.amount) <= tol
-    && withinDays(b.due_date || b.created_at, t.date, 25));
-  // Όταν ο πάροχος/κατηγορία είναι ΓΝΩΣΤΟΣ, απαιτούμε ΙΔΙΑ κατηγορία — ώστε μια
-  // πληρωμή σε ΔΕΗ να μην εξοφλεί λογαριασμό νερού ίδιου ποσού. Μόνο όταν ο
-  // πάροχος είναι άγνωστος ('other') πέφτουμε σε ταίριασμα ποσού+ημερομηνίας.
-  if (t.category && t.category !== 'other') return cands.find(b => b.category === t.category) || null;
-  return cands[0] || null;
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΑΙΡΙΑΣΜΑ ΜΕ ΠΕΝΤΕ ΠΕΔΙΑ — πάροχος, ΑΦΜ, ποσό, ημερομηνία, περίοδος από–έως
+//
+// ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ. Το παλιό ταίριασμα κοίταζε ποσό ± ανοχή + ημερομηνία
+// ±25 ημέρες + κατηγορία. Δύο λογαριασμοί ΔΕΗ ίδιου ποσού σε ΔΙΑΔΟΧΙΚΟΥΣ μήνες
+// πέφτουν και οι δύο μέσα στο παράθυρο των 25 ημερών — άρα μια απόδειξη
+// εξοφλούσε σιωπηλά τον λάθος λογαριασμό, και ο χρήστης δεν το μάθαινε ποτέ.
+//
+// Η ΛΟΓΙΚΗ ΕΙΝΑΙ ΔΥΟ ΒΗΜΑΤΑ, ΟΧΙ ΕΝΑ ΣΚΟΡ.
+//   1) ΣΥΓΚΡΟΥΣΕΙΣ (hard reject): αν δύο πεδία που ΓΝΩΡΙΖΟΥΜΕ και τα δύο
+//      διαφωνούν, ο υποψήφιος πέφτει — όσο καλά κι αν ταιριάζουν τα υπόλοιπα.
+//      Διαφορετικό ΑΦΜ, διαφορετικός (αναγνωρισμένος) πάροχος, διαφορετική
+//      κατηγορία, ή περίοδοι που ΔΕΝ επικαλύπτονται.
+//   2) ΒΕΒΑΙΟΤΗΤΑ (score + λόγοι) στους υποψηφίους που έμειναν. Επιστρέφουμε
+//      βαθμό ΚΑΙ τους λόγους, και όταν δύο υποψήφιοι είναι εξίσου πιθανοί ο
+//      χρήστης ΡΩΤΙΕΤΑΙ ('ask') αντί να γίνει σιωπηλή εξόφληση.
+//
+// «Δεν ξέρω» ΔΕΝ είναι «διαφωνώ». Αν το ένα από τα δύο μέρη δεν έχει ΑΦΜ, αυτό
+// δεν είναι σύγκρουση — είναι απουσία στοιχείου: δεν δίνει μονάδες, δεν κόβει.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Ελληνικό ΑΦΜ (mod-11 της ΑΑΔΕ). ΔΕΝ ξαναγράφεται εδώ: επαναχρησιμοποιείται η
+ *  μοναδική υλοποίηση του checksum στο app (lib/tax/leaseDeclaration.ts), με τα
+ *  δικά της tests. Επανεξάγεται ώστε οι οθόνες του Αρχείου να μην ψάχνουν αλλού. */
+export { isValidAfm };
+
+/** Μόνο ψηφία (το ΑΦΜ γράφεται με κενά/παύλες σε πολλά παραστατικά). */
+export const afmDigits = (v?: string | null): string => String(v ?? '').replace(/\D/g, '');
+
+export interface PeriodRange { from: string; to: string }
+
+const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+const isIso = (s?: string | null): boolean => !!s && ISO_RE.test(s);
+const lastDay = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+const monthRange = (y: number, m: number): PeriodRange => ({
+  from: `${y}-${String(m).padStart(2, '0')}-01`,
+  to: `${y}-${String(m).padStart(2, '0')}-${String(lastDay(y, m)).padStart(2, '0')}`,
+});
+
+// Ελληνικοί μήνες (μετά από αφαίρεση τόνων/πεζά). Δεν είναι «λίστα παρόχων»:
+// είναι το αλφάβητο των ημερομηνιών στα ελληνικά παραστατικά.
+const GR_MONTH_FULL = ['ιανουαριος', 'φεβρουαριος', 'μαρτιος', 'απριλιος', 'μαιος', 'ιουνιος', 'ιουλιος', 'αυγουστος', 'σεπτεμβριος', 'οκτωβριος', 'νοεμβριος', 'δεκεμβριος'];
+// Τριγράμματες συντομογραφίες. Ιούνιος/Ιούλιος ΛΕΙΠΟΥΝ επίτηδες: «Ιου» είναι
+// διφορούμενο, και προτιμούμε να μην αναγνωρίσουμε παρά να μαντέψουμε μήνα.
+const GR_MONTH_ABBR3 = ['ιαν', 'φεβ', 'μαρ', 'απρ', 'μαι', '', '', 'αυγ', 'σεπ', 'οκτ', 'νοε', 'δεκ'];
+
+/**
+ * Μήνας (1-12) από μία λέξη, ή 0. Η σύγκριση γίνεται στα ΤΕΣΣΕΡΑ πρώτα γράμματα
+ * ώστε να πιάνει και τις κλίσεις («Ιουνίου», «Μαΐου») χωρίς να μπερδεύει λέξεις
+ * που απλώς αρχίζουν ίδια: «Μαρούσι» δεν είναι Μάρτιος.
+ */
+function monthOfWord(w: string): number {
+  if (w.length === 3) { const i = GR_MONTH_ABBR3.indexOf(w); return i >= 0 ? i + 1 : 0; }
+  if (w.length >= 4) { const k = w.slice(0, 4); const i = GR_MONTH_FULL.findIndex(f => f.slice(0, 4) === k); return i + 1; }
+  return 0;
+}
+
+/**
+ * Δομημένη περίοδος από ΕΛΕΥΘΕΡΟ κείμενο («Ιούνιος 2026», «01/06/2026-30/06/2026»,
+ * «06/2026», «Ιούν–Ιούλ 2026»). ΔΕΝ επινοεί: επιστρέφει null όταν το κείμενο δεν
+ * λέει μήνα/εύρος. Χρειάζεται επειδή οι υπάρχοντες λογαριασμοί (`bills.period`)
+ * κρατούν περίοδο ως κείμενο και χωρίς μετάφραση δεν συγκρίνεται με τίποτα.
+ */
+export function derivePeriod(text?: string | null): PeriodRange | null {
+  const raw = String(text ?? '').trim();
+  if (!raw) return null;
+  const s = stripAccents(raw);
+
+  // 1) Δύο πλήρεις ημερομηνίες → ρητό εύρος.
+  const dates = (s.match(/\d{1,4}[\/\-.]\d{1,2}[\/\-.]\d{2,4}/g) || [])
+    .map(parseDate).filter(isIso);
+  if (dates.length >= 2) {
+    const sorted = [...dates].sort();
+    return { from: sorted[0], to: sorted[sorted.length - 1] };
+  }
+  const isos = s.match(/\d{4}-\d{2}-\d{2}/g) || [];
+  if (isos.length >= 2) { const sorted = [...isos].sort(); return { from: sorted[0], to: sorted[sorted.length - 1] }; }
+
+  // 2) Ονόματα μηνών + έτος («Ιούνιος 2026», «Ιούν – Ιούλ 2026»).
+  const year = s.match(/(20\d{2})/)?.[1];
+  if (year) {
+    const found: number[] = [];
+    // Σάρωση με σειρά εμφάνισης στο κείμενο, ώστε «Ιούν–Ιούλ» να δώσει 6→7.
+    for (const w of s.split(/[^α-ωa-z]+/)) {
+      const m = monthOfWord(w);
+      if (m && !found.includes(m)) found.push(m);
+    }
+    if (found.length >= 2) {
+      const a = monthRange(Number(year), Math.min(...found));
+      const b = monthRange(Number(year), Math.max(...found));
+      return { from: a.from, to: b.to };
+    }
+    if (found.length === 1) return monthRange(Number(year), found[0]);
+    // 3) Αριθμητικός μήνας: «06/2026» ή «2026-06».
+    const my = s.match(/\b(0?[1-9]|1[0-2])[\/\-.](20\d{2})\b/);
+    if (my) return monthRange(Number(my[2]), Number(my[1]));
+    const ym = s.match(/\b(20\d{2})[\/\-.](0?[1-9]|1[0-2])\b/);
+    if (ym) return monthRange(Number(ym[1]), Number(ym[2]));
+  }
+  return null;
+}
+
+/** Η περίοδος ενός παραστατικού: δομημένη αν υπάρχει, αλλιώς από το κείμενο. */
+export function periodOf(x: { period_from?: string | null; period_to?: string | null; period?: string | null }): PeriodRange | null {
+  const f = isIso(x.period_from) ? x.period_from! : '';
+  const t = isIso(x.period_to) ? x.period_to! : '';
+  if (f && t) return f <= t ? { from: f, to: t } : { from: t, to: f };
+  if (f) return { from: f, to: f };
+  if (t) return { from: t, to: t };
+  return derivePeriod(x.period);
+}
+
+/** Επικάλυψη περιόδων (ISO strings → λεξικογραφική σύγκριση = χρονολογική). */
+export function periodsOverlap(a: PeriodRange, b: PeriodRange): boolean {
+  return a.from <= b.to && b.from <= a.to;
+}
+
+// ── Ταυτότητα παρόχου ───────────────────────────────────────────────────────
+// Δεν συγκρίνουμε ωμά strings: «ΔΕΗ Α.Ε.» και «ΔΕΗ — Ιούν 2026» είναι ο ίδιος
+// πάροχος. Ούτε χρησιμοποιούμε καινούργια λίστα εταιρειών: τα ονόματα
+// αναγνωρίζονται με τους ΥΠΑΡΧΟΝΤΕΣ MATCHERS (ο ίδιος κατάλογος που κατηγοριοποιεί
+// τραπεζικές κινήσεις). Έτσι «ΔΕΗ» ≠ «PROTERGIA» παρότι και τα δύο είναι ρεύμα.
+const LEGAL_SUFFIX = /\b(α\.?ε\.?|αβεε|αεβε|επε|ικε|ο\.?ε\.?|ε\.?ε\.?|sa|ltd|plc|inc)\b/g;
+const providerTokens = (name?: string | null): string[] =>
+  stripAccents(String(name ?? '')).replace(LEGAL_SUFFIX, ' ')
+    .split(/[^α-ωa-z0-9]+/).filter(w => w.length >= 3);
+
+export type FieldVerdict = 'same' | 'different' | 'unknown';
+
+export function compareProviders(a?: string | null, b?: string | null): FieldVerdict {
+  const ta = providerTokens(a), tb = providerTokens(b);
+  if (!ta.length || !tb.length) return 'unknown';
+  if (ta.some(x => tb.includes(x))) return 'same';
+  // Χωρίς κοινή λέξη: σύγκρουση ΜΟΝΟ αν αναγνωρίζουμε και τους δύο ως γνωστούς
+  // (διαφορετικούς) παρόχους. Αν ο ένας είναι απλώς «Λογαριασμός ρεύματος», δεν
+  // ξέρουμε — και το «δεν ξέρω» δεν μπλοκάρει.
+  const ka = categorizeTransaction(String(a ?? '')).matched;
+  const kb = categorizeTransaction(String(b ?? '')).matched;
+  if (ka && kb) return ka === kb ? 'same' : 'different';
+  return 'unknown';
+}
+
+/** Το `bills.name` γράφεται ως «Πάροχος — Περίοδος» (planDocSave). Πάρε τον πάροχο. */
+export function providerFromBillName(name?: string | null): string {
+  return String(name ?? '').split('—')[0].trim();
+}
+
+// ── Το σχήμα των δύο πλευρών ────────────────────────────────────────────────
+/** Εκκρεμής λογαριασμός με ό,τι ξέρουμε γι' αυτόν (όλα τα νέα πεδία προαιρετικά). */
+export interface MatchCandidate {
+  id: string;
+  amount: number;
+  category?: string | null;
+  due_date?: string | null;
+  created_at?: string | null;
+  provider?: string | null;
+  provider_afm?: string | null;
+  period_from?: string | null;
+  period_to?: string | null;
+  period?: string | null;
+}
+
+/** Η απόδειξη πληρωμής: τι διαβάσαμε από το χαρτί. */
+export interface PaymentEvidence {
+  amount: number;
+  date: string;
+  category?: string | null;
+  provider?: string | null;
+  provider_afm?: string | null;
+  period_from?: string | null;
+  period_to?: string | null;
+  period?: string | null;
+}
+
+export type MatchField = 'afm' | 'provider' | 'period' | 'amount' | 'date' | 'category';
+export interface MatchReason { field: MatchField; ok: boolean; detail: string }
+export interface BillMatch<T extends MatchCandidate = MatchCandidate> {
+  bill: T; score: number; reasons: MatchReason[];
+}
+export type MatchVerdict = 'confident' | 'ask' | 'none';
+export interface MatchResult<T extends MatchCandidate = MatchCandidate> {
+  verdict: MatchVerdict;
+  best?: BillMatch<T>;
+  candidates: BillMatch<T>[];
+  /** Τι ρωτάμε τον χρήστη όταν verdict==='ask' (ελληνικά, έτοιμο για οθόνη). */
+  question?: string;
+}
+
+// Βάρη: το ΑΦΜ είναι το ισχυρότερο (ένα νούμερο, μηδέν διφορούμενο), μετά ο
+// πάροχος και η επικάλυψη περιόδου, και τελευταία το ποσό/ημερομηνία που από
+// μόνα τους έχουν αποδειχθεί ότι μπερδεύουν διαδοχικούς μήνες.
+const W = {
+  afm: 40, provider: 22, periodExact: 24, periodOverlap: 18,
+  amountExact: 28, amountTol: 20, dateClose: 16, dateNear: 10, category: 8,
+} as const;
+// Κάτω από αυτό δεν υπάρχει αρκετή απόδειξη ώστε να εξοφληθεί κάτι χωρίς ερώτηση.
+// Το κατώφλι είναι επιλεγμένο ώστε «ποσό εντός ανοχής + ημερομηνία εντός 25 ημερών»
+// (20+10=30) να ΜΗΝ αρκεί από μόνο του: θέλουμε τουλάχιστον ένα ακόμη στοιχείο —
+// ακριβές ποσό, ίδια κατηγορία, ίδιος πάροχος, ΑΦΜ ή επικάλυψη περιόδου.
+const MIN_CONFIDENT = 34;
+/** Πόσο πιο ψηλά πρέπει να είναι ο πρώτος από τον δεύτερο ώστε να μη ρωτήσουμε. */
+const MIN_MARGIN = 12;
+
+const fmtEur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+
+/**
+ * Ταιριάζει μια απόδειξη πληρωμής με τους εκκρεμείς λογαριασμούς και επιστρέφει
+ * ΒΕΒΑΙΟΤΗΤΑ + ΛΟΓΟΥΣ, όχι boolean.
+ *   'confident' → μπορεί να γίνει εξόφληση χωρίς ερώτηση
+ *   'ask'       → υπάρχουν υποψήφιοι αλλά η βεβαιότητα δεν φτάνει: ΡΩΤΑ
+ *   'none'      → κανένας υποψήφιος (δημιουργείται νέα εγγραφή)
+ */
+export function matchPaymentToBills<T extends MatchCandidate>(
+  p: PaymentEvidence,
+  bills: T[],
+  used: Set<string> = new Set(),
+): MatchResult<T> {
+  const tol = amountTolerance(p.amount);
+  const pAfm = afmDigits(p.provider_afm);
+  const pPeriod = periodOf(p);
+  const scored: BillMatch<T>[] = [];
+
+  for (const b of bills) {
+    if (used.has(b.id)) continue;
+    const reasons: MatchReason[] = [];
+    let score = 0;
+
+    // ── Ποσό: σκληρό φίλτρο (χωρίς ίδιο ποσό δεν συζητάμε).
+    const diff = Math.abs((b.amount || 0) - p.amount);
+    if (diff > tol) continue;
+    if (diff < 0.005) { score += W.amountExact; reasons.push({ field: 'amount', ok: true, detail: `Ίδιο ποσό ${fmtEur(p.amount)}` }); }
+    else { score += W.amountTol; reasons.push({ field: 'amount', ok: true, detail: `Ποσό ${fmtEur(b.amount)} έναντι ${fmtEur(p.amount)} (εντός ανοχής)` }); }
+
+    // ── ΑΦΜ: το ισχυρότερο. Άκυρο checksum = «δεν ξέρω», όχι σύγκρουση.
+    const bAfm = afmDigits(b.provider_afm);
+    if (pAfm && bAfm && isValidAfm(pAfm) && isValidAfm(bAfm)) {
+      if (pAfm !== bAfm) continue;                       // ΣΥΓΚΡΟΥΣΗ
+      score += W.afm;
+      reasons.push({ field: 'afm', ok: true, detail: `Ίδιο ΑΦΜ παρόχου ${pAfm}` });
+    }
+
+    // ── Πάροχος.
+    const prov = compareProviders(p.provider, b.provider || undefined);
+    if (prov === 'different') continue;                  // ΣΥΓΚΡΟΥΣΗ
+    if (prov === 'same') { score += W.provider; reasons.push({ field: 'provider', ok: true, detail: `Ίδιος πάροχος: ${b.provider || p.provider}` }); }
+
+    // ── Κατηγορία (η υπάρχουσα αυστηρότητα: ΔΕΗ δεν εξοφλεί νερό).
+    const pc = p.category && p.category !== 'other' ? p.category : '';
+    const bc = b.category && b.category !== 'other' ? b.category : '';
+    if (pc && bc) {
+      if (pc !== bc) continue;                           // ΣΥΓΚΡΟΥΣΗ
+      score += W.category;
+      reasons.push({ field: 'category', ok: true, detail: 'Ίδια κατηγορία' });
+    }
+
+    // ── Περίοδος δαπάνης: ο έλεγχος που έλειπε.
+    const bPeriod = periodOf(b);
+    if (pPeriod && bPeriod) {
+      if (!periodsOverlap(pPeriod, bPeriod)) continue;    // ΣΥΓΚΡΟΥΣΗ
+      const exact = pPeriod.from === bPeriod.from && pPeriod.to === bPeriod.to;
+      score += exact ? W.periodExact : W.periodOverlap;
+      reasons.push({ field: 'period', ok: true, detail: exact ? `Ίδια περίοδος ${bPeriod.from} → ${bPeriod.to}` : `Επικάλυψη περιόδου ${bPeriod.from} → ${bPeriod.to}` });
+    }
+
+    // ── Ημερομηνία. Όταν η περίοδος συμφωνεί, δεν απαιτούμε χρονική εγγύτητα
+    // (ένας λογαριασμός Ιουνίου πληρώνεται και τον Αύγουστο). Όταν ΔΕΝ ξέρουμε
+    // περίοδο, η ημερομηνία είναι το μόνο που έχουμε — άρα γίνεται σκληρό φίλτρο.
+    const bDate = b.due_date || b.created_at;
+    const close = withinDays(bDate, p.date, 5);
+    const near = withinDays(bDate, p.date, 25);
+    if (close) { score += W.dateClose; reasons.push({ field: 'date', ok: true, detail: 'Ημερομηνία σε 5 ημέρες' }); }
+    else if (near) { score += W.dateNear; reasons.push({ field: 'date', ok: true, detail: 'Ημερομηνία σε 25 ημέρες' }); }
+    else if (!(pPeriod && bPeriod)) continue;             // ούτε περίοδος ούτε ημερομηνία
+    else reasons.push({ field: 'date', ok: false, detail: 'Η ημερομηνία απέχει, αλλά η περίοδος συμφωνεί' });
+
+    scored.push({ bill: b, score: Math.min(100, score), reasons });
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  if (!scored.length) return { verdict: 'none', candidates: [] };
+
+  const best = scored[0];
+  const margin = scored.length > 1 ? best.score - scored[1].score : Infinity;
+  if (best.score >= MIN_CONFIDENT && margin >= MIN_MARGIN) {
+    return { verdict: 'confident', best, candidates: scored };
+  }
+  return {
+    verdict: 'ask',
+    best,
+    candidates: scored,
+    question: scored.length > 1
+      ? `Βρήκα ${scored.length} εκκρεμείς λογαριασμούς ${fmtEur(p.amount)} που ταιριάζουν εξίσου. Ποιον εξοφλεί αυτή η απόδειξη;`
+      : `Ο λογαριασμός που βρήκα ταιριάζει μόνο στο ποσό. Να τον σημειώσω εξοφλημένο;`,
+  };
+}
+
+/**
+ * Παλιά υπογραφή (boolean-ish): επιστρέφει λογαριασμό ΜΟΝΟ όταν η βεβαιότητα
+ * είναι πλήρης. Διατηρείται για τα σημεία που δεν μπορούν να ρωτήσουν τον χρήστη
+ * (μαζική εισαγωγή τραπεζικού αντιγράφου): εκεί «δεν ξέρω» σημαίνει «μην αγγίξεις».
+ */
+export function matchBillToPayment<T extends MatchCandidate>(
+  t: PaymentEvidence,
+  pendingBills: T[],
+  used: Set<string> = new Set(),
+): T | null {
+  const r = matchPaymentToBills(t, pendingBills, used);
+  return r.verdict === 'confident' && r.best ? r.best.bill : null;
 }
 
 // ── Ταξινόμηση αρχειοθετημένων λογαριασμών ─────────────────────────────────

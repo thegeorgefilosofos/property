@@ -209,5 +209,12 @@ export const oblToCalendarCategory = (c: OblCategory): string =>
 /** Οι υποχρεώσεις που γράφει ΑΥΤΗ η οθόνη στο ημερολόγιο (οι υπόλοιπες ανήκουν
  *  στην καρτέλα που κατέχει το δεδομένο). Μία λίστα, ώστε το κουμπί, ο έλεγχος
  *  «προστέθηκε;» και η αφαίρεση να μιλούν για τα ΙΔΙΑ γεγονότα. */
-export const calendarWritable = (obls: readonly Obligation[]): Obligation[] =>
+// ΓΙΑΤΙ Η ΕΠΙΣΤΡΟΦΗ ΕΙΝΑΙ ΣΤΕΝΕΜΕΝΗ ΚΑΙ ΟΧΙ ΣΚΕΤΟ `Obligation[]`
+// Το type predicate του filter στενεύει σωστά, αλλά μια δηλωμένη επιστροφή
+// `Obligation[]` το ΣΒΗΝΕΙ: ο καλών ξαναέβλεπε `source: string | null` και το
+// `.map(o => o.source)` έδινε πίνακα με πιθανά null — ακριβώς εκεί που το
+// χρησιμοποιούμε ως κλειδί ταυτότητας στο ερώτημα του ημερολογίου.
+export const calendarWritable = (
+  obls: readonly Obligation[],
+): (Obligation & { source: string })[] =>
   obls.filter((o): o is Obligation & { source: string } => !!o.source);

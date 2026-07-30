@@ -7,6 +7,8 @@
 import {
   parseCSV, categorizeTransaction, matchBillToPayment, withinDays,
   assessCompleteness, EXPENSE_MAP, MATCHERS, type PendingBill,
+  matchPaymentToBills, derivePeriod, periodsOverlap, compareProviders,
+  providerFromBillName, isValidAfm, type MatchCandidate,
 } from './parse';
 
 let pass = 0, fail = 0;
@@ -228,6 +230,141 @@ ok(parseCSV('a;b;c\n12/06/2026;ΔΕΗ;-50,00').length === 1, 'unknown header →
   ok(rent.length === 1 && rent[0].debit === false, `rent credit debit=false → ${rent[0]?.debit}`);
   ok(rent[0]?.selected === false, 'rent not auto-selected');
   ok(approx(rent[0]?.amount, 800), `rent amount → ${rent[0]?.amount}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΑΙΡΙΑΣΜΑ ΜΕ ΠΕΝΤΕ ΠΕΔΙΑ — πραγματικά σενάρια ΔΕΗ / ΕΥΔΑΠ
+// Ο λόγος ύπαρξης αυτού του μπλοκ: μέχρι σήμερα δύο λογαριασμοί ΔΕΗ ίδιου ποσού
+// σε διαδοχικούς μήνες εξοφλούσαν ο ένας τον άλλο, σιωπηλά.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── derivePeriod: από ελεύθερο κείμενο σε συγκρίσιμο εύρος ──────────────────
+ok(JSON.stringify(derivePeriod('Ιούνιος 2026')) === JSON.stringify({ from: '2026-06-01', to: '2026-06-30' }), `derivePeriod Ιούνιος → ${JSON.stringify(derivePeriod('Ιούνιος 2026'))}`);
+ok(JSON.stringify(derivePeriod('Ιούν 2026')) === JSON.stringify({ from: '2026-06-01', to: '2026-06-30' }), 'derivePeriod Ιούν 2026');
+ok(JSON.stringify(derivePeriod('ΦΕΒΡΟΥΑΡΙΟΣ 2024')) === JSON.stringify({ from: '2024-02-01', to: '2024-02-29' }), 'derivePeriod δίσεκτος Φεβ 2024');
+ok(JSON.stringify(derivePeriod('Φεβρουάριος 2026')) === JSON.stringify({ from: '2026-02-01', to: '2026-02-28' }), 'derivePeriod Φεβ 2026 (28)');
+ok(JSON.stringify(derivePeriod('01/06/2026 - 30/06/2026')) === JSON.stringify({ from: '2026-06-01', to: '2026-06-30' }), 'derivePeriod ρητό εύρος d/m/y');
+ok(JSON.stringify(derivePeriod('2026-06-01 έως 2026-07-31')) === JSON.stringify({ from: '2026-06-01', to: '2026-07-31' }), 'derivePeriod ρητό εύρος ISO');
+ok(JSON.stringify(derivePeriod('06/2026')) === JSON.stringify({ from: '2026-06-01', to: '2026-06-30' }), 'derivePeriod 06/2026');
+ok(JSON.stringify(derivePeriod('Ιούν - Ιούλ 2026')) === JSON.stringify({ from: '2026-06-01', to: '2026-07-31' }), `derivePeriod δίμηνο → ${JSON.stringify(derivePeriod('Ιούν - Ιούλ 2026'))}`);
+ok(derivePeriod('') === null, 'derivePeriod κενό → null');
+ok(derivePeriod('εκκαθαριστικός') === null, 'derivePeriod χωρίς μήνα → null (τίποτα επινοημένο)');
+ok(derivePeriod('Ιούνιος') === null, 'derivePeriod χωρίς έτος → null');
+// Λέξη που απλώς ΑΡΧΙΖΕΙ σαν μήνας δεν είναι μήνας — αλλιώς θα επινοούσαμε περίοδο.
+ok(derivePeriod('Υποκατάστημα Μαρούσι 2026') === null, `«Μαρούσι» δεν είναι Μάρτιος → ${JSON.stringify(derivePeriod('Υποκατάστημα Μαρούσι 2026'))}`);
+ok(JSON.stringify(derivePeriod('Ιουνίου 2026')) === JSON.stringify({ from: '2026-06-01', to: '2026-06-30' }), 'derivePeriod γενική «Ιουνίου»');
+ok(JSON.stringify(derivePeriod('Μαΐου 2026')) === JSON.stringify({ from: '2026-05-01', to: '2026-05-31' }), `derivePeriod «Μαΐου» → ${JSON.stringify(derivePeriod('Μαΐου 2026'))}`);
+ok(derivePeriod('Ιου 2026') === null, 'διφορούμενο «Ιου» → δεν μαντεύουμε');
+
+// ── periodsOverlap ─────────────────────────────────────────────────────────
+ok(periodsOverlap({ from: '2026-06-01', to: '2026-06-30' }, { from: '2026-06-15', to: '2026-07-15' }), 'overlap μερική');
+ok(!periodsOverlap({ from: '2026-06-01', to: '2026-06-30' }, { from: '2026-07-01', to: '2026-07-31' }), 'overlap διαδοχικοί μήνες → όχι');
+ok(periodsOverlap({ from: '2026-06-30', to: '2026-06-30' }, { from: '2026-06-01', to: '2026-06-30' }), 'overlap άκρο');
+
+// ── compareProviders: «δεν ξέρω» δεν είναι «διαφωνώ» ───────────────────────
+ok(compareProviders('ΔΕΗ Α.Ε.', 'ΔΕΗ — Ιούν 2026') === 'same', 'πάροχος ίδιος με νομική κατάληξη/περίοδο');
+ok(compareProviders('ΔΕΗ', 'PROTERGIA') === 'different', 'ΔΕΗ ≠ Protergia (και τα δύο ρεύμα)');
+ok(compareProviders('ΔΕΗ', 'ΕΥΔΑΠ') === 'different', 'ΔΕΗ ≠ ΕΥΔΑΠ');
+ok(compareProviders('ΔΕΗ', 'Λογαριασμός ρεύματος') === 'unknown', 'ανώνυμη περιγραφή → unknown, δεν κόβει');
+ok(compareProviders('', 'ΔΕΗ') === 'unknown', 'κενός πάροχος → unknown');
+ok(providerFromBillName('ΔΕΗ — Ιούνιος 2026') === 'ΔΕΗ', 'providerFromBillName');
+
+// ── Το σενάριο που έσπαγε: δύο ΔΕΗ ίδιου ποσού, ΔΙΑΔΟΧΙΚΟΙ μήνες ───────────
+{
+  // Πραγματικό: λογαριασμός ΔΕΗ Ιουνίου (λήξη 20/07) και Ιουλίου (λήξη 20/08),
+  // και οι δύο 88,50 €. Πληρωμή στις 30/07 πέφτει μέσα στο παράθυρο ±25 ημερών
+  // ΚΑΙ ΤΩΝ ΔΥΟ (10 και 21 ημέρες) — εδώ το παλιό ταίριασμα διάλεγε στην τύχη.
+  const dei: MatchCandidate[] = [
+    { id: 'jun', category: 'electricity', amount: 88.50, due_date: '2026-07-20', provider: 'ΔΕΗ', period: 'Ιούνιος 2026' },
+    { id: 'jul', category: 'electricity', amount: 88.50, due_date: '2026-08-20', provider: 'ΔΕΗ', period: 'Ιούλιος 2026' },
+  ];
+  ok(withinDays('2026-07-20', '2026-07-30', 25) && withinDays('2026-08-20', '2026-07-30', 25), 'προϋπόθεση: και οι δύο μέσα στο ±25');
+
+  // (α) Η απόδειξη λέει ρητά ποια περίοδο εξοφλεί → ένας υποψήφιος, βεβαιότητα.
+  const withPeriod = matchPaymentToBills({
+    amount: 88.50, date: '2026-07-30', category: 'electricity', provider: 'ΔΕΗ',
+    period_from: '2026-07-01', period_to: '2026-07-31',
+  }, dei);
+  ok(withPeriod.verdict === 'confident', `περίοδος Ιουλίου → confident (${withPeriod.verdict})`);
+  ok(withPeriod.best?.bill.id === 'jul', `περίοδος Ιουλίου → jul (${withPeriod.best?.bill.id})`);
+  ok(withPeriod.candidates.length === 1, `ο Ιούνιος απορρίπτεται από την περίοδο (${withPeriod.candidates.length})`);
+  ok(withPeriod.best!.reasons.some(r => r.field === 'period' && r.ok), 'ο λόγος περιόδου καταγράφεται');
+
+  // (β) Η απόδειξη ΔΕΝ λέει περίοδο → δύο εξίσου πιθανοί → ΡΩΤΑΜΕ.
+  const noPeriod = matchPaymentToBills({ amount: 88.50, date: '2026-07-30', category: 'electricity', provider: 'ΔΕΗ' }, dei);
+  ok(noPeriod.verdict === 'ask', `χωρίς περίοδο → ask (${noPeriod.verdict})`);
+  ok(noPeriod.candidates.length === 2, `δύο υποψήφιοι (${noPeriod.candidates.length})`);
+  ok(!!noPeriod.question && noPeriod.question.includes('Ποιον'), 'υπάρχει ερώτηση για τον χρήστη');
+  // ΚΡΙΣΙΜΟ: η παλιά υπογραφή ΔΕΝ εξοφλεί στα τυφλά.
+  ok(matchBillToPayment({ amount: 88.50, date: '2026-07-30', category: 'electricity', provider: 'ΔΕΗ' }, dei) === null,
+    'διφορούμενο → η παλιά υπογραφή επιστρέφει null (καμία σιωπηλή εξόφληση)');
+
+  // (γ) Δύο λογαριασμοί ίδιου ποσού ΔΙΑΦΟΡΕΤΙΚΗΣ περιόδου δεν ταιριάζουν ποτέ.
+  const junOnly = matchPaymentToBills({
+    amount: 88.50, date: '2026-07-30', category: 'electricity', provider: 'ΔΕΗ',
+    period_from: '2026-06-01', period_to: '2026-06-30',
+  }, [dei[1]]);
+  ok(junOnly.verdict === 'none', `περίοδος Ιουνίου vs λογαριασμός Ιουλίου → none (${junOnly.verdict})`);
+}
+
+// ── ΑΦΜ: το ισχυρότερο πεδίο ───────────────────────────────────────────────
+{
+  // ΑΦΜ ΔΕΗ (δημόσιο, έγκυρο checksum) και ένα δεύτερο έγκυρο ΑΦΜ.
+  ok(isValidAfm('090000045'), 'προϋπόθεση: 090000045 έγκυρο');
+  ok(isValidAfm('094097524'), 'προϋπόθεση: 094097524 έγκυρο');
+  const bills2: MatchCandidate[] = [
+    { id: 'a', category: 'electricity', amount: 120, due_date: '2026-07-10', provider: 'Ρεύμα', provider_afm: '090000045', period: 'Ιούνιος 2026' },
+    { id: 'b', category: 'electricity', amount: 120, due_date: '2026-07-12', provider: 'Ρεύμα', provider_afm: '094097524', period: 'Ιούνιος 2026' },
+  ];
+  const byAfm = matchPaymentToBills({ amount: 120, date: '2026-07-11', category: 'electricity', provider_afm: '094 097 524' }, bills2);
+  ok(byAfm.verdict === 'confident', `το ΑΦΜ λύνει τη διφορούμενη περίπτωση (${byAfm.verdict})`);
+  ok(byAfm.best?.bill.id === 'b', `ΑΦΜ → b (${byAfm.best?.bill.id})`);
+  ok(byAfm.candidates.length === 1, 'ο άλλος απορρίπτεται από σύγκρουση ΑΦΜ');
+  // Άκυρο ΑΦΜ = «δεν ξέρω», ΔΕΝ κόβει τον υποψήφιο.
+  const badAfm = matchPaymentToBills({ amount: 120, date: '2026-07-11', category: 'electricity', provider_afm: '090000046' }, [bills2[0]]);
+  ok(badAfm.verdict === 'confident', `άκυρο checksum → αγνοείται, δεν μπλοκάρει (${badAfm.verdict})`);
+  ok(!badAfm.best!.reasons.some(r => r.field === 'afm'), 'άκυρο ΑΦΜ δεν καταγράφεται ως λόγος');
+}
+
+// ── ΔΕΗ vs ΕΥΔΑΠ: ίδιο ποσό, ίδια ημέρα, διαφορετικός πάροχος ──────────────
+{
+  const eydap: MatchCandidate[] = [{ id: 'w', category: 'water', amount: 42, due_date: '2026-07-15', provider: 'ΕΥΔΑΠ', period: 'Ιούνιος 2026' }];
+  const r = matchPaymentToBills({ amount: 42, date: '2026-07-16', category: 'electricity', provider: 'ΔΕΗ' }, eydap);
+  ok(r.verdict === 'none', `πληρωμή ΔΕΗ δεν εξοφλεί ΕΥΔΑΠ (${r.verdict})`);
+  // Ακόμη και χωρίς κατηγορία στην απόδειξη, ο πάροχος αρκεί για την απόρριψη.
+  const r2 = matchPaymentToBills({ amount: 42, date: '2026-07-16', provider: 'ΔΕΗ' }, eydap);
+  ok(r2.verdict === 'none', `μόνο ο πάροχος αρκεί για απόρριψη (${r2.verdict})`);
+  // Ίδιος πάροχος → confident, με τον λόγο «ίδιος πάροχος».
+  const r3 = matchPaymentToBills({ amount: 42, date: '2026-07-16', category: 'water', provider: 'ΕΥΔΑΠ Α.Ε.' }, eydap);
+  ok(r3.verdict === 'confident' && r3.best!.reasons.some(x => x.field === 'provider' && x.ok), 'ΕΥΔΑΠ → ΕΥΔΑΠ confident με λόγο παρόχου');
+}
+
+// ── Ένας μόνος υποψήφιος με ελάχιστα στοιχεία → ρωτάμε, δεν υποθέτουμε ─────
+{
+  // Ποσό κατά προσέγγιση + ημερομηνία 23 ημερών, κανένα άλλο στοιχείο: ΔΕΝ αρκεί.
+  const thin: MatchCandidate[] = [{ id: 't', amount: 30, created_at: '2026-07-01T00:00:00Z' }];
+  const r = matchPaymentToBills({ amount: 30.20, date: '2026-07-24' }, thin);
+  ok(r.verdict === 'ask', `μόνο ποσό-εντός-ανοχής + ημ/νία 23 ημερών → ask (${r.verdict}, score ${r.best?.score})`);
+  ok(!!r.question, 'ερώτηση παρούσα');
+  ok(matchBillToPayment({ amount: 30.20, date: '2026-07-24' }, thin) === null, 'ισχνή απόδειξη → καμία αυτόματη εξόφληση');
+  // Ένα δεύτερο στοιχείο (ίδια κατηγορία) το κάνει βέβαιο.
+  const withCat = matchPaymentToBills({ amount: 30.20, date: '2026-07-24', category: 'water' }, [{ ...thin[0], category: 'water' }]);
+  ok(withCat.verdict === 'confident', `ποσό + ημ/νία + κατηγορία → confident (${withCat.verdict})`);
+}
+
+// ── Η περίοδος επιτρέπει καθυστερημένη πληρωμή (πάνω από 25 ημέρες) ────────
+{
+  const late: MatchCandidate[] = [{ id: 'l', category: 'water', amount: 55, due_date: '2026-06-20', provider: 'ΕΥΔΑΠ', period_from: '2026-04-01', period_to: '2026-06-30' }];
+  const r = matchPaymentToBills({ amount: 55, date: '2026-08-25', category: 'water', provider: 'ΕΥΔΑΠ', period_from: '2026-04-01', period_to: '2026-06-30' }, late);
+  ok(r.verdict === 'confident', `ίδια περίοδος + πάροχος → ταιριάζει παρά την καθυστέρηση (${r.verdict})`);
+  ok(r.best!.reasons.some(x => x.field === 'date' && !x.ok), 'ο λόγος λέει ειλικρινά ότι η ημερομηνία απέχει');
+}
+
+// ── `used`: μια απόδειξη δεν εξοφλεί δύο φορές τον ίδιο λογαριασμό ─────────
+{
+  const one: MatchCandidate[] = [{ id: 'u', category: 'gas', amount: 70, due_date: '2026-07-10', provider: 'ΔΕΠΑ' }];
+  const used = new Set<string>(['u']);
+  ok(matchPaymentToBills({ amount: 70, date: '2026-07-11', category: 'gas', provider: 'ΔΕΠΑ' }, one, used).verdict === 'none', 'used → none');
 }
 
 // ── Αποτελέσματα ────────────────────────────────────────────────────────────

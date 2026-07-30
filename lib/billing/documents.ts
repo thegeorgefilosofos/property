@@ -13,7 +13,7 @@
 // η επικίνδυνη λογική (κατηγοριοποίηση/δρομολόγηση) είναι 100% δοκιμάσιμη.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { EXPENSE_MAP } from './parse';
+import { EXPENSE_MAP, categorizeTransaction, derivePeriod, afmDigits, isValidAfm } from './parse';
 
 export type DocType =
   | 'bill'        // λογαριασμός κοινής ωφέλειας/υπηρεσίας → Λογαριασμοί + Δαπάνες + Ημερολόγιο
@@ -46,7 +46,22 @@ export const DOC_TYPES: DocTypeMeta[] = [
 export const DOC_TYPE_LABELS: Record<DocType, string> =
   DOC_TYPES.reduce((a, t) => { a[t.id] = t.label; return a; }, {} as Record<DocType, string>);
 
-// Κατηγορία στο Αρχείο (property_documents) ανά τύπο — ώστε να μπαίνει σωστά.
+// ── Η ταξινομία του Αρχείου — ΕΝΑ σημείο αλήθειας ────────────────────────────
+// Οι κατηγορίες-φάκελοι του property_documents. Ζουν ΕΔΩ (και όχι στην οθόνη)
+// επειδή τις γράφουν τρεις διαφορετικές διαδρομές (σάρωση, μαζικό ανέβασμα,
+// διόρθωση) και μέχρι σήμερα η κάθε μία είχε δική της εκδοχή.
+export const ARCHIVE_CATEGORIES = [
+  'Μισθωτήριο / Συμβόλαιο', 'Ασφαλιστήριο Συμβόλαιο',
+  'ΕΝΦΙΑ / Φορολογικά', 'Τεχνική Έκθεση',
+  'Λογαριασμός Ρεύματος', 'Λογαριασμός Φυσικού Αερίου', 'Λογαριασμός Νερού',
+  'Τηλέφωνο / Internet', 'Κοινόχρηστα',
+  'Απεντόμωση / Μυοκτονία', 'Τιμολόγιο Καθαρισμού', 'Συντήρηση Πισίνας',
+  'Συντήρηση Ανελκυστήρα', 'Εταιρεία Ασφαλείας', 'Άλλο Έγγραφο',
+] as const;
+
+// Κατηγορία στο Αρχείο ανά τύπο εγγράφου. Για λογαριασμούς/αποδείξεις είναι
+// ΑΦΕΤΗΡΙΑ μόνο: το τελικό ράφι το δίνει το archiveCategoryFor() παρακάτω, που
+// ξέρει και την κατηγορία του λογαριασμού (ρεύμα, νερό, αέριο…).
 export const DOC_ARCHIVE_CATEGORY: Record<DocType, string> = {
   bill:       'Άλλο Έγγραφο',
   payment:    'Άλλο Έγγραφο',
@@ -58,6 +73,48 @@ export const DOC_ARCHIVE_CATEGORY: Record<DocType, string> = {
   other:      'Άλλο Έγγραφο',
 };
 
+// Κατηγορία λογαριασμού (electricity, water…) → ράφι του Αρχείου.
+const BILL_ARCHIVE_CATEGORY: Record<string, string> = {
+  electricity: 'Λογαριασμός Ρεύματος',
+  water:       'Λογαριασμός Νερού',
+  gas:         'Λογαριασμός Φυσικού Αερίου',
+  internet:    'Τηλέφωνο / Internet',
+  common:      'Κοινόχρηστα',
+  insurance:   'Ασφαλιστήριο Συμβόλαιο',
+  taxes:       'ΕΝΦΙΑ / Φορολογικά',
+  municipal:   'ΕΝΦΙΑ / Φορολογικά',
+  security:    'Εταιρεία Ασφαλείας',
+  elevator:    'Συντήρηση Ανελκυστήρα',
+  pool:        'Συντήρηση Πισίνας',
+  cleaner:     'Τιμολόγιο Καθαρισμού',
+};
+
+/**
+ * Η κατηγορία λογαριασμού, οριστικοποιημένη. Αν η OCR δεν έδωσε έγκυρη κατηγορία,
+ * την αναγνωρίζουμε από το ΟΝΟΜΑ ΤΟΥ ΠΑΡΟΧΟΥ με τους ΥΠΑΡΧΟΝΤΕΣ MATCHERS του
+ * parse.ts (ο ίδιος κατάλογος που κατηγοριοποιεί τραπεζικές κινήσεις) — αντί για
+ * δεύτερη, χειρόγραφη λίστα regex μέσα στην οθόνη.
+ */
+export function resolveBillCategory(doc: Pick<ScannedDoc, 'category' | 'provider' | 'title'>): string {
+  const c = doc.category;
+  if (c && c !== 'other' && EXPENSE_MAP[c]) return c;
+  const guess = categorizeTransaction(`${doc.provider || ''} ${doc.title || ''}`).category;
+  return EXPENSE_MAP[guess] ? guess : 'other';
+}
+
+/**
+ * ΤΟ μοναδικό σημείο που αποφασίζει σε ποιον φάκελο του Αρχείου μπαίνει ένα
+ * σαρωμένο έγγραφο. Πριν, το documents.ts έστελνε κάθε λογαριασμό στο «Άλλο
+ * Έγγραφο» και το TabDocuments το ξαναδιόρθωνε — ενώ το DocumentScan δεν το
+ * διόρθωνε καθόλου. Ο ίδιος λογαριασμός ΔΕΗ κατέληγε σε διαφορετικό φάκελο
+ * ανάλογα με την οθόνη από την οποία μπήκε.
+ */
+export function archiveCategoryFor(doc: Pick<ScannedDoc, 'doc_type' | 'category' | 'provider' | 'title'>): string {
+  const t = doc.doc_type;
+  if (t !== 'bill' && t !== 'payment') return DOC_ARCHIVE_CATEGORY[t];
+  return BILL_ARCHIVE_CATEGORY[resolveBillCategory(doc)] || DOC_ARCHIVE_CATEGORY[t];
+}
+
 // ── Ενιαίο σχήμα εξαγόμενων πεδίων (superset για όλους τους τύπους) ───────────
 export interface ScannedDoc {
   doc_type:   DocType;
@@ -67,7 +124,16 @@ export interface ScannedDoc {
   amount?:    number;    // ποσό (λογαριασμός/πληρωμή/φόρος/ασφάλιστρο)
   due_date?:  string;    // λήξη πληρωμής (YYYY-MM-DD)
   issue_date?: string;   // ημερομηνία έκδοσης (YYYY-MM-DD)
-  period?:    string;    // περίοδος
+
+  // ── Τα πέντε πεδία ταιριάσματος «ο λογαριασμός πληρώθηκε» ──────────────────
+  // πάροχος (provider) · ΑΦΜ παρόχου · ποσό · ημερομηνία έκδοσης · περίοδος από–έως
+  // Η περίοδος είναι ΔΟΜΗΜΕΝΗ (δύο ημερομηνίες) και όχι ελεύθερο κείμενο, γιατί
+  // μόνο έτσι απαντιέται το «επικαλύπτονται;» — ο έλεγχος που εμποδίζει δύο
+  // λογαριασμούς ΔΕΗ ίδιου ποσού διαφορετικού μήνα να εξοφλήσουν ο ένας τον άλλο.
+  provider_afm?: string; // ΑΦΜ εκδότη (9 ψηφία· ελέγχεται με το checksum της ΑΑΔΕ)
+  period_from?: string;  // αρχή περιόδου δαπάνης (YYYY-MM-DD)
+  period_to?:   string;  // τέλος περιόδου δαπάνης (YYYY-MM-DD)
+  period?:    string;    // η περίοδος όπως γράφεται στο χαρτί (για την οθόνη)
 
   // μισθωτήριο
   tenant_name?: string;
@@ -153,6 +219,8 @@ export function classifyDocType(doc: Partial<ScannedDoc>): DocType {
 // ── 2) Επικύρωση: τι λείπει ανά τύπο ─────────────────────────────────────────
 export const DOC_FIELD_LABELS: Record<string, string> = {
   provider: 'Πάροχος / Αντισυμβαλλόμενος', amount: 'Ποσό', due_date: 'Ημ. λήξης',
+  provider_afm: 'ΑΦΜ παρόχου', period_from: 'Περίοδος από', period_to: 'Περίοδος έως',
+  issue_date: 'Ημ. έκδοσης',
   tenant_name: 'Ονοματεπώνυμο ενοικιαστή', monthly_rent: 'Μηνιαίο ενοίκιο',
   lease_start: 'Έναρξη μίσθωσης', lease_end: 'Λήξη μίσθωσης', deposit: 'Εγγύηση',
   premium: 'Ασφάλιστρο', expiry_date: 'Λήξη ασφάλισης', policy_number: 'Αριθμός συμβολαίου',
@@ -162,10 +230,33 @@ export const DOC_FIELD_LABELS: Record<string, string> = {
 
 const has = (v: unknown) => v != null && v !== '' && !(typeof v === 'number' && v === 0);
 
-export function validateDoc(doc: ScannedDoc): { blocking: string[]; recommended: string[] } {
+export interface DocValidation {
+  /** Χωρίς αυτά δεν αποθηκεύουμε — θα γραφτεί σκουπίδι στη βάση. */
+  blocking: string[];
+  /** Καλό να υπάρχουν· ο χρήστης μπορεί να προχωρήσει. */
+  recommended: string[];
+  /** Υπάρχουν ΑΛΛΑ είναι προφανώς λάθος (π.χ. ΑΦΜ που δεν περνά το checksum). */
+  invalid: string[];
+}
+
+/**
+ * Τι λείπει και τι είναι λάθος. Η διάκριση blocking/recommended μένει όπως ήταν:
+ * ΔΕΝ μπλοκάρουμε τον χρήστη επειδή το χαρτί ήταν θολό. Το ΑΦΜ και η περίοδος
+ * είναι *recommended* για λογαριασμό — τα ζητάμε, δεν τα απαιτούμε.
+ * Το `invalid` είναι νέο και ξεχωριστό: «το διάβασα, αλλά δεν βγάζει νόημα».
+ */
+export function validateDoc(doc: ScannedDoc): DocValidation {
   const t = doc.doc_type;
   const blocking: string[] = [];
   const recommended: string[] = [];
+  const invalid: string[] = [];
+
+  // Το ΑΦΜ ελέγχεται όπου κι αν εμφανίζεται: αν είναι γραμμένο και δεν περνά το
+  // checksum της ΑΑΔΕ, το λέμε — δεν το σώζουμε σιωπηλά ως σωστό.
+  if (has(doc.provider_afm) && !isValidAfm(doc.provider_afm)) invalid.push('provider_afm');
+  if (has(doc.afm) && !isValidAfm(doc.afm)) invalid.push('afm');
+  // Ανάποδη περίοδος: το «από» μετά το «έως» δεν είναι ελλιπές, είναι λάθος.
+  if (has(doc.period_from) && has(doc.period_to) && doc.period_from! > doc.period_to!) invalid.push('period_from');
 
   switch (t) {
     case 'bill':
@@ -173,6 +264,11 @@ export function validateDoc(doc: ScannedDoc): { blocking: string[]; recommended:
       if (!has(doc.amount)) blocking.push('amount');
       if (!has(doc.provider)) recommended.push('provider');
       if (t === 'bill' && !has(doc.due_date)) recommended.push('due_date');
+      // Τα δύο πεδία που έλειπαν τελείως από τη ροή. Χωρίς ΑΦΜ ο πάροχος είναι
+      // ένα όνομα με δέκα ορθογραφίες· χωρίς περίοδο, δύο ίδιοι λογαριασμοί
+      // διαφορετικού μήνα είναι ξεχώριστοι μόνο κατά τύχη.
+      if (!has(doc.provider_afm)) recommended.push('provider_afm');
+      if (!has(doc.period_from) || !has(doc.period_to)) recommended.push('period_from');
       break;
     case 'lease':
       if (!has(doc.tenant_name)) blocking.push('tenant_name');
@@ -197,10 +293,49 @@ export function validateDoc(doc: ScannedDoc): { blocking: string[]; recommended:
       if (!has(doc.title) && !has(doc.provider)) recommended.push('title');
       break;
   }
-  return { blocking, recommended };
+  return { blocking, recommended, invalid };
+}
+
+// ── 2β) Κανονικοποίηση μετά την OCR ─────────────────────────────────────────
+/**
+ * Ντετερμινιστική εξομάλυνση ενός σαρωμένου εγγράφου, ΠΡΙΝ φανεί στον χρήστη.
+ * Δεν μαντεύει τιμές: μόνο (α) καθαρίζει το ΑΦΜ σε ψηφία, (β) μεταφράζει την
+ * περίοδο που το AI έδωσε ως κείμενο («Ιούνιος 2026») σε δύο ημερομηνίες, όταν
+ * το κείμενο το λέει ρητά. Αν δεν το λέει, μένει κενή και η οθόνη τη ζητά.
+ * Καλείται από ΟΛΕΣ τις διαδρομές σάρωσης ώστε να μην αποκλίνουν.
+ */
+export function normalizeScannedDoc(doc: ScannedDoc): ScannedDoc {
+  const out: ScannedDoc = { ...doc };
+  const afm = afmDigits(out.provider_afm);
+  out.provider_afm = afm || undefined;
+  if (out.afm) out.afm = afmDigits(out.afm) || undefined;
+  if (!out.period_from || !out.period_to) {
+    const p = derivePeriod(out.period);
+    if (p) { out.period_from = out.period_from || p.from; out.period_to = out.period_to || p.to; }
+  }
+  return out;
 }
 
 // ── 3) Σχέδιο αποθήκευσης: πού γράφεται ──────────────────────────────────────
+/**
+ * Το παραστατικό όπως γράφεται στο Αρχείο (property_documents).
+ * ΓΙΑΤΙ ΚΡΑΤΑ ΝΟΥΜΕΡΑ: μέχρι σήμερα κρατούσε μόνο κατηγορία/ημερομηνία/πάροχο,
+ * και το ποσό ζούσε αποκλειστικά στα κάτοπτρα (bills/expenses). Δηλαδή η οθόνη
+ * που η στρατηγική ονομάζει «η ανεξάρτητη απόδειξη» δεν μπορούσε να απαντήσει
+ * «πόσα πλήρωσα σύμφωνα με τα δικά μου χαρτιά».
+ */
+export interface ArchivePlan {
+  category: string;
+  note?: string;
+  date?: string;          // → doc_date (ημερομηνία ταξινόμησης)
+  supplier?: string;
+  amount?: number;        // → amount        (undefined = δεν διαβάστηκε, ΠΟΤΕ 0)
+  provider_afm?: string;  // → provider_afm  (μόνο αν περνά το checksum)
+  period_from?: string;   // → period_from
+  period_to?: string;     // → period_to
+  issue_date?: string;    // → issue_date    (έκδοση, διακριτή από το doc_date)
+}
+
 export interface SavePlan {
   targets: string[];                        // ετικέτες για την οθόνη «Αποθηκεύτηκε»
   bill?:     Record<string, unknown>;        // → bills (το component βάζει property_id/user_id)
@@ -209,7 +344,7 @@ export interface SavePlan {
   tenant?:   Record<string, unknown>;        // → tenants (upsert ανά property)
   property?: Record<string, unknown>;        // → user_properties (ΜΟΝΟ ασφαλείς στήλες)
   settings?: Record<string, unknown>;        // → property_settings (π.χ. ασφάλεια — καρτέλα Ρυθμίσεις)
-  archive?:  { category: string; note?: string; date?: string; supplier?: string }; // → property_documents (το αρχείο πρωτότυπο)
+  archive?:  ArchivePlan;                    // → property_documents (το αρχείο πρωτότυπο)
   reconcile?: boolean;                       // payment: προσπάθησε συμφωνία με εκκρεμή λογαριασμό
   commonMonthAmount?: number;                // κοινόχρηστα: ποσό μήνα για ιστορικό
   commonMillesimi?:   number;                // κοινόχρηστα: χιλιοστά
@@ -241,24 +376,45 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
   // Ημερομηνία εγγράφου για το Αρχείο — η πιο σχετική ανά τύπο.
   const archiveDate = iso(doc.issue_date) || iso(doc.due_date) || iso(doc.purchase_date)
     || iso(doc.lease_start) || iso(doc.expiry_date) || '';
-  // Κάθε σαρωμένο έγγραφο αρχειοθετείται πάντα (το πρωτότυπο) στο σωστό tab.
+  // Κάθε σαρωμένο έγγραφο αρχειοθετείται πάντα (το πρωτότυπο) στο σωστό ράφι.
   // Πάροχος/αντισυμβαλλόμενος → ώστε το Αρχείο να ομαδοποιεί το σαρωμένο έγγραφο «ανά πάροχο».
-  const archive = { category: DOC_ARCHIVE_CATEGORY[t], date: archiveDate || undefined, supplier: provider || undefined };
+  // ΤΑ ΝΟΥΜΕΡΑ ΜΠΑΙΝΟΥΝ ΣΤΟ ΠΑΡΑΣΤΑΤΙΚΟ, όχι μόνο στο κάτοπτρο: ποσό, ΑΦΜ
+  // παρόχου (μόνο αν περνά το checksum — άκυρο ΑΦΜ δεν αποθηκεύεται ως σωστό),
+  // περίοδος από–έως και ημερομηνία έκδοσης. Ό,τι δεν διαβάστηκε μένει undefined
+  // (→ NULL στη βάση) ώστε να διακρίνεται από το «διάβασα μηδέν».
+  const docAmount = doc.amount ?? (t === 'insurance' ? doc.premium : undefined);
+  const afm = afmDigits(doc.provider_afm);
+  const archive: ArchivePlan = {
+    category: archiveCategoryFor(doc),
+    date: archiveDate || undefined,
+    supplier: provider || undefined,
+    amount: typeof docAmount === 'number' && docAmount > 0 ? docAmount : undefined,
+    provider_afm: afm && isValidAfm(afm) ? afm : undefined,
+    period_from: iso(doc.period_from) || undefined,
+    period_to: iso(doc.period_to) || undefined,
+    issue_date: iso(doc.issue_date) || undefined,
+  };
 
   if (t === 'bill' || t === 'payment') {
-    const cat = doc.category && EXPENSE_MAP[doc.category] ? doc.category : 'other';
+    const cat = resolveBillCategory(doc);
     const map = EXPENSE_MAP[cat];
     const paid = t === 'payment';
     const cons = consumptionNote(doc);
     const notes = [`AI σάρωση`, cons, baseNote, doc.account_num ? `Παροχή: ${doc.account_num}` : '']
       .filter(Boolean).join(' · ');
     const expDate = iso(doc.due_date) || iso(doc.issue_date) || today;
+    // Η περίοδος γράφεται και στον λογαριασμό (`bills.period`, στήλη που υπήρχε και
+    // έμενε κενή). Χωρίς αυτό, η επόμενη απόδειξη δεν έχει με τι να συγκρίνει την
+    // περίοδό της και δύο μήνες ίδιου ποσού ξαναγίνονται διφορούμενοι.
+    const periodText = (doc.period || '').trim()
+      || (iso(doc.period_from) && iso(doc.period_to) ? `${iso(doc.period_from)} → ${iso(doc.period_to)}` : '');
 
     const plan: SavePlan = {
       targets: paid ? ['Δαπάνες', 'Λογαριασμοί'] : ['Λογαριασμοί', 'Δαπάνες'],
       bill: {
         category: cat,
-        name: `${provider || map.cat}${doc.period ? ` — ${doc.period}` : ''}`,
+        name: `${provider || map.cat}${periodText ? ` — ${periodText}` : ''}`,
+        period: periodText || null,
         amount: doc.amount || 0, paid, due_date: iso(doc.due_date) || null,
         kwh: doc.kwh || null, ert: doc.ert || null, etmear: doc.etmear || null,
         dimotika: doc.dimotika || null, vat_rate: String(doc.vat_rate || 6),

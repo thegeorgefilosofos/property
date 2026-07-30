@@ -1,7 +1,8 @@
 // TabLoanData.tsx, Shared constants, types, helpers
 // Sources: vresdaneio.gr, greece20.gov.gr, ypen.gov.gr, ΑΑΔΕ, bankofgreece.gr, ECB
 
-import { rentalIncomeTax } from '@/lib/billing/greekTax'
+import { rentalIncomeTax, RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax'
+import { presumptiveDeductionRate } from '@/lib/billing/consolidate'
 import { fe } from '@/components/tokens';
 
 export type LoanType = 'purchase'|'first_home'|'renovation'|'energy'|'investment'|'auction'|'construction'|'commercial'|'land'|'refinance'
@@ -69,16 +70,16 @@ export const STATE_PROGRAMS = [
   { id:'gefyra_3', name:'Γέφυρα 3', status:'active', type:'Επιδότηση δόσης, ευάλωτοι δανειολήπτες', desc:'Επιδότηση 50% αύξησης δόσης λόγω ανόδου Euribor', max_amount:null, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'12 μήνες', deadline:'Τρέχον, έλεγξε dovaluegreece.gr', deadline_urgent:false, total_budget:'Χρηματοδοτείται από τράπεζες', criteria:['Βεβαίωση ευάλωτου οφειλέτη','Κυμαινόμενο δάνειο','Εξασφάλιση πρώτης κατοικίας'], how_it_works:'50% αύξησης δόσης λόγω ΕΚΤ (βάση 30/06/2022) για 12 μήνες', extra:'Για ανέργους, χαμηλά εισοδήματα, συνταξιούχους', savings_example:'Αύξηση 80€/μήνα → επιδότηση 40€ × 12 = 480€/χρόνο', url:'https://dovaluegreece.gr/programma-epidotisis-dosis-logo-ayxisis-epitokion-gefyra-3', banks:['Όλες οι τράπεζες'] },
 ]
 
+// ΑΦΑΙΡΕΘΗΚΑΝ το `rental_tax` και το `rental_expense_deduction`.
+// Ήταν ΤΡΙΤΟ αντίγραφο της φορολογικής κλίμακας ενοικίων και ΤΕΤΑΡΤΟ της τεκμαρτής
+// έκπτωσης 5%, και χρησιμοποιούνταν για ΕΜΦΑΝΙΣΗ στην ίδια κάρτα όπου ο
+// ΥΠΟΛΟΓΙΣΜΟΣ έρχεται από το lib/billing/greekTax. Με την πρώτη αλλαγή του νόμου,
+// ο πίνακας θα έδειχνε τα παλιά κλιμάκια και το ποσό δίπλα του τα νέα — σιωπηλά,
+// χωρίς κανένα σφάλμα. Η κλίμακα για εμφάνιση ζει στο RENTAL_TAX_ROWS_2026 και η
+// έκπτωση στο presumptiveDeductionRate (lib/billing/consolidate).
 export const TAX_DATA = {
   fma_rate:0.03,
   fma_exemption:{single:200000,married:250000,child1:25000,child2:25000,child3:30000,max_sqm:120},
-  rental_tax:[
-    {from:0,to:12000,rate:0.15,label:'έως 12.000€ → 15%'},
-    {from:12000,to:24000,rate:0.25,label:'12.001–24.000€ → 25% (νέο 2026)'},
-    {from:24000,to:35000,rate:0.35,label:'24.001–35.000€ → 35%'},
-    {from:35000,to:Infinity,rate:0.45,label:'άνω 35.000€ → 45%'},
-  ],
-  rental_expense_deduction:0.05,
   vat_new_buildings:0.24,
   vat_suspension_note:'Προσωρινή αναστολή ΦΠΑ για ορισμένα, έλεγξε με νομικό',
   interest_deduction:false,
@@ -121,7 +122,9 @@ export const LOAN_TYPES: Record<LoanType,{label:string;desc:string;typical_rate:
     {name:'Φορολογικές δηλώσεις τριών τελευταίων ετών', where:'ΑΑΔΕ'},
     {name:'Αναλυτική κατάσταση μισθωμάτων (Ε2)', where:'ΑΑΔΕ'},
     {name:'Τίτλοι ιδιοκτησίας', where:'Κτηματολόγιο'},
-  ], tax_note:'Ενοίκια: 15% / 25% / 35% (2026), 5% αυτόματη έκπτωση, οι τόκοι δεν εκπίπτουν'},
+    // Η κλίμακα δεν γράφεται ξανά εδώ: έρχεται από τη μοναδική πηγή (greekTax).
+    // Και η έκπτωση 5% ΔΕΝ είναι «αυτόματη» — από 1/1/2026 θέλει τραπεζική είσπραξη.
+  ], tax_note:`${RENTAL_TAX_SUMMARY_2026} Τεκμαρτή έκπτωση 5% μόνο με είσπραξη μέσω τραπέζης (από 1/1/2026). Οι τόκοι δανείου δεν εκπίπτουν για φυσικό πρόσωπο.`},
   auction:      {label:'Πλειστηριασμός',         desc:'Αγορά σε ηλεκτρονικό πλειστηριασμό',   typical_rate:'2,80–4,00%', typical_ltv:70, notes:'Έλεγξε βάρη, γρήγορη εκταμίευση', docs:[
     {name:'Δελτίο ταυτότητας ή διαβατήριο'},
     {name:'Φορολογικά στοιχεία εισοδήματος', where:'ΑΑΔΕ'},
@@ -246,6 +249,11 @@ export function calcFmaExemption(maritalStatus:'single'|'married',children:numbe
 // Κοινή πηγή αλήθειας (lib/billing/greekTax), ώστε ο φόρος να μη διαφέρει ανά καρτέλα.
 export function calcRentalTax(annualRental:number):number {
   return rentalIncomeTax(annualRental)
+}
+
+/** Φορολογητέο ενοίκιο μετά την τεκμαρτή έκπτωση — ΜΙΑ πηγή για το 5% και τον όρο του. */
+export function taxableRental(annualRental:number, rentsPaidViaBank=true):number {
+  return Math.max(0, annualRental) * (1 - presumptiveDeductionRate(rentsPaidViaBank))
 }
 
 export const fmtEur=(n:number)=>fe(n,0)

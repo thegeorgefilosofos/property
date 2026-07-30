@@ -208,7 +208,11 @@ interface CalcState {
   sqm?:number;incomeMonthly?:number;marital?:'single'|'married'|'single_parent';children?:number
 }
 
-export default function TabLoan({propertyId,userId,propertyValue,propertyRent,propertySqm,propertyYearBuilt,profileType='individual'}:{propertyId:string;userId:string;propertyValue?:number;propertyRent?:number;propertySqm?:number;propertyYearBuilt?:number;profileType?:'individual'|'professional'}) {
+// Το `propertyRent` έφυγε από τα props: περνούσε από το page.tsx και δεν
+// χρησιμοποιούνταν ποτέ — ένα νεκρό καλώδιο που έδινε την εντύπωση ότι ο
+// Υπολογιστής ξέρει το ενοίκιο, ενώ αυτός υπολόγιζε «4% της αξίας». Πλέον ο
+// Υπολογιστής διαβάζει ο ίδιος το πραγματικό ενοίκιο (rent_config) από τη βάση.
+export default function TabLoan({propertyId,userId,propertyValue,propertySqm,propertyYearBuilt,profileType='individual'}:{propertyId:string;userId:string;propertyValue?:number;propertySqm?:number;propertyYearBuilt?:number;profileType?:'individual'|'professional'}) {
   const supabase = createClient()
   // Πραγματικά στοιχεία του ακινήτου του χρήστη (αντί για γενικές προεπιλογές).
   const initValue  = propertyValue && propertyValue > 0 ? Math.round(propertyValue) : 200000
