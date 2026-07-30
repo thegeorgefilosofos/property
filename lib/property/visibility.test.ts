@@ -73,10 +73,22 @@ for (const [status, mode] of [['vacant', null], ['disputed', null], ['for_sale',
   ok(`${status}: εμφανίζεται το Σχέδιο`, v.includes('plan'));
   ok(`${status}: καμία μίσθωση`, !v.includes('tenant') && !v.includes('clients'));
 }
-// Το κενό ακίνητο ΕΧΕΙ αποδόσεις: εκεί ακριβώς κρίνεται αν αξίζει να νοικιαστεί.
+// ΑΠΟΔΟΣΕΙΣ ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΕΣΟΔΟ.
+//
+// Χωρίς μίσθωμα, η «απόδοση» δεν είναι μέτρηση αλλά υπόθεση — και μια υπόθεση με
+// ποσοστό δίπλα της διαβάζεται ως γεγονός. Η ερώτηση «τι να το κάνω;» για τα
+// ακίνητα που δεν αποδίδουν απαντιέται στην καρτέλα Σχέδιο, με πραγματικούς
+// άξονες αντί για ένα ποσοστό χωρίς έσοδο από πίσω.
 {
-  const p = flat({ status_detail: 'vacant', rental_mode: null });
-  ok('κενό: βλέπει αποδόσεις', visibleTabs(ALL, ctxOf([p]), p).includes('roi'));
+  for (const st of ['vacant', 'for_sale', 'own_use', 'disputed', 'renovation'] as const) {
+    const p = flat({ status_detail: st, rental_mode: null });
+    ok(`${st}: ΚΑΜΙΑ απόδοση`, !visibleTabs(ALL, ctxOf([p]), p).includes('roi'));
+  }
+  // Και οι δύο καταστάσεις που όντως αποδίδουν, τη βλέπουν.
+  const long = flat({ status_detail: 'rented', rental_mode: 'long_term' });
+  ok('μακροχρόνια: βλέπει αποδόσεις', visibleTabs(ALL, ctxOf([long]), long).includes('roi'));
+  const short = flat({ status_detail: 'seasonal', rental_mode: 'short_term' });
+  ok('βραχυχρόνια/εποχική: βλέπει αποδόσεις', visibleTabs(ALL, ctxOf([short]), short).includes('roi'));
 }
 // Σε ανακαίνιση δεν υπάρχει απόδοση να μετρηθεί όσο γίνονται εργασίες.
 {

@@ -35,7 +35,11 @@ ok('η σειρά διατηρείται', visibleTabs(ALL, fresh)[0] === 'overv
 ok('δάνειο → εμφανίζεται το Δάνειο', isTabVisible('loan', { signals: { hasLoan: true } }))
 ok('βραχυχρόνια → εμφανίζεται η Τιμολόγηση', isTabVisible('pricing', { signals: { isShortTerm: true } }))
 ok('δεύτερο ακίνητο → Σύγκριση', isTabVisible('comparison', { signals: { propertyCount: 2 } }))
-ok('δεύτερο ακίνητο → Αποδόσεις', isTabVisible('roi', { signals: { propertyCount: 2 } }))
+// ΟΙ ΑΠΟΔΟΣΕΙΣ ΚΡΕΜΟΝΤΑΙ ΑΠΟ ΤΗ ΜΙΣΘΩΣΗ, ΟΧΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ.
+// Ο ιδιοκτήτης ΕΝΟΣ νοικιασμένου διαμερίσματος πρέπει να δει την απόδοσή του:
+// είναι ακριβώς το νούμερο για το οποίο έψαξε εργαλείο.
+ok('ένα νοικιασμένο ακίνητο → Αποδόσεις', isTabVisible('roi', { signals: { propertyCount: 1, isRented: true } }))
+ok('δέκα ακίνητα χωρίς μίσθωση → ΟΧΙ Αποδόσεις', !isTabVisible('roi', { signals: { propertyCount: 10, isRented: false } }))
 ok('ένα ακίνητο → όχι Σύγκριση', !isTabVisible('comparison', { signals: { propertyCount: 1 } }))
 ok('απογραφή με είδη → Απογραφή', isTabVisible('inventory', { signals: { hasInventory: true } }))
 ok('έγγραφα → Αρχείο', isTabVisible('documents', { signals: { hasDocuments: true } }))

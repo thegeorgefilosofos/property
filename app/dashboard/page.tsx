@@ -986,7 +986,9 @@ export default function Dashboard() {
     profileType: effProfileType,
     revealed: revealedTabs,
     showAll: showAllTabsPref,
-    signals: { ...navSignals, isShortTerm: isShortTerm(selected), openTasks: checklistAlerts },
+    // Το `isRented` βγαίνει από τη ΜΙΑ πηγή κατάστασης, όχι από ωμό πεδίο:
+    // εποχική, βραχυχρόνια και μακροχρόνια είναι όλες «αποδίδει».
+    signals: { ...navSignals, isShortTerm: isShortTerm(selected), isRented: readStatus(selected) === 'rent_long' || readStatus(selected) === 'rent_short', openTasks: checklistAlerts },
   }), [effProfileType, revealedTabs, showAllTabsPref, navSignals, selected, checklistAlerts]);
 
   // Κάθε επίσκεψη σε καρτέλα την αποκαλύπτει μόνιμα — από όπου κι αν ήρθε
