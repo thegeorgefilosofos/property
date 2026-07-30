@@ -28,6 +28,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import ExpenseCompare from './ExpenseCompare';
+import type { Spend } from '@/lib/expenses/compare';
 import { T, TT, fe, Btn, Card, EmptyState, Skeleton } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
 import {
@@ -114,6 +116,34 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
   const [adding, setAdding] = useState(false);
   const [bulk, setBulk] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Η ΣΥΓΚΡΙΣΗ ΜΗΝΑ ΔΙΑΒΑΖΕΙ ΤΑ ΙΔΙΑ ΔΕΔΟΜΕΝΑ — ΔΕΝ ΞΑΝΑΡΩΤΑ ΤΗ ΒΑΣΗ
+  //
+  // ΤΙ ΕΙΧΕ ΣΥΜΒΕΙ: η δοκιμασμένη μηχανή (lib/expenses/compare.ts, 55 έλεγχοι)
+  // και η οθόνη της (ExpenseCompare) είχαν συνδεθεί στο TabExpenses.tsx — 1.556
+  // γραμμές που ΔΕΝ ΤΙΣ ΕΙΣΑΓΕΙ ΚΑΝΕΝΑΣ. Το page.tsx φορτώνει TabFinances, που
+  // φορτώνει αυτό το αρχείο. Άρα η απάντηση στην κεντρική ερώτηση του χρήστη
+  // («ξόδεψα περισσότερα;») δεν έφτανε σε κανέναν.
+  //
+  // ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΤΟ TabFinances: εκεί θα χρειαζόταν δεύτερο ερώτημα στη
+  // βάση για τα ίδια ακριβώς έξοδα. Δύο ερωτήματα σημαίνουν δύο πηγές που
+  // μπορούν να διαφωνήσουν — και το μοτίβο αυτό είναι η ρίζα των αντιφάσεων που
+  // βρήκε ο έλεγχος. Ένα ερώτημα, ένα σύνολο, μία απάντηση.
+  //
+  // Η ΜΗΧΑΝΗ ΔΕΝ ΕΦΕΥΡΙΣΚΕΙ: αν ο μήνας είναι ημιτελής το λέει με μέρες, αν η
+  // βάση σύγκρισης είναι μηδέν δεν δείχνει ποσοστό, και όταν δεν υπάρχει τίποτα
+  // να πει επιστρέφει κενό — οπότε η κάρτα δεν εμφανίζεται καθόλου.
+  // ═══════════════════════════════════════════════════════════════════════
+  const spends: Spend[] = useMemo(() => expenses
+    .filter(e => (e.amount || 0) > 0 && !!e.date)
+    .map(e => ({
+      date: String(e.date).slice(0, 10),
+      amount: Number(e.amount) || 0,
+      category: e.category || 'Λοιπά',
+      title: e.description || undefined,
+      recurring: e.is_recurring === true,
+    })), [expenses]);
 
   const load = useCallback(async () => {
     if (!propertyId) return;
@@ -246,6 +276,10 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
         <h1 style={{ ...TT.h1, margin: 0 }}>Δαπάνες</h1>
         <div style={{ ...TT.caption, marginTop: 4 }}>Κάθε ευρώ που φεύγει, σε μία λίστα.</div>
       </div>
+
+      {/* Πρώτα η απάντηση στο «ξόδεψα περισσότερα;», μετά η λίστα. Ο χρήστης δεν
+          ανοίγει τις Δαπάνες για να διαβάσει εγγραφές — ανοίγει για να καταλάβει. */}
+      <ExpenseCompare spends={spends} />
 
       {/* ── Τρία νούμερα ─────────────────────────────────────────────────────
           Χωρίς πλαίσια και χωρίς γεμίσματα. Τρεις στήλες χωρισμένες με μία

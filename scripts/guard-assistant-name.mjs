@@ -58,7 +58,6 @@ const ALLOWLIST = {
   'app/dashboard/page.tsx': 'ξένο αρχείο (άλλος agent) — «συνομιλίες του βοηθού» στο μήνυμα διαγραφής ακινήτου',
   // «Σάρωση Απόδειξης με AI» (γρ. 344): σκέτο «AI», που ο guard δεν επιβάλλει
   // (δες παραπάνω). Μένει καταγεγραμμένο ως χρέος του κατόχου του αρχείου.
-  'app/dashboard/components/TabExpenses.tsx': 'ξένο αρχείο (άλλος agent) — «Σάρωση Απόδειξης με AI»',
   'app/dashboard/components/TabBills.tsx': 'ξένο αρχείο (άλλος agent)',
   'app/dashboard/components/BillsDashboard.tsx': 'ξένο αρχείο (άλλος agent)',
   'app/dashboard/components/BillsCommon.tsx': 'ξένο αρχείο (άλλος agent)',
