@@ -13,7 +13,7 @@
 // η επικίνδυνη λογική (κατηγοριοποίηση/δρομολόγηση) είναι 100% δοκιμάσιμη.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { EXPENSE_MAP, categorizeTransaction, derivePeriod, afmDigits, isValidAfm } from './parse';
+import { EXPENSE_MAP, categorizeTransaction, derivePeriod, digitsOnly, isValidAfm } from './parse';
 
 export type DocType =
   | 'bill'        // λογαριασμός κοινής ωφέλειας/υπηρεσίας → Λογαριασμοί + Δαπάνες + Ημερολόγιο
@@ -312,9 +312,9 @@ export function validateDoc(doc: ScannedDoc): DocValidation {
  */
 export function normalizeScannedDoc(doc: ScannedDoc): ScannedDoc {
   const out: ScannedDoc = { ...doc };
-  const afm = afmDigits(out.provider_afm);
+  const afm = digitsOnly(out.provider_afm);
   out.provider_afm = afm || undefined;
-  if (out.afm) out.afm = afmDigits(out.afm) || undefined;
+  if (out.afm) out.afm = digitsOnly(out.afm) || undefined;
   if (!out.period_from || !out.period_to) {
     const p = derivePeriod(out.period);
     if (p) { out.period_from = out.period_from || p.from; out.period_to = out.period_to || p.to; }
@@ -389,7 +389,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
   // περίοδος από–έως και ημερομηνία έκδοσης. Ό,τι δεν διαβάστηκε μένει undefined
   // (→ NULL στη βάση) ώστε να διακρίνεται από το «διάβασα μηδέν».
   const docAmount = doc.amount ?? (t === 'insurance' ? doc.premium : undefined);
-  const afm = afmDigits(doc.provider_afm);
+  const afm = digitsOnly(doc.provider_afm);
   const archive: ArchivePlan = {
     category: archiveCategoryFor(doc),
     date: archiveDate || undefined,

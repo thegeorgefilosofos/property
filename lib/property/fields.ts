@@ -324,6 +324,6 @@ export function missingCritical(
  * Πόσα πεδία γλίτωσε ο χρήστης. Χρήσιμο στα tests και στην τεκμηρίωση: δείχνει
  * μαύρο-άσπρο αν η μηχανή κάνει τη δουλειά της ή αν οι κανόνες είναι διακοσμητικοί.
  */
-export function hiddenCount(registry: readonly FieldRule[], ctx: FieldContext): number {
+export function hiddenFieldCount(registry: readonly FieldRule[], ctx: FieldContext): number {
   return registry.filter(r => fieldPlacement(r.id, ctx) === 'hidden').length;
 }

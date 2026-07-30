@@ -4,7 +4,7 @@
 // ερώτημα δεν είναι «δουλεύει η συνάρτηση» αλλά «βλέπει ο 25χρονος 78 πεδία;».
 import {
   TENANT_FIELDS, CLIENT_FIELDS, INVENTORY_FIELDS, CONTACT_FIELDS, ACCOUNTING_FIELDS, ALL_FIELDS,
-  fieldPlacement, fieldDecision, formFields, missingCritical, hiddenCount,
+  fieldPlacement, fieldDecision, formFields, missingCritical, hiddenFieldCount,
   type FieldContext,
 } from './fields';
 
@@ -108,7 +108,7 @@ const ctx = (o: Partial<FieldContext> = {}): FieldContext => ({
   const bare = ctx({ status: 'rent_long', furnished: false });
   eq('γυμνό διαμέρισμα: καμία απογραφή', formFields(INVENTORY_FIELDS, bare).core.length, 0);
   const own = ctx({ status: 'own_use', furnished: true });
-  eq('ιδιοχρησία: καμία απογραφή, όσο επιπλωμένο κι αν είναι', hiddenCount(INVENTORY_FIELDS, own), INVENTORY_FIELDS.length);
+  eq('ιδιοχρησία: καμία απογραφή, όσο επιπλωμένο κι αν είναι', hiddenFieldCount(INVENTORY_FIELDS, own), INVENTORY_FIELDS.length);
 
   const airbnb = ctx({ status: 'rent_short', furnished: true });
   const inv = formFields(INVENTORY_FIELDS, airbnb);
@@ -174,12 +174,12 @@ const ctx = (o: Partial<FieldContext> = {}): FieldContext => ({
 {
   // Ο 25χρονος με κενό ακίνητο πρέπει να γλιτώνει τη ΣΥΝΤΡΙΠΤΙΚΗ πλειονότητα.
   const c = ctx({ status: 'vacant', propertyCount: 1 });
-  const hidden = hiddenCount(ALL_FIELDS, c);
+  const hidden = hiddenFieldCount(ALL_FIELDS, c);
   ok(`κενό ακίνητο: κρύβονται ${hidden} από ${ALL_FIELDS.length} πεδία`, hidden / ALL_FIELDS.length > 0.6);
 
   // Ο επαγγελματίας με διπλογραφικά και πέντε ακίνητα βλέπει τα περισσότερα.
   const pro = ctx({ status: 'rent_long', business: true, doubleEntry: true, propertyCount: 5, furnished: true, hasLoan: true });
-  ok('επαγγελματίας: κρύβονται λιγότερα', hiddenCount(ALL_FIELDS, pro) < hidden);
+  ok('επαγγελματίας: κρύβονται λιγότερα', hiddenFieldCount(ALL_FIELDS, pro) < hidden);
 }
 
 // ═══ ΤΙ ΛΕΙΠΕΙ ΑΠΟ ΤΗ ΣΥΜΜΟΡΦΩΣΗ ══════════════════════════════════════════
@@ -225,7 +225,7 @@ const ctx = (o: Partial<FieldContext> = {}): FieldContext => ({
   eq('γυμνό: καμία παρεχόμενη υπηρεσία', fieldPlacement('tenant.services', bare), 'hidden');
   eq('επιπλωμένο: οι υπηρεσίες εμφανίζονται, σε «Περισσότερα»', fieldPlacement('tenant.services', furn), 'more');
   eq('η επίπλωση αλλάζει ΑΚΡΙΒΩΣ ένα πεδίο',
-    hiddenCount(TENANT_FIELDS, bare) - hiddenCount(TENANT_FIELDS, furn), 1);
+    hiddenFieldCount(TENANT_FIELDS, bare) - hiddenFieldCount(TENANT_FIELDS, furn), 1);
 
   // Η στάθμευση ΔΕΝ κρέμεται από την επίπλωση: γυμνό διαμέρισμα νοικιάζει θέση.
   ok('η στάθμευση υπάρχει και σε γυμνό', fieldPlacement('tenant.parking', bare) !== 'hidden');

@@ -1,7 +1,7 @@
 // Τεστ για τη σταδιακή αποκάλυψη καρτελών.
 import {
   CORE_TABS, PROFESSIONAL_CORE_TABS, coreTabs,
-  isTabVisible, visibleTabs, hiddenCount, reveal, sanitizeRevealed,
+  isTabVisible, disclosedTabs, hiddenTabCount, reveal, sanitizeRevealed,
 } from './disclosure'
 
 let passed = 0, failed = 0
@@ -23,13 +23,13 @@ ok('η Λογιστική είναι βασική (ο λόγος που ήρθε
 
 // ── Νέος χρήστης, ένα ακίνητο, κανένα δεδομένο ─────────────────────────────
 const fresh = { profileType: 'individual' as const, signals: { propertyCount: 1, daysSinceSignup: 0 } }
-ok('νέος χρήστης βλέπει ακριβώς 6 καρτέλες', visibleTabs(ALL, fresh).length === 6)
+ok('νέος χρήστης βλέπει ακριβώς 6 καρτέλες', disclosedTabs(ALL, fresh).length === 6)
 ok('νέος χρήστης δεν βλέπει Δάνειο', !isTabVisible('loan', fresh))
 ok('νέος χρήστης δεν βλέπει Τιμολόγηση', !isTabVisible('pricing', fresh))
 ok('νέος χρήστης δεν βλέπει Σύγκριση', !isTabVisible('comparison', fresh))
 ok('νέος χρήστης δεν βλέπει Πρόγραμμα Πρόσκλησης', !isTabVisible('referral', fresh))
-ok('κρύβονται 11 από 17', hiddenCount(ALL, fresh) === 11)
-ok('η σειρά διατηρείται', visibleTabs(ALL, fresh)[0] === 'overview')
+ok('κρύβονται 11 από 17', hiddenTabCount(ALL, fresh) === 11)
+ok('η σειρά διατηρείται', disclosedTabs(ALL, fresh)[0] === 'overview')
 
 // ── Τα δεδομένα αποκαλύπτουν ────────────────────────────────────────────────
 ok('δάνειο → εμφανίζεται το Δάνειο', isTabVisible('loan', { signals: { hasLoan: true } }))
@@ -58,15 +58,15 @@ ok('reveal επιστρέφει ΙΔΙΑ αναφορά όταν δεν αλλά
 
 // ── «Δες τα όλα» ───────────────────────────────────────────────────────────
 const all = { profileType: 'individual' as const, showAll: true, signals: { propertyCount: 1 } }
-ok('showAll δείχνει τα πάντα', visibleTabs(ALL, all).length === ALL.length)
-ok('showAll → μηδέν κρυφές', hiddenCount(ALL, all) === 0)
+ok('showAll δείχνει τα πάντα', disclosedTabs(ALL, all).length === ALL.length)
+ok('showAll → μηδέν κρυφές', hiddenTabCount(ALL, all) === 0)
 
 // ── Άγνωστα ids: ποτέ ορατά «για καλό και για κακό» ────────────────────────
 ok('άγνωστο id δεν εμφανίζεται από μόνο του', !isTabVisible('kati_allo', { signals: { hasLoan: true } }))
 ok('άγνωστο id εμφανίζεται μόνο με ρητή αποκάλυψη', isTabVisible('kati_allo', { revealed: ['kati_allo'] }))
 
 // ── Κενή/χαλασμένη είσοδος ─────────────────────────────────────────────────
-ok('χωρίς είσοδο → μόνο οι βασικές', visibleTabs(ALL).length === 6)
+ok('χωρίς είσοδο → μόνο οι βασικές', disclosedTabs(ALL).length === 6)
 ok('κενά σήματα δεν αποκαλύπτουν', !isTabVisible('loan', { signals: {} }))
 ok('sanitize πετά άγνωστα', sanitizeRevealed(['loan', 'χαζο', 'pricing'], ALL).join() === 'loan,pricing')
 ok('sanitize πετά διπλότυπα', sanitizeRevealed(['loan', 'loan'], ALL).length === 1)
@@ -78,7 +78,7 @@ ok('sanitize σε string → κενό', sanitizeRevealed('loan', ALL).length ===
 const pro = { profileType: 'professional' as const, signals: { propertyCount: 1, daysSinceSignup: 0 } }
 ok('ο επαγγελματίας βλέπει Χαρτοφυλάκιο από την αρχή', isTabVisible('portfolio', pro))
 ok('ο επαγγελματίας βλέπει Πελάτη από την αρχή', isTabVisible('clients', pro))
-ok('ο επαγγελματίας βλέπει 8 καρτέλες', visibleTabs(ALL, pro).length === 8)
+ok('ο επαγγελματίας βλέπει 8 καρτέλες', disclosedTabs(ALL, pro).length === 8)
 
 console.log(`nav/disclosure.test.ts: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

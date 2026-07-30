@@ -118,13 +118,13 @@ export function isTabVisible(tabId: string, input: DisclosureInput = {}): boolea
 }
 
 /** Φιλτράρει μια λίστα ids κρατώντας τη σειρά. */
-export function visibleTabs(ids: readonly string[], input: DisclosureInput = {}): string[] {
+export function disclosedTabs(ids: readonly string[], input: DisclosureInput = {}): string[] {
   return ids.filter(id => isTabVisible(id, input));
 }
 
 /** Πόσες από αυτές τις καρτέλες είναι προς το παρόν κρυμμένες. */
-export function hiddenCount(ids: readonly string[], input: DisclosureInput = {}): number {
-  return ids.length - visibleTabs(ids, input).length;
+export function hiddenTabCount(ids: readonly string[], input: DisclosureInput = {}): number {
+  return ids.length - disclosedTabs(ids, input).length;
 }
 
 /** Προσθέτει μια καρτέλα στις αποκαλυμμένες. Επιστρέφει την ΙΔΙΑ αναφορά όταν

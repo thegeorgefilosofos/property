@@ -2,6 +2,8 @@
 // ημερολογίου: check-in + check-out ανά κράτηση, με το όνομα της κράτησης/επισκέπτη.
 // Χωρίς I/O ώστε να δοκιμάζεται ντετερμινιστικά· η άντληση/εγγραφή γίνεται στο UI.
 
+import { nightsBetween } from '../core/greek'
+
 export interface StayInput {
   id: string
   check_in: string                 // YYYY-MM-DD
@@ -71,9 +73,5 @@ export function buildBookingEvents(stays: StayInput[], propertyId: string, userI
   return rows
 }
 
-// Πλήθος νυχτών μεταξύ δύο ISO ημερομηνιών (UTC, ασφαλές από ζώνες ώρας).
-export function nightsBetween(a: string, b: string): number {
-  const d1 = Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))
-  const d2 = Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10))
-  return Math.max(0, Math.round((d2 - d1) / 86400000))
-}
+// Πλήθος νυχτών: υπολογίζεται ΜΙΑ φορά, στο lib/core/greek.ts.
+export { nightsBetween }

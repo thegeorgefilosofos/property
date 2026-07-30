@@ -4,6 +4,8 @@
 // (edge function ή paste), εδώ μόνο η ανάλυση.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { nightsBetween } from '../core/greek';
+
 export interface ICalEvent {
   uid: string;
   start: string;   // YYYY-MM-DD (check-in)
@@ -66,11 +68,8 @@ export function isBlocked(summary: string): boolean {
   return s.includes('not available') || s.includes('blocked') || s.includes('unavailable') || s.includes('μη διαθέσιμο');
 }
 
-export function nightsBetween(start: string, end: string): number {
-  const a = new Date(start).getTime(), b = new Date(end).getTime();
-  if (isNaN(a) || isNaN(b) || b <= a) return 0;
-  return Math.round((b - a) / 86400000);
-}
+/** Νύχτες διαμονής: υπολογίζεται ΜΙΑ φορά, στο lib/core/greek.ts. */
+export { nightsBetween };
 
 // ── Μετατροπή σε προσχέδια διαμονών για εισαγωγή ────────────────────────────
 export interface StayDraft {

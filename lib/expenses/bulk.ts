@@ -21,6 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { resolveCategory, categoryLabel } from './taxonomy';
+import { parseAmount, parseDate as coreParseDate } from '../core/greek';
 
 export interface ParsedRow {
   /** Η γραμμή όπως τη δακτυλογράφησε ο χρήστης. Επιστρέφεται πάντα. */
@@ -51,31 +52,12 @@ export interface BulkResult {
 
 const DATE_RE = /^(\d{1,2})[/.\-](\d{1,2})(?:[/.\-](\d{2,4}))?$/;
 
-/** Καθαρίζει τα σύμβολα που γράφει ο κόσμος γύρω από το ποσό. */
-const stripMoney = (t: string): string => t.replace(/[€$\s]/g, '').replace(/^[+]/, '');
-
 /**
- * Ελληνικό ποσό σε αριθμό.
- *
- * «1.250,50» -> 1250.5, «84,50» -> 84.5, «84.50» -> 84.5, «1.250» -> 1250.
- * Ο κανόνας: ο ΤΕΛΕΥΤΑΙΟΣ διαχωριστής είναι δεκαδικός μόνο αν ακολουθούν ένα ή
- * δύο ψηφία. Τρία ψηφία σημαίνει χιλιάδες, όπως το γράφει κάθε ελληνικός
- * λογαριασμός. Η λάθος απόφαση εδώ αλλάζει το ποσό κατά χίλιες φορές.
+ * Ελληνικό ποσό σε αριθμό. Η ανάγνωση γίνεται ΜΙΑ φορά, στο lib/core/greek.ts.
+ * Επανεξάγεται εδώ ώστε η επικόλληση δαπανών να διαβάζει το «1.250» ακριβώς
+ * όπως το διαβάζει η Τραπεζική Εισαγωγή και το Αρχείο λογαριασμών.
  */
-export function parseAmount(text: string): number | null {
-  const t = stripMoney(text);
-  if (!/^-?[\d.,]+$/.test(t) || !/\d/.test(t)) return null;
-  const lastComma = t.lastIndexOf(',');
-  const lastDot = t.lastIndexOf('.');
-  const cut = Math.max(lastComma, lastDot);
-  let intPart = t, decPart = '';
-  if (cut >= 0) {
-    const after = t.slice(cut + 1);
-    if (after.length >= 1 && after.length <= 2) { intPart = t.slice(0, cut); decPart = after; }
-  }
-  const n = parseFloat(`${intPart.replace(/[.,]/g, '')}.${decPart || '0'}`);
-  return Number.isFinite(n) ? n : null;
-}
+export { parseAmount };
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 const iso = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -83,28 +65,27 @@ const iso = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${
 /**
  * Ημερομηνία από «12/06», «12/6/26» ή «12-06-2026».
  *
+ * ΤΙ ΠΡΟΣΘΕΤΕΙ ΠΑΝΩ ΑΠΟ ΤΟ core: μόνο το ΣΥΜΠΕΡΑΣΜΑ ΤΗΣ ΧΡΟΝΙΑΣ όταν λείπει.
  * Χωρίς χρονιά, εννοείται η φετινή — εκτός αν αυτό βγάζει ημερομηνία πάνω από
  * έναν μήνα στο μέλλον, οπότε εννοείται η περσινή. Τον Ιανουάριο ο κόσμος
  * περνά τις δαπάνες του Δεκεμβρίου, και το «28/12» δεν είναι του χρόνου.
+ *
+ * Ο έλεγχος ότι η ημερομηνία ΥΠΑΡΧΕΙ (το «31/02» δεν υπάρχει) γίνεται από το
+ * core — δεν επαναλαμβάνεται εδώ.
  */
 export function parseDate(text: string, today: Date): string | null {
   const m = DATE_RE.exec(text.trim());
   if (!m) return null;
   const d = parseInt(m[1], 10), mo = parseInt(m[2], 10);
-  if (d < 1 || d > 31 || mo < 1 || mo > 12) return null;
-  let y: number;
-  if (m[3]) {
-    const raw = parseInt(m[3], 10);
-    y = m[3].length <= 2 ? 2000 + raw : raw;
-  } else {
-    y = today.getFullYear();
-    const guess = new Date(y, mo - 1, d);
-    if (guess.getTime() - today.getTime() > 31 * 86400000) y -= 1;
-  }
-  const dt = new Date(y, mo - 1, d);
-  // Απορρίπτει το «31/02», που η JavaScript θα μετέτρεπε σιωπηλά σε 3 Μαρτίου.
-  if (dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
-  return iso(dt);
+  // Με χρονιά: την ερμηνεύει το core, ώστε το διψήφιο έτος να σημαίνει παντού
+  // στο app το ίδιο πράγμα.
+  if (m[3]) return coreParseDate(`${pad(d)}/${pad(mo)}/${m[3]}`);
+
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  let year = today.getFullYear();
+  const guess = new Date(year, mo - 1, d);
+  if (guess.getTime() - today.getTime() > 31 * 86400000) year -= 1;
+  return coreParseDate(`${year}-${pad(mo)}-${pad(d)}`);
 }
 
 /** Μια γραμμή κειμένου σε δαπάνη. */

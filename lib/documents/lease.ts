@@ -10,6 +10,8 @@
 // Τα κείμενα είναι τυποποιημένα υποδείγματα, όχι υποκατάστατο νομικού ελέγχου.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { declarationDeadline as taxDeclarationDeadline } from '../tax/leaseDeclaration';
+
 export type LeaseUse = 'residence' | 'professional';
 
 export interface LeaseInput {
@@ -57,12 +59,19 @@ export function leaseEndDate(start: string, years: number): string {
   return isoOf(e);
 }
 
-/** Προθεσμία δήλωσης μίσθωσης: τέλος του επόμενου μήνα από την έναρξη. */
+/**
+ * Προθεσμία δήλωσης μίσθωσης: τέλος του επόμενου μήνα από την έναρξη.
+ *
+ * Ο ΚΑΝΟΝΑΣ δεν ζει εδώ: ζει στο lib/tax/leaseDeclaration.ts, μαζί με την
+ * υπόλοιπη γνώση για τη Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης. Δύο αντίγραφα
+ * σήμαιναν ότι μια αλλαγή του νόμου θα διορθωνόταν στο ένα και θα έμενε λάθος
+ * στο άλλο — και το συμβόλαιο θα τύπωνε άλλη ημερομηνία από την ειδοποίηση.
+ *
+ * Εδώ μένει μόνο η ανοχή στα άκυρα: το συμβόλαιο τυπώνεται και μισοσυμπληρωμένο,
+ * οπότε χωρίς έγκυρη έναρξη επιστρέφεται κενό αντί για σφάλμα.
+ */
 export function declarationDeadline(start: string): string {
-  const s = parseIso(start);
-  if (!s) return '';
-  // Ημέρα 0 του μεθεπόμενου μήνα = τελευταία ημέρα του επόμενου μήνα.
-  return isoOf(new Date(s.getFullYear(), s.getMonth() + 2, 0));
+  return parseIso(start) ? taxDeclarationDeadline(start.slice(0, 10)) : '';
 }
 
 export function computeLease(i: LeaseInput): LeaseResult {

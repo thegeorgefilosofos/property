@@ -4,19 +4,20 @@
 // ιουλιανό → γρηγοριανό με +13 ημέρες, ισχύει 1900–2099).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { orthodoxEaster as coreOrthodoxEaster } from '../core/greek'
+
 const pad = (n: number) => String(n).padStart(2, '0')
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`
 
-// Ορθόδοξο Πάσχα (γρηγοριανή ημερομηνία) για το έτος.
+/**
+ * Ορθόδοξο Πάσχα (γρηγοριανή ημερομηνία) για το έτος, ως Date.
+ *
+ * Ο ΥΠΟΛΟΓΙΣΜΟΣ δεν γίνεται εδώ: γίνεται ΜΙΑ φορά, στο lib/core/greek.ts. Εδώ
+ * μένει μόνο η μετατροπή σε Date, γιατί οι κινητές εορτές μετριούνται με
+ * `addDays` πάνω σε Date.
+ */
 export function orthodoxEaster(year: number): Date {
-  const a = year % 4, b = year % 7, c = year % 19
-  const d = (19 * c + 15) % 30
-  const e = (2 * a + 4 * b - d + 34) % 7
-  const month = Math.floor((d + e + 114) / 31)     // 3 = Μάρτιος, 4 = Απρίλιος
-  const day = ((d + e + 114) % 31) + 1
-  const julian = new Date(Date.UTC(year, month - 1, day))
-  julian.setUTCDate(julian.getUTCDate() + 13)        // ιουλιανό → γρηγοριανό (1900–2099)
-  return julian
+  return new Date(`${coreOrthodoxEaster(year)}T00:00:00Z`)
 }
 
 function addDays(base: Date, days: number): string {

@@ -29,6 +29,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── Ενεργοποίηση ────────────────────────────────────────────────────────────
+import { normalizePhone } from '../core/greek';
+
 export const ACTIVATION_MIN_PROPERTIES = 1;
 export const ACTIVATION_MIN_DOCUMENTS = 1;
 export const REFEREE_TRIAL_MONTHS = 2;   // δώρο καλωσορίσματος στον νέο χρήστη
@@ -52,11 +54,23 @@ export function referralLink(origin: string, userId: string): string {
 }
 
 // ── Anti-abuse: αυτο-παραπομπή / διπλότυπο (id, email, τηλέφωνο, συσκευή) ─────
-export function normalizePhone(p: string | null | undefined): string {
-  const digits = (p || '').replace(/\D/g, '');
-  return digits.length >= 9 ? digits.slice(-10) : '';
-}
+// Η κανονικοποίηση τηλεφώνου γίνεται ΜΙΑ φορά, στο lib/core/greek.ts.
+export { normalizePhone };
+
 const normEmail = (e: string | null | undefined) => (e || '').trim().toLowerCase();
+
+/**
+ * Τηλέφωνο σε μορφή που ΕΠΙΤΡΕΠΕΤΑΙ να συγκριθεί για διπλότυπο.
+ *
+ * ΓΙΑΤΙ ΧΩΡΙΣΤΑ ΑΠΟ ΤΗΝ ΚΑΝΟΝΙΚΟΠΟΙΗΣΗ: αυτός είναι κανόνας anti-abuse, όχι
+ * ανάγνωσης. Δύο μισοσυμπληρωμένα τηλέφωνα («694», «694») δεν είναι απόδειξη ότι
+ * πρόκειται για το ίδιο πρόσωπο — και θα έκοβαν άδικα μια πραγματική παραπομπή.
+ * Κάτω από 9 ψηφία, δεν συγκρίνουμε.
+ */
+const comparablePhone = (p: string | null | undefined): string => {
+  const n = normalizePhone(p);
+  return n.length >= 9 ? n : '';
+};
 
 export function isSelfOrDuplicate(s: {
   referrerId: string; refereeId: string;
@@ -66,7 +80,7 @@ export function isSelfOrDuplicate(s: {
 }): boolean {
   if (s.referrerId && s.refereeId && s.referrerId === s.refereeId) return true;
   if (normEmail(s.referrerEmail) && normEmail(s.referrerEmail) === normEmail(s.refereeEmail)) return true;
-  const rp = normalizePhone(s.referrerPhone), ep = normalizePhone(s.refereePhone);
+  const rp = comparablePhone(s.referrerPhone), ep = comparablePhone(s.refereePhone);
   if (rp && rp === ep) return true;
   if (s.sharedDevice === true) return true;
   return false;

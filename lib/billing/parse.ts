@@ -4,9 +4,13 @@
 // tests να καλύπτουν τον ΠΡΑΓΜΑΤΙΚΟ κώδικα, όχι αντίγραφο.
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Ο έλεγχος ΑΦΜ υπάρχει ήδη μία φορά στο app (αλγόριθμος ΑΑΔΕ, mod-11, με tests).
-// Τον εισάγουμε — δεν τον αντιγράφουμε.
-import { isValidAfm } from '../tax/leaseDeclaration';
+// Ο έλεγχος ΑΦΜ και η ανάγνωση ελληνικών ποσών/ημερομηνιών υπάρχουν ΜΙΑ φορά
+// στο app, στο lib/core/greek.ts. Τα εισάγουμε — δεν τα αντιγράφουμε.
+import {
+  isValidAfm,
+  parseAmount as coreParseAmount,
+  parseDate as coreParseDate,
+} from '../core/greek';
 
 export type Category =
   | 'electricity' | 'water' | 'gas' | 'internet' | 'streaming' | 'insurance'
@@ -77,33 +81,26 @@ export const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
 };
 
 // ── Ανάλυση CSV/κειμένου τραπεζικού αντιγράφου ─────────────────────────────
-// Ανθεκτικό σε: κόμμα/semicolon/tab διαχωριστές, ελληνικά (1.234,56) & διεθνή
-// (1,234.56) δεκαδικά, ημερομηνίες d/m/y & y-m-d, πρόσημα +/- και στήλες χρέωσης.
-// Μετατροπή στήλης ημερομηνίας → ISO (YYYY-MM-DD). Δέχεται d/m/y, d-m-y, d.m.y,
-// y-m-d, με 2ψήφιο ή 4ψήφιο έτος. Επιστρέφει '' αν δεν είναι ημερομηνία.
+// Η ΑΝΑΓΝΩΣΗ ποσού και ημερομηνίας ΔΕΝ γίνεται εδώ: γίνεται μία φορά, στο
+// lib/core/greek.ts. Εδώ μένει μόνο ό,τι είναι ΤΟΥ ΛΟΓΑΡΙΑΣΜΟΥ — η μορφή που
+// περιμένουν οι οθόνες ('' αντί για null) και το επιχειρησιακό φίλτρο ποσού.
+// Μετατροπή στήλης ημερομηνίας → ISO (YYYY-MM-DD). Επιστρέφει '' αν δεν είναι
+// ημερομηνία, γιατί οι καλούντες εδώ συγκρίνουν με κενό κείμενο, όχι με null.
 export function parseDate(col: string): string {
-  const c = (col || '').trim();
-  if (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}$/.test(c)) {
-    // Το regex εγγυάται 1-2 ψηφία στην πρώτη ομάδα, άρα πάντα d/m/y (y-m-d με
-    // παύλες το πιάνει το δεύτερο branch παρακάτω).
-    const [d, m, y] = c.split(/[\/\-.]/);
-    return `${y.length === 2 ? '20' + y : y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-  }
-  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(c)) {
-    const [y, m, d] = c.split('-');
-    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-  }
-  return '';
+  return coreParseDate(col) ?? '';
 }
 
-// Μετατροπή στήλης ποσού → αριθμός ΜΕ πρόσημο (ελληνικά/διεθνή δεκαδικά, €).
-// Επιστρέφει null αν δεν είναι έγκυρο χρηματικό ποσό.
+/**
+ * Ποσό στήλης, με το ΕΠΙΧΕΙΡΗΣΙΑΚΟ φίλτρο ταιριάσματος λογαριασμών.
+ *
+ * Το φίλτρο (κάτω από 1 λεπτό, πάνω από ένα εκατομμύριο) ΔΕΝ είναι μέρος της
+ * ανάγνωσης — είναι κανόνας του ταιριάσματος: τέτοια νούμερα σε στήλη
+ * λογαριασμού είναι κωδικοί ή υπόλοιπα, όχι ποσά χρέωσης. Γι' αυτό μένει εδώ
+ * και όχι στο core, όπου θα έκοβε σιωπηλά κάθε μεγάλη τραπεζική μεταφορά.
+ */
 export function parseAmount(col: string): number | null {
-  const raw = (col || '').replace(/[€\s]/g, '');
-  if (!/^[-+]?[\d.,]+$/.test(raw) || !/\d/.test(raw)) return null;
-  const clean = (/,\d{1,2}$/.test(raw) ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '')).replace(/[^0-9.\-]/g, '');
-  const n = parseFloat(clean);
-  if (isNaN(n) || Math.abs(n) <= 0.01 || Math.abs(n) >= 1000000) return null;
+  const n = coreParseAmount(col);
+  if (n === null || Math.abs(n) <= 0.01 || Math.abs(n) >= 1000000) return null;
   return n;
 }
 
@@ -208,12 +205,19 @@ export function amountTolerance(amount: number): number {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Ελληνικό ΑΦΜ (mod-11 της ΑΑΔΕ). ΔΕΝ ξαναγράφεται εδώ: επαναχρησιμοποιείται η
- *  μοναδική υλοποίηση του checksum στο app (lib/tax/leaseDeclaration.ts), με τα
- *  δικά της tests. Επανεξάγεται ώστε οι οθόνες του Αρχείου να μην ψάχνουν αλλού. */
+ *  μοναδική υλοποίηση του checksum στο app (lib/core/greek.ts), με τα δικά της
+ *  tests. Επανεξάγεται ώστε οι οθόνες του Αρχείου να μην ψάχνουν αλλού. */
 export { isValidAfm };
 
-/** Μόνο ψηφία (το ΑΦΜ γράφεται με κενά/παύλες σε πολλά παραστατικά). */
-export const afmDigits = (v?: string | null): string => String(v ?? '').replace(/\D/g, '');
+/**
+ * Μόνο τα ψηφία, πετώντας ΚΑΘΕ άλλο χαρακτήρα.
+ *
+ * ΔΕΝ είναι το `afmDigits` του core, και γι' αυτό δεν λέγεται έτσι: εκείνο
+ * καθαρίζει μόνο κενά/τελείες/παύλες για να ΕΛΕΓΞΕΙ ένα ΑΦΜ, ενώ αυτό ΒΓΑΖΕΙ
+ * τα ψηφία από σκαναρισμένο κείμενο, όπου το ΑΦΜ έρχεται ως «ΑΦΜ: 094014201».
+ * Ίδιο όνομα για διαφορετική συμπεριφορά ήταν παγίδα — τώρα κάθε ένα λέει τι κάνει.
+ */
+export const digitsOnly = (v?: string | null): string => String(v ?? '').replace(/\D/g, '');
 
 export interface PeriodRange { from: string; to: string }
 
@@ -404,7 +408,7 @@ export function matchPaymentToBills<T extends MatchCandidate>(
   used: Set<string> = new Set(),
 ): MatchResult<T> {
   const tol = amountTolerance(p.amount);
-  const pAfm = afmDigits(p.provider_afm);
+  const pAfm = digitsOnly(p.provider_afm);
   const pPeriod = periodOf(p);
   const scored: BillMatch<T>[] = [];
 
@@ -420,7 +424,7 @@ export function matchPaymentToBills<T extends MatchCandidate>(
     else { score += W.amountTol; reasons.push({ field: 'amount', ok: true, detail: `Ποσό ${fmtEur(b.amount)} έναντι ${fmtEur(p.amount)} (εντός ανοχής)` }); }
 
     // ── ΑΦΜ: το ισχυρότερο. Άκυρο checksum = «δεν ξέρω», όχι σύγκρουση.
-    const bAfm = afmDigits(b.provider_afm);
+    const bAfm = digitsOnly(b.provider_afm);
     if (pAfm && bAfm && isValidAfm(pAfm) && isValidAfm(bAfm)) {
       if (pAfm !== bAfm) continue;                       // ΣΥΓΚΡΟΥΣΗ
       score += W.afm;

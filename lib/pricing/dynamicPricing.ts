@@ -7,6 +7,8 @@
 // (ιστορικό διαμονών, κλεισμένες ημερομηνίες) και στη γνωστή ελληνική εποχικότητα.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { nightsBetween, orthodoxEaster } from '../core/greek';
+
 export interface PricingStay {
   check_in?: string | null;
   check_out?: string | null;
@@ -66,17 +68,11 @@ function monthSeason(m: number): Season {
   return 'low';
 }
 
-// ── Ορθόδοξο Πάσχα (Meeus, Ιουλιανό → Γρηγοριανό +13 για 1900-2099) ─────────
-export function orthodoxEaster(year: number): string {
-  const a = year % 4, b = year % 7, c = year % 19;
-  const d = (19 * c + 15) % 30;
-  const e = (2 * a + 4 * b - d + 34) % 7;
-  const month = Math.floor((d + e + 114) / 31); // 3=Μάρτιος, 4=Απρίλιος
-  const day = ((d + e + 114) % 31) + 1;
-  const dt = new Date(Date.UTC(year, month - 1, day));
-  dt.setUTCDate(dt.getUTCDate() + 13);
-  return dt.toISOString().slice(0, 10);
-}
+// ── Ορθόδοξο Πάσχα ──────────────────────────────────────────────────────────
+// Υπολογίζεται ΜΙΑ φορά, στο lib/core/greek.ts. Το χρειάζονται και οι αργίες και
+// η εποχικότητα τιμολόγησης· δύο υλοποιήσεις της ίδιας αστρονομίας θα ήταν δύο
+// ευκαιρίες να πέσει έξω το Πάσχα — που μετακινεί ολόκληρη τη σεζόν.
+export { orthodoxEaster };
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const addDays = (isoDate: string, n: number) => {
@@ -124,13 +120,6 @@ export function realizedAdr(stays: PricingStay[]): number {
     else if (s.nightly_rate && s.nightly_rate > 0) { rev += s.nightly_rate * n; nights += n; }
   }
   return nights > 0 ? rev / nights : 0;
-}
-
-function nightsBetween(a?: string | null, b?: string | null): number {
-  if (!a || !b) return 0;
-  const x = new Date(a).getTime(), y = new Date(b).getTime();
-  if (isNaN(x) || isNaN(y) || y <= x) return 0;
-  return Math.round((y - x) / 86400000);
 }
 
 /** Προτεινόμενη βάση από το ιστορικό: μέση πραγματική ADR. */

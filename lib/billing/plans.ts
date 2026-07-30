@@ -88,10 +88,13 @@ export function planLimit(id: string | null | undefined): number {
   return PLANS[normalizePlan(id)].maxProperties;
 }
 
-/** Μπορεί ο χρήστης να προσθέσει ακόμη ένα ακίνητο με το τρέχον πλάνο του; */
-export function canAddProperty(planId: string | null | undefined, currentCount: number): boolean {
-  return currentCount < planLimit(planId);
-}
+// ΤΟ `canAddProperty` ΕΦΥΓΕ ΑΠΟ ΕΔΩ.
+// Υπήρχε σε δύο αρχεία με το ίδιο όνομα και ΔΙΑΦΟΡΕΤΙΚΗ απάντηση: αυτό εδώ
+// κοιτούσε μόνο το πλάνο, ενώ το lib/billing/entitlements.ts μετράει και τα
+// ΑΓΟΡΑΣΜΕΝΑ επιπλέον ακίνητα. Δηλαδή σε χρήστη που είχε πληρώσει για παραπάνω,
+// αυτό εδώ έλεγε «όχι». Καμία οθόνη δεν το καλούσε — μόνο το ίδιο του το test.
+// Η μία απάντηση δίνεται από το `canAddProperty` του entitlements.ts, που
+// συμφωνεί με τον έλεγχο `enforce_property_limit` της βάσης.
 
 /** Το μικρότερο πλάνο που χωράει τόσα ακίνητα ΧΩΡΙΣ αγορά επιπλέον. */
 export function planForCount(count: number): PlanId {
