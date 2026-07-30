@@ -1,10 +1,13 @@
 // Αυστηρά τεστ για το φορολογικό ημερολόγιο ακινήτων (greekTaxCalendar.ts).
 // Τρέξε: npx tsx lib/tax/greekTaxCalendar.test.ts
 import {
-  greekPropertyTaxObligations, taxObligationToEvent, nextWorkingDay, lastWorkingDayOfMonth,
+  greekPropertyTaxObligations, taxObligationToEvent, taxObligationNotes, nextWorkingDay, lastWorkingDayOfMonth,
+  taxObligationsHorizon, taxProfileOf, taxEventSource, taxKindOfEventSource, taxKindMeta,
+  isTaxEventSource, TAX_KINDS, TAX_EVENT_CATEGORY, CONFIDENCE_LABEL,
   type TaxObligation,
 } from './greekTaxCalendar'
 import { isNonWorkingDay } from '../calendar/greekHolidays'
+import { requirementsFor, WHO_LABEL, type Who } from '../accounting/dossier'
 
 let passed = 0, failed = 0
 const fails: string[] = []
@@ -70,14 +73,88 @@ ok('μοναδικά ids (short_term)', new Set(st.map(o => o.id)).size === st.l
 const ev = taxObligationToEvent(owner[0], 'prop1', 'user1')
 ok('event property/user', ev.property_id === 'prop1' && ev.user_id === 'user1')
 ok('event source tax:*', ev.source.startsWith('tax:'))
+ok('event source = taxEventSource(id)', ev.source === taxEventSource(owner[0].id))
+// Η κατηγορία ΔΕΝ είναι 'contract': αλλιώς το φίλτρο του ημερολογίου δεν μπορούσε
+// ΠΟΤΕ να απομονώσει τις φορολογικές προθεσμίες.
+ok('event category = tax', ev.category === TAX_EVENT_CATEGORY)
+ok('event category ΟΧΙ contract', (ev.category as string) !== 'contract')
 ok('event pending', ev.status === 'pending')
 ok('event date = obligation date', ev.event_date === owner[0].date)
-ok('event notes = obligation notes', ev.notes === owner[0].notes)
+ok('event notes περιέχουν το κείμενο της υποχρέωσης', ev.notes.startsWith(owner[0].notes))
+ok('event notes = taxObligationNotes', ev.notes === taxObligationNotes(owner[0]))
+// Το confidence δεν πετάγεται: ταξιδεύει ως priority (και ως κείμενο στις σημειώσεις).
+ok('statutory → priority high', greekPropertyTaxObligations(2026, 'short_term')
+  .filter(o => o.confidence === 'statutory')
+  .every(o => taxObligationToEvent(o, 'p', 'u').priority === 'high'))
+ok('announced → priority medium', owner
+  .filter(o => o.confidence === 'announced')
+  .every(o => taxObligationToEvent(o, 'p', 'u').priority === 'medium'))
+ok('notes λένε ποιος το κάνει', owner.every(o => taxObligationNotes(o).includes(WHO_LABEL[o.who])))
+ok('notes λένε πόσο σίγουρη είναι η ημερομηνία', owner.every(o => taxObligationNotes(o).includes(CONFIDENCE_LABEL[o.confidence])))
 
 // ── διαφορετικό έτος μετακινεί σωστά ─────────────────────────────────────────
 const y2027 = greekPropertyTaxObligations(2027, 'owner')
 ok('2027 Ε9 στο 2027', y2027.find(o => o.id.startsWith('e9-'))!.date.startsWith('2027-0'))
 ok('2027 ΕΝΦΙΑ τελευταία στο 2028', y2027.find(o => o.id.startsWith('enfia-last'))!.date.startsWith('2028-02'))
+
+
+// ── ΕΙΔΟΣ ΥΠΟΧΡΕΩΣΗΣ (kind) — η αναλλοίωτη σχέση id ↔ kind ────────────────────
+const everything: TaxObligation[] = [
+  ...greekPropertyTaxObligations(2026, 'short_term'),
+  ...greekPropertyTaxObligations(2027, 'short_term'),
+]
+ok('κάθε id ξεκινά από το kind', everything.every(o => o.id.startsWith(o.kind + '-')))
+ok('kind από το κλειδί γεγονότος', everything.every(o => taxKindOfEventSource(taxEventSource(o.id)) === o.kind))
+ok('όλα τα kinds είναι δηλωμένα', everything.every(o => TAX_KINDS.includes(o.kind)))
+ok('isTaxEventSource μόνο για tax:', isTaxEventSource('tax:enfia-first-2026') && !isTaxEventSource('obligations:lease_decl') && !isTaxEventSource(null))
+ok('kind άγνωστου κλειδιού = null', taxKindOfEventSource('tenant:abc:lease_end') === null && taxKindOfEventSource('tax:κάτι-άλλο-2026') === null)
+const meta = taxKindMeta(2026)
+ok('meta ανά kind, πλήρες', TAX_KINDS.every(k => !!meta[k] && meta[k].kind === k))
+ok('meta ανεξάρτητο από έτος', TAX_KINDS.every(k => {
+  const m2 = taxKindMeta(2031)[k]
+  return m2.who === meta[k].who && m2.confidence === meta[k].confidence && m2.title === meta[k].title
+}))
+
+// ── ΠΟΙΟΣ ΤΟ ΚΑΝΕΙ — κληρονομείται από τον φάκελο του λογιστή ────────────────
+// Ο κανόνας ζει στο lib/accounting/dossier.ts. Εδώ ελέγχεται ΜΟΝΟ ότι δεν
+// διαφωνούμε μαζί του: όπου η υποχρέωση δείχνει σε παραστατικό του φακέλου, το
+// `who` πρέπει να είναι το ΙΔΙΟ πρόσωπο.
+const dossierWho: Record<string, Who> = {}
+for (const r of requirementsFor({
+  form: 'individual', books: 'none',
+  statuses: ['own_use', 'rent_long', 'rent_short', 'vacant'],
+  hasRenovation: true, hasLoan: true, ownershipChanged: true,
+})) dossierWho[r.id] = r.who
+ok('όλα έχουν who', everything.every(o => o.who === 'owner' || o.who === 'app' || o.who === 'accountant'))
+ok('who συμφωνεί με τον φάκελο', everything.every(o => !o.dossier || dossierWho[o.dossier] === o.who))
+ok('κάθε dossier id υπάρχει στον φάκελο', everything.every(o => !o.dossier || o.dossier in dossierWho))
+ok('ΕΝΦΙΑ → ο ιδιοκτήτης', meta['enfia-first'].who === 'owner' && meta['enfia-first'].dossier === 'enfia')
+ok('Ε9 → ο λογιστής', meta.e9.who === 'accountant' && meta.e9.dossier === 'e9')
+ok('βραχυχρόνια → ο ιδιοκτήτης', meta['str-registry'].who === 'owner' && meta['str-climate-fee'].who === 'owner')
+
+// ── Ο ΚΥΛΙΟΜΕΝΟΣ ΟΡΙΖΟΝΤΑΣ ──────────────────────────────────────────────────
+const hz = taxObligationsHorizon('2026-12-20', 'long_term')
+ok('ορίζοντας ταξινομημένος', hz.every((o, i) => i === 0 || hz[i - 1].date <= o.date))
+ok('ορίζοντας: μοναδικά ids', new Set(hz.map(o => o.id)).size === hz.length)
+// Ο χρήστης του Δεκεμβρίου ΠΡΕΠΕΙ να βλέπει την τελευταία δόση του Φεβρουαρίου.
+ok('ορίζοντας φτάνει στον Φεβρουάριο 2027', hz.some(o => o.kind === 'enfia-last' && o.date.startsWith('2027-02')))
+ok('ορίζοντας φτάνει στη 1η δόση 2027', hz.some(o => o.kind === 'enfia-first' && o.date.startsWith('2027-03')))
+ok('ορίζοντας ΔΕΝ φτάνει στο 2028', hz.every(o => o.date < '2027-04-01'))
+ok('ορίζοντας ΔΕΝ γυρίζει πριν την 1η Ιανουαρίου', hz.every(o => o.date >= '2026-01-01'))
+// Ο χρήστης του Ιανουαρίου: η τελευταία δόση της ΠΕΡΣΙΝΗΣ εκκαθάρισης πέφτει μέσα
+// σε αυτόν τον Φεβρουάριο. Πριν εξαφανιζόταν, γιατί ανήκει στο περσινό έτος.
+const jan = taxObligationsHorizon('2027-01-08', 'owner')
+ok('ο Ιανουάριος βλέπει την τελευταία δόση του Φεβρουαρίου', jan.some(o => o.id === 'enfia-last-2026' && o.date.startsWith('2027-02')))
+ok('ορίζοντας Ιανουαρίου ξεκινά από 1/1', jan.every(o => o.date >= '2027-01-01'))
+ok('ορίζοντας Ιανουαρίου: μοναδικά ids', new Set(jan.map(o => o.id)).size === jan.length)
+ok('ορίζοντας short_term έχει και τις μηνιαίες', taxObligationsHorizon('2026-07-30', 'short_term').some(o => o.kind === 'str-registry'))
+ok('ορίζοντας χωρίς έτος = κενός', taxObligationsHorizon('χωρίς-ημερομηνία', 'owner').length === 0)
+
+// ── ΠΡΟΦΙΛ ΑΠΟ ΤΗΝ ΜΙΑ ΚΑΤΑΣΤΑΣΗ ΤΟΥ ΑΚΙΝΗΤΟΥ ───────────────────────────────
+ok('short_term από rental_mode', taxProfileOf({ rental_mode: 'short_term' }) === 'short_term')
+ok('short_term από status_detail seasonal', taxProfileOf({ status_detail: 'seasonal' }) === 'short_term')
+ok('long_term από rented', taxProfileOf({ status_detail: 'rented' }) === 'long_term')
+ok('κενό/ιδιοχρησία → owner', taxProfileOf({ status_detail: 'own_use' }) === 'owner' && taxProfileOf(null) === 'owner')
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\ngreekTaxCalendar.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
