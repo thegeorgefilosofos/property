@@ -2350,7 +2350,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     </div>
                     <div style={{ background:'var(--bg-base)', boxShadow:'var(--well-inset)', borderRadius:12, padding:12, display:'flex' }}>
                       {([
-                        { l:'Μην. ενοίκιο', v:fmt(t.monthly_rent), strong:true },
+                        { l:'Μηνιαίο ενοίκιο', v:fmt(t.monthly_rent), strong:true },
                         { l:'Εγγύηση', v:fmt(t.deposit_amount) },
                         { l:'Ληξιπρόθεσμη οφειλή', v:od?fmt(od.amount):'—', neg:!!od },
                       ] as {l:string;v:string;strong?:boolean;neg?:boolean}[]).map((m,i)=>(

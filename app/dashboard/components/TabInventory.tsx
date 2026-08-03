@@ -1382,7 +1382,7 @@ function WarrantiesTab({items,userId,propertyId,embedded}:{items:InventoryItem[]
   )
   return (
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      {embedded?<SectionLabel label="Εγγυήσεις" right={withW.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{withW.length} με ημ/νία λήξης</span>:undefined}/>:(
+      {embedded?<SectionLabel label="Εγγυήσεις" right={withW.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{withW.length} με ημερομηνία λήξης</span>:undefined}/>:(
         <KPIGrid items={[
           {label:'Ληγμένες',value:String(expired.length),tone:expired.length>0?'negative':'neutral'},
           {label:'Λήγουν ≤90 Μέρες',value:String(soon.length),tone:soon.length>0?'warning':'neutral'},
