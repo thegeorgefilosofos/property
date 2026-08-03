@@ -61,19 +61,25 @@ function DonutChart({ data, size = 128 }: { data: { label: string; value: number
       Κενό
     </div>
   );
-  let offset = 0;
+  // Οι μετατοπίσεις υπολογίζονται ΠΡΙΝ την απόδοση. Πριν, μια μεταβλητή `offset`
+  // μεταλλασσόταν μέσα στο map: σε δεύτερη απόδοση του ίδιου δέντρου η τιμή της
+  // ξεκινούσε από όπου είχε μείνει και τα τόξα έφευγαν από τη θέση τους.
+  const slices = data.filter(d => d.value > 0);
+  const offsets = slices.reduce<number[]>((acc, d, i) => {
+    acc.push(i === 0 ? 0 : acc[i - 1] + slices[i - 1].value / total);
+    return acc;
+  }, []);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border-subtle)" strokeWidth={sw} />
-      {data.filter(d => d.value > 0).map((d, i) => {
+      {slices.map((d, i) => {
         const pct = d.value / total, dash = pct * C, gap = C - dash;
-        const el = (
+        return (
           <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color}
             strokeWidth={sw} strokeLinecap="round" strokeDasharray={`${Math.max(dash - 2, 0.1)} ${gap + 2}`}
-            strokeDashoffset={-offset * C} style={{ transition: 'stroke-dasharray 0.5s' }}
+            strokeDashoffset={-offsets[i] * C} style={{ transition: 'stroke-dasharray 0.5s' }}
             transform={`rotate(-90 ${cx} ${cy})`} />
         );
-        offset += pct; return el;
       })}
       <text x={cx} y={cy - 1} textAnchor="middle" fontSize={size * 0.145} fontWeight="700"
         fill="var(--text-primary)" fontFamily="'Inter', sans-serif" style={{ letterSpacing: '-0.02em' }}>
@@ -275,17 +281,10 @@ export default function ExpenseAnalytics({ expenses }: Props) {
     bank_transfer: 'Τραπεζική μεταφορά', check: 'Επιταγή', cash_black: 'Αδήλωτα', family: 'Οικογένεια',
   };
 
-  // Μήνυμα σε σχέση με τον προηγούμενο μήνα, σε καθαρά ελληνικά, χωρίς «MoM».
-  const momText = (() => {
-    if (stats.prevMonthTotal <= 0) return null;
-    if (stats.curMonthTotal <= 0) return { tone: 'muted', text: `Καμία δαπάνη ${MONTHS_S[thisMonth]} ακόμη. Τον ${MONTHS_S[thisMonth > 0 ? thisMonth - 1 : 11]} είχες ${fmtEur(stats.prevMonthTotal)}.` };
-    const diff = stats.curMonthTotal - stats.prevMonthTotal;
-    const pct = Math.abs(stats.momChange).toFixed(0);
-    if (Math.abs(stats.momChange) < 3) return { tone: 'muted', text: `Σταθερά σε σχέση με τον προηγούμενο μήνα (${fmtEur(stats.curMonthTotal)}).` };
-    return diff > 0
-      ? { tone: 'up', text: `${pct}% περισσότερα από τον προηγούμενο μήνα (+${fmtEur(diff)}).` }
-      : { tone: 'down', text: `${pct}% λιγότερα από τον προηγούμενο μήνα (−${fmtEur(Math.abs(diff))}).` };
-  })();
+  // Η σύγκριση με τον προηγούμενο μήνα ΔΕΝ λέγεται εδώ. Λέγεται μία φορά, στην
+  // κορυφή της οθόνης (ExpenseCompare), από τη μηχανή που ξέρει τον ημιτελή μήνα
+  // και τη μηδενική βάση. Εδώ έλειπαν και τα δύο, οπότε στις 3 του μήνα έγραφε
+  // «80% λιγότερα» — αληθινό ποσοστό, ψεύτικη πληροφορία.
 
   return (
     <div style={{ marginBottom: 20, fontFamily: T.font.sans }}>
@@ -335,14 +334,6 @@ export default function ExpenseAnalytics({ expenses }: Props) {
         <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} positive={stats.totalSavings > 0} hint={stats.totalSavings > 0 ? 'επιστροφές & εκπτώσεις' : undefined} />
         {stats.topCat && <KPICard label="Μεγαλύτερη κατηγορία" value={stats.topCat[0]} hint={fmtEur(stats.topCat[1])} />}
       </div>
-
-      {/* Σε σχέση με τον προηγούμενο μήνα */}
-      {momText && (
-        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: momText.tone === 'up' ? 'var(--text-tertiary)' : momText.tone === 'down' ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }} />
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>{momText.text}</span>
-        </div>
-      )}
 
       {/* Row 1: κατανομές + σωρευτική */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginBottom: 14 }}>

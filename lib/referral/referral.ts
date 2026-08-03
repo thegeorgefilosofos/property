@@ -11,17 +11,26 @@
 //   • 5 ΣΥΝΔΡΟΜΗΤΕΣ (Ιδιώτης/Επαγγελματίας) μέσα στον μήνα: +2 μήνες Επαγγελματία.
 //   • 10 δωρεάν χρήστες μέσα στον μήνα: +1 μήνας Επαγγελματία.
 //   • ΙΔΙΟΤΗΤΑ ΣΥΝΕΡΓΑΤΗ (σερί): 5 συνδρομητές για 3 συνεχόμενους μήνες →
-//       – 20% επαναλαμβανόμενη προμήθεια στις συνδρομές που φέρνει
 //       – κάθε μήνας που πιάνει τον στόχο → ο επόμενος μήνας δωρεάν Επαγγελματίας
 //       – σήμα Συνεργάτη + προτεραιότητα στην επικοινωνία & εξυπηρέτηση
 //
-// Ασφάλεια / οικονομικά: όλα ΑΞΙΑ ΠΡΟΪΟΝΤΟΣ (μηδενικό οριακό κόστος, όχι μετρητά)·
-// τα «πληρωμένα» milestones μετρούν μόνο ΣΥΝΔΡΟΜΗΤΕΣ (αυτοχρηματοδοτούνται)· η
-// ανταμοιβή κλειδώνει ΜΟΝΟ στην ΕΝΕΡΓΟΠΟΙΗΣΗ (ακίνητο + 1 σάρωση), επαληθευμένη
-// server-side. Καθαρές, ντετερμινιστικές συναρτήσεις: καμία εξωτερική εξάρτηση.
+// ΓΙΑΤΙ ΔΕΝ ΥΠΑΡΧΕΙ ΠΡΟΜΗΘΕΙΑ ΣΕ ΜΕΤΡΗΤΑ (αφαιρέθηκε «20% κάθε μήνα»)
+// Η οθόνη υποσχόταν «20% προμήθεια σε κάθε συνδρομή που φέρνεις, κάθε μήνα» και
+// πίσω από την υπόσχεση δεν υπήρχε ΤΙΠΟΤΑ: ο πίνακας `referral_rewards` δέχεται
+// μόνο kind = 'months' | 'slot' — καμία εγγραφή προμήθειας, κανένα ledger, κανένα
+// payout. Ταυτόχρονα η στρατηγική αποκλείει ρητά την επεξεργασία πληρωμών
+// (docs/STRATEGY.md §5, «Τι ΔΕΝ θα κάνουμε»). Μια υπόσχεση χρημάτων που δεν
+// μπορεί να πληρωθεί, σε προϊόν που πουλάει ακρίβεια, κοστίζει την εμπιστοσύνη —
+// και απευθυνόταν στον λογιστή, δηλαδή στο κανάλι διανομής μας.
+// Άρα: όλα ΑΞΙΑ ΠΡΟΪΟΝΤΟΣ (δωρεάν μήνες), που αυτοχρηματοδοτούνται επειδή τα
+// «πληρωμένα» milestones μετρούν ΣΥΝΔΡΟΜΗΤΕΣ. Η ανταμοιβή κλειδώνει ΜΟΝΟ στην
+// ΕΝΕΡΓΟΠΟΙΗΣΗ (ακίνητο + 1 σάρωση), επαληθευμένη server-side.
+// Καθαρές, ντετερμινιστικές συναρτήσεις: καμία εξωτερική εξάρτηση.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── Ενεργοποίηση ────────────────────────────────────────────────────────────
+import { normalizePhone } from '../core/greek';
+
 export const ACTIVATION_MIN_PROPERTIES = 1;
 export const ACTIVATION_MIN_DOCUMENTS = 1;
 export const REFEREE_TRIAL_MONTHS = 2;   // δώρο καλωσορίσματος στον νέο χρήστη
@@ -45,11 +54,23 @@ export function referralLink(origin: string, userId: string): string {
 }
 
 // ── Anti-abuse: αυτο-παραπομπή / διπλότυπο (id, email, τηλέφωνο, συσκευή) ─────
-export function normalizePhone(p: string | null | undefined): string {
-  const digits = (p || '').replace(/\D/g, '');
-  return digits.length >= 9 ? digits.slice(-10) : '';
-}
+// Η κανονικοποίηση τηλεφώνου γίνεται ΜΙΑ φορά, στο lib/core/greek.ts.
+export { normalizePhone };
+
 const normEmail = (e: string | null | undefined) => (e || '').trim().toLowerCase();
+
+/**
+ * Τηλέφωνο σε μορφή που ΕΠΙΤΡΕΠΕΤΑΙ να συγκριθεί για διπλότυπο.
+ *
+ * ΓΙΑΤΙ ΧΩΡΙΣΤΑ ΑΠΟ ΤΗΝ ΚΑΝΟΝΙΚΟΠΟΙΗΣΗ: αυτός είναι κανόνας anti-abuse, όχι
+ * ανάγνωσης. Δύο μισοσυμπληρωμένα τηλέφωνα («694», «694») δεν είναι απόδειξη ότι
+ * πρόκειται για το ίδιο πρόσωπο — και θα έκοβαν άδικα μια πραγματική παραπομπή.
+ * Κάτω από 9 ψηφία, δεν συγκρίνουμε.
+ */
+const comparablePhone = (p: string | null | undefined): string => {
+  const n = normalizePhone(p);
+  return n.length >= 9 ? n : '';
+};
 
 export function isSelfOrDuplicate(s: {
   referrerId: string; refereeId: string;
@@ -59,7 +80,7 @@ export function isSelfOrDuplicate(s: {
 }): boolean {
   if (s.referrerId && s.refereeId && s.referrerId === s.refereeId) return true;
   if (normEmail(s.referrerEmail) && normEmail(s.referrerEmail) === normEmail(s.refereeEmail)) return true;
-  const rp = normalizePhone(s.referrerPhone), ep = normalizePhone(s.refereePhone);
+  const rp = comparablePhone(s.referrerPhone), ep = comparablePhone(s.refereePhone);
   if (rp && rp === ep) return true;
   if (s.sharedDevice === true) return true;
   return false;
@@ -123,7 +144,6 @@ export const PRO_FREE_BONUS_MONTHS = 1;       // → 1 μήνας Επαγγελ
 // ΙΔΙΟΤΗΤΑ ΣΥΝΕΡΓΑΤΗ (σερί επαγγελματία στους συνδρομητές)
 // ═══════════════════════════════════════════════════════════════════════════
 export const STREAK_TARGET_MONTHS = 3;        // συνεχόμενοι μήνες με PRO_PAID_TARGET συνδρομητές
-export const PARTNER_COMMISSION_RATE = 0.20;  // % επί των συνδρομών που φέρνει
 export const PARTNER_MONTHLY_FREE_MONTHS = 1; // κάθε επιτυχημένος μήνας → επόμενος δωρεάν
 
 /** Γενική πρόοδος «X/target» για τις μπάρες. */
@@ -155,12 +175,15 @@ export function streakProgress(paidMonthlyCounts: number[]): { current: number; 
   return { current, target: STREAK_TARGET_MONTHS, reached: streak >= STREAK_TARGET_MONTHS, pct: Math.min(100, (current / STREAK_TARGET_MONTHS) * 100) };
 }
 
-/** Μηνιαία προμήθεια Συνεργάτη (20%) επί των συνδρομών που φέρνει. */
-export function partnerCommission(referredMonthlyRevenue: number): number {
-  return Math.max(0, referredMonthlyRevenue) * PARTNER_COMMISSION_RATE;
-}
-
-export function partnerCommissionFromSubs(monthlySubs: number[]): number {
-  const total = monthlySubs.reduce((s, v) => s + (v > 0 ? v : 0), 0);
-  return partnerCommission(total);
+/**
+ * Δωρεάν μήνες Συνεργάτη από ένα ιστορικό μηνών: κάθε μήνας που πιάνει τον στόχο
+ * χαρίζει τον επόμενο. Αυτή είναι η ΜΟΝΗ ανταμοιβή του Συνεργάτη και είναι αξία
+ * προϊόντος — πληρώνεται από τις ίδιες τις συνδρομές που έφερε, όχι από ταμείο.
+ *
+ * Μετρά μόνο μήνες ΜΕΣΑ στο σερί: χωρίς την ιδιότητα Συνεργάτη δεν οφείλεται
+ * δωρεάν μήνας, αλλιώς θα χαρίζαμε μήνες σε κάθε τυχαίο καλό μήνα.
+ */
+export function partnerFreeMonths(paidMonthlyCounts: number[]): number {
+  if (!isPartner(paidMonthlyCounts)) return 0;
+  return currentStreak(paidMonthlyCounts) * PARTNER_MONTHLY_FREE_MONTHS;
 }

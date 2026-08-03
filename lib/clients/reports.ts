@@ -1,39 +1,61 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Αναφορές πελατολογίου/διαμονών (καθαρή λογική): έσοδα ανά κανάλι, έσοδα ανά
-// μήνα, πληρότητα (occupancy). Χωρίς React/Supabase. Δοκιμάσιμο.
+// Αναφορές διαμονών (καθαρή λογική): έσοδα ανά κανάλι, έσοδα ανά μήνα,
+// πληρότητα. Χωρίς React/Supabase. Δοκιμάσιμο.
+//
+// ΤΑ ΕΣΟΔΑ ΕΙΝΑΙ ΤΟ ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ, όχι το `total`. Δες
+// lib/clients/stayAmounts.ts: το τέλος ανθεκτικότητας δεν είναι έσοδο του
+// ιδιοκτήτη και η προμήθεια της πλατφόρμας δεν μειώνει το έσοδο. Κάθε
+// συγκεντρωτικό επιστρέφει ΚΑΙ πόσες γραμμές είναι απροσδιόριστες, ώστε η οθόνη
+// να μη δείχνει ένα νούμερο σαν βέβαιο όταν δεν είναι.
+//
+// Η ΠΛΗΡΟΤΗΤΑ ΕΙΧΕ ΛΑΘΟΣ ΠΑΡΟΝΟΜΑΣΤΗ. Διαιρούσε με 365 ημέρες, οπότε ένα
+// εποχιακό εξοχικό με γεμάτο καλοκαίρι εμφανιζόταν στο «16%» — αριθμός που δεν
+// σημαίνει τίποτα, γιατί το ακίνητο δεν ήταν ποτέ στην αγορά τον Ιανουάριο.
+// Παρονομαστής είναι πλέον οι ΔΙΑΘΕΣΙΜΕΣ ημέρες: το παράθυρο λειτουργίας όπως
+// το δείχνουν τα δικά του δεδομένα (από τον πρώτο έως τον τελευταίο μήνα με
+// κράτηση, ολόκληροι μήνες). Δεν μαντεύουμε πόσο ήταν διαθέσιμο εκτός αυτού.
+// Και δίνεται δεύτερο νούμερο, η πληρότητα υψηλής περιόδου — τους τρεις
+// καλύτερους συνεχόμενους μήνες, βρεμένους από τα δεδομένα, όχι από ημερολόγιο
+// που αποφασίσαμε εμείς.
 // ═══════════════════════════════════════════════════════════════════════════
-import { stayTotal, stayNights, STAY_CHANNEL_LABELS, type StayChannel } from './clients';
+import { stayNights, STAY_CHANNEL_LABELS, type StayChannel } from './clients';
+import {
+  declarableGrossOrTotal, declarableGross, platformFee, collectedLevy,
+  type StayAmountLike,
+} from './stayAmounts';
 
-export interface ReportStay {
+export interface ReportStay extends StayAmountLike {
   property_id?: string | null;
   channel?: string | null;
-  check_in?: string | null;
-  check_out?: string | null;
-  nights?: number | null;
-  total?: number | null;
-  nightly_rate?: number | null;
 }
 
 const nightsOf = (s: ReportStay) => s.nights ?? stayNights(s.check_in, s.check_out);
 
-export interface ChannelRow { channel: string; label: string; revenue: number; nights: number; count: number }
+export interface ChannelRow {
+  channel: string; label: string; revenue: number; nights: number; count: number;
+  /** Πόσες από αυτές τις διαμονές έχουν απροσδιόριστη βάση ποσού. */
+  unresolved: number;
+  platformFees: number;
+}
 
-/** Έσοδα/νύχτες/πλήθος ανά κανάλι (Airbnb/Booking/Απευθείας/Άλλο), φθίνουσα σειρά εσόδων. */
+/** Ακαθάριστα/νύχτες/πλήθος ανά κανάλι (Airbnb/Booking/Απευθείας/Άλλο), φθίνουσα σειρά. */
 export function revenueByChannel(stays: ReportStay[]): ChannelRow[] {
   const m = new Map<string, ChannelRow>();
   for (const s of stays) {
     const ch = (s.channel || 'other') as string;
     const label = STAY_CHANNEL_LABELS[ch as StayChannel] || 'Άλλο';
-    const row = m.get(ch) || { channel: ch, label, revenue: 0, nights: 0, count: 0 };
-    row.revenue += stayTotal(s);
+    const row = m.get(ch) || { channel: ch, label, revenue: 0, nights: 0, count: 0, unresolved: 0, platformFees: 0 };
+    row.revenue += declarableGrossOrTotal(s);
     row.nights += nightsOf(s) || 0;
     row.count += 1;
+    if (declarableGross(s) == null) row.unresolved += 1;
+    row.platformFees += platformFee(s);
     m.set(ch, row);
   }
   return [...m.values()].sort((a, b) => b.revenue - a.revenue);
 }
 
-/** Έσοδα ανά μήνα (0..11) για συγκεκριμένο έτος, με βάση την ημερομηνία άφιξης. */
+/** Ακαθάριστα ανά μήνα (0..11) για συγκεκριμένο έτος, με βάση την ημερομηνία άφιξης. */
 export function revenueByMonth(stays: ReportStay[], year: number): number[] {
   const out = new Array(12).fill(0);
   for (const s of stays) {
@@ -41,7 +63,7 @@ export function revenueByMonth(stays: ReportStay[], year: number): number[] {
     if (!d) continue;
     const dt = new Date(d);
     if (isNaN(dt.getTime()) || dt.getFullYear() !== year) continue;
-    out[dt.getMonth()] += stayTotal(s);
+    out[dt.getMonth()] += declarableGrossOrTotal(s);
   }
   return out;
 }
@@ -55,19 +77,103 @@ export function nightsInRange(s: ReportStay, from: string, to: string): number {
   return Math.round((b - a) / 86400000);
 }
 
-/** Πληρότητα (%) σε ένα διάστημα: κρατημένες νύχτες / συνολικές ημέρες διαστήματος. */
-export function occupancyPct(stays: ReportStay[], from: string, to: string): number {
-  const total = Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000);
-  if (!(total > 0)) return 0;
-  const booked = stays.reduce((s, st) => s + nightsInRange(st, from, to), 0);
-  return Math.min(100, Math.round((booked / total) * 1000) / 10);
+const MONTH_DAYS = (year: number, m: number) => new Date(Date.UTC(year, m + 1, 0)).getUTCDate();
+const pad2 = (x: number) => String(x).padStart(2, '0');
+
+/** Νύχτες ανά ημερολογιακό μήνα (12 τιμές, 0=Ιαν) που πέφτουν εντός του έτους. */
+export function nightsByMonth(stays: ReportStay[], year: number): number[] {
+  const out = new Array(12).fill(0);
+  for (let m = 0; m < 12; m++) {
+    const from = `${year}-${pad2(m + 1)}-01`;
+    const to = m === 11 ? `${year + 1}-01-01` : `${year}-${pad2(m + 2)}-01`;
+    out[m] = stays.reduce((s, st) => s + nightsInRange(st, from, to), 0);
+  }
+  return out;
 }
 
-/** Συγκεντρωτικά για ένα σετ διαμονών: συνολικά έσοδα, νύχτες, πλήθος. */
-export function totals(stays: ReportStay[]): { revenue: number; nights: number; count: number } {
-  return stays.reduce<{ revenue: number; nights: number; count: number }>((acc, s) => ({
-    revenue: acc.revenue + stayTotal(s),
-    nights: acc.nights + (nightsOf(s) || 0),
-    count: acc.count + 1,
-  }), { revenue: 0, nights: 0, count: 0 });
+export interface PeakOccupancy {
+  /** 0=Ιανουάριος. Το παράθυρο είναι συνεχόμενο, [fromMonth..toMonth]. */
+  fromMonth: number; toMonth: number;
+  days: number; bookedNights: number; pct: number;
+}
+
+export interface YearOccupancy {
+  bookedNights: number;
+  /** Παράθυρο λειτουργίας: ολόκληροι μήνες, από τον πρώτο έως τον τελευταίο με κράτηση. */
+  openFromMonth: number | null;
+  openToMonth: number | null;
+  /** ΔΙΑΘΕΣΙΜΕΣ ημέρες — ο παρονομαστής. 0 όταν δεν υπάρχει καμία κράτηση. */
+  availableDays: number;
+  pct: number;
+  /** Πληρότητα υψηλής περιόδου (τρεις καλύτεροι συνεχόμενοι μήνες). */
+  peak: PeakOccupancy | null;
+  nightsByMonth: number[];
+}
+
+/**
+ * Πληρότητα έτους με παρονομαστή τις διαθέσιμες ημέρες, όχι τις 365.
+ *
+ * ΤΙ ΘΕΩΡΟΥΜΕ ΔΙΑΘΕΣΙΜΟ. Τους μήνες από τον πρώτο έως τον τελευταίο με έστω
+ * μία κράτηση, ολόκληρους. Είναι μετρημένο, όχι υποθετικό: αν το ακίνητο είχε
+ * κρατήσεις Ιούνιο και Σεπτέμβριο, ήταν στην αγορά και τον Ιούλιο και τον
+ * Αύγουστο — άρα οι κενές μέρες τους μετρούν εναντίον της πληρότητας, σωστά.
+ * Έξω από αυτό το παράθυρο δεν ξέρουμε τίποτα και δεν προσποιούμαστε ότι ξέρουμε.
+ */
+export function yearOccupancy(stays: ReportStay[], year: number): YearOccupancy {
+  const nbm = nightsByMonth(stays, year);
+  const booked = nbm.reduce((a, b) => a + b, 0);
+  const months = nbm.map((v, i) => (v > 0 ? i : -1)).filter(i => i >= 0);
+  if (months.length === 0) {
+    return { bookedNights: 0, openFromMonth: null, openToMonth: null, availableDays: 0, pct: 0, peak: null, nightsByMonth: nbm };
+  }
+  const from = months[0], to = months[months.length - 1];
+  let availableDays = 0;
+  for (let m = from; m <= to; m++) availableDays += MONTH_DAYS(year, m);
+  const pct = availableDays > 0 ? Math.round((booked / availableDays) * 1000) / 10 : 0;
+
+  // Υψηλή περίοδος: το καλύτερο συνεχόμενο τρίμηνο ΜΕΣΑ στο παράθυρο
+  // λειτουργίας. Αν το παράθυρο είναι μικρότερο από τρεις μήνες, είναι όλο του.
+  const span = to - from + 1;
+  const win = Math.min(3, span);
+  let best: PeakOccupancy | null = null;
+  for (let start = from; start + win - 1 <= to; start++) {
+    let nights = 0, days = 0;
+    for (let m = start; m < start + win; m++) { nights += nbm[m]; days += MONTH_DAYS(year, m); }
+    const p = days > 0 ? Math.round((nights / days) * 1000) / 10 : 0;
+    if (!best || nights > best.bookedNights) best = { fromMonth: start, toMonth: start + win - 1, days, bookedNights: nights, pct: p };
+  }
+  return { bookedNights: booked, openFromMonth: from, openToMonth: to, availableDays, pct: Math.min(100, pct), peak: best, nightsByMonth: nbm };
+}
+
+export interface StayTotals {
+  /** Δηλωτέο ακαθάριστο. */
+  revenue: number;
+  nights: number;
+  count: number;
+  /** Διαμονές με απροσδιόριστη βάση ποσού (ιστορικές, πριν τη διάσπαση). */
+  unresolved: number;
+  /** Πόσα ευρώ από το `revenue` προέρχονται από αυτές τις γραμμές. */
+  unresolvedAmount: number;
+  platformFees: number;
+  climateLevy: number;
+  /** Αδήλωτες διαμονές (χωρίς declared_at). */
+  undeclared: number;
+}
+
+/** Συγκεντρωτικά για ένα σετ διαμονών, με τη ρητή αβεβαιότητα ξεχωριστά. */
+export function totals(stays: (ReportStay & { declared_at?: string | null })[]): StayTotals {
+  return stays.reduce<StayTotals>((acc, s) => {
+    const shown = declarableGrossOrTotal(s);
+    const unknown = declarableGross(s) == null;
+    return {
+      revenue: acc.revenue + shown,
+      nights: acc.nights + (nightsOf(s) || 0),
+      count: acc.count + 1,
+      unresolved: acc.unresolved + (unknown ? 1 : 0),
+      unresolvedAmount: acc.unresolvedAmount + (unknown ? shown : 0),
+      platformFees: acc.platformFees + platformFee(s),
+      climateLevy: acc.climateLevy + collectedLevy(s),
+      undeclared: acc.undeclared + ((s.declared_at || '').trim() ? 0 : 1),
+    };
+  }, { revenue: 0, nights: 0, count: 0, unresolved: 0, unresolvedAmount: 0, platformFees: 0, climateLevy: 0, undeclared: 0 });
 }

@@ -1,4 +1,4 @@
-// Αυστηρά τεστ για την καθαρή λογική του βοηθού (assistantPersona.ts).
+// Αυστηρά τεστ για την καθαρή λογική της Νόα (assistantPersona.ts).
 // Τρέξε: npx tsx app/dashboard/components/assistantPersona.test.ts
 // Ελαφρύ shim του localStorage/window ΠΡΙΝ το import, ώστε να δοκιμαστεί η μόνιμη μνήμη.
 const _store = new Map<string, string>();
@@ -11,20 +11,20 @@ const _store = new Map<string, string>();
 };
 
 import {
-  parseAction, cleanForSpeech, buildSystemPrompt, NAV_MAP,
-  DEFAULT_IDENTITY, type AssistantIdentity, type Gender,
+  parseAction, cleanForSpeech, buildSystemPrompt, buildSystemBlocks, NAV_MAP,
+  DEFAULT_PREFS, type AssistantPrefs,
   loadMemories, addMemory, removeMemory, clearMemories,
   normalizeBookTime, resolveBookDate,
 } from './assistantPersona';
 import { PLANS, TRIAL_DAYS } from '@/lib/billing/plans';
+import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 
 let passed = 0, failed = 0;
 const fails: string[] = [];
 const ok = (name: string, cond: boolean) => { if (cond) passed++; else { failed++; if (fails.length < 60) fails.push(name); } };
 
 const NAV_IDS = NAV_MAP.map(n => n.id);
-const GENDERS: Gender[] = ['female', 'male', 'nonbinary', 'neutral'];
-const id = (o: Partial<AssistantIdentity> = {}): AssistantIdentity => ({ ...DEFAULT_IDENTITY, ...o });
+const id = (o: Partial<AssistantPrefs> = {}): AssistantPrefs => ({ ...DEFAULT_PREFS, ...o });
 
 // ── parseAction: κάθε έγκυρο tab, σε πολλές θέσεις/μορφές (χιλιάδες) ──────────
 const WRAPPERS = [
@@ -226,28 +226,46 @@ for (let i = 0; i < 400; i++) {
   ok(`fuzz no double space ${i}`, !/\s{2,}/.test(out));
 }
 
-// ── buildSystemPrompt: περιεχόμενο & γένος ───────────────────────────────────
-for (const g of GENDERS) {
-  const p = buildSystemPrompt(id({ name: 'Νόα', gender: g }), 'Ενοίκιο: 600 €');
-  ok(`prompt name ${g}`, p.includes('Νόα'));
-  ok(`prompt context ${g}`, p.includes('Ενοίκιο: 600 €'));
-  ok(`prompt nav ${g}`, NAV_MAP.every(n => p.includes(n.label)));
-  ok(`prompt greek-life ${g}`, /Παναθηναϊκός|Ολυμπιακός/.test(p));
-  ok(`prompt referral ${g}`, /δικηγόρος|λογιστ/.test(p));
+// ── buildSystemPrompt: περιεχόμενο & ΜΙΑ ταυτότητα ───────────────────────────
+// Το όνομα δεν είναι πια ρύθμιση: ΚΑΘΕ χρήστης παίρνει το ίδιο πρόσωπο, τη Νόα.
+for (const prefs of [id(), id({ formal: true }), id({ memory: false }), id({ compare: true })]) {
+  const p = buildSystemPrompt(prefs, 'Ενοίκιο: 600 €');
+  ok('prompt: λέει το όνομα', p.includes(ASSISTANT_NAME));
+  ok('prompt: το πλαίσιο του χρήστη', p.includes('Ενοίκιο: 600 €'));
+  ok('prompt: όλες οι καρτέλες', NAV_MAP.every(n => p.includes(n.label)));
+  ok('prompt: ζει στην Ελλάδα', /Παναθηναϊκός|Ολυμπιακός/.test(p));
+  ok('prompt: παραπέμπει σε επαγγελματία', /δικηγόρος|λογιστ/.test(p));
 }
-// σωστό γραμματικό γένος (self-reference)
-ok('female self', /σίγουρη|θηλυκ/i.test(buildSystemPrompt(id({ gender: 'female' }), 'x')));
-ok('male self', /σίγουρος|αρσενικ/i.test(buildSystemPrompt(id({ gender: 'male' }), 'x')));
-ok('neutral self', /ουδετερ|Ουδέτερ|ουδέτερ/i.test(buildSystemPrompt(id({ gender: 'neutral' }), 'x')));
-// default όνομα όταν κενό
-ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(DEFAULT_IDENTITY.name));
+// ΤΑΥΤΟΤΗΤΑ: ουδέτερο γένος, χωρίς άρθρο, χωρίς «είμαι AI» — και χωρίς να κρύβεται.
+{
+  const p = buildSystemPrompt(id(), 'x');
+  // Το μόνο σημείο όπου επιτρέπεται να γραφτεί «ο Νόα»/«η Νόα» είναι η ίδια η
+  // απαγόρευση. Οπουδήποτε αλλού, το prompt θα δίδασκε αυτό που απαγορεύει.
+  const withoutBan = p.replace('ποτέ «ο Νόα» ή «η Νόα»', '');
+  ok('ταυτότητα: απαγορεύει ρητά το έμφυλο άρθρο', p.includes('ποτέ «ο Νόα» ή «η Νόα»'));
+  ok('ταυτότητα: πουθενά αλλού έμφυλο άρθρο στο όνομα', !/(^|[^\p{L}])(ο|η|του|της|τον|την)\s+Νόα/u.test(withoutBan));
+  ok('ταυτότητα: δηλώνει ρητά ότι δεν έχει φύλο', /ΔΕΝ ΕΧΕΙΣ ΦΥΛΟ/.test(p));
+  ok('ταυτότητα: απαγορεύει έμφυλους αυτο-χαρακτηρισμούς', /σίγουρος/.test(p) && /σίγουρη/.test(p));
+  ok('ταυτότητα: δεν αυτοδιαφημίζεται ως AI', /Δεν λες «είμαι AI»/.test(p));
+  ok('ταυτότητα: παραδέχεται ότι είναι λογισμικό αν ρωτηθεί', /λογισμικό/.test(p));
+  ok('ταυτότητα: απαντά στα ελληνικά', /απαντάς στα ελληνικά/.test(p));
+}
+// Το ΣΤΑΘΕΡΟ μπλοκ πρέπει να είναι ίδιο byte-προς-byte για κάθε χρήστη: εκεί
+// στηρίζεται όλο το prompt caching. Η ταυτότητα ανήκει σε αυτό, οι προτιμήσεις όχι.
+{
+  const a = buildSystemBlocks(id(), 'Ακίνητο Α');
+  const b = buildSystemBlocks(id({ formal: true }), 'Ακίνητο Β');
+  ok('cache: το σταθερό μπλοκ είναι κοινό', a[0].text === b[0].text);
+  ok('cache: η ταυτότητα είναι στο σταθερό μπλοκ', a[0].text.includes(ASSISTANT_NAME) && a[0].text.includes('ΔΕΝ ΕΧΕΙΣ ΦΥΛΟ'));
+  ok('cache: το προσωπικό μπλοκ διαφέρει', a[1].text !== b[1].text);
+}
 // τρόπος προσφώνησης: ενικός vs πληθυντικός
 {
   const sing = buildSystemPrompt(id({ formal: false }), 'x');
   const plur = buildSystemPrompt(id({ formal: true }), 'x');
   ok('singular addresses in ενικό', /στον ενικό/.test(sing) && !/πληθυντικό ευγενείας/.test(sing));
   ok('plural addresses in πληθυντικό', /πληθυντικό ευγενείας/.test(plur));
-  ok('default identity is singular', DEFAULT_IDENTITY.formal === false);
+  ok('default identity is singular', DEFAULT_PREFS.formal === false);
 }
 // segment-awareness: ο advisor προσαρμόζεται σε κάθε τύπο χρήστη
 {

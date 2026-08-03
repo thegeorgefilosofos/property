@@ -40,14 +40,18 @@ export const CORE_TABS: readonly string[] = [
  *  εφαρμογή δεν του μοιάζει επαγγελματική. */
 export const PROFESSIONAL_CORE_TABS: readonly string[] = ['portfolio', 'clients'];
 
-/** Σήματα από τα πραγματικά δεδομένα του χρήστη. Όλα προαιρετικά: ό,τι λείπει
- *  θεωρείται «δεν υπάρχει», ποτέ «αποκάλυψέ το για καλό και για κακό». */
+/**
+ * Σήματα από τα πραγματικά δεδομένα του χρήστη. Όλα προαιρετικά: ό,τι λείπει
+ * θεωρείται «δεν υπάρχει», ποτέ «αποκάλυψέ το για καλό και για κακό».
+ *
+ * ΜΟΝΟ ΣΥΣΣΩΡΕΥΣΗ, ΟΧΙ ΚΑΤΑΣΤΑΣΗ. Εδώ μπαίνει ό,τι ο χρήστης ΜΑΖΕΨΕ με τον
+ * χρόνο — δάνειο, είδη, έγγραφα, επαφές, εκκρεμότητες, μέρες από την εγγραφή.
+ * Η κατάσταση του ακινήτου και το πλήθος των ακινήτων ΔΕΝ είναι σήματα εδώ:
+ * τα κρίνει το lib/property/visibility.ts, και τα είχαμε γραμμένα και στα δύο.
+ */
 export interface DisclosureSignals {
-  propertyCount?: number;
   /** Έχει καταχωρήσει έστω ένα δάνειο. */
   hasLoan?: boolean;
-  /** Το επιλεγμένο ακίνητο είναι βραχυχρόνιας μίσθωσης. */
-  isShortTerm?: boolean;
   hasInventory?: boolean;
   hasDocuments?: boolean;
   hasContacts?: boolean;
@@ -63,11 +67,18 @@ export interface DisclosureSignals {
 const SIGNAL_RULES: Record<string, (s: DisclosureSignals) => boolean> = {
   // Δάνειο: μόνο αν υπάρχει δάνειο. Το 60% των Ελλήνων ιδιοκτητών δεν έχει.
   loan:       s => !!s.hasLoan,
-  // Τιμολόγηση (δυναμική τιμή ανά διανυκτέρευση): μόνο για βραχυχρόνια.
-  pricing:    s => !!s.isShortTerm,
-  // Σύγκριση/Αποδόσεις: χρειάζονται δεύτερο ακίνητο για να λένε κάτι.
-  comparison: s => (s.propertyCount ?? 0) > 1,
-  roi:        s => (s.propertyCount ?? 0) > 1,
+  // ΤΙΜΟΛΟΓΗΣΗ, ΑΠΟΔΟΣΕΙΣ ΚΑΙ ΣΥΓΚΡΙΣΗ ΔΕΝ ΕΧΟΥΝ ΚΑΝΟΝΑ ΕΔΩ — ΕΠΙΤΗΔΕΣ.
+  //
+  // Είχαν, και ήταν ΑΝΤΙΓΡΑΦΟ του lib/property/visibility.ts, γραμμένο αλλιώς:
+  //   pricing    → isShortTerm      ενώ εκεί: κατάσταση === rent_short
+  //   roi        → isRented         ενώ εκεί: rent_long ή rent_short
+  //   comparison → propertyCount>1  ενώ εκεί: ≥2 ΚΑΙ συγκρίσιμα
+  // Δύο διατυπώσεις του ίδιου κανόνα, σε δύο αρχεία. Όσο συμφωνούσαν δεν
+  // φαινόταν· την πρώτη φορά που κάποιος διόρθωνε τη μία, η άλλη θα έμενε πίσω
+  // σιωπηλά — και η καρτέλα θα εξαφανιζόταν χωρίς να φταίει κανείς ορατά.
+  //
+  // Οι τρεις τους κρίνονται πλέον ΜΟΝΟ από την κατάσταση του ακινήτου, εκεί που
+  // ζει αυτή η γνώση. Η πλοήγηση τις περνά ως «αυτο-αποκαλυπτόμενες».
   // Εργαλεία: εμφανίζονται μόλις μπει το πρώτο δεδομένο τους.
   inventory:  s => !!s.hasInventory,
   documents:  s => !!s.hasDocuments,
@@ -104,13 +115,13 @@ export function isTabVisible(tabId: string, input: DisclosureInput = {}): boolea
 }
 
 /** Φιλτράρει μια λίστα ids κρατώντας τη σειρά. */
-export function visibleTabs(ids: readonly string[], input: DisclosureInput = {}): string[] {
+export function disclosedTabs(ids: readonly string[], input: DisclosureInput = {}): string[] {
   return ids.filter(id => isTabVisible(id, input));
 }
 
 /** Πόσες από αυτές τις καρτέλες είναι προς το παρόν κρυμμένες. */
-export function hiddenCount(ids: readonly string[], input: DisclosureInput = {}): number {
-  return ids.length - visibleTabs(ids, input).length;
+export function hiddenTabCount(ids: readonly string[], input: DisclosureInput = {}): number {
+  return ids.length - disclosedTabs(ids, input).length;
 }
 
 /** Προσθέτει μια καρτέλα στις αποκαλυμμένες. Επιστρέφει την ΙΔΙΑ αναφορά όταν

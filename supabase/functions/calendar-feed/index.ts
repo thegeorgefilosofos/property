@@ -10,6 +10,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 const CAT_LABELS: Record<string, string> = {
   financial: 'Οικονομικά', bills: 'Λογαριασμοί', maintenance: 'Συντήρηση',
   contract: 'Συμβόλαιο', tenant: 'Ενοικιαστής', reminder: 'Υπενθύμιση',
+  // Οι φορολογικές υποχρεώσεις γράφονται πλέον με category:'tax' (μία πηγή:
+  // lib/tax/greekTaxCalendar.ts). Χωρίς την ετικέτα, το ζωντανό .ics έδειχνε
+  // «tax: ΕΝΦΙΑ, 1η δόση» στο ημερολόγιο του χρήστη.
+  tax: 'Φορολογικά',
 }
 
 function esc(s: string) { return String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n') }

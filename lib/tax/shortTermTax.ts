@@ -5,19 +5,31 @@
 //   • climateLevyForNights → Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (ΤΑΚΚ)
 // Καθαρή λογική (χωρίς React/δίκτυο), δοκιμάσιμη. Οι εκτιμήσεις είναι ενδεικτικές
 // και προϋποθέτουν επιβεβαίωση από λογιστή.
+//
+// ΤΟ `grossRevenue` ΕΙΝΑΙ ΠΡΑΓΜΑΤΙΚΑ ΑΚΑΘΑΡΙΣΤΟ ΤΩΡΑ. Πριν, διάβαζε το
+// `client_stays.total` — το πεδίο που ο εισαγωγέας email γέμιζε ρητά με **payout**
+// — και το ονόμαζε grossRevenue, ενώ ο φάκελος του λογιστή έλεγε στον χρήστη
+// «δήλωσε τα ΑΚΑΘΑΡΙΣΤΑ». Πλέον περνά από το lib/clients/stayAmounts.ts:
+// ακαθάριστο = τι πλήρωσε ο επισκέπτης − τέλος ανθεκτικότητας (που δεν είναι
+// έσοδό του), και η προμήθεια της πλατφόρμας μένει ΕΞΩ ως δαπάνη.
+// Οι ιστορικές γραμμές απροσδιόριστης βάσης μετρώνται ΧΩΡΙΣΤΑ
+// (`unresolvedCount`/`unresolvedAmount`) ώστε η οθόνη να μη δείχνει βεβαιότητα
+// που δεν υπάρχει.
 // ═══════════════════════════════════════════════════════════════════════════
-import { stayTotal } from '@/lib/clients/clients';
-import { climateLevyForNights, rentalIncomeTax, municipalAccommodationTax } from '@/lib/billing/greekTax';
+import {
+  declarableGross, declarableGrossOrTotal, platformFee, collectedLevy as levyOfStay,
+  isDeclared, type StayAmountLike,
+} from '@/lib/clients/stayAmounts';
+import {
+  climateLevyForNights, climateLevyRates, isHighSeasonMonth,
+  rentalIncomeTax, municipalAccommodationTax,
+} from '@/lib/billing/greekTax';
 
 export interface PropertyTaxMeta { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean; rentsPaidViaBank?: boolean }
 
-export interface TaxStay {
-  check_in?: string | null;
-  check_out?: string | null;
-  nights?: number | null;
-  nightly_rate?: number | null;
-  total?: number | null;
+export interface TaxStay extends StayAmountLike {
   channel?: string | null;
+  declared_at?: string | null;
 }
 
 const y4 = (d?: string | null) => (d || '').slice(0, 4);
@@ -45,14 +57,14 @@ export function nightsByMonthForYear(stays: TaxStay[], year: number): number[] {
 }
 
 export interface TaxChannelRow { channel: string; revenue: number; nights: number; stays: number }
-/** Ανάλυση εσόδων/νυχτών ανά κανάλι για το έτος (με βάση την ημερομηνία άφιξης). */
+/** Ανάλυση ακαθαρίστων/νυχτών ανά κανάλι για το έτος (με βάση την ημερομηνία άφιξης). */
 export function channelBreakdownForYear(stays: TaxStay[], year: number): TaxChannelRow[] {
   const m = new Map<string, TaxChannelRow>();
   for (const s of stays) {
     if (y4(s.check_in) !== String(year)) continue;
     const ch = (s.channel || 'other') as string;
     const row = m.get(ch) || { channel: ch, revenue: 0, nights: 0, stays: 0 };
-    row.revenue += stayTotal(s);
+    row.revenue += declarableGrossOrTotal(s);
     row.nights += s.nights ?? 0;
     row.stays += 1;
     m.set(ch, row);
@@ -62,16 +74,27 @@ export function channelBreakdownForYear(stays: TaxStay[], year: number): TaxChan
 
 export interface ShortTermYearSummary {
   year: number;
-  grossRevenue: number;    // μεικτά έσοδα (άθροισμα διαμονών με άφιξη μέσα στο έτος)
+  /** ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ: τι πλήρωσε ο επισκέπτης − τέλος ανθεκτικότητας.
+   *  Η προμήθεια της πλατφόρμας ΔΕΝ αφαιρείται (είναι δαπάνη, όχι μείωση εσόδου). */
+  grossRevenue: number;
   totalNights: number;
   stayCount: number;
   nightsByMonth: number[];
-  levy: number;            // ΤΑΚΚ (τέλος ανθεκτικότητας)
+  levy: number;            // ΤΑΚΚ που ΟΦΕΙΛΕΤΑΙ, από τις διανυκτερεύσεις και τους συντελεστές
+  collectedLevy: number;   // ΤΑΚΚ που καταγράφηκε ως εισπραχθέν από τους επισκέπτες
+  platformFees: number;    // ΔΑΠΑΝΗ (εκπίπτει) — δεν μειώνει το ακαθάριστο
   municipalTax: number;    // τέλος παρεπιδημούντων (0,5% ή 0 με εξαίρεση)
   municipalExempt: boolean;
   incomeTax: number;       // εκτιμώμενος φόρος εισοδήματος (κλίμακα ενοικίων)
-  net: number;             // μεικτά − φόρος − ΤΑΚΚ − τέλος παρεπιδημούντων
-  effectiveRate: number;   // φόρος / μεικτά
+  net: number;             // ακαθάριστα − φόρος − ΤΑΚΚ − τέλος παρεπιδημούντων
+  effectiveRate: number;   // φόρος / ακαθάριστα
+  /** Πόσες διαμονές έχουν ΑΠΡΟΣΔΙΟΡΙΣΤΗ βάση ποσού (ιστορικές, πριν τη διάσπαση
+   *  σε ακαθάριστο/προμήθεια/τέλος). Όσο αυτό δεν είναι 0, το ακαθάριστο είναι
+   *  εκτίμηση και το UI οφείλει να το λέει. */
+  unresolvedCount: number;
+  unresolvedAmount: number;
+  /** Διαμονές χωρίς Δήλωση Βραχυχρόνιας Διαμονής (declared_at). */
+  undeclaredCount: number;
   byChannel: TaxChannelRow[];
 }
 
@@ -83,7 +106,10 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   const inYear = stays.filter(s => y4(s.check_in) === String(year));
   const nightsByMonth = nightsByMonthForYear(stays, year);
   const totalNights = nightsByMonth.reduce((a, b) => a + b, 0);
-  const grossRevenue = inYear.reduce((sum, s) => sum + stayTotal(s), 0);
+  const grossRevenue = inYear.reduce((sum, s) => sum + declarableGrossOrTotal(s), 0);
+  const unresolved = inYear.filter(s => declarableGross(s) == null && declarableGrossOrTotal(s) > 0);
+  const platformFees = inYear.reduce((sum, s) => sum + platformFee(s), 0);
+  const collectedLevy = inYear.reduce((sum, s) => sum + levyOfStay(s), 0);
   const levy = climateLevyForNights(nightsByMonth, meta?.sqm, meta?.isHouse);
   const municipalTax = meta ? municipalAccommodationTax(grossRevenue, meta) : 0;
   // Βραχυχρόνια φυσικού προσώπου χωρίς υπηρεσίες = εισόδημα από ακίνητη περιουσία:
@@ -94,9 +120,68 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   const net = grossRevenue - incomeTax - levy - municipalTax;
   return {
     year, grossRevenue, totalNights, stayCount: inYear.length, nightsByMonth,
-    levy, municipalTax, municipalExempt: municipalTax === 0,
+    levy, collectedLevy, platformFees,
+    municipalTax, municipalExempt: municipalTax === 0,
     incomeTax, net, effectiveRate: grossRevenue > 0 ? incomeTax / grossRevenue : 0,
+    unresolvedCount: unresolved.length,
+    unresolvedAmount: unresolved.reduce((sum, s) => sum + declarableGrossOrTotal(s), 0),
+    undeclaredCount: inYear.filter(s => !isDeclared(s)).length,
     byChannel: channelBreakdownForYear(stays, year),
+  };
+}
+
+// ── Η γραμμή που κανείς δεν επινοεί, κάτω από κάθε προτεινόμενη τιμή ─────────
+//
+// Ο οικοδεσπότης βλέπει «85 €/νύχτα» και νομίζει ότι εισπράττει 85 και δηλώνει
+// 85. Κανένα από τα δύο δεν είναι αλήθεια, και η διαφορά είναι ακριβώς εκεί όπου
+// γίνονται τα λάθη που πληρώνει: το τέλος ανθεκτικότητας δεν είναι έσοδό του
+// (το κρατά για το κράτος), και η προμήθεια είναι δαπάνη που ΔΕΝ μειώνει το
+// δηλωτέο έσοδο. Τίποτα εδώ δεν είναι επινοημένο: το τέλος βγαίνει από τους
+// συντελεστές της ΑΑΔΕ (lib/billing/greekTax.ts, με πηγή), και η προμήθεια
+// ΜΟΝΟ από το πραγματικό ιστορικό του χρήστη — αν δεν υπάρχει, μένει `null`
+// και η οθόνη λέει ότι δεν την ξέρουμε.
+export interface GuestPriceBreakdown {
+  /** Τι πληρώνει ο επισκέπτης για τη νύχτα (η προτεινόμενη τιμή). */
+  guestPrice: number;
+  /** Τέλος ανθεκτικότητας της νύχτας. ΔΕΝ είναι έσοδο του ιδιοκτήτη. */
+  climateLevy: number;
+  highSeason: boolean;
+  /** Ποσοστό προμήθειας από το ιστορικό του χρήστη· `null` = δεν το ξέρουμε. */
+  platformFeeRate: number | null;
+  /** Ποσό προμήθειας· `null` όταν δεν ξέρουμε το ποσοστό. ΔΑΠΑΝΗ. */
+  platformFee: number | null;
+  /** ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ της νύχτας = τιμή − τέλος. */
+  declarableGross: number;
+  /** Τι μένει στον λογαριασμό· `null` όταν η προμήθεια είναι άγνωστη. */
+  payout: number | null;
+}
+
+/**
+ * Ανάλυση μιας τιμής/νύχτα σε: τιμή επισκέπτη, τέλος, προμήθεια, δηλωτέο ακαθάριστο.
+ * @param date YYYY-MM-DD — καθορίζει υψηλή/χαμηλή περίοδο του τέλους.
+ * @param platformFeeRate ποσοστό από το ιστορικό του χρήστη (0..1) ή null.
+ */
+export function guestPriceBreakdown(
+  date: string,
+  guestPrice: number,
+  opts?: { sqm?: number | null; isHouse?: boolean; platformFeeRate?: number | null },
+): GuestPriceBreakdown {
+  const m = Math.max(0, Math.min(11, Number(date.slice(5, 7)) - 1));
+  const high = isHighSeasonMonth(m);
+  const rates = climateLevyRates(opts?.sqm, opts?.isHouse);
+  const levy = high ? rates.high : rates.low;
+  const price = Math.max(0, guestPrice);
+  const gross = Math.max(0, price - levy);
+  const rate = opts?.platformFeeRate != null && opts.platformFeeRate > 0 ? opts.platformFeeRate : null;
+  const fee = rate != null ? Math.round(price * rate * 100) / 100 : null;
+  return {
+    guestPrice: price,
+    climateLevy: levy,
+    highSeason: high,
+    platformFeeRate: rate,
+    platformFee: fee,
+    declarableGross: gross,
+    payout: fee != null ? Math.max(0, gross - fee) : null,
   };
 }
 

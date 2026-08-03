@@ -9,7 +9,7 @@ import { REGULATORY_UPDATES_2026, type RegulatoryUpdate, type UpdateAudience } f
 import { transferCosts } from '@/lib/accounting/transfer'
 import { InfoHint } from './InfoHint'
 import BankImport from './BankImport'
-import E2IncomeCalc from './E2IncomeCalc'
+import E2ReconcileCard from './E2ReconcileCard'
 import { Landmark, Lock, Unlock } from 'lucide-react'
 import {
   buildLedger, cashflowByYear, reconcile, reconSummary,
@@ -32,6 +32,9 @@ import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
 import { exportAccountantBundle } from './accountantExport'
+import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
+import { defaultBookkeeping, type LegalForm } from '@/lib/accounting/dossier'
+import { readStatus, type PropertyStatus } from '@/lib/property/status'
 import { printAccountingReport, downloadOfficialAccountingReport, type ReconLite } from './accountingReport'
 import { printRentCertificate, downloadOfficialRentCertificate } from './rentCertificate'
 import ReportBuilder from './ReportBuilder'
@@ -147,6 +150,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // «Για τον λογιστή»: το διπλογραφικό βάθος (ισοζύγιο, άρθρα) είναι πάντα διαθέσιμο,
   // αλλά κλειστό για τον ιδιώτη (καθαρή εικόνα) και ανοιχτό για τον επαγγελματία.
   const [forAccountantOpen,setForAccountantOpen] = useState(profileType==='professional')
+  // Τα προχωρημένα εργαλεία ξεκινούν κλειστά για ΟΛΟΥΣ. Ο επαγγελματίας τα
+  // βρίσκει με ένα κλικ· ο ιδιώτης δεν χρειάζεται να τα προσπεράσει κάθε φορά.
+  const [advancedOpen,setAdvancedOpen] = useState(false)
   // Live πύλη λογιστή (χωρίς login/email): ένας σύνδεσμος με token ανά χρήστη.
   const [acctCopied,setAcctCopied] = useState(false)
   const [acctBusy,setAcctBusy] = useState(false)
@@ -176,12 +182,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       const [ex, rp, st, ln, pr, aps, arp, ast, inv] = await Promise.all([
         supabase.from('expenses').select('date,amount,category,expense_group,description').eq('property_id',propertyId),
         supabase.from('rent_payments').select('period_year,period_month,amount,paid,paid_date,due_date').eq('property_id',propertyId),
-        supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel').eq('property_id',propertyId),
+        supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('property_id',propertyId),
         supabase.from('loans').select('amount,rate,years,bank,start_date').eq('property_id',propertyId),
         supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value').eq('id',propertyId).maybeSingle(),
-        supabase.from('user_properties').select('id,name,rental_mode,enfia,sqm').eq('user_id',userId),
+        supabase.from('user_properties').select('id,name,rental_mode,status_detail,enfia,sqm').eq('user_id',userId),
         supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date').eq('user_id',userId),
-        supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel').eq('user_id',userId),
+        supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('user_id',userId),
         supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
       ])
       setExpenses(ex.data||[]); setRent(rp.data||[]); setStays(st.data||[]); setLoans(ln.data||[])
@@ -326,6 +332,48 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   const maxCash = Math.max(1, ...cash.map(c=>Math.max(c.income,c.expense)))
 
+  // ── Ο ΦΑΚΕΛΟΣ ΓΙΑ ΤΟΝ ΛΟΓΙΣΤΗ ─────────────────────────────────────────────
+  // Η κατάσταση κάθε ακινήτου (εκμίσθωση, κενό, ιδιοχρησία…) ορίζει ΤΙ ζητάει ο
+  // λογιστής. Ο κανόνας ζει μία φορά, στο lib/accounting/dossier.ts· εδώ απλώς
+  // του δίνουμε τα δεδομένα και δείχνουμε την απάντησή του.
+  const dossierProps = useMemo(()=>{
+    const rows:{ name?:string|null; status_detail?:string|null; rental_mode?:string|null }[] = allProps.length ? allProps : (prop?[prop]:[])
+    return rows.map(p=>({ name: p.name || 'Ακίνητο', status: readStatus(p) as PropertyStatus }))
+  },[allProps,prop])
+  // Αφετηρία, μόνο για χρήστη που δεν έχει δηλώσει ακόμη τίποτα: ό,τι ήδη ξέρουμε.
+  const dossierSeed = useMemo(()=>{
+    const form:LegalForm = businessMode ? (elpForm==='company' ? 'company' : 'sole_trader') : 'individual'
+    return { form, books: defaultBookkeeping(form), hasLoan: loans.length>0 }
+  },[businessMode,elpForm,loans])
+  const dossier = useAccountantDossier(userId, year, dossierSeed)
+  // Τα βιβλία κρίνουν ποιος βλέπει ισοζύγιο/ισολογισμό — ποτέ φυσικό πρόσωπο.
+  const doubleEntry = dossier.profile.books==='double_entry'
+
+  // «Τι δεν βρέθηκε»: ό,τι λείπει από τα ΔΕΔΟΜΕΝΑ (όχι από τα χαρτιά) και θα
+  // αναγκάσει τον λογιστή να σηκώσει τηλέφωνο. Γράφεται μέσα στο 05_ΤΙ_ΛΕΙΠΕΙ.
+  const dossierGaps = useMemo(()=>{
+    const g:string[] = []
+    const rentRows = rent.filter(p=>p.period_year===year)
+    if(regime==='individual_shortterm'){
+      if(stays.filter(s=>String(s.check_in||'').slice(0,4)===String(year)).length===0) g.push(`Καμία καταχωρημένη διαμονή για το ${year}.`)
+    } else if(rentRows.length===0){ g.push(`Κανένα καταχωρημένο μίσθωμα για το ${year}.`) }
+    if(expensesYear.length===0) g.push(`Καμία καταχωρημένη δαπάνη για το ${year}.`)
+    if(uncollectedRent>0) g.push(`Ανείσπρακτα μισθώματα ${eur(uncollectedRent)}: χρειάζεται τεκμηρίωση της νομικής διεκδίκησης.`)
+    if(regime==='individual_longterm' && !tenant?.afm) g.push('Δεν έχει καταχωρηθεί ΑΦΜ μισθωτή.')
+    if(enfiaEstimated) g.push('Ο ΕΝΦΙΑ είναι αυτόματη εκτίμηση, όχι ποσό από εκκαθαριστικό.')
+    const noCat = expensesYear.filter(e=>!e.category).length
+    if(noCat>0) g.push(`${noCat} δαπάνες χωρίς κατηγορία.`)
+    return g
+  },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated])
+
+  const dossierExport = useMemo(()=>({
+    propName: prop?.name || 'Ακίνητο',
+    statementLines: statement.lines.map(l=>({ label:l.label, amount:l.amount, kind:l.kind, negative:l.negative })),
+    provisionMonthly: provision.monthly,
+    book: book.map(e=>({ date:e.date, type:e.type, category:e.category, description:e.description, amount:e.amount })),
+    gaps: dossierGaps,
+  }),[prop,statement,provision,book,dossierGaps])
+
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
   const [closing,setClosing] = useState<{ snapshot:any; locked_at:string }|null>(null)
   const [lockErr,setLockErr] = useState<string|null>(null)
@@ -460,6 +508,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Έχει το έτος πραγματική κίνηση; Αν όχι, αντί για τοίχο από «0 €» δείχνουμε μια
   // ήρεμη, καθοδηγητική αφετηρία (τι θα ξεκλειδώσει μόλις μπουν δεδομένα).
   const hasActivity = grossIncome>0 || expensesTotal>0 || rentAccruedYear>0 || book.length>0
+  // Η περίληψη των προχωρημένων λέει ΤΙ κρύβει, ώστε κανείς να μη χρειαστεί να
+  // το ανοίξει «μήπως». Το ισοζύγιο αναφέρεται μόνο σε όποιον όντως το έχει.
+  const advancedSummary = [
+    'Κλείσιμο χρήσης', 'φορολογική κλίμακα', 'ταμειακές ροές', 'κόστος αγοράς και πώλησης',
+    ...(mode==='professional' && elp==='personal' ? ['ενοποίηση χαρτοφυλακίου'] : []),
+    ...(mode==='professional' && doubleEntry ? ['ισοζύγιο διπλογραφικής'] : []),
+  ].join(', ') + '.'
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -502,30 +557,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       </div>
 
-      {/* Κλείσιμο χρήσης, premium κατάσταση με σαφή ένδειξη ανοιχτό/κλειστό */}
-      {(()=>{ const isCurrent = year===athensYear()
-        const isFuture = year>athensYear()
-        const st = drift?'drift':closing?'locked':'open'
-        const meta = { open:{ c:isCurrent?'var(--accent)':'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
-        return (
-        <div style={{ ...card, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', borderColor: st==='drift'?'var(--warning)':'var(--border-subtle)' }}>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:6, height:26, padding:'0 10px', borderRadius:8, background: st==='drift' ? `color-mix(in srgb, var(--warning) 12%, transparent)` : 'var(--bg-elevated)', color: st==='drift' ? 'var(--warning)' : 'var(--text-secondary)', fontSize:10, fontWeight:700, letterSpacing:'0.5px', fontFamily: T.font.sans }}>
-            {st==='open'?(isCurrent?<span className="live-dot" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>:<Unlock size={12}/>):<Lock size={12}/>}{meta.label}
-          </span>
-          <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
-            {st==='open'?(isCurrent?<>Χρήση {year} σε εξέλιξη · μήνας {provMonth} από 12.</>:isFuture?<>Η χρήση {year} δεν έχει ξεκινήσει ακόμη.</>:<>Χρήση {year} ολοκληρωμένη, έτοιμη για κλείδωμα.</>):st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
-            <InfoHint>Το κλείδωμα κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
-            {lockErr && <span style={{ display:'block', marginTop:4, color:'var(--negative)', fontSize:11.5 }}>Το κλείδωμα δεν αποθηκεύτηκε: {lockErr}. Έλεγξε ότι έχει εφαρμοστεί το migration book_closings στη βάση.</span>}
-          </span>
-          <div style={{ flex:1 }}/>
-          {st==='open'
-            ? (isFuture ? null : <button onClick={lockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 14px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.borderColor='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)'}}><Lock size={13}/>Κλείδωμα έτους</button>)
-            : <>
-                {st==='drift'&&<button onClick={lockYear} style={{ height:T.h.sm, padding:'0 13px', borderRadius:14, border:'1px solid var(--warning)', background:'transparent', color:'var(--warning)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }}>Ενημέρωση</button>}
-                <button onClick={unlockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 13px', borderRadius:14, border:'none', background:'transparent', color:'var(--text-tertiary)', fontSize:12.5, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-secondary)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-tertiary)'}}><Unlock size={13}/>Ξεκλείδωμα</button>
-              </>}
-        </div>
-      )})()}
+      {/* Ο ΦΑΚΕΛΟΣ, ΜΠΡΟΣΤΑ ΑΠΟ ΟΛΑ. Είναι η ερώτηση που έχει ο ιδιοκτήτης πριν
+          από κάθε άλλη — «τι πρέπει να πάω στον λογιστή και τι μου λείπει;» —
+          και μέχρι τώρα ήταν η μόνη που δεν απαντούσε αυτή η καρτέλα. */}
+      <AccountantDossier state={dossier} year={year} properties={dossierProps} exportSource={dossierExport} />
 
       {/* Παράμετροι επιχείρησης, τυποποιημένα πεδία με σύντομη εξήγηση */}
       {businessMode&&(
@@ -670,75 +705,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       </div>
       </>)}
 
-      {/* Φορολογική κλίμακα 2026, αναφορά ανά καθεστώς (έμφαση στο κλιμάκιο του χρήστη) */}
-      {!(businessMode&&elpForm==='company') ? (
-        <div style={card}>
-          <p style={cardTitle}>{businessMode ? 'Κλίμακα επιχειρηματικής δραστηριότητας 2026' : 'Φορολογική κλίμακα ενοικίων 2026'}</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10 }}>
-            {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; return (
-              <div key={r.range} onMouseEnter={()=>setHoverBracket(i)} onMouseLeave={()=>setHoverBracket(null)}
-                style={{ padding:'12px 14px', borderRadius:12, border:`1px solid ${hot?'var(--accent)':active?'var(--border-default)':'var(--border-subtle)'}`, background:active?'var(--bg-elevated)':'var(--bg-surface)', transition:'border-color 0.15s, background 0.15s', cursor:'default' }}>
-                <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans }}>{r.range}</p>
-                <p style={{ fontSize:16, fontWeight:700, color:hot?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, transition:'color 0.16s ease' }}>{r.rate}</p>
-              </div>
-            )})}
-          </div>
-        </div>
-      ) : (
-        <div style={{ ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap' }}>
-          <div style={{ minWidth:0, flex:1 }}>
-            <p style={{ ...cardTitle, margin:0 }}>Νομικό πρόσωπο</p>
-            <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'7px 0 0', fontFamily: T.font.sans, lineHeight:1.6, maxWidth:560 }}>Σταθερός φόρος <strong style={{ color:'var(--text-primary)' }}>22%</strong> επί των καθαρών κερδών, ανεξαρτήτως ύψους εισοδήματος (ΑΕ, ΕΠΕ, ΙΚΕ, ΟΕ, ΕΕ). Στη διανομή μερίσματος προστίθεται φόρος 5% και ισχύει προκαταβολή φόρου για το επόμενο έτος.</p>
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minWidth:104, height:76, borderRadius:12, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexShrink:0 }}>
-            <span style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>22%</span>
-            <span style={{ fontSize:10, color:'var(--text-tertiary)', letterSpacing:'0.5px', textTransform:'uppercase', fontFamily: T.font.sans, marginTop:5 }}>Συντελεστής</span>
-          </div>
-        </div>
-      )}
-
-      {/* Επαγγελματίας: ενοποίηση χαρτοφυλακίου + εκπιπτόμενα */}
-      {mode==='professional'&&(
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
-          {elp==='personal'&&(
-          <div style={card}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-              <Layers size={15} style={{ color:'var(--text-secondary)' }}/>
-              <p style={{ ...cardTitle, margin:0 }}>Ενοποίηση χαρτοφυλακίου {year}</p>
-            </div>
-            {!portfolio?(
-              <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'8px 0' }}>Δεν υπάρχουν έσοδα σε άλλα ακίνητα για το {year}.</p>
-            ):(<>
-              <p style={{ fontSize:12, color:'var(--text-secondary)', margin:'0 0 12px', fontFamily: T.font.sans, lineHeight:1.5 }}>Ο φόρος φυσικού προσώπου είναι προοδευτικός στο <strong style={{ color:'var(--text-primary)' }}>σύνολο</strong> των ενοικίων (όπως στο Ε1), όχι ανά ακίνητο.</p>
-              <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
-                <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Συνολικά έσοδα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(portfolio.con.grossIncome)}</p></div>
-                <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Συνολικός φόρος</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(portfolio.con.incomeTax)}</p></div>
-                <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Μέσος συντ.</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{pct(portfolio.con.effectiveRate)}</p></div>
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {portfolio.con.perProperty.map(pp=>(
-                  <div key={pp.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:10, background:'var(--bg-surface)', border:`1px solid ${pp.id===propertyId?'var(--border-default)':'var(--border-subtle)'}` }}>
-                    <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{portfolio.names[pp.id]}</span>
-                    <span style={{ fontSize:12, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(pp.statement.grossIncome)}</span>
-                    <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, minWidth:70, textAlign:'right' }}>φόρος {eur(pp.taxShare)}</span>
-                  </div>
-                ))}
-              </div>
-            </>)}
-          </div>
-          )}
-
-          <div style={card}>
-            <p style={cardTitle}>Εκπιπτόμενα έξοδα {year}</p>
-            <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
-              <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(deductibleTotal)}</p></div>
-              <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(expensesTotal-deductibleTotal)}</p></div>
-            </div>
-            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.5 }}>Για ιδιώτη τα έξοδα δεν εκπίπτουν αναλυτικά. Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν πλήρως.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια μίσθωση κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)} τον χρόνο) και τόκους δανείων ({eur(loanInterestYear)} τον χρόνο).</InfoHint></p>
-          </div>
-        </div>
-      )}
-
       {/* Τεκμαρτή έκπτωση 5%: προϋπόθεση τραπεζικής είσπραξης (μακροχρόνια ιδιώτη) */}
       {!businessMode && regime==='individual_longterm' && (
         <div style={{ ...card, padding:'13px 16px', display:'flex', flexDirection:'column', gap:6 }}>
@@ -749,181 +715,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <p style={{ margin:0, paddingLeft:26, fontSize:11.5, color:rentsBank?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans }}>{rentsBank ? 'Ισχύει η τεκμαρτή έκπτωση 5% (φόρος στο 95% των ενοικίων).' : 'Χωρίς τραπεζική είσπραξη: φόρος στο 100% των ενοικίων.'}</p>
         </div>
       )}
-
-      {/* Συμβουλευτική, καθαρές, στοχευμένες προτάσεις με αξία (ανοιγοκλείνει ομοιόμορφα) */}
-      {advisory.length>0 && (
-      <div ref={advisoryRef} style={card}>
-        <button onClick={()=>{ setAdvisoryOpen(o=>!o); setOpenAdvisory(null) }} aria-expanded={advisoryOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
-          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Lightbulb size={15}/></span>
-          <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>{advisory.length} ιδέες φορολογίας, χρηματοδότησης και αξιοποίησης, από τα δικά σου δεδομένα.</p>
-          </div>
-          <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advisoryOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-        </button>
-        {advisoryOpen && (<>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start', marginTop:16 }}>
-          {advisory.map(a=>{
-            const open = openAdvisory===a.id
-            return (
-              <div key={a.id} style={{ borderRadius:12, background:'var(--bg-surface)', border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
-                <button onClick={()=>setOpenAdvisory(open?null:a.id)} aria-expanded={open} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}
-                  onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 9px', borderRadius:6, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', fontSize:9.5, fontWeight:600, letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-tertiary)' }}>{ADVISORY_TONE[a.tone]}</span>
-                    <p style={{ fontSize:13.5, fontWeight:600, color:'var(--text-primary)', margin:'7px 0 0', lineHeight:1.35 }}>{a.title}</p>
-                  </div>
-                  <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:open?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-                </button>
-                {open&&(
-                  <div style={{ padding:'0 16px 15px' }}>
-                    <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.6 }}>{a.body}</p>
-                    {(a.refer||a.linkHref)&&(
-                      <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:11, flexWrap:'wrap' }}>
-                        {a.refer&&<span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{referLabel(a.refer)}</span>}
-                        {a.linkHref&&<a href={a.linkHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>{a.linkLabel||'Περισσότερα'}<ArrowUpRight size={12}/></a>}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
-          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans, lineHeight:1.55 }}>Ενημερωτικές προτάσεις, όχι επίσημη συμβουλή.<InfoHint>Οι προτάσεις δεν υποκαθιστούν τον λογιστή, τον δικηγόρο ή τον συμβολαιογράφο σου. Για την επίσημη εξαγωγή συμπερασμάτων και δηλώσεων απευθύνσου σε πιστοποιημένο επαγγελματία.</InfoHint></p>
-        </div>
-        </>)}
-      </div>
-      )}
-
-      {/* «Τι άλλαξε» — επίκαιροι κανόνες 2026 σχετικοί με το προφίλ (διακριτικό) */}
-      {relevantChanges.length>0 && (
-      <div ref={changesRef} style={card}>
-        <button onClick={()=>{ setChangesOpen(o=>!o); setOpenChange(null) }} aria-expanded={changesOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
-          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Landmark size={15}/></span>
-          <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ ...cardTitle, margin:0 }}>Τι άλλαξε το 2026</p>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου.</p>
-          </div>
-          <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:changesOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-        </button>
-        {changesOpen && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, marginTop:16, alignItems:'start' }}>
-            {relevantChanges.map((u:RegulatoryUpdate)=>{
-              const uo = openChange===u.id
-              return (
-                <div key={u.id} style={{ borderRadius:12, background:'var(--bg-surface)', border:`1px solid ${uo?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
-                  <button onClick={()=>setOpenChange(uo?null:u.id)} aria-expanded={uo} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 15px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}
-                    onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
-                    <p style={{ flex:1, minWidth:0, fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, lineHeight:1.35, fontFamily: T.font.sans }}>{u.title}</p>
-                    <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:uo?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-                  </button>
-                  {uo && (
-                    <div style={{ padding:'0 15px 14px' }}>
-                      <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, lineHeight:1.6, fontFamily: T.font.sans }}>{u.summary}</p>
-                      <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:11, flexWrap:'wrap' }}>
-                        <span style={{ fontSize:10.5, color:'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
-                        {u.sourceHref && <a href={u.sourceHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>{u.sourceLabel||'Πηγή'}<ArrowUpRight size={12}/></a>}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {changesOpen && (
-        <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
-          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans, lineHeight:1.55 }}>Ενημερωτικά, με επίσημες πηγές. Οι κανόνες αλλάζουν, επιβεβαίωσε στο myAADE/gov.gr ή με τον λογιστή σου.</p>
-        </div>
-        )}
-      </div>
-      )}
-
-      {/* Κόστος αγοράς & πώλησης, δομημένη εκτίμηση μεταβίβασης */}
-      <div style={card}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:xferOpen?16:0 }}>
-          <button onClick={()=>setXferOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
-            <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:xferOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-            <div>
-              <p style={{ ...cardTitle, margin:0 }}>Κόστος αγοράς και πώλησης</p>
-              {xferOpen&&<p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily: T.font.sans, fontWeight:400 }}>Φόροι, συμβολαιογραφικά και μεσιτικά. Εκτίμηση πριν τη μεταβίβαση.</p>}
-            </div>
-          </button>
-          {xferOpen&&(
-          <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
-            {([['buy','Αγορά'],['sell','Πώληση']] as ['buy'|'sell',string][]).map(([s,label])=>(
-              <button key={s} onClick={()=>setXferSide(s)} style={{ height:T.h.sm, padding:'0 15px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:xferSide===s?600:500, background:xferSide===s?'var(--accent)':'transparent', color:xferSide===s?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{label}</button>
-            ))}
-          </div>
-          )}
-        </div>
-        {xferOpen&&(<>
-        <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap', marginBottom:14 }}>
-          <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
-            <span style={{ minWidth:96 }}>{xferSide==='buy'?'Τιμή αγοράς':'Τιμή πώλησης'}</span>
-            <input type="number" inputMode="numeric" min={0} value={xferPrice} onKeyDown={e=>{ if(e.key==='-'||e.key==='e'||e.key==='+') e.preventDefault() }} onChange={e=>setXferPrice(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder={(Number(prop?.value)||0)?String(Math.round(Number(prop?.value))):'0'}
-              onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
-              style={{ width:104, height:40, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
-            <span style={{ color:'var(--text-tertiary)' }}>€</span>
-          </label>
-          {xferSide==='buy'&&(
-            <Check checked={xferFirstHome} onChange={setXferFirstHome} label="Πρώτη κατοικία" hint="Απαλλαγή φόρου μεταβίβασης έως το όριο αξίας (200.000 € άγαμος / 250.000 € έγγαμος)." />
-          )}
-          <Check checked={xferAgent} onChange={setXferAgent} label="Μεσίτης" hint="Μεσιτική αμοιβή ~2% + ΦΠΑ." />
-        </div>
-        {xferEffectivePrice>0?(<>
-          <div style={{ display:'flex', flexDirection:'column' }}>
-            {xfer.lines.map(l=>(
-              <div key={l.key} title={l.note} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0' }}>
-                <span style={{ flex:1, fontSize:13, color:'var(--text-secondary)', fontFamily: T.font.sans }}>{l.label}</span>
-                <span style={{ fontSize:13, color:l.amount===0?'var(--text-tertiary)':'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, fontWeight:500 }}>{eur(l.amount)}</span>
-              </div>
-            ))}
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0 0', marginTop:4, borderTop:'1px solid var(--border-subtle)' }}>
-              <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans }}>Σύνολο εξόδων &amp; φόρων</span>
-              <span style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(xfer.totalCosts)} <span style={{ fontSize:11.5, fontWeight:500, color:'var(--text-tertiary)' }}>({pct(xfer.costPct)})</span></span>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0 0' }}>
-              <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans }}>{xferSide==='buy'?'Συνολική εκταμίευση':'Καθαρό έσοδο πώλησης'}</span>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(xferSide==='buy'?(xfer.cashOut||0):(xfer.netProceeds||0))}</span>
-            </div>
-          </div>
-          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily: T.font.sans, lineHeight:1.55 }}>Ενδεικτική εκτίμηση. Τα ακριβή ποσά ορίζονται από συμβολαιογράφο ή την ΑΑΔΕ.<InfoHint>Τα ποσοστά είναι τα ισχύοντα. Τα κλιμακωτά συμβολαιογραφικά, η αντικειμενική αξία και οι απαλλαγές οριστικοποιούνται από συμβολαιογράφο, δικηγόρο ή την ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</InfoHint></p>
-        </>):(
-          <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'4px 0' }}>Δώσε τιμή για να δεις την ανάλυση κόστους.</p>
-        )}
-        </>)}
-      </div>
-
-      {/* Ταμειακές ροές */}
-      <div style={card}>
-        <button onClick={()=>setCashOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
-          <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:cashOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-          <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές {year}</p>
-        </button>
-        {cashOpen&&(cash.every(c=>!c.income&&!c.expense)?(
-          <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'4px 0' }}>Καμία κίνηση για το {year}.</p>
-        ):(<>
-        <div style={{ display:'flex', flexDirection:'column' }}>
-          {cash.map((c,i)=>{ const net=c.income-c.expense; const empty=!c.income&&!c.expense; return (
-            <div key={i} style={{ display:'flex', alignItems:'center', gap:14, padding:'6px 0' }}>
-              <span style={{ width:104, flexShrink:0, fontSize:12, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontFamily: T.font.sans }}>{MONTHS_GR_FULL[i]}</span>
-              <div style={{ flex:1, display:'flex', flexDirection:'column', gap:3 }}>
-                <div style={{ height:6, borderRadius:3, width:`${Math.round(c.income/maxCash*100)}%`, minWidth:c.income>0?4:0, background:'var(--positive)', opacity:0.85 }} title={`Έσοδα: ${eur(c.income)}`}/>
-                <div style={{ height:6, borderRadius:3, width:`${Math.round(c.expense/maxCash*100)}%`, minWidth:c.expense>0?4:0, background:'var(--negative)', opacity:0.75 }} title={`Έξοδα: ${eur(c.expense)}`}/>
-              </div>
-              <span style={{ width:96, flexShrink:0, textAlign:'right', fontSize:11.5, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{empty?'':eur(net)}</span>
-            </div>
-          )})}
-        </div>
-        <div style={{ display:'flex', gap:16, marginTop:12, paddingTop:10, borderTop:'1px solid var(--border-subtle)' }}>
-          <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}><span style={{ width:8, height:8, borderRadius:3, background:'var(--positive)', opacity:0.85 }}/>Έσοδα</span>
-          <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}><span style={{ width:8, height:8, borderRadius:3, background:'var(--negative)', opacity:0.75 }}/>Έξοδα</span>
-        </div>
-        </>))}
-      </div>
 
       {/* Συμφωνία ενοικίων + Βιβλίο/κινήσεις */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
@@ -975,93 +766,381 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       </div>
 
-      {/* Για τον λογιστή — προηγμένο διπλογραφικό υλικό (ισοζύγιο, άρθρα, Excel).
-          Advanced λογιστική: αποκλειστικά στο πλάνο Επαγγελματίας. */}
-      {mode==='professional' && (
+      {/* ── ΠΡΟΧΩΡΗΜΕΝΑ ───────────────────────────────────────────────────────
+          Ο απλός ιδιοκτήτης θέλει τέσσερα πράγματα: έσοδα, έξοδα, φόρους και τι
+          πάει στον λογιστή. Τα υπόλοιπα εργαλεία δεν είναι περιττά — είναι απλώς
+          δεύτερα. Ζουν εδώ, ένα κλικ μακριά, αντί να γεμίζουν την πρώτη ματιά
+          του ανθρώπου που θέλει μόνο να ξέρει πού βρίσκεται. */}
       <div style={card}>
-        <button onClick={()=>setForAccountantOpen(o=>!o)} aria-expanded={forAccountantOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
-          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}>
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
-          </span>
+        <button onClick={()=>setAdvancedOpen(o=>!o)} aria-expanded={advancedOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+          <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advancedOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
           <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ ...cardTitle, margin:0 }}>Για τον λογιστή</p>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>Ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων και φάκελος Excel, έτοιμα για καταχώρηση.</p>
+            <p style={{ ...cardTitle, margin:0 }}>Προχωρημένα εργαλεία</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily: T.font.sans, lineHeight:1.5 }}>{advancedSummary}</p>
           </div>
-          <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:forAccountantOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
         </button>
-        {forAccountantOpen&&(trial.length===0?(
-          <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'16px 0 2px' }}>Δεν υπάρχουν εισπράξεις ή πληρωμές για το {year} ώστε να σχηματιστεί ισοζύγιο.</p>
-        ):(<>
-          <div style={{ marginTop:16, borderRadius:12, border:'1px solid var(--border-subtle)', overflow:'hidden' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'9px 14px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--border-subtle)' }}>
-              {[['Κωδ.','left'],['Λογαριασμός','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
-                <span key={h} style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans, textAlign:a as 'left'|'right' }}>{h}</span>
-              ))}
-            </div>
-            {trial.map((r,i)=>(
-              <div key={r.code} style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
-                <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>{r.code}</span>
-                <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={r.account}>{r.account}</span>
-                <span style={{ fontSize:12.5, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur2(r.debit):'—'}</span>
-                <span style={{ fontSize:12.5, color:r.credit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.credit?eur2(r.credit):'—'}</span>
-                <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(r.balance)}</span>
-              </div>
-            ))}
-            <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', borderTop:'1px solid var(--border-default)', alignItems:'center' }}>
-              <span/>
-              <span style={{ fontSize:11, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, textTransform:'uppercase', letterSpacing:'0.05em' }}>Σύνολα</span>
-              <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.debit)}</span>
-              <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.credit)}</span>
-              <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:5, fontSize:10.5, fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>
-                {jTotals.balanced?<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M20 6 9 17l-5-5"/></svg>Ισοσκελισμένο</>:<>Διαφορά {eur2(jTotals.debit-jTotals.credit)}</>}
-              </span>
+        {advancedOpen && (
+        <div style={{ display:'flex', flexDirection:'column', gap:16, marginTop:16 }}>
+
+        {/* Κλείσιμο χρήσης, premium κατάσταση με σαφή ένδειξη ανοιχτό/κλειστό */}
+        {(()=>{ const isCurrent = year===athensYear()
+          const isFuture = year>athensYear()
+          const st = drift?'drift':closing?'locked':'open'
+          const meta = { open:{ c:isCurrent?'var(--accent)':'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
+          return (
+          <div style={{ ...card, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', borderColor: st==='drift'?'var(--warning)':'var(--border-subtle)' }}>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6, height:26, padding:'0 10px', borderRadius:8, background: st==='drift' ? `color-mix(in srgb, var(--warning) 12%, transparent)` : 'var(--bg-elevated)', color: st==='drift' ? 'var(--warning)' : 'var(--text-secondary)', fontSize:10, fontWeight:700, letterSpacing:'0.5px', fontFamily: T.font.sans }}>
+              {st==='open'?(isCurrent?<span className="live-dot" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>:<Unlock size={12}/>):<Lock size={12}/>}{meta.label}
+            </span>
+            <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
+              {st==='open'?(isCurrent?<>Χρήση {year} σε εξέλιξη · μήνας {provMonth} από 12.</>:isFuture?<>Η χρήση {year} δεν έχει ξεκινήσει ακόμη.</>:<>Χρήση {year} ολοκληρωμένη, έτοιμη για κλείδωμα.</>):st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
+              <InfoHint>Το κλείδωμα κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
+              {lockErr && <span style={{ display:'block', marginTop:4, color:'var(--negative)', fontSize:11.5 }}>Το κλείδωμα δεν αποθηκεύτηκε: {lockErr}. Έλεγξε ότι έχει εφαρμοστεί το migration book_closings στη βάση.</span>}
+            </span>
+            <div style={{ flex:1 }}/>
+            {st==='open'
+              ? (isFuture ? null : <button onClick={lockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 14px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.borderColor='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)'}}><Lock size={13}/>Κλείδωμα έτους</button>)
+              : <>
+                  {st==='drift'&&<button onClick={lockYear} style={{ height:T.h.sm, padding:'0 13px', borderRadius:14, border:'1px solid var(--warning)', background:'transparent', color:'var(--warning)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }}>Ενημέρωση</button>}
+                  <button onClick={unlockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 13px', borderRadius:14, border:'none', background:'transparent', color:'var(--text-tertiary)', fontSize:12.5, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-secondary)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-tertiary)'}}><Unlock size={13}/>Ξεκλείδωμα</button>
+                </>}
+          </div>
+        )})()}
+
+        {/* Φορολογική κλίμακα 2026, αναφορά ανά καθεστώς (έμφαση στο κλιμάκιο του χρήστη) */}
+        {!(businessMode&&elpForm==='company') ? (
+          <div style={card}>
+            <p style={cardTitle}>{businessMode ? 'Κλίμακα επιχειρηματικής δραστηριότητας 2026' : 'Φορολογική κλίμακα ενοικίων 2026'}</p>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10 }}>
+              {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; return (
+                <div key={r.range} onMouseEnter={()=>setHoverBracket(i)} onMouseLeave={()=>setHoverBracket(null)}
+                  style={{ padding:'12px 14px', borderRadius:12, border:`1px solid ${hot?'var(--accent)':active?'var(--border-default)':'var(--border-subtle)'}`, background:active?'var(--bg-elevated)':'var(--bg-surface)', transition:'border-color 0.15s, background 0.15s', cursor:'default' }}>
+                  <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans }}>{r.range}</p>
+                  <p style={{ fontSize:16, fontWeight:700, color:hot?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, transition:'color 0.16s ease' }}>{r.rate}</p>
+                </div>
+              )})}
             </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:14 }}>
-            <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων & εξαγωγή CSV (SoftOne/Epsilon/QuickBooks/Xero)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Ημερολόγιο άρθρων
-            </button>
-            <button onClick={exportBundle} title="Αναλυτικές κινήσεις εσόδων/εξόδων και κατάσταση αποτελεσμάτων, σε Excel για τον λογιστή" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
-              <Download size={13}/>Κινήσεις Excel
-            </button>
-            <button onClick={shareWithAccountant} disabled={acctBusy} title="Δώσε στον λογιστή σου έναν ζωντανό σύνδεσμο με πλήρη εικόνα των ακινήτων σου, χωρίς login και χωρίς email" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:`1px solid ${acctLink?'var(--accent)':'var(--border-default)'}`, background:'var(--bg-surface)', color:acctLink?'var(--accent)':'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, transition:'color 0.15s, border-color 0.15s' }} onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Μοίρασε live στον λογιστή'}
-            </button>
+        ) : (
+          <div style={{ ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:20, flexWrap:'wrap' }}>
+            <div style={{ minWidth:0, flex:1 }}>
+              <p style={{ ...cardTitle, margin:0 }}>Νομικό πρόσωπο</p>
+              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'7px 0 0', fontFamily: T.font.sans, lineHeight:1.6, maxWidth:560 }}>Σταθερός φόρος <strong style={{ color:'var(--text-primary)' }}>22%</strong> επί των καθαρών κερδών, ανεξαρτήτως ύψους εισοδήματος (ΑΕ, ΕΠΕ, ΙΚΕ, ΟΕ, ΕΕ). Στη διανομή μερίσματος προστίθεται φόρος 5% και ισχύει προκαταβολή φόρου για το επόμενο έτος.</p>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minWidth:104, height:76, borderRadius:12, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexShrink:0 }}>
+              <span style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>22%</span>
+              <span style={{ fontSize:10, color:'var(--text-tertiary)', letterSpacing:'0.5px', textTransform:'uppercase', fontFamily: T.font.sans, marginTop:5 }}>Συντελεστής</span>
+            </div>
           </div>
-          {acctLink && (
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, padding:'8px 8px 8px 12px', borderRadius:10, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexWrap:'wrap' }}>
-              <span style={{ display:'inline-flex', width:24, height:24, borderRadius:8, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', alignItems:'center', justifyContent:'center', color:'var(--text-tertiary)', flexShrink:0 }}>
-                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
-              </span>
-              <input readOnly value={acctLink} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:150, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:12, fontFamily: T.font.sans, outline:'none', textOverflow:'ellipsis' }} />
-              <button onClick={()=>{ try{ navigator.clipboard?.writeText(acctLink); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2000) }catch{ /* ignore */ } }} style={{ height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>{acctCopied?'Αντιγράφηκε':'Αντιγραφή'}</button>
-              <a href={acctLink} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:5, height:28, padding:'0 13px', borderRadius:14, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, textDecoration:'none', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>Άνοιγμα πύλης<ArrowUpRight size={13}/></a>
-              <div style={{ width:'100%', display:'flex', alignItems:'center', gap:10, marginTop:2, paddingLeft:2 }}>
-                <span style={{ fontSize:10.5, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε. Μοιράσου τον νέο.':'Ο σύνδεσμος δίνει read-only πρόσβαση. Ανακάλεσέ τον όποτε θες.'}</span>
-                <button onClick={revokeAccountantLink} disabled={acctBusy} title="Ακυρώνει τον τρέχοντα σύνδεσμο και δημιουργεί καινούριο — ο παλιός παύει αμέσως να λειτουργεί" style={{ marginLeft:'auto', background:'none', border:'none', padding:0, color:'var(--text-tertiary)', fontSize:11, fontWeight:700, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }} onMouseEnter={e=>{ if(!acctBusy) e.currentTarget.style.color='var(--negative)' }} onMouseLeave={e=>{ e.currentTarget.style.color='var(--text-tertiary)' }}>Ανάκληση</button>
+        )}
+
+        {/* Επαγγελματίας: ενοποίηση χαρτοφυλακίου + εκπιπτόμενα */}
+        {mode==='professional'&&(
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
+            {elp==='personal'&&(
+            <div style={card}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
+                <Layers size={15} style={{ color:'var(--text-secondary)' }}/>
+                <p style={{ ...cardTitle, margin:0 }}>Ενοποίηση χαρτοφυλακίου {year}</p>
               </div>
+              {!portfolio?(
+                <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'8px 0' }}>Δεν υπάρχουν έσοδα σε άλλα ακίνητα για το {year}.</p>
+              ):(<>
+                <p style={{ fontSize:12, color:'var(--text-secondary)', margin:'0 0 12px', fontFamily: T.font.sans, lineHeight:1.5 }}>Ο φόρος φυσικού προσώπου είναι προοδευτικός στο <strong style={{ color:'var(--text-primary)' }}>σύνολο</strong> των ενοικίων (όπως στο Ε1), όχι ανά ακίνητο.</p>
+                <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
+                  <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Συνολικά έσοδα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(portfolio.con.grossIncome)}</p></div>
+                  <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Συνολικός φόρος</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(portfolio.con.incomeTax)}</p></div>
+                  <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Μέσος συντ.</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{pct(portfolio.con.effectiveRate)}</p></div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {portfolio.con.perProperty.map(pp=>(
+                    <div key={pp.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:10, background:'var(--bg-surface)', border:`1px solid ${pp.id===propertyId?'var(--border-default)':'var(--border-subtle)'}` }}>
+                      <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{portfolio.names[pp.id]}</span>
+                      <span style={{ fontSize:12, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(pp.statement.grossIncome)}</span>
+                      <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, minWidth:70, textAlign:'right' }}>φόρος {eur(pp.taxShare)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>)}
+            </div>
+            )}
+
+            <div style={card}>
+              <p style={cardTitle}>Εκπιπτόμενα έξοδα {year}</p>
+              <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
+                <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(deductibleTotal)}</p></div>
+                <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(expensesTotal-deductibleTotal)}</p></div>
+              </div>
+              <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.5 }}>Για ιδιώτη τα έξοδα δεν εκπίπτουν αναλυτικά. Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν πλήρως.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια μίσθωση κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)} τον χρόνο) και τόκους δανείων ({eur(loanInterestYear)} τον χρόνο).</InfoHint></p>
+            </div>
+          </div>
+        )}
+
+        {/* Συμβουλευτική, καθαρές, στοχευμένες προτάσεις με αξία (ανοιγοκλείνει ομοιόμορφα) */}
+        {advisory.length>0 && (
+        <div ref={advisoryRef} style={card}>
+          <button onClick={()=>{ setAdvisoryOpen(o=>!o); setOpenAdvisory(null) }} aria-expanded={advisoryOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Lightbulb size={15}/></span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>{advisory.length} ιδέες φορολογίας, χρηματοδότησης και αξιοποίησης, από τα δικά σου δεδομένα.</p>
+            </div>
+            <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advisoryOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+          </button>
+          {advisoryOpen && (<>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start', marginTop:16 }}>
+            {advisory.map(a=>{
+              const open = openAdvisory===a.id
+              return (
+                <div key={a.id} style={{ borderRadius:12, background:'var(--bg-surface)', border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
+                  <button onClick={()=>setOpenAdvisory(open?null:a.id)} aria-expanded={open} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}
+                    onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 9px', borderRadius:6, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', fontSize:9.5, fontWeight:600, letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-tertiary)' }}>{ADVISORY_TONE[a.tone]}</span>
+                      <p style={{ fontSize:13.5, fontWeight:600, color:'var(--text-primary)', margin:'7px 0 0', lineHeight:1.35 }}>{a.title}</p>
+                    </div>
+                    <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:open?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+                  </button>
+                  {open&&(
+                    <div style={{ padding:'0 16px 15px' }}>
+                      <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.6 }}>{a.body}</p>
+                      {(a.refer||a.linkHref)&&(
+                        <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:11, flexWrap:'wrap' }}>
+                          {a.refer&&<span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{referLabel(a.refer)}</span>}
+                          {a.linkHref&&<a href={a.linkHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>{a.linkLabel||'Περισσότερα'}<ArrowUpRight size={12}/></a>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+            <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans, lineHeight:1.55 }}>Ενημερωτικές προτάσεις, όχι επίσημη συμβουλή.<InfoHint>Οι προτάσεις δεν υποκαθιστούν τον λογιστή, τον δικηγόρο ή τον συμβολαιογράφο σου. Για την επίσημη εξαγωγή συμπερασμάτων και δηλώσεων απευθύνσου σε πιστοποιημένο επαγγελματία.</InfoHint></p>
+          </div>
+          </>)}
+        </div>
+        )}
+
+        {/* «Τι άλλαξε» — επίκαιροι κανόνες 2026 σχετικοί με το προφίλ (διακριτικό) */}
+        {relevantChanges.length>0 && (
+        <div ref={changesRef} style={card}>
+          <button onClick={()=>{ setChangesOpen(o=>!o); setOpenChange(null) }} aria-expanded={changesOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Landmark size={15}/></span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <p style={{ ...cardTitle, margin:0 }}>Τι άλλαξε το 2026</p>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου.</p>
+            </div>
+            <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:changesOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+          </button>
+          {changesOpen && (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, marginTop:16, alignItems:'start' }}>
+              {relevantChanges.map((u:RegulatoryUpdate)=>{
+                const uo = openChange===u.id
+                return (
+                  <div key={u.id} style={{ borderRadius:12, background:'var(--bg-surface)', border:`1px solid ${uo?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
+                    <button onClick={()=>setOpenChange(uo?null:u.id)} aria-expanded={uo} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 15px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}
+                      onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
+                      <p style={{ flex:1, minWidth:0, fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, lineHeight:1.35, fontFamily: T.font.sans }}>{u.title}</p>
+                      <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:uo?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+                    </button>
+                    {uo && (
+                      <div style={{ padding:'0 15px 14px' }}>
+                        <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, lineHeight:1.6, fontFamily: T.font.sans }}>{u.summary}</p>
+                        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:11, flexWrap:'wrap' }}>
+                          <span style={{ fontSize:10.5, color:'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
+                          {u.sourceHref && <a href={u.sourceHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>{u.sourceLabel||'Πηγή'}<ArrowUpRight size={12}/></a>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
-          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans, lineHeight:1.55 }}>Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
-        </>))}
-      </div>
-      )}
+          {changesOpen && (
+          <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+            <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans, lineHeight:1.55 }}>Ενημερωτικά, με επίσημες πηγές. Οι κανόνες αλλάζουν, επιβεβαίωσε στο myAADE/gov.gr ή με τον λογιστή σου.</p>
+          </div>
+          )}
+        </div>
+        )}
 
-      {/* Ιδιώτης & Δωρεάν: καθαρή εικόνα των λογιστικών + γέφυρα προς τον λογιστή, με
-          ήρεμη πρόσκληση αναβάθμισης για όποιον χρειάζεται πλήρη επαγγελματική σουίτα. */}
+        {/* Κόστος αγοράς & πώλησης, δομημένη εκτίμηση μεταβίβασης */}
+        <div style={card}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:xferOpen?16:0 }}>
+            <button onClick={()=>setXferOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
+              <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:xferOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+              <div>
+                <p style={{ ...cardTitle, margin:0 }}>Κόστος αγοράς και πώλησης</p>
+                {xferOpen&&<p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily: T.font.sans, fontWeight:400 }}>Φόροι, συμβολαιογραφικά και μεσιτικά. Εκτίμηση πριν τη μεταβίβαση.</p>}
+              </div>
+            </button>
+            {xferOpen&&(
+            <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
+              {([['buy','Αγορά'],['sell','Πώληση']] as ['buy'|'sell',string][]).map(([s,label])=>(
+                <button key={s} onClick={()=>setXferSide(s)} style={{ height:T.h.sm, padding:'0 15px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:xferSide===s?600:500, background:xferSide===s?'var(--accent)':'transparent', color:xferSide===s?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{label}</button>
+              ))}
+            </div>
+            )}
+          </div>
+          {xferOpen&&(<>
+          <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap', marginBottom:14 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}>
+              <span style={{ minWidth:96 }}>{xferSide==='buy'?'Τιμή αγοράς':'Τιμή πώλησης'}</span>
+              <input type="number" inputMode="numeric" min={0} value={xferPrice} onKeyDown={e=>{ if(e.key==='-'||e.key==='e'||e.key==='+') e.preventDefault() }} onChange={e=>setXferPrice(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder={(Number(prop?.value)||0)?String(Math.round(Number(prop?.value))):'0'}
+                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
+                style={{ width:104, height:40, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
+              <span style={{ color:'var(--text-tertiary)' }}>€</span>
+            </label>
+            {xferSide==='buy'&&(
+              <Check checked={xferFirstHome} onChange={setXferFirstHome} label="Πρώτη κατοικία" hint="Απαλλαγή φόρου μεταβίβασης έως το όριο αξίας (200.000 € άγαμος / 250.000 € έγγαμος)." />
+            )}
+            <Check checked={xferAgent} onChange={setXferAgent} label="Μεσίτης" hint="Μεσιτική αμοιβή ~2% + ΦΠΑ." />
+          </div>
+          {xferEffectivePrice>0?(<>
+            <div style={{ display:'flex', flexDirection:'column' }}>
+              {xfer.lines.map(l=>(
+                <div key={l.key} title={l.note} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0' }}>
+                  <span style={{ flex:1, fontSize:13, color:'var(--text-secondary)', fontFamily: T.font.sans }}>{l.label}</span>
+                  <span style={{ fontSize:13, color:l.amount===0?'var(--text-tertiary)':'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, fontWeight:500 }}>{eur(l.amount)}</span>
+                </div>
+              ))}
+              <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0 0', marginTop:4, borderTop:'1px solid var(--border-subtle)' }}>
+                <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans }}>Σύνολο εξόδων &amp; φόρων</span>
+                <span style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(xfer.totalCosts)} <span style={{ fontSize:11.5, fontWeight:500, color:'var(--text-tertiary)' }}>({pct(xfer.costPct)})</span></span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0 0' }}>
+                <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans }}>{xferSide==='buy'?'Συνολική εκταμίευση':'Καθαρό έσοδο πώλησης'}</span>
+                <span style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(xferSide==='buy'?(xfer.cashOut||0):(xfer.netProceeds||0))}</span>
+              </div>
+            </div>
+            <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily: T.font.sans, lineHeight:1.55 }}>Ενδεικτική εκτίμηση. Τα ακριβή ποσά ορίζονται από συμβολαιογράφο ή την ΑΑΔΕ.<InfoHint>Τα ποσοστά είναι τα ισχύοντα. Τα κλιμακωτά συμβολαιογραφικά, η αντικειμενική αξία και οι απαλλαγές οριστικοποιούνται από συμβολαιογράφο, δικηγόρο ή την ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</InfoHint></p>
+          </>):(
+            <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'4px 0' }}>Δώσε τιμή για να δεις την ανάλυση κόστους.</p>
+          )}
+          </>)}
+        </div>
+
+        {/* Ταμειακές ροές */}
+        <div style={card}>
+          <button onClick={()=>setCashOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
+            <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:cashOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+            <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές {year}</p>
+          </button>
+          {cashOpen&&(cash.every(c=>!c.income&&!c.expense)?(
+            <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'4px 0' }}>Καμία κίνηση για το {year}.</p>
+          ):(<>
+          <div style={{ display:'flex', flexDirection:'column' }}>
+            {cash.map((c,i)=>{ const net=c.income-c.expense; const empty=!c.income&&!c.expense; return (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:14, padding:'6px 0' }}>
+                <span style={{ width:104, flexShrink:0, fontSize:12, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontFamily: T.font.sans }}>{MONTHS_GR_FULL[i]}</span>
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:3 }}>
+                  <div style={{ height:6, borderRadius:3, width:`${Math.round(c.income/maxCash*100)}%`, minWidth:c.income>0?4:0, background:'var(--positive)', opacity:0.85 }} title={`Έσοδα: ${eur(c.income)}`}/>
+                  <div style={{ height:6, borderRadius:3, width:`${Math.round(c.expense/maxCash*100)}%`, minWidth:c.expense>0?4:0, background:'var(--negative)', opacity:0.75 }} title={`Έξοδα: ${eur(c.expense)}`}/>
+                </div>
+                <span style={{ width:96, flexShrink:0, textAlign:'right', fontSize:11.5, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{empty?'':eur(net)}</span>
+              </div>
+            )})}
+          </div>
+          <div style={{ display:'flex', gap:16, marginTop:12, paddingTop:10, borderTop:'1px solid var(--border-subtle)' }}>
+            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}><span style={{ width:8, height:8, borderRadius:3, background:'var(--positive)', opacity:0.85 }}/>Έσοδα</span>
+            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}><span style={{ width:8, height:8, borderRadius:3, background:'var(--negative)', opacity:0.75 }}/>Έξοδα</span>
+          </div>
+          </>))}
+        </div>
+
+        {/* Για τον λογιστή — προηγμένο διπλογραφικό υλικό (ισοζύγιο, άρθρα, Excel).
+            Advanced λογιστική: αποκλειστικά στο πλάνο Επαγγελματίας. */}
+        {mode==='professional' && (
+        <div style={card}>
+          <button onClick={()=>setForAccountantOpen(o=>!o)} aria-expanded={forAccountantOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}>
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+            </span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <p style={{ ...cardTitle, margin:0 }}>Για τον λογιστή</p>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily: T.font.sans }}>{doubleEntry?'Ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων και φάκελος Excel, έτοιμα για καταχώρηση.':'Φάκελος Excel και ζωντανή πύλη λογιστή, έτοιμα για καταχώρηση.'}</p>
+            </div>
+            <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:forAccountantOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+          </button>
+          {forAccountantOpen&&(<>
+            {/* ΤΟ ΙΣΟΖΥΓΙΟ ΥΠΑΡΧΕΙ ΜΟΝΟ ΣΤΑ ΔΙΠΛΟΓΡΑΦΙΚΑ. Ένας ιδιοκτήτης με ένα
+                διαμέρισμα δεν πρέπει να δει ποτέ τη λέξη· μια ΙΚΕ πρέπει να τη δει
+                με έμφαση. Ποιος έχει τι, το ξέρει ο φάκελος (dossier.ts) — εδώ
+                απλώς υπακούμε στην απάντησή του. */}
+            {doubleEntry&&(trial.length===0?(
+            <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'16px 0 2px' }}>Δεν υπάρχουν εισπράξεις ή πληρωμές για το {year} ώστε να σχηματιστεί ισοζύγιο.</p>
+          ):(
+            <div style={{ marginTop:16, borderRadius:12, border:'1px solid var(--border-subtle)', overflow:'hidden' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'9px 14px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--border-subtle)' }}>
+                {[['Κωδ.','left'],['Λογαριασμός','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
+                  <span key={h} style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans, textAlign:a as 'left'|'right' }}>{h}</span>
+                ))}
+              </div>
+              {trial.map((r,i)=>(
+                <div key={r.code} style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
+                  <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>{r.code}</span>
+                  <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={r.account}>{r.account}</span>
+                  <span style={{ fontSize:12.5, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur2(r.debit):'—'}</span>
+                  <span style={{ fontSize:12.5, color:r.credit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.credit?eur2(r.credit):'—'}</span>
+                  <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(r.balance)}</span>
+                </div>
+              ))}
+              <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', borderTop:'1px solid var(--border-default)', alignItems:'center' }}>
+                <span/>
+                <span style={{ fontSize:11, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, textTransform:'uppercase', letterSpacing:'0.05em' }}>Σύνολα</span>
+                <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.debit)}</span>
+                <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.credit)}</span>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:5, fontSize:10.5, fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>
+                  {jTotals.balanced?<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M20 6 9 17l-5-5"/></svg>Ισοσκελισμένο</>:<>Διαφορά {eur2(jTotals.debit-jTotals.credit)}</>}
+                </span>
+              </div>
+            </div>
+            ))}
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:14 }}>
+              {doubleEntry&&(
+              <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων & εξαγωγή CSV (SoftOne/Epsilon/QuickBooks/Xero)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Ημερολόγιο άρθρων
+              </button>
+              )}
+              <button onClick={exportBundle} title="Αναλυτικές κινήσεις εσόδων/εξόδων και κατάσταση αποτελεσμάτων, σε Excel για τον λογιστή" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
+                <Download size={13}/>Κινήσεις Excel
+              </button>
+              <button onClick={shareWithAccountant} disabled={acctBusy} title="Δώσε στον λογιστή σου έναν ζωντανό σύνδεσμο με πλήρη εικόνα των ακινήτων σου, χωρίς login και χωρίς email" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:`1px solid ${acctLink?'var(--accent)':'var(--border-default)'}`, background:'var(--bg-surface)', color:acctLink?'var(--accent)':'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, transition:'color 0.15s, border-color 0.15s' }} onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Μοίρασε live στον λογιστή'}
+              </button>
+            </div>
+            {acctLink && (
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, padding:'8px 8px 8px 12px', borderRadius:10, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexWrap:'wrap' }}>
+                <span style={{ display:'inline-flex', width:24, height:24, borderRadius:8, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', alignItems:'center', justifyContent:'center', color:'var(--text-tertiary)', flexShrink:0 }}>
+                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+                </span>
+                <input readOnly value={acctLink} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:150, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:12, fontFamily: T.font.sans, outline:'none', textOverflow:'ellipsis' }} />
+                <button onClick={()=>{ try{ navigator.clipboard?.writeText(acctLink); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2000) }catch{ /* ignore */ } }} style={{ height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>{acctCopied?'Αντιγράφηκε':'Αντιγραφή'}</button>
+                <a href={acctLink} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:5, height:28, padding:'0 13px', borderRadius:14, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, textDecoration:'none', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>Άνοιγμα πύλης<ArrowUpRight size={13}/></a>
+                <div style={{ width:'100%', display:'flex', alignItems:'center', gap:10, marginTop:2, paddingLeft:2 }}>
+                  <span style={{ fontSize:10.5, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε. Μοιράσου τον νέο.':'Ο σύνδεσμος δίνει read-only πρόσβαση. Ανακάλεσέ τον όποτε θες.'}</span>
+                  <button onClick={revokeAccountantLink} disabled={acctBusy} title="Ακυρώνει τον τρέχοντα σύνδεσμο και δημιουργεί καινούριο — ο παλιός παύει αμέσως να λειτουργεί" style={{ marginLeft:'auto', background:'none', border:'none', padding:0, color:'var(--text-tertiary)', fontSize:11, fontWeight:700, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }} onMouseEnter={e=>{ if(!acctBusy) e.currentTarget.style.color='var(--negative)' }} onMouseLeave={e=>{ e.currentTarget.style.color='var(--text-tertiary)' }}>Ανάκληση</button>
+                </div>
+              </div>
+            )}
+            <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans, lineHeight:1.55 }}>{doubleEntry?'Ταμειακή βάση, Ελληνικό Λογιστικό Σχέδιο. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.':'Ταμειακή βάση: εισπράξεις και πληρωμές του έτους, έτοιμες για το βιβλίο εσόδων-εξόδων.'}</p>
+          </>)}
+        </div>
+        )}
+
+        </div>
+        )}
+      </div>
+
+      {/* Ιδιώτης & Δωρεάν: ήρεμη πρόσκληση αναβάθμισης, χωρίς επανάληψη.
+          Το «τι πάει στον λογιστή» το απαντά πλέον ο φάκελος στην κορυφή — αυτή
+          η κάρτα δεν χρειάζεται να το ξαναπεί, μόνο να πει τι ΑΛΛΟ υπάρχει. */}
       {mode==='individual' && (
         <div style={{ ...card, padding:'20px 22px' }}>
-          <div style={{ display:'flex', alignItems:'flex-start', gap:16, flexWrap:'wrap' }}>
-            <span style={{ width:40, height:40, borderRadius:10, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)' }}>
-              <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 22v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 22v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </span>
-            <div style={{ flex:1, minWidth:240 }}>
-              <p style={{ ...cardTitle, margin:0 }}>Έτοιμος για τον λογιστή σου</p>
-              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.6, fontFamily: T.font.sans, maxWidth:560 }}>Εδώ βλέπεις καθαρά τα έσοδα, τον φόρο και το καθαρό σου αποτέλεσμα, ώστε να πηγαίνεις στον λογιστή ή τον φοροτεχνικό σου ενημερωμένος. Κατέβασε τη <strong style={{ color:'var(--text-primary)' }}>λογιστική αναφορά</strong> από τα Εργαλεία και δώσ’ την του, τα έχει όλα συγκεντρωμένα.</p>
-              <button onClick={printReport} style={{ display:'inline-flex', alignItems:'center', gap:7, height:T.h.sm, padding:'0 15px', margin:'14px 0 0', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={14}/>Λογιστική αναφορά</button>
-            </div>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:14, margin:'18px 0 0', paddingTop:16, borderTop:'1px solid var(--border-subtle)', flexWrap:'wrap' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
             <div style={{ flex:1, minWidth:240 }}>
               <p style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>Διαχειρίζεσαι πολλά ακίνητα ή θέλεις πλήρη λογιστική;</p>
               <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', lineHeight:1.55, fontFamily: T.font.sans, maxWidth:520 }}>Το πλάνο Επαγγελματίας προσθέτει καθεστώς Επιχείρησης (ΕΛΠ), ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων, ενοποίηση χαρτοφυλακίου και εκπιπτόμενα έξοδα με ακρίβεια λογιστή.</p>
@@ -1072,8 +1151,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       )}
 
       <div style={{ marginTop:24 }}>
-        <E2IncomeCalc userId={userId} propertyId={propertyId} />
+        <E2ReconcileCard userId={userId} year={year} />
       </div>
+
 
       {showBankImport&&<BankImport propertyId={propertyId} userId={userId} year={year} onClose={()=>setShowBankImport(false)} onDone={()=>setRefreshKey(k=>k+1)} />}
       <ReportBuilder open={reportBuilderOpen} onClose={()=>setReportBuilderOpen(false)} userId={userId} supabase={supabase} branding={branding} />

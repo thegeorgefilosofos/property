@@ -1,0 +1,227 @@
+// npx tsx lib/expenses/compare.test.ts
+import {
+  compareMonth, history, monthlyDigest, prevMonth, sameMonthLastYear, monthKey,
+  type Spend,
+} from './compare';
+
+let pass = 0, fail = 0;
+function eq(name: string, got: unknown, want: unknown) {
+  const g = JSON.stringify(got), w = JSON.stringify(want);
+  if (g === w) { pass++; } else { fail++; console.error(`✗ ${name}\n   got  ${g}\n   want ${w}`); }
+}
+function ok(name: string, cond: boolean) { if (cond) { pass++; } else { fail++; console.error(`✗ ${name}`); } }
+
+const s = (date: string, amount: number, category: string, extra: Partial<Spend> = {}): Spend =>
+  ({ date, amount, category, recurring: true, ...extra });
+
+// 31 Ιουλίου 2026: ο μήνας έχει τελειώσει, ώστε οι βασικές συγκρίσεις να μην
+// μπλέκονται με τον έλεγχο του ημιτελούς μήνα.
+const JUL31 = new Date(2026, 6, 31);
+
+// ═══ ΗΜΕΡΟΛΟΓΙΟ ═══════════════════════════════════════════════════════════
+// Το πέρασμα χρονιάς είναι ο συνηθέστερος τόπος σφάλματος: «2026-01» μείον
+// έναν μήνα είναι «2025-12», όχι «2026-00».
+eq('προηγούμενος μήνας', prevMonth('2026-07'), '2026-06');
+eq('πέρασμα χρονιάς προς τα πίσω', prevMonth('2026-01'), '2025-12');
+eq('πέρυσι', sameMonthLastYear('2026-02'), '2025-02');
+eq('κλειδί μήνα', monthKey(new Date(2026, 0, 5)), '2026-01');
+
+// ═══ Η ΒΑΣΙΚΗ ΠΡΟΤΑΣΗ ═════════════════════════════════════════════════════
+// «Τον Ιούλιο ξόδεψες 25 € περισσότερα από τον Ιούνιο, και τα 20 ήταν ρεύμα.»
+// Αυτή η πρόταση είναι όλη η αξία της παρακολούθησης δαπανών.
+{
+  const data = [
+    s('2026-06-10', 60, 'electricity'), s('2026-06-14', 40, 'water'),
+    s('2026-07-10', 80, 'electricity'), s('2026-07-14', 45, 'water'),
+  ];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  eq('τρέχον σύνολο', c.current, 125);
+  eq('βάση', c.base, 100);
+  eq('διαφορά', c.diff, 25);
+  eq('ποσοστό', c.pct, 25);
+  ok('πρώτος οδηγός το ρεύμα', c.drivers[0].slug === 'electricity');
+  eq('πόσο το ρεύμα', c.drivers[0].diff, 20);
+  ok('η φράση λέει το ποσό', c.sentence.includes('25 €'));
+  ok('η φράση λέει την κατεύθυνση', c.sentence.includes('περισσότερα'));
+  ok('η φράση λέει την αιτία', c.sentence.includes('Ρεύμα'));
+  ok('η φράση λέει τον μήνα', c.sentence.includes('Ιούνιο'));
+  // ΔΕΝ ΚΡΙΝΕΙ. Ο ιδιοκτήτης ξέρει αν άλλαξε ο θερμοσίφωνας.
+  ok('καμία κρίση', !/πολλά|προσοχή|κίνδυν|υπερβ/i.test(c.sentence));
+}
+
+// Μείωση: η ίδια δομή, αντίθετη λέξη.
+{
+  const data = [s('2026-06-10', 120, 'electricity'), s('2026-07-10', 70, 'electricity')];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  eq('αρνητική διαφορά', c.diff, -50);
+  ok('λέει «λιγότερα»', c.sentence.includes('λιγότερα'));
+  ok('το ποσό είναι θετικό στη φράση', c.sentence.includes('50 €') && !c.sentence.includes('-50'));
+}
+
+// ═══ ΤΡΕΙΣ ΤΡΟΠΟΙ ΝΑ ΠΕΙΣ ΨΕΜΑΤΑ, ΚΑΙ ΟΙ ΤΡΕΙΣ ΑΜΥΝΕΣ ════════════════════
+
+// 1. ΜΙΣΟΣ ΜΗΝΑΣ ΕΝΑΝΤΙΑ ΣΕ ΟΛΟΚΛΗΡΟ. Στις 12 του μήνα ο τρέχων έχει δώδεκα
+//    μέρες και ο προηγούμενος τριάντα. Το «ξοδεύεις λιγότερα» είναι μαθηματικά
+//    σωστό και εντελώς ψεύτικο.
+{
+  const data = [s('2026-06-10', 200, 'electricity'), s('2026-07-05', 60, 'electricity')];
+  const c = compareMonth(data, '2026-07', { today: new Date(2026, 6, 12) });
+  ok('ο ημιτελής μήνας δηλώνεται', c.caveats.some(x => x.includes('δεν έχει τελειώσει')));
+  ok('λέει πόσες μέρες', c.caveats[0].includes('12') && c.caveats[0].includes('31'));
+  ok('και στη φράση', c.sentence.includes('δεν έχει τελειώσει'));
+}
+// Την τελευταία μέρα ο μήνας ΕΧΕΙ τελειώσει: καμία επιφύλαξη.
+{
+  const data = [s('2026-06-10', 200, 'electricity'), s('2026-07-05', 60, 'electricity')];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  ok('πλήρης μήνας, καμία επιφύλαξη', c.caveats.length === 0);
+}
+// Παλιότερος μήνας δεν είναι ποτέ ημιτελής, όποια μέρα κι αν είναι σήμερα.
+{
+  const data = [s('2026-05-10', 100, 'electricity'), s('2026-06-10', 150, 'electricity')];
+  const c = compareMonth(data, '2026-06', { today: new Date(2026, 6, 3) });
+  ok('περασμένος μήνας: καμία επιφύλαξη', c.caveats.length === 0);
+}
+
+// 2. ΤΟ ΕΤΗΣΙΟ ΠΟΥ ΕΤΥΧΕ. Η ασφάλεια των 340 € πληρώνεται μία φορά τον χρόνο.
+//    Δεν είναι υπέρβαση, είναι ο ετήσιος λογαριασμός.
+{
+  const data = [
+    s('2026-06-10', 80, 'electricity'),
+    s('2026-07-10', 80, 'electricity'),
+    s('2026-07-12', 340, 'insurance', { recurring: false, title: 'Ασφάλεια κατοικίας' }),
+  ];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  eq('η διαφορά είναι το ασφάλιστρο', c.diff, 340);
+  ok('το έκτακτο δηλώνεται', c.caveats.some(x => x.includes('έκτακτη')));
+  ok('με το όνομά του', c.caveats.some(x => x.includes('Ασφάλεια κατοικίας')));
+}
+// Πάγιο που ανέβηκε ΔΕΝ είναι έκτακτο: δεν πρέπει να δικαιολογείται ως τέτοιο.
+{
+  const data = [s('2026-06-10', 80, 'electricity'), s('2026-07-10', 400, 'electricity')];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  ok('το πάγιο δεν λέγεται έκτακτο', !c.caveats.some(x => x.includes('έκτακτη')));
+}
+
+// 3. ΤΟ ΠΟΣΟΣΤΟ ΠΑΝΩ ΣΤΟ ΜΗΔΕΝ. Χωρίς προηγούμενο μήνα, κάθε ποσό είναι
+//    «άπειρο τοις εκατό».
+{
+  const c = compareMonth([s('2026-07-10', 90, 'electricity')], '2026-07', { today: JUL31 });
+  eq('καμία βάση: καμία ποσοστιαία', c.pct, null);
+  eq('δεν είναι ουσιαστική σύγκριση', c.meaningful, false);
+  ok('το λέει καθαρά', c.sentence.includes('Δεν υπάρχουν δαπάνες'));
+  ok('καμία αιτία χωρίς βάση', c.drivers.length === 0);
+}
+{
+  const c = compareMonth([], '2026-07', { today: JUL31 });
+  ok('τίποτα πουθενά', c.sentence.includes('Δεν υπάρχουν καταχωρημένες'));
+}
+
+// ═══ ΘΟΡΥΒΟΣ ══════════════════════════════════════════════════════════════
+// Κανείς δεν αλλάζει συμπεριφορά για τρία ευρώ.
+{
+  const data = [s('2026-06-10', 100, 'electricity'), s('2026-07-10', 103, 'electricity')];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  ok('μικρή διαφορά: «ουσιαστικά ίδιες»', c.sentence.includes('ουσιαστικά ίδιες'));
+  eq('καμία αιτία για τρία ευρώ', c.drivers.length, 0);
+}
+
+// ═══ ΝΕΕΣ ΚΑΙ ΧΑΜΕΝΕΣ ΚΑΤΗΓΟΡΙΕΣ ══════════════════════════════════════════
+{
+  const data = [
+    s('2026-06-10', 100, 'electricity'),
+    s('2026-07-10', 100, 'electricity'), s('2026-07-15', 120, 'plumber'),
+  ];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  const plumber = c.drivers.find(d => d.slug === 'plumber')!;
+  ok('η νέα κατηγορία σημειώνεται', plumber.isNew);
+  ok('η φράση λέει ότι δεν υπήρχε', c.sentence.includes('δεν υπήρχε'));
+}
+{
+  const data = [s('2026-06-15', 120, 'plumber'), s('2026-07-10', 20, 'electricity')];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  ok('η χαμένη κατηγορία σημειώνεται', c.drivers.find(d => d.slug === 'plumber')!.vanished);
+}
+
+// Κατηγορία που κινήθηκε ΑΝΤΙΘΕΤΑ από το σύνολο δεν «εξηγεί» τη διαφορά.
+{
+  const data = [
+    s('2026-06-10', 100, 'electricity'), s('2026-06-11', 100, 'water'),
+    s('2026-07-10', 200, 'electricity'), s('2026-07-11', 40, 'water'),
+  ];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  eq('συνολικά +40', c.diff, 40);
+  ok('εξηγεί με το ρεύμα, όχι με το νερό', c.sentence.includes('Ρεύμα') && !c.sentence.includes('Νερό'));
+}
+
+// ═══ ΠΕΡΥΣΙ ΤΟΝ ΙΔΙΟ ΜΗΝΑ ═════════════════════════════════════════════════
+// «Τι μου κόστισε ο Φεβρουάριος του 2026 σε σχέση με τον Φεβρουάριο του 2025.»
+{
+  const data = [
+    s('2025-02-10', 210, 'heating'),
+    s('2026-02-10', 260, 'heating'),
+    s('2026-01-10', 900, 'renovation'),   // ο προηγούμενος μήνας δεν πρέπει να μπλέξει
+  ];
+  const c = compareMonth(data, '2026-02', { today: JUL31, basis: 'same_month_last_year' });
+  eq('βάση ο περσινός Φεβρουάριος', c.baseKey, '2025-02');
+  eq('διαφορά', c.diff, 50);
+  ok('η φράση αναφέρει τη χρονιά', c.sentence.includes('2025'));
+}
+
+// ═══ ΤΟ ΙΣΤΟΡΙΚΟ ══════════════════════════════════════════════════════════
+{
+  const data = [
+    s('2025-07-10', 100, 'electricity'),
+    s('2026-07-10', 130, 'electricity'),
+    s('2026-06-10', 80, 'electricity'),
+  ];
+  const h = history(data, JUL31, 12);
+  eq('δώδεκα σημεία πάντα', h.length, 12);
+  eq('τελευταίος ο τρέχων', h[11].key, '2026-07');
+  eq('σύνολο τρέχοντος', h[11].total, 130);
+  eq('διαφορά από πέρυσι', h[11].yoy, 30);
+  // `null` και όχι 0: δεν ξέρουμε ότι πέρυσι ξόδεψε μηδέν, ξέρουμε ότι δεν
+  // έχουμε στοιχεία. Το μηδέν θα ήταν ψέμα.
+  eq('χωρίς περσινή μέτρηση: null', h[10].yoy, null);
+  // Ο άξονας φτιάχνεται από το ημερολόγιο: οι κενοί μήνες υπάρχουν.
+  ok('οι κενοί μήνες υπάρχουν', h.filter(x => x.total === 0).length > 0);
+  ok('ελληνική ετικέτα', h[11].label.includes('Ιούλιο'));
+}
+
+// ═══ Η ΜΗΝΙΑΙΑ ΕΝΗΜΕΡΩΣΗ ══════════════════════════════════════════════════
+// Μια ειδοποίηση που λέει «δεν άλλαξε τίποτα» εκπαιδεύει τον χρήστη να τις
+// αγνοεί. Καλύτερα καμία.
+{
+  const data = [s('2026-06-10', 100, 'electricity'), s('2026-07-10', 160, 'electricity')];
+  const msg = monthlyDigest(data, JUL31);
+  ok('υπάρχει μήνυμα όταν άλλαξε κάτι', msg !== null && msg.includes('60 €'));
+}
+{
+  const data = [s('2026-06-10', 100, 'electricity'), s('2026-07-10', 102, 'electricity')];
+  eq('καμία ειδοποίηση για δύο ευρώ', monthlyDigest(data, JUL31), null);
+}
+{
+  eq('καμία ειδοποίηση χωρίς δεδομένα', monthlyDigest([], JUL31), null);
+}
+
+// ═══ ΑΝΤΟΧΗ ═══════════════════════════════════════════════════════════════
+{
+  const data = [
+    s('2026-06-10', 100, 'electricity'),
+    s('2026-07-10', NaN, 'electricity'),
+    s('2026-07-11', 0, 'water'),
+    s('2026-07-12', -50, 'electricity'),   // αρνητικό: μετράει ως δαπάνη 50
+  ];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  eq('το NaN και το μηδέν αγνοούνται, το αρνητικό γίνεται θετικό', c.current, 50);
+}
+{
+  // Άγνωστη κατηγορία δεν ρίχνει τίποτα: προσγειώνεται στα «Άλλα».
+  const data = [s('2026-06-10', 100, 'κάτι ανύπαρκτο'), s('2026-07-10', 150, 'κάτι ανύπαρκτο')];
+  const c = compareMonth(data, '2026-07', { today: JUL31 });
+  eq('συνολικό σωστό', c.diff, 50);
+  ok('υπάρχει αιτία με όνομα', c.drivers[0].label.length > 0);
+}
+
+console.log(fail === 0 ? `✓ compare: ${pass} έλεγχοι πέρασαν` : `✗ compare: ${fail} απέτυχαν από ${pass + fail}`);
+if (fail > 0) process.exit(1);

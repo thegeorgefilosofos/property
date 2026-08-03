@@ -33,7 +33,10 @@ const ACTS = [
   {
     key: 'control',
     over: '03 · Έλεγχος',
-    h: 'Βλέπεις καθαρά. Αποφασίζεις.',
+    // ΓΙΑΤΙ ΑΛΛΑΞΕ: η σελίδα είχε έξι τίτλους στο σχήμα «Δύο λέξεις. Δύο λέξεις.»
+    // Το σχήμα είναι δυνατό μία φορά και μανιέρα την έκτη. Κρατήθηκε εκεί που το
+    // αξίζει (η αντίθεση πληκτρολογώ/φωτογραφίζω) και άλλαξε παντού αλλού.
+    h: 'Ό,τι κατέγραψες, σε μία εικόνα.',
     p: 'Όσα κατέγραψες γίνονται εικόνα: απόδοση, δαπάνες και συγκρίσεις παρόχων, ζωντανά. Όταν υπάρχει τρόπος να γλιτώσεις χρήματα, το βλέπεις πρώτος.',
     b: ['Καθαρή απόδοση και ταμειακή ροή ανά ακίνητο', 'Σύγκριση παρόχων με την πραγματική σου κατανάλωση', 'Πρόταση εξοικονόμησης μόνο όταν υπάρχει λόγος'],
     Panel: PanelDashboard,
@@ -135,11 +138,11 @@ export default function ScrollStory() {
         {ACTS.map((a, i) => (
           <div key={a.key} data-idx={i} className={`story-step${i === active ? ' on' : ''}`}>
             <p style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', margin: '0 0 14px' }}>{a.over}</p>
-            <h3 style={{ fontSize: 'clamp(22px, 2.6vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.15, color: 'var(--text-primary)', margin: '0 0 14px' }}>{a.h}</h3>
+            <h3 style={{ fontSize: 'clamp(22px, 2.6vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text-primary)', margin: '0 0 14px' }}>{a.h}</h3>
             <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 460 }}>{a.p}</p>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {a.b.map((t, j) => (
-                <li key={j} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <li key={j} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 3 }}><path d="M20 6 9 17l-5-5" /></svg>
                   {t}
                 </li>

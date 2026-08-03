@@ -1,5 +1,5 @@
 // npx tsx lib/billing/plans.test.ts
-import { PLANS, TRIAL_DAYS, normalizePlan, planLimit, canAddProperty, planForCount, annualPerMonth,
+import { PLANS, TRIAL_DAYS, normalizePlan, planLimit, planForCount, annualPerMonth,
   EXTRA_PROPERTY_PRICE, propertyAllowance, monthlyPrice, extrasNeeded, cheapestFor, planAdvice,
   propertyLimitLabel, type PlanId } from './plans';
 
@@ -15,12 +15,7 @@ ok(planLimit('free') === 1, 'free limit 1');
 ok(planLimit('owner') === 3, 'owner limit 3');
 ok(planLimit('agency') === 15, 'agency limit 15');
 
-ok(canAddProperty('free', 0) === true, 'free can add first');
-ok(canAddProperty('free', 1) === false, 'free blocked at 1');
-ok(canAddProperty('owner', 2) === true, 'owner can add 3rd');
-ok(canAddProperty('owner', 3) === false, 'owner blocked at 3');
-ok(canAddProperty('agency', 14) === true, 'agency can add 15th');
-ok(canAddProperty('agency', 15) === false, 'agency blocked at 15');
+// Το canAddProperty ελέγχεται στο entitlements.test.ts — εκεί ζει η μία υλοποίηση.
 
 ok(planForCount(1) === 'free', 'count 1 → free');
 ok(planForCount(2) === 'owner', 'count 2 → owner');

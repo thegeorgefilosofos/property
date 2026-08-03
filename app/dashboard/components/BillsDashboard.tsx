@@ -67,15 +67,48 @@ const VAT_OPTIONS = [
   { value: '24', label: 'ΦΠΑ 24% (Γενικό)'       },
   { value: '0',  label: 'Χωρίς ΦΠΑ'              },
 ];
-const PERIOD_OPTIONS = [
-  { value: '', label: '— Επιλογή περιόδου —' },
-  ...MONTHS_GR.map(m => ({ value: `${m} 2026`, label: `${m} 2026` })),
-  { value: 'custom', label: 'Προσαρμοσμένο' },
-];
-const MARKET_BENCHMARKS: Record<string, number> = {
-  electricity: 45, common: 40, internet: 25, water: 15, gas: 30,
-  insurance: 18, security: 25, streaming: 20, enfia: 30, dimotika: 8,
-};
+/**
+ * Οι περίοδοι που μπορεί να διαλέξει ο χρήστης.
+ *
+ * Η ΧΡΟΝΙΑ ΗΤΑΝ ΚΑΡΦΩΜΕΝΗ ΣΤΟ 2026. Δύο συνέπειες, καμία ορατή σε δοκιμή:
+ *   • Την 1η Ιανουαρίου 2027 η λίστα θα εξακολουθούσε να προσφέρει μόνο μήνες
+ *     του 2026 — δηλαδή κάθε νέος λογαριασμός θα έπαιρνε λάθος περίοδο, ή ο
+ *     χρήστης θα κατέφευγε στο «Προσαρμοσμένο» για κάθε μήνα.
+ *   • Ήδη σήμερα, όποιος καταχωρεί περσινό λογαριασμό δεν έβρισκε τον μήνα του.
+ *
+ * Τώρα η λίστα χτίζεται από τη ΣΗΜΕΡΙΝΗ χρονιά: πέρσι, φέτος, του χρόνου. Ο
+ * τρέχων μήνας μπαίνει πρώτος, γιατί αυτόν καταχωρεί ο κόσμος στο 90% των
+ * περιπτώσεων· η υπόλοιπη σειρά είναι χρονολογική, νεότερα πρώτα.
+ */
+function periodOptions(today: Date): { value: string; label: string }[] {
+  const y = today.getFullYear();
+  const all: string[] = [];
+  for (const year of [y + 1, y, y - 1]) {
+    for (let m = 11; m >= 0; m--) all.push(`${MONTHS_GR[m]} ${year}`);
+  }
+  const current = `${MONTHS_GR[today.getMonth()]} ${y}`;
+  const ordered = [current, ...all.filter(p => p !== current)];
+  return [
+    { value: '', label: '— Επιλογή περιόδου —' },
+    ...ordered.map(p => ({ value: p, label: p })),
+    { value: 'custom', label: 'Προσαρμοσμένο' },
+  ];
+}
+const PERIOD_OPTIONS = periodOptions(new Date());
+// ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ ΚΑΙ ΓΙΑΤΙ. Υπήρχε πίνακας MARKET_BENCHMARKS με δέκα καρφωμένα
+// ποσά (ρεύμα 45, κοινόχρηστα 40, ίντερνετ 25…) που παρουσιαζόταν στον χρήστη ως
+// «Μέσος Όρος Αγοράς»: σε σειρά γραφήματος, σε ειδοποίηση «30%+ πάνω από τον μέσο
+// όρο αγοράς», και σε στήλη του Excel. Δεν προερχόταν από κανένα δεδομένο.
+//
+// Ένας ιδιοκτήτης με δίκλινο στην Κοζάνη και ένας με ρετιρέ στο Κολωνάκι έβλεπαν
+// τον ίδιο «μέσο όρο». Όποιος το καταλάβει μία φορά, σταματά να πιστεύει ΚΑΙ τα
+// σωστά νούμερα της οθόνης — και έχει δίκιο.
+//
+// Η αντικατάσταση είναι ο ΔΙΚΟΣ ΤΟΥ μέσος όρος δωδεκαμήνου ανά κατηγορία: αληθινό
+// δεδομένο, και πιο χρήσιμο, γιατί η ερώτηση που κάνει ο ιδιοκτήτης δεν είναι
+// «πληρώνω περισσότερα από την Ελλάδα;» αλλά «πληρώνω περισσότερα από ό,τι
+// συνήθως;». Όταν δεν υπάρχει αρκετό ιστορικό, ΔΕΝ δείχνουμε σύγκριση.
+const MIN_MONTHS_FOR_BASELINE = 3;
 
 const cat = (v: string) => CATEGORIES.find(c => c.value === v) || CATEGORIES[CATEGORIES.length - 1];
 
@@ -108,7 +141,10 @@ const CatIcon = ({ name, size = 14, color }: { name: string; size?: number; colo
   );
 };
 
-async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byCategory: any[], avgMonthly: number, propertyName: string) {
+/** Ό,τι χρειάζεται η εξαγωγή από μια κατηγορία — τυπωμένο, όχι `any[]`. */
+interface CategoryTotals { label: string; monthly: number; benchmark: number; count?: number }
+
+async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byCategory: CategoryTotals[], avgMonthly: number, propertyName: string) {
   const XLSX   = await import('xlsx');
   const wb     = XLSX.utils.book_new();
   const today  = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -139,10 +175,10 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     ['Λήγουν εντός 7 ημερών', dueSoon.length, null, 'Πάγιοι Λογαριασμοί', recurring.length],
     [''],
     ['━━━ ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ ━━━', null, null, null, null],
-    ['Κατηγορία', 'Λογαριασμοί', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Μέσος Όρος Αγοράς (€)', 'Απόκλιση %', '% Συνόλου'],
-    ...byCategory
-      .sort((a: any, b: any) => b.monthly - a.monthly)
-      .map((c: any) => {
+    ['Κατηγορία', 'Λογαριασμοί', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Δικός σου μέσος όρος (€)', 'Απόκλιση %', '% Συνόλου'],
+    ...[...byCategory]
+      .sort((a, b) => b.monthly - a.monthly)
+      .map(c => {
         const deviation = c.benchmark > 0 ? Math.round((c.monthly / c.benchmark - 1) * 100) : 0;
         const pctTotal  = totalM > 0 ? Math.round((c.monthly / totalM) * 100) : 0;
         return [c.label, c.count || 1, c.monthly, c.monthly * 12, c.benchmark || 0, deviation, pctTotal];
@@ -311,6 +347,10 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   const [saving,   setSaving]   = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [billSort, setBillSort] = useState<BillSort>('received_desc');
+  // Φίλτρο κατηγορίας πάνω στη ΜΙΑ λίστα. Πριν, για να δει κάποιος τη ΔΕΗ του
+  // έπρεπε να διαλέξει καρτέλα «Ρεύμα» — που όμως δεν είχε τους λογαριασμούς
+  // του, είχε σύγκριση τιμολογίων. Η κατηγορία είναι φίλτρο, όχι προορισμός.
+  const [catFilter, setCatFilter] = useState<string>('all');
   const [chartView, setChartView] = useState<'area' | 'bar' | 'category'>('area');
   const [budgets,   setBudgets]   = useState<Record<string, string>>({});
   const [showBudgets, setShowBudgets] = useState(false);
@@ -474,7 +514,13 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     const byCategory = CATEGORIES.map(c => ({
       ...c,
       monthly: bills.filter(b => b.category === c.value && b.recurring).reduce((s, b) => s + b.amount, 0),
-      benchmark: MARKET_BENCHMARKS[c.value] || 0,
+      // Ο δικός του μέσος όρος από τους μήνες που ΕΧΟΥΝ στοιχεία. Κάτω από
+      // MIN_MONTHS_FOR_BASELINE μένει 0, δηλαδή «καμία σύγκριση» — δεν εφευρίσκουμε βάση.
+      benchmark: (() => {
+        const vals = (history[c.value] || []).map(v => parseFloat(v) || 0).filter(v => v > 0);
+        if (vals.length < MIN_MONTHS_FOR_BASELINE) return 0;
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      })(),
     })).filter(c => c.monthly > 0);
 
     const historyTotals = Array(12).fill(0).map((_, i) =>
@@ -498,7 +544,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     byCategory.forEach(c => {
       const budget = parseFloat(budgets[c.value] || '0');
       if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, υπέρβαση budget (${fe(budget, 0)})` });
-      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, 30%+ πάνω από τον μέσο όρο αγοράς` });
+      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, 30%+ πάνω από τον δικό σου μέσο όρο (${fe(c.benchmark, 0)})` });
     });
 
     const areaData = MONTHS_GR.map((m, i) => {
@@ -517,6 +563,17 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
     return { totalMonthly, totalUnpaid, totalPaid, overdue, dueSoon, byCategory, historyTotals, avgMonthly, maxHistory, alerts, areaData, categoryData };
   }, [bills, history, budgets]);
+
+  // Οι κατηγορίες που όντως υπάρχουν στους λογαριασμούς, με το πλήθος τους, στη
+  // σειρά του καταλόγου (όχι σε σειρά εισαγωγής — αλλιώς χοροπηδούν τα κουμπιά).
+  const presentCats = useMemo(() => CATEGORIES
+    .map(c => ({ value: c.value, label: c.label, count: bills.filter(b => b.category === c.value).length }))
+    .filter(c => c.count > 0), [bills]);
+
+  const visibleBills = useMemo(
+    () => catFilter === 'all' ? bills : bills.filter(b => b.category === catFilter),
+    [bills, catFilter],
+  );
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
@@ -715,8 +772,26 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               {(Object.keys(BILL_SORT_LABELS) as BillSort[]).map(k => <option key={k} value={k}>{BILL_SORT_LABELS[k]}</option>)}
             </select>
           )}
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{bills.length} εγγραφές</span>
+          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{visibleBills.length} εγγραφές</span>
         </div>
+
+        {/* Φίλτρο κατηγορίας: μόνο οι κατηγορίες που ΕΧΟΥΝ λογαριασμούς. Δεκαοκτώ
+            κουμπιά από τα οποία τα δεκαπέντε δεν οδηγούν πουθενά είναι θόρυβος. */}
+        {presentCats.length > 1 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {[{ value: 'all', label: 'Όλα', count: bills.length }, ...presentCats].map(c => {
+              const on = catFilter === c.value;
+              return (
+                <button key={c.value} type="button" onClick={() => setCatFilter(c.value)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: T.h.sm, padding: '0 13px', borderRadius: T.radius.pill, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 11.5, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s' }}>
+                  {c.label}
+                  <span style={{ fontSize: 10, opacity: 0.75, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{c.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {bills.length === 0 ? (
           <EmptyState
             icon={<Receipt size={20} />}
@@ -724,9 +799,16 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             hint="Πρόσθεσε τα πάγια έξοδα του ακινήτου σου"
             action={<Btn variant="primary" onClick={() => setShowForm(true)}>+ Προσθήκη Λογαριασμού</Btn>}
           />
+        ) : visibleBills.length === 0 ? (
+          <EmptyState
+            icon={<Receipt size={20} />}
+            title={`Κανένας λογαριασμός στην κατηγορία «${cat(catFilter).label}»`}
+            hint="Πρόσθεσε τον πρώτο λογαριασμό αυτής της κατηγορίας, ή δες όλες τις κατηγορίες μαζί."
+            action={<Btn onClick={() => setCatFilter('all')}>Όλες οι κατηγορίες</Btn>}
+          />
         ) : (
           (['overdue','upcoming','paid'] as const).map(group => {
-            const groupBills = sortBills(bills.filter(b => {
+            const groupBills = sortBills(visibleBills.filter(b => {
               const isOverdue = !b.paid && b.due_date && new Date(b.due_date) < today;
               if (group === 'overdue')  return isOverdue;
               if (group === 'paid')     return b.paid;
@@ -886,7 +968,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                       <Cell key={index} fill={entry.pct > 25 ? 'var(--negative)' : entry.color}/>
                     ))}
                   </Bar>
-                  <Bar dataKey="benchmark" name="Μέσος Όρος Αγοράς" fill="var(--border-default)" fillOpacity={0.5} radius={[0, 4, 4, 0]}/>
+                  <Bar dataKey="benchmark" name="Ο δικός σου μέσος όρος" fill="var(--border-default)" fillOpacity={0.5} radius={[0, 4, 4, 0]}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -894,96 +976,21 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       )}
 
-      {calc.byCategory.length > 0 && (() => {
-        const advice: { type: 'tip' | 'warning' | 'saving'; title: string; body: string }[] = [];
-        const elec     = calc.byCategory.find(c => c.value === 'electricity');
-        const insur    = calc.byCategory.find(c => c.value === 'insurance');
-        const internet = calc.byCategory.find(c => c.value === 'internet');
-        if (elec && elec.monthly > 50)
-          advice.push({ type: 'tip', title: 'Εξοικονόμηση ρεύματος', body: `Με ${fe(elec.monthly, 0)}/μήνα, αλλαγή σε νυχτερινή ζώνη (ΔΕΗ Γ1Ν) εξοικονομεί έως 15%. Ετήσια εξοικονόμηση: ~${fe(elec.monthly * 12 * 0.15, 0)}.` });
-        if (!insur)
-          advice.push({ type: 'warning', title: 'Δεν υπάρχει ασφάλεια κατοικίας', body: 'Υποχρεωτική για δανειολήπτες. Hellas Direct Basic από 8.90€/μήνα, καλύψεις πυρκαγιά + κλοπή.' });
-        if (internet && internet.monthly > 25)
-          advice.push({ type: 'saving', title: 'Εξοικονόμηση Internet', body: `Τρέχον: ${fe(internet.monthly, 0)}/μήνα. Σύγκρινε παρόχους (Vodafone, Inalan, Nova), fiber από ~17€/μήνα χωρίς δέσμευση.` });
-        if (calc.overdue.length > 0)
-          advice.push({ type: 'warning', title: `${calc.overdue.length} ληξιπρόθεσμος/-οί λογαριασμός/-ιοί`, body: `Συνολικό εκκρεμές: ${fe(calc.overdue.reduce((s, b) => s + b.amount, 0), 0)}. Πλήρωσε σήμερα για αποφυγή προστίμων.` });
-        if (calc.totalMonthly > 200)
-          advice.push({ type: 'tip', title: 'Υψηλά πάγια έξοδα', body: `${fe(calc.totalMonthly, 0)}/μήνα είναι πάνω από τον μέσο όρο. Ετήσιο κόστος: ${fe(calc.totalMonthly * 12, 0)}. Εξετάστε αναθεώρηση παρόχων.` });
-        if (advice.length === 0) return null;
-        const colors = {
-          tip:     { bg: 'rgba(26,115,232,0.06)',  border: 'rgba(26,115,232,0.2)',  color: 'var(--accent)',   dot: 'var(--accent)' },
-          warning: { bg: 'rgba(197,34,31,0.06)',   border: 'rgba(197,34,31,0.2)',   color: 'var(--negative)', dot: 'var(--negative)' },
-          saving:  { bg: 'rgba(26,115,232,0.06)',   border: 'rgba(26,115,232,0.2)',   color: 'var(--accent)',   dot: 'var(--accent)' },
-        };
-        return (
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-            {secHdr('Έξυπνες Συμβουλές')}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {advice.map((a, i) => {
-                const c = colors[a.type];
-                return (
-                  <div key={i} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 4 }}/>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: c.color, marginBottom: 3, fontFamily: T.font.sans }}>{a.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{a.body}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
+      {/* ── ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ ────────────────────────────────────
+          Σε αυτό το σημείο υπήρχαν δύο κάρτες:
 
-      {calc.byCategory.length > 0 && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-          {secHdr('Smart Insights')}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 12, marginBottom: 20 }}>
-            {[
-              { label: 'Πάγια ανά τετραγωνικό / μήνα',  value: calc.totalMonthly > 0 ? `${(calc.totalMonthly / 35).toFixed(2)} € ανά τετραγωνικό` : '—', sub: 'Μέσος όρος αγοράς ~3.50 € ανά τετραγωνικό', tone: calc.totalMonthly > 0 && (calc.totalMonthly / 35) > 3.50 ? 'negative' : 'positive' as string | undefined },
-              { label: 'Μέσο Μηνιαίο',           value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—',             sub: 'βάσει ιστορικού',            tone: undefined as string | undefined },
-              { label: 'Ακριβότερος μήνας',       value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', sub: MONTHS_GR[calc.historyTotals.indexOf(Math.max(...calc.historyTotals))] || '—', tone: 'negative' as string | undefined },
-              { label: 'Εκκρεμείς',               value: calc.overdue.length > 0 ? `${calc.overdue.length} λογ/σμοί` : 'Εντάξει', sub: calc.totalUnpaid > 0 ? `${calc.totalUnpaid.toFixed(2)} €` : 'Καμία εκκρεμότητα', tone: calc.overdue.length > 0 ? 'negative' : 'positive' as string | undefined },
-            ].map((k, i) => (
-              <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                <div className="po-fig" data-tone={k.tone} style={{ fontSize: 17, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{k.value}</div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, fontFamily: T.font.sans }}>{k.label}</div>
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>
-              </div>
-            ))}
-          </div>
+          «Έξυπνες Συμβουλές»: κείμενα που δεν έβγαιναν από τα δεδομένα του
+          χρήστη αλλά από κατώφλια («αν το ρεύμα > 50 €, πες του για νυχτερινό
+          τιμολόγιο») και ανέφεραν τιμές τρίτων σαν να ήταν προσφορά. Η σύγκριση
+          παρόχων ΔΕΝ σβήστηκε — μετακινήθηκε στην ειδοποίηση της κορυφής
+          (ExpenseSwitchAlert), που εμφανίζεται ΜΟΝΟ όταν υπάρχει πραγματική
+          διαφορά, υπολογισμένη πάνω στην πραγματική κατανάλωση του χρήστη, και
+          δεν εμφανίζεται καθόλου όταν δεν υπάρχουν στοιχεία να τη στηρίξουν.
 
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Κατηγορίες vs. Μέσος Όρος Αγοράς</div>
-          {calc.byCategory.map(c => {
-            const pct    = c.benchmark > 0 ? (c.monthly / c.benchmark - 1) * 100 : 0;
-            const isHigh = pct > 25;
-            const barPct = c.benchmark > 0 ? Math.min(c.monthly / (c.benchmark * 2), 1) * 100 : 50;
-            const budget = parseFloat(budgets[c.value] || '0');
-            const overBudget = budget > 0 && c.monthly > budget;
-            return (
-              <div key={c.value} style={{ marginBottom: 14 }}>
-                <div className="po-fig-card" tabIndex={0} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{c.label}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {budget > 0 && <span title="προϋπολογισμός" className="po-fig" data-tone={overBudget ? 'negative' : 'positive'} style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget, 0)}</span>}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.monthly, 0)}/μήνα</span>
-                    {c.benchmark > 0 && <span className="po-fig" data-tone={isHigh ? 'negative' : pct < -10 ? 'positive' : undefined} style={{ fontSize: 10, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', width: 50, textAlign: 'right' as const }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
-                    {c.benchmark > 0 && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', width: 60, fontFamily: T.font.sans }}>μέσος όρος {fe(c.benchmark, 0)}</span>}
-                  </div>
-                </div>
-                <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
-                  {c.benchmark > 0 && <div style={{ position: 'absolute', left: '50%', top: -2, width: 2, height: 10, background: 'var(--border-default)', borderRadius: 3 }}/>}
-                  <div style={{ height: '100%', width: `${Math.min(barPct, 100)}%`, background: overBudget ? 'var(--negative)' : isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' }}/>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+          «Smart Insights»: έδειχνε «πάγια ανά τετραγωνικό» διαιρώντας με τον
+          σταθερό αριθμό 35 — δηλαδή με τα τετραγωνικά κάποιου άλλου. Τα
+          υπόλοιπα πλακίδιά της (μέσο μηνιαίο, εκκρεμείς) λέγονται ήδη στη
+          γραμμή μετρικών από πάνω. */}
 
       {calc.historyTotals.some(v => v > 0) && (() => {
         const ytd       = calc.historyTotals.slice(0, currentMonth + 1).reduce((a, b) => a + b, 0);

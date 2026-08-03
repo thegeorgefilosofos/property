@@ -1,0 +1,311 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΙ ΒΛΕΠΕΙ ΑΥΤΟΣ Ο ΧΡΗΣΤΗΣ, ΤΩΡΑ.
+//
+// ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ
+// Η ορατότητα κρινόταν σε ΔΥΟ σημεία που δεν ήξεραν το ένα το άλλο:
+//   • isTabRelevant  — κοιτούσε μόνο το προφίλ (ιδιώτης / επαγγελματίας)
+//   • tabFitsStatus  — κοιτούσε μόνο την κατάσταση του ακινήτου
+// Κανένα από τα δύο δεν ήξερε ΠΟΣΑ ακίνητα έχει ο χρήστης ούτε αν είναι φυσικό
+// ή νομικό πρόσωπο. Αποτέλεσμα: ο ιδιοκτήτης ενός σπιτιού που μένει ο ίδιος
+// έβλεπε «Σύγκριση ακινήτων» με ένα ακίνητο, «Τιμολόγηση» για ακίνητο που δεν
+// νοικιάζει, και λογιστικά επιχειρήσεων ενώ δεν έχει επιχείρηση.
+//
+// ΤΡΕΙΣ ΕΙΣΟΔΟΙ, ΜΙΑ ΑΠΟΦΑΣΗ
+//   1. Η ΚΑΤΑΣΤΑΣΗ του ακινήτου — τι κάνεις μ' αυτό το σπίτι
+//   2. Ο ΑΡΙΘΜΟΣ των ακινήτων — και αν συγκρίνονται μεταξύ τους
+//   3. Η ΝΟΜΙΚΗ ΜΟΡΦΗ — φυσικό ή νομικό πρόσωπο
+//
+// ΓΙΑΤΙ ΚΡΥΒΟΥΜΕ ΑΝΤΙ ΝΑ ΚΛΕΙΔΩΝΟΥΜΕ
+// Μια καρτέλα που δεν έχει νόημα δεν εμφανίζεται καθόλου. Δεν μπαίνει
+// γκριζαρισμένη ούτε με λουκέτο: το λουκέτο σημαίνει «πλήρωσε για να το δεις»
+// και είναι ψέμα όταν το εργαλείο δεν αφορά καν αυτόν τον χρήστη. Ο ιδιοκτήτης
+// που μένει στο σπίτι του δεν πρόκειται ΠΟΤΕ να χρειαστεί τιμολόγηση ανά
+// διανυκτέρευση, και το να τη βλέπει κλειδωμένη τον κάνει να νιώθει ότι κάτι
+// χάνει.
+//
+// ΚΑΘΕ ΑΠΟΦΑΣΗ ΕΧΕΙ ΛΟΓΟ ΓΡΑΜΜΕΝΟ. Η `explain` επιστρέφει γιατί κάτι δεν
+// φαίνεται, με λόγια. Χωρίς αυτό, το πρώτο «γιατί λείπει το Χ;» γίνεται μισή
+// μέρα ψάξιμο σε τρία αρχεία.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { readStatus, type PropertyStatus, type StatusRow } from './status';
+
+/** Φυσικό ή νομικό πρόσωπο. Ρωτιέται ΜΙΑ φορά, στην εγγραφή. */
+export type LegalForm = 'individual' | 'company';
+
+export interface PropertyLike extends StatusRow {
+  id: string;
+  prop_type?: string | null;
+  sqm?: number | null;
+  year_built?: number | null;
+  postal_code?: string | null;
+}
+
+export interface OwnerContext {
+  legalForm: LegalForm;
+  properties: readonly PropertyLike[];
+}
+
+// ── ΟΙ ΚΑΡΤΕΛΕΣ ────────────────────────────────────────────────────────────
+
+/** Πάντα ορατές. Δεν εξαρτώνται από τίποτα, γιατί κάθε ακίνητο τις χρειάζεται. */
+export const ALWAYS = [
+  'overview',    // η εικόνα του ακινήτου
+  'finances',    // δαπάνες: κάθε ακίνητο έχει έξοδα, ακόμη κι αν δεν αποδίδει
+  'documents',   // χαρτιά: συμβόλαιο, ΕΝΦΙΑ, ασφαλιστήριο
+  'calendar',
+  'checklist',
+  'contacts',
+  'settings',
+  'referral',
+] as const;
+
+/**
+ * Καρτέλες που εξαρτώνται από την ΚΑΤΑΣΤΑΣΗ του ακινήτου.
+ *
+ * Ο κανόνας διαβάζεται σαν πρόταση: «ο Ενοικιαστής υπάρχει μόνο σε μακροχρόνια
+ * μίσθωση». Ό,τι δεν αναφέρεται εδώ δεν εξαρτάται από κατάσταση.
+ */
+const BY_STATUS: Record<string, readonly PropertyStatus[]> = {
+  tenant:  ['rent_long'],
+  clients: ['rent_short'],
+  pricing: ['rent_short'],
+  // ΑΠΟΔΟΣΕΙΣ ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΕΣΟΔΟ, ΟΧΙ ΟΠΟΥ ΘΑ ΜΠΟΡΟΥΣΕ ΝΑ ΥΠΑΡΞΕΙ.
+  //
+  // Ήταν ['rent_long','rent_short','vacant','for_sale'] με το σκεπτικό «όπου
+  // μπορεί να υπάρξει έσοδο». Λάθος: σε κενό ή προς πώληση ακίνητο η απόδοση
+  // δεν είναι μέτρηση, είναι υπόθεση — και μια υπόθεση με ποσοστό δίπλα της
+  // διαβάζεται ως γεγονός. Το ίδιο ακριβώς πρόβλημα με τα επινοημένα νούμερα
+  // που καθαρίστηκαν από όλο το app.
+  //
+  // Η ερώτηση «τι να το κάνω;» για τα ακίνητα που δεν αποδίδουν έχει δική της
+  // απάντηση: την καρτέλα Σχέδιο, που συγκρίνει επιλογές με πραγματικούς άξονες
+  // αντί για ένα ποσοστό χωρίς έσοδο από πίσω.
+  //
+  // Μένουν οι δύο καταστάσεις όπου το ακίνητο ΟΝΤΩΣ αποδίδει. Η εποχική
+  // εκμετάλλευση δεν είναι τρίτη κατάσταση: το `readStatus` τη διαβάζει ως
+  // rent_short, οπότε καλύπτεται εδώ.
+  roi:     ['rent_long', 'rent_short'],
+  // Ο εξοπλισμός καταγράφεται όταν τον χρησιμοποιεί κάποιος άλλος. Στο δικό
+  // σου σπίτι ξέρεις τι έχεις.
+  inventory: ['rent_long', 'rent_short'],
+  // ΝΕΑ ΚΑΡΤΕΛΑ: μία, όχι τέσσερις. Το περιεχόμενο αλλάζει με την κατάσταση,
+  // αλλά η θέση στο μενού μένει η ίδια — ο χρήστης μαθαίνει πού να κοιτάξει.
+  plan:    ['vacant', 'disputed', 'for_sale', 'renovation'],
+};
+
+/** Καρτέλες που εξαρτώνται από τον ΑΡΙΘΜΟ των ακινήτων. */
+const MIN_PROPERTIES: Record<string, number> = {
+  // Το χαρτοφυλάκιο είναι εργαλείο για κάποιον που έχει χαρτοφυλάκιο. Με δύο
+  // ακίνητα, η επισκόπηση του καθενός φτάνει και περισσεύει.
+  portfolio: 3,
+  // Η σύγκριση θέλει δύο, ΚΑΙ συγκρίσιμα. Ο δεύτερος όρος ελέγχεται χωριστά.
+  comparison: 2,
+};
+
+/** Ο πλήρης κατάλογος όσων μπορούν να κρυφτούν. Ό,τι δεν είναι εδώ, φαίνεται. */
+export const GATED_TABS: ReadonlySet<string> = new Set([
+  ...Object.keys(BY_STATUS), ...Object.keys(MIN_PROPERTIES),
+]);
+
+// ── ΣΥΓΚΡΙΣΙΜΟΤΗΤΑ ─────────────────────────────────────────────────────────
+
+/** Ο τύπος ακινήτου, κανονικοποιημένος. Κενό σημαίνει «δεν δηλώθηκε». */
+export const normType = (s: unknown): string =>
+  typeof s === 'string'
+    ? s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ς/g, 'σ').trim()
+    : '';
+
+export interface CompareGroup {
+  /** Ο τύπος που ενώνει την ομάδα. */
+  key: string;
+  ids: string[];
+  /** Προειδοποίηση όταν τα ακίνητα της ομάδας διαφέρουν ουσιωδώς. */
+  warning: string | null;
+}
+
+/**
+ * Πόσο διαφέρουν τα ακίνητα μιας ομάδας.
+ *
+ * ΓΙΑΤΙ ΠΡΟΕΙΔΟΠΟΙΟΥΜΕ ΑΝΤΙ ΝΑ ΚΡΥΒΟΥΜΕ: δύο διαμερίσματα είναι όντως
+ * συγκρίσιμα ως κατηγορία. Αν όμως το ένα είναι 45 τ.μ. του 1975 στη Λάρισα και
+ * το άλλο 130 τ.μ. του 2018 στη Γλυφάδα, η σύγκριση θα βγάλει «το δεύτερο
+ * αποδίδει καλύτερα» — που είναι αληθές και εντελώς άχρηστο. Ο χρήστης έχει
+ * δικαίωμα να τη δει· έχει και δικαίωμα να ξέρει τι κοιτάζει.
+ *
+ * Τα κατώφλια είναι συντηρητικά επίτηδες: προειδοποιούμε μόνο όταν η διαφορά
+ * είναι τέτοια που αλλάζει το συμπέρασμα, όχι σε κάθε απόκλιση.
+ */
+function varianceWarning(items: readonly PropertyLike[]): string | null {
+  const reasons: string[] = [];
+
+  const sizes = items.map(p => Number(p.sqm)).filter(n => Number.isFinite(n) && n > 0);
+  if (sizes.length >= 2) {
+    const min = Math.min(...sizes), max = Math.max(...sizes);
+    if (max / min >= 1.6) reasons.push(`μεγέθη από ${Math.round(min)} έως ${Math.round(max)} τ.μ.`);
+  }
+
+  const years = items.map(p => Number(p.year_built)).filter(n => Number.isFinite(n) && n > 1800);
+  if (years.length >= 2) {
+    const min = Math.min(...years), max = Math.max(...years);
+    if (max - min >= 25) reasons.push(`έτη κατασκευής από ${min} έως ${max}`);
+  }
+
+  // Τα τρία πρώτα ψηφία του ΤΚ δείχνουν περιοχή. Διαφορετική περιοχή σημαίνει
+  // διαφορετική αγορά, και η αγορά κρίνει το ενοίκιο περισσότερο από το ακίνητο.
+  const areas = new Set(items.map(p => String(p.postal_code ?? '').replace(/\D/g, '').slice(0, 3)).filter(Boolean));
+  if (areas.size >= 2) reasons.push('διαφορετικές περιοχές');
+
+  if (reasons.length === 0) return null;
+  return `Τα ακίνητα διαφέρουν σημαντικά (${reasons.join(', ')}). Η σύγκριση μπορεί να οδηγήσει σε λανθασμένα συμπεράσματα.`;
+}
+
+/**
+ * Οι ομάδες ακινήτων που συγκρίνονται μεταξύ τους.
+ *
+ * Ομαδοποίηση κατά ΤΥΠΟ. Ακίνητα χωρίς δηλωμένο τύπο ΔΕΝ μπαίνουν σε ομάδα:
+ * το άγνωστο δεν είναι κατηγορία, και μια ομάδα «χωρίς τύπο» θα έβαζε μαζί ένα
+ * κατάστημα με μια αποθήκη επειδή κανένα από τα δύο δεν συμπληρώθηκε.
+ */
+export function comparableGroups(properties: readonly PropertyLike[]): CompareGroup[] {
+  const byType = new Map<string, PropertyLike[]>();
+  for (const p of properties) {
+    const t = normType(p.prop_type);
+    if (!t) continue;
+    const list = byType.get(t);
+    if (list) list.push(p); else byType.set(t, [p]);
+  }
+  return [...byType.entries()]
+    .filter(([, items]) => items.length >= 2)
+    .map(([key, items]) => ({
+      key,
+      ids: items.map(p => p.id),
+      warning: varianceWarning(items),
+    }))
+    .sort((a, b) => b.ids.length - a.ids.length);
+}
+
+export const canCompare = (properties: readonly PropertyLike[]): boolean =>
+  comparableGroups(properties).length > 0;
+
+// ── Η ΑΠΟΦΑΣΗ ──────────────────────────────────────────────────────────────
+
+export interface Decision {
+  visible: boolean;
+  /** Γιατί όχι, με λόγια. Κενό όταν φαίνεται. */
+  reason: string;
+}
+
+/**
+ * Φαίνεται αυτή η καρτέλα;
+ *
+ * Το `selected` μπορεί να είναι `null` (καμία επιλογή ακινήτου). Τότε οι
+ * καρτέλες που εξαρτώνται από κατάσταση ΔΕΝ φαίνονται: δεν υπάρχει κατάσταση
+ * να τις δικαιολογήσει, και το να τις δείχναμε «προσωρινά» θα τις έκανε να
+ * εξαφανίζονται μόλις ο χρήστης διαλέξει ακίνητο — η χειρότερη εμπειρία.
+ */
+export function tabDecision(tabId: string, ctx: OwnerContext, selected: PropertyLike | null): Decision {
+  const min = MIN_PROPERTIES[tabId];
+  if (min !== undefined) {
+    if (ctx.properties.length < min) {
+      return {
+        visible: false,
+        reason: min === 2
+          ? 'Χρειάζονται τουλάχιστον δύο ακίνητα.'
+          : `Εμφανίζεται από ${min} ακίνητα και πάνω.`,
+      };
+    }
+    if (tabId === 'comparison' && !canCompare(ctx.properties)) {
+      return { visible: false, reason: 'Δεν υπάρχουν δύο ακίνητα ίδιου τύπου για σύγκριση.' };
+    }
+  }
+
+  const statuses = BY_STATUS[tabId];
+  if (statuses) {
+    if (!selected) return { visible: false, reason: 'Δεν έχει επιλεγεί ακίνητο.' };
+    const s = readStatus(selected);
+    if (!statuses.includes(s)) {
+      return { visible: false, reason: reasonForStatus(tabId, s) };
+    }
+  }
+
+  return { visible: true, reason: '' };
+}
+
+/**
+ * Γιατί δεν φαίνεται, σε λόγια που εξηγούν αντί να απορρίπτουν.
+ *
+ * Η διατύπωση αποφεύγει το «δεν έχεις δικαίωμα» και λέει τι ισχύει: «το
+ * ακίνητο είναι σε ιδιοχρησία». Ο χρήστης καταλαβαίνει ότι μπορεί να το
+ * αλλάξει αν θέλει, και ότι δεν του λείπει κάτι.
+ */
+function reasonForStatus(tabId: string, s: PropertyStatus): string {
+  const what: Record<string, string> = {
+    tenant: 'Ο ενοικιαστής',
+    clients: 'Οι πελάτες',
+    pricing: 'Η τιμολόγηση',
+    roi: 'Οι αποδόσεις',
+    inventory: 'Ο εξοπλισμός',
+    plan: 'Το σχέδιο',
+  };
+  const state: Record<PropertyStatus, string> = {
+    rent_long: 'σε μακροχρόνια μίσθωση',
+    rent_short: 'σε βραχυχρόνια μίσθωση',
+    vacant: 'κενό',
+    own_use: 'σε ιδιοχρησία',
+    renovation: 'σε ανακαίνιση',
+    for_sale: 'προς πώληση',
+    disputed: 'σε νομική εκκρεμότητα',
+  };
+  return `${what[tabId] ?? 'Αυτή η ενότητα'} δεν αφορά ακίνητο ${state[s]}.`;
+}
+
+/** Όλες οι ορατές καρτέλες, από έναν κατάλογο. */
+export function visibleTabs(
+  all: readonly string[], ctx: OwnerContext, selected: PropertyLike | null,
+): string[] {
+  return all.filter(id => tabDecision(id, ctx, selected).visible);
+}
+
+// ── ΛΟΓΙΣΤΙΚΗ: ΤΙ ΑΦΟΡΑ ΠΟΙΟΝ ──────────────────────────────────────────────
+
+/**
+ * Οι ενότητες της Λογιστικής δεν είναι καρτέλες, είναι ΜΕΣΑ σε καρτέλα, και
+ * γι' αυτό κρίνονται χωριστά.
+ *
+ * ΔΥΟ ΑΝΕΞΑΡΤΗΤΟΙ ΑΞΟΝΕΣ, και το μπέρδεμά τους ήταν το πρόβλημα:
+ *   • Εισόδημα από ΜΙΣΘΩΣΗ — αφορά όποιον εκμισθώνει, φυσικό ή νομικό πρόσωπο
+ *   • Φορολογία ΕΠΙΧΕΙΡΗΣΗΣ — αφορά μόνο νομικά πρόσωπα και επιτηδευματίες
+ * Ένας ιδιώτης με ένα διαμέρισμα προς ενοικίαση χρειάζεται το πρώτο και δεν
+ * έχει καμία σχέση με το δεύτερο. Μέχρι σήμερα έβλεπε και τα δύο.
+ */
+export type AccountingSection =
+  | 'rental_income'    // Ε2, δήλωση ενοικίων, βεβαιώσεις
+  | 'expenses'         // δαπάνες και εκπτώσεις
+  | 'enfia'            // ΕΝΦΙΑ: αφορά κάθε ιδιοκτήτη
+  | 'business'         // ΕΦΚΑ, προκαταβολή φόρου, εταιρικός φόρος
+  | 'depreciation'     // αποσβέσεις κτιρίου: μόνο σε επιχειρηματική χρήση
+  | 'short_term_tax';  // ειδικά της βραχυχρόνιας
+
+export function accountingSections(ctx: OwnerContext): AccountingSection[] {
+  const anyLet = ctx.properties.some(p => {
+    const s = readStatus(p);
+    return s === 'rent_long' || s === 'rent_short';
+  });
+  const anyShort = ctx.properties.some(p => readStatus(p) === 'rent_short');
+  const isCompany = ctx.legalForm === 'company';
+
+  const out: AccountingSection[] = ['expenses', 'enfia'];
+  if (anyLet) out.push('rental_income');
+  if (anyShort) out.push('short_term_tax');
+  if (isCompany) out.push('business', 'depreciation');
+  return out;
+}
+
+/** Τι από τα λογιστικά αφορά αυτόν τον χρήστη, σε μία φράση για την οθόνη. */
+export function accountingScope(ctx: OwnerContext): string {
+  const s = accountingSections(ctx);
+  if (s.includes('business')) return 'Φορολογία επιχείρησης και ακινήτων';
+  if (s.includes('rental_income')) return 'Φορολογία εισοδήματος από ακίνητα';
+  return 'Φόροι και τέλη ακινήτου';
+}

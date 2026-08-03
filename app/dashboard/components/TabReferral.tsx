@@ -8,17 +8,33 @@ import { UserPlus } from 'lucide-react';
 import {
   referralCode, referralLink, progress,
   individualReferrerReward, refereeWelcome,
-  REFEREE_FREE_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS, REFEREE_AGENCY_MONTHS, REFEREE_OWNER_MONTHS,
+  REFEREE_FREE_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS, REFEREE_OWNER_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
-  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE,
+  STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
+  ACTIVATION_MIN_PROPERTIES, ACTIVATION_MIN_DOCUMENTS,
 } from '@/lib/referral/referral';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TabReferral — δύο ΞΕΧΩΡΙΣΤΑ προγράμματα ανά προφίλ:
 //  • Ιδιώτης  → «Πρόγραμμα Πρόσκλησης»  (κοινωνικό, αξία ανά φίλο)
-//  • Επαγγελματίας → «Πρόγραμμα Συνεργατών» (εισόδημα: milestones συνδρομητών +
-//    ιδιότητα Συνεργάτη με προμήθεια). Καθένας βλέπει ΜΟΝΟ ό,τι τον αφορά.
+//  • Επαγγελματίας → «Πρόγραμμα Συνεργατών» (milestones συνδρομητών + ιδιότητα
+//    Συνεργάτη). Καθένας βλέπει ΜΟΝΟ ό,τι τον αφορά.
+//
+// ΤΡΕΙΣ ΔΙΟΡΘΩΣΕΙΣ ΠΟΥ ΑΛΛΑΖΟΥΝ ΤΟ ΝΟΗΜΑ ΤΗΣ ΟΘΟΝΗΣ
+//
+// 1. Έφυγε το «20% προμήθεια σε κάθε συνδρομή, κάθε μήνα». Πίσω από την υπόσχεση
+//    δεν υπήρχε ούτε ledger ούτε payout (`referral_rewards` δέχεται μόνο μήνες ή
+//    ακίνητο), η ίδια η μηχανή έγραφε «όλα ΑΞΙΑ ΠΡΟΪΟΝΤΟΣ, όχι μετρητά», και η
+//    στρατηγική αποκλείει ρητά τις πληρωμές. Μένουν δωρεάν μήνες, που πληρώνονται
+//    από τις συνδρομές που έφερε ο ίδιος.
+// 2. Το μήνυμα πρόσκλησης έλεγε «2 μήνες δώρο για ένα ή παραπάνω ακίνητα». Η
+//    πραγματική ανταμοιβή είναι ΕΝΑ επιπλέον ακίνητο για 2 μήνες. Είναι το κείμενο
+//    που ο χρήστης στέλνει σε φίλο του — δεν επιτρέπεται να τον εκθέσει.
+// 3. Έφυγαν ~180 γραμμές διακόσμησης (νόμισμα με ακτίνες σε canvas, odometer,
+//    κομφετί, PNG με καρφωμένα χρώματα εκτός συστήματος). Ένας ιδιοκτήτης που
+//    φοβάται τον ΕΝΦΙΑ δεν θέλει νόμισμα με ακτίνες· θέλει να ξέρει τι κερδίζει.
+//
 // Design system του app (T/TT tokens, elevation για βάθος, ένα accent στο hover).
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -62,81 +78,12 @@ const daysLeftInMonth = () => {
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
 };
 
-// ── Κάρτα προόδου (brag artifact): σχεδίαση σε canvas για κοινοποίηση ──
-function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, spikes: number, outer: number, inner: number, fill: string) {
-  let rot = -Math.PI / 2; const step = Math.PI / spikes;
-  ctx.beginPath(); ctx.moveTo(cx, cy - outer);
-  for (let i = 0; i < spikes; i++) {
-    ctx.lineTo(cx + Math.cos(rot) * outer, cy + Math.sin(rot) * outer); rot += step;
-    ctx.lineTo(cx + Math.cos(rot) * inner, cy + Math.sin(rot) * inner); rot += step;
-  }
-  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
-}
-function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  ctx.save();
-  ctx.shadowColor = 'rgba(138,180,248,0.45)'; ctx.shadowBlur = 70;
-  const g = ctx.createRadialGradient(cx - r * 0.32, cy - r * 0.32, r * 0.1, cx, cy, r);
-  g.addColorStop(0, '#d6e4fc'); g.addColorStop(0.55, '#8ab4f8'); g.addColorStop(1, '#3f66bf');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-  ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-  ctx.beginPath(); ctx.arc(cx, cy, r - 9, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeStyle = 'rgba(10,26,50,0.35)'; ctx.lineWidth = 4;
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(a) * (r - 24), cy + Math.sin(a) * (r - 24));
-    ctx.lineTo(cx + Math.cos(a) * (r - 42), cy + Math.sin(a) * (r - 42));
-    ctx.stroke();
-  }
-  drawStar(ctx, cx, cy, 5, r * 0.44, r * 0.18, '#0a2647');
-}
-function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
-  let cy = y;
-  for (const para of text.split('\n')) {
-    let line = '';
-    for (const w of para.split(' ')) {
-      const test = line ? line + ' ' + w : w;
-      if (ctx.measureText(test).width > maxWidth && line) { ctx.fillText(line, x, cy); cy += lineHeight; line = w; }
-      else line = test;
-    }
-    if (line) { ctx.fillText(line, x, cy); cy += lineHeight; }
-  }
-  return cy;
-}
-
-// Odometer: τα ψηφία κυλούν κατακόρυφα στη θέση τους (em-based, tabular, ήρεμο
-// cubic με κλιμακωτή καθυστέρηση). Σεβασμός prefers-reduced-motion. Ενιαίο σε
-// κάθε KPI της καρτέλας.
-function CountUp({ value }: { value: number }) {
-  const target = Math.max(0, Math.round(Number(value) || 0));
-  // rolled ξεκινά false ΚΑΙ στον server ΚΑΙ στον client (καμία ασυμφωνία hydration).
-  const [rolled, setRolled] = useState(false);
-  useEffect(() => {
-    if (reducedMotion()) { setRolled(true); return; }
-    const id = requestAnimationFrame(() => setRolled(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  const digits = String(target).split('').map(Number);
-  const rm = reducedMotion();
-  // Ένας αόρατος πραγματικός αριθμός δίνει τη σωστή γραμμή βάσης (το overflow:hidden
-  // των κυλιόμενων ψηφίων συνθέτει baseline στο κάτω άκρο και θα «σήκωνε» τα ψηφία).
-  // Τα κυλιόμενα ψηφία τοποθετούνται απόλυτα από πάνω, ευθυγραμμισμένα με tabular-nums.
-  return (
-    <span role="img" aria-label={String(target)} style={{ position: 'relative', display: 'inline-block', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-      <span aria-hidden style={{ visibility: 'hidden' }}>{target}</span>
-      <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-        {digits.map((d, i) => (
-          <span key={`${digits.length}-${i}`} style={{ flex: '0 0 1ch', width: '1ch', height: '1em', overflow: 'hidden' }}>
-            <span style={{ display: 'block', transform: `translateY(-${rolled ? d : 0}em)`, transition: rm ? 'none' : 'transform 1.05s cubic-bezier(.16,1,.3,1)', transitionDelay: rm ? '0ms' : `${i * 55}ms` }}>
-              {Array.from({ length: 10 }, (_, n) => <span key={n} style={{ display: 'block', height: '1em', textAlign: 'center' }}>{n}</span>)}
-            </span>
-          </span>
-        ))}
-      </span>
-    </span>
-  );
-}
+// Αριθμός μετρικής: tabular ώστε να μη «χοροπηδά» η στήλη. Ήταν odometer 29
+// γραμμών που κυλούσε ψηφία σε κάθε φόρτωση — κίνηση χωρίς πληροφορία, σε οθόνη
+// όπου το ερώτημα είναι «τι κερδίζω», όχι «πόσο ωραία μετράει».
+const Num = ({ value }: { value: number }) => (
+  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fn(Math.max(0, Math.round(Number(value) || 0)))}</span>
+);
 
 // Μπάρα που γεμίζει από το 0 στο mount, με ομαλή καμπύλη.
 function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
@@ -149,21 +96,9 @@ function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
   );
 }
 
-// Διακριτικό «confetti» στη στιγμή της νίκης (μία ριπή, εδώ επιτρέπεται χρώμα).
-function Confetti() {
-  const dots = Array.from({ length: 16 }, (_, i) => {
-    const a = (i / 16) * Math.PI * 2;
-    const dist = 42 + (i % 4) * 13;
-    return { dx: Math.cos(a) * dist, dy: Math.sin(a) * dist - 8, c: i % 3 === 0 ? 'var(--positive)' : i % 3 === 1 ? 'var(--accent)' : 'var(--warning)', round: i % 2 === 0 };
-  });
-  return (
-    <span aria-hidden style={{ position: 'absolute', left: '50%', top: 6, width: 0, height: 0, pointerEvents: 'none' }}>
-      {dots.map((d, i) => (
-        <span key={i} style={{ position: 'absolute', width: 7, height: 7, borderRadius: d.round ? '50%' : 1, background: d.c, ['--dx' as string]: `${d.dx}px`, ['--dy' as string]: `${d.dy}px`, animation: `ref-pop .9s cubic-bezier(.2,.6,.2,1) forwards` } as React.CSSProperties} />
-      ))}
-    </span>
-  );
-}
+// Το κομφετί έφυγε: χρησιμοποιούσε τα σημασιολογικά χρώματα (--positive,
+// --warning) ως ΔΙΑΚΟΣΜΗΣΗ, δηλαδή έσπαγε τον κανόνα «το χρώμα σημαίνει κάτι ή
+// δεν υπάρχει» στην ίδια οθόνη όπου το πράσινο σημαίνει «το πέτυχες».
 
 type Overview = {
   invites: number; activated: number;
@@ -197,7 +132,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [list, setList] = useState<Referee[]>([]);
   const [standing, setStanding] = useState(0);
   const [claim, setClaim] = useState<Record<string, 'idle' | 'saving' | 'done' | 'error'>>({});
-  const [celebrate, setCelebrate] = useState<Record<string, boolean>>({});
   useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
 
   const code = useMemo(() => referralCode(userId), [userId]);
@@ -239,9 +173,14 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     return () => { alive = false; };
   }, [userId, code]);
 
+  // ΤΟ ΜΗΝΥΜΑ ΠΟΥ ΣΤΕΛΝΕΙ Ο ΧΡΗΣΤΗΣ ΣΕ ΦΙΛΟ ΤΟΥ. Έλεγε «2 μήνες δώρο για ένα ή
+  // παραπάνω ακίνητα». Η μηχανή δίνει refereeWelcome('free') = ΕΝΑ επιπλέον
+  // ακίνητο για 2 μήνες. Αν ο φίλος ανοίξει το app και δει άλλο πράγμα, εκτίθεται
+  // ο χρήστης μας — γι' αυτό το κείμενο διαβάζεται από τη μηχανή, όχι από τη διάθεση.
+  const friendGift = `ένα επιπλέον ακίνητο δωρεάν για ${REFEREE_FREE_SLOT_MONTHS} μήνες`;
   const invite = isPro
-    ? `Για το ακίνητό σου, σου προτείνω το PropertyOS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο για ένα ή παραπάνω ακίνητα: ${link}`
-    : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο για ένα ή παραπάνω ακίνητα: ${link}`;
+    ? `Για το ακίνητό σου, σου προτείνω το PropertyOS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
+    : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const copyMsg = async () => { try { await navigator.clipboard.writeText(invite); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 1800); } catch { /* ignore */ } };
@@ -260,7 +199,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       const { data } = await supabase.rpc('claim_referral_bonus', { p_code: code, p_kind: kind });
       const ok = data && (data as { ok?: boolean }).ok;
       setClaim(c => ({ ...c, [kind]: ok ? 'done' : 'error' }));
-      if (ok && !reducedMotion()) { setCelebrate(c => ({ ...c, [kind]: true })); setTimeout(() => setCelebrate(c => ({ ...c, [kind]: false })), 1000); }
     } catch { setClaim(c => ({ ...c, [kind]: 'error' })); }
   };
 
@@ -277,12 +215,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     ? [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PropertyOS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Χτίζεις εισόδημα', d: 'Δωρεάν μήνες και μπόνους από την αρχή. Όσο διατηρείς ρυθμό, εξασφαλίζεις επαναλαμβανόμενη μηνιαία προμήθεια.', d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
+        { n: '3', t: 'Παίρνεις πίσω τη συνδρομή σου', d: `Δωρεάν μήνες Επαγγελματία από τον πρώτο μήνα. Με ${PRO_PAID_TARGET} συνδρομητές για ${STREAK_TARGET_MONTHS} συνεχόμενους μήνες, κάθε επόμενος μήνας που πιάνεις τον στόχο είναι δωρεάν.`, d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
       ]
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PropertyOS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ ${referrerPaying ? 'έναν μήνα Ιδιώτη' : 'ένα δωρεάν ακίνητο για έναν μήνα'}.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${friendGift} κι εσύ ${referrerPaying ? 'έναν μήνα Ιδιώτη' : 'ένα δωρεάν ακίνητο για έναν μήνα'}.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
@@ -310,7 +248,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       .ref-kpi-hover { color: var(--text-primary); transition: color .16s ${T.ease.standard}; }
       .ref-lift:hover .ref-kpi-hover { color: var(--accent); }
       .ref-hover-accent:hover .ref-kpi-hover { color: var(--accent); }
-      @keyframes ref-pop { 0% { transform: translate(-50%, 0) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(.35); opacity: 0; } }
       @keyframes ref-rise { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
       .ref-rise { animation: ref-rise .5s ${T.ease.decel} both; }
       @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover, .ref-lift:hover { transform: none; } .ref-rise { animation: none; } }
@@ -324,10 +261,9 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     const dleft = daysLeftInMonth();
     return (
       <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible', ...(pr.reached ? { borderColor: 'color-mix(in srgb, var(--positive) 38%, var(--border-raised))', background: 'linear-gradient(180deg, color-mix(in srgb, var(--positive) 8%, var(--surface-raised)), var(--surface-raised) 62%)' } : {}) }}>
-        {celebrate[kind] && <Confetti />}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <span style={{ ...TT.h2 }}>{title}</span>
-          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : undefined }}><CountUp value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
+          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
         </div>
         <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
         <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
@@ -357,60 +293,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     );
   };
 
-  // Κάρτα προόδου: σχεδίαση premium PNG και κοινοποίηση (ή λήψη ως εφεδρεία).
-  const shareProof = async () => {
-    try {
-      const W = 1080, H = 1350;
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      const bg = ctx.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, '#0b1c36'); bg.addColorStop(1, '#081327');
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-      const glow = ctx.createRadialGradient(W / 2, 360, 40, W / 2, 360, 640);
-      glow.addColorStop(0, 'rgba(138,180,248,0.20)'); glow.addColorStop(1, 'rgba(138,180,248,0)');
-      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = `700 36px ${T.font.sans}`;
-      ctx.fillText('PropertyOS', W / 2, 132);
-      drawCoin(ctx, W / 2, 388, 150);
-      const activated = stats?.activated ?? 0;
-      const headline = partner ? 'Συνεργάτης\nPropertyOS'
-        : activated > 0 ? `${activated} ${activated === 1 ? 'ιδιοκτήτης ξεκίνησε' : 'ιδιοκτήτες ξεκίνησαν'}\nμαζί μου στο PropertyOS`
-        : 'Οργάνωσε το\nακίνητό σου';
-      ctx.fillStyle = '#ffffff'; ctx.font = `800 70px ${T.font.sans}`;
-      const afterH = wrapText(ctx, headline, W / 2, 700, W - 150, 86);
-      ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = `500 34px ${T.font.sans}`;
-      wrapText(ctx, 'Λογαριασμοί, φόροι και αποδόσεις, όλα σε ένα.', W / 2, afterH + 26, W - 210, 46);
-      const chipW = 470, chipH = 92, chipX = (W - chipW) / 2, chipY = 1118, rr = 46;
-      ctx.fillStyle = 'rgba(138,180,248,0.16)';
-      ctx.beginPath();
-      ctx.moveTo(chipX + rr, chipY);
-      ctx.arcTo(chipX + chipW, chipY, chipX + chipW, chipY + chipH, rr);
-      ctx.arcTo(chipX + chipW, chipY + chipH, chipX, chipY + chipH, rr);
-      ctx.arcTo(chipX, chipY + chipH, chipX, chipY, rr);
-      ctx.arcTo(chipX, chipY, chipX + chipW, chipY, rr);
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#cfe0fb'; ctx.font = `700 38px ${T.font.sans}`;
-      ctx.fillText('Κωδικός ' + code, W / 2, chipY + 60);
-      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = `500 28px ${T.font.sans}`;
-      ctx.fillText('propertyos.gr', W / 2, 1272);
-
-      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'));
-      if (!blob) return;
-      const file = new File([blob], 'propertyos.png', { type: 'image/png' });
-      const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean; share?: (d: { files?: File[]; text?: string }) => Promise<void> };
-      if (nav.canShare?.({ files: [file] }) && nav.share) {
-        try { await nav.share({ files: [file], text: invite }); return; } catch { /* πέρασε στη λήψη */ }
-      }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'propertyos.png';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-    } catch { /* ignore */ }
-  };
-
   return (
     <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
       {styleBlock}
@@ -436,10 +318,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div style={{ ...TT.label, color: 'var(--accent)' }}>{isPro ? 'PropertyOS · Πρόγραμμα Συνεργατών' : 'PropertyOS · Πρόγραμμα Πρόσκλησης'}</div>
           <TierBadge tier={myTier} />
         </div>
-        <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Προσκάλεσε τους πελάτες σου. Κέρδισε μήνες και προμήθεια.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
+        <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Προσκάλεσε τους πελάτες σου. Πάρε τον ίδιο φάκελο από όλους.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
         <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: 640, marginTop: 8 }}>
           {isPro
-            ? 'Κάθε ιδιοκτήτης που προσκαλείς οργανώνεται και σου δίνει έτοιμα στοιχεία. Εσύ κερδίζεις δωρεάν μήνες και, με σταθερή απόδοση, γίνεσαι Συνεργάτης με δική σου προμήθεια. Η πλέον αποδοτική πηγή εισοδήματος για λογιστές, μεσίτες και διαχειριστές ακινήτων.'
+            ? 'Κάθε ιδιοκτήτης που προσκαλείς φτάνει σε εσένα με τον ίδιο φάκελο, στην ίδια δομή, με ονόματα αρχείων που δεν αλλάζουν από χρόνο σε χρόνο. Εσύ σταματάς να κυνηγάς έγγραφα τον Ιούνιο και κερδίζεις δωρεάν μήνες Επαγγελματία.'
             : 'Δείξε του πώς να βάλει το ακίνητό του σε τάξη. Με κάθε ιδιοκτήτη που ξεκινά, κερδίζετε και οι δύο.'}
         </p>
         {(standing > 0 || social >= 8) && (
@@ -525,19 +407,44 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             [isPro ? 'Συνδρομητές τον μήνα' : 'Νέοι τον μήνα', isPro ? stats.m_paid : stats.m_indiv, false],
           ] as [string, number, boolean][]).map(([l, v, hi], i) => (
             <div key={i} style={{ minWidth: 88 }}>
-              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, fontSize: 26, color: hi ? undefined : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
+              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, fontSize: 26, color: hi ? undefined : 'var(--text-primary)' }}><Num value={Number(v)} /></div>
               <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
             </div>
           ))}
-          <button onClick={shareProof} className="ref-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.lg, padding: '0 18px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} />Κάρτα προόδου
+          {/* Ήταν «Κάρτα προόδου»: ένα PNG 1080×1350 με νόμισμα, ακτίνες και τέσσερα
+              καρφωμένα χρώματα εκτός του σχεδιαστικού συστήματος. Στη θέση του, η
+              ενέργεια που όντως φέρνει την επόμενη ανταμοιβή. */}
+          <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.lg, padding: '0 18px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} />Στείλε άλλη πρόσκληση
           </button>
         </div>
       )}
 
       {isPro ? (
-        /* ═══ ΕΠΑΓΓΕΛΜΑΤΙΑΣ — milestones συνδρομητών + Συνεργάτης ═══ */
+        /* ═══ ΕΠΑΓΓΕΛΜΑΤΙΑΣ — ο φάκελος, μετά οι στόχοι, μετά ο Συνεργάτης ═══ */
         <>
+          {/* ΤΟ ΜΟΝΟ ΠΟΥ ΕΝΔΙΑΦΕΡΕΙ ΤΟΝ ΛΟΓΙΣΤΗ, ΚΑΙ ΕΛΕΙΠΕ.
+              Η οθόνη τον έβλεπε ως γενικό «Επαγγελματία» και του πούλαγε προμήθεια.
+              Το 80% της δουλειάς του τον Ιούνιο είναι να ζητάει έγγραφα από
+              ανθρώπους που δεν απαντούν· η αξία είναι «ο ίδιος φάκελος, με την ίδια
+              ονοματοδοσία, από όλους». Ο σύνδεσμος μόνο-ανάγνωσης υπάρχει ήδη στις
+              Ρυθμίσεις — εδώ λέγεται γιατί αξίζει να τον μοιράσει. */}
+          <SectionLabel>Γιατί να στείλεις τον σύνδεσμο στους πελάτες σου</SectionLabel>
+          <div style={{ ...card, padding: PAD, marginBottom: T.sp.xl }}>
+            <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8 }}>
+              {[
+                'Ο ίδιος φάκελος από κάθε πελάτη: αριθμημένοι υποφάκελοι, ίδια δομή κάθε χρόνο, ίδια ονόματα αρχείων.',
+                'Ένα αρχείο «ΤΙ ΛΕΙΠΕΙ» που το λέει ρητά, ώστε να μη ψάχνεις εσύ τι δεν έστειλε.',
+                'Οι παγίδες πιασμένες πριν γίνουν λάθη: ΑΜΑ στην αγγελία, ακαθάριστα αντί καθαρών, τέλος ανθεκτικότητας, μετρητά που δεν εκπίπτουν.',
+                'Δικός σου σύνδεσμος μόνο για ανάγνωση, ανά πελάτη: Ρυθμίσεις → «Σύνδεσμος για τον λογιστή σου». Δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.',
+              ].map((t, i) => (
+                <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <SectionLabel>Οι στόχοι του μήνα</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
             <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${PRO_PAID_BONUS_MONTHS} μήνες Επαγγελματία`} />
@@ -558,7 +465,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ ...TT.h2 }}>Γίνε Συνεργάτης PropertyOS</span>
-              <span className="ref-kpi-hover" style={{ ...TT.kpi }}><CountUp value={streak} /><span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
+              <span className="ref-kpi-hover" style={{ ...TT.kpi }}><Num value={streak} /><span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
             </div>
             )}
             {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
@@ -569,8 +476,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             )}
             <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
               {[
-                `${PARTNER_COMMISSION_RATE * 100}% προμήθεια σε κάθε συνδρομή που φέρνεις, κάθε μήνα`,
-                'Κάθε μήνα που πιάνεις τον στόχο, ο επόμενος είναι δωρεάν',
+                `Κάθε μήνα που πιάνεις τον στόχο, ο επόμενος είναι δωρεάν (${PARTNER_MONTHLY_FREE_MONTHS === 1 ? 'ένας μήνας' : `${PARTNER_MONTHLY_FREE_MONTHS} μήνες`} Επαγγελματία)`,
+                `Οι ${PRO_PAID_BONUS_MONTHS} μήνες κάθε μηνιαίου στόχου συσσωρεύονται στη συνδρομή σου`,
                 'Σήμα Συνεργάτη και προτεραιότητα στην εξυπηρέτηση',
               ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -611,8 +518,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{friendBase.months} μήνες δώρο</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για ένα ή παραπάνω ακίνητα, με το πρώτο του δωρεάν από την πρώτη μέρα. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει δωρεάν τους επόμενους {REFEREE_OWNER_MONTHS} μήνες.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{friendBase.isSlot ? '+1 ακίνητο' : `+${friendBase.months} μήνες`}</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες — ένα ΕΠΙΠΛΕΟΝ ακίνητο, πάνω από το πρώτο που είναι δωρεάν για όλους. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει δωρεάν τους επόμενους {REFEREE_OWNER_MONTHS} μήνες.</div>
             </div>
           </div>
 
@@ -667,7 +574,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ ...TT.h2, fontSize: 13 }}>{stage}</div>
-                    <div style={{ ...TT.bodySm, marginTop: 2 }}>{pending ? 'Θύμισέ του να ξεκινήσει για να κερδίσετε κι οι δύο.' : `Ξεκίνησε ${when}`}</div>
+                    {/* Έλεγε «Εκκρεμεί ενεργοποίηση» χωρίς να λέει ΤΙ λείπει, ενώ ο
+                        κανόνας είναι γραμμένος στη μηχανή (isActivated: ακίνητο +
+                        σαρωμένο έγγραφο). Δύο λέξεις παραπάνω κλείνουν το χωνί. */}
+                    <div style={{ ...TT.bodySm, marginTop: 2 }}>{pending
+                      ? `Λείπει ${ACTIVATION_MIN_PROPERTIES === 1 ? '1 ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και ${ACTIVATION_MIN_DOCUMENTS === 1 ? '1 σαρωμένο έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} σαρωμένα έγγραφα`}. Θύμισέ του — κερδίζετε κι οι δύο.`
+                      : `Ξεκίνησε ${when}`}</div>
                   </div>
                 </div>
               );
@@ -717,8 +629,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       )}
 
       <p style={{ ...TT.caption, lineHeight: 1.6, maxWidth: 640 }}>
-        Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο στο PropertyOS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
-        {isPro ? ' Για τη φορολογική μεταχείριση της προμήθειας, ρώτησε τον λογιστή σου.' : ''}
+        Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει {ACTIVATION_MIN_PROPERTIES === 1 ? 'ένα ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και σαρώσει {ACTIVATION_MIN_DOCUMENTS === 1 ? 'ένα έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} έγγραφα`} στο PropertyOS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
+        {' '}Όλες οι ανταμοιβές είναι δωρεάν μήνες ή δωρεάν ακίνητα στη δική σου συνδρομή — δεν διαχειριζόμαστε πληρωμές και δεν αποδίδουμε μετρητά.
       </p>
 
       {(list.length > 0 || rewards.length > 0) && (

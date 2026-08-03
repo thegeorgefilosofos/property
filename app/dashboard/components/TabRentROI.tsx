@@ -16,9 +16,10 @@ import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD
 import {
   REGIONS, BENCHMARKS, BENCHMARKS_ASOF, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS, AUCTION_FACTS,
   GREECE_AVG_GROSS_YIELD, ATHENS_AVG_GROSS_YIELD, MARKET_DISCLAIMER, MARKET_DATA_ASOF, MARKET_SOURCES,
-  yieldVerdict, regionByKey, estimatePropertyValue, type ShortTermStat, type YieldLever,
+  yieldVerdict, regionByKey, estimatePropertyValue, historyPriceCagr, type ShortTermStat, type YieldLever,
 } from '@/lib/market/greekMarket';
-import { incomeStatement, type TaxRegime } from '@/lib/accounting/statement';
+import { incomeStatement } from '@/lib/accounting/statement';
+import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
 import { GLOSSARY as G } from '@/lib/market/glossary';
 import { useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc } from './reportPdf';
@@ -366,6 +367,31 @@ function MetricTile({ label, value, info, tone }: { label: string; value: string
 const g2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 };
 const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 165px), 1fr))', gap: 12 };
 
+// ── Διακόπτης παραδοχής (ναι/όχι), με το κείμενο του κανόνα από κάτω ─────────
+function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange: (v: boolean) => void; label: string; note: string }) {
+  return (
+    <div>
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12.5, fontFamily: SANS, color: 'var(--text-primary)', fontWeight: 600 }}>
+        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer' }} />
+        {label}
+      </label>
+      <p style={{ margin: '4px 0 0 23px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
+    </div>
+  );
+}
+
+// ── ΠΑΡΑΔΟΧΕΣ ΠΟΥ ΔΕΝ ΦΑΙΝΟΝΤΑΝ ΠΟΥΘΕΝΑ ─────────────────────────────────────
+// Οι τιμές αυτές έμπαιναν σιωπηλά στη μηχανή (leverage/dealAnalysis) και έβγαζαν
+// IRR, NPV και DSCR που ο χρήστης διάβαζε ως γεγονός. Τώρα είναι πεδία που
+// φαίνονται και αλλάζουν, με προεπιλογές που λέγονται ρητά:
+//   • Διάρκεια δανείου 25 έτη — η συνηθέστερη ελληνική στεγαστική διάρκεια.
+//   • Κόστη πώλησης 3% — πλευρά ΠΩΛΗΤΗ (μεσιτική αμοιβή ~2% + ΦΠΑ, νομικός/
+//     συμβολαιογραφικός έλεγχος). Ο φόρος μεταβίβασης 3% βαρύνει τον ΑΓΟΡΑΣΤΗ,
+//     γι' αυτό το συνολικό κόστος μιας πλήρους συναλλαγής (αγορά + πώληση) που
+//     αναφέρεται παρακάτω είναι μεγαλύτερο. Δύο διαφορετικά πράγματα, δύο νούμερα.
+const DEFAULT_LOAN_YEARS = '25';
+const DEFAULT_SELL_COSTS_PCT = '3';
+
 export default function TabRentROI({ propertyId, userId, propertyValue, profileType = 'individual' }: Props) {
   const supabase = createClient();
   const branding = useReportBranding(userId);
@@ -382,7 +408,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [rent, setRent] = useState('');
   const [opex, setOpex] = useState('');
   const [region, setRegion] = useState('ath_center');
-  const [appreciation, setAppreciation] = useState('3');
+  // ── ΑΝΑΤΙΜΗΣΗ: ΜΕΤΡΗΜΕΝΗ, ΟΧΙ ΕΠΙΛΕΓΜΕΝΗ ────────────────────────────────
+  // Ήταν σταθερά «3» χωρίς πηγή — και αυτή η σταθερά έκρινε μόνη της το
+  // συμπέρασμα: με 3% το ακίνητο βγαίνει κοντά στον S&P 500 στην 20ετία, με 1%
+  // όχι. Η προεπιλογή προκύπτει πλέον από τον δείκτη τιμών κατοικιών της Τράπεζας
+  // της Ελλάδος (HISTORY_INDEX), στον ΙΔΙΟ ορίζοντα με τις εναλλακτικές. Μόλις ο
+  // χρήστης τη πειράξει, χαρακτηρίζεται ρητά «δική σου υπόθεση».
+  // Όσο δεν έχει πειραχθεί, η τιμή ΠΑΡΑΓΕΤΑΙ από τον δείκτη στον επιλεγμένο
+  // ορίζοντα (δες apprRef) — δεν αντιγράφεται σε state με effect.
+  const [appreciation, setAppreciation] = useState('');
+  const [apprTouched, setApprTouched] = useState(false);
+  // Είσπραξη μέσω τραπέζης: ήταν καρφωμένο `true`. Είναι προϋπόθεση της τεκμαρτής
+  // έκπτωσης 5% από 1/1/2026 — άρα απόφαση του χρήστη, όχι παραδοχή του κώδικα.
+  const [rentsBank, setRentsBank] = useState(true);
   // Ξεχωριστός ορίζοντας ανά ενότητα (η αλλαγή στη μία ΔΕΝ επηρεάζει τις άλλες).
   const [histYears, setHistYears] = useState<'10' | '20'>('10');
   const [cmpYears, setCmpYears] = useState<'10' | '20'>('10');
@@ -406,23 +444,48 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [loanRate, setLoanRate] = useState('3.5');
   const [ifree, setIfree] = useState('0');
   const [savedLoan, setSavedLoan] = useState<{ amount:number; rate:number; property_value:number; loan_type:string } | null>(null);
+  const [loanYears, setLoanYears] = useState(DEFAULT_LOAN_YEARS);
   // Επενδυτική ανάλυση (IRR/NPV/DSCR)
   const [holdYears, setHoldYears] = useState<'5' | '10' | '20'>('10');
   const [rentGrowth, setRentGrowth] = useState('2');
   const [discountRate, setDiscountRate] = useState('8');
+  const [sellCosts, setSellCosts] = useState(DEFAULT_SELL_COSTS_PCT);
+  // Ενοίκια των ΑΛΛΩΝ ακινήτων του χρήστη — για τον προοδευτικό φόρο στο σύνολο.
+  const [otherRents, setOtherRents] = useState<{ id: string; annualRent: number; shortTerm: boolean }[]>([]);
 
   const K = (s: string) => `roi_${propertyId}_${s}`;
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const [pr, rc, exp, ln] = await Promise.all([
+        const [pr, rc, exp, ln, allPr, allRc] = await Promise.all([
           supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type,name,postal_code').eq('id', propertyId).maybeSingle(),
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id', propertyId).maybeSingle(),
-          supabase.from('expenses').select('amount').eq('property_id', propertyId),
+          // ΓΙΑΤΙ ΜΕ ΗΜΕΡΟΜΗΝΙΑ. Το ερώτημα ήταν χωρίς φίλτρο έτους και το άθροισμα
+          // έμπαινε στο πεδίο με ετικέτα «Ετήσια έξοδα». Δηλαδή στον δεύτερο χρόνο
+          // χρήσης έδειχνε δύο χρονιές, στον τρίτο τρεις — και μαζί του χειροτέρευαν
+          // σιωπηλά η καθαρή απόδοση, η απόδοση μετά τον φόρο, ο βαθμός A–F και το
+          // IRR. Κανένα σφάλμα, κανένα κρασάρισμα: απλώς το ίδιο ακίνητο έβγαζε
+          // τριπλάσια έξοδα εδώ απ' ό,τι στη Λογιστική. Ίδιο φίλτρο με εκείνη.
+          supabase.from('expenses').select('amount,date').eq('property_id', propertyId)
+            .gte('date', `${new Date().getFullYear()}-01-01`).lte('date', `${new Date().getFullYear()}-12-31`),
           supabase.from('loans').select('amount,rate,property_value,loan_type,status').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }),
+          // ΤΑ ΑΛΛΑ ΑΚΙΝΗΤΑ. Αυτή η καρτέλα εμφανίζεται (disclosure.ts) ΜΟΝΟ σε
+          // χρήστες με 2+ ακίνητα — δηλαδή ακριβώς εκεί όπου ο ανά-ακίνητο φόρος
+          // είναι λάθος. Χωρίς τα υπόλοιπα ενοίκια δεν υπάρχει τρόπος να βγει ο
+          // σωστός φόρος: η κλίμακα είναι προοδευτική στο σύνολο του Ε1.
+          supabase.from('user_properties').select('id,target_rent,rental_mode').eq('user_id', userId),
+          supabase.from('rent_config').select('property_id,actual_rent,target_rent').eq('user_id', userId),
         ]);
         const p: any = pr.data || {}; const c: any = rc.data || {};
+        const rcRows = (allRc.data || []) as { property_id: string; actual_rent: number | null; target_rent: number | null }[];
+        const prRows = (allPr.data || []) as { id: string; target_rent: number | null; rental_mode: string | null }[];
+        const rcMap = new Map(rcRows.map(r => [r.property_id, r]));
+        setOtherRents(prRows.filter(x => x.id !== propertyId).map(x => {
+          const cfg = rcMap.get(x.id);
+          const monthly = Number(cfg?.actual_rent) || Number(cfg?.target_rent) || Number(x.target_rent) || 0;
+          return { id: x.id, annualRent: monthly * 12, shortTerm: x.rental_mode === 'short_term' };
+        }));
         const activeLoan = (ln.data || []).find((l: any) => l.status !== 'inactive' && l.status !== 'closed');
         if (activeLoan) setSavedLoan({ amount: Number(activeLoan.amount) || 0, rate: Number(activeLoan.rate) || 0, property_value: Number(activeLoan.property_value) || 0, loan_type: activeLoan.loan_type });
         setValue(String(propertyValue || p.value || localStorage.getItem(K('value')) || ''));
@@ -463,7 +526,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const nVal = parseFloat(value) || 0;
   const nRent = parseFloat(rent) || 0;
   const nOpex = parseFloat(opex) || 0;
-  const nAppr = parseFloat(appreciation) || 0;
+  // ΤΕΚΜΗΡΙΩΜΕΝΗ ΠΡΟΕΠΙΛΟΓΗ ΑΝΑΤΙΜΗΣΗΣ. Μετρημένη πάνω στον δείκτη τιμών
+  // κατοικιών της Τράπεζας της Ελλάδος, στον ΙΔΙΟ ορίζοντα με τις εναλλακτικές
+  // (BENCHMARKS.ret10/ret20) — αλλιώς η σύγκριση δεν είναι σύγκριση. Η μακρά
+  // περίοδος εμφανίζεται δίπλα, ώστε ο χρήστης να βλέπει και τις δύο αναγνώσεις.
+  const apprRef = useMemo(() => historyPriceCagr(parseInt(cmpYears)), [cmpYears]);
+  const apprLong = useMemo(() => historyPriceCagr(20), []);
+  const apprShown = apprTouched ? appreciation : String(apprRef.pct);
+  const nAppr = apprTouched ? (parseFloat(appreciation) || 0) : apprRef.pct;
   const reg = regionByKey(region);
   // Ενδεικτική αυτόματη εκτίμηση αξίας (AVM) από τη ζώνη × τετραγωνικά × τύπο.
   const estValue = useMemo(() => estimatePropertyValue(region, pSqm, pType), [region, pSqm, pType]);
@@ -492,20 +562,38 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const effOpex = nOpex + stCosts;                 // λειτουργικά έξοδα ακινήτου + κόστη βραχυχρόνιας
   const monthlyEquiv = grossAnnual / 12;           // ισοδύναμο «μηνιαίο ενοίκιο» για τη μηχανή
 
-  // Φόρος εισοδήματος (ίδια μηχανή με τη Λογιστική).
+  // ── ΦΟΡΟΣ: ΕΝΑΣ ΦΟΡΟΛΟΓΟΥΜΕΝΟΣ, ΟΧΙ ΕΝΑ ΑΚΙΝΗΤΟ ─────────────────────────────
+  // Πριν, ο φόρος υπολογιζόταν πάνω ΜΟΝΟ στα έσοδα αυτού του ακινήτου, με
+  // `rentsPaidViaBank: true` καρφωμένο. Δύο λάθη σε δύο γραμμές: (α) η κλίμακα
+  // είναι προοδευτική στο σύνολο των ενοικίων του Ε1, οπότε ένα ακίνητο 8.000 €
+  // ανάμεσα σε τρία δεν φορολογείται με 15% αλλά συμμετέχει στο 25%· (β) η
+  // τεκμαρτή έκπτωση 5% δεν είναι δεδομένη — από 1/1/2026 θέλει τραπεζική
+  // είσπραξη. Τώρα ενοποιούμε το χαρτοφυλάκιο (με το ΕΠΕΞΕΡΓΑΣΜΕΝΟ εδώ ενοίκιο
+  // για το τρέχον ακίνητο, ώστε τα «τι θα γινόταν αν» να παραμένουν αληθινά) και
+  // δείχνουμε το μερίδιο. Νομικό πρόσωπο: δεν ισχύει ενοποίηση φυσικού προσώπου.
+  const portfolioTax = useMemo(() => consolidateRentTax([
+    { id: propertyId, annualRent: grossAnnual, shortTerm: term === 'short', rentsPaidViaBank: rentsBank },
+    ...otherRents.map(o => ({ ...o, rentsPaidViaBank: rentsBank })),
+  ]), [propertyId, grossAnnual, term, rentsBank, otherRents]);
+
   const annualTax = useMemo(() => {
     if (grossAnnual <= 0) return 0;
-    if (pro) {
+    if (pro && entity === 'company') {
       // Νομικό πρόσωπο: 22% + φόρος μερίσματος 5% στη διανομή (προεπιλογή: πλήρης διανομή,
       // ώστε ο φόρος να δείχνει τι φτάνει πραγματικά στον ιδιοκτήτη). Τα κόστη βραχυχρόνιας
       // εκπίπτουν ως δαπάνες της επιχείρησης.
-      const stB = incomeStatement({ regime: 'business', businessForm: entity, grossIncome: grossAnnual, itemizedExpenses: effOpex, companyDistribution: entity === 'company' ? 1 : 0 });
+      const stB = incomeStatement({ regime: 'business', businessForm: 'company', grossIncome: grossAnnual, itemizedExpenses: effOpex, companyDistribution: 1 });
       return stB.incomeTax + (stB.dividendTax || 0);
     }
-    // Φυσικό πρόσωπο: κλίμακα ενοικίων στα μεικτά (βραχυχρόνια χωρίς υπηρεσίες = εισόδημα ακινήτου).
-    const regime: TaxRegime = term === 'short' ? 'individual_shortterm' : 'individual_longterm';
-    return incomeStatement({ regime, grossIncome: grossAnnual, rentsPaidViaBank: true }).incomeTax;
-  }, [grossAnnual, effOpex, pro, entity, term]);
+    if (pro) {
+      // Ατομική επιχείρηση: κλίμακα άρθρου 15 στο καθαρό κέρδος (όχι άρθρο 40).
+      return incomeStatement({ regime: 'business', businessForm: 'sole', grossIncome: grossAnnual, itemizedExpenses: effOpex }).incomeTax;
+    }
+    // Φυσικό πρόσωπο: το μερίδιό του από τον ΕΝΑ προοδευτικό φόρο του χαρτοφυλακίου.
+    return taxShareOf(portfolioTax, propertyId);
+  }, [grossAnnual, effOpex, pro, entity, portfolioTax, propertyId]);
+  // Εμφανίζουμε την ενοποίηση μόνο όταν υπάρχει τι να ενοποιηθεί (2+ ακίνητα με έσοδα).
+  const consolidated = !pro && portfolioTax.count > 1;
 
   const y = useMemo(() => yields(monthlyEquiv, nVal, effOpex, annualTax), [monthlyEquiv, nVal, effOpex, annualTax]);
   // Μη στρογγυλοποιημένη μεικτή απόδοση για τα εργαλεία μόχλευσης/IRR (ώστε NOI/DSCR/IRR να
@@ -571,15 +659,21 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   // Εργαλεία (pro)
   const comp = useMemo(() => compound(nVal, parseFloat(compRate) || 0, parseInt(compYears), Math.max(0, Math.round(grossAnnual - effOpex - annualTax))), [nVal, compRate, compYears, grossAnnual, effOpex, annualTax]);
-  const lev: LeverageResult = useMemo(() => leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25, grossYieldPct: grossYieldExact, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree]);
+  // ΟΙ ΠΑΡΑΔΟΧΕΣ ΕΙΝΑΙ ΠΛΕΟΝ ΠΕΔΙΑ. Διάρκεια δανείου και κόστη πώλησης έρχονται από
+  // την οθόνη, όχι από σταθερές μέσα στην κλήση. Το ποσοστό λειτουργικών εξόδων
+  // προκύπτει από τα ΠΡΑΓΜΑΤΙΚΑ έξοδα του χρήστη προς τα έσοδα — και εμφανίζεται.
+  const nLoanYears = Math.max(1, parseInt(loanYears) || 25);
+  const nSellCosts = Math.max(0, parseFloat(sellCosts) || 0);
+  const opexPctOfRent = grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 0;
+  const lev: LeverageResult = useMemo(() => leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: nLoanYears, grossYieldPct: grossYieldExact, opexPctOfRent, interestFreePct: parseFloat(ifree) || 0 }), [nVal, ltv, loanRate, nLoanYears, grossYieldExact, opexPctOfRent, ifree]);
 
   // Χρηματοοικονομική ανάλυση αγοράς-κατοχής-πώλησης (IRR/NPV/DSCR), με τα ίδια στοιχεία.
   const deal = useMemo(() => dealAnalysis({
-    price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25,
-    grossYieldPct: grossYieldExact, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20,
+    price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: nLoanYears,
+    grossYieldPct: grossYieldExact, opexPctOfRent,
     interestFreePct: parseFloat(ifree) || 0, holdYears: parseInt(holdYears), rentGrowthPct: parseFloat(rentGrowth) || 0,
-    appreciationPct: nAppr, sellCostsPct: 3, discountRatePct: parseFloat(discountRate) || 0,
-  }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree, holdYears, rentGrowth, nAppr, discountRate]);
+    appreciationPct: nAppr, sellCostsPct: nSellCosts, discountRatePct: parseFloat(discountRate) || 0,
+  }), [nVal, ltv, loanRate, nLoanYears, grossYieldExact, opexPctOfRent, ifree, holdYears, rentGrowth, nAppr, nSellCosts, discountRate]);
 
   // Ανάλυση ευαισθησίας (pro): απόδοση ιδίων & συνολική απόδοση σε δυσμενές/βασικό/ευνοϊκό
   // σενάριο (μεταβολή επιτοκίου & ετήσιας ανατίμησης). Δείχνει την αντοχή της επένδυσης.
@@ -591,11 +685,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       { key: 'good', label: 'Ευνοϊκό', note: 'επιτόκιο −1% · ανατίμηση +2%', appr: +2, rate: -1 },
     ];
     for (const d of defs) {
-      const l = leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: Math.max(0, (parseFloat(loanRate) || 0) + d.rate), loanYears: 25, grossYieldPct: grossYieldExact, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 });
+      const l = leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: Math.max(0, (parseFloat(loanRate) || 0) + d.rate), loanYears: nLoanYears, grossYieldPct: grossYieldExact, opexPctOfRent, interestFreePct: parseFloat(ifree) || 0 });
       rows.push({ key: d.key, label: d.label, note: d.note, totalReturn: clampReturn(propertyTotalReturn(y.netYield, nAppr + d.appr)), roe: l.cashOnCash, cashFlow: l.cashFlow });
     }
     return rows;
-  }, [nVal, ltv, loanRate, y.grossYield, y.netYield, nAppr, effOpex, grossAnnual, ifree]);
+  }, [nVal, ltv, loanRate, nLoanYears, grossYieldExact, y.netYield, nAppr, opexPctOfRent, ifree]);
 
   // Πληρότητα ισοσκελισμού: το ελάχιστο ποσοστό πληρότητας ώστε η ΒΡΑΧΥΧΡΟΝΙΑ να αποδώσει
   // ό,τι και η μακροχρόνια. Το σταθερό opex (ΕΝΦΙΑ, συντήρηση) βαρύνει ΚΑΙ τους δύο τρόπους
@@ -626,7 +720,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       R('Λειτουργικά έξοδα ακινήτου', rSigned(-nOpex)),
       ...(term === 'short' && stCosts > 0 ? [R('Κόστη βραχυχρόνιας (πλατφόρμα, καθαρισμός, ΤΑΚΚ, τέλος παρεπιδημούντων)', rSigned(-stCosts))] : []),
       R('Καθαρά λειτουργικά έσοδα (NOI)', rEur(noi), 'sub'),
-      R('Φόρος εισοδήματος', rSigned(-annualTax)),
+      R(consolidated ? 'Μερίδιο φόρου εισοδήματος (προοδευτικός στο σύνολο των ακινήτων)' : 'Φόρος εισοδήματος', rSigned(-annualTax)),
       R('Καθαρό αποτέλεσμα μετά τον φόρο', rEur(afterTax), 'result'),
     ].join('');
 
@@ -672,9 +766,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     const asmpItems = [
       `Αξία ακινήτου: ${rEur(nVal)} (καταχώρηση ή εκτίμηση χρήστη)`,
       term === 'short' ? `Έσοδα: εκτιμώμενη πληρότητα ${rPct(occEff)} × τιμή/νύχτα ${rEur(adrEff)}` : `Έσοδα: μηνιαίο ενοίκιο ${rEur(nRent)}`,
-      `Εκτιμώμενη ετήσια ανατίμηση: ${rPct(nAppr)}`,
+      apprTouched
+        ? `Ετήσια ανατίμηση: ${rPct(nAppr)} — υπόθεση του χρήστη (η τεκμηριωμένη τιμή είναι ${rPct(apprRef.pct)})`
+        : `Ετήσια ανατίμηση: ${rPct(nAppr)} — δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear}–${apprRef.toYear}`,
       `Φορολογικό καθεστώς: ${regimeLabel}`,
-      ...(pro ? [`Χρηματοδότηση: LTV ${rPct(parseFloat(ltv) || 0)}, επιτόκιο ${rPct(parseFloat(loanRate) || 0)}, ορίζοντας ${parseInt(holdYears)} έτη`] : []),
+      ...(pro ? [] : [`Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`]),
+      ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${rEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${rEur(portfolioTax.totalTax)})`] : []),
+      `Λειτουργικά έξοδα: ${rPct(opexPctOfRent)} των εσόδων (${rEur(effOpex)})`,
+      ...(pro ? [`Χρηματοδότηση: δάνειο ${rPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${rPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${rPct(nSellCosts)} (πλευρά πωλητή)`] : []),
       `Δεδομένα αναφοράς αγοράς: ${MARKET_DATA_ASOF}`,
     ].map(t => `<li>${rEsc(t)}</li>`).join('');
 
@@ -741,9 +840,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       const asmpItems = [
         `Αξία ακινήτου: ${pEur(nVal)} (καταχώρηση ή εκτίμηση χρήστη)`,
         term === 'short' ? `Έσοδα: εκτιμώμενη πληρότητα ${pPct(occEff)} × τιμή/νύχτα ${pEur(adrEff)}` : `Έσοδα: μηνιαίο ενοίκιο ${pEur(nRent)}`,
-        `Εκτιμώμενη ετήσια ανατίμηση: ${pPct(nAppr)}`,
+        apprTouched
+          ? `Ετήσια ανατίμηση: ${pPct(nAppr)} — υπόθεση του χρήστη (η τεκμηριωμένη τιμή είναι ${pPct(apprRef.pct)})`
+          : `Ετήσια ανατίμηση: ${pPct(nAppr)} — δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear}–${apprRef.toYear}`,
         `Φορολογικό καθεστώς: ${regimeLabel}`,
-        ...(pro ? [`Χρηματοδότηση: LTV ${pPct(parseFloat(ltv) || 0)}, επιτόκιο ${pPct(parseFloat(loanRate) || 0)}, ορίζοντας ${parseInt(holdYears)} έτη`] : []),
+        ...(pro ? [] : [`Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`]),
+        ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${pEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${pEur(portfolioTax.totalTax)})`] : []),
+        `Λειτουργικά έξοδα: ${pPct(opexPctOfRent)} των εσόδων (${pEur(effOpex)})`,
+        ...(pro ? [`Χρηματοδότηση: δάνειο ${pPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${pPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${pPct(nSellCosts)} (πλευρά πωλητή)`] : []),
         `Δεδομένα αναφοράς αγοράς: ${MARKET_DATA_ASOF}`,
       ];
 
@@ -761,7 +865,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           { label: 'Λειτουργικά έξοδα ακινήτου', value: pSigned(-nOpex) },
           ...(term === 'short' && stCosts > 0 ? [{ label: 'Κόστη βραχυχρόνιας (πλατφόρμα, καθαρισμός, ΤΑΚΚ, τέλος παρεπιδημούντων)', value: pSigned(-stCosts) }] : []),
           { label: 'Καθαρά λειτουργικά έσοδα (NOI)', value: pEur(noi), kind: 'sub' },
-          { label: 'Φόρος εισοδήματος', value: pSigned(-annualTax) },
+          { label: consolidated ? 'Μερίδιο φόρου εισοδήματος (προοδευτικός στο σύνολο των ακινήτων)' : 'Φόρος εισοδήματος', value: pSigned(-annualTax) },
           { label: 'Καθαρό αποτέλεσμα μετά τον φόρο', value: pEur(afterTax), kind: 'result' },
         ] },
         { type: 'rows', title: 'Δείκτες απόδοσης', rows: [
@@ -905,6 +1009,23 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             )}
           </div>
         )}
+        {/* ── ΦΟΡΟΛΟΓΙΚΕΣ ΠΑΡΑΔΟΧΕΣ, ΟΡΑΤΕΣ ─────────────────────────────────
+            Η είσπραξη μέσω τραπέζης ήταν καρφωμένη σε `true` μέσα στον κώδικα και
+            η έκπτωση 5% παρουσιαζόταν αλλού ως «αυτόματη». Είναι απόφαση του
+            χρήστη με μετρήσιμη συνέπεια στον φόρο του, άρα ζει στην οθόνη. */}
+        {!empty && !pro && (
+          <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS, marginBottom: 10 }}>Φορολογικές παραδοχές</span>
+            <Toggle checked={rentsBank} onChange={setRentsBank}
+              label="Τα ενοίκια εισπράττονται μέσω τραπέζης"
+              note={PRESUMPTIVE_RULE_2026} />
+            <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
+              {consolidated
+                ? <>{CONSOLIDATION_NOTE} Το χαρτοφυλάκιό σου: <strong style={{ color: 'var(--text-primary)' }}>{portfolioTax.count} ακίνητα</strong> με ενοίκια {fe(portfolioTax.totalAnnualRent, 0)} και συνολικό φόρο {fe(portfolioTax.totalTax, 0)} (μέσος συντελεστής {fp(portfolioTax.effectiveRate * 100)}, οριακός {fp(portfolioTax.marginalRate * 100)}). Το μερίδιο αυτού του ακινήτου είναι <strong style={{ color: 'var(--text-primary)' }}>{fe(annualTax, 0)}</strong>. Αν υπολογιζόταν μόνο του, θα έδειχνε {fe(portfolioTax.perProperty.find(p => p.id === propertyId)?.standaloneTax ?? 0, 0)} — δηλαδή λιγότερα από την πραγματικότητα.</>
+                : <>Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026 (15% έως 12.000 €, 25% έως 24.000 €, 35% έως 35.000 €, 45% πάνω από αυτά), στο σύνολο των ενοικίων σου. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου. Οριακός συντελεστής {fp(portfolioTax.marginalRate * 100)}.</>}
+            </p>
+          </div>
+        )}
         {empty && (
           <EmptyState
             icon={<Percent size={20} />}
@@ -919,7 +1040,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         <div style={g4}>
           <KPI label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent, 0)} έσοδα τον χρόνο`} info={G.gross_yield} />
           <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={G.net_yield} />
-          <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)} sub={`φόρος ${fe(annualTax, 0)} τον χρόνο`} accent info={G.after_tax_yield} />
+          <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)}
+            sub={consolidated ? `μερίδιο φόρου ${fe(annualTax, 0)} τον χρόνο` : `φόρος ${fe(annualTax, 0)} τον χρόνο`}
+            accent info={consolidated ? `${G.after_tax_yield} ${CONSOLIDATION_NOTE}` : G.after_tax_yield} />
           {pro
             ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.cashOnCash >= 0 ? 'θετική μόχλευση' : (lev.positiveCarry ? 'θετική μόχλευση, αρνητική ροή' : 'αρνητική μόχλευση')} info={G.cash_on_cash} />
             : term === 'short'
@@ -1000,10 +1123,25 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</span>
-              <div style={{ width: 90 }}><NumberInput label="" value={appreciation} onChange={setAppreciation} suffix="%" step={0.5} max={20} /></div>
+              <div style={{ width: 90 }}><NumberInput label="" value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
+              {apprTouched
+                ? <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δική σου υπόθεση</span>
+                : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δείκτης ΤτΕ</span>}
+              {apprTouched && (
+                <button type="button" onClick={() => { setAppreciation(''); setApprTouched(false); }} className="acc-toggle"
+                  style={{ height: 26, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11.5, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>
+                  Επαναφορά στο τεκμηριωμένο ({fp(apprRef.pct)})
+                </button>
+              )}
             </div>
             <Seg value={cmpYears} onChange={setCmpYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
+          {/* ΑΠΟ ΠΟΥ ΒΓΑΙΝΕΙ Η ΠΡΟΕΠΙΛΟΓΗ. Ήταν «3%» χωρίς πηγή, δηλαδή ο αριθμός
+              που αποφάσιζε μόνος του το συμπέρασμα της σύγκρισης. Τώρα είναι
+              μετρημένος, στον ίδιο ορίζοντα με τις εναλλακτικές, και λέγεται. */}
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 12px', fontFamily: SANS, lineHeight: 1.55 }}>
+            Προεπιλογή <strong style={{ color: 'var(--text-secondary)' }}>{fp(apprRef.pct)}</strong>: μέση ετήσια μεταβολή του δείκτη τιμών κατοικιών της Τράπεζας της Ελλάδος, {apprRef.fromYear}–{apprRef.toYear} ({apprRef.years} έτη) — ο ίδιος ορίζοντας με τις εναλλακτικές παρακάτω. Για σύγκριση, η μακρά περίοδος {apprLong.fromYear}–{apprLong.toYear} δίνει {fp(apprLong.pct)}, επειδή περιλαμβάνει την κρίση. Καμία από τις δύο δεν είναι πρόβλεψη· αν βάλεις άλλο νούμερο, είναι δική σου υπόθεση και βαραίνει όσο και το υπόλοιπο της σελίδας.
+          </p>
           {/* Προβολή-γραμμή: ακίνητο vs κορυφαία εναλλακτική στον χρόνο */}
           <LineChart series={projSeries} />
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '2px 0 14px' }}>
@@ -1017,7 +1155,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}), όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο έχει κόστος συναλλαγής (περίπου 4 έως 10%), απαιτεί χρόνο και συγκεντρώνει τον κίνδυνο σε ένα μόνο περιουσιακό στοιχείο. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
+            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}), όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο απαιτεί χρόνο, συγκεντρώνει τον κίνδυνο σε ένα περιουσιακό στοιχείο και κοστίζει για να μπεις και να βγεις: μια πλήρης διαδρομή αγοράς και πώλησης είναι τυπικά 4 έως 10% της αξίας (φόρος μεταβίβασης 3% και συμβολαιογραφικά στην αγορά, μεσιτική αμοιβή και νομικός έλεγχος στην πώληση). Στην Επενδυτική ανάλυση παρακάτω μπαίνει μόνο το σκέλος του <strong style={{ color: 'var(--text-secondary)' }}>πωλητή</strong>, και το βλέπεις και το αλλάζεις. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
           </p>
         </Section>
 
@@ -1059,6 +1197,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <div style={g2}>
                   <NumberInput label="Δάνειο (% αξίας)" value={ltv} onChange={setLtv} suffix="%" max={100} />
                   <NumberInput label="Επιτόκιο" value={loanRate} onChange={setLoanRate} suffix="%" step={0.1} />
+                  {/* Η διάρκεια ήταν καρφωμένη στα 25 έτη μέσα στη κλήση της
+                      μηχανής: καθόριζε δόση, ταμειακή ροή, DSCR και IRR χωρίς να
+                      φαίνεται πουθενά. Τώρα είναι πεδίο, με την προεπιλογή ρητή. */}
+                  <NumberInput label="Διάρκεια δανείου" value={loanYears} onChange={setLoanYears} suffix="έτη" step={5} max={40} />
                   <NumberInput label="Άτοκο μέρος (Σπίτι μου ΙΙ)" value={ifree} onChange={setIfree} suffix="%" max={100} />
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -1067,6 +1209,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Ετήσια ροή</p><p className="po-fig" data-tone={lev.cashFlow >= 0 ? undefined : 'negative'} style={{ fontSize: 16, fontWeight: 700, margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(lev.cashFlow, 0)}</p></div>
                 </div>
                 <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου, αυξάνεις όμως τα ίδια κεφάλαιά σου.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
+                {/* Το ποσοστό λειτουργικών εξόδων έμπαινε στη μηχανή σιωπηλά (με
+                    εφεδρικό 20% όταν έλειπαν έσοδα). Δεν είναι υπόθεση: βγαίνει από
+                    τα «Ετήσια έξοδα» που έγραψε ο χρήστης. Άρα λέγεται. */}
+                <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: '6px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>
+                  Λειτουργικά έξοδα {fp(opexPctOfRent)} των εσόδων ({fe(effOpex, 0)} σε {fe(grossAnnual, 0)}), από τα στοιχεία που καταχώρησες. Διάρκεια δανείου {nLoanYears} έτη.
+                </p>
               </div>
             </div>
           </Section>
@@ -1079,6 +1227,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας κατοχής</p><Seg value={holdYears} onChange={setHoldYears} options={[['5', '5 έτη'], ['10', '10 έτη'], ['20', '20 έτη']]} /></div>
               <div style={{ width: 128 }}><NumberInput label="Αύξηση ενοικίου" value={rentGrowth} onChange={setRentGrowth} suffix="%" step={0.5} /></div>
               <div style={{ width: 158 }}><NumberInput label="Επιτόκιο προεξόφλησης" value={discountRate} onChange={setDiscountRate} suffix="%" step={0.5} labelInfo={<TermInfo text={G.npv} />} /></div>
+              {/* Τα κόστη πώλησης ήταν σταθερά 3% μέσα στην κλήση: αφαιρούνταν από
+                  το προϊόν της πώλησης και άρα από το IRR, χωρίς να φαίνονται. */}
+              <div style={{ width: 148 }}><NumberInput label="Κόστη πώλησης" value={sellCosts} onChange={setSellCosts} suffix="%" step={0.5} max={15}
+                labelInfo={<TermInfo text="Κόστη που βαρύνουν τον ΠΩΛΗΤΗ στην έξοδο: μεσιτική αμοιβή (τυπικά ~2% συν ΦΠΑ), νομικός και συμβολαιογραφικός έλεγχος, τεχνικά πιστοποιητικά. Ο φόρος μεταβίβασης 3% βαρύνει τον αγοραστή, γι' αυτό δεν περιλαμβάνεται εδώ. Προεπιλογή 3%· άλλαξέ το αν γνωρίζεις τα δικά σου κόστη." />} /></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 12 }}>
               <MetricTile label="IRR" value={Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : '—'} info={G.irr} />
@@ -1087,7 +1239,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <MetricTile label="Πολλαπλασιαστής ιδίων" value={`${fn(deal.equityMultiple, 2)}×`} info={G.equity_multiple} />
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-              Υποθέτει πώληση στο τέλος του ορίζοντα: καθαρό προϊόν {fe(deal.saleProceeds, 0)} (μετά κόστη πώλησης 3% και υπόλοιπο δανείου {fe(deal.loanBalanceAtExit, 0)}). Το IRR ενσωματώνει τη χρονική αξία του χρήματος και την έξοδο· η NPV υπολογίζεται με επιτόκιο προεξόφλησης {fp(parseFloat(discountRate) || 0)}. Ενδεικτικά, όχι επενδυτική συμβουλή.
+              Υποθέτει πώληση στο τέλος του ορίζοντα: καθαρό προϊόν {fe(deal.saleProceeds, 0)} (μετά κόστη πώλησης {fp(nSellCosts)} και υπόλοιπο δανείου {fe(deal.loanBalanceAtExit, 0)}). Το IRR ενσωματώνει τη χρονική αξία του χρήματος και την έξοδο· η NPV υπολογίζεται με επιτόκιο προεξόφλησης {fp(parseFloat(discountRate) || 0)}. <strong style={{ color: 'var(--text-secondary)' }}>Όλες οι παραδοχές:</strong> ανατίμηση {fp(nAppr)}{apprTouched ? ' (δική σου υπόθεση)' : ` (δείκτης ΤτΕ ${apprRef.fromYear}–${apprRef.toYear})`}, αύξηση ενοικίου {fp(parseFloat(rentGrowth) || 0)}, λειτουργικά έξοδα {fp(opexPctOfRent)} των εσόδων, δάνειο {fp(parseFloat(ltv) || 0)} της αξίας με επιτόκιο {fp(parseFloat(loanRate) || 0)} και διάρκεια {nLoanYears} έτη. Ενδεικτικά, όχι επενδυτική συμβουλή.
             </p>
           </Section>
         )}

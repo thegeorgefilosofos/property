@@ -1,17 +1,27 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PropertyAssistant, ο προσωπικός βοηθός ακινήτων, ορατός ΠΑΝΤΟΥ στην εφαρμογή.
-// Πλωτό κουμπί (FAB) σε κάθε καρτέλα → πάνελ συνομιλίας. Ο χρήστης διαλέγει όνομα
-// & φύλο. Απαντά με ανθρώπινη ψυχή σε ΟΤΙΔΗΠΟΤΕ (χαλαρά ή σύνθετα ακινήτων),
-// δίνει γνώμη, παραπέμπει στον σωστό επαγγελματία, και καθοδηγεί μέσα στο app.
+// Νόα — ορατή ΠΑΝΤΟΥ στην εφαρμογή.
+// ─────────────────────────────────────────────────────────────────────────
+// Πλωτό κουμπί σε κάθε καρτέλα → πάνελ συνομιλίας. Απαντά σε ΟΤΙΔΗΠΟΤΕ (χαλαρά
+// ή σύνθετα ακινήτων), δίνει γνώμη, παραπέμπει στον σωστό επαγγελματία και
+// καθοδηγεί μέσα στην εφαρμογή, πάντα με τα δεδομένα του χρήστη μπροστά της.
+//
+// ΤΟ ΟΝΟΜΑ ΔΕΝ ΕΙΝΑΙ ΡΥΘΜΙΣΗ. Μέχρι σήμερα ο χρήστης διάλεγε όνομα και φύλο:
+// το αποτέλεσμα ήταν ότι το προϊόν δεν είχε πρόσωπο, και κάθε οθόνη το έλεγε
+// αλλιώς. Τώρα υπάρχει μία ταυτότητα, από το lib/assistant/identity.ts, και οι
+// ρυθμίσεις αφορούν μόνο ΣΥΜΠΕΡΙΦΟΡΑ (προσφώνηση, μνήμη, σύγκριση).
+//
+// ΤΟ ΥΦΟΣ: ήρεμη ιεραρχία, καθαρή τυπογραφία, βάθος από φωτεινότητα και όχι
+// από χρώμα ή βαριές σκιές. Καμία διακόσμηση που δεν κουβαλάει πληροφορία.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, feAuto } from '@/components/Theme';
+import { T, TT, feAuto } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
+import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
@@ -20,11 +30,15 @@ import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
 import {
-  type AssistantIdentity, type Gender, type Memory, type AssistantAction, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
-  NAV_MAP, buildSystemBlocks, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
+  type AssistantPrefs, type Memory, type AssistantAction, DEFAULT_PREFS, ADDRESS_OPTIONS,
+  NAV_MAP, buildSystemBlocks, parseAction, cleanForSpeech, loadPrefs, savePrefs,
   loadHistory, saveHistory, clearHistory,
   loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
+import {
+  ASSISTANT_NAME, ASSISTANT_INITIAL, tagline, askCta, askPlaceholder, openAria,
+  speakingLabel, settingsTitle, noKeyNotice,
+} from '@/lib/assistant/identity';
 import { classifyExpense } from '@/lib/expenses/classify';
 import { inferRole, roleLabel } from '@/lib/contacts/roles';
 import { upcomingHolidays, holidayName, isWeekend } from '@/lib/calendar/greekHolidays';
@@ -41,7 +55,7 @@ const IMG_ITEM_SCAN_SYSTEM = `Είσαι σύστημα ανάγνωσης φω�
 Αν είναι ΑΝΤΙΚΕΙΜΕΝΟ/ΣΥΣΚΕΥΗ/ΕΞΟΠΛΙΣΜΟΣ:
 {"kind":"item","name":"","brand":"","model":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό"}
 Το name περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Άφησε κενά όσα δεν διακρίνονται. Χωρίς κείμενο εκτός JSON.`
-// Ελαφρύ ευρετήριο πελατών για να «βρίσκει» ο βοηθός από όνομα/τηλέφωνο/ΑΦΜ.
+// Ελαφρύ ευρετήριο πελατών, ώστε να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ.
 type ClientLite = { id: string; name: string; phone: string; afm: string; vip: boolean };
 // Ελαφρύ ευρετήριο επαφών (τεχνικοί/πάροχοι) για επικοινωνία (WhatsApp/Viber/email/κλήση).
 type ContactLite = { name: string; role: string; phone: string; email: string };
@@ -65,8 +79,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [open, setOpen] = useState(false);
   const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [identity, setIdentity] = useState<AssistantIdentity>(DEFAULT_IDENTITY);
-  const [hasIdentity, setHasIdentity] = useState(true);
+  const [prefs, setPrefs] = useState<AssistantPrefs>(DEFAULT_PREFS);
   const [editing, setEditing] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -74,7 +87,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Κουμπιά ενεργειών που έχουν ήδη εκτελεστεί (ώστε ένα δεύτερο πάτημα να μη διπλοκαταχωρεί).
   const [consumedActions, setConsumedActions] = useState<Set<number>>(() => new Set());
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  // Μετρητής απαντήσεων του βοηθού· μετά τις ~12 πρώτες, προτείνουμε (μία φορά) αξιολόγηση.
+  // Μετρητής απαντήσεων· μετά τις ~12 πρώτες, προτείνουμε (μία φορά) αξιολόγηση.
   const answeredRef = useRef(0);
   const nudgedRef = useRef(false);
   const imgRef = useRef<HTMLInputElement>(null);   // λήψη/επιλογή φωτο αντικειμένου για αναγνώριση
@@ -104,25 +117,24 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
   const openRentRef = useRef<{ id: string; label: string; amount: number }[]>([]);
 
-  // Ο μηνιαίος nudge (ή άλλο σημείο) μπορεί να ανοίξει το feedback του βοηθού.
+  // Ο μηνιαίος nudge (ή άλλο σημείο) μπορεί να ανοίξει τη φόρμα αξιολόγησης.
   useEffect(() => {
     const openFb = () => { setOpen(true); setFeedbackOpen(true); };
     window.addEventListener('pos:open-feedback', openFb);
-    // Άλλα σημεία (π.χ. έλεγχος ισοζυγίου) ανοίγουν τον βοηθό με προ-συμπληρωμένη ερώτηση.
+    // Άλλα σημεία (π.χ. έλεγχος ισοζυγίου) ανοίγουν το πάνελ με προ-συμπληρωμένη ερώτηση.
     const openAsk = (e: Event) => { const q = String((e as CustomEvent).detail?.q || '').trim(); setOpen(true); if (q) setInput(q); };
     window.addEventListener('pos:ask', openAsk);
     return () => { window.removeEventListener('pos:open-feedback', openFb); window.removeEventListener('pos:ask', openAsk); };
   }, []);
 
-  // Ταυτότητα από localStorage (μία φορά)
+  // Προτιμήσεις από localStorage (μία φορά). Το όνομα δεν φορτώνεται: είναι ένα.
   useEffect(() => {
-    const saved = loadIdentity();
-    if (saved) { setIdentity(saved); setHasIdentity(true); }
-    else { setHasIdentity(false); }
+    const saved = loadPrefs();
+    if (saved) setPrefs(saved);
   }, []);
 
   // Κλείσιμο με κλικ εκτός πάνελ (χωρίς να χρειάζεται το «×»). Δεν κλείνει όταν
-  // επεξεργάζεσαι ταυτότητα ή όταν «ακούει», για να μη χαθεί η ενέργεια.
+  // αλλάζεις ρυθμίσεις ή όταν «ακούει», για να μη χαθεί η ενέργεια.
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -140,24 +152,24 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
     setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr(''); setOpenerCtx(null);
-    const mem = loadIdentity()?.memory !== false;
+    const mem = loadPrefs()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);
 
   // Μόνιμη μνήμη (γεγονότα) ανά χρήστη, μόνο αν το επιτρέπει η ρύθμιση.
   useEffect(() => {
-    setMemories(identity.memory ? loadMemories(userId) : []);
-  }, [userId, identity.memory]);
+    setMemories(prefs.memory ? loadMemories(userId) : []);
+  }, [userId, prefs.memory]);
 
   // Αποθήκευση συζήτησης όταν η μνήμη είναι ενεργή.
   useEffect(() => {
-    if (identity.memory && msgs.length) saveHistory(propertyId, msgs.map(({ role, text }) => ({ role, text })));
-  }, [msgs, identity.memory, propertyId]);
+    if (prefs.memory && msgs.length) saveHistory(propertyId, msgs.map(({ role, text }) => ({ role, text })));
+  }, [msgs, prefs.memory, propertyId]);
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, [msgs, busy, editing]);
 
   // Σύγκριση ακινήτων, δίνεται στο μοντέλο μόνο αν το ζητήσει ο χρήστης.
-  const allPropsContext = identity.compare && allProperties.length > 1
+  const allPropsContext = prefs.compare && allProperties.length > 1
     ? allProperties.map((p, i) => {
         const gy = computeYields(resolveRent({ targetRent: p.targetRent }).value, resolveValue(p.value).value, 0).grossYield;
         const y = gy > 0 ? gy.toFixed(1) : null;
@@ -172,8 +184,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const todayStr = now.toISOString().split('T')[0];
     const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
-      supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
-      supabase.from('bills').select('id,name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
+      supabase.from('expenses').select('id,bill_id,amount,category,date,description,paid,expense_group,is_recurring,store_vendor,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
+      supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
       supabase.from('property_settings').select('insurance_company,insurance_expiry,insurance_amount').eq('property_id', propertyId).maybeSingle(),
       supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date').limit(10),
@@ -186,14 +198,33 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('checklist_items').select('description,category,priority,due_date,status,estimated_cost,assigned_contact_name').eq('property_id', propertyId).eq('user_id', userId).neq('status', 'done').neq('status', 'skipped').order('due_date', { ascending: true, nullsFirst: false }).limit(60),
     ]);
     const expenses = exp || [];
-    const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const paid = expenses.filter(e => (e as any).paid !== false).reduce((s, e) => s + (e.amount || 0), 0);
+
+    // ── ΤΑ ΝΟΥΜΕΡΑ ΠΟΥ ΘΑ ΠΕΙ Η ΝΟΑ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟΝ ΚΟΙΝΟ ΠΥΡΗΝΑ ────────────
+    //
+    // Πριν, τα σύνολα υπολογίζονταν ΜΟΝΟ από τον πίνακα `expenses`. Ο απλήρωτος
+    // λογαριασμός όμως δεν έχει δαπάνη πίσω του — η δαπάνη γεννιέται στην
+    // πληρωμή. Άρα:
+    //   • η καθαρή απόδοση που έλεγε ήταν ΑΙΣΙΟΔΟΞΗ: αγνοούσε ό,τι χρωστάς·
+    //   • το «εκκρεμείς» μετρούσε μόνο δαπάνες με paid=false, δηλαδή σχεδόν
+    //     πάντα 0 — ενώ ο ιδιοκτήτης μπορεί να έχει ΕΝΦΙΑ και ΔΕΗ απλήρωτα.
+    //
+    // Και το χειρότερο: οι Δαπάνες και η Σύγκριση ΜΕΤΡΟΥΝ τους απλήρωτους. Ο
+    // ίδιος χρήστης έπαιρνε άλλη απάντηση από την οθόνη και άλλη από τη Νόα,
+    // για το ίδιο ακίνητο την ίδια στιγμή. Σε βοηθό που δίνει συμβουλή με λόγια,
+    // αυτό δεν διαβάζεται ως διαφορά πίνακα — διαβάζεται ως λάθος συμβουλή.
+    const ledger = mergeLedger((bil || []) as never[], expenses as never[]);
+    const ofYear = ledger.entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
+    const total = ledgerTotal(ofYear);
+    // Ταμειακή βάση για τη φορολογική εικόνα: ό,τι ΟΝΤΩΣ πληρώθηκε.
+    const paid = ledgerTotal(ofYear.filter(e => e.paid));
+    const owed = ledgerTotal(ledgerUnpaid(ofYear));
+
     const catMap: Record<string, number> = {};
-    expenses.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + (e.amount || 0); });
+    ofYear.forEach(e => { const k = e.category || 'Άλλο'; catMap[k] = (catMap[k] || 0) + e.amount; });
     const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const unpaid = (bil || []).filter(b => !b.paid);
     openBillsRef.current = unpaid.map((b: any) => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
-    // Ανεξόφλητες δόσεις ενοικίου (για σήμανση «πληρωμένο» από τον βοηθό)
+    // Ανεξόφλητες δόσεις ενοικίου (για σήμανση «πληρωμένο» από τη συνομιλία)
     const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
     const { data: rentDue } = await supabase.from('rent_payments').select('id,period_month,period_year,amount,paid').eq('property_id', propertyId).eq('user_id', userId).eq('paid', false).order('period_year').order('period_month');
     openRentRef.current = (rentDue || []).map((r: any) => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0 }));
@@ -218,7 +249,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: Πελατολόγιο).`
       : '';
 
-    // ── Λογιστική εικόνα (ΙΔΙΑ μηχανή με την καρτέλα Λογιστική) ώστε ο βοηθός να
+    // ── Λογιστική εικόνα (ΙΔΙΑ μηχανή με την καρτέλα Λογιστική) ώστε Νόα να
     // συμβουλεύει με τον σωστό φόρο/καθαρό, όχι με πρόχειρες εκτιμήσεις. ──────────
     const isShortAcct = propStays.length > 0;
     const yearStays = propStays.filter((s: any) => (s.check_in || '').slice(0, 4) === String(year));
@@ -232,7 +263,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       ? `Λογιστική ${year} (${isShortAcct ? 'βραχυχρόνια' : 'μακροχρόνια'} μίσθωση): μεικτά έσοδα ${eur(Math.round(acctStmt.grossIncome))}, φορολογητέο ${eur(Math.round(acctStmt.taxableIncome))}, εκτιμώμενος φόρος εισοδήματος ${eur(Math.round(acctStmt.incomeTax))} (μέσος συντελεστής ${(acctStmt.effectiveRate * 100).toFixed(1)}%), καθαρό αποτέλεσμα ${eur(Math.round(acctStmt.netProfit))}. Πρόταση πρόβλεψης φόρου: περίπου ${eur(Math.round(acctProv.monthly))} τον μήνα να μπαίνουν στην άκρη. Εκτίμηση με την κλίμακα 2026 (μακροχρόνια: τεκμαρτή έκπτωση 5%· βραχυχρόνια: φόρος στα μεικτά)· τελική επιβεβαίωση με λογιστή/ΑΑΔΕ.`
       : '';
 
-    // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε ο βοηθός
+    // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε Νόα
     // να απαντά «τι εκκρεμεί;» με στοιχεία, όχι υποθέσεις, και να ξεχωρίζει τις ληξιπρόθεσμες.
     const openTasks = chk || [];
     const overdueTasks = openTasks.filter((i: any) => i.due_date && i.due_date < todayStr);
@@ -255,7 +286,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       propertyCount: allProperties.length || undefined,
     });
 
-    // ── Δυναμική τιμολόγηση: βάση + ενδεικτικός πίνακας ανά μήνα (για τον βοηθό) ──
+    // ── Δυναμική τιμολόγηση: βάση + ενδεικτικός πίνακας ανά μήνα ──
     // Προτίμησε τη ΒΑΣΗ που έχει ορίσει ο χρήστης στην καρτέλα Τιμολόγηση (αν υπάρχει).
     const { data: pset } = await supabase.from('pricing_settings').select('base,weekend_premium').eq('user_id', userId).eq('property_id', propertyId).maybeSingle();
     const wkndPrem = pset?.weekend_premium != null ? Number(pset.weekend_premium) : 0.18;
@@ -275,7 +306,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     }
 
     // ── Προϋπολογισμός: μηνιαίος στόχος, κουμπαράδες, ειδοποίηση υπέρβασης ────────
-    // Ώστε ο βοηθός να απαντά «πόσο είναι ο στόχος;», «πώς πάνε οι κουμπαράδες;» και
+    // Ώστε Νόα να απαντά «πόσο είναι ο στόχος;», «πώς πάνε οι κουμπαράδες;» και
     // να μπορεί να φτιάχνει κουμπαρά με [[vault:]]. Πηγή: ίδιες ρυθμίσεις με την καρτέλα.
     const [{ data: budgetSet }, { data: vaultSet }] = await Promise.all([
       supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
@@ -312,7 +343,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       propContext.status ? `Κατάσταση: ${propContext.status}` : '',
       `Ενοίκιο: ${eur(rent)}/μήνα (ετήσιο ${eur(rent * 12)})`,
       value ? `Απόδοση: μεικτή ${grossY.toFixed(1)}%, καθαρή ${netY.toFixed(1)}%` : '',
-      `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(total - paid)})`,
+      `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(owed)}). Κάθε ευρώ μετρημένο μία φορά· οι απλήρωτοι λογαριασμοί μετρούν στην ημερομηνία που λήγουν — ίδιος υπολογισμός με τις Δαπάνες και τη Σύγκριση.`,
       topCats.length ? `Μεγαλύτερες κατηγορίες: ${topCats.map(([c, a]) => `${c} ${eur(a)}`).join(', ')}` : '',
       unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${(b as any).name || 'λογαριασμός'} ${eur(b.amount)}${(b as any).due_date ? ` λήξη ${(b as any).due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
       openRentRef.current.length ? `Ανεξόφλητες δόσεις ενοικίου (${openRentRef.current.length}): ${openRentRef.current.slice(0, 12).map(r => `${r.label} ${eur(r.amount)}`).join('; ')}` : '',
@@ -359,7 +390,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     mLines.push(MUNICIPAL_ACCOM_SUMMARY);
     setMarketStr(mLines.join('\n'));
 
-    // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε ο βοηθός να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
+    // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
     const clientRoster = clientRows || [];
     clientsRef.current = clientRoster.map((c: any) => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || ''), vip: !!c.vip }));
     if (clientRoster.length) {
@@ -377,16 +408,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         const lastBooking = arr.map((s: any) => s.check_in).filter(Boolean).sort().slice(-1)[0] || null;
         const lastNote = arr.slice().sort((a: any, b: any) => String(a.check_in || '').localeCompare(String(b.check_in || ''))).map((s: any) => s.notes).filter((n: any) => n && String(n).trim()).slice(-1)[0];
         const bits: string[] = [c.full_name, CLIENT_TYPE_LABELS[c.type as ClientType] || c.type];
-        if (c.vip) bits.push('VIP');
+
         if (cs.stayCount >= 2) bits.push('επαναλαμβανόμενος (2+ διαμονές)');
         if (c.phone) bits.push(`τηλ ${c.phone}`);
         if (c.afm) bits.push(`ΑΦΜ ${c.afm}`);
-        if (typeof c.rating === 'number') bits.push(`βαθμολογία ${c.rating}/5`);
+
         if (cs.stayCount) bits.push(`${cs.stayCount} διαμονές, ${cs.nights} νύχτες, συνολικά έσοδα ${eur(cs.revenue)}`);
         if (cs.stayCount) bits.push(`έσοδα: τελευταίος μήνας ${eur(revSince(arr, 30))}, εξάμηνο ${eur(revSince(arr, 182))}, έτος ${eur(revSince(arr, 365))}`);
         if (lastBooking) bits.push(`τελευταία κράτηση ${lastBooking}`);
         if (cs.hasDamage) bits.push(`φθορές ${eur(cs.damageTotal)}`);
-        if (c.do_not_rent) bits.push('ΠΡΟΣΟΧΗ/μαύρη λίστα');
+
         if (c.budget) bits.push(`προϋπολογισμός ${eur(c.budget)}`);
         if (c.needs) bits.push(`ανάγκες: ${c.needs}`);
         if (lastNote) bits.push(`σημείωση τελευταίας διαμονής: «${String(lastNote).slice(0, 160)}»`);
@@ -396,7 +427,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       setClientsStr(`Σύνολο πελατών: ${clientRoster.length}\n${cLines.join('\n')}${extra}`);
     } else setClientsStr('');
 
-    // ── Επαφές τεχνικών/παρόχων (καρτέλα Επαφές): για να προτείνει ο βοηθός ΠΟΙΟΝ
+    // ── Επαφές τεχνικών/παρόχων (καρτέλα Επαφές): για να προτείνει ΠΟΙΟΝ
     // να καλέσει/προγραμματίσει για μια εργασία, ή να παραπέμψει αν λείπει ο ρόλος ──
     const techRoster = (contactRows || []).filter((c: any) => c.full_name);
     contactsRef.current = techRoster.map((c: any) => ({ name: c.full_name || '', role: c.role || 'other', phone: String(c.phone || ''), email: String(c.email || '') }));
@@ -528,7 +559,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         date: useDate,
         paid_by: 'owner', payment_method: 'cash', paid: true,
       });
-      setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε ο βοηθός να «ξέρει» τη νέα δαπάνη
+      setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα δαπάνη
       loadContext();
       setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'expenses' } }]);
     } catch {
@@ -626,7 +657,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     }
   };
 
-  // Καταχώρηση αντικειμένου στην Απογραφή (από τον βοηθό, με φωνή/κείμενο ή φωτο).
+  // Καταχώρηση αντικειμένου στην Απογραφή (από τη συνομιλία, με φωνή/κείμενο ή φωτο).
   const registerInventory = async (a: { name: string; category?: string; value?: number; brand?: string; model?: string; room?: string }) => {
     try {
       await supabase.from('inventory_items').insert({
@@ -641,7 +672,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     }
   };
 
-  // Δημιουργία κουμπαρά/αποθεματικού στον Προϋπολογισμό (από τον βοηθό, με φωνή/κείμενο).
+  // Δημιουργία κουμπαρά/αποθεματικού στον Προϋπολογισμό (από τη συνομιλία, με φωνή/κείμενο).
   // Συγχωνεύεται στη ρύθμιση bills_settings section 'vaults' — ίδιο μοντέλο με την καρτέλα.
   const createVault = async (a: { name: string; target: number; due?: string }) => {
     try {
@@ -652,7 +683,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         { property_id: propertyId, user_id: userId, section: 'vaults', data: { vaults: [...existing, nv] } },
         { onConflict: 'property_id,section' },
       );
-      setCtxStr('');   // ακύρωσε την προσωρινή εικόνα ώστε ο βοηθός να ξαναδιαβάσει τα σύνολα κουμπαράδων
+      setCtxStr('');   // ακύρωσε την προσωρινή εικόνα ώστε να ξαναδιαβαστούν τα σύνολα κουμπαράδων
       loadContext();
       const dueStr = a.due ? ` έως ${new Date(a.due).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}` : '';
       setMsgs(m => [...m, { role: 'assistant', text: `Τον έφτιαξα. Πρόσθεσα κουμπαρά «${nv.name}» με στόχο ${eur(a.target)}${dueStr} στον Προϋπολογισμό. Θα υπολογίζει πόσο να βάζεις κάθε μήνα. Θέλεις να τον δεις;`, action: { type: 'go', tab: 'finances' } }]);
@@ -693,7 +724,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     }
   };
 
-  // Καταχώρηση νέου πελάτη στο Πελατολόγιο (από τον βοηθό, με φωνή ή κείμενο).
+  // Καταχώρηση νέου πελάτη στο Πελατολόγιο (από τη συνομιλία, με φωνή ή κείμενο).
   const registerClient = async (a: { name: string; phone?: string; afm?: string; ctype?: string }) => {
     const raw = (a.ctype || '').toLowerCase();
     const ctype: ClientType = /owner|ιδιοκτ/.test(raw) ? 'owner' : /client|πελατ/.test(raw) ? 'client' : 'lead';
@@ -730,7 +761,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         property_id: propertyId, user_id: userId, title, category,
         event_date: date, event_time: time || null, duration_minutes: time ? 60 : null,
         priority: 'high', status: 'pending', source: 'assistant',
-        notes: 'Ραντεβού που προγραμμάτισε ο βοηθός. Θα σταλεί υπενθύμιση πριν λήξει (email, εφόσον είναι ενεργές οι ειδοποιήσεις· με ένα άγγιγμα και σε Viber/WhatsApp).',
+        notes: `Ραντεβού που προγραμμάτισε ${ASSISTANT_NAME}. Θα σταλεί υπενθύμιση πριν λήξει (email, εφόσον είναι ενεργές οι ειδοποιήσεις· με ένα άγγιγμα και σε Viber/WhatsApp).`,
       });
       const whenStr = `${new Date(date).toLocaleDateString('el-GR')}${time ? ` στις ${time}` : ''}`;
       setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για ${whenStr} στο Ημερολόγιο και θα σου θυμίσω πριν λήξει. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
@@ -758,13 +789,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     return () => { try { window.speechSynthesis.onvoiceschanged = null; window.speechSynthesis.cancel(); } catch { /* ignore */ } };
   }, [supportsTTS]);
 
+  // Μία φωνή, χωρίς φύλο: διαλέγουμε την πιο ουδέτερη και ευκρινή ελληνική που
+  // δίνει το σύστημα, χωρίς να ψάχνουμε «αντρική» ή «γυναικεία».
   const pickVoice = (): SpeechSynthesisVoice | null => {
     const el = voicesRef.current.filter(v => v.lang && v.lang.toLowerCase().startsWith('el'));
     if (!el.length) return null;
-    const find = (re: RegExp) => el.find(v => re.test(v.name));
-    if (identity.gender === 'female') return find(/female|woman|γυναι|Melina|Maria/i) || el[0];
-    if (identity.gender === 'male') return find(/male|man|άνδρ|ανδρ|Nicolas|Stefanos|Giorgos/i) || el[0];
-    return find(/Google/i) || el[0];
+    return el.find(v => /Google/i.test(v.name)) || el[0];
   };
 
   const speak = (text: string, after?: () => void) => {
@@ -774,7 +804,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(spoken);
       const v = pickVoice(); if (v) u.voice = v;
-      u.lang = 'el-GR'; u.rate = 1.0; u.pitch = identity.gender === 'female' ? 1.06 : identity.gender === 'male' ? 0.94 : 1.0;
+      u.lang = 'el-GR'; u.rate = 1.0; u.pitch = 1.0;
       u.onstart = () => setSpeaking(true);
       u.onend = () => { setSpeaking(false); after?.(); };
       u.onerror = () => { setSpeaking(false); after?.(); };
@@ -805,7 +835,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const t = finalText.trim();
       if (t) { setInput(''); ask(t, true); }
       // Hands-free: αν δεν πιάστηκε ομιλία (παύση/θόρυβος), ξανάνοιξε το μικρόφωνο
-      // ώστε ο κύκλος να μη «σπάει». Δεν ξεκινά αν μιλάει ο βοηθός ή ήδη ακούει.
+      // ώστε ο κύκλος να μη «σπάει». Δεν ξεκινά όσο εκφωνείται απάντηση ή ήδη ακούει.
       else if (handsFreeRef.current) setTimeout(() => { if (handsFreeRef.current && !listeningRef.current && !(supportsTTS && window.speechSynthesis.speaking)) startListening(); }, 500);
     };
     recRef.current = rec; setInput(''); setListening(true);
@@ -821,13 +851,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     setMsgs(history); setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const system = buildSystemBlocks(identity, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {
+      const system = buildSystemBlocks(prefs, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {
         insights: insightsStr || undefined,
         market: marketStr || undefined,
         clients: clientsStr || undefined,
         contactsPro: techStr || undefined,
         pricing: pricingStr || undefined,
-        memories: identity.memory ? memories.map(m => m.text) : undefined,
+        memories: prefs.memory ? memories.map(m => m.text) : undefined,
         today: new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
       });
       const res = await fetch('/api/anthropic', {
@@ -844,8 +874,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       }
       const raw: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || 'Δεν έχω απάντηση αυτή τη στιγμή.';
       const { clean, action, remember } = parseAction(raw);
-      // Μόνιμη μνήμη: κράτησε το γεγονός που ζήτησε ο βοηθός (μόνο αν το επιτρέπει η ρύθμιση).
-      if (remember && identity.memory) setMemories(addMemory(userId, remember));
+      // Μόνιμη μνήμη: κράτησε το γεγονός που ζητήθηκε (μόνο αν το επιτρέπει η ρύθμιση).
+      if (remember && prefs.memory) setMemories(addMemory(userId, remember));
       // Η «επικοινωνία με επαφή» δεν εμφανίζεται ως κουμπί στο πρώτο μήνυμα· την
       // «εκτελούμε» αμέσως (ανάλυση επαφής) ώστε να προκύψει είτε κουμπί-σύνδεσμος
       // που ανοίγει το μέσο με ένα άγγιγμα, είτε ερώτηση/εναλλακτική αν λείπει κάτι.
@@ -855,7 +885,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const willAutoRun = !!action && !isReach && (viaVoice || handsFreeRef.current);
       setMsgs(m => [...m, { role: 'assistant', text: clean, action: (isReach || willAutoRun) ? undefined : action }]);
       if (isReach) runAction(action, true);
-      // Μετά τις ~12 πρώτες απαντήσεις, πρότεινε (μία φορά) αξιολόγηση PropertyOS + βοηθού.
+      // Μετά τις ~12 πρώτες απαντήσεις, πρότεινε (μία φορά) αξιολόγηση του PropertyOS.
       answeredRef.current += 1;
       if (answeredRef.current >= 12 && !nudgedRef.current && !action) {
         nudgedRef.current = true;
@@ -931,26 +961,24 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     finally { setBusy(false); }
   };
 
-  const initial = (identity.name || 'A').trim().charAt(0).toUpperCase();
-  // Ο χαιρετισμός λέει ΤΙ ΒΛΕΠΕΙ ο βοηθός, όχι τι είναι. Το «ρώτησέ με οτιδήποτε»
-  // δεν λέει τίποτα· το «βλέπω τα ενοίκια και τις δαπάνες του Χ» λέει τα πάντα,
-  // και είναι ο λόγος που ο χρήστης θα ρωτήσει κάτι δικό του αντί για κάτι γενικό.
-  const greeting = hasIdentity
-    ? buildGreeting(identity.name, openerCtx, identity.formal)
-    : `Γεια σου! Θα είμαι ο βοηθός σου. Πρώτα, πες μου πώς να με λες.`;
-  const askVerb = identity.formal ? 'Ρωτήστε' : 'Ρώτησε';
-  // Το κείμενο του πεδίου είναι το πιο φθηνό σημείο επανατοποθέτησης: αντί για
-  // «ρώτησε τον Άριελ» (που δεν λέει τι μπορεί να ρωτήσει), λέει ρητά ότι
-  // απαντά για ΤΑ ΔΙΚΑ ΤΟΥ νούμερα.
-  const askPlaceholder = `${askVerb} για τα δικά σου νούμερα…`;
+  // Ο χαιρετισμός λέει ΤΙ ΒΛΕΠΕΙ, όχι τι είναι. Το «ρώτησέ με οτιδήποτε» δεν λέει
+  // τίποτα· το «βλέπω τα ενοίκια και τις δαπάνες του Χ» λέει τα πάντα, και είναι
+  // ο λόγος που ο χρήστης θα ρωτήσει κάτι δικό του αντί για κάτι γενικό.
+  const greeting = buildGreeting(ASSISTANT_NAME, openerCtx, prefs.formal);
+  // Όλα τα σταθερά κείμενα βγαίνουν από την ταυτότητα — κανένα δεν γράφεται εδώ.
+  const cta = askCta(prefs.formal);
+  const placeholder = askPlaceholder(prefs.formal);
 
-  // Χρωματική ταυτότητα avatar ανά φύλο (διακριτικά).
-  const avatarBg = identity.gender === 'female' ? 'linear-gradient(135deg,#ec4899,#f9a8d4)'
-    : identity.gender === 'male' ? 'linear-gradient(135deg,var(--accent),#8ab4f8)'
-    : 'linear-gradient(135deg,var(--accent),#8ab4f8)';   // ουδέτερο: το μπλε της landing
-
-  // ── Μετακίνηση του βοηθού (σύρσιμο) ώστε να μην εμποδίζει το περιεχόμενο ──
-  const FAB = 60;
+  // ── Μετακίνηση του κουμπιού (σύρσιμο) ώστε να μην εμποδίζει το περιεχόμενο ──
+  // Το κουμπί δεν είναι πια κύκλος σταθερών 60px: είναι πλήκτρο με το όνομα, και
+  // στενεύει σε σήμα στο κινητό. Άρα ΜΕΤΡΑΜΕ το μέγεθός του αντί να το μαντεύουμε
+  // — αλλιώς η μισή πρόσκληση θα κατέληγε έξω από την οθόνη μετά από σύρσιμο.
+  const FAB_H = 52;
+  const fabRef = useRef<HTMLButtonElement | null>(null);
+  const fabBox = () => {
+    const r = fabRef.current?.getBoundingClientRect();
+    return { w: r?.width || FAB_H, h: r?.height || FAB_H };
+  };
   const fabDrag = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const justDragged = useRef(false);
   useEffect(() => {
@@ -962,11 +990,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       if (!s) return;
       const p = JSON.parse(s) as { x: number; y: number };
       const m = 8;
+      const { w, h } = fabBox();
       const inView = typeof window !== 'undefined'
         && Number.isFinite(p?.x) && Number.isFinite(p?.y)
         && p.x >= m && p.y >= m
-        && p.x <= window.innerWidth - FAB - m
-        && p.y <= window.innerHeight - FAB - m;
+        && p.x <= window.innerWidth - w - m
+        && p.y <= window.innerHeight - h - m;
       if (inView) setFabPos(p);
       else localStorage.removeItem('pa_fab_pos');
     } catch { /* ignore */ }
@@ -983,8 +1012,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       d.moved = true; if (!dragging) setDragging(true);
       e.preventDefault();
       const m = 8;
-      const x = Math.max(m, Math.min(d.ox + dx, window.innerWidth - FAB - m));
-      const y = Math.max(m, Math.min(d.oy + dy, window.innerHeight - FAB - m));
+      const { w, h } = fabBox();
+      const x = Math.max(m, Math.min(d.ox + dx, window.innerWidth - w - m));
+      const y = Math.max(m, Math.min(d.oy + dy, window.innerHeight - h - m));
       setFabPos({ x, y });
     };
     const up = () => {
@@ -1003,37 +1033,40 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   };
   const fabToggle = (next: boolean) => () => { if (justDragged.current) return; setOpen(next); };
   const fabFixed: React.CSSProperties = fabPos ? { left: fabPos.x, top: fabPos.y, right: 'auto', bottom: 'auto' } : {};
-  // Θέση πάνελ: αν ο βοηθός έχει μετακινηθεί, το πάνελ ανοίγει κοντά του (πάνω ή κάτω, με clamp).
+  // Θέση πάνελ: αν το κουμπί έχει μετακινηθεί, το πάνελ ανοίγει κοντά του (πάνω ή κάτω, με clamp).
   const panelFixed: React.CSSProperties = (() => {
     if (!fabPos || typeof window === 'undefined') return {};
     const vw = window.innerWidth, vh = window.innerHeight;
     const pw = Math.min(390, vw - 32), ph = Math.min(600, vh - 130);
+    // Το ΥΨΟΣ του κουμπιού είναι σταθερό (FAB_H) — μόνο το πλάτος αλλάζει με τη
+    // γλώσσα και την οθόνη. Άρα η θέση του πάνελ δεν χρειάζεται μέτρηση, και δεν
+    // διαβάζουμε ref μέσα στο render: στοιχίζουμε στην ΑΡΙΣΤΕΡΗ ακμή του κουμπιού.
     let top = fabPos.y - ph - 10;
-    if (top < 12) top = Math.min(fabPos.y + FAB + 10, vh - ph - 12);
-    let left = fabPos.x + FAB - pw;
+    if (top < 12) top = Math.min(fabPos.y + FAB_H + 10, vh - ph - 12);
+    let left = fabPos.x;
     left = Math.max(12, Math.min(left, vw - pw - 12));
     return { left, top, right: 'auto', bottom: 'auto' };
   })();
 
   return (
     <>
-      {/* FAB, ορατό σε κάθε καρτέλα */}
+      {/* Το κουμπί που τη φέρνει μπροστά, σε κάθε καρτέλα.
+          Ονομαστικό, όχι διακοσμητικό: λέει ΠΟΙΑ είναι και ΤΙ κάνεις μαζί της,
+          γιατί ένα ανώνυμο πλωτό κουκκί δεν το πατά κανείς δεύτερη φορά. */}
       {!open && (
         <div className="pa-fab-wrap" style={fabFixed}>
-          {!fabPos && <span className="pa-fab-label">{askVerb} για τα δικά σου νούμερα</span>}
-          <button className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(true)} aria-label={`Βοηθός: ${identity.name} (σύρετε για μετακίνηση)`} title="Σύρετε για μετακίνηση"
-            style={{ background: avatarBg, cursor: dragging ? 'grabbing' : 'pointer' }}>
-            <span className="pa-fab-initial">{initial}</span>
-            <span className="pa-fab-spark" aria-hidden>
-              <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
-            </span>
-            {(listening || speaking) && <span className="pa-fab-live" style={{ background: listening ? 'var(--negative)' : 'var(--accent)' }} />}
+          <button ref={fabRef} className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(true)}
+            aria-label={openAria()} title="Σύρετε για μετακίνηση"
+            style={{ cursor: dragging ? 'grabbing' : 'pointer' }}>
+            <span className="pa-mark" aria-hidden>{ASSISTANT_INITIAL}</span>
+            <span className="pa-fab-cta">{cta}</span>
+            {(listening || speaking) && <span className="pa-fab-live" style={{ background: listening ? 'var(--negative)' : 'var(--accent-text)' }} />}
           </button>
         </div>
       )}
       {open && (
-        <button className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(false)} aria-label="Κλείσιμο" title="Σύρετε για μετακίνηση" style={{ background: avatarBg, ...fabFixed, cursor: dragging ? 'grabbing' : 'pointer' }}>
-          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        <button ref={fabRef} className="pa-fab pa-fab-close" onPointerDown={startFabDrag} onClick={fabToggle(false)} aria-label="Κλείσιμο" title="Σύρετε για μετακίνηση" style={{ ...fabFixed, cursor: dragging ? 'grabbing' : 'pointer' }}>
+          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       )}
 
@@ -1041,10 +1074,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         <div className="pa-panel" style={panelFixed}>
           {/* Κεφαλίδα */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div style={{ width: 36, height: 36, borderRadius: T.radius.inner, background: avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: T.font.sans, fontWeight: 700, fontSize: 15, flexShrink: 0 }}>{initial}</div>
+            <div aria-hidden style={{ width: 34, height: 34, borderRadius: T.radius.inner, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, fontSize: 15, letterSpacing: '-0.01em', flexShrink: 0 }}>{ASSISTANT_INITIAL}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{identity.name}</div>
-              <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-secondary)' }}>Ο βοηθός σου για τα ακίνητα</div>
+              <div style={{ ...TT.h2, fontSize: 14 }}>{ASSISTANT_NAME}</div>
+              <div style={{ ...TT.caption, marginTop: 1 }}>{tagline(prefs.formal)}</div>
             </div>
             {(supportsSTT || supportsTTS) && (
               <button onClick={() => { const next = !handsFree; setHandsFree(next); if (next && supportsSTT) { setOpen(true); startListening(); } else { stopListening(); stopSpeaking(); } }}
@@ -1053,7 +1086,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 18 0" /><path d="M21 12v3a2 2 0 0 1-2 2h-1v-5h3z" /><path d="M3 12v3a2 2 0 0 0 2 2h1v-5H3z" /></svg>
               </button>
             )}
-            <button onClick={() => setEditing(e => !e)} title="Προσάρμοσε τον βοηθό" aria-label="Ρυθμίσεις βοηθού"
+            <button onClick={() => setEditing(e => !e)} title={settingsTitle()} aria-label={settingsTitle()}
               style={{ width: 30, height: 30, borderRadius: 10, border: 'none', background: editing ? 'var(--accent-dim)' : 'transparent', color: editing ? 'var(--accent)' : 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
             </button>
@@ -1061,48 +1094,59 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           {(listening || speaking) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--accent-dim)', borderBottom: '1px solid var(--border-subtle)' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: listening ? 'var(--negative)' : 'var(--accent)', animation: 'pa-pulse 1.1s infinite' }} />
-              <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{listening ? 'Ακούω…' : `${identity.name} μιλάει…`}</span>
+              <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{listening ? 'Ακούω…' : speakingLabel()}</span>
               {speaking && <button onClick={stopSpeaking} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>Σταμάτα</button>}
             </div>
           )}
 
-          {/* Επεξεργασία ταυτότητας */}
-          {(editing || !hasIdentity) ? (
-            <IdentityEditor
-              draft={identity}
+          {/* Ρυθμίσεις συμπεριφοράς — όχι ταυτότητας */}
+          {editing ? (
+            <AssistantSettings
+              draft={prefs}
               hasMemory={msgs.length > 0 || loadHistory(propertyId).length > 0}
               facts={memories}
               onForgetFact={(id) => setMemories(removeMemory(userId, id))}
               onForgetAllFacts={() => { clearMemories(userId); setMemories([]); }}
-              onCancel={hasIdentity ? () => setEditing(false) : undefined}
+              onCancel={() => setEditing(false)}
               onClearMemory={() => { clearHistory(propertyId); setMsgs([]); }}
-              onSave={(id) => {
+              onSave={(next) => {
                 // Αν έκλεισε τη μνήμη, σβήσε ό,τι έχει αποθηκευτεί (σεβασμός στην επιλογή).
-                if (identity.memory && !id.memory) { clearHistory(propertyId); clearMemories(userId); setMemories([]); }
-                setIdentity(id); saveIdentity(id); setHasIdentity(true); setEditing(false);
+                if (prefs.memory && !next.memory) { clearHistory(propertyId); clearMemories(userId); setMemories([]); }
+                setPrefs(next); savePrefs(next); setEditing(false);
               }}
             />
           ) : (
             <>
               {/* Σώμα */}
               <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+                {/* Η ΠΡΩΤΗ ΟΘΟΝΗ. Ο χαιρετισμός ΔΕΝ είναι συννεφάκι συνομιλίας: είναι
+                    δήλωση για το τι βλέπει αυτή τη στιγμή στο ακίνητό σου, άρα διαβάζεται
+                    σαν κείμενο και όχι σαν μήνυμα. Από κάτω, οι ερωτήσεις-εκκίνησης σε
+                    στήλη: τέσσερις γραμμές που πατιούνται, χωρίς να μοιάζουν με μενού. */}
                 {msgs.length === 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>{greeting}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                      {suggestedOpeners(openerCtx).map(s => (
-                        <button key={s} onClick={() => ask(s)} style={{ fontFamily: T.font.sans, fontSize: 12, padding: '7px 12px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>{s}</button>
-                      ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                    <p style={{ ...TT.body, fontSize: 14, lineHeight: 1.6, margin: 0, maxWidth: '36ch' }}>{greeting}</p>
+                    <div>
+                      <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 6 }}>Ρώτα κάτι δικό σου</div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {suggestedOpeners(openerCtx).map((s, i) => (
+                          <button key={s} onClick={() => ask(s)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '11px 2px', background: 'transparent', border: 'none', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)', transition: 'color 0.15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+                            <span style={{ flex: 1, minWidth: 0 }}>{s}</span>
+                            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6 }} aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
                 {msgs.map((m, i) => (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6 }}>
-                    <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap',
+                    <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, fontFamily: T.font.sans, fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-wrap',
                       background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)', color: m.role === 'user' ? 'var(--accent-text)' : 'var(--text-primary)',
-                      border: m.role === 'user' ? 'none' : '1px solid var(--border-subtle)', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
+                      border: 'none', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
                     {m.action && (m.action.type === 'reach' ? (() => {
                       // Κουμπί/σύνδεσμος επικοινωνίας: ανοίγει το μέσο ΜΟΝΟ με το άγγιγμα
                       // του χρήστη (ποτέ αυτόματα). Για tel:/mailto: ρεαλιστικό <a>, για
@@ -1143,7 +1187,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                 {err && (
                   <div style={{ background: err === 'key' ? 'var(--bg-elevated)' : 'var(--warning-soft)', border: `1px solid ${err === 'key' ? 'var(--border-subtle)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '10px 13px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     {err === 'key'
-                      ? `Ο ${identity.name} χρειάζεται ενεργό κλειδί AI για να απαντήσει. Μόλις ενεργοποιηθεί, θα μιλάει ζωντανά για το ακίνητό σου.`
+                      ? noKeyNotice(prefs.formal)
                       : err === 'limit'
                         ? (limitMsg || 'Έφτασες το όριο ερωτήσεων. Ανανεώνεται σύντομα.')
                         : 'Δεν μπόρεσα να απαντήσω τώρα, δοκίμασε ξανά σε λίγο.'}
@@ -1164,7 +1208,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
                   </button>
                 )}
-                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : askPlaceholder} disabled={busy}
+                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : placeholder} disabled={busy}
                   style={{ flex: 1, minWidth: 0, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 15px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 <button onClick={() => ask(input)} disabled={busy || !input.trim()} aria-label="Αποστολή"
@@ -1193,24 +1237,34 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       )}
 
       <style>{`
+        /* Το βάθος βγαίνει από φωτεινότητα και λεπτό περίγραμμα, όχι από έγχρωμο
+           φωτοστέφανο. Οι σκιές είναι τα tokens του θέματος (--elev-*), ίδια με
+           κάθε άλλη επιφάνεια που «πλέει» πάνω από το περιεχόμενο. */
         @keyframes pa-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
-        @keyframes pa-pulse{0%,100%{box-shadow:0 0 0 0 rgba(234,67,53,.4)}50%{box-shadow:0 0 0 6px rgba(234,67,53,0)}}
-        .pa-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:1200;display:flex;align-items:center;gap:10px}
-        .pa-fab-label{background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:100px;padding:8px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;white-space:nowrap;box-shadow:0 4px 14px rgba(60,64,67,.18);opacity:0;transform:translateX(8px);transition:opacity .18s,transform .18s;pointer-events:none}
-        .pa-fab-wrap:hover .pa-fab-label{opacity:1;transform:translateX(0)}
-        .pa-fab{position:fixed;right:24px;bottom:24px;width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(26,115,232,.42),0 2px 8px rgba(60,64,67,.28);z-index:1201;transition:transform .14s cubic-bezier(.2,0,0,1),box-shadow .2s}
+        @keyframes pa-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+        .pa-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:1200;display:flex;align-items:center}
+        .pa-fab{position:fixed;right:24px;bottom:24px;height:52px;padding:0 20px 0 8px;border-radius:100px;border:1px solid var(--accent-border);background:var(--accent);color:var(--accent-text);cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--highlight-inset),var(--elev-2);z-index:1201;transition:box-shadow .2s var(--ease-standard,cubic-bezier(.2,0,0,1)),transform .14s cubic-bezier(.2,0,0,1)}
         .pa-fab-wrap .pa-fab{position:relative;right:auto;bottom:auto}
-        .pa-fab:hover{transform:scale(1.07);box-shadow:0 8px 26px rgba(26,115,232,.5),0 3px 10px rgba(60,64,67,.3)}
-        .pa-fab:active{transform:scale(.95)}
-        .pa-fab-initial{color:#fff;font-family:'Inter',sans-serif;font-weight:700;font-size:24px;line-height:1;letter-spacing:.5px}
-        .pa-fab-spark{position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-        .pa-fab-live{position:absolute;bottom:2px;right:2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg-base);animation:pa-pulse 1.1s infinite}
-        .pa-panel{position:fixed;right:24px;bottom:92px;width:390px;max-width:calc(100vw - 32px);height:min(600px,calc(100vh - 130px));background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.24);z-index:1200;display:flex;flex-direction:column;overflow:hidden}
+        .pa-fab:hover{box-shadow:var(--highlight-inset),var(--elev-3);transform:translateY(-1px)}
+        .pa-fab:active{transform:translateY(0)}
+        .pa-fab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+        /* Το σήμα: το αρχικό μέσα σε φωτεινό δίσκο. Καμία εικονογραφία, κανένα
+           «σπινθήρισμα» — το όνομα είναι το σήμα. */
+        .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-text);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:17px;line-height:1;letter-spacing:-.01em}
+        .pa-fab-cta{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+        .pa-fab-close{padding:0;width:52px;justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
+        .pa-fab-live{position:absolute;top:8px;left:34px;width:9px;height:9px;border-radius:50%;animation:pa-pulse 1.4s infinite}
+        .pa-panel{position:fixed;right:24px;bottom:92px;width:390px;max-width:calc(100vw - 32px);height:min(600px,calc(100vh - 130px));background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:18px;box-shadow:var(--highlight-inset),var(--elev-3);z-index:1200;display:flex;flex-direction:column;overflow:hidden}
         @media (max-width:600px){
           .pa-fab-wrap{bottom:82px;right:16px}
-          .pa-fab-label{display:none}
-          .pa-fab{bottom:82px;right:16px}
+          /* Στο κινητό ο χώρος είναι ιερός: μένει το σήμα, φεύγει η πρόσκληση. */
+          .pa-fab{bottom:82px;right:16px;padding:0 8px;gap:0}
+          .pa-fab-cta{display:none}
           .pa-panel{right:8px;left:8px;bottom:78px;width:auto;max-width:none;height:min(560px,calc(100vh - 100px))}
+        }
+        @media (prefers-reduced-motion:reduce){
+          .pa-fab,.pa-fab:hover{transition:none;transform:none}
+          .pa-fab-live{animation:none}
         }
       `}</style>
     </>
@@ -1227,40 +1281,27 @@ function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
-// ── Επεξεργαστής ταυτότητας (όνομα + φύλο + μνήμη + σύγκριση) ────────────────
-function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, facts, onForgetFact, onForgetAllFacts }: { draft: AssistantIdentity; onSave: (id: AssistantIdentity) => void; onCancel?: () => void; onClearMemory: () => void; hasMemory: boolean; facts: Memory[]; onForgetFact: (id: string) => void; onForgetAllFacts: () => void }) {
-  const [gender, setGender] = useState<Gender>(draft.gender);
-  const [name, setName] = useState(draft.name);
+// ── Ρυθμίσεις συμπεριφοράς ──────────────────────────────────────────────────
+// ΤΟ ΟΝΟΜΑ ΚΑΙ ΤΟ ΦΥΛΟ ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Δεν είναι απώλεια επιλογής: ο χρήστης
+// δεν ζητούσε να «φτιάξει βοηθό», ζητούσε βοήθεια. Το ερώτημα «πώς να με λες;»
+// μπροστά στην πρώτη του ερώτηση ήταν φόρος, και το αποτέλεσμα ήταν ότι κανείς
+// δεν μιλούσε στο ίδιο πρόσωπο. Μένουν οι ρυθμίσεις που αλλάζουν πραγματικά τη
+// συμπεριφορά: προσφώνηση, μνήμη, σύγκριση ακινήτων.
+function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, facts, onForgetFact, onForgetAllFacts }: { draft: AssistantPrefs; onSave: (p: AssistantPrefs) => void; onCancel: () => void; onClearMemory: () => void; hasMemory: boolean; facts: Memory[]; onForgetFact: (id: string) => void; onForgetAllFacts: () => void }) {
   const [memory, setMemory] = useState(draft.memory);
   const [compare, setCompare] = useState(draft.compare);
   const [formal, setFormal] = useState(draft.formal);
-  const suggestions = NAME_SUGGESTIONS[gender];
   const row = { display: 'flex', alignItems: 'center', gap: 12 } as const;
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
-        <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Φτιάξε τον βοηθό σου</div>
-        <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>Διάλεξε πώς θέλεις να είναι. Μπορείς να το αλλάξεις όποτε θες.</div>
+        <div style={{ ...TT.h2, fontSize: 13 }}>{settingsTitle()}</div>
+        <div style={{ ...TT.bodySm, marginTop: 4 }}>Πώς θέλεις να δουλεύει μαζί σου. Αλλάζει όποτε θες.</div>
       </div>
 
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Φύλο / ταυτότητα</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-          {GENDER_OPTIONS.map(g => {
-            const active = gender === g.value;
-            return (
-              <button key={g.value} onClick={() => setGender(g.value)}
-                style={{ display: 'inline-flex', alignItems: 'center', fontFamily: T.font.sans, fontSize: 12, fontWeight: active ? 700 : 500, padding: '8px 14px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
-                {g.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>Πώς θέλεις να σου μιλάει;</div>
-        <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα ή στον πληθυντικό για πιο επίσημο ύφος.</div>
+        <div style={{ ...TT.label, fontSize: 9, marginBottom: 4 }}>Πώς θέλεις να σου μιλάει;</div>
+        <div style={{ ...TT.caption, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα ή στον πληθυντικό για πιο επίσημο ύφος.</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {ADDRESS_OPTIONS.map(a => {
             const active = formal === a.value;
@@ -1271,19 +1312,6 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
               </button>
             );
           })}
-        </div>
-      </div>
-
-      <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Όνομα</div>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Γράψε ένα όνομα…" maxLength={24}
-          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', marginBottom: 10 }}
-          onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {suggestions.map(s => (
-            <button key={s} onClick={() => setName(s)}
-              style={{ fontFamily: T.font.sans, fontSize: 12, padding: '6px 11px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${name === s ? 'var(--accent)' : 'var(--border-subtle)'}`, background: name === s ? 'var(--accent-dim)' : 'transparent', color: name === s ? 'var(--accent)' : 'var(--text-secondary)' }}>{s}</button>
-          ))}
         </div>
       </div>
 
@@ -1327,8 +1355,8 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-        {onCancel && <button onClick={onCancel} style={{ flex: '0 0 auto', height: T.h.lg, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Άκυρο</button>}
-        <button onClick={() => onSave({ name: name.trim() || DEFAULT_IDENTITY.name, gender, memory, compare, formal })} style={{ flex: 1, height: T.h.lg, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
+        <button onClick={onCancel} style={{ flex: '0 0 auto', height: T.h.lg, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Άκυρο</button>
+        <button onClick={() => onSave({ memory, compare, formal })} style={{ flex: 1, height: T.h.lg, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
       </div>
     </div>
   );

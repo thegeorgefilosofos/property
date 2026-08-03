@@ -15,11 +15,14 @@ import { issueDocument } from '@/lib/documents/issue'
 import { ShieldCheck } from 'lucide-react'
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import {
-  BANKS, LOAN_TYPES, BORROWER_PROFILES, TAX_DATA,
-  calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax,
-  fmtEur, fmtPct, fmtPct1,
+  BANKS, LOAN_TYPES, BORROWER_PROFILES,
+  calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax, taxableRental,
+  fmtEur, fmtPct, fmtPct1, BANKS_VERIFIED,
   LoanType, RateType, BorrowerType, LoanScenario, MarketRates, SavedLoan
 } from './TabLoanData'
+import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
+import { PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate'
+import { regionByKey, GREECE_AVG_GROSS_YIELD, MARKET_DATA_ASOF } from '@/lib/market/greekMarket'
 
 // ── MD3 tokens ────────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -29,7 +32,7 @@ const labelStyle: React.CSSProperties = {
 }
 const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperties => ({
   padding:'0 14px',height:T.h.md,borderRadius:18,border:`1px solid ${active?accentColor:'var(--border-subtle)'}`,
-  background:active?`${accentColor}14`:'none',color:active?accentColor:'var(--text-secondary)',
+  background:active?`color-mix(in srgb, ${accentColor} 10%, transparent)`:'none',color:active?accentColor:'var(--text-secondary)',
   cursor:'pointer',fontSize:12,fontFamily: T.font.sans,fontWeight:active?500:400,
   transition:'all 0.15s',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap' as const,
 })
@@ -466,6 +469,28 @@ const AREA_OPTIONS = [
   {value:'other',label:'Άλλη περιοχή',description:''},
 ]
 
+// Αντιστοίχιση περιοχής δανείου → ζώνη του lib/market/greekMarket, ώστε το
+// ενοίκιο-αναφορά να προκύπτει από ΤΕΚΜΗΡΙΩΜΕΝΗ μεικτή απόδοση της περιοχής (με
+// πηγή και ημερομηνία) και όχι από το επινοημένο «4% της αξίας», που έδινε το ίδιο
+// νούμερο στην Κοζάνη και στο Κολωνάκι. Το «Άλλη περιοχή» πέφτει στον εθνικό μέσο.
+const AREA_TO_REGION: Record<string,string> = {
+  attica_center_prime:'ath_kolonaki', attica_center_std:'ath_center',
+  attica_south_prime:'ath_south', attica_south_std:'ath_south',
+  attica_north_prime:'ath_north', attica_north_std:'ath_north',
+  attica_east:'east_attica', attica_west:'ath_west',
+  attica_piraeus_prime:'piraeus', attica_piraeus_std:'piraeus',
+  thess_center:'thess_center', thess_east:'thess_kalamaria', thess_suburbs_n:'thess_kalamaria',
+  crete_heraklion:'heraklion', crete_chania:'chania',
+  mykonos:'mykonos', santorini:'santorini', rhodes:'rhodes', corfu:'corfu',
+  patras:'patras', larissa:'larissa', volos:'volos', ioannina:'ioannina',
+}
+/** Τεκμηριωμένη μεικτή απόδοση (%) μακροχρόνιας μίσθωσης για την περιοχή δανείου. */
+function areaGrossYield(area:string): { pct:number; label:string; note:string } {
+  const reg = regionByKey(AREA_TO_REGION[area] || '')
+  if (reg) return { pct: reg.grossYield, label: reg.label, note: reg.note }
+  return { pct: GREECE_AVG_GROSS_YIELD, label: 'Εθνικός μέσος όρος', note: 'Μέση μεικτή απόδοση μακροχρόνιας μίσθωσης στην Ελλάδα.' }
+}
+
 
 interface Props {
   propertyId:string;userId:string;market:MarketRates
@@ -508,7 +533,16 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [extraPay,    setExtraPay]    = useState('0')
   const [lens,        setLens]        = useState('amort')
   const [income,      setIncome]      = useState('2000')
-  const [monthlyRent, setMonthlyRent] = useState(()=>String(Math.round((parseFloat(initial?.propValue||'185000')||185000)*0.04/12)))
+  // ΕΝΟΙΚΙΟ: ΠΡΑΓΜΑΤΙΚΟ, ΑΛΛΙΩΣ ΤΕΚΜΗΡΙΩΜΕΝΟ — ΠΟΤΕ «4% ΤΗΣ ΑΞΙΑΣ».
+  // Ήταν δύο φορές επινοημένο στο ίδιο αρχείο: εδώ (PV×0,04/12, για την σύγκριση
+  // ενοικίασης-αγοράς) και στο renInc (PV×0,04, που τροφοδοτούσε τον «Εκτιμώμενο
+  // φόρο»). Το ενοίκιο του χρήστη υπάρχει στη βάση (rent_config.actual_rent), και
+  // όπου λείπει υπάρχουν τεκμηριωμένες αποδόσεις ανά περιοχή στο greekMarket.
+  const [actualRent, setActualRent] = useState(0)         // πραγματικό μηνιαίο ενοίκιο, από τη βάση
+  const [monthlyRent, setMonthlyRent] = useState('')      // κενό = ακολουθεί το ενοίκιο-αναφορά
+  const [rentTouched, setRentTouched] = useState(false)
+  // Είσπραξη μέσω τραπέζης: προϋπόθεση της τεκμαρτής έκπτωσης 5% από 1/1/2026.
+  const [rentsBank, setRentsBank] = useState(true)
   const [marital,     setMarital]     = useState<'single'|'married'>('single')
   const [children,    setChildren]    = useState('0')
   const [hasAgent,    setHasAgent]    = useState(false)
@@ -561,6 +595,27 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[profile])
 
+  // Το ΠΡΑΓΜΑΤΙΚΟ ενοίκιο του ακινήτου (ίδια σειρά προτεραιότητας με όλη την
+  // εφαρμογή: μισθωτήριο/ρύθμιση ενοικίου → στόχος ακινήτου). Όσο δεν υπάρχει,
+  // πέφτουμε στην τεκμηριωμένη απόδοση της περιοχής — και το γράφουμε στην οθόνη.
+  useEffect(()=>{
+    let alive = true
+    ;(async()=>{
+      try{
+        const [rc, pr] = await Promise.all([
+          supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id',propertyId).maybeSingle(),
+          supabase.from('user_properties').select('target_rent').eq('id',propertyId).maybeSingle(),
+        ])
+        if(!alive) return
+        const c = rc.data as { actual_rent:number|null; target_rent:number|null } | null
+        const p = pr.data as { target_rent:number|null } | null
+        setActualRent(Number(c?.actual_rent) || Number(c?.target_rent) || Number(p?.target_rent) || 0)
+      }catch{ /* χωρίς δεδομένα, μένει το τεκμηριωμένο ενοίκιο-αναφορά */ }
+    })()
+    return ()=>{ alive = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[propertyId])
+
   const LA   = parseFloat(loanAmount)||0
   const PV   = parseFloat(propValue)||0
   const SQM  = parseFloat(sqm)||0
@@ -600,10 +655,25 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     return{tax,notary:notaryCosts.notary,landReg:notaryCosts.landReg,legal:notaryCosts.legal,agent:AGNT,other:notaryCosts.other,total:tax+notaryCosts.total+AGNT,downpayment:PV-LA,totalCash:(PV-LA)+tax+notaryCosts.total+AGNT}
   },[isNewBuilding,vatOwed,fmaOwed,notaryCosts,AGNT,PV,LA])
 
-  // Ενδεικτικό μεικτό ετήσιο ενοίκιο ~4% της αξίας (όχι συνάρτηση της δόσης — η προηγούμενη
-  // εκτίμηση «80% της δόσης» ανέβαινε αντι-διαισθητικά όταν ανέβαινε το επιτόκιο).
-  const renInc   = loanType==='investment'?PV*0.04:0
-  const renTax   = calcRentalTax(renInc*(1-TAX_DATA.rental_expense_deduction))
+  // ── ΕΝΟΙΚΙΟ-ΑΝΑΦΟΡΑ: ΠΡΑΓΜΑΤΙΚΟ Ή ΤΕΚΜΗΡΙΩΜΕΝΟ ─────────────────────────────
+  // Πριν: `renInc = PV*0.04`, «ενοίκιο ~4% της αξίας», που τροφοδοτούσε τον
+  // «Εκτιμώμενο φόρο». Δύο προβλήματα: (α) το 4% δεν προέρχεται από πουθενά, ενώ
+  // το lib/market/greekMarket έχει τεκμηριωμένες αποδόσεις 2,9%–7,0% ανά περιοχή
+  // με πηγή και ημερομηνία· (β) το πραγματικό ενοίκιο του χρήστη ήταν διαθέσιμο
+  // στη βάση. Άρα το ίδιο ακίνητο έβγαζε δύο διαφορετικά ενοίκια και δύο
+  // διαφορετικούς φόρους σε δύο οθόνες. Τώρα: πραγματικό → αλλιώς περιοχή.
+  const areaYield = useMemo(()=>areaGrossYield(area),[area])
+  const rentRef = useMemo(()=>{
+    if(actualRent>0) return { monthly: actualRent, source:'actual' as const }
+    const m = PV>0 ? Math.round(PV*(areaYield.pct/100)/12) : 0
+    return { monthly: m, source:'region' as const }
+  },[actualRent,PV,areaYield.pct])
+  const rentAssumptionText = rentRef.source==='actual'
+    ? `Πραγματικό μηνιαίο ενοίκιο του ακινήτου, από τα στοιχεία που έχεις καταχωρήσει: ${fmtEur(rentRef.monthly)}.`
+    : `Δεν έχεις καταχωρήσει ενοίκιο, οπότε χρησιμοποιείται η τεκμηριωμένη μεικτή απόδοση της περιοχής (${areaYield.label}, ${fmtPct1(areaYield.pct)} ετησίως, δεδομένα ${MARKET_DATA_ASOF}): ${fmtEur(rentRef.monthly)} τον μήνα. Συμπλήρωσε το ενοίκιο στο ακίνητο και ο υπολογισμός γίνεται δικός σου.`
+  const renInc   = loanType==='investment'?rentRef.monthly*12:0
+  // Ο φόρος από τη ΜΟΝΑΔΙΚΗ πηγή, με τη τεκμαρτή έκπτωση υπό τον όρο του 2026.
+  const renTax   = calcRentalTax(taxableRental(renInc, rentsBank))
   // «Σπίτι μου ΙΙ»: το 50% του δανείου είναι άτοκο (0%), το υπόλοιπο 50% με το
   // επιτόκιο της τράπεζάς σου. Μοντελοποιούμε τα δύο σκέλη αντί για αυθαίρετο
   // ευριστικό. Το εμφανιζόμενο «επιτόκιο» είναι το μεικτό (~μισό του κανονικού).
@@ -626,9 +696,19 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const stress   =[{label:'Τρέχον',rate:effRate},{label:'+0,5%',rate:effRate+0.5},{label:'+1%',rate:effRate+1},{label:'+2%',rate:effRate+2},{label:'+3%',rate:effRate+3},{label:'6% συνολικό',rate:6}].filter(s=>s.label==='Τρέχον'||s.rate>effRate).map(s=>({...s,monthly:calcMonthly(LA,s.rate,Y)}))
   const amortChart = useMemo(()=>{const out=[];for(let y=1;y<=Math.min(Y,30);y++){const rows=amort.slice((y-1)*12,y*12);out.push({year:`${y}`,Κεφάλαιο:Math.round(rows.reduce((s,r)=>s+r.principal,0)),Τόκοι:Math.round(rows.reduce((s,r)=>s+r.interest,0))})}return out},[amort,Y])
   // Κυμαινόμενο = Euribor + ΠΕΡΙΘΩΡΙΟ (spread). Σε λειτουργία «σταθερού» το R είναι το ΠΛΗΡΕΣ
-  // επιτόκιο, όχι spread — γι' αυτό χρησιμοποιούμε τυπικό περιθώριο αγοράς (πριν διπλομετρούσαμε).
-  const typicalVarSpread = 1.5
-  const variableRate = market.euribor_3m + (rateType==='variable'?R:typicalVarSpread)
+  // επιτόκιο, όχι spread — γι' αυτό χρειάζεται περιθώριο αναφοράς για τη σύγκριση.
+  // ΠΡΙΝ ήταν σταθερά 1,5 με τον χαρακτηρισμό «τυπικό περιθώριο αγοράς», χωρίς πηγή,
+  // και καθόριζε ΟΛΗ τη σύγκριση σταθερού/κυμαινόμενου. Τώρα προκύπτει από τα ίδια
+  // δεδομένα τραπεζών που δείχνει ο συγκριτικός πίνακας δύο ενότητες παρακάτω
+  // (variable_spread_min ανά τράπεζα, επιβεβαιωμένα BANKS_VERIFIED): ο διάμεσος των
+  // ελάχιστων περιθωρίων. Αν αλλάξουν τα επιτόκια, αλλάζει και η σύγκριση.
+  const refVarSpread = useMemo(()=>{
+    const mins = BANKS.map(b=>Number(b.variable_spread_min)).filter(x=>x>0).sort((a,b)=>a-b)
+    if(!mins.length) return { pct: 0, count: 0 }
+    const mid = Math.floor(mins.length/2)
+    return { pct: mins.length%2 ? mins[mid] : (mins[mid-1]+mins[mid])/2, count: mins.length }
+  },[])
+  const variableRate = market.euribor_3m + (rateType==='variable'?R:refVarSpread.pct)
   const varMonthly  = calcMonthly(LA,variableRate,Y)
   // Γνήσια σύγκριση σταθερού/κυμαινόμενου: σε λειτουργία «κυμαινόμενου» το effRate
   // ΕΙΝΑΙ ήδη Euribor+περιθώριο, άρα ταυτίζεται με το variableRate και η σύγκριση
@@ -1046,6 +1126,14 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               : 'Σήμερα οι δύο επιλογές έχουν παρόμοια δόση· το σταθερό προσφέρει σταθερότητα, το κυμαινόμενο ευελιξία.'}
           </p>
         </div>
+        {/* ΑΠΟ ΠΟΥ ΒΓΑΙΝΟΥΝ ΤΑ ΔΥΟ ΕΠΙΤΟΚΙΑ ΤΗΣ ΣΥΓΚΡΙΣΗΣ. Το περιθώριο αναφοράς
+            ήταν σταθερά 1,5 χωρίς πηγή και έκρινε μόνο του ποια επιλογή «κερδίζει».
+            Τώρα προκύπτει από τα ίδια επιτόκια τραπεζών που δείχνει η καρτέλα. */}
+        <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,marginBottom:14,fontFamily: T.font.sans}}>
+          {rateType==='variable'
+            ? <>Το κυμαινόμενο είναι το δικό σου: Euribor 3 μηνών {fmtPct(market.euribor_3m)} συν περιθώριο {fmtPct(R)}. Το σταθερό αναφοράς είναι το χαμηλότερο καταχωρημένο σταθερό επιτόκιο {BANKS.length} τραπεζών ({fmtPct(fixedRefRate)}, επιβεβαιωμένα {BANKS_VERIFIED}).</>
+            : <>Το σταθερό είναι το δικό σου ({fmtPct(effRate)}). Το κυμαινόμενο αναφοράς είναι Euribor 3 μηνών {fmtPct(market.euribor_3m)} συν <strong style={{color:'var(--text-secondary)'}}>διάμεσο περιθώριο {fmtPct(refVarSpread.pct)}</strong> — ο διάμεσος των ελάχιστων περιθωρίων {refVarSpread.count} τραπεζών, από τα ίδια καταχωρημένα επιτόκια που δείχνει η σύγκριση τραπεζών (επιβεβαιωμένα {BANKS_VERIFIED}), όχι στρογγυλή υπόθεση. Το περιθώριο που θα πάρεις εξαρτάται από το προφίλ σου και μπορεί να είναι υψηλότερο.</>}
+        </p>
         <p style={{...labelStyle,marginBottom:10}}>Σωρευτικοί τόκοι στη διάρκεια</p>
         <DualLine data={fvChartData} keyA="Σταθερό" keyB="Κυμαινόμενο" fmt={fmtEur}/>
         <div style={{display:'flex',gap:16,marginTop:8}}>
@@ -1158,7 +1246,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
       {(()=>{
         // Ενοικίαση ή αγορά — απλό, έντιμο TCO σε βάθος ετών.
-        const rent = parseFloat(monthlyRent)||0
+        // Το ενοίκιο σύγκρισης ακολουθεί το ενοίκιο-αναφορά (πραγματικό ή
+        // τεκμηριωμένο ανά περιοχή) όσο ο χρήστης δεν το έχει αλλάξει ο ίδιος.
+        const rentShown = rentTouched ? monthlyRent : String(rentRef.monthly || '')
+        const rent = rentTouched ? (parseFloat(monthlyRent)||0) : rentRef.monthly
         const horizon = Math.min(Math.max(Y,5),20)
         // totalCosts.total = φόροι + συμβολαιογραφικά + μεσιτικά (έξοδα συναλλαγής,
         // ΧΩΡΙΣ την προκαταβολή). Η προκαταβολή περνά χωριστά ως downPayment.
@@ -1166,7 +1257,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         const buys = rvb.advantageAtHorizon>0
         return (
       <Section title="Ενοικίαση ή αγορά" sub={`Σύγκριση συνολικού κόστους σε ${horizon} έτη`}>
-        <div style={{marginBottom:12,maxWidth:280}}><NumberInput label="Μηνιαίο ενοίκιο αντίστοιχου ακινήτου (€)" value={monthlyRent} onChange={setMonthlyRent} suffix="€"/></div>
+        <div style={{marginBottom:6,maxWidth:280}}><NumberInput label="Μηνιαίο ενοίκιο αντίστοιχου ακινήτου (€)" value={rentShown} onChange={v=>{setMonthlyRent(v);setRentTouched(true)}} suffix="€"/></div>
+        <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:12,lineHeight:1.55,fontFamily: T.font.sans}}>
+          {rentTouched ? 'Δική σου υπόθεση.' : rentAssumptionText}
+          {rentTouched && <> <button type="button" onClick={()=>{setMonthlyRent('');setRentTouched(false)}} style={{border:'none',background:'none',padding:0,color:'var(--accent)',fontSize:11,fontFamily: T.font.sans,fontWeight:600,cursor:'pointer',textDecoration:'underline'}}>Επαναφορά στο τεκμηριωμένο ({fmtEur(rentRef.monthly)})</button></>}
+        </p>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:14}}>
           <KPI label="Καθαρό κόστος αγοράς" value={fmtEur(rvb.buyNetAtHorizon)} sub={`σε ${horizon} έτη, μετά την περιουσία`}/>
           <KPI label="Κόστος ενοικίασης" value={fmtEur(rvb.rentAtHorizon)} sub={`σε ${horizon} έτη`}/>
@@ -1214,15 +1309,32 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           </div>
           {loanType==='investment'&&(
             <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+              {/* Η κλίμακα έρχεται από τη ΜΟΝΑΔΙΚΗ πηγή (lib/billing/greekTax), την
+                  ίδια που κάνει τον υπολογισμό λίγες γραμμές παρακάτω. Πριν, ο
+                  πίνακας διάβαζε ένα τοπικό αντίγραφο: μετά την πρώτη αλλαγή του
+                  νόμου θα έδειχνε παλιά κλιμάκια πάνω από νέο ποσό. */}
               <p style={{...labelStyle,marginBottom:12}}>Κλίμακα ενοικίων 2026</p>
-              {TAX_DATA.rental_tax.map((b,i)=>(
+              {RENTAL_TAX_ROWS_2026.map((b,i)=>(
                 <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10,marginBottom:5}}>
-                  <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>{b.label}</span>
-                  <span style={{fontSize:14,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{(b.rate*100).toFixed(0)}%</span>
+                  <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>{b.range}</span>
+                  <span style={{fontSize:14,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{b.rate}</span>
                 </div>
               ))}
-              <div style={{marginTop:10,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Αυτόματη έκπτωση 5% · Εκτιμώμενος φόρος: {fmtEur(renTax)} τον χρόνο</p>
+              <div style={{marginTop:10,padding:'11px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+                {/* ΤΟ ΕΝΟΙΚΙΟ ΤΟΥ ΥΠΟΛΟΓΙΣΜΟΥ ΓΡΑΦΕΤΑΙ ΣΤΗΝ ΟΘΟΝΗ. */}
+                <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.6,marginBottom:10}}>
+                  Υποθετικό ετήσιο ενοίκιο: <strong style={{color:'var(--text-primary)'}}>{fmtEur(renInc)}</strong>. {rentAssumptionText}
+                </p>
+                {/* Η έκπτωση 5% ΔΕΝ είναι «αυτόματη» — είναι όρος, και ο όρος είναι
+                    επιλογή του χρήστη με μετρήσιμη συνέπεια στον φόρο του. */}
+                <label style={{display:'inline-flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:12.5,fontFamily: T.font.sans,color:'var(--text-primary)',fontWeight:600}}>
+                  <input type="checkbox" checked={rentsBank} onChange={e=>setRentsBank(e.target.checked)} style={{width:15,height:15,accentColor:'var(--accent)',cursor:'pointer'}}/>
+                  Τα ενοίκια θα εισπράττονται μέσω τραπέζης
+                </label>
+                <p style={{margin:'4px 0 0 23px',fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.55}}>{PRESUMPTIVE_RULE_2026}</p>
+                <p style={{margin:'10px 0 0',fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.6}}>
+                  Φορολογητέο {fmtEur(taxableRental(renInc, rentsBank))} · <strong style={{color:'var(--text-primary)'}}>εκτιμώμενος φόρος {fmtEur(renTax)} τον χρόνο</strong>. Ο φόρος ενοικίων είναι προοδευτικός στο σύνολο των ακινήτων σου: αν έχεις κι άλλα, δες το πραγματικό ποσό στη Λογιστική.
+                </p>
               </div>
             </div>
           )}

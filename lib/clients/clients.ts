@@ -3,6 +3,8 @@
 // Χρησιμοποιείται από το TabClients.tsx και από τα tests.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { isValidAfm, nightsBetween, normalizePhone } from '../core/greek';
+
 export type ClientType = 'owner' | 'lead' | 'client';
 export const CLIENT_TYPES: ClientType[] = ['owner', 'lead', 'client'];
 export const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
@@ -16,13 +18,14 @@ export const STAGE_LABELS: Record<Stage, string> = {
   lead: 'Νέο', viewing: 'Επίσκεψη', offer: 'Προσφορά', closed: 'Έκλεισε',
 };
 
-/** Ελληνικό ΑΦΜ: 9 ψηφία, mod-11 checksum (βάρη 2^8..2^1 στα πρώτα 8 ψηφία). */
-export function isValidAfm(afm: string): boolean {
-  if (!/^\d{9}$/.test(afm) || afm === '000000000') return false;
-  let sum = 0;
-  for (let i = 0; i < 8; i++) sum += parseInt(afm[i], 10) * Math.pow(2, 8 - i);
-  return (sum % 11) % 10 === parseInt(afm[8], 10);
-}
+/**
+ * Ελληνικό ΑΦΜ (mod-11 της ΑΑΔΕ) και κανονικοποίηση τηλεφώνου.
+ *
+ * Δεν γράφονται εδώ: υπάρχουν ΜΙΑ φορά στο lib/core/greek.ts. Πριν από αυτό, ο
+ * ίδιος ΑΦΜ γραμμένος «094 014 201» ήταν έγκυρος στη Μίσθωση και άκυρος στους
+ * Πελάτες — ίδιο νούμερο, δύο απαντήσεις, ανάλογα με την οθόνη.
+ */
+export { isValidAfm, normalizePhone };
 
 export interface ClientLike { stage?: string | null; deal_value?: number | null; next_date?: string | null; }
 
@@ -57,13 +60,15 @@ export interface StayLike {
   damages?: boolean | null; damage_cost?: number | null;
 }
 
-/** Διανυκτερεύσεις μεταξύ δύο ημερομηνιών (>= 0). Αν λείπει κάτι, 0. */
-export function stayNights(checkIn?: string | null, checkOut?: string | null): number {
-  if (!checkIn || !checkOut) return 0;
-  const a = new Date(checkIn).getTime(), b = new Date(checkOut).getTime();
-  if (isNaN(a) || isNaN(b) || b <= a) return 0;
-  return Math.round((b - a) / 86400000);
-}
+/**
+ * Διανυκτερεύσεις διαμονής (>= 0). Αν λείπει κάτι, 0.
+ *
+ * Είναι ΤΟ ΙΔΙΟ πράγμα με το `nightsBetween` — κρατά το δικό του όνομα επειδή
+ * έτσι το διαβάζουν οι οθόνες των Πελατών, αλλά ΔΕΝ ξαναϋπολογίζει: οι νύχτες
+ * είναι η βάση για τα έσοδα, το ΑΔΡ και το τέλος ανθεκτικότητας, και δύο
+ * υπολογισμοί θα ήταν δύο διαφορετικά νούμερα για την ίδια διαμονή.
+ */
+export const stayNights = nightsBetween;
 
 /** Συνολικό ποσό διαμονής: total αν δόθηκε, αλλιώς nights × nightly_rate. */
 export function stayTotal(s: StayLike): number {
@@ -97,12 +102,6 @@ export function clientStats(stays: StayLike[]): ClientStats {
     lastVisit, hasDamage, damageTotal,
     adr: nights > 0 ? Math.round(revenue / nights) : 0,
   };
-}
-
-/** Κανονικοποίηση τηλεφώνου για αναζήτηση (μόνο ψηφία, χωρίς κωδικό +30/0030). */
-export function normalizePhone(p?: string | null): string {
-  const digits = (p || '').replace(/\D/g, '');
-  return digits.replace(/^(0030|30)(?=\d{10}$)/, '');
 }
 
 export interface SearchableClient { full_name?: string | null; phone?: string | null; afm?: string | null; email?: string | null; }

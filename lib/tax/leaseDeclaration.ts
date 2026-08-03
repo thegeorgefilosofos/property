@@ -21,6 +21,8 @@
 // Καθαρές συναρτήσεις, μηδενικές εξαρτήσεις, πλήρως δοκιμάσιμο.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { isValidAfm } from '../core/greek';
+
 // ── Κανόνες που αλλάζουν με τον νόμο — ΜΙΑ θέση για ενημέρωση ───────────────
 // Αν αλλάξει η νομοθεσία, αλλάζει ΜΟΝΟ αυτό το μπλοκ.
 export const RULES = {
@@ -83,18 +85,15 @@ export interface LeaseDeclaration {
 const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '');
 
 /**
- * Έλεγχος ΑΦΜ με τον πραγματικό αλγόριθμο της ΑΑΔΕ (mod 11).
- * Τα 8 πρώτα ψηφία σταθμίζονται με 2^8…2^1· το άθροισμα mod 11 mod 10 πρέπει
- * να ισούται με το 9ο ψηφίο. Πιάνει τα τυπογραφικά λάθη που απορρίπτουν τη δήλωση.
+ * Έλεγχος ΑΦΜ με τον πραγματικό αλγόριθμο της ΑΑΔΕ (mod 11). Πιάνει τα
+ * τυπογραφικά λάθη που απορρίπτουν τη δήλωση.
+ *
+ * Δεν γράφεται εδώ: υπάρχει ΜΙΑ φορά, στο lib/core/greek.ts. (Το παλιό «κόψιμο»
+ * όλων των επαναλαμβανόμενων ψηφίων ήταν περιττό: από τα 111111111…999999999
+ * ΚΑΝΕΝΑ δεν περνά το άθροισμα ελέγχου· μόνο το 000000000 περνά, και το core
+ * το απορρίπτει ρητά.)
  */
-export function isValidAfm(afm: unknown): boolean {
-  const d = digits(afm);
-  if (d.length !== 9) return false;
-  if (/^(\d)\1{8}$/.test(d)) return false;            // 000000000, 111111111 κ.λπ.
-  let sum = 0;
-  for (let i = 0; i < 8; i++) sum += Number(d[i]) * Math.pow(2, 8 - i);
-  return (sum % 11) % 10 === Number(d[8]);
-}
+export { isValidAfm };
 
 /** ΑΤΑΚ: 11 ψηφία (Αριθμός Ταυτότητας Ακινήτου). */
 export function isValidAtak(atak: unknown): boolean {
@@ -157,7 +156,9 @@ export function buildLeaseDeclaration(input: LeaseDeclarationInput): LeaseDeclar
     add({ key, label, value, required: true, fixIn, status: value ? 'ok' : 'missing', hint: value ? undefined : hint });
   };
   /** Υποχρεωτικό με επικύρωση. */
-  const reqValid = (key: string, label: string, raw: unknown, ok: (v: unknown) => boolean, fixIn: DeclField['fixIn'], missHint: string, badHint: string) => {
+  // Ο ελεγκτής παίρνει `string`, όχι `unknown`: του δίνεται πάντα το ήδη
+  // κανονικοποιημένο `value`, ποτέ η ακατέργαστη τιμή.
+  const reqValid = (key: string, label: string, raw: unknown, ok: (v: string) => boolean, fixIn: DeclField['fixIn'], missHint: string, badHint: string) => {
     const value = txt(raw);
     if (!value) return add({ key, label, value, required: true, fixIn, status: 'missing', hint: missHint });
     add({ key, label, value, required: true, fixIn, status: ok(value) ? 'ok' : 'invalid', hint: ok(value) ? undefined : badHint });

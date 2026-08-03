@@ -5,14 +5,19 @@ import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, fn, KPIGrid, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton } from '@/components/Theme';
 import { SearchX, FolderOpen, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
-import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
+import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import { money } from './xlsxStyle';
 import { useAppPreferences } from './useAppPreferences';
-// Επαναχρησιμοποίηση του ΥΠΑΡΧΟΝΤΟΣ pipeline OCR/ταξινόμησης (DocumentScan + lib/billing)
-// για αυτόματη αναγνώριση & αρχειοθέτηση κατά το bulk upload — καμία νέα λογική OCR.
-import { classifyDocType, planDocSave, type ScannedDoc } from '@/lib/billing/documents';
-import { SYSTEM_PROMPT } from './DocumentScan';
+// Η ΜΙΑ μηχανή σάρωσης/καταχώρισης. Το Αρχείο δεν έχει δική του λογική OCR, δικό
+// του prompt, ούτε δική του απόφαση για το ράφι: όλα ζουν στο scanDoc.ts και στο
+// lib/billing (δοκιμασμένα). Ό,τι φαίνεται εδώ είναι μόνο οθόνη.
+import { ARCHIVE_CATEGORIES, validateDoc, DOC_FIELD_LABELS, DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
+import {
+  scanFile, commitScannedDoc, archiveScannedFile, archiveCategoryFor,
+  PHOTO_CATEGORIES, MAX_SCAN_MB, type ScanError, type ReconcileQuestion,
+} from './scanDoc';
+import { isValidAfm } from '@/lib/billing/parse';
 
 /* ════════════════════════════════════════════════════════════════════════
    ΑΡΧΕΙΟ — ένας πλήρως οργανωμένος ψηφιακός φάκελος (Google-Drive class).
@@ -25,104 +30,24 @@ import { SYSTEM_PROMPT } from './DocumentScan';
      • inventory_items     — εγγυήσεις εξοπλισμού (με φωτογραφία προϊόντος όπου υπάρχει)
    ════════════════════════════════════════════════════════════════════════ */
 
-// Έξυπνη πρόταση κατηγορίας εγγράφου βάσει του παρόχου που πληκτρολογεί ο χρήστης
-const SUPPLIER_CATEGORY_RULES: { re: RegExp; cat: string }[] = [
-  { re: /ΕΥΔΑΠ|ΕΥΑΘ|ΔΕΥΑ|νερ[όο]/i,                                     cat: 'Λογαριασμός Νερού' },
-  { re: /φυσικ[όο]\s*αέριο|ΔΕΠΑ|fysiko|αερίου/i,                          cat: 'Λογαριασμός Φυσικού Αερίου' },
-  { re: /cosmote|vodafone|nova|wind|forthnet|internet|τηλέφων/i,          cat: 'Τηλέφωνο / Internet' },
-  { re: /hellas\s*direct|interamerican|magenta|ergo|allianz|anytime|generali|ασφάλ|ασφαλιστ/i, cat: 'Ασφαλιστήριο Συμβόλαιο' },
-  { re: /απεντόμω|μυοκτον|απολύμαν/i,                                     cat: 'Απεντόμωση / Μυοκτονία' },
-  { re: /καθαρισμ/i,                                                       cat: 'Τιμολόγιο Καθαρισμού' },
-  { re: /πισίν/i,                                                          cat: 'Συντήρηση Πισίνας' },
-  { re: /ανελκυστ|ασανσέρ/i,                                               cat: 'Συντήρηση Ανελκυστήρα' },
-  { re: /security|ασφαλεία|φύλαξ/i,                                        cat: 'Εταιρεία Ασφαλείας' },
-  { re: /κοινόχρηστ|διαχείρισ/i,                                           cat: 'Κοινόχρηστα' },
-  { re: /ΕΝΦΙΑ|ΑΑΔΕ|φόρο|φορολ/i,                                          cat: 'ΕΝΦΙΑ / Φορολογικά' },
-  { re: /ΔΕΗ|protergia|ήρων|ηρων|heron|nrg|elin|ελίν|volton|enerwave|zenith|ζενίθ|ρεύμα|ρευμα/i, cat: 'Λογαριασμός Ρεύματος' },
-];
-const suggestCategory = (supplier: string): string | null => {
-  const s = supplier.trim();
-  if (!s) return null;
-  return SUPPLIER_CATEGORY_RULES.find(r => r.re.test(s))?.cat ?? null;
-};
-
-// Χαρτογράφηση της κατηγορίας λογαριασμού που εξάγει το OCR (electricity, water…)
-// στην αντίστοιχη κατηγορία-φάκελο του Αρχείου, ώστε π.χ. φωτογραφημένος
-// λογαριασμός ΔΕΗ να αρχειοθετείται μόνος του στο «Λογαριασμός Ρεύματος» → πάροχος.
-// Ό,τι δεν αντιστοιχίζεται εδώ πέφτει σε suggestCategory(πάροχος) → «Άλλο Έγγραφο».
-const SCAN_CAT_TO_DOC_CATEGORY: Record<string, string> = {
-  electricity: 'Λογαριασμός Ρεύματος',
-  water:       'Λογαριασμός Νερού',
-  gas:         'Λογαριασμός Φυσικού Αερίου',
-  internet:    'Τηλέφωνο / Internet',
-  common:      'Κοινόχρηστα',
-  insurance:   'Ασφαλιστήριο Συμβόλαιο',
-  taxes:       'ΕΝΦΙΑ / Φορολογικά',
-  municipal:   'ΕΝΦΙΑ / Φορολογικά',
-  security:    'Εταιρεία Ασφαλείας',
-  elevator:    'Συντήρηση Ανελκυστήρα',
-  pool:        'Συντήρηση Πισίνας',
-  cleaner:     'Τιμολόγιο Καθαρισμού',
-};
-
 interface Props { propertyId: string; userId: string; }
 
+// Η γραμμή του Αρχείου. Τα πέντε νέα πεδία (ποσό, ΑΦΜ παρόχου, περίοδος από–έως,
+// ημ. έκδοσης) είναι προαιρετικά στον τύπο επειδή σε βάση όπου δεν έχει τρέξει
+// ακόμη το migration 20260730090000 απλώς δεν επιστρέφονται.
 interface DocRow {
   id: string; property_id: string; kind: 'photo' | 'document';
   category: string | null; supplier: string | null; title: string | null; notes: string | null;
   doc_date: string | null; file_path: string; file_name: string | null;
   mime: string | null; size_bytes: number | null; created_at: string;
+  amount?: number | string | null; provider_afm?: string | null;
+  period_from?: string | null; period_to?: string | null; issue_date?: string | null;
   signedUrl?: string;
 }
 
-// Κατηγορίες φωτογραφιών, τεκμηρίωση κατάστασης ακινήτου
-const PHOTO_CATEGORIES = [
-  'Κατάσταση Ακινήτου', 'Πριν την Παράδοση', 'Μετά την Παράδοση',
-  'Ζημιά / Φθορά', 'Ανακαίνιση', 'Εξωτερικοί Χώροι', 'Άλλο',
-];
-// Σύστημα auto-αναγνώρισης φωτογραφίας ακινήτου (vision). Επιστρέφει ΜΟΝΟ JSON.
-const PHOTO_SYSTEM_PROMPT = `Είσαι σύστημα ταξινόμησης φωτογραφιών ακινήτου. Εξέτασε τη φωτογραφία και επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON, χωρίς άλλο κείμενο:
-{"category":"<μία από: Κατάσταση Ακινήτου | Ζημιά / Φθορά | Ανακαίνιση | Εξωτερικοί Χώροι | Άλλο>","title":"<σύντομη ελληνική περιγραφή χώρου/θέματος, π.χ. Σαλόνι, Κουζίνα, Μπάνιο, Υπνοδωμάτιο, Μπαλκόνι>"}
-Κανόνες κατηγορίας:
-- Εμφανής φθορά/ζημιά/υγρασία/ρωγμή/σπασμένο → "Ζημιά / Φθορά".
-- Εργασίες/ανακαίνιση σε εξέλιξη (μπάζα, εργαλεία, γυμνοί τοίχοι) → "Ανακαίνιση".
-- Εξωτερικός χώρος/μπαλκόνι/κήπος/αυλή/πρόσοψη/πυλωτή → "Εξωτερικοί Χώροι".
-- Κανονικός εσωτερικός χώρος σε καλή κατάσταση → "Κατάσταση Ακινήτου".
-- Αν δεν σχετίζεται με ακίνητο → "Άλλο".`;
-
-// Κατηγορίες εγγράφων, αρχείο λογαριασμών, συμβολαίων, τιμολογίων
-const DOC_CATEGORIES = [
-  'Μισθωτήριο / Συμβόλαιο', 'Ασφαλιστήριο Συμβόλαιο',
-  'ΕΝΦΙΑ / Φορολογικά', 'Τεχνική Έκθεση',
-  'Λογαριασμός Ρεύματος', 'Λογαριασμός Φυσικού Αερίου', 'Λογαριασμός Νερού',
-  'Τηλέφωνο / Internet', 'Κοινόχρηστα',
-  'Απεντόμωση / Μυοκτονία', 'Τιμολόγιο Καθαρισμού', 'Συντήρηση Πισίνας',
-  'Συντήρηση Ανελκυστήρα', 'Εταιρεία Ασφαλείας', 'Άλλο Έγγραφο',
-];
-
-// Συνήθεις πάροχοι, προτάσεις (ελεύθερη πληκτρολόγηση για οποιονδήποτε άλλο)
-const COMMON_SUPPLIERS = [
-  'ΔΕΗ', 'Protergia', 'ΗΡΩΝ', 'NRG', 'Elpedison', 'Elin', 'Volton', 'Volterra', 'Zenith',
-  'Φυσικό Αέριο Ελλάδος', 'ΔΕΠΑ', 'ΕΥΔΑΠ', 'ΕΥΑΘ', 'ΔΕΥΑ',
-  'COSMOTE', 'Vodafone', 'Nova', 'Inalan',
-  'Εθνική Ασφαλιστική', 'Interamerican', 'Eurolife', 'Allianz', 'Generali', 'ERGO', 'NN Hellas', 'Hellas Direct',
-  'Διαχείριση Πολυκατοικίας', 'Συνεργείο Καθαρισμού',
-];
-
-// Προτεινόμενοι ΕΝΕΡΓΟΙ πάροχοι ΑΝΑ κατηγορία-φάκελο — ώστε μόλις επιλεγεί η
-// κατηγορία, το πεδίο «Προμηθευτής/Πάροχος» να προτείνει τους σωστούς παρόχους.
-const CATEGORY_SUPPLIERS: Record<string, string[]> = {
-  'Λογαριασμός Ρεύματος': ['ΔΕΗ', 'Protergia', 'ΗΡΩΝ', 'NRG', 'Elpedison', 'Elin', 'Volton', 'Volterra', 'Zenith', 'We Energy', 'Φυσικό Αέριο Ελλάδος'],
-  'Λογαριασμός Φυσικού Αερίου': ['Φυσικό Αέριο Ελλάδος', 'ΔΕΠΑ', 'ΗΡΩΝ', 'Zenith', 'Protergia', 'Elpedison', 'Αέριο Αττικής'],
-  'Λογαριασμός Νερού': ['ΕΥΔΑΠ', 'ΕΥΑΘ', 'ΔΕΥΑ'],
-  'Τηλέφωνο / Internet': ['COSMOTE', 'Vodafone', 'Nova', 'Inalan', 'ΟΤΕ'],
-  'Ασφαλιστήριο Συμβόλαιο': ['Εθνική Ασφαλιστική', 'Interamerican', 'Eurolife', 'Allianz', 'Generali', 'ERGO', 'Groupama', 'NN Hellas', 'Υδρόγειος', 'Interlife', 'Hellas Direct'],
-  'ΕΝΦΙΑ / Φορολογικά': ['ΑΑΔΕ', 'Δήμος'],
-  'Κοινόχρηστα': ['Διαχείριση Πολυκατοικίας'],
-  'Τιμολόγιο Καθαρισμού': ['Συνεργείο Καθαρισμού'],
-  'Συντήρηση Ανελκυστήρα': ['Kleemann', 'Otis', 'Schindler', 'TK Elevator'],
-  'Εταιρεία Ασφαλείας': ['G4S', 'Securitas', 'ADT'],
-};
+// Οι κατηγορίες-φάκελοι έρχονται από το lib/billing/documents.ts — ΕΝΑ σημείο για
+// όλες τις διαδρομές (σάρωση, μαζικό ανέβασμα, διόρθωση αναγνώρισης).
+const DOC_CATEGORIES: string[] = [...ARCHIVE_CATEGORIES];
 
 /* ── Ταξινόμηση φακέλων ─────────────────────────────────────────────────── */
 type FolderKey =
@@ -205,11 +130,29 @@ interface Item {
 }
 const ORIGIN_LABEL: Record<Source, string | null> = { document: null, expense: 'Έξοδα', bill: 'Λογαριασμοί', inventory: 'Απογραφή' };
 
-/* ── Ουρά bulk upload (per-file πρόοδος) ─────────────────────────────────── */
-type UploadStatus = 'pending' | 'ocr' | 'uploading' | 'done' | 'error';
-interface UploadTask { id: string; name: string; status: UploadStatus; label?: string }
-// Πρόταση κατηγορίας-φακέλου από ΤΟ ΙΔΙΟ αποτέλεσμα OCR/ταξινόμησης του DocumentScan.
-interface AutoFile { category: string; supplier: string | null; doc_date: string | null; title: string | null }
+/* ── Η ουρά σάρωσης → επιβεβαίωσης → καταχώρισης ──────────────────────────
+   ΔΕΝ υπάρχει ποσοστό. Το προηγούμενο «pct = done ? 100 : uploading ? 70 : ocr
+   ? 35 : 12» ήταν τέσσερις σταθερές που δεν μέτραγαν τίποτα, παρουσιασμένες ως
+   πρόοδος: μια σάρωση 40 δευτερολέπτων έδειχνε ακίνητο 35%. Τώρα λέμε ποιο
+   στάδιο τρέχει, με λέξεις. */
+type DraftStatus = 'pending' | 'scanning' | 'ready' | 'failed' | 'saving' | 'saved' | 'error';
+interface Draft {
+  id: string;
+  file: File;
+  status: DraftStatus;
+  /** Το AI αποφασίζει αν είναι παραστατικό ή φωτογραφία χώρου — όχι διακόπτης. */
+  kind: 'document' | 'photo';
+  doc?: ScannedDoc;                 // kind === 'document'
+  category: string;                 // ράφι Αρχείου, προσυμπληρωμένο & διορθώσιμο
+  photoTitle?: string;              // kind === 'photo'
+  scanError?: ScanError;
+  /** Ερώτηση συμφωνίας: ποιον εκκρεμή λογαριασμό εξοφλεί αυτή η απόδειξη. */
+  ask?: ReconcileQuestion;
+  /** Τι ενημερώθηκε πραγματικά (ειλικρινής αναφορά, όχι υπόσχεση). */
+  saved?: string[];
+  errorText?: string;
+  open: boolean;
+}
 
 const fmtSize = (b: number | null) => {
   if (!b) return '';
@@ -220,32 +163,20 @@ const fmtSize = (b: number | null) => {
 const yearOf = (d: string | null) => (d ? String(new Date(d).getFullYear()) : null);
 const monthLabel = (d: string) => new Date(d).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
 
-/* ── AI helpers (κοινά για OCR εγγράφου & vision φωτογραφίας) ─────────────── */
-// Ανάγνωση αρχείου σε base64 (χωρίς το data: prefix). null σε αποτυχία.
-const fileToBase64 = (file: File): Promise<string | null> => new Promise(resolve => {
-  const r = new FileReader();
-  r.onload = () => resolve((r.result as string).split(',')[1] || null);
-  r.onerror = () => resolve(null);
-  r.readAsDataURL(file);
-});
-// Κλήση /api/anthropic με ΧΡΟΝΙΚΟ ΟΡΙΟ (AbortController) ώστε μια αργή/κολλημένη
-// απόκριση να ΜΗΝ παγώνει την ουρά ανεβάσματος. Επιστρέφει το JSON ή null.
-const anthropicJson = async (body: unknown, timeoutMs = 30000): Promise<{ content?: { type: string; text?: string }[] } | null> => {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch('/api/anthropic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal });
-    const data = await res.json();
-    if (!res.ok || (data as { error?: unknown })?.error) return null;
-    return data;
-  } catch { return null; } finally { clearTimeout(timer); }
+// Το `amount` του παραστατικού μπορεί να επιστραφεί ως string (numeric της PG) ή
+// να λείπει τελείως (βάση χωρίς το migration). null σημαίνει «δεν ξέρω», όχι 0.
+const numOrNull = (v: unknown): number | null => {
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  if (typeof v === 'string' && v.trim()) { const n = parseFloat(v); return isFinite(n) ? n : null; }
+  return null;
 };
-// Εξαγωγή πρώτου text από απόκριση Anthropic + parse JSON (καθαρίζει code fences).
-function parseAnthropicJson<T>(data: { content?: { type: string; text?: string }[] } | null): T | null {
-  const text = (data?.content || []).find(c => c.type === 'text')?.text || '';
-  if (!text) return null;
-  try { return JSON.parse(text.replace(/```json?|```/g, '').trim()) as T; } catch { return null; }
-}
+// Η περίοδος δαπάνης, όπως διαβάζεται από τον άνθρωπο.
+const periodLabel = (r: { period_from?: string | null; period_to?: string | null }): string => {
+  if (r.period_from && r.period_to) return `Περίοδος ${fd(r.period_from)} – ${fd(r.period_to)}`;
+  if (r.period_from) return `Περίοδος από ${fd(r.period_from)}`;
+  if (r.period_to) return `Περίοδος έως ${fd(r.period_to)}`;
+  return '';
+};
 
 /* ── Εικονίδια (inline SVG, stroke=currentColor) ─────────────────────────── */
 const S = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -340,20 +271,18 @@ export default function TabDocuments({
 
   // Διαχείριση αρχείων (μόνο για ανεβασμένα property_documents)
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [moveItems, setMoveItems] = useState<Item[] | null>(null);   // ανοιχτό modal μετακίνησης
+  const [fixItems, setFixItems] = useState<Item[] | null>(null);     // «διόρθωση αναγνώρισης»
   const [renameItem, setRenameItem] = useState<Item | null>(null);   // ανοιχτό modal μετονομασίας
 
-  // Ανέβασμα
+  // Σάρωση → επιβεβαίωση → καταχώριση. Καμία χειροκίνητη φόρμα, κανένας διακόπτης.
   const [showUpload, setShowUpload] = useState(false);
-  const [uploadMin, setUploadMin] = useState(false);   // ελαχιστοποιημένη (collapsed) κάρτα ανεβάσματος
-  const [uploading, setUploading] = useState(false);
+  const [uploadMin, setUploadMin] = useState(false);   // ελαχιστοποιημένη (collapsed) κάρτα
+  const [busy, setBusy] = useState(false);             // σάρωση ή καταχώριση σε εξέλιξη
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
-  const [form, setForm] = useState({ kind: 'document' as 'photo' | 'document', category: DOC_CATEGORIES[0], supplier: '', title: '', doc_date: '', notes: '' });
-  const [autoDetect, setAutoDetect] = useState(true);   // αυτόματη αναγνώριση/αρχειοθέτηση (AI)
   const [dragOver, setDragOver] = useState(false);
-  const [queue, setQueue] = useState<UploadTask[]>([]);  // per-file πρόοδος bulk upload
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
-  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);   // χρονόμετρο καθαρισμού ουράς (ακυρώνεται σε νέα παρτίδα)
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const fetchAll = useCallback(async () => {
     if (!propertyId) return;
@@ -383,9 +312,16 @@ export default function TabDocuments({
         id: `doc:${r.id}`, source: 'document',
         folder: r.kind === 'photo' ? 'photos' : folderForDoc(r.category),
         title: r.title || r.file_name || 'Έγγραφο',
-        provider: r.supplier, date: r.doc_date || r.created_at, value: null,
+        provider: r.supplier,
+        // Ημερομηνία ταξινόμησης: έκδοση → doc_date → λήψη. Η έκδοση είναι το
+        // πραγματικό γεγονός του παραστατικού και προηγείται.
+        date: r.issue_date || r.doc_date || r.created_at,
+        // ΤΟ ΠΟΣΟ ΤΟΥ ΧΑΡΤΙΟΥ. Μέχρι σήμερα εδώ έγραφε σταθερά `null` για ΚΑΘΕ
+        // σαρωμένο έγγραφο, οπότε η «Καταγεγραμμένη αξία» άθροιζε μόνο κάτοπτρα.
+        value: numOrNull(r.amount),
         url: signedMap[r.file_path] ?? null, isImage: img, sizeBytes: r.size_bytes,
-        note: r.notes, category: r.category, raw: { ...r, signedUrl: signedMap[r.file_path] },
+        note: [r.notes, periodLabel(r), r.provider_afm ? `ΑΦΜ ${r.provider_afm}` : ''].filter(Boolean).join(' · ') || null,
+        category: r.category, raw: { ...r, signedUrl: signedMap[r.file_path] },
       });
     });
 
@@ -443,9 +379,6 @@ export default function TabDocuments({
   }, [propertyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
-  useEffect(() => {
-    setForm(f => ({ ...f, category: (f.kind === 'photo' ? PHOTO_CATEGORIES : DOC_CATEGORIES)[0] }));
-  }, [form.kind]);
   // Καθάρισε την επιλογή όταν αλλάζει το πλαίσιο πλοήγησης (φάκελος/υποφάκελος/αναζήτηση).
   useEffect(() => { setSelected(new Set()); }, [folderKey, subKey, query]);
   // Esc: κλείσιμο lightbox.
@@ -455,133 +388,110 @@ export default function TabDocuments({
     window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
   }, [lightbox]);
 
-  /* ── Ανέβασμα (γράφει στο property_documents) ─────────────────────────── */
-  const autoOn = autoDetect;   // αυτόματη αναγνώριση για έγγραφα (OCR) & φωτογραφίες (vision)
+  /* ══════════════════════════════════════════════════════════════════════
+     Η ΡΟΗ: φωτογραφία → αναγνώριση → επιβεβαίωση → καταχώριση παντού.
+     Τι έφυγε από εδώ και γιατί:
+       • Ο διακόπτης «Αυτόματη αναγνώριση (AI)» — δεν είναι επιλογή, είναι η ροή.
+       • Ο διακόπτης Έγγραφο/Φωτογραφία — το AI τα ξεχωρίζει (scanFile).
+       • Τα πέντε πεδία χειροκίνητης καταχώρισης — η αναγνώριση τα γράφει και ο
+         χρήστης τα διορθώνει στην οθόνη επιβεβαίωσης, όπου φαίνεται και τι λείπει.
+       • Οι ~90 σταθεροί πάροχοι και τα 13 regex: υπήρχαν αποκλειστικά για το
+         datalist της πληκτρολόγησης. Ο πάροχος διαβάζεται από το χαρτί, και η
+         κατηγορία προκύπτει από τους MATCHERS του lib/billing/parse.ts.
+     ══════════════════════════════════════════════════════════════════════ */
 
-  // Ένα αρχείο → storage + εγγραφή στο property_documents. Ίδια αμυντική λογική με
-  // τη χειροκίνητη ροή & το DocumentScan (retry χωρίς supplier σε παλιότερη βάση).
-  const insertDoc = async (
-    file: File,
-    meta: { kind: 'photo' | 'document'; category: string; supplier: string | null; title: string; doc_date: string | null; notes: string | null },
-  ): Promise<string | null> => {
-    const safe = file.name.replace(/[^\w.\-]+/g, '_');
-    const path = `${userId}/${propertyId}/${meta.kind}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safe}`;
-    const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined });
-    if (upErr) return upErr.message;
-    const base = {
-      property_id: propertyId, user_id: userId, kind: meta.kind, category: meta.category,
-      title: (meta.title || file.name).slice(0, 200), notes: meta.notes,
-      doc_date: meta.doc_date || null, file_path: path, file_name: file.name,
-      mime: file.type || null, size_bytes: file.size,
-    };
-    let { error: insErr } = await supabase.from('property_documents').insert({ ...base, supplier: meta.supplier });
-    if (insErr && /supplier/i.test(insErr.message)) ({ error: insErr } = await supabase.from('property_documents').insert(base));
-    return insErr ? insErr.message : null;
-  };
+  const patch = (id: string, p: Partial<Draft>) =>
+    setDrafts(ds => ds.map(d => (d.id === id ? { ...d, ...p } : d)));
+  const patchDoc = (id: string, p: Partial<ScannedDoc>) =>
+    setDrafts(ds => ds.map(d => (d.id === id && d.doc ? { ...d, doc: { ...d.doc, ...p } } : d)));
 
-  // Auto-OCR: επαναχρησιμοποιεί ΑΚΡΙΒΩΣ το ίδιο pipeline με το DocumentScan —
-  // ίδιο /api/anthropic + SYSTEM_PROMPT, ίδια classifyDocType()/planDocSave().
-  // Επιστρέφει πρόταση κατηγορίας-φακέλου/παρόχου/ημερομηνίας, ή null (→ εφεδρική
-  // κατηγορία). Μόνο για εικόνες/PDF — ποτέ δεν μπλοκάρει το ανέβασμα.
-  const ocrClassify = async (file: File): Promise<AutoFile | null> => {
-    const isPdf = file.type === 'application/pdf';
-    const isImage = file.type.startsWith('image/');
-    if (!isImage && !isPdf) return null;                       // μη-έγγραφα: χωρίς OCR
-    if (file.size > 10 * 1024 * 1024) return null;             // >10MB: χωρίς OCR (κόστος/latency)
-    const base64 = await fileToBase64(file);
-    if (!base64) return null;
-    const contentPart: Record<string, unknown> = isPdf
-      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
-      : { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } };
-    const data = await anthropicJson({
-      model: 'claude-sonnet-5', max_tokens: 1500, system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Αναγνώρισε και ανάλυσε αυτό το έγγραφο. Διάβασε κάθε στοιχείο με ακρίβεια.' }] }],
-    });
-    const doc = parseAnthropicJson<ScannedDoc>(data);
-    if (!doc || typeof doc !== 'object') return null;
-    try {
-      doc.doc_type = classifyDocType(doc);                     // ντετερμινιστική επιδιόρθωση τύπου
-      const a = planDocSave(doc, new Date().toISOString().split('T')[0]).archive; // ίδιο σχέδιο αρχειοθέτησης
-      if (!a) return null;
-      // Οι λογαριασμοί μπαίνουν στη συγκεκριμένη κατηγορία-φάκελο (Ρεύμα, Νερό…),
-      // όχι στο γενικό «Άλλο Έγγραφο» που δίνει το DOC_ARCHIVE_CATEGORY.
-      const category = (doc.doc_type === 'bill' || doc.doc_type === 'payment')
-        ? (SCAN_CAT_TO_DOC_CATEGORY[doc.category || ''] || suggestCategory(doc.provider || '') || a.category)
-        : a.category;
-      return { category, supplier: a.supplier || null, doc_date: a.date || null, title: doc.title || doc.provider || null };
-    } catch { return null; }
-  };
-
-  // Auto-αναγνώριση ΦΩΤΟΓΡΑΦΙΑΣ ακινήτου (vision): εντοπίζει κατηγορία
-  // (Ζημιά/Ανακαίνιση/Εξωτερικοί Χώροι/Κατάσταση) + σύντομο τίτλο (χώρο/θέμα).
-  // Επιστρέφει null σε μη-εικόνα ή αποτυχία — ποτέ δεν μπλοκάρει το ανέβασμα.
-  const photoClassify = async (file: File): Promise<{ category: string; title: string | null } | null> => {
-    if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return null;
-    const base64 = await fileToBase64(file);
-    if (!base64) return null;
-    const data = await anthropicJson({
-      model: 'claude-sonnet-5', max_tokens: 200, system: PHOTO_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } }, { type: 'text', text: 'Κατηγοριοποίησε αυτή τη φωτογραφία ακινήτου.' }] }],
-    });
-    const parsed = parseAnthropicJson<{ category?: string; title?: string }>(data);
-    if (!parsed) return null;
-    const category = parsed.category && PHOTO_CATEGORIES.includes(parsed.category) ? parsed.category : 'Κατάσταση Ακινήτου';
-    return { category, title: parsed.title?.trim() || null };
-  };
-
-  // Bulk: ουρά με per-file πρόοδο. Ακολουθιακή επεξεργασία (concurrency 1) ώστε να
-  // μη φουσκώνει το κόστος/latency των AI κλήσεων ούτε να πιέζεται η βάση.
+  // Σάρωση παρτίδας. Ακολουθιακά (concurrency 1) ώστε να μη φουσκώνει το κόστος
+  // των AI κλήσεων ούτε να πιέζεται η βάση.
   const handleFiles = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
-    if (!files.length || !propertyId || uploading) return;
-    // Ακύρωσε τυχόν εκκρεμές χρονόμετρο καθαρισμού προηγούμενης παρτίδας, ώστε να μη
-    // σβήσει την πρόοδο της νέας παρτίδας που μόλις ξεκινά.
-    if (clearTimerRef.current) { clearTimeout(clearTimerRef.current); clearTimerRef.current = null; }
-    setMsg(null); setUploading(true);
-    const tasks: UploadTask[] = files.map((f, i) => ({ id: `${Date.now()}_${i}_${f.name}`, name: f.name, status: 'pending' }));
-    setQueue(tasks);
-    const upd = (id: string, patch: Partial<UploadTask>) => setQueue(q => q.map(t => (t.id === id ? { ...t, ...patch } : t)));
-    let ok = 0, fail = 0;
+    if (!files.length || !propertyId || busy) return;
+    setMsg(null); setShowUpload(true); setUploadMin(false); setBusy(true);
+    const fresh: Draft[] = files.map((f, i) => ({
+      id: `${Date.now()}_${i}_${f.name}`, file: f, status: 'pending',
+      kind: 'document', category: 'Άλλο Έγγραφο', open: false,
+    }));
+    // Προσθήκη, όχι αντικατάσταση: το «Πρόσθεσε κι άλλα» δεν σβήνει όσα ήδη
+    // περιμένουν επιβεβαίωση ή απάντηση συμφωνίας.
+    setDrafts(ds => [...ds, ...fresh]);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]; const id = tasks[i].id;
-      // Βάση = χειροκίνητα πεδία (λειτουργούν ως εφεδρική κατηγορία/override).
-      let meta = {
-        kind: form.kind, category: form.category, supplier: form.supplier.trim() || null,
-        title: form.title.trim(), doc_date: form.doc_date || null, notes: form.notes.trim() || null,
-      };
-      if (autoOn && form.kind === 'document') {
-        upd(id, { status: 'ocr' });
-        const auto = await ocrClassify(file);
-        if (auto) {
-          meta = {
-            ...meta, kind: 'document', category: auto.category,
-            supplier: auto.supplier ?? meta.supplier,
-            doc_date: auto.doc_date ?? meta.doc_date,
-            title: meta.title || auto.title || '',
-          };
-        }
-        // Αν το OCR απέτυχε/μη-αναγνώσιμο: κρατάμε την εφεδρική χειροκίνητη κατηγορία.
-      } else if (autoOn && form.kind === 'photo') {
-        upd(id, { status: 'ocr' });
-        const p = await photoClassify(file);
-        if (p) meta = { ...meta, kind: 'photo', category: p.category, title: meta.title || p.title || '' };
-        // Αποτυχία/μη-εικόνα: κρατάμε την εφεδρική χειροκίνητη κατηγορία φωτογραφίας.
+    for (const d of fresh) {
+      if (d.file.size > MAX_SCAN_MB * 1024 * 1024) {
+        patch(d.id, { status: 'failed', scanError: 'big' });
+        continue;
       }
-      upd(id, { status: 'uploading' });
-      const err = await insertDoc(file, meta);
-      if (err) { fail++; upd(id, { status: 'error' }); }
-      else { ok++; upd(id, { status: 'done', label: [meta.category, meta.supplier].filter(Boolean).join(' · ') }); }
+      patch(d.id, { status: 'scanning' });
+      const r = await scanFile(d.file);
+      if (r.kind === 'photo' && r.photo) {
+        patch(d.id, { status: 'ready', kind: 'photo', category: r.photo.category, photoTitle: r.photo.title || '', open: !r.photo.title });
+      } else if (r.doc) {
+        const cat = archiveCategoryFor(r.doc);
+        const v = validateDoc(r.doc);
+        // Ανοίγουμε αυτόματα όσα έχουν έλλειψη ή άκυρη τιμή: ο χρήστης βλέπει
+        // αμέσως τι δεν διαβάστηκε, χωρίς να ψάξει.
+        patch(d.id, { status: 'ready', kind: 'document', doc: r.doc, category: cat, open: v.blocking.length + v.invalid.length + v.recommended.length > 0 });
+      } else {
+        patch(d.id, { status: 'failed', scanError: r.error || 'unreadable' });
+      }
     }
-
-    setUploading(false);
-    setForm(f => ({ ...f, title: '', notes: '', doc_date: '' }));
-    setMsg(ok === 0
-      ? { text: 'Αποτυχία αρχειοθέτησης, δοκίμασε ξανά', error: true }
-      : { text: fail ? `${ok} αρχειοθετήθηκαν · ${fail} απέτυχαν` : ok === 1 ? 'Το αρχείο αρχειοθετήθηκε' : `${ok} αρχεία αρχειοθετήθηκαν`, error: false });
-    fetchAll();
-    clearTimerRef.current = setTimeout(() => { setQueue([]); setMsg(null); clearTimerRef.current = null; }, 5000);
+    setBusy(false);
   };
+
+  // Καταχώριση ενός σχεδίου. Για παραστατικό περνά από τη ΜΙΑ μηχανή (γράφει
+  // Αρχείο + Λογαριασμούς + Δαπάνες + Ημερολόγιο…). Για φωτογραφία, μόνο Αρχείο.
+  const commitDraft = async (d: Draft, choice?: string | null) => {
+    patch(d.id, { status: 'saving', errorText: undefined });
+    if (d.kind === 'photo') {
+      const r = await archiveScannedFile({
+        file: d.file, propertyId, userId, kind: 'photo',
+        category: d.category, title: (d.photoTitle || '').trim() || d.file.name,
+      });
+      patch(d.id, r.ok
+        ? { status: 'saved', saved: ['Αρχείο'], open: false, ask: undefined }
+        : { status: 'error', errorText: 'Δεν αποθηκεύτηκε. Δοκίμασε ξανά.' });
+      return r.ok;
+    }
+    if (!d.doc) return false;
+    const r = await commitScannedDoc({
+      doc: d.doc, file: d.file, propertyId, userId, archiveCategory: d.category,
+      ...(choice !== undefined ? { reconcileChoice: choice } : {}),
+    });
+    if (r.ask) { patch(d.id, { status: 'ready', ask: r.ask, open: true }); return false; }
+    if (r.error || !r.saved.length) {
+      patch(d.id, { status: 'error', errorText: 'Δεν αποθηκεύτηκε. Δοκίμασε ξανά.' });
+      return false;
+    }
+    patch(d.id, { status: 'saved', saved: r.saved, open: false, ask: undefined });
+    return true;
+  };
+
+  // «Καταχώρηση όλων»: σταματά σε όποιο χρειάζεται απάντηση, δεν μαντεύει.
+  const commitAll = async () => {
+    setBusy(true); setMsg(null);
+    let ok = 0, pending = 0;
+    for (const d of drafts) {
+      if (d.status === 'saved' || d.status === 'failed') continue;
+      // Όσα περιμένουν απάντηση συμφωνίας ΔΕΝ τα κρίνουμε εμείς εκ νέου: ο χρήστης
+      // ρωτήθηκε και δεν έχει απαντήσει. Το «καταχώρηση όλων» δεν απαντά για αυτόν.
+      if (d.ask) { pending++; continue; }
+      const done = await commitDraft(d);
+      if (done) ok++; else pending++;
+    }
+    setBusy(false);
+    fetchAll();
+    setMsg(ok === 0 && pending === 0
+      ? { text: 'Τίποτα δεν καταχωρήθηκε', error: true }
+      : pending
+        ? { text: `${ok} καταχωρήθηκαν · ${pending} χρειάζονται απάντηση ή διόρθωση`, error: false }
+        : { text: ok === 1 ? 'Καταχωρήθηκε' : `${ok} καταχωρήθηκαν`, error: false });
+  };
+
+  const clearDrafts = () => { setDrafts([]); setMsg(null); };
+
 
   const del = async (it: Item) => {
     if (!it.raw) return;
@@ -595,17 +505,27 @@ export default function TabDocuments({
     fetchAll();
   };
 
-  // ── Διαχείριση (μετονομασία / μετακίνηση / μαζικές ενέργειες) ────────────
+  // ── Διαχείριση (μετονομασία / διόρθωση αναγνώρισης / μαζικές ενέργειες) ──
   // Ενημερώνει μόνο ανεβασμένα αρχεία (property_documents)· τα κατοπτρικά
   // στοιχεία (Έξοδα/Λογαριασμοί/Απογραφή) διαχειρίζονται στην πηγή τους.
-  const updateDocs = async (its: Item[], patch: { category?: string; title?: string }) => {
+  // Αμυντικά: αν λείπει κάποια από τις νέες στήλες (βάση χωρίς το migration),
+  // ξαναδοκιμάζουμε χωρίς αυτήν, ώστε η διόρθωση να μη χάνεται σιωπηλά.
+  const FIX_COLS = ['amount', 'provider_afm', 'period_from', 'period_to', 'issue_date', 'supplier'];
+  const updateDocs = async (its: Item[], p: Record<string, unknown>) => {
     const rawIds = its.filter(i => i.raw).map(i => i.raw!.id);
     if (!rawIds.length) return;
-    await supabase.from('property_documents').update(patch).in('id', rawIds);
+    const payload = { ...p };
+    for (let i = 0; i <= FIX_COLS.length; i++) {
+      const { error } = await supabase.from('property_documents').update(payload).in('id', rawIds);
+      if (!error) break;
+      const missing = FIX_COLS.find(c => c in payload && new RegExp(`\\b${c}\\b`, 'i').test(error.message));
+      if (!missing) break;
+      delete payload[missing];
+    }
     fetchAll();
   };
   const applyRename = async (title: string) => { if (renameItem && title.trim()) await updateDocs([renameItem], { title: title.trim().slice(0, 200) }); setRenameItem(null); };
-  const applyMove = async (category: string) => { if (moveItems?.length) await updateDocs(moveItems, { category }); setMoveItems(null); setSelected(new Set()); };
+  const applyFix = async (p: Record<string, unknown>) => { if (fixItems?.length) await updateDocs(fixItems, p); setFixItems(null); setSelected(new Set()); };
 
   const toggleSel = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const selItems = useMemo(() => items.filter(i => selected.has(i.id)), [items, selected]);
@@ -630,15 +550,43 @@ export default function TabDocuments({
     return { count: c, value: v };
   }, [items]);
 
+  // ── Η ΑΝΕΞΑΡΤΗΤΗ ΑΠΟΔΕΙΞΗ: πόσα λένε ΤΑ ΔΙΚΑ ΜΟΥ ΧΑΡΤΙΑ ────────────────────
+  // Αθροίζει ΜΟΝΟ σαρωμένα/ανεβασμένα παραστατικά (source 'document'), όχι τα
+  // κάτοπτρα Εξόδων/Λογαριασμών — αλλιώς δεν θα ήταν ανεξάρτητη απόδειξη αλλά
+  // επανάληψη των ίδιων καταχωρίσεων. Λέει επίσης πόσα χαρτιά ΔΕΝ έχουν ποσό,
+  // ώστε το σύνολο να μη διαβάζεται ως πλήρες όταν δεν είναι.
+  const paperTotals = useMemo(() => {
+    const docs = items.filter(i => i.source === 'document');
+    const byYear = new Map<string, { sum: number; withAmount: number; missing: number }>();
+    let sum = 0, withAmount = 0, missing = 0;
+    docs.forEach(i => {
+      const y = yearOf(i.date) || 'Χωρίς ημερομηνία';
+      const e = byYear.get(y) || { sum: 0, withAmount: 0, missing: 0 };
+      if (i.value != null) { e.sum += i.value; e.withAmount++; sum += i.value; withAmount++; }
+      else { e.missing++; missing++; }
+      byYear.set(y, e);
+    });
+    const years = Array.from(byYear.entries())
+      .filter(([, e]) => e.withAmount > 0)
+      .sort((a, b) => b[0].localeCompare(a[0]));
+    return { sum, withAmount, missing, years, total: docs.length };
+  }, [items]);
+
   const q = query.trim().toLowerCase();
   const searchResults = useMemo(() => {
     if (!q) return null;
+    // Η αναζήτηση βλέπει ΚΑΙ το ποσό, το ΑΦΜ και την περίοδο — αλλιώς ο χρήστης
+    // δεν μπορούσε να βρει «τον λογαριασμό των 88,50» ούτε «όλα του ΑΦΜ …».
+    const num = q.replace(',', '.').replace(/[^\d.]/g, '');
+    const qDigits = q.replace(/\D/g, '');
     return items.filter(i =>
       (i.title || '').toLowerCase().includes(q) ||
       (i.provider || '').toLowerCase().includes(q) ||
       (i.category || '').toLowerCase().includes(q) ||
       (i.note || '').toLowerCase().includes(q) ||
-      FOLDER_LABEL[i.folder].toLowerCase().includes(q)
+      FOLDER_LABEL[i.folder].toLowerCase().includes(q) ||
+      (!!qDigits && (i.raw?.provider_afm || '').includes(qDigits)) ||
+      (!!num && i.value != null && (String(i.value).includes(num) || i.value.toFixed(2).includes(num)))
     ).sort(byDateDesc);
   }, [items, q]);
 
@@ -688,25 +636,25 @@ export default function TabDocuments({
   );
   const sep = <svg {...S} width={14} height={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}><path d="m9 18 6-6-6-6"/></svg>;
 
-  const totalValue = items.reduce((s, i) => s + (i.value || 0), 0);
   const photoCount = items.filter(i => i.folder === 'photos').length;
   const docCount = items.length - photoCount;
   const activeCategories = FOLDERS.filter(f => counts.count[f.key]).length;
 
   const exportCsv = () => downloadCsv('archeio.csv',
-    ['Όνομα', 'Φάκελος', 'Πάροχος', 'Ημερομηνία', 'Αξία (€)', 'Πηγή'],
+    ['Όνομα', 'Φάκελος', 'Πάροχος', 'ΑΦΜ παρόχου', 'Ημερομηνία', 'Περίοδος από', 'Περίοδος έως', 'Αξία (€)', 'Πηγή'],
     items.slice().sort(byDateDesc).map(i => [
-      i.title, FOLDER_LABEL[i.folder], i.provider || '', i.date ? fd(i.date) : '',
+      i.title, FOLDER_LABEL[i.folder], i.provider || '', i.raw?.provider_afm || '',
+      i.date ? fd(i.date) : '', i.raw?.period_from || '', i.raw?.period_to || '',
       i.value != null ? money(i.value) : '', ORIGIN_LABEL[i.source] || 'Αρχείο',
     ]));
 
   // Ενιαίο σημείο ανεβάσματος — ζει στο PageTitle (ή στη γραμμή εργαλείων όταν embedded).
   const uploadBtn = (
     <Btn variant="primary" onClick={() => setShowUpload(s => !s)}>
-      <svg {...S} width={15} height={15}><path d="M12 5v14M5 12h14"/></svg>Νέο αρχείο
+      <svg {...S} width={15} height={15}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Φωτογράφισε
     </Btn>
   );
-  // Όταν το αρχείο είναι κενό, το κουμπί «Νέο αρχείο» ζει ΜΟΝΟ στην κενή κατάσταση
+  // Όταν το αρχείο είναι κενό, το κουμπί ζει ΜΟΝΟ στην κενή κατάσταση
   // (κεντρικό CTA) — αποφεύγουμε διπλότυπο κουμπί στην κεφαλίδα.
   const headerActions = (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -717,7 +665,7 @@ export default function TabDocuments({
   const fileActions = (showFolder: boolean): FileActions => ({
     view, showFolder, selected,
     onToggleSel: toggleSel, onOpenLightbox: setLightbox,
-    onDelete: del, onRename: setRenameItem, onMove: it => setMoveItems([it]),
+    onDelete: del, onRename: setRenameItem, onFix: it => setFixItems([it]),
   });
 
   return (
@@ -732,106 +680,102 @@ export default function TabDocuments({
         { label: 'Σύνολο αρχείων', value: fn(items.length) },
         { label: 'Έγγραφα',        value: fn(docCount) },
         { label: 'Φωτογραφίες',    value: fn(photoCount) },
-        isPro
-          ? { label: 'Καταγεγραμμένη αξία', value: totalValue > 0 ? fe(totalValue) : '—' }
-          : { label: 'Κατηγορίες', value: fn(activeCategories) },
+        // Η «Καταγεγραμμένη αξία» είναι πλέον αληθινή: αθροίζει ΤΑ ΠΑΡΑΣΤΑΤΙΚΑ
+        // (property_documents.amount), όχι τα κάτοπτρα. Το υποκείμενο λέει σε πόσα
+        // από πόσα χαρτιά βασίζεται — ένα σύνολο χωρίς βάση είναι παραπλανητικό.
+        paperTotals.withAmount > 0
+          ? {
+              label: 'Αξία από τα παραστατικά', value: fe(paperTotals.sum),
+              sub: `από ${fn(paperTotals.withAmount)} ${paperTotals.withAmount === 1 ? 'χαρτί' : 'χαρτιά'}${paperTotals.missing ? ` · ${fn(paperTotals.missing)} χωρίς ποσό` : ''}`,
+            }
+          : isPro
+            ? { label: 'Αξία από τα παραστατικά', value: '—', sub: 'κανένα σαρωμένο χαρτί με ποσό ακόμη' }
+            : { label: 'Κατηγορίες', value: fn(activeCategories) },
       ]}/>
+
+      {/* Σύνολο ΑΝΑ ΕΤΟΣ, από τα δικά μου χαρτιά. Αυτό είναι το νούμερο που
+          αντιπαρατίθεται στο προσυμπληρωμένο της ΑΑΔΕ — γι' αυτό υπάρχει. */}
+      {paperTotals.years.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <SecHdr label="Σύνολο ανά έτος, από τα παραστατικά"
+            sub="Ό,τι διαβάστηκε από τα χαρτιά αυτού του ακινήτου. Ανεξάρτητο από τις καταχωρίσεις σε Λογαριασμούς και Δαπάνες."/>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
+            {paperTotals.years.map(([y, e]) => (
+              <div key={y} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>{y}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', marginTop: 2 }}>{fe(e.sum)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  {fn(e.withAmount)} {e.withAmount === 1 ? 'παραστατικό' : 'παραστατικά'}{e.missing ? ` · ${fn(e.missing)} χωρίς ποσό` : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {colWarn && <InfoBanner tone="warning">Ορισμένα Έξοδα δεν διαθέτουν στήλη συνημμένου αρχείου· εμφανίζονται μόνο όσα έχουν επισυναπτόμενη απόδειξη/τιμολόγιο.</InfoBanner>}
 
-      {/* ── Κάρτα ανεβάσματος ──────────────────────────────────────────── */}
+      {/* ══ Η ΜΙΑ ΕΠΙΦΑΝΕΙΑ: «Φωτογράφισε ή σύρε» ══════════════════════════ */}
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub={uploadMin ? undefined : 'Σύρε ή επίλεξε πολλά αρχεία μαζί, αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο'}
+          <SecHdr label="Φωτογράφισε ή σύρε"
+            sub={uploadMin ? undefined : 'Λογαριασμό, απόδειξη, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ ή φωτογραφία χώρου. Το αναγνωρίζουμε, σου δείχνουμε τι διαβάσαμε, και το καταχωρούμε παντού όπου ανήκει.'}
             right={<button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
               {uploadMin ? <svg {...S} width={16} height={16}><path d="m6 9 6 6 6-6"/></svg> : <IconX/>}
             </button>}/>
 
           {!uploadMin && (<>
-          <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
-            {([['document', 'Έγγραφο'], ['photo', 'Φωτογραφία']] as const).map(([k, l]) => (
-              <button key={k} onClick={() => setForm(f => ({ ...f, kind: k }))}
-                style={{ padding: '7px 16px', borderRadius: T.radius.btn, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: form.kind === k ? 700 : 500, fontFamily: T.font.sans, background: form.kind === k ? 'var(--accent)' : 'transparent', color: form.kind === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{l}</button>
-            ))}
-          </div>
-
-          {/* Αυτόματη αναγνώριση (AI) — έγγραφα (OCR) & φωτογραφίες (vision) */}
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ position: 'relative', width: 34, height: 20, borderRadius: T.radius.pill, background: autoDetect ? 'var(--accent)' : 'var(--border-default)', transition: `background 0.18s ${T.ease.standard}`, flexShrink: 0 }}>
-              <span style={{ position: 'absolute', top: 2, left: autoDetect ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: `left 0.18s ${T.ease.standard}` }}/>
-            </span>
-            <input type="checkbox" checked={autoDetect} onChange={e => setAutoDetect(e.target.checked)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}/>
-            <span style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Αυτόματη αναγνώριση (AI)</span>
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{form.kind === 'photo'
-                ? 'αναγνωρίζει τον χώρο/θέμα και την κατηγορία (ζημιά, ανακαίνιση, εξωτερικός χώρος…) και αρχειοθετεί μόνο του'
-                : 'εντοπίζει τύπο, πάροχο & ημερομηνία και αρχειοθετεί μόνο του στον σωστό φάκελο'}</span>
-            </span>
-          </label>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 14, marginBottom: 14 }}>
-            <CustomSelect label={autoOn ? 'Κατηγορία (εφεδρική)' : 'Κατηγορία (φάκελος)'} value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))}
-              options={(form.kind === 'photo' ? PHOTO_CATEGORIES : DOC_CATEGORIES).map(c => ({ value: c, label: c }))}/>
-            <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6, fontFamily: T.font.sans }}>Προμηθευτής / Πάροχος</label>
-              <input list="supplier-suggestions" value={form.supplier}
-                onChange={e => { const v = e.target.value; setForm(f => { const next = { ...f, supplier: v }; if (prefs.autoSuggestCategory && f.kind === 'document') { const c = suggestCategory(v); if (c && DOC_CATEGORIES.includes(c)) next.category = c; } return next; }); }}
-                placeholder="π.χ. ΔΕΗ, ΕΥΔΑΠ, COSMOTE…"
-                style={{ width: '100%', height: 40, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '0 14px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' }}/>
-              {/* Προτάσεις ΑΝΑ κατηγορία (σωστοί πάροχοι για το είδος), με εφεδρεία τους συνήθεις */}
-              <datalist id="supplier-suggestions">{(form.kind === 'document' ? (CATEGORY_SUPPLIERS[form.category] ?? COMMON_SUPPLIERS) : COMMON_SUPPLIERS).map(s => <option key={s} value={s}/>)}</datalist>
-            </div>
-            <DatePicker label="Ημερομηνία" value={form.doc_date} onChange={v => setForm(f => ({ ...f, doc_date: v }))}/>
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <TextInput label="Τίτλος / Περιγραφή" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))}
-              placeholder={form.kind === 'photo' ? 'π.χ. Σαλόνι, βόρειος τοίχος' : 'π.χ. ΔΕΗ Ιανουάριος 2026'}/>
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} placeholder="Προαιρετικές σημειώσεις"/>
-          </div>
-          {/* Ενιαία επιφάνεια ανεβάσματος: drag-and-drop ή κλικ, πολλαπλά αρχεία μαζί */}
-          <div
-            onClick={() => { if (!uploading) fileRef.current?.click(); }}
-            onDragOver={e => { e.preventDefault(); if (!uploading && !dragOver) setDragOver(true); }}
-            onDragLeave={e => { e.preventDefault(); setDragOver(false); }}
-            onDrop={e => { e.preventDefault(); setDragOver(false); if (!uploading && e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files); }}
-            style={{ border: `1.5px dashed ${dragOver ? 'var(--accent)' : 'var(--border-default)'}`, background: dragOver ? 'var(--accent-soft)' : 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '26px 20px', textAlign: 'center', cursor: uploading ? 'default' : 'pointer', transition: `all 0.18s ${T.ease.standard}`, opacity: uploading ? 0.75 : 1 }}>
-            <div style={{ color: dragOver ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
-              <svg {...S} width={26} height={26}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-              {uploading ? 'Ανέβασμα σε εξέλιξη…' : dragOver ? 'Άφησε τα αρχεία εδώ' : 'Σύρε αρχεία εδώ ή κάνε κλικ για επιλογή'}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
-              {form.kind === 'photo'
-                ? (autoOn ? 'Αυτόματη αναγνώριση & αρχειοθέτηση φωτογραφιών · PNG, JPEG, WebP…' : 'Πολλαπλές φωτογραφίες μαζί · PNG, JPEG, WebP…')
-                : autoOn ? 'Αυτόματη αναγνώριση & αρχειοθέτηση · PDF, εικόνα, Word, Excel…' : 'Πολλαπλά αρχεία μαζί · PDF, εικόνα, Word, Excel…'}
-            </div>
-          </div>
-          <input ref={fileRef} type="file" multiple accept={form.kind === 'photo' ? 'image/*' : 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt'} style={{ display: 'none' }}
+          {drafts.length === 0 && (
+            <>
+              <div
+                onClick={() => { if (!busy) fileRef.current?.click(); }}
+                onDragOver={e => { e.preventDefault(); if (!busy && !dragOver) setDragOver(true); }}
+                onDragLeave={e => { e.preventDefault(); setDragOver(false); }}
+                onDrop={e => { e.preventDefault(); setDragOver(false); if (!busy && e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files); }}
+                style={{ border: `1.5px dashed ${dragOver ? 'var(--accent)' : 'var(--border-default)'}`, background: dragOver ? 'var(--accent-soft)' : 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '30px 20px', textAlign: 'center', cursor: busy ? 'default' : 'pointer', transition: `all 0.18s ${T.ease.standard}` }}>
+                <div style={{ color: dragOver ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
+                  <svg {...S} width={28} height={28}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {dragOver ? 'Άφησε τα αρχεία εδώ' : 'Σύρε εδώ ή κάνε κλικ'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5, lineHeight: 1.5 }}>
+                  Πολλά μαζί · φωτογραφία, PDF, Word, Excel · έως {MAX_SCAN_MB}MB το καθένα
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                <Btn variant="primary" onClick={() => cameraRef.current?.click()} disabled={busy}>
+                  <svg {...S} width={15} height={15}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  Φωτογράφισε
+                </Btn>
+                <Btn variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>Επίλεξε αρχεία</Btn>
+              </div>
+            </>
+          )}
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+            onChange={e => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}/>
+          <input ref={fileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" style={{ display: 'none' }}
             onChange={e => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}/>
 
-          {/* Per-file πρόοδος */}
-          {queue.length > 0 && (
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {queue.map(t => {
-                const pct = t.status === 'done' || t.status === 'error' ? 100 : t.status === 'uploading' ? 70 : t.status === 'ocr' ? 35 : 12;
-                const barColor = t.status === 'error' ? 'var(--negative)' : t.status === 'done' ? 'var(--positive)' : 'var(--accent)';
-                const statusText = t.status === 'ocr' ? 'Αναγνώριση…' : t.status === 'uploading' ? 'Ανέβασμα…' : t.status === 'done' ? (t.label || 'Αρχειοθετήθηκε') : t.status === 'error' ? 'Σφάλμα' : 'Σε αναμονή';
-                return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '8px 12px' }}>
-                    <svg {...S} width={15} height={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-                      <div style={{ height: 3, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden', marginTop: 5 }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3, transition: `width 0.25s ${T.ease.standard}` }}/>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 9.5, fontWeight: 600, color: t.status === 'error' ? 'var(--negative)' : t.status === 'done' ? 'var(--positive)' : 'var(--text-secondary)', whiteSpace: 'nowrap', maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{statusText}</span>
-                  </div>
-                );
-              })}
+          {/* Οθόνη επιβεβαίωσης: ένα σχέδιο ανά αρχείο, προσυμπληρωμένο. */}
+          {drafts.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {drafts.map(d => (
+                <DraftCard key={d.id} d={d}
+                  onToggle={() => patch(d.id, { open: !d.open })}
+                  onPatch={p => patch(d.id, p)}
+                  onPatchDoc={p => patchDoc(d.id, p)}
+                  onCommit={choice => { commitDraft(d, choice).then(ok => { if (ok) fetchAll(); }); }}
+                  onRemove={() => setDrafts(ds => ds.filter(x => x.id !== d.id))}/>
+              ))}
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+                <Btn variant="primary" onClick={commitAll} disabled={busy || drafts.every(d => d.status === 'saved' || d.status === 'failed')}>
+                  {busy ? 'Σε εξέλιξη…' : 'Καταχώρηση'}
+                </Btn>
+                <Btn variant="ghost" onClick={clearDrafts} disabled={busy}>Καθάρισμα</Btn>
+                <Btn variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>Πρόσθεσε κι άλλα</Btn>
+              </div>
             </div>
           )}
 
@@ -839,6 +783,7 @@ export default function TabDocuments({
           </>)}
         </div>
       )}
+
 
       {/* ── Γραμμή εργαλείων: breadcrumb + αναζήτηση + προβολή ──────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -876,7 +821,7 @@ export default function TabDocuments({
           <div style={{ width: 1, height: 20, background: 'var(--border-subtle)', flexShrink: 0 }}/>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <BulkBtn icon={<IconDownload/>} label="Λήψη" onClick={bulkDownload} disabled={!selItems.some(i => i.url)}/>
-            <BulkBtn icon={<IconMoveFolder/>} label="Μετακίνηση" onClick={() => selDocs.length && setMoveItems(selDocs)} disabled={!selDocs.length}/>
+            <BulkBtn icon={<IconMoveFolder/>} label="Διόρθωση αναγνώρισης" onClick={() => selDocs.length && setFixItems(selDocs)} disabled={!selDocs.length}/>
             <BulkBtn icon={<IconTrash/>} label="Διαγραφή" onClick={bulkDelete} disabled={!selRaw.length} danger/>
           </div>
           <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: T.radius.btn, border: 'none', background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><IconX/>Άκυρο</button>
@@ -897,9 +842,9 @@ export default function TabDocuments({
         ) : !folderKey ? (
           /* Επίπεδο 0: φάκελοι κατηγοριών */
           items.length === 0 ? (
-            <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Το αρχείο είναι κενό"
-              hint="Ανέβασε το πρώτο συμβόλαιο, λογαριασμό ή τιμολόγιο. Ό,τι καταχωρείς στα Έξοδα, τους Λογαριασμούς ή την Απογραφή αρχειοθετείται κι εδώ αυτόματα."
-              action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Νέο αρχείο</Btn>}/></div>
+            <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Δεν έχεις ακόμη κανένα χαρτί εδώ"
+              hint="Φωτογράφισε έναν λογαριασμό ΔΕΗ ή ΕΥΔΑΠ. Διαβάζουμε πάροχο, ΑΦΜ, ποσό, ημερομηνία και περίοδο, τον βάζουμε στον σωστό φάκελο και ενημερώνουμε Λογαριασμούς, Δαπάνες και Ημερολόγιο — χωρίς να πληκτρολογήσεις τίποτα. Έτσι το Αρχείο γίνεται η δική σου απόδειξη απέναντι στο προσυμπληρωμένο της ΑΑΔΕ."
+              action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Φωτογράφισε το πρώτο</Btn>}/></div>
           ) : view === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
               {FOLDERS.filter(f => counts.count[f.key]).map(f => <FolderCardGrid key={f.key} k={f.key} label={f.label} count={counts.count[f.key]} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
@@ -957,8 +902,8 @@ export default function TabDocuments({
       {/* ── Μετονομασία ──────────────────────────────────────────────────── */}
       {renameItem && <RenameModal initial={renameItem.title} onCancel={() => setRenameItem(null)} onSave={applyRename}/>}
 
-      {/* ── Μετακίνηση σε φάκελο (αλλαγή κατηγορίας) ─────────────────────── */}
-      {moveItems && moveItems.length > 0 && <MoveModal count={moveItems.length} onCancel={() => setMoveItems(null)} onMove={applyMove}/>}
+      {/* ── Διόρθωση αναγνώρισης (ό,τι διάβασε λάθος η σάρωση) ───────────── */}
+      {fixItems && fixItems.length > 0 && <FixModal items={fixItems} onCancel={() => setFixItems(null)} onSave={applyFix}/>}
     </div>
   );
 }
@@ -1041,7 +986,7 @@ function SubfolderRow({ name, mode, count, onClick }: { name: string; mode: 'pro
 interface FileActions {
   view: 'grid' | 'list'; showFolder?: boolean; selected: Set<string>;
   onToggleSel: (id: string) => void; onOpenLightbox: (i: Item) => void;
-  onDelete: (i: Item) => void; onRename: (i: Item) => void; onMove: (i: Item) => void;
+  onDelete: (i: Item) => void; onRename: (i: Item) => void; onFix: (i: Item) => void;
 }
 const isPdfItem = (i: Item) => /pdf/i.test(i.raw?.mime || '') || /\.pdf($|\?)/i.test(i.url || '');
 const canPreview = (i: Item) => !!i.url && (i.isImage || isPdfItem(i));
@@ -1090,7 +1035,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
   const [hov, setHov] = useState(false);
   const sel = a.selected.has(i.id);
   const preview = canPreview(i);
-  const canMove = !!i.raw && i.raw.kind === 'document';
+  const canFix = !!i.raw && i.raw.kind === 'document';
   const selectable = !!i.raw || !!i.url;   // τα «εικονικά» στοιχεία (π.χ. λογαριασμοί χωρίς αρχείο) δεν επιλέγονται
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
@@ -1105,7 +1050,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         {hov && i.raw && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
             <OverlayBtn title="Μετονομασία" onClick={e => { e.stopPropagation(); a.onRename(i); }}><IconPencil size={13}/></OverlayBtn>
-            {canMove && <OverlayBtn title="Μετακίνηση σε φάκελο" onClick={e => { e.stopPropagation(); a.onMove(i); }}><IconMoveFolder size={13}/></OverlayBtn>}
+            {canFix && <OverlayBtn title="Διόρθωση αναγνώρισης" onClick={e => { e.stopPropagation(); a.onFix(i); }}><IconMoveFolder size={13}/></OverlayBtn>}
             <OverlayBtn title="Διαγραφή" onClick={e => { e.stopPropagation(); a.onDelete(i); }}><IconX/></OverlayBtn>
           </div>
         )}
@@ -1132,7 +1077,7 @@ const RowBtn = ({ title, onClick, children }: { title: string; onClick: () => vo
 function FileRow({ i, a }: { i: Item; a: FileActions }) {
   const [hov, setHov] = useState(false);
   const sel = a.selected.has(i.id);
-  const canMove = !!i.raw && i.raw.kind === 'document';
+  const canFix = !!i.raw && i.raw.kind === 'document';
   const selectable = !!i.raw || !!i.url;
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
@@ -1157,7 +1102,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
       {hov && i.raw && (
         <>
           <RowBtn title="Μετονομασία" onClick={() => a.onRename(i)}><IconPencil size={14}/></RowBtn>
-          {canMove && <RowBtn title="Μετακίνηση σε φάκελο" onClick={() => a.onMove(i)}><IconMoveFolder size={14}/></RowBtn>}
+          {canFix && <RowBtn title="Διόρθωση αναγνώρισης" onClick={() => a.onFix(i)}><IconMoveFolder size={14}/></RowBtn>}
         </>
       )}
       {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer"
@@ -1180,7 +1125,180 @@ function OriginTag({ i }: { i: Item }) {
   );
 }
 
-/* ── Modals (μετονομασία / μετακίνηση) ───────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   ΚΑΡΤΑ ΕΠΙΒΕΒΑΙΩΣΗΣ ΕΝΟΣ ΑΡΧΕΙΟΥ
+   Δείχνει τι διάβασε η σάρωση, ΣΗΜΑΙΝΕΙ τι δεν διάβασε, και αφήνει τον χρήστη να
+   διορθώσει. Καμία ψεύτικη πρόοδος: στάδιο με λέξεις και σπίνερ, όχι ποσοστό που
+   δεν μετρά τίποτα.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+// Μικρός σπίνερ γραμμής (ίδια γλώσσα με το Spinner του Theme, χωρίς το padding του).
+const RowSpinner = () => (
+  <span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid var(--border-subtle)', borderTopColor: 'var(--accent)', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }}/>
+);
+
+const STAGE_TEXT: Record<DraftStatus, string> = {
+  pending: 'Σε αναμονή', scanning: 'Ανάγνωση εγγράφου…', ready: '',
+  failed: 'Δεν διαβάστηκε', saving: 'Καταχώριση…', saved: '', error: 'Δεν αποθηκεύτηκε',
+};
+
+const SCAN_ERROR_TEXT: Record<ScanError, string> = {
+  big: `Πολύ μεγάλο αρχείο (όριο ${MAX_SCAN_MB}MB).`,
+  service: 'Η υπηρεσία ανάγνωσης δεν απάντησε. Δοκίμασε ξανά σε λίγο.',
+  unreadable: 'Δεν διάβασα καθαρά το έγγραφο. Τράβα τη φωτογραφία με καλό φως, ίσια, να χωράει όλο το χαρτί — ή ανέβασε το PDF του παρόχου.',
+  key_missing: 'Η αυτόματη ανάγνωση δεν είναι ενεργή ακόμη σε αυτόν τον λογαριασμό.',
+};
+
+// Ποια πεδία δείχνει η κάρτα ανά τύπο. Τα πέντε του ταιριάσματος εμφανίζονται
+// για ό,τι έχει ποσό (λογαριασμός, απόδειξη, φόρος, ασφαλιστήριο).
+const hasMoney = (t?: string) => t === 'bill' || t === 'payment' || t === 'tax' || t === 'insurance';
+
+function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
+  d: Draft;
+  onToggle: () => void;
+  onPatch: (p: Partial<Draft>) => void;
+  onPatchDoc: (p: Partial<ScannedDoc>) => void;
+  onCommit: (choice?: string | null) => void;
+  onRemove: () => void;
+}) {
+  const doc = d.doc;
+  const v = doc ? validateDoc(doc) : { blocking: [], recommended: [], invalid: [] };
+  const miss = (k: string) => v.blocking.includes(k) || v.recommended.includes(k)
+    || (k === 'period_to' && v.recommended.includes('period_from'));
+  const bad = (k: string) => v.invalid.includes(k) || (k === 'period_to' && v.invalid.includes('period_from'));
+  const mark = (labelText: string, k: string) => `${labelText}${bad(k) ? ' • άκυρο' : miss(k) ? ' • λείπει' : ''}`;
+  const amountKey: 'amount' | 'premium' = doc?.doc_type === 'insurance' ? 'premium' : 'amount';
+  const busyRow = d.status === 'scanning' || d.status === 'saving' || d.status === 'pending';
+  const folder = d.kind === 'photo' ? FOLDER_LABEL.photos : FOLDER_LABEL[folderForDoc(d.category)];
+
+  return (
+    <div style={{ border: `1px solid ${d.status === 'saved' ? 'var(--positive-border)' : d.status === 'failed' || d.status === 'error' ? 'var(--warning-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, background: 'var(--bg-elevated)', padding: '10px 12px' }}>
+      {/* Κεφαλίδα γραμμής */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {busyRow ? <RowSpinner/> : (
+          <svg {...S} width={15} height={15} style={{ color: d.status === 'saved' ? 'var(--positive)' : 'var(--text-tertiary)', flexShrink: 0 }}>
+            {d.kind === 'photo'
+              ? <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-4 4 3 3-2 4 3"/></>
+              : <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>}
+          </svg>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file.name}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+            {STAGE_TEXT[d.status] || (d.kind === 'photo'
+              ? `Φωτογραφία χώρου · ${d.category}`
+              : `${DOC_TYPE_LABELS[doc?.doc_type || 'other']} · ${d.category} → ${folder}`)}
+          </div>
+        </div>
+        {d.status === 'saved' && (d.saved || []).map(t => (
+          <span key={t} style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>{t}</span>
+        ))}
+        {d.status === 'ready' && (v.blocking.length > 0 || v.invalid.length > 0) && (
+          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+            {v.blocking.length ? 'Χρειάζεται συμπλήρωση' : 'Έλεγξε τα στοιχεία'}
+          </span>
+        )}
+        {d.status === 'ready' && (
+          <button onClick={onToggle} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, color: 'var(--text-secondary)', fontSize: 10.5, fontWeight: 600, padding: '4px 9px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+            {d.open ? 'Σύμπτυξη' : 'Διόρθωση'}
+          </button>
+        )}
+        {(d.status === 'ready' || d.status === 'failed' || d.status === 'error') && (
+          <button onClick={onRemove} title="Αφαίρεση από τη λίστα" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', padding: 2 }}><IconX/></button>
+        )}
+      </div>
+
+      {/* Δεν διαβάστηκε: λέμε γιατί και τι να κάνει. */}
+      {d.status === 'failed' && d.scanError && (
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8 }}>{SCAN_ERROR_TEXT[d.scanError]}</div>
+      )}
+      {d.status === 'error' && d.errorText && (
+        <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 8 }}>{d.errorText}</div>
+      )}
+
+      {/* Ερώτηση συμφωνίας — πριν γραφτεί οτιδήποτε. */}
+      {d.ask && (
+        <div style={{ marginTop: 10, background: 'var(--bg-base)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 12px' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>{d.ask.question}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {d.ask.options.map(o => (
+              <button key={o.id} onClick={() => onCommit(o.id)}
+                style={{ textAlign: 'left', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
+                {o.reasons.length > 0 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{o.reasons.join(' · ')}</div>}
+              </button>
+            ))}
+            <button onClick={() => onCommit(null)}
+              style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν — νέα, ξεχωριστή εγγραφή</div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Τα πεδία, προσυμπληρωμένα. */}
+      {d.status === 'ready' && d.open && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {d.kind === 'photo' ? (
+            <div style={g2x}>
+              <CustomSelect label="Κατηγορία φωτογραφίας" value={d.category} onChange={c => onPatch({ category: c })}
+                options={PHOTO_CATEGORIES.map(c => ({ value: c, label: c }))}/>
+              <TextInput label="Τι δείχνει" value={d.photoTitle || ''} onChange={t => onPatch({ photoTitle: t })} placeholder="π.χ. Σαλόνι, βόρειος τοίχος"/>
+            </div>
+          ) : doc ? (<>
+            {(v.blocking.length > 0 || v.invalid.length > 0 || v.recommended.length > 0) && (
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {v.blocking.length > 0 && <>Χρειάζεται: <strong>{v.blocking.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>. </>}
+                {v.invalid.length > 0 && <>Δεν είναι έγκυρο: <strong>{v.invalid.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>. </>}
+                {v.recommended.length > 0 && <>Δεν διάβασα: <strong>{v.recommended.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>.</>}
+              </div>
+            )}
+            <div style={g2x}>
+              <CustomSelect label="Κατηγορία (φάκελος)" value={d.category} onChange={c => onPatch({ category: c })}
+                options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
+              <TextInput label="Τίτλος" value={doc.title || ''} onChange={t => onPatchDoc({ title: t })} placeholder="Σύντομη περιγραφή"/>
+            </div>
+            <div style={g2x}>
+              <TextInput label={mark('Πάροχος / Εκδότης', 'provider')} value={doc.provider || ''} onChange={t => onPatchDoc({ provider: t })} placeholder="Όπως γράφεται στο χαρτί"/>
+              {hasMoney(doc.doc_type) && (
+                <TextInput label={mark('ΑΦΜ παρόχου', 'provider_afm')} value={doc.provider_afm || ''} onChange={t => onPatchDoc({ provider_afm: t.replace(/\D/g, '') })} placeholder="9 ψηφία"/>
+              )}
+            </div>
+            {hasMoney(doc.doc_type) && (
+              <div style={g2x}>
+                <NumberInput label={mark('Ποσό (€)', amountKey)} value={doc[amountKey] != null ? String(doc[amountKey]) : ''}
+                  onChange={t => onPatchDoc({ [amountKey]: t.trim() ? parseFloat(t.replace(',', '.')) || undefined : undefined } as Partial<ScannedDoc>)} placeholder="—"/>
+                <DatePicker label={mark('Ημ. έκδοσης', 'issue_date')} value={doc.issue_date || ''} onChange={t => onPatchDoc({ issue_date: t })}/>
+              </div>
+            )}
+            {(doc.doc_type === 'bill' || doc.doc_type === 'tax') && (
+              <div style={g2x}>
+                <DatePicker label={mark('Ημ. λήξης πληρωμής', 'due_date')} value={doc.due_date || ''} onChange={t => onPatchDoc({ due_date: t })}/>
+              </div>
+            )}
+            {hasMoney(doc.doc_type) && (
+              <>
+                <div style={g2x}>
+                  <DatePicker label={mark('Περίοδος από', 'period_from')} value={doc.period_from || ''} onChange={t => onPatchDoc({ period_from: t, period: undefined })}/>
+                  <DatePicker label={mark('Περίοδος έως', 'period_to')} value={doc.period_to || ''} onChange={t => onPatchDoc({ period_to: t, period: undefined })}/>
+                </div>
+                {doc.period && <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>Στο χαρτί: {doc.period}</div>}
+              </>
+            )}
+            {!hasMoney(doc.doc_type) && (
+              <div style={g2x}>
+                <DatePicker label="Ημερομηνία" value={doc.issue_date || ''} onChange={t => onPatchDoc({ issue_date: t })}/>
+              </div>
+            )}
+            <Textarea label="Σημειώσεις" value={doc.notes || ''} onChange={t => onPatchDoc({ notes: t })} placeholder="Προαιρετικά"/>
+          </>) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Modals (μετονομασία / διόρθωση αναγνώρισης) ─────────────────────────── */
 function ModalShell({ title, sub, children, onCancel, onConfirm, confirmLabel, confirmDisabled }: {
   title: string; sub?: string; children: React.ReactNode; onCancel: () => void; onConfirm: () => void; confirmLabel: string; confirmDisabled?: boolean;
 }) {
@@ -1207,13 +1325,70 @@ function RenameModal({ initial, onCancel, onSave }: { initial: string; onCancel:
   );
 }
 
-function MoveModal({ count, onCancel, onMove }: { count: number; onCancel: () => void; onMove: (category: string) => void }) {
-  const [cat, setCat] = useState(DOC_CATEGORIES[0]);
+/**
+ * ΔΙΟΡΘΩΣΗ ΑΝΑΓΝΩΡΙΣΗΣ — αντικαθιστά το παλιό «Μετακίνηση σε φάκελο».
+ * Ο φάκελος δεν είναι πια χειροκίνητη επιλογή αλλά ΑΠΟΤΕΛΕΣΜΑ της αναγνώρισης:
+ * αν θέλει να αλλάξει, αυτό που διορθώνεται είναι τι διάβασε η σάρωση. Γι' αυτό
+ * εδώ διορθώνονται και τα πεδία που κάνουν τον έλεγχο «πληρώθηκε» να δουλεύει:
+ * πάροχος, ΑΦΜ, ποσό, ημ. έκδοσης, περίοδος από–έως. Σε πολλαπλή επιλογή αλλάζει
+ * μόνο το ράφι — δεν βάζουμε το ίδιο ποσό σε δέκα διαφορετικά χαρτιά.
+ */
+function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => void; onSave: (p: Record<string, unknown>) => void }) {
+  const one = items.length === 1 ? items[0].raw : null;
+  const [cat, setCat] = useState(one?.category && DOC_CATEGORIES.includes(one.category) ? one.category : DOC_CATEGORIES[0]);
+  const [supplier, setSupplier] = useState(one?.supplier || '');
+  const [afm, setAfm] = useState(one?.provider_afm || '');
+  const [amount, setAmount] = useState(one?.amount != null ? String(numOrNull(one.amount) ?? '') : '');
+  const [issue, setIssue] = useState(one?.issue_date || '');
+  const [from, setFrom] = useState(one?.period_from || '');
+  const [to, setTo] = useState(one?.period_to || '');
+  const afmDigitsOnly = afm.replace(/\D/g, '');
+  const afmBad = afmDigitsOnly.length > 0 && !isValidAfm(afmDigitsOnly);
+
+  const submit = () => {
+    if (!one) { onSave({ category: cat }); return; }
+    onSave({
+      category: cat,
+      supplier: supplier.trim() || null,
+      provider_afm: afmDigitsOnly || null,
+      amount: amount.trim() ? numOrNull(amount.trim()) : null,
+      issue_date: issue || null,
+      period_from: from || null,
+      period_to: to || null,
+    });
+  };
+
   return (
-    <ModalShell title={count > 1 ? `Μετακίνηση ${count} αρχείων` : 'Μετακίνηση σε φάκελο'}
-      sub="Διάλεξε κατηγορία, ο φάκελος ενημερώνεται αυτόματα." onCancel={onCancel} onConfirm={() => onMove(cat)} confirmLabel="Μετακίνηση">
-      <CustomSelect label="Κατηγορία" value={cat} onChange={setCat}
-        options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
+    <ModalShell title={items.length > 1 ? `Διόρθωση ${items.length} αρχείων` : 'Διόρθωση αναγνώρισης'}
+      sub={items.length > 1
+        ? 'Σε πολλά αρχεία μαζί αλλάζει μόνο η κατηγορία — ο φάκελος ενημερώνεται αυτόματα.'
+        : 'Διόρθωσε ό,τι διάβασε λάθος η σάρωση. Ο φάκελος προκύπτει από την κατηγορία.'}
+      onCancel={onCancel} onConfirm={submit} confirmLabel="Αποθήκευση" confirmDisabled={afmBad}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <CustomSelect label="Κατηγορία" value={cat} onChange={setCat}
+          options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
+        {one && (<>
+          <div style={g2x}>
+            <TextInput label="Πάροχος / Εκδότης" value={supplier} onChange={setSupplier} placeholder="Όπως γράφεται στο παραστατικό"/>
+            <TextInput label="ΑΦΜ παρόχου" value={afm} onChange={setAfm} placeholder="9 ψηφία"/>
+          </div>
+          {afmBad && <div style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ. Διόρθωσέ το ή άφησέ το κενό.</div>}
+          <div style={g2x}>
+            <NumberInput label="Ποσό (€)" value={amount} onChange={setAmount} placeholder="—"/>
+            <DatePicker label="Ημ. έκδοσης" value={issue} onChange={setIssue}/>
+          </div>
+          <div style={g2x}>
+            <DatePicker label="Περίοδος από" value={from} onChange={setFrom}/>
+            <DatePicker label="Περίοδος έως" value={to} onChange={setTo}/>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>
+            Ο πάροχος, το ΑΦΜ, το ποσό, η ημερομηνία και η περίοδος είναι τα πέντε πεδία
+            με τα οποία το app διαπιστώνει ότι ένας λογαριασμός πληρώθηκε.
+          </div>
+        </>)}
+      </div>
     </ModalShell>
   );
 }
+
+const g2x: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 };

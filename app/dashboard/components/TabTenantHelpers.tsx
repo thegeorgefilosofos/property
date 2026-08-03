@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import {
   NumberInput, CustomSelect, DatePicker as UIDatePicker,
   Toggle, TextInput, Textarea, ServiceBySelect as UIServiceBySelect,
   SegmentControl, FREQ_OPTIONS,
 } from './UIComponents';
-import { T, feAuto } from '@/components/Theme';
+import { T, feAuto, Btn } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import { rentDueOccurrence, applyExdate } from '@/lib/calendar/rentDue';
 
@@ -28,13 +27,36 @@ export const C = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type ServiceBy = 'owner' | 'tenant' | 'split';
-export type CleaningPkg = 'none' | '2x2h' | '2x3h' | 'custom';
 export type LeaseType = 'monthly' | 'biannual' | 'annual' | '18months' | '24months' | '36months' | 'custom';
 export type LeaseCategory = 'residential' | 'commercial';
 export type PaymentFreq = 'monthly' | 'bimonthly' | 'quarterly';
 export type IdDocType = 'Αστυνομική Ταυτότητα' | 'Διαβατήριο' | 'Στρατιωτική Ταυτότητα' | 'Φοιτητικό Πάσο' | 'Άλλο';
-export interface StreamingSvc { name: string; cost_owner: number; charged_tenant: number; included: boolean; }
-export interface CleaningCfg { package: CleaningPkg; times: number; hours: number; price_per_hour: number; total_owner: number; total_tenant: number; }
+
+/**
+ * ΜΙΑ γραμμή στο «Τι πληρώνεις εσύ, τι ο ενοικιαστής».
+ *
+ * ΤΙ ΑΝΤΙΚΑΤΕΣΤΗΣΕ: πέντε προκαθορισμένα μηχανήματα (κλιματιστικό, ηλιακός,
+ * αντλία θερμότητας, φωτοβολταϊκά, απεντόμωση) με τριάδα πεδίων το καθένα, εννέα
+ * πεδία μετρητών (kWh, πάροχοι, τιμολόγια, όρια), έξι στάθμευσης, έναν
+ * διαμορφωτή streaming με έξι υπηρεσίες και έναν καθαρισμού με προεπιλογή
+ * 15 €/ώρα. Σύνολο ~40 πεδία για να απαντηθεί μία ερώτηση: ποιος πληρώνει τι.
+ *
+ * ΓΙΑΤΙ ΕΛΕΥΘΕΡΕΣ ΓΡΑΜΜΕΣ: ο κατάλογος συσκευών ήταν ο κατάλογος ενός
+ * serviced-apartment operator. Ο ιδιοκτήτης που έχει καυστήρα και τίποτε άλλο
+ * έβλεπε τέσσερα μηχανήματα που δεν έχει, και δεν έβλεπε το δικό του.
+ *
+ * ΓΙΑΤΙ ΔΕΝ ΥΠΑΡΧΕΙ «ΑΠΟΤΕΛΕΣΜΑ»: ο παλιός διαμορφωτής έβγαζε «Αποτέλεσμα/μήνα»
+ * σε πράσινο, δηλαδή περιθώριο κέρδους από τη μετακύλιση υπηρεσιών στον μισθωτή.
+ * Εδώ υπάρχει κόστος και υπάρχει ποιος το πληρώνει. Τίποτε άλλο.
+ */
+export interface ServiceLine {
+  /** Τι είναι, με τα λόγια του χρήστη. */
+  name: string;
+  /** Μηνιαίο κόστος σε ευρώ. */
+  cost: number;
+  /** Ποιος το πληρώνει. `split` σημαίνει μισά-μισά. */
+  payer: ServiceBy;
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 export const LEASE_LABELS: Record<LeaseType, string> = {
@@ -62,14 +84,43 @@ export const ID_DOCS: IdDocType[] = [
 export const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 export const MONTHS_S = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 export const EXTRA_CATS = ['Πρόωρη Αποχώρηση','Φθορά Συσκευής','Φθορά Επίπλου','Καθυστέρηση','Ρεύμα/Νερό','Άλλο'];
-export const DEFAULT_STREAMING: StreamingSvc[] = [
-  { name:'Netflix', cost_owner:13.99, charged_tenant:13.99, included:false },
-  { name:'HBO Max', cost_owner:8.99, charged_tenant:8.99, included:false },
-  { name:'Amazon Prime', cost_owner:4.99, charged_tenant:4.99, included:false },
-  { name:'Spotify', cost_owner:10.99, charged_tenant:10.99, included:false },
-  { name:'YouTube Premium', cost_owner:6.99, charged_tenant:6.99, included:false },
-  { name:'Nova / Cosmote TV', cost_owner:19.99, charged_tenant:19.99, included:false },
-];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΔΕΙΚΤΗΣ ΤΙΜΩΝ ΚΑΤΑΝΑΛΩΤΗ (ΔΤΚ) — ΔΕΔΟΜΕΝΟ ΜΕ ΠΗΓΗ, ΟΧΙ ΣΤΑΘΕΡΑ ΣΕ .tsx
+//
+// ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ: ο πίνακας ζούσε καρφωμένος μέσα στο TabTenant.tsx, η
+// τελευταία εγγραφή ήταν του 2025, και υπήρχε fallback `?? 2.8` για κάθε έτος που
+// έλειπε. Πάνω σε αυτό το νούμερο παραγόταν ΕΠΙΣΗΜΟ ΕΓΓΡΑΦΟ προς τον ενοικιαστή
+// («όπως ανακοινώθηκε από την ΕΛΣΤΑΤ»), με γραμμές υπογραφής και επίκληση του
+// άρθρου 288 ΑΚ. Δηλαδή ο χρήστης έστελνε σε άλλον άνθρωπο κρατικό στοιχείο που
+// δεν ήταν κρατικό στοιχείο.
+//
+// Ο ΚΑΝΟΝΑΣ ΤΩΡΑ: κάθε τιμή έχει έτος και πηγή. Έτος χωρίς τιμή ΔΕΝ έχει τιμή —
+// δεν κληρονομεί, δεν μαντεύεται. Χωρίς τιμή για το έτος που ζητά ο χρήστης, η
+// εκτύπωση της ειδοποίησης απενεργοποιείται και του ζητάμε το ποσοστό.
+// Πρότυπο: RENTAL_TAX_BRACKETS_2026 στο lib/billing/greekTax.ts.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Μέση ετήσια μεταβολή ΔΤΚ (%), ανά έτος. Πηγή στο `CPI_SOURCE`. */
+export const CPI_BY_YEAR: Readonly<Record<number, number>> = {
+  2015: 0.0, 2016: 0.0, 2017: 1.1, 2018: 0.8, 2019: 0.5, 2020: -1.3,
+  2021: 0.6, 2022: 9.3, 2023: 4.2, 2024: 2.8, 2025: 2.5,
+};
+/** Από πού προέρχονται τα νούμερα. Φαίνεται στην οθόνη ΚΑΙ μέσα στο έγγραφο. */
+export const CPI_SOURCE = 'ΕΛΣΤΑΤ, μέση ετήσια μεταβολή Δείκτη Τιμών Καταναλωτή';
+export const CPI_SOURCE_URL = 'https://www.statistics.gr/el/statistics/-/publication/DKT87/-';
+/** Πότε επιβεβαιώθηκε τελευταία ο πίνακας από την πηγή (ISO). */
+export const CPI_CONFIRMED_AT = '2026-07-30';
+/** Το πιο πρόσφατο έτος με ΠΡΑΓΜΑΤΙΚΗ τιμή. */
+export const CPI_LATEST_YEAR = Math.max(...Object.keys(CPI_BY_YEAR).map(Number));
+
+/** Το ποσοστό του έτους, ή `null` όταν δεν το ξέρουμε. ΠΟΤΕ fallback. */
+export const cpiFor = (year: number): number | null =>
+  Object.prototype.hasOwnProperty.call(CPI_BY_YEAR, year) ? CPI_BY_YEAR[year] : null;
+
+/** «τελευταία επιβεβαίωση: 30/07/2026» — ίδια φράση σε οθόνη και έγγραφο. */
+export const cpiConfirmedLabel = (): string =>
+  `${CPI_SOURCE} · τελευταία επιβεβαίωση ${new Date(CPI_CONFIRMED_AT + 'T00:00:00').toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 export const fmt = (n: number | null | undefined) =>
@@ -117,202 +168,108 @@ export const s = {
   btnDng:   { background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'10px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
 };
 
-// ─── Streaming Configurator ───────────────────────────────────────────────────
-export function StreamingConfig({ value, onChange }: { value: StreamingSvc[] | null; onChange: (v: StreamingSvc[]) => void }) {
-  const svcs = value || DEFAULT_STREAMING.map(s => ({ ...s }));
-  const toggle = (i: number) => onChange(svcs.map((s, idx) => idx === i ? { ...s, included: !s.included } : s));
-  const upd = (i: number, field: 'cost_owner' | 'charged_tenant', val: number) =>
-    onChange(svcs.map((s, idx) => idx === i ? { ...s, [field]: Math.max(0, val) } : s));
+// ═══════════════════════════════════════════════════════════════════════════
+// «ΤΙ ΠΛΗΡΩΝΕΙΣ ΕΣΥ, ΤΙ Ο ΕΝΟΙΚΙΑΣΤΗΣ» — ελεύθερες γραμμές
+// ═══════════════════════════════════════════════════════════════════════════
 
-  const inc = svcs.filter(s => s.included);
-  const totalOwner = inc.reduce((sum, s) => sum + s.cost_owner, 0);
-  const totalTenant = inc.reduce((sum, s) => sum + s.charged_tenant, 0);
-  const profit = totalTenant - totalOwner;
+/** Παλιά μορφή της στήλης `streaming` (πριν γίνει ελεύθερες γραμμές). */
+interface LegacyStreamRow { name?: unknown; cost_owner?: unknown; charged_tenant?: unknown; included?: unknown; cost?: unknown; payer?: unknown }
+/** Παλιά μορφή της στήλης `cleaning`. */
+interface LegacyCleaning { total_owner?: unknown; total_tenant?: unknown }
+
+const num = (v: unknown): number => { const n = typeof v === 'number' ? v : parseFloat(String(v ?? '')); return Number.isFinite(n) && n > 0 ? n : 0; };
+
+/**
+ * Διαβάζει τις γραμμές υπηρεσιών, ΚΑΙ από τα παλιά δεδομένα.
+ *
+ * ΓΙΑΤΙ ΜΕΤΑΤΡΟΠΗ ΚΑΙ ΟΧΙ ΝΕΑ ΣΤΗΛΗ: τα υπάρχοντα δεδομένα ζουν στις στήλες
+ * `streaming` (πίνακας υπηρεσιών) και `cleaning` (μία ρύθμιση καθαρισμού). Καμία
+ * μετάπτωση σε βάση χωρίς αντίγραφα: η παλιά μορφή διαβάζεται και αποδίδει
+ * γραμμές, η νέα γράφεται από πάνω. Ένας ιδιοκτήτης που είχε συμπληρώσει
+ * Netflix 13,99 € χρεωμένο στον μισθωτή βλέπει «Netflix · 13,99 € · Ενοικιαστής».
+ */
+export function serviceLinesFrom(rawServices: unknown, rawCleaning: unknown): ServiceLine[] {
+  const out: ServiceLine[] = [];
+  if (Array.isArray(rawServices)) {
+    for (const r of rawServices as LegacyStreamRow[]) {
+      const name = String(r?.name ?? '').trim();
+      if (!name) continue;
+      // Νέα μορφή: έχει `cost` + `payer`.
+      if (r?.cost !== undefined || r?.payer !== undefined) {
+        const payer = r.payer === 'tenant' || r.payer === 'split' ? r.payer : 'owner';
+        out.push({ name, cost: num(r.cost), payer });
+        continue;
+      }
+      // Παλιά μορφή: κόστος ιδιοκτήτη + χρέωση ενοικιαστή + «included».
+      if (r?.included === false) continue;   // δεν παρεχόταν καθόλου
+      const own = num(r.cost_owner), ten = num(r.charged_tenant);
+      out.push({ name, cost: Math.max(own, ten), payer: ten > 0 && own > 0 ? 'split' : ten > 0 ? 'tenant' : 'owner' });
+    }
+  }
+  const cl = rawCleaning as LegacyCleaning | null | undefined;
+  if (cl && (num(cl.total_owner) > 0 || num(cl.total_tenant) > 0)) {
+    const own = num(cl.total_owner), ten = num(cl.total_tenant);
+    out.push({ name: 'Καθαρισμός', cost: Math.max(own, ten), payer: ten > 0 && own > 0 ? 'split' : ten > 0 ? 'tenant' : 'owner' });
+  }
+  return out;
+}
+
+/** Πόσο επιβαρύνεται ο ΕΝΟΙΚΙΑΣΤΗΣ τον μήνα από τις γραμμές υπηρεσιών. */
+export const servicesTenantCharge = (lines: readonly ServiceLine[] | null | undefined): number =>
+  (lines || []).reduce((a, l) => a + (l.payer === 'tenant' ? num(l.cost) : l.payer === 'split' ? num(l.cost) / 2 : 0), 0);
+
+/** Πόσο επιβαρύνεται ο ΙΔΙΟΚΤΗΤΗΣ τον μήνα. */
+export const servicesOwnerCost = (lines: readonly ServiceLine[] | null | undefined): number =>
+  (lines || []).reduce((a, l) => a + (l.payer === 'owner' ? num(l.cost) : l.payer === 'split' ? num(l.cost) / 2 : 0), 0);
+
+/**
+ * Ο επεξεργαστής των γραμμών. Τρεις στήλες: περιγραφή, κόστος, ποιος.
+ * Χωρίς προκαθορισμένες συσκευές, χωρίς προεπιλεγμένες τιμές, χωρίς «κέρδος».
+ */
+export function ServicesEditor({ value, onChange }: { value: ServiceLine[] | null; onChange: (v: ServiceLine[]) => void }) {
+  const lines = value || [];
+  const upd = (i: number, patch: Partial<ServiceLine>) => onChange(lines.map((l, idx) => idx === i ? { ...l, ...patch } : l));
+  const add = () => onChange([...lines, { name: '', cost: 0, payer: 'owner' }]);
+  const del = (i: number) => onChange(lines.filter((_, idx) => idx !== i));
+  const tenant = servicesTenantCharge(lines);
+  const owner = servicesOwnerCost(lines);
 
   return (
     <div>
-      <div style={{ display:'flex', flexDirection:'column', gap:'6px', marginBottom:'12px' }}>
-        {svcs.map((svc, i) => (
-          <div key={svc.name} className="svc-cost-row" style={{
-            display:'grid', gridTemplateColumns:'auto minmax(0,1fr) 120px 120px',
-            alignItems:'center', gap:'12px', padding:'10px 14px',
-            background: svc.included ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-            border: `1px solid ${svc.included ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
-            borderRadius:'10px', transition:'all 0.15s',
+      {lines.length === 0 && (
+        <div style={{ fontSize:'12px', color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:'12px' }}>
+          Μία γραμμή για κάθε πάγιο που συμφωνήσατε: καθαρισμός, συντήρηση καυστήρα,
+          συνδρομή τηλεόρασης, internet. Ό,τι χρεώνεται στον ενοικιαστή προστίθεται
+          αυτόματα στη μηνιαία δόση.
+        </div>
+      )}
+      <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'12px' }}>
+        {lines.map((l, i) => (
+          <div key={i} className="svc-cost-row" style={{
+            display:'grid', gridTemplateColumns:'minmax(0,1fr) 120px 200px auto',
+            alignItems:'end', gap:'12px', padding:'12px 14px',
+            background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px',
           }}>
-            <Toggle on={svc.included} onChange={() => toggle(i)} />
-            <span style={{ fontSize:'13px', color: svc.included ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{svc.name}</span>
-            <NumberInput
-              label="Κόστος ιδιοκτήτη"
-              value={svc.cost_owner.toString()}
-              onChange={v => upd(i, 'cost_owner', parseFloat(v)||0)}
-              suffix="€" step={0.01}
-            />
-            <NumberInput
-              label="Χρέωση ενοικιαστή"
-              value={svc.charged_tenant.toString()}
-              onChange={v => upd(i, 'charged_tenant', parseFloat(v)||0)}
-              suffix="€" step={0.01}
-            />
+            <TextInput label="Περιγραφή" value={l.name} onChange={v => upd(i, { name: v })} placeholder="π.χ. Συντήρηση καυστήρα" />
+            <NumberInput label="Κόστος / μήνα" value={l.cost ? String(l.cost) : ''} onChange={v => upd(i, { cost: parseFloat(v) || 0 })} suffix="€" step={0.01} />
+            <UIServiceBySelect label="Ποιος πληρώνει" value={l.payer} onChange={v => upd(i, { payer: v })} />
+            <button type="button" onClick={() => del(i)} title="Αφαίρεση γραμμής"
+              style={{ ...s.btnDng, height:T.h.lg, whiteSpace:'nowrap' as const }}>Αφαίρεση</button>
           </div>
         ))}
       </div>
-      <div style={{ fontSize:'11px', color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.5, marginBottom:'12px' }}>
-        το γενικό κόστος και πόσο το χρεώνεις στον ενοικιαστή
-      </div>
-      {inc.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'8px', padding:'12px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
+      <Btn variant="secondary" onClick={add}>Προσθήκη γραμμής</Btn>
+      {lines.length > 0 && (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap:'8px', marginTop:'14px', padding:'12px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
           {[
-            { label:'Κόστος ιδιοκτήτη / μήνα', val:fmt(totalOwner), color:'var(--negative)' },
-            { label:'Χρέωση ενοικιαστή / μήνα', val:fmt(totalTenant), color:'var(--accent)' },
-            { label:'Αποτέλεσμα / μήνα', val:(profit>=0?'+':'')+fmt(profit), color:profit>=0?'var(--positive)':'var(--negative)' },
-          ].map(({ label, val, color }) => (
+            { label:'Πληρώνεις εσύ / μήνα', val:fmt(owner) },
+            { label:'Πληρώνει ο ενοικιαστής / μήνα', val:fmt(tenant) },
+          ].map(({ label, val }) => (
             <div key={label} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:'14px', fontWeight:700, color, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{val}</div>
+              <div style={{ fontSize:'15px', fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{val}</div>
               <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>{label}</div>
             </div>
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Cleaning Configurator ────────────────────────────────────────────────────
-export function CleaningConfig({ value, onChange }: { value: CleaningCfg | null; onChange: (v: CleaningCfg | null) => void }) {
-  const pkg = value?.package || 'none';
-  const presets: Record<string, CleaningCfg> = {
-    '2x2h': { package:'2x2h', times:2, hours:2, price_per_hour:15, total_owner:60,  total_tenant:60  },
-    '2x3h': { package:'2x3h', times:2, hours:3, price_per_hour:15, total_owner:90,  total_tenant:90  },
-    'custom':{ package:'custom',times:1,hours:2, price_per_hour:15, total_owner:30,  total_tenant:30  },
-  };
-  const sel = (p: string) => { if (p === 'none') { onChange(null); return; } onChange({ ...presets[p] }); };
-  const upd = (field: keyof CleaningCfg, val: number) => {
-    if (!value) return;
-    const u = { ...value, [field]: Math.max(0, val) };
-    if (field !== 'total_owner' && field !== 'total_tenant') u.total_owner = u.times * u.hours * u.price_per_hour;
-    onChange(u);
-  };
-  const profit = value ? (value.total_tenant - value.total_owner) : 0;
-
-  return (
-    <div>
-      <div style={{ display:'flex', gap:'6px', marginBottom:'14px', flexWrap:'wrap' }}>
-        {[['none','Χωρίς'],['2x2h','Δύο φορές × δύο ώρες / μήνα'],['2x3h','Δύο φορές × τρεις ώρες / μήνα'],['custom','Προσαρμοσμένο']].map(([v,l]) => (
-          <button
-            key={v}
-            onClick={() => sel(v)}
-            style={{
-              padding:'8px 14px', fontSize:'11px', fontFamily:T.font.sans,
-              cursor:'pointer', borderRadius:'8px',
-              border:`1px solid ${pkg===v ? 'var(--accent)' : 'var(--border-default)'}`,
-              background: pkg===v ? 'var(--accent-dim)' : 'transparent',
-              color: pkg===v ? 'var(--accent)' : 'var(--text-secondary)',
-              transition:'all 0.15s', fontWeight: pkg===v ? 600 : 400,
-            }}
-          >{l}</button>
-        ))}
-      </div>
-      {value && value.package !== 'none' && (
-        <div style={{ background:'var(--bg-elevated)', padding:'16px', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
-          <div style={{ ...s.g4, marginBottom:'12px' }}>
-            <NumberInput label="Φορές τον μήνα"     value={value.times.toString()}            onChange={v=>upd('times',parseFloat(v)||0)}/>
-            <NumberInput label="Ώρες ανά επίσκεψη"  value={value.hours.toString()}            onChange={v=>upd('hours',parseFloat(v)||0)}/>
-            <NumberInput label="Τιμή ανά ώρα"       value={value.price_per_hour.toString()}   onChange={v=>upd('price_per_hour',parseFloat(v)||0)} suffix="€" step={0.5}/>
-            <NumberInput label="Κόστος ιδιοκτήτη"   value={value.total_owner.toString()}      onChange={v=>upd('total_owner',parseFloat(v)||0)} suffix="€"/>
-          </div>
-          <div style={s.g2}>
-            <NumberInput label="Χρέωση ενοικιαστή" value={value.total_tenant.toString()} onChange={v=>upd('total_tenant',parseFloat(v)||0)} suffix="€"/>
-            <div style={{ display:'flex', alignItems:'center', paddingTop:'18px' }}>
-              <div style={{ textAlign:'center', flex:1 }}>
-                <div style={{ fontSize:'16px', fontWeight:700, color:profit>=0?'var(--positive)':'var(--negative)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>
-                  {profit>=0?'+':''}{fmt(profit)}
-                </div>
-                <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αποτέλεσμα / μήνα</div>
-              </div>
-            </div>
-          </div>
-          <div style={{ fontSize:'11px', color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.5, marginTop:'12px' }}>
-            το γενικό κόστος και πόσο το χρεώνεις στον ενοικιαστή
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Investment Calculator ────────────────────────────────────────────────────
-export function InvestmentCalc({ title, amount }: { title: string; amount: number | null }) {
-  const [rate, setRate]   = useState('4');
-  const [years, setYears] = useState('1');
-  if (!amount || amount <= 0) return null;
-  const r = parseFloat(rate) / 100 || 0;
-  const y = parseFloat(years) || 1;
-  const future = amount * Math.pow(1 + r, y);
-  const gain = future - amount;
-
-  return (
-    <div style={{ background:'var(--bg-base)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'16px', marginTop:'12px' }}>
-      <div style={{ fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--accent)', marginBottom:'14px' }}>{title}</div>
-      <div style={{ ...s.g2, marginBottom:'12px' }}>
-        <NumberInput label="Απόδοση %/έτος" value={rate} onChange={setRate} suffix="%" step={0.1} max={100}/>
-        <NumberInput label="Περίοδος (έτη)" value={years} onChange={setYears} suffix="έτη" step={0.5}/>
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)' }}>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(amount)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αρχικό Ποσό</div></div>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>+{fmt(gain)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος ({years} έτη)</div></div>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(future)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελικό Ποσό</div></div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Prepay Calculator ────────────────────────────────────────────────────────
-export function PrepayCalc({ monthlyRent }: { monthlyRent: number | null }) {
-  const [months, setMonths] = useState('3');
-  const [discount, setDiscount] = useState('3');
-  const [invest, setInvest] = useState(false);
-  const [rate, setRate]     = useState('4');
-  const [years, setYears]   = useState('1');
-  if (!monthlyRent || monthlyRent <= 0) return null;
-
-  const m = parseInt(months) || 3;
-  const d = parseFloat(discount) / 100 || 0;
-  const full = monthlyRent * m;
-  const discounted = full * (1 - d);
-  const ownerLoss = full - discounted;
-  const future = invest ? discounted * Math.pow(1 + (parseFloat(rate)/100||0), parseFloat(years)||1) : discounted;
-  const investGain = future - discounted;
-
-  return (
-    <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'16px' }}>
-      <div style={{ fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--accent)', marginBottom:'14px' }}>Αναλυτής Προπληρωμής</div>
-      <div style={{ ...s.g4, marginBottom:'12px' }}>
-        <CustomSelect
-          label="Μήνες προπληρωμής"
-          value={months}
-          onChange={setMonths}
-          options={[3,6,12,18,24,36].map(n=>({ value:String(n), label:`${n} μήνες` }))}
-        />
-        <NumberInput label="Έκπτωση %" value={discount} onChange={setDiscount} suffix="%" step={0.5} max={100}/>
-        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Πλήρης Αξία</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--text-primary)', padding:'9px 0', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(full)}</div></div>
-        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Τελικό Ποσό</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', padding:'9px 0', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(discounted)}</div></div>
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)', marginBottom:'14px' }}>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος Ενοικιαστή</div></div>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--negative)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Χασούρα Ιδιοκτήτη</div></div>
-      </div>
-      <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:invest?'14px':0 }}>
-        <Toggle on={invest} onChange={setInvest} label="Επένδυση του ποσού" />
-      </div>
-      {invest && (
-        <div style={{ ...s.g3 }}>
-          <NumberInput label="Απόδοση %/έτος" value={rate} onChange={setRate} suffix="%" step={0.1} max={100}/>
-          <NumberInput label="Περίοδος (έτη)" value={years} onChange={setYears} suffix="έτη" step={0.5}/>
-          <div style={{ textAlign:'center', paddingTop:'18px' }}>
-            <div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(future)}</div>
-            <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελική Αξία +{fmt(investGain)}</div>
-          </div>
         </div>
       )}
     </div>
@@ -340,11 +297,6 @@ export interface TenantScheduleInput {
   lease_end?: string | null;
   monthly_rent?: number | null;
   deposit_amount?: number | null;
-  ac_service_frequency?: string | null;
-  solar_service_frequency?: string | null;
-  heat_pump_service_frequency?: string | null;
-  solar_panels_service_frequency?: string | null;
-  pest_control_frequency?: string | null;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -374,10 +326,6 @@ export const nextRentDueISO = (dueDay: number): string => {
   let cand = new Date(now.getFullYear(), now.getMonth(), day);
   if (cand < now) cand = new Date(now.getFullYear(), now.getMonth() + 1, day);
   return isoOf(cand);
-};
-
-const FREQ_TO_INTERVAL: Record<string, string> = {
-  monthly: 'monthly', quarterly: 'quarterly', biannual: 'biannual', annual: 'yearly',
 };
 
 /**
@@ -451,25 +399,11 @@ export function tenantScheduleRows(
     });
   }
 
-  // 5) Ετήσιες συντηρήσεις βάσει *_service_frequency.
-  const services: { keySuffix: string; label: string; freq?: string | null }[] = [
-    { keySuffix: 'svc_ac', label: 'κλιματιστικών', freq: t.ac_service_frequency },
-    { keySuffix: 'svc_solar', label: 'ηλιακού θερμοσίφωνα', freq: t.solar_service_frequency },
-    { keySuffix: 'svc_heatpump', label: 'αντλίας θερμότητας', freq: t.heat_pump_service_frequency },
-    { keySuffix: 'svc_pv', label: 'φωτοβολταϊκών', freq: t.solar_panels_service_frequency },
-    { keySuffix: 'svc_pest', label: 'απεντόμωσης/μυοκτονίας', freq: t.pest_control_frequency },
-  ];
-  const anchor = t.lease_start || isoOf(new Date());
-  for (const s of services) {
-    if (!s.freq) continue;
-    const interval = FREQ_TO_INTERVAL[s.freq] || 'yearly';
-    events.push({
-      ...evBase, source: key(s.keySuffix), category: 'maintenance',
-      title: `Συντήρηση ${s.label}`, event_date: nextAnniversaryISO(anchor),
-      amount: null, priority: 'low', recurring: true, recurring_interval: interval,
-      notes: 'Προγραμματισμένη συντήρηση βάσει των όρων μίσθωσης.',
-    });
-  }
+  // 5) Οι πέντε προκαθορισμένες «ετήσιες συντηρήσεις» (κλιματιστικό, ηλιακός,
+  //    αντλία θερμότητας, φωτοβολταϊκά, απεντόμωση) έφυγαν μαζί με τα 15 πεδία
+  //    τους. Ό,τι συντηρείται πραγματικά μπαίνει πλέον ως γραμμή στο «Τι πληρώνεις
+  //    εσύ, τι ο ενοικιαστής» ή ως εργασία στη Λίστα Εργασιών, όπου ο χρήστης
+  //    γράφει τη δική του συσκευή αντί να διαλέγει από κατάλογο ξένων μηχανημάτων.
 
   // 6) ΑΑΔΕ «Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης» (μία εκκρεμότητα).
   if (t.lease_start) {

@@ -5,14 +5,25 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, Skeleton } from '@/components/Theme';
+import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const fk = (n: number) => `${n.toFixed(4)} €`;
-// FIX: was 'Ιούνιος 2026', updated to reflect latest confirmed source data (DEI July 2026 extraction, Protergia/Zenith/Enerwave June 2026)
+// Η ημερομηνία τελευταίου ελέγχου των τιμών.
+//
+// ΓΙΑΤΙ ΓΡΑΜΜΕΝΗ ΕΔΩ ΚΑΙ ΟΧΙ ΜΕ import ΤΟΥ JSON: ένα `import ... from '.json'`
+// σε module scope, μέσα σε αρχείο που φορτώνεται σε ΚΑΘΕ άνοιγμα του πίνακα
+// ελέγχου, είναι εξάρτηση από τον τρόπο που ο bundler κάνει interop τα JSON. Αν
+// αστοχήσει, δεν σκάει μια οθόνη: δεν φορτώνει ΟΛΗ η εφαρμογή, επειδή το
+// σφάλμα συμβαίνει πριν καν αποδοθεί τίποτα. Δεν αξίζει τέτοιο ρίσκο για μια
+// ετικέτα ημερομηνίας.
+//
+// Η συνέπεια με το data/price-sources.json, που είναι η πηγή αλήθειας για το
+// workflow φρεσκάδας, φυλάσσεται από test: αν αποκλίνουν, κοκκινίζει το CI.
 const LAST_UPDATED = 'Ιούλιος 2026';
 const RAAYEY_URL  = 'https://energycost.gr/%CF%85%CF%80%CE%BF%CE%BB%CE%BF%CE%B3%CE%B9%CF%83%CE%BC%CF%8C%CF%82-%CF%84%CE%B9%CE%BC%CE%AE%CF%82-%CE%B2%CE%AC%CF%83%CE%B5%CE%B9-%CE%BA%CE%B1%CF%84%CE%B1%CE%BD%CE%AC%CE%BB%CF%89%CF%83%CE%B7%CF%82-2/';
-const ERT    = 0.00856;  // Ειδικό Ρυθμιστικό Τέλος
-const ETMEAR = 0.0152;   // ΑΠΕ τέλος
+// Ο υπολογισμός κόστους ζει σε ένα σημείο, με tests. Δείτε lib/energy/tariff.ts
+// για τον λόγο: εδώ υπήρχαν δύο διαφορετικοί τύποι για το ίδιο νούμερο.
 
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
   width: '100%', background: isCurrent ? 'rgba(26,115,232,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
@@ -32,25 +43,17 @@ const DURATION_OPTIONS = [
 ];
 
 // ── REAL TARIFFS, SOURCE: bestenergydeals.gr / pricefox.gr / Selectra (June–July 2026) ──
-interface Tariff {
-  id: string; name: string; badge: string; type: string;
-  kwh_day: number; kwh_night?: number | null;
-  kwh_tier2?: number; tier2_threshold?: number;
-  flat_monthly?: number | null;
-  // FIX: added, lets "all-in" flat packages (Picasso, ZeΝergy, My Wave Daily) carry their
-  // annual kWh allowance and overage rate, so the calculator can warn about / price overage
-  // instead of silently showing a misleadingly low monthly cost for high-consumption users.
-  flat_annual_kwh?: number;
-  flat_overage_rate?: number;
-  fixed: number; fixed_ebill?: number | null;
-  vat: number; desc: string;
+// Τα πεδία που χρειάζεται ο ΥΠΟΛΟΓΙΣΜΟΣ ζουν στο lib/energy/tariff.ts. Εδώ
+// προστίθενται μόνο όσα χρειάζεται η ΟΘΟΝΗ. Έτσι, όποιος αλλάξει τον τρόπο
+// χρέωσης το κάνει σε ένα αρχείο που έχει tests, όχι μέσα σε ένα component.
+interface LocalTariff extends Tariff {
+  desc: string;
   contract_months?: number;
   no_fixed?: boolean;
   smart_meter?: boolean;
   discount_ebill?: number;
   dynamic?: boolean;
   student?: boolean;
-  segment?: 'residential' | 'business';  // οικιακό ή επιχειρηματικό
 }
 
 const PROVIDERS = [
@@ -74,7 +77,7 @@ const PROVIDERS = [
       { id: 'dei_biz_enter',   name: 'myBusiness Enter',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1510, kwh_night: null, flat_monthly: null, fixed: 6.00, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'business', desc: 'Σταθερό επαγγελματικό. Πάγια εντολή υποχρεωτική.' },
       { id: 'dei_biz_4all',    name: 'myBusiness 4ALL',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.16366, kwh_night: null, flat_monthly: null, fixed: 5.00, fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό χωρίς δέσμευση.' },
       { id: 'dei_biz_g21',     name: 'Γ21 Επαγγελματικό',      badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.16417, kwh_night: null, flat_monthly: null, fixed: 5.00, fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'business', desc: 'Ειδικό κοινό τιμολόγιο Γ21 (kVA≤25). Ανακοινώνεται 1η του μήνα.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
     {
     value: 'heron', label: 'Ήρων', url: 'https://www.heron.gr',
@@ -99,7 +102,7 @@ const PROVIDERS = [
       { id: 'heron_protect_biz_s', name: 'Protect Business Small',   badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1395, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο μικρής επιχείρησης.' },
       { id: 'heron_yellow_one_biz', name: 'Yellow One Business S',   badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.14804, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο. Έκπτωση συνέπειας.' },
       { id: 'heron_basic_biz_s',  name: 'Basic Business Small',      badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.17344, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Ειδικό Γ21 επαγγελματικό. Ανακοινώνεται 1η του μήνα.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
 
   {
@@ -131,7 +134,7 @@ const PROVIDERS = [
       { id: 'prot_simple_biz1',  name: 'Value Simple Επαγγελματικό 1', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.14700, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Φθηνότερο κυμαινόμενο επαγγελματικό στην αγορά.' },
       { id: 'prot_sure_biz1',    name: 'Value Sure Επαγγελματικό 1',   badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1699,  kwh_night: null, flat_monthly: null, fixed: 13.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό 12μηνο επαγγελματικό.' },
       { id: 'prot_sure_biz2',    name: 'Value Sure Επαγγελματικό 2',   badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1999,  kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 12, no_fixed: true,  dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό χωρίς πάγιο. Ιδανικό για μικρή κατανάλωση.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'nrg', label: 'NRG', url: 'https://www.nrg.gr',
@@ -141,7 +144,7 @@ const PROVIDERS = [
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'nrg_adjust_biz',  name: 'adjust 1.0 Business',    badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, flat_monthly: null, fixed: 13.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό επαγγελματικό χωρίς ρήτρα.' },
       { id: 'nrg_simple_biz',  name: 'simple 1.0 Business 1',  badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1790, kwh_night: null, flat_monthly: null, fixed: 9.90,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'zenith', label: 'Zenith', url: 'https://www.zenith.gr',
@@ -167,7 +170,7 @@ const PROVIDERS = [
       { id: 'zen_zenergy_xl', name: 'ZeΝergy XL, έως 12.000 kWh/έτος',badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 262.00, flat_annual_kwh: 12000, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Μεγάλο μέγεθος κατανάλωσης.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'zen_biz_start', name: 'Power Business Start',    badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.2090, kwh_night: null, flat_monthly: null, fixed: 1.00, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Ειδικό επαγγελματικό. Χαμηλό πάγιο, ετήσια δέσμευση.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'elin', label: 'Elin', url: 'https://energy.elin.gr',
@@ -177,7 +180,7 @@ const PROVIDERS = [
       { id: 'elin_blue',        name: 'Home Blue Fixed',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1480, kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 12μηνο.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'elin_biz_green',   name: 'Business Green',        badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.16587, kwh_night: null, flat_monthly: null, fixed: 5.00, fixed_ebill: null, contract_months: 0, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Ειδικό επαγγελματικό Γ21.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'volton', label: 'Volton', url: 'https://volton.gr',
@@ -189,7 +192,7 @@ const PROVIDERS = [
       { id: 'volton_yellow_biz', name: 'Yellow Simple Business', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.14078, kwh_night: null, flat_monthly: null, fixed: 6.90, fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό.' },
       { id: 'volton_blue_biz',   name: 'Blue Flat 18M Business', badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1590,  kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 18, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό 18μηνο επαγγελματικό.' },
       { id: 'volton_green_biz',  name: 'Green Ειδικό Business',  badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1863,  kwh_night: null, flat_monthly: null, fixed: 4.90, fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Ειδικό Γ21 επαγγελματικό.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'enerwave', label: 'Enerwave', url: 'https://www.enerwave.gr',
@@ -216,7 +219,7 @@ const PROVIDERS = [
       { id: 'enrw_wave_2',   name: 'My Wave Daily 2€/ημέρα, έως 4.200 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 60.00, flat_annual_kwh: 4200,  flat_overage_rate: 0.219, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 2€/ημέρα (≈60€/μήνα). Υπέρβαση 0.219€/kWh.' },
       { id: 'enrw_wave_25',  name: 'My Wave Daily 2,5€/ημέρα, έως 5.400 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 75.00, flat_annual_kwh: 5400,  flat_overage_rate: 0.209, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 2,5€/ημέρα (≈75€/μήνα). Υπέρβαση 0.209€/kWh.' },
       { id: 'enrw_wave_3',   name: 'My Wave Daily 3€/ημέρα, έως 6.600 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 90.00, flat_annual_kwh: 6600,  flat_overage_rate: 0.199, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 3€/ημέρα (≈90€/μήνα). Υπέρβαση 0.199€/kWh.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'wattvolt', label: 'Watt+Volt (πλέον Protergia)', url: 'https://www.protergia.gr',
@@ -228,7 +231,7 @@ const PROVIDERS = [
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'wv_biz_standard',  name: 'Business Standard',      badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1520, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό (Γ21). Επιβεβαίωσε τρέχουσα τιμή.' },
       { id: 'wv_biz_blue',      name: 'Business Blue Σταθερό',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1590, kwh_night: null, flat_monthly: null, fixed: 12.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό 12μηνο επαγγελματικό.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'eunice', label: 'Eunice Power', url: 'https://eunice-power.gr',
@@ -238,13 +241,13 @@ const PROVIDERS = [
       { id: 'eun_home_special', name: 'Ειδικό Τιμολόγιο Home',  badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1600, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Ειδικό Γ1. Ανακοινώνεται κάθε 1η του μήνα.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'eun_biz_secure',   name: 'Small Business Secure',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1650, kwh_night: null, flat_monthly: null, fixed: 4.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό επαγγελματικό μικρής επιχείρησης. Πάγιο 4€.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
   {
     value: 'fysiko_aerio', label: 'Φυσικό Αέριο Ελλάδος', url: 'https://www.fysikoaerioellados.gr',
     tariffs: [
       { id: 'fa_oikia',         name: 'Oikia Green',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.14265, kwh_night: null, fixed: 5.00, contract_months: 0, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Ανακοινώνεται κάθε 1η μήνα.' },
-    ] as unknown as Tariff[],
+    ] as unknown as LocalTariff[],
   },
 ];
 
@@ -264,6 +267,78 @@ const ELEC_DEFAULTS = {
   kwhMonthly: '250', nightPct: '30', kwhHistory: Array(12).fill(''),
   contractStart: '', contractMonths: '', manualMonthly: '',
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΣΥΓΚΡΙΣΗ ΩΣ ΕΙΔΟΠΟΙΗΣΗ, ΟΧΙ ΩΣ ΚΑΡΤΕΛΑ.
+//
+// Ο ιδιοκτήτης δεν ανοίγει καρτέλα «σύγκριση παρόχων» — δεν ξύπνησε το πρωί
+// θέλοντας να συγκρίνει τιμολόγια. Θέλει να του πουν, μία φορά, ότι πληρώνει
+// παραπάνω. Αυτή η συνάρτηση απαντά ΜΟΝΟ όταν υπάρχει πραγματική διαφορά πάνω
+// σε ΠΡΑΓΜΑΤΙΚΗ κατανάλωση: αν δεν ξέρουμε πόσες κιλοβατώρες καίει (ούτε από
+// ιστορικό, ούτε από τους λογαριασμούς του), επιστρέφει null. Σύγκριση πάνω σε
+// μαντεψιά είναι χειρότερη από καμία σύγκριση: οδηγεί σε αλλαγή παρόχου με
+// λάθος κριτήριο.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Το ελάχιστο μηνιαίο όφελος που αξίζει να διακόψει τον χρήστη. */
+const SWITCH_NOISE = 5;
+
+export interface SwitchFinding {
+  /** Τι πληρώνει σήμερα, τον μήνα. */
+  current: number;
+  /** Τι θα πλήρωνε με την καλύτερη εναλλακτική. */
+  best: number;
+  /** Πάντα θετικό: πόσα τον μήνα. */
+  savingsMonthly: number;
+  /** Πώς λέγεται η εναλλακτική («ΔΕΗ myHome Enter»). */
+  bestLabel: string;
+  /** Πάνω σε τι στηρίζεται το νούμερο, με τα λόγια του χρήστη. */
+  basedOn: string;
+}
+
+export function electricitySwitchFinding(
+  s: Record<string, unknown> | null | undefined,
+  billsKwh: number[],
+): SwitchFinding | null {
+  if (!s) return null;
+  const usageEst = estimateUsage(
+    (s.kwhHistory as string[]) ?? [], billsKwh, parseFloat(String(s.kwhMonthly ?? '')),
+  );
+  // Χωρίς αξιόπιστη κατανάλωση, καμία ειδοποίηση.
+  if (usageEst.source === 'unknown' || !usageEst.reliable) return null;
+
+  const providerObj = PROVIDERS.find(p => p.value === (s.elecProvider ?? 'dei')) || PROVIDERS[0];
+  const tariff = providerObj.tariffs.find(t => t.id === s.elecTariff) || providerObj.tariffs[0];
+  if (!tariff) return null;
+
+  const usage: Usage = {
+    kwhMonthly: usageEst.kwhMonthly,
+    nightPct: parseFloat(String(s.nightPct ?? '')) || 30,
+    ebill: s.useEbill === undefined ? true : Boolean(s.useEbill),
+    manualMonthly: parseFloat(String(s.manualMonthly ?? '')) || 0,
+  };
+  const current = monthlyCost(tariff as Tariff, usage).total;
+
+  const ranked = compareTariffs(
+    PROVIDERS.flatMap(p => p.tariffs.map(t => ({ ...t, providerLabel: p.label }))) as (LocalTariff & { providerLabel: string })[],
+    usage, tariff.id, current,
+  ).filter(r => r.tariff.segment === tariff.segment);
+
+  const best = ranked[0];
+  if (!best || best.isCurrent) return null;
+  const savings = current - best.cost.total;
+  if (!(savings >= SWITCH_NOISE)) return null;
+
+  return {
+    current, best: best.cost.total, savingsMonthly: savings,
+    bestLabel: `${best.tariff.providerLabel} ${best.tariff.name}`,
+    basedOn: usageEst.source === 'history'
+      ? `${usageEst.kwhMonthly} kWh τον μήνα, από το ιστορικό σου`
+      : usageEst.source === 'bills'
+      ? `${usageEst.kwhMonthly} kWh τον μήνα, από τους λογαριασμούς σου`
+      : `${usageEst.kwhMonthly} kWh τον μήνα`,
+  };
+}
 
 export default function BillsElectricity({ propertyId, userId, onNavigateTab }: { propertyId: string; userId?: string; onNavigateTab?: (tab: string) => void }) {
   const supabase   = createClient();
@@ -289,6 +364,10 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   const [manualMonthly,    setManualMonthly]    = useState('');
   const [insData,          setInsData]          = useState<{ eq: boolean; fl: boolean } | null>(null);
   const [segmentFilter,    setSegmentFilter]    = useState<'residential' | 'business'>('residential');
+  // Κιλοβατώρες από τους ΠΡΑΓΜΑΤΙΚΟΥΣ λογαριασμούς του χρήστη. Η στήλη bills.kwh
+  // υπήρχε από την αρχή και δεν τη ρωτούσε κανείς: η σύγκριση έτρεχε πάνω σε
+  // προεπιλογή 250 κιλοβατώρες, δηλαδή πάνω σε κατανάλωση κάποιου άλλου.
+  const [billsKwh,         setBillsKwh]         = useState<number[]>([]);
 
   // Load from settings
   useEffect(() => {
@@ -309,7 +388,20 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     (async () => {
       try {
         const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'insurance').maybeSingle();
-        if (data?.data) { const d = data.data as any; setInsData({ eq: !!d.insCustomEarthquake, fl: !!d.insCustomFlood }); }
+        if (data?.data) { const d = data.data as Record<string, unknown>; setInsData({ eq: !!d.insCustomEarthquake, fl: !!d.insCustomFlood }); }
+      } catch (_) {}
+    })();
+  }, [propertyId]);
+
+  // Οι δικές του κιλοβατώρες, από τους δικούς του λογαριασμούς ρεύματος.
+  useEffect(() => {
+    if (!propertyId) return;
+    (async () => {
+      try {
+        const { data } = await supabase.from('bills')
+          .select('kwh,created_at').eq('property_id', propertyId).eq('category', 'electricity')
+          .not('kwh', 'is', null).order('created_at', { ascending: false }).limit(12);
+        setBillsKwh((data ?? []).map(b => Number((b as { kwh?: number }).kwh)).filter(n => Number.isFinite(n) && n > 0));
       } catch (_) {}
     })();
   }, [propertyId]);
@@ -322,48 +414,28 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   const tariff        = providerObj.tariffs.find(t => t.id === tariffId) || providerObj.tariffs[0];
   const tariffBc      = bc(tariff.badge);
 
-  const kwh     = parseFloat(kwhMonthly)  || 0;
-  const nightP  = parseFloat(nightPct)    || 30;
-  const dayKwh  = kwh * (1 - nightP / 100);
-  const niteKwh = kwh * (nightP / 100);
-  const fixedToUse = useEbill && tariff.fixed_ebill != null ? tariff.fixed_ebill : tariff.fixed;
+  // ── ΜΙΑ ΚΑΤΑΝΑΛΩΣΗ, ΤΟΥ ΧΡΗΣΤΗ ──────────────────────────────────────────
+  // Σειρά: το δωδεκάμηνο που συμπλήρωσε, μετά οι κιλοβατώρες των λογαριασμών
+  // του, μετά ό,τι έγραψε στο πεδίο. Αν δεν υπάρχει τίποτα, το λέμε και δεν
+  // συγκρίνουμε: σύγκριση πάνω σε μαντεψιά οδηγεί σε αλλαγή παρόχου με λάθος
+  // κριτήριο, που είναι χειρότερο από καμία σύγκριση.
+  const usageEst = useMemo(
+    () => estimateUsage(kwhHistory, billsKwh, parseFloat(kwhMonthly)),
+    [kwhHistory, billsKwh, kwhMonthly],
+  );
+  const kwh = usageEst.kwhMonthly;
+  const nightP = parseFloat(nightPct) || 30;
+  const manualNum = parseFloat(manualMonthly) || 0;
+  // Απλό αντικείμενο, χωρίς useMemo: ο υπολογισμός είναι μια πρόσθεση και ένας
+  // πολλαπλασιασμός. Το να τον «βελτιστοποιήσουμε» θα έκρυβε τη μία αλήθεια
+  // πίσω από εξαρτήσεις που πρέπει να μένουν συγχρονισμένες με το χέρι.
+  const usage: Usage = { kwhMonthly: kwh, nightPct: nightP, ebill: useEbill, manualMonthly: manualNum };
 
-  // FIX: helper computes overage charge for capped all-in packages (Picasso, My Wave Daily),
-  // spread evenly across the 12 months so it can be added straight into a monthly figure.
-  const flatOverageMonthly = (t: Tariff, kwhPerMonth: number): number => {
-    if (!t.flat_annual_kwh || !t.flat_overage_rate) return 0;
-    const projectedAnnual = kwhPerMonth * 12;
-    const allowance = t.flat_annual_kwh * 1.05; // 5% δωρεάν ανοχή
-    if (projectedAnnual <= allowance) return 0;
-    return ((projectedAnnual - allowance) * t.flat_overage_rate) / 12;
-  };
-
-  const calcMonthly = useMemo(() => {
-    if (!tariff) return 0;
-    // FIX: was checking only 'fixed_monthly' while Picasso/ZeΝergy/WaveDaily used 'flat' —
-    // those tariffs fell through to `return 0` and showed ~0€ estimated cost. Now unified,
-    // plus overage is added if the user's projected consumption exceeds the package limit.
-    if (tariff.type === 'fixed_monthly') {
-      return (tariff.flat_monthly || 0) + flatOverageMonthly(tariff, kwh);
-    }
-    if (tariff.type === 'dynamic') return parseFloat(manualMonthly) || 0;
-    if (tariff.type === 'vnm' || tariff.type === 'variable' || tariff.type === 'fixed') {
-      let charge = 0;
-      if (tariff.kwh_tier2 && tariff.tier2_threshold) {
-        const tier1 = Math.min(kwh, tariff.tier2_threshold);
-        const tier2 = Math.max(0, kwh - tariff.tier2_threshold);
-        const dayT1 = Math.min(dayKwh, tier1);
-        charge = dayT1 * tariff.kwh_day + (dayKwh - dayT1) * tariff.kwh_day + tier2 * tariff.kwh_tier2;
-        if (tariff.kwh_night) charge += niteKwh * tariff.kwh_night;
-      } else {
-        charge = dayKwh * tariff.kwh_day;
-        if (tariff.kwh_night) charge += niteKwh * tariff.kwh_night;
-        else charge += niteKwh * tariff.kwh_day;
-      }
-      return fixedToUse + charge + kwh * (ERT + ETMEAR);
-    }
-    return 0;
-  }, [tariff, kwh, dayKwh, niteKwh, fixedToUse, manualMonthly]);
+  // ΕΝΑΣ ΤΥΠΟΣ. Πριν υπήρχαν δύο, ένας για «το τιμολόγιό σου» και ένας για τη
+  // σύγκριση, και διέφεραν σε τρία σημεία. Ο υπολογισμός ζει πλέον στο
+  // lib/energy/tariff.ts με 53 ελέγχους από πάνω του.
+  const currentCost = monthlyCost(tariff as Tariff, usage);
+  const calcMonthly = currentCost.total;
 
   // Contract countdown
   const contractExpiry = useMemo(() => {
@@ -377,37 +449,17 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     return { date: expiry.toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' }), daysLeft };
   }, [contractStart, contractMonths]);
 
-  // Comparison, all tariffs from all providers
-  const allTariffs = useMemo(() => {
-    return PROVIDERS.flatMap(p => p.tariffs.map(t => {
-      const isCurrent = t.id === tariffId;
-      let monthly = 0;
-      if (t.type === 'fixed_monthly') {
-        // FIX: same 'flat' vs 'fixed_monthly' mismatch as calcMonthly, was falling into
-        // the €/kWh branch below with kwh_day:0, producing a near-zero bogus "cheapest" price.
-        monthly = (t.flat_monthly || 0) + flatOverageMonthly(t, kwh);
-      } else if (t.type !== 'dynamic') {
-        let charge = dayKwh * t.kwh_day;
-        if (t.kwh_night) charge += niteKwh * t.kwh_night;
-        else charge += niteKwh * t.kwh_day;
-        if (t.kwh_tier2 && t.tier2_threshold) {
-          const tier1 = Math.min(kwh, t.tier2_threshold);
-          const tier2 = Math.max(0, kwh - t.tier2_threshold);
-          charge = tier1 * t.kwh_day + tier2 * t.kwh_tier2;
-          if (t.kwh_night) charge += niteKwh * t.kwh_night;
-        }
-        const fixedCost = t.fixed_ebill != null ? t.fixed_ebill : t.fixed;
-        monthly = fixedCost + charge + kwh * (ERT + ETMEAR);
-      }
-      const diff = isCurrent ? 0 : monthly - calcMonthly;
-      return { ...t, providerLabel: p.label, monthly, isCurrent, diff };
-    })).filter(t => t.type !== 'dynamic')
-      // FIX: the Οικιακό/Επιχειρηματικό toggle existed in the UI and segmentFilter was
-      // already in the dependency array, but nothing ever filtered by it, both tabs
-      // showed the identical mixed list. Now the toggle actually does something.
-      .filter(t => t.segment === segmentFilter)
-      .sort((a, b) => a.monthly - b.monthly);
-  }, [kwh, dayKwh, niteKwh, calcMonthly, tariffId, segmentFilter]);
+  // Σύγκριση με ΤΟΝ ΙΔΙΟ τύπο που υπολόγισε το τρέχον τιμολόγιο.
+  // Χωρίς useMemo: εκατό τιμολόγια επί μερικές πράξεις το καθένα κοστίζουν
+  // μικροδευτερόλεπτα, ενώ ένας πίνακας εξαρτήσεων που ξεχνιέται κοστίζει λάθος
+  // τιμή στην οθόνη. Η ταχύτητα εδώ δεν ήταν ποτέ το πρόβλημα.
+  const allTariffs = compareTariffs(
+    PROVIDERS.flatMap(p => p.tariffs.map(t => ({ ...t, providerLabel: p.label }))) as (LocalTariff & { providerLabel: string })[],
+    usage, tariffId, calcMonthly,
+  )
+    // Το κουμπί Οικιακό/Επιχειρηματικό υπήρχε και δεν φιλτράριζε τίποτα.
+    .filter(r => r.tariff.segment === segmentFilter)
+    .map(r => ({ ...r.tariff, monthly: r.cost.total, isCurrent: r.isCurrent, diff: r.diff }));
 
   const bestMonthly  = allTariffs[0]?.monthly || 0;
   const savings      = calcMonthly - bestMonthly;
@@ -539,7 +591,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   </span>
                 )}
                 <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                  Μηνιαίο πάγιο:{'  '}<strong>{tariff.no_fixed ? '0,00 €' : `${fixedToUse.toFixed(2)} € / μήνα`}</strong>
+                  Μηνιαίο πάγιο:{'  '}<strong>{tariff.no_fixed ? '0,00 €' : `${((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed).toFixed(2)} € / μήνα`}</strong>
                 </span>
               </div>
             )}
@@ -603,6 +655,22 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           <NumberInput label="Μέση Μηνιαία Κατανάλωση (kWh)" value={kwhMonthly} onChange={v => { setKwhMonthly(v); save({ kwhMonthly: v }); }} suffix="kWh" step={10}/>
           {tariff.kwh_night && <NumberInput label="Νυχτερινή Κατανάλωση (%)" value={nightPct} onChange={v => { setNightPct(v); save({ nightPct: v }); }} suffix="%" step={5}/>}
           {tariff.type === 'dynamic' && <NumberInput label="Μηνιαίο Κόστος (€), Από Λογαριασμό" value={manualMonthly} onChange={v => { setManualMonthly(v); save({ manualMonthly: v }); }} suffix="€" step={1}/>}
+        </div>
+
+        {/* ΑΠΟ ΠΟΥ ΒΓΗΚΕ Ο ΑΡΙΘΜΟΣ. Χωρίς αυτό, ο χρήστης δεν έχει τρόπο να
+            ξέρει αν η σύγκριση τρέχει πάνω στη ΔΙΚΗ ΤΟΥ κατανάλωση ή σε μια
+            προεπιλογή. Πριν ήταν πάντα προεπιλογή, και δεν φαινόταν πουθενά. */}
+        <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 14 }}>
+          {usageEst.source === 'history'
+            ? `Υπολογισμός με ${usageEst.kwhMonthly} kWh τον μήνα, μέσος όρος από ${usageEst.months} ${usageEst.months === 1 ? 'μήνα' : 'μήνες'} του ιστορικού σου.`
+            : usageEst.source === 'bills'
+              ? `Υπολογισμός με ${usageEst.kwhMonthly} kWh τον μήνα, μέσος όρος από ${usageEst.months} ${usageEst.months === 1 ? 'λογαριασμό' : 'λογαριασμούς'} που έχεις καταχωρήσει.`
+              : usageEst.source === 'manual'
+                ? `Υπολογισμός με ${usageEst.kwhMonthly} kWh τον μήνα, όπως τα δήλωσες.`
+                : 'Δεν ξέρουμε ακόμη πόσο ρεύμα καίει το ακίνητο. Γράψε τη μέση μηνιαία κατανάλωση ή συμπλήρωσε το ιστορικό πιο κάτω, και η σύγκριση θα τρέξει στα δικά σου νούμερα.'}
+          {usageEst.source !== 'unknown' && !usageEst.reliable && (
+            <> Με {usageEst.months} {usageEst.months === 1 ? 'μήνα' : 'μήνες'} δεδομένων η εικόνα είναι πρόχειρη: ο Ιούλιος με κλιματιστικό και ο Απρίλιος δεν μοιάζουν.</>
+          )}
         </div>
 
         {tariff.type !== 'dynamic' && kwh > 0 && (
@@ -717,6 +785,20 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* ΤΙ ΑΚΡΙΒΩΣ ΣΥΓΚΡΙΝΕΤΑΙ ΚΑΙ ΑΠΟ ΠΟΥ. Χωρίς αυτή τη γραμμή, ο χρήστης
+              βλέπει ένα ποσό και δεν ξέρει ούτε πότε ισχύει ούτε τι δεν
+              περιλαμβάνει. Οι τιμές λιανικής ρεύματος ΔΕΝ αλλάζουν σε πραγματικό
+              χρόνο: το κυμαινόμενο ανακοινώνεται μηνιαία. Το «ζωντανή τιμή» θα
+              ήταν διαφήμιση, όχι ακρίβεια. */}
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: 11, lineHeight: 1.6, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+            Συγκρίνεται η <strong style={{ color: 'var(--text-secondary)' }}>χρέωση προμήθειας</strong>, δηλαδή πάγιο και ενέργεια, μαζί με τα ρυθμιζόμενα τέλη και τον ΦΠΑ.
+            Δεν περιλαμβάνονται χρεώσεις δικτύου ΔΕΔΔΗΕ, δημοτικά τέλη και τέλος ΕΡΤ, επειδή είναι ίδια όποιον πάροχο κι αν διαλέξεις και δεν αλλάζουν τη σειρά.
+            <br />
+            Τιμές όπως δημοσιεύονται από τους παρόχους. Τελευταίος έλεγχος: {LAST_UPDATED}.
+            {' '}<a href={RAAYEY_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Διασταύρωσε στη ΡΑΑΕΥ</a>.
+            Πριν υπογράψεις, επιβεβαίωσε την τιμή στη σελίδα του παρόχου: το κυμαινόμενο ανακοινώνεται κάθε μήνα.
           </div>
         </div>
       )}

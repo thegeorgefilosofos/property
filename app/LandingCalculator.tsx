@@ -93,7 +93,7 @@ export default function LandingCalculator() {
             ))}
             <div className="calc-marker" style={{ left: `${markerPct}%` }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
             {BANDS.map((b, i) => <span key={i}>{b.rate}</span>)}
           </div>
         </div>
@@ -109,11 +109,13 @@ export default function LandingCalculator() {
           <Stat label="Μέσος συντελεστής" value={pct(effRate)} />
         </div>
         <div style={{ flex: 1 }} />
-        <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.55, margin: 0 }}>
+        <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
           Ενδεικτικός υπολογισμός με τη φορολογική κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση 5% για συντήρηση. Υποστηρικτικός, δεν υποκαθιστά τον λογιστή σου.
         </p>
         <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>
-          Δες τα δικά σου νούμερα, αυτόματα →
+          {/* Αχώριστο διάστημα πριν το βέλος: στα 320px η ετικέτα σπάει σε δύο
+              γραμμές και χωρίς αυτό το βέλος έμενε ΜΟΝΟ του στη δεύτερη. */}
+          Δες τα δικά σου νούμερα, αυτόματα →
         </Link>
       </div>
     </div>

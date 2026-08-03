@@ -17,6 +17,7 @@ import {
 } from '@/lib/accounting/journal';
 import { downloadJournalWorkbook } from './journalXlsx';
 import { annuityMonthly } from '@/lib/loans/recommend';
+import { askCta } from '@/lib/assistant/identity';
 
 // Δόση δανείου (από περιγραφή/κατηγορία εξόδου) — ελληνικά & αγγλικά.
 const LOAN_RE = /δάνει|δόσ\w*\s*δάν|τοκοχρε|χρεολ|loan|installment|mortgage|στεγαστ/i;
@@ -67,7 +68,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   // Το ισοζύγιο μαζεύεται από default· ανοίγει με «Έλεγχος ισοζυγίου» (καθαρή εικόνα).
   const [showBalance, setShowBalance] = useState(false);
 
-  // «Ρώτησε τον βοηθό» — ανοίγει τον βοηθό με προ-συμπληρωμένη ερώτηση για το εύρημα
+  // Το κουμπί ανοίγει τη Νόα με προ-συμπληρωμένη ερώτηση για το εύρημα
   // και κλείνει το modal ώστε να φανεί ο βοηθός.
   const askAssistant = (c: { label: string; detail: string; fix?: string }) => {
     const q = `Στο λογιστικό ημερολόγιο, στον έλεγχο «${c.label}»: ${c.detail}${c.fix ? ` (${c.fix})` : ''} Εξήγησέ μου απλά τι σημαίνει και πώς το διορθώνω.`;
@@ -306,7 +307,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                                       </div>
                                       <button onClick={() => askAssistant(c)} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, fontFamily: T.font.sans, fontSize: 11.5, fontWeight: 650, color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/></svg>
-                                        Ρώτησε τον βοηθό
+                                        {askCta()}
                                       </button>
                                     </>
                                   )}

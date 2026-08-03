@@ -1,6 +1,6 @@
 // Τεστ για messages/reports/ical. Τρέξε: npx tsx lib/clients/crmFeatures.test.ts
 import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink } from './messages';
-import { revenueByChannel, revenueByMonth, occupancyPct, nightsInRange, totals } from './reports';
+import { revenueByChannel, revenueByMonth, yearOccupancy, nightsByMonth, nightsInRange, totals } from './reports';
 import { parseICal, guessChannel, isBlocked, nightsBetween, icalToStayDrafts, stayKey } from './ical';
 
 let passed = 0, failed = 0; const fails: string[] = [];
@@ -43,11 +43,38 @@ ok('other year zero', revenueByMonth(stays, 2025).every(v => v === 0));
 ok('nightsInRange full', nightsInRange({ check_in: '2026-01-01', check_out: '2026-01-06' }, '2026-01-01', '2026-02-01') === 5);
 ok('nightsInRange clipped', nightsInRange({ check_in: '2026-01-30', check_out: '2026-02-05' }, '2026-01-01', '2026-02-01') === 2);
 ok('nightsInRange outside', nightsInRange({ check_in: '2026-05-01', check_out: '2026-05-03' }, '2026-01-01', '2026-02-01') === 0);
-ok('occupancy jan (10 of 31)', occupancyPct(stays, '2026-01-01', '2026-02-01') === Math.round((8 / 31) * 1000) / 10);
-ok('occupancy zero range', occupancyPct(stays, '2026-01-01', '2026-01-01') === 0);
-ok('occupancy capped 100', occupancyPct([{ check_in: '2026-01-01', check_out: '2026-03-01' }], '2026-01-01', '2026-01-10') === 100);
+// ── πληρότητα: παρονομαστής = ΔΙΑΘΕΣΙΜΕΣ ημέρες, όχι 365 ─────────────────────
+// Το εποχιακό εξοχικό έβγαζε «16%» επειδή διαιρούσε με 365 ημέρες. Παρονομαστής
+// είναι πλέον το μετρημένο παράθυρο λειτουργίας: από τον πρώτο έως τον τελευταίο
+// μήνα με κράτηση, ολόκληροι μήνες.
+ok('nightsByMonth 12 τιμές', nightsByMonth(stays, 2026).length === 12);
+ok('nightsByMonth Ιαν 8, Φεβ 2, Μαρ 1', (() => { const n = nightsByMonth(stays, 2026); return n[0] === 8 && n[1] === 2 && n[2] === 1; })());
+const occ = yearOccupancy(stays, 2026);
+ok('παράθυρο λειτουργίας = Ιαν..Μαρ', occ.openFromMonth === 0 && occ.openToMonth === 2);
+ok('διαθέσιμες ημέρες = 31+28+31, ΟΧΙ 365', occ.availableDays === 90);
+ok('πληρότητα = 11/90, όχι 11/365', occ.pct === Math.round((11 / 90) * 1000) / 10);
+ok('πληρότητα πάνω από τον παλιό λάθος αριθμό', occ.pct > Math.round((11 / 365) * 1000) / 10);
+ok('πληρότητα υψηλής περιόδου (2ο νούμερο)', occ.peak != null && occ.peak.fromMonth === 0 && occ.peak.toMonth === 2 && occ.peak.bookedNights === 11);
+// Εποχιακό εξοχικό: γεμάτο καλοκαίρι, κλειστό τον χειμώνα.
+const seasonal = yearOccupancy([
+  { check_in: '2026-07-01', check_out: '2026-07-25' },
+  { check_in: '2026-08-01', check_out: '2026-08-28' },
+], 2026);
+ok('εποχιακό: παράθυρο Ιουλ..Αυγ (62 ημέρες)', seasonal.openFromMonth === 6 && seasonal.openToMonth === 7 && seasonal.availableDays === 62);
+ok('εποχιακό: 51/62 = 82,3%, όχι 14%', seasonal.pct === Math.round((51 / 62) * 1000) / 10 && seasonal.pct > 80);
+ok('εποχιακό: παράθυρο < 3 μήνες → υψηλή περίοδος = όλο το παράθυρο', seasonal.peak != null && seasonal.peak.days === 62);
+ok('χωρίς κρατήσεις → 0 και κανένα παράθυρο', (() => { const o = yearOccupancy([], 2026); return o.pct === 0 && o.availableDays === 0 && o.openFromMonth === null && o.peak === null; })());
 const tot = totals(stays);
 ok('totals revenue', tot.revenue === 1160 && tot.nights === 11 && tot.count === 4);
+// Κάθε συγκεντρωτικό λέει ΚΑΙ πόσες γραμμές είναι απροσδιόριστες (ακαθάριστο ή payout;)
+ok('totals: 4 απροσδιόριστες γραμμές', tot.unresolved === 4);
+ok('totals: 4 αδήλωτες διαμονές', tot.undeclared === 4);
+ok('channel unresolved', byCh.every(r => r.unresolved === r.count));
+// Με ρητή ανάλυση: τα έσοδα είναι το ΑΚΑΘΑΡΙΣΤΟ (χωρίς το τέλος), όχι το payout.
+const explicit = totals([{ channel: 'airbnb', check_in: '2026-07-01', check_out: '2026-07-05', total: 818, amount_basis: 'gross', gross_guest_paid: 1000, climate_levy: 32, platform_fee: 150, declared_at: '2026-07-06T09:00:00Z' }]);
+ok('ρητή ανάλυση → έσοδα 968 (1000 − 32 τέλος)', explicit.revenue === 968);
+ok('ρητή ανάλυση → 0 απροσδιόριστες, 0 αδήλωτες', explicit.unresolved === 0 && explicit.undeclared === 0);
+ok('ρητή ανάλυση → προμήθεια & τέλος χωριστά', explicit.platformFees === 150 && explicit.climateLevy === 32);
 
 // ── ical ─────────────────────────────────────────────────────────────────────
 const ics = [

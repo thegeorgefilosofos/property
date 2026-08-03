@@ -27,14 +27,18 @@ export interface PricingExportInput {
   year: number;
   settings: { base: number; min: number; max: number; weekendPremiumPct: number; minStay: number };
   summary: { avg: number; min: number; max: number; peakCount: number; bookedCount: number };
-  projection: { availableNights: number; expectedNights: number; occPct: number; projRevenue: number; flatRevenue: number; uplift: number; upliftPct: number } | null;
+  /** ΜΕΤΡΗΜΕΝΗ πληρότητα από το ιστορικό, ή null όταν δεν υπάρχει αρκετό.
+   *  Πριν, εδώ έμπαινε μια «προβολή εσόδων» και ένα «επιπλέον κέρδος έναντι
+   *  σταθερής τιμής» που ήταν ταυτολογία — και έφτανε σε Excel που ο χρήστης
+   *  στέλνει στον λογιστή του. Δες lib/pricing/dynamicPricing.ts. */
+  occupancy: { pct: number; nights: number } | null;
   realizedAdr: number;
   rows: PricingExportRow[];
 }
 
 /** Κατεβάζει το .xlsx δυναμικής τιμολόγησης για το έτος. */
 export function exportPricingWorkbook(inp: PricingExportInput): void {
-  const { propName, year, settings, summary, projection, realizedAdr, rows } = inp;
+  const { propName, year, settings, summary, occupancy, realizedAdr, rows } = inp;
   const wb = XLSX.utils.book_new();
   const idLine = `Property OS · ${propName} · Έτος ${year} · Ημ. έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
 
@@ -49,18 +53,19 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
       { label: 'Ελάχιστη διαμονή (νύχτες)', value: settings.minStay, z: FMT.int },
     ];
     const resultLines: Line[] = [
-      { label: 'Μέση τιμή / νύχτα', value: summary.avg, z: FMT.eur },
+      { label: 'Μέση τιμή / νύχτα (προτεινόμενη)', value: summary.avg, z: FMT.eur },
       { label: 'Αιχμή (μέγιστη πρόταση)', value: summary.max, z: FMT.eur },
-      { label: 'Κατώτατη διαθέσιμη', value: summary.min, z: FMT.eur },
-      { label: 'Εκτιμώμενη πληρότητα', value: projection ? projection.occPct : 0, z: FMT.pct },
-      { label: 'Διαθέσιμες νύχτες', value: projection ? projection.availableNights : 0, z: FMT.int },
-      { label: 'Αναμενόμενες κρατήσεις (νύχτες)', value: projection ? projection.expectedNights : 0, z: FMT.int },
-      { label: 'Εκτιμώμενα έσοδα (δυναμική τιμή)', value: projection ? projection.projRevenue : 0, z: FMT.eur },
-      { label: 'Έσοδα με σταθερή τιμή', value: projection ? projection.flatRevenue : 0, z: FMT.eur },
-      { label: 'Επιπλέον κέρδος έναντι σταθερής', value: projection ? projection.uplift : 0, z: FMT.eur, kind: 'result' },
-      { label: 'Επιπλέον έσοδα', value: projection ? projection.upliftPct : 0, z: FMT.pct },
+      { label: 'Κατώτατη πρόταση', value: summary.min, z: FMT.eur },
+      { label: 'Ημέρες αιχμής στο διάστημα', value: summary.peakCount, z: FMT.int },
+      { label: 'Ημέρες ήδη κλεισμένες', value: summary.bookedCount, z: FMT.int },
     ];
-    if (realizedAdr > 0) resultLines.push({ label: 'Πραγματοποιημένη μέση τιμή (ιστορικό)', value: Math.round(realizedAdr), z: FMT.eur });
+    // Πληρότητα ΜΟΝΟ αν είναι μετρημένη. Αλλιώς γράφεται ρητά ότι δεν υπάρχει
+    // αρκετό ιστορικό — ένα κενό κελί θα διαβαζόταν ως «μηδέν».
+    resultLines.push(occupancy
+      ? { label: 'Πληρότητα από το ιστορικό (μετρημένη)', value: occupancy.pct, z: FMT.pct }
+      : { label: 'Πληρότητα από το ιστορικό', value: 'δεν υπάρχει αρκετό ιστορικό' });
+    if (occupancy) resultLines.push({ label: 'Πραγματικές νύχτες στη μέτρηση', value: occupancy.nights, z: FMT.int });
+    if (realizedAdr > 0) resultLines.push({ label: 'Πραγματοποιημένη μέση τιμή (ιστορικό)', value: Math.round(realizedAdr), z: FMT.eur, kind: 'result' });
 
     const aoa: (string | number)[][] = [
       [`ΔΥΝΑΜΙΚΗ ΤΙΜΟΛΟΓΗΣΗ — ΣΥΝΟΨΗ ${year}`],
@@ -91,7 +96,10 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     resultLines.forEach((l, i) => {
       const r = secRow2 + 2 + i;
       setCell(ws, r, 0, { s: l.kind === 'result' ? S.totTxt : S.txt });
-      setCell(ws, r, 1, { v: fmtZ(l.value as number, l.z), t: 's', s: l.kind === 'result' ? S.totNum : S.num });
+      // Οι λεκτικές τιμές («δεν υπάρχει αρκετό ιστορικό») περνούν αυτούσιες: ένα
+      // κενό ή ένα μηδέν εκεί θα διαβαζόταν από τον λογιστή ως μέτρηση.
+      const shown = typeof l.value === 'string' ? l.value : fmtZ(l.value, l.z);
+      setCell(ws, r, 1, { v: shown, t: 's', s: l.kind === 'result' ? S.totNum : S.num });
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Σύνοψη');
   }

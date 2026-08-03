@@ -12,6 +12,24 @@ import { annuityMonthly } from '@/lib/loans/recommend'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
+// ΜΙΑ ΠΗΓΗ ΓΙΑ ΤΙΣ ΥΠΟΧΡΕΩΣΕΙΣ ΚΑΙ ΕΝΑΣ ΦΥΛΑΚΑΣ ΓΙΑ ΤΙΣ ΔΑΠΑΝΕΣ.
+// Εδώ ζούσε ΤΡΙΤΟ ημερολόγιο υποχρεώσεων (AADE_CALENDAR) με «ΕΝΦΙΑ 1 Σεπτεμβρίου»
+// και «Ε2 Ιανουάριος», που έγραφε κάθε προθεσμία ως 1η του μήνα. Σβήστηκε: οι
+// θεσμικές ημερομηνίες έρχονται από το lib/tax/greekTaxCalendar.ts μέσω του
+// obligationTasks, με confidence, επίσημη πηγή και μετάθεση σε εργάσιμη.
+import {
+  obligationDrafts, pendingDrafts, expenseFromReceipt, costVariance,
+  isTaxTaskRef, isGeneratedRef,
+  type ChecklistTaskDraft, type ReceiptEntry, type ReceiptEvidence,
+} from '@/lib/checklist/obligationTasks';
+import { taxProfileOf, type PropertyTaxProfile } from '@/lib/tax/greekTaxCalendar';
+import { WHO_LABEL, HAS_BUSINESS, type Who } from '@/lib/accounting/dossier';
+import type { FieldContext } from '@/lib/property/fields';
+import type { StatusRow } from '@/lib/property/status';
+// Σάρωση παραστατικού: ίδιο pipeline με κάθε άλλη οθόνη (scanDoc → documents.ts).
+// Καμία δική μας λογική OCR, καμία δεύτερη δρομολόγηση.
+import { scanDocument } from './scanDoc';
+import { normalizeScannedDoc, planDocSave, type ScannedDoc } from '@/lib/billing/documents';
 
 const supabase = createSupabaseClient()
 
@@ -24,6 +42,12 @@ type FilterStatus = 'all' | 'pending' | 'in_progress' | 'done' | 'overdue'
 
 interface SubTask  { id: string; text: string; done: boolean }
 interface Comment  { id: string; text: string; ts: string }
+/** Το παραστατικό που δικαιολογεί το `actual_cost`. Ζει στο JSON της σημείωσης,
+ *  χωρίς αλλαγή σχήματος: το ποσό δεν υπάρχει ποτέ χωρίς αυτό. */
+interface ItemReceipt {
+  path: string; name: string; docId?: string | null
+  amount: number; date: string; provider?: string | null; scanned_at: string
+}
 interface ChecklistItem {
   id: string; property_id: string; user_id: string; category: string
   description: string; note: string | null; completed: boolean
@@ -31,16 +55,21 @@ interface ChecklistItem {
   due_date: string | null; start_date?: string | null; recurring: Recurring
   assigned_contact_id: string | null; assigned_contact_name: string | null
   estimated_cost: number; actual_cost: number; status: Status
-  template_id: string | null; sort_order: number; budget?: number
+  template_id: string | null; sort_order: number
   depends_on?: string | null; calendar_event_id?: string | null; expense_id?: string | null
   _subtasks?: SubTask[]; _comments?: Comment[]; _tags?: string[]
+  /** Ταυτότητα παραγόμενης υποχρέωσης (`tax:` / `law:`). Κενό στις δικές του. */
+  _ref?: string | null
+  /** Επίσημη πηγή, ώστε ο χρήστης να μπορεί να επιβεβαιώσει μόνος του. */
+  _src?: string | null
+  /** Ποιος την κάνει, στο λεξιλόγιο του φακέλου του λογιστή. */
+  _who?: Who | null
+  _receipt?: ItemReceipt | null
 }
 interface Contact { id: string; full_name: string; role: string; phone?: string | null; property_id?: string | null }
 interface SmartSuggestion { title: string; reason: string; templateKey: string }
 type ProfileType = 'individual' | 'professional'
 interface TabChecklistProps { propertyId: string; userId: string }
-// Templates που αφορούν κυρίως επαγγελματική διαχείριση χαρτοφυλακίου, κρύβονται στο απλό προφίλ ιδιώτη.
-const PRO_ONLY_TEMPLATES = ['renovation', 'airbnb', 'purchase']
 
 const iStyle: React.CSSProperties = {
   width: '100%', padding: '10px 16px', borderRadius: 6,
@@ -115,15 +144,15 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id: 'checkin',     label: 'Παράδοση Ακινήτου',    color: 'var(--positive)', dot: '#34a853' },
-  { id: 'checkout',   label: 'Αποχώρηση Ενοικιαστή', color: 'var(--negative)', dot: '#ea4335' },
-  { id: 'maintenance',label: 'Συντήρηση',              color: 'var(--warning)', dot: '#f29900' },
-  { id: 'legal',      label: 'Νομικά / ΑΑΔΕ',         color: 'var(--info)', dot: '#1a73e8' },
-  { id: 'renovation', label: 'Ανακαίνιση',            color: 'var(--info)', dot: '#1967d2' },
-  { id: 'purchase',   label: 'Αγορά Ακινήτου',        color: 'var(--info)', dot: '#185fa5' },
-  { id: 'airbnb',     label: 'Short-term / Airbnb',   color: 'var(--negative)', dot: '#d93025' },
-  { id: 'financial',  label: 'Οικονομικά',            color: 'var(--accent)', dot: 'var(--accent)' },
-  { id: 'other',      label: 'Άλλο',                  color: 'var(--text-secondary)', dot: '#888' },
+  { id: 'checkin',     label: 'Παράδοση Ακινήτου',    color: 'var(--positive)' },
+  { id: 'checkout',   label: 'Αποχώρηση Ενοικιαστή', color: 'var(--negative)' },
+  { id: 'maintenance',label: 'Συντήρηση',              color: 'var(--warning)' },
+  { id: 'legal',      label: 'Νομικά / ΑΑΔΕ',         color: 'var(--info)' },
+  { id: 'renovation', label: 'Ανακαίνιση',            color: 'var(--info)' },
+  { id: 'purchase',   label: 'Αγορά Ακινήτου',        color: 'var(--info)' },
+  { id: 'airbnb',     label: 'Short-term / Airbnb',   color: 'var(--negative)' },
+  { id: 'financial',  label: 'Οικονομικά',            color: 'var(--accent)' },
+  { id: 'other',      label: 'Άλλο',                  color: 'var(--text-secondary)' },
 ]
 const PRIORITIES = [
   { value: 'critical', label: 'Κρίσιμο',  color: 'var(--negative)', bg: 'rgba(255,59,48,0.12)' },
@@ -146,21 +175,29 @@ const RECURRING_OPTIONS = [
 // Μόνο χρήσιμες, λειτουργικές ετικέτες — όχι διπλότυπα της προτεραιότητας/κατάστασης.
 const ITEM_TAGS = ['Εγγύηση', 'Ασφάλεια', 'Εξωτερικός συνεργάτης', 'DIY']
 
-const AADE_CALENDAR = [
-  { month: 1,  description: 'Υποβολή εντύπου Ε2, Μισθώματα περσινού έτους', category: 'legal', priority: 'critical' as Priority },
-  { month: 2,  description: 'Φορολογική δήλωση (Ε1), Εισοδήματα ιδιοκτήτη', category: 'legal', priority: 'critical' as Priority },
-  { month: 3,  description: 'Πληρωμή 1ης δόσης φόρου εισοδήματος', category: 'financial', priority: 'critical' as Priority },
-  { month: 5,  description: 'Καταχώρηση μισθωτηρίων ΑΑΔΕ (αν νέα)', category: 'legal', priority: 'high' as Priority },
-  { month: 7,  description: 'Πληρωμή 2ης δόσης φόρου εισοδήματος', category: 'financial', priority: 'critical' as Priority },
-  { month: 9,  description: 'Πληρωμή ΕΝΦΙΑ, 1η δόση', category: 'legal', priority: 'critical' as Priority },
-  { month: 10, description: 'Πληρωμή ΕΝΦΙΑ, 2η δόση', category: 'legal', priority: 'critical' as Priority },
-  { month: 10, description: 'Ανανέωση ασφαλιστηρίου ακινήτου', category: 'legal', priority: 'high' as Priority },
-  { month: 11, description: 'Έλεγχος ΠΕΑ, λήξη πιστοποιητικού ενεργειακής', category: 'legal', priority: 'normal' as Priority },
-  { month: 12, description: 'Προετοιμασία εγγράφων για φορολογική δήλωση', category: 'legal', priority: 'normal' as Priority },
-]
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΑ ΠΡΟΤΥΠΑ ΔΕΝ ΞΕΡΟΥΝ ΠΟΣΟ ΚΟΣΤΙΖΕΙ ΤΙΠΟΤΑ.
+//
+// Εδώ υπήρχαν 24 σταθερά κόστη («80 € service λέβητα», «500 € νομικός έλεγχος»,
+// «600 € συμβολαιογράφος») χωρίς πηγή, έτος ή περιοχή. Αθροίζονταν και
+// εμφανίζονταν ως «~1.850 €» πάνω στο πρότυπο, ως «Εκτιμώμενο κόστος» στα KPI,
+// στο Excel και στο PDF — και το χειρότερο, γράφονταν ως ΕΚΚΡΕΜΕΙΣ ΔΑΠΑΝΕΣ στον
+// πίνακα expenses. Δηλαδή νούμερα που κανείς δεν μέτρησε έμπαιναν στον
+// προϋπολογισμό και στο σύνολο δαπανών που πάει στο Ε2.
+//
+// Ένα service λέβητα στην Κοζάνη και ένα στο Κολωνάκι δεν κοστίζουν το ίδιο, και
+// ένας συμβολαιογράφος αμείβεται με ποσοστό επί της αξίας. Το πρότυπο ξέρει ΤΙ
+// πρέπει να γίνει· το ΠΟΣΟ το λέει μόνο το τιμολόγιο.
+//
+// Το `when` υπάρχει για τον ίδιο λόγο που υπάρχει το lib/property/fields.ts:
+// «ανάλογα με το τι θα επιλέξεις βλέπεις και τα αντίστοιχα πεδία, όχι παντού τα
+// πάντα». Ο ιδιοκτήτης κενού ακινήτου δεν χρειάζεται λίστα αποχώρησης ενοικιαστή.
+// ═══════════════════════════════════════════════════════════════════════════
+interface TemplateItem { description: string; category: string; priority: Priority; recurring?: Recurring; depends_on_idx?: number }
+interface Template { label: string; items: TemplateItem[]; when?: (c: FieldContext) => boolean; why?: string }
 
-const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ description: string; category: string; priority: Priority; recurring?: Recurring; estimated_cost?: number; depends_on_idx?: number }> }> = {
-  checkin: { label: 'Νέος Ενοικιαστής', color: '#34a853', items: [
+const TEMPLATES: Record<string, Template> = {
+  checkin: { label: 'Νέος Ενοικιαστής', when: c => c.status === 'rent_long' || c.status === 'vacant', why: 'Μακροχρόνια μίσθωση', items: [
     { description: 'Φωτογράφηση κάθε δωματίου (before)', category: 'checkin', priority: 'critical' },
     { description: 'Παράδοση κλειδιών, καταγραφή αριθμού σετ', category: 'checkin', priority: 'critical' },
     { description: 'Καταγραφή μετρητή ΔΕΗ', category: 'checkin', priority: 'critical' },
@@ -170,72 +207,75 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Ενημέρωση ΔΟΥ', category: 'legal', priority: 'high' },
     { description: 'Εξήγηση λειτουργίας θέρμανσης / boiler', category: 'checkin', priority: 'high' },
     { description: 'Εξήγηση λειτουργίας alarm', category: 'checkin', priority: 'high' },
-    { description: 'Ενεργοποίηση ασφαλιστηρίου', category: 'checkin', priority: 'high', estimated_cost: 300 },
+    { description: 'Ενεργοποίηση ασφαλιστηρίου', category: 'checkin', priority: 'high' },
     { description: 'Αλλαγή κωδικών WiFi', category: 'checkin', priority: 'normal' },
     { description: 'Μεταβίβαση λογαριασμών ΔΕΗ / ΕΥΔΑΠ', category: 'checkin', priority: 'normal' },
   ]},
-  checkout: { label: 'Αποχώρηση Ενοικιαστή', color: '#ea4335', items: [
+  checkout: { label: 'Αποχώρηση Ενοικιαστή', when: c => c.status === 'rent_long', why: 'Υπάρχει ενοικιαστής', items: [
     { description: 'Επιστροφή κλειδιών, έλεγχος αριθμού', category: 'checkout', priority: 'critical' },
     { description: 'Τελική ανάγνωση μετρητή ΔΕΗ', category: 'checkout', priority: 'critical' },
     { description: 'Τελική ανάγνωση μετρητή ΕΥΔΑΠ', category: 'checkout', priority: 'critical' },
     { description: 'Φωτογράφηση κατάστασης vs check-in', category: 'checkout', priority: 'critical' },
     { description: 'Λήξη μισθωτηρίου ΑΑΔΕ', category: 'legal', priority: 'critical' },
     { description: 'Διακανονισμός εγγύησης', category: 'checkout', priority: 'critical' },
-    { description: 'Τελικός καθαρισμός ακινήτου', category: 'checkout', priority: 'high', estimated_cost: 150 },
+    { description: 'Τελικός καθαρισμός ακινήτου', category: 'checkout', priority: 'high' },
     { description: 'Έλεγχος ζημιών, αξιολόγηση κόστους', category: 'checkout', priority: 'high' },
     { description: 'Ακύρωση / μεταβίβαση ΔΕΗ / ΕΥΔΑΠ', category: 'checkout', priority: 'high' },
-    { description: 'Αλλαγή κλειδαριάς', category: 'checkout', priority: 'normal', estimated_cost: 120 },
+    { description: 'Αλλαγή κλειδαριάς', category: 'checkout', priority: 'normal' },
     { description: 'Ενημέρωση ΔΟΥ για λήξη μίσθωσης', category: 'legal', priority: 'normal' },
   ]},
-  maintenance: { label: 'Ετήσια Συντήρηση', color: '#fbbc04', items: [
-    { description: 'Service καλοριφέρ / λέβητα', category: 'maintenance', priority: 'critical', recurring: 'yearly', estimated_cost: 80 },
-    { description: 'Έλεγχος πυροσβεστήρων', category: 'maintenance', priority: 'critical', recurring: 'yearly', estimated_cost: 30 },
-    { description: 'Τσεκ ηλεκτρολογικού πίνακα', category: 'maintenance', priority: 'high', recurring: 'yearly', estimated_cost: 60 },
-    { description: 'Καθαρισμός υδρορροών', category: 'maintenance', priority: 'high', recurring: 'yearly', estimated_cost: 40 },
-    { description: 'Έλεγχος στέγης / ταράτσας', category: 'maintenance', priority: 'high', recurring: 'yearly', estimated_cost: 100 },
-    { description: 'Service κλιματιστικών', category: 'maintenance', priority: 'high', recurring: 'yearly', estimated_cost: 70 },
-    { description: 'Απολύμανση / pest control', category: 'maintenance', priority: 'normal', recurring: 'yearly', estimated_cost: 80 },
+  maintenance: { label: 'Ετήσια Συντήρηση', items: [
+    { description: 'Service καλοριφέρ / λέβητα', category: 'maintenance', priority: 'critical', recurring: 'yearly' },
+    { description: 'Έλεγχος πυροσβεστήρων', category: 'maintenance', priority: 'critical', recurring: 'yearly' },
+    { description: 'Τσεκ ηλεκτρολογικού πίνακα', category: 'maintenance', priority: 'high', recurring: 'yearly' },
+    { description: 'Καθαρισμός υδρορροών', category: 'maintenance', priority: 'high', recurring: 'yearly' },
+    { description: 'Έλεγχος στέγης / ταράτσας', category: 'maintenance', priority: 'high', recurring: 'yearly' },
+    { description: 'Service κλιματιστικών', category: 'maintenance', priority: 'high', recurring: 'yearly' },
+    { description: 'Απολύμανση / pest control', category: 'maintenance', priority: 'normal', recurring: 'yearly' },
     { description: 'Έλεγχος μόνωσης παραθύρων', category: 'maintenance', priority: 'normal', recurring: 'yearly' },
-    { description: 'Βαφή / ανανέωση κοινόχρηστων', category: 'maintenance', priority: 'low', recurring: 'yearly', estimated_cost: 200 },
-    { description: 'Service ανελκυστήρα', category: 'maintenance', priority: 'high', recurring: 'quarterly', estimated_cost: 150 },
+    { description: 'Βαφή / ανανέωση κοινόχρηστων', category: 'maintenance', priority: 'low', recurring: 'yearly' },
+    { description: 'Service ανελκυστήρα', category: 'maintenance', priority: 'high', recurring: 'quarterly' },
   ]},
-  legal: { label: 'Νομικά / ΑΑΔΕ', color: '#9334e6', items: [
-    { description: 'Κατάθεση Ε2 (δήλωση μισθωμάτων)', category: 'legal', priority: 'critical', recurring: 'yearly' },
-    { description: 'Πληρωμή ΕΝΦΙΑ', category: 'legal', priority: 'critical', recurring: 'yearly' },
-    { description: 'Ανανέωση ασφαλιστηρίου ακινήτου', category: 'legal', priority: 'critical', recurring: 'yearly', estimated_cost: 300 },
-    { description: 'Έλεγχος ΠΕΑ (Πιστοποιητικό Ενεργειακής)', category: 'legal', priority: 'high' },
+  // ΤΟ Ε2, Ο ΕΝΦΙΑ ΚΑΙ ΤΟ Ε9 ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Είχαν την ίδια υποχρέωση χωρίς
+  // ημερομηνία, δίπλα σε ένα ημερολόγιο που την έχει με ημερομηνία, πηγή και
+  // «ποιος το κάνει». Δύο γραμμές για το ίδιο πράγμα σημαίνει ότι ο χρήστης
+  // τσεκάρει τη μία και νομίζει ότι τελείωσε. Έρχονται πλέον από τις
+  // «Υποχρεώσεις & νομοθεσία» (lib/tax/greekTaxCalendar.ts).
+  legal: { label: 'Έγγραφα ακινήτου', items: [
+    { description: 'Ανανέωση ασφαλιστηρίου ακινήτου', category: 'legal', priority: 'critical', recurring: 'yearly' },
+    { description: 'Έλεγχος ΠΕΑ (Πιστοποιητικό Ενεργειακής Απόδοσης)', category: 'legal', priority: 'high' },
     { description: 'Έλεγχος βεβαίωσης μηχανικού', category: 'legal', priority: 'high' },
     { description: 'Πληρωμή δημοτικών τελών', category: 'financial', priority: 'normal', recurring: 'yearly' },
   ]},
-  renovation: { label: 'Ανακαίνιση', color: '#1967d2', items: [
+  renovation: { label: 'Ανακαίνιση', when: c => c.status === 'renovation' || c.propertyCount >= 3, why: 'Ακίνητο σε εργασίες', items: [
     { description: 'Αίτηση άδειας εργασιών', category: 'renovation', priority: 'critical' },
     { description: 'Επιλογή και ανάθεση εργολάβου', category: 'renovation', priority: 'critical', depends_on_idx: 0 },
     { description: 'Σύνταξη σύμβασης εργολάβου', category: 'renovation', priority: 'critical', depends_on_idx: 1 },
     { description: 'Φωτογράφηση πριν την έναρξη', category: 'renovation', priority: 'critical' },
-    { description: 'Έλεγχος ηλεκτρολογικής εγκατάστασης', category: 'renovation', priority: 'high', estimated_cost: 200 },
+    { description: 'Έλεγχος ηλεκτρολογικής εγκατάστασης', category: 'renovation', priority: 'high' },
     { description: 'Φάση 1, Κατεδάφιση', category: 'renovation', priority: 'normal', depends_on_idx: 2 },
     { description: 'Φάση 2, Κατασκευή', category: 'renovation', priority: 'normal', depends_on_idx: 5 },
     { description: 'Φάση 3, Φινίρισμα', category: 'renovation', priority: 'normal', depends_on_idx: 6 },
     { description: 'Τελική επιθεώρηση και παραλαβή', category: 'renovation', priority: 'critical', depends_on_idx: 7 },
   ]},
-  airbnb: { label: 'Short-term / Airbnb', color: '#d93025', items: [
-    { description: 'Ρύθμιση smart lock / κωδικός check-in', category: 'airbnb', priority: 'critical', estimated_cost: 150 },
+  airbnb: { label: 'Short-term / Airbnb', when: c => c.status === 'rent_short', why: 'Βραχυχρόνια μίσθωση', items: [
+    { description: 'Ρύθμιση smart lock / κωδικός check-in', category: 'airbnb', priority: 'critical' },
     { description: 'Δημιουργία οδηγού φιλοξενίας', category: 'airbnb', priority: 'critical' },
     { description: 'Καταχώρηση σε Airbnb / Booking.com', category: 'airbnb', priority: 'critical' },
-    { description: 'Φωτογράφηση από επαγγελματία', category: 'airbnb', priority: 'high', estimated_cost: 200 },
+    { description: 'Φωτογράφηση από επαγγελματία', category: 'airbnb', priority: 'high' },
     { description: 'Εγγραφή στο Μητρώο Βραχυχρόνιας Μίσθωσης ΑΑΔΕ', category: 'legal', priority: 'critical' },
     { description: 'Ρύθμιση καναλιού καθαριότητας', category: 'airbnb', priority: 'high' },
-    { description: 'Ανεφοδιασμός (σαπούνια, χαρτί κλπ)', category: 'airbnb', priority: 'normal', recurring: 'monthly', estimated_cost: 30 },
-    { description: 'Τσεκ κλιματισμού πριν κάθε σεζόν', category: 'airbnb', priority: 'high', recurring: 'quarterly', estimated_cost: 70 },
+    { description: 'Ανεφοδιασμός (σαπούνια, χαρτί κλπ)', category: 'airbnb', priority: 'normal', recurring: 'monthly' },
+    { description: 'Τσεκ κλιματισμού πριν κάθε σεζόν', category: 'airbnb', priority: 'high', recurring: 'quarterly' },
   ]},
-  purchase: { label: 'Αγορά Ακινήτου', color: '#1967d2', items: [
-    { description: 'Νομικός έλεγχος τίτλων ιδιοκτησίας', category: 'purchase', priority: 'critical', estimated_cost: 500 },
-    { description: 'Τεχνικός έλεγχος ακινήτου από μηχανικό', category: 'purchase', priority: 'critical', estimated_cost: 300 },
+  purchase: { label: 'Αγορά Ακινήτου', when: c => c.propertyCount >= 3 || c.status === 'for_sale', why: 'Χαρτοφυλάκιο σε κίνηση', items: [
+    { description: 'Νομικός έλεγχος τίτλων ιδιοκτησίας', category: 'purchase', priority: 'critical' },
+    { description: 'Τεχνικός έλεγχος ακινήτου από μηχανικό', category: 'purchase', priority: 'critical' },
     { description: 'Έλεγχος βαρών / υποθηκών κτηματολόγιο', category: 'purchase', priority: 'critical' },
-    { description: 'Πιστοποιητικό ενεργειακής απόδοσης ΠΕΑ', category: 'purchase', priority: 'critical', estimated_cost: 150 },
-    { description: 'Συμβολαιογράφος, προσύμφωνο', category: 'purchase', priority: 'critical', estimated_cost: 600, depends_on_idx: 0 },
+    { description: 'Πιστοποιητικό ενεργειακής απόδοσης ΠΕΑ', category: 'purchase', priority: 'critical' },
+    { description: 'Συμβολαιογράφος, προσύμφωνο', category: 'purchase', priority: 'critical', depends_on_idx: 0 },
     { description: 'Έγκριση δανείου από τράπεζα', category: 'purchase', priority: 'critical' },
-    { description: 'Ασφάλεια ακινήτου', category: 'purchase', priority: 'high', estimated_cost: 300 },
+    { description: 'Ασφάλεια ακινήτου', category: 'purchase', priority: 'high' },
     { description: 'Τελικό συμβόλαιο αγοράς', category: 'purchase', priority: 'critical', depends_on_idx: 4 },
     { description: 'Μεταγραφή στο κτηματολόγιο', category: 'purchase', priority: 'critical', depends_on_idx: 7 },
     { description: 'Εγγραφή στο ΑΑΔΕ ως ιδιοκτήτης', category: 'legal', priority: 'high' },
@@ -275,21 +315,45 @@ function nextDueDate(due: string, recurring: Recurring): string {
   else if (recurring === 'yearly') d.setFullYear(d.getFullYear() + 1)
   return d.toISOString().split('T')[0]
 }
+// ── Η σημείωση ως φάκελος ──────────────────────────────────────────────────
+// Η στήλη `note` κρατά JSON (__cv:2) με τη σημείωση, τις υπο-εργασίες, τα σχόλια
+// και τις ετικέτες. Προστίθενται τρία πράγματα ΧΩΡΙΣ αλλαγή σχήματος, γιατί η
+// βάση είναι σε free tier χωρίς αντίγραφα και μια νέα στήλη δεν στήνεται εδώ:
+//   • ref     — η ταυτότητα παραγόμενης υποχρέωσης, ώστε να μη γραφτεί δύο φορές
+//   • src     — η επίσημη πηγή, ώστε ο χρήστης να επιβεβαιώνει μόνος του
+//   • receipt — ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ που δικαιολογεί το actual_cost
+// Άγνωστα κλειδιά αγνοούνται από παλιότερες εκδόσεις, άρα τίποτα δεν σπάει.
+interface NotePayload {
+  note: string; subtasks: SubTask[]; comments: Comment[]; tags: string[]
+  ref?: string | null; src?: string | null; who?: Who | null; receipt?: ItemReceipt | null
+}
 function parseItem(item: ChecklistItem): ChecklistItem {
   try {
     const p = JSON.parse(item.note || '{}')
-    if (p?.__cv === 2) return { ...item, note: p.note || null, _subtasks: p.subtasks || [], _comments: p.comments || [], _tags: p.tags || [] }
+    if (p?.__cv === 2) return {
+      ...item, note: p.note || null,
+      _subtasks: p.subtasks || [], _comments: p.comments || [], _tags: p.tags || [],
+      _ref: p.ref || null, _src: p.src || null, _who: p.who || null, _receipt: p.receipt || null,
+    }
   } catch {}
-  return { ...item, _subtasks: [], _comments: [], _tags: [] }
+  return { ...item, _subtasks: [], _comments: [], _tags: [], _ref: null, _src: null, _who: null, _receipt: null }
 }
-function serializeNote(d: { note: string; subtasks: SubTask[]; comments: Comment[]; tags: string[] }) {
+function serializeNote(d: NotePayload) {
   return JSON.stringify({ __cv: 2, ...d })
 }
+/** Ό,τι δεν επεξεργάζεται η φόρμα αλλά ΔΕΝ επιτρέπεται να χαθεί σε μια αποθήκευση. */
+function carryOver(item?: ChecklistItem | null): Pick<NotePayload, 'ref' | 'src' | 'who' | 'receipt'> {
+  return { ref: item?._ref || null, src: item?._src || null, who: item?._who || null, receipt: item?._receipt || null }
+}
+// ΤΟ `actual_cost` ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ ΤΗΣ ΦΟΡΜΑΣ, ΕΠΙΤΗΔΕΣ. Μπαίνει μόνο από
+// σαρωμένο παραστατικό (ItemReceipt). Πληκτρολογημένο ποσό χωρίς συνημμένο είναι
+// ακριβώς η «Απόκλιση» που έφτανε στον λογιστή ως 0 − εκτίμηση.
+// Το `budget` έφυγε επίσης: γραφόταν πάντα 0 και εμφανιζόταν μόνο σε μια στήλη Excel.
 const mkEmpty = () => ({
   description: '', category: 'other', note: '', priority: 'normal' as Priority,
-  due_date: '', start_date: '', recurring: 'none' as Recurring,
+  due_date: '', recurring: 'none' as Recurring,
   assigned_contact_id: '', assigned_contact_name: '',
-  estimated_cost: '', actual_cost: '', budget: '', status: 'pending' as Status,
+  estimated_cost: '', status: 'pending' as Status,
   subtasks: [] as SubTask[], tags: [] as string[], comments: [] as Comment[], depends_on: '',
 })
 
@@ -351,6 +415,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
   const done = items.filter(i => i.status === 'done').length
   const totalEst = items.reduce((s, i) => s + (i.estimated_cost || 0), 0)
   const totalAct = items.reduce((s, i) => s + (i.actual_cost || 0), 0)
+  const totalVar = costVariance(totalEst, totalAct)
   const overdue = items.filter(i => isOverdue(i.due_date, i.status)).length
 
   const byCategory: Record<string, { count: number; done: number; est: number; act: number }> = {}
@@ -377,14 +442,17 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
     ['Ληγμένα', overdue],
     ['Ποσοστό Ολοκλήρωσης (%)', items.length > 0 ? Math.round((done / items.length) * 100) : 0],
     [''],
+    // Η ΑΠΟΚΛΙΣΗ ΓΡΑΦΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΥΠΑΡΧΟΥΝ ΚΑΙ ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ. Πριν, το
+    // actual_cost δεν είχε κανένα input και γραφόταν πάντα 0, άρα η «Απόκλιση»
+    // ήταν δομικά −(εκτίμηση) — και έφτανε στον λογιστή σαν μέτρηση.
     ['ΟΙΚΟΝΟΜΙΚΗ ΣΥΝΟΨΗ', ''],
-    ['Εκτιμώμενο Κόστος (€)', totalEst],
-    ['Πραγματικό Κόστος (€)', totalAct],
-    ['Απόκλιση (€)', totalAct - totalEst],
-    ['Απόκλιση (%)', totalEst > 0 ? Math.round(((totalAct - totalEst) / totalEst) * 1000) / 10 : 0],
+    ['Δική σου εκτίμηση (€)', totalEst || ''],
+    ['Πληρωμένο με παραστατικό (€)', totalAct || ''],
+    ['Απόκλιση (€)', totalVar === null ? 'Δεν υπολογίζεται χωρίς και τα δύο' : totalVar],
+    ['Απόκλιση (%)', totalVar === null ? '' : Math.round((totalVar / totalEst) * 1000) / 10],
     [''],
     ['ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ', '', '', '', '', ''],
-    ['Κατηγορία', 'Εργασίες', 'Ολοκλ.', 'Πρόοδος %', 'Εκτιμώμενο €', 'Πραγματικό €'],
+    ['Κατηγορία', 'Εργασίες', 'Ολοκλ.', 'Πρόοδος %', 'Εκτίμηση €', 'Με παραστατικό €'],
     ...CATEGORIES.filter(c => byCategory[c.id]).map(c => [
       c.label,
       byCategory[c.id].count,
@@ -412,13 +480,16 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
   XLSX.utils.book_append_sheet(wb, ws1, 'Σύνοψη')
 
   // ── Sheet 2: Αναλυτική Λίστα ─────────────────────────────────────────────
-  const headers = ['Κατηγορία', 'Περιγραφή', 'Προτεραιότητα', 'Κατάσταση', 'Προθεσμία', 'Επανάληψη', 'Ανατέθηκε σε', 'Εκτιμ. Κόστος €', 'Πραγμ. Κόστος €', 'Προϋπολογισμός €', 'Εξάρτηση', 'Ετικέτες', 'Σημειώσεις']
+  // Η στήλη «Προϋπολογισμός €» έφυγε: το πεδίο `budget` δεν είχε ποτέ input και
+  // γραφόταν πάντα 0, άρα ήταν μια στήλη μηδενικών με τίτλο που υπονοεί μέτρηση.
+  // Στη θέση της μπαίνει «Παραστατικό»: ΓΙΑΤΙ ισχύει το πραγματικό κόστος.
+  const headers = ['Κατηγορία', 'Περιγραφή', 'Προτεραιότητα', 'Κατάσταση', 'Προθεσμία', 'Επανάληψη', 'Ανατέθηκε σε', 'Ποιος το κάνει', 'Εκτίμηση €', 'Με παραστατικό €', 'Παραστατικό', 'Πηγή', 'Ετικέτες', 'Σημειώσεις']
   const detailRows: (string | number)[][] = [headers]
 
   CATEGORIES.forEach(cat => {
     const catItems = items.filter(i => i.category === cat.id)
     if (catItems.length === 0) return
-    detailRows.push([cat.label, `${catItems.filter(i => i.status === 'done').length}/${catItems.length} ολοκλ.`, '', '', '', '', '', catItems.reduce((s, i) => s + (i.estimated_cost || 0), 0), catItems.reduce((s, i) => s + (i.actual_cost || 0), 0), '', '', '', ''])
+    detailRows.push([cat.label, `${catItems.filter(i => i.status === 'done').length}/${catItems.length} ολοκλ.`, '', '', '', '', '', '', catItems.reduce((s, i) => s + (i.estimated_cost || 0), 0), catItems.reduce((s, i) => s + (i.actual_cost || 0), 0), '', '', '', ''])
 
     catItems.sort((a, b) => {
       const pOrder = { critical: 0, high: 1, normal: 2, low: 3 }
@@ -432,19 +503,20 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
         item.due_date ? fmtDate(item.due_date) : '',
         RECURRING_OPTIONS.find(r => r.value === item.recurring)?.label || '',
         item.assigned_contact_name || '',
+        item._who ? WHO_LABEL[item._who] : '',
         item.estimated_cost || '',
         item.actual_cost || '',
-        (item as any).budget || '',
-        item.depends_on ? 'Ναι' : '',
+        item._receipt ? item._receipt.name : '',
+        item._src || '',
         (item._tags || []).join('; '),
         item.note || '',
       ])
     })
-    detailRows.push(['', '', '', '', '', '', '', '', '', '', '', '', ''])
+    detailRows.push(['', '', '', '', '', '', '', '', '', '', '', '', '', ''])
   })
 
   const ws2 = XLSX.utils.aoa_to_sheet(detailRows)
-  ws2['!cols'] = [{ wch: 22 }, { wch: 40 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 36 }]
+  ws2['!cols'] = [{ wch: 22 }, { wch: 40 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 22 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 24 }, { wch: 34 }, { wch: 20 }, { wch: 36 }]
   XLSX.utils.book_append_sheet(wb, ws2, 'Αναλυτικά')
 
   // ── Sheet 3: Ληγμένα & Εκκρεμή (action list) ────────────────────────────
@@ -455,7 +527,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
       const pOrder = { critical: 0, high: 1, normal: 2, low: 3 }
       return pOrder[a.priority] - pOrder[b.priority]
     })
-  const actionHeaders = ['Κατάσταση', 'Κατηγορία', 'Περιγραφή', 'Προτεραιότητα', 'Προθεσμία', 'Ημέρες', 'Ανατέθηκε σε', 'Εκτιμ. Κόστος €']
+  const actionHeaders = ['Κατάσταση', 'Κατηγορία', 'Περιγραφή', 'Προτεραιότητα', 'Προθεσμία', 'Ημέρες', 'Ανατέθηκε σε', 'Ποιος το κάνει', 'Δική σου εκτίμηση €']
   const actionRows: (string | number)[][] = [
     ['Property OS, Λίστα Εκκρεμών Ενεργειών', ''],
     [`${actionItems.length} εκκρεμή tasks · ${overdue} ληγμένα`, today],
@@ -471,12 +543,13 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
         item.due_date ? fmtDate(item.due_date) : '—',
         d !== null ? (d < 0 ? `${Math.abs(d)} πριν` : `${d} ημέρες`) : '—',
         item.assigned_contact_name || '—',
+        item._who ? WHO_LABEL[item._who] : '—',
         item.estimated_cost || '',
       ]
     }),
   ]
   const ws3 = XLSX.utils.aoa_to_sheet(actionRows)
-  ws3['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 42 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 14 }]
+  ws3['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 42 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 20 }, { wch: 16 }]
   XLSX.utils.book_append_sheet(wb, ws3, 'Εκκρεμείς Ενέργειες')
 
   XLSX.writeFile(wb, `checklist_ακινητου_${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -492,14 +565,21 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
   const grouped: Record<string, ChecklistItem[]> = {}
   items.forEach(i => { if (!grouped[i.category]) grouped[i.category] = []; grouped[i.category].push(i) })
 
-  // Οικονομική σύνοψη — μόνο αν υπάρχουν κόστη. Αρνητική απόκλιση με σφιχτό «−».
+  // ΟΙΚΟΝΟΜΙΚΗ ΣΥΝΟΨΗ, ΜΕ ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ ΞΕΧΩΡΙΣΤΑ ΚΑΙ ΟΝΟΜΑΤΙΣΜΕΝΑ.
+  // Η γραμμή «Απόκλιση» εμφανίζεται ΜΟΝΟ όταν υπάρχουν και εκτίμηση και
+  // παραστατικό. Πριν, το πραγματικό κόστος ήταν πάντα 0 (κανένα input πουθενά),
+  // άρα η απόκλιση ήταν πάντα −(εκτίμηση) και ταξίδευε στον λογιστή σαν μέτρηση.
+  const totalVar = costVariance(totalEst, totalAct)
   const financialSection = (totalEst > 0 || totalAct > 0)
     ? reportSection('Οικονομική σύνοψη')
       + '<table><tbody>'
-      + reportRow('Εκτιμώμενο κόστος', rEur(totalEst))
-      + reportRow('Πραγματικό κόστος', rEur(totalAct))
-      + reportRow('Απόκλιση', rSigned(totalAct - totalEst), 'result')
+      + reportRow('Δική σου εκτίμηση', totalEst > 0 ? rEur(totalEst) : 'Δεν έχει δηλωθεί')
+      + reportRow('Πληρωμένο με παραστατικό', totalAct > 0 ? rEur(totalAct) : 'Κανένα παραστατικό ακόμη')
+      + (totalVar === null ? '' : reportRow('Απόκλιση', rSigned(totalVar), 'result'))
       + '</tbody></table>'
+      + (totalVar === null
+        ? '<div class="sub">Η απόκλιση υπολογίζεται όταν υπάρχει και εκτίμηση και σαρωμένο παραστατικό. Χωρίς παραστατικό δεν υπάρχει πραγματικό κόστος, υπάρχει άγνωστο.</div>'
+        : '')
     : ''
 
   const groupSections = CATEGORIES.filter(c => grouped[c.id]?.length).map(cat => {
@@ -523,6 +603,7 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
         <td>${rEsc(sm.label)}</td>
         <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : '—'}${od ? '<div style="font-size:9px;color:#8a8f98">Εκπρόθεσμο</div>' : ''}</td>
         <td class="n">${item.estimated_cost > 0 ? rEsc(rEur(item.estimated_cost)) : '—'}</td>
+        <td class="n">${item.actual_cost > 0 ? rEsc(rEur(item.actual_cost)) : '—'}${item._receipt ? `<div style="font-size:9px;color:#8a8f98">${rEsc(item._receipt.name)}</div>` : ''}</td>
       </tr>`
     }).join('')
     return reportSection(cat.label)
@@ -533,13 +614,17 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
           <th>Προτεραιότητα</th>
           <th>Κατάσταση</th>
           <th class="np">Προθεσμία</th>
-          <th class="n">Εκτιμώμενο</th>
+          <th class="n">Εκτίμηση</th>
+          <th class="n">Με παραστατικό</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`
   }).join('')
 
-  const disclaimer = 'Η παρούσα λίστα εκκρεμοτήτων έχει ενημερωτικό χαρακτήρα. Οι προθεσμίες και τα εκτιμώμενα κόστη είναι ενδεικτικά. Επιβεβαίωσε τις φορολογικές προθεσμίες με τον λογιστή σου ή την ΑΑΔΕ.'
+  // Ο ΑΠΟΠΟΙΗΤΙΚΟΣ ΛΕΕΙ ΤΗΝ ΑΛΗΘΕΙΑ ΓΙΑ ΤΑ ΝΟΥΜΕΡΑ. Η στήλη «Εκτίμηση» είναι ό,τι
+  // έγραψε ο ίδιος ο χρήστης, όχι πρόταση της εφαρμογής: τα 24 σταθερά κόστη των
+  // προτύπων σβήστηκαν. Η στήλη «Με παραστατικό» έχει πίσω της αρχείο στο Αρχείο.
+  const disclaimer = 'Οι φορολογικές προθεσμίες προέρχονται από το φορολογικό ημερολόγιο της εφαρμογής, με σύνδεσμο επίσημης πηγής σε κάθε γραμμή, και όπου η ημερομηνία ανακοινώνεται ετησίως το δηλώνει ρητά. Επιβεβαίωσέ τις στο myAADE ή με τον λογιστή σου. Η «Εκτίμηση» είναι ποσό που δήλωσες εσύ, χωρίς επαλήθευση. Η στήλη «Με παραστατικό» αντιστοιχεί σε σαρωμένο τιμολόγιο ή απόδειξη που βρίσκεται στο Αρχείο.'
 
   const html = reportHead('Εκκρεμότητες ακινήτου')
     + '<body><div class="page">'
@@ -920,9 +1005,13 @@ ${sectionHtml(12, 'Δηλώσεις & Υπογραφές', `
 
 
 // ─── ItemRow ──────────────────────────────────────────────────────────────────
-function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, onAddToExpenses, onDuplicate, onSelect, selected, selectMode }: {
+/** Μια ενέργεια του μενού σειράς. Ρητός τύπος ώστε το `danger` να είναι
+ *  προαιρετικό και η λίστα να μπορεί να χτίζεται με συνθήκη. */
+interface RowAction { label: string; sub: string; icon: string; danger?: boolean; fn: () => void }
+
+function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, onScanReceipt, onDuplicate, onSelect, selected, selectMode }: {
   item: ChecklistItem; allItems: ChecklistItem[]; onToggle: () => void; onEdit: () => void; onDelete: () => void
-  onAddToCalendar: () => void; onAddToExpenses: () => void; onDuplicate: () => void
+  onAddToCalendar: () => void; onScanReceipt: () => void; onDuplicate: () => void
   onSelect?: () => void; selected?: boolean; selectMode?: boolean
 }) {
   const [hov, setHov] = useState(false)
@@ -1011,6 +1100,31 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.assigned_contact_name}</span>
           </span>
         )}
+        {/* ΠΟΙΟΣ ΤΟ ΚΑΝΕΙ, με τις ίδιες λέξεις που χρησιμοποιεί ο φάκελος του
+            λογιστή. «Το κάνει ο λογιστής» πάνω σε μια γραμμή είναι η διαφορά
+            μεταξύ μιας λίστας που αγχώνει και μιας που καθησυχάζει. */}
+        {item._who && item._who !== 'owner' && (
+          <span title={WHO_LABEL[item._who]} style={{ flexShrink: 0, padding: '1px 8px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+            {WHO_LABEL[item._who]}
+          </span>
+        )}
+        {/* ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΚΑΙ ΤΟ ΠΟΣΟ ΤΟΥ. Φαίνεται μόνο όταν υπάρχει αρχείο:
+            ποσό χωρίς χαρτί δεν εμφανίζεται πουθενά σε αυτή την οθόνη. */}
+        {item._receipt && item.actual_cost > 0 && (
+          <span title={`Παραστατικό: ${item._receipt.name}`} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--positive)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            {item.actual_cost.toLocaleString('el-GR')}€
+          </span>
+        )}
+        {/* Η ΕΠΙΣΗΜΗ ΠΗΓΗ, σε κάθε υποχρέωση που δεν την έγραψε ο χρήστης. Χωρίς
+            αυτόν τον σύνδεσμο ο χρήστης δεν έχει τρόπο να ελέγξει την ημερομηνία. */}
+        {item._src && (
+          <a href={item._src} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            title="Επίσημη πηγή, ανοίγει σε νέα καρτέλα"
+            style={{ flexShrink: 0, fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans, textDecoration: 'none' }}>
+            Πηγή
+          </a>
+        )}
       </div>
 
       {/* Μία διακριτική ενέργεια «···» — όλες οι λειτουργίες μαζεμένες, καθαρή σειρά. */}
@@ -1025,15 +1139,23 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
 
       {showMenu && (
         <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 230, boxShadow: 'var(--elev-3)' }}>
-          {[
+          {([
             { label: 'Επεξεργασία', sub: '', icon: 'M12 20h9 M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z', fn: () => { onEdit(); setShowMenu(false) } },
-            { label: 'Προγραμμάτισε υπενθύμιση', sub: item.due_date ? 'Στο ημερολόγιο + email' : 'Χρειάζεται προθεσμία', icon: 'M3 4h18v18H3z M16 2v4 M8 2v4 M3 10h18', fn: () => { onAddToCalendar(); setShowMenu(false) } },
-            { label: 'Καταχώρηση δαπάνης', sub: 'Στα Δαπάνες / προϋπολογισμό', icon: 'M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', fn: () => { onAddToExpenses(); setShowMenu(false) } },
+            // Οι ΦΟΡΟΛΟΓΙΚΕΣ προθεσμίες δεν ξαναγράφονται στο ημερολόγιο από εδώ:
+            // τις γράφει ήδη η Επισκόπηση/Ημερολόγιο με το κλειδί `tax:<id>`. Δύο
+            // κουμπιά για το ίδιο γεγονός σήμαινε δύο εγγραφές, δύο μήνες μακριά.
+            ...(isTaxTaskRef(item._ref) ? [] : [
+              { label: 'Προγραμμάτισε υπενθύμιση', sub: item.due_date ? 'Στο ημερολόγιο + email' : 'Χρειάζεται προθεσμία', icon: 'M3 4h18v18H3z M16 2v4 M8 2v4 M3 10h18', fn: () => { onAddToCalendar(); setShowMenu(false) } },
+            ]),
+            // ΤΟ ΠΟΣΟ ΜΠΑΙΝΕΙ ΜΟΝΟ ΜΕ ΦΩΤΟΓΡΑΦΙΑ. Εδώ υπήρχε «Καταχώρηση δαπάνης»
+            // που ζητούσε ποσό στο χέρι χωρίς συνημμένο: η δαπάνη δεν έφτανε ποτέ
+            // στο Αρχείο και το πραγματικό κόστος έμενε 0.
+            { label: item._receipt ? 'Άλλαξε το παραστατικό' : 'Φωτογράφισε το τιμολόγιο', sub: item._receipt ? `Τώρα: ${item._receipt.name}` : 'Ποσό, αρχείο και δαπάνη με μία κίνηση', icon: 'M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3z M12 17a4 4 0 100-8 4 4 0 000 8z', fn: () => { onScanReceipt(); setShowMenu(false) } },
             { label: 'Υπενθύμιση σε WhatsApp', sub: 'Άνοιγμα με έτοιμο μήνυμα', icon: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z', fn: () => { window.open(`https://wa.me/?text=${encodeURIComponent('Υπενθύμιση: ' + item.description + (item.due_date ? ` έως ${fmtDate(item.due_date)}` : ''))}`, '_blank'); setShowMenu(false) } },
             { label: 'Υπενθύμιση σε Viber', sub: 'Άνοιγμα με έτοιμο μήνυμα', icon: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z', fn: () => { window.open(`viber://forward?text=${encodeURIComponent('Υπενθύμιση: ' + item.description + (item.due_date ? ` έως ${fmtDate(item.due_date)}` : ''))}`, '_blank'); setShowMenu(false) } },
             { label: 'Αντιγραφή', sub: 'Δημιουργία αντιγράφου', icon: 'M9 9h13v13H9z M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1', fn: () => { onDuplicate(); setShowMenu(false) } },
             { label: 'Διαγραφή', sub: '', icon: 'M3 6h18 M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6', danger: true, fn: () => { onDelete(); setShowMenu(false) } },
-          ].map((a, i) => (
+          ] as RowAction[]).map((a, i) => (
             <button key={i} type="button" onClick={a.fn}
               style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
               onMouseEnter={e => (e.currentTarget.style.background = a.danger ? 'var(--negative-dim)' : 'var(--bg-surface)')}
@@ -1062,7 +1184,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, lineHeight: 1.4, paddingRight: 8, fontFamily: T.font.sans }}>{item.description}</div>
         <button type="button" onClick={e => { e.stopPropagation(); onToggle() }} style={{ width: 20, height: 20, borderRadius: 6, border: '2px solid ' + (item.status === 'done' ? 'var(--positive)' : 'var(--border-default)'), background: item.status === 'done' ? 'var(--positive)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-          {item.status === 'done' && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          {item.status === 'done' && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
         </button>
       </div>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: subtasks.length > 0 ? 8 : 0 }}>
@@ -1138,11 +1260,23 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
 }
 
 // ─── TemplateModal ────────────────────────────────────────────────────────────
-function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individual', smart = [] }: { onSelect: (key: string) => void; onLoadAADE: () => void; onClose: () => void; profileType?: ProfileType; smart?: SmartSuggestion[] }) {
+function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pending, smart = [] }: {
+  onSelect: (key: string) => void; onLoadObligations: () => void; onClose: () => void
+  ctx: FieldContext; pending: ChecklistTaskDraft[]; smart?: SmartSuggestion[]
+}) {
+  // Το ίδιο φίλτρο ΚΑΙ στα «Προτεινόμενα»: μια πρόταση που το `when` κρύβει από
+  // τη λίστα δεν επιτρέπεται να μπει από την πίσω πόρτα ως «προτεινόμενη».
+  const visibleSmart = smart.filter(sg => { const t = TEMPLATES[sg.templateKey]; return !t || !t.when || t.when(ctx) })
   // Ό,τι εμφανίζεται στα «Προτεινόμενα για εσένα» δεν επαναλαμβάνεται στη γενική λίστα.
-  const smartKeys = new Set(smart.map(s => s.templateKey))
-  const entries = Object.entries(TEMPLATES).filter(([key]) => (profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key)) && !smartKeys.has(key))
-  const year = new Date().getFullYear()
+  const smartKeys = new Set(visibleSmart.map(sg => sg.templateKey))
+  // ΤΟ ΦΙΛΤΡΟ ΕΙΝΑΙ Η ΚΑΤΑΣΤΑΣΗ ΤΟΥ ΑΚΙΝΗΤΟΥ, ΟΧΙ Ο ΤΥΠΟΣ ΣΥΝΔΡΟΜΗΣ. Πριν, τα
+  // πρότυπα «Ανακαίνιση/Airbnb/Αγορά» κρύβονταν με κριτήριο `profileType`, δηλαδή
+  // ο ιδιώτης με ένα ακίνητο στο Airbnb δεν έβλεπε ποτέ τη λίστα βραχυχρόνιας —
+  // ενώ ο επαγγελματίας με κενό ακίνητο τα έβλεπε όλα. Τώρα κρίνει η επιλογή του
+  // χρήστη: κατάσταση ακινήτου και πλήθος ακινήτων (lib/property/fields.ts).
+  const entries = Object.entries(TEMPLATES).filter(([key, t]) => (!t.when || t.when(ctx)) && !smartKeys.has(key))
+  // Η πρώτη προθεσμία που λείπει, για να λέει η κάρτα κάτι αληθινό και όχι πλήθος.
+  const firstDue = pending.filter(d => !!d.due_date).sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''))[0]
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 620, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
@@ -1150,18 +1284,18 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Έτοιμα πρότυπα</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>Φόρτωσε έτοιμη λίστα εργασιών με ένα κλικ, ή το ετήσιο ημερολόγιο υποχρεώσεων ΑΑΔΕ.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>Έτοιμες λίστες εργασιών, και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.</p>
             </div>
             <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
         <div style={{ padding: '18px 28px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {smart.length > 0 && (
+          {visibleSmart.length > 0 && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {smart.map(s => {
-                  const t = (TEMPLATES as any)[s.templateKey]
+                {visibleSmart.map(s => {
+                  const t = TEMPLATES[s.templateKey]
                   return (
                     <button key={s.templateKey} type="button" onClick={() => { onSelect(s.templateKey); onClose() }}
                       style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '13px 16px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
@@ -1182,27 +1316,38 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
             </div>
           )}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Φορολογικό ημερολόγιο</div>
-            <button type="button" onClick={() => { onLoadAADE(); onClose() }}
-              title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων: φορολογικό ημερολόγιο"
-              style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', borderRadius: T.radius.card, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--accent-border)' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Υποχρεώσεις &amp; νομοθεσία</div>
+            {/* ΟΧΙ «Ημερολόγιο ΑΑΔΕ 2026» με δέκα σταθερές ημερομηνίες 1ης του
+                μήνα. Οι υποχρεώσεις υπολογίζονται για ΑΥΤΟ το ακίνητο, από το ένα
+                φορολογικό ημερολόγιο και από τις αλλαγές νομοθεσίας που το
+                αφορούν. Ο αριθμός στην κάρτα είναι όσες ΛΕΙΠΟΥΝ, όχι ένα σταθερό
+                πλήθος: όταν δεν λείπει καμία, η κάρτα το λέει και δεν γράφει τίποτα. */}
+            <button type="button" onClick={() => { if (pending.length > 0) { onLoadObligations(); onClose() } }}
+              disabled={pending.length === 0}
+              title={pending.length === 0 ? 'Δεν λείπει καμία υποχρέωση αυτή τη στιγμή' : 'Προσθήκη των υποχρεώσεων που λείπουν'}
+              style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', borderRadius: T.radius.card, border: '1px solid ' + (pending.length === 0 ? 'var(--border-subtle)' : 'var(--accent-border)'), background: pending.length === 0 ? 'var(--bg-surface)' : 'var(--accent-soft)', cursor: pending.length === 0 ? 'default' : 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+              onMouseEnter={e => { if (pending.length > 0) e.currentTarget.style.borderColor = 'var(--accent)' }}
+              onMouseLeave={e => { if (pending.length > 0) e.currentTarget.style.borderColor = 'var(--accent-border)' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: pending.length === 0 ? 'var(--bg-elevated)' : 'var(--accent)', color: pending.length === 0 ? 'var(--text-tertiary)' : 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ημερολόγιο ΑΑΔΕ {year}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{AADE_CALENDAR.length} φορολογικές υποχρεώσεις · ετήσια</div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                  {pending.length === 0 ? 'Οι υποχρεώσεις είναι όλες μέσα' : `Πρόσθεσε ${pending.length} ${pending.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}`}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  {pending.length === 0
+                    ? 'Τίποτα δεν λείπει από το φορολογικό ημερολόγιο για αυτό το ακίνητο.'
+                    : firstDue ? `Πρώτη προθεσμία: ${firstDue.description}, ${fmtDate(firstDue.due_date)}` : 'Αλλαγές νομοθεσίας που αφορούν αυτό το ακίνητο'}
+                </div>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+              {pending.length > 0 && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>}
             </button>
           </div>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
               {entries.map(([key, t]) => {
-                const cost = t.items.filter(i => i.estimated_cost).reduce((s, i) => s + (i.estimated_cost || 0), 0)
                 const icons: Record<string, string> = {
                   checkin: 'M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3',
                   checkout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9',
@@ -1223,7 +1368,10 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{t.items.length} εργασίες{cost > 0 ? ` · ~${cost}€` : ''}</div>
+                      {/* ΚΑΝΕΝΑ «~1.850 €» ΕΔΩ. Το σύνολο ήταν άθροισμα 24 σταθερών
+                          χωρίς πηγή, έτος ή περιοχή. Στη θέση του μπαίνει ο λόγος
+                          που το πρότυπο εμφανίζεται σε αυτόν τον χρήστη. */}
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{t.items.length} εργασίες{t.why ? ` · ${t.why}` : ''}</div>
                     </div>
                   </button>
                 )
@@ -1237,17 +1385,18 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
 }
 
 // ─── ItemModal ────────────────────────────────────────────────────────────────
-function ItemModal({ item, contacts, allItems, onSave, onClose }: {
+function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
   item?: ChecklistItem; contacts: Contact[]; allItems: ChecklistItem[]
   onSave: (data: ReturnType<typeof mkEmpty>) => void; onClose: () => void
+  /** «Φωτογράφισε το τιμολόγιο» — ο ΜΟΝΟΣ δρόμος για πραγματικό κόστος. */
+  onScan?: () => void
 }) {
   const [form, setForm] = useState<ReturnType<typeof mkEmpty>>(item ? {
     description: item.description, category: item.category, note: item.note || '',
-    priority: item.priority, due_date: item.due_date || '', start_date: item.start_date || '',
+    priority: item.priority, due_date: item.due_date || '',
     recurring: item.recurring, assigned_contact_id: item.assigned_contact_id || '',
     assigned_contact_name: item.assigned_contact_name || '',
-    estimated_cost: String(item.estimated_cost || ''), actual_cost: String(item.actual_cost || ''),
-    budget: String((item as any).budget || ''), status: item.status,
+    estimated_cost: String(item.estimated_cost || ''), status: item.status,
     subtasks: item._subtasks || [], tags: item._tags || [],
     comments: item._comments || [], depends_on: item.depends_on || '',
   } : mkEmpty())
@@ -1269,8 +1418,13 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
             <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
             <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
           </div>
+          {/* Η ΚΑΤΑΣΤΑΣΗ ΑΠΟΚΤΑ ΕΠΙΤΕΛΟΥΣ INPUT. Το «Σε εξέλιξη» μετριόταν στα KPI
+              και είχε δική του κολόνα στον Πίνακα, χωρίς κανέναν τρόπο να επιλεγεί. */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <div><FL>Εκτιμώμενο κόστος (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="π.χ. 150" type="number" /></div>
+            <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
+            <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
             <div><FL>Ανάθεση σε επαφή</FL>
               <select value={form.assigned_contact_id} onChange={e => { const c = contacts.find(x => x.id === e.target.value); setForm(f => ({ ...f, assigned_contact_id: e.target.value, assigned_contact_name: c?.full_name || '' })) }} style={{ ...iStyle, cursor: 'pointer' }}>
                 <option value="">— Χωρίς ανάθεση —</option>
@@ -1289,12 +1443,54 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
               ))}
             </div>
           </div>
+          {/* ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΚΟΣΤΟΣ ΔΕΝ ΠΛΗΚΤΡΟΛΟΓΕΙΤΑΙ. Εδώ φαίνεται τι λέει το χαρτί,
+              ή το κουμπί που το φέρνει. Χωρίς παραστατικό δεν υπάρχει νούμερο. */}
+          <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+            <FL>Πραγματικό κόστος</FL>
+            {item?._receipt ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item._receipt.amount.toLocaleString('el-GR')} €</span>
+                <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                  {item._receipt.provider ? `${item._receipt.provider} · ` : ''}{fmtDate(item._receipt.date)} · {item._receipt.name}
+                </span>
+                {onScan && <button type="button" onClick={onScan} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλαξέ το</button>}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, flex: 1, minWidth: 180, lineHeight: 1.5 }}>
+                  Μπαίνει μόνο από το τιμολόγιο ή την απόδειξη. Φωτογράφισέ το και καταχωρείται το ποσό, το αρχείο και η δαπάνη μαζί.
+                </p>
+                {onScan && <button type="button" onClick={onScan} style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>Φωτογράφισε το τιμολόγιο</button>}
+              </div>
+            )}
+          </div>
+          {/* ΟΙ ΔΥΟ EDITORS ΠΟΥ ΟΡΙΖΟΝΤΑΝ ΚΑΙ ΔΕΝ ΑΠΟΔΙΔΟΝΤΑΝ ΠΟΥΘΕΝΑ. Τα βήματα
+              μετρούνταν στον Πίνακα («2/5 υπο-εργασίες») χωρίς κανέναν τρόπο να
+              δημιουργηθούν, και τα σχόλια δεν γράφονταν ποτέ. */}
+          <div><FL>Βήματα ({form.subtasks.filter(st => st.done).length}/{form.subtasks.length})</FL>
+            <SubTaskEditor subtasks={form.subtasks} onChange={sub => setForm(f => ({ ...f, subtasks: sub }))} />
+          </div>
           <div><FL>Σημείωση</FL>
             <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
           </div>
+          <div><FL>Ιστορικό ({form.comments.length})</FL>
+            <CommentsEditor comments={form.comments} onChange={c => setForm(f => ({ ...f, comments: c }))} />
+          </div>
+          {/* Η ΕΠΙΣΗΜΗ ΠΗΓΗ ΤΗΣ ΥΠΟΧΡΕΩΣΗΣ, όταν δεν την έγραψε ο χρήστης. */}
+          {item?._src && (
+            <div style={{ padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+              <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>
+                {item._who ? <strong style={{ color: 'var(--text-primary)' }}>{WHO_LABEL[item._who]}. </strong> : null}
+                <a href={item._src} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Επίσημη πηγή</a>
+              </p>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> (υπενθύμιση email){parseFloat(form.estimated_cost) > 0 ? <> και ως <strong style={{ color: 'var(--text-primary)' }}>εκκρεμής δαπάνη</strong> στον προϋπολογισμό</> : ''}.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
+            {/* ΚΑΜΙΑ ΥΠΟΣΧΕΣΗ «ΕΚΚΡΕΜΗΣ ΔΑΠΑΝΗ». Η εκτίμηση δεν γράφεται πλέον στα
+                Δαπάνες: ο προϋπολογισμός και το σύνολο που πάει στο Ε2 δεν δέχονται
+                νούμερο χωρίς παραστατικό. */}
+            <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> με υπενθύμιση email. Η εκτίμηση μένει εδώ, <strong style={{ color: 'var(--text-primary)' }}>δεν γίνεται δαπάνη</strong> πριν υπάρξει παραστατικό.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
           </div>
         </div>
         <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
@@ -1309,29 +1505,225 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
   )
 }
 
-// ─── QuickExpenseModal ────────────────────────────────────────────────────────
-function QuickExpenseModal({ item, propertyId, userId, onClose, onSaved }: { item: ChecklistItem; propertyId: string; userId: string; onClose: () => void; onSaved: () => void }) {
-  const [amount, setAmount] = useState(String(item.actual_cost || item.estimated_cost || ''))
-  const [desc, setDesc] = useState(item.description); const [saving, setSaving] = useState(false)
-  const save = async () => {
-    if (!amount) return; setSaving(true)
-    await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, amount: parseFloat(amount), description: desc, date: new Date().toISOString().split('T')[0], category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance' })
-    setSaving(false); onSaved(); onClose()
+// ─── ReceiptScanModal ─────────────────────────────────────────────────────────
+// «ΦΩΤΟΓΡΑΦΙΣΕ ΤΟ ΤΙΜΟΛΟΓΙΟ» — η διαδρομή που έλειπε εντελώς.
+//
+// ΤΙ ΥΠΗΡΧΕ ΠΡΙΝ: ένα «Καταχώρηση Δαπάνης» με δύο πεδία, ποσό και περιγραφή, στο
+// χέρι και ΧΩΡΙΣ ΣΥΝΗΜΜΕΝΟ. Τρία πράγματα πήγαιναν στραβά μαζί:
+//   • η δαπάνη δεν έφτανε ποτέ στο Αρχείο, γιατί το Αρχείο δείχνει έξοδα μόνο
+//     όταν έχουν αρχείο πάνω τους,
+//   • το `actual_cost` της εκκρεμότητας έμενε 0, οπότε η «Απόκλιση» που πάει
+//     στον λογιστή ήταν πάντα 0 − εκτίμηση,
+//   • το ποσό ήταν ανεπιβεβαίωτο: ένα νούμερο που πληκτρολογήθηκε από μνήμη.
+//
+// ΜΙΑ ΚΙΝΗΣΗ, ΤΕΣΣΕΡΑ ΑΠΟΤΕΛΕΣΜΑΤΑ: το αρχείο ανεβαίνει στο Αρχείο
+// (property_documents, ίδιο μοτίβο με κάθε άλλη οθόνη), το ποσό μπαίνει στο
+// `actual_cost`, η δαπάνη γράφεται ΠΛΗΡΩΜΕΝΗ στα Δαπάνες, και η εκκρεμότητα
+// κλείνει. Καμία δική μας λογική OCR: ίδιο pipeline (scanDoc → documents.ts) με
+// όλες τις υπόλοιπες σαρώσεις της εφαρμογής.
+//
+// Ο ΧΡΗΣΤΗΣ ΕΠΙΒΕΒΑΙΩΝΕΙ, ΔΕΝ ΠΛΗΚΤΡΟΛΟΓΕΙ ΑΠΟ ΤΟ ΜΗΔΕΝ. Η OCR κάνει λάθη· γι'
+// αυτό τα πεδία είναι επεξεργάσιμα και δηλώνεται πόσο σίγουρη ήταν η ανάγνωση.
+// Αυτό που ΔΕΝ επιτρέπεται είναι ποσό χωρίς αρχείο.
+type ScanStage = 'pick' | 'reading' | 'confirm' | 'saving'
+
+/** Η κατηγορία δαπάνης που ταιριάζει στην κατηγορία της εκκρεμότητας. Μία
+ *  αντιστοίχιση, ώστε ένα τιμολόγιο συνεργείου να μη γράφεται ως φόρος. */
+const EXPENSE_BY_TASK_CATEGORY: Record<string, { cat: string; group: string }> = {
+  maintenance: { cat: 'Συντήρηση & Επισκευές', group: 'maintenance' },
+  checkin:     { cat: 'Συντήρηση & Επισκευές', group: 'maintenance' },
+  checkout:    { cat: 'Συντήρηση & Επισκευές', group: 'maintenance' },
+  renovation:  { cat: 'Ανακαίνιση / Βελτιώσεις', group: 'improvement' },
+  airbnb:      { cat: 'Λειτουργικά βραχυχρόνιας', group: 'operating' },
+  legal:       { cat: 'Νομικά / Λογιστικά', group: 'professional' },
+  financial:   { cat: 'Φόροι & Τέλη', group: 'taxes' },
+  purchase:    { cat: 'Έξοδα Απόκτησης', group: 'acquisition' },
+  other:       { cat: 'Λοιπά έξοδα', group: 'general' },
+}
+const expenseCategoryFor = (taskCategory: string) => EXPENSE_BY_TASK_CATEGORY[taskCategory] || EXPENSE_BY_TASK_CATEGORY.other
+
+function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
+  item: ChecklistItem; propertyId: string; userId: string
+  onClose: () => void; onSaved: (msg: string) => void
+}) {
+  const [stage, setStage] = useState<ScanStage>('pick')
+  const [err, setErr] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [doc, setDoc] = useState<ScannedDoc | null>(null)
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState('')
+  const [provider, setProvider] = useState('')
+  const [desc, setDesc] = useState(item.description)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const today = new Date().toISOString().split('T')[0]
+
+  const read = async (f: File) => {
+    setFile(f); setErr(''); setStage('reading')
+    const r = await scanDocument(f)
+    if (!r.doc) {
+      setStage('pick')
+      setErr(r.error === 'big' ? 'Πολύ μεγάλο αρχείο, το όριο είναι 10MB.'
+        : r.error === 'key_missing' ? 'Η αυτόματη ανάγνωση δεν είναι ενεργή σε αυτόν τον λογαριασμό.'
+        : 'Δεν διάβασα καθαρά το έγγραφο. Δοκίμασε καθαρότερη φωτογραφία ή PDF.')
+      return
+    }
+    // Κανονικοποίηση με την ΙΔΙΑ συνάρτηση που χρησιμοποιεί κάθε άλλη σάρωση,
+    // ώστε ΑΦΜ και περίοδος να μη διαφέρουν ανά οθόνη.
+    const nd = normalizeScannedDoc(r.doc)
+    setDoc(nd)
+    const amt = nd.amount ?? nd.premium
+    setAmount(typeof amt === 'number' && amt > 0 ? String(amt) : '')
+    setDate(nd.issue_date || nd.due_date || today)
+    setProvider(nd.provider || '')
+    if (nd.title || nd.provider) setDesc(`${item.description} · ${nd.provider || nd.title}`.slice(0, 180))
+    setStage('confirm')
   }
+
+  const amountNum = parseFloat(amount)
+  const canSave = !!file && amountNum > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date) && !!desc.trim()
+
+  const save = async () => {
+    if (!file || !doc || !canSave) return
+    setStage('saving'); setErr('')
+
+    // 1) ΤΟ ΠΡΩΤΟΤΥΠΟ ΣΤΟ ΑΡΧΕΙΟ. Πρώτα αυτό: αν αποτύχει, δεν γράφεται ποσό
+    //    πουθενά. Ο φύλακας δεν είναι σύμβαση, είναι σειρά εκτέλεσης.
+    const safe = file.name.replace(/[^\w.\-]+/g, '_')
+    const path = `${userId}/${propertyId}/document/${Date.now()}_${safe}`
+    const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined })
+    if (upErr) { setStage('confirm'); setErr('Το αρχείο δεν ανέβηκε: ' + upErr.message); return }
+
+    // Η δρομολόγηση του παραστατικού είναι ΤΟΥ documents.ts, όχι δική μας: ίδιος
+    // φάκελος Αρχείου, ίδια πεδία (ποσό, ΑΦΜ, περίοδος) με κάθε άλλη σάρωση.
+    const plan = planDocSave({ ...doc, amount: amountNum, provider: provider || doc.provider, issue_date: date }, today)
+    const archive = plan.archive
+    const docBase: Record<string, unknown> = {
+      property_id: propertyId, user_id: userId, kind: 'document',
+      category: archive?.category || 'Άλλο Έγγραφο',
+      title: (doc.title || desc || file.name).slice(0, 200),
+      notes: `Παραστατικό εκκρεμότητας: ${item.description}`.slice(0, 500),
+      doc_date: date, file_path: path, file_name: file.name,
+      mime: file.type || null, size_bytes: file.size,
+    }
+    // Οι στήλες ποσού/ΑΦΜ/περιόδου προστέθηκαν με migration. Αν δεν έχει τρέξει
+    // ακόμη στη βάση, ξαναδοκιμάζουμε ΧΩΡΙΣ αυτές: το παραστατικό δεν χάνεται
+    // ποτέ επειδή λείπει μια στήλη.
+    const rich = {
+      ...docBase, supplier: archive?.supplier || null, amount: amountNum,
+      provider_afm: archive?.provider_afm || null,
+      period_from: archive?.period_from || null, period_to: archive?.period_to || null,
+      issue_date: date,
+    }
+    let docId: string | null = null
+    let ins = await supabase.from('property_documents').insert(rich).select('id').single()
+    if (ins.error) ins = await supabase.from('property_documents').insert(docBase).select('id').single()
+    docId = (ins.data as { id?: string } | null)?.id || null
+
+    const evidence: ReceiptEvidence = { path, name: file.name, docId }
+    const map = expenseCategoryFor(item.category)
+    const entry: ReceiptEntry = {
+      amount: amountNum, date, description: desc.trim(),
+      provider: provider || null, category: map.cat, group: map.group, evidence,
+    }
+
+    // 2) Ο ΦΥΛΑΚΑΣ. Αν επιστρέψει null, δεν γράφεται τίποτα στα Δαπάνες.
+    const expenseRow = expenseFromReceipt(entry)
+    if (!expenseRow) { setStage('confirm'); setErr('Χωρίς έγκυρο ποσό και παραστατικό δεν καταχωρείται δαπάνη.'); return }
+    const expIns = await supabase.from('expenses').insert({ ...expenseRow, property_id: propertyId, user_id: userId }).select('id').single()
+    const expenseId = (expIns.data as { id?: string } | null)?.id || item.expense_id || null
+
+    // 3) Η ΕΚΚΡΕΜΟΤΗΤΑ ΚΛΕΙΝΕΙ ΜΕ ΠΡΑΓΜΑΤΙΚΟ ΚΟΣΤΟΣ, και το παραστατικό μένει
+    //    κολλημένο πάνω της, ώστε το «πραγματικό κόστος» να έχει πάντα πηγή.
+    const receipt: ItemReceipt = {
+      path, name: file.name, docId, amount: amountNum, date,
+      provider: provider || null, scanned_at: new Date().toISOString(),
+    }
+    await supabase.from('checklist_items').update({
+      actual_cost: amountNum, expense_id: expenseId,
+      status: 'done', completed: true, completed_at: new Date().toISOString(),
+      note: serializeNote({
+        note: item.note || '', subtasks: item._subtasks || [],
+        comments: item._comments || [], tags: item._tags || [],
+        ...carryOver(item), receipt,
+      }),
+    }).eq('id', item.id)
+
+    if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'paid', amount: amountNum }).eq('id', item.calendar_event_id)
+    // Το αρχείο ανέβηκε ΠΑΝΤΑ (χωρίς αυτό δεν φτάναμε ως εδώ). Αν δεν γράφτηκε η
+    // γραμμή του Αρχείου, το λέμε: το παραστατικό υπάρχει αλλά δεν θα φαίνεται
+    // στην καρτέλα Αρχείο, και ο χρήστης πρέπει να το ξέρει, όχι να το ανακαλύψει.
+    onSaved(docId
+      ? `Καταχωρήθηκε ${amountNum.toLocaleString('el-GR')} € με παραστατικό στο Αρχείο`
+      : `Καταχωρήθηκε ${amountNum.toLocaleString('el-GR')} €. Το αρχείο αποθηκεύτηκε, αλλά δεν μπήκε στο Αρχείο.`)
+    onClose()
+  }
+
+  const busy = stage === 'reading' || stage === 'saving'
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 420, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
-        <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 20px', color: 'var(--text-primary)' }}>Καταχώρηση Δαπάνης</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="0" type="number" /></div>
-          <div><FL>Περιγραφή</FL><Inp value={desc} onChange={setDesc} placeholder="Περιγραφή δαπάνης" /></div>
-        </div>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
+        <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>Φωτογράφισε το τιμολόγιο</h3>
+        <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 20px', lineHeight: 1.5 }}>
+          {item.description}
+        </p>
+
+        {stage === 'pick' && (
+          <>
+            <button type="button" onClick={() => fileRef.current?.click()}
+              style={{ width: '100%', padding: '22px 16px', borderRadius: T.radius.card, border: '1px dashed var(--border-default)', background: 'var(--bg-surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, fontFamily: T.font.sans }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>Φωτογραφία ή PDF</span>
+              <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>Διαβάζουμε ποσό, πάροχο και ημερομηνία. Τα ελέγχεις πριν αποθηκευτούν.</span>
+            </button>
+            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: '12px 0 0', lineHeight: 1.5 }}>
+              Το αρχείο μπαίνει στο Αρχείο του ακινήτου και η δαπάνη καταχωρείται πληρωμένη. Χωρίς αρχείο δεν γράφεται ποσό πουθενά.
+            </p>
+          </>
+        )}
+
+        {stage === 'reading' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '16px 0' }}>
+            <Skeleton h={16} r={6} /><Skeleton h={16} r={6} /><Skeleton h={16} r={6} />
+            <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: 0 }}>Διαβάζω το έγγραφο…</p>
+          </div>
+        )}
+
+        {(stage === 'confirm' || stage === 'saving') && doc && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file?.name}</span>
+              {/* Η ΒΕΒΑΙΟΤΗΤΑ ΤΗΣ ΑΝΑΓΝΩΣΗΣ, ρητά. Χαμηλή βεβαιότητα σημαίνει
+                  «κοίτα τα νούμερα», όχι «είναι λάθος». */}
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                {doc.confidence >= 80 ? 'Διαβάστηκε καθαρά' : 'Έλεγξε τα πεδία'}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
+              <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="0" type="number" /></div>
+              <div><FL>Ημερομηνία *</FL><DatePicker value={date} onChange={setDate} /></div>
+            </div>
+            <div><FL>Πάροχος</FL><Inp value={provider} onChange={setProvider} placeholder="π.χ. Υδραυλικές Εργασίες ΕΠΕ" /></div>
+            <div><FL>Περιγραφή δαπάνης</FL><Inp value={desc} onChange={setDesc} placeholder="Περιγραφή" /></div>
+            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
+              Καταχωρείται ως <strong style={{ color: 'var(--text-secondary)' }}>{expenseCategoryFor(item.category).cat}</strong>, πληρωμένη, με το αρχείο συνημμένο στο Αρχείο.
+            </p>
+          </div>
+        )}
+
+        {err && <p style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, margin: '12px 0 0', lineHeight: 1.5 }}>{err}</p>}
+
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: amount ? 'var(--accent)' : 'var(--bg-elevated)', color: amount ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: amount ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
-            {saving ? 'Καταχώρηση…' : 'Καταχώρηση Δαπάνης'}
-          </button>
+          <button type="button" onClick={onClose} disabled={busy} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
+          {(stage === 'confirm' || stage === 'saving') && (
+            <button type="button" onClick={save} disabled={!canSave || busy}
+              style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: canSave && !busy ? 'var(--accent)' : 'var(--bg-surface)', color: canSave && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: canSave && !busy ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
+              {stage === 'saving' ? 'Καταχώρηση…' : 'Καταχώρησε με το παραστατικό'}
+            </button>
+          )}
         </div>
+        <input ref={fileRef} type="file" accept="image/*,.pdf" capture="environment" style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) read(f); e.currentTarget.value = '' }} />
       </div>
     </div>
   )
@@ -1392,7 +1784,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const [showAddModal, setShowAddModal] = useState(false)
   const [editItem, setEditItem] = useState<ChecklistItem | null>(null)
   const [showTemplates, setShowTemplates] = useState(false)
-  const [quickExpenseItem, setQuickExpenseItem] = useState<ChecklistItem | null>(null)
+  const [receiptItem, setReceiptItem] = useState<ChecklistItem | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
@@ -1403,6 +1795,16 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const [tenantInfo, setTenantInfo] = useState<{full_name?: string; phone?: string; afm?: string; email?: string} | null>(null)
   const [loanPayment, setLoanPayment] = useState(0)
   const [enfiaPaid, setEnfiaPaid] = useState(false)
+  // ── ΤΙ ΕΧΕΙ ΕΠΙΛΕΞΕΙ Ο ΧΡΗΣΤΗΣ, ΚΑΙ ΤΙ ΒΛΕΠΕΙ ΓΙ' ΑΥΤΟ ────────────────────
+  // Η κατάσταση του ακινήτου, η νομική μορφή, τα βιβλία και το πλήθος ακινήτων.
+  // Κρίνουν ΠΟΙΑ πρότυπα εμφανίζονται και ΠΟΙΕΣ υποχρεώσεις προτείνονται: ο
+  // ιδιώτης με κενό ακίνητο δεν βλέπει «δήλωση βραχυχρόνιας διαμονής», το φυσικό
+  // πρόσωπο δεν βλέπει υποχρεώσεις επιχείρησης. Καμία τιμή δεν μαντεύεται —
+  // όλες διαβάζονται από ό,τι έχει δηλώσει ο χρήστης.
+  const [statusRow, setStatusRow] = useState<StatusRow | null>(null)
+  const [legalForm, setLegalForm] = useState<string>('individual')
+  const [bookkeeping, setBookkeeping] = useState<string>('none')
+  const [propertyCount, setPropertyCount] = useState(1)
   const prevPct = useRef(0)
   const branding = useReportBranding(userId)
 
@@ -1428,8 +1830,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       suggestions.push({ title: 'Νέος Ενοικιαστής', reason: 'Βρέθηκε ενοικιαστής, δημιούργησε check-in checklist', templateKey: 'checkin' })
     if (!(itemData || []).some((i: any) => i.category === 'maintenance') && !existingTemplates.has('maintenance'))
       suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Δεν υπάρχουν εργασίες συντήρησης ακόμα', templateKey: 'maintenance' })
+    // Ο τίτλος ακολουθεί την ετικέτα του προτύπου: το «Νομικά / ΑΑΔΕ» έγινε
+    // «Έγγραφα ακινήτου» όταν οι φορολογικές υποχρεώσεις έφυγαν από το πρότυπο
+    // και πήγαν στο ένα ημερολόγιο. Δύο ονόματα για το ίδιο κουμπί μπερδεύουν.
     if (!(itemData || []).some((i: any) => i.category === 'legal'))
-      suggestions.push({ title: 'Νομικά / ΑΑΔΕ', reason: 'Δεν υπάρχουν νομικές εργασίες', templateKey: 'legal' })
+      suggestions.push({ title: TEMPLATES.legal.label, reason: 'Ασφαλιστήριο, ΠΕΑ, βεβαίωση μηχανικού', templateKey: 'legal' })
     setSmartSuggestions(suggestions.slice(0, 2))
 
     // Cross-tab: fetch tenant info, loan, ΕΝΦΙΑ bill status (safe, all errors caught)
@@ -1451,6 +1856,21 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           .filter((l:any)=>l.status!=='inactive'&&l.status!=='closed')
           .reduce((s:number,l:any)=>s+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
       )
+    } catch (_) {}
+
+    // Η ΚΑΤΑΣΤΑΣΗ ΤΟΥ ΑΚΙΝΗΤΟΥ ΚΑΙ Η ΝΟΜΙΚΗ ΜΟΡΦΗ, από τη μία πηγή τους. Όλα
+    // best-effort: αν δεν διαβαστούν, το προφίλ πέφτει στο ασφαλέστερο
+    // («ιδιοκτήτης», φυσικό πρόσωπο) και εμφανίζονται ΛΙΓΟΤΕΡΑ, ποτέ περισσότερα.
+    try {
+      const [{ data: propRow }, { data: bp }, { count }] = await Promise.all([
+        supabase.from('user_properties').select('status_detail,rental_mode').eq('id', propertyId).maybeSingle(),
+        supabase.from('billing_profiles').select('legal_form,bookkeeping').eq('user_id', userId).maybeSingle(),
+        supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      ])
+      setStatusRow((propRow as StatusRow | null) || null)
+      setLegalForm((bp as { legal_form?: string | null } | null)?.legal_form || 'individual')
+      setBookkeeping((bp as { bookkeeping?: string | null } | null)?.bookkeeping || 'none')
+      setPropertyCount(Math.max(1, count || 1))
     } catch (_) {}
 
     try {
@@ -1483,50 +1903,86 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // Έξοδος από τη λειτουργία επιλογής: καθαρίζει και την τρέχουσα επιλογή.
   const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()) }
 
-  // ── Κύκλωμα: εργασία με προθεσμία → event ημερολογίου (email υπενθύμιση)· με κόστος → εκκρεμής δαπάνη. ──
+  // ── ΤΟ ΠΛΑΙΣΙΟ ΤΟΥ ΧΡΗΣΤΗ, ΚΑΙ ΟΙ ΥΠΟΧΡΕΩΣΕΙΣ ΠΟΥ ΛΕΙΠΟΥΝ ────────────────
+  // `taxProfileOf` και `readStatus` ζουν στη μία πηγή τους: καμία δεύτερη
+  // ερμηνεία του `rental_mode` εδώ μέσα.
+  const taxProfile: PropertyTaxProfile = useMemo(() => taxProfileOf(statusRow), [statusRow])
+  const fieldCtx: FieldContext = useMemo(() => ({
+    status: statusRow ? (taxProfile === 'short_term' ? 'rent_short' : taxProfile === 'long_term' ? 'rent_long' : (statusRow.status_detail === 'own_use' ? 'own_use' : statusRow.status_detail === 'renovation' ? 'renovation' : statusRow.status_detail === 'for_sale' ? 'for_sale' : statusRow.status_detail === 'disputed' ? 'disputed' : 'vacant')) : 'vacant',
+    business: HAS_BUSINESS.has(legalForm),
+    doubleEntry: bookkeeping === 'double_entry',
+    propertyCount,
+    hasLoan: loanPayment > 0,
+  }), [statusRow, taxProfile, legalForm, bookkeeping, propertyCount, loanPayment])
+
+  // Όσες υποχρεώσεις ΔΕΝ υπάρχουν ήδη στη λίστα. Το κλειδί είναι το `ref`, ώστε
+  // δεύτερο πάτημα να μην γράφει διπλότυπα ούτε όταν αλλάξει η διατύπωση.
+  const pendingObligations = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    const have = items.map(i => i._ref).filter((r): r is string => !!r)
+    return pendingDrafts(obligationDrafts(today, taxProfile, fieldCtx), have)
+  }, [items, taxProfile, fieldCtx])
+  /** Η πρώτη προθεσμία που λείπει. Ένα όνομα και μια ημερομηνία πείθουν· ένα
+   *  σκέτο πλήθος δεν λέει τίποτα σε κανέναν. */
+  const nextObligation = useMemo(
+    () => pendingObligations.filter(d => !!d.due_date).sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''))[0] || null,
+    [pendingObligations],
+  )
+
+  // ── ΤΟ ΚΥΚΛΩΜΑ, ΧΩΡΙΣ ΤΟ ΣΚΕΛΟΣ ΤΩΝ ΨΕΥΤΙΚΩΝ ΔΑΠΑΝΩΝ ──────────────────────
+  // Εργασία με προθεσμία → γεγονός ημερολογίου (υπενθύμιση email). ΤΕΛΟΣ.
+  // Εδώ υπήρχε και `makeTaskExpense`, που έγραφε την ΕΚΤΙΜΗΣΗ ως εκκρεμή γραμμή
+  // στον πίνακα `expenses` με σημείωση «Προγραμματισμένη εκκρεμότητα». Δηλαδή
+  // κάθε φόρτωση προτύπου μόλυνε τον προϋπολογισμό και το σύνολο δαπανών που πάει
+  // στο Ε2 με νούμερα που κανείς δεν μέτρησε. Σβήστηκε ολόκληρο. Δαπάνη γράφεται
+  // ΜΟΝΟ από το ReceiptScanModal, και μόνο με παραστατικό (expenseFromReceipt).
+  //
+  // Το `amount` του γεγονότος έγινε επίσης null: ένα ημερολόγιο που δείχνει
+  // «300 €» σε μια υπενθύμιση χωρίς παραστατικό λέει το ίδιο ψέμα πιο ήσυχα.
   const calPriorityOf = (p: Priority) => (p === 'normal' ? 'medium' : p)
   const taskTitleOf = (it: { description: string; assigned_contact_name?: string | null }) => (it.assigned_contact_name ? `${it.description} · ${it.assigned_contact_name}` : it.description)
   const makeTaskCal = async (it: { description: string; assigned_contact_name?: string | null; due_date: string | null; priority: Priority; recurring: Recurring; estimated_cost: number }): Promise<string | null> => {
     if (!it.due_date) return null
-    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: taskTitleOf(it), description: it.estimated_cost > 0 ? `Εκτιμώμενο κόστος ${it.estimated_cost} €` : '', category: 'maintenance', event_date: it.due_date, amount: it.estimated_cost || 0, priority: calPriorityOf(it.priority), status: 'pending', recurring: it.recurring !== 'none', source: 'checklist' }).select('id').single()
-    return (data as { id?: string } | null)?.id || null
-  }
-  const makeTaskExpense = async (it: { description: string; due_date: string | null; estimated_cost: number }): Promise<string | null> => {
-    if (!(it.estimated_cost > 0)) return null
-    const { data } = await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, description: it.description, amount: it.estimated_cost, category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance', date: it.due_date || new Date().toISOString().split('T')[0], paid_by: 'owner', paid: false, notes: 'Προγραμματισμένη εκκρεμότητα' }).select('id').single()
+    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: taskTitleOf(it), description: it.estimated_cost > 0 ? `Δική σου εκτίμηση κόστους ${it.estimated_cost} €, χωρίς παραστατικό` : '', category: 'maintenance', event_date: it.due_date, amount: null, priority: calPriorityOf(it.priority), status: 'pending', recurring: it.recurring !== 'none', source: 'checklist' }).select('id').single()
     return (data as { id?: string } | null)?.id || null
   }
 
   const saveItem = async (form: ReturnType<typeof mkEmpty>) => {
-    const noteJson = serializeNote({ note: form.note, subtasks: form.subtasks, comments: form.comments, tags: form.tags })
+    // Το `ref`/`src`/`who`/`receipt` ταξιδεύουν μαζί: μια αποθήκευση από τη φόρμα
+    // δεν επιτρέπεται να ξεκολλήσει το παραστατικό ή την πηγή από την υποχρέωση.
+    const noteJson = serializeNote({
+      note: form.note, subtasks: form.subtasks, comments: form.comments, tags: form.tags,
+      ...carryOver(editItem),
+    })
+    const done = form.status === 'done'
     const payload = {
       property_id: propertyId, user_id: userId,
       description: form.description.trim(), category: form.category, note: noteJson,
-      priority: form.priority, due_date: form.due_date || null, start_date: form.start_date || null,
+      priority: form.priority, due_date: form.due_date || null,
       recurring: form.recurring, assigned_contact_id: form.assigned_contact_id || null,
       assigned_contact_name: form.assigned_contact_name || null,
-      estimated_cost: parseFloat(form.estimated_cost) || 0, actual_cost: parseFloat(form.actual_cost) || 0,
-      budget: parseFloat(form.budget) || 0, status: form.status, depends_on: form.depends_on || null,
+      // ΤΟ `actual_cost` ΔΕΝ ΓΡΑΦΕΤΑΙ ΑΠΟ ΤΗ ΦΟΡΜΑ. Πριν, γραφόταν πάντα
+      // `parseFloat(form.actual_cost) || 0` από ένα πεδίο που δεν είχε input,
+      // δηλαδή σταθερό 0 — και έφτιαχνε την «Απόκλιση» που πήγαινε στον λογιστή.
+      estimated_cost: parseFloat(form.estimated_cost) || 0,
+      status: form.status, depends_on: form.depends_on || null,
+      completed: done, completed_at: done ? new Date().toISOString() : null,
     }
     if (editItem) {
       await supabase.from('checklist_items').update(payload).eq('id', editItem.id)
       // Reconcile συνδεδεμένο event: ενημέρωση / δημιουργία / διαγραφή αν αφαιρέθηκε η προθεσμία.
+      // Οι φορολογικές υποχρεώσεις ΔΕΝ αποκτούν δικό τους event από εδώ: το γράφει
+      // η Επισκόπηση/Ημερολόγιο με κλειδί `tax:<id>` και θα ήταν διπλότυπο.
       if (editItem.calendar_event_id) {
-        if (payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), amount: payload.estimated_cost, recurring: payload.recurring !== 'none' }).eq('id', editItem.calendar_event_id)
+        if (payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), recurring: payload.recurring !== 'none' }).eq('id', editItem.calendar_event_id)
         else { await supabase.from('calendar_events').delete().eq('id', editItem.calendar_event_id); await supabase.from('checklist_items').update({ calendar_event_id: null }).eq('id', editItem.id) }
-      } else if (payload.due_date) { const c = await makeTaskCal(payload); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
-      // Reconcile δαπάνη: ενημέρωση αν εκκρεμής / δημιουργία / διαγραφή αν μηδενίστηκε το κόστος.
-      if (editItem.expense_id) {
-        if (payload.estimated_cost > 0) await supabase.from('expenses').update({ amount: payload.estimated_cost, description: payload.description }).eq('id', editItem.expense_id).eq('paid', false)
-        else { await supabase.from('expenses').delete().eq('id', editItem.expense_id).eq('paid', false); await supabase.from('checklist_items').update({ expense_id: null }).eq('id', editItem.id) }
-      } else if (payload.estimated_cost > 0) { const e = await makeTaskExpense(payload); if (e) await supabase.from('checklist_items').update({ expense_id: e }).eq('id', editItem.id) }
+      } else if (payload.due_date && !isGeneratedRef(editItem._ref)) { const c = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost }); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
     } else {
-      const { data: ins } = await supabase.from('checklist_items').insert({ ...payload, completed: false }).select('id').single()
+      const { data: ins } = await supabase.from('checklist_items').insert(payload).select('id').single()
       const newId = (ins as { id?: string } | null)?.id
-      if (newId) {
-        const calId = await makeTaskCal(payload)
-        const expId = await makeTaskExpense(payload)
-        if (calId || expId) await supabase.from('checklist_items').update({ calendar_event_id: calId, expense_id: expId }).eq('id', newId)
+      if (newId && payload.due_date) {
+        const calId = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost })
+        if (calId) await supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId)
       }
     }
     setShowAddModal(false); setEditItem(null); fetchAll()
@@ -1541,40 +1997,49 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
       await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
       if (newStatus === 'done') {
-        // Η εκκρεμής δαπάνη γίνεται πραγματοποιημένη· το event ολοκληρώνεται (και για επαναλαμβανόμενες).
-        if (item.expense_id) await supabase.from('expenses').update({ paid: true, date: new Date().toISOString().split('T')[0] }).eq('id', item.expense_id)
+        // ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΔΕΝ ΞΕ-ΠΛΗΡΩΝΕΤΑΙ ΚΑΙ ΔΕΝ ΞΑΝΑ-ΠΛΗΡΩΝΕΤΑΙ. Εδώ η
+        // ολοκλήρωση έκανε `expenses.paid = true` και η αναίρεση `paid = false`.
+        // Έβγαζε νόημα όσο η δαπάνη ήταν μια εκτίμηση που «θα γίνει»· τώρα η
+        // δαπάνη υπάρχει μόνο όταν υπάρχει τιμολόγιο, και ένα τιμολόγιο που
+        // πληρώθηκε δεν γίνεται απλήρωτο επειδή ξανάνοιξε μια εκκρεμότητα.
         if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
         if (item.recurring !== 'none' && item.due_date) {
           const newDue = nextDueDate(item.due_date, item.recurring)
+          // Η επόμενη εμφάνιση ξεκινά ΧΩΡΙΣ παραστατικό και χωρίς πραγματικό
+          // κόστος: το τιμολόγιο του περασμένου έτους δεν ισχύει για το επόμενο.
           const { data: rec } = await supabase.from('checklist_items').insert({
             property_id: item.property_id, user_id: item.user_id,
             description: item.description, category: item.category, priority: item.priority,
             recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
-            note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
+            note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }),
             estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
           }).select('id').single()
           const recId = (rec as { id?: string } | null)?.id
-          if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
+          if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId) }
           notifyOk(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
         }
-      } else {
-        // Επαναφορά (done → pending): η δαπάνη ξαναγίνεται εκκρεμής, το event ξανανοίγει.
-        if (item.expense_id) await supabase.from('expenses').update({ paid: false }).eq('id', item.expense_id)
-        if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'pending' }).eq('id', item.calendar_event_id)
+      } else if (item.calendar_event_id) {
+        await supabase.from('calendar_events').update({ status: 'pending' }).eq('id', item.calendar_event_id)
       }
       await fetchAll()
     } finally { togglingRef.current.delete(item.id) }
   }
 
   const duplicateItem = async (item: ChecklistItem) => {
-    await supabase.from('checklist_items').insert({ property_id: item.property_id, user_id: item.user_id, description: item.description + ' (αντίγραφο)', category: item.category, priority: item.priority, recurring: item.recurring, due_date: item.due_date, status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: item._subtasks || [], comments: [], tags: item._tags || [] }), estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: (item.sort_order || 0) + 1 })
+    // Το αντίγραφο ΔΕΝ κληρονομεί ούτε το παραστατικό ούτε την ταυτότητα
+    // υποχρέωσης: ένα τιμολόγιο ανήκει σε μία δαπάνη, και δύο γραμμές με το ίδιο
+    // `ref` θα σήμαιναν διπλή υποχρέωση.
+    await supabase.from('checklist_items').insert({ property_id: item.property_id, user_id: item.user_id, description: item.description + ' (αντίγραφο)', category: item.category, priority: item.priority, recurring: item.recurring, due_date: item.due_date, status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: item._subtasks || [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }), estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: (item.sort_order || 0) + 1 })
     fetchAll(); notifyOk('Η εργασία αντιγράφηκε')
   }
 
   const deleteItem = async (id: string) => {
     const it = items.find(i => i.id === id)
     if (it?.calendar_event_id) await supabase.from('calendar_events').delete().eq('id', it.calendar_event_id)
-    if (it?.expense_id) await supabase.from('expenses').delete().eq('id', it.expense_id).eq('paid', false)
+    // Η ΔΑΠΑΝΗ ΜΕ ΠΑΡΑΣΤΑΤΙΚΟ ΕΠΙΖΕΙ ΤΗΣ ΕΚΚΡΕΜΟΤΗΤΑΣ. Εδώ διαγραφόταν η
+    // συνδεδεμένη γραμμή των Δαπανών (όσο ήταν απλήρωτη εκτίμηση, σωστό). Τώρα
+    // κάθε συνδεδεμένη δαπάνη έχει τιμολόγιο πίσω της: το χρήμα ξοδεύτηκε
+    // πραγματικά και δεν παύει να ξοδεύτηκε όταν σβήνεται μια εργασία.
     await supabase.from('checklist_items').delete().eq('id', id)
     setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); notify('Η εκκρεμότητα διαγράφηκε')
   }
@@ -1595,11 +2060,36 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     notifyOk(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο: ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
 
-  const loadAADECalendar = async () => {
-    const year = new Date().getFullYear()
-    const rows = AADE_CALENDAR.map((item, i) => ({ property_id: propertyId, user_id: userId, description: item.description, category: item.category, priority: item.priority, recurring: 'yearly' as Recurring, status: 'pending', completed: false, due_date: `${year}-${String(item.month).padStart(2, '0')}-01`, note: serializeNote({ note: '', subtasks: [], comments: [], tags: ['ΑΑΔΕ'] }), estimated_cost: 0, actual_cost: 0, sort_order: i, template_id: 'aade_calendar' }))
-    await supabase.from('checklist_items').insert(rows)
-    fetchAll(); notifyOk(`ΑΑΔΕ Ημερολόγιο ${year} φορτώθηκε`)
+  // ── ΟΙ ΥΠΟΧΡΕΩΣΕΙΣ ΠΟΥ ΠΡΟΚΥΠΤΟΥΝ ΑΠΟ ΤΟΝ ΝΟΜΟ ─────────────────────────────
+  // Στη θέση του `loadAADECalendar`, που έγραφε δέκα σταθερές γραμμές με
+  // `due_date = ${έτος}-MM-01` — ημερομηνία που δεν ήταν προθεσμία κανενός — και
+  // αντιφάσκε με το φορολογικό ημερολόγιο της ίδιας εφαρμογής σε δύο άλλες οθόνες.
+  //
+  // Τώρα: το `obligationTasks` δίνει τις υποχρεώσεις αυτού του ακινήτου (μία
+  // γραμμή ανά υποχρέωση, με πραγματική ημερομηνία, επίσημη πηγή, «ποιος το
+  // κάνει») και τις αλλαγές νομοθεσίας που ζητούν κίνηση. Το `ref` κάνει την
+  // ενέργεια επαναληπτική χωρίς διπλότυπα: δεύτερο πάτημα δεν γράφει τίποτα.
+  // Χωρίς `estimated_cost`: καμία υποχρέωση δεν ξέρει πόσο κοστίζει.
+  const loadObligations = async () => {
+    const fresh = pendingObligations
+    if (fresh.length === 0) { notify('Δεν λείπει καμία υποχρέωση', { tone: 'info' }); return }
+    const rows = fresh.map((d, i) => ({
+      property_id: propertyId, user_id: userId,
+      description: d.description, category: d.category, priority: d.priority,
+      recurring: 'none' as Recurring, status: 'pending', completed: false,
+      due_date: d.due_date,
+      note: serializeNote({
+        note: d.note, subtasks: [], comments: [],
+        tags: isTaxTaskRef(d.ref) ? ['ΑΑΔΕ'] : ['Νομοθεσία'],
+        ref: d.ref, src: d.sourceUrl, who: d.who, receipt: null,
+      }),
+      estimated_cost: 0, actual_cost: 0, sort_order: i,
+      template_id: isTaxTaskRef(d.ref) ? 'tax_calendar' : 'legal_updates',
+    }))
+    const { error } = await supabase.from('checklist_items').insert(rows)
+    if (error) { notify('Δεν προστέθηκαν οι υποχρεώσεις. Δοκίμασε ξανά.', { tone: 'negative' }); return }
+    fetchAll()
+    notifyOk(`Προστέθηκαν ${fresh.length} ${fresh.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}, με ημερομηνία και πηγή`)
   }
 
   const loadTemplate = async (key: string) => {
@@ -1607,7 +2097,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const insertedIds: string[] = []
     for (let i = 0; i < tpl.items.length; i++) {
       const tItem = tpl.items[i]
-      const { data } = await supabase.from('checklist_items').insert({ property_id: propertyId, user_id: userId, description: tItem.description, category: tItem.category, priority: tItem.priority, recurring: tItem.recurring || 'none', status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: [], comments: [], tags: [] }), estimated_cost: tItem.estimated_cost || 0, actual_cost: 0, sort_order: i, template_id: key, depends_on: tItem.depends_on_idx !== undefined && insertedIds[tItem.depends_on_idx] ? insertedIds[tItem.depends_on_idx] : null }).select('id').single()
+      // `estimated_cost: 0` και όχι σταθερά προτύπου: τα 24 επινοημένα κόστη
+      // σβήστηκαν. Ό,τι κόστος μπει, το βάζει ο χρήστης ή το τιμολόγιο.
+      const { data } = await supabase.from('checklist_items').insert({ property_id: propertyId, user_id: userId, description: tItem.description, category: tItem.category, priority: tItem.priority, recurring: tItem.recurring || 'none', status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: [], comments: [], tags: [] }), estimated_cost: 0, actual_cost: 0, sort_order: i, template_id: key, depends_on: tItem.depends_on_idx !== undefined && insertedIds[tItem.depends_on_idx] ? insertedIds[tItem.depends_on_idx] : null }).select('id').single()
       insertedIds.push(data?.id || '')
     }
     fetchAll(); notifyOk(`«${tpl.label}» φορτώθηκε, ${tpl.items.length} εργασίες`)
@@ -1619,9 +2111,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const ids = [...selected]
     const chosen = ids.map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it && it.status !== 'done')
     await Promise.all(ids.map(id => supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', id)))
-    // Κύκλωμα: πλήρωσε τις εκκρεμείς δαπάνες και κλείσε τα events των ολοκληρωμένων.
-    const today = new Date().toISOString().split('T')[0]
-    await Promise.all(chosen.filter(it => it.expense_id).map(it => supabase.from('expenses').update({ paid: true, date: today }).eq('id', it.expense_id!)))
+    // Κλείνουν τα γεγονότα του ημερολογίου. ΟΧΙ οι δαπάνες: κάθε συνδεδεμένη
+    // δαπάνη έχει πλέον τιμολόγιο και είναι ήδη πληρωμένη. Το μαζικό
+    // `expenses.paid = true` ανήκε στην εποχή των εκτιμήσεων.
     await Promise.all(chosen.filter(it => it.calendar_event_id).map(it => supabase.from('calendar_events').update({ status: 'paid' }).eq('id', it.calendar_event_id!)))
     // Επαναλαμβανόμενες: επόμενη εμφάνιση + φρέσκο κύκλωμα (ίδια λογική με τη μονή ολοκλήρωση).
     const recurring = chosen.filter(it => it.recurring !== 'none' && !!it.due_date)
@@ -1631,11 +2123,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         property_id: item.property_id, user_id: item.user_id,
         description: item.description, category: item.category, priority: item.priority,
         recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
-        note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
+        note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }),
         estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
       }).select('id').single()
       const recId = (rec as { id?: string } | null)?.id
-      if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
+      if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId) }
     }
     setSelected(new Set()); fetchAll(); notifyOk(`${count} εργασίες ολοκληρώθηκαν${recurring.length ? `, ${recurring.length} επαναπρογραμματίστηκαν` : ''}`)
   }
@@ -1643,7 +2135,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const count = selected.size; if (!count) return
     const chosen = [...selected].map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it)
     await Promise.all(chosen.filter(it => it.calendar_event_id).map(it => supabase.from('calendar_events').delete().eq('id', it.calendar_event_id!)))
-    await Promise.all(chosen.filter(it => it.expense_id).map(it => supabase.from('expenses').delete().eq('id', it.expense_id!).eq('paid', false)))
+    // Οι δαπάνες ΔΕΝ διαγράφονται μαζί: έχουν παραστατικό, δηλαδή συνέβησαν.
     await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id)))
     setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); notify(`${count} εργασίες διαγράφηκαν`)
   }
@@ -1721,6 +2213,23 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
       {items.length > 0 && <KPIGrid items={kpiItems} />}
 
+      {/* ΟΙ ΥΠΟΧΡΕΩΣΕΙΣ ΠΟΥ ΛΕΙΠΟΥΝ, ΣΤΗΝ ΟΘΟΝΗ ΚΑΙ ΟΧΙ ΜΕΣΑ ΣΕ ΜΕΝΟΥ. Ο χρήστης
+          που δεν άνοιξε ποτέ τα «Πρότυπα» δεν είχε τρόπο να μάθει ότι υπάρχει
+          προθεσμία που τον αφορά. Δεν γράφεται τίποτα αυτόματα: το κουμπί είναι
+          δική του απόφαση, με την πρώτη προθεσμία ονομαστικά μπροστά του. */}
+      {!loading && items.length > 0 && pendingObligations.length > 0 && (
+        <InfoBanner tone="warning">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ flex: 1, minWidth: 200 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{pendingObligations.length === 1 ? 'Λείπει 1 υποχρέωση' : `Λείπουν ${pendingObligations.length} υποχρεώσεις`}</strong>
+              {' '}που προκύπτουν από τον νόμο για αυτό το ακίνητο, με ημερομηνία και επίσημη πηγή.
+              {nextObligation ? ` Πρώτη: ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}.` : ''}
+            </span>
+            <Btn variant="secondary" onClick={loadObligations}>Πρόσθεσέ τες</Btn>
+          </div>
+        </InfoBanner>
+      )}
+
       {/* Progress */}
       {stats.total > 0 && (
         <div style={{ marginBottom: 22 }}>
@@ -1729,7 +2238,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
               {(stats.totalEstimated > 0 || stats.totalActual > 0) && (
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-                  {stats.totalActual > 0 ? `${stats.totalActual.toLocaleString('el-GR')}€ πραγμ.` : ''}{stats.totalActual > 0 && stats.totalEstimated > 0 ? ' · ' : ''}{stats.totalEstimated > 0 ? `${stats.totalEstimated.toLocaleString('el-GR')}€ εκτιμ.` : ''}
+                  {/* ΔΥΟ ΝΟΥΜΕΡΑ ΜΕ ΔΙΑΦΟΡΕΤΙΚΟ ΒΑΡΟΣ, ΟΝΟΜΑΤΙΣΜΕΝΑ. Το «πραγμ.»
+                      δίπλα στο «εκτιμ.» έμοιαζε με δύο μετρήσεις, ενώ το πρώτο
+                      ήταν πάντα 0 και το δεύτερο άθροισμα σταθερών του προτύπου. */}
+                  {stats.totalActual > 0 ? `${stats.totalActual.toLocaleString('el-GR')}€ με παραστατικό` : ''}{stats.totalActual > 0 && stats.totalEstimated > 0 ? ' · ' : ''}{stats.totalEstimated > 0 ? `${stats.totalEstimated.toLocaleString('el-GR')}€ δική σου εκτίμηση` : ''}
                 </span>
               )}
               <span style={{ fontSize: 12, fontWeight: 700, color: stats.pct === 100 ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{stats.pct}%</span>
@@ -1788,7 +2300,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             return (
               <button key={c.id} type="button" onClick={() => setFilterCat(filterCat === c.id ? 'all' : c.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === c.id ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === c.id ? 'var(--accent-soft)' : 'transparent', color: filterCat === c.id ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === c.id ? 700 : 400, transition: 'all 0.15s' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
                 {c.label}
                 <span style={{ fontSize: 10, opacity: 0.8, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{count}</span>
               </button>
@@ -1809,11 +2321,14 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         <EmptyState
           icon={<ClipboardCheck size={20} />}
           title="Όλα καθαρά εδώ"
-          hint="Ξεκίνα με ένα έτοιμο πρότυπο ή πρόσθεσε τη δική σου εκκρεμότητα."
+          hint={pendingObligations.length > 0
+            ? `Δεν έχεις καμία εργασία, αλλά ο νόμος έχει ${pendingObligations.length} υποχρεώσεις για αυτό το ακίνητο${nextObligation ? ` — πρώτη: ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}` : ''}.`
+            : 'Ξεκίνα με ένα έτοιμο πρότυπο ή πρόσθεσε τη δική σου εκκρεμότητα.'}
           action={
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {pendingObligations.length > 0 && <Btn variant="primary" onClick={loadObligations}>Φέρε τις υποχρεώσεις</Btn>}
               <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-              <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
+              <Btn variant={pendingObligations.length > 0 ? 'secondary' : 'primary'} onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
             </div>
           }
         />
@@ -1854,7 +2369,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             return (
               <div key={cat.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.dot, flexShrink: 0 }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--border-default), transparent)' }} />
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {catPct}%{catEst > 0 ? ` · ${catEst.toLocaleString('el-GR')}€` : ''}</span>
@@ -1869,7 +2384,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                       onEdit={() => { setEditItem(item); setShowAddModal(true) }}
                       onDelete={() => setDeleteId(item.id)}
                       onAddToCalendar={() => addToCalendar(item)}
-                      onAddToExpenses={() => setQuickExpenseItem(item)}
+                      onScanReceipt={() => setReceiptItem(item)}
                       onDuplicate={() => duplicateItem(item)}
                       onSelect={() => toggleSelect(item.id)}
                       selected={selected.has(item.id)}
@@ -1911,9 +2426,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </div>
       )}
 
-      {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadAADE={loadAADECalendar} onClose={() => setShowTemplates(false)} profileType={profileType} smart={smartSuggestions} />}
-      {showAddModal && <ItemModal item={editItem || undefined} contacts={contacts} allItems={items} onSave={saveItem} onClose={() => { setShowAddModal(false); setEditItem(null) }} />}
-      {quickExpenseItem && <QuickExpenseModal item={quickExpenseItem} propertyId={propertyId} userId={userId} onClose={() => setQuickExpenseItem(null)} onSaved={() => notifyOk('Δαπάνη καταχωρήθηκε')} />}
+      {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadObligations={loadObligations} onClose={() => setShowTemplates(false)} ctx={fieldCtx} pending={pendingObligations} smart={smartSuggestions} />}
+      {showAddModal && <ItemModal item={editItem || undefined} contacts={contacts} allItems={items} onSave={saveItem} onClose={() => { setShowAddModal(false); setEditItem(null) }}
+        onScan={editItem ? () => { const it = editItem; setShowAddModal(false); setEditItem(null); setReceiptItem(it) } : undefined} />}
+      {receiptItem && <ReceiptScanModal item={receiptItem} propertyId={propertyId} userId={userId} onClose={() => setReceiptItem(null)} onSaved={msg => { notifyOk(msg); fetchAll() }} />}
 
       {deleteId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>

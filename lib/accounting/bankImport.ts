@@ -5,6 +5,8 @@
 // Υποστηρίζει ελληνικές μορφές (διαχωριστικό , ; ή tab· ποσά 1.234,56).
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { parseAmount, parseDate as coreParseDate } from '../core/greek'
+
 export interface BankTxn {
   date: string          // ISO YYYY-MM-DD (κενό αν δεν αναγνωρίστηκε)
   description: string
@@ -38,34 +40,26 @@ function splitCsvLine(line: string, delim: string): string[] {
   return out.map(s => s.trim())
 }
 
-/** Μετατρέπει ελληνικό/διεθνές ποσό σε αριθμό. '1.234,56' → 1234.56, '-45.00' → -45. */
-export function parseAmount(s: string): number | null {
-  if (s == null) return null
-  let t = String(s).replace(/[€\s]/g, '').replace(/["']/g, '')
-  if (!t || !/[0-9]/.test(t)) return null
-  const neg = /^\(.*\)$/.test(t) || t.startsWith('-')
-  t = t.replace(/[()]/g, '').replace(/^-/, '')
-  if (t.includes(',') && t.includes('.')) {
-    // Το τελευταίο σύμβολο είναι το δεκαδικό.
-    if (t.lastIndexOf(',') > t.lastIndexOf('.')) t = t.replace(/\./g, '').replace(',', '.')
-    else t = t.replace(/,/g, '')
-  } else if (t.includes(',')) {
-    t = t.replace(',', '.')
-  }
-  const n = parseFloat(t)
-  if (!Number.isFinite(n)) return null
-  return neg ? -n : n
-}
+/**
+ * Ποσό κίνησης. Η ανάγνωση γίνεται ΜΙΑ φορά, στο lib/core/greek.ts — εδώ απλώς
+ * επανεξάγεται, ώστε το ίδιο αντίγραφο κίνησης να διαβάζεται ίδια από την
+ * Τραπεζική Εισαγωγή και από τη Μαζική Καταχώριση.
+ *
+ * ΠΡΟΣΟΧΗ: εδώ ΔΕΝ μπαίνει το φίλτρο «κάτω από 0,01 / πάνω από 1.000.000» του
+ * lib/billing/parse.ts. Αυτό αφορά το ταίριασμα λογαριασμών· σε τραπεζικό
+ * αντίγραφο θα έκοβε σιωπηλά κάθε μεγάλη μεταφορά.
+ */
+export { parseAmount }
 
-/** Μετατρέπει ημερομηνία (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD) σε ISO. */
+/**
+ * Ημερομηνία κίνησης σε ISO, ή '' αν δεν είναι ημερομηνία (οι καλούντες εδώ
+ * συγκρίνουν με κενό κείμενο).
+ *
+ * Κόβει τυχόν ώρα: πολλές τράπεζες δίνουν «2026-03-15 10:42» ή «2026-03-15T10:42»
+ * στη στήλη ημερομηνίας.
+ */
 export function parseDate(s: string): string {
-  if (!s) return ''
-  const t = s.trim()
-  let m = t.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
-  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
-  m = t.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/)
-  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` }
-  return ''
+  return coreParseDate(String(s ?? '').trim().split(/[T ]/)[0]) ?? ''
 }
 
 function findCol(headers: string[], keys: string[]): number {

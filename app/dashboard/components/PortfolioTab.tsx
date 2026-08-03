@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, SecHdr, SkeletonKPIs, Skeleton, fe, fn } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { stayTotal } from '@/lib/clients/clients';
+import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
 import { portfolioReturns } from '@/lib/market/portfolio';
 import { downloadCsv } from './exportCsv';
 import { reportHead, reportHeader, reportSection, reportDisclaimer, openReport, rEsc, rEur, rSigned } from './reportPdf';
@@ -31,6 +32,8 @@ interface Row {
   id: string; name: string; typeLabel: string; mode: Mode;
   revenue: number; expenses: number; net: number;
   occupancy: number | null; nights: number; pending: number;
+  /** Πόσα ΕΥΡΩ οφείλονται — το πλήθος μόνο του δεν λέει αν χρωστάς 60 € ή 1.800 €. */
+  owed: number;
   value: number; annualRevenue: number; annualExpenses: number;
 }
 
@@ -72,8 +75,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const load = useCallback(async () => {
     const [{ data: st }, { data: bl }, { data: ex }, { data: tn }, { data: ci }, { data: po }, { data: cl }] = await Promise.all([
       supabase.from('client_stays').select('property_id,check_in,check_out,total,nights,nightly_rate').eq('user_id', userId),
-      supabase.from('bills').select('property_id,paid,amount,due_date').eq('user_id', userId),
-      supabase.from('expenses').select('property_id,amount,date').eq('user_id', userId).gte('date', `${year}-01-01`),
+      supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring,property_id').eq('user_id', userId),
+      supabase.from('expenses').select('id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor,property_id').eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('tenants').select('property_id,monthly_rent,updated_at').eq('user_id', userId).order('updated_at', { ascending: false }),
       supabase.from('checklist_items').select('property_id,status,priority,due_date').eq('user_id', userId).neq('status', 'done').neq('status', 'skipped'),
       supabase.from('user_properties').select('id,client_id').eq('user_id', userId),
@@ -108,9 +111,23 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const hasTenant = (rentByProp.get(p.id) || 0) > 0;
       const mode: Mode = staysY.length ? 'short' : hasTenant ? 'long' : 'vacant';
       const revenue = mode === 'short' ? hostingY : mode === 'long' ? rent * monthsElapsed : 0;
-      const expenses = exp.filter(e => e.property_id === p.id).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      // ΤΑ ΕΞΟΔΑ ΠΕΡΝΟΥΝ ΑΠΟ ΤΟΝ ΚΟΙΝΟ ΠΥΡΗΝΑ (lib/expenses/ledger.ts).
+      //
+      // Πριν αθροίζαμε ΜΟΝΟ τον πίνακα `expenses`. Ο απλήρωτος λογαριασμός όμως
+      // δεν έχει δαπάνη πίσω του — γεννιέται στην πληρωμή. Άρα το καθαρό, η
+      // ετησιοποίηση ΚΑΙ η απόδοση ολόκληρου του χαρτοφυλακίου έβγαιναν
+      // αισιόδοξες: έδειχναν τι πλήρωσες, όχι τι σου κοστίζει το ακίνητο.
+      const { entries } = mergeLedger(
+        bills.filter(b => b.property_id === p.id) as never[],
+        exp.filter(e => e.property_id === p.id) as never[],
+      );
+      const ofYear = entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
+      const expenses = ledgerTotal(ofYear);
       const occupancy = mode === 'short' ? Math.min(100, Math.round((nights / daysElapsed) * 100)) : null;
-      const unpaid = bills.filter(b => b.property_id === p.id && !b.paid).length;
+      // ΤΟ ΠΛΗΘΟΣ ΔΕΝ ΦΤΑΝΕΙ: «3 εκκρεμή» δεν λέει αν χρωστάς 60 € ή 1.800 €.
+      const owedEntries = ledgerUnpaid(ofYear);
+      const unpaid = owedEntries.length;
+      const owed = ledgerTotal(owedEntries);
       const chkAtt = chk.filter(c => c.property_id === p.id && ((c.due_date && new Date(c.due_date).getTime() < nowMs) || c.priority === 'critical')).length;
       // Ετησιοποίηση (εκτίμηση ρυθμού): μακροχρόνια = ενοίκιο×12· βραχυχρόνια = έσοδα ανά
       // ημέρα × 365· έξοδα ετησιοποιημένα με τους μήνες που πέρασαν (ομαλότερα από τις ημέρες).
@@ -118,7 +135,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const annualExpenses = Math.round(expenses * (12 / monthsElapsed));
       return {
         id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode,
-        revenue, expenses, net: revenue - expenses, occupancy, nights, pending: unpaid + chkAtt,
+        revenue, expenses, net: revenue - expenses, occupancy, nights, pending: unpaid + chkAtt, owed,
         value: p.value || 0, annualRevenue, annualExpenses,
       };
     });
@@ -139,6 +156,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
   const totalExpenses = rows.reduce((s, r) => s + r.expenses, 0);
   const totalPending = rows.reduce((s, r) => s + r.pending, 0);
+  // Πόσα ευρώ οφείλονται σε ΟΛΟ το χαρτοφυλάκιο — το νούμερο που κρίνει τι κάνεις σήμερα.
+  const totalOwed = rows.reduce((s, r) => s + r.owed, 0);
   const shortRows = rows.filter(r => r.occupancy != null);
   const avgOcc = shortRows.length ? Math.round(shortRows.reduce((s, r) => s + (r.occupancy || 0), 0) / shortRows.length) : null;
 
@@ -267,8 +286,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const fieldStyle: CSSProperties = { width: '100%', padding: '10px 16px', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none' };
 
   const exportCsv = () => {
-    const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Νύχτες', 'Εκκρεμότητες'];
-    const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, MODE_LABEL[r.mode], r.revenue, r.expenses, r.net, r.occupancy ?? '', r.nights, r.pending]);
+    const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Νύχτες', 'Εκκρεμότητες', 'Οφειλές (€)'];
+    const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, MODE_LABEL[r.mode], r.revenue, r.expenses, r.net, r.occupancy ?? '', r.nights, r.pending, r.owed]);
     downloadCsv(`xartofylakio_${year}`, head, lines);
   };
 
@@ -300,7 +319,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         { label: `Έσοδα ${year}`, value: eur(totalRevenue), tone: 'positive' },
         { label: `Καθαρό ${year}`, value: eur(totalRevenue - totalExpenses), sub: `δαπάνες ${eur(totalExpenses)}`, tone: (totalRevenue - totalExpenses) >= 0 ? 'positive' : 'negative' },
         { label: 'Μέση πληρότητα', value: avgOcc != null ? `${avgOcc}%` : '—', sub: shortRows.length ? `${shortRows.length} βραχυχρόνια` : 'χωρίς βραχυχρόνια' },
-        { label: 'Εκκρεμότητες', value: String(totalPending), tone: totalPending > 0 ? 'warning' : 'positive' },
+        { label: 'Εκκρεμότητες', value: totalOwed > 0 ? `${totalPending} · ${fe(totalOwed, 0)}` : String(totalPending), tone: totalPending > 0 ? 'warning' : 'positive' },
       ]} />
 
       {/* Συγκεντρωτική απόδοση χαρτοφυλακίου (σταθμισμένη με την αξία) */}
@@ -359,7 +378,16 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     {r.pending > 0
-                      ? <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
+                      ? (
+                        // ΤΟ ΠΛΗΘΟΣ ΚΑΙ ΤΟ ΠΟΣΟ ΜΑΖΙ. Το σκέτο «3» δεν λέει αν το
+                        // ακίνητο χρωστά 60 € ή 1.800 € — και αυτή είναι όλη η
+                        // διαφορά στο τι θα κάνει ο ιδιοκτήτης σήμερα το πρωί.
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}
+                              title={r.owed > 0 ? `${r.pending} εκκρεμή, από τα οποία ${fe(r.owed, 0)} σε απλήρωτους λογαριασμούς` : `${r.pending} εκκρεμή`}>
+                          <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
+                          {r.owed > 0 && <span style={{ fontFamily: T.font.mono, fontSize: 11, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fe(r.owed, 0)}</span>}
+                        </span>
+                      )
                       : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>

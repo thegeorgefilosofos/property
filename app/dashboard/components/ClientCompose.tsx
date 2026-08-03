@@ -212,7 +212,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
                   <>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
                       <button style={chip(false)} onClick={() => setMany(emailable.filter(c => !c.do_not_rent).map(c => c.id))}>Όλοι</button>
-                      <button style={chip(false)} onClick={() => setMany(emailable.filter(c => c.vip || (c.rating || 0) >= 4).map(c => c.id))}>VIP & βαθμ. 4+</button>
+
                       <button style={chip(false)} onClick={() => setMany([])}>Καθαρισμός</button>
                     </div>
                     <input value={q} onChange={e => setQ(e.target.value)} placeholder="Αναζήτηση ονόματος ή email…" style={{ ...field, marginBottom: 8 }} />
@@ -229,8 +229,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
                               <span style={{ display: 'block', fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</span>
                               <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</span>
                             </span>
-                            {c.vip && <Badge tone="accent">VIP</Badge>}
-                            {c.do_not_rent && <Badge tone="negative">Προσοχή</Badge>}
+
                           </button>
                         );
                       })}

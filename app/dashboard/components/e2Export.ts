@@ -4,7 +4,7 @@ import { XLSX, FMT, S, setCell, type Cell } from './xlsxStyle';
 import {
   E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary,
   E1_HEADERS, e1LineToCells, E2_INSTRUCTIONS,
-  type E2Property, type E2Tenant, type E2Payment,
+  type E2Property, type E2Tenant, type E2Payment, type E2Row,
 } from '@/lib/billing/e2';
 
 const NCOLS = E2_OFFICIAL_HEADERS.length; // 19
@@ -83,6 +83,43 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
 }
 
 /** Κατεβάζει προσυμπληρωμένο Ε2 (Excel, δομή επίσημου εντύπου) για το `year`. Επιστρέφει πλήθος ακινήτων. */
+/**
+ * Οι γραμμές Ε2 του χρήστη για το έτος, από τη βάση.
+ *
+ * ΓΙΑΤΙ ΞΕΧΩΡΙΣΤΑ: τις χρειάζεται και η εξαγωγή και ο ΕΛΕΓΧΟΣ του
+ * προσυμπληρωμένου (E2ReconcileCard). Δύο φορτώσεις θα σήμαιναν δύο σύνολα που
+ * μπορούν να διαφωνήσουν — ακριβώς το μοτίβο που παρήγαγε τις αντιφάσεις που
+ * κατέγραψε ο έλεγχος του Ιουλίου.
+ */
+export async function loadE2Rows(
+  supabase: SupabaseClient, userId: string, year: number,
+): Promise<{ properties: E2Property[]; rows: E2Row[]; ownerAfm: string;
+            tenantByProp: Map<string, E2Tenant>; paymentsByProp: Map<string, E2Payment[]>;
+            afmByProp: Map<string, string> }> {
+  const { data: props } = await supabase.from('user_properties')
+    .select('id, atak, address, postal_code, ownership, prop_type, status_detail, target_rent, sqm, floor')
+    .eq('user_id', userId).order('created_at');
+  const properties = (props || []) as E2Property[];
+  if (!properties.length) {
+    return { properties: [], rows: [], ownerAfm: '', tenantByProp: new Map(), paymentsByProp: new Map(), afmByProp: new Map() };
+  }
+  const ids = properties.map(p => p.id);
+  const [{ data: tenants }, { data: payments }, { data: settings }] = await Promise.all([
+    supabase.from('tenants').select('property_id, afm, full_name, monthly_rent, lease_start, lease_end, lease_type, created_at').in('property_id', ids).eq('user_id', userId).order('created_at', { ascending: false }),
+    supabase.from('rent_payments').select('property_id, amount, period_year, period_month').in('property_id', ids).eq('user_id', userId).eq('period_year', year),
+    supabase.from('property_settings').select('property_id, owner_afm').in('property_id', ids).eq('user_id', userId),
+  ]);
+  const tenantByProp = new Map<string, E2Tenant>();
+  (tenants || []).forEach((t: E2Tenant) => { if (!tenantByProp.has(t.property_id)) tenantByProp.set(t.property_id, t); });
+  const paymentsByProp = new Map<string, E2Payment[]>();
+  (payments || []).forEach((p: E2Payment) => { const a = paymentsByProp.get(p.property_id) || []; a.push(p); paymentsByProp.set(p.property_id, a); });
+  const afmByProp = new Map<string, string>();
+  (settings || []).forEach((s: { property_id: string; owner_afm: string | null }) => { if (s.owner_afm) afmByProp.set(s.property_id, s.owner_afm); });
+  const ownerAfm = [...afmByProp.values()].find(Boolean) || '';
+  const rows = properties.map(p => buildE2Row(p, tenantByProp.get(p.id) || null, paymentsByProp.get(p.id) || [], afmByProp.get(p.id) || '', year));
+  return { properties, rows, ownerAfm, tenantByProp, paymentsByProp, afmByProp };
+}
+
 export async function runE2Export(supabase: SupabaseClient, userId: string, year: number): Promise<number> {
   const { data: props } = await supabase.from('user_properties')
     .select('id, atak, address, postal_code, ownership, prop_type, status_detail, target_rent, sqm, floor')

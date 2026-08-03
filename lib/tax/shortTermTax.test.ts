@@ -1,6 +1,9 @@
 // Δοκιμές φορολογικής σύνοψης βραχυχρόνιας. Τρέξε: npx tsx lib/tax/shortTermTax.test.ts
-import { nightsByMonthForYear, channelBreakdownForYear, shortTermYearSummary, yearsWithStays } from './shortTermTax';
-import { climateLevyForNights, rentalIncomeTax } from '../billing/greekTax';
+import {
+  nightsByMonthForYear, channelBreakdownForYear, shortTermYearSummary, yearsWithStays,
+  guestPriceBreakdown,
+} from './shortTermTax';
+import { climateLevyForNights, rentalIncomeTax, CLIMATE_LEVY_STR_2025 } from '../billing/greekTax';
 
 let passed = 0, failed = 0; const fails: string[] = [];
 const ok = (name: string, cond: boolean) => { if (cond) passed++; else { failed++; fails.push(name); } };
@@ -63,6 +66,47 @@ ok('κενό set → μηδενικά', shortTermYearSummary([], 2026).grossReve
 
 // ── yearsWithStays ───────────────────────────────────────────────────────────
 ok('έτη = [2026, 2025]', JSON.stringify(yearsWithStays(stays)) === JSON.stringify([2026, 2025]));
+
+// ═══ ΑΚΑΘΑΡΙΣΤΑ vs PAYOUT — το δομικό λάθος που διορθώθηκε ═══════════════════
+// Πριν: το `total` γραφόταν ως payout και διαβαζόταν ως grossRevenue. Τώρα το
+// ακαθάριστο βγαίνει από τη ρητή ανάλυση, και το τέλος ανθεκτικότητας ΔΕΝ μπαίνει
+// μέσα του — είναι χρήμα του κράτους που περνά από τα χέρια του οικοδεσπότη.
+const broken = [
+  // 4 νύχτες Ιουλ: ο επισκέπτης πλήρωσε 1.000, τέλος 32 (4×8), προμήθεια 150.
+  { check_in: '2026-07-01', check_out: '2026-07-05', nights: 4, channel: 'airbnb', total: 818, amount_basis: 'gross', gross_guest_paid: 1000, climate_levy: 32, platform_fee: 150 },
+];
+const bs = shortTermYearSummary(broken, 2026);
+ok('ΑΚΑΘΑΡΙΣΤΟ = τι πλήρωσε ο επισκέπτης − τέλος', bs.grossRevenue === 968);
+ok('το τέλος ανθεκτικότητας ΔΕΝ είναι μέσα στα ακαθάριστα', bs.grossRevenue === 1000 - 32 && bs.grossRevenue < 1000);
+ok('η προμήθεια ΔΕΝ αφαιρείται από τα ακαθάριστα', bs.grossRevenue === 968 && bs.platformFees === 150);
+ok('η προμήθεια αναφέρεται χωριστά ως δαπάνη', bs.platformFees === 150);
+ok('εισπραχθέν τέλος καταγράφεται χωριστά από το οφειλόμενο', bs.collectedLevy === 32 && bs.levy === 32);
+ok('ρητή ανάλυση → μηδέν απροσδιόριστα', bs.unresolvedCount === 0 && bs.unresolvedAmount === 0);
+ok('φόρος πάνω στο ΑΚΑΘΑΡΙΣΤΟ (95%), όχι στο payout', near(bs.incomeTax, rentalIncomeTax(968 * 0.95)));
+
+// Ιστορικές γραμμές: απροσδιόριστη βάση, μετριούνται ΧΩΡΙΣΤΑ και δεν κρύβονται.
+ok('ιστορικό total → απροσδιόριστο, 3 γραμμές', sum.unresolvedCount === 3 && sum.unresolvedAmount === 1500);
+ok('ιστορικό total → μηδέν προμήθειες/εισπραχθέν τέλος γνωστά', sum.platformFees === 0 && sum.collectedLevy === 0);
+
+// Δήλωση βραχυχρόνιας διαμονής ανά κράτηση.
+ok('χωρίς declared_at → όλες αδήλωτες', sum.undeclaredCount === 3);
+ok('με declared_at → μετριέται ως δηλωμένη', shortTermYearSummary(
+  [{ check_in: '2026-07-01', check_out: '2026-07-03', nights: 2, total: 200, declared_at: '2026-07-05T10:00:00Z' },
+   { check_in: '2026-08-01', check_out: '2026-08-03', nights: 2, total: 200 }], 2026).undeclaredCount === 1);
+
+// ── guestPriceBreakdown: η γραμμή κάτω από κάθε προτεινόμενη τιμή ─────────────
+const bdHigh = guestPriceBreakdown('2026-08-15', 100);
+ok('υψηλή περίοδος (Αύγουστος)', bdHigh.highSeason && bdHigh.climateLevy === CLIMATE_LEVY_STR_2025.small.high);
+ok('δηλωτέο ακαθάριστο = τιμή − τέλος', bdHigh.declarableGross === 100 - CLIMATE_LEVY_STR_2025.small.high);
+ok('χωρίς ιστορικό προμήθειας → δεν την επινοούμε', bdHigh.platformFeeRate === null && bdHigh.platformFee === null && bdHigh.payout === null);
+const bdLow = guestPriceBreakdown('2026-01-15', 100);
+ok('χαμηλή περίοδος (Ιανουάριος)', !bdLow.highSeason && bdLow.climateLevy === CLIMATE_LEVY_STR_2025.small.low);
+ok('χαμηλό τέλος → μεγαλύτερο ακαθάριστο', bdLow.declarableGross > bdHigh.declarableGross);
+const bdHouse = guestPriceBreakdown('2026-08-15', 100, { sqm: 120, isHouse: true });
+ok('μονοκατοικία >80τμ → υψηλό κλιμάκιο τέλους', bdHouse.climateLevy === CLIMATE_LEVY_STR_2025.large.high);
+const bdFee = guestPriceBreakdown('2026-08-15', 100, { platformFeeRate: 0.15 });
+ok('με ιστορικό προμήθειας → payout = ακαθάριστο − προμήθεια', bdFee.platformFee === 15 && bdFee.payout === 100 - 8 - 15);
+ok('η προμήθεια δεν αγγίζει το δηλωτέο ακαθάριστο', bdFee.declarableGross === bdHigh.declarableGross);
 
 console.log(`\nshortTermTax — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }

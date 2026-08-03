@@ -2,8 +2,9 @@
 import {
   orthodoxEaster, holidayFor, realizedAdr, suggestBase, recommendPrices, priceForDate,
   summarize, suggestGuardrails, bookedDatesFromStays, SEASON_LABELS, indicativeMonthly,
-  projectRevenue, findGaps, estimateSeasonalOccupancy, suggestBaseFallback, OCC_BY_SEASON,
+  findGaps, estimateSeasonalOccupancy, MIN_NIGHTS_FOR_OCCUPANCY,
 } from './dynamicPricing';
+import * as pricing from './dynamicPricing';
 
 let passed = 0, failed = 0; const fails: string[] = [];
 const ok = (name: string, cond: boolean) => { if (cond) passed++; else { failed++; fails.push(name); } };
@@ -92,14 +93,14 @@ ok('12 μήνες', im.length === 12);
 ok('Αύγουστος (7) αιχμή & > Ιανουάριος (0)', im[7].season === 'peak' && im[7].weekday > im[0].weekday);
 ok('Σαββατοκύριακο > καθημερινή', im.every(r => r.weekend >= r.weekday));
 
-// ── projectRevenue: κέρδος vs σταθερής ───────────────────────────────────────
-const projRows = recommendPrices('2026-07-01', 31, { base: 100 }); // Ιούλιος: αιχμή → δυναμική > σταθερή
-const proj = projectRevenue(projRows, 100);
-ok('projection availableNights = 31', proj.availableNights === 31);
-ok('δυναμική > σταθερή σε αιχμή', proj.projRevenue > proj.flatRevenue && proj.uplift > 0);
-ok('occPct 0..100', proj.occPct >= 0 && proj.occPct <= 100);
-const projBooked = projectRevenue(recommendPrices('2026-07-01', 5, { base: 100, bookedDates: new Set(['2026-07-02', '2026-07-03']) }), 100);
-ok('booked εξαιρούνται από availableNights', projBooked.availableNights === 3);
+// ── Το επινοημένο ΕΦΥΓΕ: καμία πρόβλεψη εσόδων/κέρδους, κανένα fallback βάσης ──
+// Το «Εκτιμώμενο επιπλέον κέρδος» ήταν ταυτολογία (proj = Σ τιμή×πληρότητα, flat
+// = Σ βάση×πληρότητα, τιμή = βάση×1,123 κατά μέσο όρο) και δεν μπορούσε να βγει
+// αρνητικό. Το suggestBaseFallback έβγαζε τιμή/νύχτα από τ.μ. χωρίς τοποθεσία.
+// Ο έλεγχος είναι ότι δεν ΥΠΑΡΧΟΥΝ πια: αν κάποιος τα επαναφέρει, σπάει εδώ.
+ok('δεν υπάρχει projectRevenue', !('projectRevenue' in pricing));
+ok('δεν υπάρχει OCC_BY_SEASON', !('OCC_BY_SEASON' in pricing));
+ok('δεν υπάρχει suggestBaseFallback', !('suggestBaseFallback' in pricing));
 
 // ── findGaps: κενά προς πλήρωση ──────────────────────────────────────────────
 const gapRows = recommendPrices('2026-06-01', 10, { base: 100, bookedDates: new Set(['2026-06-04', '2026-06-05', '2026-06-08']) });
@@ -114,23 +115,36 @@ ok('κενό ανάμεσα σε κρατήσεις → hard', !!midGap && midGa
 // χωρίς κρατήσεις → ένα ενιαίο κενό
 ok('χωρίς κρατήσεις = 1 κενό', findGaps(recommendPrices('2026-06-01', 7, { base: 100 })).length === 1);
 
-// ── estimateSeasonalOccupancy (προσωπική πληρότητα από ιστορικό) ─────────────
-ok('χωρίς ιστορικό → προεπιλογές', (() => { const o = estimateSeasonalOccupancy([]); return o.peak === OCC_BY_SEASON.peak && o.low === OCC_BY_SEASON.low; })());
-ok('τιμές στο [0,1]', (() => { const o = estimateSeasonalOccupancy([{ check_in: '2026-08-01', check_out: '2026-08-20' }]); return (['peak','high','mid','low'] as const).every(s => o[s] >= 0 && o[s] <= 1); })());
-ok('πολλές νύχτες αιχμής → κινείται προς παρατηρούμενη', (() => {
-  // γεμάτος Αύγουστος πολλών ετών → observed υψηλό → peak > προεπιλογή
-  const many = [{ check_in: '2026-08-01', check_out: '2026-08-31' }, { check_in: '2025-08-01', check_out: '2025-08-31' }, { check_in: '2024-08-01', check_out: '2024-08-31' }];
-  return estimateSeasonalOccupancy(many).peak > OCC_BY_SEASON.peak - 0.01;
+// ── estimateSeasonalOccupancy: ΜΟΝΟ μετρημένη πληρότητα, ή καθόλου ───────────
+// Ο έλεγχος που ζητήθηκε ρητά: χωρίς αρκετό ιστορικό ΔΕΝ βγαίνει πληρότητα.
+ok('χωρίς ιστορικό → καμία πληρότητα', (() => {
+  const o = estimateSeasonalOccupancy([]);
+  return !o.any && (['peak', 'high', 'mid', 'low'] as const).every(s => o.occ[s] === null);
 })());
-
-// ── suggestBaseFallback (#2) ─────────────────────────────────────────────────
-ok('fallback από ενοίκιο', suggestBaseFallback(900, null) === Math.round((900 / 30) * 2.2 / 5) * 5);
-ok('fallback από εμβαδόν όταν λείπει ενοίκιο', suggestBaseFallback(null, 60) === Math.round(60 * 1.6 / 5) * 5);
-ok('fallback παίρνει το μεγαλύτερο σήμα', suggestBaseFallback(300, 80) === Math.max(Math.round((300 / 30) * 2.2 / 5) * 5, Math.round(80 * 1.6 / 5) * 5));
-ok('fallback χωρίς δεδομένα → 0', suggestBaseFallback(null, null) === 0);
-
-// projectRevenue με προσωπική πληρότητα
-ok('projectRevenue δέχεται occ map', (() => { const r = recommendPrices('2026-07-01', 10, { base: 100 }); const low = projectRevenue(r, 100, { peak: 0.1, high: 0.1, mid: 0.1, low: 0.1 }); const high = projectRevenue(r, 100, { peak: 0.9, high: 0.9, mid: 0.9, low: 0.9 }); return high.projRevenue > low.projRevenue; })());
+ok('λίγες νύχτες (κάτω από το κατώφλι) → καμία πληρότητα', (() => {
+  // 12 νύχτες αιχμής: ήταν αρκετές με το παλιό κατώφλι (4 διαμονές), τώρα όχι.
+  const o = estimateSeasonalOccupancy([{ check_in: '2026-08-01', check_out: '2026-08-13' }]);
+  return o.nights.peak === 12 && o.nights.peak < MIN_NIGHTS_FOR_OCCUPANCY && o.occ.peak === null && !o.any;
+})());
+ok('κατώφλι = 24 νύχτες', MIN_NIGHTS_FOR_OCCUPANCY === 24);
+ok('αρκετές νύχτες → πληρότητα από ΤΑ ΔΙΚΑ ΤΟΥ δεδομένα', (() => {
+  // Γεμάτος Αύγουστος (30 νύχτες / 31 ημέρες) → ~0,97 μετρημένο, όχι prior.
+  const o = estimateSeasonalOccupancy([{ check_in: '2026-08-01', check_out: '2026-08-31' }]);
+  return o.occ.peak != null && near(o.occ.peak, 30 / 31, 0.005) && o.occ.low === null;
+})());
+ok('πολλά έτη: ο παρονομαστής μεγαλώνει, δεν κλειδώνει στο 100%', (() => {
+  // Τρεις Αύγουστοι με 15 νύχτες ο καθένας = 45 νύχτες / 93 ημέρες ≈ 0,48.
+  const o = estimateSeasonalOccupancy([
+    { check_in: '2026-08-01', check_out: '2026-08-16' },
+    { check_in: '2025-08-01', check_out: '2025-08-16' },
+    { check_in: '2024-08-01', check_out: '2024-08-16' },
+  ]);
+  return o.occ.peak != null && near(o.occ.peak, 45 / 93, 0.01);
+})());
+ok('τιμές στο [0,1]', (() => {
+  const o = estimateSeasonalOccupancy([{ check_in: '2026-08-01', check_out: '2026-08-31' }, { check_in: '2026-07-01', check_out: '2026-07-28' }]);
+  return (['peak', 'high', 'mid', 'low'] as const).every(s => o.occ[s] === null || (o.occ[s]! >= 0 && o.occ[s]! <= 1));
+})());
 
 // ── labels ──────────────────────────────────────────────────────────────────
 ok('season labels', SEASON_LABELS.peak === 'Αιχμή' && SEASON_LABELS.low === 'Χαμηλή');

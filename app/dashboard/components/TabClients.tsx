@@ -1,13 +1,48 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Πελάτης: εργαλείο φιλοξενίας βραχυχρόνιας μίσθωσης ανά επισκέπτη.
-// Βαθμολογία, σχόλια/χρονολόγιο, ΑΦΜ, επικοινωνία, διεύθυνση, ιστορικό διαμονών,
-// φθορές, τιμή/έσοδα, VIP/μαύρη λίστα. Cross-property (ανά χρήστη).
-// Σχεδίαση: near-monochrome μπλε· χρώμα μόνο σε γνήσια σήματα (φθορές/μαύρη λίστα).
+// ΕΠΙΣΚΕΠΤΕΣ ΒΡΑΧΥΧΡΟΝΙΑΣ ΜΙΣΘΩΣΗΣ — όχι CRM επαγγελματία σε ιδιώτη με ένα εξοχικό.
+//
+// ΤΙ ΕΦΥΓΕ, ΚΑΙ ΓΙΑΤΙ
+//
+// 1. Η «ΜΑΥΡΗ ΛΙΣΤΑ» (`do_not_rent`) με ονοματεπώνυμο, ΑΦΜ και αριθμό
+//    ταυτότητας. Είναι κατηγοριοποίηση προσώπου με νομικό βάρος (GDPR) για
+//    μηδέν αντάλλαγμα — και εμφανιζόταν ως ετικέτα «Προσοχή» πάνω σε όνομα
+//    ανθρώπου. Ό,τι χρειάζεται πραγματικά ο οικοδεσπότης χωρά σε μια ιδιωτική
+//    σημείωση χωρίς ετικέτα κατηγορίας, και αυτό μένει.
+// 2. Εθνικότητα, αριθμός ταυτότητας, διεύθυνση, ΑΦΜ, πηγή γνωριμίας, ελεύθερες
+//    ετικέτες, 5 αστέρια, VIP, τμηματοποίηση. Δεδομένα προσωπικού χαρακτήρα και
+//    πεδία πωλήσεων που δεν προκαλούσαν ΚΑΜΙΑ ενέργεια στην εφαρμογή.
+// 3. Το κατώφλι VIP στα 1.000 €: επινοημένο και άσχετο με το μέγεθος του ακινήτου.
+// 4. Το KPI «Επαναλαμβανόμενοι». Ο επισκέπτης του Airbnb έρχεται μία φορά· το
+//    νούμερο θα έδειχνε 0 για πάντα, δηλαδή κατέλαβε μια θέση KPI για να πει
+//    ψέματα για την αξία του προϊόντος.
+// 5. Το drawer «Αναφορές». Τα δύο γραφήματα που είχαν νόημα (ανά κανάλι, ανά
+//    μήνα) ανέβηκαν στην ΚΥΡΙΑ οθόνη — «η σύγκριση είναι η κεντρική οθόνη, όχι
+//    λειτουργία σε υπομενού». Τα «Κορυφαίοι πελάτες» και «Ποιότητα φιλοξενίας»
+//    έφυγαν.
+//
+// ΤΙ ΠΡΟΣΤΕΘΗΚΕ
+//
+// α) Η ΓΡΑΜΜΗ ΤΟΥ ΑΜΑ στην κορυφή — ποτέ πίσω από paywall.
+// β) ΑΚΑΘΑΡΙΣΤΑ ΞΕΧΩΡΙΣΤΑ ΑΠΟ PAYOUT. Ο εισαγωγέας email ζητούσε ρητά «το ποσό
+//    που εισπράττει ο οικοδεσπότης (payout)» και το έγραφε στο `total`, το οποίο
+//    η φορολογική μηχανή διάβαζε ως `grossRevenue`. Πλέον καταγράφονται τρία
+//    ξεχωριστά ποσά (τι πλήρωσε ο επισκέπτης, προμήθεια, τέλος ανθεκτικότητας)
+//    και το ακαθάριστο ΥΠΟΛΟΓΙΖΕΤΑΙ. Οι ιστορικές γραμμές σημαίνονται ως
+//    απροσδιόριστες και ζητείται επιβεβαίωση στην πρώτη επεξεργασία.
+// γ) ΔΗΛΩΣΗ ΒΡΑΧΥΧΡΟΝΙΑΣ ΔΙΑΜΟΝΗΣ ανά κράτηση (`declared_at`), με σήμα
+//    «αδήλωτη» και μετρητή στα KPI. ~2,47 εκατ. δηλώσεις πανελλαδικά το 2025,
+//    μία ανά κράτηση — και το εργαλείο που είχε όλες τις κρατήσεις δεν
+//    παρακολουθούσε καμία.
+// δ) ΣΥΝΔΕΣΗ ΦΘΟΡΑΣ ΜΕ ΤΗΝ ΑΠΟΓΡΑΦΗ (`damage_item_id`), ώστε η φθορά να γίνεται
+//    δαπάνη με παραστατικό για τον λογιστή, όχι ελεύθερο κείμενο.
+//
+// Μένουν: όνομα, τηλέφωνο/email, κανάλι, ημερομηνίες, ποσά, φθορές, δήλωση.
+// Cross-property (ανά χρήστη). Χρώμα μόνο σε γνήσια σήματα.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Users, SearchX, BedDouble } from 'lucide-react';
+import { Users, SearchX } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, fe, fd,
@@ -17,32 +52,43 @@ import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UI
 import { downloadCsv } from './exportCsv';
 import { money, intGr } from './xlsxStyle';
 import ClientCompose from './ClientCompose';
+import AmaStrip from './AmaStrip';
 import {
-  isValidAfm, stayNights, stayTotal, clientStats, normalizePhone,
+  stayNights, stayTotal, clientStats, normalizePhone,
   clientMatches, STAY_CHANNELS, STAY_CHANNEL_LABELS, NOTE_KINDS, NOTE_KIND_LABELS,
 } from '@/lib/clients/clients';
+import {
+  declarableGross, hostPayout, needsAmountReview, isDeclared, amountBasis,
+  AMOUNT_BASIS_LABELS, type AmountBasis,
+} from '@/lib/clients/stayAmounts';
 import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink } from '@/lib/clients/messages';
-import { revenueByChannel, revenueByMonth, occupancyPct, totals } from '@/lib/clients/reports';
+import { revenueByChannel, revenueByMonth, yearOccupancy, totals } from '@/lib/clients/reports';
+import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
+// Τα πεδία CRM (rating/tags/do_not_rent/vip/address/id_number/nationality/source)
+// ΔΕΝ δηλώνονται εδώ επίτηδες: παραμένουν στη βάση (κανένα καταστροφικό
+// migration) αλλά καμία οθόνη δεν τα διαβάζει ούτε τα γράφει πλέον. Αν λείπουν
+// από τον τύπο, δεν μπορεί κανείς να τα ξαναχρησιμοποιήσει κατά λάθος.
 interface Client {
   id: string; user_id: string; type: string; full_name: string;
-  afm: string | null; phone: string | null; email: string | null; notes: string | null;
+  phone: string | null; email: string | null; notes: string | null;
   created_at: string; updated_at: string;
-  rating: number | null; tags: string[] | null; do_not_rent: boolean | null; vip: boolean | null;
-  address: string | null; id_number: string | null; nationality: string | null;
-  source: string | null;
 }
 interface Stay {
   id: string; user_id: string; client_id: string; property_id: string | null;
   check_in: string | null; check_out: string | null; nights: number | null; guests: number | null;
-  nightly_rate: number | null; total: number | null; channel: string | null; rating: number | null;
+  nightly_rate: number | null; total: number | null; channel: string | null;
   damages: boolean | null; damage_cost: number | null; damage_note: string | null;
+  damage_item_id: string | null;
+  gross_guest_paid: number | null; platform_fee: number | null; climate_levy: number | null;
+  amount_basis: string | null; declared_at: string | null;
   notes: string | null; created_at: string;
 }
 interface Note { id: string; user_id: string; client_id: string; kind: string; body: string; created_at: string; }
-interface PropRow { id: string; name: string; prop_type: string | null; status_detail: string | null; client_id: string | null; }
+interface PropRow { id: string; name: string; prop_type: string | null; status_detail: string | null; client_id: string | null; sqm: number | null; }
+interface InvItem { id: string; name: string; property_id: string | null; current_value: number | null; }
 interface ClientDoc {
   id: string; user_id: string; client_id: string; name: string; file_path: string;
   mime: string | null; size: number | null; kind: string; created_at: string;
@@ -74,83 +120,39 @@ const viberLink = (p?: string | null) => `viber://chat?number=%2B${msgDigits(p)}
 const channelOptions = STAY_CHANNELS.map(c => ({ value: c, label: STAY_CHANNEL_LABELS[c] }));
 const noteKindOptions = NOTE_KINDS.map(k => ({ value: k, label: NOTE_KIND_LABELS[k] }));
 
-// ── Κατάσταση φόρμας πελάτη (αριθμοί ως strings για τα NumberInput) ──────────
-interface FormState {
-  full_name: string; afm: string; phone: string; email: string; notes: string;
-  rating: number; tags: string[]; do_not_rent: boolean; vip: boolean; address: string; id_number: string;
-  nationality: string; source: string;
-}
-const emptyForm = (): FormState => ({
-  full_name: '', afm: '', phone: '', email: '', notes: '',
-  rating: 0, tags: [], do_not_rent: false, vip: false, address: '', id_number: '',
-  nationality: '', source: '',
-});
+// ── Κατάσταση φόρμας επισκέπτη ───────────────────────────────────────────────
+// Μόνο ό,τι χρειάζεται για να επικοινωνήσεις μαζί του και να κρατήσεις σημείωση.
+interface FormState { full_name: string; phone: string; email: string; notes: string }
+const emptyForm = (): FormState => ({ full_name: '', phone: '', email: '', notes: '' });
 
 interface StayForm {
   id?: string; property_id: string; check_in: string; check_out: string; nights: string;
-  guests: string; nightly_rate: string; total: string; channel: string; rating: number;
-  damages: boolean; damage_cost: string; damage_note: string; notes: string;
+  guests: string; nightly_rate: string; channel: string;
+  // Τα τρία ποσά που ΔΕΝ είναι ο ίδιος αριθμός.
+  gross_guest_paid: string; platform_fee: string; climate_levy: string;
+  /** Το ιστορικό `total`, όταν η γραμμή είναι ακόμη απροσδιόριστη. */
+  legacyTotal: string; basis: AmountBasis;
+  declared: boolean; declared_at: string;
+  damages: boolean; damage_cost: string; damage_note: string; damage_item_id: string;
+  notes: string;
 }
 const emptyStay = (): StayForm => ({
   property_id: '', check_in: '', check_out: '', nights: '', guests: '', nightly_rate: '',
-  total: '', channel: 'direct', rating: 0, damages: false, damage_cost: '', damage_note: '', notes: '',
+  channel: 'direct', gross_guest_paid: '', platform_fee: '', climate_levy: '',
+  legacyTotal: '', basis: 'unknown', declared: false, declared_at: '',
+  damages: false, damage_cost: '', damage_note: '', damage_item_id: '', notes: '',
 });
 
-// ── Βαθμολογία με αστέρια (γεμάτο = accent, κενό = border-default· χωρίς χρυσό) ─
-function Stars({ value, max = 5, onSet, size = 15 }: { value: number; max?: number; onSet?: (n: number) => void; size?: number }) {
-  return (
-    <span style={{ display: 'inline-flex', gap: 1, alignItems: 'center' }} title={onSet ? 'Ορισμός βαθμολογίας' : undefined}>
-      {Array.from({ length: max }).map((_, i) => {
-        const n = i + 1;
-        const filled = n <= value;
-        const star = (
-          <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'var(--accent)' : 'var(--border-default)'} style={{ display: 'block' }}>
-            <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01L12 2z" />
-          </svg>
-        );
-        return onSet ? (
-          <button key={n} onClick={() => onSet(value === n ? 0 : n)} title={`${n}`}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}>{star}</button>
-        ) : <span key={n} style={{ lineHeight: 0 }}>{star}</span>;
-      })}
-    </span>
-  );
-}
-
-// ── Διακόπτης σήματος (μαύρη λίστα / φθορές) σε var(--negative) ─────────────
+// ── Διακόπτης σήματος (φθορές) σε var(--negative) ───────────────────────────
 function FlagSwitch({ on, onChange, onLabel, offLabel, tone = 'negative' }: { on: boolean; onChange: (v: boolean) => void; onLabel: string; offLabel: string; tone?: 'negative' | 'warning' | 'accent' | 'positive' }) {
   const c = `var(--${tone})`;
   return (
     <button onClick={() => onChange(!on)} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
       <span style={{ width: 42, height: 26, borderRadius: 12, background: on ? c : 'transparent', border: `2px solid ${on ? c : 'var(--border-default)'}`, position: 'relative', transition: 'all .2s', flexShrink: 0, display: 'inline-block' }}>
-        <span style={{ position: 'absolute', top: '50%', left: on ? 'calc(100% - 20px)' : 2, transform: 'translateY(-50%)', width: 16, height: 16, borderRadius: '50%', background: on ? '#fff' : 'var(--text-secondary)', transition: 'all .2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+        <span style={{ position: 'absolute', top: '50%', left: on ? 'calc(100% - 20px)' : 2, transform: 'translateY(-50%)', width: 16, height: 16, borderRadius: '50%', background: on ? 'var(--bg-surface)' : 'var(--text-secondary)', transition: 'all .2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
       </span>
       <span style={{ fontSize: 13, fontWeight: 600, color: on ? c : 'var(--text-secondary)', fontFamily: T.font.sans }}>{on ? onLabel : offLabel}</span>
     </button>
-  );
-}
-
-// ── Επεξεργαστής ετικετών (chips) ───────────────────────────────────────────
-function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
-  const [input, setInput] = useState('');
-  const add = () => { const t = input.trim(); if (t && !tags.includes(t)) onChange([...tags, t]); setInput(''); };
-  return (
-    <div>
-      {tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-          {tags.map(t => (
-            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, padding: '3px 9px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
-              {t}
-              <button onClick={() => onChange(tags.filter(x => x !== t))} title="Αφαίρεση" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 14 }}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
-      <input value={input} onChange={e => setInput(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}
-        onBlur={add} placeholder="Ετικέτα και Enter (π.χ. VIP, ήσυχος)"
-        style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, height: 40, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans }} />
-    </div>
   );
 }
 
@@ -184,31 +186,16 @@ const statTile = (label: string, value: React.ReactNode, opts?: { neg?: boolean;
   </div>
 );
 
-// Μικρο-γράφημα (sparkline) εσόδων ανά διαμονή. Καθαρό inline SVG, χωρίς βιβλιοθήκη.
-const sparkline = (values: number[], h = 34): React.ReactNode => {
-  if (!values || values.length < 2) return null;
-  const max = Math.max(...values), min = Math.min(...values, 0), range = (max - min) || 1, n = values.length;
-  const x = (i: number) => (i / (n - 1)) * 100;
-  const y = (v: number) => h - 3 - ((v - min) / range) * (h - 6);
-  const d = 'M' + values.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' L');
-  return (
-    <svg viewBox={`0 0 100 ${h}`} width="100%" height={h} preserveAspectRatio="none" style={{ display: 'block' }} aria-hidden>
-      <path d={`${d} L100,${h} L0,${h} Z`} fill="var(--accent-soft)" />
-      <path d={d} fill="none" stroke="var(--accent)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-};
-
 export default function TabClients({ userId, onSelectProperty }: { userId: string; onSelectProperty?: (id: string) => void }) {
   const supabase = createClient();
   const [clients, setClients] = useState<Client[]>([]);
   const [props, setProps] = useState<PropRow[]>([]);
   const [stays, setStays] = useState<Stay[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [inv, setInv] = useState<InvItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [segment, setSegment] = useState<'all' | 'vip' | 'repeat' | 'flagged'>('all');
-  const [reportsOpen, setReportsOpen] = useState(false);
+  const [undeclaredOnly, setUndeclaredOnly] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportYearMenu, setReportYearMenu] = useState(false);
@@ -219,7 +206,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [emailText, setEmailText] = useState('');
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailErr, setEmailErr] = useState('');
-  const [emailDraft, setEmailDraft] = useState<{ name: string; check_in: string; check_out: string; total: string; channel: string } | null>(null);
+  const [emailDraft, setEmailDraft] = useState<{ name: string; check_in: string; check_out: string; gross: string; fee: string; levy: string; channel: string } | null>(null);
 
   // Εισαγωγή iCal (Airbnb/Booking): συγχρονισμός κρατήσεων/διαμονών ανά ακίνητο.
   const [icalOpen, setIcalOpen] = useState(false);
@@ -260,12 +247,16 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const docFileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    const [{ data: cl }, { data: pr }] = await Promise.all([
-      supabase.from('clients').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-      supabase.from('user_properties').select('id,name,prop_type,status_detail,client_id').eq('user_id', userId).order('created_at'),
+    const [{ data: cl }, { data: pr }, { data: it }] = await Promise.all([
+      supabase.from('clients').select('id,user_id,type,full_name,phone,email,notes,created_at,updated_at').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabase.from('user_properties').select('id,name,prop_type,status_detail,client_id,sqm').eq('user_id', userId).order('created_at'),
+      // Η απογραφή, για να δείχνει η φθορά σε ΑΝΤΙΚΕΙΜΕΝΟ και όχι σε κείμενο:
+      // ο λογιστής χρειάζεται δαπάνη με παραστατικό, όχι «έσπασε κάτι».
+      supabase.from('inventory_items').select('id,name,property_id,current_value').eq('user_id', userId).order('name'),
     ]);
     setClients((cl || []) as Client[]);
     setProps((pr || []) as PropRow[]);
+    setInv((it || []) as InvItem[]);
     setLoading(false);
   }, [userId]);
 
@@ -333,45 +324,50 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     staysByClient.forEach((arr, id) => m.set(id, clientStats(arr)));
     return m;
   }, [staysByClient]);
-  // Όλες οι διαμονές του χρήστη (για τις Αναφορές), υπολογισμένες μία φορά.
+  // Όλες οι διαμονές του χρήστη, υπολογισμένες μία φορά.
   const allStays = useMemo(() => [...staysByClient.values()].flat(), [staysByClient]);
-  const year = new Date().getFullYear();
 
-  const isFlagged = useCallback((c: Client) => !!c.do_not_rent || !!statsByClient.get(c.id)?.hasDamage, [statsByClient]);
+  // Αδήλωτες διαμονές ανά επισκέπτη — το μόνο σήμα που αξίζει θέση στην κάρτα.
+  const undeclaredByClient = useMemo(() => {
+    const m = new Map<string, number>();
+    stays.forEach(s => { if (!isDeclared(s)) m.set(s.client_id, (m.get(s.client_id) || 0) + 1); });
+    return m;
+  }, [stays]);
 
   const filtered = useMemo(() => clients.filter(c => {
     if (!clientMatches(c, search)) return false;
-    if (segment !== 'all') {
-      const st = statsByClient.get(c.id);
-      if (segment === 'vip' && !(c.vip || (c.rating || 0) >= 4 || (st?.revenue || 0) >= 1000)) return false;
-      if (segment === 'repeat' && !((st?.stayCount || 0) >= 2)) return false;
-      if (segment === 'flagged' && !isFlagged(c)) return false;
-    }
+    if (undeclaredOnly && !(undeclaredByClient.get(c.id) || 0)) return false;
     return true;
-  }), [clients, search, segment, statsByClient, isFlagged]);
+  }), [clients, search, undeclaredOnly, undeclaredByClient]);
 
+  // ΤΑ KPI. Δεν υπάρχει «Επαναλαμβανόμενοι» (ο επισκέπτης του Airbnb έρχεται μία
+  // φορά, το νούμερο θα ήταν 0 για πάντα) ούτε «Επισήμανση/μαύρη λίστα».
+  // Υπάρχει το μόνο που κοστίζει χρήματα σήμερα: οι αδήλωτες διαμονές.
   const kpis = useMemo(() => {
-    const revenue = clientStats(stays).revenue;
-    const repeat = clients.filter(c => (staysByClient.get(c.id) || []).length >= 2).length;
-    const flagged = clients.filter(isFlagged).length;
+    const tot = totals(stays);
     return [
-      { label: 'Σύνολο πελατών', value: String(clients.length) },
-      { label: 'Έσοδα φιλοξενίας', value: fe(revenue, 0) },
-      { label: 'Επαναλαμβανόμενοι', value: String(repeat), sub: 'με 2+ διαμονές' },
-      { label: 'Επισήμανση', value: String(flagged), sub: 'μαύρη λίστα ή φθορές', tone: flagged > 0 ? 'warning' as const : 'neutral' as const },
+      { label: 'Επισκέπτες', value: String(clients.length) },
+      {
+        label: 'Δηλωτέα ακαθάριστα',
+        value: fe(tot.revenue, 0),
+        sub: tot.unresolved > 0 ? `${tot.unresolved} ${tot.unresolved === 1 ? 'διαμονή' : 'διαμονές'} με απροσδιόριστο ποσό` : 'χωρίς το τέλος ανθεκτικότητας',
+        tone: (tot.unresolved > 0 ? 'warning' : 'neutral') as 'warning' | 'neutral',
+      },
+      {
+        label: 'Αδήλωτες διαμονές',
+        value: String(tot.undeclared),
+        sub: 'Δήλωση Βραχυχρόνιας Διαμονής',
+        tone: (tot.undeclared > 0 ? 'negative' : 'positive') as 'negative' | 'positive',
+      },
+      { label: 'Νύχτες', value: String(tot.nights), sub: `${tot.count} ${tot.count === 1 ? 'διαμονή' : 'διαμονές'}` },
     ];
-  }, [clients, stays, staysByClient, isFlagged]);
+  }, [clients, stays]);
 
   // ── Φόρμα πελάτη ──────────────────────────────────────────────────────────
   const openNew = () => { setEditing(null); setForm(emptyForm()); setModalOpen(true); };
   const openEdit = (c: Client) => {
     setEditing(c);
-    setForm({
-      full_name: c.full_name, afm: c.afm || '', phone: c.phone || '', email: c.email || '',
-      notes: c.notes || '',
-      rating: c.rating || 0, tags: c.tags || [], do_not_rent: !!c.do_not_rent, vip: !!c.vip, address: c.address || '',
-      id_number: c.id_number || '', nationality: c.nationality || '', source: c.source || '',
-    });
+    setForm({ full_name: c.full_name, phone: c.phone || '', email: c.email || '', notes: c.notes || '' });
     setModalOpen(true);
   };
 
@@ -384,25 +380,22 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     // εγκρίθηκε. Και το setSaving μπαίνει ΠΡΙΝ την ερώτηση, ώστε το κουμπί
     // «Αποθήκευση» (disabled={saving}) να μη δέχεται δεύτερο πάτημα όσο περιμένει.
     const f = form;
-    // Εντοπισμός διπλότυπου σε νέα εγγραφή: ίδιο τηλέφωνο ή ίδιο ΑΦΜ.
+    // Εντοπισμός διπλότυπου σε νέα εγγραφή: ίδιο τηλέφωνο. (Το ΑΦΜ έφυγε ως
+    // κριτήριο μαζί με το πεδίο: δεν ζητάμε ΑΦΜ από επισκέπτη Airbnb.)
     if (!editing) {
-      const np = normalizePhone(f.phone), afm = f.afm.trim();
-      const dup = clients.find(c => (np.length >= 8 && normalizePhone(c.phone) === np) || (afm.length === 9 && (c.afm || '') === afm));
+      const np = normalizePhone(f.phone);
+      const dup = np.length >= 8 ? clients.find(c => normalizePhone(c.phone) === np) : undefined;
       if (dup) {
-        const by = np.length >= 8 && normalizePhone(dup.phone) === np ? 'αυτό το τηλέφωνο' : 'αυτό το ΑΦΜ';
         setSaving(true);
-        const ok = await confirmDialog(`Υπάρχει ήδη πελάτης με ${by}: «${dup.full_name}». Θέλεις σίγουρα να δημιουργήσεις νέα εγγραφή;`);
+        const ok = await confirmDialog(`Υπάρχει ήδη επισκέπτης με αυτό το τηλέφωνο: «${dup.full_name}». Θέλεις σίγουρα να δημιουργήσεις νέα εγγραφή;`);
         if (!ok) { setSaving(false); return; }
       }
     }
     setSaving(true);
     const payload = {
       user_id: userId, type: 'client', full_name: f.full_name.trim(),
-      afm: f.afm.trim() || null, phone: f.phone.trim() || null, email: f.email.trim() || null,
+      phone: f.phone.trim() || null, email: f.email.trim() || null,
       notes: f.notes.trim() || null,
-      rating: f.rating || 0, tags: f.tags, do_not_rent: f.do_not_rent, vip: f.vip,
-      address: f.address.trim() || null, id_number: f.id_number.trim() || null,
-      nationality: f.nationality.trim() || null, source: f.source.trim() || null,
       updated_at: new Date().toISOString(),
     };
     if (editing) await supabase.from('clients').update(payload).eq('id', editing.id);
@@ -414,12 +407,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     if (!(await confirmDialog('Να διαγραφεί η καταχώρηση;', { tone: 'negative' }))) return;
     await supabase.from('clients').delete().eq('id', c.id);
     if (openId === c.id) setOpenId(null);
-    load();
-  };
-
-  // Άμεση αποθήκευση από το ντοσιέ (βαθμολογία / μαύρη λίστα / ετικέτες)
-  const patchClient = async (id: string, patch: Partial<Client>) => {
-    await supabase.from('clients').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id);
     load();
   };
 
@@ -446,9 +433,18 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-5', max_tokens: 500,
+          // Ο ΕΙΣΑΓΩΓΕΑΣ ΖΗΤΑ ΠΛΕΟΝ ΤΡΙΑ ΞΕΧΩΡΙΣΤΑ ΠΟΣΑ. Πριν ζητούσε ένα
+          // («το ποσό που εισπράττει ο οικοδεσπότης — payout») και το έγραφε στο
+          // `total`, το οποίο η φορολογική μηχανή διάβαζε ως ακαθάριστο. Το ίδιο
+          // πεδίο σήμαινε δύο πράγματα και η διαφορά ήταν ~15% του φόρου.
           system: `Από αυτό το email κράτησης (Airbnb/Booking/άλλο) εξάγαγε τα στοιχεία. Επέστρεψε ΜΟΝΟ valid JSON χωρίς markdown:
-{"guest_name":"","check_in":"YYYY-MM-DD","check_out":"YYYY-MM-DD","total":0,"channel":"airbnb|booking|direct|other"}
-Αν κάτι λείπει, βάλε "" ή 0. Το total είναι το ποσό που εισπράττει ο οικοδεσπότης (payout) αν φαίνεται.`,
+{"guest_name":"","check_in":"YYYY-MM-DD","check_out":"YYYY-MM-DD","gross_guest_paid":0,"platform_fee":0,"climate_levy":0,"channel":"airbnb|booking|direct|other"}
+Κανόνες ποσών, ΜΗΝ τα μπερδέψεις:
+- gross_guest_paid = το ΣΥΝΟΛΟ που πλήρωσε ο επισκέπτης (guest total / "Σύνολο επισκέπτη"), πριν αφαιρεθεί οποιαδήποτε προμήθεια.
+- platform_fee = η προμήθεια/service fee που κράτησε η πλατφόρμα από τον οικοδεσπότη.
+- climate_levy = τέλος ανθεκτικότητας στην κλιματική κρίση / climate crisis resilience fee, αν αναφέρεται ξεχωριστά.
+Αν κάποιο ποσό ΔΕΝ φαίνεται καθαρά στο email, βάλε 0 — ΜΗΝ το υπολογίσεις και μην το μαντέψεις.
+Αν λείπει κείμενο, βάλε "".`,
           messages: [{ role: 'user', content: [{ type: 'text', text: text.slice(0, 8000) }] }],
         }),
       });
@@ -456,7 +452,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       if (!res.ok) { setEmailErr(data.error || 'Σφάλμα ανάλυσης.'); setEmailBusy(false); return; }
       const raw = ((data.content || []).find((c: any) => c.type === 'text')?.text || '{}').replace(/```json?|```/g, '').trim();
       const p = JSON.parse(raw);
-      setEmailDraft({ name: p.guest_name || '', check_in: p.check_in || '', check_out: p.check_out || '', total: p.total ? String(p.total) : '', channel: p.channel || 'other' });
+      setEmailDraft({
+        name: p.guest_name || '', check_in: p.check_in || '', check_out: p.check_out || '',
+        gross: p.gross_guest_paid ? String(p.gross_guest_paid) : '',
+        fee: p.platform_fee ? String(p.platform_fee) : '',
+        levy: p.climate_levy ? String(p.climate_levy) : '',
+        channel: p.channel || 'other',
+      });
     } catch { setEmailErr('Δεν ήταν δυνατή η ανάλυση. Δοκίμασε ξανά ή καταχώρησε χειροκίνητα.'); }
     setEmailBusy(false);
   };
@@ -471,9 +473,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     }
     if (clientId) {
       const nights = stayNights(emailDraft.check_in, emailDraft.check_out) || null;
+      const gross = parseFloat(emailDraft.gross) || 0;
+      const fee = parseFloat(emailDraft.fee) || 0;
+      const levy = parseFloat(emailDraft.levy) || 0;
       await supabase.from('client_stays').insert({
         user_id: userId, client_id: clientId, check_in: emailDraft.check_in || null, check_out: emailDraft.check_out || null,
-        nights, total: parseFloat(emailDraft.total) || null, channel: emailDraft.channel || null,
+        nights, channel: emailDraft.channel || null,
+        gross_guest_paid: gross || null, platform_fee: fee || null, climate_levy: levy || null,
+        // Το `total` είναι ΠΑΡΑΓΩΓΟ: το δηλωτέο ακαθάριστο (τι πλήρωσε ο
+        // επισκέπτης μείον το τέλος, που δεν είναι έσοδο του ιδιοκτήτη).
+        total: gross ? Math.max(0, gross - levy) : null,
+        amount_basis: gross ? 'gross' : 'unknown',
       });
     }
     setEmailBusy(false); setEmailOpen(false); setEmailText(''); setEmailDraft(null);
@@ -495,20 +505,45 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     setStayForm({
       id: s.id, property_id: s.property_id || '', check_in: s.check_in || '', check_out: s.check_out || '',
       nights: s.nights != null ? String(s.nights) : '', guests: s.guests != null ? String(s.guests) : '',
-      nightly_rate: s.nightly_rate != null ? String(s.nightly_rate) : '', total: s.total != null ? String(s.total) : '',
-      channel: s.channel || 'direct', rating: s.rating || 0, damages: !!s.damages,
-      damage_cost: s.damage_cost != null ? String(s.damage_cost) : '', damage_note: s.damage_note || '', notes: s.notes || '',
+      nightly_rate: s.nightly_rate != null ? String(s.nightly_rate) : '',
+      channel: s.channel || 'direct',
+      gross_guest_paid: s.gross_guest_paid != null ? String(s.gross_guest_paid) : '',
+      platform_fee: s.platform_fee != null ? String(s.platform_fee) : '',
+      climate_levy: s.climate_levy != null ? String(s.climate_levy) : '',
+      legacyTotal: s.total != null ? String(s.total) : '',
+      basis: amountBasis(s),
+      declared: isDeclared(s), declared_at: (s.declared_at || '').slice(0, 10),
+      damages: !!s.damages,
+      damage_cost: s.damage_cost != null ? String(s.damage_cost) : '',
+      damage_note: s.damage_note || '', damage_item_id: s.damage_item_id || '',
+      notes: s.notes || '',
     });
     setStayFormOpen(true);
   };
   const onStayDates = (patch: Partial<StayForm>) => setStayForm(f => {
     const nf = { ...f, ...patch };
     const n = stayNights(nf.check_in, nf.check_out);
-    const rate = parseFloat(nf.nightly_rate) || 0;
-    return { ...nf, nights: n ? String(n) : nf.nights, total: n && rate ? String(n * rate) : nf.total };
+    return { ...nf, nights: n ? String(n) : nf.nights };
   });
-  const onStayNights = (v: string) => setStayForm(f => { const n = parseFloat(v) || 0; const rate = parseFloat(f.nightly_rate) || 0; return { ...f, nights: v, total: n && rate ? String(n * rate) : f.total }; });
-  const onStayRate = (v: string) => setStayForm(f => { const n = parseFloat(f.nights) || 0; const rate = parseFloat(v) || 0; return { ...f, nightly_rate: v, total: n && rate ? String(n * rate) : f.total }; });
+
+  // Το τέλος ανθεκτικότητας ανά διανυκτέρευση, από τους συντελεστές της ΑΑΔΕ και
+  // τον τύπο/μέγεθος του ΣΥΓΚΕΚΡΙΜΕΝΟΥ ακινήτου. Πρόταση, όχι επιβολή: ο χρήστης
+  // το διορθώνει, γιατί τα ακριβή ποσά και οι μήνες ορίζονται από την ΑΑΔΕ.
+  const suggestLevy = useCallback((f: StayForm): number => {
+    const nights = parseInt(f.nights, 10) || stayNights(f.check_in, f.check_out);
+    if (!nights || !f.check_in) return 0;
+    const p = props.find(x => x.id === f.property_id);
+    const isHouse = ['house', 'villa'].includes(String(p?.prop_type || '').toLowerCase());
+    const r = climateLevyRates(p?.sqm ?? null, isHouse);
+    // Ανά νύχτα, με τον μήνα της κάθε νύχτας (μια διαμονή μπορεί να αλλάζει περίοδο).
+    let sum = 0;
+    const d = new Date(f.check_in + 'T00:00:00Z');
+    for (let i = 0; i < nights; i++) {
+      sum += isHighSeasonMonth(d.getUTCMonth()) ? r.high : r.low;
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+    return sum;
+  }, [props]);
 
   const saveStay = async () => {
     if (!openId) return;
@@ -516,14 +551,31 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
     const nights = parseInt(stayForm.nights, 10) || stayNights(stayForm.check_in, stayForm.check_out) || null;
     const rate = num(stayForm.nightly_rate);
-    const total = num(stayForm.total) ?? ((nights || 0) * (rate || 0) || null);
+    const gross = num(stayForm.gross_guest_paid);
+    const levy = num(stayForm.climate_levy);
+    const fee = num(stayForm.platform_fee);
+    // ΤΟ `total` ΕΙΝΑΙ ΠΑΡΑΓΩΓΟ, ΔΕΝ ΤΟ ΠΛΗΚΤΡΟΛΟΓΕΙ ΚΑΝΕΙΣ ΠΙΑ.
+    // Όταν ξέρουμε τι πλήρωσε ο επισκέπτης, το `total` γίνεται το δηλωτέο
+    // ακαθάριστο (χωρίς το τέλος ανθεκτικότητας, που δεν είναι έσοδο του
+    // ιδιοκτήτη) και σημαίνεται ρητά ως 'gross'. Αν δεν το ξέρουμε, κρατάμε ό,τι
+    // υπήρχε με τη βάση που δήλωσε ο χρήστης — κανένα ποσό δεν χάνεται.
+    const derivedTotal = gross != null && gross > 0
+      ? Math.max(0, gross - (levy || 0))
+      : (num(stayForm.legacyTotal) ?? ((nights || 0) * (rate || 0) || null));
+    const basis: AmountBasis = gross != null && gross > 0 ? 'gross' : stayForm.basis;
     const payload = {
       user_id: userId, client_id: openId, property_id: stayForm.property_id || null,
       check_in: stayForm.check_in || null, check_out: stayForm.check_out || null, nights,
-      guests: parseInt(stayForm.guests, 10) || null, nightly_rate: rate, total,
-      channel: stayForm.channel || null, rating: stayForm.rating || null, damages: stayForm.damages,
+      guests: parseInt(stayForm.guests, 10) || null, nightly_rate: rate,
+      total: derivedTotal, amount_basis: basis,
+      gross_guest_paid: gross, platform_fee: fee, climate_levy: levy,
+      declared_at: stayForm.declared
+        ? new Date((stayForm.declared_at || todayStr()) + 'T12:00:00Z').toISOString()
+        : null,
+      channel: stayForm.channel || null, damages: stayForm.damages,
       damage_cost: stayForm.damages ? num(stayForm.damage_cost) : null,
       damage_note: stayForm.damages ? (stayForm.damage_note.trim() || null) : null,
+      damage_item_id: stayForm.damages ? (stayForm.damage_item_id || null) : null,
       notes: stayForm.notes.trim() || null,
     };
     if (stayForm.id) await supabase.from('client_stays').update(payload).eq('id', stayForm.id);
@@ -531,6 +583,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     setSavingStay(false); setStayFormOpen(false); loadStays();
   };
   const delStay = async (s: Stay) => { if (!(await confirmDialog('Να διαγραφεί η διαμονή;', { tone: 'negative' }))) return; await supabase.from('client_stays').delete().eq('id', s.id); loadStays(); };
+  // Ένα κλικ από τη λίστα: δηλώθηκε / δεν δηλώθηκε. Η δήλωση βραχυχρόνιας
+  // διαμονής είναι μία ανά κράτηση και η προθεσμία τρέχει — δεν πρέπει να
+  // απαιτεί άνοιγμα φόρμας.
+  const toggleDeclared = async (s: Stay) => {
+    await supabase.from('client_stays')
+      .update({ declared_at: isDeclared(s) ? null : new Date().toISOString() })
+      .eq('id', s.id);
+    loadStays();
+  };
 
   // ── Σχόλια ────────────────────────────────────────────────────────────────
   const saveNote = async () => {
@@ -683,24 +744,41 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     loadStays(); load();
   };
 
-  // ── Εξαγωγή CSV (εμπλουτισμένη) ────────────────────────────────────────────
+  // ── Εξαγωγή CSV ─────────────────────────────────────────────────────────────
+  // ΑΝΑ ΔΙΑΜΟΝΗ, όχι ανά πρόσωπο. Αυτό ζητά ο λογιστής: μία γραμμή ανά κράτηση,
+  // με τα τρία ποσά χωριστά και ρητή ένδειξη πού το ποσό είναι απροσδιόριστο.
+  // Ένα CSV προσώπων με εθνικότητες, ΑΦΜ και «μαύρη λίστα» δεν έλυνε τίποτα και
+  // ήταν προσωπικά δεδομένα σε αρχείο που ταξιδεύει με email.
   const exportCsv = () => {
-    const rows = clients.map(c => {
-      const st = statsByClient.get(c.id) || clientStats([]);
-      return [
-        c.full_name, c.afm || '', c.phone || '', c.email || '',
-        c.address || '', c.id_number || '', c.nationality || '', c.source || '',
-        c.rating != null ? String(c.rating) : '', (c.tags || []).join(' | '), c.do_not_rent ? 'ΝΑΙ' : '',
-        intGr(st.stayCount), intGr(st.nights), money(st.revenue), money(st.adr),
-        st.avgRating != null ? String(st.avgRating) : '', st.lastVisit || '', st.damageTotal ? money(st.damageTotal) : '',
-        (propsByClient.get(c.id) || []).map(p => p.name).join(' | '),
-      ];
-    });
-    downloadCsv(`pelates_${todayStr()}`, [
-      'Ονοματεπώνυμο', 'ΑΦΜ', 'Τηλέφωνο', 'Email', 'Διεύθυνση', 'Ταυτότητα', 'Εθνικότητα', 'Πηγή',
-      'Βαθμολογία', 'Ετικέτες', 'Μαύρη λίστα',
-      'Διαμονές', 'Νύχτες', 'Έσοδα', 'ADR', 'Μέση βαθμολογία', 'Τελευταία επίσκεψη', 'Φθορές',
-      'Ακίνητα',
+    const byId = new Map(clients.map(c => [c.id, c]));
+    const rows = allStays
+      .slice()
+      .sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''))
+      .map(s => {
+        const g = declarableGross(s);
+        const pay = hostPayout(s);
+        const it = s.damage_item_id ? inv.find(i => i.id === s.damage_item_id) : undefined;
+        return [
+          byId.get(s.client_id)?.full_name || '', propName(s.property_id),
+          s.check_in || '', s.check_out || '',
+          intGr(s.nights ?? stayNights(s.check_in, s.check_out)),
+          s.channel ? (STAY_CHANNEL_LABELS[s.channel as keyof typeof STAY_CHANNEL_LABELS] || s.channel) : '',
+          s.gross_guest_paid != null ? money(s.gross_guest_paid) : '',
+          s.climate_levy != null ? money(s.climate_levy) : '',
+          s.platform_fee != null ? money(s.platform_fee) : '',
+          g != null ? money(g) : money(stayTotal(s)),
+          g != null ? '' : 'ΑΠΡΟΣΔΙΟΡΙΣΤΟ — χρειάζεται επιβεβαίωση',
+          pay != null ? money(pay) : '',
+          isDeclared(s) ? (s.declared_at || '').slice(0, 10) : 'ΑΔΗΛΩΤΗ',
+          s.damages ? money(s.damage_cost || 0) : '',
+          it?.name || s.damage_note || '',
+        ];
+      });
+    downloadCsv(`diamones_${todayStr()}`, [
+      'Επισκέπτης', 'Ακίνητο', 'Άφιξη', 'Αναχώρηση', 'Νύχτες', 'Κανάλι',
+      'Πλήρωσε ο επισκέπτης', 'Τέλος ανθεκτικότητας', 'Προμήθεια πλατφόρμας',
+      'ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ', 'Σημείωση ποσού', 'Payout',
+      'Δήλωση βραχυχρόνιας διαμονής', 'Κόστος φθοράς', 'Αντικείμενο / σημείωση φθοράς',
     ], rows);
   };
 
@@ -738,6 +816,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const dc = openId ? clients.find(c => c.id === openId) || null : null;
   const dcStays = dc ? (staysByClient.get(dc.id) || []).slice().sort((a, b) => (b.check_in || '').localeCompare(a.check_in || '')) : [];
   const dcStats = dc ? clientStats(dcStays) : null;
+  const dcUndeclared = dcStays.filter(s => !isDeclared(s)).length;
+  const dcTotals = totals(dcStays);
+  // Η απογραφή του ακινήτου της διαμονής (ή όλη, αν δεν έχει επιλεγεί ακίνητο).
+  const invForStay = stayForm.property_id ? inv.filter(i => i.property_id === stayForm.property_id) : inv;
   // Πλαίσιο για τα πρότυπα μηνυμάτων: πελάτης + πρώτο συνδεδεμένο ακίνητο + πιο
   // πρόσφατη διαμονή (τα dcStays είναι σε φθίνουσα σειρά, άρα [0] = πιο πρόσφατη).
   const dcFirstProp = dc ? (propsByClient.get(dc.id) || [])[0] : undefined;
@@ -745,58 +827,61 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      <PageTitle title="Πελάτης" sub="Πλήρες αρχείο επισκεπτών βραχυχρόνιας μίσθωσης: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
-        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setComposeOpen(true)}>Σύνταξη email</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn>}{clients.length > 0 && <ExportButton onClick={exportCsv} />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
+      {/* Η γραμμή του ΑΜΑ ΠΡΩΤΗ. Δεν εξαρτάται από πλάνο ούτε από entitlement. */}
+      <AmaStrip userId={userId} />
+
+      <PageTitle title="Επισκέπτες" sub="Οι κρατήσεις σου με τα σωστά ποσά: τι πλήρωσε ο επισκέπτης, τι κρατά η πλατφόρμα, τι δηλώνεις — και ποιες διαμονές δεν έχουν δηλωθεί ακόμη."
+        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setComposeOpen(true)}>Σύνταξη email</Btn>}{allStays.length > 0 && <ExportButton onClick={exportCsv} label="Εξαγωγή διαμονών" />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />
 
       <ClientCompose open={composeOpen} onClose={() => setComposeOpen(false)} clients={clients} supabase={supabase} />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, τηλεφώνου, email…"
           style={{ ...inp, maxWidth: 280, width: 'auto', flex: '1 1 220px' }} />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button style={chip(segment === 'all')} onClick={() => setSegment('all')}>Όλοι</button>
-          <button style={chip(segment === 'vip')} title="Βαθμολογία 4+ ή υψηλά έσοδα" onClick={() => setSegment(s => s === 'vip' ? 'all' : 'vip')}>VIP</button>
-          <button style={chip(segment === 'repeat')} onClick={() => setSegment(s => s === 'repeat' ? 'all' : 'repeat')}>Επαναλαμβανόμενοι</button>
-          <button style={chip(segment === 'flagged')} title="Μαύρη λίστα ή φθορές" onClick={() => setSegment(s => s === 'flagged' ? 'all' : 'flagged')}>Με επισήμανση</button>
-        </div>
+        {/* Ένα φίλτρο, και είναι το χρήσιμο. Τα «VIP / Επαναλαμβανόμενοι /
+            Με επισήμανση» έφυγαν: το πρώτο είχε επινοημένο κατώφλι 1.000 €, το
+            δεύτερο θα ήταν πάντα κενό, το τρίτο ήταν η μαύρη λίστα. */}
+        <button style={chip(undeclaredOnly)} onClick={() => setUndeclaredOnly(v => !v)}>Με αδήλωτες διαμονές</button>
       </div>
 
       {clients.length === 0 ? (
-        <EmptyState icon={<Users size={20} />} title="Δεν υπάρχουν επισκέπτες ακόμη" hint="Πρόσθεσε τους επισκέπτες σου, κατέγραψε τις διαμονές τους και σύνδεσέ τους με τα ακίνητά σου." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
+        <EmptyState icon={<Users size={20} />} title="Δεν υπάρχουν επισκέπτες ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb/Booking με «Εισαγωγή iCal» ή επικόλλησε ένα email κράτησης — και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
       ) : filtered.length === 0 ? (
         // Ο έλεγχος από πάνω κοιτούσε τα `clients`, αλλά το πλέγμα αποδίδει τα
         // `filtered`: με αναζήτηση ή φίλτρο που δεν ταιριάζει σε κανέναν, ο χρήστης
         // έβλεπε ΛΕΥΚΟ ΧΩΡΟ και κανέναν τρόπο να καταλάβει ότι φταίει το φίλτρο.
-        <EmptyState icon={<SearchX size={20} />} title="Δεν βρέθηκαν επισκέπτες" hint="Δοκίμασε διαφορετική αναζήτηση ή καθάρισε τα φίλτρα." action={<Btn variant="secondary" onClick={() => { setSearch(''); setSegment('all'); }}>Καθαρισμός φίλτρων</Btn>} />
+        <EmptyState icon={<SearchX size={20} />} title="Δεν βρέθηκαν επισκέπτες" hint="Δοκίμασε διαφορετική αναζήτηση ή καθάρισε τα φίλτρα." action={<Btn variant="secondary" onClick={() => { setSearch(''); setUndeclaredOnly(false); }}>Καθαρισμός φίλτρων</Btn>} />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 14 }}>
           {filtered.map(c => {
             const linked = propsByClient.get(c.id) || [];
             const st = statsByClient.get(c.id) || clientStats([]);
+            const cStays = staysByClient.get(c.id) || [];
+            const undeclared = undeclaredByClient.get(c.id) || 0;
+            const unresolved = cStays.filter(needsAmountReview).length;
             return (
               <div key={c.id} className="client-card" role="button" tabIndex={0}
                 onClick={() => setOpenId(c.id)}
                 onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setOpenId(c.id); } }}
-                style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, outline: 'none', ...(c.do_not_rent ? { borderColor: 'var(--negative-border)' } : null) }}>
+                style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, outline: 'none' }}>
 
-                {/* Κεφαλίδα: avatar + όνομα/βαθμολογία/τελ. επίσκεψη + σήματα + ενέργειες */}
+                {/* Κεφαλίδα: avatar + όνομα + σήματα συμμόρφωσης + ενέργειες.
+                    Καμία βαθμολογία, κανένα VIP, καμία «Προσοχή» πάνω σε όνομα ανθρώπου. */}
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   {avatar(c.full_name, 42)}
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
-                      {(c.rating || 0) > 0 && <Stars value={c.rating || 0} size={13} />}
                       {st.lastVisit && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τελ. επίσκεψη {fd(st.lastVisit)}</span>}
-                      {c.afm && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>ΑΦΜ {c.afm}</span>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {c.vip && <Badge tone="accent">VIP</Badge>}
-                      {c.do_not_rent && <Badge tone="negative">Προσοχή</Badge>}
-                      {st.hasDamage && !c.do_not_rent && <Badge tone="negative">Φθορές</Badge>}
+                      {undeclared > 0 && <Badge tone="negative">{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
+                      {unresolved > 0 && <Badge tone="warning">ποσό;</Badge>}
+                      {st.hasDamage && <Badge tone="negative">Φθορές</Badge>}
                     </div>
                     <div className="client-card-act">
                       <button title="Διαγραφή" onClick={e => { e.stopPropagation(); del(c); }}
@@ -809,19 +894,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </div>
                 </div>
 
-                {(c.tags || []).length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {(c.tags || []).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)' }}>{t}</span>)}
-                  </div>
-                )}
-
                 {/* Λωρίδα στατιστικών: βυθισμένο well με ισομερή micro-stats */}
                 {st.stayCount > 0 ? (
                   <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 12, display: 'flex' }}>
                     {([
                       { l: 'Διαμονές', v: String(st.stayCount) },
                       { l: 'Νύχτες', v: String(st.nights) },
-                      { l: 'Έσοδα', v: fe(st.revenue, 0), strong: true },
+                      { l: 'Ακαθάριστα', v: fe(totals(cStays).revenue, 0), strong: true, t: 'Δηλωτέο ακαθάριστο, χωρίς το τέλος ανθεκτικότητας' },
                       { l: 'ADR', v: fe(st.adr, 0), t: 'Μέση τιμή ανά διανυκτέρευση' },
                     ] as { l: string; v: string; strong?: boolean; t?: string }[]).map((m, i) => (
                       <div key={i} title={m.t} style={{ flex: 1, minWidth: 0, paddingLeft: i ? 12 : 0, borderLeft: i ? '1px solid var(--border-subtle)' : 'none' }}>
@@ -865,22 +944,128 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         </div>
       )}
 
+      {/* ── ΑΚΑΘΑΡΙΣΤΑ ΑΝΑ ΚΑΝΑΛΙ ΚΑΙ ΑΝΑ ΜΗΝΑ, ΣΤΗΝ ΚΥΡΙΑ ΟΘΟΝΗ ───────────
+          Ήταν θαμμένα σε drawer «Αναφορές» μαζί με «Κορυφαίους πελάτες» και
+          «Ποιότητα φιλοξενίας». Ο χρήστης δεν ρωτάει «πόσα έβγαλα» — ρωτάει
+          «πόσα δηλώνω και από πού ήρθαν». Αυτό δεν είναι υπομενού. */}
+      {allStays.length > 0 && (() => {
+        const yearOf = (s: Stay) => { const d = s.check_in || s.check_out; return d ? new Date(d).getFullYear() : null; };
+        const yearsAvail = Array.from(new Set(allStays.map(yearOf).filter((y): y is number => y != null)));
+        if (!yearsAvail.includes(reportYear)) yearsAvail.push(reportYear);
+        yearsAvail.sort((a, b) => b - a);
+        const yStays = allStays.filter(s => yearOf(s) === reportYear);
+        const tot = totals(yStays);
+        const chRows = revenueByChannel(yStays);
+        const maxCh = Math.max(1, ...chRows.map(r => r.revenue));
+        const months = revenueByMonth(yStays, reportYear);
+        const maxMonth = Math.max(1, ...months);
+        const occ = yearOccupancy(yStays, reportYear);
+        const monthInitials = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
+        const monthNames = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
+        const monthShort = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+        return (
+          <div style={{ marginTop: 26 }}>
+            <SecHdr label={`Ακαθάριστα ${reportYear}`} sub="Δηλωτέο ακαθάριστο ανά κανάλι και ανά μήνα — χωρίς το τέλος ανθεκτικότητας, χωρίς αφαίρεση προμήθειας"
+              right={
+                <div style={{ position: 'relative' }}>
+                  <button type="button" onClick={() => setReportYearMenu(m => !m)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    {reportYear}
+                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
+                  </button>
+                  {reportYearMenu && (
+                    <>
+                      <div onClick={() => setReportYearMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, boxShadow: 'var(--elev-3)', padding: 6, minWidth: 96, maxHeight: 220, overflowY: 'auto' }}>
+                        {yearsAvail.map(y => (
+                          <button key={y} type="button" onClick={() => { setReportYear(y); setReportYearMenu(false); }}
+                            style={{ display: 'block', width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', background: y === reportYear ? 'var(--accent-dim)' : 'transparent', color: y === reportYear ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: y === reportYear ? 700 : 500, cursor: 'pointer', textAlign: 'left' }}>{y}</button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              } />
+
+            {tot.unresolved > 0 && (
+              <InfoBanner tone="warning">
+                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount, 0)}): καταγράφηκαν πριν το app ξεχωρίσει τα ακαθάριστα από το payout, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης — χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
+              </InfoBanner>
+            )}
+
+            {/* Η ΠΛΗΡΟΤΗΤΑ ΜΕ ΣΩΣΤΟ ΠΑΡΟΝΟΜΑΣΤΗ, και δεύτερο νούμερο για την
+                υψηλή περίοδο. Πριν διαιρούσε με 365 και το εποχιακό εξοχικό
+                εμφανιζόταν στο «16%». */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
+              {statTile('Δηλωτέα ακαθάριστα', fe(tot.revenue, 0))}
+              {statTile('Τέλος ανθεκτικότητας', tot.climateLevy > 0 ? fe(tot.climateLevy, 0) : '—', { title: 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
+              {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees, 0) : '—', { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}
+              {statTile(
+                'Πληρότητα',
+                occ.availableDays > 0 ? `${occ.pct}%` : '—',
+                { title: occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${monthShort[occ.openFromMonth]}–${monthShort[occ.openToMonth!]} ${reportYear}) — όχι σε 365` : 'Χωρίς κρατήσεις' },
+              )}
+              {occ.peak && statTile(
+                'Πληρότητα υψηλής περιόδου',
+                `${occ.peak.pct}%`,
+                { title: `${monthShort[occ.peak.fromMonth]}–${monthShort[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από ΤΑ ΔΙΚΑ ΣΟΥ δεδομένα, δεν την αποφασίσαμε εμείς.` },
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
+              <div>
+                <div style={{ ...lbl, marginBottom: 8 }}>Ανά κανάλι</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
+                  {chRows.map(r => (
+                    <div key={r.channel}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(r.revenue, 0)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{r.nights} νύχτες · {r.count} διαμονές</span></span>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--accent)', borderRadius: 6 }} />
+                      </div>
+                      {r.unresolved > 0 && <div style={{ fontSize: 10, color: 'var(--warning)', marginTop: 3 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ ...lbl, marginBottom: 8 }}>Ανά μήνα</div>
+                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
+                    {months.map((v, i) => (
+                      <div key={i} title={`${monthNames[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                        <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--accent)', borderRadius: '3px 3px 0 0' }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ height: 1, background: 'var(--border-subtle)', margin: '2px 0 6px' }} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {monthInitials.map((m, i) => (
+                      <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{m}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Ντοσιέ πελάτη (drawer) ─────────────────────────────────────────── */}
       {dc && dcStats && (
         <div onClick={() => { setOpenId(null); setStayFormOpen(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 900, display: 'flex', justifyContent: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', width: 'min(720px, 100%)', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-            {/* Sticky header: avatar + όνομα + σήματα + βαθμολογία + ενέργειες */}
+            {/* Sticky header: avatar + όνομα + σήματα συμμόρφωσης + ενέργειες.
+                Καμία βαθμολογία, κανένα VIP, καμία «μαύρη λίστα». */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--bg-surface)' }}>
               {avatar(dc.full_name, 52)}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 20, fontWeight: 700 }}>{dc.full_name}</span>
-                  {dc.vip && <Badge tone="accent">VIP</Badge>}
-                  {dc.do_not_rent && <Badge tone="negative">Μαύρη λίστα</Badge>}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                  <Stars value={dc.rating || 0} onSet={n => patchClient(dc.id, { rating: n })} size={20} />
-                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{dc.rating ? `${dc.rating}/5` : 'Χωρίς βαθμολογία'}</span>
+                  {dcUndeclared > 0 && <Badge tone="negative">{dcUndeclared} αδήλωτη{dcUndeclared === 1 ? '' : 'ς'}</Badge>}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -891,29 +1076,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {/* Σώμα με κύλιση */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px' }}>
-            {dc.do_not_rent && <InfoBanner tone="negative">Ο πελάτης βρίσκεται στη μαύρη λίστα. Απαιτείται προσοχή πριν από νέα κράτηση ή συμφωνία.</InfoBanner>}
 
-            {/* Μαύρη λίστα + ετικέτες */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20, marginTop: 14 }}>
-              <FlagSwitch on={!!dc.do_not_rent} onChange={v => patchClient(dc.id, { do_not_rent: v })} onLabel="Στη μαύρη λίστα / Προσοχή" offLabel="Μαύρη λίστα / Προσοχή" />
-              <FlagSwitch on={!!dc.vip} onChange={v => patchClient(dc.id, { vip: v })} onLabel="VIP" offLabel="VIP" tone="accent" />
-              <div>
-                <div style={lbl}>Ετικέτες</div>
-                <TagEditor tags={dc.tags || []} onChange={t => patchClient(dc.id, { tags: t })} />
-              </div>
-            </div>
-
-            {/* Επικοινωνία */}
-            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 20 }}>
+            {/* Επικοινωνία. ΜΟΝΟ τηλέφωνο και email: διεύθυνση, ΑΦΜ, αριθμός
+                ταυτότητας, εθνικότητα και «πηγή γνωριμίας» έφυγαν — δεδομένα
+                προσωπικού χαρακτήρα που δεν προκαλούσαν καμία ενέργεια. Ό,τι
+                χρειάζεται ο οικοδεσπότης μένει στην ιδιωτική σημείωση, χωρίς
+                ετικέτα κατηγορίας. */}
+            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 20, marginTop: 4 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 {([
                   ['Τηλέφωνο', dc.phone ? <a href={`tel:${dc.phone}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.phone}</a> : null],
                   ['Email', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : null],
-                  ['Διεύθυνση', dc.address || null],
-                  ['ΑΦΜ', dc.afm ? <span style={{ fontFamily: T.font.mono }}>{dc.afm}</span> : null],
-                  ['Ταυτότητα', dc.id_number || null],
-                  ['Εθνικότητα', dc.nationality || null],
-                  ['Πηγή', dc.source || null],
                 ] as [string, React.ReactNode][]).filter(([, v]) => v != null).map(([k, v], i) => (
                   <div key={i}>
                     <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k}</div>
@@ -972,27 +1145,19 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               ))}
             </div>
 
-            {/* Αναλυτικά: μόνο όταν υπάρχουν διαμονές (αλλιώς περιττά μηδενικά) */}
+            {/* Αναλυτικά: μόνο όταν υπάρχουν διαμονές (αλλιώς περιττά μηδενικά).
+                Τα ποσά είναι διακριτά: ακαθάριστο ≠ payout ≠ τι πλήρωσε ο επισκέπτης. */}
             {dcStats.stayCount > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 116px), 1fr))', gap: 10, marginBottom: 24 }}>
-                {statTile('Έσοδα', fe(dcStats.revenue, 0))}
+                {statTile('Ακαθάριστα', fe(dcTotals.revenue, 0), { title: 'Δηλωτέο ακαθάριστο: τι πλήρωσε ο επισκέπτης μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται.' })}
+                {dcTotals.platformFees > 0 && statTile('Προμήθειες', fe(dcTotals.platformFees, 0), { title: 'Δαπάνη που εκπίπτει, όχι μείωση εσόδου' })}
+                {dcTotals.climateLevy > 0 && statTile('Τέλος ανθεκτ.', fe(dcTotals.climateLevy, 0), { title: 'Εισπράχθηκε για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
                 {statTile('Νύχτες', String(dcStats.nights))}
                 {statTile('Διαμονές', String(dcStats.stayCount))}
-                {statTile('Βαθμολογία', dcStats.avgRating != null ? `${dcStats.avgRating}/5` : '-')}
                 {statTile('ADR', fe(dcStats.adr, 0), { title: 'Μέση τιμή ανά διανυκτέρευση' })}
                 {statTile('Τελευταία', dcStats.lastVisit ? fd(dcStats.lastVisit) : '-')}
+                {dcUndeclared > 0 && statTile('Αδήλωτες', String(dcUndeclared), { neg: true, title: 'Διαμονές χωρίς Δήλωση Βραχυχρόνιας Διαμονής' })}
                 {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal, 0), { neg: true })}
-              </div>
-            )}
-
-            {/* Μικρο-γράφημα: πορεία εσόδων ανά διαμονή (μόνο για επαναλαμβανόμενους) */}
-            {dcStays.length >= 2 && (
-              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '12px 14px 8px', marginBottom: 24, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Πορεία εσόδων ανά διαμονή</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(dcStats.revenue, 0)} συνολικά</span>
-                </div>
-                {sparkline(dcStays.slice().reverse().map(s => stayTotal(s)), 36)}
               </div>
             )}
 
@@ -1007,18 +1172,100 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     </div>
                     <DatePicker label="Άφιξη" value={stayForm.check_in} onChange={v => onStayDates({ check_in: v })} />
                     <DatePicker label="Αναχώρηση" value={stayForm.check_out} onChange={v => onStayDates({ check_out: v })} />
-                    <NumberInput label="Διανυκτερεύσεις" value={stayForm.nights} onChange={onStayNights} />
+                    <NumberInput label="Διανυκτερεύσεις" value={stayForm.nights} onChange={v => setStayForm(f => ({ ...f, nights: v }))} />
                     <NumberInput label="Άτομα" value={stayForm.guests} onChange={v => setStayForm(f => ({ ...f, guests: v }))} />
                     <CustomSelect label="Κανάλι" value={stayForm.channel} onChange={v => setStayForm(f => ({ ...f, channel: v }))} options={channelOptions} />
-                    <NumberInput label="Τιμή / νύχτα" value={stayForm.nightly_rate} onChange={onStayRate} suffix="€" />
-                    <NumberInput label="Σύνολο" value={stayForm.total} onChange={v => setStayForm(f => ({ ...f, total: v }))} suffix="€" />
-                    <div>
-                      <div style={lbl}>Βαθμολογία</div>
-                      <div style={{ height: 42, display: 'flex', alignItems: 'center' }}><Stars value={stayForm.rating} onSet={n => setStayForm(f => ({ ...f, rating: n }))} size={20} /></div>
+                    <NumberInput label="Τιμή / νύχτα" value={stayForm.nightly_rate} onChange={v => setStayForm(f => ({ ...f, nightly_rate: v }))} suffix="€" />
+                  </div>
+
+                  {/* ── ΤΑ ΤΡΙΑ ΠΟΣΑ ─────────────────────────────────────────
+                      Δεν υπάρχει πεδίο «Σύνολο». Το `total` είναι ΠΑΡΑΓΩΓΟ, γιατί
+                      «Σύνολο» δεν σήμαινε τίποτα συγκεκριμένο: ο εισαγωγέας το
+                      γέμιζε με payout, η φορολογική μηχανή το διάβαζε ως
+                      ακαθάριστο, και ο φάκελος του λογιστή ζητούσε ακαθάριστο. */}
+                  {secHead('Ποσά')}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                    <NumberInput label="Πλήρωσε ο επισκέπτης" labelInfo="Το ΣΥΝΟΛΟ που πλήρωσε ο επισκέπτης, πριν αφαιρεθεί προμήθεια. Στο Airbnb είναι το «Σύνολο επισκέπτη»."
+                      value={stayForm.gross_guest_paid} onChange={v => setStayForm(f => ({ ...f, gross_guest_paid: v }))} suffix="€" step={10} />
+                    <NumberInput label="Τέλος ανθεκτικότητας" labelInfo="Εισπράττεται από τον επισκέπτη και αποδίδεται στο κράτος. ΔΕΝ είναι έσοδό σου και δεν δηλώνεται ως έσοδο."
+                      value={stayForm.climate_levy} onChange={v => setStayForm(f => ({ ...f, climate_levy: v }))} suffix="€" step={2} />
+                    <NumberInput label="Προμήθεια πλατφόρμας" labelInfo="Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο ακαθάριστο."
+                      value={stayForm.platform_fee} onChange={v => setStayForm(f => ({ ...f, platform_fee: v }))} suffix="€" step={5} />
+                  </div>
+
+                  {/* Πρόταση τέλους από τους συντελεστές της ΑΑΔΕ και τον τύπο/
+                      μέγεθος ΑΥΤΟΥ του ακινήτου. Ένα κλικ, και διορθώσιμο. */}
+                  {(() => {
+                    const sug = suggestLevy(stayForm);
+                    if (!sug || parseFloat(stayForm.climate_levy) > 0) return null;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                        <span>Με βάση τους συντελεστές της ΑΑΔΕ και το ακίνητο, το τέλος για αυτή τη διαμονή βγαίνει <strong style={{ fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{fe(sug, 0)}</strong>. Επιβεβαίωσε το ακριβές ποσό στο myAADE.</span>
+                        <Btn variant="secondary" onClick={() => setStayForm(f => ({ ...f, climate_levy: String(sug) }))}>Χρησιμοποίησέ το</Btn>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Το αποτέλεσμα, ζωντανά: τι δηλώνεις και τι μένει σε εσένα. */}
+                  {(() => {
+                    const g = parseFloat(stayForm.gross_guest_paid) || 0;
+                    if (g <= 0) {
+                      return stayForm.basis === 'unknown' && (parseFloat(stayForm.legacyTotal) || 0) > 0 ? (
+                        <InfoBanner tone="warning">
+                          Αυτή η διαμονή έχει καταγεγραμμένο ποσό <strong>{fe(parseFloat(stayForm.legacyTotal), 0)}</strong> αλλά <strong>δεν ξέρουμε τι είναι</strong>: ακαθάριστο ή payout. Καταγράφηκε πριν το app τα ξεχωρίσει και δεν μαντεύουμε. Συμπλήρωσε «Πλήρωσε ο επισκέπτης» και το ακαθάριστο θα υπολογιστεί σωστά — ή δήλωσε παρακάτω τι σημαίνει το ποσό.
+                        </InfoBanner>
+                      ) : null;
+                    }
+                    const levy = parseFloat(stayForm.climate_levy) || 0;
+                    const fee = parseFloat(stayForm.platform_fee) || 0;
+                    const gross = Math.max(0, g - levy);
+                    return (
+                      <div style={{ marginTop: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                        Πλήρωσε ο επισκέπτης <strong style={{ fontFamily: T.font.num }}>{fe(g, 0)}</strong>
+                        {' − '}τέλος <strong style={{ fontFamily: T.font.num }}>{fe(levy, 0)}</strong>
+                        {' = '}<strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>δηλωτέο ακαθάριστο {fe(gross, 0)}</strong>
+                        <br />
+                        {fe(gross, 0)} − προμήθεια <strong style={{ fontFamily: T.font.num }}>{fe(fee, 0)}</strong> (δαπάνη, <strong>όχι</strong> μείωση εσόδου) = μένει σε εσένα <strong style={{ fontFamily: T.font.num }}>{fe(Math.max(0, gross - fee), 0)}</strong>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Ρητή δήλωση βάσης για τις ιστορικές γραμμές που δεν έχουν ανάλυση. */}
+                  {(parseFloat(stayForm.gross_guest_paid) || 0) <= 0 && (parseFloat(stayForm.legacyTotal) || 0) > 0 && (
+                    <div style={{ marginTop: 12, maxWidth: 340 }}>
+                      <CustomSelect label={`Τι σημαίνει το ποσό ${fe(parseFloat(stayForm.legacyTotal), 0)};`}
+                        value={stayForm.basis} onChange={v => setStayForm(f => ({ ...f, basis: v as AmountBasis }))}
+                        options={[
+                          { value: 'unknown', label: AMOUNT_BASIS_LABELS.unknown },
+                          { value: 'gross', label: AMOUNT_BASIS_LABELS.gross },
+                          { value: 'payout', label: AMOUNT_BASIS_LABELS.payout },
+                        ]} />
                     </div>
+                  )}
+
+                  {/* ── ΔΗΛΩΣΗ ΒΡΑΧΥΧΡΟΝΙΑΣ ΔΙΑΜΟΝΗΣ (μία ανά κράτηση) ───── */}
+                  {secHead('Δήλωση βραχυχρόνιας διαμονής')}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, alignItems: 'end' }}>
+                    <FlagSwitch on={stayForm.declared} tone="positive"
+                      onChange={v => setStayForm(f => ({ ...f, declared: v, declared_at: v ? (f.declared_at || todayStr()) : '' }))}
+                      onLabel="Δηλώθηκε στο myAADE" offLabel="Αδήλωτη" />
+                    {stayForm.declared && <DatePicker label="Ημερομηνία δήλωσης" value={stayForm.declared_at} onChange={v => setStayForm(f => ({ ...f, declared_at: v }))} />}
+                  </div>
+
+                  {/* ── ΦΘΟΡΕΣ, ΣΥΝΔΕΔΕΜΕΝΕΣ ΜΕ ΤΗΝ ΑΠΟΓΡΑΦΗ ────────────── */}
+                  {secHead('Φθορές & σημειώσεις')}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
                       <FlagSwitch on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} onLabel="Καταγράφηκαν φθορές" offLabel="Χωρίς φθορές" />
                     </div>
+                    {stayForm.damages && (
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <CustomSelect label="Ποιο αντικείμενο" labelInfo="Η σύνδεση με την Απογραφή δίνει στον λογιστή δαπάνη με παραστατικό, αντί για ελεύθερο κείμενο."
+                          value={stayForm.damage_item_id} onChange={v => setStayForm(f => ({ ...f, damage_item_id: v }))}
+                          placeholder={invForStay.length ? 'Επίλεξε από την Απογραφή' : 'Δεν υπάρχουν αντικείμενα στην Απογραφή'}
+                          options={invForStay.map(i => ({ value: i.id, label: i.current_value != null ? `${i.name} · ${fe(i.current_value, 0)}` : i.name }))} />
+                      </div>
+                    )}
                     {stayForm.damages && <NumberInput label="Κόστος φθοράς" value={stayForm.damage_cost} onChange={v => setStayForm(f => ({ ...f, damage_cost: v }))} suffix="€" />}
                     {stayForm.damages && <div><TextInput label="Σημείωση φθοράς" value={stayForm.damage_note} onChange={v => setStayForm(f => ({ ...f, damage_note: v }))} /></div>}
                     <div style={{ gridColumn: '1 / -1' }}>
@@ -1037,29 +1284,54 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {dcStays.map(s => {
                     const n = s.nights ?? stayNights(s.check_in, s.check_out);
+                    const gross = declarableGross(s);
+                    const pay = hostPayout(s);
+                    const review = needsAmountReview(s);
+                    const declared = isDeclared(s);
+                    const dmgItem = s.damage_item_id ? inv.find(i => i.id === s.damage_item_id) : undefined;
                     return (
-                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: `1px solid ${declared ? 'var(--border-raised)' : 'var(--negative-border)'}`, borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.property_id ? propName(s.property_id) : 'Χωρίς ακίνητο'}</div>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.property_id ? propName(s.property_id) : 'Χωρίς ακίνητο'}</span>
+                              {/* ΤΟ ΣΗΜΑ ΠΟΥ ΕΛΕΙΠΕ: μία δήλωση ανά κράτηση, και
+                                  το app είχε όλες τις κρατήσεις χωρίς να
+                                  παρακολουθεί καμία. */}
+                              {!declared && <Badge tone="negative">Αδήλωτη</Badge>}
+                              {review && <Badge tone="warning">Ακαθάριστο ή payout;</Badge>}
+                            </div>
                             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                               {s.check_in && <span>{fd(s.check_in)}{s.check_out ? ` - ${fd(s.check_out)}` : ''}</span>}
                               <span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{n} νύχτες</span>
                               {s.guests != null && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{s.guests} άτομα</span></>}
                               {s.channel && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{STAY_CHANNEL_LABELS[s.channel as keyof typeof STAY_CHANNEL_LABELS] || s.channel}</span></>}
+                              {declared && s.declared_at && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span style={{ color: 'var(--positive)' }}>δηλώθηκε {fd(s.declared_at)}</span></>}
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num }}>{fe(s.total ?? (n * (s.nightly_rate || 0)), 0)}</div>
-                            {s.nightly_rate != null && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(s.nightly_rate, 0)} / νύχτα</div>}
+                            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num }}>{fe(gross ?? stayTotal(s), 0)}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{gross != null ? 'δηλωτέο ακαθάριστο' : 'ποσό απροσδιόριστο'}</div>
+                            {pay != null && pay !== gross && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(pay, 0)} σε εσένα</div>}
                           </div>
                         </div>
+                        {/* Η ανάλυση, ρητά, όπου υπάρχει. */}
+                        {(s.gross_guest_paid != null || s.climate_levy != null || s.platform_fee != null) && (
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.6 }}>
+                            {s.gross_guest_paid != null && <>πλήρωσε ο επισκέπτης {fe(s.gross_guest_paid, 0)}</>}
+                            {(s.climate_levy || 0) > 0 && <> · τέλος {fe(s.climate_levy || 0, 0)} (όχι έσοδό σου)</>}
+                            {(s.platform_fee || 0) > 0 && <> · προμήθεια {fe(s.platform_fee || 0, 0)} (δαπάνη)</>}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                            {(s.rating || 0) > 0 && <Stars value={s.rating || 0} size={13} />}
-                            {s.damages && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--negative)' }}>Φθορά {fe(s.damage_cost || 0, 0)}{s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
+                            {s.damages && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--negative)' }}>Φθορά {fe(s.damage_cost || 0, 0)}{dmgItem ? ` · ${dmgItem.name}` : s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
                           </div>
-                          <div style={{ display: 'flex', gap: 6 }}>
+                          <div style={{ display: 'flex', gap: 10 }}>
+                            {/* Ένα κλικ. Η προθεσμία της δήλωσης δεν περιμένει φόρμα. */}
+                            <button onClick={() => toggleDeclared(s)} style={{ background: 'none', border: 'none', color: declared ? 'var(--text-tertiary)' : 'var(--positive)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, padding: 0 }}>
+                              {declared ? 'Αναίρεση δήλωσης' : 'Σημείωσε ως δηλωμένη'}
+                            </button>
                             <button onClick={() => openStayEdit(s)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, padding: 0 }}>Επεξεργασία</button>
                             <button onClick={() => delStay(s)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, padding: 0 }}>Διαγραφή</button>
                           </div>
@@ -1194,14 +1466,24 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>Έλεγξε και διόρθωσε αν χρειάζεται, μετά αποθήκευσε. Θα δημιουργηθεί ο πελάτης (αν δεν υπάρχει) και η διαμονή.</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>Έλεγξε και διόρθωσε αν χρειάζεται, μετά αποθήκευσε. Θα δημιουργηθεί ο επισκέπτης (αν δεν υπάρχει) και η διαμονή.</div>
                   <div style={fGrid}>
                     <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα επισκέπτη" value={emailDraft.name} onChange={v => setEmailDraft(d => d && { ...d, name: v })} /></div>
                     <DatePicker label="Άφιξη" value={emailDraft.check_in} onChange={v => setEmailDraft(d => d && { ...d, check_in: v })} />
                     <DatePicker label="Αναχώρηση" value={emailDraft.check_out} onChange={v => setEmailDraft(d => d && { ...d, check_out: v })} />
-                    <NumberInput label="Ποσό (payout)" value={emailDraft.total} onChange={v => setEmailDraft(d => d && { ...d, total: v })} suffix="€" />
+                    {/* Το ένα, διφορούμενο «Ποσό (payout)» έγινε τρία ξεχωριστά.
+                        Εκεί γεννιόταν η αντίφαση: ό,τι μπαινε εδώ ως payout
+                        διαβαζόταν αλλού ως ακαθάριστο και φορολογούνταν. */}
+                    <NumberInput label="Πλήρωσε ο επισκέπτης" labelInfo="Το σύνολο που πλήρωσε ο επισκέπτης, πριν την προμήθεια." value={emailDraft.gross} onChange={v => setEmailDraft(d => d && { ...d, gross: v })} suffix="€" step={10} />
+                    <NumberInput label="Τέλος ανθεκτικότητας" labelInfo="Δεν είναι έσοδό σου — αφαιρείται από το δηλωτέο ακαθάριστο." value={emailDraft.levy} onChange={v => setEmailDraft(d => d && { ...d, levy: v })} suffix="€" step={2} />
+                    <NumberInput label="Προμήθεια πλατφόρμας" labelInfo="Δαπάνη που εκπίπτει — ΔΕΝ μειώνει το δηλωτέο ακαθάριστο." value={emailDraft.fee} onChange={v => setEmailDraft(d => d && { ...d, fee: v })} suffix="€" step={5} />
                     <CustomSelect label="Κανάλι" value={emailDraft.channel} onChange={v => setEmailDraft(d => d && { ...d, channel: v })} options={channelOptions} />
                   </div>
+                  {(parseFloat(emailDraft.gross) || 0) > 0 && (
+                    <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
+                      Δηλωτέο ακαθάριστο: <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(Math.max(0, (parseFloat(emailDraft.gross) || 0) - (parseFloat(emailDraft.levy) || 0)), 0)}</strong>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
                     <Btn variant="ghost" onClick={() => setEmailDraft(null)}>Πίσω</Btn>
                     <Btn variant="primary" onClick={saveEmailStay} disabled={emailBusy || !emailDraft.name.trim()}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση διαμονής'}</Btn>
@@ -1313,153 +1595,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         </div>
       )}
 
-      {/* ── Αναφορές (premium modal, ίδιο chrome με τη φόρμα) ──────────────── */}
-      {reportsOpen && (
-        <div onClick={() => setReportsOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(720px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-            {/* Sticky header: εικονίδιο + τίτλος + κλείσιμο */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" /><rect x="12" y="6" width="3" height="11" /><rect x="17" y="13" width="3" height="4" /></svg>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Αναφορές</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Έσοδα, κανάλια και πληρότητα φιλοξενίας</div>
-              </div>
-              <button onClick={() => setReportsOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
-            </div>
-            {/* Σώμα με κύλιση */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '2px 24px 24px' }}>
-              {allStays.length === 0 ? (
-                <EmptyState icon={<BedDouble size={20} />} title="Δεν υπάρχουν καταγεγραμμένες διαμονές ακόμη" hint="Πρόσθεσε διαμονές στους πελάτες για να δεις έσοδα ανά κανάλι, ανά μήνα και την πληρότητα της χρονιάς." />
-              ) : (() => {
-                const yearOf = (s: Stay) => { const d = s.check_in || s.check_out; return d ? new Date(d).getFullYear() : null; };
-                const yearsAvail = Array.from(new Set(allStays.map(yearOf).filter((y): y is number => y != null)));
-                if (!yearsAvail.includes(reportYear)) yearsAvail.push(reportYear);
-                yearsAvail.sort((a, b) => b - a);
-                const yStays = allStays.filter(s => yearOf(s) === reportYear);
-                const tot = totals(yStays);
-                const adr = tot.nights > 0 ? Math.round(tot.revenue / tot.nights) : 0;
-                const chRows = revenueByChannel(yStays);
-                const maxCh = Math.max(1, ...chRows.map(r => r.revenue));
-                const months = revenueByMonth(yStays, reportYear);
-                const maxMonth = Math.max(1, ...months);
-                const occ = occupancyPct(yStays, `${reportYear}-01-01`, `${reportYear + 1}-01-01`);
-                // Ποιότητα φιλοξενίας
-                let ratingSum = 0, ratingCount = 0, damages = 0;
-                yStays.forEach(s => { if (typeof s.rating === 'number') { ratingSum += s.rating; ratingCount++; } if (s.damages) damages++; });
-                const avgRating = ratingCount ? Math.round((ratingSum / ratingCount) * 10) / 10 : null;
-                // Επαναλαμβανόμενοι + κορυφαίοι πελάτες της χρονιάς
-                const perClientCount = new Map<string, number>();
-                const perClientRev = new Map<string, number>();
-                yStays.forEach(s => {
-                  perClientCount.set(s.client_id, (perClientCount.get(s.client_id) || 0) + 1);
-                  perClientRev.set(s.client_id, (perClientRev.get(s.client_id) || 0) + stayTotal(s));
-                });
-                const repeatY = [...perClientCount.values()].filter(n => n >= 2).length;
-                const topClients = [...perClientRev.entries()]
-                  .map(([id, rev]) => ({ id, rev, count: perClientCount.get(id) || 0, name: clients.find(c => c.id === id)?.full_name || 'Πελάτης' }))
-                  .sort((a, b) => b.rev - a.rev).slice(0, 5);
-                const maxTop = Math.max(1, ...topClients.map(t => t.rev));
-                const monthInitials = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
-                const monthNames = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
-                return (
-                  <>
-                    {/* Επιλογή έτους */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Έτος</span>
-                      <div style={{ position: 'relative' }}>
-                        <button type="button" onClick={() => setReportYearMenu(m => !m)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                          {reportYear}
-                          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
-                        </button>
-                        {reportYearMenu && (
-                          <>
-                            <div onClick={() => setReportYearMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, boxShadow: 'var(--elev-3)', padding: 6, minWidth: 96, maxHeight: 220, overflowY: 'auto' }}>
-                              {yearsAvail.map(y => (
-                                <button key={y} type="button" onClick={() => { setReportYear(y); setReportYearMenu(false); }}
-                                  style={{ display: 'block', width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', background: y === reportYear ? 'var(--accent-dim)' : 'transparent', color: y === reportYear ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: y === reportYear ? 700 : 500, cursor: 'pointer', textAlign: 'left' }}>{y}</button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {secHead('Σύνοψη')}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10 }}>
-                      {statTile('Έσοδα', fe(tot.revenue, 0))}
-                      {statTile('Νύχτες', String(tot.nights))}
-                      {statTile('Διαμονές', String(tot.count))}
-                      {statTile('Πληρότητα', occ + '%', { title: `1 Ιαν ${reportYear} έως 31 Δεκ ${reportYear}` })}
-                    </div>
-
-                    {secHead('Ποιότητα φιλοξενίας')}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10 }}>
-                      {statTile('Μέση τιμή / νύχτα', fe(adr, 0), { title: 'Average Daily Rate' })}
-                      {statTile('Επαναλαμβανόμενοι', String(repeatY), { title: 'Πελάτες με 2+ διαμονές τη χρονιά' })}
-                      {statTile('Μέση βαθμολογία', avgRating != null ? `${avgRating}/5` : '-')}
-                      {statTile('Φθορές', String(damages))}
-                    </div>
-
-                    {topClients.length > 0 && (<>
-                      {secHead('Κορυφαίοι πελάτες')}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
-                        {topClients.map(t => (
-                          <button key={t.id} onClick={() => { setReportsOpen(false); setOpenId(t.id); }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', display: 'block' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-                              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(t.rev, 0)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{t.count} {t.count === 1 ? 'διαμονή' : 'διαμονές'}</span></span>
-                            </div>
-                            <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                              <div style={{ width: `${Math.max(2, (t.rev / maxTop) * 100)}%`, height: '100%', background: 'var(--accent)', borderRadius: 6 }} />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </>)}
-
-                    {secHead('Έσοδα ανά κανάλι')}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
-                      {chRows.map(r => (
-                        <div key={r.channel}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</span>
-                            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(r.revenue, 0)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{r.nights} νύχτες · {r.count} διαμονές</span></span>
-                          </div>
-                          <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                            <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--accent)', borderRadius: 6 }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {secHead(`Έσοδα ανά μήνα (${reportYear})`)}
-                    <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
-                        {months.map((v, i) => (
-                          <div key={i} title={`${monthNames[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
-                            <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--accent)', borderRadius: '3px 3px 0 0' }} />
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ height: 1, background: 'var(--border-subtle)', margin: '2px 0 6px' }} />
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {monthInitials.map((m, i) => (
-                          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{m}</div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Φόρμα νέου/επεξεργασίας πελάτη (premium, δομημένη σε ενότητες) ───── */}
       {modalOpen && (
         <div onClick={() => setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
@@ -1475,41 +1610,21 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             </div>
             {/* Σώμα με κύλιση, οργανωμένο σε ενότητες */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '2px 24px 22px' }}>
+              {/* Τέσσερα πεδία. Δεν ζητάμε ΑΦΜ, ταυτότητα, διεύθυνση, εθνικότητα
+                  ή «πηγή γνωριμίας» από κάποιον που θα μείνει τρεις νύχτες: είναι
+                  δεδομένα προσωπικού χαρακτήρα που δεν προκαλούσαν καμία ενέργεια. */}
               {secHead('Στοιχεία & επικοινωνία')}
               <div style={fGrid}>
                 <div style={{ gridColumn: '1 / -1' }}><TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} /></div>
-                <div>
-                  <TextInput label="ΑΦΜ" value={form.afm} onChange={v => setForm(f => ({ ...f, afm: v.replace(/[^0-9]/g, '').slice(0, 9) }))} />
-                  {form.afm.length === 9 && !isValidAfm(form.afm) && <div style={{ fontSize: 10, color: 'var(--negative)', marginTop: 4 }}>Μη έγκυρο ΑΦΜ (9 ψηφία)</div>}
-                </div>
                 <TextInput label="Τηλέφωνο" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
                 <TextInput label="Email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" />
-                <TextInput label="Διεύθυνση" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
-                <TextInput label="Αριθμός ταυτότητας" value={form.id_number} onChange={v => setForm(f => ({ ...f, id_number: v }))} />
-                <TextInput label="Εθνικότητα" value={form.nationality} onChange={v => setForm(f => ({ ...f, nationality: v }))} />
-                <TextInput label="Πηγή γνωριμίας" value={form.source} onChange={v => setForm(f => ({ ...f, source: v }))} placeholder="π.χ. Airbnb, σύσταση" />
               </div>
 
-              {secHead('Βαθμολογία & σήματα')}
-              <div style={fGrid}>
-                <div>
-                  <div style={lbl}>Βαθμολογία</div>
-                  <div style={{ height: 42, display: 'flex', alignItems: 'center' }}><Stars value={form.rating} onSet={n => setForm(f => ({ ...f, rating: n }))} size={22} /></div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
-                  <FlagSwitch on={form.do_not_rent} onChange={v => setForm(f => ({ ...f, do_not_rent: v }))} onLabel="Στη μαύρη λίστα" offLabel="Μαύρη λίστα / Προσοχή" />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
-                  <FlagSwitch on={form.vip} onChange={v => setForm(f => ({ ...f, vip: v }))} onLabel="VIP" offLabel="VIP" tone="accent" />
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <div style={lbl}>Ετικέτες</div>
-                  <TagEditor tags={form.tags} onChange={t => setForm(f => ({ ...f, tags: t }))} />
-                </div>
-              </div>
-
+              {/* Η «μαύρη λίστα» έγινε αυτό: ιδιωτική σημείωση, ΧΩΡΙΣ ετικέτα
+                  κατηγορίας. Ο διακόπτης `do_not_rent` κατηγοριοποιούσε πρόσωπο
+                  με νομικό βάρος (GDPR) και τύπωνε «Προσοχή» δίπλα σε όνομα. */}
               <div style={{ marginTop: 18 }}>
-                <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} placeholder="Ελεύθερες σημειώσεις για τον επισκέπτη" />
+                <Textarea label="Ιδιωτική σημείωση" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} placeholder="Ό,τι θέλεις να θυμάσαι για αυτή τη φιλοξενία. Δική σου σημείωση, χωρίς κατηγοριοποίηση." />
               </div>
             </div>
             {/* Sticky footer */}
