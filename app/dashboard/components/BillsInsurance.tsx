@@ -236,7 +236,13 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
   // Pricing factors based on property characteristics
   const sqmFactor    = Math.max(0.7, Math.min(1.5, sqm / 100));
   const valueFactor  = Math.max(0.8, Math.min(2.0, propValue / 150000));
-  const contentF     = Math.max(0.9, Math.min(1.4, (contentValue || 20000) / 20000));
+  // ΣΗΜΕΙΟ ΑΝΑΦΟΡΑΣ, ΟΧΙ ΔΗΛΩΜΕΝΗ ΑΞΙΑ. Το 20.000 € είναι ο παρονομαστής της
+  // κλίμακας, όχι οικοσκευή που ισχυριζόμαστε ότι έχει ο χρήστης. Ήταν γραμμένο
+  // `(contentValue || 20000) / 20000`, που δίνει ακριβώς 1 όταν λείπει η τιμή —
+  // σωστό αριθμητικά, αλλά διαβαζόταν σαν να υποθέτουμε οικοσκευή 20.000 €.
+  // Χωρίς δηλωμένη αξία δεν προσαρμόζουμε καθόλου: συντελεστής 1.
+  const CONTENT_REFERENCE = 20000;
+  const contentF     = contentValue > 0 ? Math.max(0.9, Math.min(1.4, contentValue / CONTENT_REFERENCE)) : 1;
   const floorRisk    = floor === 'ground' ? 1.15 : floor === 'basement' ? 1.25 : 1.0;
   const ageRisk      = age === 'over_30' ? 1.20 : age === '25_30' ? 1.10 : age === 'under_5' ? 0.90 : 1.0;
   // Η σεισμική ζώνη ΔΕΝ βγαίνει από το όνομα της πόλης. Ο παλιός κώδικας έψαχνε

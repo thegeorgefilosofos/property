@@ -641,7 +641,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       { key: 'property', label: 'Το ακίνητό σου (εκτίμηση)', annualReturnPct: totalReturn },
       ...BENCHMARKS.filter(b => b.key !== 'inflation').map(b => ({ key: b.key, label: b.label, annualReturnPct: retFor(b) })),
     ];
-    return compareInvestments(nVal || 100000, parseInt(cmpYears), opts);
+    // ΚΑΜΙΑ ΣΥΓΚΡΙΣΗ ΧΩΡΙΣ ΑΞΙΑ ΑΚΙΝΗΤΟΥ.
+    //
+    // Ήταν `nVal || 100000`: χωρίς καταχωρημένη αξία, ολόκληρη η σύγκριση
+    // επενδύσεων έτρεχε πάνω σε 100.000 € που δεν έδωσε ποτέ ο χρήστης — και
+    // το νούμερο διέρρεε ΚΑΙ στην εκτύπωση ΚΑΙ στην εξαγωγή, όπου φαίνεται σαν
+    // δικό του στοιχείο. Χωρίς αξία δεν υπάρχει τι να συγκριθεί· ζητάμε την αξία.
+    if (!(nVal > 0)) return [];
+    return compareInvestments(nVal, parseInt(cmpYears), opts);
   }, [y.netYield, nAppr, nVal, cmpYears]);
   const compMax = Math.max(...compare.map(c => c.futureValue), 1);
 
@@ -649,7 +656,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // εναλλακτική, στον επιλεγμένο ορίζοντα — για το «έξυπνο» γράφημα σύγκρισης.
   const projSeries = useMemo(() => {
     const yearsN = parseInt(cmpYears);
-    const base = nVal || 100000;
+    if (!(nVal > 0)) return [];
+    const base = nVal;
     const propRate = clampReturn(propertyTotalReturn(y.netYield, nAppr));
     const topAlt = compare.find(c => c.key !== 'property');
     const series = [{ label: 'Ακίνητο', color: 'var(--accent)', points: projectLine(base, propRate, yearsN) }];
@@ -1143,7 +1151,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             Προεπιλογή <strong style={{ color: 'var(--text-secondary)' }}>{fp(apprRef.pct)}</strong>: μέση ετήσια μεταβολή του δείκτη τιμών κατοικιών της Τράπεζας της Ελλάδος, {apprRef.fromYear}–{apprRef.toYear} ({apprRef.years} έτη) — ο ίδιος ορίζοντας με τις εναλλακτικές παρακάτω. Για σύγκριση, η μακρά περίοδος {apprLong.fromYear}–{apprLong.toYear} δίνει {fp(apprLong.pct)}, επειδή περιλαμβάνει την κρίση. Καμία από τις δύο δεν είναι πρόβλεψη· αν βάλεις άλλο νούμερο, είναι δική σου υπόθεση και βαραίνει όσο και το υπόλοιπο της σελίδας.
           </p>
           {/* Προβολή-γραμμή: ακίνητο vs κορυφαία εναλλακτική στον χρόνο */}
-          <LineChart series={projSeries} />
+          {projSeries.length === 0 ? (
+            <div style={{ padding: '18px 16px', borderRadius: 12, border: '1px dashed var(--border-default)', background: 'var(--bg-elevated)', marginBottom: 12 }}>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>
+                Συμπλήρωσε την <strong style={{ color: 'var(--text-primary)' }}>αξία του ακινήτου</strong> για να συγκριθεί με τις εναλλακτικές επενδύσεις.
+                Χωρίς αυτήν δεν υπάρχει ποσό να προβληθεί — και ένα νούμερο βγαλμένο από το πουθενά θα διάβαζε σαν δικό σου.
+              </p>
+            </div>
+          ) : <LineChart series={projSeries} />}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '2px 0 14px' }}>
             {projSeries.map(s => (
               <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 12, height: 2.5, borderRadius: 3, background: s.color }} />{s.label}</span>

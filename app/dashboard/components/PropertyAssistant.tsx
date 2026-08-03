@@ -313,7 +313,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
     ]);
     const bData = (budgetSet?.data as Record<string, unknown> | null) || {};
-    const monthlyTarget = parseFloat(String(bData.total ?? '')) || 390;
+    // ΧΩΡΙΣ ΟΡΙΣΜΕΝΟ ΣΤΟΧΟ, ΚΑΝΕΝΑΣ ΑΡΙΘΜΟΣ.
+    // Ήταν `|| 390`. Ο χρήστης που δεν είχε ορίσει ποτέ προϋπολογισμό, έπαιρνε
+    // από τη Νόα προτάσεις πάνω σε «μηνιαίο στόχο 390 €» — νούμερο που δεν
+    // είπε ποτέ, διατυπωμένο σαν δικό του.
+    const rawTarget = parseFloat(String(bData.total ?? ''));
+    const monthlyTarget: number | null = Number.isFinite(rawTarget) && rawTarget > 0 ? rawTarget : null;
     const notifyOverspend = String(bData.notifyOverspend) === 'true';
     const vArr = ((vaultSet?.data as { vaults?: any[] } | null)?.vaults) || [];
     const monthsUntilDue = (due?: string): number => {
@@ -330,7 +335,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       return v.due && mo > 0 ? s + reservePlan(Number(v.target) || 0, Number(v.current) || 0, mo).requiredMonthly : s;
     }, 0);
     const budgetLine = [
-      `Προϋπολογισμός: μηνιαίος στόχος δαπανών ${eur(monthlyTarget)}. Ειδοποίηση υπέρβασης: ${notifyOverspend ? 'ενεργή (email μέσω προτιμήσεων ειδοποιήσεων)' : 'ανενεργή'}.`,
+      `Προϋπολογισμός: ${monthlyTarget !== null ? `μηνιαίος στόχος δαπανών ${eur(monthlyTarget)}` : 'δεν έχει οριστεί μηνιαίος στόχος δαπανών — μη μιλάς για στόχο σαν να υπάρχει, πρότεινε να τον ορίσει'}. Ειδοποίηση υπέρβασης: ${notifyOverspend ? 'ενεργή (email μέσω προτιμήσεων ειδοποιήσεων)' : 'ανενεργή'}.`,
       vArr.length
         ? `Κουμπαράδες (${vArr.length}): μαζεμένα ${eur(vaultSaved)} από στόχο ${eur(vaultTarget)}${vaultMonthly > 0 ? `, απαιτούμενη μηνιαία εισφορά ${eur(vaultMonthly)}` : ''}. ${vArr.slice(0, 6).map((v: any) => `${v.name || 'κουμπαράς'} ${eur(Number(v.current) || 0)}/${eur(Number(v.target) || 0)}${v.due ? ` έως ${v.due}` : ''}`).join('; ')}`
         : 'Κουμπαράδες: δεν έχει δημιουργηθεί κανένας ακόμη. Μπορείς να φτιάξεις (π.χ. ΕΝΦΙΑ, λέβητας, κενές περίοδοι) με [[vault: όνομα | στόχος | ΕΕΕΕ-ΜΜ-ΗΗ]].',
