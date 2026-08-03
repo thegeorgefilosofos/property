@@ -916,6 +916,8 @@ export default function Dashboard() {
   const [navPrefsLoaded, setNavPrefsLoaded] = useState(false);
   const [navSignals, setNavSignals] = useState<DisclosureSignals>({});
   const [loading, setLoading] = useState(true);
+  /** Η ανάγνωση ακινήτων απέτυχε — ΔΙΑΦΟΡΕΤΙΚΟ από «δεν έχει ακίνητα». */
+  const [loadError, setLoadError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCopyInventory, setShowCopyInventory] = useState(false);
   const [statusDropdown, setStatusDropdown] = useState(false);
@@ -1057,7 +1059,15 @@ export default function Dashboard() {
   const showAllTabs = () => setNavShowAllPref(true);
 
   const fetchProperties = useCallback(async (uid: string) => {
-    const { data } = await supabase.from('user_properties').select('*').eq('user_id', uid).order('created_at');
+    // ΤΟ «ΔΕΝ ΔΙΑΒΑΣΤΗΚΕ» ΔΕΝ ΕΙΝΑΙ «ΔΕΝ ΕΧΕΙΣ ΤΙΠΟΤΑ».
+    //
+    // Το `error` πεταγόταν και το `data || []` έκανε την αποτυχία να μοιάζει με
+    // κενό χαρτοφυλάκιο: ο ιδιοκτήτης τριών ακινήτων, με κακό δίκτυο ή ληγμένο
+    // token, έβλεπε «Καλωσήρθες — πρόσθεσε το πρώτο σου ακίνητο». Το χειρότερο
+    // δεν είναι η λάθος οθόνη· είναι ότι πιστεύει πως έχασε τα δεδομένα του.
+    const { data, error } = await supabase.from('user_properties').select('*').eq('user_id', uid).order('created_at');
+    if (error) { setLoadError(true); return; }
+    setLoadError(false);
     const props = data || [];
     setProperties(props);
     if (props.length > 0 && !selected) setSelected(props[0]);
@@ -1504,7 +1514,17 @@ export default function Dashboard() {
           )}
         </header>
 
-        {!selected ? (
+        {!selected && loadError ? (
+          <div className="app-content" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <div style={{maxWidth:460,width:'100%',textAlign:'center'}}>
+              <h1 style={{fontFamily: T.font.sans,fontSize:22,fontWeight:700,color:'var(--text-primary)',margin:'0 0 10px'}}>Δεν μπόρεσα να διαβάσω τα ακίνητά σου</h1>
+              <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 20px',maxWidth:400}}>
+                Τα δεδομένα σου είναι ασφαλή — απλώς δεν φορτώθηκαν τώρα. Συνήθως φταίει η σύνδεση.
+              </p>
+              <button onClick={()=>{ if(user) fetchProperties(user.id); }} style={{padding:'0 20px',height:T.h.md,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13.5,fontWeight:600,fontFamily:T.font.sans,cursor:'pointer'}}>Δοκίμασε ξανά</button>
+            </div>
+          </div>
+        ) : !selected ? (
           <div className="app-content" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
             <div style={{maxWidth:560,width:'100%',textAlign:'center'}}>
               <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>

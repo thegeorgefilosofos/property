@@ -610,7 +610,14 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
     if (!what.trim() || !Number.isFinite(amt) || amt <= 0) return;
     setSaving(true);
     try {
-      await supabase.from('expenses').insert({
+      // Ο SUPABASE ΔΕΝ ΠΕΤΑΕΙ ΕΞΑΙΡΕΣΗ ΣΕ ΣΦΑΛΜΑ ΒΑΣΗΣ — ΕΠΙΣΤΡΕΦΕΙ { error }.
+      //
+      // Χωρίς αποδόμηση του `error`, η κλήση «πετύχαινε» πάντα: το catch από
+      // κάτω δεν ενεργοποιούνταν ποτέ, ο χρήστης έπαιρνε «Καταχωρήθηκε» και το
+      // onDone() έκλεινε τη φόρμα. Η δαπάνη είχε χαθεί και εκείνος το αγνοούσε.
+      // Παραβίαση RLS, περιορισμός στήλης ή πεσμένο δίκτυο έδιναν όλα το ίδιο:
+      // ψεύτικη επιβεβαίωση.
+      const { error } = await supabase.from('expenses').insert({
         property_id: propertyId, user_id: userId,
         description: what.trim(),
         amount: amt,
@@ -619,6 +626,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
         paid,
         paid_by: 'owner',
       });
+      if (error) throw error;
       notify(paid ? 'Καταχωρήθηκε' : 'Καταχωρήθηκε ως απλήρωτη');
       onDone();
     } catch { notifyError('Δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); }

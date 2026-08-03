@@ -1218,8 +1218,15 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     if(editingEvent&&editingEvent.recurring){ setScopePrompt(true); return }
     setSaving(true)
     const payload=buildPayload()
-    if(editingEvent){await supabase.from('calendar_events').update(payload).eq('id',editingEvent.id)}
-    else{await supabase.from('calendar_events').insert(payload); await maybeCreateExpense()}
+    // Το παράθυρο ΔΕΝ κλείνει αν δεν αποθηκεύτηκε. Πριν, το σφάλμα του Supabase
+    // αγνοούνταν (δεν πετάει, επιστρέφει { error }) και το modal έκλεινε σαν να
+    // πέτυχε — ο χρήστης έχανε τίτλο, ημερομηνία, ώρα, ποσό, επανάληψη και
+    // σημειώσεις, χωρίς να του πει κανείς τίποτα.
+    const { error } = editingEvent
+      ? await supabase.from('calendar_events').update(payload).eq('id',editingEvent.id)
+      : await supabase.from('calendar_events').insert(payload)
+    if(error){ notifyError('Το γεγονός δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); setSaving(false); return }
+    if(!editingEvent) await maybeCreateExpense()
     await load(); setShowModal(false); setSaving(false)
   }
   // Εφαρμογή εμβέλειας επεξεργασίας σε επαναλαμβανόμενο.

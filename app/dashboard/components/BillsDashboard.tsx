@@ -10,6 +10,7 @@ import {
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 import { T, fe, Btn, EmptyState, Skeleton, SkeletonKPIs } from '@/components/Theme';
+import { notifyError } from '@/components/toastBus';
 import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@/lib/expenses/sharing';
@@ -452,7 +453,17 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       paid_by: form.paid_by, share_percent: sharePercent, share_note: shareNote,
     };
     const { data, error } = await supabase.from('bills').insert(payload).select().single();
-    if (!error && data) {
+    // ΧΩΡΙΣ ΑΥΤΟ ΤΟ ΣΚΕΛΟΣ, Η ΑΠΟΤΥΧΙΑ ΗΤΑΝ ΑΟΡΑΤΗ.
+    // Το `if (!error && data)` δεν είχε else: σε σφάλμα ο κώδικας συνέχιζε στο
+    // setForm(αρχικές τιμές) και setShowForm(false). Ο χρήστης είχε μόλις
+    // πληκτρολογήσει όνομα, ποσό, ΦΠΑ, περίοδο, ημερομηνία λήξης, kWh, ΕΡΤ,
+    // ΕΤΜΕΑΡ και δημοτικά — και τα έβλεπε να εξαφανίζονται χωρίς μήνυμα.
+    if (error || !data) {
+      notifyError('Ο λογαριασμός δεν αποθηκεύτηκε. Δοκίμασε ξανά — τα στοιχεία σου παραμένουν στη φόρμα.');
+      setSaving(false);
+      return;
+    }
+    if (data) {
       setBills(prev => [data, ...prev]);
       if (payload.paid) {
         try {
