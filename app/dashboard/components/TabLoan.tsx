@@ -383,7 +383,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     downloadXlsx(`Αποθηκευμένα_δάνεια_${new Date().toISOString().slice(0,10)}`, [{
       name: 'Δάνεια',
       title: 'Αποθηκευμένα δάνεια',
-      subtitle: `Property OS · ${saved.length} ${saved.length===1?'δάνειο':'δάνεια'} · Ημ. έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
+      subtitle: `Property OS · ${saved.length} ${saved.length===1?'δάνειο':'δάνεια'} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
       columns: [
         { header:'Τράπεζα', kind:'text', width:20 },
         { header:'Τύπος δανείου', kind:'text', width:22 },

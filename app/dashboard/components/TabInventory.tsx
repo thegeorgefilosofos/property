@@ -306,7 +306,7 @@ const DepBar = ({pct,left}:{pct:number;left:number}) => {
         <div style={{height:'100%',width:`${remaining}%`,background:c,borderRadius:3,transition:'width 0.4s'}}/>
       </div>
       <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
-        <span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>Εκτ. υπολειπόμενη αξία {remaining}%</span>
+        <span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>Εκτιμώμενη υπολειπόμενη αξία {remaining}%</span>
         {left>0
           ?<span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>~{left} χρόνια</span>
           :<span style={{fontSize:9,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Τέλος εκτ. ζωής</span>
@@ -505,7 +505,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const [errors,setErrors] = useState<string[]>([])
   const [importing,setImporting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const TEMPLATE = `Ονομασία,Κατηγορία,Δωμάτιο,Μάρκα,Μοντέλο,Σειριακός,Κατάσταση,Αξία Αγοράς,Ημ/νία Αγοράς,Λήξη Εγγύησης,Ενεργ.Κλάση,Ισχύς (W),Ώρες/Ημέρα,Κόστος Αντικατάστασης\nΠλυντήριο,Ηλεκτρικές Συσκευές,Κουζίνα,Bosch,WAU28,SN123,Καλή,650,2021-03-15,2026-03-15,A+,2100,1,700`
+  const TEMPLATE = `Ονομασία,Κατηγορία,Δωμάτιο,Μάρκα,Μοντέλο,Σειριακός,Κατάσταση,Αξία Αγοράς,Ημερομηνία Αγοράς,Λήξη Εγγύησης,Ενεργειακή Κλάση,Ισχύς (W),Ώρες ανά Ημέρα,Κόστος Αντικατάστασης\nΠλυντήριο,Ηλεκτρικές Συσκευές,Κουζίνα,Bosch,WAU28,SN123,Καλή,650,2021-03-15,2026-03-15,A+,2100,1,700`
   const downloadTemplate = () => {
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+TEMPLATE],{type:'text/csv;charset=utf-8;'}));a.download='template.csv';a.click()
   }
@@ -771,9 +771,9 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
             <div style={{padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:8}}>
                 {[
-                  {label:'Εκτ. υπολειπόμενη αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem))},
+                  {label:'Εκτιμώμενη υπολειπόμενη αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem))},
                   {label:'Ποσοστό που μένει',value:`${Math.max(0,100-calcDepreciationPct({...form,id:'',user_id:''} as InventoryItem))}%`},
-                  {label:'Εκτ. χρόνια ζωής',value:`~${calcYearsLeft({...form,id:'',user_id:''} as InventoryItem)} χρ.`},
+                  {label:'Εκτιμώμενα χρόνια ζωής',value:`~${calcYearsLeft({...form,id:'',user_id:''} as InventoryItem)} χρόνια`},
                 ].map((k,i)=>(
                   <div key={i} style={{textAlign:'center'}}>
                     <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
@@ -989,7 +989,7 @@ function OverviewTab({items,repairs,kwhPrice,kwhControl,handovers=[],onOpenHando
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
       <KPIGrid items={[
         {label:'Αντικείμενα',value:String(items.length),sub:`${byCategory.length} ${byCategory.length===1?'κατηγορία':'κατηγορίες'}`},
-        {label:'Εκτ. υπολειπόμενη αξία',value:fmtEur(totalCurrent),sub:summary.totalOriginal>0?`από ${fmtEur(summary.totalOriginal)} αξία αγοράς`:'εκτίμηση, όχι φορολογική απόσβεση'},
+        {label:'Εκτιμώμενη υπολειπόμενη αξία',value:fmtEur(totalCurrent),sub:summary.totalOriginal>0?`από ${fmtEur(summary.totalOriginal)} αξία αγοράς`:'εκτίμηση, όχι φορολογική απόσβεση'},
         declaredRepl.length>0
           ?{label:'Δηλωμένο κόστος αντικατάστασης',value:fmtEur(totalDeclaredRepl),sub:missingRepl>0?`λείπει σε ${missingRepl} από ${items.length}`:`σε όλα τα ${items.length} αντικείμενα`}
           :{label:'Δηλωμένο κόστος αντικατάστασης',value:'—',sub:'το ζητά η ασφαλιστική'},
@@ -1783,7 +1783,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   const totalDeclaredRepl=declaredRepl.reduce((s,i)=>s+(i.replacement_cost||0),0)
   const missingRepl=items.length-declaredRepl.length
   const exportCSV=()=>{
-    const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία Αγοράς','Εκτ. Υπολειπόμενη Αξία','Εκτ. Υπολειπ. %','Κόστος Αντικατάστασης','Ηλ.Κλάση','Watt','Ώρες/ημ','kWh/μήνα','Κόστος Ρεύμ./μήνα','Ηλικία','Ημ/νία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
+    const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία Αγοράς','Εκτιμώμενη Υπολειπόμενη Αξία','Ποσοστό Υπολειπόμενης Αξίας','Κόστος Αντικατάστασης','Ενεργειακή Κλάση','Watt','Ώρες ανά ημέρα','kWh/μήνα','Κόστος Ρεύματος ανά μήνα','Ηλικία','Ημερομηνία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
     const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,i.purchase_value?csvEur(i.purchase_value):'',csvEur(calcCurrentValue(i)),csvPct(Math.max(0,100-calcDepreciationPct(i))),i.replacement_cost?csvEur(i.replacement_cost):'',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?csvEur(calcMonthlyCost(i,kwhPrice)):'',calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
     const csv=[headers,...rows].map(row=>row.map(cell=>{const s=csvSafe(String(cell??''));return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n')
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='απογραφη.csv';a.click()
@@ -1798,11 +1798,11 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
       + `<h1>Απογραφή Ακινήτου</h1>`
       + `<div class="sub">${rEsc(String(items.length))} αντικείμενα</div>`
       + reportSection('Σύνοψη')
-      + `<div class="kpis">${reportKpi('Εκτ. υπολειπόμενη αξία', rEur(totalCurrent))}${reportKpi('Δηλωμένο κόστος αντικατάστασης', declaredRepl.length>0?rEur(totalDeclaredRepl):'—')}${reportKpi('Επισκευές', rEur(totalRepairs))}${electricItems.length>0&&kwhPrice>0?reportKpi('Ρεύμα/Μήνα', rEur(totalMonthlyCost)):''}</div>`
+      + `<div class="kpis">${reportKpi('Εκτιμώμενη υπολειπόμενη αξία', rEur(totalCurrent))}${reportKpi('Δηλωμένο κόστος αντικατάστασης', declaredRepl.length>0?rEur(totalDeclaredRepl):'—')}${reportKpi('Επισκευές', rEur(totalRepairs))}${electricItems.length>0&&kwhPrice>0?reportKpi('Ρεύμα/Μήνα', rEur(totalMonthlyCost)):''}</div>`
       + reportSection('Ανά Κατηγορία')
       + `<table><tbody>${catRows}</tbody></table>`
       + reportSection('Αναλυτικός Κατάλογος')
-      + `<table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th class="n">Αξία Αγοράς</th><th class="n">Εκτ. υπολειπόμενη</th><th class="n">% που μένει</th><th class="n">Κόστος αντικ.</th><th class="n">kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>${detailRows}</tbody></table>`
+      + `<table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th class="n">Αξία Αγοράς</th><th class="n">Εκτιμώμενη υπολειπόμενη</th><th class="n">% που μένει</th><th class="n">Κόστος αντικ.</th><th class="n">kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>${detailRows}</tbody></table>`
       + reportDisclaimer(`Η παρούσα απογραφή έχει ενημερωτικό χαρακτήρα. Οι υπολειπόμενες αξίες προκύπτουν από γραμμική μείωση πάνω σε τυπική διάρκεια ζωής ανά κατηγορία και δεν αποτελούν επίσημη εκτίμηση. ${NOT_TAX_DEPRECIATION_NOTE} Το κόστος αντικατάστασης είναι όσο έχει δηλώσει ο ιδιοκτήτης· όπου λείπει, δεν συμπληρώνεται από εμάς.${missingRepl>0?` Λείπει σε ${missingRepl} από ${items.length} αντικείμενα.`:''}`)
       + `</div></body></html>`
     openReport(html)
@@ -1830,7 +1830,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
     <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
     <div class="hd"><div class="mark">P</div><div class="bn">Property OS</div></div>
     <h1>Έκθεση Ασφάλισης Περιεχομένου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα · φωτογραφική τεκμηρίωση</div>
-    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(eur(totalInsurable))}</div><div class="kpi-l">Δηλωμένο κόστος αντικατάστασης</div></div><div class="kpi"><div class="kpi-v">${esc(eur(totalCurrent))}</div><div class="kpi-l">Εκτ. υπολειπόμενη αξία</div></div><div class="kpi"><div class="kpi-v">${esc(items.length)}</div><div class="kpi-l">Αντικείμενα${missingRepl>0?` (λείπει σε ${missingRepl})`:''}</div></div></div>
+    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(eur(totalInsurable))}</div><div class="kpi-l">Δηλωμένο κόστος αντικατάστασης</div></div><div class="kpi"><div class="kpi-v">${esc(eur(totalCurrent))}</div><div class="kpi-l">Εκτιμώμενη υπολειπόμενη αξία</div></div><div class="kpi"><div class="kpi-v">${esc(items.length)}</div><div class="kpi-l">Αντικείμενα${missingRepl>0?` (λείπει σε ${missingRepl})`:''}</div></div></div>
     <div class="grid">${items.map(card).join('')}</div>
     <div class="footer">Η ασφαλιστέα αξία εξοπλισμού είναι το κόστος ΑΝΤΙΚΑΤΑΣΤΑΣΗΣ ΜΕ ΚΑΙΝΟΥΡΓΙΟ, όχι η υπολειπόμενη αξία. Εδώ αθροίζονται μόνο τα ποσά που δήλωσε ο ιδιοκτήτης· ${missingRepl>0?`για ${missingRepl} από ${items.length} αντικείμενα δεν έχει δηλωθεί και ΔΕΝ έχουν υπολογιστεί — η κάλυψη πρέπει να συμπληρωθεί πριν την ασφάλιση.`:'έχει δηλωθεί για όλα τα αντικείμενα.'} Οι φωτογραφίες αποτελούν τεκμηρίωση του ιδιοκτήτη κατά την ημερομηνία έκδοσης. Property OS.</div>
     <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
@@ -1982,7 +1982,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   }
   const exportInventoryCsv=()=>downloadCsv(
     `apografi_${new Date().toISOString().slice(0,10)}`,
-    ['Αντικείμενο','Κατηγορία','Δωμάτιο','Μάρκα','Κατάσταση','Ημ. Αγοράς','Τιμή Αγοράς (€)','Τρέχουσα Αξία (€)','Εγγύηση έως'],
+    ['Αντικείμενο','Κατηγορία','Δωμάτιο','Μάρκα','Κατάσταση','Ημερομηνία Αγοράς','Τιμή Αγοράς (€)','Τρέχουσα Αξία (€)','Εγγύηση έως'],
     items.map(item=>[item.name,item.category,item.room||'',item.brand||'',item.condition,csvDate(item.purchase_date),csvEur(item.purchase_value),csvEur(calcCurrentValue(item)),csvDate(item.warranty_expiry)])
   )
 
@@ -2123,7 +2123,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             return (
               <KPIGrid items={[
                 {label:'Αντικείμενα',value:fn(items.length),sub:`${cats} ${cats===1?'κατηγορία':'κατηγορίες'}`},
-                {label:'Εκτ. υπολειπόμενη αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)} αξία αγοράς`:'εκτίμηση, όχι φορολογική απόσβεση'},
+                {label:'Εκτιμώμενη υπολειπόμενη αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)} αξία αγοράς`:'εκτίμηση, όχι φορολογική απόσβεση'},
                 {label:'Χρειάζονται Προσοχή',value:fn(attention),tone:overdueCount>0||badConditionCount>0?'negative':attention>0?'warning':'neutral',sub:attention>0?bits.slice(0,3).join(' · '):'όλα εντάξει'},
               ]}/>
             )

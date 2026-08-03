@@ -34,7 +34,7 @@ export function downloadJournalWorkbook(opts: {
     // Στήλες Χρέωσης/Πίστωσης (0-indexed) — μία πηγή αλήθειας, ώστε η προσθήκη
     // στήλης να μη «σπάει» φόρμουλες/στυλ παρακάτω.
     const CD = 6, CC = 7;
-    const header = ['Άρθρο', 'Ημ/νία', 'Κωδικός', 'Λογαριασμός', 'Αιτιολογία', 'Ακίνητο', 'Χρέωση', 'Πίστωση', 'Παραστατικό'];
+    const header = ['Άρθρο', 'Ημερομηνία', 'Κωδικός', 'Λογαριασμός', 'Αιτιολογία', 'Ακίνητο', 'Χρέωση', 'Πίστωση', 'Παραστατικό'];
     const data: Cell['v'][][] = lines.map((l, i) => [
       l.art ?? (i + 1), toDate(l.date), l.code, l.account, l.description, l.property || '',
       l.debit || '', l.credit || '', l.doc || '',

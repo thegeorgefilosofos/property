@@ -1474,7 +1474,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
                   // Πρώτο (προεπιλεγμένο) φύλλο: μόνο το τρέχον έτος. Ακολουθεί το πλήρες
                   // αρχείο και τα φύλλα εκπρόθεσμων/επερχόμενων.
                   const issued=athensNow().toLocaleDateString('el-GR')
-                  const subFor=(scope:string)=>`Property OS · ${scope} · Ημ. έκδοσης ${issued}`
+                  const subFor=(scope:string)=>`Property OS · ${scope} · Ημερομηνία έκδοσης ${issued}`
                   const TOT=[6] // στήλη «Ποσό» → γραμμή ΣΥΝΟΛΟ
                   const sheets:XlsxSheet[]=[{name:`Ατζέντα ${curYear}`,title:`ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ ${curYear}`,subtitle:subFor(`Έτος ${curYear}`),columns:cols,rows:cur.map(toRow),totalCols:TOT}]
                   if(all.length>cur.length) sheets.push({name:'Όλα τα έτη',title:'ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ · ΟΛΑ ΤΑ ΕΤΗ',subtitle:subFor('Όλα τα έτη'),columns:cols,rows:all.map(toRow),totalCols:TOT})

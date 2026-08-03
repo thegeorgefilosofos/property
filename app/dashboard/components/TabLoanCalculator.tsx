@@ -811,7 +811,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       + reportSection('Στοιχεία δανείου')
       + `<table><tbody>${detailRows}</tbody></table>`
       + reportSection('Πρόγραμμα αποπληρωμής')
-      + `<table><thead><tr><th>Δόση</th><th>Ημ/νία</th><th class="n">Ποσό</th><th class="n">Κεφάλαιο</th><th class="np">Τόκος</th><th class="n">Υπόλοιπο</th><th class="np">Σωρ. τόκοι</th></tr></thead><tbody>${bodyRows}</tbody></table>`
+      + `<table><thead><tr><th>Δόση</th><th>Ημερομηνία</th><th class="n">Ποσό</th><th class="n">Κεφάλαιο</th><th class="np">Τόκος</th><th class="n">Υπόλοιπο</th><th class="np">Σωρευτικοί τόκοι</th></tr></thead><tbody>${bodyRows}</tbody></table>`
       + reportDisclaimer('Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.', branding)
       + `</div></body></html>`
     openReport(html)
@@ -842,7 +842,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           { label:'Διάρκεια', value:termLabel },
         ] },
         { type:'table', title:'Πίνακας τοκοχρεολυσίου',
-          head:['Δόση','Ημ/νία','Ποσό','Κεφάλαιο','Τόκος','Υπόλοιπο','Σωρ. τόκοι'],
+          head:['Δόση','Ημερομηνία','Ποσό','Κεφάλαιο','Τόκος','Υπόλοιπο','Σωρευτικοί τόκοι'],
           align:['l','l','r','r','r','r','r'],
           rows: amort.map(r=>{
             const dt=installmentDate(r.month).toLocaleDateString('el-GR',{month:'2-digit',year:'numeric'})
