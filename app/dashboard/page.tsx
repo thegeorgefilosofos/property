@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
-import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, type PropertyStatus } from '@/lib/property/status';
+import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
 import { tabDecision, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
 import { HAS_BUSINESS } from '@/lib/accounting/dossier';
 import AmaStrip from './components/AmaStrip';
@@ -336,6 +336,9 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
+/** Πλακίδια που έχουν νόημα ΜΟΝΟ σε ακίνητο που αποδίδει (μακροχρόνια ή βραχυχρόνια). */
+const INCOME_ONLY_KPIS = new Set(['Μηνιαίο Ενοίκιο', 'Μεικτή Απόδοση', 'Καθαρή Απόδοση']);
+
 function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
    *  είναι προοδευτική στο σύνολο του φορολογούμενου, όχι ανά ακίνητο. */
@@ -618,7 +621,16 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
             sub: expDeltaPct!=null ? { text:`${expDeltaPct>0?'+':expDeltaPct<0?'−':''}${Math.abs(expDeltaPct)}% από το ίδιο διάστημα πέρσι`, color: expDeltaPct>0?'var(--negative)':expDeltaPct<0?'var(--positive)':'var(--text-tertiary)' } : undefined },
           { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
             color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
-        ].map((k,i) => (
+        // ΕΝΟΙΚΙΟ ΚΑΙ ΑΠΟΔΟΣΕΙΣ ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΕΣΟΔΟ.
+        //
+        // Τα τρία πρώτα πλακίδια εμφανίζονταν ΠΑΝΤΑ. Σε ακίνητο σε ιδιοχρησία ή
+        // κενό, το resolveRent πέφτει στο `target_rent` — που ο ιδιοκτήτης
+        // μπορεί να έχει συμπληρώσει ως στόχο — και η Επισκόπηση έδειχνε
+        // «Μηνιαίο Ενοίκιο 700 €» και «Καθαρή Απόδοση 3,8%» για ακίνητο που δεν
+        // αποδίδει τίποτα. Απόδοση χωρίς έσοδο δεν είναι μέτρηση, είναι υπόθεση
+        // με ποσοστό δίπλα της — ακριβώς αυτό που το lib/property/visibility.ts
+        // έχει ήδη απαγορεύσει για την καρτέλα Αποδόσεις. Ίδιος κανόνας εδώ.
+        ].filter(k => isLet(prop) || !INCOME_ONLY_KPIS.has(k.label)).map((k,i) => (
           <div key={i} className="kpi-card" title={(k as any).title}>
             <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
@@ -1613,7 +1625,13 @@ export default function Dashboard() {
             value: p.value||undefined, targetRent: p.target_rent||undefined,
             sqm: p.sqm||undefined, status: statusLabelOf(p),
           }))}
-          onNavigate={(tab)=>setNav(tab)}
+          // Ο ΒΟΗΘΟΣ ΔΕΝ ΠΑΡΑΚΑΜΠΤΕΙ ΤΗΝ ΟΡΑΤΟΤΗΤΑ.
+          // Το parseAction επικυρώνει το [[go:x]] μόνο απέναντι στον στατικό
+          // NAV_MAP — τον κατάλογο ΟΛΩΝ των καρτελών. Χωρίς αυτόν τον έλεγχο, η
+          // Νόα μπορούσε να στείλει τον ιδιοκτήτη ενός ιδιοκατοικούμενου
+          // ακινήτου στην «Τιμολόγηση», δηλαδή σε οθόνη που η ίδια η εφαρμογή
+          // έχει κρίνει ότι δεν τον αφορά.
+          onNavigate={(tab)=>{ if (navVisible(tab)) setNav(tab); }}
           onScan={()=>setQuickAddOpen(true)}
         />
       )}

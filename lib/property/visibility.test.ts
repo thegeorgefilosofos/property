@@ -1,4 +1,5 @@
 // npx tsx lib/property/visibility.test.ts
+import { STATUSES, writeStatus, isLet } from './status';
 import {
   tabDecision, visibleTabs, comparableGroups, canCompare,
   accountingSections, accountingScope, normType,
@@ -205,6 +206,25 @@ eq('τίτλος για ιδιοχρησία', accountingScope(ctxOf([flat({ sta
   const v = visibleTabs(ALL, ctxOf([]), null);
   ok('χωρίς ακίνητα δεν σκάει τίποτα', v.length > 0);
   ok('καμία σύγκριση', !v.includes('comparison'));
+}
+
+
+// ═══ Η ΕΠΙΣΚΟΠΗΣΗ ΚΑΙ Η ΚΑΡΤΕΛΑ ΑΠΟΔΟΣΕΩΝ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΔΙΑΦΩΝΟΥΝ ═══
+//
+// Το πλέγμα KPI της Επισκόπησης έδειχνε «Μηνιαίο Ενοίκιο» και «Καθαρή Απόδοση»
+// ΠΑΝΤΑ, χωρίς έλεγχο κατάστασης — ενώ η καρτέλα Αποδόσεις τα κρύβει σε
+// ιδιοχρησία και σε κενό. Ίδιο ακίνητο, δύο απαντήσεις από την ίδια εφαρμογή.
+//
+// Η Επισκόπηση φιλτράρει πλέον με `isLet`. Αυτός ο έλεγχος κρατά τα δύο
+// κριτήρια δεμένα: αν κάποιος αλλάξει το BY_STATUS.roi χωρίς να αλλάξει το
+// isLet (ή το αντίστροφο), πέφτει εδώ αντί να αποκλίνουν σιωπηλά στην οθόνη.
+{
+  const ctx = { legalForm: 'individual' as const, properties: [{ id: 'p' }] };
+  for (const s of STATUSES) {
+    const row = { id: 'p', ...writeStatus(s.key) } as unknown as PropertyLike;
+    eq(`${s.key}: το isLet συμφωνεί με την ορατότητα των Αποδόσεων`,
+       isLet(row as never), tabDecision('roi', ctx, row).visible);
+  }
 }
 
 console.log(fail === 0 ? `✓ visibility: ${pass} έλεγχοι πέρασαν` : `✗ visibility: ${fail} απέτυχαν από ${pass + fail}`);
