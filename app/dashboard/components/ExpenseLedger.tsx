@@ -38,6 +38,7 @@ import {
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
 import { parseBulk, bulkLimit } from '@/lib/expenses/bulk';
+import { planBillPayment } from '@/lib/expenses/pay';
 
 interface Props {
   propertyId: string;
@@ -210,16 +211,25 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
     try {
       const today = new Date().toISOString().slice(0, 10);
       if (e.billId) {
-        await supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', e.billId);
+        // ΜΙΑ ΑΠΟΦΑΣΗ, ΚΟΙΝΗ ΜΕ ΤΗΝ ΟΘΟΝΗ ΛΟΓΑΡΙΑΣΜΩΝ (lib/expenses/pay.ts).
+        // Εδώ η δαπάνη γραφόταν ΧΩΡΙΣ expense_group — και το isGroupDeductible
+        // επιστρέφει false για κενή ομάδα. Ο ίδιος λογαριασμός εξέπιπτε αν τον
+        // πλήρωνες από τους Λογαριασμούς και ΔΕΝ εξέπιπτε από εδώ.
         const { data: linked } = await supabase.from('expenses').select('id').eq('bill_id', e.billId).limit(1);
-        if (linked && linked.length) {
-          await supabase.from('expenses').update({ paid: true }).eq('bill_id', e.billId);
-        } else {
-          await supabase.from('expenses').insert({
-            property_id: propertyId, user_id: userId, bill_id: e.billId,
-            amount: e.amount, description: e.title, date: today,
-            category: e.category || 'Άλλο', paid: true,
-          });
+        const { data: billRow } = await supabase.from('bills')
+          .select('id,name,amount,category,paid_by,share_percent,share_note').eq('id', e.billId).maybeSingle();
+        const plan = planBillPayment(
+          billRow ?? { id: e.billId, name: e.title, amount: e.amount, category: e.category },
+          { propertyId, userId, nowIso: new Date().toISOString(), hasLinkedExpense: !!(linked && linked.length) },
+        );
+        const { error: bErr } = await supabase.from('bills').update(plan.bill).eq('id', e.billId);
+        if (bErr) throw bErr;
+        if (plan.linkedExpenseUpdate) {
+          const { error } = await supabase.from('expenses').update(plan.linkedExpenseUpdate).eq('bill_id', e.billId);
+          if (error) throw error;
+        } else if (plan.newExpense) {
+          const { error } = await supabase.from('expenses').insert(plan.newExpense);
+          if (error) throw error;
         }
       } else if (e.expenseId) {
         await supabase.from('expenses').update({ paid: true }).eq('id', e.expenseId);

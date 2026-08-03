@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { T, fe, Btn, EmptyState, Skeleton, SkeletonKPIs } from '@/components/Theme';
 import { notifyError } from '@/components/toastBus';
+import { planBillPayment } from '@/lib/expenses/pay';
 import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@/lib/expenses/sharing';
@@ -18,15 +19,10 @@ import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
 // Κατηγορία λογαριασμού → ομάδα/κατηγορία Δαπανών (ίδια λογική με scan/τράπεζα).
-const BILL_GROUP: Record<string, { group: string; cat: string }> = {
-  electricity:{group:'fixed',cat:'Ρεύμα'}, water:{group:'fixed',cat:'Νερό'}, gas:{group:'fixed',cat:'Φυσικό Αέριο'},
-  internet:{group:'fixed',cat:'Internet'}, insurance:{group:'fixed',cat:'Ασφάλεια Κτιρίου'}, streaming:{group:'fixed',cat:'Άλλη Πάγια'},
-  taxes:{group:'fixed',cat:'ΕΝΦΙΑ'}, municipal:{group:'fixed',cat:'Δημοτικά Τέλη'}, security:{group:'fixed',cat:'Σύστημα Συναγερμού'},
-  common:{group:'fixed',cat:'Κοινόχρηστα'}, maintenance:{group:'maintenance',cat:'Γενική Συντήρηση'},
-  elevator:{group:'maintenance',cat:'Συντήρηση Ασανσέρ'}, pool:{group:'maintenance',cat:'Καθαρισμός Πισίνας'},
-  gardener:{group:'maintenance',cat:'Κηπουρός'}, cleaner:{group:'maintenance',cat:'Καθαριότητα'},
-  plumber:{group:'maintenance',cat:'Υδραυλικός'}, electrician:{group:'maintenance',cat:'Ηλεκτρολόγος'},
-};
+// ΤΟ BILL_GROUP ΕΦΥΓΕ. Ήταν αντίγραφο του EXPENSE_MAP (lib/billing/parse.ts)
+// με μία διαφορά: του έλειπε το κλειδί `other`, οπότε ο λογαριασμός «Άλλο»
+// έπεφτε σε fallback `fixed` και γινόταν εκπεστέος. Η ταξινόμηση ζει τώρα
+// στο lib/expenses/pay.ts (billCategory), με tests.
 
 const fmtDateGR = (iso: string) => iso ? new Date(iso).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
@@ -493,21 +489,20 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     const { data: expHit } = await supabase.from('expenses').update({ paid: newPaid }).eq('bill_id', id).select('id');
     await supabase.from('calendar_events').update({ status: newPaid ? 'paid' : 'pending' }).eq('bill_id', id);
 
-    // Αν το σημειώνουμε πληρωμένο και ΔΕΝ υπάρχει συνδεδεμένο έξοδο (π.χ.
-    // χειροκίνητος λογαριασμός), δημιούργησέ το με τη σωστή ομάδα ώστε να μετρήσει.
+    // Αν το σημειώνουμε πληρωμένο και ΔΕΝ υπάρχει συνδεδεμένο έξοδο, το
+    // δημιουργούμε — από την ΙΔΙΑ απόφαση με την οθόνη Δαπανών.
+    //
+    // Το παλιό BILL_GROUP εδώ δεν είχε κλειδί `other` και έπεφτε σε
+    // { group: 'fixed' }. Επειδή το 'fixed' εκπίπτει και το 'other' δεν
+    // εκπίπτει, κάθε λογαριασμός «Άλλο» γινόταν σιωπηλά εκπεστέος.
     if (newPaid && (!expHit || !expHit.length)) {
-      const g = BILL_GROUP[bill.category] || { group: 'fixed', cat: cat(bill.category).label };
-      try {
-        await supabase.from('expenses').insert({
-          property_id: propertyId, user_id: userId, bill_id: id, amount: bill.amount,
-          description: bill.name, date: new Date().toISOString().split('T')[0],
-          category: g.cat, expense_group: g.group,
-          paid_by: (bill as any).paid_by || 'owner',
-          share_percent: (bill as any).share_percent ?? null,
-          share_note: (bill as any).share_note ?? null,
-          paid: true,
-        });
-      } catch (_) {}
+      const plan = planBillPayment(bill as never, {
+        propertyId, userId, nowIso: new Date().toISOString(), hasLinkedExpense: false,
+      });
+      if (plan.newExpense) {
+        const { error } = await supabase.from('expenses').insert(plan.newExpense);
+        if (error) notifyError('Ο λογαριασμός σημειώθηκε πληρωμένος, αλλά η δαπάνη δεν καταχωρήθηκε.');
+      }
     }
   };
 
