@@ -99,7 +99,7 @@ export async function proxy(request: NextRequest) {
   // ερώτηση που ο ιδιοκτήτης κάνει ΠΡΙΝ μας ξέρει.
   const PUBLIC = new Set([
     "/", "/login", "/signup", "/privacy", "/terms", "/trust", "/offline",
-    "/ypologismos-forou-enoikion",
+    "/ypologismos-forou-enoikion", "/ypologismos-enfia",
   ]);
   // Σελίδες με capability-token (/portal, /accountant, /checkin, /verify) είναι
   // δημόσιες by-design — η πρόσβαση ελέγχεται από το ίδιο το token, όχι από login.

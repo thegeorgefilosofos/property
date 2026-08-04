@@ -16,7 +16,8 @@
     "tokens": "node scripts/guard-tokens.mjs",
     "single-source": "node scripts/guard-single-source.mjs",
     "writes": "node scripts/unchecked-writes.mjs",
-    "test": "node scripts/test.mjs"
+    "test": "node scripts/test.mjs",
+    "e2e": "node scripts/e2e-public-tools.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
