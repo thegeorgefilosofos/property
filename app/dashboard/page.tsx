@@ -51,7 +51,7 @@ import UpgradeModal from './components/UpgradeModal';
 import FeatureLock, { LockBadge } from './components/FeatureLock';
 import { PLANS } from '@/lib/billing/plans';
 import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
-import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, type DisclosureSignals } from '@/lib/nav/disclosure';
+import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, CORE_TABS, type DisclosureSignals } from '@/lib/nav/disclosure';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -159,6 +159,14 @@ const NAV_ICON: Record<string,string> = {
 // Δομή πλοήγησης (ίδια για ιδιώτη/επαγγελματία· αλλάζει μόνο η κεφαλίδα «Ακίνητά
 // μου» / «Χαρτοφυλάκιό μου» και το πότε ενεργοποιείται η «Σύγκριση ακινήτων»).
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
+  // Το Χαρτοφυλάκιο ΕΛΕΙΠΕ εντελώς από το μενού. Αποδιδόταν μόνο όταν
+  // nav==='portfolio', και κανένα κουμπί δεν έθετε ποτέ αυτή την τιμή: ο μόνος
+  // δρόμος ήταν το ⌘K. Δηλαδή σε tablet ή κινητό ήταν απρόσιτο — ενώ το
+  // PROFESSIONAL_CORE_TABS το δηλώνει βασική καρτέλα του επαγγελματία, μαζί με
+  // τους Πελάτες που ΕΙΝΑΙ στο μενού. Η μεγάλη εικόνα του χαρτοφυλακίου μπαίνει
+  // πρώτη, πριν από το Ημερολόγιο. Ο ιδιώτης δεν το βλέπει: δεν είναι βασικό
+  // για το προφίλ του και δεν είναι καν αγοράσιμο, άρα τα φίλτρα το κόβουν.
+  { label: '',                    ids: ['portfolio'] },
   { label: '',                    ids: ['calendar'] },
   // Το Σχέδιο δεν ανήκει σε ομάδα: εμφανίζεται μόνο σε ακίνητο κενό, προς πώληση,
   // σε ανακαίνιση ή σε νομική εκκρεμότητα — και τότε είναι η κύρια δουλειά του
@@ -185,14 +193,31 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
 // η πλοήγηση τους συνδύαζε ούτως ή άλλως με «και».
 const SELF_DISCLOSING = new Set(['plan', 'pricing', 'roi', 'comparison']);
 
-// Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
+
+// ── Κάτω μπάρα κινητού ────────────────────────────────────────────────────
+// ΔΕΝ είναι χειρόγραφη λίστα. Παράγεται από τις CORE_TABS, δηλαδή από την ΙΔΙΑ
+// δήλωση προτεραιότητας που χρησιμοποιεί και η σταδιακή αποκάλυψη.
+//
+// ΓΙΑΤΙ ΑΛΛΑΞΕ: η μπάρα είναι το πιο προσβάσιμο σημείο σε κινητό — τέσσερις
+// προορισμοί σε ένα άγγιγμα, όλα τα υπόλοιπα δύο. Η χειρόγραφη λίστα έδινε
+// θέση στο «Αρχείο», που δεν είναι καν βασική καρτέλα, ενώ έστελνε τη
+// «Λογιστική» κάτω από το «Μενού» — την καρτέλα που ο ίδιος ο ορισμός των
+// CORE_TABS περιγράφει ως «ο λόγος που έψαξε λύση». Η ιεράρχηση έλεγε ένα
+// πράγμα και η οθόνη έκανε άλλο.
+//
+// Το «Αρχείο» δεν χάνεται: μένει ένα άγγιγμα πιο μακριά, και η ΚΑΤΑΓΡΑΦΗ
+// εγγράφου — που είναι η πραγματική δουλειά στο κινητό — γίνεται ούτως ή άλλως
+// από τη γρήγορη καταχώρηση με φωτογραφία και από τον βοηθό, όχι από εδώ.
+//
+// Παράγοντάς τη, τα ονόματα και τα εικονίδια δεν ξαναγράφονται: έρχονται από
+// NAV_LABEL/NAV_ICON. Πριν, το ίδιο εικονίδιο υπήρχε δύο φορές στο αρχείο.
 const BOTTOM_NAV = [
-  { id:'overview', label:'Επισκόπηση', icon: ic('M3 9.5 12 3l9 6.5|M5 10v10h14V10') },
-  { id:'finances', label:'Δαπάνες',   icon: ic('M3 12h4l3 8 4-16 3 8h4') },
-  { id:'documents',label:'Αρχείο',    icon: ic('M4 4h6l2 3h8v13H4z') },
-  { id:'calendar', label:'Ημερολόγιο', icon: ic('M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4') },
-  { id:'more',     label:'Μενού',      icon: ic('M4 6h16|M4 12h16|M4 18h16') },
+  ...CORE_TABS
+    .filter(id => id !== 'settings')   // ο λογαριασμός ανήκει στο μενού, όχι στη μπάρα
+    .slice(0, 4)
+    .map(id => ({ id, label: NAV_LABEL[id], icon: ic(NAV_ICON[id]) })),
+  { id:'more', label:'Μενού', icon: ic('M4 6h16|M4 12h16|M4 18h16') },
 ];
 
 const fmt = (n:number|null|undefined, decimals=0) =>
