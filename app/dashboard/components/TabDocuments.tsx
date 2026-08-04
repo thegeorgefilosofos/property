@@ -18,11 +18,18 @@ import {
   PHOTO_CATEGORIES, MAX_SCAN_MB, type ScanError, type ReconcileQuestion,
 } from './scanDoc';
 import { isValidAfm } from '@/lib/billing/parse';
+import {
+  applyFilters, facetOptions, toggleValue, clearAll, groupByMonth, sumValues,
+  activeFacetCount, isSelectionEmpty, FACET_KEYS, FACET_LABEL,
+  type Selection, type TimeGroup,
+} from '@/lib/archive/facets';
 
 /* ════════════════════════════════════════════════════════════════════════
-   ΑΡΧΕΙΟ — ένας πλήρως οργανωμένος ψηφιακός φάκελος (Google-Drive class).
-   Συγκεντρώνει σε ΕΝΑ σημείο έγγραφα από πολλές πηγές, αυτόματα ταξινομημένα
-   σε φακέλους ανά κατηγορία → πάροχο ή ημερομηνία → αρχείο (2 κλικ).
+   ΑΡΧΕΙΟ — μία επίπεδη λίστα με όψεις, ΧΩΡΙΣ φακέλους.
+   Συγκεντρώνει σε ΕΝΑ σημείο χαρτιά από τέσσερις πηγές. Κάθε χαρτί κρατά τις
+   ιδιότητές του (κατηγορία, πάροχος, χρονιά, προέλευση) και ο χρήστης τις
+   συνδυάζει — δεν κατεβαίνει σε δέντρο. Το γιατί, και η λογική με τα τεστ της,
+   ζουν στο lib/archive/facets.ts.
    Πηγές δεδομένων:
      • property_documents  — τα ανεβασμένα αρχεία/φωτογραφίες (μοναδική εγγράψιμη πηγή)
      • expenses.attachment_url — αποδείξεις/τιμολόγια που επισυνάφθηκαν στα Έξοδα
@@ -127,8 +134,24 @@ interface Item {
   note: string | null;
   category: string | null;
   raw?: DocRow;          // μόνο για διαγραφή property_documents
+  // Τα τρία πεδία των όψεων. Παράγονται σε ΕΝΑ σημείο (enrich, πριν το setItems)
+  // αντί να γράφονται σε καθεμία από τις τέσσερις πηγές — έτσι η ετικέτα
+  // κατηγορίας δεν μπορεί να διαφωνήσει ανάμεσα σε έγγραφο, έξοδο και λογαριασμό.
+  categoryLabel: string;
+  sourceLabel: string;
+  afm: string | null;
 }
 const ORIGIN_LABEL: Record<Source, string | null> = { document: null, expense: 'Έξοδα', bill: 'Λογαριασμοί', inventory: 'Απογραφή' };
+
+// Οι τέσσερις πηγές χτίζουν το κοινό σχήμα ΧΩΡΙΣ τα πεδία των όψεων· τα
+// συμπληρώνει το enrich παρακάτω, μία φορά για όλες.
+type RawItem = Omit<Item, 'categoryLabel' | 'sourceLabel' | 'afm'>;
+const enrich = (i: RawItem): Item => ({
+  ...i,
+  categoryLabel: FOLDER_LABEL[i.folder],
+  sourceLabel: ORIGIN_LABEL[i.source] ?? 'Αρχείο',
+  afm: i.raw?.provider_afm ?? null,
+});
 
 /* ── Η ουρά σάρωσης → επιβεβαίωσης → καταχώρισης ──────────────────────────
    ΔΕΝ υπάρχει ποσοστό. Το προηγούμενο «pct = done ? 100 : uploading ? 70 : ocr
@@ -161,7 +184,6 @@ const fmtSize = (b: number | null) => {
   return `${(b / 1024 / 1024).toFixed(1)} MB`;
 };
 const yearOf = (d: string | null) => (d ? String(new Date(d).getFullYear()) : null);
-const monthLabel = (d: string) => new Date(d).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
 
 // Το `amount` του παραστατικού μπορεί να επιστραφεί ως string (numeric της PG) ή
 // να λείπει τελείως (βάση χωρίς το migration). null σημαίνει «δεν ξέρω», όχι 0.
@@ -261,10 +283,15 @@ export default function TabDocuments({
   const [loading, setLoading] = useState(true);
   const [colWarn, setColWarn] = useState(false); // αν λείπει το attachment_url στα expenses
 
-  // Πλοήγηση φακέλων
-  const [folderKey, setFolderKey] = useState<FolderKey | null>(null);
-  const [subKey, setSubKey] = useState<string | null>(null);
-  const [subMode, setSubMode] = useState<'provider' | 'date'>('provider');
+  // ── ΟΨΕΙΣ ΑΝΤΙ ΓΙΑ ΦΑΚΕΛΟΥΣ ──────────────────────────────────────────────
+  // Πριν εδώ ζούσε πλοήγηση τριών επιπέδων: folderKey → subKey → αρχεία. Κάθε
+  // χαρτί ήταν αναγκασμένο να διαλέξει ΕΝΑ σπίτι, ενώ ένα μισθωτήριο είναι
+  // ταυτόχρονα συμβόλαιο, φορολογικό και χαρτί του ενοικιαστή. Οι ερωτήσεις που
+  // κάνει πραγματικά ο ιδιοκτήτης («όλα του 2025 για τον λογιστή», «όλα της ΔΕΗ»)
+  // κόβουν κάθετα σε κάθε φάκελο, οπότε με δέντρο απαιτούσαν άνοιγμα-κλείσιμο σε
+  // δέκα σημεία. Τώρα: μία επίπεδη λίστα και ιδιότητες που συνδυάζονται.
+  // Η λογική ζει στο lib/archive/facets.ts, με τα δικά της τεστ.
+  const [sel, setSel] = useState<Selection>({});
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [lightbox, setLightbox] = useState<Item | null>(null);
@@ -303,7 +330,7 @@ export default function TabDocuments({
       signed?.forEach((s, i) => { if (s?.signedUrl) signedMap[paths[i]] = s.signedUrl; });
     }
 
-    const out: Item[] = [];
+    const out: RawItem[] = [];
 
     // 1) property_documents — πρωτογενή αρχεία & φωτογραφίες
     docs.forEach(r => {
@@ -374,13 +401,13 @@ export default function TabDocuments({
       });
     });
 
-    setItems(out);
+    setItems(out.map(enrich));
     setLoading(false);
   }, [propertyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
   // Καθάρισε την επιλογή όταν αλλάζει το πλαίσιο πλοήγησης (φάκελος/υποφάκελος/αναζήτηση).
-  useEffect(() => { setSelected(new Set()); }, [folderKey, subKey, query]);
+  useEffect(() => { setSelected(new Set()); }, [sel, query]);
   // Esc: κλείσιμο lightbox.
   useEffect(() => {
     if (!lightbox) return;
@@ -573,68 +600,28 @@ export default function TabDocuments({
   }, [items]);
 
   const q = query.trim().toLowerCase();
-  const searchResults = useMemo(() => {
-    if (!q) return null;
-    // Η αναζήτηση βλέπει ΚΑΙ το ποσό, το ΑΦΜ και την περίοδο — αλλιώς ο χρήστης
-    // δεν μπορούσε να βρει «τον λογαριασμό των 88,50» ούτε «όλα του ΑΦΜ …».
-    const num = q.replace(',', '.').replace(/[^\d.]/g, '');
-    const qDigits = q.replace(/\D/g, '');
-    return items.filter(i =>
-      (i.title || '').toLowerCase().includes(q) ||
-      (i.provider || '').toLowerCase().includes(q) ||
-      (i.category || '').toLowerCase().includes(q) ||
-      (i.note || '').toLowerCase().includes(q) ||
-      FOLDER_LABEL[i.folder].toLowerCase().includes(q) ||
-      (!!qDigits && (i.raw?.provider_afm || '').includes(qDigits)) ||
-      (!!num && i.value != null && (String(i.value).includes(num) || i.value.toFixed(2).includes(num)))
-    ).sort(byDateDesc);
-  }, [items, q]);
 
-  const folderItems = useMemo(() => folderKey ? items.filter(i => i.folder === folderKey).sort(byDateDesc) : [], [items, folderKey]);
-  const providersInFolder = useMemo(() => Array.from(new Set(folderItems.map(i => i.provider).filter(Boolean))) as string[], [folderItems]);
+  // Το ΕΝΑ φιλτραρισμένο σύνολο. Αναζήτηση και όψεις μαζί — δεν υπάρχει πια
+  // ξεχωριστή «κατάσταση αναζήτησης» που παρέκαμπτε τα φίλτρα.
+  const visible = useMemo(() => applyFilters(items, sel, query), [items, sel, query]);
 
-  // Υποφάκελοι (ανά πάροχο ή ανά έτος)
-  const subfolders = useMemo(() => {
-    const map = new Map<string, Item[]>();
-    folderItems.forEach(i => {
-      const key = subMode === 'provider'
-        ? (i.provider || 'Χωρίς πάροχο')
-        : (yearOf(i.date) || 'Χωρίς ημερομηνία');
-      (map.get(key) ?? map.set(key, []).get(key)!).push(i);
-    });
-    const entries = Array.from(map.entries());
-    // Ταξινόμηση: έτη φθίνουσα, πάροχοι αλφαβητικά, «χωρίς» στο τέλος
-    entries.sort((a, b) => {
-      const an = /Χωρίς/.test(a[0]) ? 1 : 0, bn = /Χωρίς/.test(b[0]) ? 1 : 0;
-      if (an !== bn) return an - bn;
-      if (subMode === 'date') return b[0].localeCompare(a[0]);
-      return a[0].localeCompare(b[0], 'el');
-    });
-    return entries;
-  }, [folderItems, subMode]);
+  // Ομαδοποίηση στον χρόνο: ο μόνος άξονας που ο ιδιοκτήτης έχει πάντα στο μυαλό
+  // του. Ξέρει περίπου πότε ήρθε ένα χαρτί, ακόμη κι όταν δεν θυμάται πώς το είπε.
+  // Το `now` παράγεται εδώ και όχι μέσα στη συνάρτηση, ώστε εκείνη να είναι καθαρή.
+  const groups = useMemo(() => groupByMonth(visible, new Date()), [visible]);
 
-  const subItems = useMemo(() => {
-    if (subKey == null) return [];
-    return folderItems.filter(i => {
-      const key = subMode === 'provider' ? (i.provider || 'Χωρίς πάροχο') : (yearOf(i.date) || 'Χωρίς ημερομηνία');
-      return key === subKey;
-    });
-  }, [folderItems, subKey, subMode]);
+  // Οι διαθέσιμες επιλογές κάθε όψης, με μετρητές. Κρύβουμε όψη που δεν προσφέρει
+  // πραγματική επιλογή: με μία μόνη τιμή, το φίλτρο δεν φιλτράρει τίποτα και θα
+  // ήταν κουμπί που δεν κάνει τίποτα.
+  const facets = useMemo(() => FACET_KEYS
+    .map(key => ({ key, options: facetOptions(items, key, sel, query) }))
+    .filter(f => f.options.length > 1 || f.options.some(o => o.selected)),
+    [items, sel, query]);
 
-  const openFolder = (k: FolderKey) => {
-    const hasProv = items.some(i => i.folder === k && i.provider);
-    setSubMode(hasProv ? 'provider' : 'date');
-    setFolderKey(k); setSubKey(null);
-  };
+  const visibleSum = useMemo(() => sumValues(visible), [visible]);
+  const filtering = !isSelectionEmpty(sel) || !!q;
 
   /* ── UI helpers ────────────────────────────────────────────────────────── */
-  const crumb = (label: string, onClick?: () => void, last = false) => (
-    <button onClick={onClick} disabled={!onClick || last}
-      style={{ background: 'none', border: 'none', padding: 0, cursor: onClick && !last ? 'pointer' : 'default',
-        fontSize: 13, fontWeight: last ? 700 : 500, fontFamily: T.font.sans,
-        color: last ? 'var(--text-primary)' : 'var(--accent)' }}>{label}</button>
-  );
-  const sep = <svg {...S} width={14} height={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}><path d="m9 18 6-6-6-6"/></svg>;
 
   const photoCount = items.filter(i => i.folder === 'photos').length;
   const docCount = items.length - photoCount;
@@ -785,13 +772,30 @@ export default function TabDocuments({
       )}
 
 
-      {/* ── Γραμμή εργαλείων: breadcrumb + αναζήτηση + προβολή ──────────── */}
+      {/* ── Γραμμή εργαλείων: σύνοψη + αναζήτηση + προβολή ──────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 220 }}>
-          {crumb('Αρχείο', () => { setFolderKey(null); setSubKey(null); setQuery(''); }, !folderKey && !q)}
-          {q && (<>{sep}{crumb('Αναζήτηση', undefined, true)}</>)}
-          {!q && folderKey && (<>{sep}{crumb(FOLDER_LABEL[folderKey], () => setSubKey(null), !subKey)}</>)}
-          {!q && folderKey && subKey != null && (<>{sep}{crumb(subKey, undefined, true)}</>)}
+        {/* Αντί για breadcrumb: τι βλέπεις ΤΩΡΑ. Το πλήθος και το άθροισμα
+            ακολουθούν τα φίλτρα, γιατί αυτή είναι η ερώτηση του λογιστή
+            («πόσα χαρτιά και πόσα ευρώ για το 2025;») — και η απάντηση πρέπει
+            να φαίνεται χωρίς να κατεβάσει τίποτα. */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: 1, minWidth: 220, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
+            {visible.length === items.length
+              ? `${items.length} ${items.length === 1 ? 'αρχείο' : 'αρχεία'}`
+              : `${visible.length} από ${items.length}`}
+          </span>
+          {visibleSum > 0 && (
+            <span style={{ fontSize: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
+              {money(visibleSum)}
+            </span>
+          )}
+          {filtering && (
+            <button onClick={() => { setSel(clearAll()); setQuery(''); }}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12,
+                fontFamily: T.font.sans, color: 'var(--accent)', textDecoration: 'underline' }}>
+              Καθαρισμός φίλτρων
+            </button>
+          )}
         </div>
 
         <div style={{ position: 'relative', width: 240, maxWidth: '100%' }}>
@@ -814,6 +818,46 @@ export default function TabDocuments({
         {embedded && headerActions}
       </div>
 
+      {/* ── Οψεις ────────────────────────────────────────────────────────────
+          Οι επιλογές είναι ΠΑΝΤΑ ορατές, όχι κρυμμένες πίσω από «Φίλτρα». Ο
+          μετρητής δίπλα σε καθεμία λέει πόσα θα μείνουν αν την πατήσεις, ώστε
+          κανείς να μη φτάνει ποτέ σε άδεια οθόνη κατά λάθος. Μια επιλογή με 0
+          εμφανίζεται μόνο όταν είναι ήδη πατημένη — τότε είναι η εξήγηση του
+          γιατί η λίστα άδειασε, μαζί με τον τρόπο να το αναιρέσεις. */}
+      {!loading && items.length > 0 && facets.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {facets.map(({ key, options }) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                fontFamily: T.font.sans, color: 'var(--text-tertiary)', width: 78, flexShrink: 0 }}>
+                {FACET_LABEL[key]}
+              </span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {options.map(o => (
+                  <button key={o.value} onClick={() => setSel(s => toggleValue(s, key, o.value))}
+                    aria-pressed={o.selected}
+                    title={o.selected ? `Αφαίρεση φίλτρου «${o.value}»` : `${o.count} ${o.count === 1 ? 'αρχείο' : 'αρχεία'}`}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, height: T.h.sm, padding: '0 12px',
+                      borderRadius: T.radius.pill, cursor: 'pointer', fontFamily: T.font.sans,
+                      fontSize: 12, fontWeight: o.selected ? 700 : 500,
+                      border: `1px solid ${o.selected ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                      background: o.selected ? 'var(--accent)' : 'var(--bg-elevated)',
+                      color: o.selected ? 'var(--on-tone)' : 'var(--text-secondary)',
+                      opacity: !o.selected && o.count === 0 ? 0.45 : 1,
+                      transition: `background .15s ${T.ease.standard}, border-color .15s ${T.ease.standard}`,
+                    }}>
+                    {o.value}
+                    <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10.5,
+                      opacity: o.selected ? 0.85 : 0.6 }}>{o.count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Μπάρα μαζικών ενεργειών (όταν υπάρχει επιλογή) ───────────────── */}
       {selected.size > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '10px 14px', marginBottom: 16, flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
@@ -828,60 +872,27 @@ export default function TabDocuments({
         </div>
       )}
 
-      {/* ── Περιεχόμενο ─────────────────────────────────────────────────── */}
-      {/* Σκελετός αντί για γυμνό spinner: το πλέγμα φακέλων έχει γνωστό σχήμα, οπότε
-          ο χώρος δεσμεύεται από την αρχή και το περιεχόμενο δεν «πέφτει» μέσα ξαφνικά. */}
+      {/* ── Περιεχόμενο ──────────────────────────────────────────────────────
+          ΕΝΑ επίπεδο. Πριν εδώ υπήρχαν τρία (φάκελοι → υποφάκελοι → αρχεία) και
+          μια τέταρτη, ξεχωριστή διαδρομή για την αναζήτηση που παρέκαμπτε τα
+          φίλτρα. Τώρα υπάρχει ένα φιλτραρισμένο σύνολο, ομαδοποιημένο στον
+          χρόνο, και οι όψεις από πάνω το στενεύουν. */}
       {loading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
           {[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} h={120} r={12}/>)}
         </div>
-      ) :
-        q ? (
-          <FileList items={searchResults ?? []} a={fileActions(true)}
-            empty={<EmptyState icon={<SearchX size={20}/>} title="Κανένα αποτέλεσμα" hint={`Δεν βρέθηκε αρχείο για «${query}».`}/>}/>
-        ) : !folderKey ? (
-          /* Επίπεδο 0: φάκελοι κατηγοριών */
-          items.length === 0 ? (
-            <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Δεν έχεις ακόμη κανένα χαρτί εδώ"
-              hint="Φωτογράφισε έναν λογαριασμό ΔΕΗ ή ΕΥΔΑΠ. Διαβάζουμε πάροχο, ΑΦΜ, ποσό, ημερομηνία και περίοδο, τον βάζουμε στον σωστό φάκελο και ενημερώνουμε Λογαριασμούς, Δαπάνες και Ημερολόγιο — χωρίς να πληκτρολογήσεις τίποτα. Έτσι το Αρχείο γίνεται η δική σου απόδειξη απέναντι στο προσυμπληρωμένο της ΑΑΔΕ."
-              action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Φωτογράφισε το πρώτο</Btn>}/></div>
-          ) : view === 'grid' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
-              {FOLDERS.filter(f => counts.count[f.key]).map(f => <FolderCardGrid key={f.key} k={f.key} label={f.label} count={counts.count[f.key]} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
-            </div>
-          ) : (
-            <div className="card" style={{ padding: 8 }}>
-              {FOLDERS.filter(f => counts.count[f.key]).map(f => <FolderRow key={f.key} k={f.key} label={f.label} count={counts.count[f.key]} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
-            </div>
-          )
-        ) : subKey == null ? (
-          /* Επίπεδο 1: υποφάκελοι (πάροχος ή έτος) */
-          <>
-            {providersInFolder.length > 0 && (
-              <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 3, width: 'fit-content', marginBottom: 14 }}>
-                {([['provider', 'Ανά πάροχο'], ['date', 'Ανά ημερομηνία']] as const).map(([k, l]) => (
-                  <button key={k} onClick={() => setSubMode(k)}
-                    style={{ padding: '6px 14px', borderRadius: T.radius.badge, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: subMode === k ? 700 : 500, fontFamily: T.font.sans, background: subMode === k ? 'var(--accent)' : 'transparent', color: subMode === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{l}</button>
-                ))}
-              </div>
-            )}
-            {folderItems.length === 0 ? (
-              <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title={`Ο φάκελος «${FOLDER_LABEL[folderKey]}» είναι κενός`} hint="Μόλις καταχωρηθεί σχετικό έγγραφο, θα εμφανιστεί εδώ αυτόματα."/></div>
-            ) : view === 'grid' ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
-                {subfolders.map(([name, its]) => <SubfolderCardGrid key={name} name={name} mode={subMode} count={its.length} value={isPro ? its.reduce((s, i) => s + (i.value || 0), 0) : undefined} onClick={() => setSubKey(name)}/>)}
-              </div>
-            ) : (
-              <div className="card" style={{ padding: 8 }}>
-                {subfolders.map(([name, its]) => <SubfolderRow key={name} name={name} mode={subMode} count={its.length} onClick={() => setSubKey(name)}/>)}
-              </div>
-            )}
-          </>
-        ) : (
-          /* Επίπεδο 2: αρχεία */
-          <FileList items={subItems.sort(byDateDesc)} groupByMonth={subMode === 'date'} a={fileActions(false)}
-            empty={<EmptyState icon={<FileText size={20}/>} title="Κανένα αρχείο εδώ" hint="Ανέβασε αρχείο ή άλλαξε υποφάκελο."/>}/>
-        )}
+      ) : items.length === 0 ? (
+        <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Δεν έχεις ακόμη κανένα χαρτί εδώ"
+          hint="Φωτογράφισε έναν λογαριασμό ΔΕΗ ή ΕΥΔΑΠ. Διαβάζουμε πάροχο, ΑΦΜ, ποσό, ημερομηνία και περίοδο, και το αρχειοθετούμε μόνο του."
+          action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Φωτογράφισε το πρώτο</Btn>}/></div>
+      ) : (
+        <FileList items={visible} groups={groups} a={fileActions(true)}
+          empty={<EmptyState icon={<SearchX size={20}/>}
+            title="Κανένα αρχείο με αυτά τα φίλτρα"
+            hint={q ? `Δεν βρέθηκε αρχείο για «${query}». Δοκίμασε πάροχο, ποσό ή ΑΦΜ.`
+                    : 'Τα φίλτρα που διάλεξες δεν αφήνουν κανένα αρχείο. Πάτησε ξανά ένα από τα ενεργά για να το αφαιρέσεις.'}
+            action={<Btn variant="secondary" onClick={() => { setSel(clearAll()); setQuery(''); }}>Καθαρισμός φίλτρων</Btn>}/>}/>
+      )}
 
       {/* ── Lightbox (εικόνα ή προεπισκόπηση PDF) ───────────────────────── */}
       {lightbox && lightbox.url && (
@@ -916,71 +927,10 @@ function byDateDesc(a: Item, b: Item) {
 }
 
 /* ── Κάρτα φακέλου (πλέγμα) ── εμφανίζονται μόνο φάκελοι με περιεχόμενο ──────── */
-function FolderCardGrid({ k, label, count, value, onClick }: { k: FolderKey; label: string; count: number; value?: number; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, border: '1px solid var(--border-subtle)', transition: `border-color 0.16s ${T.ease.standard}, transform 0.16s ${T.ease.standard}, box-shadow 0.16s ${T.ease.standard}` }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ width: 42, height: 42, borderRadius: T.radius.inner, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <FolderGlyph k={k}/>
-        </div>
-        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 9px' }}>{count}</span>
-      </div>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
-          {value != null && value > 0 ? fe(value) : `${count} ${count === 1 ? 'αρχείο' : 'αρχεία'}`}
-        </div>
-      </div>
-    </button>
-  );
-}
 
-function FolderRow({ k, label, count, value, onClick }: { k: FolderKey; label: string; count: number; value?: number; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: T.radius.inner, cursor: 'pointer' }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-      <span style={{ color: 'var(--accent)', display: 'flex' }}><FolderGlyph k={k} size={19}/></span>
-      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
-      {value != null && value > 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{fe(value)}</span>}
-      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-secondary)', minWidth: 26, textAlign: 'right' }}>{count}</span>
-      <svg {...S} width={15} height={15} style={{ color: 'var(--text-tertiary)' }}><path d="m9 18 6-6-6-6"/></svg>
-    </button>
-  );
-}
 
 /* ── Υποφάκελος (πάροχος ή έτος) ─────────────────────────────────────────── */
-function SubfolderCardGrid({ name, mode, count, value, onClick }: { name: string; mode: 'provider' | 'date'; count: number; value?: number; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, border: '1px solid var(--border-subtle)', transition: `border-color 0.16s ${T.ease.standard}, transform 0.16s ${T.ease.standard}, box-shadow 0.16s ${T.ease.standard}` }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ width: 42, height: 42, borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <SubfolderGlyph mode={mode}/>
-        </div>
-        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 9px' }}>{count}</span>
-      </div>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{value != null && value > 0 ? fe(value) : `${count} ${count === 1 ? 'αρχείο' : 'αρχεία'}`}</div>
-      </div>
-    </button>
-  );
-}
 
-function SubfolderRow({ name, mode, count, onClick }: { name: string; mode: 'provider' | 'date'; count: number; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: T.radius.inner, cursor: 'pointer' }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-      <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><SubfolderGlyph mode={mode} size={18}/></span>
-      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</span>
-      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>{count}</span>
-      <svg {...S} width={15} height={15} style={{ color: 'var(--text-tertiary)' }}><path d="m9 18 6-6-6-6"/></svg>
-    </button>
-  );
-}
 
 /* ── Λίστα αρχείων ───────────────────────────────────────────────────────── */
 interface FileActions {
@@ -991,18 +941,20 @@ interface FileActions {
 const isPdfItem = (i: Item) => /pdf/i.test(i.raw?.mime || '') || /\.pdf($|\?)/i.test(i.url || '');
 const canPreview = (i: Item) => !!i.url && (i.isImage || isPdfItem(i));
 
-function FileList({ items, groupByMonth, empty, a }: { items: Item[]; groupByMonth?: boolean; empty: React.ReactNode; a: FileActions }) {
+// Οι ομάδες ΔΕΝ υπολογίζονται εδώ. Έρχονται έτοιμες από το lib/archive/facets.ts,
+// που είναι καθαρή λογική με τεστ — πριν, η ομαδοποίηση ανά μήνα ήταν γραμμένη
+// και εδώ, με δικό της τρόπο ονομασίας. Δύο υλοποιήσεις του ίδιου πράγματος
+// σημαίνει ότι μια διόρθωση σε μία δεν φτάνει ποτέ στην άλλη.
+function FileList({ items, groups, empty, a }: { items: Item[]; groups?: TimeGroup<Item>[]; empty: React.ReactNode; a: FileActions }) {
   if (items.length === 0) return <div className="card">{empty}</div>;
-  if (groupByMonth) {
-    const groups = new Map<string, Item[]>();
-    items.forEach(i => { const key = i.date ? monthLabel(i.date) : 'Χωρίς ημερομηνία'; (groups.get(key) ?? groups.set(key, []).get(key)!).push(i); });
+  if (groups) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {Array.from(groups.entries()).map(([m, its]) => (
+        {groups.map(({ key: m, label, items: its }) => (
           <div key={m} className="card" style={{ margin: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'capitalize' as const }}>{m}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em' }}>{label}</span>
               <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
             </div>
             <FileInner items={its} a={a}/>
