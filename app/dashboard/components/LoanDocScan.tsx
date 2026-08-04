@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 import { T } from '@/components/Theme'
 import { rankLoans, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { fmtEur, fmtPct } from './TabLoanData'
+import { athensToday } from '@/lib/core/time';
 
 // ── Σάρωση εγγράφου/φωτογραφίας δανειολήπτη → εξαγωγή πεδίων → πρόταση δανείου ──
 // Ανεβάζεις φωτογραφία ή αρχείο με τις επιθυμίες ενός υποψήφιου δανειολήπτη (ή
@@ -141,7 +142,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
         rate: Number((best.effectiveRatePct ?? ex?.current_rate ?? 3.5).toFixed(2)),
         years: needs.years, rate_type: needs.ratePreference === 'variable' ? 'variable' : 'fixed',
         property_value: needs.propertyValue, loan_type: needs.purpose,
-        start_date: new Date().toISOString().split('T')[0], status: 'active',
+        start_date: athensToday(), status: 'active',
         notes: `Από σάρωση εγγράφου${ex?.summary ? ` · ${ex.summary}` : ''}`,
       })
     } finally { setSaving(false) }

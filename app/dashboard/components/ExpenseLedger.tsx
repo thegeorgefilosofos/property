@@ -40,6 +40,7 @@ import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib
 import { parseBulk, bulkLimit } from '@/lib/expenses/bulk';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
+import { athensToday, athensMonth } from '@/lib/core/time';
 
 interface Props {
   propertyId: string;
@@ -194,7 +195,7 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
   const months = useMemo(() => groupByMonth(filtered), [filtered]);
 
   // ── ΤΑ ΤΡΙΑ ΝΟΥΜΕΡΑ ──────────────────────────────────────────────────────
-  const thisMonth = new Date().toISOString().slice(0, 7);
+  const thisMonth = athensMonth();
   const monthTotal = useMemo(
     () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth))), [entries, thisMonth]);
   const unpaid = useMemo(() => entries.filter(e => !e.paid), [entries]);
@@ -210,7 +211,7 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
   const markPaid = async (e: LedgerEntry) => {
     setBusy(e.key);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = athensToday();
       if (e.billId) {
         // ΜΙΑ ΑΠΟΦΑΣΗ, ΚΟΙΝΗ ΜΕ ΤΗΝ ΟΘΟΝΗ ΛΟΓΑΡΙΑΣΜΩΝ (lib/expenses/pay.ts).
         // Εδώ η δαπάνη γραφόταν ΧΩΡΙΣ expense_group — και το isGroupDeductible
@@ -597,7 +598,7 @@ function BulkAdd({ propertyId, userId, plan, onDone }: {
 
 function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: string; onDone: () => void }) {
   const supabase = createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = athensToday();
   const [what, setWhat] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(today);

@@ -15,6 +15,7 @@ import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, o
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
+import { athensToday } from '@/lib/core/time';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -566,7 +567,7 @@ function printContactCard(contact: Contact, branding?: ReportBranding | null) {
 // ─── Quick Modals ─────────────────────────────────────────────────────────────
 function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { contact: Contact; propertyId: string; userId: string; onClose: () => void; onSaved: () => void }) {
   const [amount, setAmount] = useState(''); const [description, setDescription] = useState(contact.full_name); const [saving, setSaving] = useState(false)
-  const save = async () => { if (!amount) return; setSaving(true); await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, contact_id: contact.id, amount: parseFloat(amount), description, date: new Date().toISOString().split('T')[0], category: 'Αμοιβές Συνεργατών' }); setSaving(false); onSaved(); onClose() }
+  const save = async () => { if (!amount) return; setSaving(true); await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, contact_id: contact.id, amount: parseFloat(amount), description, date: athensToday(), category: 'Αμοιβές Συνεργατών' }); setSaving(false); onSaved(); onClose() }
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
@@ -729,7 +730,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   ws3['!cols'] = [{ wch: 26 }, { wch: 24 }, { wch: 16 }, { wch: 28 }, { wch: 12 }, { wch: 10 }, { wch: 6 }]
   XLSX.utils.book_append_sheet(wb, ws3, 'Κατάλογος')
 
-  XLSX.writeFile(wb, `επαφες_${new Date().toISOString().split('T')[0]}.xlsx`)
+  XLSX.writeFile(wb, `επαφες_${athensToday()}.xlsx`)
 }
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
@@ -1612,7 +1613,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{processed.length} επαφές</span>
           <ExportButton disabled={processed.length === 0} onClick={() => downloadCsv(
-            `epafes_${new Date().toISOString().slice(0, 10)}`,
+            `epafes_${athensToday()}`,
             ['Όνομα', 'Ρόλος', 'Κατηγορία', 'Τηλέφωνο', 'Email', 'Σημειώσεις'],
             processed.map(c => [
               c.full_name, ROLE_META[c.role]?.label || c.role, ROLE_META[c.role]?.groupLabel || '',

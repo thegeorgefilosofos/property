@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { isValidAfm } from '../core/greek';
+import { athensToday } from '../core/time'
 
 // ── Κανόνες που αλλάζουν με τον νόμο — ΜΙΑ θέση για ενημέρωση ───────────────
 // Αν αλλάξει η νομοθεσία, αλλάζει ΜΟΝΟ αυτό το μπλοκ.
@@ -143,7 +144,10 @@ function buildDeadline(leaseStart: string | null | undefined, today: string): De
 
 // ── Η μηχανή ────────────────────────────────────────────────────────────────
 export function buildLeaseDeclaration(input: LeaseDeclarationInput): LeaseDeclaration {
-  const today = input.today && isIsoDate(input.today) ? input.today : new Date().toISOString().slice(0, 10);
+  // Το «σήμερα» ΠΡΕΠΕΙ να είναι ελληνικό: η προθεσμία δήλωσης μισθωτηρίου έχει
+  // νομικές συνέπειες, και το toISOString() έδινε τη χθεσινή μέρα για δύο ως
+  // τρεις ώρες κάθε νύχτα (server σε UTC, Ελλάδα σε UTC+2/+3).
+  const today = input.today && isIsoDate(input.today) ? input.today : athensToday();
   const o = input.owner ?? {}, p = input.property ?? {}, t = input.tenant ?? {}, l = input.lease ?? {};
   const F: DeclField[] = [];
 

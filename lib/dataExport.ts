@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { athensToday } from './core/time';
 
 // GDPR φορητότητα δεδομένων (Άρθρο 20): ο συνδεδεμένος χρήστης κατεβάζει ΟΛΑ τα
 // δικά του δεδομένα σε ένα ενιαίο, μηχαναγνώσιμο αρχείο JSON. Καθαρή λογική
@@ -75,7 +76,7 @@ function triggerDownload(payload: unknown): void {
   const json = JSON.stringify(payload, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const stamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const stamp = athensToday(); // YYYY-MM-DD
   const a = document.createElement('a');
   a.href = url;
   a.download = `property_os_data_${stamp}.json`;

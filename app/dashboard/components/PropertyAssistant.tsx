@@ -64,6 +64,7 @@ type ClientLite = { id: string; name: string; phone: string; afm: string; vip: b
 type ContactLite = { name: string; role: string; phone: string; email: string };
 
 import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from '@/lib/assistant/openers';
+import { athensToday, athensNowLabel } from '@/lib/core/time';
 
 const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
 const navLabel = (id: string) => NAV_MAP.find(n => n.id === id)?.label || id;
@@ -191,7 +192,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
       supabase.from('property_settings').select('insurance_company,insurance_expiry,insurance_amount').eq('property_id', propertyId).maybeSingle(),
-      supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date').limit(10),
+      supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', athensToday()).order('event_date').limit(10),
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
       supabase.from('loans').select('bank,loan_type,amount,rate,rate_type,years,start_date,status').eq('property_id', propertyId).eq('user_id', userId),
@@ -554,7 +555,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Καταχώρηση δαπάνης με μία φράση: η κατηγορία/ομάδα προκύπτει αυτόματα.
   const registerExpense = async (description: string, amount: number, date?: string) => {
     const { group, category, deductible } = classifyExpense(description);
-    const today = new Date().toISOString().split('T')[0];
+    const today = athensToday();
     // Έγκυρη ISO ημερομηνία (καθορίζει τον ΜΗΝΑ στον προϋπολογισμό)· αλλιώς σήμερα.
     const useDate = date && !isNaN(new Date(date).getTime()) ? date : today;
     const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
@@ -603,7 +604,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       return;
     }
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = athensToday();
       if (billHits.length === 1) {
         const b = billHits[0];
         await must(supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', b.id));
@@ -714,7 +715,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const priority = a.priority || 'normal';
     const due = a.due_date || null;
     const est = a.est_cost || 0;
-    const today = new Date().toISOString().split('T')[0];
+    const today = athensToday();
     try {
       const ins = await must(supabase.from('checklist_items').insert({
         property_id: propertyId, user_id: userId, description: d,
@@ -875,7 +876,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         contactsPro: techStr || undefined,
         pricing: pricingStr || undefined,
         memories: prefs.memory ? memories.map(m => m.text) : undefined,
-        today: new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+        // ΩΡΑ ΕΛΛΑΔΑΣ, ΟΧΙ ΤΗΣ ΣΥΣΚΕΥΗΣ. Το toLocaleDateString χωρίς timeZone
+        // ακολουθεί το ρολόι του browser: ο ιδιοκτήτης που ταξιδεύει θα έπαιρνε
+        // λάθος μέρα, και μαζί λάθος απάντηση σε κάθε «προλαβαίνω;».
+        //
+        // Δίνουμε ΚΑΙ την ώρα: χωρίς αυτήν ο βοηθός δεν μπορεί να ξεχωρίσει το
+        // «σήμερα το πρωί» από το «απόψε», ούτε να πει αν προλαβαίνεις να
+        // πληρώσεις κάτι που λήγει σήμερα. Και το ISO δίπλα, ώστε να μη χρειάζεται
+        // να μεταφράσει ελληνικό μήνα σε αριθμό όταν υπολογίζει προθεσμίες.
+        today: `${athensNowLabel()} (ISO: ${athensToday()}, ώρα Ελλάδας)`,
       });
       const res = await fetch('/api/anthropic', {
         method: 'POST',

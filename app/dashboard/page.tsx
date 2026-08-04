@@ -57,6 +57,7 @@ import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
 import BillingNudge from './components/BillingNudge';
+import { athensToday } from '@/lib/core/time';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -478,7 +479,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const debtLtv = propValue>0 && totalDebt>0 ? (totalDebt/propValue)*100 : 0;
   // Έσοδα φιλοξενίας από το Πελατολόγιο (διαμονές συνδεδεμένες σε αυτό το ακίνητο): η
   // Επισκόπηση «ξέρει» πλέον τα πραγματικά έσοδα βραχυχρόνιας, όχι μόνο τον στόχο ενοικίου.
-  const todayIso = new Date().toISOString().slice(0,10);
+  const todayIso = athensToday();
   const hostingYTD = hostStays.filter(s=>((s.check_in||s.check_out||'').slice(0,4))===String(year)).reduce((sum,s)=>sum+stayTotal(s),0);
   const hostingNights = hostStays.filter(s=>((s.check_in||s.check_out||'').slice(0,4))===String(year)).reduce((sum,s)=>sum+(s.nights ?? 0),0);
   const nextArrival = hostStays.map(s=>s.check_in).filter((d): d is string => !!d && d>=todayIso).sort()[0] || null;

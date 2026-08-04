@@ -42,6 +42,7 @@ import {
 } from '@/lib/pricing/dynamicPricing';
 import { guestPriceBreakdown } from '@/lib/tax/shortTermTax';
 import { platformFeeRate, type StayAmountLike } from '@/lib/clients/stayAmounts';
+import { athensToday } from '@/lib/core/time';
 
 interface Props {
   propertyId: string; userId: string; propertyName?: string; propertySqm?: number;
@@ -55,7 +56,7 @@ type PriceStay = PricingStay & StayAmountLike;
 
 const WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
 const MONTH_NAMES = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => athensToday();
 const addDaysIso = (d: string, n: number) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
 export default function TabPricing({ propertyId, userId, propertyName, propertySqm }: Props) {

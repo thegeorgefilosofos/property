@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
+import { athensToday } from '@/lib/core/time';
 
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
 // Ύψος 40, γωνία 4, 1px border + accent focus-ring
@@ -537,7 +538,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
 
   const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split('T')[0];
+  const today = athensToday();
 
   const pick = (day: number) => {
     const d = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;

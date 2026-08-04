@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Check, ArrowRight, Landmark, SearchX } from 'lucide-react'
 import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
 import { feAuto, T, EmptyState, Spinner } from '@/components/Theme'
+import { athensToday } from '@/lib/core/time';
 
 const MONTHS = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
 const hashOf = (t:BankTxn)=>`${t.date}|${t.amount}|${t.description}`.slice(0,200)
@@ -50,7 +51,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       }}
       const toAdd = expenses.filter(e=>e.confirm)
       if(toAdd.length){
-        const { error } = await supabase.from('expenses').insert(toAdd.map(e=>({ property_id:propertyId, user_id:userId, amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||new Date().toISOString().slice(0,10), category:'Τραπεζική κίνηση' })))
+        const { error } = await supabase.from('expenses').insert(toAdd.map(e=>({ property_id:propertyId, user_id:userId, amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||athensToday(), category:'Τραπεζική κίνηση' })))
         if(error) throw error
         for(const e of toAdd) rows.push({ user_id:userId, property_id:propertyId, txn_date:e.txn.date||null, description:e.txn.description, amount:e.txn.amount, dedup_hash:hashOf(e.txn) })
       }

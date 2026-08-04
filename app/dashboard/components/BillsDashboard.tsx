@@ -15,6 +15,7 @@ import { planBillPayment } from '@/lib/expenses/pay';
 import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@/lib/expenses/sharing';
+import { athensToday } from '@/lib/core/time';
 
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
@@ -294,7 +295,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   ws5['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, ws5, 'Ιστορικό');
 
-  const filename = `λογαριασμοι_${propertyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  const filename = `λογαριασμοι_${propertyName.replace(/\s+/g, '_')}_${athensToday()}.xlsx`;
   XLSX.writeFile(wb, filename);
 }
 
@@ -465,7 +466,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         try {
           await supabase.from('expenses').insert({
             property_id: propertyId, user_id: userId, amount: parseFloat(form.amount),
-            description: form.name, date: new Date().toISOString().split('T')[0],
+            description: form.name, date: athensToday(),
             category: cat(form.category).label, expense_group: 'bills',
             paid_by: form.paid_by, share_percent: sharePercent, share_note: shareNote,
           });

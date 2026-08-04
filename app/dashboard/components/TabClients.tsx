@@ -65,6 +65,7 @@ import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink }
 import { revenueByChannel, revenueByMonth, yearOccupancy, totals } from '@/lib/clients/reports';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
+import { athensToday } from '@/lib/core/time';
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
 // Τα πεδία CRM (rating/tags/do_not_rent/vip/address/id_number/nationality/source)
@@ -109,7 +110,7 @@ const fmtBytes = (n?: number | null) => {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => athensToday();
 
 // Deep-links μηνυμάτων. Το normalizePhone αφαιρεί +30/0030· για 10ψήφιο κινητό
 // προσθέτουμε ξανά τον κωδικό χώρας 30 ώστε τα wa.me/viber links να λειτουργούν.

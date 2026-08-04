@@ -10,6 +10,7 @@ import { Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, EmptyState, Skeleton } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
+import { athensToday } from '@/lib/core/time';
 
 interface Req { id: string; title: string; description: string | null; contact: string | null; status: string; created_at: string; photos?: string[] | null; }
 
@@ -78,7 +79,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   // Cross-tab: αίτημα βλάβης → Ημερολόγιο (προγραμματισμός επισκευής)
   const toCalendar = async (r: Req) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = athensToday();
     const { error } = await supabase.from('calendar_events').insert({
       property_id: propertyId, user_id: userId,
       title: `Επισκευή: ${r.title}`, category: 'maintenance',
@@ -99,7 +100,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
       property_id: propertyId, user_id: userId,
       description: `Επισκευή: ${r.title}`, amount: amt,
       category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance',
-      date: new Date().toISOString().split('T')[0], paid_by: 'owner', paid: true,
+      date: athensToday(), paid_by: 'owner', paid: true,
       notes: r.description ? `Από αίτημα ενοικιαστή, ${r.description}` : 'Από αίτημα ενοικιαστή',
     });
     if (error) { notifyError('Σφάλμα καταχώρησης δαπάνης'); return; }
