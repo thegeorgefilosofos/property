@@ -13,6 +13,7 @@
     "money": "node scripts/money-reads.mjs",
     "module-init": "node scripts/check-module-init.mjs",
     "color:ratchet": "node scripts/color-ratchet.mjs",
+    "tokens": "node scripts/guard-tokens.mjs",
     "single-source": "node scripts/guard-single-source.mjs",
     "writes": "node scripts/unchecked-writes.mjs",
     "test": "node scripts/test.mjs"

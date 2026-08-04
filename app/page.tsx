@@ -624,7 +624,7 @@ export default async function Landing() {
               hero με τρίγραμμη παράγραφο διαβάζεται ως κείμενο· με δίγραμμη
               διαβάζεται ως δήλωση. Το textWrap: balance μοιράζει τις δύο γραμμές
               σε ίσο μήκος, ώστε να μη μένει η δεύτερη με τρεις λέξεις. */}
-          <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 1.75vw, 18.5px)', color: 'var(--text-hero)', lineHeight: 1.6, maxWidth: 760, margin: '0 auto 28px', textWrap: 'balance' }}>
+          <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 1.75vw, 18.5px)', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 760, margin: '0 auto 28px', textWrap: 'balance' }}>
             Ενοίκια, λογαριασμοί, δάνεια και φόροι σε ένα σημείο. Ρωτάς στα ελληνικά
             και ο βοηθός απαντά με{' '}
             <em style={{ fontStyle: 'normal', color: 'var(--text-primary)', fontWeight: 600 }}>τα δικά σου</em> νούμερα.

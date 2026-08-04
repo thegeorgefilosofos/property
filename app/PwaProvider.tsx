@@ -95,7 +95,7 @@ export default function PwaProvider() {
 
   return (
     <div role="dialog" aria-label="Εγκατάσταση εφαρμογής"
-      style={{ position: 'fixed', left: 16, right: 16, bottom: 'calc(16px + env(safe-area-inset-bottom))', zIndex: 900, maxWidth: 420, margin: '0 auto', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, boxShadow: 'var(--shadow-xl)', padding: 16, display: 'flex', gap: 13, alignItems: 'flex-start', fontFamily: 'var(--font-sans, system-ui)' }}>
+      style={{ position: 'fixed', left: 16, right: 16, bottom: 'calc(16px + env(safe-area-inset-bottom))', zIndex: 900, maxWidth: 420, margin: '0 auto', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, boxShadow: 'var(--shadow-xl)', padding: 16, display: 'flex', gap: 13, alignItems: 'flex-start', fontFamily: T.font.sans }}>
       <img src="/icons/icon-192.png" alt="" width={40} height={40} style={{ borderRadius: 10, flexShrink: 0 }} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>Βάλ’ το στην αρχική οθόνη</div>

@@ -90,7 +90,14 @@ body {
   --accent:        #1a6ae8;   /* γαλάζιο (light) — AA (≥4.5:1) και ως κείμενο-σύνδεσμος πάνω στο off-white --bg-base */
   --accent-dim:    color-mix(in srgb, var(--accent) 12%, transparent);
   --accent-hover:  #1765cc;
-  --accent-text:   #ffffff;
+
+  /* Το μελάνι που κάθεται πάνω σε ΚΑΘΕ κορεσμένο γέμισμα — accent, positive,
+     negative, warning, info. Ένας κανόνας, μία τιμή ανά θέμα: στο light τα
+     γεμίσματα είναι σκούρα (θέλουν λευκό), στο dark γίνονται ανοιχτά παστέλ
+     (θέλουν σκούρο). Γι' αυτό ΠΟΤΕ δεν γράφουμε '#fff' πάνω σε γέμισμα.
+     Ελεγμένο: χειρότερη αντίθεση 4.86:1 (light) / 7.60:1 (dark) — AA παντού. */
+  --on-tone:       #ffffff;
+  --accent-text:   var(--on-tone);
 
   /* Εκλεπτυσμένη, muted σημασιολογική παλέτα (deep emerald / bronze-amber /
      brick-rose / indigo) — premium & σοβαρή, όχι «traffic-light». Dim
@@ -177,7 +184,9 @@ body {
   --accent:        #8ab4f8;   /* γαλάζιο (dark) */
   --accent-dim:    color-mix(in srgb, var(--accent) 16%, transparent);
   --accent-hover:  #aecbfa;
-  --accent-text:   #0a2647;
+  /* Βλ. σχόλιο στο light: ένα μελάνι για κάθε κορεσμένο γέμισμα. */
+  --on-tone:       #0c1116;
+  --accent-text:   var(--on-tone);
 
   /* Muted premium παλέτα (dark): πιο απαλά, όχι φωτεινά «traffic-light». */
   --positive:      #52c79e;   /* soft jade */
@@ -656,7 +665,7 @@ body {
   border-radius: 8px;
   transition: background 0.12s ease, color 0.12s ease;
 }
-.sidebar-section-header:hover { background: var(--surface-hover, rgba(128,128,128,0.08)); color: var(--text-secondary); }
+.sidebar-section-header:hover { background: var(--bg-hover); color: var(--text-secondary); }
 .sidebar-section-header.open { color: var(--text-secondary); }
 .sidebar-section-chevron { margin-left: auto; font-size: 10px; opacity: 0.7; }
 .sidebar-section-header.open .sidebar-section-chevron { opacity: 1; }
@@ -945,7 +954,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     --accent:        #8ab4f8;
     --accent-dim:    color-mix(in srgb, var(--accent) 16%, transparent);
     --accent-hover:  #aecbfa;
-    --accent-text:   #0a2647;
+    --on-tone:       #0c1116;
+    --accent-text:   var(--on-tone);
     --positive:      #52c79e;
     --positive-dim:  color-mix(in srgb, var(--positive) 15%, transparent);
     --negative:      #e58c84;
