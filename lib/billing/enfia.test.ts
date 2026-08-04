@@ -1,5 +1,5 @@
 // Τεστ για την εκτίμηση ΕΝΦΙΑ (lib/billing/enfia.ts) — τιμές ΦΕΚ Α΄65/2022.
-import { estimateENFIA, estimateENFIAFromFacts, enfiaExtraPropertyTax, zoneKeyFromPricePerSqm, ENFIA_ZONE_TAX } from './enfia'
+import { estimateENFIA, estimateENFIAFromFacts, enfiaExtraPropertyTax, zoneKeyFromPricePerSqm, ENFIA_ZONE_TAX, enfiaInUse } from './enfia'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -102,6 +102,41 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('auto: χωρίς δεδομένα → null', estimateENFIAFromFacts({ value: 0, sqm: 90 }) === null)
   const big = estimateENFIAFromFacts({ value: 700000, sqm: 120 })!
   ok('auto: προσαύξηση όταν αξία >500k', big.supplementary > 0)
+}
+
+// ═══ ΠΟΙΟ ΝΟΥΜΕΡΟ ΙΣΧΥΕΙ — ΤΟ ΔΗΛΩΜΕΝΟ ΝΙΚΑ ΤΗΝ ΕΚΤΙΜΗΣΗ ══════════════════
+// Το σφάλμα: οι Υπηρεσίες προτιμούσαν την εκτίμηση και έσβηναν το ποσό που είχε
+// αντιγράψει ο ιδιοκτήτης από το εκκαθαριστικό· ο Προϋπολογισμός διάβαζε μόνο το
+// χειροκίνητο και έδειχνε 0 όταν είχε χρησιμοποιηθεί ο υπολογιστής.
+{
+  const est = estimateENFIA({ sqm: 100, zone: '1501_2500', floor: 'second', age: '10_20', ownership: 100 })!
+  ok('η εκτίμηση υπάρχει, για να έχει νόημα η σύγκριση', est.annual > 0)
+
+  const declared = enfiaInUse('520', '', est.annual)
+  ok('το δηλωμένο νικά την εκτίμηση', declared.annual === 520 && declared.source === 'declared')
+  ok('το μηνιαίο βγαίνει από το δηλωμένο', near(declared.monthly, 520 / 12, 0.01))
+
+  const onlyEst = enfiaInUse('', '', est.annual)
+  ok('χωρίς δηλωμένο, ισχύει η εκτίμηση', onlyEst.annual === est.annual && onlyEst.source === 'estimate')
+
+  ok('κενά και στα δύο → μηδέν, με πηγή «καμία»',
+     enfiaInUse('', '', null).annual === 0 && enfiaInUse('', '', null).source === 'none')
+  ok('χωρίς εκτίμηση αλλά με δηλωμένο → δηλωμένο',
+     enfiaInUse('300', '', null).source === 'declared')
+
+  // Το μηνιαίο πεδίο είναι εναλλακτική είσοδος, όχι δεύτερος άξονας.
+  ok('μόνο μηνιαίο → ανάγεται σε ετήσιο', enfiaInUse('', '40', est.annual).annual === 480)
+  ok('το ετήσιο υπερισχύει του μηνιαίου', enfiaInUse('600', '40', est.annual).annual === 600)
+
+  // Τιμές που αφήνει πίσω της μια φόρμα δεν είναι δηλώσεις του χρήστη.
+  ok('το μηδέν δεν μετρά ως δήλωση', enfiaInUse('0', '', est.annual).source === 'estimate')
+  ok('το κενό κείμενο ούτε', enfiaInUse('   ', '', est.annual).source === 'estimate')
+  ok('το αρνητικό ούτε', enfiaInUse('-5', '', est.annual).source === 'estimate')
+  ok('τα σκουπίδια ούτε', enfiaInUse('άσχετο', '', est.annual).source === 'estimate')
+  // Ελληνικό δεκαδικό κόμμα: «520,50» δεν είναι NaN.
+  ok('δέχεται δεκαδικό κόμμα', enfiaInUse('520,50', '', est.annual).annual === 520.5)
+  ok('εκτίμηση με μηδέν ετήσιο δεν επιλέγεται',
+     enfiaInUse('', '', 0).source === 'none')
 }
 
 console.log(`enfia.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
