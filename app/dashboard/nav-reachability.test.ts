@@ -82,5 +82,21 @@ ok('η κάτω μπάρα παράγεται από τις CORE_TABS', bottom.i
 ok('η κάτω μπάρα δεν ξαναγράφει ετικέτες με το χέρι',
    !/label:\s*'(?!Μενού)[^']+'/.test(bottom.replace(/label:\s*'Μενού'/g, '')))
 
+// ── 5. Η μπάρα δεν «δείχνει τα πάντα» όσο φορτώνει ───────────────────────
+// Το showAllTabsPref έγραφε `navShowAll || !navPrefsLoaded`. Επειδή το
+// navPrefsLoaded ξεκινά false, ΚΑΘΕ φόρτωση περνούσε από κατάσταση «δείξε τα
+// πάντα»: δεκαεπτά καρτέλες, οι μισές αχνές και άσχετες με το ακίνητο, που μετά
+// μάζευαν σε έξι. Το fail-open για ΑΠΟΤΥΧΙΑ ανάγνωσης είναι σωστό και μένει —
+// αλλά πρέπει να ξεχωρίζει από το «φορτώνει ακόμη».
+{
+  const pref = /const showAllTabsPref\s*=\s*([^\n;]+)/.exec(src)
+  ok('το showAllTabsPref υπάρχει', !!pref)
+  const expr = pref ? pref[1] : ''
+  ok('δεν εξαρτάται από το «δεν φορτώθηκε ακόμη»', !/!\s*navPrefsLoaded/.test(expr))
+  ok('κρατά το fail-open για πραγματική αποτυχία', /navPrefsFailed/.test(expr))
+  ok('σέβεται τη ρητή επιλογή του χρήστη', /navShowAll/.test(expr))
+  ok('η αποτυχία ανάγνωσης σηκώνει τη σημαία', /setNavPrefsFailed\(true\)/.test(src))
+}
+
 console.log(`dashboard/nav-reachability.test.ts: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

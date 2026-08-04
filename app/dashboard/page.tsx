@@ -939,6 +939,14 @@ export default function Dashboard() {
   }, []);
   const [navShowAll, setNavShowAll] = useState(false);
   const [navPrefsLoaded, setNavPrefsLoaded] = useState(false);
+  // ΤΡΙΤΗ ΚΑΤΑΣΤΑΣΗ, ΞΕΧΩΡΙΣΤΗ ΑΠΟ ΤΟ «ΔΕΝ ΦΟΡΤΩΘΗΚΕ ΑΚΟΜΗ».
+  // Το fail-open παρακάτω είναι σωστό για ΑΠΟΤΥΧΙΑ ανάγνωσης, αλλά το
+  // navPrefsLoaded=false σήμαινε ταυτόχρονα «φορτώνει» ΚΑΙ «απέτυχε». Επειδή
+  // ξεκινά false, κάθε φόρτωση της σελίδας περνούσε από κατάσταση «δείξε τα
+  // πάντα»: η πλαϊνή μπάρα άνοιγε με δεκαεπτά καρτέλες, οι μισές αχνές και
+  // άσχετες με το ακίνητο, και μετά μάζευε σε έξι. Ένα μενού που αναδιπλώνεται
+  // μπροστά στα μάτια σου δεν διαβάζεται ως «φόρτωσε» — διαβάζεται ως χαλασμένο.
+  const [navPrefsFailed, setNavPrefsFailed] = useState(false);
   const [navSignals, setNavSignals] = useState<DisclosureSignals>({});
   const [loading, setLoading] = useState(true);
   /** Η ανάγνωση ακινήτων απέτυχε — ΔΙΑΦΟΡΕΤΙΚΟ από «δεν έχει ακίνητα». */
@@ -1024,7 +1032,11 @@ export default function Dashboard() {
   // «Δείξε μου τα πάντα»: ρητή επιλογή του χρήστη. Fail-open: αν οι προτιμήσεις δεν
   // διαβάστηκαν (σφάλμα δικτύου), δείχνουμε τα πάντα. Καλύτερα ένα γεμάτο μενού παρά
   // να «εξαφανιστούν» καρτέλες επειδή έπεσε ένα ερώτημα.
-  const showAllTabsPref = navShowAll || !navPrefsLoaded;
+  // «Δείξε μου τα πάντα» ΜΟΝΟ όταν το ζήτησε ο χρήστης, ή όταν η ανάγνωση των
+  // προτιμήσεων ΑΠΕΤΥΧΕ (fail-open: καλύτερα γεμάτο μενού παρά να «εξαφανιστούν»
+  // καρτέλες επειδή έπεσε ένα ερώτημα). Όσο ΦΟΡΤΩΝΕΙ, δείχνουμε μόνο τις βασικές
+  // — είναι εξ ορισμού σχετικές με κάθε ακίνητο, οπότε δεν μπορεί να είναι λάθος.
+  const showAllTabsPref = navShowAll || navPrefsFailed;
 
   // ── Σταδιακή αποκάλυψη καρτελών ──────────────────────────────────────────
   const disclosure = useMemo(() => ({
@@ -1142,8 +1154,9 @@ export default function Dashboard() {
         // fail-open. Μόνο όταν το read πετύχει δηλώνουμε τις προτιμήσεις φορτωμένες.
         const rec = ob as { revealed_tabs?: unknown; nav_show_all?: boolean } | null;
         if (obErr) {
-          setNavPrefsLoaded(false);   // → showAll: φαίνονται ΟΛΕΣ οι καρτέλες
+          setNavPrefsFailed(true);    // → fail-open: φαίνονται ΟΛΕΣ οι καρτέλες
         } else {
+          setNavPrefsFailed(false);
           const loadedTabs = sanitizeRevealed(rec?.revealed_tabs, NAV_ITEMS.map(i => i.id));
           revealedRef.current = loadedTabs;
           setRevealedTabs(loadedTabs);
