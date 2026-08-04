@@ -6,6 +6,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://propertyos.gr'
   return [
     { url: base, changeFrequency: 'weekly', priority: 1 },
+    // Δωρεάν εργαλείο χωρίς εγγραφή. Υψηλή προτεραιότητα επειδή είναι η μόνη
+    // σελίδα που απαντά σε ερώτηση που ο ιδιοκτήτης ψάχνει ΠΡΙΝ μας ξέρει.
+    { url: `${base}/ypologismos-forou-enoikion`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${base}/signup`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${base}/login`, changeFrequency: 'yearly', priority: 0.5 },
     { url: `${base}/trust`, changeFrequency: 'monthly', priority: 0.6 },
