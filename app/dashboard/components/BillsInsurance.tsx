@@ -347,32 +347,27 @@ export function insuranceSwitchFinding(
   };
 }
 
-// ─── ΑΑΔΕ API Integration (Ready for when API launches) ──────────────────────
-// Structure ready, replace fetchENFIAFromAADE with real call when API opens
-interface AADEEnfiaData {
-  year: number;
-  totalAmount: number;
-  installments: number;
-  installmentAmount: number;
-  propertyDetails: { sqm: number; zone: string; floor: string; ownership: number }[];
-  reductions: string[];
-  source: 'api' | 'manual';
-}
-
-// When ΑΑΔΕ API launches: replace this with actual API call
-// Expected endpoint: GET https://api.aade.gr/v1/taxpayer/enfia?year=2026
-// Auth: OAuth2 with TAXISnet credentials (user authorizes via popup)
-async function fetchENFIAFromAADE(_propertyId: string, _taxisnetToken?: string): Promise<AADEEnfiaData | null> {
-  // TODO: Replace with real ΑΑΔΕ API call when available:
-  // const response = await fetch('https://api.aade.gr/v1/taxpayer/enfia?year=2026', {
-  //   headers: { 'Authorization': `Bearer ${taxisnetToken}` }
-  // });
-  // const data = await response.json();
-  // return { ...data, source: 'api' };
-
-  // For now: return null (triggers manual entry UI)
-  return null;
-}
+// ΑΦΑΙΡΕΘΗΚΕ: «Σύνδεση με TAXISnet».
+//
+// Υπήρχε εδώ ένα πλαίσιο που υποσχόταν «αυτόματη λήψη ΕΝΦΙΑ εκκαθαριστικού» και
+// ένα κουμπί «Σύνδεση με TAXISnet →». Τίποτα από τα δύο δεν ίσχυε:
+//
+//   • Το `aadeConnected` ξεκινούσε false και η ΜΟΝΗ γραμμή που το άγγιζε ήταν
+//     `setAadeConnected(false)`. Δεν μπορούσε ποτέ να γίνει true.
+//   • Το `aadeData` δεν γράφτηκε ποτέ· η `fetchENFIAFromAADE` δεν κλήθηκε ποτέ
+//     και επέστρεφε `null` ούτως ή άλλως.
+//   • Το κουμπί ήταν `<a href target="_blank">` ΚΑΙ έκανε `window.open` στην ίδια
+//     διεύθυνση: κάθε κλικ άνοιγε δύο καρτέλες στην ίδια δημόσια σελίδα της ΑΑΔΕ.
+//   • Δεν ζητούσε ποτέ κωδικούς, άρα ούτε καν παραπλανητικά δεν «συνδεόταν».
+//
+// Δηλαδή: ο χρήστης διάβαζε ότι δεν θα χρειαστεί χειροκίνητη καταχώρηση, πατούσε,
+// έπαιρνε δύο καρτέλες με ενημερωτικό κείμενο, και μετά καταχωρούσε χειροκίνητα.
+//
+// Δεν χάνεται λειτουργία: ο ΕΝΦΙΑ καταχωρείται στην καρτέλα Υπηρεσίες, που έχει
+// ήδη υπολογιστή, πεδίο «ΕΝΦΙΑ/έτος» και σύνδεσμο προς Ε9/myAADE. Το πλαίσιο ήταν
+// αντίγραφο εκείνου — σε λάθος καρτέλα (Ασφάλεια) — με μια υπόσχεση από πάνω.
+//
+// Όταν η ΑΑΔΕ ανοίξει πραγματικό API, μπαίνει τότε, με πραγματική ροή εξουσιοδότησης.
 
 // ─── Coverage taxonomy, δυναμική ανάλυση καλύψεων (pricefox / insurancemarket style) ──
 // Οι φράσεις «Πλήρης Κάλυψη / Παντός Κινδύνου / All Risk» υπονοούν τους βασικούς κινδύνους.
@@ -421,10 +416,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     monthlyRent?: number | null;
   }>({});
   const [calendarSynced, setCalendarSynced] = useState(false);
-  // ── ΑΑΔΕ API state ───────────────────────────────────────────────────────
-  const [aadeData,        setAadeData]        = useState<AADEEnfiaData | null>(null);
-  const [aadeLoading,     setAadeLoading]     = useState(false);
-  const [aadeConnected,   setAadeConnected]   = useState(false);
   // ── Live quotes state ─────────────────────────────────────────────────────
   const [liveQuotes,      setLiveQuotes]      = useState<LiveQuote[]>([]);
   const [quotesLoading,   setQuotesLoading]   = useState(false);
@@ -532,22 +523,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
     return () => { if (quotesTimer.current) clearTimeout(quotesTimer.current); };
   }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId]);
-
-  // ── ΑΑΔΕ connect ─────────────────────────────────────────────────────────
-  const connectAADE = async () => {
-    // ΑΑΔΕ API δεν είναι διαθέσιμο ακόμη, ανοίγουμε myaade.gov.gr
-    // Όταν ανοίξει το API: αντικατάστησε με OAuth2 flow
-    setAadeLoading(true);
-    try {
-      // Άνοιξε το myAADE σε νέο tab
-      if (typeof window !== 'undefined') {
-        window.open('https://www.aade.gr/polites/forologikes-ypiresies/enfia', '_blank', 'noopener,noreferrer');
-      }
-      // Simulate API not available yet
-      await new Promise(r => setTimeout(r, 400));
-      setAadeConnected(false);
-    } finally { setAadeLoading(false); }
-  };
 
   const insCompany = INSURANCE_COMPANIES.find(c => c.value === insProvider);
   const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId) as any;
@@ -803,33 +778,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       {/* ── Ασφάλεια Κατοικίας ───────────────────────────────────────────── */}
       <div style={card}>
         {secHdr('Ασφάλεια Κατοικίας')}
-
-        {/* ── ΑΑΔΕ API Integration Banner ─────────────────────────────────── */}
-        <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div title="ΑΑΔΕ: Ανεξάρτητη Αρχή Δημοσίων Εσόδων · ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', fontFamily: T.font.sans, marginBottom: 3 }}>
-              Σύνδεση ΑΑΔΕ, Αυτόματη λήψη ΕΝΦΙΑ εκκαθαριστικού
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-              {aadeConnected
-                ? `✓ Συνδεδεμένο, ΕΝΦΙΑ ${aadeData?.year}: ${fe(aadeData?.totalAmount || 0)} (${aadeData?.installments} δόσεις × ${fe(aadeData?.installmentAmount || 0)})`
-                : 'Σύνδεσε τους κωδικούς TAXISnet για αυτόματη λήψη χωρίς χειροκίνητη καταχώρηση'}
-            </div>
-          </div>
-          {!aadeConnected ? (
-            <a
-              href="https://www.aade.gr/polites/forologikes-ypiresies/enfia"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={connectAADE}
-              title="TAXISnet: οι προσωπικοί σου κωδικοί πρόσβασης στις ηλεκτρονικές υπηρεσίες της ΑΑΔΕ"
-              style={{ display: 'inline-block', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textDecoration: 'none' }}>
-              Σύνδεση με TAXISnet →
-            </a>
-          ) : (
-            <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, background: 'rgba(26,115,232,0.1)', padding: '4px 12px', borderRadius: T.radius.pill }}>✓ Συνδεδεμένο</span>
-          )}
-        </div>
 
         {/* ── Property details for live quotes ──────────────────────────── */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>

@@ -358,6 +358,9 @@ export interface SavePlan {
 
 const iso = (d?: string) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : '');
 
+// Ο κανόνας «συμπληρώνουμε κενά, δεν διορθώνουμε γεμάτα» ζει στο lib/core/prefill.ts,
+// γιατί τον χρειάζεται και ο οδηγός προσθήκης ακινήτου — όχι μόνο η σάρωση.
+
 // Δομημένη σημείωση κατανάλωσης (ίδια λογική με BillsAIScan) για λογαριασμούς.
 function consumptionNote(d: ScannedDoc): string {
   return [
@@ -509,19 +512,30 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
   }
 
   if (t === 'deed') {
-    // Ενημερώνουμε ΜΟΝΟ ασφαλείς στήλες του user_properties (αυτές που γράφει και ο
-    // οδηγός προσθήκης). Τα υπόλοιπα (ΑΤΑΚ, αντικειμενική, ημ. αγοράς) κρατιούνται
-    // στη σημείωση του αρχειοθετημένου εγγράφου ώστε να μη χαθούν και να τα δει/
-    // επεξεργαστεί ο χρήστης — χωρίς ρίσκο σφάλματος σε ανύπαρκτη στήλη.
+    // Ο ΑΤΑΚ ΠΑΕΙ ΣΤΗ ΣΤΗΛΗ ΤΟΥ, ΟΧΙ ΣΕ ΣΗΜΕΙΩΣΗ.
+    //
+    // Εδώ υπήρχε ένας φόβος γραμμένος σε σχόλιο: ότι οι στήλες ΑΤΑΚ, αντικειμενική
+    // και ημερομηνία αγοράς ίσως δεν υπάρχουν, άρα ας κρατηθούν σε ελεύθερο κείμενο
+    // «για να μη χαθούν». Ρώτησα τη βάση: `user_properties.atak` (text),
+    // `obj_value` (numeric), `purchase_date` (date) — υπάρχουν και οι τρεις, και ο
+    // οδηγός προσθήκης ακινήτου ήδη γράφει στην πρώτη.
+    //
+    // Το κόστος του φόβου ήταν ορατό στον χρήστη: σαρώνει το συμβόλαιο, η εφαρμογή
+    // ΔΙΑΒΑΖΕΙ τον ΑΤΑΚ, τον θάβει σε σημείωση — και μετά η καρτέλα συμφωνίας Ε2
+    // του λέει «Λείπει ο ΑΤΑΚ. Συμπλήρωσέ τον για να γίνει η σύγκριση». Η ίδια
+    // εφαρμογή, στην ίδια οθόνη, ζητά αυτό που μόλις πέταξε.
+    //
+    // Στη σημείωση μένει μόνο ό,τι ΔΕΝ έχει στήλη (ο συμβολαιογράφος). Ό,τι έχει
+    // στήλη γράφεται μία φορά, στη στήλη του — όχι και στα δύο.
     const property: Record<string, unknown> = {};
     if (doc.purchase_price) property.purchase_price = doc.purchase_price;
     if (doc.year_built) property.year_built = doc.year_built;
     if (doc.sqm) property.sqm = doc.sqm;
+    if ((doc.atak || '').trim()) property.atak = (doc.atak || '').trim();
+    if (doc.obj_value) property.obj_value = doc.obj_value;
+    if (iso(doc.purchase_date)) property.purchase_date = iso(doc.purchase_date);
     const extras = [
       provider ? `Συμβολαιογράφος/Πηγή: ${provider}` : '',
-      doc.atak ? `ΑΤΑΚ: ${doc.atak}` : '',
-      doc.obj_value ? `Αντικειμενική: ${doc.obj_value.toLocaleString('el-GR')} €` : '',
-      iso(doc.purchase_date) ? `Ημ. αγοράς: ${iso(doc.purchase_date)}` : '',
       baseNote,
     ].filter(Boolean).join(' · ');
     const plan: SavePlan = { targets: ['Αρχείο'], archive: { ...archive, note: extras || undefined } };

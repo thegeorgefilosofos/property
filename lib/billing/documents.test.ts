@@ -135,18 +135,34 @@ eq('validate payment: amount blocking', validateDoc(doc({ doc_type: 'payment' })
   eq('insurance: archive date = expiry', p.archive!.date, '2027-01-01');
 }
 
-// ── planDocSave: deed → safe property cols + archive note ─────────────────────
+// ── planDocSave: deed → στήλες ακινήτου, ΟΧΙ σημείωση ────────────────────────
+// Ο ΑΤΑΚ είναι το μοναδικό κλειδί ταύτισης με το έντυπο Ε2. Όσο έμενε σε
+// ελεύθερο κείμενο, η καρτέλα συμφωνίας τον ζητούσε ενώ η σάρωση τον είχε ήδη
+// διαβάσει. Οι στήλες υπάρχουν — ρωτήθηκε η βάση, δεν υποτέθηκε.
 {
   const p = planDocSave(doc({ doc_type: 'deed', provider: 'Συμβ. Παπαδοπούλου', purchase_price: 180000, year_built: 2004, sqm: 78, atak: '11122233344', obj_value: 95000, purchase_date: '2019-05-20' }), TODAY);
   check('deed: property has safe cols', !!p.property);
   eq('deed: property.purchase_price', p.property!.purchase_price, 180000);
   eq('deed: property.year_built', p.property!.year_built, 2004);
   eq('deed: property.sqm', p.property!.sqm, 78);
-  check('deed: NO atak/obj_value column write', !('atak' in (p.property || {})) && !('obj_value' in (p.property || {})) && !('purchase_date' in (p.property || {})));
-  check('deed: extras go to archive note', !!p.archive!.note && p.archive!.note.includes('ΑΤΑΚ') && p.archive!.note.includes('Αντικειμενική'));
+  eq('deed: ο ΑΤΑΚ γράφεται στη στήλη του', p.property!.atak, '11122233344');
+  eq('deed: η αντικειμενική στη στήλη της', p.property!.obj_value, 95000);
+  eq('deed: η ημερομηνία αγοράς στη στήλη της', p.property!.purchase_date, '2019-05-20');
+  check('deed: ΔΕΝ επαναλαμβάνονται στη σημείωση', !(p.archive!.note || '').includes('ΑΤΑΚ') && !(p.archive!.note || '').includes('Αντικειμενική'));
+  check('deed: ο συμβολαιογράφος (χωρίς στήλη) μένει στη σημείωση', (p.archive!.note || '').includes('Παπαδοπούλου'));
   eq('deed: archive date = purchase_date', p.archive!.date, '2019-05-20');
   check('deed: targets include Στοιχεία ακινήτου', p.targets.includes('Στοιχεία ακινήτου'));
 }
+// Ο ΑΤΑΚ με κενά γύρω του δεν γράφεται ημιτελής, ούτε δημιουργεί άδεια εγγραφή.
+{
+  const p = planDocSave(doc({ doc_type: 'deed', atak: '  11122233344  ' }), TODAY);
+  eq('deed: ο ΑΤΑΚ καθαρίζεται', p.property!.atak, '11122233344');
+}
+{
+  const p = planDocSave(doc({ doc_type: 'deed', atak: '   ' }), TODAY);
+  check('deed: κενός ΑΤΑΚ δεν γράφει τίποτα', p.property === undefined);
+}
+// Ο κανόνας «συμπληρώνουμε κενά» ελέγχεται στο lib/core/prefill.test.ts.
 // deed with no structured fields → archive only
 {
   const p = planDocSave(doc({ doc_type: 'deed', title: 'Τίτλος' }), TODAY);

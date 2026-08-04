@@ -1289,6 +1289,23 @@ export default function Dashboard() {
   // την παλιά οθόνη.
   const navSafe = navVisible(nav) ? nav : 'overview';
 
+  // ── ΑΛΛΑΓΗ ΑΚΙΝΗΤΟΥ ΧΩΡΙΣ ΝΑ ΧΑΝΕΤΑΙ Η ΘΕΣΗ ────────────────────────────────
+  //
+  // Κάθε αλλαγή ακινήτου έκανε `setNav('overview')`. Ο ιδιοκτήτης με τρία ακίνητα
+  // που ήθελε να δει τις Δαπάνες και των τριών, έκανε έξι κλικ αντί για τρία:
+  // ακίνητο → Επισκόπηση (αθέλητα) → Δαπάνες, ξανά και ξανά. Η μία κίνηση που
+  // ζητούσε («δείξε μου το επόμενο») τον πήγαινε κάπου που δεν ζήτησε.
+  //
+  // Η επαναφορά ήταν και περιττή: το `navSafe` παραπάνω ήδη γυρίζει στην
+  // Επισκόπηση όταν η καρτέλα δεν ισχύει για το επιλεγμένο ακίνητο (κενό ακίνητο
+  // δεν έχει Απόδοση, μη μισθωμένο δεν έχει Ενοικιαστή). Δηλαδή ο μηδενισμός δεν
+  // προστάτευε από τίποτα· απλώς πετούσε τη θέση του χρήστη σε κάθε περίπτωση,
+  // ενώ ο έλεγχος έτρεχε ούτως ή άλλως.
+  //
+  // Τώρα: η καρτέλα κρατιέται όταν στέκει, και πέφτει στην Επισκόπηση μόνο όταν
+  // πραγματικά δεν αφορά το νέο ακίνητο.
+  const switchProperty = (p: Property) => { setSelected(p); setSidebarOpen(false); };
+
   // Εντολές command palette: μετάβαση σε tab, εναλλαγή ακινήτου, γρήγορες ενέργειες
   const cmdItems: CommandItem[] = [
     ...NAV_ITEMS.filter(item => isTabPurchasable(effProfileType, item.id) && navVisible(item.id)).map(item => ({
@@ -1298,7 +1315,8 @@ export default function Dashboard() {
     ...properties.map(p => ({
       id: `prop-${p.id}`, label: p.name, hint: 'Ακίνητο', group: 'Ακίνητα',
       keywords: `${p.address||''} ${PROP_TYPE_LABELS[p.prop_type||'']||''}`,
-      action: () => { setSelected(p); setNav('overview'); },
+      // Η καρτέλα ΔΕΝ μηδενίζεται στην αλλαγή ακινήτου — δες switchProperty.
+      action: () => switchProperty(p),
     })),
     { id: 'act-add', label: 'Προσθήκη ακινήτου', hint: 'Ενέργεια', keywords: 'new property add', action: () => tryAddProperty() },
     { id: 'act-signout', label: 'Αποσύνδεση', hint: 'Ενέργεια', keywords: 'logout sign out exit', action: () => signOut() },
@@ -1339,7 +1357,7 @@ export default function Dashboard() {
         <div className="sidebar-section">
           <div className="sidebar-section-label">{effProfileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
           {properties.map(p => (
-            <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p);setNav('overview');setSidebarOpen(false);}}}>
+            <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>switchProperty(p)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();switchProperty(p);}}}>
               <div className="prop-item-dot" style={{background:STATUS_COLORS[readStatus(p)]}}/>
               <span className="prop-item-name">{p.name}</span>
               <button className="prop-item-del" title="Διαγραφή ακινήτου και όλων των δεδομένων του" aria-label={`Διαγραφή ακινήτου ${p.name}`}

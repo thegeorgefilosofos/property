@@ -23,6 +23,7 @@ import {
   classifyDocType, planDocSave, normalizeScannedDoc, archiveCategoryFor,
   type ScannedDoc, type ArchivePlan,
 } from '@/lib/billing/documents';
+import { fillOnlyEmpty } from '@/lib/core/prefill';
 import {
   matchPaymentToBills, providerFromBillName,
   type MatchCandidate, type MatchResult,
@@ -489,9 +490,17 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
     }
 
     // ── 5) Στοιχεία ακινήτου → user_properties (ΜΟΝΟ ασφαλείς στήλες).
+    // Διαβάζουμε πρώτα τι υπάρχει: η σάρωση συμπληρώνει κενά, δεν σβήνει ό,τι
+    // έγραψε ο χρήστης (fillOnlyEmpty — lib/billing/documents.ts).
     if (plan.property) {
-      const { error: pErr } = await supabase.from('user_properties').update(plan.property).eq('id', propertyId);
-      if (!pErr) add('Στοιχεία ακινήτου');
+      const cols = Object.keys(plan.property);
+      const { data: curProp } = await supabase.from('user_properties')
+        .select(cols.join(',')).eq('id', propertyId).maybeSingle();
+      const patch = fillOnlyEmpty(plan.property, curProp as Record<string, unknown> | null);
+      if (Object.keys(patch).length) {
+        const { error: pErr } = await supabase.from('user_properties').update(patch).eq('id', propertyId);
+        if (!pErr) add('Στοιχεία ακινήτου');
+      }
     }
 
     // ── 6) Ασφάλεια → property_settings.
