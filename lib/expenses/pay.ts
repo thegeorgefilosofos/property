@@ -23,6 +23,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { EXPENSE_MAP } from '../billing/parse';
+import { BY_SLUG } from './taxonomy';
+import { groupForCategory } from './groups';
 
 /** Ό,τι χρειάζεται από τον λογαριασμό για να αποφασιστεί η πληρωμή. */
 export interface BillToPay {
@@ -61,10 +63,20 @@ export interface PaymentPlan {
   newExpense: NewExpense | null;
 }
 
-/** Η κατηγορία και η ομάδα ενός λογαριασμού, από τη ΜΙΑ πηγή. */
+/**
+ * Η κατηγορία και η ομάδα ενός λογαριασμού, από τη ΜΙΑ πηγή.
+ *
+ * Η ΟΜΑΔΑ ΔΕΝ ΔΙΑΒΑΖΕΤΑΙ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ. Το EXPENSE_MAP δίνει την ελληνική
+ * ετικέτα, αλλά η ομάδα παράγεται από την ταξινομία (lib/expenses/groups.ts),
+ * ώστε να μην υπάρχει δεύτερος άξονας που μπορεί να διαφωνήσει για το αν μια
+ * δαπάνη εκπίπτει. Όπου η ταξινομία δεν ξέρει την κατηγορία, μένει η ομάδα του
+ * χάρτη — και αν ούτε αυτός την ξέρει, «other», που δεν εκπίπτει.
+ */
 export function billCategory(category: string | null | undefined): { group: string; cat: string } {
   const key = String(category ?? '').trim();
-  return EXPENSE_MAP[key] ?? EXPENSE_MAP.other;
+  const mapped = EXPENSE_MAP[key] ?? EXPENSE_MAP.other;
+  const known = BY_SLUG[key];
+  return { cat: mapped.cat, group: known ? groupForCategory(known) : mapped.group };
 }
 
 /**

@@ -39,6 +39,7 @@ import {
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
 import { parseBulk, bulkLimit } from '@/lib/expenses/bulk';
 import { planBillPayment } from '@/lib/expenses/pay';
+import { groupForCategory } from '@/lib/expenses/groups';
 
 interface Props {
   propertyId: string;
@@ -627,17 +628,49 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
       // onDone() έκλεινε τη φόρμα. Η δαπάνη είχε χαθεί και εκείνος το αγνοούσε.
       // Παραβίαση RLS, περιορισμός στήλης ή πεσμένο δίκτυο έδιναν όλα το ίδιο:
       // ψεύτικη επιβεβαίωση.
-      const { error } = await supabase.from('expenses').insert({
-        property_id: propertyId, user_id: userId,
-        description: what.trim(),
-        amount: amt,
-        date: paid ? date : (due || date),
-        category: slug ? BY_SLUG[slug].label : 'Άλλο',
-        paid,
-        paid_by: 'owner',
-      });
-      if (error) throw error;
-      notify(paid ? 'Καταχωρήθηκε' : 'Καταχωρήθηκε ως απλήρωτη');
+      const cat = slug ? BY_SLUG[slug] : null;
+
+      if (!paid) {
+        // ΤΟ ΑΠΛΗΡΩΤΟ ΕΙΝΑΙ ΥΠΟΧΡΕΩΣΗ, ΟΧΙ ΔΑΠΑΝΗ ΠΟΥ ΕΓΙΝΕ.
+        //
+        // Πριν, η «ημερομηνία λήξης» γραφόταν στη στήλη `date` μιας δαπάνης —
+        // δηλαδή στη στήλη που σημαίνει «πότε ΕΓΙΝΕ», όχι «πότε ΛΗΓΕΙ». Τρία
+        // πράγματα χάνονταν μαζί: ο χρήστης δεν έβλεπε ποτέ «λήγει σε 3 μέρες»
+        // (η προθεσμία στον πυρήνα έρχεται από τον λογαριασμό), η υποχρέωση δεν
+        // εμφανιζόταν στους Λογαριασμούς ούτε στα ληξιπρόθεσμα, και το ποσό
+        // μετρούσε σε ΜΕΛΛΟΝΤΙΚΟ μήνα.
+        //
+        // Ο πυρήνας (lib/expenses/ledger.ts) ήδη ξέρει τι είναι: απλήρωτος
+        // λογαριασμός που μετράει στην ημερομηνία λήξης του.
+        const { error } = await supabase.from('bills').insert({
+          property_id: propertyId, user_id: userId,
+          name: what.trim(),
+          amount: amt,
+          category: slug || 'other',
+          due_date: due || date,
+          paid: false,
+          recurring: false,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('expenses').insert({
+          property_id: propertyId, user_id: userId,
+          description: what.trim(),
+          amount: amt,
+          date,
+          category: cat ? cat.label : 'Άλλο',
+          // Η ΟΜΑΔΑ ΕΙΝΑΙ ΤΟ ΠΕΔΙΟ ΠΟΥ ΚΡΙΝΕΙ ΤΗΝ ΕΚΠΤΩΣΗ, ΚΑΙ ΔΕΝ ΓΡΑΦΟΤΑΝ.
+          // Η κύρια, διαφημισμένη διαδρομή καταχώρισης παρήγαγε δαπάνες με κενή
+          // ομάδα — που το isGroupDeductible θεωρεί ΜΗ εκπεστέες. Ο υδραυλικός
+          // των 60 € δεν μετρούσε, ενώ ο ίδιος υδραυλικός από άλλη οθόνη
+          // μετρούσε. Παράγεται τώρα από την κατηγορία, με έλεγχο συνέπειας.
+          expense_group: groupForCategory(cat),
+          paid: true,
+          paid_by: 'owner',
+        });
+        if (error) throw error;
+      }
+      notify(paid ? 'Καταχωρήθηκε' : 'Καταχωρήθηκε ως εκκρεμής υποχρέωση');
       onDone();
     } catch { notifyError('Δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); }
     finally { setSaving(false); }
