@@ -74,8 +74,12 @@ body {
    νεκρό βάρος: όποιος τα διάβαζε (άνθρωπος ή μοντέλο) διάλεγε
    ένα στην τύχη και μεγάλωνε το χάος.
 ══════════════════════════════════════════════════════════════ */
-:root,
-[data-mode="light"] {
+/* Το ΦΩΤΕΙΝΟ θέμα θέλει ρητή δήλωση. Το σκούρο είναι η βάση του προϊόντος και
+   ζει στο :root παρακάτω, ώστε να ισχύει ακόμη κι αν δεν τρέξει καθόλου
+   JavaScript. Ο επιλογέας είναι :root[data-mode="light"] (ειδικότητα 0,2,0)
+   και όχι σκέτο [data-mode="light"] (0,1,0), γιατί αλλιώς θα έχανε από το
+   :root του σκούρου που έρχεται αργότερα στο αρχείο. */
+:root[data-mode="light"] {
 
   /* ── Map to Property OS vars (used by components) ── */
   --bg-base:       #f8f9fa;
@@ -169,6 +173,11 @@ body {
    ωμό hex στα components: ένα καρφωμένο #fff ή #111 δουλεύει σε
    ένα από τα δύο θέματα και σπάει σιωπηλά στο άλλο.
 ══════════════════════════════════════════════════════════════ */
+/* ΤΟ ΣΚΟΥΡΟ ΕΙΝΑΙ Η ΒΑΣΗ. Το :root εδώ σημαίνει: χωρίς καμία δήλωση, σκούρο.
+   Ισχύει και πριν τρέξει το script του app/layout.tsx, και αν η JavaScript
+   είναι κλειστή. Η προτίμηση του λειτουργικού ΔΕΝ το αλλάζει — είναι απόφαση
+   προϊόντος, όχι εικασία· ο χρήστης το αλλάζει από τις Ρυθμίσεις. */
+:root,
 [data-mode="dark"] {
 
   /* Google dark surfaces — exactly like Google Calendar/Drive dark */
@@ -940,66 +949,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    inline SVG). Ήταν ενεργά παραπλανητική: υπονοούσε ότι υπάρχει icon font. */
 
 /* ══════════════════════════════════════════════════════════════
-   SYSTEM PREFERENCE — Auto dark if no manual override
-   Matches Google's behavior: respects system, overridable
+   ΑΦΑΙΡΕΘΗΚΕ: @media (prefers-color-scheme: dark) με :root:not([data-mode="light"])
+   ─────────────────────────────────────────────────────────────
+   Επαναλάμβανε ΚΑΤΑ ΛΕΞΗ και τις 47 μεταβλητές του σκούρου θέματος. Δύο
+   αντίγραφα της ίδιας παλέτας σημαίνει ότι κάθε μελλοντική αλλαγή χρώματος
+   έπρεπε να γίνει σε δύο σημεία — και όποιος ξεχνούσε το δεύτερο άφηνε τους
+   χρήστες με σκούρο λειτουργικό σε παλιά χρώματα, χωρίς κανένα σφάλμα πουθενά.
+   Επιβεβαιώθηκε ότι ήταν ακριβές διπλότυπο πριν αφαιρεθεί.
+
+   Δεν χρειάζεται πια: το σκούρο ζει στο :root, άρα ισχύει από μόνο του χωρίς
+   να ρωτήσουμε το λειτουργικό. Η προτίμηση συστήματος ΔΕΝ αλλάζει το θέμα —
+   το σκούρο είναι η βάση του προϊόντος και ο χρήστης το αλλάζει από τις
+   Ρυθμίσεις, από ένα σημείο.
 ══════════════════════════════════════════════════════════════ */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-mode="light"]) {
-    --bg-base:       #202124;
-    --bg-surface:    #292a2d;
-    --bg-elevated:   #35363a;
-    --bg-overlay:    #3c4043;
-    --bg-hover:      rgba(232,234,237,0.08);
-    --bg-active:     color-mix(in srgb, var(--accent) 16%, transparent);
-    --accent:        #8ab4f8;
-    --accent-dim:    color-mix(in srgb, var(--accent) 16%, transparent);
-    --accent-hover:  #aecbfa;
-    --on-tone:       #0c1116;
-    --accent-text:   var(--on-tone);
-    --positive:      #52c79e;
-    --positive-dim:  color-mix(in srgb, var(--positive) 15%, transparent);
-    --negative:      #e58c84;
-    --negative-dim:  color-mix(in srgb, var(--negative) 15%, transparent);
-    --warning:       #d8b267;
-    --warning-dim:   color-mix(in srgb, var(--warning) 15%, transparent);
-    --warning-on-container: #e6c179;
-    --info:          #97abf5;
-    --info-dim:      color-mix(in srgb, var(--info) 15%, transparent);
-    --text-primary:   #e8eaed;
-    --text-secondary: #9aa0a6;
-    --text-tertiary:  #949a9f;   /* ενισχυμένο για WCAG AA στο σκούρο φόντο */
-    --text-inverse:   #1f1f1f;
-    --border-subtle:  #3c4043;
-    --border-default: #5f6368;
-    --border-strong:  #5f6368;
-    --border-accent:  rgba(174,203,250,0.4);
-    --sidebar-bg:     #202124;
-    --sidebar-border: #3c4043;
-    --scrollbar-thumb: #5f6368;
-    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.60), 0 1px 3px 1px rgba(0,0,0,0.45);
-    --shadow-md: 0 1px 2px 0 rgba(0,0,0,0.60), 0 2px 6px 2px rgba(0,0,0,0.45);
-    --shadow-lg: 0 4px 8px 3px rgba(0,0,0,0.45), 0 1px 3px 0 rgba(0,0,0,0.60);
-    --shadow-xl: 0 6px 10px 4px rgba(0,0,0,0.45), 0 2px 3px 0 rgba(0,0,0,0.60);
-    --elev-1: 0 1px 2px rgba(0,0,0,.5), 0 4px 12px -4px rgba(0,0,0,.55);
-    --elev-2: 0 2px 5px -1px rgba(0,0,0,.5), 0 12px 24px -8px rgba(0,0,0,.6);
-    --elev-3: 0 4px 10px -3px rgba(0,0,0,.5), 0 24px 44px -14px rgba(0,0,0,.68);
-    --surface-raised:         linear-gradient(180deg, #313236 0%, #2a2b2e 100%);
-    --surface-sunken:         linear-gradient(180deg, #1c1d1f 0%, #212225 100%);
-    --surface-hero:           radial-gradient(120% 140% at 50% -20%, #34363a 0%, #2a2b2e 60%, #232427 100%);
-    --surface-kpi:            linear-gradient(180deg, #34353a 0%, #2b2c2f 100%);
-    --border-raised:          #3c4043;
-    --highlight-inset:        inset 0 1px 0 rgba(255,255,255,.06);
-    --highlight-inset-strong: inset 0 1px 0 rgba(255,255,255,.10);
-    --well-inset:             inset 0 1px 2px rgba(0,0,0,.32), inset 0 0 0 1px rgba(0,0,0,.15);
-    --ring-track:             #3c4043;
-  }
-}
 
 /* ══════════════════════════════════════════════════════════════
    PROPERTY OS — Semantic tokens aligned with Google palette
    Used for status indicators throughout the app
 ══════════════════════════════════════════════════════════════ */
-:root, [data-mode="light"] {
+:root[data-mode="light"] {
   /* Status colors — Google-aligned */
   --status-rented:       #188038;   /* Google green — occupied/earning */
   --status-rented-bg:    #ceead6;
@@ -1030,6 +998,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   --fin-neutral:         #5f6368;
 }
 
+:root,
 [data-mode="dark"] {
   --status-rented:       #81c995;
   --status-rented-bg:    rgba(129,201,149,0.15);

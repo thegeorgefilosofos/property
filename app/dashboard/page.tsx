@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
 import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
@@ -1525,10 +1524,9 @@ export default function Dashboard() {
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
                 <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
               </button>
-              <ThemeToggle />
             </>
           ) : (
-            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div><ThemeToggle /></>
+            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div></>
           )}
         </header>
 

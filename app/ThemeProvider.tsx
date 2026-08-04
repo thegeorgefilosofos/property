@@ -17,16 +17,28 @@ const ThemeContext = createContext<ThemeContextType>({
   setTheme: () => {}, toggleMode: () => {},
 });
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('midnight');
-  const [mode,  setMode]       = useState<Mode>('dark');
+// Η αρχική τιμή διαβάζεται από το ΙΔΙΟ το DOM, που το έχει ήδη γράψει το script
+// του app/layout.tsx πριν το πρώτο paint.
+//
+// ΓΙΑΤΙ ΟΧΙ useState('dark') ΚΑΙ ΑΝΑΓΝΩΣΗ ΣΕ useEffect, ΟΠΩΣ ΠΡΙΝ: το useEffect
+// τρέχει ΜΕΤΑ το paint. Όποιος είχε διαλέξει φωτεινό έβλεπε τη σειρά
+//   σωστό (από το script) → σκούρο (αρχική τιμή React) → φωτεινό (μετά το effect)
+// δηλαδή ένα σκούρο αναβοσβήσιμο σε κάθε φόρτωση. Με lazy initializer η React
+// ξεκινά ήδη συμφωνημένη με την οθόνη και δεν υπάρχει ενδιάμεση κατάσταση.
+//
+// Ο server δεν έχει DOM· εκεί επιστρέφει το προεπιλεγμένο σκούρο, που είναι και
+// η βάση του :root στο globals.css, άρα το markup συμφωνεί με το πρώτο paint.
+const readAttr = <V extends string>(attr: string, fallback: V, valid: readonly V[]): V => {
+  if (typeof document === 'undefined') return fallback;
+  const v = document.documentElement.getAttribute(attr) as V | null;
+  return v && valid.includes(v) ? v : fallback;
+};
 
-  useEffect(() => {
-    const t = (localStorage.getItem('pos_theme') as Theme) || 'midnight';
-    const m = (localStorage.getItem('pos_mode')  as Mode)  || 'dark';
-    setThemeState(t);
-    setMode(m);
-  }, []);
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(() =>
+    readAttr('data-theme', 'midnight', ['midnight', 'obsidian', 'violet'] as const));
+  const [mode,  setMode]       = useState<Mode>(() =>
+    readAttr('data-mode', 'dark', ['dark', 'light'] as const));
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -47,35 +59,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export const useTheme = () => useContext(ThemeContext);
 
-export function ThemeSwitcher() {
-  const { theme, mode, setTheme, toggleMode } = useTheme();
-
-  const themes: { key: 'midnight'|'obsidian'|'violet'; color: string; label: string }[] = [
-    { key: 'midnight', color: '#1a73e8', label: 'Google Blue' },
-    { key: 'obsidian', color: '#00C49A', label: 'Obsidian & Teal'   },
-    { key: 'violet',   color: '#8B5CF6', label: 'Violet Premium'    },
-  ];
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div className="theme-switcher">
-        {themes.map(t => (
-          <div
-            key={t.key}
-            className={`theme-dot theme-dot-${t.key[0]} ${theme === t.key ? 'active' : ''}`}
-            style={{ background: t.color }}
-            onClick={() => setTheme(t.key)}
-            title={t.label}
-          />
-        ))}
-      </div>
-      <button
-        className="mode-btn"
-        onClick={toggleMode}
-        title={mode === 'dark' ? 'Φωτεινό θέμα' : 'Σκοτεινό θέμα'}
-      >
-        {mode === 'dark' ? '☀' : '☾'}
-      </button>
-    </div>
-  );
-}
+// ΣΗΜΕΙΩΣΗ: εδώ ζούσε και ένας ThemeSwitcher με τρεις χρωματικές παλέτες
+// (midnight/obsidian/violet) κι ένα δεύτερο κουμπί εναλλαγής. Δεν τον απέδιδε
+// καμία οθόνη — ήταν νεκρός κώδικας που όμως έδειχνε ότι υπάρχουν δύο τρόποι
+// να αλλάξει το θέμα. Η εναλλαγή γίνεται από ΕΝΑ σημείο, τις Ρυθμίσεις, μέσω
+// του ThemeToggle. Αν χρειαστεί ποτέ επιλογή παλέτας, το setTheme παραμένει
+// διαθέσιμο από αυτό το context· δεν χρειάζεται δεύτερο χειριστήριο.

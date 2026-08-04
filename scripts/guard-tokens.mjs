@@ -81,10 +81,50 @@ for (const file of SCAN.flatMap(d => walk(join(ROOT, d)))) {
   })
 }
 
+// ── Δεύτερος έλεγχος: ΕΝΑ κλειδί αποθήκευσης για το θέμα ──────────────────
+// Το κουμπί εναλλαγής κρατούσε δικό του κλειδί, 'pos-theme' με παύλα, ενώ το
+// script πριν το πρώτο paint και το ThemeProvider διάβαζαν 'pos_mode' με κάτω
+// παύλα. Κανείς δεν διάβαζε το κλειδί του κουμπιού. Αποτέλεσμα: όποιος διάλεγε
+// φωτεινό το έχανε στην επόμενη ανανέωση, με ορατό τρεμόπαιγμα στον δρόμο —
+// και το σκούρο «κολλούσε» από συνθήκη αγώνα, όχι από σχεδιασμό.
+//
+// Δεν το έπιανε κανένα test: και τα δύο κλειδιά είναι έγκυρα strings.
+const THEME_KEYS_OK = new Set(['pos_mode', 'pos_theme'])
+const THEME_KEY_OWNERS = ['app/layout.tsx', 'app/ThemeProvider.tsx']
+const strayKeys = []
+for (const file of SCAN.flatMap(d => walk(join(ROOT, d)))) {
+  const rel = relative(ROOT, file)
+  const src = readFileSync(file, 'utf8')
+  src.split('\n').forEach((line, i) => {
+    for (const m of line.matchAll(/localStorage\.(?:get|set|remove)Item\(\s*['"]([^'"]+)['"]/g)) {
+      const key = m[1]
+      if (!/theme|mode/i.test(key)) continue          // μόνο κλειδιά θέματος
+      const known = THEME_KEYS_OK.has(key)
+      const owner = THEME_KEY_OWNERS.includes(rel)
+      if (!known || !owner) strayKeys.push({ key, where: `${rel}:${i + 1}`, known })
+    }
+  })
+}
+
 // ── Ετυμηγορία ────────────────────────────────────────────────────────────
-if (missing.size === 0) {
-  console.log(`✅ Φύλακας tokens πέρασε — κάθε var(--x) που ζητείται ορίζεται (${defined.size} tokens).`)
+if (missing.size === 0 && strayKeys.length === 0) {
+  console.log(`✅ Φύλακας tokens πέρασε — κάθε var(--x) που ζητείται ορίζεται (${defined.size} tokens), ένα κλειδί θέματος.`)
   process.exit(0)
+}
+
+if (strayKeys.length) {
+  console.error('❌ Το θέμα αποθηκεύεται από περισσότερα από ένα σημεία:\n')
+  for (const s of strayKeys) {
+    console.error(`  ${s.where}  →  '${s.key}'${s.known ? '  (σωστό κλειδί, λάθος αρχείο)' : '  ← ΑΓΝΩΣΤΟ κλειδί: κανείς άλλος δεν το διαβάζει'}`)
+  }
+  console.error(`
+  Το θέμα το κρατούν ΜΟΝΟ: ${THEME_KEY_OWNERS.join(', ')}
+  με κλειδιά: ${[...THEME_KEYS_OK].join(', ')}
+
+  Κάθε άλλο component διαβάζει και γράφει μέσω του useTheme() — αλλιώς το
+  pre-paint script και το React διαφωνούν, και η επιλογή του χρήστη χάνεται.
+`)
+  if (missing.size === 0) process.exit(1)
 }
 
 console.error('❌ Tokens που ζητούνται αλλά δεν ορίζονται πουθενά:\n')

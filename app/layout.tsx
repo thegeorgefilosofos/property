@@ -25,12 +25,15 @@ export const metadata: Metadata = {
   },
 };
 
-// Χρώμα μπάρας ανά θέμα, και ασφαλείς περιοχές (notch) όταν τρέχει standalone.
+// Χρώμα μπάρας του browser, και ασφαλείς περιοχές (notch) όταν τρέχει standalone.
+//
+// ΜΙΑ τιμή, όχι δύο ανά προτίμηση λειτουργικού: η εφαρμογή ξεκινά ΠΑΝΤΑ σκούρα
+// (βλ. :root στο globals.css). Όσο εδώ ρωτούσαμε το λειτουργικό, όποιος το έχει
+// στο φωτεινό έβλεπε λευκή μπάρα να πλαισιώνει σκούρα εφαρμογή. Η παλιά τιμή
+// #0b0f14 δεν ταίριαζε ούτε με το ίδιο μας το φόντο· εδώ είναι το --bg-base του
+// σκούρου θέματος, ώστε η μπάρα να συνεχίζει την επιφάνεια αντί να την κόβει.
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0f14" },
-  ],
+  themeColor: "#202124",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
