@@ -38,6 +38,23 @@ const LAND_LIKE = new Set(['land', 'parking', 'storage', 'warehouse']);
 // Airbnb εκτίμηση πληρότητας
 const OCCUPANCY = 0.6;
 
+// ── ΤΙΜΗ ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ ⇄ ΑΠΟΘΗΚΕΥΜΕΝΟ ΜΗΝΙΑΙΟ ΙΣΟΔΥΝΑΜΟ ────────────────
+//
+// Το `target_rent` είναι ΠΑΝΤΟΥ μηνιαίο: το resolveRent το δίνει ως μηνιαίο και
+// το computeYields το πολλαπλασιάζει ×12 (Σύγκριση, Αποδόσεις, Χαρτοφυλάκιο,
+// δανειακή ικανότητα). Ο οδηγός όμως έδειχνε τα ετήσια έσοδα με πληρότητα 60%
+// και αποθήκευε τιμή/νύχτα × 30 — δηλαδή 100% πληρότητα, 30 νύχτες τον μήνα.
+// Για 100 € τη νύχτα ο χρήστης διάβαζε «21.900 με εκτιμώμενη πληρότητα 60%»
+// και μετά έβλεπε 36.000 στη Σύγκριση: 64% πάνω από αυτό που του υποσχέθηκε
+// η ίδια οθόνη, πάνω σε αριθμό που κρίνει αν αγοράζει ή πουλάει.
+//
+// Δύο κατευθύνσεις, μία σταθερά πληρότητας: αυτό που δείχνει η προεπισκόπηση
+// είναι αυτό που γράφεται, και το άνοιγμα-για-επεξεργασία ξαναβγάζει την ίδια
+// τιμή/νύχτα αντί να την ανεβάζει σε κάθε αποθήκευση.
+const nightlyToMonthlyRent = (nightly: number) => (nightly * 365 * OCCUPANCY) / 12;
+const monthlyRentToNightly = (monthly: number) =>
+  Math.round(((monthly * 12) / (365 * OCCUPANCY)) * 100) / 100;
+
 const STEPS = ['Τύπος', 'Βασικά', 'Οικονομικά', 'Ρυθμίσεις', 'Σύνοψη'];
 
 // ── property_settings (χωριστός πίνακας, keyed by property_id) ───────────────
@@ -135,6 +152,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [step, setStep] = useState(0); // 0..3
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Id του ακινήτου που δημιουργήθηκε σε προηγούμενη, μισοτελειωμένη προσπάθεια
+  // αποθήκευσης (βλ. save()) — κρατά το «δοκίμασε ξανά» πάνω στο ίδιο ακίνητο.
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   const [propType, setPropType] = useState(existing?.prop_type || 'apartment');
   const [status, setStatus] = useState(existing?.status_detail && existing.status_detail !== 'seasonal' ? existing.status_detail : 'vacant');
@@ -158,7 +178,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [enfia, setEnfia] = useState(s(existing?.enfia));
   const [purchasePrice, setPurchasePrice] = useState(s(existing?.purchase_price));
   const [purchaseDate, setPurchaseDate] = useState(existing?.purchase_date || '');
-  const [rent, setRent] = useState(s(existing?.target_rent));
+  // Στη βραχυχρόνια το πεδίο ζητά τιμή ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ, ενώ η βάση κρατά
+  // μηνιαίο. Το πεδίο φόρτωνε ωμό το `target_rent`: άνοιγες ένα Airbnb ακίνητο
+  // για να αλλάξεις τη διεύθυνση και έβρισκες 3.000 στην «τιμή ανά
+  // διανυκτέρευση», με την προεπισκόπηση να λέει 657.000 € ετήσια έσοδα. Κάθε
+  // αποθήκευση πολλαπλασίαζε ξανά το νούμερο.
+  const [rent, setRent] = useState(() =>
+    airbnb && existing?.target_rent != null ? String(monthlyRentToNightly(existing.target_rent)) : s(existing?.target_rent)
+  );
   const [ownership, setOwnership] = useState(s(existing?.ownership) || '100');
   // Συνιδιοκτήτες: όταν το ποσοστό < 100%, ζητάμε πλήθος (1–99) και ονόματα.
   const [coOwners, setCoOwners] = useState<string[]>(
@@ -243,8 +270,10 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   // (καθρέφτης του resolveValue: εμπορική > αντικειμενική).
   const effValueN = valueN ?? num(objValue);
   const rentN = num(rent);
-  // Ετήσιο ενοίκιο: κανονικά μηνιαίο×12, για Airbnb τιμή/διανυκτέρευση×365×πληρότητα
-  const annualRent = rentN != null ? (airbnb ? rentN * 365 * OCCUPANCY : rentN * 12) : null;
+  // Μηνιαίο ισοδύναμο: ΕΝΑΣ αριθμός που τροφοδοτεί ΚΑΙ την προεπισκόπηση ΚΑΙ το
+  // `target_rent` που αποθηκεύεται — δεν μπορούν πια να αποκλίνουν.
+  const monthlyRentN = rentN != null ? (airbnb ? nightlyToMonthlyRent(rentN) : rentN) : null;
+  const annualRent = monthlyRentN != null ? monthlyRentN * 12 : null;
   const grossYield = (annualRent != null && effValueN != null && effValueN > 0) ? (annualRent / effValueN) * 100 : null;
 
   const rentLabel = airbnb ? 'Τιμή ανά διανυκτέρευση (€)' : 'Στόχος Ενοικίου (€/μήνα)';
@@ -255,8 +284,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const save = async () => {
     if (!name.trim()) { setStep(1); return; }
     setSaving(true); setError('');
-    // Αποθηκευόμενο μηνιαίο ισοδύναμο ενοικίου: Airbnb ⇒ τιμή/νύχτα × 30
-    const storedRent = airbnb ? (rentN != null ? rentN * 30 : null) : rentN;
+    // Ό,τι ακριβώς δείχνει η προεπισκόπηση απόδοσης — ίδιο μηνιαίο ισοδύναμο.
+    const storedRent = monthlyRentN;
     const payload = {
       name: name.trim(),
       prop_type: propType,
@@ -286,23 +315,35 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       // μένει ο ίδιος) — απλώς παύει να ζητείται.
       ...(airbnb ? { ama: isValidAmaFormat(ama) ? ama : null } : {}),
     };
-    let propertyId: string | null = existing?.id ?? null;
+    // Η αποθήκευση είναι δύο κλήσεις: πρώτα το ακίνητο, μετά οι «Ρυθμίσεις».
+    // Αν έσκαγε η δεύτερη (π.χ. χάθηκε το δίκτυο ενδιάμεσα), το ακίνητο είχε
+    // ΗΔΗ δημιουργηθεί αλλά ο οδηγός το ξεχνούσε: το «Προσθήκη Ακινήτου» που
+    // πατούσε ο χρήστης βλέποντας το σφάλμα έκανε ΔΕΥΤΕΡΟ insert. Έβρισκε το
+    // ίδιο ακίνητο δύο φορές στη λίστα — και επειδή τα ακίνητα μετρούν στο όριο
+    // του πακέτου, το διπλό κατανάλωνε θέση που είχε πληρώσει.
+    const savedId = existing?.id ?? createdId;
+    let propertyId: string | null = savedId;
     let err: { message?: string } | null = null;
-    if (isEdit) {
-      const res = await supabase.from('user_properties').update(payload).eq('id', existing!.id);
+    if (savedId) {
+      const res = await supabase.from('user_properties').update(payload).eq('id', savedId);
       err = res.error;
     } else {
       const res = await supabase.from('user_properties').insert({ user_id: userId, ...payload }).select('id').single();
       err = res.error;
       propertyId = res.data?.id ?? null;
+      // Το κρατάμε ΠΡΙΝ από το δεύτερο βήμα: από εδώ και πέρα κάθε νέα
+      // προσπάθεια ενημερώνει αυτό το ακίνητο αντί να φτιάχνει άλλο.
+      if (propertyId) setCreatedId(propertyId);
     }
-    if (err) { setSaving(false); setError(err.message || 'Παρουσιάστηκε σφάλμα κατά την αποθήκευση.'); return; }
+    if (err) { setSaving(false); setError(`Δεν αποθηκεύτηκε το ακίνητο. Δοκίμασε ξανά. ${err.message ?? ''}`.trim()); return; }
 
     // property_settings: αποθήκευση μόνο αν έχει συμπληρωθεί κάτι (αποφυγή κενής γραμμής)
     if (propertyId && Object.values(settings).some(v => (v ?? '').toString().trim() !== '')) {
       const { error: sErr } = await supabase.from('property_settings')
         .upsert({ ...settings, property_id: propertyId, user_id: userId }, { onConflict: 'property_id' });
-      if (sErr) { setSaving(false); setError(sErr.message || 'Παρουσιάστηκε σφάλμα κατά την αποθήκευση.'); return; }
+      // Το ακίνητο έχει ήδη αποθηκευτεί — λέμε ρητά τι έμεινε πίσω, ώστε το
+      // «δοκίμασε ξανά» να μη διαβάζεται ως «ξαναφτιάξ' το από την αρχή».
+      if (sErr) { setSaving(false); setError(`Το ακίνητο αποθηκεύτηκε, αλλά οι ρυθμίσεις του δεν καταχωρίστηκαν. Δοκίμασε ξανά. ${sErr.message ?? ''}`.trim()); return; }
     }
 
     setSaving(false);

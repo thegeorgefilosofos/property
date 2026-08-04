@@ -86,7 +86,7 @@ export interface ShortTermYearSummary {
   municipalTax: number;    // τέλος παρεπιδημούντων (0,5% ή 0 με εξαίρεση)
   municipalExempt: boolean;
   incomeTax: number;       // εκτιμώμενος φόρος εισοδήματος (κλίμακα ενοικίων)
-  net: number;             // ακαθάριστα − φόρος − ΤΑΚΚ − τέλος παρεπιδημούντων
+  net: number;             // ακαθάριστα − φόρος − τέλος παρεπιδημούντων (το ΤΑΚΚ είναι ΗΔΗ έξω από τα ακαθάριστα)
   effectiveRate: number;   // φόρος / ακαθάριστα
   /** Πόσες διαμονές έχουν ΑΠΡΟΣΔΙΟΡΙΣΤΗ βάση ποσού (ιστορικές, πριν τη διάσπαση
    *  σε ακαθάριστο/προμήθεια/τέλος). Όσο αυτό δεν είναι 0, το ακαθάριστο είναι
@@ -117,7 +117,17 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   // Προϋπόθεση (από 1/1/2026): είσπραξη μέσω τραπέζης· με μετρητά φορολογείται το 100%.
   const taxableFactor = meta?.rentsPaidViaBank === false ? 1 : 0.95;
   const incomeTax = rentalIncomeTax(grossRevenue * taxableFactor);
-  const net = grossRevenue - incomeTax - levy - municipalTax;
+  // ΤΟ ΤΕΛΟΣ ΑΝΘΕΚΤΙΚΟΤΗΤΑΣ ΕΦΕΥΓΕ ΔΥΟ ΦΟΡΕΣ ΑΠΟ ΤΑ ΚΑΘΑΡΑ. Ο τύπος είχε μείνει
+  // από τότε που το `grossRevenue` ήταν το ωμό `total`, με το τέλος ακόμη μέσα.
+  // Πλέον το ακαθάριστο βγαίνει από το declarableGross (= τι πλήρωσε ο επισκέπτης
+  // − τέλος), άρα το τέλος έχει ΗΔΗ αφαιρεθεί· το `- levy` εδώ το αφαιρούσε
+  // δεύτερη φορά. Ο ιδιοκτήτης έβλεπε τα καθαρά της βραχυχρόνιας μικρότερα κατά
+  // ολόκληρο το ετήσιο ΤΑΚΚ — σε γεμάτη σεζόν εκατοντάδες ευρώ — ακριβώς στο
+  // πλακίδιο όπου τα συγκρίνει με τη μακροχρόνια (OccupancyPanel, «Διαφορά vs
+  // μακροχρόνια»). Δηλαδή έβγαζε το ακίνητο από το Airbnb με βάση ζημιά που δεν
+  // υπήρχε. Το `levy` παραμένει στο αποτέλεσμα ως ΞΕΧΩΡΙΣΤΟ νούμερο (τι οφείλει
+  // στην ΑΑΔΕ), απλώς δεν ξανακόβεται από τα καθαρά.
+  const net = grossRevenue - incomeTax - municipalTax;
   return {
     year, grossRevenue, totalNights, stayCount: inYear.length, nightsByMonth,
     levy, collectedLevy, platformFees,

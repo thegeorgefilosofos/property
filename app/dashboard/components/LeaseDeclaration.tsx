@@ -19,6 +19,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Modal, Spinner } from '@/components/Theme';
 import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide-react';
 import { notifyError } from '@/components/Toast';
+import { must } from '@/lib/supabase/must';
 import {
   buildLeaseDeclaration, declarationSheet, RULES,
   type LeaseDeclarationInput, type DeclField,
@@ -45,43 +46,72 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
     // στο σώμα του effect (cascading renders).
     (async () => {
       if (alive) setLoading(true);
-      const [{ data: prop }, { data: tenants }, { data: settings }] = await Promise.all([
-        supabase.from('user_properties').select('name,atak,address,postal_code,sqm,floor,type,ownership').eq('id', propertyId).maybeSingle(),
-        supabase.from('tenants').select('full_name,afm,id_doc_type,id_doc_number,email,phone,lease_start,lease_end,monthly_rent')
-          .eq('property_id', propertyId).order('created_at', { ascending: false }).limit(1),
-        // ΚΛΕΙΔΙ ΑΚΙΝΗΤΟΥ, ΟΧΙ ΧΡΗΣΤΗ.
+      try {
+        const [prop, tenants, settings] = await Promise.all([
+          // ΤΑ ΟΝΟΜΑΤΑ ΤΩΝ ΣΤΗΛΩΝ ΟΠΩΣ ΤΑ ΕΧΕΙ Η ΒΑΣΗ, ΟΧΙ ΟΠΩΣ ΤΑ ΛΕΜΕ ΕΜΕΙΣ.
+          //
+          // Εδώ ζητούσε στήλη `type`. Ο πίνακας έχει `prop_type` — `type` δεν υπάρχει.
+          // Το PostgREST δεν αγνοεί την άγνωστη στήλη: απορρίπτει ΟΛΟΚΛΗΡΟ το ερώτημα
+          // (42703). Δηλαδή δεν χανόταν ο τύπος του ακινήτου· χάνονταν ΜΑΖΙ ΤΟΥ το
+          // ΑΤΑΚ, η διεύθυνση, ο ΤΚ και τα τετραγωνικά.
+          //
+          // Τι έβλεπε ο ιδιοκτήτης: ανοίγει τη Δήλωση Μίσθωσης —διαδικασία με νομική
+          // προθεσμία και πρόστιμο— και ΟΛΑ τα πεδία του ακινήτου έγραφαν «λείπει»,
+          // με οδηγία να πάει να τα συμπληρώσει στην καρτέλα Ακίνητο. Ήταν ήδη
+          // συμπληρωμένα. Ξανάβρισκε το 11ψήφιο ΑΤΑΚ από το Ε9 για να ξεμπλοκάρει
+          // κάτι που δεν ήταν ποτέ κενό.
+          must(supabase.from('user_properties').select('name,atak,address,postal_code,sqm,floor,prop_type,ownership').eq('id', propertyId).maybeSingle()),
+          // Ίδιο σφάλμα, δεύτερο σκέλος: ο πίνακας `tenants` ΔΕΝ έχει `created_at`,
+          // έχει `updated_at`. Η ταξινόμηση σε ανύπαρκτη στήλη ρίχνει το ερώτημα
+          // ακριβώς όπως η ανύπαρκτη στήλη στο select, οπότε «έλειπαν» και το
+          // ονοματεπώνυμο και το ΑΦΜ του μισθωτή και οι ημερομηνίες και το μίσθωμα —
+          // δηλαδή η μισή δήλωση. Το `updated_at` είναι ό,τι ζητούν ήδη οι υπόλοιπες
+          // οθόνες για «τον τρέχοντα μισθωτή» (π.χ. ObligationsPanel).
+          must(supabase.from('tenants').select('full_name,afm,id_doc_type,id_doc_number,email,phone,lease_start,lease_end,monthly_rent')
+            .eq('property_id', propertyId).order('updated_at', { ascending: false }).limit(1)),
+          // ΚΛΕΙΔΙ ΑΚΙΝΗΤΟΥ, ΟΧΙ ΧΡΗΣΤΗ.
+          //
+          // Εδώ έγραφε `.eq('user_id', userId).maybeSingle()`. Ο πίνακας όμως έχει
+          // `UNIQUE (property_id)`: μία γραμμή ανά ΑΚΙΝΗΤΟ. Ιδιοκτήτης με δύο ακίνητα
+          // έχει δύο γραμμές, και το `.maybeSingle()` πάνω σε δύο γραμμές ΔΕΝ γυρίζει
+          // την πρώτη — γυρίζει σφάλμα. Το σφάλμα δεν διαβαζόταν (μόνο το `data`),
+          // άρα `settings` γινόταν null σιωπηλά.
+          //
+          // Τι έβλεπε ο χρήστης: ανοίγει τη δήλωση μισθωτηρίου και του λέει ότι
+          // λείπουν το ονοματεπώνυμο και το ΑΦΜ εκμισθωτή — ενώ τα έχει συμπληρώσει
+          // και στα δύο ακίνητα. Ο έλεγχος του lib/tax/leaseDeclaration.ts ζητά το ΑΦΜ
+          // ως υποχρεωτικό, οπότε μια νόμιμη δήλωση μπλόκαρε από ένα λάθος φίλτρο.
+          // Και με ΕΝΑ ακίνητο δούλευε, άρα δεν φαινόταν ποτέ στη δοκιμή.
+          must(supabase.from('property_settings').select('owner_name,owner_afm').eq('property_id', propertyId).maybeSingle()),
+        ]);
+        const t = (tenants || [])[0] as Record<string, unknown> | undefined;
+        const p = prop as Record<string, unknown> | null;
+        const s = settings as Record<string, unknown> | null;
+        if (!alive) return;
+        setInput({
+          owner: { name: (s?.owner_name as string) ?? null, afm: (s?.owner_afm as string) ?? null },
+          property: { name: (p?.name as string) ?? null, atak: (p?.atak as string) ?? null, address: (p?.address as string) ?? null,
+                      postalCode: (p?.postal_code as string) ?? null, sqm: (p?.sqm as number) ?? null,
+                      floor: (p?.floor as string) ?? null, type: (p?.prop_type as string) ?? null,
+                      ownershipPct: (p?.ownership as number) ?? null },
+          tenant: { fullName: (t?.full_name as string) ?? null, afm: (t?.afm as string) ?? null,
+                    idDocType: (t?.id_doc_type as string) ?? null, idDocNumber: (t?.id_doc_number as string) ?? null,
+                    email: (t?.email as string) ?? null, phone: (t?.phone as string) ?? null },
+          lease: { start: (t?.lease_start as string) ?? null, end: (t?.lease_end as string) ?? null,
+                   monthlyRent: (t?.monthly_rent as number) ?? null },
+        });
+      } catch (e) {
+        // ΤΟ ΣΦΑΛΜΑ ΤΗΣ ΑΝΑΓΝΩΣΗΣ ΠΡΕΠΕΙ ΝΑ ΑΚΟΥΓΕΤΑΙ.
         //
-        // Εδώ έγραφε `.eq('user_id', userId).maybeSingle()`. Ο πίνακας όμως έχει
-        // `UNIQUE (property_id)`: μία γραμμή ανά ΑΚΙΝΗΤΟ. Ιδιοκτήτης με δύο ακίνητα
-        // έχει δύο γραμμές, και το `.maybeSingle()` πάνω σε δύο γραμμές ΔΕΝ γυρίζει
-        // την πρώτη — γυρίζει σφάλμα. Το σφάλμα δεν διαβαζόταν (μόνο το `data`),
-        // άρα `settings` γινόταν null σιωπηλά.
-        //
-        // Τι έβλεπε ο χρήστης: ανοίγει τη δήλωση μισθωτηρίου και του λέει ότι
-        // λείπουν το ονοματεπώνυμο και το ΑΦΜ εκμισθωτή — ενώ τα έχει συμπληρώσει
-        // και στα δύο ακίνητα. Ο έλεγχος του lib/tax/leaseDeclaration.ts ζητά το ΑΦΜ
-        // ως υποχρεωτικό, οπότε μια νόμιμη δήλωση μπλόκαρε από ένα λάθος φίλτρο.
-        // Και με ΕΝΑ ακίνητο δούλευε, άρα δεν φαινόταν ποτέ στη δοκιμή.
-        supabase.from('property_settings').select('owner_name,owner_afm').eq('property_id', propertyId).maybeSingle(),
-      ]);
-      const t = (tenants || [])[0] as Record<string, unknown> | undefined;
-      const p = prop as Record<string, unknown> | null;
-      const s = settings as Record<string, unknown> | null;
-      if (!alive) return;
-      setInput({
-        owner: { name: (s?.owner_name as string) ?? null, afm: (s?.owner_afm as string) ?? null },
-        property: { name: (p?.name as string) ?? null, atak: (p?.atak as string) ?? null, address: (p?.address as string) ?? null,
-                    postalCode: (p?.postal_code as string) ?? null, sqm: (p?.sqm as number) ?? null,
-                    floor: (p?.floor as string) ?? null, type: (p?.type as string) ?? null,
-                    ownershipPct: (p?.ownership as number) ?? null },
-        tenant: { fullName: (t?.full_name as string) ?? null, afm: (t?.afm as string) ?? null,
-                  idDocType: (t?.id_doc_type as string) ?? null, idDocNumber: (t?.id_doc_number as string) ?? null,
-                  email: (t?.email as string) ?? null, phone: (t?.phone as string) ?? null },
-        lease: { start: (t?.lease_start as string) ?? null, end: (t?.lease_end as string) ?? null,
-                 monthlyRent: (t?.monthly_rent as number) ?? null },
-      });
-      if (!alive) return;
-      setLoading(false);
+        // Πριν διαβαζόταν μόνο το `data` και το `error` πεταγόταν. Γι' αυτό οι δύο
+        // λάθος στήλες παραπάνω έζησαν τόσο: η οθόνη δεν χάλαγε, απλώς έλεγε
+        // «λείπει» σε όλα. Ο ιδιοκτήτης νόμιζε ότι φταίει η δική του καταχώρηση και
+        // πήγαινε να την ξαναγράψει. Αν ξαναμετονομαστεί στήλη, τώρα θα φανεί ως
+        // σφάλμα αντί για ψεύτικα κενά πεδία.
+        if (alive) notifyError(`Δεν φορτώθηκαν τα στοιχεία της δήλωσης: ${e instanceof Error ? e.message : 'άγνωστο σφάλμα'}`);
+      } finally {
+        if (alive) setLoading(false);
+      }
     })();
     return () => { alive = false; };
   }, [open, propertyId, userId, supabase]);
