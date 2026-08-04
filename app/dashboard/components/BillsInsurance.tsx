@@ -619,8 +619,36 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   // την πραγματική ασφαλιστική και τη λήξη του χρήστη με τις προεπιλογές.
   const [syncError, setSyncError] = useState(false);
   const propertySyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── ΓΡΑΦΟΥΜΕ ΜΟΝΟ ΟΤΑΝ ΑΛΛΑΞΕ ΚΑΤΙ ΠΡΑΓΜΑΤΙΚΑ ──────────────────────────────
+  //
+  // Ο έλεγχος `loading` ΔΕΝ αρκεί, και παραλίγο να κοστίσει δεδομένα χρήστη.
+  // Το BillsSettings, όταν η ανάγνωση των ρυθμίσεων ΑΠΟΤΥΧΕΙ, δεν διαβάζει το
+  // σφάλμα: πέφτει στις προεπιλογές και θέτει loading=false. Δηλαδή «απέτυχε η
+  // ανάγνωση» και «δεν υπάρχει γραμμή» καταλήγουν στην ΙΔΙΑ κατάσταση.
+  //
+  // Με φύλακα μόνο το `loading`, 1,2 δευτερόλεπτα μετά το άνοιγμα της καρτέλας
+  // το effect θα έγραφε «Hellas Direct», 8,50 € και ΚΕΝΗ ημερομηνία λήξης πάνω
+  // από την πραγματική ασφαλιστική του χρήστη — σιωπηλά, χωρίς καμία ενέργειά
+  // του. Θα έσβηνε μαζί και την υποχρέωση και το insight που διαβάζουν το
+  // insurance_expiry, δηλαδή ΑΚΡΙΒΩΣ την υπενθύμιση που αυτή η διόρθωση
+  // υποτίθεται ότι αποκατέστησε.
+  //
+  // Η υπογραφή της φορτωμένης κατάστασης κρατιέται μόλις τελειώσει η φόρτωση.
+  // Όσο η τρέχουσα τιμή είναι ίδια με εκείνη, δεν υπάρχει τίποτα να γραφτεί —
+  // ούτε όταν αυτή προήλθε από προεπιλογές μετά από αποτυχία. Γράφουμε μόνο
+  // όταν ο χρήστης άλλαξε κάτι, που είναι και το μόνο που θέλαμε ποτέ.
+  const insSignature = `${insCompany?.label ?? ''}|${insCost}|${insRenewalDate ?? ''}`;
+  const loadedSignature = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading) { loadedSignature.current = null; return; }
+    if (loadedSignature.current === null) loadedSignature.current = insSignature;
+  }, [loading, insSignature]);
+
   useEffect(() => {
     if (!propertyId || loading) return;
+    if (loadedSignature.current === null) return;        // δεν κατοχυρώθηκε ακόμη βάση
+    if (insSignature === loadedSignature.current) return; // τίποτα δεν άλλαξε
     if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current);
     propertySyncTimer.current = setTimeout(async () => {
       const { error } = await supabase.from('user_properties').update({
@@ -631,7 +659,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       setSyncError(!!error);
     }, 1200); // debounce, αποφυγή write σε κάθε keystroke
     return () => { if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current); };
-  }, [propertyId, loading, insCompany?.label, insCost, insRenewalDate]);
+  }, [propertyId, loading, insSignature, insCompany?.label, insCost, insRenewalDate]);
 
   // ── Auto-sync ανανέωσης ασφάλειας → calendar_events ──────────────────────────
   useEffect(() => {
