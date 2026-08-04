@@ -40,6 +40,9 @@ import {
   speakingLabel, settingsTitle, noKeyNotice,
 } from '@/lib/assistant/identity';
 import { classifyExpense } from '@/lib/expenses/classify';
+// Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει, ώστε τα
+// try/catch αυτού του αρχείου να λένε αλήθεια. Βλ. lib/supabase/must.ts.
+import { must } from '@/lib/supabase/must';
 import { inferRole, roleLabel } from '@/lib/contacts/roles';
 import { upcomingHolidays, holidayName, isWeekend } from '@/lib/calendar/greekHolidays';
 
@@ -557,13 +560,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
     const monthLbl = useDate !== today ? ` (${MON_GR[new Date(useDate).getMonth()]})` : '';
     try {
-      await supabase.from('expenses').insert({
+      await must(supabase.from('expenses').insert({
         property_id: propertyId, user_id: userId,
         description: description.slice(0, 120), amount,
         category, expense_group: group,
         date: useDate,
         paid_by: 'owner', payment_method: 'cash', paid: true,
-      });
+      }));
       setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα δαπάνη
       loadContext();
       setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'expenses' } }]);
@@ -603,12 +606,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const today = new Date().toISOString().split('T')[0];
       if (billHits.length === 1) {
         const b = billHits[0];
-        await supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', b.id);
-        await supabase.from('expenses').update({ paid: true }).eq('bill_id', b.id);
+        await must(supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', b.id));
+        await must(supabase.from('expenses').update({ paid: true }).eq('bill_id', b.id));
         setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τον λογαριασμό «${b.name}» ${eur(b.amount)} ως πληρωμένο.`, action: { type: 'go', tab: 'finances' } }]);
       } else {
         const r = rentHits[0];
-        await supabase.from('rent_payments').update({ paid: true, paid_date: today }).eq('id', r.id);
+        await must(supabase.from('rent_payments').update({ paid: true, paid_date: today }).eq('id', r.id));
         setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τη δόση «${r.label}» ${eur(r.amount)} ως πληρωμένη.`, action: { type: 'go', tab: 'tenant' } }]);
       }
       setCtxStr(''); loadContext();
@@ -623,7 +626,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (!c) { setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα ξεκάθαρα ποιον πελάτη εννοείς με «${who}». Πες μου το ακριβές όνομα ή το τηλέφωνο, ή δες το πελατολόγιο.`, action: { type: 'go', tab: 'clients' } }]); return; }
     const next = !c.vip;
     try {
-      await supabase.from('clients').update({ vip: next }).eq('id', c.id).eq('user_id', userId);
+      await must(supabase.from('clients').update({ vip: next }).eq('id', c.id).eq('user_id', userId));
       c.vip = next; setClientsStr(''); loadContext();
       setMsgs(m => [...m, { role: 'assistant', text: next ? `Έγινε. Σήμανα τον/την «${c.name}» ως VIP. Θα εμφανίζεται στο φίλτρο VIP του πελατολογίου.` : `Έγινε. Αφαίρεσα το VIP από τον/την «${c.name}».`, action: { type: 'go', tab: 'clients' } }]);
     } catch {
@@ -636,7 +639,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const c = findClient(who);
     if (!c) { setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα ξεκάθαρα τον πελάτη «${who}». Πες μου ακριβές όνομα ή τηλέφωνο, ή άνοιξε το πελατολόγιο.`, action: { type: 'go', tab: 'clients' } }]); return; }
     try {
-      const { data } = await supabase.from('checkin_links').upsert({ user_id: userId, client_id: c.id, property_id: propertyId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle();
+      const data = await must(supabase.from('checkin_links').upsert({ user_id: userId, client_id: c.id, property_id: propertyId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle());
       if (data?.token) {
         const url = `${window.location.origin}/checkin/${data.token}`;
         try { await navigator.clipboard.writeText(url); } catch { /* το εμφανίζουμε ούτως ή άλλως */ }
@@ -651,11 +654,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const registerContact = async (name: string, phone?: string, role?: string) => {
     const roleValue = inferRole(role || name);
     try {
-      await supabase.from('contacts').insert({
+      await must(supabase.from('contacts').insert({
         property_id: propertyId, user_id: userId,
         full_name: name.slice(0, 120), role: roleValue,
         phone: phone || null, email: null, notes: null,
-      });
+      }));
       setMsgs(m => [...m, { role: 'assistant', text: `Την κράτησα. Πρόσθεσα τον/την «${name}»${phone ? ` (${phone})` : ''} στις Επαφές του ακινήτου. Θέλεις να ανοίξω τις Επαφές για να προσθέσεις κι άλλα;`, action: { type: 'go', tab: 'contacts' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω την επαφή τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Επαφές.' }]);
@@ -665,12 +668,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Καταχώρηση αντικειμένου στην Απογραφή (από τη συνομιλία, με φωνή/κείμενο ή φωτο).
   const registerInventory = async (a: { name: string; category?: string; value?: number; brand?: string; model?: string; room?: string }) => {
     try {
-      await supabase.from('inventory_items').insert({
+      await must(supabase.from('inventory_items').insert({
         property_id: propertyId, user_id: userId,
         name: a.name.slice(0, 120), category: a.category || 'Λοιπά',
         brand: a.brand || null, model: a.model || null, room: a.room || null,
         purchase_value: a.value || 0, condition: 'Καλή',
-      });
+      }));
       setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα στην Απογραφή: «${a.name}»${a.value ? ` (αξία ${a.value}€)` : ''}. Θέλεις να ανοίξω την Απογραφή για να προσθέσεις φωτογραφία, εγγύηση ή άλλες λεπτομέρειες;`, action: { type: 'go', tab: 'inventory' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταγράψω τώρα. Δοκίμασε από την καρτέλα Απογραφή.' }]);
@@ -681,13 +684,18 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Συγχωνεύεται στη ρύθμιση bills_settings section 'vaults' — ίδιο μοντέλο με την καρτέλα.
   const createVault = async (a: { name: string; target: number; due?: string }) => {
     try {
-      const { data: cur } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle();
+      // Η ΑΝΑΓΝΩΣΗ ΕΔΩ ΕΙΝΑΙ ΚΡΙΣΙΜΗ, ΟΧΙ ΒΟΗΘΗΤΙΚΗ.
+      // Το upsert από κάτω γράφει ΟΛΟΚΛΗΡΗ τη λίστα κουμπαράδων. Αν η ανάγνωση
+      // αποτύχει σιωπηλά, το `existing` γίνεται κενός πίνακας και ο νέος
+      // κουμπαράς ΣΒΗΝΕΙ όλους τους προηγούμενους — χωρίς μήνυμα, με τον χρήστη
+      // να διαβάζει «Τον έφτιαξα».
+      const cur = await must(supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle());
       const existing = ((cur?.data as { vaults?: any[] } | null)?.vaults) || [];
       const nv = { id: `v_${Date.now().toString(36)}_${Math.round(Math.random() * 1e6).toString(36)}`, name: a.name.slice(0, 60), target: a.target, current: 0, ...(a.due ? { due: a.due } : {}) };
-      await supabase.from('bills_settings').upsert(
+      await must(supabase.from('bills_settings').upsert(
         { property_id: propertyId, user_id: userId, section: 'vaults', data: { vaults: [...existing, nv] } },
         { onConflict: 'property_id,section' },
-      );
+      ));
       setCtxStr('');   // ακύρωσε την προσωρινή εικόνα ώστε να ξαναδιαβαστούν τα σύνολα κουμπαράδων
       loadContext();
       const dueStr = a.due ? ` έως ${new Date(a.due).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}` : '';
@@ -708,18 +716,22 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const est = a.est_cost || 0;
     const today = new Date().toISOString().split('T')[0];
     try {
-      const { data: ins } = await supabase.from('checklist_items').insert({
+      const ins = await must(supabase.from('checklist_items').insert({
         property_id: propertyId, user_id: userId, description: d,
         category, priority, recurring: 'none', due_date: due,
         status: 'pending', completed: false, note: null,
         estimated_cost: est, actual_cost: 0, sort_order: 0,
-      }).select('id').single();
+      }).select('id').single());
       const newId = (ins as { id?: string } | null)?.id;
       // Κύκλωμα: ημερολόγιο (email υπενθύμιση) + εκκρεμής δαπάνη.
+      // Η κατηγορία της δαπάνης βγαίνει από την ταξινομία (μία πηγή), όχι από
+      // σταθερό κείμενο: ένα χειρόγραφο «Συντήρηση & Επισκευές» ήταν πέμπτη
+      // εκδοχή ονόματος κατηγορίας, και η ομάδα του δίπλα του ήταν ανεξάρτητη.
+      const taskCat = classifyExpense(d);
       let calId: string | null = null, expId: string | null = null;
-      if (newId && due) { const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: d, event_date: due, category: 'maintenance', amount: est, priority: priority === 'normal' ? 'medium' : priority, status: 'pending', recurring: false, source: 'checklist' }).select('id').single(); calId = (data as { id?: string } | null)?.id || null; }
-      if (newId && est > 0) { const { data } = await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, description: d, amount: est, category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance', date: due || today, paid_by: 'owner', paid: false, notes: 'Προγραμματισμένη εκκρεμότητα' }).select('id').single(); expId = (data as { id?: string } | null)?.id || null; }
-      if (newId && (calId || expId)) await supabase.from('checklist_items').update({ calendar_event_id: calId, expense_id: expId }).eq('id', newId);
+      if (newId && due) { const data = await must(supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: d, event_date: due, category: 'maintenance', amount: est, priority: priority === 'normal' ? 'medium' : priority, status: 'pending', recurring: false, source: 'checklist' }).select('id').single()); calId = (data as { id?: string } | null)?.id || null; }
+      if (newId && est > 0) { const data = await must(supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, description: d, amount: est, category: taskCat.category, expense_group: taskCat.group, date: due || today, paid_by: 'owner', paid: false, notes: 'Προγραμματισμένη εκκρεμότητα' }).select('id').single()); expId = (data as { id?: string } | null)?.id || null; }
+      if (newId && (calId || expId)) await must(supabase.from('checklist_items').update({ calendar_event_id: calId, expense_id: expId }).eq('id', newId));
       const bits: string[] = [];
       if (due) bits.push('προθεσμία + υπενθύμιση email');
       if (est > 0) bits.push(`~${est}€ στον προϋπολογισμό`);
@@ -734,10 +746,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const raw = (a.ctype || '').toLowerCase();
     const ctype: ClientType = /owner|ιδιοκτ/.test(raw) ? 'owner' : /client|πελατ/.test(raw) ? 'client' : 'lead';
     try {
-      await supabase.from('clients').insert({
+      await must(supabase.from('clients').insert({
         user_id: userId, full_name: a.name, type: ctype,
         phone: a.phone || null, afm: a.afm || null, stage: 'lead',
-      });
+      }));
       setClientsStr('');
       loadContext();
       setMsgs(m => [...m, { role: 'assistant', text: `Τον καταχώρησα. Πρόσθεσα τον/την «${a.name}»${a.phone ? ` (${a.phone})` : ''} στο Πελατολόγιο ως ${CLIENT_TYPE_LABELS[ctype]}. Θέλεις να ανοίξω την καρτέλα για να συμπληρώσεις κι άλλα στοιχεία;`, action: { type: 'go', tab: 'clients' } }]);
@@ -762,12 +774,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         setMsgs(m => [...m, { role: 'assistant', text: `Υπάρχει ήδη «${title}» για εκείνη την ημερομηνία στο Ημερολόγιο, δεν το ξαναπρόσθεσα. Θέλεις να το δεις;`, action: { type: 'go', tab: 'calendar' } }]);
         return;
       }
-      await supabase.from('calendar_events').insert({
+      await must(supabase.from('calendar_events').insert({
         property_id: propertyId, user_id: userId, title, category,
         event_date: date, event_time: time || null, duration_minutes: time ? 60 : null,
         priority: 'high', status: 'pending', source: 'assistant',
         notes: `Ραντεβού που προγραμμάτισε ${ASSISTANT_NAME}. Θα σταλεί υπενθύμιση πριν λήξει (email, εφόσον είναι ενεργές οι ειδοποιήσεις· με ένα άγγιγμα και σε Viber/WhatsApp).`,
-      });
+      }));
       const whenStr = `${new Date(date).toLocaleDateString('el-GR')}${time ? ` στις ${time}` : ''}`;
       setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για ${whenStr} στο Ημερολόγιο και θα σου θυμίσω πριν λήξει. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
     } catch {
