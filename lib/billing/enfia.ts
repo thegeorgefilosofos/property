@@ -165,3 +165,64 @@ export function estimateENFIAFromFacts(facts: { value?: number | null; sqm?: num
   // propertyValue = totalValue = value, ώστε να εφαρμοστεί σωστά η Ενότητα Γ.
   return estimateENFIA({ sqm, zone, totalValue: value, propertyValue: value, reductions: [] })
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΠΟΙΟ ΝΟΥΜΕΡΟ ΕΙΝΑΙ Ο ΕΝΦΙΑ — ΜΙΑ ΑΠΟΦΑΣΗ ΓΙΑ ΟΛΕΣ ΤΙΣ ΟΘΟΝΕΣ.
+//
+// Η ΔΙΑΦΩΝΙΑ, ΜΕΤΡΗΜΕΝΗ
+// Δύο οθόνες διάβαζαν τον ίδιο φόρο και έβγαζαν διαφορετικό ποσό:
+//
+//   Υπηρεσίες  →  enfiaResult ? εκτίμηση : χειροκίνητο   (η ΕΚΤΙΜΗΣΗ νικούσε)
+//   Προϋπολογισμός → μόνο το χειροκίνητο                 (η εκτίμηση αγνοούνταν)
+//
+// Δύο συνέπειες, καμία ορατή:
+//   • Όποιος έγραψε το πραγματικό ποσό από το εκκαθαριστικό και μετά συμπλήρωσε
+//     ζώνη για να δει τις εκπτώσεις, έβλεπε το πραγματικό του νούμερο να
+//     ΑΝΤΙΚΑΘΙΣΤΑΤΑΙ από εκτίμηση — και το πεδίο να εξαφανίζεται από την οθόνη.
+//   • Όποιος χρησιμοποίησε μόνο τον υπολογιστή, έβλεπε στις Υπηρεσίες π.χ. 43 €
+//     τον μήνα και στον Προϋπολογισμό 0 €, για το ίδιο ακίνητο, την ίδια στιγμή.
+//
+// Ο ΚΑΝΟΝΑΣ: ΤΟ ΔΗΛΩΜΕΝΟ ΝΙΚΑ ΤΗΝ ΕΚΤΙΜΗΣΗ, ΠΑΝΤΑ.
+// Το ποσό που αντέγραψε ο ιδιοκτήτης από το εκκαθαριστικό της ΑΑΔΕ είναι γεγονός.
+// Ο υπολογιστής είναι μοντέλο — χρήσιμο για «τι θα γινόταν αν», ποτέ αντικαταστάτης
+// του γεγονότος. Και η οθόνη ΠΡΕΠΕΙ να λέει ποιο από τα δύο δείχνει: ένα ποσό
+// φόρου χωρίς σήμανση διαβάζεται ως βεβαιότητα.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Από πού προήλθε το ποσό που δείχνουμε. Το `none` σημαίνει «δεν ξέρουμε ακόμη». */
+export type EnfiaSource = 'declared' | 'estimate' | 'none'
+
+export interface EnfiaInUse {
+  annual: number
+  monthly: number
+  source: EnfiaSource
+}
+
+const numOr0 = (v: unknown): number => {
+  const n = parseFloat(String(v ?? '').replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+/**
+ * Το ποσό ΕΝΦΙΑ που ισχύει, με την πηγή του.
+ *
+ * @param declaredAnnual   τι έγραψε ο χρήστης ως ετήσιο (από το εκκαθαριστικό)
+ * @param declaredMonthly  τι έγραψε ως μηνιαίο — χρησιμοποιείται μόνο αν λείπει το ετήσιο
+ * @param estimateAnnual   το ετήσιο ποσό του υπολογιστή, ή null/0 αν δεν υπολογίστηκε
+ *
+ * Το τρίτο όρισμα είναι ΑΡΙΘΜΟΣ, όχι ENFIAResult: οι οθόνες κρατούν το αποτέλεσμα
+ * σε δικά τους σχήματα (άλλη λέει `final`, άλλη `annual`) και μια τυπωμένη
+ * υπογραφή θα ζητούσε μετατροπές στο σημείο κλήσης — δηλαδή ακριβώς τη χειροκίνητη
+ * προσαρμογή που γεννά αποκλίσεις.
+ */
+export function enfiaInUse(
+  declaredAnnual: unknown,
+  declaredMonthly: unknown,
+  estimateAnnual: number | null | undefined,
+): EnfiaInUse {
+  const annual = numOr0(declaredAnnual) || numOr0(declaredMonthly) * 12
+  if (annual > 0) return { annual: round2(annual), monthly: round2(annual / 12), source: 'declared' }
+  const est = numOr0(estimateAnnual)
+  if (est > 0) return { annual: round2(est), monthly: round2(est / 12), source: 'estimate' }
+  return { annual: 0, monthly: 0, source: 'none' }
+}

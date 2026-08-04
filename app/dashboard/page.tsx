@@ -2,10 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
-import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, type PropertyStatus } from '@/lib/property/status';
+import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
 import { tabDecision, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
 import { HAS_BUSINESS } from '@/lib/accounting/dossier';
 import AmaStrip from './components/AmaStrip';
@@ -52,7 +51,7 @@ import UpgradeModal from './components/UpgradeModal';
 import FeatureLock, { LockBadge } from './components/FeatureLock';
 import { PLANS } from '@/lib/billing/plans';
 import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
-import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, type DisclosureSignals } from '@/lib/nav/disclosure';
+import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, CORE_TABS, type DisclosureSignals } from '@/lib/nav/disclosure';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -160,6 +159,14 @@ const NAV_ICON: Record<string,string> = {
 // Δομή πλοήγησης (ίδια για ιδιώτη/επαγγελματία· αλλάζει μόνο η κεφαλίδα «Ακίνητά
 // μου» / «Χαρτοφυλάκιό μου» και το πότε ενεργοποιείται η «Σύγκριση ακινήτων»).
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
+  // Το Χαρτοφυλάκιο ΕΛΕΙΠΕ εντελώς από το μενού. Αποδιδόταν μόνο όταν
+  // nav==='portfolio', και κανένα κουμπί δεν έθετε ποτέ αυτή την τιμή: ο μόνος
+  // δρόμος ήταν το ⌘K. Δηλαδή σε tablet ή κινητό ήταν απρόσιτο — ενώ το
+  // PROFESSIONAL_CORE_TABS το δηλώνει βασική καρτέλα του επαγγελματία, μαζί με
+  // τους Πελάτες που ΕΙΝΑΙ στο μενού. Η μεγάλη εικόνα του χαρτοφυλακίου μπαίνει
+  // πρώτη, πριν από το Ημερολόγιο. Ο ιδιώτης δεν το βλέπει: δεν είναι βασικό
+  // για το προφίλ του και δεν είναι καν αγοράσιμο, άρα τα φίλτρα το κόβουν.
+  { label: '',                    ids: ['portfolio'] },
   { label: '',                    ids: ['calendar'] },
   // Το Σχέδιο δεν ανήκει σε ομάδα: εμφανίζεται μόνο σε ακίνητο κενό, προς πώληση,
   // σε ανακαίνιση ή σε νομική εκκρεμότητα — και τότε είναι η κύρια δουλειά του
@@ -186,14 +193,31 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
 // η πλοήγηση τους συνδύαζε ούτως ή άλλως με «και».
 const SELF_DISCLOSING = new Set(['plan', 'pricing', 'roi', 'comparison']);
 
-// Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
+
+// ── Κάτω μπάρα κινητού ────────────────────────────────────────────────────
+// ΔΕΝ είναι χειρόγραφη λίστα. Παράγεται από τις CORE_TABS, δηλαδή από την ΙΔΙΑ
+// δήλωση προτεραιότητας που χρησιμοποιεί και η σταδιακή αποκάλυψη.
+//
+// ΓΙΑΤΙ ΑΛΛΑΞΕ: η μπάρα είναι το πιο προσβάσιμο σημείο σε κινητό — τέσσερις
+// προορισμοί σε ένα άγγιγμα, όλα τα υπόλοιπα δύο. Η χειρόγραφη λίστα έδινε
+// θέση στο «Αρχείο», που δεν είναι καν βασική καρτέλα, ενώ έστελνε τη
+// «Λογιστική» κάτω από το «Μενού» — την καρτέλα που ο ίδιος ο ορισμός των
+// CORE_TABS περιγράφει ως «ο λόγος που έψαξε λύση». Η ιεράρχηση έλεγε ένα
+// πράγμα και η οθόνη έκανε άλλο.
+//
+// Το «Αρχείο» δεν χάνεται: μένει ένα άγγιγμα πιο μακριά, και η ΚΑΤΑΓΡΑΦΗ
+// εγγράφου — που είναι η πραγματική δουλειά στο κινητό — γίνεται ούτως ή άλλως
+// από τη γρήγορη καταχώρηση με φωτογραφία και από τον βοηθό, όχι από εδώ.
+//
+// Παράγοντάς τη, τα ονόματα και τα εικονίδια δεν ξαναγράφονται: έρχονται από
+// NAV_LABEL/NAV_ICON. Πριν, το ίδιο εικονίδιο υπήρχε δύο φορές στο αρχείο.
 const BOTTOM_NAV = [
-  { id:'overview', label:'Επισκόπηση', icon: ic('M3 9.5 12 3l9 6.5|M5 10v10h14V10') },
-  { id:'finances', label:'Δαπάνες',   icon: ic('M3 12h4l3 8 4-16 3 8h4') },
-  { id:'documents',label:'Αρχείο',    icon: ic('M4 4h6l2 3h8v13H4z') },
-  { id:'calendar', label:'Ημερολόγιο', icon: ic('M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4') },
-  { id:'more',     label:'Μενού',      icon: ic('M4 6h16|M4 12h16|M4 18h16') },
+  ...CORE_TABS
+    .filter(id => id !== 'settings')   // ο λογαριασμός ανήκει στο μενού, όχι στη μπάρα
+    .slice(0, 4)
+    .map(id => ({ id, label: NAV_LABEL[id], icon: ic(NAV_ICON[id]) })),
+  { id:'more', label:'Μενού', icon: ic('M4 6h16|M4 12h16|M4 18h16') },
 ];
 
 const fmt = (n:number|null|undefined, decimals=0) =>
@@ -336,6 +360,9 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
+/** Πλακίδια που έχουν νόημα ΜΟΝΟ σε ακίνητο που αποδίδει (μακροχρόνια ή βραχυχρόνια). */
+const INCOME_ONLY_KPIS = new Set(['Μηνιαίο Ενοίκιο', 'Μεικτή Απόδοση', 'Καθαρή Απόδοση']);
+
 function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
    *  είναι προοδευτική στο σύνολο του φορολογούμενου, όχι ανά ακίνητο. */
@@ -618,7 +645,16 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
             sub: expDeltaPct!=null ? { text:`${expDeltaPct>0?'+':expDeltaPct<0?'−':''}${Math.abs(expDeltaPct)}% από το ίδιο διάστημα πέρσι`, color: expDeltaPct>0?'var(--negative)':expDeltaPct<0?'var(--positive)':'var(--text-tertiary)' } : undefined },
           { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
             color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
-        ].map((k,i) => (
+        // ΕΝΟΙΚΙΟ ΚΑΙ ΑΠΟΔΟΣΕΙΣ ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΕΣΟΔΟ.
+        //
+        // Τα τρία πρώτα πλακίδια εμφανίζονταν ΠΑΝΤΑ. Σε ακίνητο σε ιδιοχρησία ή
+        // κενό, το resolveRent πέφτει στο `target_rent` — που ο ιδιοκτήτης
+        // μπορεί να έχει συμπληρώσει ως στόχο — και η Επισκόπηση έδειχνε
+        // «Μηνιαίο Ενοίκιο 700 €» και «Καθαρή Απόδοση 3,8%» για ακίνητο που δεν
+        // αποδίδει τίποτα. Απόδοση χωρίς έσοδο δεν είναι μέτρηση, είναι υπόθεση
+        // με ποσοστό δίπλα της — ακριβώς αυτό που το lib/property/visibility.ts
+        // έχει ήδη απαγορεύσει για την καρτέλα Αποδόσεις. Ίδιος κανόνας εδώ.
+        ].filter(k => isLet(prop) || !INCOME_ONLY_KPIS.has(k.label)).map((k,i) => (
           <div key={i} className="kpi-card" title={(k as any).title}>
             <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
@@ -904,6 +940,8 @@ export default function Dashboard() {
   const [navPrefsLoaded, setNavPrefsLoaded] = useState(false);
   const [navSignals, setNavSignals] = useState<DisclosureSignals>({});
   const [loading, setLoading] = useState(true);
+  /** Η ανάγνωση ακινήτων απέτυχε — ΔΙΑΦΟΡΕΤΙΚΟ από «δεν έχει ακίνητα». */
+  const [loadError, setLoadError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCopyInventory, setShowCopyInventory] = useState(false);
   const [statusDropdown, setStatusDropdown] = useState(false);
@@ -1045,7 +1083,15 @@ export default function Dashboard() {
   const showAllTabs = () => setNavShowAllPref(true);
 
   const fetchProperties = useCallback(async (uid: string) => {
-    const { data } = await supabase.from('user_properties').select('*').eq('user_id', uid).order('created_at');
+    // ΤΟ «ΔΕΝ ΔΙΑΒΑΣΤΗΚΕ» ΔΕΝ ΕΙΝΑΙ «ΔΕΝ ΕΧΕΙΣ ΤΙΠΟΤΑ».
+    //
+    // Το `error` πεταγόταν και το `data || []` έκανε την αποτυχία να μοιάζει με
+    // κενό χαρτοφυλάκιο: ο ιδιοκτήτης τριών ακινήτων, με κακό δίκτυο ή ληγμένο
+    // token, έβλεπε «Καλωσήρθες — πρόσθεσε το πρώτο σου ακίνητο». Το χειρότερο
+    // δεν είναι η λάθος οθόνη· είναι ότι πιστεύει πως έχασε τα δεδομένα του.
+    const { data, error } = await supabase.from('user_properties').select('*').eq('user_id', uid).order('created_at');
+    if (error) { setLoadError(true); return; }
+    setLoadError(false);
     const props = data || [];
     setProperties(props);
     if (props.length > 0 && !selected) setSelected(props[0]);
@@ -1267,6 +1313,23 @@ export default function Dashboard() {
   // την παλιά οθόνη.
   const navSafe = navVisible(nav) ? nav : 'overview';
 
+  // ── ΑΛΛΑΓΗ ΑΚΙΝΗΤΟΥ ΧΩΡΙΣ ΝΑ ΧΑΝΕΤΑΙ Η ΘΕΣΗ ────────────────────────────────
+  //
+  // Κάθε αλλαγή ακινήτου έκανε `setNav('overview')`. Ο ιδιοκτήτης με τρία ακίνητα
+  // που ήθελε να δει τις Δαπάνες και των τριών, έκανε έξι κλικ αντί για τρία:
+  // ακίνητο → Επισκόπηση (αθέλητα) → Δαπάνες, ξανά και ξανά. Η μία κίνηση που
+  // ζητούσε («δείξε μου το επόμενο») τον πήγαινε κάπου που δεν ζήτησε.
+  //
+  // Η επαναφορά ήταν και περιττή: το `navSafe` παραπάνω ήδη γυρίζει στην
+  // Επισκόπηση όταν η καρτέλα δεν ισχύει για το επιλεγμένο ακίνητο (κενό ακίνητο
+  // δεν έχει Απόδοση, μη μισθωμένο δεν έχει Ενοικιαστή). Δηλαδή ο μηδενισμός δεν
+  // προστάτευε από τίποτα· απλώς πετούσε τη θέση του χρήστη σε κάθε περίπτωση,
+  // ενώ ο έλεγχος έτρεχε ούτως ή άλλως.
+  //
+  // Τώρα: η καρτέλα κρατιέται όταν στέκει, και πέφτει στην Επισκόπηση μόνο όταν
+  // πραγματικά δεν αφορά το νέο ακίνητο.
+  const switchProperty = (p: Property) => { setSelected(p); setSidebarOpen(false); };
+
   // Εντολές command palette: μετάβαση σε tab, εναλλαγή ακινήτου, γρήγορες ενέργειες
   const cmdItems: CommandItem[] = [
     ...NAV_ITEMS.filter(item => isTabPurchasable(effProfileType, item.id) && navVisible(item.id)).map(item => ({
@@ -1276,7 +1339,8 @@ export default function Dashboard() {
     ...properties.map(p => ({
       id: `prop-${p.id}`, label: p.name, hint: 'Ακίνητο', group: 'Ακίνητα',
       keywords: `${p.address||''} ${PROP_TYPE_LABELS[p.prop_type||'']||''}`,
-      action: () => { setSelected(p); setNav('overview'); },
+      // Η καρτέλα ΔΕΝ μηδενίζεται στην αλλαγή ακινήτου — δες switchProperty.
+      action: () => switchProperty(p),
     })),
     { id: 'act-add', label: 'Προσθήκη ακινήτου', hint: 'Ενέργεια', keywords: 'new property add', action: () => tryAddProperty() },
     { id: 'act-signout', label: 'Αποσύνδεση', hint: 'Ενέργεια', keywords: 'logout sign out exit', action: () => signOut() },
@@ -1317,7 +1381,7 @@ export default function Dashboard() {
         <div className="sidebar-section">
           <div className="sidebar-section-label">{effProfileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
           {properties.map(p => (
-            <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p);setNav('overview');setSidebarOpen(false);}}}>
+            <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>switchProperty(p)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();switchProperty(p);}}}>
               <div className="prop-item-dot" style={{background:STATUS_COLORS[readStatus(p)]}}/>
               <span className="prop-item-name">{p.name}</span>
               <button className="prop-item-del" title="Διαγραφή ακινήτου και όλων των δεδομένων του" aria-label={`Διαγραφή ακινήτου ${p.name}`}
@@ -1485,14 +1549,23 @@ export default function Dashboard() {
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
                 <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
               </button>
-              <ThemeToggle />
             </>
           ) : (
-            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div><ThemeToggle /></>
+            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div></>
           )}
         </header>
 
-        {!selected ? (
+        {!selected && loadError ? (
+          <div className="app-content" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <div style={{maxWidth:460,width:'100%',textAlign:'center'}}>
+              <h1 style={{fontFamily: T.font.sans,fontSize:22,fontWeight:700,color:'var(--text-primary)',margin:'0 0 10px'}}>Δεν μπόρεσα να διαβάσω τα ακίνητά σου</h1>
+              <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 20px',maxWidth:400}}>
+                Τα δεδομένα σου είναι ασφαλή — απλώς δεν φορτώθηκαν τώρα. Συνήθως φταίει η σύνδεση.
+              </p>
+              <button onClick={()=>{ if(user) fetchProperties(user.id); }} style={{padding:'0 20px',height:T.h.md,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13.5,fontWeight:600,fontFamily:T.font.sans,cursor:'pointer'}}>Δοκίμασε ξανά</button>
+            </div>
+          </div>
+        ) : !selected ? (
           <div className="app-content" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
             <div style={{maxWidth:560,width:'100%',textAlign:'center'}}>
               <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
@@ -1613,7 +1686,13 @@ export default function Dashboard() {
             value: p.value||undefined, targetRent: p.target_rent||undefined,
             sqm: p.sqm||undefined, status: statusLabelOf(p),
           }))}
-          onNavigate={(tab)=>setNav(tab)}
+          // Ο ΒΟΗΘΟΣ ΔΕΝ ΠΑΡΑΚΑΜΠΤΕΙ ΤΗΝ ΟΡΑΤΟΤΗΤΑ.
+          // Το parseAction επικυρώνει το [[go:x]] μόνο απέναντι στον στατικό
+          // NAV_MAP — τον κατάλογο ΟΛΩΝ των καρτελών. Χωρίς αυτόν τον έλεγχο, η
+          // Νόα μπορούσε να στείλει τον ιδιοκτήτη ενός ιδιοκατοικούμενου
+          // ακινήτου στην «Τιμολόγηση», δηλαδή σε οθόνη που η ίδια η εφαρμογή
+          // έχει κρίνει ότι δεν τον αφορά.
+          onNavigate={(tab)=>{ if (navVisible(tab)) setNav(tab); }}
           onScan={()=>setQuickAddOpen(true)}
         />
       )}

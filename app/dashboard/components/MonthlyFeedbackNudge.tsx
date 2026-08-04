@@ -33,26 +33,26 @@ export default function MonthlyFeedbackNudge() {
       aria-label="Μηνιαία γνώμη"
       style={{
         position: 'fixed', left: 20, bottom: 20, zIndex: 60, width: 'min(340px, calc(100vw - 40px))',
-        background: 'var(--bg-elevated, #fff)', border: '1px solid var(--border-default, #e7eaee)',
-        borderRadius: 14, boxShadow: '0 12px 32px rgba(16,24,40,.14)', padding: '16px 16px 14px',
+        background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
+        borderRadius: 14, boxShadow: 'var(--shadow-xl)', padding: '16px 16px 14px',
         fontFamily: T.font.sans, animation: 'posNudgeIn .28s ease both',
       }}
     >
       <style>{`@keyframes posNudgeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}`}</style>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--accent, #1a73e8)' }}>Η γνώμη σου</div>
-          <div style={{ fontSize: 14.5, fontWeight: 650, letterSpacing: '-.01em', color: 'var(--text-primary, #1f2327)', marginTop: 5 }}>Μια κουβέντα, μία φορά τον μήνα</div>
-          <p style={{ fontSize: 12.5, color: 'var(--text-secondary, #5b6169)', lineHeight: 1.5, margin: '6px 0 0' }}>
-            Πες μας τη γνώμη σου για το Property OS και μπες στην κλήρωση για <b style={{ color: 'var(--text-primary, #1f2327)' }}>έναν χρόνο δωρεάν Επαγγελματία</b>. Ένα λεπτό φτάνει.
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--accent)' }}>Η γνώμη σου</div>
+          <div style={{ fontSize: 14.5, fontWeight: 650, letterSpacing: '-.01em', color: 'var(--text-primary)', marginTop: 5 }}>Μια κουβέντα, μία φορά τον μήνα</div>
+          <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5, margin: '6px 0 0' }}>
+            Πες μας τη γνώμη σου για το Property OS και μπες στην κλήρωση για <b style={{ color: 'var(--text-primary)' }}>έναν χρόνο δωρεάν Επαγγελματία</b>. Ένα λεπτό φτάνει.
           </p>
         </div>
-        <button onClick={close} aria-label="Κλείσιμο" style={{ flex: 'none', width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border-default, #e7eaee)', background: 'transparent', color: 'var(--text-tertiary, #98a0a8)', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>
+        <button onClick={close} aria-label="Κλείσιμο" style={{ flex: 'none', width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-        <button onClick={give} style={{ background: 'var(--accent, #1a73e8)', color: '#fff', border: 0, borderRadius: 100, padding: '8px 16px', fontSize: 12.5, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>
-        <button onClick={close} style={{ background: 'none', border: 0, color: 'var(--text-tertiary, #98a0a8)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλη φορά</button>
-        <a href="/terms/klirosi" target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary, #98a0a8)', textDecoration: 'underline' }}>Όροι</a>
+        <button onClick={give} style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 0, borderRadius: 100, padding: '8px 16px', fontSize: 12.5, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>
+        <button onClick={close} style={{ background: 'none', border: 0, color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλη φορά</button>
+        <a href="/terms/klirosi" target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Όροι</a>
       </div>
     </div>
   );

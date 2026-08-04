@@ -331,6 +331,24 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const banksStale = banksAgeDays > 45
   // Μία πηγή αλήθειας: η ανάλυση αντλεί απευθείας τα στοιχεία του Υπολογιστή
   // (χωρίς διπλά πεδία ποσού/διάρκειας/σκοπού).
+  /**
+   * Το δημοσιευμένο επιτόκιο της τράπεζας, ή null αν ΔΕΝ έχει δημοσιεύσει.
+   *
+   * ΓΙΑΤΙ null ΚΑΙ ΟΧΙ 3,5%: ο κώδικας είχε `|| 3.5` ως έσχατο δίχτυ. Αυτό
+   * σήμαινε ότι τράπεζα χωρίς δημοσιευμένο επιτόκιο εμφάνιζε «Εκτιμώμενη δόση»
+   * υπολογισμένη σε ΕΠΙΝΟΗΜΕΝΟ επιτόκιο — με το όνομα της τράπεζας από πάνω.
+   * Δεν είναι πρόχειρη εκτίμηση· είναι αριθμός που αποδίδεται σε πραγματικό
+   * ίδρυμα και μπορεί να κρίνει πού θα πάει ο χρήστης να δανειστεί.
+   */
+  type RateSource = { fixed_min?: unknown; fixed_5yr?: unknown; fixed_3yr?: unknown };
+  const publishedRate = (bank: RateSource): number | null => {
+    for (const r of [bank.fixed_min, bank.fixed_5yr, bank.fixed_3yr]) {
+      const n = typeof r === 'number' ? r : parseFloat(String(r ?? ''));
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return null;
+  };
+
   const advType = calcState.loanType
   const advBorr = calcState.borrowerType
   const LA = calcState.loanAmount || 150000
@@ -365,7 +383,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     downloadXlsx(`Αποθηκευμένα_δάνεια_${new Date().toISOString().slice(0,10)}`, [{
       name: 'Δάνεια',
       title: 'Αποθηκευμένα δάνεια',
-      subtitle: `Property OS · ${saved.length} ${saved.length===1?'δάνειο':'δάνεια'} · Ημ. έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
+      subtitle: `Property OS · ${saved.length} ${saved.length===1?'δάνειο':'δάνεια'} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
       columns: [
         { header:'Τράπεζα', kind:'text', width:20 },
         { header:'Τύπος δανείου', kind:'text', width:22 },
@@ -585,7 +603,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               const key = String(bank.id||bank.bank_id||bank.bank_name||bank.name)
               const on = selBank===key
               const fixed5 = bank.fixed_5yr||bank.fixed5||bank.fixed_min||'—'
-              const myM = calcMonthly(calcState.loanAmount||150000, bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, calcState.years||25)
+              const bankRate = publishedRate(bank)
+            const myM = bankRate !== null && LA > 0 ? calcMonthly(LA, bankRate, Y) : null
               return (
                 <button key={key} onClick={()=>setSelBank(on?null:key)} aria-pressed={on} onMouseEnter={()=>setHoverBank(key)} onMouseLeave={()=>setHoverBank(null)} onTouchStart={()=>setHoverBank(key)} onTouchEnd={()=>setHoverBank(null)} style={{textAlign:'left' as const,cursor:'pointer',background:'var(--bg-elevated)',
                   border:`1px solid ${on?'var(--border-accent)':hoverBank===key?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'14px 15px',transition:'border-color 0.15s, box-shadow 0.15s',
@@ -600,8 +619,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                       <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>Σταθερό 5 ετών</p>
                     </div>
                     <div style={{textAlign:'right' as const,flexShrink:0}}>
-                      <p style={{fontSize:13.5,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,lineHeight:1}}>{fmtEur(myM)}</p>
-                      <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>δόση{bank.max_ltv?` · έως ${bank.max_ltv}%`:''}</p>
+                      <p style={{fontSize:13.5,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,lineHeight:1}}>{myM!==null?fmtEur(myM):'—'}</p>
+                      <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>{myM!==null?'δόση':'χωρίς δημοσιευμένο επιτόκιο'}{myM!==null&&bank.max_ltv?` · έως ${bank.max_ltv}%`:''}</p>
                     </div>
                   </div>
                 </button>
@@ -614,7 +633,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             const bank:any = BANKS.filter((b:any)=>!filterSpiti||b.spiti_mou).find((b:any)=>String(b.id||b.bank_id||b.bank_name||b.name)===selBank)
             if(!bank) return null
             const varRate = bank.variable_spread_min!==undefined?fmtPct(market.euribor_3m+bank.variable_spread_min):null
-            const myM = calcMonthly(calcState.loanAmount||150000, bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, calcState.years||25)
+            const bankRate = publishedRate(bank)
+            const myM = bankRate !== null && LA > 0 ? calcMonthly(LA, bankRate, Y) : null
             const terms = [['3 ετών','fixed_3yr'],['5 ετών','fixed_5yr'],['10 ετών','fixed_10yr'],['15 ετών','fixed_15yr'],['20 ετών','fixed_20yr']] as const
             return (
               <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-accent)',borderRadius:14,padding:'18px 20px',boxShadow:'var(--shadow-sm)'}}>
@@ -625,7 +645,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   </div>
                   <div style={{display:'flex',gap:8}}>
                     {bank.url&&<a href={bank.url} target="_blank" rel="noreferrer" style={{padding:'0 16px',height:T.h.md,borderRadius:18,border:'1px solid var(--border-default)',background:'none',color:'var(--text-secondary)',fontSize:12.5,fontFamily: T.font.sans,textDecoration:'none',fontWeight:500,display:'flex',alignItems:'center'}}>Επίσκεψη</a>}
-                    <button onClick={()=>applyBank(bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, 'fixed', bank.bank_name||bank.name)} style={{padding:'0 16px',height:T.h.md,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12.5,fontFamily: T.font.sans,cursor:'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
+                    <button disabled={bankRate===null} title={bankRate===null?'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο — δεν υπάρχει τιμή να εφαρμοστεί':undefined} onClick={()=>{ if(bankRate!==null) applyBank(bankRate, 'fixed', bank.bank_name||bank.name) }} style={{padding:'0 16px',height:T.h.md,borderRadius:18,background:bankRate===null?'var(--bg-elevated)':'var(--accent)',border:bankRate===null?'1px solid var(--border-subtle)':'none',color:bankRate===null?'var(--text-tertiary)':'var(--accent-text)',fontSize:12.5,fontFamily: T.font.sans,cursor:bankRate===null?'not-allowed':'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
                   </div>
                 </div>
                 <p style={{...labelStyle,marginBottom:10}}>Σταθερά επιτόκια «από», ανά διάρκεια</p>
@@ -640,7 +660,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
                   {[
                     {label:'Κυμαινόμενο περιθώριο',value:bank.variable_spread_min!==undefined?`+${fmtRate2(bank.variable_spread_min)}–${fmtRate2(bank.variable_spread_max)}%`:'—',sub:varRate?`≈ ${varRate} σήμερα`:null},
-                    {label:'Εκτιμώμενη δόση',value:fmtEur(myM),sub:`${fmtEur(calcState.loanAmount||150000)} · ${calcState.years||25} έτη`},
+                    {label:'Εκτιμώμενη δόση',value: myM !== null ? fmtEur(myM) : '—',sub: myM !== null ? `${fmtEur(LA)} · ${Y} έτη` : bankRate === null ? 'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο' : 'Συμπλήρωσε ποσό δανείου για υπολογισμό'},
                     {label:'Μέγιστο δάνειο προς αξία',value:bank.max_ltv?`${bank.max_ltv}%`:'—',sub:bank.max_amount?`έως ${fmtEur(bank.max_amount)}`:null},
                     {label:'Σπίτι μου ΙΙ',value:bank.spiti_mou?'Ναι':'Όχι',sub:bank.spiti_mou?'Συμμετέχει στο πρόγραμμα':'Δεν συμμετέχει'},
                   ].map(s=>(

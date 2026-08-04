@@ -31,7 +31,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>
           {busy ? 'Επαναφορά…' : 'Κάτι πήγε στραβά'}
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--text-muted, #5f6368)', margin: '0 0 20px', lineHeight: 1.55 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.55 }}>
           {busy
             ? 'Καθαρίζουμε τα αποθηκευμένα αρχεία και ξαναφορτώνουμε. Τα δεδομένα και η σύνδεσή σου δεν επηρεάζονται.'
             : 'Παρουσιάστηκε ένα απρόσμενο σφάλμα.'}

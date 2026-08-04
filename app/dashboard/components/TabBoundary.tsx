@@ -26,6 +26,7 @@
 
 import { Component, type ReactNode } from 'react';
 import { captureError } from '@/lib/observability/report';
+import { T } from '@/components/tokens';
 
 interface Props {
   /** Ποια καρτέλα, για το μήνυμα και την αναφορά. */
@@ -57,7 +58,7 @@ export default class TabBoundary extends Component<Props, State> {
     if (!error) return this.props.children;
 
     return (
-      <div style={{ padding: '32px 8px', fontFamily: 'var(--font-sans, inherit)' }}>
+      <div style={{ padding: '32px 8px', fontFamily: T.font.sans }}>
         <div style={{ maxWidth: 560 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
             Αυτή η ενότητα δεν φόρτωσε
@@ -77,7 +78,7 @@ export default class TabBoundary extends Component<Props, State> {
               background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
               borderRadius: 10, fontSize: 11.5, lineHeight: 1.5, color: 'var(--text-tertiary)',
               whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 140, overflow: 'auto',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontFamily: T.font.mono,
             }}>
             {this.props.name}: {error.message}
           </pre>

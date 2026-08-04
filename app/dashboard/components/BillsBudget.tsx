@@ -15,6 +15,8 @@ import BudgetVaults, { VaultSuggestion } from './BudgetVaults';
 import BudgetImport from './BudgetImport';
 import { mergeLedger, type LedgerBill, type LedgerExpense, type LedgerEntry } from '@/lib/expenses/ledger';
 import { budgetBucket } from '@/lib/expenses/taxonomy';
+// Ο ΕΝΦΙΑ διαβάζεται από την ίδια απόφαση με την καρτέλα Υπηρεσίες.
+import { enfiaInUse, estimateENFIA } from '@/lib/billing/enfia';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -540,7 +542,26 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       }
       const svc = getSett('services');
       if (svc && !recorded.has('services')) {
-        const enfia = parseFloat(String(svc.enfiaAnnual)) / 12 || parseFloat(String(svc.enfiaMonthly)) || 0;
+        // ΙΔΙΟ ΝΟΥΜΕΡΟ ΜΕ ΤΗΝ ΚΑΡΤΕΛΑ ΥΠΗΡΕΣΙΕΣ.
+        //
+        // Εδώ διαβαζόταν ΜΟΝΟ το χειροκίνητο ποσό. Όποιος χρησιμοποίησε τον
+        // υπολογιστή ΕΝΦΙΑ (ζώνη, όροφος, παλαιότητα) και δεν πληκτρολόγησε
+        // ξεχωριστά το ετήσιο, έβλεπε δεκάδες ευρώ τον μήνα στις Υπηρεσίες και
+        // 0 € εδώ — για το ίδιο ακίνητο, την ίδια στιγμή. Ο κανόνας «το δηλωμένο
+        // νικά την εκτίμηση» ζει τώρα σε ένα σημείο, στο lib/billing/enfia.ts.
+        const enfia = enfiaInUse(
+          svc.enfiaAnnual, svc.enfiaMonthly,
+          estimateENFIA({
+            sqm: parseFloat(String(svc.enfiaSqm)) || 0,
+            zone: String(svc.enfiaZone || ''),
+            floor: String(svc.enfiaFloor || 'second'),
+            age: String(svc.enfiaAge || ''),
+            ownership: parseFloat(String(svc.enfiaOwnership)) || 100,
+            totalValue: parseFloat(String(svc.enfiaTotalVal)) || 0,
+            propertyValue: parseFloat(String(svc.enfiaPropVal)) || 0,
+            reductions: Array.isArray(svc.enfiaReductions) ? svc.enfiaReductions as string[] : [],
+          })?.annual,
+        ).monthly;
         const hist  = Array.isArray(svc.dimotikaHistory) ? svc.dimotikaHistory as string[] : [];
         const valid = hist.filter(v => parseFloat(v) > 0);
         billActuals.services = enfia + (valid.length ? valid.reduce((s, v) => s + parseFloat(v), 0) / valid.length : 0);

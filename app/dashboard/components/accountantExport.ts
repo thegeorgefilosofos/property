@@ -40,7 +40,7 @@ function buildWorkbook(inp: AccountantBundleInput) {
   const { year, propName, ownerAfm, statementLines, provisionMonthly, book } = inp;
   const wb = XLSX.utils.book_new();
   // Ταυτότητα φορολογούμενου/περιόδου — ίδια ακριβώς και στα δύο φύλλα.
-  const idLine = `Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · Περίοδος 01/01/${year}–31/12/${year} · Ημ. έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
+  const idLine = `Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
 
   // ── Φύλλο 1: Κατάσταση Αποτελεσμάτων ───────────────────────────────────────
   {

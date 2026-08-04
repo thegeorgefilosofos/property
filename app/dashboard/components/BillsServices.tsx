@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, Spinner, EmptyState } from '@/components/Theme';
-import { estimateENFIA, ENFIA_REDUCTIONS } from '@/lib/billing/enfia';
+import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse } from '@/lib/billing/enfia';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -167,7 +167,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
     parseFloat(s.enfiaPropVal) || 0, s.enfiaReductions || []
   ), [s.enfiaSqm, s.enfiaZone, s.enfiaFloor, s.enfiaAge, s.enfiaOwnership, s.enfiaTotalVal, s.enfiaPropVal, s.enfiaReductions]);
 
-  const enfiaM      = enfiaResult ? enfiaResult.final / 12 : (parseFloat(s.enfiaMonthly) || (parseFloat(s.enfiaAnnual) / 12) || 0);
+  // ΤΟ ΔΗΛΩΜΕΝΟ ΠΟΣΟ ΝΙΚΑ ΤΗΝ ΕΚΤΙΜΗΣΗ. Η απόφαση ζει στο lib/billing/enfia.ts,
+  // γιατί τη χρειάζεται και ο Προϋπολογισμός — και εκεί διάβαζε ΜΟΝΟ το δηλωμένο,
+  // δείχνοντας 0 € για ακίνητο που εδώ έδειχνε δεκάδες ευρώ τον μήνα.
+  const enfia = enfiaInUse(s.enfiaAnnual, s.enfiaMonthly, enfiaResult?.final);
+  const enfiaM = enfia.monthly;
   const dimotikaAvg = (s.dimotikaHistory || []).filter((v: string) => v).length > 0
     ? (s.dimotikaHistory || []).reduce((sum: number, v: string) => sum + (parseFloat(v) || 0), 0) / (s.dimotikaHistory || []).filter((v: string) => v).length : 0;
   const dimotikaPct = s.lastBillTotal && s.lastBillDimotika && parseFloat(s.lastBillTotal) > 0
@@ -270,7 +274,10 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {[
           { label: 'Υπηρεσίες / μήνα',     value: fe(totalServices)                        },
           { label: 'Υπηρεσίες / έτος',     value: fe(totalServices * 12)                   },
-          { label: 'ΕΝΦΙΑ / μήνα',          value: enfiaM > 0 ? fe(enfiaM) : '—'           },
+          // Ένα ποσό φόρου χωρίς σήμανση διαβάζεται ως βεβαιότητα. Η ετικέτα λέει
+          // αν είναι το ποσό του εκκαθαριστικού ή νούμερο του υπολογιστή.
+          { label: enfia.source === 'estimate' ? 'ΕΝΦΙΑ / μήνα (εκτίμηση)' : 'ΕΝΦΙΑ / μήνα',
+            value: enfiaM > 0 ? fe(enfiaM) : '—' },
           { label: 'Δημοτικά Τέλη (μέσος όρος) / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : '—' },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
@@ -411,15 +418,27 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   );
                 })}
               </div>
-              {!s.enfiaZone && (
-                <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                  <NumberInput label="ΕΝΦΙΑ/έτος (χειροκίνητα)" value={s.enfiaAnnual}
-                    onChange={v => upd({ enfiaAnnual: v, enfiaMonthly: v ? String(((parseFloat(v) || 0) / 12).toFixed(2)) : '' })}
-                    suffix="€" step={50}/>
-                  <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μηνιαία Αναγωγή</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : '—'}</div>
-                  </div>
+              {/* ΤΟ ΠΕΔΙΟ ΤΟΥ ΠΡΑΓΜΑΤΙΚΟΥ ΠΟΣΟΥ ΜΕΝΕΙ ΠΑΝΤΑ ΟΡΑΤΟ.
+                  Ήταν τυλιγμένο σε `{!s.enfiaZone && …}`: μόλις ο χρήστης διάλεγε
+                  ζώνη για να δει τις εκπτώσεις, το πεδίο ΕΞΑΦΑΝΙΖΟΤΑΝ και το ποσό
+                  που είχε αντιγράψει από το εκκαθαριστικό έπαυε να χρησιμοποιείται,
+                  χωρίς να το πει κανείς. Τώρα το δηλωμένο πάντα υπερισχύει, οπότε
+                  πρέπει και να μπορεί να γραφτεί ή να διορθωθεί ανά πάσα στιγμή. */}
+              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
+                <NumberInput label="ΕΝΦΙΑ/έτος από το εκκαθαριστικό" value={s.enfiaAnnual}
+                  onChange={v => upd({ enfiaAnnual: v, enfiaMonthly: v ? String(((parseFloat(v) || 0) / 12).toFixed(2)) : '' })}
+                  suffix="€" step={50}/>
+                <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μηνιαία Αναγωγή</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : '—'}</div>
+                </div>
+              </div>
+              {/* Ποιο από τα δύο νούμερα μετράει, γραμμένο εκεί που φαίνονται και τα δύο. */}
+              {enfia.source !== 'none' && (
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                  {enfia.source === 'declared'
+                    ? 'Χρησιμοποιείται το ποσό του εκκαθαριστικού. Ο υπολογιστής δίπλα μένει για σύγκριση — δεν το αντικαθιστά.'
+                    : 'Χρησιμοποιείται η εκτίμηση του υπολογιστή. Μόλις γράψεις το ποσό του εκκαθαριστικού, υπερισχύει αυτό.'}
                 </div>
               )}
             </div>
@@ -431,7 +450,10 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 18, marginBottom: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 14 }}>
                       <div>
-                        <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Τελικός ΕΝΦΙΑ</div>
+                        {/* Έλεγε «Τελικός ΕΝΦΙΑ» — δηλαδή η λέξη «τελικός» πάνω σε
+                            νούμερο που παράγει μοντέλο από ζώνη, όροφο και παλαιότητα.
+                            Το πραγματικά τελικό ποσό το ορίζει μόνο η ΑΑΔΕ. */}
+                        <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων — υπολογισμός με βάση τα στοιχεία που έδωσες, όχι το εκκαθαριστικό της ΑΑΔΕ" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Εκτίμηση ΕΝΦΙΑ</div>
                         <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
                       </div>
                       <div>

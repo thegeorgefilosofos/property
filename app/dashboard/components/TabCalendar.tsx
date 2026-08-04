@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
+// Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
+import { must } from '@/lib/supabase/must'
 import { T, Spinner, Skeleton, EmptyState, Chip, feAuto } from '@/components/Theme'
 import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
 import {
@@ -564,41 +566,46 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
   async function syncOne(k:SyncKey):Promise<number> {
     // ── Λογαριασμοί ──
     if(k==='bills'){
-      const{data:bills}=await supabase.from('bills').select('*').eq('property_id',propertyId)
-      await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills')
-      // Καθάρισε και τυχόν σκαναρισμένη υπενθύμιση λογαριασμού (source='scan',
-      // category='bills') ώστε να μη συνυπάρχει με τη συγχρονισμένη — μία εγγραφή.
-      await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','scan').eq('category','bills')
+      const bills=await must(supabase.from('bills').select('*').eq('property_id',propertyId))
+      await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills'))
       const today=new Date()
       const rows=(bills||[]).filter((b:any)=>b.due_date||b.next_due_date).map((b:any)=>{
         let dueDate=b.due_date||b.next_due_date; const d=new Date(dueDate)
         if(d<today){d.setMonth(today.getMonth());d.setFullYear(today.getFullYear());if(d<today)d.setMonth(d.getMonth()+1);dueDate=d.toISOString().split('T')[0]}
         return{property_id:propertyId,user_id:userId,title:b.name||b.provider||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,priority:'medium' as EventPriority,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null,source:'bills'}
       })
-      if(rows.length)await supabase.from('calendar_events').insert(rows)
+      if(rows.length)await must(supabase.from('calendar_events').insert(rows))
+      // ΤΟ ΣΚΑΝΑΡΙΣΜΕΝΟ ΔΙΑΓΡΑΦΕΤΑΙ ΜΕΤΑ, ΚΑΙ ΜΟΝΟ ΑΝ ΠΕΤΥΧΕ Η ΕΓΓΡΑΦΗ.
+      //
+      // Αυτή η γραμμή ήταν πριν από την εισαγωγή. Τα υπόλοιπα γεγονότα εδώ είναι
+      // ΠΑΡΑΓΩΓΑ — ξαναφτιάχνονται από τον πίνακα λογαριασμών σε κάθε συγχρονισμό,
+      // οπότε μια αποτυχία απλώς απαιτεί δεύτερο πάτημα. Οι υπενθυμίσεις από
+      // ΣΑΡΩΣΗ όμως δεν παράγονται από πουθενά: αν σβήνονταν πρώτες και η
+      // εισαγωγή αποτύγχανε, χάνονταν οριστικά, χωρίς μήνυμα.
+      await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','scan').eq('category','bills'))
       return rows.length
     }
     // ── Συντήρηση ──
     if(k==='maintenance'){
-      const{data:tasks}=await supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId)
-      await supabase.from('calendar_events').delete().eq('property_id',propertyId).in('source',['loan','maintenance'])
+      const tasks=await must(supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId))
+      await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).in('source',['loan','maintenance']))
       const rows=(tasks||[]).filter((t:any)=>t.due_date).map((t:any)=>({property_id:propertyId,user_id:userId,title:t.title||'Εργασία συντήρησης',category:'maintenance' as EventCategory,event_date:t.due_date,amount:null,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,recurring:false,notes:t.description||null,source:'maintenance'}))
-      if(rows.length)await supabase.from('calendar_events').insert(rows)
+      if(rows.length)await must(supabase.from('calendar_events').insert(rows))
       return rows.length
     }
     // ── Ενοίκιο & μισθώσεις (πραγματικά δεδομένα ενοικιαστή, idempotent) ──
     if(k==='leases'){
-      const{data:tenants}=await supabase.from('tenants').select('*').eq('property_id',propertyId).neq('status','past')
+      const tenants=await must(supabase.from('tenants').select('*').eq('property_id',propertyId).neq('status','past'))
       let n=0
       for(const t of (tenants||[])){ await syncTenantSchedule(supabase,t as any,propertyId,userId,'save',{rentDueDay:(t as any).rent_due_day??1}); if((t as any).monthly_rent)n++ }
       return n
     }
     // ── Κρατήσεις (με όνομα επισκέπτη) ──
     if(k==='bookings'){
-      const{data:stays}=await supabase.from('client_stays').select('id,check_in,check_out,total,nights,guests,channel,clients(full_name)').eq('property_id',propertyId)
-      await supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','booking:%')
+      const stays=await must(supabase.from('client_stays').select('id,check_in,check_out,total,nights,guests,channel,clients(full_name)').eq('property_id',propertyId))
+      await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','booking:%'))
       const rows=buildBookingEvents((stays||[]).map((s:any)=>({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,nights:s.nights,guests:s.guests,channel:s.channel,guest_name:s.clients?.full_name??null})),propertyId,userId)
-      if(rows.length)await supabase.from('calendar_events').insert(rows)
+      if(rows.length)await must(supabase.from('calendar_events').insert(rows))
       return rows.length
     }
     // ── Φορολογικά (ΑΑΔΕ): πραγματικές, θεσμοθετημένες προθεσμίες ──
@@ -607,14 +614,14 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     // της Επισκόπησης, άρα το δεύτερο πάτημα αντικαθιστά — δεν διπλογράφει.
     if(k==='tax'){
       const obs=taxObligationsHorizon(todayStr(),taxProfile)
-      await supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','tax:%')
+      await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','tax:%'))
       const rows=obs.map(o=>taxObligationToEvent(o,propertyId,userId))
-      if(rows.length)await supabase.from('calendar_events').insert(rows)
+      if(rows.length)await must(supabase.from('calendar_events').insert(rows))
       return rows.length
     }
     // ── Δόσεις δανείου: ίδιο source με το κουμπί των Δανείων → idempotent, χωρίς διπλά ──
     if(k==='loans'){
-      const{data:loans}=await supabase.from('loans').select('*').eq('property_id',propertyId)
+      const loans=await must(supabase.from('loans').select('*').eq('property_id',propertyId))
       let n=0
       for(const l of (loans||[])){
         const amount=Number((l as any).amount)||0, rate=Number((l as any).rate)||0, years=Number((l as any).years)||0
@@ -624,8 +631,8 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
         const src='loan_schedule:'+(bank||'γενικό').toLowerCase().replace(/\s+/g,'_').slice(0,40)
         const d=new Date(start); const cnt2=Math.min(years*12,60); const rows:any[]=[]
         for(let i=0;i<cnt2;i++){ const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate()); rows.push({property_id:propertyId,user_id:userId,title:`Δόση δανείου${bank?`, ${bank}`:''}`,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:`${Math.round(monthly).toLocaleString('el-GR')} €/μήνα`,source:src}) }
-        await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src)
-        for(let i=0;i<rows.length;i+=20)await supabase.from('calendar_events').insert(rows.slice(i,i+20))
+        await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src))
+        for(let i=0;i<rows.length;i+=20)await must(supabase.from('calendar_events').insert(rows.slice(i,i+20)))
         n+=rows.length
       }
       return n
@@ -636,11 +643,25 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
   async function runOne(k:SyncKey) {
     if(busy) return
     setBusy(k)
-    let n=0
-    try{ n=await syncOne(k) }finally{
-      const stamp=new Date().toLocaleString('el-GR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
-      setDone(d=>({...d,[k]:{n,at:stamp}}))
-      setLastSync(stamp); try{ localStorage.setItem(`cal_sync_${propertyId}`,stamp) }catch{}
+    // Η ΑΠΟΤΥΧΙΑ ΔΕΝ ΓΡΑΦΕΤΑΙ ΩΣ ΕΠΙΤΥΧΙΑ.
+    //
+    // Εδώ υπήρχε `try { n = await syncOne(k) } finally { … }` — χωρίς catch. Το
+    // `finally` έτρεχε ούτως ή άλλως και έγραφε σφραγίδα «συγχρονίστηκε τώρα» με
+    // n=0. Ο χρήστης διάβαζε «0» και καταλάβαινε «δεν υπήρχε τίποτα να τραβήξω»,
+    // ενώ η αλήθεια ήταν «απέτυχε». Η σφραγίδα κρατιόταν και στο localStorage,
+    // οπότε το ψέμα επιβίωνε και μετά την ανανέωση της σελίδας.
+    let n=0, failed=false
+    try{ n=await syncOne(k) }
+    catch{
+      failed=true
+      notifyError('Ο συγχρονισμός δεν ολοκληρώθηκε. Δοκίμασε ξανά — τα στοιχεία ξαναχτίζονται από την πηγή τους.')
+    }
+    finally{
+      if(!failed){
+        const stamp=new Date().toLocaleString('el-GR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+        setDone(d=>({...d,[k]:{n,at:stamp}}))
+        setLastSync(stamp); try{ localStorage.setItem(`cal_sync_${propertyId}`,stamp) }catch{}
+      }
       setBusy(null); onRefresh()
     }
   }
@@ -1218,8 +1239,15 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     if(editingEvent&&editingEvent.recurring){ setScopePrompt(true); return }
     setSaving(true)
     const payload=buildPayload()
-    if(editingEvent){await supabase.from('calendar_events').update(payload).eq('id',editingEvent.id)}
-    else{await supabase.from('calendar_events').insert(payload); await maybeCreateExpense()}
+    // Το παράθυρο ΔΕΝ κλείνει αν δεν αποθηκεύτηκε. Πριν, το σφάλμα του Supabase
+    // αγνοούνταν (δεν πετάει, επιστρέφει { error }) και το modal έκλεινε σαν να
+    // πέτυχε — ο χρήστης έχανε τίτλο, ημερομηνία, ώρα, ποσό, επανάληψη και
+    // σημειώσεις, χωρίς να του πει κανείς τίποτα.
+    const { error } = editingEvent
+      ? await supabase.from('calendar_events').update(payload).eq('id',editingEvent.id)
+      : await supabase.from('calendar_events').insert(payload)
+    if(error){ notifyError('Το γεγονός δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); setSaving(false); return }
+    if(!editingEvent) await maybeCreateExpense()
     await load(); setShowModal(false); setSaving(false)
   }
   // Εφαρμογή εμβέλειας επεξεργασίας σε επαναλαμβανόμενο.
@@ -1474,7 +1502,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
                   // Πρώτο (προεπιλεγμένο) φύλλο: μόνο το τρέχον έτος. Ακολουθεί το πλήρες
                   // αρχείο και τα φύλλα εκπρόθεσμων/επερχόμενων.
                   const issued=athensNow().toLocaleDateString('el-GR')
-                  const subFor=(scope:string)=>`Property OS · ${scope} · Ημ. έκδοσης ${issued}`
+                  const subFor=(scope:string)=>`Property OS · ${scope} · Ημερομηνία έκδοσης ${issued}`
                   const TOT=[6] // στήλη «Ποσό» → γραμμή ΣΥΝΟΛΟ
                   const sheets:XlsxSheet[]=[{name:`Ατζέντα ${curYear}`,title:`ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ ${curYear}`,subtitle:subFor(`Έτος ${curYear}`),columns:cols,rows:cur.map(toRow),totalCols:TOT}]
                   if(all.length>cur.length) sheets.push({name:'Όλα τα έτη',title:'ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ · ΟΛΑ ΤΑ ΕΤΗ',subtitle:subFor('Όλα τα έτη'),columns:cols,rows:all.map(toRow),totalCols:TOT})

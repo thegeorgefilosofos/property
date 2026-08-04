@@ -1,31 +1,41 @@
-// ThemeToggle.tsx, drop-in Google style light/dark toggle
 'use client'
-import { useEffect, useState } from 'react'
+// ═══════════════════════════════════════════════════════════════════════════
+// ΕΝΑΛΛΑΓΗ ΘΕΜΑΤΟΣ — ΜΙΑ ΠΗΓΗ, ΤΟ ThemeProvider.
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΕΚΑΝΕ ΠΡΙΝ, ΚΑΙ ΓΙΑΤΙ Η ΕΠΙΛΟΓΗ ΤΟΥ ΧΡΗΣΤΗ ΧΑΝΟΤΑΝ:
+//
+// Το κουμπί κρατούσε δική του κατάσταση και δικό του κλειδί στο localStorage,
+// το 'pos-theme' με παύλα. Κανείς άλλος δεν διάβαζε αυτό το κλειδί: το script
+// που τρέχει πριν το πρώτο paint (app/layout.tsx) και το ThemeProvider
+// χρησιμοποιούν 'pos_mode' με κάτω παύλα. Τρία συστήματα, δύο κλειδιά.
+//
+// Η σειρά που έβγαινε στην πράξη:
+//   1. Πριν το paint  → 'pos_mode' κενό → σκούρο (σωστό).
+//   2. Το κουμπί προσαρτάται → 'pos-theme' κενό → έπεφτε στην προτίμηση του
+//      ΛΕΙΤΟΥΡΓΙΚΟΥ και ξανάγραφε το data-mode.
+//   3. Το ThemeProvider (γονέας, τρέχει μετά τα παιδιά) ξανάγραφε σκούρο.
+//
+// Αποτέλεσμα: όποιος διάλεγε φωτεινό το έχανε στην επόμενη ανανέωση, με ορατό
+// τρεμόπαιγμα στον δρόμο. Το σκούρο «κολλούσε» κατά τύχη, από συνθήκη αγώνα.
+//
+// ΤΩΡΑ: το κουμπί δεν αποφασίζει τίποτα — διαβάζει και γράφει μέσω του
+// ThemeProvider, που κρατά το ίδιο κλειδί με το pre-paint script. Το σκούρο
+// είναι η βάση του προϊόντος· η προτίμηση του λειτουργικού ΔΕΝ το αλλάζει,
+// γιατί είναι σχεδιαστική απόφαση και όχι εικασία.
+// ═══════════════════════════════════════════════════════════════════════════
+import { useTheme } from '@/app/ThemeProvider'
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false)
-
-  useEffect(() => {
-    const saved = localStorage.getItem('pos-theme')
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const isDark = saved ? saved === 'dark' : prefersDark
-    setDark(isDark)
-    document.documentElement.setAttribute('data-mode', isDark ? 'dark' : 'light')
-  }, [])
-
-  const toggle = () => {
-    const next = !dark
-    setDark(next)
-    document.documentElement.setAttribute('data-mode', next ? 'dark' : 'light')
-    localStorage.setItem('pos-theme', next ? 'dark' : 'light')
-  }
+  const { mode, toggleMode } = useTheme()
+  const dark = mode === 'dark'
 
   return (
     <button
-      onClick={toggle}
+      onClick={toggleMode}
       className="mode-btn"
       title={dark ? 'Εναλλαγή σε φωτεινό θέμα' : 'Εναλλαγή σε σκοτεινό θέμα'}
       aria-label="Εναλλαγή θέματος"
+      aria-pressed={dark}
     >
       {dark
         ? <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>

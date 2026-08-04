@@ -873,7 +873,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
 
   // Εξαγωγή πληρωμών ενοικίου σε .xlsx — «Μορφοποιημένο» (default) ή «Επεξεργάσιμο» (data).
   const exportPaymentsXlsx = (mode?: XlsxMode) => {
-    const headers = ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημ. Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'];
+    const headers = ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημερομηνία Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'];
     const rows = sorted.map(p=>[`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`,p.amount,payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')]);
     downloadCsv(`enoikio_${todayISO()}`, headers, rows, { mode });
   };
@@ -1147,7 +1147,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
         ):(
           <div className="table-wrap" style={{ marginTop:14 }}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
-            <thead><tr>{['Περίοδος','Ποσό','Κατάσταση','Τρόπος','Ημ. Πληρωμής','Λήξη','Ενέργειες'].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Περίοδος','Ποσό','Κατάσταση','Τρόπος','Ημερομηνία Πληρωμής','Λήξη','Ενέργειες'].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
             <tbody>
               {sorted.map(p=>(
                 <tr key={p.id}>
@@ -1449,9 +1449,9 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
         <SectionTitle>Στοιχεία Εγγύησης</SectionTitle>
         <DataRow label="Ποσό Εγγύησης" value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(deposit)}</span>}/>
         <DataRow label="Τρόπος Καταβολής" value={methodLabel}/>
-        <DataRow label="Ημ. Καταβολής" value={fmtD(tenant.deposit_paid_on)}/>
+        <DataRow label="Ημερομηνία Καταβολής" value={fmtD(tenant.deposit_paid_on)}/>
         <DataRow label="Κατάσταση" value={tenant.deposit_returned?<StatusBadge label="Επεστράφη" color="var(--positive)" bg="var(--positive-dim)"/>:<StatusBadge label="Σε κατοχή" color="var(--accent)" bg="var(--accent-dim)"/>}/>
-        {tenant.deposit_returned&&tenant.deposit_return_date&&<DataRow label="Ημ. Επιστροφής" value={fmtD(tenant.deposit_return_date)}/>}
+        {tenant.deposit_returned&&tenant.deposit_return_date&&<DataRow label="Ημερομηνία Επιστροφής" value={fmtD(tenant.deposit_return_date)}/>}
         {!tenant.deposit_returned&&deposit>0&&(
           <button style={{ ...s.btnSm, marginTop:14, width:'100%', textAlign:'center' as const }}
             onClick={async()=>{await supabase.from('tenants').update({deposit_returned:true,deposit_return_date:todayISO()}).eq('id',tenant.id);onReturned();}}>
@@ -1557,7 +1557,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} label="Ναι" labelOff="Όχι"/></div>
-              {f.repaired&&<DateField label="Ημ. Επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
+              {f.repaired&&<DateField label="Ημερομηνία Επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
               <TextInput label="Σημείωση" value={f.notes} onChange={v=>setF(x=>({...x,notes:v}))} placeholder="προαιρετικό"/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -2227,7 +2227,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   // ── Εξαγωγή CSV μητρώου ──────────────────────────────────────────────────────
   const exportRoster=()=>{
     downloadCsv(`enoikiastes_${todayISO()}`,
-      ['Ονοματεπώνυμο','Κατάσταση','ΑΦΜ','Τηλέφωνο','Email','Είδος μίσθωσης','Έναρξη','Λήξη','Αποχώρηση','Ημέρα πληρωμής','Μηνιαίο ενοίκιο (€)','Εγγύηση (€)','Τρόπος εγγύησης','Ημ. καταβολής εγγύησης','Επεστράφη'],
+      ['Ονοματεπώνυμο','Κατάσταση','ΑΦΜ','Τηλέφωνο','Email','Είδος μίσθωσης','Έναρξη','Λήξη','Αποχώρηση','Ημέρα πληρωμής','Μηνιαίο ενοίκιο (€)','Εγγύηση (€)','Τρόπος εγγύησης','Ημερομηνία καταβολής εγγύησης','Επεστράφη'],
       [...tenants].map(t=>[
         t.full_name, isPastTenant(t)?'Προηγούμενος':'Τρέχων', t.afm||'', t.phone||'', t.email||'',
         t.lease_category?LEASE_CATEGORY_LABELS[t.lease_category]:'', csvDate(t.lease_start), csvDate(t.lease_end), csvDate(t.move_out_date),
@@ -2350,7 +2350,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     </div>
                     <div style={{ background:'var(--bg-base)', boxShadow:'var(--well-inset)', borderRadius:12, padding:12, display:'flex' }}>
                       {([
-                        { l:'Μην. ενοίκιο', v:fmt(t.monthly_rent), strong:true },
+                        { l:'Μηνιαίο ενοίκιο', v:fmt(t.monthly_rent), strong:true },
                         { l:'Εγγύηση', v:fmt(t.deposit_amount) },
                         { l:'Ληξιπρόθεσμη οφειλή', v:od?fmt(od.amount):'—', neg:!!od },
                       ] as {l:string;v:string;strong?:boolean;neg?:boolean}[]).map((m,i)=>(
@@ -2711,7 +2711,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
                           {more('tenant.deposit_method')&&<SelectField label="Τρόπος Καταβολής Εγγύησης" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>}
-                          {more('tenant.deposit_paid_on')&&<DateField label="Ημ. Καταβολής Εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
+                          {more('tenant.deposit_paid_on')&&<DateField label="Ημερομηνία Καταβολής Εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
                         </div>
                         <Why id="tenant.deposit_method"/>
                       </div>

@@ -6,6 +6,7 @@ import { T, fe, fn, fd } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
+import { fillOnlyEmpty, firstFilled } from '@/lib/core/prefill';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
 const PEA_CLASSES = ['A+', 'A', 'B+', 'B', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η'];
@@ -191,6 +192,44 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existing?.id]);
+
+  // ── Ο ΙΔΙΟΚΤΗΤΗΣ ΕΙΝΑΙ Ο ΙΔΙΟΣ ΣΕ ΚΑΘΕ ΑΚΙΝΗΤΟ ΤΟΥ ────────────────────────
+  //
+  // Ο πίνακας `property_settings` έχει `UNIQUE (property_id)`, άρα κρατά τα
+  // στοιχεία ιδιοκτήτη ΑΝΑ ΑΚΙΝΗΤΟ. Ο οδηγός τα ζητούσε κενά κάθε φορά: όνομα,
+  // ΑΦΜ, τηλέφωνο, email — τέσσερα πεδία επί κάθε νέο ακίνητο, για το ίδιο
+  // ακριβώς πρόσωπο. Το ΑΦΜ είναι εννιά ψηφία που πληκτρολογούνται λάθος· και
+  // αρκεί ένα λάθος ψηφίο σε ένα ακίνητο για να κοπεί η δήλωση μισθωτηρίου.
+  //
+  // Η μία πηγή είναι το προφίλ του χρήστη (`billing_profiles`, μία γραμμή ανά
+  // χρήστη) — εκεί όπου ήδη συμπληρώνει τα ίδια στοιχεία για τα παραστατικά.
+  // Δεν αντιγράφουμε από «κάποιο άλλο ακίνητο»: αυτό θα διαιώνιζε το λάθος του
+  // πρώτου. Το email έρχεται από τον λογαριασμό σύνδεσης, που είναι βέβαιο.
+  //
+  // Ισχύει ΜΟΝΟ για νέο ακίνητο, και μόνο σε κενά πεδία: αν ο χρήστης πρόλαβε
+  // να γράψει κάτι όσο φόρτωνε, ό,τι έγραψε μένει (fillOnlyEmpty).
+  useEffect(() => {
+    if (existing?.id) return;
+    let active = true;
+    (async () => {
+      const [{ data: prof }, { data: auth }] = await Promise.all([
+        supabase.from('billing_profiles')
+          .select('owner_name, full_name, company_name, afm, phone').eq('user_id', userId).maybeSingle(),
+        supabase.auth.getUser(),
+      ]);
+      if (!active) return;
+      const p = prof as Record<string, string | null> | null;
+      const proposed = {
+        owner_name:  firstFilled(p?.owner_name, p?.full_name, p?.company_name),
+        owner_afm:   firstFilled(p?.afm),
+        owner_phone: firstFilled(p?.phone),
+        owner_email: firstFilled(auth?.user?.email),
+      };
+      setSettings(cur => ({ ...cur, ...fillOnlyEmpty(proposed, { ...cur }) }));
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing?.id, userId]);
 
   const isLandLike = LAND_LIKE.has(propType);
   // Συνιδιοκτησία: ποσοστό < 100% ⇒ ζητάμε συνιδιοκτήτες.
@@ -534,6 +573,13 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               {/* Ιδιοκτήτης */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={sectionLabelStyle}>Ιδιοκτήτης</div>
+                {/* Λέμε από πού ήρθαν τα στοιχεία. Προσυμπληρωμένο ΑΦΜ που δεν
+                    ελέγχθηκε είναι χειρότερο από κενό: φαίνεται επιβεβαιωμένο. */}
+                {!existing?.id && (settings.owner_name || settings.owner_afm) && (
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: -6 }}>
+                    Συμπληρώθηκαν από το προφίλ σου. Έλεγξέ τα και άλλαξε ό,τι χρειάζεται.
+                  </div>
+                )}
                 <Field label="Ονοματεπώνυμο">
                   <input style={inputStyle} value={settings.owner_name} onChange={setSf('owner_name')} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
@@ -632,14 +678,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
                   num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
                   ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : '—'],
-                  purchaseDate ? ['Ημ. Αγοράς', fd(purchaseDate)] : null,
+                  purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
                   [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : '—'],
                   ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                     <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
-                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημ. Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
+                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημερομηνία Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}
               </div>

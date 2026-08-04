@@ -43,7 +43,7 @@ export function PanelDashboard() {
     <div style={{ display: 'flex', gap: 16, textAlign: 'left' }}>
       <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 12px' }}>
-          <div style={{ width: 22, height: 22, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12 }}>P</div>
+          <div style={{ width: 22, height: 22, borderRadius: 8, background: 'var(--accent)', color: 'var(--on-tone)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12 }}>P</div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Property OS</div>
         </div>
         {['Επισκόπηση', 'Ενοίκιο', 'Δαπάνες', 'Λογαριασμοί', 'Ημερολόγιο'].map((r, i) => (
@@ -96,7 +96,7 @@ export function PanelScan() {
           <div style={{ fontSize: 13, fontWeight: 700 }}>Ρεύμα</div>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
         </div>
-        {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημ. λήξης', '10/08/2026']].map(([l, v], i) => (
+        {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημερομηνία λήξης', '10/08/2026']].map(([l, v], i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>
         ))}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>

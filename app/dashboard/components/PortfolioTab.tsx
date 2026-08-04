@@ -350,7 +350,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                 <Th label="Δαπάνες" align="right" />
                 <Th label="Καθαρό" k="net" sort={sort} asc={asc} onSort={toggleSort} />
                 <Th label="Πληρότητα" k="occupancy" sort={sort} asc={asc} onSort={toggleSort} />
-                <Th label="Εκκρεμ." k="pending" sort={sort} asc={asc} onSort={toggleSort} />
+                <Th label="Εκκρεμότητες" k="pending" sort={sort} asc={asc} onSort={toggleSort} />
                 <th style={{ width: 40 }} />
               </tr>
             </thead>

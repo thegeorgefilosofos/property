@@ -38,6 +38,8 @@ import {
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
 import { parseBulk, bulkLimit } from '@/lib/expenses/bulk';
+import { planBillPayment } from '@/lib/expenses/pay';
+import { groupForCategory } from '@/lib/expenses/groups';
 
 interface Props {
   propertyId: string;
@@ -210,16 +212,25 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
     try {
       const today = new Date().toISOString().slice(0, 10);
       if (e.billId) {
-        await supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', e.billId);
+        // ΜΙΑ ΑΠΟΦΑΣΗ, ΚΟΙΝΗ ΜΕ ΤΗΝ ΟΘΟΝΗ ΛΟΓΑΡΙΑΣΜΩΝ (lib/expenses/pay.ts).
+        // Εδώ η δαπάνη γραφόταν ΧΩΡΙΣ expense_group — και το isGroupDeductible
+        // επιστρέφει false για κενή ομάδα. Ο ίδιος λογαριασμός εξέπιπτε αν τον
+        // πλήρωνες από τους Λογαριασμούς και ΔΕΝ εξέπιπτε από εδώ.
         const { data: linked } = await supabase.from('expenses').select('id').eq('bill_id', e.billId).limit(1);
-        if (linked && linked.length) {
-          await supabase.from('expenses').update({ paid: true }).eq('bill_id', e.billId);
-        } else {
-          await supabase.from('expenses').insert({
-            property_id: propertyId, user_id: userId, bill_id: e.billId,
-            amount: e.amount, description: e.title, date: today,
-            category: e.category || 'Άλλο', paid: true,
-          });
+        const { data: billRow } = await supabase.from('bills')
+          .select('id,name,amount,category,paid_by,share_percent,share_note').eq('id', e.billId).maybeSingle();
+        const plan = planBillPayment(
+          billRow ?? { id: e.billId, name: e.title, amount: e.amount, category: e.category },
+          { propertyId, userId, nowIso: new Date().toISOString(), hasLinkedExpense: !!(linked && linked.length) },
+        );
+        const { error: bErr } = await supabase.from('bills').update(plan.bill).eq('id', e.billId);
+        if (bErr) throw bErr;
+        if (plan.linkedExpenseUpdate) {
+          const { error } = await supabase.from('expenses').update(plan.linkedExpenseUpdate).eq('bill_id', e.billId);
+          if (error) throw error;
+        } else if (plan.newExpense) {
+          const { error } = await supabase.from('expenses').insert(plan.newExpense);
+          if (error) throw error;
         }
       } else if (e.expenseId) {
         await supabase.from('expenses').update({ paid: true }).eq('id', e.expenseId);
@@ -610,16 +621,56 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
     if (!what.trim() || !Number.isFinite(amt) || amt <= 0) return;
     setSaving(true);
     try {
-      await supabase.from('expenses').insert({
-        property_id: propertyId, user_id: userId,
-        description: what.trim(),
-        amount: amt,
-        date: paid ? date : (due || date),
-        category: slug ? BY_SLUG[slug].label : 'Άλλο',
-        paid,
-        paid_by: 'owner',
-      });
-      notify(paid ? 'Καταχωρήθηκε' : 'Καταχωρήθηκε ως απλήρωτη');
+      // Ο SUPABASE ΔΕΝ ΠΕΤΑΕΙ ΕΞΑΙΡΕΣΗ ΣΕ ΣΦΑΛΜΑ ΒΑΣΗΣ — ΕΠΙΣΤΡΕΦΕΙ { error }.
+      //
+      // Χωρίς αποδόμηση του `error`, η κλήση «πετύχαινε» πάντα: το catch από
+      // κάτω δεν ενεργοποιούνταν ποτέ, ο χρήστης έπαιρνε «Καταχωρήθηκε» και το
+      // onDone() έκλεινε τη φόρμα. Η δαπάνη είχε χαθεί και εκείνος το αγνοούσε.
+      // Παραβίαση RLS, περιορισμός στήλης ή πεσμένο δίκτυο έδιναν όλα το ίδιο:
+      // ψεύτικη επιβεβαίωση.
+      const cat = slug ? BY_SLUG[slug] : null;
+
+      if (!paid) {
+        // ΤΟ ΑΠΛΗΡΩΤΟ ΕΙΝΑΙ ΥΠΟΧΡΕΩΣΗ, ΟΧΙ ΔΑΠΑΝΗ ΠΟΥ ΕΓΙΝΕ.
+        //
+        // Πριν, η «ημερομηνία λήξης» γραφόταν στη στήλη `date` μιας δαπάνης —
+        // δηλαδή στη στήλη που σημαίνει «πότε ΕΓΙΝΕ», όχι «πότε ΛΗΓΕΙ». Τρία
+        // πράγματα χάνονταν μαζί: ο χρήστης δεν έβλεπε ποτέ «λήγει σε 3 μέρες»
+        // (η προθεσμία στον πυρήνα έρχεται από τον λογαριασμό), η υποχρέωση δεν
+        // εμφανιζόταν στους Λογαριασμούς ούτε στα ληξιπρόθεσμα, και το ποσό
+        // μετρούσε σε ΜΕΛΛΟΝΤΙΚΟ μήνα.
+        //
+        // Ο πυρήνας (lib/expenses/ledger.ts) ήδη ξέρει τι είναι: απλήρωτος
+        // λογαριασμός που μετράει στην ημερομηνία λήξης του.
+        const { error } = await supabase.from('bills').insert({
+          property_id: propertyId, user_id: userId,
+          name: what.trim(),
+          amount: amt,
+          category: slug || 'other',
+          due_date: due || date,
+          paid: false,
+          recurring: false,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('expenses').insert({
+          property_id: propertyId, user_id: userId,
+          description: what.trim(),
+          amount: amt,
+          date,
+          category: cat ? cat.label : 'Άλλο',
+          // Η ΟΜΑΔΑ ΕΙΝΑΙ ΤΟ ΠΕΔΙΟ ΠΟΥ ΚΡΙΝΕΙ ΤΗΝ ΕΚΠΤΩΣΗ, ΚΑΙ ΔΕΝ ΓΡΑΦΟΤΑΝ.
+          // Η κύρια, διαφημισμένη διαδρομή καταχώρισης παρήγαγε δαπάνες με κενή
+          // ομάδα — που το isGroupDeductible θεωρεί ΜΗ εκπεστέες. Ο υδραυλικός
+          // των 60 € δεν μετρούσε, ενώ ο ίδιος υδραυλικός από άλλη οθόνη
+          // μετρούσε. Παράγεται τώρα από την κατηγορία, με έλεγχο συνέπειας.
+          expense_group: groupForCategory(cat),
+          paid: true,
+          paid_by: 'owner',
+        });
+        if (error) throw error;
+      }
+      notify(paid ? 'Καταχωρήθηκε' : 'Καταχωρήθηκε ως εκκρεμής υποχρέωση');
       onDone();
     } catch { notifyError('Δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); }
     finally { setSaving(false); }

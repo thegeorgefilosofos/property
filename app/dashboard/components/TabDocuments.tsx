@@ -1268,12 +1268,12 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
               <div style={g2x}>
                 <NumberInput label={mark('Ποσό (€)', amountKey)} value={doc[amountKey] != null ? String(doc[amountKey]) : ''}
                   onChange={t => onPatchDoc({ [amountKey]: t.trim() ? parseFloat(t.replace(',', '.')) || undefined : undefined } as Partial<ScannedDoc>)} placeholder="—"/>
-                <DatePicker label={mark('Ημ. έκδοσης', 'issue_date')} value={doc.issue_date || ''} onChange={t => onPatchDoc({ issue_date: t })}/>
+                <DatePicker label={mark('Ημερομηνία έκδοσης', 'issue_date')} value={doc.issue_date || ''} onChange={t => onPatchDoc({ issue_date: t })}/>
               </div>
             )}
             {(doc.doc_type === 'bill' || doc.doc_type === 'tax') && (
               <div style={g2x}>
-                <DatePicker label={mark('Ημ. λήξης πληρωμής', 'due_date')} value={doc.due_date || ''} onChange={t => onPatchDoc({ due_date: t })}/>
+                <DatePicker label={mark('Ημερομηνία λήξης πληρωμής', 'due_date')} value={doc.due_date || ''} onChange={t => onPatchDoc({ due_date: t })}/>
               </div>
             )}
             {hasMoney(doc.doc_type) && (
@@ -1375,7 +1375,7 @@ function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => 
           {afmBad && <div style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ. Διόρθωσέ το ή άφησέ το κενό.</div>}
           <div style={g2x}>
             <NumberInput label="Ποσό (€)" value={amount} onChange={setAmount} placeholder="—"/>
-            <DatePicker label="Ημ. έκδοσης" value={issue} onChange={setIssue}/>
+            <DatePicker label="Ημερομηνία έκδοσης" value={issue} onChange={setIssue}/>
           </div>
           <div style={g2x}>
             <DatePicker label="Περίοδος από" value={from} onChange={setFrom}/>

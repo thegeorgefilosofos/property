@@ -66,7 +66,7 @@ export default function GuestCheckin() {
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: T.font.sans, paddingBottom: 40 }}>
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>P</div>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: 'var(--on-tone)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>P</div>
           <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Στοιχεία διαμονής</span>
         </div>
       </header>

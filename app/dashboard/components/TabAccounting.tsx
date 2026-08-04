@@ -1074,13 +1074,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'16px 0 2px' }}>Δεν υπάρχουν εισπράξεις ή πληρωμές για το {year} ώστε να σχηματιστεί ισοζύγιο.</p>
           ):(
             <div style={{ marginTop:16, borderRadius:12, border:'1px solid var(--border-subtle)', overflow:'hidden' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'9px 14px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--border-subtle)' }}>
-                {[['Κωδ.','left'],['Λογαριασμός','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
+              <div style={{ display:'grid', gridTemplateColumns:'72px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'9px 14px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--border-subtle)' }}>
+                {[['Κωδικός','left'],['Λογαριασμός','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
                   <span key={h} style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans, textAlign:a as 'left'|'right' }}>{h}</span>
                 ))}
               </div>
               {trial.map((r,i)=>(
-                <div key={r.code} style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
+                <div key={r.code} style={{ display:'grid', gridTemplateColumns:'72px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
                   <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>{r.code}</span>
                   <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={r.account}>{r.account}</span>
                   <span style={{ fontSize:12.5, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur2(r.debit):'—'}</span>
@@ -1088,7 +1088,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(r.balance)}</span>
                 </div>
               ))}
-              <div style={{ display:'grid', gridTemplateColumns:'54px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', borderTop:'1px solid var(--border-default)', alignItems:'center' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'72px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', borderTop:'1px solid var(--border-default)', alignItems:'center' }}>
                 <span/>
                 <span style={{ fontSize:11, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, textTransform:'uppercase', letterSpacing:'0.05em' }}>Σύνολα</span>
                 <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.debit)}</span>
@@ -1108,7 +1108,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <button onClick={exportBundle} title="Αναλυτικές κινήσεις εσόδων/εξόδων και κατάσταση αποτελεσμάτων, σε Excel για τον λογιστή" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
                 <Download size={13}/>Κινήσεις Excel
               </button>
-              <button onClick={shareWithAccountant} disabled={acctBusy} title="Δώσε στον λογιστή σου έναν ζωντανό σύνδεσμο με πλήρη εικόνα των ακινήτων σου, χωρίς login και χωρίς email" style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:`1px solid ${acctLink?'var(--accent)':'var(--border-default)'}`, background:'var(--bg-surface)', color:acctLink?'var(--accent)':'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, transition:'color 0.15s, border-color 0.15s' }} onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
+              <button onClick={shareWithAccountant} disabled={acctBusy} title="Ζωντανός σύνδεσμος για τον λογιστή σου, χωρίς login και χωρίς email. Καλύπτει ΟΛΑ τα ακίνητά σου, όχι μόνο αυτό: διεύθυνση, ΑΤΑΚ, μίσθωμα, έσοδα και δαπάνες της χρονιάς." style={{ display:'inline-flex', alignItems:'center', gap:6, height:28, padding:'0 12px', borderRadius:14, border:`1px solid ${acctLink?'var(--accent)':'var(--border-default)'}`, background:'var(--bg-surface)', color:acctLink?'var(--accent)':'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, transition:'color 0.15s, border-color 0.15s' }} onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
                 <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Μοίρασε live στον λογιστή'}
               </button>
             </div>
@@ -1121,7 +1121,15 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <button onClick={()=>{ try{ navigator.clipboard?.writeText(acctLink); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2000) }catch{ /* ignore */ } }} style={{ height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>{acctCopied?'Αντιγράφηκε':'Αντιγραφή'}</button>
                 <a href={acctLink} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:5, height:28, padding:'0 13px', borderRadius:14, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, textDecoration:'none', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>Άνοιγμα πύλης<ArrowUpRight size={13}/></a>
                 <div style={{ width:'100%', display:'flex', alignItems:'center', gap:10, marginTop:2, paddingLeft:2 }}>
-                  <span style={{ fontSize:10.5, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε. Μοιράσου τον νέο.':'Ο σύνδεσμος δίνει read-only πρόσβαση. Ανακάλεσέ τον όποτε θες.'}</span>
+                  <span style={{ fontSize:10.5, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{/* Η ΕΜΒΕΛΕΙΑ ΛΕΓΕΤΑΙ ΕΚΕΙ ΠΟΥ ΠΑΙΡΝΕΤΑΙ Η ΑΠΟΦΑΣΗ.
+                      Ο πίνακας accountant_links δεν έχει στήλη ακινήτου: ο σύνδεσμος
+                      είναι ΑΝΑ ΧΡΗΣΤΗ και ο RPC επιστρέφει κάθε ακίνητο του κατόχου,
+                      με διεύθυνση, ΑΤΑΚ και μίσθωμα. Το κουμπί όμως ζει μέσα στην
+                      καρτέλα ΕΝΟΣ ακινήτου, οπότε η φυσική ανάγνωση ήταν «μοιράζομαι
+                      αυτό εδώ». Η μόνη ένδειξη ήταν σε tooltip που δεν ανοίγει σε
+                      κινητό. Δεν αλλάζει η συμπεριφορά — ο λογιστής χρειάζεται όλη
+                      την εικόνα — αλλάζει το ότι ο χρήστης το ξέρει πριν πατήσει. */}
+                  {acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε. Μοιράσου τον νέο.':'Δίνει πρόσβαση μόνο για ανάγνωση, σε ΟΛΑ τα ακίνητά σου — όχι μόνο σε αυτό. Ανακάλεσέ τον όποτε θες.'}</span>
                   <button onClick={revokeAccountantLink} disabled={acctBusy} title="Ακυρώνει τον τρέχοντα σύνδεσμο και δημιουργεί καινούριο — ο παλιός παύει αμέσως να λειτουργεί" style={{ marginLeft:'auto', background:'none', border:'none', padding:0, color:'var(--text-tertiary)', fontSize:11, fontWeight:700, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }} onMouseEnter={e=>{ if(!acctBusy) e.currentTarget.style.color='var(--negative)' }} onMouseLeave={e=>{ e.currentTarget.style.color='var(--text-tertiary)' }}>Ανάκληση</button>
                 </div>
               </div>

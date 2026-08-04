@@ -52,11 +52,12 @@ export default function LandingShowcase() {
     <div style={{ position: 'relative', maxWidth: 960, margin: 'clamp(40px, 6vw, 72px) auto 0' }}>
       <PanelFX />
       <style>{`
-        .ls-mockup { box-shadow: 0 1px 1px rgba(16,24,40,.05), 0 12px 24px -8px rgba(16,24,40,.10), 0 40px 64px -24px rgba(16,24,40,.14); transform-origin: center top; will-change: transform; }
-        [data-mode="dark"] .ls-mockup { box-shadow: 0 1px 2px rgba(16,24,40,.40), 0 20px 40px -12px rgba(16,24,40,.55), 0 48px 90px -24px rgba(16,24,40,.65); }
-        @media (prefers-color-scheme: dark) {
-          :root:not([data-mode="light"]) .ls-mockup { box-shadow: 0 1px 2px rgba(16,24,40,.40), 0 20px 40px -12px rgba(16,24,40,.55), 0 48px 90px -24px rgba(16,24,40,.65); }
-        }
+        /* Βάση = σκούρο, όπως και το :root στο globals.css. Το φωτεινό είναι η
+           εξαίρεση που δηλώνεται ρητά. Πριν υπήρχαν τρεις κανόνες για δύο θέματα:
+           η σκιά του σκούρου ήταν γραμμένη δύο φορές, μία για το [data-mode] και
+           μία για την προτίμηση λειτουργικού. */
+        .ls-mockup { box-shadow: 0 1px 2px rgba(16,24,40,.40), 0 20px 40px -12px rgba(16,24,40,.55), 0 48px 90px -24px rgba(16,24,40,.65); transform-origin: center top; will-change: transform; }
+        :root[data-mode="light"] .ls-mockup { box-shadow: 0 1px 1px rgba(16,24,40,.05), 0 12px 24px -8px rgba(16,24,40,.10), 0 40px 64px -24px rgba(16,24,40,.14); }
         /* Λεπτό 3D «κάθισμα» καθώς μπαίνει στην οθόνη, scroll-driven, χωρίς engine.
            Progressive enhancement: όπου δεν υποστηρίζεται, το mockup είναι απλώς επίπεδο. */
         @keyframes lsTilt { from { opacity: .55; transform: perspective(1500px) rotateX(7deg) scale(.985); } to { opacity: 1; transform: perspective(1500px) rotateX(0deg) scale(1); } }

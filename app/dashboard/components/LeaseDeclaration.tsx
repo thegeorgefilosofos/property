@@ -49,7 +49,20 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         supabase.from('user_properties').select('name,atak,address,postal_code,sqm,floor,type,ownership').eq('id', propertyId).maybeSingle(),
         supabase.from('tenants').select('full_name,afm,id_doc_type,id_doc_number,email,phone,lease_start,lease_end,monthly_rent')
           .eq('property_id', propertyId).order('created_at', { ascending: false }).limit(1),
-        supabase.from('property_settings').select('owner_name,owner_afm').eq('user_id', userId).maybeSingle(),
+        // ΚΛΕΙΔΙ ΑΚΙΝΗΤΟΥ, ΟΧΙ ΧΡΗΣΤΗ.
+        //
+        // Εδώ έγραφε `.eq('user_id', userId).maybeSingle()`. Ο πίνακας όμως έχει
+        // `UNIQUE (property_id)`: μία γραμμή ανά ΑΚΙΝΗΤΟ. Ιδιοκτήτης με δύο ακίνητα
+        // έχει δύο γραμμές, και το `.maybeSingle()` πάνω σε δύο γραμμές ΔΕΝ γυρίζει
+        // την πρώτη — γυρίζει σφάλμα. Το σφάλμα δεν διαβαζόταν (μόνο το `data`),
+        // άρα `settings` γινόταν null σιωπηλά.
+        //
+        // Τι έβλεπε ο χρήστης: ανοίγει τη δήλωση μισθωτηρίου και του λέει ότι
+        // λείπουν το ονοματεπώνυμο και το ΑΦΜ εκμισθωτή — ενώ τα έχει συμπληρώσει
+        // και στα δύο ακίνητα. Ο έλεγχος του lib/tax/leaseDeclaration.ts ζητά το ΑΦΜ
+        // ως υποχρεωτικό, οπότε μια νόμιμη δήλωση μπλόκαρε από ένα λάθος φίλτρο.
+        // Και με ΕΝΑ ακίνητο δούλευε, άρα δεν φαινόταν ποτέ στη δοκιμή.
+        supabase.from('property_settings').select('owner_name,owner_afm').eq('property_id', propertyId).maybeSingle(),
       ]);
       const t = (tenants || [])[0] as Record<string, unknown> | undefined;
       const p = prop as Record<string, unknown> | null;
@@ -147,7 +160,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         {/* Ετυμηγορία */}
         <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '13px 15px', borderRadius: 11,
                       background: `color-mix(in srgb, ${toneVar} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${toneVar} 28%, transparent)` }}>
-          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: toneVar, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, marginTop: 1 }}>
+          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: toneVar, color: 'var(--on-tone)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, marginTop: 1 }}>
             {decl.readiness === 'ready' ? '✓' : decl.readiness === 'invalid' ? '✕' : '!'}
           </span>
           <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.summary}</span>

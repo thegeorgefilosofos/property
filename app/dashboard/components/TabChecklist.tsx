@@ -452,7 +452,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
     ['Απόκλιση (%)', totalVar === null ? '' : Math.round((totalVar / totalEst) * 1000) / 10],
     [''],
     ['ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ', '', '', '', '', ''],
-    ['Κατηγορία', 'Εργασίες', 'Ολοκλ.', 'Πρόοδος %', 'Εκτίμηση €', 'Με παραστατικό €'],
+    ['Κατηγορία', 'Εργασίες', 'Ολοκληρωμένες', 'Πρόοδος %', 'Εκτίμηση €', 'Με παραστατικό €'],
     ...CATEGORIES.filter(c => byCategory[c.id]).map(c => [
       c.label,
       byCategory[c.id].count,
@@ -464,7 +464,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
     ['ΣΥΝΟΛΟ', items.length, done, items.length > 0 ? Math.round((done / items.length) * 100) : 0, totalEst, totalAct],
     [''],
     ['ΚΑΤΑΝΟΜΗ ΑΝΑ ΠΡΟΤΕΡΑΙΟΤΗΤΑ', '', ''],
-    ['Προτεραιότητα', 'Εργασίες', 'Ολοκλ.'],
+    ['Προτεραιότητα', 'Εργασίες', 'Ολοκληρωμένες'],
     ...PRIORITIES.map(p => [
       p.label,
       items.filter(i => i.priority === p.value).length,
@@ -489,7 +489,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
   CATEGORIES.forEach(cat => {
     const catItems = items.filter(i => i.category === cat.id)
     if (catItems.length === 0) return
-    detailRows.push([cat.label, `${catItems.filter(i => i.status === 'done').length}/${catItems.length} ολοκλ.`, '', '', '', '', '', '', catItems.reduce((s, i) => s + (i.estimated_cost || 0), 0), catItems.reduce((s, i) => s + (i.actual_cost || 0), 0), '', '', '', ''])
+    detailRows.push([cat.label, `${catItems.filter(i => i.status === 'done').length}/${catItems.length} ολοκληρωμένες`, '', '', '', '', '', '', catItems.reduce((s, i) => s + (i.estimated_cost || 0), 0), catItems.reduce((s, i) => s + (i.actual_cost || 0), 0), '', '', '', ''])
 
     catItems.sort((a, b) => {
       const pOrder = { critical: 0, high: 1, normal: 2, low: 3 }
