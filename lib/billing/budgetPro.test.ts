@@ -1,7 +1,7 @@
 // Τεστ για τον προχωρημένο πυρήνα προϋπολογισμού (lib/billing/budgetPro.ts)
 import {
   safeToDistribute, reservePlan, rolloverNext, strWaterfall, investmentReturns,
-  recommendedReserves, climateFeePerNight, strTaxRegime, allocate, savingsSchedule,
+  recommendedReserves, strTaxRegime, allocate, savingsSchedule,
 } from './budgetPro'
 
 let passed = 0, failed = 0
@@ -76,12 +76,15 @@ const near = (a: number, b: number, e = 0.01) => Math.abs(a - b) <= e
   ok('μεσαίο → 10%', recommendedReserves(1000, 100000, 20).capExPct === 10)
 }
 
-// ── climateFeePerNight ───────────────────────────────────────────────────────
-{
-  ok('υψηλή περίοδος standard = 1,5', climateFeePerNight(7) === 1.5)
-  ok('χαμηλή περίοδος standard = 0,5', climateFeePerNight(1) === 0.5)
-  ok('luxury υψηλή = 10', climateFeePerNight(8, 'luxury') === 10)
-}
+// ── Τέλος ανθεκτικότητας ──────────────────────────────────────────────────
+// Εδώ υπήρχαν τρεις ισχυρισμοί που ΚΛΕΙΔΩΝΑΝ ΤΗ ΛΑΘΟΣ ΤΙΜΗ ως σωστή
+// (1,5 € / 0,5 € ανά διανυκτέρευση), ενώ το greekTax.test.ts κλείδωνε
+// ταυτόχρονα τη σωστή (8 € για διαμέρισμα). Η σουίτα βεβαίωνε δύο αντιφατικούς
+// συντελεστές για το ΙΔΙΟ νόμιμο τέλος, οπότε καμία διόρθωση δεν μπορούσε να
+// «φτιάξει» τον έναν χωρίς να ρίξει τον άλλο — το τεστ υπερασπιζόταν το σφάλμα.
+//
+// Το strWaterfall δέχεται πλέον τον συντελεστή ως όρισμα από
+// lib/billing/greekTax.ts, όπου ελέγχεται μία φορά.
 
 // ── strTaxRegime ─────────────────────────────────────────────────────────────
 {

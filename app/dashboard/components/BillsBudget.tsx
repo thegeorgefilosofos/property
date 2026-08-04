@@ -6,7 +6,7 @@ import { TextInput } from './UIComponents';
 import { T, feAuto, fn, Skeleton, SkeletonKPIs } from '@/components/Theme';
 import { notify } from '@/components/Toast';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
-import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
+import { reservePlan, rolloverNext, strWaterfall, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement } from '@/lib/accounting/statement';
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
@@ -17,6 +17,7 @@ import { mergeLedger, type LedgerBill, type LedgerExpense, type LedgerEntry } fr
 import { budgetBucket } from '@/lib/expenses/taxonomy';
 // Ο ΕΝΦΙΑ διαβάζεται από την ίδια απόφαση με την καρτέλα Υπηρεσίες.
 import { enfiaInUse, estimateENFIA } from '@/lib/billing/enfia';
+import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -269,6 +270,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [loanMonthly,  setLoanMonthly]  = useState(0);
   const [vaultMonthly, setVaultMonthly] = useState(0);
   const [rentalMode,   setRentalMode]   = useState<'long_term' | 'short_term' | ''>('');
+  // Χρειάζονται για τον ΣΩΣΤΟ συντελεστή ΤΑΚΚ: το υψηλό κλιμάκιο ισχύει μόνο
+  // για μονοκατοικία άνω των 80 τ.μ.
+  const [propSqm,      setPropSqm]      = useState<number | null>(null);
+  const [propIsHouse,  setPropIsHouse]  = useState(false);
   const [strNights,    setStrNights]    = useState(0);
   // Έξυπνες προτάσεις αποθεματικών/φόρου (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι),
   // υπολογισμένες με τους κανονικούς μηχανισμούς — περνούν στους κουμπαράδες.
@@ -372,7 +377,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
       const [propRes, loansRes, tenantsRes, staysRes, vaultsRes] = await Promise.all([
-        supabase.from('user_properties').select('rental_mode,target_rent,value,year_built,enfia,purchase_price').eq('id', propertyId).maybeSingle(),
+        supabase.from('user_properties').select('rental_mode,target_rent,value,year_built,enfia,purchase_price,sqm,prop_type').eq('id', propertyId).maybeSingle(),
         supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
         supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
         // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
@@ -382,6 +387,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       ]);
       const rMode = (propRes.data?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
       setRentalMode(rMode);
+      setPropSqm(Number(propRes.data?.sqm) || null);
+      // «Μονοκατοικία» κατά την έννοια του ΤΑΚΚ: ό,τι δεν είναι διαμέρισμα σε πολυκατοικία.
+      setPropIsHouse(/house|maisonette|villa|μονοκατοικ|μεζονέτ|βίλα/i.test(String(propRes.data?.prop_type ?? '')));
       const stayGross = (st: any) => Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0);
       const staysAll  = (staysRes.data ?? []) as any[];
       const staysMonth = staysAll.filter(st => String(st.check_in ?? '') >= start);
@@ -957,8 +965,20 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const strPlatformPct = budgetVal(budgets.strPlatformPct, 15);
   const strMgmtPct     = budgetVal(budgets.strMgmtPct, 0);
   const strTaxPct      = budgetVal(budgets.strTaxPct, 15);
+  // ── ΤΕΛΟΣ ΑΝΘΕΚΤΙΚΟΤΗΤΑΣ: ΜΙΑ πηγή ──────────────────────────────────────────
+  // Εδώ καλούνταν τοπικό climateFeePerNight() του budgetPro.ts, που επέστρεφε
+  // 1,50 €/νύχτα υψηλή περίοδο. Η πηγή αλήθειας (lib/billing/greekTax.ts) λέει
+  // 8 € για διαμέρισμα και 15 € για μονοκατοικία >80 τ.μ. — πενταπλάσια ως
+  // δεκαπλάσια διαφορά, στο ΙΔΙΟ ακίνητο, με το ίδιο νομικό όνομα στην οθόνη.
+  //
+  // Ο Προϋπολογισμός έδειχνε 30 € εκεί που η Λογιστική έδειχνε 160 €, και ο
+  // οικοδεσπότης προγραμμάτιζε με 130 € λιγότερη οφειλή προς την ΑΑΔΕ τον μήνα.
+  const climateFeeNight = isHighSeasonMonth(_now.getMonth())
+    ? climateLevyRates(propSqm, propIsHouse).high
+    : climateLevyRates(propSqm, propIsHouse).low;
+
   const waterfall      = isSTR && income > 0
-    ? strWaterfall({ gross: income, platformFeePct: strPlatformPct, nights: strNights, climateFeePerNight: climateFeePerNight(_now.getMonth() + 1), cleaningFee: 0, managementPct: strMgmtPct, incomeTaxPct: strTaxPct })
+    ? strWaterfall({ gross: income, platformFeePct: strPlatformPct, nights: strNights, climateFeePerNight: climateFeeNight, cleaningFee: 0, managementPct: strMgmtPct, incomeTaxPct: strTaxPct })
     : null;
   useEffect(() => {
     if (!propertyId || !userId || loading) return;
