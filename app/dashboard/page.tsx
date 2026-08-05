@@ -29,7 +29,7 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge } from '@/components/Theme';
+import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, type KPIItem } from '@/components/Theme';
 import { Building2, Receipt, ListChecks, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
@@ -52,6 +52,7 @@ import FeatureLock, { LockBadge } from './components/FeatureLock';
 import { PLANS } from '@/lib/billing/plans';
 import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
 import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, CORE_TABS, type DisclosureSignals } from '@/lib/nav/disclosure';
+import AthensNow from './components/AthensNow';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -361,8 +362,14 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-/** Πλακίδια που έχουν νόημα ΜΟΝΟ σε ακίνητο που αποδίδει (μακροχρόνια ή βραχυχρόνια). */
-const INCOME_ONLY_KPIS = new Set(['Μηνιαίο Ενοίκιο', 'Μεικτή Απόδοση', 'Καθαρή Απόδοση']);
+// Ο ΚΑΝΟΝΑΣ ΔΕΝ ΚΡΕΜΕΤΑΙ ΠΛΕΟΝ ΑΠΟ ΤΗ ΔΙΑΤΥΠΩΣΗ ΤΗΣ ΕΤΙΚΕΤΑΣ.
+// Ήταν `new Set(['Μηνιαίο Ενοίκιο', …])` και το φίλτρο έψαχνε το κείμενο που
+// βλέπει ο χρήστης. Μια αλλαγή κεφαλαίου —«Μηνιαίο ενοίκιο»— και τα πλακίδια
+// απόδοσης θα ξαναεμφανίζονταν σιωπηλά σε κενό ακίνητο, με ποσοστά βγαλμένα
+// από ενοίκιο-στόχο που δεν εισπράχθηκε ποτέ. Κανένα τεστ δεν θα το έπιανε,
+// γιατί τίποτα δεν θα είχε «σπάσει». Τώρα η σήμανση είναι δεδομένο του
+// πλακιδίου (`incomeOnly`), όχι σύμπτωση κειμένου.
+type OverviewKPI = KPIItem & { incomeOnly?: boolean };
 
 function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
@@ -595,7 +602,21 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         <InsightsBoard insights={insights} name={ownerName} onSaveName={onSaveOwnerName} onNavigate={onNavigate} maxVisible={4} />
       )}
 
-      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+      {/* ═══ Η ΚΕΦΑΛΙΔΑ ΠΟΥ ΕΛΕΙΠΕ ══════════════════════════════════════════
+          Η οθόνη άνοιγε με ένα μοναχικό κουμπί «Αναφορά (PDF)» στοιχισμένο
+          δεξιά, σε δική του γραμμή: μια ολόκληρη ζώνη ύψους για μια
+          δευτερεύουσα ενέργεια, πάνω από το περιεχόμενο. Δεν υπήρχε πουθενά
+          τίτλος — ο χρήστης δεν διάβαζε ΠΟΥΘΕΝΑ ποιο ακίνητο βλέπει ούτε τι
+          μέρα είναι, ενώ κάθε ποσό από κάτω λέει «ως σήμερα». Τώρα: όνομα,
+          κατάσταση, η ώρα Ελλάδας, και η ενέργεια στη σειρά της. */}
+      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:20}}>
+        <div style={{minWidth:0}}>
+          <AthensNow style={{fontFamily:T.font.sans,fontSize:11,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.02em',marginBottom:4,minHeight:15}}/>
+          <h1 style={{fontSize:26,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',fontFamily:T.font.sans,lineHeight:1.15,margin:0,overflow:'hidden',textOverflow:'ellipsis'}}>{prop.name}</h1>
+          <div style={{fontFamily:T.font.sans,fontSize:12,color:'var(--text-tertiary)',marginTop:4}}>
+            {[PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο', statusLabelOf(prop), prop.address||null].filter(Boolean).join(' · ')}
+          </div>
+        </div>
         <button onClick={()=>printPropertyStatement({
           propName: prop.name, address: prop.address||undefined, postalCode: prop.postal_code||undefined,
           propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
@@ -636,16 +657,27 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         { key:'inv',     label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
       ].filter(s => tabVisible(s.nav)) as SetupStep[]}/>
 
-      <div className="kpi-grid kpi-grid-5" style={{marginBottom:24}}>
-        {[
-          { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent) },
-          { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών' },
-          { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου' },
-          { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD),
+      {/* ═══ ΕΝΑ ΠΛΑΚΙΔΙΟ ΓΙΑ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ ══════════════════════════════
+          Η Επισκόπηση —η ΠΡΩΤΗ οθόνη— ήταν η μόνη που δεν χρησιμοποιούσε το
+          κοινό KPIGrid. Είχε δικό της .kpi-grid-5 εδώ, δικό της .po-fig-card
+          παρακάτω, και τρεις ζώνες με κεντραρισμένα ζευγάρια ετικέτα/τιμή στο
+          τέλος: τέσσερα διαφορετικά «πλακίδια αριθμού» στην ίδια οθόνη, με
+          διαφορετικό padding, μέγεθος γραμματοσειράς και συμπεριφορά στο hover.
+          Τώρα ένα, το ίδιο με κάθε άλλη καρτέλα της εφαρμογής. */}
+      <SecHdr label={`Η εικόνα σήμερα · ${MONTHS_LONG[month-1]} ${year}`} />
+      <KPIGrid columns={5} items={([
+          { label:'Μηνιαίο ενοίκιο', value:fmtEur(rent), incomeOnly:true },
+          { label:'Μεικτή απόδοση', value:`${grossYield.toFixed(1)}%`, incomeOnly:true, title:'Απόδοση (yield): ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών' },
+          { label:'Καθαρή απόδοση', value:`${netYield.toFixed(1)}%`, incomeOnly:true, title:'Απόδοση (yield): ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου' },
+          // «Δαπάνες Έτους» εδώ και «Δαπάνες (προβολή)» παρακάτω διάβαζαν σαν
+          // το ίδιο μέγεθος με δύο τιμές. Είναι δύο διαφορετικά πράγματα και
+          // πλέον το λένε: ως σήμερα / ολόκληρο το έτος.
+          { label:'Δαπάνες ως σήμερα', value:fmtEur(totalExpYTD),
             title:`Δαπάνες από 1/1 έως σήμερα. Η σύγκριση αφορά το ΙΔΙΟ διάστημα του ${year-1} (Ιανουάριος – ${MONTHS_LONG[month-1]}), όχι ολόκληρη την περσινή χρονιά.`,
-            sub: expDeltaPct!=null ? { text:`${expDeltaPct>0?'+':expDeltaPct<0?'−':''}${Math.abs(expDeltaPct)}% από το ίδιο διάστημα πέρσι`, color: expDeltaPct>0?'var(--negative)':expDeltaPct<0?'var(--positive)':'var(--text-tertiary)' } : undefined },
-          { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
-            color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
+            sub: expDeltaPct!=null ? `${expDeltaPct>0?'+':expDeltaPct<0?'−':''}${Math.abs(expDeltaPct)}% από πέρσι, ίδιο διάστημα` : undefined,
+            subTone: expDeltaPct==null ? undefined : expDeltaPct>0?'negative':expDeltaPct<0?'positive':undefined },
+          { label: daysToExpiry!=null?'Λήξη σύμβασης':'Αξία ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
+            tone: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'negative':'warning') : undefined },
         // ΕΝΟΙΚΙΟ ΚΑΙ ΑΠΟΔΟΣΕΙΣ ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΕΣΟΔΟ.
         //
         // Τα τρία πρώτα πλακίδια εμφανίζονταν ΠΑΝΤΑ. Σε ακίνητο σε ιδιοχρησία ή
@@ -655,19 +687,13 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         // αποδίδει τίποτα. Απόδοση χωρίς έσοδο δεν είναι μέτρηση, είναι υπόθεση
         // με ποσοστό δίπλα της — ακριβώς αυτό που το lib/property/visibility.ts
         // έχει ήδη απαγορεύσει για την καρτέλα Αποδόσεις. Ίδιος κανόνας εδώ.
-        ].filter(k => isLet(prop) || !INCOME_ONLY_KPIS.has(k.label)).map((k,i) => (
-          <div key={i} className="kpi-card" title={(k as any).title}>
-            <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
-            <div className="kpi-label">{k.label}</div>
-            {(k as any).sub && <div style={{fontSize:11,fontWeight:600,marginTop:4,color:(k as any).sub.color,fontFamily: T.font.sans}}>{(k as any).sub.text}</div>}
-          </div>
-        ))}
-      </div>
+        ] as OverviewKPI[]).filter(k => isLet(prop) || !k.incomeOnly)} />
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
 
       {prefs.showSmartTips && <SmartSuggestions userId={userId} propertyId={prop.id} />}
 
+      <SecHdr label="Ανάλυση δαπανών" sub="Πού πάνε τα χρήματα, μήνα με μήνα" />
       <div className="grid-main">
         <div className="card">
           <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
@@ -739,7 +765,8 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         </div>
       </div>
 
-      <div className="grid-3" style={{marginBottom:16}}>
+      <SecHdr label="Το ακίνητο" sub="Στοιχεία, εργασίες και πάγια κόστη" />
+      <div className="grid-3" style={{marginBottom:24}}>
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Στοιχεία Ακινήτου</div>
           <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -792,88 +819,69 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         </div>
       </div>
 
-      <div className="card">
-        <div className="section-label"><span className="section-dot"/> Ετήσια Προβολή {year}</div>
-        <div className="grid-5">
-          {(() => {
-            const net = annualRent - projectedExpYear - estTax;
-            return [
-            { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), title:`Μηνιαίο ενοίκιο ${fmtEur(rent)} × 12.` },
-            { label:'Δαπάνες (προβολή)', value:fmtEur(Math.round(projectedExpYear)),
-              title:`Οι δαπάνες που έχεις καταχωρήσει για το ${year}, μετρημένες όσες φορές πραγματικά συμβαίνουν: οι εφάπαξ (π.χ. ΕΝΦΙΑ, συμβόλαιο) μία φορά, οι πάγιες όσες φορές επαναλαμβάνονται${recurringCount>0?` (${recurringCount} πάγιες)`:''}. Δεν πολλαπλασιάζεται το σύνολο του έτους ×12.` },
-            { label:'Μερίδιο Φόρου Ενοικίου', value:fmtEur(estTax),
-              title:portfolioTax.count>1
-                ? `${CONSOLIDATION_NOTE} Συνολικός φόρος χαρτοφυλακίου ${fmtEur(Math.round(portfolioTax.totalTax))} σε ενοίκια ${fmtEur(Math.round(portfolioTax.totalAnnualRent))}.`
-                : `Προοδευτική κλίμακα ενοικίων 2026 (15/25/35/45%), με την τεκμαρτή έκπτωση 5%. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου.` },
-            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(Math.round(net)), tone:net>=0?'positive':'negative',
-              title:'Ακαθάριστα έσοδα μείον δαπάνες μείον το μερίδιο φόρου. Δεν περιλαμβάνει δόσεις δανείου.' },
-          ]; })().map((k,i) => { const tone=(k as any).tone; return (
-            <div key={i} className="po-fig-card po-lift" tabIndex={0} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,boxShadow:'var(--highlight-inset), 0 8px 20px -16px color-mix(in srgb, var(--text-primary) 45%, transparent)'}}>
-              <div className="po-fig" data-tone={tone} style={{fontFamily: T.font.sans,fontSize:20,fontWeight:700,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
-              <div style={{fontFamily: T.font.sans,fontSize:10,fontWeight:700,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
-            </div>
-          );})}
-        </div>
-        {/* Η «Καθαρή Απόδοση» ΕΦΥΓΕ από εδώ: ήταν το ίδιο νούμερο με το πλακίδιο
-            στην κορυφή της ίδιας οθόνης, σε απόσταση ενός scroll. Στη θέση της, ο
-            φόρος εξηγεί από πού βγαίνει — που είναι η πραγματική απορία του χρήστη. */}
-        {taxNote && (
-          <div style={{marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',fontFamily: T.font.sans,fontSize:11.5,color:'var(--text-secondary)',lineHeight:1.6}}>
-            <strong style={{color:'var(--text-primary)',fontWeight:600}}>Πώς βγαίνει ο φόρος.</strong> {taxNote}
-          </div>
-        )}
-        {loans.length > 0 && (
-          <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Δόση δανείου / μήνα</span>
-              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(monthlyDebt))}</span>
-            </div>
-            {debtLtv > 0 && (
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span title="Δείκτης δανείου προς αξία ακινήτου (Loan to Value)" style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Δάνειο προς αξία</span>
-                <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{debtLtv.toFixed(0)}%</span>
+      {/* ═══ ΤΟ ΕΤΟΣ, ΣΤΗΝ ΙΔΙΑ ΓΛΩΣΣΑ ΜΕ ΤΟ ΣΗΜΕΡΑ ══════════════════════════
+          Εδώ ζούσε ΤΡΙΤΟ σύστημα πλακιδίων (.po-fig-card, κεντραρισμένο, 20px
+          τιμή) και από κάτω ΤΡΕΙΣ ζώνες με κεντραρισμένα ζευγάρια
+          «ετικέτα — τιμή» χωρισμένες με γραμμούλες: δάνειο, φιλοξενία,
+          πληρωμένα/εκκρεμή. Επτά νούμερα κρυμμένα σε μορφή που δεν
+          χρησιμοποιείται πουθενά αλλού στην εφαρμογή και δεν διαβάζεται με μια
+          ματιά. Είναι όλα το ίδιο πράγμα — αριθμός με ετικέτα — και πλέον
+          δείχνουν έτσι. */}
+      <SecHdr label={`Ετήσια προβολή ${year}`} sub="Πού καταλήγει η χρονιά με ό,τι ξέρουμε σήμερα" />
+      {(() => {
+        const net = annualRent - projectedExpYear - estTax;
+        const items: KPIItem[] = [
+          { label:'Ακαθάριστα έσοδα', value:fmtEur(annualRent), title:`Μηνιαίο ενοίκιο ${fmtEur(rent)} × 12.` },
+          { label:'Δαπάνες, όλο το έτος', value:fmtEur(Math.round(projectedExpYear)),
+            sub: recurringCount>0 ? `${recurringCount} πάγιες` : undefined,
+            title:`Οι δαπάνες που έχεις καταχωρήσει για το ${year}, μετρημένες όσες φορές πραγματικά συμβαίνουν: οι εφάπαξ (π.χ. ΕΝΦΙΑ, συμβόλαιο) μία φορά, οι πάγιες όσες φορές επαναλαμβάνονται. Δεν πολλαπλασιάζεται το σύνολο του έτους ×12.` },
+          { label:'Μερίδιο φόρου ενοικίου', value:fmtEur(estTax),
+            title:portfolioTax.count>1
+              ? `${CONSOLIDATION_NOTE} Συνολικός φόρος χαρτοφυλακίου ${fmtEur(Math.round(portfolioTax.totalTax))} σε ενοίκια ${fmtEur(Math.round(portfolioTax.totalAnnualRent))}.`
+              : `Προοδευτική κλίμακα ενοικίων 2026 (15/25/35/45%), με την τεκμαρτή έκπτωση 5%. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου.` },
+          { label:'Καθαρό αποτέλεσμα', value:fmtEur(Math.round(net)), tone:net>=0?'positive':'negative',
+            title:'Ακαθάριστα έσοδα μείον δαπάνες μείον το μερίδιο φόρου. Δεν περιλαμβάνει δόσεις δανείου.' },
+        ];
+        // ΙΔΙΟ ΠΛΑΚΙΔΙΟ, ΟΧΙ ΙΔΙΑ ΒΑΡΥΤΗΤΑ. Τα τέσσερα παραπάνω είναι η αλυσίδα
+        // που καταλήγει στο «Καθαρό αποτέλεσμα» — το συμπέρασμα της χρονιάς. Τα
+        // από κάτω είναι συμφραζόμενα: υπάρχουν μόνο όταν υπάρχουν, και δεν
+        // μπαίνουν δίπλα στο συμπέρασμα σαν ισότιμα. Μπήκαν σε δεύτερο πλέγμα
+        // αντί να χωθούν στο πρώτο, που τα ξεχείλωνε σε μια δεύτερη μισοάδεια
+        // σειρά και ισοπέδωνε την ιεραρχία.
+        const extra: KPIItem[] = [];
+        if (loans.length > 0) extra.push({
+          label:'Δόση δανείου / μήνα', value:fmtEur(Math.round(monthlyDebt)),
+          sub: debtLtv>0 ? `δάνειο προς αξία ${debtLtv.toFixed(0)}%` : undefined,
+          title:'Εκτιμώμενη τοκοχρεολυτική δόση. ΔΕΝ αφαιρείται από το καθαρό αποτέλεσμα παραπάνω — το κεφάλαιο δεν είναι δαπάνη.' });
+        if (hostStays.length > 0) extra.push({
+          label:`Έσοδα φιλοξενίας ${year}`, value:fmtEur(Math.round(hostingYTD)),
+          sub: [hostingNights>0?`${hostingNights} διανυκτερεύσεις`:null, nextArrival?`επόμενη άφιξη ${new Date(nextArrival).toLocaleDateString('el-GR')}`:null].filter(Boolean).join(' · ') || undefined,
+          title:'Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα «Επισκέπτες».' });
+        if (pendingExpYTD > 0) extra.push({
+          label:'Εκκρεμείς δαπάνες', value:fmtEur(pendingExpYTD), tone:'warning',
+          sub:`πληρωμένα ${fmtEur(paidExpYTD)}`,
+          title:'Δαπάνες που έχουν καταχωρηθεί αλλά δεν έχουν σημανθεί ως πληρωμένες. Μετρούν κανονικά στο αποτέλεσμα της χρονιάς.' });
+        return (
+          <>
+            <KPIGrid columns={4} items={items} />
+            {/* Η «Καθαρή Απόδοση» ΕΦΥΓΕ από εδώ: ήταν το ίδιο νούμερο με το
+                πλακίδιο στην κορυφή της ίδιας οθόνης, σε απόσταση ενός scroll.
+                Στη θέση της, ο φόρος εξηγεί από πού βγαίνει — που είναι η
+                πραγματική απορία του χρήστη. */}
+            {taxNote && (
+              <div style={{marginTop:-4,marginBottom:16,fontFamily: T.font.sans,fontSize:11.5,color:'var(--text-secondary)',lineHeight:1.6}}>
+                <strong style={{color:'var(--text-primary)',fontWeight:600}}>Πώς βγαίνει ο φόρος.</strong> {taxNote}
               </div>
             )}
-          </div>
-        )}
-        {hostStays.length > 0 && (
-          <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span title="Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα Πελάτης" style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Έσοδα φιλοξενίας {year}</span>
-              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(hostingYTD))}</span>
-            </div>
-            {hostingNights > 0 && (
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Διανυκτερεύσεις</span>
-                <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{hostingNights}</span>
-              </div>
-            )}
-            {nextArrival && (
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Επόμενη άφιξη</span>
-                <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--accent)'}}>{new Date(nextArrival).toLocaleDateString('el-GR')}</span>
-              </div>
-            )}
-          </div>
-        )}
-        {pendingExpYTD > 0 && (
-          <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block'}}/>
-              <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Πληρωμένα</span>
-              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(paidExpYTD)}</span>
-            </div>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block'}}/>
-              <span style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>Εκκρεμή</span>
-              <span style={{fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(pendingExpYTD)}</span>
-            </div>
-          </div>
-        )}
-      </div>
+            {extra.length > 0 && <KPIGrid columns={Math.max(3, extra.length)} items={extra} />}
+          </>
+        );
+      })()}
 
-      {/* Διαχείριση & Εργαλεία, δευτερεύουσες ενέργειες, κάτω από την οικονομική εικόνα */}
-      <div style={{marginTop:8,marginBottom:12,fontFamily: T.font.sans,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-tertiary)'}}>Διαχείριση & Εργαλεία</div>
+      {/* Διαχείριση & Εργαλεία, δευτερεύουσες ενέργειες, κάτω από την οικονομική
+          εικόνα. Ίδια κεφαλίδα ενότητας με τις υπόλοιπες — ήταν χειρόγραφη
+          γραμμή με τα ίδια περίπου styles και μισό pixel διαφορά. */}
+      <SecHdr label="Διαχείριση & εργαλεία" />
       <PortalShare propertyId={prop.id} userId={userId} />
       <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
       <PaymentLinks />

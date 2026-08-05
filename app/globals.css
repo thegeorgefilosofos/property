@@ -376,6 +376,10 @@ body {
 
 /* KPI / Metric card — ταυτίζεται με το KPIGrid του Theme.tsx (μία αισθητική) */
 .kpi-card {
+  /* Καθιστά την κάρτα «δοχείο»: χωρίς αυτό, οι μονάδες cqi του .kpi-value δεν
+     έχουν τι να μετρήσουν και υποχωρούν στο πλάτος του παραθύρου — δηλαδή το
+     ίδιο μέγεθος σε κάρτα μιας στήλης και σε κάρτα πέντε. */
+  container-type: inline-size;
   background: var(--surface-kpi);
   border: 1px solid var(--border-raised);
   border-radius: 14px;
@@ -391,7 +395,15 @@ body {
 @media (prefers-reduced-motion: reduce) { .kpi-card:hover { transform: none; } }
 .kpi-value {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 26px;
+  /* Κλιμακώνεται με το πλάτος ΤΗΣ ΚΑΡΤΑΣ (cqi), όχι του παραθύρου: σε δύο
+     στήλες κινητού τα μεγάλα ποσά έσπαγαν σε δεύτερη γραμμή. Ο συντελεστής
+     μετρήθηκε στον περιηγητή, όχι στο περίπου: το cqi πατά στο ΕΣΩΤΕΡΙΚΟ
+     πλάτος (content box), δηλαδή 205px κάρτας − 36px padding − 2px border =
+     167px. 26 / 167 = 15,6%. Έτσι στο desktop βγαίνει ακριβώς 26px — το
+     μέγεθος που είχε πάντα — και στο δίστηλο κινητό ~20px. Με μικρότερο
+     συντελεστή κολλούσε στο κάτω όριο ΠΑΝΤΟΥ και μίκραινε τον βασικό αριθμό
+     σε ολόκληρη την εφαρμογή· γι' αυτό μετρήθηκε αντί να εκτιμηθεί. */
+  font-size: clamp(18px, 15.6cqi, 26px);
   font-weight: 700;
   line-height: 1.04;
   letter-spacing: -0.025em;
@@ -870,12 +882,11 @@ body {
    overrides τους παρακάτω). ΓΙΑΤΙ: η κεφαλίδα ακινήτου στο topbar γράφεται με
    <h1> + inline styles· καμία από τις τρεις κλάσεις δεν εφαρμοζόταν σε στοιχείο. */
 
-/* KPI grid — ρευστό: γεμίζει όσες στήλες χωράνε, πέφτει σε 2/1 σε κινητό */
-/* ΑΦΑΙΡΕΘΗΚΑΝ οι .kpi-grid-4 και .kpi-grid-6: μόνο η -5 ζητείται στην πράξη.
-   Δεν παράγονται δυναμικά (δεν υπάρχει `kpi-grid-${n}` πουθενά) — αν χρειαστεί
-   άλλος αριθμός στηλών, πρόσθεσε τη συγκεκριμένη κλάση που θα χρησιμοποιηθεί. */
-.kpi-grid  { display: grid; gap: 12px; margin-bottom: 24px; }
-.kpi-grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
+/* ΑΦΑΙΡΕΘΗΚΑΝ οι .kpi-grid και .kpi-grid-5. Τις φορούσε ΜΟΝΟ η Επισκόπηση, που
+   έφτιαχνε με το χέρι πλακίδια ίδια με του KPIGrid — δηλαδή δεύτερο σύστημα
+   καρτών για την πρώτη οθόνη της εφαρμογής. Πλέον περνά κι αυτή από το KPIGrid
+   του Theme.tsx, που ορίζει το πλέγμα του inline. Το .kpi-card / .kpi-value /
+   .kpi-label μένουν: είναι το ΙΔΙΟ πλακίδιο, από τη μία πηγή. */
 
 /* Section label — ΤΑΥΤΙΖΕΤΑΙ με το SecHdr του Theme.tsx ώστε οι επικεφαλίδες
    ενοτήτων να δείχνουν ΙΔΙΕΣ σε όλα τα tabs (τελεία + uppercase + λεπτή γραμμή). */
@@ -1043,7 +1054,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* Πλέγματα Επισκόπησης (τα inline του dashboard μεταφέρθηκαν εδώ ως κλάσεις) */
 .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
-.grid-5    { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+/* Η .grid-5 έφυγε μαζί με τα κεντραρισμένα πλακίδια της «Ετήσιας Προβολής». */
 
 /* Ασφαλής περιοχή για «notch» κινητών */
 @supports (padding: max(0px)) {
@@ -1096,6 +1107,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 /* ── ΚΙΝΗΤΟ (≤640px): πυκνότερη διάταξη ─────────────────────────────────── */
+/* ΔΥΟ ΣΤΗΛΕΣ ΣΤΟ ΚΙΝΗΤΟ, ΟΧΙ ΔΩΔΕΚΑ ΣΤΟΙΒΑΓΜΕΝΕΣ ΚΑΡΤΕΣ.
+   Το ελάχιστο πλάτος στήλης του KPIGrid (≈184px για πέντε πλακίδια) δεν χωρά
+   δεύτερη στήλη σε οθόνη 390px, οπότε ΚΑΘΕ πλακίδιο έπιανε ολόκληρο το πλάτος:
+   η αρχική οθόνη γινόταν δώδεκα οθόνες scroll για δώδεκα αριθμούς. Στα στενά
+   πλάτη το πλέγμα γίνεται ρητά δίστηλο. Το !important είναι απαραίτητο: το
+   grid-template-columns γράφεται inline από το KPIGrid και το inline νικά. */
+@media (max-width: 640px) {
+  .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
 @media (max-width: 640px) {
   .app-topbar { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; }
   .app-content { padding: 14px 12px 28px; }
@@ -1115,9 +1135,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
   /* Inputs 16px για να ΜΗΝ κάνει zoom το iOS στο focus */
   input, select, textarea { font-size: 16px !important; }
-
-  /* Ετήσιος απολογισμός: 5 πλακίδια → πλέγμα που «σπάει» */
-  .grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); }
 
   /* Εναλλαγή ορατότητας ανά συσκευή */
   .desktop-only { display: none !important; }
