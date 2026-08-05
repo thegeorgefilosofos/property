@@ -7,6 +7,7 @@
 // (Inter, tabular numerals). Ολοκληρωμένη: ταυτότητα, απόδοση, απολογισμός,
 // φορολογική εικόνα, ανάλυση δαπανών. XSS-ασφαλές (esc).
 // ═══════════════════════════════════════════════════════════════════════════
+import { BRAND_MARK_INK } from '@/components/BrandMark';
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { incomeStatement } from '@/lib/accounting/statement';
 import { rentalBracketsForYear } from '@/lib/billing/greekTax';
@@ -115,7 +116,7 @@ ${printFontFaces()}
   @media print{.page{padding:16mm 15mm}@page{margin:0}}
   .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px}
   .brand{display:flex;align-items:center;gap:11px}
-  .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+  .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
   .bname{font-size:15px;font-weight:700;color:#111}
   .muted{color:#6b7280}
   .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8f98;font-weight:600}

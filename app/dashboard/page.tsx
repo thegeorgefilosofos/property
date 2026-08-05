@@ -719,7 +719,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           τρεις αριθμοί που ο ιδιοκτήτης ξέρει απ' έξω και που δεν αλλάζουν από
           μήνα σε μήνα. Αυτό που ΔΕΝ ήξερε, και είναι ο λόγος που ανοίγει την
           εφαρμογή, ήταν αν μπήκε το ενοίκιο και τι πρέπει να πληρώσει. */}
-      <CashHero cash={cash} onNavigate={onNavigate} />
+      <CashHero cash={cash} showIncome={isLet(prop)} onNavigate={onNavigate} />
 
       {/* Μία λίστα «τι χρειάζεται τώρα», στη θέση των τεσσάρων που έλεγαν εν
           μέρει τα ίδια πράγματα. Η συγχώνευση γίνεται στο lib/home/agenda.ts. */}
@@ -863,14 +863,19 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           δείχνουν έτσι. */}
       <SecHdr label={`Η χρονιά ${year}`} sub="Πού καταλήγει με ό,τι ξέρουμε σήμερα" />
       {(() => {
-        const net = annualRent - projectedExpYear - estTax;
+        const net = annualRent - projectedExpYear - estTax;   // μόνο για το σκέλος με έσοδα
         // ΜΙΑ ΖΩΝΗ ΑΡΙΘΜΩΝ, ΟΧΙ ΔΥΟ. Πιο πάνω υπήρχε δεύτερο πλέγμα «Η εικόνα
         // σήμερα» με «Μηνιαίο ενοίκιο», «Δαπάνες ως σήμερα» και τις δύο
         // αποδόσεις. Το «Μηνιαίο ενοίκιο × 12» ΕΙΝΑΙ τα ακαθάριστα έσοδα, και οι
         // «Δαπάνες ως σήμερα» δίπλα στις «Δαπάνες όλο το έτος» διάβαζαν σαν το
         // ίδιο μέγεθος με δύο τιμές. Τώρα κάθε ποσό λέγεται μία φορά· ό,τι ήταν
         // χρήσιμο συμφραζόμενο (μηνιαίο, ως σήμερα) μπήκε ως υπότιτλος.
-        const items: KPIItem[] = [
+        // ΣΕ ΚΕΝΟ Ή ΙΔΙΟΧΡΗΣΙΑ ΔΕΝ ΥΠΑΡΧΟΥΝ ΕΣΟΔΑ, ΦΟΡΟΣ, ΟΥΤΕ «ΚΑΘΑΡΟ».
+        // Έδειχνε τρία πλακίδια στο μηδέν και ένα «Καθαρό αποτέλεσμα» που ήταν
+        // απλώς οι δαπάνες με μείον — δηλαδή το ίδιο νούμερο δύο φορές, με τα
+        // άλλα δύο να λένε «δεν ξέρω» ντυμένα σαν μέτρηση. Μένει ό,τι ισχύει.
+        const income = isLet(prop);
+        const items: KPIItem[] = income ? [
           { label:'Έσοδα από ενοίκια', value:fmtEur(annualRent), sub:`${fmtEur(rent)} τον μήνα`,
             title:`Μηνιαίο ενοίκιο ${fmtEur(rent)} × 12.` },
           { label:'Δαπάνες', value:fmtEur(Math.round(projectedExpYear)),
@@ -885,6 +890,12 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           // έβαφε κόκκινο ένα ακίνητο που δουλεύει κανονικά.
           { label:'Καθαρό αποτέλεσμα', value:fmtEur(Math.round(net)),
             title:'Ακαθάριστα έσοδα μείον δαπάνες μείον το μερίδιο φόρου. Δεν περιλαμβάνει δόσεις δανείου.' },
+        ] : [
+          { label:'Δαπάνες', value:fmtEur(Math.round(projectedExpYear)),
+            sub: [`${fmtEur(totalExpYTD)} ως σήμερα`, recurringCount>0 ? `${recurringCount} πάγιες` : null].filter(Boolean).join(' · '),
+            title:`Οι δαπάνες που έχεις καταχωρήσει για το ${year}, μετρημένες όσες φορές πραγματικά συμβαίνουν.` },
+          { label:'Αξία ακινήτου', value: propValue>0 ? fmtEur(propValue) : '—',
+            title: prop.value ? 'Εμπορική αξία, όπως την έχεις καταχωρήσει.' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική.' },
         ];
         // ΙΔΙΟ ΠΛΑΚΙΔΙΟ, ΟΧΙ ΙΔΙΑ ΒΑΡΥΤΗΤΑ. Τα τέσσερα παραπάνω είναι η αλυσίδα
         // που καταλήγει στο «Καθαρό αποτέλεσμα» — το συμπέρασμα της χρονιάς. Τα
@@ -920,7 +931,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
                   {propValue>0 && ` · αξία ${fmtEur(propValue)}`}
                 </div>
               )}
-              {taxNote && (
+              {income && taxNote && (
                 <div><strong style={{color:'var(--text-primary)',fontWeight:600}}>Πώς βγαίνει ο φόρος.</strong> {taxNote}</div>
               )}
             </div>

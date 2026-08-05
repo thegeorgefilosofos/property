@@ -5,6 +5,7 @@
 // (GDPR). Δείχνει τι λαμβάνει ο χρήστης και του επιτρέπει να απεγγραφεί από τα
 // προϊοντικά νέα, τα δεδομένα αγοράς, ή όλα. Χωρίς login.
 // ═══════════════════════════════════════════════════════════════════════════
+import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -48,7 +49,7 @@ export default function Unsubscribe() {
     <div style={wrap}>
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17 }}>P</div>
+          <BrandMark size={34} />
           <div><div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div><div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Προτιμήσεις ενημερωτικών emails</div></div>
         </div>
 

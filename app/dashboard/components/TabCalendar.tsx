@@ -1,4 +1,5 @@
 'use client'
+import { BRAND_MARK_BG, BRAND_MARK_INK } from '@/components/BrandMark';
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
@@ -1361,7 +1362,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     const html=`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Ημερολόγιο, Property OS</title>
     <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',system-ui,sans-serif;color:#202124;padding:40px;max-width:800px;margin:0 auto}@media print{body{padding:0}@page{margin:16mm}}table{width:100%;border-collapse:collapse}</style></head>
     <body><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a73e8;padding-bottom:16px;margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">P</div><div><div style="font-weight:700;font-size:15px">Property OS</div><div style="font-size:11px;color:#5f6368">Επερχόμενα Γεγονότα & Προθεσμίες</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:${BRAND_MARK_BG};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">P</div><div><div style="font-weight:700;font-size:15px">Property OS</div><div style="font-size:11px;color:#5f6368">Επερχόμενα Γεγονότα & Προθεσμίες</div></div></div>
       <div style="text-align:right;font-size:12px;color:#5f6368">${esc(new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}))}</div></div>
       <table><thead><tr><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Ημερομηνία</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Γεγονός</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Κατηγορία</th><th style="text-align:right;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Πότε</th></tr></thead><tbody>${rows}</tbody></table>
       <div style="margin-top:30px;font-size:10px;color:#80868b;border-top:1px solid #eee;padding-top:12px">Δημιουργήθηκε αυτόματα από το Property OS.</div>

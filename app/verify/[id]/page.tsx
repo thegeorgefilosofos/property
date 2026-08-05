@@ -6,6 +6,7 @@
 // έγγραφο εκδόθηκε πραγματικά από το Property OS: τύπος, αντικείμενο, περίοδος,
 // ημ. έκδοσης, εκδότης. Καμία ευαίσθητη πληροφορία/ποσά.
 // ═══════════════════════════════════════════════════════════════════════════
+import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -48,7 +49,7 @@ export default function VerifyDocument() {
     <div style={wrap}>
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={mark}>P</div>
+          <BrandMark size={34} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Επαλήθευση γνησιότητας εγγράφου</div>

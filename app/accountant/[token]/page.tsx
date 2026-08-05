@@ -6,6 +6,7 @@
 // χρονιά. Ο φόρος υπολογίζεται ενδεικτικά με την κλίμακα ενοικίων. Theme-aware.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -78,7 +79,7 @@ export default function AccountantPortal() {
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: 'var(--on-tone)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>P</div>
+            <BrandMark />
             <span style={{ fontSize: 16, fontWeight: 700 }}>Πύλη Λογιστή</span>
           </div>
           {state === 'ok' && (

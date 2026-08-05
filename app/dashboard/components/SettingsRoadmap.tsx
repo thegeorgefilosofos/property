@@ -150,7 +150,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               boxShadow: 'var(--highlight-inset), var(--elev-1)',
             }}
           >
-            <span style={{ fontFamily: T.font.sans, fontWeight: 800, fontSize: 24, lineHeight: 1, letterSpacing: '-0.02em' }}>P</span>
+            <span style={{ fontFamily: T.font.sans, fontWeight: 800, fontSize: 24, lineHeight: 1, letterSpacing: '-0.02em', color: 'var(--logo-mark-text)' }}>P</span>
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>

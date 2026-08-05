@@ -12,6 +12,7 @@
 //
 // Κόστος λειτουργίας: μηδέν. Υπολογισμός στη συσκευή, καμία εγγραφή.
 // ═══════════════════════════════════════════════════════════════════════════
+import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
@@ -101,8 +102,7 @@ export default function Page() {
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 clamp(20px,5vw,40px)', height: 60,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: 'var(--on-tone)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14 }}>P</div>
+            <BrandMark />
             <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Property OS</span>
           </Link>
           <Link href="/signup" style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--accent)', textDecoration: 'none' }}>

@@ -1,3 +1,4 @@
+import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import { PLANS, PLAN_ORDER, EXTRA_PROPERTY_PRICE, TRIAL_DAYS } from '@/lib/billing/plans';
 import { fe } from '@/lib/core/format';
@@ -558,7 +559,7 @@ export default async function Landing() {
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-base) 78%, transparent)', backdropFilter: 'saturate(180%) blur(14px)', WebkitBackdropFilter: 'saturate(180%) blur(14px)', borderBottom: `1px solid ${LINE}` }}>
         <nav style={{ ...wrap, height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', fontWeight: 700, fontSize: 15 }}>P</div>
+            <BrandMark />
             <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
           </div>
           {loggedIn ? (
@@ -939,7 +940,7 @@ export default async function Landing() {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
             <div style={{ maxWidth: 320 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 8, background: ACCENT, color: 'var(--accent-text)', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
+                <BrandMark size={24} />
                 <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
               </div>
               <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: 0 }}>Το λειτουργικό σύστημα του ελληνικού ακινήτου. Για ιδιοκτήτες και επαγγελματίες στην Ελλάδα.</p>

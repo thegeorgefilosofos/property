@@ -103,6 +103,17 @@ body {
   --on-tone:       #ffffff;
   --accent-text:   var(--on-tone);
 
+  /* ── ΤΟ ΓΡΑΜΜΑ ΤΟΥ ΣΗΜΑΤΟΣ ────────────────────────────────────────────────
+     Το «P» του λογότυπου γραφόταν σε δεκαεννέα σημεία με ΤΡΙΑ διαφορετικά
+     χρώματα (--on-tone, --accent-text, καρφωτό #fff): το ίδιο σήμα, τρεις
+     αποχρώσεις, ανάλογα με ποια οθόνη κοιτάς. Ένα token για όλα.
+
+     Είναι σκόπιμα ΠΙΟ ΣΚΟΥΡΟ από το πλακίδιο, όχι λευκό: το γράμμα δεν
+     διαβάζεται, απλώς δίνει βάθος — tone-on-tone, όπως τα σήματα που δεν
+     χρειάζεται να φωνάξουν το αρχικό τους. Παράγεται από το ίδιο το accent,
+     ώστε να μη διαφωνήσει ποτέ μαζί του. */
+  --logo-mark-text: color-mix(in srgb, var(--accent) 86%, #000000);
+
   /* Εκλεπτυσμένη, muted σημασιολογική παλέτα (deep emerald / bronze-amber /
      brick-rose / indigo) — premium & σοβαρή, όχι «traffic-light». Dim
      παράγεται από το ίδιο το χρώμα ώστε να μη διαφωνεί ποτέ. */
@@ -196,6 +207,10 @@ body {
   /* Βλ. σχόλιο στο light: ένα μελάνι για κάθε κορεσμένο γέμισμα. */
   --on-tone:       #0c1116;
   --accent-text:   var(--on-tone);
+  /* Βλ. σχόλιο στο light. Στο σκούρο θέμα το πλακίδιο είναι ανοιχτό παστέλ,
+     οπότε το «σκούρο» γράμμα χρειάζεται περισσότερο μαύρο για να πατήσει
+     εξίσου διακριτικά. */
+  --logo-mark-text: color-mix(in srgb, var(--accent) 84%, #000000);
 
   /* Muted premium παλέτα (dark): πιο απαλά, όχι φωτεινά «traffic-light». */
   --positive:      #52c79e;   /* soft jade */
@@ -588,7 +603,7 @@ body {
   border-radius: 8px;
   /* Διακριτική βάθος-διαβάθμιση αντί για επίπεδο χρώμα, δίνει «φτιαγμένο» σήμα */
   background: linear-gradient(140deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 78%, #ffffff) 100%);
-  color: #ffffff;
+  color: var(--logo-mark-text);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-size: 15px;

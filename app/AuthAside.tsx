@@ -1,5 +1,6 @@
 'use client'
 
+import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/Theme'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -41,7 +42,7 @@ export default function AuthAside({
 
       {/* logo lockup */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--on-tone)', fontSize: 15, fontWeight: 700 }}>P</div>
+        <BrandMark />
         <span style={{ color: '#fff', fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
       </div>
 

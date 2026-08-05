@@ -60,17 +60,29 @@ function Side({ label, side, kind, onOpen, actionLabel }: {
   );
 }
 
-export default function CashHero({ cash, onNavigate }: {
+export default function CashHero({ cash, showIncome, onNavigate }: {
   cash: CashPosition;
+  /**
+   * Εκμισθώνεται το ακίνητο; ΣΕ ΚΕΝΟ Ή ΙΔΙΟΧΡΗΣΙΑ ΔΕΝ ΥΠΑΡΧΕΙ «ΜΟΥ ΧΡΩΣΤΑΝΕ».
+   * Το «0 € · τίποτα σε καθυστέρηση» δεν είναι πληροφορία εκεί: είναι μια
+   * ερώτηση που δεν τίθεται, να καταλαμβάνει τη μισή κορυφή της οθόνης. Όταν
+   * λείπει, το «Χρωστάω» παίρνει όλο το πλάτος — που είναι και η αλήθεια:
+   * ένα ακίνητο χωρίς έσοδο έχει μόνο κόστη.
+   */
+  showIncome: boolean;
   onNavigate: (tab: string) => void;
 }) {
   return (
     <div className="card cash-hero" style={{ padding: 0, marginBottom: 20 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
-        <Side label="Μου χρωστάνε" side={cash.owedToMe} kind="in"
-              actionLabel="Άνοιγμα στον Ενοικιαστή" onOpen={() => onNavigate('tenant')} />
-        {/* Ο διαχωριστής είναι η δήλωση ότι τα δύο ΔΕΝ αθροίζονται. */}
-        <div aria-hidden style={{ width: 1, background: 'var(--border-subtle)', alignSelf: 'stretch', margin: '14px 0' }} />
+        {showIncome && (
+          <>
+            <Side label="Μου χρωστάνε" side={cash.owedToMe} kind="in"
+                  actionLabel="Άνοιγμα στον Ενοικιαστή" onOpen={() => onNavigate('tenant')} />
+            {/* Ο διαχωριστής είναι η δήλωση ότι τα δύο ΔΕΝ αθροίζονται. */}
+            <div aria-hidden style={{ width: 1, background: 'var(--border-subtle)', alignSelf: 'stretch', margin: '14px 0' }} />
+          </>
+        )}
         <Side label="Χρωστάω" side={cash.owedByMe} kind="out"
               actionLabel="Άνοιγμα στις Δαπάνες" onOpen={() => onNavigate('finances')} />
       </div>
