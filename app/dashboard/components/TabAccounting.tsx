@@ -242,7 +242,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       const pShort = shortTermYearSummary(pStays, year, { sqm:p.sqm??null, isHouse:false, propertyCount:propCount, individual:true })
       const gross = rmode==='individual_shortterm' ? pShort.grossRevenue : pRentAccrued
       const input:StatementInput = { regime:rmode, grossIncome:gross, enfia: resolveEnfia({ propertyEnfia:p.enfia }).annual, rentsPaidViaBank: rentsBank,
-        climateLevy: rmode==='individual_shortterm'?pShort.levy:0, municipalTax: rmode==='individual_shortterm'?pShort.municipalTax:0 }
+        climateLevy: rmode==='individual_shortterm'?pShort.levyShortfall:0, municipalTax: rmode==='individual_shortterm'?pShort.municipalTax:0 }
       return { id:p.id, name:p.name||'Ακίνητο', input }
     }).filter(x=>x.input.grossIncome>0)
     if(items.length===0) return null
@@ -259,10 +259,20 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           itemizedExpenses:deductibleTotal+enfia, depreciation:inventoryDepr, buildingDepreciation:buildingDepr, loanInterest:loanInterestYear,
           ekfaContributions: elpForm==='sole'&&ekfa!=='' ? Number(ekfa) : 0,
           presumptiveMinIncome: elpForm==='sole'&&grossIncome>0 ? Math.round(SELF_EMPLOYED_MIN_NET_INCOME_2026*(firstYears?0.5:1)) : undefined, enfia:0,
-          climateLevy: regime==='individual_shortterm'?shortSummary.levy:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
+          climateLevy: regime==='individual_shortterm'?shortSummary.levyShortfall:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
           otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear), uncollectedIncome:uncollectedRent }
       : { regime, grossIncome, enfia, overrideIncomeTax: myTaxShare, rentsPaidViaBank: rentsBank,
-          climateLevy: regime==='individual_shortterm' ? shortSummary.levy : 0,
+        // ΤΟ ΤΕΛΟΣ ΑΝΘΕΚΤΙΚΟΤΗΤΑΣ ΕΦΕΥΓΕ ΔΥΟ ΦΟΡΕΣ ΑΠΟ ΤΟ ΤΑΜΕΙΟ.
+        // Το `grossIncome` εδώ είναι το `grossRevenue` της shortTermYearSummary,
+        // που έχει ΗΔΗ αφαιρέσει το εισπραγμένο τέλος (gross_guest_paid −
+        // collectedLevy). Περνώντας και το ΣΥΝΟΛΙΚΟ `levy` ως έξοδο, το
+        // incomeStatement το έβγαζε δεύτερη φορά. Σε γεμάτη σεζόν 200 νυχτών
+        // υψηλής περιόδου η τρύπα φτάνει 3.000 € — και το ίδιο νούμερο πήγαινε
+        // στο «πόσα να βάλεις στην άκρη για φόρο» και στο Excel του λογιστή.
+        // Το `levyShortfall` είναι ό,τι ΟΦΕΙΛΕΤΑΙ και δεν εισπράχθηκε: μηδέν
+        // όταν ο επισκέπτης το πλήρωσε κανονικά. Ο ίδιος κανόνας που εφαρμόζει
+        // ήδη μέσα του το lib/tax/shortTermTax.ts.
+          climateLevy: regime==='individual_shortterm' ? shortSummary.levyShortfall : 0,
           municipalTax: regime==='individual_shortterm' ? shortSummary.municipalTax : 0,
           otherCashExpenses: expensesTotal, loanPrincipal: loanAnnual, uncollectedIncome:uncollectedRent,
           legallyClaimedUncollected: claimedUncollected }

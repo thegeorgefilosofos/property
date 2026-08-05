@@ -9,7 +9,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { rentalIncomeTax } from '@/lib/billing/greekTax';
+import { rentalIncomeTax, RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
+import { presumptiveDeductionRate, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
 import { T, feAuto, Card } from '@/components/Theme';
 
 interface Expense { category: string; amount: number; date: string }
@@ -52,7 +53,15 @@ export default function AccountantPortal() {
   });
   const totalIncome = sum(perProp.map(x => x.income));
   const totalExpenses = sum(perProp.map(x => x.expenses));
-  const estTax = rentalIncomeTax(totalIncome);
+  // Η ΜΟΝΗ ΟΘΟΝΗ ΠΟΥ ΒΛΕΠΕΙ ΕΠΑΓΓΕΛΜΑΤΙΑΣ ΗΤΑΝ Η ΜΟΝΗ ΧΩΡΙΣ ΤΗΝ ΕΚΠΤΩΣΗ 5%.
+  // Το `rentalIncomeTax(totalIncome)` φορολογούσε το 100% των ενοικίων, ενώ
+  // κάθε άλλη διαδρομή του app εφαρμόζει την τεκμαρτή έκπτωση του άρθρου 39
+  // παρ.4 ΚΦΕ. Σε 20.000 € ενοίκια η διαφορά είναι 250 € (+7%) — και ο λογιστής
+  // τη διαβάζει δίπλα σε μια περιγραφή κλίμακας που δεν ίσχυσε ποτέ.
+  // Η έκπτωση προϋποθέτει τραπεζική είσπραξη (ν.5246/2025)· εδώ δεν ξέρουμε τον
+  // τρόπο είσπραξης, οπότε εφαρμόζεται και δηλώνεται ρητά η προϋπόθεση.
+  const taxableIncome = totalIncome * (1 - presumptiveDeductionRate(true));
+  const estTax = rentalIncomeTax(taxableIncome);
 
   const row = (k: string, v: string, strong?: boolean) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -100,7 +109,7 @@ export default function AccountantPortal() {
               {row('Συνολικές καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
               {row('Εκτιμώμενος φόρος εισοδήματος (ενδεικτικά)', feAuto(estTax), true)}
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
-                Οι αριθμοί είναι ενδεικτικοί, βάσει των καταχωρήσεων του ιδιοκτήτη. Ο φόρος υπολογίζεται με την κλίμακα ενοικίων (15% έως 35.000 €, 35% έως 45.000 €, 45% άνω). Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
+                Οι αριθμοί είναι ενδεικτικοί, βάσει των καταχωρήσεων του ιδιοκτήτη. {RENTAL_TAX_SUMMARY_2026} {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
               </div>
             </Card>
 
@@ -109,7 +118,7 @@ export default function AccountantPortal() {
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{x.p.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{[x.p.address, x.p.atak ? `ΑΤΑΚ ${x.p.atak}` : null].filter(Boolean).join(' · ') || 'Χωρίς στοιχεία'}</div>
                 {x.rentAnnual > 0 && row('Ενοίκια (ετήσια)', feAuto(x.rentAnnual))}
-                {x.shortGross > 0 && row('Βραχυχρόνια (μεικτά)', feAuto(x.shortGross))}
+                {x.shortGross > 0 && row('Βραχυχρόνια (καταγεγραμμένο ποσό)', feAuto(x.shortGross))}
                 {row('Δαπάνες έτους', feAuto(x.expenses))}
                 {(x.p.expenses || []).length > 0 && (
                   <div style={{ marginTop: 12 }}>
