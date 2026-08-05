@@ -30,10 +30,34 @@
 --
 -- ΤΟ ΣΩΜΑ ΤΗΣ ΣΥΝΑΡΤΗΣΗΣ ΑΝΤΙΓΡΑΦΕΤΑΙ ΑΥΤΟΥΣΙΟ από το
 -- 20260724090000_portal_pin_ratelimit.sql. Η postgres δεν επιτρέπει μερική
--- τροποποίηση σώματος, οπότε ξαναγράφεται ολόκληρο· η ΜΟΝΗ διαφορά είναι το
--- select του v_ten. Κάθε άλλη λεπτομέρεια —το `return null`, το `rate_limited`,
--- η στήλη `success`, τα κλειδιά `rent_iban` και `total_due`— μένει ίδια, γιατί
--- τα διαβάζει η σελίδα της πύλης.
+-- τροποποίηση σώματος, οπότε ξαναγράφεται ολόκληρο· οι ΜΟΝΕΣ διαφορές είναι το
+-- select του v_ten και το cast που περιγράφεται αμέσως παρακάτω. Κάθε άλλη
+-- λεπτομέρεια —το `return null`, το `rate_limited`, η στήλη `success`, τα
+-- κλειδιά `rent_iban` και `total_due`— μένει ίδια, γιατί τα διαβάζει η σελίδα
+-- της πύλης.
+--
+-- ─────────────────────────────────────────────────────────────────────────
+-- ΚΑΙ ΚΑΤΙ ΠΟΥ ΒΡΕΘΗΚΕ ΓΡΑΦΟΝΤΑΣ ΤΟ ΠΑΡΑΠΑΝΩ: Η ΠΥΛΗ ΔΕΝ ΔΟΥΛΕΥΕ ΚΑΘΟΛΟΥ.
+--
+-- Το `tenants.property_id` είναι **uuid** και το `portal_links.property_id`
+-- είναι **text**. Δεν υπάρχει τελεστής `uuid = text` στην Postgres, οπότε η
+-- γραμμή που έλυνε τον ενοικιαστή —σε ΚΑΘΕ έκδοση της συνάρτησης, από το
+-- baseline μέχρι σήμερα— πετούσε 42883 πριν επιστρέψει οτιδήποτε:
+--
+--     from tenants where property_id = v_link.property_id
+--
+-- Δηλαδή ο σύνδεσμος της Πύλης δεν διέρρεε απλώς τον λάθος ενοικιαστή: δεν
+-- άνοιγε ποτέ. Το ίδιο και η φόρμα βλαβών (δες το τέλος του αρχείου).
+--
+-- Το λάθος δεν φάνηκε νωρίτερα επειδή η Postgres ΔΕΝ ελέγχει το σώμα μιας
+-- plpgsql συνάρτησης στο `create` — μόνο όταν εκτελεστεί. Τα migrations
+-- περνούσαν πράσινα για μήνες πάνω από σπασμένο κώδικα. Ήρθε στο φως μόνο
+-- επειδή το backfill εδώ κάνει την ίδια σύγκριση σε ΣΚΕΤΗ SQL, που ελέγχεται
+-- αμέσως, και έριξε το deploy του staging.
+--
+-- Και οι δύο συναρτήσεις παίρνουν ρητό `::text`, όπως έκανε ήδη η ίδια
+-- συνάρτηση για το user_properties (`id::text = v_link.property_id::text`).
+-- Το cast είναι ασφαλές όποιος κι αν είναι ο τύπος της στήλης.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 alter table public.portal_links
@@ -44,18 +68,31 @@ comment on column public.portal_links.tenant_id is
 
 create index if not exists portal_links_tenant_idx on public.portal_links (tenant_id);
 
--- ΣΥΣΧΕΤΙΣΜΕΝΟ ΥΠΟΕΡΩΤΗΜΑ, ΟΧΙ `FROM LATERAL`.
--- Η πρώτη γραφή ήταν `update … from lateral (… where property_id = pl.property_id) t`
--- και η Postgres την απέρριψε: «invalid reference to FROM-clause entry for table
--- "pl"» (42P10). Ο πίνακας-στόχος ενός UPDATE ΔΕΝ βρίσκεται στο FROM, οπότε το
--- lateral δεν τον βλέπει. Το υποερώτημα στο SET τον βλέπει κανονικά.
+-- ΣΥΣΧΕΤΙΣΜΕΝΟ ΥΠΟΕΡΩΤΗΜΑ, ΟΧΙ `FROM LATERAL` — ΚΑΙ ΜΕ ΡΗΤΟ CAST.
+--
+-- Δύο σφάλματα διαδοχικά, και τα δύο εδώ:
+--
+--  1. 42P10 «invalid reference to FROM-clause entry for table "pl"». Η πρώτη
+--     γραφή ήταν `update … from lateral (… where property_id = pl.property_id)`.
+--     Ο πίνακας-στόχος ενός UPDATE ΔΕΝ βρίσκεται στο FROM, οπότε το lateral δεν
+--     τον βλέπει ποτέ. Το υποερώτημα μέσα στο SET τον βλέπει κανονικά.
+--
+--  2. 42883 «operator does not exist: uuid = text». Οι δύο στήλες ΔΕΝ έχουν τον
+--     ίδιο τύπο: `tenants.property_id` είναι uuid, `portal_links.property_id`
+--     είναι text (δες το baseline). Η υπάρχουσα get_portal_data γράφει
+--     `where property_id = v_link.property_id` χωρίς cast και δουλεύει, επειδή
+--     το v_link είναι `record` και η PL/pgSQL περνά το πεδίο ως παράμετρο
+--     αγνώστου τύπου που η Postgres επιλύει σε uuid. Σε ΣΚΕΤΗ SQL και οι δύο
+--     τύποι είναι γνωστοί, δεν υπάρχει τελεστής uuid = text, και σκάει.
+--     Γι' αυτό και η ίδια συνάρτηση γράφει `id::text = v_link.property_id::text`
+--     για το user_properties.
 --
 -- Ακίνητο χωρίς κανέναν ενοικιαστή αφήνει `null` — και το `where tenant_id is
 -- null` κάνει το migration επαναλήψιμο χωρίς να ξαναγράφει ό,τι έχει δεθεί.
 update public.portal_links pl
    set tenant_id = (
          select t.id from public.tenants t
-          where t.property_id = pl.property_id
+          where t.property_id::text = pl.property_id
           order by t.created_at desc
           limit 1
        )
@@ -102,8 +139,10 @@ begin
     select id, monthly_rent, lease_start, lease_end, deposit_amount, full_name, rent_iban into v_ten
       from tenants where id = v_link.tenant_id;
   else
+    -- Το `::text` ΔΕΝ είναι καλλωπισμός: χωρίς αυτό η γραμμή έσκαγε (δες τη
+    -- σημείωση «Η ΠΥΛΗ ΔΕΝ ΔΟΥΛΕΥΕ ΚΑΘΟΛΟΥ» στην κορυφή του αρχείου).
     select id, monthly_rent, lease_start, lease_end, deposit_amount, full_name, rent_iban into v_ten
-      from tenants where property_id = v_link.property_id order by created_at desc limit 1;
+      from tenants where property_id::text = v_link.property_id order by created_at desc limit 1;
   end if;
 
   select coalesce(json_agg(json_build_object(
@@ -123,4 +162,39 @@ begin
     'due',      v_due,
     'total_due', v_total
   );
+end; $$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ΤΟ ΙΔΙΟ ΣΦΑΛΜΑ ΤΥΠΩΝ ΚΡΑΤΟΥΣΕ ΚΛΕΙΣΤΗ ΚΑΙ ΤΗ ΦΟΡΜΑ ΒΛΑΒΩΝ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Η `submit_maintenance_request` —το κουμπί «Στείλε αίτημα» του ενοικιαστή—
+-- έχει την ίδια γραμμή: `from tenants where property_id = v_link.property_id`.
+-- Άρα σκάει με τον ίδιο τρόπο, ΠΡΙΝ φτάσει στο insert: κανένα αίτημα βλάβης δεν
+-- καταχωρήθηκε ποτέ. Ο ιδιοκτήτης έβλεπε «Κανένα αίτημα ακόμη» και το θεωρούσε
+-- καλό νέο.
+--
+-- Δοκιμάστηκε τοπικά με τους τύπους του baseline: πριν το cast η κλήση σκάει,
+-- μετά επιστρέφει true και γράφει τη γραμμή δεμένη στον σωστό ενοικιαστή.
+--
+-- Το σώμα αντιγράφεται ΑΥΤΟΥΣΙΟ από το 20260723100000_security_pentest_fixes.sql
+-- με δύο αλλαγές: το `::text` στη σύγκριση, και το ότι τιμάει το `tenant_id`
+-- του συνδέσμου όταν υπάρχει — αλλιώς το αίτημα του παλιού ενοικιαστή θα
+-- χρεωνόταν στον νέο.
+-- ═══════════════════════════════════════════════════════════════════════════
+create or replace function public.submit_maintenance_request(p_token text, p_title text, p_description text, p_contact text, p_photos jsonb default '[]'::jsonb)
+returns boolean language plpgsql security definer set search_path to 'public' as $$
+declare v_link record; v_ten_id uuid;
+begin
+  select * into v_link from portal_links where token = p_token and active = true and (expires_at is null or expires_at > now());
+  if not found then return false; end if;
+  if coalesce(trim(p_title), '') = '' then return false; end if;
+  if v_link.tenant_id is not null then
+    v_ten_id := v_link.tenant_id;
+  else
+    select id into v_ten_id from tenants where property_id::text = v_link.property_id order by created_at desc limit 1;
+  end if;
+  insert into maintenance_requests(property_id, user_id, token, tenant_id, title, description, contact, photos)
+    values (v_link.property_id, v_link.user_id, p_token, v_ten_id, left(p_title, 200), left(p_description, 2000), left(p_contact, 200),
+            coalesce(p_photos, '[]'::jsonb));
+  return true;
 end; $$;
