@@ -843,7 +843,11 @@ export default async function Landing() {
             ακίνητο (το πιο δυνατό επιχείρημα του τιμοκαταλόγου) και ΔΕΝ έδειχνε
             καθόλου το πλάνο «Γραφείο», που υπάρχει και χρεώνεται κανονικά.
             Τώρα παράγονται από το PLANS: μία αλλαγή τιμής, παντού σωστή. */}
-        <div className="lp-plans" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 16, alignItems: 'stretch' }}>
+        {/* ΟΛΑ ΤΑ ΠΛΑΝΑ ΣΕ ΜΙΑ ΓΡΑΜΜΗ. Το `auto-fit` με ελάχιστο 250px τύλιγε το
+            πέμπτο πλάνο σε δεύτερη σειρά, οπότε ο τιμοκατάλογος διαβαζόταν ως
+            «τέσσερα και κάτι ακόμη» αντί για μία σκάλα. Ρητές πέντε στήλες πάνω
+            από 1000px, δύο στο tablet, μία στο κινητό (globals.css). */}
+        <div className="lp-plans" style={{ display: 'grid', gridTemplateColumns: `repeat(${PLAN_ORDER.length}, minmax(0, 1fr))`, gap: 10, alignItems: 'stretch' }}>
           {PLAN_ORDER.map(id => {
             const plan = PLANS[id];
             const free = plan.priceMonthly === 0;
@@ -851,7 +855,7 @@ export default async function Landing() {
               <PlanCard
                 key={id}
                 name={plan.name}
-                nameColor={id === 'owner' ? ACCENT : TEXT}
+                nameColor={id === 'solo' ? ACCENT : TEXT}
                 sub={plan.tagline}
                 price={free ? '0 €' : `${fe(plan.priceMonthly, 2)}`}
                 per={free ? 'για πάντα' : 'τον μήνα'}
@@ -862,8 +866,8 @@ export default async function Landing() {
                 // ΚΑΙ το ίδιο το κουμπί από κάτω. Μία περιττή γραμμή σε κάθε κάρτα.
                 items={plan.features.filter(f => !f.includes('δωρεάν δοκιμή'))}
                 cta={free ? 'Ξεκίνα δωρεάν' : `${plan.trialDays} ημέρες δωρεάν →`}
-                ctaGhost={id !== 'owner'}
-                featured={id === 'owner'}
+                ctaGhost={id !== 'solo'}
+                featured={id === 'solo'}
               />
             );
           })}
@@ -999,25 +1003,30 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
   name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; discount?: string; inherits?: string; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
 }) {
   return (
-    <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
-      {featured && <span style={{ position: 'absolute', top: 18, right: 18, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '4px 10px' }}>Προτεινόμενο</span>}
-      <div style={{ fontSize: 15, fontWeight: 700, color: nameColor, marginBottom: 4 }}>{name}</div>
-      <div style={{ fontSize: 13.5, color: FAINT, marginBottom: 18, minHeight: 38 }}>{sub}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-        <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT }}>{price}</span>
-        <span style={{ fontSize: 15, color: MUTED }}>{per}</span>
+    <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(16px, 1.6vw, 20px)', display: 'flex', flexDirection: 'column', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
+      {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
+      <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 3 }}>{name}</div>
+      <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, minHeight: 32, lineHeight: 1.35 }}>{sub}</div>
+      {/* ΤΙΜΗ ΚΑΙ ΠΕΡΙΟΔΟΣ ΣΕ ΔΥΟ ΣΤΑΘΕΡΕΣ ΓΡΑΜΜΕΣ.
+          Ήταν στην ίδια γραμμή με `flexWrap`: στα «3,90 €» χωρούσε το «τον
+          μήνα» δίπλα, στα «24,90 €» και «79,90 €» έπεφτε από κάτω. Δύο κάρτες
+          με δύο γραμμές, τρεις με μία — και οι λίστες χαρακτηριστικών ξεκινούσαν
+          σε διαφορετικό ύψος η καθεμία. Σταθερό ύψος, όλα στοιχισμένα. */}
+      <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(24px, 2.4vw, 29px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT, lineHeight: 1.1 }}>{price}</div>
+      <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{per}</div>
+      {/* Η «έκπτωση» ήταν ΠΡΑΣΙΝΗ κονκάρδα με πράσινο φόντο και πράσινο περίγραμμα
+          — το μόνο σημείο σημασιολογικού χρώματος σε ολόκληρο τον τιμοκατάλογο,
+          σε κάθε κάρτα. Λέγεται με λέξεις, στη σειρά της. */}
+      <div style={{ minHeight: 32, marginTop: 6, fontSize: 11.5, color: FAINT, lineHeight: 1.45 }}>
+        {note}{discount && <> · <strong style={{ color: TEXT, fontWeight: 600 }}>{discount}</strong></>}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 22, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13.5, color: FAINT }}>{note}</span>
-        {discount && <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--positive)', background: 'color-mix(in srgb, var(--positive) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--positive) 32%, transparent)', borderRadius: 100, padding: '2px 9px', fontVariantNumeric: 'tabular-nums' }}>{discount}</span>}
-      </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', margin: '20px 0 24px' }}>
-        {inherits && <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 2 }}>{inherits}</div>}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', margin: '14px 0 16px' }}>
+        {inherits && <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 1 }}>{inherits}</div>}
         {items.map((t, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>{check}<span style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
       </div>
-      <Link href="/signup" className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      <Link href="/signup" className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
     </div>
   );
 }

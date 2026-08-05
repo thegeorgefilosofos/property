@@ -22,7 +22,7 @@ export type ProfileType = 'individual' | 'professional';
 
 // ── Ποια πλάνα επιτρέπονται ανά τύπο προφίλ ────────────────────────────────
 export const ALLOWED_PLANS: Record<ProfileType, PlanId[]> = {
-  individual: ['free', 'owner'],
+  individual: ['free', 'solo', 'owner'],
   professional: ['agency'],
 };
 
@@ -40,8 +40,8 @@ export type Feature =
 export const FEATURE_MIN_PLAN: Record<Feature, PlanId> = {
   multi_property:  'owner',
   comparison:      'owner',
-  e2_export:       'owner',
-  rent_collection: 'owner',
+  e2_export:       'solo',
+  rent_collection: 'solo',
   clients:         'agency',
   portfolio:       'agency',
   report_branding: 'agency',

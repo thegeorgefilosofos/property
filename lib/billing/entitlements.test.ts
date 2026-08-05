@@ -15,7 +15,7 @@ const NOW = Date.parse('2026-07-20T00:00:00Z');
 const daysFromNow = (d: number) => new Date(NOW + d * 86400000).toISOString();
 
 // ── Επιτρεπόμενα πλάνα ανά προφίλ ──
-ok(ALLOWED_PLANS.individual.join(',') === 'free,owner', 'ιδιώτης → free,owner');
+ok(ALLOWED_PLANS.individual.join(',') === 'free,solo,owner', 'ιδιώτης → free,solo,owner');
 ok(ALLOWED_PLANS.professional.join(',') === 'agency', 'επαγγελματίας → agency');
 ok(isPlanAllowedForProfile('individual', 'free') === true, 'ιδιώτης μπορεί δωρεάν');
 ok(isPlanAllowedForProfile('individual', 'owner') === true, 'ιδιώτης μπορεί ιδιοκτήτης');
@@ -62,8 +62,11 @@ ok(activeComp({ now: NOW }) === null, 'activeComp χωρίς στοιχεία �
 // ── Δυνατότητες ανά ελάχιστο πλάνο ──
 ok(FEATURE_MIN_PLAN.multi_property === 'owner', 'multi_property ≥ owner');
 ok(FEATURE_MIN_PLAN.comparison === 'owner', 'comparison ≥ owner');
-ok(FEATURE_MIN_PLAN.e2_export === 'owner', 'e2_export ≥ owner');
-ok(FEATURE_MIN_PLAN.rent_collection === 'owner', 'rent_collection ≥ owner');
+// Τα φορολογικά ΞΕΚΛΕΙΔΩΝΟΥΝ ΣΤΟ 3,90: αυτός είναι ο λόγος ύπαρξης του
+// πλάνου «Ένα ακίνητο». Πριν, ο ιδιοκτήτης ενός σπιτιού πλήρωνε 9,90 για τρία
+// ακίνητα ώστε να πάρει το Ε2 που αφορά το ένα του.
+ok(FEATURE_MIN_PLAN.e2_export === 'solo', 'e2_export ≥ solo');
+ok(FEATURE_MIN_PLAN.rent_collection === 'solo', 'rent_collection ≥ solo');
 ok(FEATURE_MIN_PLAN.clients === 'agency', 'clients ≥ agency');
 ok(FEATURE_MIN_PLAN.portfolio === 'agency', 'portfolio ≥ agency');
 ok(FEATURE_MIN_PLAN.report_branding === 'agency', 'report_branding ≥ agency');

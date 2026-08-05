@@ -1209,6 +1209,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .auth-main  { flex: 1 1 100% !important; width: 100% !important; padding: 32px 20px !important; }
 }
 
+/* ── ΤΙΜΟΚΑΤΑΛΟΓΟΣ: ΜΙΑ ΓΡΑΜΜΗ, ΟΣΟ ΧΩΡΑΕΙ ──────────────────────────────────
+   Πέντε πλάνα σε πλάτος περιεχομένου 1044px δίνουν ~197px ανά κάρτα — σφιχτό
+   αλλά αναγνώσιμο, και ο τιμοκατάλογος διαβάζεται ως ΜΙΑ σκάλα αντί για
+   «τέσσερα και κάτι ακόμη από κάτω». Κάτω από 1020px δεν χωράνε πέντε χωρίς να
+   γίνουν στήλες κειμένου, οπότε σπάει σε τρία, μετά σε δύο, μετά σε ένα. */
+@media (max-width: 1020px) { .lp-plans { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+@media (max-width: 720px)  { .lp-plans { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (max-width: 470px)  { .lp-plans { grid-template-columns: 1fr !important; } }
+
 /* ΑΦΑΙΡΕΘΗΚΕ: η απόκρυψη μπάρας κύλισης των .app-tabs — έφυγε μαζί με την
    οριζόντια μπάρα καρτελών (βλ. σχόλιο πιο πάνω· η πλοήγηση είναι sidebar + bottom-nav). */
 

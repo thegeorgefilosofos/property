@@ -37,7 +37,7 @@
 //             ακριβώς επειδή υπάρχει, το ατομικό όριο μπορεί να είναι γενναίο.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { PlanId } from './plans';
+import { PLAN_ORDER, type PlanId } from './plans';
 
 export interface AiLimits {
   /** Αιτήματα ανά λεπτό — φράγμα κατάχρησης, όχι κόστους. Ίδιο για όλους. */
@@ -102,6 +102,13 @@ const PER_MINUTE = 20;
  */
 const LIMITS: Record<PlanId, AiLimits> = {
   free:   { perMinute: PER_MINUTE, perDay: 15, perMonth: 60 },
+  // ΕΝΑ ΑΚΙΝΗΤΟ (3,90 €) — 20/ημέρα, 80/μήνα
+  //   Χειρότερο κόστος 4,16 $ έναντι ~4,21 $ εσόδων: το πλάνο ΜΟΛΙΣ καλύπτεται
+  //   στο ακραίο σενάριο όπου ο χρήστης εξαντλεί κάθε μήνα το όριο. Στην πράξη
+  //   κανείς δεν το κάνει, αλλά το νούμερο μπαίνει εδώ ώστε να είναι ορατό: αυτό
+  //   είναι το φθηνότερο πλάνο και δεν σηκώνει γενναιοδωρία στο AI. Ο λόγος
+  //   ύπαρξής του είναι τα φορολογικά, όχι οι ερωτήσεις.
+  solo:   { perMinute: PER_MINUTE, perDay: 20, perMonth: 80 },
   owner:  { perMinute: PER_MINUTE, perDay: 30, perMonth: 120 },
   agency: { perMinute: PER_MINUTE, perDay: 60, perMonth: 300 },
   // ΓΡΑΦΕΙΟ (79,90 €) — 120/ημέρα, 600/μήνα
@@ -112,8 +119,15 @@ const LIMITS: Record<PlanId, AiLimits> = {
   office: { perMinute: PER_MINUTE, perDay: 120, perMonth: 600 },
 };
 
-/** Η σειρά που περιμένει η bump_ai_usage: δείκτης = user_plan_rank. */
-export const PLAN_RANK_ORDER: PlanId[] = ['free', 'owner', 'agency', 'office'];
+/**
+ * Η σειρά που περιμένει η `bump_ai_usage`: δείκτης = `user_plan_rank`.
+ *
+ * ΗΤΑΝ ΤΡΙΤΟ ΑΝΤΙΓΡΑΦΟ ΤΗΣ ΚΑΤΑΤΑΞΗΣ, γραμμένο με το χέρι. Όταν μπήκε το `solo`
+ * ανάμεσα σε `free` και `owner`, αυτός ο πίνακας θα έστελνε τα όρια του
+ * «Ιδιοκτήτη» σε συνδρομητή «Ένα ακίνητο» και αντίστροφα — χωρίς κανένα σφάλμα,
+ * απλώς λάθος όρια. Πλέον παράγεται από τη ΜΙΑ πηγή.
+ */
+export const PLAN_RANK_ORDER: PlanId[] = [...PLAN_ORDER];
 
 /** Τα όρια για ένα πλάνο. Άγνωστο/κενό πλάνο ⇒ δωρεάν (fail-closed στο κόστος). */
 export function aiLimitsFor(plan: PlanId | string | null | undefined): AiLimits {
