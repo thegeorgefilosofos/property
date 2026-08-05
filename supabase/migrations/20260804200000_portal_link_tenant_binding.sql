@@ -142,7 +142,7 @@ begin
     -- Το `::text` ΔΕΝ είναι καλλωπισμός: χωρίς αυτό η γραμμή έσκαγε (δες τη
     -- σημείωση «Η ΠΥΛΗ ΔΕΝ ΔΟΥΛΕΥΕ ΚΑΘΟΛΟΥ» στην κορυφή του αρχείου).
     select id, monthly_rent, lease_start, lease_end, deposit_amount, full_name, rent_iban into v_ten
-      from tenants where property_id::text = v_link.property_id order by created_at desc limit 1;
+      from tenants where property_id::text = v_link.property_id::text order by created_at desc limit 1;
   end if;
 
   select coalesce(json_agg(json_build_object(
@@ -191,7 +191,7 @@ begin
   if v_link.tenant_id is not null then
     v_ten_id := v_link.tenant_id;
   else
-    select id into v_ten_id from tenants where property_id::text = v_link.property_id order by created_at desc limit 1;
+    select id into v_ten_id from tenants where property_id::text = v_link.property_id::text order by created_at desc limit 1;
   end if;
   insert into maintenance_requests(property_id, user_id, token, tenant_id, title, description, contact, photos)
     values (v_link.property_id, v_link.user_id, p_token, v_ten_id, left(p_title, 200), left(p_description, 2000), left(p_contact, 200),
