@@ -26,7 +26,7 @@ const PILLARS = [
 export default function AuthAside({
   headline = 'Διαχειρίσου το ακίνητό σου',
   accent = 'με μία φωτογραφία.',
-  sub = 'Για κάθε ιδιοκτήτη, από ένα ακίνητο έως ολόκληρο χαρτοφυλάκιο, χωρίς να ανοίγεις άλλη εφαρμογή.',
+  sub = 'Από ένα ακίνητο έως ολόκληρο χαρτοφυλάκιο: έσοδα, δαπάνες, μισθώσεις και φόροι σε ένα σημείο.',
 }: {
   headline?: string
   accent?: string
@@ -71,7 +71,12 @@ export default function AuthAside({
 
       {/* pricing footnote */}
       <div style={{ position: 'relative', marginTop: 40, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        {/* ΔΥΟ ΒΑΘΜΙΔΕΣ, ΟΠΩΣ ΠΑΝΤΟΥ ΑΛΛΟΥ: η υπόσχεση με έμφαση, το πρακτικό
+            δίπλα της σε δεύτερο τόνο. Με μόνο τη μία, η γραμμή έμοιαζε
+            μισοτελειωμένη — υπήρχε ο χώρος και το περίγραμμα από πάνω, αλλά
+            τίποτα να τα δικαιολογεί. */}
         <p style={{ fontSize: 13, color: '#8ab4f8', fontWeight: 700, margin: 0 }}>Το ακίνητό σου πάντα σε τάξη</p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', margin: 0 }}>Έτοιμο σε ένα λεπτό</p>
       </div>
     </div>
   )

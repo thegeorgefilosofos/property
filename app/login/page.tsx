@@ -129,7 +129,7 @@ export default function LoginPage() {
             )}
 
             <button type="submit" disabled={loading} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
-              {loading ? 'Σύνδεση…' : 'Σύνδεση →'}
+              {loading ? 'Σύνδεση…' : 'Σύνδεση'}
             </button>
           </form>
 

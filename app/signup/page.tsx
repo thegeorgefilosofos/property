@@ -199,7 +199,7 @@ export default function SignupPage() {
                 </div>
 
                 <button type="submit" disabled={loading || !consent || !pw.ok} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
-                  {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν →'}
+                  {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν'}
                 </button>
               </form>
             </>
