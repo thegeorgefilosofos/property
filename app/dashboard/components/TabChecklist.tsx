@@ -32,6 +32,7 @@ import type { StatusRow } from '@/lib/property/status';
 import { scanDocument } from './scanDoc';
 import { normalizeScannedDoc, planDocSave, type ScannedDoc } from '@/lib/billing/documents';
 import { athensToday } from '@/lib/core/time';
+import SmartSuggestions from './SmartSuggestions';
 
 const supabase = createSupabaseClient()
 
@@ -2404,6 +2405,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           })}
         </div>
       )}
+
+      {/* ΟΙ ΠΡΟΤΑΣΕΙΣ ΤΗΣ ΝΟΑΣ ΗΡΘΑΝ ΕΔΩ, ΑΠΟ ΤΗΝ ΕΠΙΣΚΟΨΗ.
+          Στην αρχική οθόνη ήταν η τέταρτη κάρτα «τι να κάνεις» στη σειρά, κάτω
+          από τρεις άλλες που έλεγαν εν μέρει τα ίδια. Εδώ είναι το φυσικό της
+          σημείο: αυτή η καρτέλα ΕΙΝΑΙ η λίστα εκκρεμοτήτων, και δίπλα της ζουν
+          ήδη οι προτάσεις προτύπων. Ό,τι προτείνεται, προστίθεται εδώ. */}
+      {!embedded && <SmartSuggestions userId={userId} propertyId={propertyId} />}
 
       {/* Γραμμή μαζικών ενεργειών — εμφανίζεται μόλις επιλεγεί ≥1 εργασία */}
       {selected.size > 0 && (

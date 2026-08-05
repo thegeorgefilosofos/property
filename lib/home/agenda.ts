@@ -1,0 +1,248 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΙΑ ΛΙΣΤΑ «ΤΙ ΠΡΕΠΕΙ ΝΑ ΚΑΝΩ», ΟΧΙ ΤΕΣΣΕΡΙΣ.
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΠΡΟΒΛΗΜΑ, ΜΕΤΡΗΜΕΝΟ
+// Η Επισκόπηση σέρβιρε τέσσερις ανεξάρτητες μηχανές συμβουλής, τη μία κάτω από
+// την άλλη:
+//
+//   InsightsBoard      (computeInsights)      «Λήγει σύντομα η ασφάλεια»
+//   ObligationsPanel   (computeObligations)   «Λήξη ασφάλισης, Interamerican»
+//   OnboardingChecklist                       «Συμπλήρωσε αξία & ενοίκιο»
+//   SmartSuggestions                          προτάσεις συντήρησης/φόρων
+//
+// Η λήξη της μίσθωσης εμφανιζόταν ΤΕΣΣΕΡΙΣ φορές στην ίδια οθόνη: ως insight, ως
+// υποχρέωση, ως πλακίδιο «Λήξη σύμβασης» στα KPI, και ως προθεσμία στο βήμα
+// ρύθμισης. Η ασφάλεια δύο. Τα ελλιπή στοιχεία δύο. Ο χρήστης δεν διαβάζει
+// τέσσερις λίστες — διαβάζει την πρώτη και θεωρεί τις υπόλοιπες θόρυβο.
+//
+// Η ΛΥΣΗ: ΘΕΜΑ, ΟΧΙ ΠΗΓΗ
+// Κάθε στοιχείο δηλώνει ΘΕΜΑ (`insurance`, `lease`, `bills`…). Δύο στοιχεία με
+// το ίδιο θέμα είναι το ίδιο πράγμα ειπωμένο δύο φορές, όσο διαφορετικά κι αν
+// είναι γραμμένα. Μένει ένα: αυτό με την πραγματική ημερομηνία (οι υποχρεώσεις
+// ξέρουν πότε), δανειζόμενο ό,τι του λείπει από το άλλο (τα insights ξέρουν πού
+// να σε πάει). Ό,τι δεν συναντιέται, περνά ανέπαφο.
+//
+// ΚΑΜΙΑ ΧΡΩΜΑΤΙΚΗ ΕΤΥΜΗΓΟΡΙΑ. Η προτεραιότητα είναι Η ΣΕΙΡΑ: ληξιπρόθεσμο πρώτα,
+// μετά η πιο κοντινή προθεσμία, μετά η βαρύτητα. Ίδιος κανόνας με το
+// `orderSteps` της ρύθμισης ακινήτου, ώστε δύο λίστες να μη διαφωνούν για το τι
+// είναι επείγον.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type AgendaOrigin = 'obligation' | 'insight' | 'setup';
+
+export interface AgendaItem {
+  /** Το ΘΕΜΑ. Δύο στοιχεία με το ίδιο θέμα συγχωνεύονται. */
+  key: string;
+  title: string;
+  note: string;
+  /** ISO «YYYY-MM-DD», ή null όταν δεν υπάρχει προθεσμία. */
+  due: string | null;
+  /** Αρνητικό = ληξιπρόθεσμο. */
+  daysLeft: number | null;
+  action: { label: string; tab: string } | null;
+  origin: AgendaOrigin;
+  /** Κρίνει μόνο όσα ΔΕΝ έχουν κοντινή προθεσμία. */
+  weight: number;
+  /** Ποιος το κάνει — μόνο οι υποχρεώσεις το ξέρουν. */
+  who?: string;
+}
+
+/** Ό,τι παράγει το `computeInsights`, στο ελάχιστο που χρειάζεται εδώ. */
+export interface InsightLike {
+  id: string;
+  kind: string;
+  title: string;
+  detail: string;
+  metric?: string;
+  action?: { label: string; tab: string };
+}
+
+/** Ό,τι παράγει το `computeObligations`, στο ελάχιστο που χρειάζεται εδώ. */
+export interface ObligationLike {
+  id: string;
+  title: string;
+  note: string;
+  date: string;
+  daysUntil: number;
+  priority: string;
+  who?: string;
+}
+
+/** Βήμα ρύθμισης ακινήτου (OnboardingChecklist). */
+export interface SetupLike {
+  key: string;
+  label: string;
+  hint: string;
+  done: boolean;
+  due?: string | null;
+  weight?: number;
+  nav: string;
+}
+
+// ── ΧΑΡΤΟΓΡΑΦΗΣΗ ΣΕ ΘΕΜΑΤΑ ───────────────────────────────────────────────
+// Εδώ κρίνεται τι είναι διπλότυπο. Γράφεται ρητά, με ονόματα που υπάρχουν
+// πραγματικά στις δύο μηχανές — όχι με ευρετικό ταίριασμα τίτλων, που θα έσπαγε
+// στην πρώτη επαναδιατύπωση κειμένου.
+
+const OBLIGATION_SUBJECT: Record<string, string> = {
+  insurance: 'insurance',
+  lease_end: 'lease',
+  lease_decl: 'lease-declaration',
+};
+
+const INSIGHT_SUBJECT: Record<string, string> = {
+  'insurance-expired': 'insurance',
+  'insurance-soon': 'insurance',
+  'lease-expired': 'lease',
+  'lease-soon': 'lease',
+  'bills-overdue': 'bills',
+  'bills-unpaid': 'bills',
+  'tasks-overdue': 'maintenance-tasks',
+  'chk-overdue': 'checklist',
+  // Τα δύο παρακάτω ΕΙΝΑΙ βήματα ρύθμισης, διατυπωμένα ως insight.
+  'profile-incomplete': 'setup:details',
+  'no-expenses': 'setup:expense',
+};
+
+export function obligationSubject(id: string): string {
+  if (OBLIGATION_SUBJECT[id]) return OBLIGATION_SUBJECT[id];
+  if (id.startsWith('maint_')) return `maintenance:${id}`;
+  return `tax:${id}`;
+}
+
+export function insightSubject(id: string): string {
+  return INSIGHT_SUBJECT[id] || `insight:${id}`;
+}
+
+// ── ΒΑΡΥΤΗΤΑ ΟΤΑΝ ΔΕΝ ΥΠΑΡΧΕΙ ΠΡΟΘΕΣΜΙΑ ──────────────────────────────────
+// Το `kind` των insights είναι ήδη ιεραρχία· εδώ γίνεται αριθμός για να μπορεί
+// να συγκριθεί με τη βαρύτητα των βημάτων ρύθμισης στην ίδια λίστα.
+const KIND_WEIGHT: Record<string, number> = {
+  urgent: 9, attention: 7, opportunity: 4, positive: 1,
+};
+const PRIORITY_WEIGHT: Record<string, number> = { high: 9, medium: 6, low: 3 };
+
+function toDaysLeft(iso: string | null | undefined, today: string): number | null {
+  if (!iso) return null;
+  const a = Date.parse(`${iso.slice(0, 10)}T00:00:00Z`);
+  const b = Date.parse(`${today.slice(0, 10)}T00:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return Math.round((a - b) / 86400000);
+}
+
+// ── ΣΥΓΧΩΝΕΥΣΗ ───────────────────────────────────────────────────────────
+// Νικά η υποχρέωση, γιατί κρατά την ΠΡΑΓΜΑΤΙΚΗ ημερομηνία και το ποιος το κάνει.
+// Το insight όμως ξέρει ΠΟΥ να σε πάει, οπότε η ενέργειά του επιβιώνει. Έτσι η
+// συγχωνευμένη γραμμή είναι καλύτερη και από τις δύο, όχι η μία από τις δύο.
+const ORIGIN_RANK: Record<AgendaOrigin, number> = { obligation: 3, insight: 2, setup: 1 };
+
+function merge(a: AgendaItem, b: AgendaItem): AgendaItem {
+  const [win, lose] = ORIGIN_RANK[a.origin] >= ORIGIN_RANK[b.origin] ? [a, b] : [b, a];
+  return {
+    ...win,
+    due: win.due ?? lose.due,
+    daysLeft: win.due != null ? win.daysLeft : lose.daysLeft,
+    action: win.action ?? lose.action,
+    weight: Math.max(win.weight, lose.weight),
+    who: win.who ?? lose.who,
+  };
+}
+
+/**
+ * Οι τρεις πηγές γίνονται μία λίστα, χωρίς διπλότυπα, σε σειρά πίεσης.
+ *
+ * @param today ISO «YYYY-MM-DD» σε ΕΛΛΗΝΙΚΗ ώρα (athensToday()).
+ * @param limit Πόσα να επιστραφούν. Η αρχική οθόνη δείχνει λίγα· η πλήρης λίστα
+ *   ζει στις «Εκκρεμότητες». `0` = όλα.
+ */
+export function buildAgenda(input: {
+  insights?: InsightLike[];
+  obligations?: ObligationLike[];
+  setup?: SetupLike[];
+  today: string;
+  limit?: number;
+}): AgendaItem[] {
+  const { today } = input;
+  const bySubject = new Map<string, AgendaItem>();
+
+  const add = (item: AgendaItem) => {
+    const prev = bySubject.get(item.key);
+    bySubject.set(item.key, prev ? merge(prev, item) : item);
+  };
+
+  for (const o of input.obligations || []) {
+    add({
+      key: obligationSubject(o.id),
+      title: o.title, note: o.note,
+      due: o.date ? o.date.slice(0, 10) : null,
+      daysLeft: Number.isFinite(o.daysUntil) ? o.daysUntil : toDaysLeft(o.date, today),
+      action: null, origin: 'obligation',
+      weight: PRIORITY_WEIGHT[o.priority] ?? 5,
+      who: o.who,
+    });
+  }
+
+  for (const i of input.insights || []) {
+    // Τα «positive» δεν είναι δουλειά — είναι κομπλιμέντο. Δεν έχουν θέση σε
+    // λίστα με τίτλο «τι χρειάζεται τώρα»: σπρώχνουν κάτω ό,τι χρειάζεται.
+    if (i.kind === 'positive') continue;
+    add({
+      key: insightSubject(i.id),
+      title: i.title, note: i.detail,
+      due: null, daysLeft: null,
+      action: i.action || null, origin: 'insight',
+      weight: KIND_WEIGHT[i.kind] ?? 5,
+    });
+  }
+
+  for (const s of input.setup || []) {
+    if (s.done) continue;                    // ό,τι έγινε δεν είναι εκκρεμότητα
+    add({
+      key: `setup:${s.key}`,
+      title: s.label, note: s.hint,
+      due: s.due ? s.due.slice(0, 10) : null,
+      daysLeft: toDaysLeft(s.due, today),
+      action: { label: 'Άνοιγμα', tab: s.nav }, origin: 'setup',
+      weight: s.weight ?? 5,
+    });
+  }
+
+  // ── ΣΕΙΡΑ ΠΙΕΣΗΣ ───────────────────────────────────────────────────────
+  // Ίδιος κανόνας με το orderSteps: προθεσμία ΜΟΝΟ όταν είναι κοντά (≤30 ημ.)
+  // παίρνει προβάδισμα. Μια προθεσμία του Δεκεμβρίου δεν προσπερνά μια
+  // ληξιπρόθεσμη ασφάλεια επειδή τυχαίνει να έχει ημερομηνία.
+  const HORIZON = 30;
+  const urgent = (x: AgendaItem) => x.daysLeft != null && x.daysLeft <= HORIZON;
+  const sorted = [...bySubject.values()].sort((a, b) => {
+    const ua = urgent(a), ub = urgent(b);
+    if (ua !== ub) return ua ? -1 : 1;
+    if (ua && ub) return (a.daysLeft as number) - (b.daysLeft as number) || a.key.localeCompare(b.key);
+    if (a.weight !== b.weight) return b.weight - a.weight;
+    // ΕΞΩ ΑΠΟ ΤΟΝ ΟΡΙΖΟΝΤΑ, Η ΗΜΕΡΟΜΗΝΙΑ ΔΕΝ ΕΙΝΑΙ ΕΠΕΙΓΟΝ.
+    // Σε ισοβαρή, ό,τι ΔΕΝ έχει προθεσμία πάει πρώτο: ένα ληξιπρόθεσμο τιμολόγιο
+    // ή μια ελλιπής καταχώριση ισχύει ΤΩΡΑ και θα ισχύει και αύριο, ενώ μια
+    // προθεσμία του Δεκεμβρίου μπορεί να περιμένει — και θα ανέβει μόνη της όταν
+    // μπει στις 30 ημέρες. Ανάμεσα σε δύο με προθεσμία, η κοντινότερη πρώτη.
+    const da = a.daysLeft, db = b.daysLeft;
+    if ((da == null) !== (db == null)) return da == null ? -1 : 1;
+    if (da != null && db != null && da !== db) return da - db;
+    return a.key.localeCompare(b.key);
+  });
+
+  const limit = input.limit ?? 0;
+  return limit > 0 ? sorted.slice(0, limit) : sorted;
+}
+
+/** Πόσα από τη λίστα είναι ήδη ληξιπρόθεσμα — ο αριθμός δίπλα στην κεφαλίδα. */
+export function overdueCount(items: AgendaItem[]): number {
+  return items.filter(i => i.daysLeft != null && i.daysLeft < 0).length;
+}
+
+/** Η προθεσμία σε λέξεις. Ποτέ «σε -3 ημέρες». */
+export function dueLabel(daysLeft: number | null): string | null {
+  if (daysLeft == null) return null;
+  if (daysLeft < 0) { const n = Math.abs(daysLeft); return `${n} ${n === 1 ? 'ημέρα' : 'ημέρες'} πίσω`; }
+  if (daysLeft === 0) return 'σήμερα';
+  if (daysLeft === 1) return 'αύριο';
+  return `σε ${daysLeft} ημέρες`;
+}

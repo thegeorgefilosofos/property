@@ -33,14 +33,12 @@ import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid
 import { Building2, Receipt, ListChecks, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
-import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
 import MonthlyFeedbackNudge from './components/MonthlyFeedbackNudge';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import { useReportBranding } from '@/lib/reportBranding';
-import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { LOAN_COLUMNS, toLoanViews, type LoanView } from '@/lib/loans/shape';
@@ -54,8 +52,12 @@ import { PLANS } from '@/lib/billing/plans';
 import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
 import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, CORE_TABS, type DisclosureSignals } from '@/lib/nav/disclosure';
 import AthensNow from './components/AthensNow';
-import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
-import ObligationsPanel from './components/ObligationsPanel';
+import CashHero from './components/CashHero';
+import AgendaPanel from './components/AgendaPanel';
+import { cashPosition } from '@/lib/home/cash';
+import { buildAgenda, type SetupLike as SetupStep } from '@/lib/home/agenda';
+import { computeObligations, type OblMaint } from './components/obligations';
+import { taxProfileOf } from '@/lib/tax/greekTaxCalendar';
 import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
 import BillingNudge from './components/BillingNudge';
@@ -73,8 +75,14 @@ interface Property {
   rental_mode: string | null; client_id: string | null; co_owners: string[] | null;
   notes: string | null; status_detail: string | null; created_at: string;
 }
-interface Expense  { id:string; amount:number; date:string; category:string; description:string; }
-interface Bill     { id:string; type:string; amount:number; avg_amount:number|null; paid:boolean; }
+// ΤΑ ΠΕΔΙΑ ΠΟΥ ΛΕΙΠΑΝ. Οι δύο τύποι περιέγραφαν λιγότερα από όσα διαβάζει η
+// οθόνη, οπότε κάθε χρήση των υπολοίπων περνούσε από `as any` — δεκατέσσερα
+// σημεία, το καθένα μια θέση όπου ένα λάθος όνομα στήλης δεν θα το έπιανε
+// τίποτα. Ό,τι ζητά το ερώτημα, δηλώνεται εδώ.
+interface Expense  { id:string; amount:number; date:string; category:string; description:string;
+                     paid?:boolean|null; expense_group?:string|null; payment_method?:string|null; }
+interface Bill     { id:string; type:string; amount:number; avg_amount:number|null; paid:boolean;
+                     due_date?:string|null; name?:string|null; }
 interface Task     { id:string; title:string; due_date:string|null; priority:string; completed:boolean; }
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 
@@ -405,6 +413,12 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const [hostStays, setHostStays] = useState<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }[]>([]);
   const [contactCount, setContactCount] = useState(0);   // πλήθος επαφών (για το πλακίδιο-σύνοψη)
   const [docCount, setDocCount] = useState(0);           // πλήθος εγγράφων στο αρχείο
+  // Το ΤΑΜΕΙΟ: περίοδοι ενοικίου και συντηρήσεις εξοπλισμού. Διαβάζονται ΕΔΩ και
+  // όχι σε δικό τους panel, γιατί τροφοδοτούν την ΕΝΙΑΙΑ λίστα «τι χρειάζεται
+  // τώρα» — αν κάθε κάρτα διάβαζε τα δικά της, θα ξαναγεννιόνταν τα διπλότυπα.
+  const [rentPeriods, setRentPeriods] = useState<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }[]>([]);
+  const [maint, setMaint] = useState<OblMaint[]>([]);
+  const [tenantFull, setTenantFull] = useState<{ id?:string; lease_start:string|null; lease_end:string|null } | null>(null);
   // Ενοίκια ΟΛΩΝ των ακινήτων (μισθωτήρια + ρυθμίσεις ενοικίου), για τον
   // προοδευτικό φόρο σε επίπεδο φορολογούμενου.
   const [portfolioRents, setPortfolioRents] = useState<{ property_id:string; monthly:number }[]>([]);
@@ -413,11 +427,11 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ count:cCount },{ count:dCount },{ data:allTen },{ data:allRc }] = await Promise.all([
+    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ count:cCount },{ count:dCount },{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
-      supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
+      supabase.from('tenants').select('id,monthly_rent,lease_start,lease_end').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',prop.id).eq('user_id',userId),
@@ -433,8 +447,13 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
       // προτεραιότητας με το resolveRent: μισθωτήριο → actual → target → ακίνητο.
       supabase.from('tenants').select('monthly_rent,property_id').in('property_id',propIds).eq('user_id',userId),
       supabase.from('rent_config').select('property_id,actual_rent,target_rent').in('property_id',propIds).eq('user_id',userId),
+      // ΤΟ ΤΑΜΕΙΟ. Μόνο οι ΑΠΛΗΡΩΤΕΣ περίοδοι — οι πληρωμένες είναι ιστορικό και
+      // ζουν στον Ενοικιαστή. Ό,τι δεν εμφανίζεται, δεν κατεβαίνει.
+      supabase.from('rent_payments').select('amount,due_date,paid,period_year,period_month').eq('property_id',prop.id).eq('user_id',userId).eq('paid',false),
+      supabase.from('inventory_maintenance').select('task,item_name,next_due,est_cost').eq('property_id',prop.id),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
+    setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses(allExp||[]);
     setContactCount(cCount||0); setDocCount(dCount||0);
     const rcById = new Map((allRc||[]).map((r:any)=>[r.property_id, r]));
@@ -463,6 +482,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
       .on('postgres_changes', { event:'*', schema:'public', table:'inventory_items',     filter:`property_id=eq.${prop.id}` }, () => load())
       .on('postgres_changes', { event:'*', schema:'public', table:'contacts',            filter:`property_id=eq.${prop.id}` }, () => load())
       .on('postgres_changes', { event:'*', schema:'public', table:'property_documents',  filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'rent_payments',        filter:`property_id=eq.${prop.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -480,7 +500,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const expDeltaPct = expPrevSame > 0 ? Math.round((expThisY - expPrevSame)/expPrevSame*100) : null;
   // Διαχωρισμός πληρωμένων/εκκρεμών: το σύνολο (accrual) οδηγεί την απόδοση, αλλά
   // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).
-  const paidExpYTD = expenses.filter(e => (e as any).paid !== false).reduce((s,e)=>s+e.amount,0);
+  const paidExpYTD = expenses.filter(e => e.paid !== false).reduce((s,e)=>s+e.amount,0);
   const pendingExpYTD = totalExpYTD - paidExpYTD;
   // Single source of truth: ίδιος υπολογισμός ενοικίου/αξίας/απόδοσης παντού.
   const rent = resolveRent({ tenantRent: tenant?.monthly_rent, targetRent: prop.target_rent }).value;
@@ -572,18 +592,63 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const estTax = Math.round(taxShareOf(portfolioTax, prop.id));
   const taxNote = consolidationSummary(portfolioTax, fmtEur);
 
+  // ── ΤΟ ΤΑΜΕΙΟ ─────────────────────────────────────────────────────────────
+  // Τι μου χρωστάνε (ληξιπρόθεσμες περίοδοι ενοικίου) και τι χρωστάω (απλήρωτοι
+  // λογαριασμοί και δαπάνες). Η ΜΟΝΗ πηγή για τα «Εκκρεμείς δαπάνες», που πριν
+  // ήταν χωριστό πλακίδιο πιο κάτω στην ίδια οθόνη.
+  const cash = useMemo(() => cashPosition({
+    rent: rentPeriods,
+    bills: bills.map(b => ({ amount:b.amount, due:b.due_date ?? null, paid:b.paid ?? null, label:b.name || b.type || 'Λογαριασμός' })),
+    expenses: expenses.map(e => ({ amount:e.amount, due:e.date, paid:e.paid ?? null, label:e.description || e.category || 'Δαπάνη' })),
+    today: todayIso,
+  }), [rentPeriods, bills, expenses, todayIso]);
+
   // ── Έξυπνα insights: ο «σύμβουλος» διαβάζει τα δεδομένα και προτεραιοποιεί ──
   const insights = computeInsights({
     now: now.getTime(),
     property: prop, tenant, rent, propValue, grossYield, netYield,
     expensesYTD: totalExpYTD,
-    expenses: expenses as { category?:string; amount:number; date?:string; paid?:boolean; expense_group?:string|null; payment_method?:string|null }[],
-    bills: bills.map(b => ({ type:(b as any).type, amount:(b as any).amount, paid:(b as any).paid, due_date:(b as any).due_date })),
+    expenses,
+    bills: bills.map(b => ({ type:b.type, amount:b.amount, paid:b.paid, due_date:b.due_date })),
     tasks: tasks.map(t => ({ due_date: t.due_date })),
     checklist: chk,
     inventory: inv,
     loanPayment: 0,
   });
+
+  // ── ΤΑ ΒΗΜΑΤΑ ΡΥΘΜΙΣΗΣ ────────────────────────────────────────────────────
+  // Η ΒΑΡΥΤΗΤΑ ΔΕΝ ΕΙΝΑΙ ΓΝΩΜΗ: είναι πόσα ΑΛΛΑ ξεκλειδώνει το βήμα. Χωρίς αξία
+  // και ενοίκιο δεν υπάρχει καμία απόδοση, κανένας φόρος και καμία σύγκριση —
+  // γι' αυτό 10. Η απογραφή βελτιώνει τις αποσβέσεις και τίποτα άλλο — γι' αυτό 2.
+  const setupSteps: SetupStep[] = ([
+    { key:'details', weight:10, label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
+    { key:'tenant',  weight:8, label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
+    { key:'expense', weight:6, label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
+    { key:'bills',   weight:5, label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
+    { key:'pricing', weight:3, label:'Δες την προτεινόμενη τιμή σου', hint:'Δυναμική τιμή ανά νύχτα και φορολογική εικόνα βραχυχρόνιας μίσθωσης', done: hostStays.length>0, nav:'pricing' },
+    { key:'inv',     weight:2, label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
+    // Βήμα που δείχνει σε καρτέλα η οποία δεν αφορά τον χρήστη είναι νεκρός
+    // σύνδεσμος: το πάτημα θα τον γύριζε στην Επισκόπηση.
+  ] as SetupStep[]).filter(s => tabVisible(s.nav));
+
+  // ── ΜΙΑ ΛΙΣΤΑ, ΟΧΙ ΤΕΣΣΕΡΙΣ ──────────────────────────────────────────────
+  // Πριν, αυτή η οθόνη σέρβιρε τέσσερις ανεξάρτητες μηχανές συμβουλής τη μία
+  // κάτω από την άλλη: InsightsBoard, ObligationsPanel, «Ρύθμιση ακινήτου» και,
+  // ως πλακίδιο KPI, τη λήξη μίσθωσης. Η λήξη μίσθωσης εμφανιζόταν ΤΕΣΣΕΡΙΣ
+  // φορές, η ασφάλεια δύο, τα ελλιπή στοιχεία δύο. Τώρα οι πηγές συγχωνεύονται
+  // ανά ΘΕΜΑ (lib/home/agenda.ts) και βγαίνει μία σειρά προτεραιότητας.
+  const obligations = useMemo(
+    () => computeObligations(prop, tenantFull, maint, now, taxProfileOf(prop)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [prop, tenantFull, maint, todayIso],
+  );
+  const agendaAll = useMemo(
+    () => buildAgenda({ insights, obligations, setup: setupSteps, today: todayIso }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [insights, obligations, setupSteps, todayIso],
+  );
+  // Πέντε στην αρχική. Η πλήρης λίστα ζει στις «Εκκρεμότητες» — και η οθόνη το λέει.
+  const agenda = agendaAll.slice(0, 5);
 
   if (loading) return (
     <div>
@@ -602,12 +667,6 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
     <div>
       {/* Διακριτική υπενθύμιση: συμπλήρωσε στοιχεία τιμολόγησης πριν την επόμενη χρέωση. */}
       <BillingNudge userId={userId} onNavigate={onNavigate} />
-
-      {/* Task-first hero: το πρώτο πράγμα που βλέπει ο χρήστης είναι ο χαιρετισμός
-          και οι πιο σημαντικές ενέργειες που χρειάζονται τώρα (ελέγχεται από Προτιμήσεις). */}
-      {prefs.liveNotifications && (
-        <InsightsBoard insights={insights} name={ownerName} onSaveName={onSaveOwnerName} onNavigate={onNavigate} maxVisible={4} />
-      )}
 
       {/* ═══ Η ΚΕΦΑΛΙΔΑ ΠΟΥ ΕΛΕΙΠΕ ══════════════════════════════════════════
           Η οθόνη άνοιγε με ένα μοναχικό κουμπί «Αναφορά (PDF)» στοιχισμένο
@@ -655,55 +714,18 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         </div>
       )}
 
-      {/* Η ΒΑΡΥΤΗΤΑ ΔΕΝ ΕΙΝΑΙ ΓΝΩΜΗ: είναι πόσα ΑΛΛΑ ξεκλειδώνει το βήμα.
-          Χωρίς αξία και ενοίκιο δεν υπάρχει καμία απόδοση, κανένας φόρος και
-          καμία σύγκριση — γι' αυτό 10. Η απογραφή βελτιώνει τις αποσβέσεις και
-          τίποτα άλλο — γι' αυτό 2. Η λήξη μίσθωσης φέρνει ΠΡΟΘΕΣΜΙΑ, οπότε όταν
-          πλησιάζει ανεβαίνει πάνω από όλα μόνη της. */}
-      <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
-        { key:'details', weight:10, label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
-        { key:'tenant',  weight:8, due: tenant?.lease_end ?? null, label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
-        { key:'expense', weight:6, label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
-        { key:'bills',   weight:5, label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
-        { key:'pricing', weight:3, label:'Δες την προτεινόμενη τιμή σου', hint:'Δυναμική τιμή ανά νύχτα και φορολογική εικόνα βραχυχρόνιας μίσθωσης', done: hostStays.length>0, nav:'pricing' },
-        { key:'inv',     weight:2, label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
-      ].filter(s => tabVisible(s.nav)) as SetupStep[]}/>
+      {/* ═══ ΤΟ ΤΑΜΕΙΟ ══════════════════════════════════════════════════════
+          Η οθόνη άνοιγε με «Μηνιαίο ενοίκιο · Μεικτή απόδοση · Καθαρή απόδοση»:
+          τρεις αριθμοί που ο ιδιοκτήτης ξέρει απ' έξω και που δεν αλλάζουν από
+          μήνα σε μήνα. Αυτό που ΔΕΝ ήξερε, και είναι ο λόγος που ανοίγει την
+          εφαρμογή, ήταν αν μπήκε το ενοίκιο και τι πρέπει να πληρώσει. */}
+      <CashHero cash={cash} onNavigate={onNavigate} />
 
-      {/* ═══ ΕΝΑ ΠΛΑΚΙΔΙΟ ΓΙΑ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ ══════════════════════════════
-          Η Επισκόπηση —η ΠΡΩΤΗ οθόνη— ήταν η μόνη που δεν χρησιμοποιούσε το
-          κοινό KPIGrid. Είχε δικό της .kpi-grid-5 εδώ, δικό της .po-fig-card
-          παρακάτω, και τρεις ζώνες με κεντραρισμένα ζευγάρια ετικέτα/τιμή στο
-          τέλος: τέσσερα διαφορετικά «πλακίδια αριθμού» στην ίδια οθόνη, με
-          διαφορετικό padding, μέγεθος γραμματοσειράς και συμπεριφορά στο hover.
-          Τώρα ένα, το ίδιο με κάθε άλλη καρτέλα της εφαρμογής. */}
-      <SecHdr label={`Η εικόνα σήμερα · ${MONTHS_LONG[month-1]} ${year}`} />
-      <KPIGrid columns={5} items={([
-          { label:'Μηνιαίο ενοίκιο', value:fmtEur(rent), incomeOnly:true },
-          { label:'Μεικτή απόδοση', value:`${grossYield.toFixed(1)}%`, incomeOnly:true, title:'Απόδοση (yield): ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών' },
-          { label:'Καθαρή απόδοση', value:`${netYield.toFixed(1)}%`, incomeOnly:true, title:'Απόδοση (yield): ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου' },
-          // «Δαπάνες Έτους» εδώ και «Δαπάνες (προβολή)» παρακάτω διάβαζαν σαν
-          // το ίδιο μέγεθος με δύο τιμές. Είναι δύο διαφορετικά πράγματα και
-          // πλέον το λένε: ως σήμερα / ολόκληρο το έτος.
-          { label:'Δαπάνες ως σήμερα', value:fmtEur(totalExpYTD),
-            title:`Δαπάνες από 1/1 έως σήμερα. Η σύγκριση αφορά το ΙΔΙΟ διάστημα του ${year-1} (Ιανουάριος – ${MONTHS_LONG[month-1]}), όχι ολόκληρη την περσινή χρονιά.`,
-            sub: expDeltaPct!=null ? `${expDeltaPct>0?'+':expDeltaPct<0?'−':''}${Math.abs(expDeltaPct)}% από πέρσι, ίδιο διάστημα` : undefined,
-            subTone: expDeltaPct==null ? undefined : expDeltaPct>0?'negative':expDeltaPct<0?'positive':undefined },
-          { label: daysToExpiry!=null?'Λήξη σύμβασης':'Αξία ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
-            tone: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'negative':'warning') : undefined },
-        // ΕΝΟΙΚΙΟ ΚΑΙ ΑΠΟΔΟΣΕΙΣ ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΕΣΟΔΟ.
-        //
-        // Τα τρία πρώτα πλακίδια εμφανίζονταν ΠΑΝΤΑ. Σε ακίνητο σε ιδιοχρησία ή
-        // κενό, το resolveRent πέφτει στο `target_rent` — που ο ιδιοκτήτης
-        // μπορεί να έχει συμπληρώσει ως στόχο — και η Επισκόπηση έδειχνε
-        // «Μηνιαίο Ενοίκιο 700 €» και «Καθαρή Απόδοση 3,8%» για ακίνητο που δεν
-        // αποδίδει τίποτα. Απόδοση χωρίς έσοδο δεν είναι μέτρηση, είναι υπόθεση
-        // με ποσοστό δίπλα της — ακριβώς αυτό που το lib/property/visibility.ts
-        // έχει ήδη απαγορεύσει για την καρτέλα Αποδόσεις. Ίδιος κανόνας εδώ.
-        ] as OverviewKPI[]).filter(k => isLet(prop) || !k.incomeOnly)} />
-
-      <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
-
-      {prefs.showSmartTips && <SmartSuggestions userId={userId} propertyId={prop.id} />}
+      {/* Μία λίστα «τι χρειάζεται τώρα», στη θέση των τεσσάρων που έλεγαν εν
+          μέρει τα ίδια πράγματα. Η συγχώνευση γίνεται στο lib/home/agenda.ts. */}
+      {prefs.liveNotifications && (
+        <AgendaPanel items={agenda} total={agendaAll.length} onNavigate={onNavigate} />
+      )}
 
       <SecHdr label="Ανάλυση δαπανών" sub="Πού πάνε τα χρήματα, μήνα με μήνα" />
       <div className="grid-main">
@@ -839,19 +861,29 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           χρησιμοποιείται πουθενά αλλού στην εφαρμογή και δεν διαβάζεται με μια
           ματιά. Είναι όλα το ίδιο πράγμα — αριθμός με ετικέτα — και πλέον
           δείχνουν έτσι. */}
-      <SecHdr label={`Ετήσια προβολή ${year}`} sub="Πού καταλήγει η χρονιά με ό,τι ξέρουμε σήμερα" />
+      <SecHdr label={`Η χρονιά ${year}`} sub="Πού καταλήγει με ό,τι ξέρουμε σήμερα" />
       {(() => {
         const net = annualRent - projectedExpYear - estTax;
+        // ΜΙΑ ΖΩΝΗ ΑΡΙΘΜΩΝ, ΟΧΙ ΔΥΟ. Πιο πάνω υπήρχε δεύτερο πλέγμα «Η εικόνα
+        // σήμερα» με «Μηνιαίο ενοίκιο», «Δαπάνες ως σήμερα» και τις δύο
+        // αποδόσεις. Το «Μηνιαίο ενοίκιο × 12» ΕΙΝΑΙ τα ακαθάριστα έσοδα, και οι
+        // «Δαπάνες ως σήμερα» δίπλα στις «Δαπάνες όλο το έτος» διάβαζαν σαν το
+        // ίδιο μέγεθος με δύο τιμές. Τώρα κάθε ποσό λέγεται μία φορά· ό,τι ήταν
+        // χρήσιμο συμφραζόμενο (μηνιαίο, ως σήμερα) μπήκε ως υπότιτλος.
         const items: KPIItem[] = [
-          { label:'Ακαθάριστα έσοδα', value:fmtEur(annualRent), title:`Μηνιαίο ενοίκιο ${fmtEur(rent)} × 12.` },
-          { label:'Δαπάνες, όλο το έτος', value:fmtEur(Math.round(projectedExpYear)),
-            sub: recurringCount>0 ? `${recurringCount} πάγιες` : undefined,
-            title:`Οι δαπάνες που έχεις καταχωρήσει για το ${year}, μετρημένες όσες φορές πραγματικά συμβαίνουν: οι εφάπαξ (π.χ. ΕΝΦΙΑ, συμβόλαιο) μία φορά, οι πάγιες όσες φορές επαναλαμβάνονται. Δεν πολλαπλασιάζεται το σύνολο του έτους ×12.` },
+          { label:'Έσοδα από ενοίκια', value:fmtEur(annualRent), sub:`${fmtEur(rent)} τον μήνα`,
+            title:`Μηνιαίο ενοίκιο ${fmtEur(rent)} × 12.` },
+          { label:'Δαπάνες', value:fmtEur(Math.round(projectedExpYear)),
+            sub: [`${fmtEur(totalExpYTD)} ως σήμερα`, recurringCount>0 ? `${recurringCount} πάγιες` : null].filter(Boolean).join(' · '),
+            title:`Οι δαπάνες που έχεις καταχωρήσει για το ${year}, μετρημένες όσες φορές πραγματικά συμβαίνουν: οι εφάπαξ (π.χ. ΕΝΦΙΑ, συμβόλαιο) μία φορά, οι πάγιες όσες φορές επαναλαμβάνονται. Δεν πολλαπλασιάζεται το σύνολο του έτους ×12.${expDeltaPct!=null?` Το ίδιο διάστημα του ${year-1}: ${expDeltaPct>0?'+':expDeltaPct<0?'−':''}${Math.abs(expDeltaPct)}%.`:''}` },
           { label:'Μερίδιο φόρου ενοικίου', value:fmtEur(estTax),
             title:portfolioTax.count>1
               ? `${CONSOLIDATION_NOTE} Συνολικός φόρος χαρτοφυλακίου ${fmtEur(Math.round(portfolioTax.totalTax))} σε ενοίκια ${fmtEur(Math.round(portfolioTax.totalAnnualRent))}.`
-              : `Προοδευτική κλίμακα ενοικίων 2026 (15/25/35/45%), με την τεκμαρτή έκπτωση 5%. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου.` },
-          { label:'Καθαρό αποτέλεσμα', value:fmtEur(Math.round(net)), tone:net>=0?'positive':'negative',
+              : `Προοδευτική κλίμακα ενοικίων ${year} με την τεκμαρτή έκπτωση 5%. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου.` },
+          // ΧΩΡΙΣ ΧΡΩΜΑΤΙΚΗ ΕΤΥΜΗΓΟΡΙΑ. Το πρόσημο το λέει ήδη το ίδιο το ποσό·
+          // το πράσινο/κόκκινο απλώς το ξαναέλεγε, και σε μια χρονιά με ΕΝΦΙΑ
+          // έβαφε κόκκινο ένα ακίνητο που δουλεύει κανονικά.
+          { label:'Καθαρό αποτέλεσμα', value:fmtEur(Math.round(net)),
             title:'Ακαθάριστα έσοδα μείον δαπάνες μείον το μερίδιο φόρου. Δεν περιλαμβάνει δόσεις δανείου.' },
         ];
         // ΙΔΙΟ ΠΛΑΚΙΔΙΟ, ΟΧΙ ΙΔΙΑ ΒΑΡΥΤΗΤΑ. Τα τέσσερα παραπάνω είναι η αλυσίδα
@@ -869,22 +901,29 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           label:`Έσοδα φιλοξενίας ${year}`, value:fmtEur(Math.round(hostingYTD)),
           sub: [hostingNights>0?`${hostingNights} διανυκτερεύσεις`:null, nextArrival?`επόμενη άφιξη ${new Date(nextArrival).toLocaleDateString('el-GR')}`:null].filter(Boolean).join(' · ') || undefined,
           title:'Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα «Επισκέπτες».' });
-        if (pendingExpYTD > 0) extra.push({
-          label:'Εκκρεμείς δαπάνες', value:fmtEur(pendingExpYTD), tone:'warning',
-          sub:`πληρωμένα ${fmtEur(paidExpYTD)}`,
-          title:'Δαπάνες που έχουν καταχωρηθεί αλλά δεν έχουν σημανθεί ως πληρωμένες. Μετρούν κανονικά στο αποτέλεσμα της χρονιάς.' });
+        // ΟΙ «ΕΚΚΡΕΜΕΙΣ ΔΑΠΑΝΕΣ» ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Είναι ακριβώς το «Χρωστάω» του
+        // Ταμείου, στην κορυφή της ίδιας οθόνης — το ίδιο ποσό δύο φορές, με
+        // διαφορετικό όνομα και σε απόσταση ενός scroll.
         return (
           <>
             <KPIGrid columns={4} items={items} />
-            {/* Η «Καθαρή Απόδοση» ΕΦΥΓΕ από εδώ: ήταν το ίδιο νούμερο με το
-                πλακίδιο στην κορυφή της ίδιας οθόνης, σε απόσταση ενός scroll.
-                Στη θέση της, ο φόρος εξηγεί από πού βγαίνει — που είναι η
-                πραγματική απορία του χρήστη. */}
-            {taxNote && (
-              <div style={{marginTop:-4,marginBottom:16,fontFamily: T.font.sans,fontSize:11.5,color:'var(--text-secondary)',lineHeight:1.6}}>
-                <strong style={{color:'var(--text-primary)',fontWeight:600}}>Πώς βγαίνει ο φόρος.</strong> {taxNote}
-              </div>
-            )}
+            {/* Η απόδοση σε μία γραμμή αντί για δύο πλακίδια: είναι
+                συμφραζόμενο του αποτελέσματος, όχι ισότιμο μέγεθος μαζί του. Η
+                πλήρης ανάλυση ζει στις «Αποδόσεις», που είναι η καρτέλα της. */}
+            <div style={{marginTop:-4,marginBottom:16,fontFamily: T.font.sans,fontSize:11.5,color:'var(--text-secondary)',lineHeight:1.7}}>
+              {isLet(prop) && propValue>0 && (
+                <div>
+                  <strong style={{color:'var(--text-primary)',fontWeight:600}}>Απόδοση.</strong>{' '}
+                  <span title="Ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών">μεικτή {grossYield.toFixed(1)}%</span>
+                  {' · '}
+                  <span title="Ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου">καθαρή {netYield.toFixed(1)}%</span>
+                  {propValue>0 && ` · αξία ${fmtEur(propValue)}`}
+                </div>
+              )}
+              {taxNote && (
+                <div><strong style={{color:'var(--text-primary)',fontWeight:600}}>Πώς βγαίνει ο φόρος.</strong> {taxNote}</div>
+              )}
+            </div>
             {extra.length > 0 && <KPIGrid columns={Math.max(3, extra.length)} items={extra} />}
           </>
         );

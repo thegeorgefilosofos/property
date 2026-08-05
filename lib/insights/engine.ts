@@ -43,8 +43,11 @@ export interface InsightInput {
   grossYield: number;       // μεικτή απόδοση %
   netYield: number;         // καθαρή απόδοση %
   expensesYTD: number;
-  expenses: { category?: string; amount: number; date?: string; paid?: boolean; expense_group?: string | null; payment_method?: string | null }[];
-  bills: { type?: string; amount?: number | null; paid?: boolean; due_date?: string | null }[];
+  // `paid` δέχεται και `null`: η στήλη είναι nullable και το PostgREST το
+  // επιστρέφει αυτούσιο. Ο τύπος που το απαγόρευε ανάγκαζε κάθε καλούντα σε
+  // `as any` — δηλαδή έσβηνε τον έλεγχο ΟΛΟΥ του αντικειμένου για ένα πεδίο.
+  expenses: { category?: string; amount: number; date?: string; paid?: boolean | null; expense_group?: string | null; payment_method?: string | null }[];
+  bills: { type?: string; amount?: number | null; paid?: boolean | null; due_date?: string | null }[];
   tasks: { due_date?: string | null }[];
   checklist: { due_date?: string | null; status?: string; priority?: string }[];
   inventory: { warranty_expiry?: string | null; condition?: string | null; name?: string | null }[];
