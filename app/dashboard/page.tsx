@@ -116,16 +116,12 @@ const NAV_ITEMS = [
   { id:'finances',   label:'Δαπάνες' },
   { id:'accounting', label:'Λογιστική' },
   { id:'loan',       label:'Δάνειο' },
-  { id:'plan',       label:'Σχέδιο' },
   { id:'tenant',     label:'Ενοικιαστής' },
   { id:'clients',    label:'Πελάτης' },
-  { id:'pricing',    label:'Τιμολόγηση' },
   { id:'inventory',  label:'Έπιπλα / Εξοπλισμός' },
   { id:'documents',  label:'Αρχείο' },
   { id:'checklist',  label:'Εκκρεμότητες' },
-  { id:'contacts',   label:'Επαφές' },
-  { id:'roi',        label:'Αποδόσεις' },
-  { id:'comparison', label:'Σύγκριση ακινήτων' },
+  { id:'roi',        label:'Απόδοση' },
   { id:'referral',   label:'Πρόγραμμα Πρόσκλησης' },
   { id:'settings',   label:'Λογαριασμός' },
 ];
@@ -171,14 +167,10 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   // για το προφίλ του και δεν είναι καν αγοράσιμο, άρα τα φίλτρα το κόβουν.
   { label: '',                    ids: ['portfolio'] },
   { label: '',                    ids: ['calendar'] },
-  // Το Σχέδιο δεν ανήκει σε ομάδα: εμφανίζεται μόνο σε ακίνητο κενό, προς πώληση,
-  // σε ανακαίνιση ή σε νομική εκκρεμότητα — και τότε είναι η κύρια δουλειά του
-  // ιδιοκτήτη, όχι ένα εργαλείο ανάμεσα σε άλλα.
-  { label: '',                    ids: ['plan'] },
   { label: 'Οικονομικά',          ids: ['finances','accounting','loan'] },
-  { label: 'Μίσθωση',             ids: ['tenant','clients','pricing'] },
-  { label: 'Εργαλεία',            ids: ['inventory','documents','checklist','contacts'] },
-  { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison'] },
+  { label: 'Μίσθωση',             ids: ['tenant','clients'] },
+  { label: 'Εργαλεία',            ids: ['inventory','documents','checklist'] },
+  { label: '',                    ids: ['roi'] },
   { label: '',                    ids: ['referral'] },
   { label: '',                    ids: ['settings'] },
 ];
@@ -194,7 +186,7 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
 // Το αντίγραφο στην αποκάλυψη έφυγε — εδώ δηλώνεται ότι την απόφαση την παίρνει
 // η κατάσταση. Η εμφάνιση δεν αλλάζει: οι δύο κανόνες έλεγαν το ίδιο πράγμα, και
 // η πλοήγηση τους συνδύαζε ούτως ή άλλως με «και».
-const SELF_DISCLOSING = new Set(['plan', 'pricing', 'roi', 'comparison']);
+const SELF_DISCLOSING = new Set(['roi']);   // plan/pricing/comparison συγχωνεύτηκαν στην Απόδοση και στον Πελάτη
 
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
 
@@ -371,6 +363,17 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 // γιατί τίποτα δεν θα είχε «σπάσει». Τώρα η σήμανση είναι δεδομένο του
 // πλακιδίου (`incomeOnly`), όχι σύμπτωση κειμένου.
 type OverviewKPI = KPIItem & { incomeOnly?: boolean };
+// Οι καταστάσεις όπου το «Σχέδιο» είναι η ΚΥΡΙΑ δουλειά του ιδιοκτήτη — και οι
+// μόνες όπου εμφανίζεται. Σε μισθωμένο ακίνητο δεν υπάρχει σχέδιο να φτιαχτεί:
+// υπάρχει ενοίκιο να εισπραχθεί.
+const PLAN_STATUSES = new Set(['vacant', 'for_sale', 'renovation', 'disputed']);
+const PLAN_SUB: Record<string, string> = {
+  vacant:     'Κενό — πώς θα μισθωθεί ή θα αξιοποιηθεί',
+  for_sale:   'Προς πώληση — τιμή, χρονισμός, φόρος υπεραξίας',
+  renovation: 'Σε ανακαίνιση — κόστος, χρονοδιάγραμμα, επιδοτήσεις',
+  disputed:   'Νομική εκκρεμότητα — βήματα και προθεσμίες',
+};
+
 
 function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
@@ -1642,22 +1645,40 @@ export default function Dashboard() {
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα όλων των ακινήτων σου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
-              {navSafe==='comparison'&& (isTabAllowed(ent,'comparison')
-                ? <TabComparison properties={properties} userId={user.id}/>
-                : <FeatureLock title="Σύγκρινε τα ακίνητά σου δίπλα-δίπλα" benefit="Απόδοση, δαπάνες και πάροχοι όλων των ακινήτων σου σε έναν πίνακα, για να δεις καθαρά πού κερδίζεις και πού χρειάζεται να λάβεις αποφάσεις. Ξεκλειδώνει με το πλάνο Ιδιοκτήτης." requiredPlan="owner" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} plan={effPlan} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
-              {/* ΜΙΑ καρτέλα για τέσσερις καταστάσεις (κενό, προς πώληση, ανακαίνιση,
-                  νομική εκκρεμότητα): το περιεχόμενο αλλάζει, η θέση στο μενού μένει. */}
-              {navSafe==='plan'      && <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>}
               {navSafe==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
-              {navSafe==='roi'   && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
-              {navSafe==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
+              {/* ═══ ΑΠΟΔΟΣΗ — ΜΙΑ ΚΑΡΤΕΛΑ ΓΙΑ ΜΙΑ ΕΡΩΤΗΣΗ ═══════════════════════
+                  Τρεις καρτέλες απαντούσαν στο ίδιο πράγμα από τρεις μεριές:
+                  «Αποδόσεις» (πόσο αποδίδει ΑΥΤΟ), «Σύγκριση» (πόσο αποδίδει σε
+                  σχέση με τα άλλα), «Σχέδιο» (τι να το κάνω). Ο ιδιοκτήτης δεν
+                  σκέφτεται σε τρεις καρτέλες — σκέφτεται «αξίζει;».
+                  Τώρα μία, με ενότητες που εμφανίζονται ΜΟΝΟ όταν έχουν νόημα:
+                  το Σχέδιο μόνο σε κενό/προς πώληση/ανακαίνιση/νομική εκκρεμότητα,
+                  η Σύγκριση μόνο με δεύτερο ακίνητο. Καμία υποκαρτέλα. */}
+              {navSafe==='roi' && (
+                <>
+                  <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>
+                  {PLAN_STATUSES.has(readStatus(selected)) && (
+                    <div style={{marginTop:28}}>
+                      <SecHdr label="Σχέδιο για αυτό το ακίνητο" sub={PLAN_SUB[readStatus(selected)]}/>
+                      <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>
+                    </div>
+                  )}
+                  {properties.length > 1 && (
+                    <div style={{marginTop:28}}>
+                      <SecHdr label="Σε σχέση με τα υπόλοιπα ακίνητά σου" sub={`${properties.length} ακίνητα δίπλα-δίπλα`}/>
+                      {isTabAllowed(ent,'comparison')
+                        ? <TabComparison properties={properties} userId={user.id}/>
+                        : <FeatureLock title="Σύγκρινε τα ακίνητά σου δίπλα-δίπλα" benefit="Απόδοση, δαπάνες και πάροχοι όλων των ακινήτων σου σε έναν πίνακα, για να δεις καθαρά πού κερδίζεις και πού χρειάζεται να λάβεις αποφάσεις. Ξεκλειδώνει με το πλάνο Ιδιοκτήτης." requiredPlan="owner" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />}
+                    </div>
+                  )}
+                </>
+              )}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
               {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType} onNavigate={(t)=>setNav(t)}/>}
               {navSafe==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
-              {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>}
               {/* Ο ΕΛΕΓΧΟΣ ΤΟΥ ΑΜΑ ΕΙΝΑΙ ΕΞΩ ΑΠΟ ΤΟ FeatureLock, ΣΚΟΠΙΜΑ.
                   Ο ΑΜΑ που λείπει ή δεν αναγράφεται στην αγγελία κλείνει την
                   καταχώριση — 12.145 στάλθηκαν για απενεργοποίηση το 2025. Κανείς
@@ -1669,9 +1690,28 @@ export default function Dashboard() {
                   {isTabAllowed(ent,'clients')
                     ? <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                     : <FeatureLock title="Πελατολόγιο και υποψήφιοι (CRM)" benefit="Οργάνωσε πελάτες, ιστορικό διαμονών και υποψήφιους σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />}
+                  {/* Η δυναμική τιμή ανά νύχτα αφορά ΜΟΝΟ βραχυχρόνια — δηλαδή
+                      ακριβώς τους επισκέπτες αυτής της καρτέλας. Ως χωριστή
+                      καρτέλα ήταν ένας προορισμός που κανείς δεν σκεφτόταν να
+                      επισκεφθεί όταν όριζε τιμή. */}
+                  <div style={{marginTop:28}}>
+                    <SecHdr label="Τιμολόγηση ανά νύχτα" sub="Δυναμική τιμή και φορολογική εικόνα βραχυχρόνιας"/>
+                    <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>
+                  </div>
                 </>
               )}
-              {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
+              {/* Πάροχοι, τεχνικοί, τράπεζες: είναι στοιχεία ΤΟΥ ΑΚΙΝΗΤΟΥ, όπως
+                  τα έγγραφά του. Δύο καρτέλες για «πού βρίσκω αυτό που χρειάζομαι
+                  για το ακίνητο» ήταν μία παραπάνω. */}
+              {nav==='documents' && (
+                <>
+                  <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>
+                  <div style={{marginTop:28}}>
+                    <SecHdr label="Επαφές του ακινήτου" sub="Πάροχοι, τεχνικοί, τράπεζες, ασφαλιστές"/>
+                    <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>
+                  </div>
+                </>
+              )}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType} navShowAll={navShowAll} onNavShowAllChange={setNavShowAllPref}/>}
             </div>

@@ -30,23 +30,33 @@ const src = readFileSync(PAGE, 'utf8');
 const block = src.match(/const NAV_ITEMS = \[([\s\S]*?)\n\];/);
 ok('βρέθηκε ο κατάλογος NAV_ITEMS στο page.tsx', !!block);
 const NAV_IDS = [...(block?.[1] ?? '').matchAll(/id:\s*'([a-z_]+)'/g)].map(m => m[1]);
-ok(`διαβάστηκαν οι καρτέλες (${NAV_IDS.length})`, NAV_IDS.length >= 17);
+ok(`διαβάστηκαν οι καρτέλες (${NAV_IDS.length})`, NAV_IDS.length >= 13);
 
-// Η νέα καρτέλα είναι καταχωρισμένη, με τη σωστή ετικέτα.
-ok('η καρτέλα «Σχέδιο» υπάρχει', NAV_IDS.includes('plan'));
-ok('με ελληνική ετικέτα', /id:\s*'plan',\s*label:\s*'Σχέδιο'/.test(src));
-// Το συμβόλαιο με το component που γράφει άλλος agent: αν αλλάξει, να σπάσει εδώ
-// και όχι στην οθόνη του χρήστη.
-ok('το TabPlan καλείται με το συμφωνημένο συμβόλαιο',
-  /<TabPlan propertyId=\{selected\.id\} userId=\{user\.id\} status=\{readStatus\(selected\)\} property=\{selected\}\/>/.test(src));
+// ── ΤΕΣΣΕΡΙΣ ΚΑΡΤΕΛΕΣ ΣΥΓΧΩΝΕΥΤΗΚΑΝ. ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥΣ ΔΕΝ ΧΑΘΗΚΕ. ───────
+// Σχέδιο, Σύγκριση, Τιμολόγηση και Επαφές δεν είναι πια προορισμοί του μενού —
+// είναι ενότητες μέσα στην Απόδοση, στον Πελάτη και στο Αρχείο. Ο έλεγχος εδώ
+// φυλάει ακριβώς αυτό: ότι έφυγαν από το μενού ΚΑΙ ότι εξακολουθούν να
+// αποδίδονται. Μια συγχώνευση που ξεχνά το δεύτερο είναι διαγραφή.
+const MERGED: [string, RegExp][] = [
+  ['plan',       /<TabPlan propertyId=\{selected\.id\} userId=\{user\.id\} status=\{readStatus\(selected\)\} property=\{selected\}\/>/],
+  ['comparison', /<TabComparison properties=\{properties\} userId=\{user\.id\}\/>/],
+  ['pricing',    /<TabPricing propertyId=\{selected\.id\}/],
+  ['contacts',   /<TabContacts propertyId=\{selected\.id\}/],
+];
+for (const [id, render] of MERGED) {
+  ok(`η «${id}» δεν είναι πια ξεχωριστή καρτέλα`, !NAV_IDS.includes(id));
+  ok(`αλλά το περιεχόμενό της αποδίδεται`, render.test(src));
+}
+ok('η Απόδοση κρατά το κλείδωμα πλάνου της Σύγκρισης', /isTabAllowed\(ent,'comparison'\)/.test(src));
+ok('το Σχέδιο εμφανίζεται μόνο στις τέσσερις καταστάσεις', /PLAN_STATUSES\.has\(readStatus\(selected\)\)/.test(src));
+ok('η Σύγκριση εμφανίζεται μόνο με δεύτερο ακίνητο', /properties\.length > 1/.test(src));
 
 // ── Το πλέγμα ──────────────────────────────────────────────────────────────
 /** Τα ελάχιστα που πρέπει να βλέπει ΚΑΘΕ ιδιοκτήτης, ό,τι κι αν ισχύει γι' αυτόν. */
 const ESSENTIAL = ['overview', 'settings'];
 /** Ό,τι δεν εξαρτάται από τίποτα: κάθε ακίνητο έχει έξοδα, χαρτιά και προθεσμίες. */
-const UNCONDITIONAL = ['overview', 'finances', 'documents', 'calendar', 'checklist', 'contacts', 'settings', 'referral', 'accounting', 'loan'];
+const UNCONDITIONAL = ['overview', 'finances', 'documents', 'calendar', 'checklist', 'settings', 'referral', 'accounting', 'loan'];
 
-const PLAN_STATUSES: PropertyStatus[] = ['vacant', 'disputed', 'for_sale', 'renovation'];
 const COUNTS = [1, 2, 3, 15];
 const FORMS: LegalForm[] = ['individual', 'company'];
 
@@ -70,10 +80,9 @@ for (const { key: status } of STATUSES) {
       for (const t of UNCONDITIONAL) ok(`${label}: μένει «${t}»`, v.includes(t));
       ok(`${label}: καμία άγνωστη καρτέλα`, v.every(id => NAV_IDS.includes(id)));
 
-      // Οι τρεις είσοδοι, η καθεμία να κάνει ακριβώς τη δουλειά της.
-      ok(`${label}: το Σχέδιο ακολουθεί την κατάσταση`, v.includes('plan') === PLAN_STATUSES.includes(status));
-      ok(`${label}: η Σύγκριση θέλει δεύτερο ομοειδές`, v.includes('comparison') === (n >= 2));
       ok(`${label}: το Χαρτοφυλάκιο θέλει τρία`, v.includes('portfolio') === (n >= 3));
+      // Οι συγχωνευμένες δεν επανεμφανίζονται από πίσω πόρτα.
+      for (const [id] of MERGED) ok(`${label}: καμία «${id}» στο μενού`, !v.includes(id));
     }
   }
 }
