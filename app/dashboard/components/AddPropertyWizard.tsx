@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, fd } from '@/components/Theme';
+import { T, fe, fn, fp, fd } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
@@ -722,7 +722,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
                   [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : '—'],
                   ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
-                  ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
+                  ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield, 1)}` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                     <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>

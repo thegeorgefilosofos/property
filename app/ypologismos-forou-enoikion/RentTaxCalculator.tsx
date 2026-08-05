@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
-import { T, feAuto } from '@/components/tokens';
+import { T, feAuto, fp } from '@/components/tokens';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate, RENTAL_TAX_ROWS_2026,
 } from '@/lib/billing/greekTax';
@@ -113,7 +113,7 @@ export function RentTaxCalculator() {
 
         <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px 24px', margin: 0 }}>
           <Row k="Φορολογητέο μετά την έκπτωση 5%" v={feAuto(r.taxable)} />
-          <Row k="Πραγματικός συντελεστής" v={`${(r.effective * 100).toFixed(1).replace('.', ',')}%`} />
+          <Row k="Πραγματικός συντελεστής" v={`${fp((r.effective * 100), 1)}`} />
           <Row k="Συντελεστής στο επόμενο ευρώ" v={`${Math.round(r.marginal * 100)}%`} />
           <Row k="Καθαρά ανά μήνα" v={feAuto(r.monthlyNet)} />
         </dl>

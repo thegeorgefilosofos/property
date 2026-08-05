@@ -7,7 +7,7 @@ import { useBillsSettings } from './BillsSettings';
 import { T, fe, Spinner } from '@/components/Theme';
 import { notifyError } from '@/components/Toast';
 
-const fk = (n: number) => `${n.toFixed(4)} €`;
+const fk = (n: number) => `${fe(n, 4)}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ΠΗΓΕΣ & ΗΜΕΡΟΜΗΝΙΑ ΕΠΑΛΗΘΕΥΣΗΣ

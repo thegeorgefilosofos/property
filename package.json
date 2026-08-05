@@ -22,7 +22,8 @@
     "single-source": "node scripts/guard-single-source.mjs",
     "writes": "node scripts/unchecked-writes.mjs",
     "test": "node scripts/test.mjs",
-    "e2e": "node scripts/e2e-public-tools.mjs"
+    "e2e": "node scripts/e2e-public-tools.mjs",
+    "greek-numbers": "node scripts/guard-greek-numbers.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

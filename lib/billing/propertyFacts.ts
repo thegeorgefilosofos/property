@@ -7,6 +7,8 @@
 // αποδόσεων, ώστε παντού να βγαίνει το ίδιο. Καθαρό & πλήρως δοκιμασμένο.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { fp } from '../core/format';
+
 export type Source = 'tenant' | 'actual' | 'target' | 'settings' | 'property' | 'services' | 'none';
 
 const pos = (n: unknown): number | null => (typeof n === 'number' && isFinite(n) && n > 0 ? n : null);
@@ -73,7 +75,7 @@ export function computeYields(monthlyRent: number, propertyValue: number, annual
 }
 
 // Στρογγυλοποίηση ποσοστού απόδοσης (ενιαία μορφή παντού: 1 δεκαδικό).
-export const fmtYield = (y: number): string => `${(isFinite(y) ? y : 0).toFixed(1)}%`;
+export const fmtYield = (y: number): string => `${fp((isFinite(y) ? y : 0), 1)}`;
 
 // ── Τρόπος μίσθωσης & πληρότητα στοιχείων (καθαρά, δοκιμάσιμα) ────────────────
 /** Airbnb/εποχιακό ⇒ βραχυχρόνια· αλλιώς μακροχρόνια. */

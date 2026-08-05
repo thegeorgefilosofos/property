@@ -18,7 +18,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, TT, feAuto } from '@/components/Theme';
+import { T, TT, feAuto, fp } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
@@ -247,7 +247,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const rateTypeGr = (rt?: string) => rt === 'variable' ? 'κυμαινόμενο' : rt === 'mixed' ? 'μεικτό' : 'σταθερό';
     const monthlyDebt = loanRows.reduce((s, l: any) => s + annuityMonthly(l.amount || 0, l.rate || 0, l.years || 0), 0);
     const loanLine = loanRows.length
-      ? `Δάνεια (${loanRows.length}): εκτιμώμενη συνολική μηνιαία δόση ${eur(Math.round(monthlyDebt))}. ${loanRows.map((l: any) => `${l.bank || 'τράπεζα'} ${eur(l.amount || 0)} με ${Number(l.rate || 0).toFixed(2)}% ${rateTypeGr(l.rate_type)} σε ${l.years || 0} έτη`).join('; ')}`
+      ? `Δάνεια (${loanRows.length}): εκτιμώμενη συνολική μηνιαία δόση ${eur(Math.round(monthlyDebt))}. ${loanRows.map((l: any) => `${l.bank || 'τράπεζα'} ${eur(l.amount || 0)} με ${fp(Number(l.rate || 0), 2)} ${rateTypeGr(l.rate_type)} σε ${l.years || 0} έτη`).join('; ')}`
       : 'Δεν έχει καταχωρηθεί δάνειο για αυτό το ακίνητο.';
 
     // Έσοδα φιλοξενίας (διαμονές επισκεπτών από το Πελατολόγιο συνδεδεμένες σε αυτό το ακίνητο).
@@ -268,7 +268,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     });
     const acctProv = taxProvision(acctStmt, now.getMonth() + 1);
     const accountingLine = acctGross > 0
-      ? `Λογιστική ${year} (${isShortAcct ? 'βραχυχρόνια' : 'μακροχρόνια'} μίσθωση): μεικτά έσοδα ${eur(Math.round(acctStmt.grossIncome))}, φορολογητέο ${eur(Math.round(acctStmt.taxableIncome))}, εκτιμώμενος φόρος εισοδήματος ${eur(Math.round(acctStmt.incomeTax))} (μέσος συντελεστής ${(acctStmt.effectiveRate * 100).toFixed(1)}%), καθαρό αποτέλεσμα ${eur(Math.round(acctStmt.netProfit))}. Πρόταση πρόβλεψης φόρου: περίπου ${eur(Math.round(acctProv.monthly))} τον μήνα να μπαίνουν στην άκρη. Εκτίμηση με την κλίμακα 2026 (μακροχρόνια: τεκμαρτή έκπτωση 5%· βραχυχρόνια: φόρος στα μεικτά)· τελική επιβεβαίωση με λογιστή/ΑΑΔΕ.`
+      ? `Λογιστική ${year} (${isShortAcct ? 'βραχυχρόνια' : 'μακροχρόνια'} μίσθωση): μεικτά έσοδα ${eur(Math.round(acctStmt.grossIncome))}, φορολογητέο ${eur(Math.round(acctStmt.taxableIncome))}, εκτιμώμενος φόρος εισοδήματος ${eur(Math.round(acctStmt.incomeTax))} (μέσος συντελεστής ${fp((acctStmt.effectiveRate * 100), 1)}), καθαρό αποτέλεσμα ${eur(Math.round(acctStmt.netProfit))}. Πρόταση πρόβλεψης φόρου: περίπου ${eur(Math.round(acctProv.monthly))} τον μήνα να μπαίνουν στην άκρη. Εκτίμηση με την κλίμακα 2026 (μακροχρόνια: τεκμαρτή έκπτωση 5%· βραχυχρόνια: φόρος στα μεικτά)· τελική επιβεβαίωση με λογιστή/ΑΑΔΕ.`
       : '';
 
     // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε Νόα
@@ -335,7 +335,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       value ? `Εμπορική αξία: ${eur(value)}` : 'Εμπορική αξία: δεν έχει καταχωρηθεί',
       propContext.status ? `Κατάσταση: ${propContext.status}` : '',
       `Ενοίκιο: ${eur(rent)}/μήνα (ετήσιο ${eur(rent * 12)})`,
-      value ? `Απόδοση: μεικτή ${grossY.toFixed(1)}%, καθαρή ${netY.toFixed(1)}%` : '',
+      value ? `Απόδοση: μεικτή ${fp(grossY, 1)}, καθαρή ${fp(netY, 1)}` : '',
       `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(owed)}). Κάθε ευρώ μετρημένο μία φορά· οι απλήρωτοι λογαριασμοί μετρούν στην ημερομηνία που λήγουν — ίδιος υπολογισμός με τις Δαπάνες και τη Σύγκριση.`,
       topCats.length ? `Μεγαλύτερες κατηγορίες: ${topCats.map(([c, a]) => `${c} ${eur(a)}`).join(', ')}` : '',
       unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${(b as any).name || 'λογαριασμός'} ${eur(b.amount)}${(b as any).due_date ? ` λήξη ${(b as any).due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
@@ -374,8 +374,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     // ── Αγορά: πραγματικά τρέχοντα νούμερα (επιτόκια, ρεύμα) + σταθερή φορο-κλίμακα 2026.
     const mLines: string[] = [];
-    if (rates?.euribor_3m != null) mLines.push(`Euribor 3 μηνών: ${Number(rates.euribor_3m).toFixed(2)}% (ο δείκτης πάνω στον οποίο πατούν τα κυμαινόμενα επιτόκια στεγαστικών).`);
-    if (rates?.bog_housing_new != null) mLines.push(`Μέσο επιτόκιο νέου στεγαστικού δανείου (στοιχεία Τράπεζας της Ελλάδος): περίπου ${Number(rates.bog_housing_new).toFixed(2)}%.`);
+    if (rates?.euribor_3m != null) mLines.push(`Euribor 3 μηνών: ${fp(Number(rates.euribor_3m), 2)} (ο δείκτης πάνω στον οποίο πατούν τα κυμαινόμενα επιτόκια στεγαστικών).`);
+    if (rates?.bog_housing_new != null) mLines.push(`Μέσο επιτόκιο νέου στεγαστικού δανείου (στοιχεία Τράπεζας της Ελλάδος): περίπου ${fp(Number(rates.bog_housing_new), 2)}.`);
     const kwh = (tar || []).map(r => Number((r as any).kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
     if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
     mLines.push(RENTAL_TAX_SUMMARY_2026);

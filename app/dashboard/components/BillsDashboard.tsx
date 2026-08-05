@@ -188,8 +188,8 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     ['Σε σχέση με τον Μέσο Όρο', ...historyTotals.map(v => v > 0 ? Math.round((v / avgMonthly - 1) * 100) + '%' : '—'), null],
     [''],
     ['━━━ ΕΙΔΟΠΟΙΗΣΕΙΣ ━━━', null, null, null, null],
-    overdue.length > 0 ? [`⚠ ${overdue.length} ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ, ΑΜΕΣΗ ΕΝΕΡΓΕΙΑ`, null, null, `Σύνολο: ${overdue.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : ['✓ Δεν υπάρχουν ληξιπρόθεσμοι λογαριασμοί'],
-    dueSoon.length > 0 ? [`! ${dueSoon.length} λογαριασμοί λήγουν εντός 7 ημερών`, null, null, `Σύνολο: ${dueSoon.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : [],
+    overdue.length > 0 ? [`⚠ ${overdue.length} ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ, ΑΜΕΣΗ ΕΝΕΡΓΕΙΑ`, null, null, `Σύνολο: ${fe(overdue.reduce((s,b)=>s+b.amount,0), 2)}`, null] : ['✓ Δεν υπάρχουν ληξιπρόθεσμοι λογαριασμοί'],
+    dueSoon.length > 0 ? [`! ${dueSoon.length} λογαριασμοί λήγουν εντός 7 ημερών`, null, null, `Σύνολο: ${fe(dueSoon.reduce((s,b)=>s+b.amount,0), 2)}`, null] : [],
   ].filter(row => row.length > 0);
 
   const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
@@ -257,7 +257,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   if (recurring.length > 0) {
     const recurData: (string | number | null | undefined)[][] = [
       ['ΠΑΓΙΑ ΚΟΣΤΗ, ΜΗΝΙΑΙΕΣ ΔΑΠΑΝΕΣ', null, null, null, null],
-      [`Ακίνητο: ${propertyName} · Σύνολο: ${totalM.toFixed(2)} € / μήνα`, null, null, null, null],
+      [`Ακίνητο: ${propertyName} · Σύνολο: ${fe(totalM, 2)} / μήνα`, null, null, null, null],
       [''],
       ['Κατηγορία', 'Ονομασία / Πάροχος', 'Μηνιαίο (€)', 'Ετήσιο (€)', '% Συνόλου'],
       ...recurring
@@ -279,7 +279,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
 
   const histData: (string | number | null | undefined)[][] = [
     ['ΙΣΤΟΡΙΚΟ ΚΟΣΤΟΥΣ ' + year, null, null, null],
-    [`Ακίνητο: ${propertyName} · Μέσος Όρος: ${avgMonthly.toFixed(2)} € / μήνα`, null, null, null],
+    [`Ακίνητο: ${propertyName} · Μέσος Όρος: ${fe(avgMonthly, 2)} / μήνα`, null, null, null],
     [''],
     ['Μήνας', 'Κόστος (€)', 'Μέσος Όρος (€)', 'Απόκλιση (€)', 'Απόκλιση %'],
     ...MONTHS_FULL.map((m, i) => {

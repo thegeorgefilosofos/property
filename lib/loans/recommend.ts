@@ -3,6 +3,8 @@
 // και σύσταση καλύτερου δανείου με βάση τις καταχωρήσεις και τις ανάγκες του χρήστη.
 // ΟΛΑ τα αποτελέσματα είναι ΕΝΔΕΙΚΤΙΚΑ, όχι δεσμευτική προσφορά τράπεζας.
 
+import { fp } from '../core/format'
+
 export type RateType = 'fixed' | 'variable' | 'mixed'
 export type LoanPurpose =
   | 'purchase' | 'first_home' | 'renovation' | 'energy'
@@ -202,7 +204,7 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
     const blockers: string[] = []
     if (needs.amount > bank.max_amount) blockers.push(`Ποσό > όριο τράπεζας ${bank.max_amount}€`)
     if (needs.amount < bank.min_amount) blockers.push(`Ποσό < ελάχιστο ${bank.min_amount}€`)
-    if (ltv > bank.max_ltv) blockers.push(`LTV ${ltv.toFixed(0)}% > μέγιστο ${bank.max_ltv}%`)
+    if (ltv > bank.max_ltv) blockers.push(`LTV ${fp(ltv, 0)} > μέγιστο ${bank.max_ltv}%`)
     if (needs.years > bank.max_years) blockers.push(`Διάρκεια > ${bank.max_years} έτη`)
 
     const greenDisc = green ? (bank.green_discount ?? 0) : 0
@@ -227,7 +229,7 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
     const whyBits: string[] = []
     if (useSpiti) whyBits.push(`«Σπίτι μου ΙΙ» 50% άτοκο${spiti.rateSubsidyShare > 0 ? ' + επιδότηση επιτοκίου 50%' : ''}`)
     if (greenDisc > 0) whyBits.push(`πράσινη έκπτωση -${greenDisc}%`)
-    whyBits.push(`επιτόκιο ${effectiveRatePct.toFixed(2)}%`)
+    whyBits.push(`επιτόκιο ${fp(effectiveRatePct, 2)}`)
 
     return {
       bankId: bank.id ?? bank.bank_id ?? '',

@@ -3,7 +3,7 @@
 
 import { rentalIncomeTax, RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax'
 import { presumptiveDeductionRate } from '@/lib/billing/consolidate'
-import { fe } from '@/components/tokens';
+import { fe, fp } from '@/components/tokens';
 
 export type LoanType = 'purchase'|'first_home'|'renovation'|'energy'|'investment'|'auction'|'construction'|'commercial'|'land'|'refinance'
 export type RateType = 'fixed'|'variable'|'mixed'
@@ -257,5 +257,5 @@ export function taxableRental(annualRental:number, rentsPaidViaBank=true):number
 }
 
 export const fmtEur=(n:number)=>fe(n,0)
-export const fmtPct=(n:number)=>`${n.toFixed(2).replace('.',',')}%`
-export const fmtPct1=(n:number)=>`${n.toFixed(1).replace('.',',')}%`
+export const fmtPct=(n:number)=>`${fp(n, 2)}`
+export const fmtPct1=(n:number)=>`${fp(n, 1)}`

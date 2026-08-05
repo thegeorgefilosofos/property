@@ -5,6 +5,7 @@
 //   50% για πρώτη κατοικία / πρώτη φορά δανειολήπτη, 40% για τους υπόλοιπους.
 // ═══════════════════════════════════════════════════════════════════════════
 import { annuityMonthly } from './recommend'
+import { fp } from '../core/format'
 
 export const DSTI_LIMIT = { firstHome: 0.5, other: 0.4 } as const
 
@@ -181,18 +182,18 @@ export function euriborInsight(opts: {
       const other = base + delta
       const save = (annuityMonthly(amount, base, years) - annuityMonthly(amount, other, years)) * years * 12
       if (delta < 0 && save > 0) {
-        return `Το Euribor 3 μηνών υποχώρησε κατά ${Math.abs(delta).toFixed(2)}%. Σε κυμαινόμενο δάνειο ${amount.toLocaleString('el-GR')}€, αυτό αντιστοιχεί σε εξοικονόμηση περίπου ${r0(save).toLocaleString('el-GR')}€ στη διάρκεια.`
+        return `Το Euribor 3 μηνών υποχώρησε κατά ${fp(Math.abs(delta), 2)}. Σε κυμαινόμενο δάνειο ${amount.toLocaleString('el-GR')}€, αυτό αντιστοιχεί σε εξοικονόμηση περίπου ${r0(save).toLocaleString('el-GR')}€ στη διάρκεια.`
       }
       if (delta > 0) {
-        return `Το Euribor 3 μηνών ανέβηκε κατά ${delta.toFixed(2)}%. Αν το δάνειό σου είναι κυμαινόμενο, η δόση επιβαρύνεται — αξίζει να εξετάσεις σταθερό επιτόκιο.`
+        return `Το Euribor 3 μηνών ανέβηκε κατά ${fp(delta, 2)}. Αν το δάνειό σου είναι κυμαινόμενο, η δόση επιβαρύνεται — αξίζει να εξετάσεις σταθερό επιτόκιο.`
       }
     }
   }
   if (euribor3m <= 2.2) {
-    return `Το Euribor 3 μηνών είναι στο ${euribor3m.toFixed(2)}%, από τα χαμηλότερα των τελευταίων ετών. Καλή στιγμή για σύγκριση σταθερών προσφορών και για αναχρηματοδότηση παλαιών κυμαινόμενων δανείων.`
+    return `Το Euribor 3 μηνών είναι στο ${fp(euribor3m, 2)}, από τα χαμηλότερα των τελευταίων ετών. Καλή στιγμή για σύγκριση σταθερών προσφορών και για αναχρηματοδότηση παλαιών κυμαινόμενων δανείων.`
   }
   if (euribor3m >= 3.5) {
-    return `Το Euribor 3 μηνών είναι υψηλό (${euribor3m.toFixed(2)}%). Το σταθερό επιτόκιο προσφέρει προβλεψιμότητα έναντι περαιτέρω αυξήσεων.`
+    return `Το Euribor 3 μηνών είναι υψηλό (${fp(euribor3m, 2)}). Το σταθερό επιτόκιο προσφέρει προβλεψιμότητα έναντι περαιτέρω αυξήσεων.`
   }
   return null
 }

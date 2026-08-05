@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PLANS, PLAN_ORDER, EXTRA_PROPERTY_PRICE, TRIAL_DAYS } from '@/lib/billing/plans';
+import { fe } from '@/lib/core/format';
 import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
 import ScrollStory from './ScrollStory';
@@ -55,7 +56,7 @@ const PAID_PLANS_TEXT = PLAN_ORDER
   .map(id => {
     const p = PLANS[id];
     const cap = p.maxProperties === Infinity ? 'απεριόριστα ακίνητα' : `έως ${p.maxProperties} ακίνητα`;
-    return `${p.name} ${p.priceMonthly.toFixed(2).replace('.', ',')} € τον μήνα ή ${p.priceAnnual} € τον χρόνο για ${cap}`;
+    return `${p.name} ${fe(p.priceMonthly, 2)} τον μήνα ή ${p.priceAnnual} € τον χρόνο για ${cap}`;
   })
   .join(', ');
 
@@ -851,7 +852,7 @@ export default async function Landing() {
                 name={plan.name}
                 nameColor={id === 'owner' ? ACCENT : TEXT}
                 sub={plan.tagline}
-                price={free ? '0 €' : `${plan.priceMonthly.toFixed(2).replace('.', ',')} €`}
+                price={free ? '0 €' : `${fe(plan.priceMonthly, 2)}`}
                 per={free ? 'για πάντα' : 'τον μήνα'}
                 note={free ? 'Δεν λήγει ποτέ' : <>ή <strong style={{ color: TEXT }}>{plan.priceAnnual} € τον χρόνο</strong></>}
                 discount={free ? undefined : '2 μήνες δώρο'}

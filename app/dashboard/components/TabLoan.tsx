@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { must } from '@/lib/supabase/must'
 import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
+import { fp } from '@/lib/core/format'
 import { T, ExportButton, EmptyState, Btn, Skeleton } from '@/components/Theme'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
@@ -519,7 +520,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               <KPI label="Επιτόκιο" value={fmtPct(loan.rate)} color="var(--text-primary)" sub={loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό'}/>
               <KPI label="Δόση τον μήνα" value={fmtEur(m)} color="var(--text-primary)"/>
               <KPI label="Συνολικοί τόκοι" value={fmtEur(ti)} color="var(--text-primary)"/>
-              <KPI label="Δάνειο προς αξία" value={`${ltv.toFixed(1).replace('.',',')}%`} color={ltv>90?'var(--negative)':'var(--text-primary)'} title="Ποσοστό δανείου ως προς την αξία του ακινήτου"/>
+              <KPI label="Δάνειο προς αξία" value={`${fp(ltv, 1)}`} color={ltv>90?'var(--negative)':'var(--text-primary)'} title="Ποσοστό δανείου ως προς την αξία του ακινήτου"/>
             </div>
             {loan.start_date&&(
               <div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,display:'flex',gap:24,flexWrap:'wrap'}}>
@@ -1102,10 +1103,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                     </p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
                       {ltv>85
-                        ?`Χρηματοδοτείς το ${ltv.toFixed(0)}% της αξίας, οι τράπεζες είναι επιφυλακτικές άνω του 80%.`
+                        ?`Χρηματοδοτείς το ${fp(ltv, 0)} της αξίας, οι τράπεζες είναι επιφυλακτικές άνω του 80%.`
                         :ltv>70
-                        ?`Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${(100-ltv).toFixed(0)}% της αξίας). Εντός αποδεκτών ορίων.`
-                        :`Άριστη αναλογία, ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${(100-ltv).toFixed(0)}%). Ενισχύει τη διαπραγματευτική σου θέση.`
+                        ?`Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv), 0)} της αξίας). Εντός αποδεκτών ορίων.`
+                        :`Άριστη αναλογία, ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv), 0)}). Ενισχύει τη διαπραγματευτική σου θέση.`
                       }
                     </p>
                   </div>

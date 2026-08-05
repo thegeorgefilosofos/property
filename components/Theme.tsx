@@ -21,7 +21,7 @@ import { ReactNode, CSSProperties, useState, useEffect } from 'react';
 // Τα tokens ζουν σε module ΧΩΡΙΣ React (components/tokens.ts) ώστε να μπορεί να
 // τα εισάγει και Server Component. Εδώ ξανα-εξάγονται αυτούσια, ώστε τα ~600
 // σημεία που γράφουν `from '@/components/Theme'` να μη χρειαστεί να αλλάξουν.
-export { T, TT, fe, feAuto, fn, fd, fdLong } from './tokens';
+export { T, TT, fe, feAuto, fp, feOr, fpOr, DASH, fn, fd, fdLong } from './tokens';
 export type { Tone } from './tokens';
 import { T, TT, fe, type Tone } from './tokens';
 

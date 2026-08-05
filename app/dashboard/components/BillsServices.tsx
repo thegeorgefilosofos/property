@@ -5,7 +5,7 @@ import { Calculator } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, Spinner, EmptyState } from '@/components/Theme';
+import { T, fe, fp, Spinner, EmptyState } from '@/components/Theme';
 import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse } from '@/lib/billing/enfia';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
@@ -540,7 +540,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {dimotikaPct > 0 ? `${dimotikaPct.toFixed(1)}%` : '—'}
+                {dimotikaPct > 0 ? `${fp(dimotikaPct, 1)}` : '—'}
               </span>
               <div>
                 <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό Δημοτικών Τελών</div>

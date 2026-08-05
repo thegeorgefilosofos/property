@@ -176,7 +176,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       // Ο τόνος (θετικό/αρνητικό) δηλώνεται πια ρητά. Πριν, η επιτυχία ξεχώριζε από
       // την αποτυχία με `transferMsg.startsWith('Σφάλμα')` — αν άλλαζε η διατύπωση
       // του μηνύματος, η αποτυχία εμφανιζόταν ουδέτερη και διαβαζόταν ως επιτυχία.
-      notifyOk(`«${e.reason}», ${parseFloat(e.amount).toFixed(2)} € προστέθηκε στις Δαπάνες`);
+      notifyOk(`«${e.reason}», ${fe(parseFloat(e.amount), 2)} προστέθηκε στις Δαπάνες`);
     } catch {
       notifyError('Σφάλμα, δοκίμασε ξανά');
     } finally {

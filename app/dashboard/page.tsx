@@ -29,7 +29,7 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, type KPIItem } from '@/components/Theme';
+import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, fp, type KPIItem } from '@/components/Theme';
 import { Building2, Receipt, ListChecks, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
@@ -895,7 +895,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         const extra: KPIItem[] = [];
         if (loans.length > 0) extra.push({
           label:'Δόση δανείου / μήνα', value:fmtEur(Math.round(monthlyDebt)),
-          sub: debtLtv>0 ? `δάνειο προς αξία ${debtLtv.toFixed(0)}%` : undefined,
+          sub: debtLtv>0 ? `δάνειο προς αξία ${fp(debtLtv, 0)}` : undefined,
           title:'Εκτιμώμενη τοκοχρεολυτική δόση. ΔΕΝ αφαιρείται από το καθαρό αποτέλεσμα παραπάνω — το κεφάλαιο δεν είναι δαπάνη.' });
         if (hostStays.length > 0) extra.push({
           label:`Έσοδα φιλοξενίας ${year}`, value:fmtEur(Math.round(hostingYTD)),

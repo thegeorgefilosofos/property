@@ -410,8 +410,11 @@ body {
   container-type: inline-size;
   background: var(--surface-kpi);
   border: 1px solid var(--border-raised);
+  /* ΙΔΙΟ ΚΟΥΤΙ ΜΕ ΤΗΝ .card. Είχε 18/18/16 ενώ η διπλανή του κάρτα 16 παντού:
+     δύο κουτιά δίπλα-δίπλα με διαφορετικό εσωτερικό περιθώριο, που φαίνεται ως
+     κακή στοίχιση χωρίς να μπορεί κανείς να πει γιατί. Μία τιμή, πιο σφιχτή. */
   border-radius: 14px;
-  padding: 18px 18px 16px;
+  padding: 14px 16px;
   box-shadow: var(--highlight-inset-strong), var(--elev-1);
   transition: transform 0.2s cubic-bezier(.2,0,0,1), box-shadow 0.2s cubic-bezier(.2,0,0,1), border-color 0.2s;
 }
@@ -424,20 +427,21 @@ body {
 .kpi-value {
   font-family: 'Inter', system-ui, sans-serif;
   /* Κλιμακώνεται με το πλάτος ΤΗΣ ΚΑΡΤΑΣ (cqi), όχι του παραθύρου: σε δύο
-     στήλες κινητού τα μεγάλα ποσά έσπαγαν σε δεύτερη γραμμή. Ο συντελεστής
-     μετρήθηκε στον περιηγητή, όχι στο περίπου: το cqi πατά στο ΕΣΩΤΕΡΙΚΟ
-     πλάτος (content box), δηλαδή 205px κάρτας − 36px padding − 2px border =
-     167px. 26 / 167 = 15,6%. Έτσι στο desktop βγαίνει ακριβώς 26px — το
-     μέγεθος που είχε πάντα — και στο δίστηλο κινητό ~20px. Με μικρότερο
+     στήλες κινητού τα μεγάλα ποσά έσπαγαν σε δεύτερη γραμμή.
+
+     ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΕΡΙΗΓΗΤΗ, ΟΧΙ ΕΚΤΙΜΗΜΕΝΟ — και ξαναμετρημένο όταν άλλαξε
+     το padding, γιατί το cqi πατά στο ΕΣΩΤΕΡΙΚΟ πλάτος (content box) και κάθε
+     αλλαγή περιθωρίου το μετακινεί. Με padding 16px: 24px σε desktop, 20px
+     στο δίστηλο κινητό, χωρίς κόψιμο σε καμία από τις δύο. Με μικρότερο
      συντελεστή κολλούσε στο κάτω όριο ΠΑΝΤΟΥ και μίκραινε τον βασικό αριθμό
-     σε ολόκληρη την εφαρμογή· γι' αυτό μετρήθηκε αντί να εκτιμηθεί. */
-  font-size: clamp(18px, 15.6cqi, 26px);
+     σε ολόκληρη την εφαρμογή. */
+  font-size: clamp(20px, 14cqi, 24px);
   font-weight: 700;
   line-height: 1.04;
   letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  margin-bottom: 7px;
+  margin-bottom: 5px;
   transition: color 0.15s cubic-bezier(0.2,0,0,1);
 }
 /* Σημασιολογικός τόνος τιμής KPI: ουδέτερος by default, αποκαλύπτεται μόνο στο

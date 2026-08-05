@@ -61,8 +61,12 @@ for (let i = 0; i < 500; i++) {
   if (val > 0) { if (!isFinite(a.grossYield) || !isFinite(a.netYield)) { failed++; fails.push(`non-finite ${i}`); } else passed++; }
   else passed++;
 }
-eq('fmtYield 1 decimal', fmtYield(3.666), '3.7%');
-eq('fmtYield handles NaN', fmtYield(NaN), '0.0%');
+// ΤΟ ΤΕΣΤ ΚΛΕΙΔΩΝΕ ΤΗΝ ΑΓΓΛΙΚΗ ΜΟΡΦΗ. Περίμενε «3.7%» — με τελεία — σε μια
+// εφαρμογή που δίπλα ακριβώς γράφει «1.234,56 €». Στα ελληνικά η τελεία είναι
+// χωριστής χιλιάδων, οπότε το «4.200%» θα διαβαζόταν τέσσερις χιλιάδες. Δεν
+// έπεφτε κανένα τεστ επειδή το τεστ περιέγραφε το σφάλμα.
+eq('fmtYield με ελληνική υποδιαστολή', fmtYield(3.666), '3,7%');
+eq('fmtYield σε NaN δεν σκάει', fmtYield(NaN), '0,0%');
 
 // ── rentalModeFromAirbnb & propertyDetailsComplete ──────────────────────────
 eq('airbnb → short_term', rentalModeFromAirbnb(true), 'short_term');

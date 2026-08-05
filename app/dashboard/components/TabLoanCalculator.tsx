@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, InfoDot } from './UIComponents'
 import { KPI, LensBar, cardStyle } from './LoanShared'
 import { downloadCsv } from './exportCsv'
+import { fp } from '@/lib/core/format'
 import { money as csvEur } from './xlsxStyle'
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
@@ -967,9 +968,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:14}}>
         {[
           {k:'Μηνιαία δόση',v:fmtEur(monthly),s:`${rateType==='variable'?'κυμαινόμενο':'σταθερό'} ${fmtPct(effRate)} · ${Y} έτη`,neg:false},
-          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${((totalInt/Math.max(LA,1))*100).toFixed(0)}% επί κεφαλαίου`,neg:false},
+          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${fp(((totalInt/Math.max(LA,1))*100), 0)} επί κεφαλαίου`,neg:false},
           {k:'Συνολική αποπληρωμή',v:fmtEur(total),s:`κεφάλαιο ${fmtEur(LA)}`,neg:false},
-          {k:'Δάνειο προς αξία',v:`${ltv.toFixed(1).replace('.',',')}%`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,neg:ltv>90},
+          {k:'Δάνειο προς αξία',v:`${fp(ltv, 1)}`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,neg:ltv>90},
         ].map((t,i)=>{
           const on=hoverKpi===i
           return (

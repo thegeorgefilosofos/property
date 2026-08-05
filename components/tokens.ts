@@ -60,17 +60,12 @@ export const TT = {
   mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
 } as const;
 
-export const fe = (n: number, d = 2) =>
-  `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
-
-/// Ευρώ με «έξυπνα» δεκαδικά: ακέραιο ποσό → χωρίς δεκαδικά (751 €), ποσό με λεπτά →
-// δύο δεκαδικά (19,25 €). Το δεύτερο όρισμα αγνοείται (για εύκολη αντικατάσταση του fe).
-export const feAuto = (n: number, _d?: number) =>
-  `${(Math.round((n || 0) * 100) / 100).toLocaleString('el-GR', Number.isInteger(Math.round((n || 0) * 100) / 100) ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-
-// Ακέραιοι/αριθμοί χωρίς σύμβολο νομίσματος
-export const fn = (n: number, d = 0) =>
-  n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d });
+// ── ΑΡΙΘΜΟΙ ────────────────────────────────────────────────────────────────
+// Οι τύποι ζουν στο `lib/core/format.ts` και επανεξάγονται εδώ. Ο λόγος: τους
+// χρειάζεται και ο πυρήνας (insights, δάνεια, αποδόσεις παράγουν κείμενο για
+// τον χρήστη), αλλά το `lib/` δεν επιτρέπεται να εισάγει από το `components/`.
+// Οι οθόνες συνεχίζουν να γράφουν `import { fe } from '@/components/Theme'`.
+export { fe, feAuto, fp, fn, feOr, fpOr, DASH } from '@/lib/core/format';
 
 export const fd = (d: string | Date) =>
   new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });

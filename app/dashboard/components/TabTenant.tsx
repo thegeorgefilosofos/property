@@ -17,7 +17,7 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { confirmDialog } from '@/components/ConfirmDialog';
@@ -389,7 +389,7 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
         {payments.length>0&&(
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginTop:20 }}>
             <KpiCard label="Πληρωμές" value={`${paidPay.length}/${payments.length}`} color="var(--text-primary)"/>
-            <KpiCard label="Ποσοστό Εξόφλησης" value={`${((paidPay.length/payments.length)*100).toFixed(0)}%`} color="var(--text-primary)"/>
+            <KpiCard label="Ποσοστό Εξόφλησης" value={`${fp(((paidPay.length/payments.length)*100), 0)}`} color="var(--text-primary)"/>
             <KpiCard label="Μέση Καθυστέρηση" value={avgLate>0?`${avgLate.toFixed(0)} ημέρες`:'Χωρίς'} color={avgLate>7?'var(--warning)':'var(--positive)'}/>
             <KpiCard label="Εισπραχθέντα Σύνολο" value={fmt(totalReceived)} color="var(--text-primary)"/>
           </div>
@@ -534,7 +534,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
             <select value={yr} onChange={e=>{ const v=e.target.value; setYr(v); setUseCustom(cpiFor(parseInt(v))===null); }} style={selectStyle}>
               {years.map(y=>{
                 const v=cpiFor(y);
-                return <option key={y} value={String(y)}>{y}{v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${v.toFixed(1)}%`}</option>;
+                return <option key={y} value={String(y)}>{y}{v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${fp(v, 1)}`}</option>;
               })}
             </select>
           </div>
@@ -593,7 +593,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
 
               {/* Breakdown */}
               <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:18, marginBottom:14 }}>
-                {[{label:hasCustom?'Ποσοστό σύμβασης':`ΔΤΚ ${yr}`,value:`${pct>=0?'+':''}${pct.toFixed(1)}%`},
+                {[{label:hasCustom?'Ποσοστό σύμβασης':`ΔΤΚ ${yr}`,value:`${pct>=0?'+':''}${fp(pct, 1)}`},
                   {label:'Μεταβολή ανά Μήνα',value:`${diff>=0?'+':''}${fmtE(diff)}`},
                   {label:'Μεταβολή ανά Έτος',value:`${diff>=0?'+':''}${fmtE(diff*12)}`}
                 ].map((row,i)=>(
@@ -1327,7 +1327,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
 
   const kpis:KPIItem[]=[
     { label:'Ετήσιο Ακαθάριστο Ενοίκιο', value:fe(annualRent), tone:'accent' },
-    { label:'Φόρος για ΑΥΤΟ το ακίνητο', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${(effRate*100).toFixed(1)}% επί των ακαθάριστων`:undefined },
+    { label:'Φόρος για ΑΥΤΟ το ακίνητο', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${fp((effRate*100), 1)} επί των ακαθάριστων`:undefined },
     ...(isCommercial?[{ label:'Ψηφιακό Τέλος Συναλλαγής (3,6%)', value:fe(stampDuty), tone:'warning' as const }]:[]),
     { label:'Καθαρό μετά Φόρο & Τέλη', value:fe(net), tone:'positive' },
   ];
@@ -1353,7 +1353,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
           : 'Αν αποκτήσεις δεύτερο ακίνητο που αποδίδει, το άθροισμα μπορεί να ανεβάσει κλιμάκιο και ο φόρος να μη είναι το άθροισμα των δύο εκτιμήσεων.'}{' '}
         Ενοίκιο {fe(tenant.monthly_rent||0)}/μήνα, τύπος μίσθωσης «{tenant.lease_category?LEASE_CATEGORY_LABELS[tenant.lease_category]:'—'}»
         {viaBank
-          ? `, με τεκμαρτή έκπτωση ${(PRESUMPTIVE_DEDUCTION_RATE*100).toFixed(0)}% (φορολογητέο ${fe(taxable)}) επειδή το ενοίκιο εισπράττεται μέσω τραπέζης.`
+          ? `, με τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} (φορολογητέο ${fe(taxable)}) επειδή το ενοίκιο εισπράττεται μέσω τραπέζης.`
           : '. Επειδή το ενοίκιο ΔΕΝ δηλώνεται ως ηλεκτρονική είσπραξη, η τεκμαρτή έκπτωση 5% δεν εφαρμόζεται και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.'}
       </InfoBanner>
 
@@ -1377,7 +1377,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
             </tbody>
           </table>
           </div>
-          <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>Ο φόρος υπολογίζεται προοδευτικά ανά κλιμάκιο επί του φορολογητέου ({fe(taxable)} = ακαθάριστα {fe(annualRent)}{viaBank?` μείον τεκμαρτή έκπτωση ${(PRESUMPTIVE_DEDUCTION_RATE*100).toFixed(0)}%`:''}), σύνολο {fe(tax)} για αυτό το ακίνητο. Επιβεβαίωσε την τελική δήλωση με λογιστή ή την ΑΑΔΕ.</div>
+          <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>Ο φόρος υπολογίζεται προοδευτικά ανά κλιμάκιο επί του φορολογητέου ({fe(taxable)} = ακαθάριστα {fe(annualRent)}{viaBank?` μείον τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)}`:''}), σύνολο {fe(tax)} για αυτό το ακίνητο. Επιβεβαίωσε την τελική δήλωση με λογιστή ή την ΑΑΔΕ.</div>
         </div>
 
         {/* Νομικές υποχρεώσεις */}
@@ -1388,8 +1388,8 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
           </InfoBlock>
           <InfoBlock title="Είσπραξη μέσω τραπέζης" tone={viaBank?'var(--positive)':'var(--negative)'}>
             {viaBank
-              ? `Το ενοίκιο εισπράττεται μέσω τραπέζης, οπότε ισχύει η τεκμαρτή έκπτωση ${(PRESUMPTIVE_DEDUCTION_RATE*100).toFixed(0)}% και φορολογείται το ${fe(taxable)} αντί του ${fe(annualRent)}.`
-              : `Προσοχή: το ενοίκιο δηλώνεται ως μη τραπεζική είσπραξη. Από 1/1/2026 η τεκμαρτή έκπτωση ${(PRESUMPTIVE_DEDUCTION_RATE*100).toFixed(0)}% προϋποθέτει είσπραξη μέσω τραπέζης — χωρίς αυτήν φορολογείται το 100% των ακαθάριστων, δηλαδή ${fe(annualRent)} αντί ${fe(annualRent*(1-PRESUMPTIVE_DEDUCTION_RATE))}. Συμπλήρωσε IBAN είσπραξης στα στοιχεία της μίσθωσης.`}
+              ? `Το ενοίκιο εισπράττεται μέσω τραπέζης, οπότε ισχύει η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} και φορολογείται το ${fe(taxable)} αντί του ${fe(annualRent)}.`
+              : `Προσοχή: το ενοίκιο δηλώνεται ως μη τραπεζική είσπραξη. Από 1/1/2026 η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} προϋποθέτει είσπραξη μέσω τραπέζης — χωρίς αυτήν φορολογείται το 100% των ακαθάριστων, δηλαδή ${fe(annualRent)} αντί ${fe(annualRent*(1-PRESUMPTIVE_DEDUCTION_RATE))}. Συμπλήρωσε IBAN είσπραξης στα στοιχεία της μίσθωσης.`}
           </InfoBlock>
           <InfoBlock title="Αναπροσαρμογή ΔΤΚ">
             Η αναπροσαρμογή μισθώματος γίνεται μία φορά τον χρόνο, βάσει Δείκτη Τιμών Καταναλωτή (ΕΛΣΤΑΤ), εφόσον προβλέπεται στη σύμβαση. Χρησιμοποίησε την καρτέλα «Αναπροσαρμογή Ενοικίου».{!isCommercial&&' Αν η κατοικία μισθώθηκε για διάρκεια μικρότερη της τριετίας χωρίς όρο αναπροσαρμογής, ο νόμος (άρθρο 2 ν.1703/1987) προβλέπει ετήσια αναπροσαρμογή ίση με το 75% της μεταβολής του ΔΤΚ έως τη συμπλήρωση της τριετίας — με χαμηλό ή αρνητικό ΔΤΚ το ενοίκιο ουσιαστικά μένει σταθερό. Επιβεβαίωσε την εφαρμογή στη σύμβασή σου.'}
@@ -1914,7 +1914,7 @@ function RenewalView({ tenant, userId, comps, sqm }:{ tenant:Tenant; userId:stri
           <SectionTitle>Με βάση τον νόμο (ΔΤΚ)</SectionTitle>
           <DataRow label="Τρέχον μίσθωμα" value={<span style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(rent)}</span>}/>
           {legalNew!==null&&cpiPct!==null
-            ?<DataRow label={`Με ΔΤΚ ${CPI_LATEST_YEAR} (${cpiPct>=0?'+':''}${cpiPct.toFixed(1)}%)`} value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(legalNew)}</span>}/>
+            ?<DataRow label={`Με ΔΤΚ ${CPI_LATEST_YEAR} (${cpiPct>=0?'+':''}${fp(cpiPct, 1)})`} value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(legalNew)}</span>}/>
             :<DataRow label="Με ΔΤΚ" value="δεν υπάρχει επιβεβαιωμένος δείκτης"/>}
           <div style={{ marginTop:10, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
             Ετήσια αναπροσαρμογή βάσει ΔΤΚ, <strong>εφόσον προβλέπεται στη σύμβαση</strong>. Δεν είναι πλαφόν: για το 2026 δεν ισχύει γενικό κρατικό όριο στα ενοίκια κατοικίας. {cpiConfirmedLabel()}.
@@ -2602,7 +2602,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 <Why id="tenant.rent_iban"/>
                 {!form.e_payment&&(
                   <div style={{ marginTop:10 }}>
-                    <AlertBar level="warning" text={`Με είσπραξη σε μετρητά χάνεται η τεκμαρτή έκπτωση ${(PRESUMPTIVE_DEDUCTION_RATE*100).toFixed(0)}% και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.`}/>
+                    <AlertBar level="warning" text={`Με είσπραξη σε μετρητά χάνεται η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.`}/>
                   </div>
                 )}
               </>

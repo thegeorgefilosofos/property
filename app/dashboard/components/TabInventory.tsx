@@ -833,7 +833,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
                   ))}
                   <p style={{gridColumn:'1/-1',fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
                     {kwhPrice>0
-                      ? `Στην τιμή ${kwhPrice.toFixed(3)} €/kWh που προκύπτει από τον λογαριασμό ρεύματός σου.`
+                      ? `Στην τιμή ${fe(kwhPrice, 3)}/kWh που προκύπτει από τον λογαριασμό ρεύματός σου.`
                       : 'Για να δεις κόστος σε ευρώ, σάρωσε έναν λογαριασμό ρεύματος ή δήλωσε την τιμή €/kWh στην Επισκόπηση. Δεν βάζουμε δική μας τιμή.'}
                   </p>
                 </div>
@@ -995,7 +995,7 @@ function OverviewTab({items,repairs,kwhPrice,kwhControl,handovers=[],onOpenHando
           ?{label:'Δηλωμένο κόστος αντικατάστασης',value:fmtEur(totalDeclaredRepl),sub:missingRepl>0?`λείπει σε ${missingRepl} από ${items.length}`:`σε όλα τα ${items.length} αντικείμενα`}
           :{label:'Δηλωμένο κόστος αντικατάστασης',value:'—',sub:'το ζητά η ασφαλιστική'},
         electricItems.length>0&&kwhPrice>0
-          ?{label:'Ρεύμα/Μήνα',value:fmtEurC(totalMonthlyCost),sub:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh · ${kwhPrice.toFixed(3)} €/kWh`,tone:'accent' as const}
+          ?{label:'Ρεύμα/Μήνα',value:fmtEurC(totalMonthlyCost),sub:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh · ${fe(kwhPrice, 3)}/kWh`,tone:'accent' as const}
           :electricItems.length>0
             ?{label:'Ρεύμα/Μήνα',value:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh`,sub:'δήλωσε τιμή €/kWh'}
             :{label:'Ρεύμα/Μήνα',value:'—',sub:'Πρόσθεσε Watt'},
@@ -1091,7 +1091,7 @@ function OverviewTab({items,repairs,kwhPrice,kwhControl,handovers=[],onOpenHando
                   το κόστος αγοράς και χωρίς μετρημένη κατανάλωση της νέας συσκευής. */}
               <p style={{marginTop:12,fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.5}}>
                 {kwhPrice>0
-                  ? `Υπολογισμένο στα ${kwhPrice.toFixed(3)} €/kWh, όπως προκύπτει από τον λογαριασμό ρεύματός σου.`
+                  ? `Υπολογισμένο στα ${fe(kwhPrice, 3)}/kWh, όπως προκύπτει από τον λογαριασμό ρεύματός σου.`
                   : 'Δεν έχεις δηλώσει τιμή €/kWh, οπότε δείχνουμε μόνο κατανάλωση. Σάρωσε έναν λογαριασμό ρεύματος ή γράψε την τιμή δίπλα.'}
               </p>
             </>

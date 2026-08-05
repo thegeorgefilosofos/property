@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, Spinner } from '@/components/Theme';
+import { T, fe, fp, Spinner } from '@/components/Theme';
 
 const INTERNET_PROVIDERS = [
   { value: 'cosmote',   label: 'Cosmote',   url: 'https://www.cosmote.gr',    color: '#009fe3' },
@@ -181,7 +181,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
     label: [
       p.name,
       p.speed,
-      p.price > 0 ? `${p.price.toFixed(2)} €/μήνα` : '',
+      p.price > 0 ? `${fe(p.price, 2)}/μήνα` : '',
       p.student ? '(Φοιτητικό)' : '',
       p.backup ? '(Backup 5G)' : '',
       p.hasTV ? '+ TV' : '',
@@ -214,7 +214,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 10, fontFamily: T.font.sans }}>
           <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
           <span style={{ fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isHigh ? 'var(--negative)' : isLow ? 'var(--positive)' : 'var(--text-primary)' }}>
-            {isHigh ? `+${((current / avg - 1) * 100).toFixed(0)}% πάνω από τον μέσο όρο` : isLow ? `-${((1 - current / avg) * 100).toFixed(0)}% κάτω από τον μέσο όρο` : 'Στο μέσο όρο'}
+            {isHigh ? `+${fp(((current / avg - 1) * 100), 0)} πάνω από τον μέσο όρο` : isLow ? `-${fp(((1 - current / avg) * 100), 0)} κάτω από τον μέσο όρο` : 'Στο μέσο όρο'}
           </span>
         </div>
         <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>

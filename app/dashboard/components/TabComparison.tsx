@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, Skeleton, ExportButton, EmptyState, InfoBanner } from '@/components/Theme';
+import { T, fe, fn, fp, DASH, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
 import { downloadCsv } from './exportCsv';
@@ -61,14 +61,6 @@ const TYPE_LABELS: Record<string, string> = {
   storage: 'Αποθήκες κτιρίου', villa: 'Βίλες', other: 'Άλλα',
 };
 
-// Ελληνικές επεξηγήσεις για όρους/συντομογραφίες (εμφανίζονται ως tooltip στη μετρική)
-const METRIC_TIPS: Record<string, string> = {
-  'Μεικτή Απόδοση': 'Ακαθάριστη ετήσια απόδοση: (μηνιαίο ενοίκιο × 12) ÷ αξία ακινήτου. Χρησιμοποιείται η εμπορική αξία· αν λείπει, η αντικειμενική (Ε9) — ίδιος κανόνας με την Επισκόπηση.',
-  'Μερίδιο Φόρου Ενοικίου': 'Ο φόρος εισοδήματος από ενοίκια είναι προοδευτικός στο ΣΥΝΟΛΟ των ακινήτων σου (Ε1), όχι ανά ακίνητο. Εδώ φαίνεται το μερίδιο κάθε ακινήτου από τον ένα φόρο, κατ’ αναλογία του φορολογητέου του. Γι’ αυτό οι γραμμές αθροίζουν στη γραμμή ΣΥΝΟΛΟ της εξαγωγής.',
-  'Πάγια ανά μήνα': 'Ο μέσος μήνας σε επαναλαμβανόμενες δαπάνες, από ό,τι ΟΝΤΩΣ καταχωρήθηκε φέτος (πάγια έτους ÷ 12). Είναι ΥΠΟΣΥΝΟΛΟ των δαπανών του έτους, γι\u2019 αυτό δεν αφαιρείται ξεχωριστά από το καθαρό.',
-  'Δαπάνες Έτους': 'Κάθε ευρώ μία φορά: ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ίδιο γεγονός και μετριούνται μία φορά, ενώ ο απλήρωτος λογαριασμός μετράει στην ημερομηνία που λήγει. Ίδιος υπολογισμός με τις Δαπάνες και τον Προϋπολογισμό.',
-  'Καθαρό ανά μήνα (εκτ.)': 'Εκτίμηση: ενοίκιο − (δαπάνες έτους ÷ 12). Οι πάγιοι λογαριασμοί περιλαμβάνονται ήδη στις δαπάνες του έτους και δεν αφαιρούνται δεύτερη φορά.',
-};
 
 export default function TabComparison({ properties, userId }: Props) {
   const supabase = createClient();
@@ -162,13 +154,13 @@ export default function TabComparison({ properties, userId }: Props) {
     const single = properties.length < 2;
     return (
       <div style={{ fontFamily: T.font.sans }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 20px' }}>Σύγκριση Ακινήτων</h1>
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8 }}>
+        <PageTitle title="Σύγκριση ακινήτων" />
+        <div className="card">
           <EmptyState icon={<Building2 size={20} />}
             title={single ? 'Χρειάζονται τουλάχιστον δύο ακίνητα' : 'Δεν υπάρχουν δύο ακίνητα ίδιου τύπου'}
             hint={single
-              ? 'Πρόσθεσε ένα δεύτερο ακίνητο για να τα συγκρίνεις ως προς αξία, ενοίκιο, απόδοση, λογαριασμούς και δαπάνες.'
-              : 'Η σύγκριση γίνεται μόνο ανάμεσα σε ακίνητα του ίδιου τύπου — ένα διαμέρισμα κι ένα κατάστημα δεν έχουν κοινή αγορά. Συμπλήρωσε τον τύπο στα στοιχεία κάθε ακινήτου ή πρόσθεσε ένα δεύτερο ίδιου τύπου.'} />
+              ? 'Πρόσθεσε ένα δεύτερο ακίνητο για να τα δεις δίπλα-δίπλα.'
+              : 'Συγκρίνονται μόνο ακίνητα ίδιου τύπου: ένα διαμέρισμα κι ένα κατάστημα δεν έχουν κοινή αγορά. Συμπλήρωσε τον τύπο σε κάθε ακίνητο ή πρόσθεσε ένα δεύτερο ίδιου τύπου.'} />
         </div>
       </div>
     );
@@ -177,41 +169,74 @@ export default function TabComparison({ properties, userId }: Props) {
   // Μετρικές ανά ακίνητο (μόνο της ομάδας που κοιτάζει ο χρήστης)
   const rowsData = inGroup.map(p => {
     const a = agg[p.id] || { expensesYTD: 0, recurringMonthly: 0, monthlyRent: 0, budgetMonthly: 0 };
-    // ΙΔΙΑ ΠΗΓΗ ΑΛΗΘΕΙΑΣ ΜΕ ΤΗΝ ΕΠΙΣΚΟΠΗΣΗ. Πριν ήταν `p.value || 0`: ο
+    // ΙΔΙΑ ΠΗΓΗ ΑΛΗΘΕΙΑΣ ΜΕ ΤΗΝ ΕΠΙΣΚΟΨΗ. Πριν ήταν `p.value || 0`: ο
     // ιδιοκτήτης που είχε συμπληρώσει μόνο αντικειμενική αξία (η συνηθέστερη
     // περίπτωση — τη βρίσκει στο Ε9) έβλεπε «4,2%» στην Επισκόπηση και «0,0%» εδώ.
     const value = resolveValue(p.value, p.obj_value).value;
     const sqm = p.sqm || 0;
     const rent = a.monthlyRent || p.target_rent || 0;
-    const perSqm = sqm > 0 ? value / sqm : 0;
-    const grossYield = value > 0 ? (rent * 12 / value) * 100 : 0;
+    const perSqm = sqm > 0 && value > 0 ? value / sqm : null;
+    const grossYield = value > 0 && rent > 0 ? (rent * 12 / value) * 100 : null;
     // ΜΟΝΟ ΜΙΑ ΑΦΑΙΡΕΣΗ. Οι πάγιοι λογαριασμοί είναι ΗΔΗ μέσα στις δαπάνες του
     // έτους — ο πυρήνας τους μέτρησε μία φορά. Η παλιά γραμμή αφαιρούσε και τα
     // δύο, και το ακίνητο έδειχνε διπλάσιο κόστος απ' όσο έχει.
-    const netMonthly = rent - a.expensesYTD / 12;
+    const netMonthly = rent > 0 ? rent - a.expensesYTD / 12 : null;
     const taxShare = taxShareOf(portfolioTax, p.id);
-    return { p, value, sqm, rent, perSqm, grossYield, recurringMonthly: a.recurringMonthly, expensesYTD: a.expensesYTD, netMonthly, budgetMonthly: a.budgetMonthly, taxShare };
+    return {
+      p, sqm, expensesYTD: a.expensesYTD, recurringMonthly: a.recurringMonthly, budgetMonthly: a.budgetMonthly,
+      value: value > 0 ? value : null,
+      rent: rent > 0 ? rent : null,
+      perSqm, grossYield, netMonthly, taxShare,
+    };
   });
 
-  // ΜΟΝΟ ΜΕΤΡΙΚΕΣ ΜΕ ΚΑΤΕΥΘΥΝΣΗ. Οι τέσσερις σειρές με dir:'none' (Εμπορική Αξία,
-  // Εμβαδόν, Τιμή/τ.μ., Μηνιαίος Στόχος) ήταν εξ ορισμού χωρίς «καλύτερη τιμή»:
-  // στατικά στοιχεία ταυτότητας, που ο χρήστης έχει δει, και που εδώ μόνο
-  // μεγάλωναν τον πίνακα. Τα τρία πρώτα μετακόμισαν στην κεφαλίδα της στήλης, όπου
-  // λένε ποιο ακίνητο κοιτάζεις· ο μηνιαίος στόχος ζει στον Προϋπολογισμό.
-  type Dir = 'high' | 'low';
-  const metrics: { label: string; get: (r: typeof rowsData[number]) => number; fmt: (n: number) => string; dir: Dir }[] = [
-    { label: 'Μηνιαίο Ενοίκιο',      get: r => r.rent,        fmt: n => fe(n, 0),               dir: 'high' },
-    { label: 'Μεικτή Απόδοση',       get: r => r.grossYield,  fmt: n => `${n.toFixed(1)}%`,     dir: 'high' },
-    { label: 'Πάγια ανά μήνα',       get: r => r.recurringMonthly, fmt: n => fe(n, 0),          dir: 'low'  },
-    { label: 'Δαπάνες Έτους',        get: r => r.expensesYTD, fmt: n => fe(n, 0),               dir: 'low'  },
-    { label: 'Μερίδιο Φόρου Ενοικίου', get: r => r.taxShare,  fmt: n => fe(n, 0),               dir: 'low'  },
-    { label: 'Καθαρό ανά μήνα (εκτ.)', get: r => r.netMonthly, fmt: n => fe(n, 0),              dir: 'high' },
+  // ── ΤΟ ΚΕΝΟ ΔΕΝ ΕΙΝΑΙ ΜΗΔΕΝ ─────────────────────────────────────────────────
+  // Ο πίνακας γέμιζε «0,00 €» και «0,0%» για κάθε ακίνητο χωρίς καταχωρημένη αξία
+  // ή ενοίκιο — δηλαδή έλεγε ότι το ακίνητο αξίζει μηδέν και αποδίδει μηδέν, ενώ
+  // απλώς δεν του το έχει πει κανείς. Πλέον όποια μετρική στηρίζεται σε στοιχείο
+  // που λείπει επιστρέφει `null` και γράφεται παύλα.
+  //
+  // Η ΔΙΑΚΡΙΣΗ ΕΙΝΑΙ ΟΥΣΙΑΣΤΙΚΗ, ΟΧΙ ΚΟΣΜΗΤΙΚΗ: στις δαπάνες το μηδέν είναι
+  // ΑΠΑΝΤΗΣΗ («δεν έχεις καταχωρήσει καμία»), οπότε εκεί γράφεται «0 €».
+  // ΤΟ «ΚΑΛΥΤΕΡΟ» ΜΟΝΟ ΕΚΕΙ ΠΟΥ ΣΗΜΑΙΝΕΙ ΚΑΤΙ.
+  //
+  // Οι τρεις γραμμές κόστους είχαν κι αυτές «καλύτερη τιμή» — τη ΧΑΜΗΛΟΤΕΡΗ. Σε
+  // κάθε χαρτοφυλάκιο με ένα κενό ακίνητο, το κενό κέρδιζε και τις τρεις: μηδέν
+  // πάγια, μηδέν φόρο, ελάχιστες δαπάνες. Η οθόνη στεφάνωνε ως «καλύτερο» το
+  // ακίνητο που ΔΕΝ αποδίδει τίποτα, τρεις φορές στην ίδια στήλη.
+  //
+  // Το κόστος είναι συμφραζόμενο, όχι αγώνας: χαμηλές δαπάνες μπορεί να σημαίνουν
+  // καλή διαχείριση ή αχρησιμοποίητο ακίνητο, και ο πίνακας δεν ξέρει ποιο. Ο
+  // δείκτης μένει στα τρία μεγέθη όπου το «περισσότερο» είναι αδιαμφισβήτητα
+  // καλύτερο για τον ιδιοκτήτη — και πέφτει από έξι σημάδια σε τρία.
+  type Dir = 'high' | 'low' | 'none';
+  // Η ΕΠΕΞΗΓΗΣΗ ΖΕΙ ΜΕΣΑ ΣΤΗ ΜΕΤΡΙΚΗ. Πριν υπήρχε χωριστός πίνακας `METRIC_TIPS`
+  // με ΚΛΕΙΔΙ ΤΗΝ ΕΛΛΗΝΙΚΗ ΕΤΙΚΕΤΑ: αλλάζοντας «Δαπάνες Έτους» σε «Δαπάνες
+  // έτους» —πεζό έψιλον— το tooltip εξαφανιζόταν αθόρυβα, χωρίς κανένα σφάλμα.
+  const metrics: { label: string; tip?: string; get: (r: typeof rowsData[number]) => number | null; fmt: (n: number) => string; dir: Dir }[] = [
+    { label: 'Μηνιαίο ενοίκιο', get: r => r.rent, fmt: n => fe(n, 0), dir: 'high',
+      tip: 'Από το μισθωτήριο· αν δεν υπάρχει, ο στόχος ενοικίου του ακινήτου.' },
+    { label: 'Μεικτή απόδοση', get: r => r.grossYield, fmt: n => fp(n), dir: 'high',
+      tip: 'Ετήσιο ενοίκιο ÷ αξία ακινήτου. Χρησιμοποιείται η εμπορική αξία· αν λείπει, η αντικειμενική (Ε9) — ίδιος κανόνας με την Επισκόπηση.' },
+    { label: 'Δαπάνες έτους', get: r => r.expensesYTD, fmt: n => fe(n, 0), dir: 'none',
+      tip: 'Κάθε ευρώ μία φορά: ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ίδιο γεγονός. Ίδιος υπολογισμός με τις Δαπάνες και τον Προϋπολογισμό.' },
+    { label: 'Πάγια ανά μήνα', get: r => r.recurringMonthly, fmt: n => fe(n, 0), dir: 'none',
+      tip: 'Ο μέσος μήνας σε επαναλαμβανόμενες δαπάνες, από ό,τι όντως καταχωρήθηκε φέτος. Είναι υποσύνολο των δαπανών του έτους, γι\u2019 αυτό δεν αφαιρείται ξεχωριστά.' },
+    { label: 'Μερίδιο φόρου', get: r => r.taxShare, fmt: n => fe(n, 0), dir: 'none',
+      tip: 'Ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ των ακινήτων σου (Ε1), όχι ανά ακίνητο. Εδώ φαίνεται το μερίδιο κάθε ακινήτου από τον ένα φόρο.' },
+    { label: 'Καθαρό ανά μήνα (εκτ.)', get: r => r.netMonthly, fmt: n => fe(n, 0), dir: 'high',
+      tip: 'Εκτίμηση: ενοίκιο − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.' },
   ];
 
+  // Η «καλύτερη τιμή» βγαίνει ΜΟΝΟ από όσα ξέρουμε. Ένα ακίνητο χωρίς ενοίκιο δεν
+  // έχει «τη χαμηλότερη» δαπάνη επειδή τυχαίνει να είναι κενό το κελί του — και
+  // σε ισοπαλία δεν αναδεικνύεται κανένα, γιατί δεν υπάρχει καλύτερο.
   const bestId = (m: typeof metrics[number]): string | null => {
-    const vals = rowsData.map(r => ({ id: r.p.id, v: m.get(r) })).filter(x => x.v !== 0 || m.dir === 'low');
-    if (!vals.length) return null;
-    return vals.reduce((best, x) => (m.dir === 'high' ? x.v > best.v : x.v < best.v) ? x : best).id;
+    if (m.dir === 'none') return null;
+    const vals = rowsData.map(r => ({ id: r.p.id, v: m.get(r) })).filter((x): x is { id: string; v: number } => x.v != null);
+    if (vals.length < 2) return null;
+    const win = vals.reduce((best, x) => ((m.dir === 'high' ? x.v > best.v : x.v < best.v) ? x : best));
+    return vals.filter(x => x.v === win.v).length > 1 ? null : win.id;
   };
 
   // ── Εξαγωγή CSV (μορφή Ελληνικού Excel: διαχωριστικό «;», κόμμα δεκαδικών,
@@ -224,15 +249,18 @@ export default function TabComparison({ properties, userId }: Props) {
     // λογιστή. Τώρα η στήλη είναι το ΜΕΡΙΔΙΟ κάθε ακινήτου από τον ΕΝΑ φόρο του
     // φορολογούμενου, άρα προσθέτεται σωστά.
     const cols = ['Ακίνητο', 'Κατάσταση', 'Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Πάγια ανά μήνα (€)', 'Δαπάνες Έτους (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Μερίδιο Φόρου Ενοικίου (€)'];
+    // Στο CSV το κενό μένει ΚΕΝΟ, όχι μηδέν: ένα υπολογιστικό φύλλο που δείχνει 0
+    // εκεί που δεν ξέρουμε, παράγει λάθος μέσους όρους στα χέρια του λογιστή.
+    const c = (n: number | null) => (n == null ? '' : money(n));
     const rows = rowsData.map(r => [
       r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '',
-      money(r.value), dec2(r.sqm), money(r.perSqm), money(r.rent), money(r.rent * 12),
-      percent(r.grossYield), money(r.recurringMonthly), money(r.expensesYTD),
-      money(r.netMonthly), money(r.netMonthly * 12), money(r.taxShare),
+      c(r.value), r.sqm > 0 ? dec2(r.sqm) : '', c(r.perSqm), c(r.rent), c(r.rent == null ? null : r.rent * 12),
+      r.grossYield == null ? '' : percent(r.grossYield), money(r.recurringMonthly), money(r.expensesYTD),
+      c(r.netMonthly), c(r.netMonthly == null ? null : r.netMonthly * 12), money(r.taxShare),
     ]);
     // Γραμμή συνόλων της ομάδας (όχι όλου του χαρτοφυλακίου: εξάγεται ό,τι φαίνεται).
-    const sum = (f: (r: typeof rowsData[number]) => number) => rowsData.reduce((s, r) => s + f(r), 0);
-    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), dec2(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(sum(r => r.rent * 12)), '', money(sum(r => r.recurringMonthly)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(sum(r => r.taxShare))]);
+    const sum = (f: (r: typeof rowsData[number]) => number | null) => rowsData.reduce((s, r) => s + (f(r) ?? 0), 0);
+    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), dec2(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(sum(r => (r.rent ?? 0) * 12)), '', money(sum(r => r.recurringMonthly)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => (r.netMonthly ?? 0) * 12)), money(sum(r => r.taxShare))]);
     // Η προειδοποίηση ταξιδεύει ΜΑΖΙ με τα νούμερα. Ένα αρχείο που φτάνει στον
     // λογιστή χωρίς αυτή είναι ακριβώς η παραπλανητική σύγκριση που θέλαμε να
     // αποφύγουμε — μόνο που τώρα δεν υπάρχει οθόνη να την εξηγήσει.
@@ -245,42 +273,34 @@ export default function TabComparison({ properties, userId }: Props) {
     downloadCsv(`sygkrisi_akiniton_${athensToday()}`, cols, rows);
   };
 
-  const th: React.CSSProperties = { fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' };
-  const td: React.CSSProperties = { padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 12, whiteSpace: 'nowrap' };
+  // ── ΕΝΑ ΚΕΛΙ, ΕΝΑΣ ΚΑΝΟΝΑΣ ────────────────────────────────────────────────
+  // Πριν, το κελί της καλύτερης τιμής βαφόταν πράσινο ΚΑΙ έπαιρνε πράσινο φόντο:
+  // σε πίνακα έξι γραμμών, έξι πράσινα κελιά — δηλαδή χρώμα σε κάθε δεύτερη
+  // ματιά, που έπαυε να ξεχωρίζει οτιδήποτε. Η ανάδειξη γίνεται με ΒΑΡΟΣ και
+  // ένταση κειμένου, όπως σε κάθε άλλον πίνακα της εφαρμογής.
+  const th: React.CSSProperties = { fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 12.5, whiteSpace: 'nowrap', textAlign: 'right' };
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.15 }}>Σύγκριση Ακινήτων</h1>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
-            {rowsData.length} {typeLabel(group.key, inGroup[0]).toLowerCase()}, αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
-          </div>
-        </div>
-        {/* ΤΟ «Εξαγωγή Ε2» ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Ζούσε σε μια οθόνη που απαιτεί δύο
-            ακίνητα ΙΔΙΟΥ ΤΥΠΟΥ και πλάνο «Ιδιοκτήτης»: ο ιδιοκτήτης ενός ακινήτου
-            — δηλαδή ο μισός κόσμος — δεν το έφτανε ποτέ, παρότι το Ε2 τον αφορά
-            ακριβώς όσο και τους άλλους. Και ήταν διπλότυπο του κουμπιού στο
-            E2IncomeCalc. Ένα σημείο για το Ε2: Λογιστική → Αναλυτική Κατάσταση Ε2. */}
-        {!loading && (
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-            <ExportButton onClick={exportCSV} />
-          </div>
-        )}
-      </div>
+      <PageTitle
+        title="Σύγκριση ακινήτων"
+        sub={`${rowsData.length} ${typeLabel(group.key, inGroup[0]).toLowerCase()}, δίπλα-δίπλα`}
+        right={!loading ? <ExportButton onClick={exportCSV} /> : undefined}
+      />
 
       {/* Περισσότερες από μία ομάδες: ο χρήστης διαλέγει ποια κοιτάζει. Η επιλογή
           μπαίνει μόνο όταν υπάρχει κάτι να επιλεγεί — με μία ομάδα θα ήταν θόρυβος. */}
       {groups.length > 1 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {groups.map(g => {
             const on = g.key === group.key;
             return (
               <button key={g.key} type="button" onClick={() => setGroupKey(g.key)} aria-pressed={on}
-                style={{ height: T.h.sm, padding: '0 12px', borderRadius: 8, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
-                  border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
-                  background: on ? 'var(--accent-dim)' : 'transparent',
-                  color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                style={{ height: 28, padding: '0 12px', borderRadius: 100, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 11.5, fontWeight: on ? 700 : 500,
+                  border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
+                  background: on ? 'var(--bg-hover)' : 'transparent',
+                  color: on ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                 {typeLabel(g.key, properties.find(p => p.id === g.ids[0]))} ({g.ids.length})
               </button>
             );
@@ -298,24 +318,24 @@ export default function TabComparison({ properties, userId }: Props) {
         // Σκελετός αντί για spinner: το σχήμα του πίνακα σύγκρισης είναι γνωστό εκ
         // των προτέρων, οπότε ο χώρος δεσμεύεται από την αρχή και η σελίδα δεν
         // «πηδά» όταν φτάνουν τα δεδομένα.
-        <Skeleton h={320} r={14} />
+        <Skeleton h={300} r={14} />
       ) : (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8, overflowX: 'auto' }}>
-          <div className="table-wrap">
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 120 + rowsData.length * 160 }}>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="table-wrap" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 200 + rowsData.length * 150 }}>
             <thead>
               <tr>
-                <th style={{ ...th, position: 'sticky', left: 0, zIndex: 1 }}>Μετρική</th>
+                <th style={{ ...th, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
                 {rowsData.map(r => (
-                  <th key={r.p.id} style={th}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0 }}>{r.p.name}</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 2 }}>{STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || ''}</div>
-                    {/* Ταυτότητα, όχι μετρική: αξία, εμβαδόν και τιμή/τ.μ. λένε ποιο
+                  <th key={r.p.id} style={{ ...th, textAlign: 'right' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>{r.p.name}</div>
+                    {/* Ταυτότητα, όχι μετρική: εμβαδόν, αξία και τιμή/τ.μ. λένε ποιο
                         ακίνητο κοιτάζεις. Δεν έχουν «καλύτερη τιμή», γι' αυτό δεν
-                        είναι πια γραμμές του πίνακα. */}
-                    <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (από το Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
-                      style={{ fontSize: 9.5, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-                      {[r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value > 0 ? fe(r.value, 0) : null, r.perSqm > 0 ? `${fe(r.perSqm, 0)}/τ.μ.` : null].filter(Boolean).join(' · ') || '—'}
+                        είναι γραμμές του πίνακα. Ό,τι λείπει, απλώς λείπει —
+                        δεν γράφεται παύλα για κάθε πεδίο χωριστά. */}
+                    <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
+                      style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+                      {[STATUS_LABELS[r.p.status_detail || ''] || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value, 0) : null, r.perSqm != null ? `${fe(r.perSqm, 0)}/τ.μ.` : null].filter(Boolean).join(' · ') || DASH}
                     </div>
                   </th>
                 ))}
@@ -326,12 +346,15 @@ export default function TabComparison({ properties, userId }: Props) {
                 const best = bestId(m);
                 return (
                   <tr key={i}>
-                    <td title={METRIC_TIPS[m.label]} style={{ ...td, fontFamily: T.font.sans, color: 'var(--text-secondary)', fontWeight: 500, position: 'sticky', left: 0, background: 'var(--bg-surface)', zIndex: 1 }}>{m.label}</td>
+                    <td title={m.tip} style={{ ...td, textAlign: 'left', fontFamily: T.font.sans, color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12, position: 'sticky', left: 0, background: 'var(--bg-surface)', zIndex: 1 }}>{m.label}</td>
                     {rowsData.map(r => {
+                      const v = m.get(r);
                       const isBest = best === r.p.id;
                       return (
-                        <td key={r.p.id} style={{ ...td, color: isBest ? 'var(--positive)' : 'var(--text-primary)', fontWeight: isBest ? 700 : 400, background: isBest ? 'var(--positive-soft)' : 'transparent' }}>
-                          {m.fmt(m.get(r))}
+                        <td key={r.p.id} style={{ ...td,
+                          color: v == null ? 'var(--text-tertiary)' : isBest ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          fontWeight: isBest ? 700 : 400 }}>
+                          {v == null ? DASH : m.fmt(v)}
                         </td>
                       );
                     })}
@@ -343,10 +366,16 @@ export default function TabComparison({ properties, userId }: Props) {
           </div>
         </div>
       )}
-      <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-        Συγκρίνονται μόνο ακίνητα ίδιου τύπου. Το «Καθαρό ανά μήνα» είναι εκτίμηση: ενοίκιο − μηνιαίοι λογαριασμοί − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.
-        {portfolioTax.count > 1 && <> {CONSOLIDATION_NOTE} Σύνολο ενοικίων {fe(portfolioTax.totalAnnualRent, 0)}, φόρος {fe(portfolioTax.totalTax, 0)} για {portfolioTax.count} ακίνητα.</>}
-      </div>
+
+      {/* ΜΙΑ ΓΡΑΜΜΗ, ΟΧΙ ΠΑΡΑΓΡΑΦΟΣ. Εδώ ζούσαν τρεις σειρές ψιλών γραμμάτων που
+          επαναλάμβαναν όσα λέει ήδη το tooltip κάθε μετρικής και ο τίτλος της
+          οθόνης. Μένει μόνο ό,τι δεν λέγεται αλλού: πώς διαβάζεται ο πίνακας. */}
+      {!loading && (
+        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Έντονα</strong> το υψηλότερο ενοίκιο, απόδοση και καθαρό. Στις δαπάνες δεν υπάρχει «καλύτερο»: το χαμηλότερο κόστος είναι συνήθως το ακίνητο που δεν αποδίδει. <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{DASH}</strong> όπου λείπει στοιχείο.
+          {portfolioTax.count > 1 && ` ${CONSOLIDATION_NOTE}`}
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { T, fe, Skeleton } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-const fk = (n: number) => `${n.toFixed(4)} €`;
+const fk = (n: number) => `${fe(n, 4)}`;
 // Η ημερομηνία τελευταίου ελέγχου των τιμών.
 //
 // ΓΙΑΤΙ ΓΡΑΜΜΕΝΗ ΕΔΩ ΚΑΙ ΟΧΙ ΜΕ import ΤΟΥ JSON: ένα `import ... from '.json'`
@@ -591,7 +591,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   </span>
                 )}
                 <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                  Μηνιαίο πάγιο:{'  '}<strong>{tariff.no_fixed ? '0,00 €' : `${((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed).toFixed(2)} € / μήνα`}</strong>
+                  Μηνιαίο πάγιο:{'  '}<strong>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed), 2)} / μήνα`}</strong>
                 </span>
               </div>
             )}
@@ -765,7 +765,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                       </td>
                       <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
                         {/* FIX: fixed_monthly tariffs showed a misleading "0.00 €" pagio (implying free, like no_fixed), now shows, instead */}
-                        {t.type === 'fixed_monthly' ? '—' : t.no_fixed ? '0 €' : `${(t.fixed_ebill != null ? t.fixed_ebill : t.fixed).toFixed(2)} €`}
+                        {t.type === 'fixed_monthly' ? '—' : t.no_fixed ? '0 €' : `${fe((t.fixed_ebill != null ? t.fixed_ebill : t.fixed), 2)}`}
                       </td>
                       <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                         {t.contract_months ? `${t.contract_months} μήνες` : 'Χωρίς δέσμευση'}
@@ -833,14 +833,14 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         if (kwhNum > 400) {
           const vnmTariff = allTariffs.find(t => t.id === 'heron_ena');
           if (vnmTariff && vnmTariff.monthly < costNum - 5) {
-            hints.push({ text: `Με ${kwhNum} kWh/μήνα το VNM (Εικονική Καθαρή Μέτρηση) μπορεί να σου εξοικονομήσει ${((costNum - vnmTariff.monthly)).toFixed(0)}€/μήνα.`, severity: 'tip', action: 'Πάρε Προσφορά', tab: 'electricity' });
+            hints.push({ text: `Με ${kwhNum} kWh/μήνα το VNM (Εικονική Καθαρή Μέτρηση) μπορεί να σου εξοικονομήσει ${fe(((costNum - vnmTariff.monthly)), 0)}/μήνα.`, severity: 'tip', action: 'Πάρε Προσφορά', tab: 'electricity' });
           } else {
             hints.push({ text: `Κατανάλωση ${kwhNum} kWh/μήνα, αξίζει σύγκριση με φωτοβολταϊκό ή κοινοτικό VNM.`, severity: 'tip' });
           }
         } else if (kwhNum > 0 && kwhNum < 100) {
           const noFixed = allTariffs.find(t => t.no_fixed && t.type !== 'dynamic');
           if (noFixed && noFixed.monthly < costNum) {
-            hints.push({ text: `Χαμηλή κατανάλωση (${kwhNum} kWh). Τιμολόγιο χωρίς πάγιο (${noFixed.providerLabel} ${noFixed.name}) εξοικονομεί ${(costNum - noFixed.monthly).toFixed(0)}€/μήνα.`, severity: 'tip' });
+            hints.push({ text: `Χαμηλή κατανάλωση (${kwhNum} kWh). Τιμολόγιο χωρίς πάγιο (${noFixed.providerLabel} ${noFixed.name}) εξοικονομεί ${fe((costNum - noFixed.monthly), 0)}/μήνα.`, severity: 'tip' });
           }
         }
 

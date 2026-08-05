@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { vocative } from '../greekName';
+import { fp } from '../core/format';
 
 export type InsightKind = 'urgent' | 'attention' | 'opportunity' | 'positive';
 
@@ -145,8 +146,8 @@ export function computeInsights(input: InsightInput): Insight[] {
   const YIELD_STRONG_PCT = 5;   // κατώφλι ΕΜΦΑΝΙΣΗΣ, όχι ισχυρισμός για την αγορά
   const YIELD_LOW_PCT = 3;
   if (netYield > 0 && propValue > 0) {
-    if (netYield >= YIELD_STRONG_PCT) out.push({ id: 'yield-strong', kind: 'positive', title: 'Δυνατή απόδοση', detail: `Με τα στοιχεία που έχεις καταχωρίσει, το ακίνητο αποδίδει καθαρά ${netYield.toFixed(1)}% τον χρόνο. Στις Αποδόσεις βλέπεις πώς συγκρίνεται με την περιοχή σου και με άλλες επενδύσεις, με αναγραφόμενες πηγές.`, metric: `${netYield.toFixed(1)}%`, action: { label: 'Αποδόσεις', tab: 'roi' } });
-    else if (netYield < YIELD_LOW_PCT) out.push({ id: 'yield-low', kind: 'opportunity', title: 'Υπάρχει περιθώριο στην απόδοση', detail: `Η καθαρή απόδοση είναι ${netYield.toFixed(1)}%. Δες στις Αποδόσεις τι πιάνει η περιοχή σου και ποιες δαπάνες τη μειώνουν.`, metric: `${netYield.toFixed(1)}%`, action: { label: 'Αποδόσεις', tab: 'roi' } });
+    if (netYield >= YIELD_STRONG_PCT) out.push({ id: 'yield-strong', kind: 'positive', title: 'Δυνατή απόδοση', detail: `Με τα στοιχεία που έχεις καταχωρίσει, το ακίνητο αποδίδει καθαρά ${fp(netYield, 1)} τον χρόνο. Στις Αποδόσεις βλέπεις πώς συγκρίνεται με την περιοχή σου και με άλλες επενδύσεις, με αναγραφόμενες πηγές.`, metric: `${fp(netYield, 1)}`, action: { label: 'Αποδόσεις', tab: 'roi' } });
+    else if (netYield < YIELD_LOW_PCT) out.push({ id: 'yield-low', kind: 'opportunity', title: 'Υπάρχει περιθώριο στην απόδοση', detail: `Η καθαρή απόδοση είναι ${fp(netYield, 1)}. Δες στις Αποδόσεις τι πιάνει η περιοχή σου και ποιες δαπάνες τη μειώνουν.`, metric: `${fp(netYield, 1)}`, action: { label: 'Αποδόσεις', tab: 'roi' } });
   }
 
   // ── 10. Έλλειψη στοιχείων → ανακριβή νούμερα ──────────────────────────────
