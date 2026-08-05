@@ -24,6 +24,15 @@ const ctx = (o: Partial<FieldContext> = {}): FieldContext => ({
   const ids = ALL_FIELDS.map(f => f.id);
   eq('κανένα διπλό id', ids.length, new Set(ids).size);
   ok('κάθε πεδίο έχει γραμμένο το γιατί', ALL_FIELDS.every(f => f.why.trim().length > 12));
+  // ΤΟ `selfEvident` ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ ΓΙΑ ΑΔΙΚΑΙΟΛΟΓΗΤΑ ΠΕΔΙΑ. Κρύβει τη
+  // γραμμή από τη φόρμα, όχι την υποχρέωση να εξηγηθεί το πεδίο: αλλιώς θα
+  // γινόταν ο εύκολος δρόμος για να μπει πεδίο χωρίς λόγο.
+  ok('και τα αυτονόητα έχουν γραμμένο λόγο',
+     ALL_FIELDS.filter(f => f.selfEvident).every(f => f.why.trim().length > 12));
+  // Ένα κρίσιμο πεδίο λέει συμμόρφωση — προθεσμία, δήλωση, φόρο. Αυτό δεν είναι
+  // ποτέ αυτονόητο από την ετικέτα, και η απόκρυψή του θα έκρυβε τη συνέπεια.
+  ok('κανένα κρίσιμο πεδίο δεν είναι αυτονόητο',
+     ALL_FIELDS.every(f => !(f.critical && f.selfEvident)));
   ok('κάθε πεδίο έχει ετικέτα', ALL_FIELDS.every(f => f.label.trim().length > 0));
   ok('το id δηλώνει τη φόρμα του', ALL_FIELDS.every(f => /^(tenant|client|inv|contact|acc)\./.test(f.id)));
   // Κανένα «γιατί» δεν επιτρέπεται να είναι ταυτολογία του label.

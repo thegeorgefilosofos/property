@@ -71,8 +71,23 @@ export interface FieldContext {
 export interface FieldRule {
   id: string;
   label: string;
-  /** Γιατί το ζητάμε, σε μία φράση χωρίς ορολογία. Φαίνεται στον χρήστη. */
+  /**
+   * Γιατί το ζητάμε, σε μία φράση χωρίς ορολογία. ΓΡΑΦΕΤΑΙ ΠΑΝΤΑ — κανένα πεδίο
+   * δεν μπαίνει σε φόρμα χωρίς να δικαιολογηθεί, και το ελέγχει δοκιμή.
+   * Το αν ΤΥΠΩΝΕΤΑΙ κάτω από το πεδίο το κρίνει το `selfEvident`.
+   */
   why: string;
+  /**
+   * Η ετικέτα τα λέει ήδη όλα — μην τυπώνεις τη γραμμή του `why`.
+   *
+   * Η φόρμα επαφής είχε υποσημείωση κάτω από ΚΑΘΕ πεδίο, και οι μισές ξανάλεγαν
+   * τον τίτλο: «Όνομα · Για να τον βρεις», «Τηλέφωνο · Ο λόγος που υπάρχει η
+   * επαφή». Διπλάσιο ύψος φόρμας για μηδέν πληροφορία, και ύφος εγχειριδίου
+   * αντί για εργαλείο. Ο λόγος όμως ΔΕΝ σβήνεται: μένει γραμμένος εδώ, γιατί
+   * την επόμενη φορά που κάποιος σκεφτεί να προσθέσει πεδίο πρέπει να δει ότι
+   * κάθε υπαρκτό πεδίο απαντά σε ερώτηση. Απλώς δεν το διαβάζει ο χρήστης.
+   */
+  selfEvident?: boolean;
   /**
    * Πότε έχει νόημα. Αν λείπει, πάντα.
    * Επιστρέφει `false` → το πεδίο δεν υπάρχει καθόλου για αυτόν τον χρήστη.
@@ -211,24 +226,24 @@ export const INVENTORY_FIELDS: readonly FieldRule[] = [
  * έδινε μία παγωμένη ημερομηνία δύο γραμμές κάτω από ένα κανονικό ημερολόγιο.
  */
 export const CONTACT_FIELDS: readonly FieldRule[] = [
-  { id: 'contact.name', label: 'Όνομα', why: 'Για να τον βρεις.', },
-  { id: 'contact.role', label: 'Ειδικότητα', why: 'Υδραυλικός, λογιστής, μεσίτης.', },
-  { id: 'contact.phone', label: 'Τηλέφωνο', why: 'Ο λόγος που υπάρχει η επαφή.', },
-  { id: 'contact.afm', label: 'ΑΦΜ', why: 'Συνδέει τα παραστατικά του με την επαφή — χωρίς αυτό το ταίριασμα γίνεται με το όνομα και αστοχεί.', },
-  { id: 'contact.iban', label: 'IBAN', why: 'Για να πληρώσεις χωρίς να τον ξαναρωτήσεις.', rare: true },
-  { id: 'contact.email', label: 'Email', why: 'Για τιμολόγια και προσφορές.', rare: true },
+  { id: 'contact.name', label: 'Όνομα', why: 'Το όνομα με το οποίο θα την αναζητά.', selfEvident: true },
+  { id: 'contact.role', label: 'Ειδικότητα', why: 'Ορίζει την κατηγορία στην οποία ομαδοποιείται η επαφή.', selfEvident: true },
+  { id: 'contact.phone', label: 'Τηλέφωνο', why: 'Ο κύριος τρόπος επικοινωνίας με τον συνεργάτη.', selfEvident: true },
+  { id: 'contact.afm', label: 'ΑΦΜ', why: 'Συνδέει τα παραστατικά του με την επαφή. Χωρίς αυτό, το ταίριασμα γίνεται με το όνομα και αστοχεί.', },
+  { id: 'contact.iban', label: 'IBAN', why: 'Για πληρωμή χωρίς νέα επικοινωνία με τον συνεργάτη.', selfEvident: true, rare: true },
+  { id: 'contact.email', label: 'Email', why: 'Για τιμολόγια, προσφορές και γραπτή αλληλογραφία.', selfEvident: true, rare: true },
   // ── «Περισσότερα»: το καθένα κάνει κάτι, αλλά όχι για τους περισσότερους ──
-  { id: 'contact.mobile', label: 'Κινητό', why: 'Δεύτερος αριθμός, όταν στο πρώτο απαντά γραφείο.', rare: true },
-  { id: 'contact.messaging', label: 'WhatsApp ή Viber', why: 'Ανοίγει κατευθείαν συνομιλία με αυτόν τον αριθμό, χωρίς αντιγραφή.', rare: true },
+  { id: 'contact.mobile', label: 'Κινητό', why: 'Δεύτερος αριθμός, όταν στον πρώτο απαντά γραφείο.', selfEvident: true, rare: true },
+  { id: 'contact.messaging', label: 'WhatsApp ή Viber', why: 'Ανοίγει συνομιλία με τον καταχωρημένο αριθμό, χωρίς αντιγραφή.', rare: true },
   { id: 'contact.iris', label: 'Δέχεται IRIS', why: 'Με IRIS πληρώνεις από το κινητό χωρίς να πληκτρολογήσεις IBAN.', rare: true },
-  { id: 'contact.specialty', label: 'Τι κάνει ακριβώς', why: 'Όταν η ειδικότητα δεν αρκεί: «ειδικός σε κεντρική θέρμανση».', rare: true },
-  { id: 'contact.website', label: 'Ιστοσελίδα', why: 'Για τιμοκατάλογο ή φόρμα ραντεβού.', rare: true },
-  { id: 'contact.address', label: 'Διεύθυνση γραφείου', why: 'Για να την ανοίξεις στον χάρτη όταν πρέπει να πας εκεί. Δεν φεύγει πουθενά όσο πληκτρολογείς.', rare: true },
-  { id: 'contact.next_appointment', label: 'Επόμενο ραντεβού', why: 'Μπαίνει στο ημερολόγιο και σε προειδοποιεί όταν περάσει η ημερομηνία.', rare: true },
-  { id: 'contact.tags', label: 'Ετικέτες', why: 'Δικές σου λέξεις για να φιλτράρεις τη λίστα. Τις γράφεις εσύ, δεν σου τις προτείνουμε.', rare: true },
-  { id: 'contact.notes', label: 'Σημειώσεις', why: 'Τιμές, συμφωνίες, ό,τι συζητήσατε.', rare: true },
-  { id: 'contact.files', label: 'Αρχεία', why: 'Προσφορές και τιμολόγια του συνεργάτη, μαζί με την επαφή.', rare: true },
-  { id: 'contact.scope', label: 'Εμβέλεια', why: 'Ο υδραυλικός αφορά ένα ακίνητο, ο λογιστής όλα. Με ένα ακίνητο δεν έχει νόημα η ερώτηση.', when: c => c.propertyCount >= 2, rare: true },
+  { id: 'contact.specialty', label: 'Εξειδίκευση', why: 'Όταν η ειδικότητα δεν αρκεί για να τον ξεχωρίσεις.', selfEvident: true, rare: true },
+  { id: 'contact.website', label: 'Ιστοσελίδα', why: 'Για τιμοκατάλογο ή ηλεκτρονική φόρμα ραντεβού.', selfEvident: true, rare: true },
+  { id: 'contact.address', label: 'Διεύθυνση γραφείου', why: 'Ανοίγει στον χάρτη με ρητό κλικ. Δεν αποστέλλεται πουθενά κατά την πληκτρολόγηση.', rare: true },
+  { id: 'contact.next_appointment', label: 'Επόμενο ραντεβού', why: 'Καταχωρείται στο ημερολόγιο με υπενθύμιση την προηγούμενη ημέρα.', rare: true },
+  { id: 'contact.tags', label: 'Ετικέτες', why: 'Ελεύθερες λέξεις για φιλτράρισμα του μητρώου.', rare: true },
+  { id: 'contact.notes', label: 'Σημειώσεις', why: 'Τιμές, συμφωνίες και ό,τι ειπώθηκε προφορικά.', selfEvident: true, rare: true },
+  { id: 'contact.files', label: 'Αρχεία', why: 'Προσφορές και τιμολόγια, αποθηκευμένα μαζί με την επαφή.', rare: true },
+  { id: 'contact.scope', label: 'Εμβέλεια', why: 'Ένας υδραυλικός αφορά ένα ακίνητο· ένας λογιστής όλο το χαρτοφυλάκιο.', when: c => c.propertyCount >= 2, rare: true },
 ];
 
 /** Οικονομικά και λογιστικά πεδία της καρτέλας Λογιστικά. */
@@ -255,6 +270,8 @@ export interface FieldDecision {
   id: string;
   label: string;
   why: string;
+  /** Η ετικέτα αρκεί — η φόρμα δεν τυπώνει τη γραμμή του `why`. */
+  selfEvident: boolean;
   placement: Placement;
   critical: boolean;
 }
@@ -285,6 +302,7 @@ export function fieldDecision(id: string, ctx: FieldContext): FieldDecision {
     id,
     label: r?.label ?? id,
     why: r?.why ?? '',
+    selfEvident: r?.selfEvident === true,
     placement: fieldPlacement(id, ctx),
     critical: r?.critical === true,
   };

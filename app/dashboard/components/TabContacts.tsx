@@ -4,12 +4,12 @@ import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } f
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
+import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ExportButton, type KPIItem } from '@/components/Theme'
+import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
-import { downloadCsv } from './exportCsv'
 import { brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
@@ -298,7 +298,11 @@ function CField({ d, required, children }: { d?: FieldDecision; required?: boole
     <div>
       <FL>{d.label}{required || d.critical ? ' *' : ''}</FL>
       {children}
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 6 }}>{d.why}</div>
+      {/* Κενό `why` δεν αποδίδει γραμμή. Πριν, ΚΑΘΕ πεδίο κουβαλούσε τη δική του
+          πρόταση και τα μισά ξανάλεγαν την ετικέτα («Όνομα · Για να τον βρεις»):
+          διπλάσιο ύψος φόρμας για μηδέν πληροφορία, και ύφος οδηγιών χρήσης αντί
+          για εργαλείο. Μένουν μόνο όσες λένε συνέπεια που δεν μαντεύεται. */}
+      {!d.selfEvident && d.why && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 6 }}>{d.why}</div>}
     </div>
   )
 }
@@ -853,7 +857,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
 }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
   const extra = contact._extra || {}
-  const initials = contact.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
+  const initials = initialsOf(contact.full_name)
   const [hov, setHov] = useState(false); const [showActions, setShowActions] = useState(false)
   const actionsRef = useRef<HTMLDivElement>(null)
   // Κλείσιμο του μενού «···» με κλικ εκτός ή με Escape (χωρίς μετατόπιση διάταξης).
@@ -1003,7 +1007,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
 }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
   const extra = contact._extra || {}
-  const initials = contact.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
+  const initials = initialsOf(contact.full_name)
   const GroupIcon = meta.GroupIcon || Users
   const digits = (p?: string | null) => { const d = (p || '').replace(/\D/g, ''); return d.length === 10 ? '30' + d : d }
   const site = extra.website ? (/^https?:\/\//.test(extra.website) ? extra.website : 'https://' + extra.website) : ''
@@ -1209,6 +1213,52 @@ function GroupDivider({ group, count }: { group: typeof GROUPS[0]; count: number
   )
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΑΛΦΑΒΗΤΙΚΗ ΡΑΓΑ
+// ─────────────────────────────────────────────────────────────────────────
+// Δύο αλφάβητα, γιατί ένα ελληνικό ευρετήριο δεν βρίσκει το «Booking.com» και
+// ένα λατινικό δεν βρίσκει τον «Παπαδόπουλο». Χωρίζονται με λεπτή κάθετη
+// γραμμή — όχι με ετικέτα «Ελληνικά»/«Αγγλικά», που θα ήταν δύο λέξεις για κάτι
+// που φαίνεται.
+//
+// ΜΟΝΟ ΤΑ ΓΡΑΜΜΑΤΑ ΠΟΥ ΥΠΑΡΧΟΥΝ. Πενήντα ένα γράμματα εκ των οποίων τα σαράντα
+// οκτώ νεκρά δεν είναι ευρετήριο· είναι διακόσμηση που κοστίζει δύο σειρές
+// οθόνης. Το πλήθος κάθε γράμματος ζει στο tooltip και όχι δίπλα στο γράμμα:
+// στη ράγα μετράει η ταχύτητα του ματιού, όχι η αναφορά.
+// ═══════════════════════════════════════════════════════════════════════════
+function AlphaRail({ entries, active, onPick }: {
+  entries: AlphaEntry[]; active: string | null; onPick: (letter: string | null) => void
+}) {
+  if (entries.length < 2) return null   // Ένα γράμμα δεν είναι ευρετήριο.
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', marginBottom: 18 }}>
+      {entries.map((e, i) => {
+        const on = active === e.letter
+        // Η αλλαγή αλφαβήτου σημαδεύεται μία φορά, στο σημείο που συμβαίνει.
+        const boundary = i > 0 && entries[i - 1].script !== e.script
+        return (
+          <span key={e.letter} style={{ display: 'contents' }}>
+            {boundary && <span aria-hidden style={{ width: 1, height: 14, background: 'var(--border-default)', margin: '0 7px', flexShrink: 0 }} />}
+            <button type="button" onClick={() => onPick(on ? null : e.letter)} aria-pressed={on}
+              title={`${e.count} ${e.count === 1 ? 'επαφή' : 'επαφές'}`}
+              style={{
+                minWidth: 26, height: 26, padding: '0 4px', border: 'none', cursor: 'pointer',
+                borderRadius: 7, background: on ? 'var(--accent)' : 'transparent',
+                color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
+                fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
+                fontVariantNumeric: 'tabular-nums', transition: 'background .14s, color .14s',
+              }}
+              onMouseEnter={ev => { if (!on) ev.currentTarget.style.background = 'var(--bg-hover)' }}
+              onMouseLeave={ev => { if (!on) ev.currentTarget.style.background = 'transparent' }}>
+              {e.letter}
+            </button>
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TabContacts({ propertyId, userId, embedded, profileType = 'individual', properties = [] }: TabContactsProps) {
   const isPro = profileType === 'professional'
@@ -1225,6 +1275,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [filterScope, setFilterScope] = useState<'all' | 'portfolio' | 'property'>('all')
   const [filterTag, setFilterTag] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('recent')
+  const [letterFilter, setLetterFilter] = useState<string | null>(null)
+  const [attention, setAttention] = useState<'overdue' | 'no-afm' | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
   const [showMore, setShowMore] = useState(false)   // πτυσσόμενες προαιρετικές λεπτομέρειες στη φόρμα
   const [detailId, setDetailId] = useState<string | null>(null)   // ανοιχτό προφίλ (dossier), ζωντανό από τη λίστα
@@ -1407,18 +1459,36 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
   // ─── Enhanced CSV Export ───────────────────────────────────────────────────
 
+  // Το σύνολο ΠΡΙΝ από το γράμμα: πάνω σε αυτό χτίζεται η ράγα, ώστε τα πλήθη
+  // της να ακολουθούν την αναζήτηση και τις κατηγορίες — αλλά να μη μηδενίζονται
+  // από την ίδια της την επιλογή. Αν η ράγα μετρούσε το τελικό αποτέλεσμα, μόλις
+  // πάταγες «Π» θα έμενε ΜΟΝΟ το «Π» και δεν θα υπήρχε δρόμος για το «Α».
+  const scoped = useMemo(() => contacts.filter(c => {
+    const matchGroup = filterGroup === 'all' || ROLE_META[c.role]?.groupId === filterGroup
+    const matchTag = !filterTag || (c._extra?.tags || []).includes(filterTag)
+    const matchScope = !isPro || filterScope === 'all'
+      || (filterScope === 'portfolio' ? scopeIsPortfolio(c) : !scopeIsPortfolio(c))
+    const matchAttention = !attention || (attention === 'overdue'
+      ? !!(c._extra?.next_appointment && isOverdue(c._extra.next_appointment))
+      : digitsOf(c._extra?.afm).length !== 9)
+    const q = search.toLowerCase(); const ex = c._extra || {}
+    return matchGroup && matchTag && matchScope && matchAttention && (!q || c.full_name.toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q) || (ex.specialty || '').toLowerCase().includes(q) || (ex.afm || '').includes(q) || (ex.iban || '').includes(q) || (ex.tags || []).some((t: string) => t.toLowerCase().includes(q)))
+  }), [contacts, search, filterGroup, filterTag, filterScope, attention, isPro])
+
+  const alphaIndex = useMemo(() => buildAlphaIndex(scoped.map(c => c.full_name)), [scoped])
+
+  // Το γράμμα που δεν υπάρχει πια δεν επιτρέπεται να μείνει πατημένο: αν έσβηνες
+  // την τελευταία επαφή στο «Π», η οθόνη θα έδειχνε κενό με ενεργό ένα γράμμα
+  // που δεν φαίνεται πουθενά — αδιέξοδο χωρίς ορατή έξοδο.
+  const letter = letterFilter && alphaIndex.some(e => e.letter === letterFilter) ? letterFilter : null
+
   const processed = useMemo(() => {
-    let list = contacts.filter(c => {
-      const matchGroup = filterGroup === 'all' || ROLE_META[c.role]?.groupId === filterGroup
-      const matchTag = !filterTag || (c._extra?.tags || []).includes(filterTag)
-      const matchScope = !isPro || filterScope === 'all'
-        || (filterScope === 'portfolio' ? scopeIsPortfolio(c) : !scopeIsPortfolio(c))
-      const q = search.toLowerCase(); const ex = c._extra || {}
-      return matchGroup && matchTag && matchScope && (!q || c.full_name.toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q) || (ex.specialty || '').toLowerCase().includes(q) || (ex.afm || '').includes(q) || (ex.iban || '').includes(q) || (ex.tags || []).some((t: string) => t.toLowerCase().includes(q)))
-    })
-    if (sortMode === 'alpha') list = [...list].sort((a, b) => a.full_name.localeCompare(b.full_name, 'el'))
+    const list = letter ? scoped.filter(c => alphaBucket(c.full_name) === letter) : [...scoped]
+    // Με ενεργό γράμμα η σειρά είναι ΠΑΝΤΑ αλφαβητική — το «πιο πρόσφατες» μέσα
+    // σε ένα γράμμα δεν απαντά καμία ερώτηση.
+    if (sortMode === 'alpha' || letter) list.sort((a, b) => compareNames(a.full_name, b.full_name))
     return [...list.filter(c => c._extra?.preferred), ...list.filter(c => !c._extra?.preferred)]
-  }, [contacts, search, filterGroup, filterTag, filterScope, sortMode, isPro])
+  }, [scoped, sortMode, letter])
 
   const groupedFiltered: Record<string, Contact[]> = {}
   processed.forEach(c => { const gid = ROLE_META[c.role]?.groupId || 'tenants'; if (!groupedFiltered[gid]) groupedFiltered[gid] = []; groupedFiltered[gid].push(c) })
@@ -1430,11 +1500,12 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   // ζητούν τίποτα. Ένα πλήθος δεν είναι κρίση: «4 τεχνικοί» δεν σε βάζει να κάνεις
   // κάτι. Το «λείπει ΑΦΜ» σε βάζει, γιατί χωρίς αυτό δεν δένουν τα παραστατικά.
   const missingAfm = contacts.filter(c => digitsOf(c._extra?.afm).length !== 9).length
-  const kpiItems: KPIItem[] = [
-    { label: 'Ληγμένα ραντεβού', value: fn(overdueContacts.length), tone: overdueContacts.length > 0 ? 'negative' : 'neutral' },
-    { label: 'Χωρίς ΑΦΜ', value: fn(missingAfm), tone: missingAfm > 0 ? 'warning' : 'neutral' },
-    { label: 'Σύνολο Επαφών', value: fn(contacts.length) },
-  ]
+  // Το ΑΦΜ δεν είναι γραφειοκρατία: χωρίς αυτό, ένα τιμολόγιο του συνεργάτη δεν
+  // δένει με την επαφή του και η δαπάνη μένει ανώνυμη στο βιβλίο.
+  const needsAttention = ([
+    { id: 'overdue' as const, label: 'Ληγμένο ραντεβού', count: overdueContacts.length },
+    { id: 'no-afm' as const, label: 'Χωρίς ΑΦΜ', count: missingAfm },
+  ]).filter(a => a.count > 0)
   // Ποια πεδία βλέπει ΑΥΤΟΣ ο χρήστης. Η «εμβέλεια» π.χ. δεν έχει νόημα με ένα
   // ακίνητο, οπότε δεν υπάρχει καθόλου — δεν είναι ρύθμιση, είναι θόρυβος.
   const contactCtx: FieldContext = {
@@ -1467,9 +1538,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           κουμπί είναι η ΦΩΤΟΓΡΑΦΙΑ, όχι η χειροκίνητη καταχώριση. */}
       {!embedded && <PageTitle
         title="Επαφές"
-        sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
+        sub="Συνεργάτες, πάροχοι και υπηρεσίες του ακινήτου"
         right={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          {contacts.length > 0 && <Btn variant="secondary" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>}
           <Btn variant="secondary" onClick={openAdd}>Νέα επαφή</Btn>
           {contacts.length > 0 && <details className="po-menu" style={{ position: 'relative' }}>
             <summary style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
@@ -1490,17 +1560,40 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               ))}
             </div>
           </details>}
-          <Btn variant="primary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Φωτογράφισε κάρτα ή τιμολόγιο'}</Btn>
+          <Btn variant="primary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωση κάρτας'}</Btn>
         </div>}
       />}
 
-      {/* Ο έλεγχος «έχει περιεχόμενο;» ζει στο ίδιο το KPIGrid — δεν επαναλαμβάνεται εδώ. */}
-      <KPIGrid items={kpiItems} columns={3} />
+      {/* ══ ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ ══════════════════════════════════════════
+          Πριν εδώ υπήρχαν ΔΥΟ ζώνες που έλεγαν το ίδιο: τρία πλακίδια
+          («ΛΗΓΜΕΝΑ ΡΑΝΤΕΒΟΥ 0 · ΧΩΡΙΣ ΑΦΜ 1 · ΣΥΝΟΛΟ ΕΠΑΦΩΝ 1») και από κάτω
+          μια κορδέλα που ξανάλεγε τα ληγμένα ραντεβού ονομαστικά. Το σύνολο
+          λεγόταν άλλες τρεις φορές παρακάτω — στη γραμμή πλήθους, στο chip της
+          κατηγορίας και στον διαχωριστή της ομάδας.
 
-      {overdueContacts.length > 0 && (
-        <InfoBanner tone="warning">
-          <strong style={{ color: 'var(--text-primary)' }}>{overdueContacts.length} επαφές με ληγμένο ραντεβού: </strong>{overdueContacts.map(c => c.full_name).join(', ')}
-        </InfoBanner>
+          Ένα πλήθος δεν είναι ενέργεια: το «4 τεχνικοί» δεν σε βάζει να κάνεις
+          τίποτα. Εδώ μένουν μόνο τα δύο που ΖΗΤΟΥΝ κάτι, και είναι φίλτρα: το
+          πάτημα σε πηγαίνει στις συγκεκριμένες επαφές αντί να σε αφήνει να τις
+          ψάξεις. Όταν δεν υπάρχει τίποτα εκκρεμές, η ζώνη δεν υπάρχει — η
+          απουσία προβλήματος δεν χρειάζεται ανακοίνωση. */}
+      {!loading && needsAttention.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+          {needsAttention.map(a => {
+            const on = attention === a.id
+            return (
+              <button key={a.id} type="button" onClick={() => setAttention(on ? null : a.id)} aria-pressed={on}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.sm, padding: '0 14px',
+                  borderRadius: T.radius.pill, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12,
+                  fontWeight: on ? 700 : 500,
+                  border: '1px solid ' + (on ? 'var(--accent)' : 'var(--border-subtle)'),
+                  background: on ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: on ? 'var(--on-tone)' : 'var(--text-secondary)', transition: 'background .14s, border-color .14s' }}>
+                {a.label}
+                <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10.5, opacity: on ? 0.85 : 0.6 }}>{fn(a.count)}</span>
+              </button>
+            )
+          })}
+        </div>
       )}
 
       {bulkMode && (() => {
@@ -1540,7 +1633,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                 <div key={c.id} onClick={() => openEdit(c)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--accent-border)'), cursor: 'pointer', position: 'relative' }}>
                   {overdue && <span style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--negative)', border: '2px solid var(--bg-elevated)' }} />}
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent)', overflow: 'hidden', flexShrink: 0 }}>
-                    {c._extra?.avatar_url ? <img src={c._extra.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} /> : c.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase() || <GroupIcon size={14} />}
+                    {c._extra?.avatar_url ? <img src={c._extra.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} /> : initialsOf(c.full_name) || <GroupIcon size={14} />}
                   </div>
                   <div><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{c.full_name}</div><div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{meta.label}</div></div>
                   <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
@@ -1555,25 +1648,25 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
+      {!loading && contacts.length > 0 && (<>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
           <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, τηλεφώνου, email, ΑΦΜ, IBAN, ετικέτας…" style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Όνομα, τηλέφωνο, email, ΑΦΜ ή IBAN" style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
         </div>
-        <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)} style={{ ...iStyle, minWidth: 200, width: 'auto', cursor: 'pointer' }}>
-          <option value="all">Όλες οι κατηγορίες</option>
-          {GROUPS.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
-        </select>
         {allTags.length > 0 && (
           <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...iStyle, minWidth: 150, width: 'auto', cursor: 'pointer' }}>
             <option value="">Όλες οι ετικέτες</option>
             {allTags.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         )}
-        <select value={sortMode} onChange={e => setSortMode(e.target.value as SortMode)} style={{ ...iStyle, minWidth: 160, width: 'auto', cursor: 'pointer' }}>
-          <option value="recent">Πιο πρόσφατες</option>
-          <option value="alpha">Αλφαβητικά</option>
-        </select>
+        {/* Ταξινόμηση: δύο επιλογές, ορατές. Ένα αναδυόμενο μενού για δύο τιμές
+            κρύβει τη μισή πληροφορία πίσω από ένα κλικ, χωρίς λόγο. */}
+        <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', background: 'var(--bg-elevated)', padding: 3, gap: 2 }}>
+          {([['recent', 'Πρόσφατες'], ['alpha', 'Αλφαβητικά']] as const).map(([m, label]) => (
+            <button key={m} type="button" onClick={() => setSortMode(m)} style={{ padding: '5px 15px', border: 'none', borderRadius: T.radius.pill, background: sortMode === m ? 'var(--bg-surface)' : 'transparent', color: sortMode === m ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: sortMode === m ? 700 : 500, fontFamily: T.font.sans, boxShadow: sortMode === m ? 'var(--elev-1)' : 'none', transition: 'all 0.15s' }}>{label}</button>
+          ))}
+        </div>
         <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', background: 'var(--bg-elevated)', padding: 3, gap: 2 }}>
           {(['cards', 'compact'] as ViewMode[]).map(v => (
             <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '5px 15px', border: 'none', borderRadius: T.radius.pill, background: viewMode === v ? 'var(--bg-surface)' : 'transparent', color: viewMode === v ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 500, fontFamily: T.font.sans, boxShadow: viewMode === v ? 'var(--elev-1)' : 'none', transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
@@ -1581,7 +1674,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       </div>
 
-      {isPro && contacts.length > 0 && (
+      <AlphaRail entries={alphaIndex} active={letter} onPick={setLetterFilter} />
+
+      {isPro && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Εμβέλεια</span>
           {([
@@ -1596,9 +1691,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
-      {contacts.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
-          {GROUPS.filter(g => contacts.some(c => ROLE_META[c.role]?.groupId === g.id)).map(g => {
+      <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
+        {GROUPS.filter(g => contacts.some(c => ROLE_META[c.role]?.groupId === g.id)).map(g => {
             const count = contacts.filter(c => ROLE_META[c.role]?.groupId === g.id).length; const active = filterGroup === g.id; const GroupIcon = g.Icon
             return (
               <button key={g.id} type="button" onClick={() => setFilterGroup(active ? 'all' : g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--border-default)' : 'var(--border-subtle)'), background: active ? 'var(--bg-elevated)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
@@ -1606,22 +1700,27 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               </button>
             )
           })}
-        </div>
-      )}
+      </div>
 
-      {contacts.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{processed.length} επαφές</span>
-          <ExportButton disabled={processed.length === 0} onClick={() => downloadCsv(
-            `epafes_${athensToday()}`,
-            ['Όνομα', 'Ρόλος', 'Κατηγορία', 'Τηλέφωνο', 'Email', 'Σημειώσεις'],
-            processed.map(c => [
-              c.full_name, ROLE_META[c.role]?.label || c.role, ROLE_META[c.role]?.groupLabel || '',
-              c.phone || '', c.email || '', (c._freeNotes || '').replace(/\n/g, ' '),
-            ])
-          )} />
-        </div>
-      )}
+      {/* Η ΓΡΑΜΜΗ ΤΟΥ ΠΛΗΘΟΥΣ. Το δεύτερο κουμπί εξαγωγής που καθόταν εδώ έφυγε:
+          η κεφαλίδα προσφέρει ήδη Excel, PDF και vCard — τρεις μορφές, ένα
+          σημείο. Στη θέση του μπήκε η μαζική επιλογή, δηλαδή ό,τι αφορά ΑΥΤΕΣ
+          τις επαφές, δίπλα στο πλήθος τους. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+          {processed.length === contacts.length
+            ? `${fn(contacts.length)} ${contacts.length === 1 ? 'επαφή' : 'επαφές'}`
+            : `${fn(processed.length)} από ${fn(contacts.length)}`}
+        </span>
+        {!bulkMode && processed.length > 0 && (
+          <button type="button" onClick={() => { setBulkMode(true); setSelected(new Set()) }}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12,
+              fontFamily: T.font.sans, color: 'var(--accent)' }}>
+            Επιλογή πολλαπλών
+          </button>
+        )}
+      </div>
+      </>)}
 
       {loading ? (
         // Ο γυμνός Spinner δεν προδιέγραφε τίποτα: μόλις έρχονταν τα δεδομένα, τα
@@ -1642,7 +1741,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           </div>}
         />
       ) : processed.length === 0 ? (
-        <EmptyState icon={<SearchX size={20} />} title="Δεν βρέθηκαν αποτελέσματα" hint="Δοκίμασε διαφορετική αναζήτηση ή κατηγορία." />
+        <EmptyState icon={<SearchX size={20} />} title="Καμία επαφή με αυτά τα κριτήρια"
+          hint={letter ? `Καμία επαφή στο «${letter}» με τα ενεργά φίλτρα.` : 'Ο συνδυασμός αναζήτησης, κατηγορίας και φίλτρων δεν αφήνει καμία επαφή.'}
+          action={<Btn variant="secondary" onClick={() => { setSearch(''); setFilterGroup('all'); setFilterTag(''); setLetterFilter(null); setAttention(null) }}>Καθαρισμός φίλτρων</Btn>} />
       ) : viewMode === 'compact' ? (
         <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
@@ -1655,6 +1756,12 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>ΑΦΜ</div>
           </div>
           {processed.map(c => <CompactRow key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
+        </div>
+      ) : letter || sortMode === 'alpha' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
+          {processed.map(c => (
+            <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
+          ))}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>
