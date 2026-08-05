@@ -135,12 +135,20 @@ export function recommendedReserves(monthlyRent: number, propertyValue: number, 
   }
 }
 
-// ── Τέλος ανθεκτικότητας ανά διανυκτέρευση (ενδεικτικές ζώνες, Απρ–Οκτ υψηλή) ──
-export function climateFeePerNight(month: number, category: 'standard' | 'luxury' = 'standard'): number {
-  const high = month >= 4 && month <= 10
-  if (category === 'luxury') return high ? 10 : 4
-  return high ? 1.5 : 0.5
-}
+// ── ΑΦΑΙΡΕΘΗΚΕ: climateFeePerNight ─────────────────────────────────────────
+// Επέστρεφε 1,50 €/νύχτα στην υψηλή περίοδο και 0,50 € στη χαμηλή. Η πηγή
+// αλήθειας του τέλους ανθεκτικότητας είναι το lib/billing/greekTax.ts
+// (CLIMATE_LEVY_STR_2025 / climateLevyRates): 8 € και 2 € για διαμέρισμα,
+// 15 € και 4 € για μονοκατοικία άνω των 80 τ.μ.
+//
+// Δηλαδή αυτή η συνάρτηση υπολόγιζε το ΙΔΙΟ νόμιμο τέλος πέντε ως δέκα φορές
+// μικρότερο. Το BillsBudget την καλούσε και τύπωνε «Τέλος ανθεκτικότητας» δίπλα
+// στη Λογιστική που τύπωνε «Τέλος ανθεκτικότητας (ΤΑΚΚ)» από τη σωστή πηγή:
+// 20 διανυκτερεύσεις τον Ιούλιο έδιναν 30 € στη μία οθόνη και 160 € στην άλλη.
+//
+// Δεν αντικαταστάθηκε με wrapper: το strWaterfall δέχεται ήδη τον συντελεστή ως
+// όρισμα, οπότε ο καλών περνά climateLevyRates(sqm, isHouse) και δεν υπάρχει
+// δεύτερο σημείο να ξαναδιαφωνήσει.
 
 // ── B6 · Όριο επαγγελματία: 3+ ακίνητα βραχυχρόνιας → επιχειρηματική δραστηριότητα ─
 export function strTaxRegime(propertyCount: number): 'individual' | 'business' {

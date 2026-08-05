@@ -36,6 +36,7 @@ import { T, fe, Skeleton, Btn } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
+import { rentalIncomeTax } from '@/lib/billing/greekTax';
 
 const MONTHS = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
 
@@ -75,9 +76,28 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
   const isHouse = ['house', 'villa'].includes(String(prop?.prop_type || '').toLowerCase());
   const tax = shortTermYearSummary(stays, year, { sqm: prop?.sqm ?? null, isHouse });
   const ltRevenue = longTermMonthly * 12;
-  // Σύγκριση με τη μακροχρόνια: ακαθάριστα μείον προμήθειες, τέλος και φόρο —
-  // ό,τι πραγματικά μένει. Δεν συγκρίνουμε ακαθάριστα με ακαθάριστα.
-  const diff = tax.net - ltRevenue;
+
+  // ΤΟ «ΚΑΘΑΡΑ» ΔΕΝ ΕΒΓΑΖΕ ΤΙΣ ΠΡΟΜΗΘΕΙΕΣ. Δύο πλακίδια πιο πάνω η ίδια οθόνη
+  // έδειχνε «Προμήθειες πλατφορμών − X», και μετά έλεγε «Μένει καθαρά» ένα ποσό
+  // που τις είχε ακόμη μέσα: ο ιδιοκτήτης διάβαζε ως υπόλοιπο τσέπης κάτι
+  // μεγαλύτερο από αυτό που θα δει στον λογαριασμό του, ακριβώς κατά την
+  // προμήθεια. Η προμήθεια δεν μειώνει το ΔΗΛΩΤΕΟ έσοδο (γι' αυτό μένει έξω από
+  // το `tax.net` και από το Ε2) — φεύγει όμως πραγματικά, και δεν εκπίπτει
+  // παραπάνω: στο εισόδημα από ακίνητα η μόνη έκπτωση είναι η τεκμαρτή 5%.
+  const stNet = tax.net - tot.platformFees;
+
+  // ΣΥΓΚΡΙΝΟΝΤΑΝ ΑΝΟΜΟΙΑ ΜΕΓΕΘΗ. Η «Διαφορά vs μακροχρόνια» αφαιρούσε το
+  // ΑΚΑΘΑΡΙΣΤΟ ετήσιο ενοίκιο (προ φόρου) από το ΚΑΘΑΡΟ της βραχυχρόνιας (μετά
+  // φόρου) και έβαφε το αποτέλεσμα πράσινο ή κόκκινο σαν ετυμηγορία. Ο φόρος της
+  // μακροχρόνιας δεν αφαιρούνταν ποτέ, οπότε η μακροχρόνια έβγαινε συστηματικά
+  // πιο κερδοφόρα απ' ό,τι είναι — σε ένα ενοίκιο 800 €/μήνα η φαινομενική
+  // διαφορά ήταν ~1.400 € υπέρ της μακροχρόνιας που δεν υπήρχε. Πάνω σε αυτό το
+  // νούμερο ο ιδιοκτήτης αποφασίζει αν θα βγάλει το ακίνητο από το Airbnb.
+  // Τώρα και τα δύο σκέλη περνούν από την ΙΔΙΑ κλίμακα (rentalIncomeTax) με την
+  // ίδια τεκμαρτή έκπτωση 5% (άρθρο 39 παρ.4 ΚΦΕ) και συγκρίνονται μετά φόρου.
+  const ltTax = rentalIncomeTax(ltRevenue * 0.95);
+  const ltNet = ltRevenue - ltTax;
+  const diff = stNet - ltNet;
 
   const kpi = (label: string, value: string, tone = 'var(--text-primary)', title?: string) => (
     <div title={title} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
@@ -151,11 +171,24 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
                   `${MONTHS[occ.peak.fromMonth]}–${MONTHS[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από τα δικά σου δεδομένα.`)}
                 {kpi('Νύχτες / έτος', String(occ.bookedNights))}
                 {kpi('Δηλωτέα ακαθάριστα', fe(tot.revenue), 'var(--text-primary)', 'Τι πλήρωσαν οι επισκέπτες μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται — είναι δαπάνη.')}
-                {tot.climateLevy > 0 && kpi('Τέλος ανθεκτικότητας', `− ${fe(tot.climateLevy)}`, 'var(--text-secondary)', 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.')}
+                {/* ΤΟ ΤΕΛΟΣ ΠΟΥ ΟΦΕΙΛΕΤΑΙ ΕΜΦΑΝΙΖΕΤΑΙ ΠΑΝΤΑ, ΚΙ ΑΣ ΜΗΝ ΕΙΣΠΡΑΧΘΗΚΕ.
+                    Το πλακίδιο έδειχνε μόνο το ΕΙΣΠΡΑΓΜΕΝΟ (`tot.climateLevy`) και
+                    εξαφανιζόταν στο μηδέν. Ο οικοδεσπότης που δεν χρέωσε το ΤΑΚΚ
+                    στους επισκέπτες —η πιο συνηθισμένη περίπτωση στα ιστορικά
+                    δεδομένα— δεν το έβλεπε πουθενά, ενώ το οφείλει στην ΑΑΔΕ και
+                    το πληρώνει ο ίδιος. Τώρα φαίνεται το οφειλόμενο, με το
+                    ακάλυπτο μέρος ονομασμένο. */}
+                {tax.levy > 0 && kpi('Τέλος ανθεκτικότητας', `− ${fe(tax.levy)}`,
+                  tax.levyShortfall > 0 ? 'var(--warning)' : 'var(--text-secondary)',
+                  tax.levyShortfall > 0
+                    ? `Οφείλεται ${fe(tax.levy)} στην ΑΑΔΕ για ${occ.bookedNights} νύχτες. Καταγράφηκε είσπραξη ${fe(tot.climateLevy)} από επισκέπτες, άρα ${fe(tax.levyShortfall)} το πληρώνεις εσύ και αφαιρείται από τα καθαρά. Συμπλήρωσε το τέλος ανά κράτηση στους «Επισκέπτες» αν το χρέωσες.`
+                    : `Οφείλεται ${fe(tax.levy)} και εισπράχθηκε ολόκληρο από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου, ούτε δικό σου κόστος.`)}
                 {tot.platformFees > 0 && kpi('Προμήθειες πλατφορμών', `− ${fe(tot.platformFees)}`, 'var(--text-secondary)', 'Δαπάνη που εκπίπτει.')}
                 {kpi('Εκτιμώμενος φόρος', `− ${fe(tax.incomeTax)}`, 'var(--text-secondary)', 'Κλίμακα εισοδήματος από ακίνητα, επί του 95% των ακαθαρίστων (τεκμαρτή έκπτωση 5%). Ενδεικτικό — επιβεβαίωσε με τον λογιστή.')}
-                {kpi('Μένει καθαρά', fe(tax.net), 'var(--text-primary)', 'Ακαθάριστα − φόρος − τέλος ανθεκτικότητας − τέλος παρεπιδημούντων.')}
-                {longTermMonthly > 0 && kpi('Διαφορά vs μακροχρόνια', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, diff >= 0 ? 'var(--positive)' : 'var(--negative)', `Έναντι ${fe(ltRevenue)} ετησίως από μακροχρόνια μίσθωση (χωρίς φόρο).`)}
+                {kpi('Μένει καθαρά', fe(stNet), 'var(--text-primary)',
+                  `${fe(tax.grossRevenue)} ακαθάριστα − ${fe(tax.incomeTax)} φόρος${tax.municipalTax > 0 ? ` − ${fe(tax.municipalTax)} τέλος παρεπιδημούντων` : ''}${tax.levyShortfall > 0 ? ` − ${fe(tax.levyShortfall)} ακάλυπτο τέλος ανθεκτικότητας` : ''}${tot.platformFees > 0 ? ` − ${fe(tot.platformFees)} προμήθειες πλατφορμών` : ''}. Η προμήθεια δεν μειώνει το δηλωτέο έσοδο, φεύγει όμως από την τσέπη σου.${tot.platformFees > 0 ? '' : ' Δεν υπάρχει καταγεγραμμένη προμήθεια σε αυτές τις κρατήσεις — αν υπήρξε, το πραγματικό υπόλοιπο είναι μικρότερο.'}`)}
+                {longTermMonthly > 0 && kpi('Διαφορά vs μακροχρόνια (μετά φόρου)', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, diff >= 0 ? 'var(--positive)' : 'var(--negative)',
+                  `Και τα δύο μετά φόρου, ώστε να συγκρίνονται: βραχυχρόνια ${fe(stNet)} έναντι ${fe(ltNet)} από μακροχρόνια (${fe(ltRevenue)} ενοίκιο − ${fe(ltTax)} φόρος). Ίδια κλίμακα και στα δύο, με τεκμαρτή έκπτωση 5%. Ο φόρος υπολογίζεται μόνο για αυτό το ακίνητο· με περισσότερα ακίνητα η κλίμακα ανεβαίνει και στις δύο πλευρές. Ενδεικτικό — επιβεβαίωσε με τον λογιστή.`)}
               </div>
 
               {tot.unresolved > 0 && (

@@ -10,8 +10,22 @@ import { Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, EmptyState, Skeleton } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
+import { athensToday } from '@/lib/core/time';
 
 interface Req { id: string; title: string; description: string | null; contact: string | null; status: string; created_at: string; photos?: string[] | null; }
+
+// Ο σύνδεσμος της πύλης ανήκει σε ΑΝΘΡΩΠΟ, όχι σε θέση.
+//
+// Όσο το portal_links κρατούσε μόνο property_id, η get_portal_data έβρισκε τον
+// ενοικιαστή ως «ο πιο πρόσφατος του ακινήτου». Όταν άλλαζε ενοικιαστής, το
+// παλιό token συνέχιζε να δουλεύει και άρχιζε να δείχνει τα στοιχεία του νέου:
+// ονοματεπώνυμο, μίσθωμα, εγγύηση, IBAN, απλήρωτα. Ο παλιός δεν χρειαζόταν να
+// κάνει τίποτα — αρκούσε να ξανανοίξει έναν σύνδεσμο που είχε ήδη.
+//
+// Εδώ κλείνει η πλευρά της εφαρμογής: κάθε νέος σύνδεσμος γεννιέται δεμένος
+// στον σημερινό ενοικιαστή, και όταν αλλάξει ενοικιαστής ο ιδιοκτήτης το βλέπει
+// και εκδίδει νέο. Το ίδιο σχήμα με τη βάση (uuid χωρίς παύλες).
+const newToken = () => crypto.randomUUID().replace(/-/g, '');
 
 export default function PortalShare({ propertyId, userId }: { propertyId: string; userId: string }) {
   const supabase = createClient();
@@ -31,12 +45,20 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   // έδειχνε τη ΛΑΘΟΣ κατάσταση («ενεργοποίησε πύλη», «κανένα αίτημα») και μετά
   // αναβόσβηνε στη σωστή. Ο σκελετός κρατά τη θέση μέχρι να μάθουμε την αλήθεια.
   const [loading, setLoading] = useState(true);
+  const [linkTenant, setLinkTenant] = useState<string | null>(null);              // σε ποιον ενοικιαστή είναι δεμένος ο σύνδεσμος
+  const [tenant, setTenant] = useState<{ id: string; full_name: string | null } | null>(null);  // ποιος μένει τώρα
 
   const load = useCallback(async () => {
-    const { data: link } = await supabase.from('portal_links').select('token, payment_link, pin_hash').eq('property_id', propertyId).eq('user_id', userId).maybeSingle();
+    const { data: link } = await supabase.from('portal_links').select('token, payment_link, pin_hash, tenant_id').eq('property_id', propertyId).eq('user_id', userId).maybeSingle();
     setToken(link?.token || null);
     setPayLink(link?.payment_link || '');
     setPinSet(!!link?.pin_hash);
+    setLinkTenant(link?.tenant_id || null);
+    // Ίδια σειρά με το backfill του migration και με την παλιά get_portal_data:
+    // «ο πιο πρόσφατος του ακινήτου». Έτσι το «τρέχων» εδώ σημαίνει ό,τι
+    // ακριβώς σήμαινε και στη βάση, χωρίς να αποκλίνουν οι δύο ορισμοί.
+    const { data: t } = await supabase.from('tenants').select('id, full_name').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    setTenant(t || null);
     const { data: r } = await supabase.from('maintenance_requests').select('*').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false });
     setReqs((r as Req[]) || []);
     setLoading(false);
@@ -66,11 +88,46 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   const enable = async () => {
     setBusy(true);
-    const { data, error } = await supabase.from('portal_links').insert({ property_id: propertyId, user_id: userId }).select('token').single();
+    // Το tenant_id μπαίνει ΤΩΡΑ, στη γέννηση του συνδέσμου. Αν το ακίνητο δεν
+    // έχει ακόμη ενοικιαστή μένει null — δεν υπάρχει κάτι να διαρρεύσει — και ο
+    // ιδιοκτήτης θα δει το κουμπί δεσίματος μόλις καταχωρήσει τον πρώτο.
+    const { data, error } = await supabase.from('portal_links').insert({ property_id: propertyId, user_id: userId, tenant_id: tenant?.id ?? null }).select('token, tenant_id').single();
     setBusy(false);
-    if (!error && data) setToken(data.token);
+    if (!error && data) { setToken(data.token); setLinkTenant(data.tenant_id || null); }
     else if (error) notifyError('Σφάλμα: ' + error.message);
   };
+
+  // Δέσιμο σε ενοικιαστή που δεν είχε δεθεί ποτέ. Ο σύνδεσμος ήδη έδειχνε αυτόν
+  // (fallback «ο πιο πρόσφατος»), οπότε κανείς δεν χάνει και δεν κερδίζει
+  // πρόσβαση — το token μένει ίδιο και ο ενοικιαστής δεν χρειάζεται νέο.
+  const bind = async () => {
+    if (!tenant) return;
+    setBusy(true);
+    const { error } = await supabase.from('portal_links').update({ tenant_id: tenant.id }).eq('property_id', propertyId).eq('user_id', userId);
+    setBusy(false);
+    if (error) { notifyError('Σφάλμα: ' + error.message); return; }
+    setLinkTenant(tenant.id);
+    notifyOk('Ο σύνδεσμος δέθηκε στον τρέχοντα ενοικιαστή');
+  };
+
+  // Αλλαγή ενοικιαστή: ΔΕΝ αρκεί να αλλάξει το tenant_id — ο προηγούμενος έχει
+  // ήδη το token στο κινητό του. Γυρίζει και το token, οπότε ο παλιός σύνδεσμος
+  // πεθαίνει την ίδια στιγμή και ο νέος ενοικιαστής παίρνει δικό του.
+  const reissue = async () => {
+    if (!tenant) return;
+    setBusy(true);
+    const t = newToken();
+    const { error } = await supabase.from('portal_links').update({ token: t, tenant_id: tenant.id }).eq('property_id', propertyId).eq('user_id', userId);
+    setBusy(false);
+    if (error) { notifyError('Σφάλμα: ' + error.message); return; }
+    setToken(t); setLinkTenant(tenant.id); setCopied(false);
+    notifyOk('Νέος σύνδεσμος. Ο παλιός έπαψε να ισχύει — στείλε τον νέο στον ενοικιαστή.');
+  };
+
+  // Δεμένος σε ΑΛΛΟΝ από αυτόν που μένει τώρα: ο παλιός σύνδεσμος δείχνει σε
+  // άνθρωπο που έφυγε. Χωρίς τρέχοντα ενοικιαστή δεν υπάρχει κρίση να γίνει.
+  const staleLink = !!token && !!tenant && !!linkTenant && linkTenant !== tenant.id;
+  const unboundLink = !!token && !!tenant && !linkTenant;
 
   const url = token && typeof window !== 'undefined' ? `${window.location.origin}/portal/${token}` : '';
   const copy = () => { if (url) { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } };
@@ -78,7 +135,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   // Cross-tab: αίτημα βλάβης → Ημερολόγιο (προγραμματισμός επισκευής)
   const toCalendar = async (r: Req) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = athensToday();
     const { error } = await supabase.from('calendar_events').insert({
       property_id: propertyId, user_id: userId,
       title: `Επισκευή: ${r.title}`, category: 'maintenance',
@@ -99,7 +156,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
       property_id: propertyId, user_id: userId,
       description: `Επισκευή: ${r.title}`, amount: amt,
       category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance',
-      date: new Date().toISOString().split('T')[0], paid_by: 'owner', paid: true,
+      date: athensToday(), paid_by: 'owner', paid: true,
       notes: r.description ? `Από αίτημα ενοικιαστή, ${r.description}` : 'Από αίτημα ενοικιαστή',
     });
     if (error) { notifyError('Σφάλμα καταχώρησης δαπάνης'); return; }
@@ -143,6 +200,25 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
             </div>
           ) : (
             <>
+              {/* Ο σύνδεσμος δείχνει σε άνθρωπο που έφυγε. Ο ιδιοκτήτης δεν είχε
+                  ως τώρα κανέναν τρόπο να το δει — και ο παλιός ενοικιαστής
+                  έβλεπε τα στοιχεία του νέου. Μία πρόταση, ένα κουμπί. */}
+              {staleLink && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--warning-on-container)', lineHeight: 1.5, flex: 1, minWidth: 200 }}>
+                    Ο σύνδεσμος ανήκει στον προηγούμενο ενοικιαστή. Έκδωσε νέον για <strong>{tenant?.full_name || 'τον σημερινό ενοικιαστή'}</strong>, ο παλιός παύει αμέσως να ισχύει.
+                  </div>
+                  <button onClick={reissue} disabled={busy} style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: 'none', background: 'var(--warning)', color: 'var(--on-tone)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{busy ? 'Έκδοση…' : 'Έκδοση νέου συνδέσμου'}</button>
+                </div>
+              )}
+              {unboundLink && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1, minWidth: 200 }}>
+                    Ο σύνδεσμος δεν είναι δεμένος σε ενοικιαστή, οπότε θα ακολουθεί όποιον μένει κάθε φορά. Δέσ&apos; τον στον <strong>{tenant?.full_name || 'σημερινό ενοικιαστή'}</strong>, ο ίδιος σύνδεσμος συνεχίζει να δουλεύει.
+                  </div>
+                  <button onClick={bind} disabled={busy} style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{busy ? 'Δέσιμο…' : 'Δέσιμο στον ενοικιαστή'}</button>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
                 <input readOnly value={url} onFocus={e => e.currentTarget.select()} style={{ flex: 1, minWidth: 200, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '9px 12px', fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono, outline: 'none' }} />
                 <button onClick={copy} style={{ height: T.h.md, padding: '0 16px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}</button>

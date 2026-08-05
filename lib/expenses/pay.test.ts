@@ -5,6 +5,8 @@
 // ποιο κουμπί «Πληρώθηκε» πάτησε ο χρήστης.
 import { planBillPayment, billCategory } from './pay';
 import { isGroupDeductible } from './groups';
+import { isDeductible, BY_SLUG, resolveCategory } from './taxonomy';
+import { EXPENSE_MAP } from '../billing/parse';
 
 let pass = 0, fail = 0;
 function eq(name: string, got: unknown, want: unknown) {
@@ -53,6 +55,78 @@ const DEH = { id: 'b1', name: 'ΔΕΗ Ιουλίου', amount: 84.5, category: '
   eq('χωρίς κατηγορία → other', plan.newExpense?.expense_group, 'other');
   eq('χωρίς όνομα → η ετικέτα της κατηγορίας', plan.newExpense?.description, 'Άλλο');
 }
+
+// ═══ Ο ΕΝΦΙΑ ΚΑΙ ΟΙ ΣΥΝΔΡΟΜΕΣ ΔΕΝ ΓΙΝΟΝΤΑΙ ΕΚΠΕΣΤΕΟΙ ══════════════════════
+// Τα κλειδιά των λογαριασμών ΔΕΝ είναι slug της ταξινομίας. Το `taxes`
+// αστοχούσε στο BY_SLUG και κληρονομούσε την ομάδα του ΧΑΡΤΗ, που είναι
+// 'fixed' — δηλαδή εκπεστέα. Τα βήματα, με το χέρι:
+//   EXPENSE_MAP['taxes']         → { group: 'fixed', cat: 'ΕΝΦΙΑ' }
+//   BY_SLUG['taxes']             → undefined            (το slug είναι 'enfia')
+//   resolveCategory('ΕΝΦΙΑ')     → 'enfia'              (συνώνυμο 'ενφια')
+//   BY_SLUG['enfia'].deductible  → false
+//   groupForCategory(...)        → 'other'              (deductible:false ⇒ other)
+// Πριν τη διόρθωση έβγαινε 'fixed' και ο ΕΝΦΙΑ μετρούσε στις εκπτώσεις.
+{
+  const enfia = planBillPayment({ id: 'b5', name: 'ΕΝΦΙΑ 2026', amount: 340, category: 'taxes' }, CTX);
+  eq('ΕΝΦΙΑ → ομάδα other', enfia.newExpense?.expense_group, 'other');
+  eq('η ετικέτα μένει «ΕΝΦΙΑ»', enfia.newExpense?.category, 'ΕΝΦΙΑ');
+  ok('ΕΝΦΙΑ ΔΕΝ εκπίπτει', !isGroupDeductible(enfia.newExpense?.expense_group));
+
+  // Ίδια διαδρομή: 'streaming' → ετικέτα «Άλλη Πάγια» → slug 'subscription',
+  // deductible:false ⇒ 'other'. Πριν: 'fixed', δηλαδή το Netflix εξέπιπτε.
+  const netflix = planBillPayment({ id: 'b6', name: 'Netflix', amount: 9.99, category: 'streaming' }, CTX);
+  eq('συνδρομή → ομάδα other', netflix.newExpense?.expense_group, 'other');
+  ok('συνδρομή ΔΕΝ εκπίπτει', !isGroupDeductible(netflix.newExpense?.expense_group));
+}
+
+// Και τα υπόλοιπα αναντίστοιχα κλειδιά ΔΕΝ έχασαν την έκπτωσή τους:
+//   cleaner→cleaning, gardener→garden, maintenance→repair — όλα family 'upkeep'
+//   με deductible:true ⇒ FAMILY_GROUP['upkeep'] = 'maintenance'.
+//   municipal→municipal (official, deductible:true) ⇒ 'fixed'.
+{
+  const WANT: ReadonlyArray<readonly [string, string]> = [
+    ['cleaner', 'maintenance'], ['gardener', 'maintenance'], ['maintenance', 'maintenance'],
+    ['municipal', 'fixed'], ['electricity', 'fixed'],
+  ];
+  for (const [key, want] of WANT) {
+    const { group } = billCategory(key);
+    eq(`${key} → ${want}`, group, want);
+    ok(`${key} εξακολουθεί να εκπίπτει`, isGroupDeductible(group));
+  }
+}
+
+// ═══ Ο ΧΑΡΤΗΣ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΔΙΑΦΩΝΕΙ ΜΕ ΤΗΝ ΤΑΞΙΝΟΜΙΑ ════════════════
+// Το EXPENSE_MAP κρατά δική του στήλη `group` — δεύτερος άξονας που μπορεί να
+// πει «εκπίπτει» εκεί που η ταξινομία λέει όχι. Εδώ ελέγχεται ΚΑΘΕ κλειδί, όχι
+// μόνο όσα θυμηθήκαμε: αν κάποιο ξαναδιαφωνήσει, πέφτει αυτό το τεστ.
+{
+  let bad = '';
+  for (const [key, m] of Object.entries(EXPENSE_MAP)) {
+    const { group } = billCategory(key);
+    if (isGroupDeductible(group) !== isDeductible(m.cat)) bad = key;
+  }
+  eq('καμία κατηγορία λογαριασμού δεν διαφωνεί με την ταξινομία', bad, '');
+}
+
+// ═══ Η ΤΑΞΙΝΟΜΙΑ ΑΠΑΝΤΑ ΓΙΑ ΚΑΘΕ ΚΛΕΙΔΙ — Η ΥΠΟΧΩΡΗΣΗ ΔΕΝ ΧΡΕΙΑΖΕΤΑΙ ══════
+// Το προηγούμενο τεστ ελέγχει ότι χάρτης και ταξινομία ΣΥΜΦΩΝΟΥΝ. Συμφωνούν
+// όμως και όταν η ταξινομία δεν έχει γνώμη: η υποχώρηση δίνει την ομάδα του
+// χάρτη, κι αν τύχει να ταιριάζει, το τεστ περνά χωρίς η ταξινομία να έχει
+// αποφανθεί ποτέ. Έτσι ακριβώς κρύφτηκε το αρχικό λάθος. Εδώ ελέγχεται ότι η
+// απάντηση ΠΡΑΓΜΑΤΙΚΑ βγαίνει από τη μία πηγή για ΟΛΑ τα κλειδιά — αν κάποιος
+// προσθέσει αύριο κατηγορία που η ταξινομία δεν αναγνωρίζει, φαίνεται αμέσως.
+{
+  const unresolved: string[] = [];
+  for (const [key, m] of Object.entries(EXPENSE_MAP)) {
+    const slug = BY_SLUG[key] ? key : resolveCategory(m.cat);
+    if (!slug || !BY_SLUG[slug]) unresolved.push(key);
+  }
+  eq('κάθε κατηγορία λογαριασμού βρίσκει κατηγορία στην ταξινομία', unresolved.join(','), '');
+}
+
+// Οι δύο που ΔΕΝ εκπίπτουν, ονομαστικά: ήταν η ζημιά που έκανε η υποχώρηση.
+eq('ΕΝΦΙΑ (taxes) δεν εκπίπτει', isGroupDeductible(billCategory('taxes').group), false);
+eq('συνδρομές (streaming) δεν εκπίπτουν', isGroupDeductible(billCategory('streaming').group), false);
 
 // ═══ ΚΑΜΙΑ ΔΕΥΤΕΡΗ ΓΡΑΜΜΗ ΟΤΑΝ ΥΠΑΡΧΕΙ ΗΔΗ ════════════════════════════════
 {

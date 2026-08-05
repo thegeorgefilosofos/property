@@ -44,6 +44,9 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   const [addingId, setAddingId] = useState<number | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
   // Η μηχανή δεν απάντησε. Το λέμε, δεν το καλύπτουμε με εφευρέσεις.
+  // Το ακριβές μήνυμα του server (π.χ. υπέρβαση ορίου AI), ώστε να μη λέμε
+  // «δοκίμασε ξανά» εκεί που το ξαναπάτημα κοστίζει άλλη μία ερώτηση.
+  const [serverMessage, setServerMessage] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
   async function generateSuggestions() {
@@ -68,6 +71,17 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
         }
       );
       const data = await response.json();
+      // ΤΟ ΜΗΝΥΜΑ ΤΟΥ SERVER ΠΡΕΠΕΙ ΝΑ ΦΤΑΝΕΙ ΣΤΟΝ ΧΡΗΣΤΗ.
+      //
+      // Κάθε απόκριση κατέληγε στο ίδιο «δοκίμασε ξανά σε λίγο». Σε υπέρβαση
+      // ορίου (429) αυτό είναι λάθος συμβουλή: ο μετρητής αυξάνει ΠΡΙΝ τον
+      // έλεγχο, οπότε κάθε ξαναπάτημα κατανάλωνε άλλη μία ερώτηση από το πακέτο
+      // του χρήστη. Το λάθος μήνυμα άδειαζε ενεργά το υπόλοιπό του.
+      if (!response.ok || data.error) {
+        setServerMessage(typeof data.error === 'string' ? data.error : null);
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      setServerMessage(null);
       if (data.suggestions?.length) setSuggestions(data.suggestions);
       else throw new Error('No suggestions');
     } catch {
@@ -152,8 +166,10 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
           πλαίσιο διαβάζονται σαν θόρυβος, πέντε γραμμές σαν λίστα. */}
       {failed && (
         <p style={{ ...TT.bodySm, marginTop: 4, maxWidth: 620 }}>
+          {serverMessage ? serverMessage : <>
           Δεν κατάφερα να διαβάσω το ακίνητο αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο —
           δεν θα σου δείξω προτάσεις με νούμερα που δεν προέρχονται από τα δικά σου στοιχεία.
+          </>}
         </p>
       )}
 

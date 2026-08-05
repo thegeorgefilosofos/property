@@ -23,6 +23,7 @@ import {
 import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
 import { PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate'
 import { regionByKey, GREECE_AVG_GROSS_YIELD, MARKET_DATA_ASOF } from '@/lib/market/greekMarket'
+import { athensToday } from '@/lib/core/time';
 
 // ── MD3 tokens ────────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -525,7 +526,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [rateType,    setRateType]    = useState<RateType>('fixed')
   const [loanType,    setLoanType]    = useState<LoanType>('purchase')
   const [borrower,    setBorrower]    = useState<BorrowerType>('individual')
-  const [startDate,   setStartDate]   = useState(new Date().toISOString().split('T')[0])
+  const [startDate,   setStartDate]   = useState(athensToday())
   const [fixedPeriod, setFixedPeriod] = useState('5')
   const [bankId,      setBankId]      = useState('')
   const [customBank,  setCustomBank]  = useState('')

@@ -94,7 +94,13 @@ export async function proxy(request: NextRequest) {
   // Το /trust («Ποιοι είμαστε») είναι σελίδα εμπιστοσύνης: πρέπει να διαβάζεται
   // ΠΡΙΝ ο χρήστης αποφασίσει να εγγραφεί, άρα δημόσια. Το /offline είναι η
   // στατική σελίδα του service worker όταν δεν υπάρχει δίκτυο.
-  const PUBLIC = new Set(["/", "/login", "/signup", "/privacy", "/terms", "/trust", "/offline"]);
+  // Το /ypologismos-forou-enoikion είναι δωρεάν εργαλείο χωρίς εγγραφή: αν
+  // ζητούσε σύνδεση, θα ακύρωνε ολόκληρο τον λόγο ύπαρξής του — απαντά σε
+  // ερώτηση που ο ιδιοκτήτης κάνει ΠΡΙΝ μας ξέρει.
+  const PUBLIC = new Set([
+    "/", "/login", "/signup", "/privacy", "/terms", "/trust", "/offline",
+    "/ypologismos-forou-enoikion", "/ypologismos-enfia",
+  ]);
   // Σελίδες με capability-token (/portal, /accountant, /checkin, /verify) είναι
   // δημόσιες by-design — η πρόσβαση ελέγχεται από το ίδιο το token, όχι από login.
   const isPublic = PUBLIC.has(pathname)

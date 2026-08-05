@@ -176,26 +176,39 @@ export function PageTitle({ title, sub, right, titleHint }: { title: string; sub
 }
 
 // ═══ KPIGrid, η σειρά μετρικών στην κορυφή κάθε tab ═══════════════════════
-export interface KPIItem { label: string; value: string; sub?: string; tone?: Tone }
+export interface KPIItem {
+  label: string; value: string; sub?: string; tone?: Tone;
+  /** Εξήγηση στο hover/long-press. Χωρίς αυτό, η Επισκόπηση αναγκαζόταν να
+   *  γράψει δικά της πλακίδια για να κρατήσει τις επεξηγήσεις της — και έτσι
+   *  απέκτησε δεύτερο, παράλληλο σύστημα καρτών. */
+  title?: string;
+  /** Χρώμα για τη γραμμή `sub` (π.χ. μεταβολή vs πέρσι). */
+  subTone?: Tone;
+}
+
+const TONE_COLOR: Record<string, string> = {
+  positive: 'var(--positive)', negative: 'var(--negative)',
+  warning: 'var(--warning)', info: 'var(--info)', accent: 'var(--accent)',
+};
 
 export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number }) {
   // Ρευστό πλέγμα: γεμίζει όσες στήλες χωράνε (min 150px) και «σπάει» μόνο του
   // σε 2 ή 1 στήλες σε tablet/κινητό, χωρίς media queries, δουλεύει παντού.
   const cols = columns ?? items.length;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16 }}>
+    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16 }}>
       {items.map((k, i) => {
         const toned = !!(k.tone && k.tone !== 'neutral');
         return (
         // Οι κάρτες με τόνο γίνονται εστιάσιμες, ώστε το tap σε κινητό να
         // αποκαλύπτει το χρώμα όπως ο κέρσορας (focus-within). Οι ουδέτερες όχι,
         // για να μη γεμίζει το tab order.
-        <div key={i} className="kpi-card" tabIndex={toned ? 0 : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div key={i} className="kpi-card" title={k.title} tabIndex={toned ? 0 : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="kpi-label">{k.label}</div>
           {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
               στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
           <div className="kpi-value" style={{ marginBottom: 0 }} data-tone={toned ? k.tone : undefined}>{k.value}</div>
-          {k.sub && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
+          {k.sub && <div style={{ fontSize: 10, lineHeight: 1.4, fontWeight: k.subTone ? 600 : 400, color: (k.subTone && TONE_COLOR[k.subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
         );
       })}

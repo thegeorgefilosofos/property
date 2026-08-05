@@ -36,6 +36,7 @@ import { normalizePhone } from '@/lib/clients/clients';
 import { SYSTEM_PROMPT } from './DocumentScan';
 import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
 import { escHtml as esc } from '@/lib/reportBranding';
+import { athensToday } from '@/lib/core/time';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
@@ -84,7 +85,7 @@ const isPastTenant = (t:{status?:string|null;move_out_date?:string|null}) => t.s
 // Τρόποι πληρωμής ενοικίου (ελληνικά, σταθερή σειρά).
 const PAY_METHODS = ['Μετρητά','Τραπεζική κατάθεση','Ηλεκτρονική πληρωμή','Κάρτα'] as const;
 type PayMethod = typeof PAY_METHODS[number];
-const todayISO = () => new Date().toISOString().slice(0,10);
+const todayISO = () => athensToday();
 // Τελευταία ημέρα του ΕΠΟΜΕΝΟΥ μήνα από μια ημερομηνία (προθεσμία δήλωσης ΑΑΔΕ).
 const lastDayNextMonth = (iso:string) => {
   const d = new Date(iso+'T00:00:00'); if(isNaN(d.getTime())) return '—';
@@ -651,7 +652,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   const [logs,setLogs]=useState<CommLog[]>([]);
   const [loading,setLoading]=useState(true);
   const [showAdd,setShowAdd]=useState(false);
-  const [form,setForm]=useState({type:'call' as CommLog['type'],summary:'',date:new Date().toISOString().split('T')[0],outcome:''});
+  const [form,setForm]=useState({type:'call' as CommLog['type'],summary:'',date:athensToday(),outcome:''});
   const [saving,setSaving]=useState(false);
   const TYPE_LABELS:Record<string,string>={call:'Τηλεφωνική Κλήση',email:'Ηλεκτρονικό Ταχυδρομείο',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
   const TYPE_SHORT:Record<string,string>={call:'Κλήση',email:'Email',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
@@ -665,7 +666,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   const saveLog=async()=>{
     if(!form.summary.trim())return;setSaving(true);
     await supabase.from('tenant_comm_log').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,type:form.type,summary:form.summary.trim(),date:form.date,outcome:form.outcome||null});
-    setSaving(false);setShowAdd(false);setForm({type:'call',summary:'',date:new Date().toISOString().split('T')[0],outcome:''});loadLogs();
+    setSaving(false);setShowAdd(false);setForm({type:'call',summary:'',date:athensToday(),outcome:''});loadLogs();
   };
 
   const d=daysLeft(tenant.lease_end);

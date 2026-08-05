@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { isValidAfm, nightsBetween, normalizePhone } from '../core/greek';
+import { athensToday } from '../core/time'
 
 export type ClientType = 'owner' | 'lead' | 'client';
 export const CLIENT_TYPES: ClientType[] = ['owner', 'lead', 'client'];
@@ -37,7 +38,9 @@ export function pipelineValue(clients: ClientLike[]): number {
 
 /** Πλήθος ενεργειών που λήγουν σήμερα ή έχουν λήξει (μη κλεισμένες ευκαιρίες). */
 export function dueActions(clients: ClientLike[], now: Date): number {
-  const today = now.toISOString().slice(0, 10);
+  // Ελληνική ημερομηνία: αλλιώς μια ενέργεια που λήγει σήμερα εμφανιζόταν ως
+  // ληγμένη τα ξημερώματα.
+  const today = athensToday(now);
   return clients.filter(c => c.stage !== 'closed' && c.next_date != null && c.next_date <= today).length;
 }
 

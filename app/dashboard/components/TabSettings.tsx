@@ -24,6 +24,7 @@ import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
 import { PLANS, normalizePlan } from '@/lib/billing/plans';
 import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState } from '@/lib/billing/entitlements';
+import { athensToday } from '@/lib/core/time';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -181,7 +182,7 @@ function DeleteAccount() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `propertyos-data-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `propertyos-data-${athensToday()}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   };
@@ -495,7 +496,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
   const exportSettingsCsv = () => {
     const rows = Object.entries(s as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]);
-    downloadCsv(`rythmiseis_akinitou_${new Date().toISOString().slice(0, 10)}`, ['Πεδίο', 'Τιμή'], rows);
+    downloadCsv(`rythmiseis_akinitou_${athensToday()}`, ['Πεδίο', 'Τιμή'], rows);
   };
 
   const exportAll = async () => {

@@ -408,6 +408,10 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     sqm?: string; zone?: string; floor?: string; age?: string;
     propValue?: string; contentValue?: string; city?: string;
     propertyType?: string; isRented?: boolean;
+    // Από πού ήρθαν τα τετραγωνικά, ώστε η ένδειξη προσυμπλήρωσης να λέει την
+    // πραγματική πηγή. Έλεγε πάντα «από ΕΝΦΙΑ» — που ήταν και η μόνη πηγή που
+    // δούλευε, αφού το ακίνητο διαβαζόταν από ανύπαρκτο πίνακα.
+    sqmFrom?: 'enfia' | 'property';
     // Τα τέσσερα που κρίνουν την πρόταση, και που δεν φορτώνονταν ποτέ.
     yearBuilt?: number | null;
     rentalMode?: 'long_term' | 'short_term' | '';
@@ -433,36 +437,55 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
         // Property data from services (ΕΝΦΙΑ has sqm, zone, floor, age)
         const { data: svc } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'services').maybeSingle();
-        // Property name/address from properties table for city detection
-        const { data: prop } = await supabase.from('properties').select('address,city,sqm,prop_type,status_detail').eq('id', propertyId).maybeSingle();
-        // ΤΑ ΔΕΔΟΜΕΝΑ ΠΟΥ ΑΛΛΑΖΟΥΝ ΤΗΝ ΠΡΟΤΑΣΗ. Το έτος κατασκευής, το δάνειο
-        // και ο τρόπος εκμετάλλευσης δεν φορτώνονταν ποτέ σε αυτή την οθόνη,
-        // οπότε η «εξατομικευμένη» σύγκριση δεν είχε τι να εξατομικεύσει.
-        const [{ data: up }, { data: loans }, { data: tenants }] = await Promise.all([
-          supabase.from('user_properties').select('year_built,rental_mode,furnished,target_rent').eq('id', propertyId).maybeSingle(),
+        // ΤΟ ΑΚΙΝΗΤΟ ΔΕΝ ΔΙΑΒΑΖΟΤΑΝ ΠΟΤΕ. Η ερώτηση πήγαινε στον πίνακα
+        // `properties`, που δεν υπάρχει στη βάση — τα ακίνητα ζουν στο
+        // `user_properties`. Γύριζε πάντα σφάλμα, οπότε τα τετραγωνικά και η
+        // περιοχή έμεναν άδεια και η οθόνη ζητούσε από τον ιδιοκτήτη να
+        // ξαναγράψει στοιχεία που το ακίνητό του ήδη είχε καταχωρημένα.
+        //
+        // Δεύτερη αιτία της ίδιας ζημιάς: ζητούνταν οι στήλες `city` και
+        // `furnished`, που ούτε αυτές υπάρχουν στο σχήμα. Μία ανύπαρκτη στήλη
+        // ρίχνει ΟΛΟΚΛΗΡΟ το select, άρα μαζί τους χανόταν και το έτος
+        // κατασκευής και ο τρόπος εκμετάλλευσης — ακριβώς τα δεδομένα πάνω στα
+        // οποία στηρίζεται η πρόταση ασφάλισης. Η περιοχή έρχεται τώρα από τη
+        // διεύθυνση, και το «επιπλωμένο» από τη μίσθωση, όπου όντως ζει.
+        const [{ data: prop }, { data: loans }, { data: tenants }] = await Promise.all([
+          supabase.from('user_properties')
+            .select('address,sqm,prop_type,status_detail,year_built,rental_mode,target_rent')
+            .eq('id', propertyId).maybeSingle(),
           supabase.from('loans').select('status').eq('property_id', propertyId),
-          supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
+          supabase.from('tenants').select('monthly_rent,status,move_out_date,furnishing').eq('property_id', propertyId),
         ]);
         const activeLoan = (loans ?? []).some(l => (l as { status?: string }).status !== 'closed' && (l as { status?: string }).status !== 'inactive');
-        const activeRent = (tenants ?? [])
-          .filter(t => (t as { status?: string }).status !== 'past' && !(t as { move_out_date?: string }).move_out_date)
+        const activeTenants = (tenants ?? [])
+          .filter(t => (t as { status?: string }).status !== 'past' && !(t as { move_out_date?: string }).move_out_date);
+        const activeRent = activeTenants
           .reduce((s, t) => s + (Number((t as { monthly_rent?: number }).monthly_rent) || 0), 0);
-        const u = (up ?? {}) as { year_built?: number; rental_mode?: string; furnished?: boolean; target_rent?: number };
-        if (svc?.data || prop || up) {
+        const isFurnished = activeTenants.some(t => {
+          const f = (t as { furnishing?: string }).furnishing;
+          return f === 'furnished' || f === 'turnkey';
+        });
+        const p = (prop ?? {}) as {
+          address?: string; sqm?: number; prop_type?: string; status_detail?: string;
+          year_built?: number; rental_mode?: string; target_rent?: number;
+        };
+        if (svc?.data || prop) {
           const d = (svc?.data as any) || {};
+          const propSqm = p.sqm ? String(p.sqm) : '';
           setCrossProperty({
-            sqm:          d.enfiaSqm       || prop?.sqm       || '',
+            sqm:          d.enfiaSqm       || propSqm         || '',
+            sqmFrom:      d.enfiaSqm ? 'enfia' : propSqm ? 'property' : undefined,
             zone:         d.enfiaZone      || '',
             floor:        d.enfiaFloor     || 'second',
             age:          d.enfiaAge       || '10_20',
-            city:         prop?.city       || prop?.address   || '',
-            propertyType: prop?.prop_type  || '',
-            isRented:     prop?.status_detail === 'rented',
-            yearBuilt:    Number(u.year_built) || null,
-            rentalMode:   u.rental_mode === 'long_term' || u.rental_mode === 'short_term' ? u.rental_mode : '',
-            furnished:    !!u.furnished,
+            city:         p.address        || '',
+            propertyType: p.prop_type      || '',
+            isRented:     p.status_detail === 'rented',
+            yearBuilt:    Number(p.year_built) || null,
+            rentalMode:   p.rental_mode === 'long_term' || p.rental_mode === 'short_term' ? p.rental_mode : '',
+            furnished:    isFurnished,
             hasLoan:      activeLoan,
-            monthlyRent:  activeRent || Number(u.target_rent) || null,
+            monthlyRent:  activeRent || Number(p.target_rent) || null,
           });
         }
       } catch (_) {}
@@ -580,22 +603,63 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   const insOptions     = relevantCompanies.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
   const insPlanOptions = ((insCompany?.plans ?? [])).map(p => ({ value: p.id, label: `${(p as any).name}, ~${(p as any).monthly > 0 ? `${(p as any).monthly.toFixed(2)} €` : 'Χειροκίνητο'}` }));
 
-  // ── Sync-back: properties table (single source of truth για υπόλοιπο app) ──
-  // Το TabOverview/Property card διαβάζει properties.insurance_company και άλλα
-  // Χωρίς αυτό το sync, το BillsInsurance και το property card δείχνουν διαφορετικά στοιχεία.
+  // ── Sync-back στο ακίνητο: μία πηγή αλήθειας για το υπόλοιπο app ──────────
+  // Η κάρτα ακινήτου διαβάζει insurance_company / insurance_amount /
+  // insurance_expiry από το ίδιο το ακίνητο.
+  //
+  // ΤΙ ΠΗΓΑΙΝΕ ΣΤΡΑΒΑ: το γράψιμο πήγαινε στον πίνακα `properties`, που δεν
+  // υπάρχει, και το αποτέλεσμα δεν ελεγχόταν ποτέ (`.then(() => {})`). Το
+  // σφάλμα καταπινόταν αθόρυβα: ο ιδιοκτήτης καταχωρούσε ημερομηνία λήξης
+  // ασφαλιστηρίου, η οθόνη συμπεριφερόταν σαν να αποθηκεύτηκε, και η λήξη δεν
+  // έφτανε ποτέ στο ακίνητο. Καμία υπενθύμιση, καμία ένδειξη ότι κάτι χάθηκε.
+  //
+  // Ο έλεγχος `loading` δεν είναι διακοσμητικός: όσο φορτώνουν οι ρυθμίσεις το
+  // `ps` κρατά τις ΠΡΟΕΠΙΛΟΓΕΣ (Hellas Direct, χωρίς ημερομηνία). Τώρα που το
+  // γράψιμο πιάνει στ' αλήθεια, ένα sync μέσα σε εκείνο το παράθυρο θα έσβηνε
+  // την πραγματική ασφαλιστική και τη λήξη του χρήστη με τις προεπιλογές.
+  const [syncError, setSyncError] = useState(false);
   const propertySyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── ΓΡΑΦΟΥΜΕ ΜΟΝΟ ΟΤΑΝ ΑΛΛΑΞΕ ΚΑΤΙ ΠΡΑΓΜΑΤΙΚΑ ──────────────────────────────
+  //
+  // Ο έλεγχος `loading` ΔΕΝ αρκεί, και παραλίγο να κοστίσει δεδομένα χρήστη.
+  // Το BillsSettings, όταν η ανάγνωση των ρυθμίσεων ΑΠΟΤΥΧΕΙ, δεν διαβάζει το
+  // σφάλμα: πέφτει στις προεπιλογές και θέτει loading=false. Δηλαδή «απέτυχε η
+  // ανάγνωση» και «δεν υπάρχει γραμμή» καταλήγουν στην ΙΔΙΑ κατάσταση.
+  //
+  // Με φύλακα μόνο το `loading`, 1,2 δευτερόλεπτα μετά το άνοιγμα της καρτέλας
+  // το effect θα έγραφε «Hellas Direct», 8,50 € και ΚΕΝΗ ημερομηνία λήξης πάνω
+  // από την πραγματική ασφαλιστική του χρήστη — σιωπηλά, χωρίς καμία ενέργειά
+  // του. Θα έσβηνε μαζί και την υποχρέωση και το insight που διαβάζουν το
+  // insurance_expiry, δηλαδή ΑΚΡΙΒΩΣ την υπενθύμιση που αυτή η διόρθωση
+  // υποτίθεται ότι αποκατέστησε.
+  //
+  // Η υπογραφή της φορτωμένης κατάστασης κρατιέται μόλις τελειώσει η φόρτωση.
+  // Όσο η τρέχουσα τιμή είναι ίδια με εκείνη, δεν υπάρχει τίποτα να γραφτεί —
+  // ούτε όταν αυτή προήλθε από προεπιλογές μετά από αποτυχία. Γράφουμε μόνο
+  // όταν ο χρήστης άλλαξε κάτι, που είναι και το μόνο που θέλαμε ποτέ.
+  const insSignature = `${insCompany?.label ?? ''}|${insCost}|${insRenewalDate ?? ''}`;
+  const loadedSignature = useRef<string | null>(null);
   useEffect(() => {
-    if (!propertyId) return;
+    if (loading) { loadedSignature.current = null; return; }
+    if (loadedSignature.current === null) loadedSignature.current = insSignature;
+  }, [loading, insSignature]);
+
+  useEffect(() => {
+    if (!propertyId || loading) return;
+    if (loadedSignature.current === null) return;        // δεν κατοχυρώθηκε ακόμη βάση
+    if (insSignature === loadedSignature.current) return; // τίποτα δεν άλλαξε
     if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current);
-    propertySyncTimer.current = setTimeout(() => {
-      supabase.from('properties').update({
+    propertySyncTimer.current = setTimeout(async () => {
+      const { error } = await supabase.from('user_properties').update({
         insurance_company: insCompany?.label ?? null,
-        insurance_amount:   insCost > 0 ? insCost : null,
-        insurance_expiry:   insRenewalDate || null,
-      }).eq('id', propertyId).then(() => {});
+        insurance_amount:  insCost > 0 ? insCost : null,
+        insurance_expiry:  insRenewalDate || null,
+      }).eq('id', propertyId);
+      setSyncError(!!error);
     }, 1200); // debounce, αποφυγή write σε κάθε keystroke
     return () => { if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current); };
-  }, [propertyId, insCompany?.label, insCost, insRenewalDate]);
+  }, [propertyId, loading, insSignature, insCompany?.label, insCost, insRenewalDate]);
 
   // ── Auto-sync ανανέωσης ασφάλειας → calendar_events ──────────────────────────
   useEffect(() => {
@@ -610,7 +674,11 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         .limit(1);
       if (existing?.length) { setCalendarSynced(true); return; }
 
-      await supabase.from('calendar_events').insert({
+      // Το `.then(() => setCalendarSynced(true))` δήλωνε «καταχωρήθηκε» ακόμη κι
+      // όταν το insert γύριζε σφάλμα. Η υπενθύμιση μαρκαριζόταν ως συγχρονισμένη
+      // και δεν ξαναδοκίμαζε ποτέ, οπότε ο ιδιοκτήτης δεν έπαιρνε ειδοποίηση
+      // λήξης — ούτε μάθαινε ποτέ ότι δεν πρόκειται να την πάρει.
+      const { error } = await supabase.from('calendar_events').insert({
         property_id: propertyId,
         user_id: userId,
         title: `Ανανέωση Ασφάλειας Κατοικίας, ${insCompany?.label ?? ''}`,
@@ -622,7 +690,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         recurring: false,
         notes: `Πρόγραμμα: ${(insCompany?.plans ?? []).find((p: any) => p.id === insPlanId)?.name ?? ''}. Σύγκρινε εναλλακτικές πριν ανανεώσεις.`,
         source: 'system',
-      }).then(() => setCalendarSynced(true));
+      });
+      if (!error) setCalendarSynced(true);
     })();
   }, [propertyId, insRenewalDate]);
 
@@ -752,6 +821,15 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         );
       })()}
 
+      {/* Αν η ασφάλεια δεν έφτασε στο ακίνητο, ο χρήστης πρέπει να το μάθει από
+          την οθόνη. Πριν, η αποτυχία ήταν αόρατη και η υπενθύμιση λήξης απλώς
+          δεν ερχόταν ποτέ. */}
+      {syncError && (
+        <InfoBanner tone="warning">
+          Τα στοιχεία ασφάλισης δεν αποθηκεύτηκαν στο ακίνητο. Η υπενθύμιση λήξης δεν θα λειτουργήσει μέχρι να ξαναδοκιμάσεις.
+        </InfoBanner>
+      )}
+
       {/* ── Renewal alerts ──────────────────────────────────────────────── */}
       {renewalAlerts.map((a, i) => (
         <div key={i} style={{ background: a.type === 'danger' ? 'rgba(197,34,31,0.08)' : a.type === 'warning' ? 'rgba(242,153,0,0.08)' : 'rgba(26,115,232,0.06)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
@@ -786,7 +864,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           </div>
           {crossProperty.sqm && !insSqm && (
             <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>
-              ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από tab Υπηρεσίες (ΕΝΦΙΑ), μπορείς να τα επεξεργαστείς
+              ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από {crossProperty.sqmFrom === 'property' ? 'την καρτέλα του ακινήτου' : 'tab Υπηρεσίες (ΕΝΦΙΑ)'}, μπορείς να τα επεξεργαστείς
             </div>
           )}
           {/* FIX: 2+2 grid, Πόλη label doesn't overflow */}

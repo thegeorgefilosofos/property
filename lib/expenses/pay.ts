@@ -23,7 +23,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { EXPENSE_MAP } from '../billing/parse';
-import { BY_SLUG } from './taxonomy';
+import { BY_SLUG, resolveCategory } from './taxonomy';
 import { groupForCategory } from './groups';
 
 /** Ό,τι χρειάζεται από τον λογαριασμό για να αποφασιστεί η πληρωμή. */
@@ -75,7 +75,24 @@ export interface PaymentPlan {
 export function billCategory(category: string | null | undefined): { group: string; cat: string } {
   const key = String(category ?? '').trim();
   const mapped = EXPENSE_MAP[key] ?? EXPENSE_MAP.other;
-  const known = BY_SLUG[key];
+
+  // ΤΟ ΛΑΘΟΣ: το `BY_SLUG[key]` ήταν ΑΚΡΙΒΗΣ αναζήτηση slug, αλλά τα κλειδιά των
+  // λογαριασμών ΔΕΝ είναι slug της ταξινομίας. Πέντε δεν ταίριαζαν ΠΟΤΕ:
+  //   taxes→enfia  streaming→subscription  cleaner→cleaning  gardener→garden
+  //   maintenance→repair
+  // Όσα αστοχούσαν έπαιρναν την ομάδα του ΧΑΡΤΗ — κι ο χάρτης λέει 'fixed' για
+  // τα δύο πρώτα. Το 'fixed' ΕΚΠΙΠΤΕΙ, ενώ η ταξινομία έχει τον ΕΝΦΙΑ και τις
+  // συνδρομές ρητά deductible:false. Δηλαδή ο ιδιοκτήτης που πάτησε «Πληρώθηκε»
+  // σε λογαριασμό ΕΝΦΙΑ ή Netflix έπαιρνε δαπάνη σημειωμένη ως εκπεστέα: το
+  // σύνολο εκπτώσεων φούσκωνε και θα δήλωνε έξοδα που ΔΕΝ εκπίπτουν, με κίνδυνο
+  // προστίμου στον έλεγχο. Είναι ακριβώς οι δύο περιπτώσεις για τις οποίες
+  // προειδοποιεί το lib/expenses/groups.ts — απλώς έμπαιναν από άλλη πόρτα.
+  //
+  // Η ελληνική ετικέτα του χάρτη είναι η γέφυρα: το «ΕΝΦΙΑ» και η «Άλλη Πάγια»
+  // τα αναγνωρίζει η ταξινομία, οπότε η ομάδα ξαναβγαίνει από τη ΜΙΑ πηγή αντί
+  // να την υπαγορεύει η δεύτερη στήλη του χάρτη.
+  const known = BY_SLUG[key] ?? BY_SLUG[resolveCategory(mapped.cat) ?? ''];
+
   return { cat: mapped.cat, group: known ? groupForCategory(known) : mapped.group };
 }
 

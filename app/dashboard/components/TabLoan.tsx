@@ -24,6 +24,7 @@ import EsisScanPanel from './EsisScanPanel'
 import BankRatesAdmin from './BankRatesAdmin'
 import { InfoDot } from './UIComponents'
 import { KPI, LensBar, labelStyle, cardStyle } from './LoanShared'
+import { athensToday } from '@/lib/core/time';
 
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
@@ -287,7 +288,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     const active = (loan.status ?? 'active') === 'active'
     if(active && loan.amount && loan.rate && loan.years){
       const monthly = calcMonthly(loan.amount, loan.rate, loan.years)
-      const start = loan.start_date || new Date().toISOString().split('T')[0]
+      const start = loan.start_date || athensToday()
       await handleSaveCal(monthly, loan.years, start, loan.bank || '', loan.amount, true)
       notifyOk('Το δάνειο αποθηκεύτηκε και οι δόσεις προστέθηκαν στο Ημερολόγιο')
     } else {
@@ -313,7 +314,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     if(!silent) notifyOk(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){
-    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:new Date().toISOString().split('T')[0]})
+    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:athensToday()})
     notifyOk('Δόση καταχωρήθηκε στις Δαπάνες')
   }
   async function deleteLoan(id:string){
@@ -380,7 +381,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   // Εξαγωγή αποθηκευμένων δανείων — «λογιστικού επιπέδου» .xlsx: τίτλος/υπότιτλος,
   // ωμοί αριθμοί (σωστή στοίχιση/μορφή), σωστά πλάτη στηλών, ζωντανά σύνολα SUM.
   const exportSavedLoans = (mode?: XlsxMode) => {
-    downloadXlsx(`Αποθηκευμένα_δάνεια_${new Date().toISOString().slice(0,10)}`, [{
+    downloadXlsx(`Αποθηκευμένα_δάνεια_${athensToday()}`, [{
       name: 'Δάνεια',
       title: 'Αποθηκευμένα δάνεια',
       subtitle: `Property OS · ${saved.length} ${saved.length===1?'δάνειο':'δάνεια'} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`,

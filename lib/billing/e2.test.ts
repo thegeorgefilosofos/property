@@ -2,7 +2,7 @@
 // Τρέξε: npx tsx lib/billing/e2.test.ts
 import {
   monthsRentedInYear, e2LeaseKind, e2IncomeCategory,
-  buildE2Row, e2RowToCells, buildE1Summary, e1LineToCells, type E2Property, type E2Tenant, type E2Payment, type E2Row,
+  buildE2Row, e2RowToCells, buildE1Summary, e1LineToCells, type E2Property, type E2Tenant, type E2Payment, type E2Row, type E2Stay,
 } from './e2';
 
 let passed = 0, failed = 0;
@@ -88,6 +88,55 @@ const T = (o: Partial<E2Tenant> = {}): E2Tenant => ({ property_id: 'p1', afm: nu
   ok('ownership null defaults 100', r.ownershipPct === 100 && r.grossIncome === 9600);
 }
 
+// ── βραχυχρόνια: το ακαθάριστο βγαίνει από τις ΔΙΑΜΟΝΕΣ ─────────────────────
+// ΤΑ ΝΟΥΜΕΡΑ ΣΤΟ ΧΕΡΙ. Δηλωτέο ακαθάριστο μιας διαμονής = τι πλήρωσε ο επισκέπτης
+// − τέλος ανθεκτικότητας (δεν είναι έσοδο του ιδιοκτήτη). Η προμήθεια της
+// πλατφόρμας ΔΕΝ αφαιρείται — είναι δαπάνη, όχι μείωση εσόδου.
+//   Ιούλ 2025:  1000 − 32 =  968
+//   Αύγ 2025:    700 − 20 =  680
+//   Ιούλ 2024:  εκτός του έτους → δεν μετράει
+//   σύνολο 2025 = 968 + 680 = 1648 · ποσοστό 100% → 1648
+// ΠΡΙΝ ΤΗ ΔΙΟΡΘΩΣΗ: καμία διαμονή δεν διαβαζόταν· χωρίς μισθωτή και χωρίς
+// εισπράξεις έβγαινε target_rent 800 × 12 μήνες = 9600, δηλαδή ένας στόχος
+// δηλωμένος ως έσοδο.
+const SEASONAL = P({ status_detail: 'seasonal', target_rent: 800 });
+const STAYS: E2Stay[] = [
+  { property_id: 'p1', check_in: '2025-07-01', check_out: '2025-07-08', nights: 7, gross_guest_paid: 1000, climate_levy: 32, platform_fee: 150 },
+  { property_id: 'p1', check_in: '2025-08-10', check_out: '2025-08-15', nights: 5, gross_guest_paid: 700, climate_levy: 20, platform_fee: 100 },
+  { property_id: 'p1', check_in: '2024-07-01', check_out: '2024-07-05', nights: 4, gross_guest_paid: 500, climate_levy: 10, platform_fee: 70 },
+];
+{
+  const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, STAYS);
+  ok('βραχυχρόνια: ακαθάριστο από διαμονές = 1648', r.grossIncome === 1648);
+  ok('βραχυχρόνια: ΔΕΝ είναι ο στόχος μισθώματος (9600)', r.grossIncome !== 9600);
+  ok('βραχυχρόνια: με διαμονές δεν είναι εκτίμηση', !r.flags.some(f => f.startsWith('Ακαθάριστο')));
+  ok('βραχυχρόνια: κωδικός 60', r.leaseKind === '60 Βραχυχρόνια μίσθωση');
+}
+{
+  // ίδιες διαμονές, 50% συνιδιοκτησία → round(1648 × 50 / 100) = 824
+  const r = buildE2Row(P({ status_detail: 'seasonal', target_rent: 800, ownership: 50 }), null, [], '999999999', 2025, STAYS);
+  ok('βραχυχρόνια: μερίδιο 50% = 824', r.grossIncome === 824);
+}
+{
+  // καμία διαμονή στο έτος → ο στόχος επιτρέπεται, αλλά ΡΗΤΑ σημασμένος
+  const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, []);
+  ok('βραχυχρόνια χωρίς διαμονές: εκτίμηση 9600', r.grossIncome === 9600);
+  ok('βραχυχρόνια χωρίς διαμονές: σημαίνεται ως εκτίμηση', r.flags.some(f => f.includes('εκτίμηση από τον στόχο μισθώματος')));
+}
+{
+  // ιστορική γραμμή: ξέρουμε μόνο το `total` (ακαθάριστο ή payout;) → 500 με προειδοποίηση
+  const legacy: E2Stay[] = [{ property_id: 'p1', check_in: '2025-09-01', check_out: '2025-09-04', nights: 3, total: 500 }];
+  const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, legacy);
+  ok('βραχυχρόνια: ιστορικό ποσό δεν χάνεται (500)', r.grossIncome === 500);
+  ok('βραχυχρόνια: σημαίνεται η απροσδιόριστη βάση', r.flags.some(f => f.includes('χωρίς ρητή βάση ποσού')));
+}
+{
+  // μακροχρόνια: οι διαμονές ΔΕΝ αγγίζουν το ακαθάριστο (800 × 12 = 9600)
+  const r = buildE2Row(P(), T(), [], '999999999', 2025, STAYS);
+  ok('μακροχρόνια: αγνοεί τις διαμονές', r.grossIncome === 9600);
+  ok('μακροχρόνια: κρατά το παλιό μήνυμα εκτίμησης', r.flags.includes('Ακαθάριστο εισόδημα: εκτίμηση (μηνιαίο × μήνες)'));
+}
+
 // ── e2RowToCells (μορφοποίηση) ───────────────────────────────────────────────
 {
   const r = buildE2Row(P({ ownership: 33.33, address: 'Οδός 1', postal_code: '16232' }), T(), [], '999999999', 2025);
@@ -116,6 +165,28 @@ const T = (o: Partial<E2Tenant> = {}): E2Tenant => ({ property_id: 'p1', afm: nu
   // μηδενικά εισοδήματα δεν μπαίνουν
   const empty = buildE1Summary([buildE2Row(P({ id: 'z', status_detail: 'vacant', target_rent: 0 }), T({ property_id: 'z', monthly_rent: 0 }), [], '999', 2025)]);
   ok('Ε1: κενά ακίνητα εξαιρούνται', empty.lines.length === 0 && empty.totalGross === 0);
+}
+
+// ── ΑΝΑΜΕΙΞΗ ΑΚΙΝΗΤΩΝ: το φυσικό λάθος του καλούντος δεν πρέπει να περνά ─────
+// Το ερώτημα φέρνει τις διαμονές ΟΛΟΥ του χαρτοφυλακίου μαζί. Αν κάποιος τις
+// περάσει ενιαία, κάθε ακίνητο θα δήλωνε τα έσοδα όλων — σε φορολογικό έντυπο.
+{
+  const foreign: E2Stay[] = [
+    ...STAYS,
+    { property_id: 'ΑΛΛΟ-ΑΚΙΝΗΤΟ', check_in: '2025-07-20', check_out: '2025-07-27', nights: 7, gross_guest_paid: 5000, climate_levy: 56, platform_fee: 700 },
+  ];
+  const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, foreign);
+  ok('διαμονές άλλου ακινήτου ΔΕΝ προσμετρώνται', r.grossIncome === 1648);
+  ok('…δηλαδή δεν φουσκώνει σε 6592', r.grossIncome !== 6592);
+}
+{
+  // Ιστορική γραμμή χωρίς property_id θεωρείται του ακινήτου: ο καλών περνά ήδη
+  // φιλτραρισμένο σύνολο, και δεν θέλουμε να χαθεί έσοδο επειδή λείπει η στήλη.
+  const legacy: E2Stay[] = [
+    { check_in: '2025-07-01', check_out: '2025-07-08', nights: 7, gross_guest_paid: 1000, climate_levy: 32, platform_fee: 150 },
+  ];
+  const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, legacy);
+  ok('διαμονή χωρίς property_id μετράει (ιστορική γραμμή)', r.grossIncome === 968);
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

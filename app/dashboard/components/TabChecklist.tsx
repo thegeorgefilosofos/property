@@ -30,6 +30,7 @@ import type { StatusRow } from '@/lib/property/status';
 // Καμία δική μας λογική OCR, καμία δεύτερη δρομολόγηση.
 import { scanDocument } from './scanDoc';
 import { normalizeScannedDoc, planDocSave, type ScannedDoc } from '@/lib/billing/documents';
+import { athensToday } from '@/lib/core/time';
 
 const supabase = createSupabaseClient()
 
@@ -552,7 +553,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
   ws3['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 42 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 20 }, { wch: 16 }]
   XLSX.utils.book_append_sheet(wb, ws3, 'Εκκρεμείς Ενέργειες')
 
-  XLSX.writeFile(wb, `checklist_ακινητου_${new Date().toISOString().split('T')[0]}.xlsx`)
+  XLSX.writeFile(wb, `checklist_ακινητου_${athensToday()}.xlsx`)
 }
 
 function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | null) {
@@ -1555,7 +1556,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
   const [provider, setProvider] = useState('')
   const [desc, setDesc] = useState(item.description)
   const fileRef = useRef<HTMLInputElement>(null)
-  const today = new Date().toISOString().split('T')[0]
+  const today = athensToday()
 
   const read = async (f: File) => {
     setFile(f); setErr(''); setStage('reading')
@@ -1918,7 +1919,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // Όσες υποχρεώσεις ΔΕΝ υπάρχουν ήδη στη λίστα. Το κλειδί είναι το `ref`, ώστε
   // δεύτερο πάτημα να μην γράφει διπλότυπα ούτε όταν αλλάξει η διατύπωση.
   const pendingObligations = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = athensToday()
     const have = items.map(i => i._ref).filter((r): r is string => !!r)
     return pendingDrafts(obligationDrafts(today, taxProfile, fieldCtx), have)
   }, [items, taxProfile, fieldCtx])
@@ -2053,7 +2054,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Ιδempotent: αν υπάρχει ήδη συνδεδεμένο event, μην δημιουργείς διπλότυπο.
     if (item.calendar_event_id) { notify('Ήδη στο ημερολόγιο', { tone: 'info' }); return }
     const calPriority = item.priority === 'normal' ? 'medium' : item.priority
-    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'checklist' }).select('id').single()
+    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || athensToday(), category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'checklist' }).select('id').single()
     const calId = (data as { id?: string } | null)?.id
     if (calId) await supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', item.id)
     fetchAll()

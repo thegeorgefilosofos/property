@@ -18,6 +18,7 @@ import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { notifyError, notifyOk } from '@/components/Toast';
 import { confirmDialog } from '@/components/confirmBus';
+import { athensToday } from '@/lib/core/time';
 
 const supabase = createSupabaseClient()
 
@@ -870,7 +871,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
     setSaving(true)
     await onAdd(form)
     if(pushExpenses&&form.cost>0){
-      await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||new Date().toISOString().split('T')[0],paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από Απογραφή, ${item.name}`})
+      await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||athensToday(),paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από Απογραφή, ${item.name}`})
     }
     setForm({repair_date:'',cost:0,technician:'',description:''})
     setSaving(false)
@@ -1443,7 +1444,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     setSaving(true)
     const nowIso=new Date().toISOString()
     const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||'',condition_photo:itemConds[i.id]?.photo||'',captured_at:itemConds[i.id]?.photo?nowIso:''}))
-    const {error} = await supabase.from('inventory_handovers').insert({property_id:propertyId,user_id:userId,handover_type:type,tenant_name:tenantName,tenant_phone:tenantPhone,handover_date:handoverDate||new Date().toISOString().split('T')[0],notes,items_snapshot:snap})
+    const {error} = await supabase.from('inventory_handovers').insert({property_id:propertyId,user_id:userId,handover_type:type,tenant_name:tenantName,tenant_phone:tenantPhone,handover_date:handoverDate||athensToday(),notes,items_snapshot:snap})
     if(error){notifyError('Σφάλμα: '+error.message);setSaving(false);return}
     setMode('list');onSaved();setSaving(false)
   }
@@ -1624,7 +1625,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
   const overdue=schedules.filter(s=>daysUntil(s.next_due)<0)
   const soon=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30})
   const upcoming=schedules.filter(s=>daysUntil(s.next_due)>30)
-  const today=()=>new Date().toISOString().split('T')[0]
+  const today=()=>athensToday()
   const taskTitle=(task:string,item_name:string)=>`Συντήρηση: ${task}${item_name?`, ${item_name}`:''}`
   // Το «κύκλωμα»: μια προγραμματισμένη εργασία → εγγραφή ημερολογίου (υπενθύμιση/εκκρεμότητα)
   // + προγραμματισμένη (εκκρεμής) δαπάνη → τροφοδοτεί προϋπολογισμό «Συντήρηση» & «Εκκρεμείς πληρωμές».
@@ -1981,7 +1982,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     notifyOk(`Προστέθηκε υπενθύμιση εγγύησης στο ημερολόγιο για «${item.name}».`)
   }
   const exportInventoryCsv=()=>downloadCsv(
-    `apografi_${new Date().toISOString().slice(0,10)}`,
+    `apografi_${athensToday()}`,
     ['Αντικείμενο','Κατηγορία','Δωμάτιο','Μάρκα','Κατάσταση','Ημερομηνία Αγοράς','Τιμή Αγοράς (€)','Τρέχουσα Αξία (€)','Εγγύηση έως'],
     items.map(item=>[item.name,item.category,item.room||'',item.brand||'',item.condition,csvDate(item.purchase_date),csvEur(item.purchase_value),csvEur(calcCurrentValue(item)),csvDate(item.warranty_expiry)])
   )

@@ -6,6 +6,7 @@ import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents
 import { T, fe, InfoBanner, Card, EmptyState } from '@/components/Theme';
 import { notifyOk, notifyError } from '@/components/Toast';
 import { HandCoins, BarChart3 } from 'lucide-react';
+import { athensToday } from '@/lib/core/time';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -167,7 +168,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         property_id: propertyId, user_id: String(userId),
         amount: parseFloat(e.amount),
         description: `Κοινόχρηστα, ${e.reason}`,
-        date: e.date || new Date().toISOString().split('T')[0],
+        date: e.date || athensToday(),
         category: 'Κοινόχρηστα',
       });
       const n = extras.map((ex, j) => j === i ? { ...ex, transferredToExpenses: true } : ex);

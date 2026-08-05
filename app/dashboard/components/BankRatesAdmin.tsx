@@ -4,6 +4,7 @@ import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { NumberInput, TextInput, Toggle, InfoDot } from './UIComponents'
+import { athensToday } from '@/lib/core/time';
 
 // ── Διαχείριση επιτοκίων τραπεζών (μόνο διαχειριστές) ──────────────────────────
 // Γρήγορη, χειροκίνητη διόρθωση του `bank_rates` απευθείας από την εφαρμογή, ή
@@ -28,7 +29,7 @@ const labelStyle:React.CSSProperties = {
   fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',
   letterSpacing:'0.06em',fontWeight:600,fontFamily: T.font.sans,
 }
-const today = () => new Date().toISOString().slice(0,10)
+const today = () => athensToday()
 
 export default function BankRatesAdmin({ onSaved }:{
   onSaved?:()=>void

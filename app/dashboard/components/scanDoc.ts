@@ -24,6 +24,7 @@ import {
   type ScannedDoc, type ArchivePlan,
 } from '@/lib/billing/documents';
 import { fillOnlyEmpty } from '@/lib/core/prefill';
+import { athensToday } from '@/lib/core/time';
 import {
   matchPaymentToBills, providerFromBillName,
   type MatchCandidate, type MatchResult,
@@ -394,7 +395,7 @@ function toQuestion(r: MatchResult<MatchCandidate>): ReconcileQuestion {
 export async function commitScannedDoc(input: CommitInput): Promise<CommitResult> {
   const supabase = createClient();
   const { propertyId, userId, file } = input;
-  const today = input.today || new Date().toISOString().split('T')[0];
+  const today = input.today || athensToday();
   const doc = normalizeScannedDoc(input.doc);
   const plan = planDocSave(doc, today);
   const saved: string[] = [];

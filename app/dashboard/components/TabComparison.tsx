@@ -10,6 +10,7 @@ import { money, dec2, percent } from './xlsxStyle';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import { resolveValue } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, recurringMonthly } from '@/lib/expenses/ledger';
+import { athensToday } from '@/lib/core/time';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -241,7 +242,7 @@ export default function TabComparison({ properties, userId }: Props) {
     }
     if (group.warning) rows.push([group.warning]);
     // Κοινός, θωρακισμένος exporter (BOM, «;», escaping + εξουδετέρωση formula-injection).
-    downloadCsv(`sygkrisi_akiniton_${new Date().toISOString().slice(0, 10)}`, cols, rows);
+    downloadCsv(`sygkrisi_akiniton_${athensToday()}`, cols, rows);
   };
 
   const th: React.CSSProperties = { fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' };

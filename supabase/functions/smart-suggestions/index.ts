@@ -11,6 +11,23 @@ const ANON_KEY      = Deno.env.get('SUPABASE_ANON_KEY')!
 // never from the request body (which an attacker controls).
 const service = createClient(SUPABASE_URL, SERVICE_KEY)
 
+// ── Τα όρια AI, όπως τα περιμένει η bump_ai_usage ────────────────────────────
+// ΚΑΘΡΕΦΤΗΣ του lib/billing/aiLimits.ts — ΟΧΙ δεύτερη απόφαση. Οι σειρές είναι
+// [δωρεάν, ιδιοκτήτης, επαγγελματίας, γραφείο], δηλαδή δείκτης = user_plan_rank.
+//
+// Γιατί αντιγράφονται αντί να εισαχθούν: το Deno δεν φτάνει στο lib/ (καμία
+// edge function δεν το κάνει — βλ. _shared/report.ts, καθρέφτης κι αυτός), και
+// το supabase-deploy.yml ξανα-ανεβάζει functions ΜΟΝΟ σε αλλαγή του supabase/**.
+// Ένα import θα έδειχνε ενιαία πηγή αλλά το ανεβασμένο bundle θα κρατούσε σιωπηλά
+// τα παλιά νούμερα σε κάθε αλλαγή του aiLimits.ts — χειρότερο από φανερή αντιγραφή.
+// Την απόκλιση την πιάνει το index.test.ts, που συγκρίνει αυτά εδώ με την πηγή.
+const AI_LIMITS = {
+  perMinute: 20,
+  perDayByRank: [15, 30, 60, 120],
+  perMonthByRank: [60, 120, 300, 600],
+  freePoolPerMonth: 340,
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type',
@@ -45,7 +62,46 @@ Deno.serve(async (req) => {
       .maybeSingle()
     if (!owned) return json({ error: 'forbidden' }, 403)
 
-    // ── 3. Read only this user's data for this property ───────────────────────
+    // ── 3. Το ΙΔΙΟ ταβάνι κόστους AI με την κύρια διαδρομή ────────────────────
+    // ΤΙ ΕΚΑΝΕ ΛΑΘΟΣ ΠΡΙΝ: αυτή η function καλούσε το Anthropic κατευθείαν, χωρίς
+    // να περάσει ποτέ από την bump_ai_usage. Ήταν δεύτερος δρόμος προς το ΙΔΙΟ
+    // κλειδί, χωρίς κανένα ταβάνι: ένας χρήστης που είχε εξαντλήσει το μηνιαίο
+    // του πακέτο στη συνομιλία συνέχιζε να παράγει προτάσεις απεριόριστα, και η
+    // κοινή δεξαμενή των 340 αιτημάτων — η ΜΟΝΗ σκληρή εγγύηση ότι οι δωρεάν
+    // χρήστες δεν ξεπερνούν τα ~18 $/μήνα — δεν μετρούσε τίποτα από εδώ. Το
+    // ταβάνι που υπόσχεται το lib/billing/aiLimits.ts απλώς δεν ίσχυε.
+    //
+    // Ο μετρητής είναι ΚΟΙΝΟΣ επίτηδες: μια πρόταση χρεώνεται στο ίδιο κλειδί με
+    // μια ερώτηση στη Νόα, άρα μετράει στο ίδιο πακέτο. Ένα ταβάνι, ένας μετρητής.
+    //
+    // Καλείται με το authClient, ΟΧΙ με το service: η bump_ai_usage διαβάζει
+    // auth.uid(), που με service_role είναι null — θα γύριζε πάντα reason 'auth'
+    // και θα έκοβε τους πάντες.
+    const { data: usage, error: usageErr } = await authClient.rpc('bump_ai_usage', {
+      p_max_min: AI_LIMITS.perMinute,
+      p_day:     AI_LIMITS.perDayByRank,
+      p_month:   AI_LIMITS.perMonthByRank,
+      p_pool:    AI_LIMITS.freePoolPerMonth,
+    })
+    // Ο μετρητής είναι ΓΡΑΨΙΜΟ: αν δεν αυξήθηκε, δεν ξέρουμε πόσα έχει ξοδέψει ο
+    // χρήστης. Το app/api/anthropic αφήνει να περάσει σε σφάλμα RPC, αλλά μόνο
+    // επειδή από πίσω του υπάρχει και το in-memory φράγμα του route. Εδώ δεν
+    // υπάρχει τίποτα άλλο· «άσ' το να περάσει» σημαίνει ξανά απεριόριστη χρέωση.
+    if (usageErr) {
+      return json({ error: 'Ο έλεγχος ορίου AI δεν είναι διαθέσιμος αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο.' }, 503)
+    }
+    const u = usage as { allowed?: boolean; reason?: string } | null
+    if (u?.allowed === false) {
+      // Το ακριβές νούμερο του πλάνου το λέει η συνομιλία (εκεί ζουν τα μηνύματα
+      // του aiLimits.ts). Εδώ λέμε την αιτία χωρίς να ξαναγράψουμε τη λογική τους.
+      return json({
+        error: 'Έφτασες το όριο ερωτήσεων AI — οι προτάσεις μετρούν στο ίδιο πακέτο με τη Νόα. '
+             + 'Ρώτησέ τη στη συνομιλία για το όριο του πλάνου σου και πότε ανανεώνεται.',
+        reason: u.reason,
+      }, 429)
+    }
+
+    // ── 4. Read only this user's data for this property ───────────────────────
     const [eventsRes, billsRes, expensesRes] = await Promise.all([
       service.from('calendar_events').select('title,category,amount,event_time,recurring,status').eq('property_id', property_id).eq('user_id', userId),
       service.from('bills').select('name,amount,category,paid,due_date').eq('property_id', property_id).eq('user_id', userId),
@@ -55,7 +111,7 @@ Deno.serve(async (req) => {
     const bills    = billsRes.data || []
     const expenses = expensesRes.data || []
 
-    // ── 4. Ask the model for missing calendar obligations ─────────────────────
+    // ── 5. Ask the model for missing calendar obligations ─────────────────────
     const prompt = `Είσαι expert σύμβουλος διαχείρισης ακινήτων στην Ελλάδα. Ανάλυσε τα παρακάτω δεδομένα και πρότεινε 4-6 γεγονότα ημερολογίου που λείπουν ή χρειάζονται προσοχή.
 
 ΣΤΟΙΧΕΙΑ ΑΚΙΝΗΤΟΥ:
