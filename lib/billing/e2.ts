@@ -81,7 +81,19 @@ export function buildE2Row(p: E2Property, tenant: E2Tenant | null, payments: E2P
   if (mm.estimated && mm.months > 0) flags.push('Μήνες εκμίσθωσης: εκτίμηση');
   const yearRows = payments.filter(x => x.period_year === year);
   const shortTerm = p.status_detail === 'seasonal';
-  const stayYear = shortTerm ? shortTermYearSummary(stays, year) : null;
+  // ΑΜΥΝΑ: ΚΡΑΤΑΜΕ ΜΟΝΟ ΤΙΣ ΔΙΑΜΟΝΕΣ ΑΥΤΟΥ ΤΟΥ ΑΚΙΝΗΤΟΥ.
+  //
+  // Η υπογραφή δέχεται πίνακα διαμονών και μέχρι τώρα τον χρησιμοποιούσε
+  // ολόκληρο. Ένας καλών που θα περνούσε τις διαμονές ΟΛΟΥ του χαρτοφυλακίου —
+  // το φυσικό λάθος, αφού το ερώτημα τις φέρνει έτσι — θα δήλωνε σε ΚΑΘΕ ακίνητο
+  // τα έσοδα όλων. Σε φορολογικό έντυπο αυτό δεν είναι σφάλμα οθόνης.
+  //
+  // Το φιλτράρισμα εδώ κάνει τη σωστή ομαδοποίηση του καλούντος πλεονασμό αντί
+  // για προϋπόθεση. Διαμονή χωρίς property_id θεωρείται δική του: είναι
+  // ιστορική γραμμή πριν μπει η στήλη, και ο καλών ούτως ή άλλως περνά ήδη
+  // φιλτραρισμένο σύνολο.
+  const ownStays = stays.filter(st => st.property_id == null || st.property_id === p.id);
+  const stayYear = shortTerm ? shortTermYearSummary(ownStays, year) : null;
   let grossFull: number; let grossEstimated = false;
   if (stayYear && stayYear.grossRevenue > 0) {
     grossFull = stayYear.grossRevenue;
@@ -104,7 +116,7 @@ export function buildE2Row(p: E2Property, tenant: E2Tenant | null, payments: E2P
     //
     // Ξεχωρίζουμε τα δύο: «κοίταξα και δεν βρήκα» λέγεται μόνο όταν ΟΝΤΩΣ
     // δόθηκαν διαμονές. Αλλιώς λέμε ό,τι ισχύει — ότι είναι εκτίμηση.
-    const consultedStays = stays.length > 0;
+    const consultedStays = ownStays.length > 0;
     flags.push(shortTerm
       ? (consultedStays
           ? 'Ακαθάριστο βραχυχρόνιας: εκτίμηση από τον στόχο μισθώματος — καμία καταγεγραμμένη διαμονή για το έτος'

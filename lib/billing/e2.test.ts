@@ -167,6 +167,28 @@ const STAYS: E2Stay[] = [
   ok('Ε1: κενά ακίνητα εξαιρούνται', empty.lines.length === 0 && empty.totalGross === 0);
 }
 
+// ── ΑΝΑΜΕΙΞΗ ΑΚΙΝΗΤΩΝ: το φυσικό λάθος του καλούντος δεν πρέπει να περνά ─────
+// Το ερώτημα φέρνει τις διαμονές ΟΛΟΥ του χαρτοφυλακίου μαζί. Αν κάποιος τις
+// περάσει ενιαία, κάθε ακίνητο θα δήλωνε τα έσοδα όλων — σε φορολογικό έντυπο.
+{
+  const foreign: E2Stay[] = [
+    ...STAYS,
+    { property_id: 'ΑΛΛΟ-ΑΚΙΝΗΤΟ', check_in: '2025-07-20', check_out: '2025-07-27', nights: 7, gross_guest_paid: 5000, climate_levy: 56, platform_fee: 700 },
+  ];
+  const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, foreign);
+  ok('διαμονές άλλου ακινήτου ΔΕΝ προσμετρώνται', r.grossIncome === 1648);
+  ok('…δηλαδή δεν φουσκώνει σε 6592', r.grossIncome !== 6592);
+}
+{
+  // Ιστορική γραμμή χωρίς property_id θεωρείται του ακινήτου: ο καλών περνά ήδη
+  // φιλτραρισμένο σύνολο, και δεν θέλουμε να χαθεί έσοδο επειδή λείπει η στήλη.
+  const legacy: E2Stay[] = [
+    { check_in: '2025-07-01', check_out: '2025-07-08', nights: 7, gross_guest_paid: 1000, climate_levy: 32, platform_fee: 150 },
+  ];
+  const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, legacy);
+  ok('διαμονή χωρίς property_id μετράει (ιστορική γραμμή)', r.grossIncome === 968);
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\ne2.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
