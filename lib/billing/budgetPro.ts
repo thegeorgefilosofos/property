@@ -1,69 +1,16 @@
 // lib/billing/budgetPro.ts
-// Ο «εγκέφαλος» του προϋπολογισμού επιπέδου fintech — καθαρές, ελεγχόμενες
-// συναρτήσεις για: ασφαλές διαθέσιμο (owner draw), κουμπαράδες/αποθεματικά
-// (sinking funds), rollover, ανάλυση εσόδων βραχυχρόνιας (waterfall), αποδόσεις
-// επένδυσης (NOI/cash-flow/cap rate), συστάσεις αποθεματικών, τέλος ανθεκτικότητας
-// και όριο επαγγελματία. Χωρίς I/O — η UI τροφοδοτεί πραγματικά ποσά.
+// Καθαρές, ελεγχόμενες συναρτήσεις προϋπολογισμού. Χωρίς I/O — η UI τροφοδοτεί
+// πραγματικά ποσά.
+//
+// ΤΙ ΑΦΑΙΡΕΘΗΚΕ ΚΑΙ ΓΙΑΤΙ: οι «κουμπαράδες» (reservePlan, savingsSchedule,
+// recommendedReserves, safeToDistribute, allocate). Ήταν εργαλεία ΑΠΟΤΑΜΙΕΥΣΗΣ
+// σε προϊόν διαχείρισης ακινήτου. Ο ιδιοκτήτης δεν ήρθε εδώ για κουμπαρά· ήρθε
+// για δαπάνες, φόρους, ενοίκια και λογιστική. Κάθε λειτουργία που δεν απαντά σε
+// αυτά είναι μια επιπλέον οθόνη που πρέπει να μάθει και να αγνοήσει.
 
 const r0 = (n: number) => Math.round(n)
 const r2 = (n: number) => Math.round(n * 100) / 100
 
-// ── A5 · Ασφαλές διαθέσιμο (Monzo «Left to Spend» / owner draw) ───────────────
-// Έσοδα − δεσμευμένοι λογαριασμοί − εισφορές αποθεματικών − δόση δανείου.
-export interface SafeToDistributeInput {
-  income: number
-  committedBills: number
-  reserveContributions: number
-  loanPayment: number
-}
-export function safeToDistribute(i: SafeToDistributeInput): number {
-  return r0((i.income || 0) - (i.committedBills || 0) - (i.reserveContributions || 0) - (i.loanPayment || 0))
-}
-
-// ── A6 · Κουμπαράς / αποθεματικό με στόχο-ως-ημερομηνία (Revolut Vault × YNAB) ─
-export interface ReservePlan { remaining: number; requiredMonthly: number; fundedPct: number }
-export function reservePlan(target: number, current: number, monthsToTarget: number): ReservePlan {
-  const remaining = Math.max(0, (target || 0) - (current || 0))
-  const requiredMonthly = monthsToTarget > 0 ? Math.ceil(remaining / monthsToTarget) : remaining
-  // Math.floor (όχι round): 99,5% δεν πρέπει να εμφανίζεται ως 100% «καλυμμένο» ενώ
-  // λείπουν χρήματα — 100% μόνο όταν πράγματι καλύφθηκε ο στόχος.
-  const fundedPct = target > 0 ? Math.min(100, Math.floor(((current || 0) / target) * 100)) : 0
-  return { remaining: r0(remaining), requiredMonthly: r0(requiredMonthly), fundedPct }
-}
-
-// ── A6b · Πρόγραμμα αποταμίευσης: βάζω Χ κάθε μήνα (ημέρα Υ) — πότε πιάνω τον στόχο ──
-// Η αντίστροφη λογική του reservePlan: αντί για «πόσο τον μήνα μέχρι μια ημερομηνία»,
-// εδώ ο χρήστης ορίζει το ποσό ανά προσθήκη και μαθαίνει ΠΟΤΕ θα καλυφθεί ο στόχος και
-// πότε είναι η επόμενη προσθήκη. Καθαρή (pure): το «σήμερα» δίνεται από τη UI.
-export interface SavingsSchedule {
-  reached: boolean
-  contributionsToGoal: number   // πόσες προσθήκες ακόμη
-  nextDate: string              // ISO επόμενης προσθήκης
-  daysToNext: number
-  goalDate: string              // ISO ημερομηνία επίτευξης στόχου
-}
-const isoOf = (dt: Date): string =>
-  `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-
-export function savingsSchedule(
-  target: number, current: number, perContribution: number, dayOfMonth: number,
-  from: { y: number; m: number; d: number },
-): SavingsSchedule | null {
-  const fromDate = new Date(from.y, (from.m || 1) - 1, from.d || 1)
-  const remaining = Math.max(0, (target || 0) - (current || 0))
-  if (remaining <= 0) return { reached: true, contributionsToGoal: 0, nextDate: isoOf(fromDate), daysToNext: 0, goalDate: isoOf(fromDate) }
-  if (!(perContribution > 0)) return null
-  const day = Math.min(31, Math.max(1, Math.round(dayOfMonth || 1)))
-  // Επόμενη προσθήκη: αν σήμερα ≤ ημέρα → αυτόν τον μήνα, αλλιώς τον επόμενο.
-  const nextDate = from.d <= day
-    ? new Date(from.y, (from.m || 1) - 1, day)
-    : new Date(from.y, (from.m || 1), day)
-  const contributionsToGoal = Math.ceil(remaining / perContribution)
-  // Ο στόχος καλύπτεται στην τελευταία προσθήκη = επόμενη + (πλήθος − 1) μήνες.
-  const goalDate = new Date(nextDate.getFullYear(), nextDate.getMonth() + (contributionsToGoal - 1), day)
-  const daysToNext = Math.max(0, Math.round((nextDate.getTime() - fromDate.getTime()) / 86400000))
-  return { reached: false, contributionsToGoal, nextDate: isoOf(nextDate), daysToNext, goalDate: isoOf(goalDate) }
-}
 
 // ── B4 · Rollover: αδιάθετο μεταφέρεται μπροστά· υπέρβαση μειώνει την επόμενη ──
 export interface Rollover { available: number; carryOut: number }
@@ -121,19 +68,6 @@ export function investmentReturns(i: InvestmentInput): InvestmentReturns {
 
 // ── B3 · Συστάσεις αποθεματικών (κανόνες βέλτιστης πρακτικής) ─────────────────
 // CapEx 8% νέο / 10% 15+ ετών / 15% 30+ ετών του ετήσιου ενοικίου (ή 1% της αξίας).
-export interface ReserveRecommendation { capExMonthly: number; operatingReserve: number; vacancyMonthly: number; capExPct: number }
-export function recommendedReserves(monthlyRent: number, propertyValue: number, propertyAgeYears: number): ReserveRecommendation {
-  const rent = Math.max(0, monthlyRent || 0)
-  const annualRent = rent * 12
-  const capExPct = propertyAgeYears >= 30 ? 15 : propertyAgeYears >= 15 ? 10 : 8
-  const capExAnnual = Math.max(annualRent * (capExPct / 100), (propertyValue || 0) * 0.01)
-  return {
-    capExMonthly: r0(capExAnnual / 12),
-    operatingReserve: r0(rent * 0.2),   // ~20% ενός μηνιαίου ενοικίου ως ρευστό μαξιλάρι
-    vacancyMonthly: r0(rent * 0.06),    // ~6% για κενές περιόδους
-    capExPct,
-  }
-}
 
 // ── ΑΦΑΙΡΕΘΗΚΕ: climateFeePerNight ─────────────────────────────────────────
 // Επέστρεφε 1,50 €/νύχτα στην υψηλή περίοδο και 0,50 € στη χαμηλή. Η πηγή
@@ -150,21 +84,4 @@ export function recommendedReserves(monthlyRent: number, propertyValue: number, 
 // όρισμα, οπότε ο καλών περνά climateLevyRates(sqm, isHouse) και δεν υπάρχει
 // δεύτερο σημείο να ξαναδιαφωνήσει.
 
-// ── B6 · Όριο επαγγελματία: 3+ ακίνητα βραχυχρόνιας → επιχειρηματική δραστηριότητα ─
-export function strTaxRegime(propertyCount: number): 'individual' | 'business' {
-  return (propertyCount || 0) >= 3 ? 'business' : 'individual'
-}
-
 // ── Κατανομή εσόδου σε δεσμεύσεις/αποθεματικά/διαθέσιμο (για γράφημα «assign») ─
-export interface AllocationInput { income: number; committedBills: number; reserveContributions: number; loanPayment: number }
-export interface Allocation { committedBills: number; reserves: number; loan: number; safe: number; assignedPct: number }
-export function allocate(i: AllocationInput): Allocation {
-  const income = Math.max(0, i.income || 0)
-  const committedBills = Math.max(0, i.committedBills || 0)
-  const reserves = Math.max(0, i.reserveContributions || 0)
-  const loan = Math.max(0, i.loanPayment || 0)
-  const safe = Math.max(0, income - committedBills - reserves - loan)
-  const assigned = committedBills + reserves + loan
-  const assignedPct = income > 0 ? Math.min(100, Math.round((assigned / income) * 100)) : 0
-  return { committedBills: r0(committedBills), reserves: r0(reserves), loan: r0(loan), safe: r0(safe), assignedPct }
-}
