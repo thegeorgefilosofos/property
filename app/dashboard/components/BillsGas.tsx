@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, Spinner } from '@/components/Theme';
+import { notifyError } from '@/components/Toast';
 
 const fk = (n: number) => `${n.toFixed(4)} €`;
 
@@ -255,7 +256,10 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     if (!propertyId || !s.heatingType) return;
     if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current);
     propertyHeatingSyncTimer.current = setTimeout(() => {
-      supabase.from('properties').update({ heating: s.heatingType }).eq('id', propertyId).then(() => {});
+      // Ανύπαρκτος πίνακας + `.then(() => {})` που καταπίνει το σφάλμα: ο τύπος
+      // θέρμανσης δεν αποθηκευόταν ΠΟΤΕ στο ακίνητο, σιωπηλά.
+      supabase.from('user_properties').update({ heating: s.heatingType }).eq('id', propertyId)
+        .then(({ error }) => { if (error) notifyError('Ο τύπος θέρμανσης δεν αποθηκεύτηκε: ' + error.message); });
     }, 1200);
     return () => { if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current); };
   }, [propertyId, s.heatingType]);

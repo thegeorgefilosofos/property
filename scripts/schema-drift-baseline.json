@@ -1,4 +1,4 @@
 {
-  "maxRefs": 26,
-  "note": "Αναφορές σε στήλες που ΔΕΝ υπάρχουν στο σχήμα. Το PostgREST απορρίπτει ΟΛΟΚΛΗΡΟ το ερώτημα (42703): η οθόνη δείχνει κενό, όχι σφάλμα. Μόνο προς τα κάτω. Ξεκίνησε 05/08/2026 από 26, εκ των οποίων 21 στον πίνακα loans: επτά αρχεία ζητούν amount/rate/status/loan_type/property_value/created_at ενώ οι πραγματικές στήλες είναι loan_amount/rate_type/fixed_rate/euribor/spread/years/start_date. Ο JournalExport.tsx τις γράφει σωστά — άρα το χρέος είναι γνωστό και μετρήσιμο, όχι αόριστο."
+  "maxRefs": 0,
+  "note": "Αναφορές σε στήλες/πίνακες που ΔΕΝ υπάρχουν στο σχήμα. Το PostgREST απορρίπτει ΟΛΟΚΛΗΡΟ το ερώτημα (42703): η οθόνη δείχνει κενό, όχι σφάλμα. ΜΗΔΕΝ, και μένει μηδέν. Ξεκίνησε 05/08/2026 από 26 και μηδενίστηκε την ίδια ημέρα: 21 στον πίνακα loans (amount/rate/status/loan_type/property_value/created_at — τα δύο πρώτα υπολογίζονται πλέον από το lib/loans/shape.ts, τα υπόλοιπα προστέθηκαν με migration), 4 στον ανύπαρκτο πίνακα `properties` (λέγεται user_properties), και από ένα σε property_settings.insurance_amount, property_settings.kwh_price, bills.status και bills_electricity."
 }

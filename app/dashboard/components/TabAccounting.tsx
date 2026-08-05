@@ -27,6 +27,7 @@ import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { estimateENFIAFromFacts } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
+import { LOAN_COLUMNS, toLoanViews } from '@/lib/loans/shape'
 import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 } from '@/lib/billing/greekTax'
@@ -183,14 +184,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         supabase.from('expenses').select('date,amount,category,expense_group,description').eq('property_id',propertyId),
         supabase.from('rent_payments').select('period_year,period_month,amount,paid,paid_date,due_date').eq('property_id',propertyId),
         supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('property_id',propertyId),
-        supabase.from('loans').select('amount,rate,years,bank,start_date').eq('property_id',propertyId),
+        supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId),
         supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value').eq('id',propertyId).maybeSingle(),
         supabase.from('user_properties').select('id,name,rental_mode,status_detail,enfia,sqm').eq('user_id',userId),
         supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date').eq('user_id',userId),
         supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('user_id',userId),
         supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
       ])
-      setExpenses(ex.data||[]); setRent(rp.data||[]); setStays(st.data||[]); setLoans(ln.data||[])
+      setExpenses(ex.data||[]); setRent(rp.data||[]); setStays(st.data||[]); setLoans(toLoanViews(ln.data))
       setProp(pr.data||null); setAllProps(aps.data||[]); setAllRent(arp.data||[]); setAllStays(ast.data||[]); setInventory(inv.data||[])
     }catch(_){ /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
     finally{ setLoading(false) }

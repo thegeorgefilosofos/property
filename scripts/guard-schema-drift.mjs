@@ -84,16 +84,38 @@ const walk = d => {
 }
 for (const root of ['app', 'lib', 'components']) { try { walk(root) } catch {} }
 
+// Ονόματα που ΔΕΝ είναι πίνακες αλλά είναι υπαρκτά (views, ξένα σχήματα).
+// Κάθε εγγραφή εδώ είναι υπόσχεση ότι ελέγχθηκε με το μάτι — όχι παραθυράκι.
+const KNOWN_VIEWS = new Set([
+  // baseline.sql:1540 — CREATE OR REPLACE VIEW … WITH (security_invoker)
+  'active_loan_programs',
+])
+
 const problems = []
 
 for (const file of files) {
   const src = readFileSync(file, 'utf8')
   // Κάθε `.from('table')` και ό,τι ακολουθεί μέχρι το τέλος της αλυσίδας.
-  for (const m of src.matchAll(/\.from\(\s*['"](\w+)['"]\s*\)/g)) {
-    const table = m[1]
+  for (const m of src.matchAll(/(\w+)?\.from\(\s*['"](\w+)['"]\s*\)/g)) {
+    // `supabase.storage.from('avatars')` ΔΕΝ είναι πίνακας — είναι bucket.
+    if (m[1] === 'storage') continue
+    const table = m[2]
     const cols = schema.get(table)
-    if (!cols) continue                       // άγνωστος πίνακας (view/rpc) → σιωπή
     const lineNo = src.slice(0, m.index).split('\n').length
+    if (!cols) {
+      // ΑΓΝΩΣΤΟΣ ΠΙΝΑΚΑΣ ΔΕΝ ΣΗΜΑΙΝΕΙ ΑΘΩΟΣ.
+      //
+      // Η πρώτη εκδοχή έκανε `continue` εδώ, θεωρώντας ότι κάθε άγνωστο όνομα
+      // είναι view ή RPC. Έτσι όμως ο φύλακας ΔΕΝ είδε καθόλου τις τέσσερις
+      // κλήσεις σε `from('properties')` — πίνακα που δεν υπήρξε ποτέ (λέγεται
+      // `user_properties`). Δηλαδή προσπερνούσε ακριβώς το χειρότερο σφάλμα
+      // της κατηγορίας: όχι λάθος στήλη, ολόκληρος λάθος πίνακας.
+      //
+      // Τα πραγματικά views μπαίνουν στο KNOWN_VIEWS με σχόλιο· ό,τι δεν είναι
+      // εκεί και δεν είναι πίνακας, είναι σφάλμα.
+      if (!KNOWN_VIEWS.has(table)) problems.push({ file, line: lineNo, table, col: '(ο πίνακας)', how: 'άγνωστος πίνακας' })
+      continue
+    }
     // Η ΑΛΥΣΙΔΑ ΣΤΑΜΑΤΑ ΣΤΟ ΕΠΟΜΕΝΟ `.from(`.
     //
     // Η πρώτη εκδοχή έπαιρνε σταθερό παράθυρο 900 χαρακτήρων και μέσα σε
@@ -112,7 +134,10 @@ for (const file of files) {
 
     // .select('a, b, c')  — παραλείπονται embedded resources και aliases
     const sel = /\.select\(\s*['"`]([^'"`]*)['"`]/.exec(tail)
-    if (sel && !sel[1].includes('(') && !sel[1].includes('*')) {
+    // Το `${cols}` ενός template literal ΔΕΝ είναι όνομα στήλης: το περιεχόμενό
+    // του αποφασίζεται στην εκτέλεση. Χωρίς αυτό, ο φύλακας κατήγγειλε στήλη με
+    // όνομα «${cols}» — ψευδώς θετικό που μόνο θόρυβο προσθέτει.
+    if (sel && !sel[1].includes('(') && !sel[1].includes('*') && !sel[1].includes('${')) {
       for (const raw of sel[1].split(',')) {
         const c = raw.trim()
         if (!c || c.includes(':') || c.includes('!') || c.includes('.')) continue

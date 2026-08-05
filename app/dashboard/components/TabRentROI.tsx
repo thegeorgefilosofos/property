@@ -8,6 +8,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
+import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
 import { EmptyState, Skeleton, SkeletonKPIs, fe, fn, T } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
@@ -469,7 +470,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           // τριπλάσια έξοδα εδώ απ' ό,τι στη Λογιστική. Ίδιο φίλτρο με εκείνη.
           supabase.from('expenses').select('amount,date').eq('property_id', propertyId)
             .gte('date', `${new Date().getFullYear()}-01-01`).lte('date', `${new Date().getFullYear()}-12-31`),
-          supabase.from('loans').select('amount,rate,property_value,loan_type,status').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }),
+          supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }),
           // ΤΑ ΑΛΛΑ ΑΚΙΝΗΤΑ. Αυτή η καρτέλα εμφανίζεται (disclosure.ts) ΜΟΝΟ σε
           // χρήστες με 2+ ακίνητα — δηλαδή ακριβώς εκεί όπου ο ανά-ακίνητο φόρος
           // είναι λάθος. Χωρίς τα υπόλοιπα ενοίκια δεν υπάρχει τρόπος να βγει ο
@@ -486,8 +487,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           const monthly = Number(cfg?.actual_rent) || Number(cfg?.target_rent) || Number(x.target_rent) || 0;
           return { id: x.id, annualRent: monthly * 12, shortTerm: x.rental_mode === 'short_term' };
         }));
-        const activeLoan = (ln.data || []).find((l: any) => l.status !== 'inactive' && l.status !== 'closed');
-        if (activeLoan) setSavedLoan({ amount: Number(activeLoan.amount) || 0, rate: Number(activeLoan.rate) || 0, property_value: Number(activeLoan.property_value) || 0, loan_type: activeLoan.loan_type });
+        // Το `amount`/`rate` δεν είναι στήλες: υπολογίζονται από το loan_amount
+        // και το rate_type/fixed_rate/euribor/spread (lib/loans/shape.ts).
+        const activeLoan = toLoanViews(ln.data).find(l => isActiveLoan(l));
+        if (activeLoan) setSavedLoan({ amount: activeLoan.amount, rate: activeLoan.rate, property_value: Number(activeLoan.property_value) || 0, loan_type: activeLoan.loan_type ?? '' });
         setValue(String(propertyValue || p.value || localStorage.getItem(K('value')) || ''));
         setRent(String(c.actual_rent || c.target_rent || p.target_rent || localStorage.getItem(K('rent')) || ''));
         const expSum = (exp.data || []).reduce((s: number, e: any) => s + (e.amount || 0), 0);

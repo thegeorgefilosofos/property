@@ -9,6 +9,7 @@ import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRec
 import { reservePlan, rolloverNext, strWaterfall, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement } from '@/lib/accounting/statement';
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
+import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape';
 import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
 import BudgetVaults, { VaultSuggestion } from './BudgetVaults';
@@ -378,7 +379,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
       const [propRes, loansRes, tenantsRes, staysRes, vaultsRes] = await Promise.all([
         supabase.from('user_properties').select('rental_mode,target_rent,value,year_built,enfia,purchase_price,sqm,prop_type').eq('id', propertyId).maybeSingle(),
-        supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
+        supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId),
         supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
         // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
         // για ετησιοποίηση (πρόβλεψη φόρου βραχυχρόνιας χωρίς εποχική στρέβλωση).
@@ -413,9 +414,13 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       else if (rMode === 'long_term') setIncomeYtd(Math.round(inc * (now.getMonth() + 1)));
       else setIncomeYtd(0);
       // Δόση δανείου: ζωντανός υπολογισμός από ενεργά δάνεια (όχι διπλομέτρηση).
-      const loanM = (loansRes.data ?? [])
-        .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
-        .reduce((s: number, l: any) => s + annuityMonthly(Number(l.amount) || 0, Number(l.rate) || 0, Number(l.years) || 0), 0);
+      // Τα `amount`/`rate` ΔΕΝ είναι στήλες της βάσης — υπολογίζονται από το
+      // loan_amount και το rate_type/fixed_rate/euribor/spread. Η μετάφραση
+      // γίνεται ΜΙΑ φορά εδώ και τη μοιράζονται και οι τρεις καταναλωτές
+      // παρακάτω (δόση, τόκοι έτους, υπόλοιπο κεφαλαίου).
+      const activeLoans = toLoanViews(loansRes.data).filter(isActiveLoan);
+      const loanM = activeLoans
+        .reduce((s: number, l) => s + annuityMonthly(l.amount, l.rate, Number(l.years) || 0), 0);
       setLoanMonthly(Math.round(loanM));
       // Μηνιαίες εισφορές κουμπαράδων — μόνο όσοι έχουν ΜΕΛΛΟΝΤΙΚΗ προθεσμία (mo>0)·
       // ληξιπρόθεσμοι ή χωρίς προθεσμία δεν μετρώνται ως πάγια μηνιαία δέσμευση.
@@ -596,9 +601,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         ? Math.round(ytdOpexRec / monthsElapsed * 12)
         : Math.round(Object.values(billActuals).reduce((s, v) => s + v, 0) * 12);
       // Τόκοι δανείου έτους 1 (εκπίπτουν για επιχείρηση) — από τα ενεργά δάνεια.
-      const loanInterestAnnual = (loansRes.data ?? [])
-        .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
-        .reduce((s: number, l: any) => s + interestForYear(Number(l.amount) || 0, Number(l.rate) || 0, Number(l.years) || 0, 1), 0);
+      const loanInterestAnnual = activeLoans
+        .reduce((s: number, l) => s + interestForYear(l.amount, l.rate, Number(l.years) || 0, 1), 0);
       const regime: 'individual_longterm' | 'individual_shortterm' | 'business' =
         isPro ? 'business' : rMode === 'short_term' ? 'individual_shortterm' : 'individual_longterm';
       let taxTargetAnnual = 0, taxPerMonth = 0, taxIsBusiness = false;
@@ -634,9 +638,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // ── Απόδοση επένδυσης (μόνο επαγγελματίας) — NOI/cap rate/cash-on-cash από τον πυρήνα ──
       if (isPro && annualGross > 0 && (propValue > 0 || (Number(propRes.data?.purchase_price) || 0) > 0)) {
         const purchase = Number(propRes.data?.purchase_price) || propValue;
-        const loanBalance = (loansRes.data ?? [])
-          .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
-          .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
+        const loanBalance = activeLoans.reduce((s: number, l) => s + l.amount, 0);
         const equity = Math.max(0, purchase - loanBalance);
         setInvReturns(investmentReturns({ annualIncome: annualGross, annualOpEx: annualOpex, annualLoanPayment: Math.round(loanM * 12), purchasePrice: purchase, equityInvested: equity }));
       } else {

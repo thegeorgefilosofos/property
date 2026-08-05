@@ -837,7 +837,10 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   const [scan,setScan]=useState<{stage:'scanning'|'match'|'error';msg?:string;doc?:ScannedDoc;periodId?:string;method?:PayMethod;docId?:string|null}|null>(null);
   const fileRef=React.useRef<HTMLInputElement>(null);
 
-  useEffect(()=>{ supabase.from('properties').select('*').eq('id',propertyId).maybeSingle().then(({data})=>setProp(data||null)); },[propertyId]);
+  // Ο πίνακας λέγεται `user_properties`. Το `properties` δεν υπήρξε ΠΟΤΕ, οπότε
+  // το `prop` έμενε πάντα null και το ακίνητο ΔΕΝ αναγραφόταν στη βεβαίωση
+  // ενοικίου ούτε στα μηνύματα υπενθύμισης — χωρίς κανένα σφάλμα στην οθόνη.
+  useEffect(()=>{ supabase.from('user_properties').select('*').eq('id',propertyId).maybeSingle().then(({data})=>setProp(data||null)); },[propertyId]);
 
   const expected=useMemo(()=>expectedPeriods(tenant,rentDueDay),[tenant,rentDueDay]);
   const existingKeys=useMemo(()=>new Set(payments.map(p=>`${p.period_year}-${p.period_month}`)),[payments]);
@@ -918,7 +921,9 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     onRefresh();notifyOk('Πληρωμή καταχωρήθηκε');
   };
 
-  const propLabel=()=> (prop?.address||prop?.title||prop?.name||prop?.label||'') as string;
+  // Το user_properties έχει `name` και `address` — όχι `title`/`label`, που ήταν
+  // υποθέσεις πάνω σε πίνακα που δεν υπήρχε.
+  const propLabel=()=> (prop?.address||prop?.name||'') as string;
   const monthLabel=(p:RentPayment)=>`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`;
 
   const printReceipt=(p:RentPayment)=>{
@@ -2014,8 +2019,12 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       supabase.from('tenant_damages').select('*').eq('property_id',propertyId).eq('user_id',userId).order('occurred_on',{ascending:false}),
       supabase.from('rent_comparables').select('id,property_id,title,area,sqm,rent,rent_per_sqm,listing_type,source,url').eq('property_id',propertyId),
       supabase.from('maintenance_requests').select('*').eq('user_id',userId).eq('property_id',propertyId).order('created_at',{ascending:false}),
-      supabase.from('properties').select('sqm').eq('id',propertyId).maybeSingle(),
-      supabase.from('properties').select('id',{count:'exact',head:true}).eq('user_id',userId),
+      supabase.from('user_properties').select('sqm').eq('id',propertyId).maybeSingle(),
+      // ΤΟ ΠΛΗΘΟΣ ΑΚΙΝΗΤΩΝ ΚΡΙΝΕΙ ΦΟΡΟΛΟΓΙΚΗ ΠΡΟΕΙΔΟΠΟΙΗΣΗ. Με τον ανύπαρκτο
+      // πίνακα το count γύριζε null → propertyCount πάντα 1 → ο ιδιοκτήτης με
+      // τρία ακίνητα ΔΕΝ έβλεπε ποτέ ότι ο φόρος είναι προοδευτικός στο
+      // ΑΘΡΟΙΣΜΑ και ότι το ποσό εδώ είναι μικρότερο από το πραγματικό.
+      supabase.from('user_properties').select('id',{count:'exact',head:true}).eq('user_id',userId),
     ]);
     setTenants(list); setPayments((pd||[]) as RentPayment[]); setDamages((dd||[]) as TenantDamage[]); setComps((cd||[]) as RentComp[]); setMaint((md||[]) as MaintenanceReq[]);
     const sq=Number((own as {sqm?:number|null}|null)?.sqm);

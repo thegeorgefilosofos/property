@@ -9,6 +9,7 @@ import { notify, notifyOk } from '@/components/Toast'
 import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
+import { LOAN_COLUMNS, toLoanViews } from '@/lib/loans/shape'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
@@ -1850,10 +1851,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       // Η μηνιαία δόση υπολογίζεται από ποσό/επιτόκιο/διάρκεια (τοκοχρεολυτική
       // φόρμουλα) — ίδια πηγή με την Επισκόπηση, άθροισμα ενεργών δανείων.
       const { data: loanData } = await supabase
-        .from('loans').select('amount,rate,years,status')
+        .from('loans').select(LOAN_COLUMNS)
         .eq('property_id', propertyId)
       setLoanPayment(
-        (loanData||[])
+        toLoanViews(loanData)
           .filter((l:any)=>l.status!=='inactive'&&l.status!=='closed')
           .reduce((s:number,l:any)=>s+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
       )
@@ -1875,12 +1876,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     } catch (_) {}
 
     try {
+      // Ο πίνακας `bills` ΔΕΝ έχει `status` ούτε `description`: έχει `paid`
+      // (boolean), `name` και `notes`. Και οι δύο αναφορές ήταν άκυρες, άρα το
+      // ερώτημα απορριπτόταν ολόκληρο και ο ΕΝΦΙΑ ΔΕΝ σημειωνόταν ποτέ ως
+      // πληρωμένος στις εκκρεμότητες — ο ιδιοκτήτης έβλεπε για πάντα ανοιχτή
+      // υποχρέωση που είχε ήδη πληρώσει.
       const { data: enfiaBillData } = await supabase
-        .from('bills').select('id,status')
+        .from('bills').select('id,paid')
         .eq('property_id', propertyId)
-        .or('description.ilike.%ΕΝΦΙΑ%,description.ilike.%enfia%')
+        .or('name.ilike.%ΕΝΦΙΑ%,name.ilike.%enfia%,notes.ilike.%ΕΝΦΙΑ%')
         .limit(1)
-      const isPaid = !!(enfiaBillData?.[0]?.status === 'paid' || enfiaBillData?.[0]?.status === 'done')
+      const isPaid = enfiaBillData?.[0]?.paid === true
       setEnfiaPaid(isPaid)
       if (isPaid && itemData) {
         const enfiaTask = (itemData as any[]).find((i: any) => i.description?.toLowerCase().includes('ενφια') && i.status !== 'done')

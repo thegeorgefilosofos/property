@@ -1,8 +1,10 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { must } from '@/lib/supabase/must'
+import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
 import { T, ExportButton, EmptyState, Btn, Skeleton } from '@/components/Theme'
-import { notifyOk } from '@/components/Toast'
+import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
 import { Landmark, Gift } from 'lucide-react'
 import { downloadXlsx, type XlsxMode } from './exportXlsx'
@@ -276,12 +278,23 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
   async function loadSaved(){
     try{
-      const{data}=await supabase.from('loans').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false})
-      setSaved(data||[])
+      const{data}=await supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false})
+      setSaved(toLoanViews(data) as SavedLoan[])
     } finally { setLoadingSaved(false) }
   }
   async function handleSaveLoan(loan:Partial<SavedLoan>){
-    await supabase.from('loans').insert({...loan,property_id:propertyId,user_id:userId})
+    // ΤΟ ΜΗΝΥΜΑ ΕΠΙΤΥΧΙΑΣ ΗΤΑΝ ΨΕΜΑ. Το insert έγραφε `amount`, `rate`,
+    // `loan_type`, `status`, `property_value` — πέντε στήλες που δεν υπήρχαν —
+    // και το αποτέλεσμα δεν ελεγχόταν ποτέ. Ο χρήστης καταχωρούσε δάνειο,
+    // έβλεπε «Το δάνειο αποθηκεύτηκε», και δεν αποθηκευόταν τίποτα.
+    // Τώρα: μετάφραση στις πραγματικές στήλες (toLoanRow) και `must`, ώστε η
+    // αποτυχία να φτάνει στο catch που ήδη περιβάλλει την κλήση.
+    try {
+      await must(supabase.from('loans').insert({...toLoanRow(loan),property_id:propertyId,user_id:userId}))
+    } catch (e) {
+      notifyError('Το δάνειο ΔΕΝ αποθηκεύτηκε: ' + (e instanceof Error ? e.message : 'άγνωστο σφάλμα'))
+      return
+    }
     await loadSaved()
     // Αυτόματη προσυμπλήρωση των δόσεων στο Ημερολόγιο, ανά ημέρα πληρωμής,
     // εφόσον το δάνειο είναι ενεργό — ώστε να συμψηφίζεται με το υπόλοιπο app.

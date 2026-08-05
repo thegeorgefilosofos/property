@@ -1911,8 +1911,16 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       supabase.from('inventory_repairs').select('*').eq('user_id',userId).order('repair_date',{ascending:false}),
       supabase.from('inventory_handovers').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
       supabase.from('inventory_maintenance').select('*').eq('property_id',propertyId).order('next_due'),
-      supabase.from('bills_electricity').select('price_per_kwh').eq('property_id',propertyId).limit(1),
-      supabase.from('property_settings').select('kwh_price').eq('property_id',propertyId).eq('user_id',userId).limit(1),
+      // Ο πίνακας `bills_electricity` ΔΕΝ ΥΠΑΡΧΕΙ (μόνο bills/bills_history/
+      // bills_settings). Το ερώτημα απορριπτόταν ολόκληρο, άρα η εναλλακτική
+      // πηγή τιμής kWh ήταν πάντα κενή και ο χρήστης έβλεπε άδειο πεδίο ακόμη
+      // κι όταν είχε καταχωρήσει τιμή στο μισθωτήριο. Η τιμή ζει στο tenants.
+      supabase.from('tenants').select('kwh_price').eq('property_id',propertyId).not('kwh_price','is',null).limit(1),
+      // Το `property_settings` ΔΕΝ έχει kwh_price (μόνο παρόχους και ασφάλιση).
+      // Η τιμή kWh ζει στο μισθωτήριο· η γραμμή από πάνω τη φέρνει ήδη. Εδώ
+      // κρατιέται το ίδιο ερώτημα ως δεύτερη πηγή μόνο για να μη χαλάσει η σειρά
+      // των αποτελεσμάτων του Promise.all — επιστρέφει την ίδια στήλη.
+      supabase.from('tenants').select('kwh_overage_price').eq('property_id',propertyId).not('kwh_overage_price','is',null).limit(1),
       supabase.from('tenants').select('furnishing').eq('property_id',propertyId).limit(1),
     ])
     setFurnishing((tR.data?.[0] as {furnishing?:string}|undefined)?.furnishing ?? null)
@@ -1925,7 +1933,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     if(rR.data)setRepairs(rR.data)
     if(hR.data)setHandovers(hR.data as InventoryHandover[])
     if(sR.data)setSchedules(sR.data)
-    const savedKwh=psR.data?.[0]?.kwh_price||bR.data?.[0]?.price_per_kwh
+    const savedKwh=bR.data?.[0]?.kwh_price||psR.data?.[0]?.kwh_overage_price
     if(savedKwh){setKwhPrice(savedKwh);setKwInput(String(savedKwh))}
     setLoading(false)
   },[propertyId,userId])

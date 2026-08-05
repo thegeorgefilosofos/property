@@ -25,6 +25,7 @@ import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
+import { LOAN_COLUMNS, toLoanViews } from '@/lib/loans/shape';
 import { reservePlan } from '@/lib/billing/budgetPro';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
@@ -191,11 +192,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('expenses').select('id,bill_id,amount,category,date,description,paid,expense_group,is_recurring,store_vendor,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
-      supabase.from('property_settings').select('insurance_company,insurance_expiry,insurance_amount').eq('property_id', propertyId).maybeSingle(),
+      // Τα στοιχεία ασφάλισης ζουν στο `user_properties` (insurance_company /
+      // insurance_amount / insurance_expiry), ΟΧΙ στο property_settings — που έχει
+      // μόνο company/policy/expiry και καθόλου ποσό. Το ερώτημα απορριπτόταν
+      // ολόκληρο, οπότε ο βοηθός δεν ήξερε ΠΟΤΕ για ασφάλιση.
+      supabase.from('user_properties').select('insurance_company,insurance_expiry,insurance_amount').eq('id', propertyId).maybeSingle(),
       supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', athensToday()).order('event_date').limit(10),
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
-      supabase.from('loans').select('bank,loan_type,amount,rate,rate_type,years,start_date,status').eq('property_id', propertyId).eq('user_id', userId),
+      supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,vip,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
       supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
@@ -239,7 +244,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const leaseEnd = t?.lease_end || null;
     const daysLease = leaseEnd ? Math.ceil((new Date(leaseEnd).getTime() - Date.now()) / 86400000) : null;
 
-    const loanRows = loans || [];
+    const loanRows = toLoanViews(loans);
     const rateTypeGr = (rt?: string) => rt === 'variable' ? 'κυμαινόμενο' : rt === 'mixed' ? 'μεικτό' : 'σταθερό';
     const monthlyDebt = loanRows.reduce((s, l: any) => s + annuityMonthly(l.amount || 0, l.rate || 0, l.years || 0), 0);
     const loanLine = loanRows.length

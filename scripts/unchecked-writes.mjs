@@ -31,7 +31,7 @@ import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 // Το όριο κατεβαίνει καθώς διορθώνονται σημεία. ΠΟΤΕ δεν ανεβαίνει.
-const LIMIT = 182;
+const LIMIT = 179;
 
 // Το γράψιμο αναγνωρίζεται ΜΟΝΟ ως κρίκος αλυσίδας που ξεκινά από `.from('πίνακας')`.
 // Χωρίς αυτό, ένα `new Set(...).delete(x)` μετριόταν ως εγγραφή στη βάση.

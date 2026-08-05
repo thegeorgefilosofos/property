@@ -43,6 +43,7 @@ import { useReportBranding } from '@/lib/reportBranding';
 import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
+import { LOAN_COLUMNS, toLoanViews, type LoanView } from '@/lib/loans/shape';
 import { stayTotal } from '@/lib/clients/clients';
 import { clearHistory as clearAssistantHistory } from './components/assistantPersona';
 import { clearLocalPersonalData } from '@/lib/localPrivacy';
@@ -394,7 +395,10 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [chk, setChk] = useState<{ due_date:string|null; status:string; priority:string }[]>([]);
   const [inv, setInv] = useState<{ name?:string|null; warranty_expiry:string|null; condition:string|null }[]>([]);
-  const [loans, setLoans] = useState<{ amount:number; rate:number; years:number }[]>([]);
+  // Οι στήλες `amount`/`rate` ΔΕΝ υπάρχουν στη βάση — υπολογίζονται από το
+  // lib/loans/shape.ts. Ο τύπος εδώ περιγράφει ό,τι βλέπει η οθόνη, όχι ό,τι
+  // επιστρέφει το ερώτημα.
+  const [loans, setLoans] = useState<LoanView[]>([]);
   const [hostStays, setHostStays] = useState<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }[]>([]);
   const [contactCount, setContactCount] = useState(0);   // πλήθος επαφών (για το πλακίδιο-σύνοψη)
   const [docCount, setDocCount] = useState(0);           // πλήθος εγγράφων στο αρχείο
@@ -413,7 +417,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
       supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
-      supabase.from('loans').select('amount,rate,years').eq('property_id',prop.id).eq('user_id',userId),
+      supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('client_stays').select('check_in,check_out,total,nights,nightly_rate').eq('property_id',prop.id).eq('user_id',userId),
       // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους.
       // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
@@ -428,7 +432,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
       supabase.from('rent_config').select('property_id,actual_rent,target_rent').in('property_id',propIds).eq('user_id',userId),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
-    setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setHostStays(hs||[]); setAllExpenses(allExp||[]);
+    setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses(allExp||[]);
     setContactCount(cCount||0); setDocCount(dCount||0);
     const rcById = new Map((allRc||[]).map((r:any)=>[r.property_id, r]));
     const tenById = new Map<string,number>();
