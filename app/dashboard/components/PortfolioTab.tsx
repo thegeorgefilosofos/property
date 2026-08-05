@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/client';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
-import { stayTotal } from '@/lib/clients/clients';
+import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
 import { yearOccupancy } from '@/lib/clients/reports';
 import { athensToday, daysUntil } from '@/lib/core/time';
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
@@ -35,8 +35,11 @@ type Mode = 'short' | 'long' | 'vacant';
 interface Row {
   id: string; name: string; typeLabel: string; mode: Mode;
   revenue: number; expenses: number; net: number;
-  /** Το `revenue` ΔΕΝ είναι καταγεγραμμένη είσπραξη αλλά ενοίκιο × μήνες. */
+  /** Το `revenue` δεν είναι βεβαιότητα: ενοίκιο × μήνες (μακροχρόνια) ή
+   *  διαμονές με απροσδιόριστη βάση ποσού (βραχυχρόνια). */
   revenueEstimated: boolean;
+  /** Πόσες διαμονές του έτους έχουν απροσδιόριστο ποσό (0 στη μακροχρόνια). */
+  staysUnresolved: number;
   /** Δεδουλευμένα μισθώματα ως σήμερα, από τις καταχωρημένες δόσεις (0 αν δεν υπάρχουν). */
   rentExpected: number;
   occupancy: number | null; nights: number; pending: number;
@@ -89,7 +92,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   const load = useCallback(async () => {
     const [{ data: st }, { data: bl }, { data: ex }, { data: tn }, { data: ci }, { data: po }, { data: cl }, { data: rp }] = await Promise.all([
-      supabase.from('client_stays').select('property_id,check_in,check_out,total,nights,nightly_rate').eq('user_id', userId),
+      // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
+      // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
+      // `total` για ΚΑΘΕ γραμμή — δηλαδή σιωπηλά ξαναγυρίζει το payout.
+      supabase.from('client_stays').select('property_id,check_in,check_out,total,nights,nightly_rate,gross_guest_paid,platform_fee,climate_levy,amount_basis').eq('user_id', userId),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring,property_id').eq('user_id', userId),
       supabase.from('expenses').select('id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor,property_id').eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('tenants').select('property_id,monthly_rent,updated_at').eq('user_id', userId).order('updated_at', { ascending: false }),
@@ -137,7 +143,18 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     return properties.map(p => {
       const propStays = stays.filter(s => s.property_id === p.id);
       const staysY = propStays.filter(s => ((s.check_in || s.check_out || '').slice(0, 4)) === String(year));
-      const hostingY = staysY.reduce((sum, s) => sum + stayTotal(s), 0);
+      // ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΕΛΕΓΕ ΑΛΛΟ ΝΟΥΜΕΡΟ ΑΠΟ ΤΗ ΦΟΡΟΛΟΓΙΚΗ ΣΥΝΟΨΗ.
+      // Εδώ αθροιζόταν το ωμό `client_stays.total` — το πεδίο που ο εισαγωγέας
+      // email γεμίζει με PAYOUT — ενώ η «Πληρότητα & Βραχυχρόνια», το Ε2 και ο
+      // φάκελος του λογιστή αθροίζουν ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ (τι πλήρωσε ο
+      // επισκέπτης − τέλος ανθεκτικότητας). Διαφορά ~15% για το ίδιο ακίνητο,
+      // στην ίδια χρονιά, σε δύο οθόνες — και η μία απ' αυτές τυπώνεται σε
+      // υπογεγραμμένο PDF με QR. Μία πηγή, η ίδια με το Ε2.
+      const hostingY = staysY.reduce((sum, s) => sum + declarableGrossOrTotal(s), 0);
+      // Ιστορικές γραμμές χωρίς ανάλυση: το ποσό είναι το ωμό `total` και δεν
+      // ξέρουμε αν είναι ακαθάριστο ή payout. Σημαίνεται ως εκτίμηση, όπως
+      // ακριβώς και το υποθετικό ενοίκιο της μακροχρόνιας.
+      const staysUnresolved = staysY.filter(s => declarableGross(s) == null && declarableGrossOrTotal(s) > 0).length;
       const rent = resolveRent({ tenantRent: rentByProp.get(p.id), targetRent: p.target_rent }).value;
       const pay = payByProp.get(p.id);
       const hasRentRows = (pay?.rows || 0) > 0;
@@ -160,7 +177,9 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       // δόση, κρατάμε την εκτίμηση (αλλιώς η οθόνη θα άδειαζε) αλλά τη
       // ΣΗΜΑΙΝΟΥΜΕ ρητά: στον πίνακα, στο CSV και μέσα στο PDF. Ίδια σειρά
       // προτεραιότητας με το Ε2 (lib/billing/e2.ts, buildE2Row).
-      const revenueEstimated = mode === 'long' && !hasRentRows && rent > 0;
+      const revenueEstimated = mode === 'short'
+        ? staysUnresolved > 0
+        : mode === 'long' && !hasRentRows && rent > 0;
       const revenue = mode === 'short' ? hostingY
         : mode === 'long' ? (hasRentRows ? pay!.collected : rent * monthsElapsed)
         : 0;
@@ -197,7 +216,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const annualExpenses = Math.round(expenses * (12 / monthsElapsed));
       return {
         id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode,
-        revenue, expenses, net: revenue - expenses, revenueEstimated, rentExpected,
+        revenue, expenses, net: revenue - expenses, revenueEstimated, staysUnresolved, rentExpected,
         occupancy, nights, availableDays: occ.availableDays, pending: unpaid + chkAtt, owed,
         value: p.value || 0, annualRevenue, annualExpenses,
       };
@@ -234,13 +253,15 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   // Κάθε νούμερο λέει από πού βγήκε — αλλιώς ο ιδιοκτήτης δεν ξέρει τι υπογράφει.
   const revenueTitle = (r: Row): string | undefined =>
-    r.revenueEstimated
-      ? `Εκτίμηση, όχι είσπραξη: μηνιαίο ενοίκιο × ${monthsElapsed} ${monthsElapsed === 1 ? 'μήνας' : 'μήνες'} που πέρασαν. Δεν υπάρχει καμία καταχωρημένη δόση ενοικίου για το ${year}.`
-      : r.mode === 'long'
-        ? (r.rentExpected > 0
-          ? `Εισπράχθηκαν ${fe(r.revenue, 0)} από ${fe(r.rentExpected, 0)} δεδουλευμένα ως σήμερα, βάσει των δόσεων που έχεις καταχωρήσει.`
-          : 'Από τις δόσεις ενοικίου που έχεις καταχωρήσει και έχουν σημανθεί ως εισπραγμένες.')
-        : r.mode === 'short' ? 'Από τις καταχωρημένες διαμονές του έτους.' : undefined;
+    r.mode === 'short'
+      ? `Δηλωτέα ακαθάριστα από τις καταχωρημένες διαμονές του έτους: τι πλήρωσαν οι επισκέπτες μείον το τέλος ανθεκτικότητας. Ίδιο νούμερο με την «Πληρότητα & Βραχυχρόνια» και με το Ε2.${r.staysUnresolved > 0 ? ` ${r.staysUnresolved} ${r.staysUnresolved === 1 ? 'διαμονή έχει' : 'διαμονές έχουν'} απροσδιόριστο ποσό (ιστορικές καταχωρήσεις), οπότε το σύνολο είναι εκτίμηση.` : ''}`
+      : r.revenueEstimated
+        ? `Εκτίμηση, όχι είσπραξη: μηνιαίο ενοίκιο × ${monthsElapsed} ${monthsElapsed === 1 ? 'μήνας' : 'μήνες'} που πέρασαν. Δεν υπάρχει καμία καταχωρημένη δόση ενοικίου για το ${year}.`
+        : r.mode === 'long'
+          ? (r.rentExpected > 0
+            ? `Εισπράχθηκαν ${fe(r.revenue, 0)} από ${fe(r.rentExpected, 0)} δεδουλευμένα ως σήμερα, βάσει των δόσεων που έχεις καταχωρήσει.`
+            : 'Από τις δόσεις ενοικίου που έχεις καταχωρήσει και έχουν σημανθεί ως εισπραγμένες.')
+          : undefined;
 
   const occupancyTitle = (r: Row): string | undefined =>
     r.occupancy == null ? undefined
@@ -306,10 +327,19 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   // εκτύπωση, CSV, υπογεγραμμένο PDF — λέει ποια ποσά είναι εκτίμηση και γιατί.
   // Διαφορετικά η προειδοποίηση μένει σε μια οθόνη που ο παραλήπτης (τράπεζα,
   // λογιστής) δεν είδε ποτέ, και κρίνει με βάση ποσό που δεν εισπράχθηκε.
+  // ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΟΙ ΛΟΓΟΙ, ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ ΠΡΟΤΑΣΕΙΣ. Το σημείωμα έλεγε σε
+  // κάθε περίπτωση «δεν υπάρχει καμία καταχωρημένη δόση ενοικίου» — ψέμα για
+  // βραχυχρόνιο ακίνητο, που δεν έχει δόσεις ενοικίου εξ ορισμού. Σε κείμενο
+  // που τυπώνεται σε υπογεγραμμένο έγγραφο, μια ανακριβής εξήγηση είναι
+  // χειρότερη από καμία: ο λογιστής ψάχνει δόσεις που δεν υπήρξαν ποτέ.
   const estimateNote = (rs: Row[]): string | null => {
-    const est = rs.filter(r => r.revenueEstimated);
-    if (!est.length) return null;
-    return `Εκτίμηση, όχι είσπραξη: για ${est.map(r => r.name).join(', ')} δεν υπάρχει καμία καταχωρημένη δόση ενοικίου για το ${year}. Τα ποσά αυτά προκύπτουν από το μηνιαίο ενοίκιο επί τους μήνες που πέρασαν, φέρουν την ένδειξη «εκτ.» και ΔΕΝ αντιστοιχούν σε καταγεγραμμένη είσπραξη.`;
+    const longEst = rs.filter(r => r.revenueEstimated && r.mode === 'long');
+    const shortEst = rs.filter(r => r.revenueEstimated && r.mode === 'short');
+    const parts: string[] = [];
+    if (longEst.length) parts.push(`Εκτίμηση, όχι είσπραξη: για ${longEst.map(r => r.name).join(', ')} δεν υπάρχει καμία καταχωρημένη δόση ενοικίου για το ${year}. Τα ποσά αυτά προκύπτουν από το μηνιαίο ενοίκιο επί τους μήνες που πέρασαν και ΔΕΝ αντιστοιχούν σε καταγεγραμμένη είσπραξη.`);
+    if (shortEst.length) parts.push(`Απροσδιόριστη βάση ποσού: για ${shortEst.map(r => `${r.name} (${r.staysUnresolved})`).join(', ')} υπάρχουν διαμονές καταχωρημένες πριν το app ξεχωρίσει τα ακαθάριστα από το payout, οπότε δεν είναι βέβαιο αν το ποσό είναι τι πλήρωσε ο επισκέπτης ή τι εισπράχθηκε.`);
+    if (!parts.length) return null;
+    return `${parts.join(' ')} Τα ποσά αυτά φέρουν την ένδειξη «εκτ.».`;
   };
 
   const exportStatement = () => {
@@ -684,7 +714,8 @@ const MODE_LABEL: Record<Mode, string> = { short: 'Βραχυχρόνια', long
 
 /** Από πού βγήκε το ποσό των εσόδων — ταξιδεύει μαζί του σε κάθε εξαγωγή. */
 const revenueBasis = (r: Row): string =>
-  r.mode === 'short' ? 'διαμονές'
+  r.mode === 'short'
+    ? (r.staysUnresolved > 0 ? `διαμονές, ${r.staysUnresolved} με απροσδιόριστο ποσό` : 'διαμονές (δηλωτέα ακαθάριστα)')
     : r.mode !== 'long' ? ''
     : r.revenueEstimated ? 'εκτίμηση (ενοίκιο × μήνες)'
     : 'εισπράξεις';

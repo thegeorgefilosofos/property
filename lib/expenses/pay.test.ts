@@ -5,7 +5,7 @@
 // ποιο κουμπί «Πληρώθηκε» πάτησε ο χρήστης.
 import { planBillPayment, billCategory } from './pay';
 import { isGroupDeductible } from './groups';
-import { isDeductible } from './taxonomy';
+import { isDeductible, BY_SLUG, resolveCategory } from './taxonomy';
 import { EXPENSE_MAP } from '../billing/parse';
 
 let pass = 0, fail = 0;
@@ -107,6 +107,26 @@ const DEH = { id: 'b1', name: 'ΔΕΗ Ιουλίου', amount: 84.5, category: '
   }
   eq('καμία κατηγορία λογαριασμού δεν διαφωνεί με την ταξινομία', bad, '');
 }
+
+// ═══ Η ΤΑΞΙΝΟΜΙΑ ΑΠΑΝΤΑ ΓΙΑ ΚΑΘΕ ΚΛΕΙΔΙ — Η ΥΠΟΧΩΡΗΣΗ ΔΕΝ ΧΡΕΙΑΖΕΤΑΙ ══════
+// Το προηγούμενο τεστ ελέγχει ότι χάρτης και ταξινομία ΣΥΜΦΩΝΟΥΝ. Συμφωνούν
+// όμως και όταν η ταξινομία δεν έχει γνώμη: η υποχώρηση δίνει την ομάδα του
+// χάρτη, κι αν τύχει να ταιριάζει, το τεστ περνά χωρίς η ταξινομία να έχει
+// αποφανθεί ποτέ. Έτσι ακριβώς κρύφτηκε το αρχικό λάθος. Εδώ ελέγχεται ότι η
+// απάντηση ΠΡΑΓΜΑΤΙΚΑ βγαίνει από τη μία πηγή για ΟΛΑ τα κλειδιά — αν κάποιος
+// προσθέσει αύριο κατηγορία που η ταξινομία δεν αναγνωρίζει, φαίνεται αμέσως.
+{
+  const unresolved: string[] = [];
+  for (const [key, m] of Object.entries(EXPENSE_MAP)) {
+    const slug = BY_SLUG[key] ? key : resolveCategory(m.cat);
+    if (!slug || !BY_SLUG[slug]) unresolved.push(key);
+  }
+  eq('κάθε κατηγορία λογαριασμού βρίσκει κατηγορία στην ταξινομία', unresolved.join(','), '');
+}
+
+// Οι δύο που ΔΕΝ εκπίπτουν, ονομαστικά: ήταν η ζημιά που έκανε η υποχώρηση.
+eq('ΕΝΦΙΑ (taxes) δεν εκπίπτει', isGroupDeductible(billCategory('taxes').group), false);
+eq('συνδρομές (streaming) δεν εκπίπτουν', isGroupDeductible(billCategory('streaming').group), false);
 
 // ═══ ΚΑΜΙΑ ΔΕΥΤΕΡΗ ΓΡΑΜΜΗ ΟΤΑΝ ΥΠΑΡΧΕΙ ΗΔΗ ════════════════════════════════
 {
