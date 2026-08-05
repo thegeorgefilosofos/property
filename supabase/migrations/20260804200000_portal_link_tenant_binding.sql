@@ -60,6 +60,40 @@
 -- Το cast είναι ασφαλές όποιος κι αν είναι ο τύπος της στήλης.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ΠΡΩΤΑ ΑΠ' ΟΛΑ: Ο ΠΙΝΑΚΑΣ `tenants` ΔΕΝ ΕΧΕΙ ΠΟΤΕ ΕΙΧΕ `created_at`.
+-- ─────────────────────────────────────────────────────────────────────────
+-- Έχει `updated_at` και τίποτα άλλο (δες το CREATE TABLE στο baseline). Παρ'
+-- όλα αυτά, ΔΕΚΑ σημεία ταξινομούν τους ενοικιαστές με `created_at` για να
+-- βρουν «τον τρέχοντα»:
+--
+--   ΣΥΝΑΡΤΗΣΕΙΣ  get_portal_data, submit_maintenance_request, get_accountant_data
+--   ΕΦΑΡΜΟΓΗ     TabTenant (η ΚΥΡΙΑ καρτέλα ενοικιαστή), TabAccounting,
+--                LeaseModal, RentAdjustmentModal, e2Export (και οι δύο διαδρομές)
+--
+-- Καθένα από αυτά σκάει: η Postgres πετά 42703, το PostgREST απορρίπτει
+-- ΟΛΟΚΛΗΡΟ το ερώτημα σε άγνωστη στήλη. Δηλαδή η καρτέλα Ενοικιαστή δεν
+-- φόρτωνε, το Ε2 δεν έβγαινε, ο φάκελος του λογιστή γύριζε κενός.
+--
+-- ΓΙΑΤΙ ΠΡΟΣΤΙΘΕΤΑΙ Η ΣΤΗΛΗ ΑΝΤΙ ΝΑ ΑΛΛΑΞΟΥΝ ΤΑ ΔΕΚΑ ΣΗΜΕΙΑ
+-- Το ερώτημα σε όλα είναι «ποιος μένει τώρα». Το `updated_at` αλλάζει σε κάθε
+-- επεξεργασία, οπότε διόρθωση ενός παλιού ενοικιαστή θα τον έκανε ξαφνικά
+-- «τρέχοντα». Το `created_at` είναι σταθερό και απαντά σωστά. Μία στήλη
+-- διορθώνει δέκα σημεία, και τα διορθώνει με τη ΣΩΣΤΗ σημασιολογία.
+--
+-- Η αρχική τιμή βγαίνει από το `updated_at` και όχι από το `now()`: με now()
+-- όλες οι υπάρχουσες γραμμές θα έπαιρναν την ίδια στιγμή και η σειρά «ποιος
+-- είναι ο πιο πρόσφατος» θα γινόταν τυχαία — ακριβώς η απάντηση που ψάχνουμε.
+-- ═══════════════════════════════════════════════════════════════════════════
+alter table public.tenants add column if not exists created_at timestamptz;
+update public.tenants set created_at = coalesce(updated_at, now()) where created_at is null;
+alter table public.tenants alter column created_at set default now();
+
+comment on column public.tenants.created_at is
+  'Πότε καταχωρήθηκε ο ενοικιαστής. Καθορίζει «ποιος μένει τώρα» σε δέκα σημεία (πύλη, Ε2, λογιστής, καρτέλα ενοικιαστή). Το updated_at ΔΕΝ κάνει: αλλάζει σε κάθε επεξεργασία.';
+
+create index if not exists tenants_property_created_idx on public.tenants (property_id, created_at desc);
+
 alter table public.portal_links
   add column if not exists tenant_id uuid references public.tenants(id) on delete cascade;
 
