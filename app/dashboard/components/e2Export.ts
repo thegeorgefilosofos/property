@@ -135,39 +135,18 @@ export async function loadE2Rows(
 }
 
 export async function runE2Export(supabase: SupabaseClient, userId: string, year: number): Promise<number> {
-  const { data: props } = await supabase.from('user_properties')
-    .select('id, atak, address, postal_code, ownership, prop_type, status_detail, target_rent, sqm, floor')
-    .eq('user_id', userId).order('created_at');
-  const properties = (props || []) as E2Property[];
+  // ΜΙΑ ΦΟΡΤΩΣΗ, ΟΧΙ ΔΥΟ.
+  // Εδώ ήταν αντιγραμμένο ολόκληρο το σώμα του `loadE2Rows`: τα ίδια πέντε
+  // ερωτήματα, οι ίδιοι τέσσερις χάρτες, ξαναγραμμένα. Το `loadE2Rows` είχε
+  // αποσπαστεί ΑΚΡΙΒΩΣ για να μη συμβαίνει αυτό — και το λέει στο σχόλιό του —
+  // αλλά η εξαγωγή δεν μεταφέρθηκε ποτέ πάνω του. Δηλαδή ο έλεγχος του
+  // προσυμπληρωμένου και το αρχείο που κατεβάζει ο χρήστης έβγαιναν από δύο
+  // ξεχωριστές διαδρομές που μπορούσαν να διαφωνήσουν — σε φορολογικό έντυπο.
+  const { properties, rows: e2rows, ownerAfm: ownerAfmCommon,
+          tenantByProp, paymentsByProp, afmByProp, staysByProp } =
+    await loadE2Rows(supabase, userId, year);
   if (!properties.length) return 0;
-  const ids = properties.map(p => p.id);
-  const [{ data: tenants }, { data: payments }, { data: settings }, { data: stays }] = await Promise.all([
-    supabase.from('tenants').select('property_id, afm, full_name, monthly_rent, lease_start, lease_end, lease_type, created_at').in('property_id', ids).eq('user_id', userId).order('created_at', { ascending: false }),
-    supabase.from('rent_payments').select('property_id, amount, period_year, period_month').in('property_id', ids).eq('user_id', userId).eq('period_year', year),
-    supabase.from('property_settings').select('property_id, owner_afm').in('property_id', ids).eq('user_id', userId),
-    // ΟΙ ΔΙΑΜΟΝΕΣ ΕΙΝΑΙ ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΕΣΟΔΟ ΤΗΣ ΒΡΑΧΥΧΡΟΝΙΑΣ.
-    // Μέχρι σήμερα δεν διαβάζονταν καθόλου εδώ, οπότε το Ε2 έβγαζε τα
-    // ακαθάριστα από τον ΣΤΟΧΟ μισθώματος (ή 0) — δηλαδή δήλωνε υποθετικό
-    // νούμερο σε φορολογικό έντυπο. Φιλτράρονται με `in('property_id', ids)`
-    // και ομαδοποιούνται ΑΝΑ ΑΚΙΝΗΤΟ ακριβώς όπως πληρωμές και μισθωτές:
-    // αν περνιόνταν ενιαία, κάθε ακίνητο θα δήλωνε τα έσοδα ΟΛΟΥ του
-    // χαρτοφυλακίου.
-    supabase.from('client_stays').select('property_id, check_in, check_out, nights, nightly_rate, total, gross_guest_paid, platform_fee, climate_levy, amount_basis, channel, declared_at').in('property_id', ids).eq('user_id', userId),
-  ]);
-  const tenantByProp = new Map<string, E2Tenant>();
-  (tenants || []).forEach((t: E2Tenant) => { if (!tenantByProp.has(t.property_id)) tenantByProp.set(t.property_id, t); });
-  const paymentsByProp = new Map<string, E2Payment[]>();
-  (payments || []).forEach((p: E2Payment) => { const a = paymentsByProp.get(p.property_id) || []; a.push(p); paymentsByProp.set(p.property_id, a); });
-  const staysByProp = new Map<string, E2Stay[]>();
-  (stays || []).forEach((st: E2Stay) => {
-    const key = st.property_id; if (!key) return;   // διαμονή χωρίς ακίνητο δεν ανήκει σε καμία δήλωση
-    const a = staysByProp.get(key) || []; a.push(st); staysByProp.set(key, a);
-  });
-  const afmByProp = new Map<string, string>();
-  (settings || []).forEach((s: { property_id: string; owner_afm: string | null }) => { if (s.owner_afm) afmByProp.set(s.property_id, s.owner_afm); });
-  const ownerAfmCommon = [...afmByProp.values()].find(Boolean) || '';
 
-  const e2rows = properties.map(p => buildE2Row(p, tenantByProp.get(p.id) || null, paymentsByProp.get(p.id) || [], afmByProp.get(p.id) || '', year, staysByProp.get(p.id) || []));
   const officialRows = properties.map((p, i) => buildE2OfficialCells(p, tenantByProp.get(p.id) || null, paymentsByProp.get(p.id) || [], afmByProp.get(p.id) || '', year, i + 1, staysByProp.get(p.id) || []));
 
   const wb = XLSX.utils.book_new();

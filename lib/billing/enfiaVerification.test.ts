@@ -9,7 +9,7 @@
 
 import {
   estimateENFIA, enfiaExtraPropertyTax, wealthReductionPct,
-  ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_COEF, ENFIA_REDUCTIONS,
+  ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_COEF, ENFIA_REDUCTIONS, ENFIA_AGE_BANDS, enfiaAgeCoef,
   ENFIA_SURCHARGE_THRESHOLD, ENFIA_SURCHARGE_BRACKETS,
   ENFIA_EXTRA_TAX_FREE, ENFIA_EXTRA_WEALTH_THRESHOLD,
 } from './enfia'
@@ -112,3 +112,39 @@ const REDS = ENFIA_REDUCTIONS.map(r => r.key)
 console.log(`enfiaVerification — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
 if (failed > 0) { console.log('Πρώτες αποτυχίες:'); for (const f of fails) console.log('  ✗ ' + f); process.exit(1) }
 console.log('όλα πέρασαν — ο ΕΝΦΙΑ επαληθεύτηκε σε ' + passed.toLocaleString('el-GR') + ' ελέγχους')
+
+// ═══ ΤΑ ΚΛΙΜΑΚΙΑ ΠΑΛΑΙΟΤΗΤΑΣ ══════════════════════════════════════════════
+// Ο νόμος έχει ΕΞΙ κλιμάκια. Ο πίνακας είχε πέντε — έλειπε το «15-19 έτη» και
+// το προηγούμενο τα κατάπινε, χρεώνοντας 1,15 αντί για 1,10 σε κάθε κτίσμα
+// 15 ως 19 ετών. Οι έλεγχοι εδώ κρατούν και τα έξι, και την τιμή τους.
+{
+  const bands = ENFIA_AGE_BANDS
+  ok('έξι κλιμάκια, όσα και ο νόμος', bands.length === 6)
+  ok('όλα τα κλιμάκια έχουν ετικέτα', bands.every(b => b.label.trim().length > 0))
+  // Τα νεότερα κτίσματα επιβαρύνονται ΠΕΡΙΣΣΟΤΕΡΟ: ο συντελεστής πέφτει μονότονα.
+  ok('ο συντελεστής πέφτει με την ηλικία',
+     bands.every((b, i) => i === 0 || bands[i - 1].coef > b.coef))
+  ok('το κλιμάκιο 15-19 υπάρχει και είναι 1,10',
+     bands.find(b => b.key === 'y15_19')?.coef === 1.10)
+  ok('το κλιμάκιο 10-14 μένει 1,15',
+     bands.find(b => b.key === 'y10_14')?.coef === 1.15)
+  ok('το παλαιότερο δεν έχει προσαύξηση',
+     bands[bands.length - 1].coef === 1.00)
+
+  // ΤΑ ΠΑΛΙΑ ΚΛΕΙΔΙΑ ΕΙΝΑΙ ΗΔΗ ΑΠΟΘΗΚΕΥΜΕΝΑ ΣΕ ΡΥΘΜΙΣΕΙΣ ΧΡΗΣΤΩΝ.
+  // Αν σταματούσαν να αναγνωρίζονται, ο συντελεστής θα γινόταν undefined και ο
+  // ΕΝΦΙΑ NaN: διόρθωση ακρίβειας που σπάει την οθόνη είναι χειρότερη από το λάθος.
+  for (const legacy of ['under_5', '5_10', '10_20', '20_25', '25_30', 'over_30']) {
+    ok(`το παλιό κλειδί «${legacy}» εξακολουθεί να δίνει αριθμό`,
+       Number.isFinite(enfiaAgeCoef(legacy)) && enfiaAgeCoef(legacy) > 0)
+  }
+  ok('άγνωστο κλειδί δεν δίνει NaN', enfiaAgeCoef('φρου-φρου') === 1.00)
+  ok('κενό κλειδί δεν δίνει NaN', enfiaAgeCoef(null) === 1.00)
+
+  // Το σενάριο του σφάλματος, με πραγματικά νούμερα.
+  const sqm = 100, zone = ENFIA_ZONE_TAX['1501_2500'] ?? 3.70
+  const swra = sqm * zone * 1.00 * enfiaAgeCoef('y15_19')
+  const palio = sqm * zone * 1.00 * 1.15
+  ok('κτίσμα 17 ετών: 407 € και όχι 425,50 €', Math.round(swra * 100) / 100 === 407)
+  ok('η υπερχρέωση ήταν 18,50 €', Math.round((palio - swra) * 100) / 100 === 18.50)
+}

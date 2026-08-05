@@ -27,8 +27,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, TT, EmptyState } from '@/components/Theme';
-import { loadE2Rows } from './e2Export';
+import { T, TT, EmptyState, Btn } from '@/components/Theme';
+import { loadE2Rows, runE2Export } from './e2Export';
+import { notify, notifyError } from '@/components/Toast';
 import { reconcileE2, type DeclaredRow, type OurEvidence, type Line } from '@/lib/billing/e2Reconcile';
 import type { E2Row } from '@/lib/billing/e2';
 
@@ -53,6 +54,26 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
   const [loading, setLoading] = useState(true);
   /** Τι έγραψε ο χρήστης από το έντυπο, ανά ΑΤΑΚ. Κενό = δεν το έχει δει ακόμη. */
   const [declared, setDeclared] = useState<Record<string, string>>({});
+  const [exporting, setExporting] = useState(false);
+
+  // ── ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΠΟΥΛΙΕΤΑΙ ΚΑΙ ΔΕΝ ΠΑΡΑΓΟΤΑΝ ────────────────────────────
+  // Η «Εξαγωγή Ε2» είναι χρεώσιμο χαρακτηριστικό: ξεκλειδώνει από το πρόγραμμα
+  // «Ένα ακίνητο» και προς τα πάνω, δηλώνεται στα entitlements και ελέγχεται
+  // από δύο σουίτες δοκιμών. Η συνάρτηση που φτιάχνει το βιβλίο υπήρχε, δούλευε,
+  // και ΔΕΝ ΤΗΝ ΚΑΛΟΥΣΕ ΚΑΝΕΙΣ — ούτε ένα κουμπί σε ολόκληρη την εφαρμογή.
+  // Ο συνδρομητής πλήρωνε για έντυπο που δεν μπορούσε να κατεβάσει.
+  const exportE2 = async () => {
+    setExporting(true);
+    try {
+      const n = await runE2Export(supabase, userId, year);
+      if (n > 0) notify(`Το Ε2 ${year} κατέβηκε · ${n} ${n === 1 ? 'ακίνητο' : 'ακίνητα'}`);
+      else notifyError('Δεν υπάρχει ακίνητο για εξαγωγή.');
+    } catch {
+      notifyError('Η εξαγωγή δεν ολοκληρώθηκε. Δοκίμασε ξανά.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -119,7 +140,12 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
   return (
     <div style={card}>
       <div style={{ marginBottom: 14 }}>
-        <p style={{ ...TT.h2 }}>Έλεγχος του προσυμπληρωμένου Ε2 · {year}</p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <p style={{ ...TT.h2 }}>Έλεγχος του προσυμπληρωμένου Ε2 · {year}</p>
+          <Btn variant="secondary" onClick={exportE2} disabled={exporting}>
+            {exporting ? 'Σε εξέλιξη…' : 'Λήψη Ε2 σε Excel'}
+          </Btn>
+        </div>
         <p style={{ ...TT.bodySm, marginTop: 4, maxWidth: 640 }}>
           Η ΑΑΔΕ σου στέλνει το Ε2 συμπληρωμένο. Είναι συχνά λάθος — γι&apos; αυτό σου
           επιτρέπει να το διορθώσεις. Άνοιξε το myAADE, γράψε εδώ το ακαθάριστο που

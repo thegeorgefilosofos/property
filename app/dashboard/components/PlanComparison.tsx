@@ -14,6 +14,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { PLANS, PLAN_ORDER, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+import { FEATURE_LABEL, FEATURE_MIN_PLAN, planAtLeast, type Feature } from '@/lib/billing/entitlements';
 import { isPlanAllowedForProfile } from '@/lib/billing/entitlements';
 import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto } from '@/components/Theme';
 
@@ -23,8 +24,11 @@ import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto } from '@/components/Them
 // το ως τέταρτη στήλη θα στρίμωχνε τις τρεις που ΠΡΑΓΜΑΤΙΚΑ επιλέγει ο χρήστης,
 // ιδίως σε κινητό, για να διαφημίσει κάτι που αφορά ελάχιστους. Αναφέρεται με μία
 // γραμμή κάτω από τον πίνακα, εκεί που ανήκει.
-type ComparedPlan = Extract<PlanId, 'free' | 'owner' | 'agency'>;
-const COMPARED: ComparedPlan[] = ['free', 'owner', 'agency'];
+// ΟΙ ΣΤΗΛΕΣ ΕΙΝΑΙ ΤΑ ΠΛΑΝΑ ΠΟΥ ΜΠΟΡΕΙ ΝΑ ΑΓΟΡΑΣΕΙ ΚΑΠΟΙΟΣ — ΟΛΑ ΤΟΥΣ.
+// Έλειπαν το «Ένα ακίνητο» (3,90 €) και το «Γραφείο»: ο συνδρομητής του πρώτου
+// άνοιγε τη σύγκριση πλάνων και δεν έβρισκε το δικό του πλάνο πουθενά.
+type ComparedPlan = Extract<PlanId, 'free' | 'solo' | 'owner' | 'agency' | 'office'>;
+const COMPARED: ComparedPlan[] = ['free', 'solo', 'owner', 'agency', 'office'];
 
 // ── Πίνακας δυνατοτήτων (μία πηγή, καθρεφτίζει τα entitlements) ─────────────
 type CellValue = boolean | string;
@@ -38,26 +42,44 @@ const limitLabel = (id: ComparedPlan): string => {
   return n === 1 ? '1' : `Έως ${n}`;
 };
 
+// ── Ο ΠΙΝΑΚΑΣ ΔΕΝ ΞΑΝΑΛΕΕΙ ΤΟΥΣ ΚΑΝΟΝΕΣ· ΤΟΥΣ ΔΙΑΒΑΖΕΙ ────────────────────
+// Οι γραμμές ήταν γραμμένες με το χέρι ως booleans ανά πλάνο, και είχαν ήδη
+// αποκλίνει από αυτό που ΕΠΙΒΑΛΛΕΙ ο κώδικας:
+//
+//   · «Εξαγωγή Ε2» έλεγε ότι θέλει «Ιδιοκτήτης». Το `FEATURE_MIN_PLAN` το
+//     ξεκλειδώνει από το «Ένα ακίνητο», που κοστίζει πολλαπλάσια λιγότερο.
+//   · Το ίδιο και η «Διαχείριση ενοικιαστών & εισπράξεις».
+//
+// Δηλαδή ο πίνακας τιμών έλεγε στον χρήστη να αγοράσει ακριβότερο πλάνο από όσο
+// χρειαζόταν. Δεν είναι θέμα αισθητικής· είναι λάθος τιμολόγηση στην οθόνη που
+// ζητά την κάρτα του. Τώρα κάθε κλειδωμένη γραμμή παράγεται από το ίδιο μητρώο
+// που κρίνει και την πρόσβαση — δεν μπορούν να διαφωνήσουν.
+const gated = (f: Feature): FeatureRow => ({
+  label: FEATURE_LABEL[f],
+  values: Object.fromEntries(COMPARED.map(p => [p, planAtLeast(p, FEATURE_MIN_PLAN[f])])) as Record<ComparedPlan, CellValue>,
+});
+/** Γραμμή που ισχύει για όλους — δεν περνά από entitlement. */
+const forAll = (label: string): FeatureRow => ({
+  label, values: Object.fromEntries(COMPARED.map(p => [p, true])) as Record<ComparedPlan, CellValue>,
+});
+
 const MATRIX: FeatureRow[] = [
-  { label: 'Ακίνητα', values: { free: limitLabel('free'), owner: limitLabel('owner'), agency: limitLabel('agency') } },
-  { label: 'Σάρωση εγγράφων & βοηθός με φωνή', values: { free: true, owner: true, agency: true } },
-  { label: 'Αποδόσεις, δαπάνες, ενέργεια & φόρος 2026', values: { free: true, owner: true, agency: true } },
-  { label: 'Έξυπνες ειδοποιήσεις & υπενθυμίσεις', values: { free: true, owner: true, agency: true } },
-  { label: 'Σύγκριση ακινήτων', values: { free: false, owner: true, agency: true } },
-  { label: 'Διαχείριση ενοικιαστών & εισπράξεις', values: { free: false, owner: true, agency: true } },
-  { label: 'Δήλωση Μίσθωσης: έλεγχος πριν το myAADE', values: { free: false, owner: true, agency: true } },
-  { label: 'Εξαγωγή Ε2 για τον λογιστή', values: { free: false, owner: true, agency: true } },
-  { label: 'Λογιστικό ημερολόγιο (SoftOne, Epsilon, Xero)', values: { free: false, owner: true, agency: true } },
-  { label: 'Υποστήριξη κατά προτεραιότητα', values: { free: false, owner: true, agency: true } },
-  { label: 'Πελατολόγιο & υποψήφιοι (CRM)', values: { free: false, owner: false, agency: true } },
-  { label: 'Χαρτοφυλάκιο πολλών ακινήτων', values: { free: false, owner: false, agency: true } },
-  { label: 'Επώνυμες αναφορές & έγγραφα', values: { free: false, owner: false, agency: true } },
-  { label: 'Ομάδα, ρόλοι & δικαιώματα', values: { free: false, owner: false, agency: true } },
+  { label: 'Ακίνητα', values: Object.fromEntries(COMPARED.map(p => [p, limitLabel(p)])) as Record<ComparedPlan, CellValue> },
+  forAll('Σάρωση εγγράφων & βοηθός με φωνή'),
+  forAll('Αποδόσεις, δαπάνες, ενέργεια & φόρος 2026'),
+  forAll('Έξυπνες ειδοποιήσεις & υπενθυμίσεις'),
+  gated('e2_export'),
+  gated('rent_collection'),
+  gated('multi_property'),
+  gated('comparison'),
+  gated('clients'),
+  gated('portfolio'),
+  gated('report_branding'),
 ];
 
 // Πλέγμα του πίνακα: ετικέτα + 3 στήλες πλάνων. Ελάχιστο πλάτος ώστε σε στενές
 // οθόνες να κυλάει μέσα στο δικό του container (η σελίδα δεν σπρώχνεται ποτέ).
-const MATRIX_GRID = 'minmax(184px, 1.7fr) repeat(3, minmax(92px, 1fr))';
+const MATRIX_GRID = `minmax(184px, 1.7fr) repeat(${COMPARED.length}, minmax(84px, 1fr))`;
 
 // ── Μικρά εικονίδια ────────────────────────────────────────────────────────
 function Check({ tone }: { tone: 'accent' | 'muted' }) {

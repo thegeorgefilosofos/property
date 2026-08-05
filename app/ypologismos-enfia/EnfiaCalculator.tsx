@@ -26,7 +26,7 @@ import { T, feAuto } from '@/components/tokens';
 import { parseAmount } from '@/lib/core/greek';
 import {
   estimateENFIA, zoneKeyFromPricePerSqm,
-  ENFIA_FLOOR_COEF, ENFIA_AGE_COEF,
+  ENFIA_FLOOR_COEF, ENFIA_AGE_COEF, ENFIA_AGE_BANDS,
 } from '@/lib/billing/enfia';
 
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
@@ -42,19 +42,16 @@ const FLOORS: { key: keyof typeof ENFIA_FLOOR_COEF | string; label: string }[] =
   { key: 'fourth',     label: '4ος όροφος' },
   { key: 'fifth_plus', label: '5ος και πάνω' },
 ];
-const AGES: { key: keyof typeof ENFIA_AGE_COEF | string; label: string }[] = [
-  { key: 'under_5', label: 'Έως 4 έτη' },
-  { key: '5_10',    label: '5 – 9 έτη' },
-  { key: '10_20',   label: '10 – 19 έτη' },
-  { key: '20_25',   label: '20 – 25 έτη' },
-  { key: '25_30',   label: '26 έτη και πάνω' },
-];
+// Τα κλιμάκια παλαιότητας ΔΕΝ ξαναγράφονται εδώ: έρχονται από το enfia.ts, μαζί
+// με τις ετικέτες τους. Πριν, οι δύο οθόνες είχαν διαφορετικά λεκτικά για το
+// ίδιο κλειδί — και καμία δεν είχε το κλιμάκιο 15-19 ετών.
+const AGES = ENFIA_AGE_BANDS;
 
 export function EnfiaCalculator() {
   const [sqm, setSqm] = useState('85');
   const [zonePrice, setZonePrice] = useState('1400');
   const [floor, setFloor] = useState('second');
-  const [age, setAge] = useState('25_30');
+  const [age, setAge] = useState('y26_plus');
   const [ownership, setOwnership] = useState('100');
   const ids = { sqm: useId(), zone: useId(), floor: useId(), age: useId(), own: useId() };
 

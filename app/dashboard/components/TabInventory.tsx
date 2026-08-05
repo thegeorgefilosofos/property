@@ -1353,7 +1353,7 @@ function WarrantiesTab({items,userId,propertyId,embedded}:{items:InventoryItem[]
   const valid = withW.filter(i=>daysUntil(i.warranty_expiry)>90)
   const pushCal = async(item:InventoryItem) => {
     setPushing(item.id)
-    const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
+    const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,notes:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
     setPushing(null)
     if(error){notifyError('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
     setPushed(p=>new Set(p).add(item.id))
@@ -1631,7 +1631,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
   // Το «κύκλωμα»: μια προγραμματισμένη εργασία → εγγραφή ημερολογίου (υπενθύμιση/εκκρεμότητα)
   // + προγραμματισμένη (εκκρεμής) δαπάνη → τροφοδοτεί προϋπολογισμό «Συντήρηση» & «Εκκρεμείς πληρωμές».
   const makeCalEvent=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
-    const {data}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:taskTitle(task,item_name),description:est>0?`Εκτιμώμενο κόστος ${fmtEur(est)}`:'',category:'maintenance',event_date:due,amount:est||0,priority:'medium',status:'pending',source:'inventory-maint',notes:'Αυτόματο από Συντήρηση Απογραφής'}).select('id').single()
+    const {data}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:taskTitle(task,item_name),category:'maintenance',event_date:due,amount:est||0,priority:'medium',status:'pending',source:'inventory-maint',notes:est>0?`Αυτόματο από Συντήρηση Απογραφής · εκτιμώμενο κόστος ${fmtEur(est)}`:'Αυτόματο από Συντήρηση Απογραφής'}).select('id').single()
     return (data as {id?:string}|null)?.id
   }
   const makePlannedExpense=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
@@ -1917,11 +1917,11 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       // πηγή τιμής kWh ήταν πάντα κενή και ο χρήστης έβλεπε άδειο πεδίο ακόμη
       // κι όταν είχε καταχωρήσει τιμή στο μισθωτήριο. Η τιμή ζει στο tenants.
       supabase.from('tenants').select('kwh_price').eq('property_id',propertyId).not('kwh_price','is',null).limit(1),
-      // Το `property_settings` ΔΕΝ έχει kwh_price (μόνο παρόχους και ασφάλιση).
-      // Η τιμή kWh ζει στο μισθωτήριο· η γραμμή από πάνω τη φέρνει ήδη. Εδώ
-      // κρατιέται το ίδιο ερώτημα ως δεύτερη πηγή μόνο για να μη χαλάσει η σειρά
-      // των αποτελεσμάτων του Promise.all — επιστρέφει την ίδια στήλη.
-      supabase.from('tenants').select('kwh_overage_price').eq('property_id',propertyId).not('kwh_overage_price','is',null).limit(1),
+      // Η ΤΙΜΗ ΤΟΥ ΑΚΙΝΗΤΟΥ, που είναι και η μόνη που μπορεί να γράψει ο χρήστης.
+      // Το `property_settings.kwh_price` προστέθηκε με migration· ως τότε η
+      // αποθήκευση αποτύγχανε σιωπηλά και εδώ διαβαζόταν δύο φορές η ίδια στήλη
+      // του μισθωτηρίου, μόνο για να μη χαλάσει η σειρά του Promise.all.
+      supabase.from('property_settings').select('kwh_price').eq('property_id',propertyId).limit(1),
       supabase.from('tenants').select('furnishing').eq('property_id',propertyId).limit(1),
     ])
     setFurnishing((tR.data?.[0] as {furnishing?:string}|undefined)?.furnishing ?? null)
@@ -1934,7 +1934,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     if(rR.data)setRepairs(rR.data)
     if(hR.data)setHandovers(hR.data as InventoryHandover[])
     if(sR.data)setSchedules(sR.data)
-    const savedKwh=bR.data?.[0]?.kwh_price||psR.data?.[0]?.kwh_overage_price
+    const savedKwh=(psR.data?.[0] as {kwh_price?:number}|undefined)?.kwh_price||bR.data?.[0]?.kwh_price
     if(savedKwh){setKwhPrice(savedKwh);setKwInput(String(savedKwh))}
     setLoading(false)
   },[propertyId,userId])
@@ -1942,7 +1942,15 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   useEffect(()=>{fetchData()},[fetchData])
 
   const saveKwh=async(price:number)=>{
-    await supabase.from('property_settings').upsert({property_id:propertyId,user_id:userId,kwh_price:price,updated_at:new Date().toISOString()},{onConflict:'property_id,user_id'})
+    // Ο μοναδικός περιορισμός είναι `UNIQUE (property_id)` — ΜΟΝΟ αυτόν δέχεται
+    // το on conflict. Το προηγούμενο `'property_id,user_id'` δεν αντιστοιχούσε
+    // σε κανέναν, οπότε η Postgres έριχνε 42P10 και η τιμή δεν αποθηκευόταν ποτέ.
+    const {error}=await supabase.from('property_settings')
+      .upsert({property_id:propertyId,user_id:userId,kwh_price:price},{onConflict:'property_id'})
+    // Το σφάλμα ΔΙΑΒΑΖΕΤΑΙ. Ο Supabase δεν πετά ποτέ — επιστρέφει {data,error} —
+    // οπότε χωρίς αυτόν τον έλεγχο η αποτυχία ήταν κυριολεκτικά αόρατη.
+    if(error){notifyError('Η τιμή ρεύματος δεν αποθηκεύτηκε: '+error.message);return}
+    notifyOk('Η τιμή ρεύματος αποθηκεύτηκε')
   }
   const handleSaveItem=async(data:Partial<InventoryItem>)=>{
     // Γράφονται ΜΟΝΟ τα πεδία που ζητάει πλέον η φόρμα. Οι στήλες που έμειναν στη
@@ -1984,7 +1992,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   }
   const handleWarrantyReminder=async(item:InventoryItem)=>{
     if(!item.warranty_expiry){notifyError('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return}
-    const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
+    const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,notes:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
     if(error){notifyError('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
     // ΗΤΑΝ notifyError: μήνυμα ΕΠΙΤΥΧΙΑΣ σε κόκκινο toast. Ο χρήστης νόμιζε ότι απέτυχε
     // και το ξαναπατούσε, φτιάχνοντας διπλές εγγραφές ημερολογίου.

@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fp, Spinner, EmptyState } from '@/components/Theme';
-import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse } from '@/lib/billing/enfia';
+import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -65,9 +65,7 @@ const FLOOR_OPTIONS = [
   { value: 'fifth_plus', label: '5ος+ Όροφος' },
 ];
 const AGE_OPTIONS = [
-  { value: 'under_5', label: 'Κάτω από 5 χρόνια' },{ value: '5_10',  label: '5 – 10 χρόνια'  },
-  { value: '10_20',   label: '10 – 20 χρόνια'    },{ value: '20_25', label: '20 – 25 χρόνια' },
-  { value: '25_30',   label: '25 – 30 χρόνια'    },{ value: 'over_30', label: 'Άνω των 30 χρόνων' },
+  ...ENFIA_AGE_BANDS.map(b => ({ value: b.key, label: b.label })),
 ];
 const REDUCTIONS = ENFIA_REDUCTIONS;
 
@@ -83,7 +81,7 @@ function calcENFIA(sqm: number, zone: string, floor: string, age: string, owners
 
 const DEFAULTS = {
   enfiaAnnual: '', enfiaMonthly: '', enfiaSqm: '', enfiaZone: '', enfiaFloor: 'second',
-  enfiaAge: '10_20', enfiaOwnership: '100', enfiaTotalVal: '', enfiaPropVal: '', enfiaReductions: [] as string[],
+  enfiaAge: 'y10_14', enfiaOwnership: '100', enfiaTotalVal: '', enfiaPropVal: '', enfiaReductions: [] as string[],
   enfiaShowCalc: true,
   dimotikaHistory: Array(12).fill('') as string[],
   lastBillTotal: '', lastBillDimotika: '',
