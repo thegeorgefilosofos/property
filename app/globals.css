@@ -600,7 +600,13 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .app-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  /* Το κάτω περιθώριο ΔΕΝ είναι 24px όπως τα υπόλοιπα: κάτω δεξιά πλέει το
+     κουμπί του βοηθού (--fab-h + --fab-gap), και ό,τι έφτανε στο τέλος του
+     κυλίσματος κατέληγε από κάτω του. Στην πράξη η τελευταία κάρτα κάθε οθόνης
+     ήταν μισοκρυμμένη — φαινόταν σε κάθε στιγμιότυπο, σε κάθε καρτέλα.
+     Οι δύο τιμές ορίζονται εδώ και τις διαβάζει και το ίδιο το κουμπί, ώστε μια
+     αλλαγή ύψους να μη χρειάζεται δεύτερη επεξεργασία σε άλλο αρχείο. */
+  padding: 24px 24px calc(var(--fab-h) + var(--fab-gap) + 16px);
   background: var(--bg-base);
 }
 
@@ -983,15 +989,17 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 16px; }
 
 /* ══════════════════════════════════════════════════════════════
-   MD3 MOTION — Google's exact easing curves
+   ΤΟ ΠΛΩΤΟ ΚΟΥΜΠΙ ΤΟΥ ΒΟΗΘΟΥ — μία γεωμετρία, δύο καταναλωτές
+   ─────────────────────────────────────────────────────────────
+   Το ύψος και η απόστασή του από το κάτω άκρο τα χρειάζονται ΔΥΟ ανεξάρτητα
+   σημεία: το ίδιο το κουμπί (PropertyAssistant), και το κάτω περιθώριο του
+   .app-content που του αφήνει χώρο για να μην καλύπτει το περιεχόμενο. Όσο οι
+   τιμές ήταν γραμμένες χωριστά, το περιθώριο δεν υπήρχε καν — και η τελευταία
+   κάρτα κάθε οθόνης καθόταν από κάτω του.
 ══════════════════════════════════════════════════════════════ */
 :root {
-}
-
-/* ══════════════════════════════════════════════════════════════
-   GOOGLE SHAPE SYSTEM — MD3 border radius tokens
-══════════════════════════════════════════════════════════════ */
-:root {
+  --fab-h: 52px;
+  --fab-gap: 24px;
 }
 
 /* Hide number spinners */
@@ -1288,7 +1296,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     justify-content: space-around;
     box-shadow: 0 -1px 3px rgba(0,0,0,0.06);
   }
-  .app-content { padding-bottom: 80px; }
+  /* Στο κινητό στοιβάζονται ΔΥΟ πλωτά στοιχεία: η κάτω πλοήγηση κολλητά στο
+     άκρο, και πάνω της το κουμπί του βοηθού (bottom:82px). Το περιθώριο πρέπει
+     να καθαρίζει το ψηλότερο από τα δύο — τα 80px κάλυπταν μόνο την πλοήγηση,
+     οπότε το κουμπί συνέχιζε να κάθεται πάνω στην τελευταία κάρτα. */
+  .app-content { padding-bottom: calc(82px + var(--fab-h) + 16px); }
 }
 .bottom-nav-item {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;

@@ -958,6 +958,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Το κουμπί δεν είναι πια κύκλος σταθερών 60px: είναι πλήκτρο με το όνομα, και
   // στενεύει σε σήμα στο κινητό. Άρα ΜΕΤΡΑΜΕ το μέγεθός του αντί να το μαντεύουμε
   // — αλλιώς η μισή πρόσκληση θα κατέληγε έξω από την οθόνη μετά από σύρσιμο.
+  // Εφεδρικό ύψος, όταν το κουμπί δεν έχει αποδοθεί ακόμη. Η ΠΗΓΗ είναι το
+  // `--fab-h` στο globals.css, γιατί την ίδια τιμή χρειάζεται και το κάτω
+  // περιθώριο του .app-content που κρατά το περιεχόμενο μακριά από εδώ.
   const FAB_H = 52;
   const fabRef = useRef<HTMLButtonElement | null>(null);
   const fabBox = () => {
@@ -1226,8 +1229,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
            κάθε άλλη επιφάνεια που «πλέει» πάνω από το περιεχόμενο. */
         @keyframes pa-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
         @keyframes pa-pulse{0%,100%{opacity:1}50%{opacity:.35}}
-        .pa-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:1200;display:flex;align-items:center}
-        .pa-fab{position:fixed;right:24px;bottom:24px;height:52px;padding:0 20px 0 8px;border-radius:100px;border:1px solid var(--accent-border);background:var(--accent);color:var(--accent-text);cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--highlight-inset),var(--elev-2);z-index:1201;transition:box-shadow .2s ${T.ease.standard},transform .14s cubic-bezier(.2,0,0,1)}
+        .pa-fab-wrap{position:fixed;right:24px;bottom:var(--fab-gap);z-index:1200;display:flex;align-items:center}
+        .pa-fab{position:fixed;right:24px;bottom:var(--fab-gap);height:var(--fab-h);padding:0 20px 0 8px;border-radius:100px;border:1px solid var(--accent-border);background:var(--accent);color:var(--accent-text);cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--highlight-inset),var(--elev-2);z-index:1201;transition:box-shadow .2s ${T.ease.standard},transform .14s cubic-bezier(.2,0,0,1)}
         .pa-fab-wrap .pa-fab{position:relative;right:auto;bottom:auto}
         .pa-fab:hover{box-shadow:var(--highlight-inset),var(--elev-3);transform:translateY(-1px)}
         .pa-fab:active{transform:translateY(0)}
@@ -1236,7 +1239,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
            «σπινθήρισμα» — το όνομα είναι το σήμα. */
         .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-text);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:17px;line-height:1;letter-spacing:-.01em}
         .pa-fab-cta{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
-        .pa-fab-close{padding:0;width:52px;justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
+        .pa-fab-close{padding:0;width:var(--fab-h);justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
         .pa-fab-live{position:absolute;top:8px;left:34px;width:9px;height:9px;border-radius:50%;animation:pa-pulse 1.4s infinite}
         .pa-panel{position:fixed;right:24px;bottom:92px;width:390px;max-width:calc(100vw - 32px);height:min(600px,calc(100vh - 130px));background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:18px;box-shadow:var(--highlight-inset),var(--elev-3);z-index:1200;display:flex;flex-direction:column;overflow:hidden}
         @media (max-width:600px){
