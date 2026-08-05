@@ -102,7 +102,7 @@ export default function TabFinances({
       {contracts
         ? <TabBills propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />
         : view === 'expenses'
-          ? <ExpenseLedger propertyId={propertyId} userId={userId} plan={plan} onScan={onScan} />
+          ? <ExpenseLedger propertyId={propertyId} userId={userId} onScan={onScan} />
           : <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}
     </div>
   );

@@ -37,7 +37,6 @@ import {
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
-import { parseBulk, bulkLimit } from '@/lib/expenses/bulk';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
 import { athensToday, athensMonth } from '@/lib/core/time';
@@ -46,7 +45,6 @@ interface Props {
   propertyId: string;
   userId: string;
   /** Ενεργό πλάνο: ορίζει πόσες γραμμές δέχεται η μαζική καταχώρηση. */
-  plan?: string;
   /** Ανοίγει το υπάρχον παράθυρο σάρωσης της εφαρμογής. */
   onScan?: () => void;
 }
@@ -108,7 +106,7 @@ async function fetchLedger(
   };
 }
 
-export default function ExpenseLedger({ propertyId, userId, plan = 'free', onScan }: Props) {
+export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   // Ένα instance ανά component. Χωρίς useMemo, κάθε render έφτιαχνε νέο client
   // και το κανάλι realtime ξαναδενόταν χωρίς λόγο.
   const supabase = useMemo(() => createClient(), []);
@@ -117,7 +115,6 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
   const [expenses, setExpenses] = useState<LedgerExpense[]>([]);
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
-  const [bulk, setBulk] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -309,15 +306,23 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
         <Figure label="φέτος" value={loading ? null : fe(ledgerTotal(entries.filter(e => e.date.startsWith(String(new Date().getFullYear())))))} />
       </div>
 
-      {/* ── Ενέργειες ────────────────────────────────────────────────────────
-          ΕΝΑ accent στην οθόνη. Η «Φωτογραφία» είναι ο γρηγορότερος δρόμος για
-          να μπει μια δαπάνη, άρα είναι Η κύρια ενέργεια και κρατά μόνη της το
-          μπλε. Οι υπόλοιπες είναι ουδέτερες. Όταν όλα φωνάζουν, τίποτα δεν
-          ακούγεται, και ο χρήστης δεν ξέρει πού να πατήσει πρώτα. */}
+      {/* ── ΜΙΑ ΕΝΕΡΓΕΙΑ, ΣΤΗΝ ΚΟΡΥΦΗ ────────────────────────────────────────
+          Ήταν τρία κουμπιά σε σειρά, ΚΑΤΩ από τα νούμερα: «Φωτογραφία» (μπλε),
+          «Νέα δαπάνη», «Μαζικά». Τρία προβλήματα μαζί:
+          · Η «Φωτογραφία» ήταν το ΙΔΙΟ πράγμα με το «Σάρωσε έγγραφο» της
+            πλαϊνής μπάρας — η πιο περίοπτη ενέργεια της εφαρμογής, δεύτερη φορά.
+          · Τα «Μαζικά» (επικόλληση πολλών γραμμών) είναι εργαλείο μετανάστευσης
+            δεδομένων: κάποιος το χρησιμοποιεί μία φορά στη ζωή του λογαριασμού
+            του και μετά ποτέ. Δεν δικαιολογεί μόνιμη θέση δίπλα στην καθημερινή
+            ενέργεια.
+          · Η πραγματική δουλειά αυτής της οθόνης —«πρόσθεσε δαπάνη»— ήταν το
+            ΜΕΣΑΙΟ, ουδέτερο κουμπί, κάτω από τρία νούμερα.
+
+          Τώρα: μία κύρια ενέργεια, πάνω από όλα. Μέσα της διαλέγεις τον δρόμο —
+          φωτογραφία, αρχείο ή πληκτρολόγιο — αντί να διαλέγεις από τη γραμμή
+          εργαλείων πριν καν ξέρεις τι θέλεις. */}
       <div style={{ display: 'flex', gap: T.sp.sm, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.lg }}>
-        {onScan && <Btn variant="primary" onClick={onScan}>Φωτογραφία</Btn>}
-        <Btn variant="secondary" onClick={() => { setAdding(v => !v); setBulk(false); }}>{adding ? 'Άκυρο' : 'Νέα δαπάνη'}</Btn>
-        <Btn variant="secondary" onClick={() => { setBulk(v => !v); setAdding(false); }}>{bulk ? 'Άκυρο' : 'Μαζικά'}</Btn>
+        <Btn variant="primary" onClick={() => setAdding(v => !v)}>{adding ? 'Άκυρο' : '+  Νέα δαπάνη'}</Btn>
         <div style={{ flex: 1 }} />
         {/* Ίδιο ύψος και ίδιο σχήμα με τα κουμπιά δίπλα του. Πριν ήταν ψηλότερο
             και πιο στρογγυλό, και η σειρά έμοιαζε στοιχισμένη κατά λάθος. */}
@@ -335,13 +340,36 @@ export default function ExpenseLedger({ propertyId, userId, plan = 'free', onSca
       </div>
 
       {adding && (
-        <QuickAdd propertyId={propertyId} userId={userId}
-          onDone={async () => { setAdding(false); await load(); }} />
-      )}
-
-      {bulk && (
-        <BulkAdd propertyId={propertyId} userId={userId} plan={plan}
-          onDone={async () => { setBulk(false); await load(); }} />
+        <>
+          {/* Ο ΓΡΗΓΟΡΟΣ ΔΡΟΜΟΣ ΠΡΩΤΑ. Το πληκτρολόγιο είναι η εφεδρεία, όχι η
+              προεπιλογή: μια δαπάνη έχει σχεδόν πάντα ένα χαρτί από πίσω, και
+              το χαρτί ξέρει το ποσό, τον πάροχο και την ημερομηνία καλύτερα από
+              τη μνήμη. Η ίδια οθόνη σάρωσης δέχεται και φωτογραφία και αρχείο
+              (PDF, Excel, CSV) — δεν χρειάζονται δύο κουμπιά. */}
+          {onScan && (
+            <button type="button" onClick={onScan}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                padding: '14px 16px', marginBottom: T.sp.md, cursor: 'pointer', textAlign: 'left',
+                borderRadius: T.radius.inner, border: '1px solid var(--border-default)',
+                background: 'var(--bg-elevated)', transition: 'border-color 0.15s, background 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
+              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/>
+              </svg>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontFamily: T.font.sans, fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Φωτογράφισε ή ανέβασε αρχείο
+                </span>
+                <span style={{ display: 'block', fontFamily: T.font.sans, fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  Απόδειξη, λογαριασμός ή PDF — συμπληρώνεται μόνο του
+                </span>
+              </span>
+            </button>
+          )}
+          <QuickAdd propertyId={propertyId} userId={userId}
+            onDone={async () => { setAdding(false); await load(); }} />
+        </>
       )}
 
       {/* ── Θέλουν ματιά ─────────────────────────────────────────────────────
@@ -478,121 +506,6 @@ function Row({ e, busy, onPaid }: { e: LedgerEntry; busy: boolean; onPaid: () =>
         </span>
       </span>
     </div>
-  );
-}
-
-// ── Νέα δαπάνη: πέντε πεδία ───────────────────────────────────────────────
-// Η παλιά φόρμα είχε δεκαπέντε ορατά πεδία και ζητούσε πρώτα Ομάδα και μετά
-// Κατηγορία, δηλαδή δύο αποφάσεις για ένα πράγμα. Εδώ η κατηγορία προτείνεται
-// μόνη της από αυτό που γράφεις, και η ομάδα προκύπτει. Ό,τι δεν είναι
-// απαραίτητο για να σταθεί η γραμμή, μπαίνει μετά.
-// ── Μαζική καταχώρηση ─────────────────────────────────────────────────────
-//
-// ΓΙΑΤΙ ΥΠΑΡΧΕΙ: η φόρμα των πέντε πεδίων είναι σωστή για τη μία δαπάνη τη
-// στιγμή που συμβαίνει. Δεν είναι σωστή για τον απολογισμό του μήνα, όπου ο
-// ιδιοκτήτης κάθεται με δεκαπέντε αποδείξεις μπροστά του. Εκεί θέλει να γράψει,
-// όχι να συμπληρώσει.
-//
-// ΓΙΑΤΙ ΠΑΝΤΑ ΜΕ ΕΛΕΓΧΟ ΠΡΙΝ: τίποτα δεν μπαίνει στη βάση χωρίς ο χρήστης να
-// δει πρώτα τι κατάλαβε η εφαρμογή. Η αυτόματη ανάγνωση κειμένου κάνει λάθη·
-// το να τα κάνει σιωπηλά, σε αριθμούς που θα καταλήξουν σε φορολογική δήλωση,
-// θα ήταν ασυγχώρητο.
-function BulkAdd({ propertyId, userId, plan, onDone }: {
-  propertyId: string; userId: string; plan: string; onDone: () => void;
-}) {
-  const supabase = useMemo(() => createClient(), []);
-  const [text, setText] = useState('');
-  const [saving, setSaving] = useState(false);
-  const limit = bulkLimit(plan);
-  const parsed = useMemo(() => parseBulk(text, limit), [text, limit]);
-
-  const save = async () => {
-    const rows = parsed.rows.filter(r => !r.problem);
-    if (!rows.length) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase.from('expenses').insert(rows.map(r => ({
-        property_id: propertyId, user_id: userId,
-        description: r.description,
-        amount: r.amount,
-        date: r.date,
-        category: r.category ? BY_SLUG[r.category].label : 'Άλλο',
-        paid: true,
-        paid_by: 'owner',
-      })));
-      if (error) throw error;
-      notify(`Μπήκαν ${rows.length} ${rows.length === 1 ? 'δαπάνη' : 'δαπάνες'}`);
-      onDone();
-    } catch { notifyError('Δεν αποθηκεύτηκαν. Δοκίμασε ξανά.'); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <Card pad="sm" style={{ marginBottom: T.sp.md }}>
-      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-        Μία γραμμή, μία δαπάνη
-      </div>
-      <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', lineHeight: 1.55, marginBottom: 10 }}>
-        Γράψε ή επικόλλησε όπως θα το έγραφες σε χαρτί. Το ποσό, η ημερομηνία και η
-        κατηγορία βρίσκονται μόνα τους. Χωρίς ημερομηνία, μπαίνει η σημερινή.
-      </div>
-
-      <textarea
-        value={text} onChange={e => setText(e.target.value)}
-        rows={6} spellCheck={false}
-        aria-label="Δαπάνες, μία ανά γραμμή"
-        placeholder={'ΔΕΗ Ιουνίου 84,50 12/06\nΥδραυλικός 60\nΚοινόχρηστα 45,00 1/6'}
-        style={{
-          width: '100%', boxSizing: 'border-box', padding: '12px 14px',
-          borderRadius: T.radius.inner, border: '1px solid var(--border-default)',
-          background: 'var(--bg-surface)', color: 'var(--text-primary)',
-          fontSize: 13.5, fontFamily: T.font.sans, lineHeight: 1.7, outline: 'none', resize: 'vertical',
-        }}
-      />
-
-      {parsed.rows.length > 0 && (
-        <div style={{ marginTop: 12, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, overflow: 'hidden' }}>
-          {parsed.rows.map((r, i) => (
-            <div key={i} style={{
-              display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'baseline',
-              padding: '9px 13px', fontSize: 13,
-              borderTop: i ? '1px solid var(--border-subtle)' : 'none',
-              background: r.problem ? 'color-mix(in srgb, var(--warning) 7%, transparent)' : 'transparent',
-              color: r.problem ? 'var(--text-tertiary)' : 'var(--text-primary)',
-            }}>
-              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {r.problem ? r.raw.trim() : r.description}
-                <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
-                  {r.problem ? ` · ${r.problem}` : ` · ${r.categoryLabel}`}
-                </span>
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
-                {r.problem ? '' : shortDate(r.date)}
-              </span>
-              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: r.problem ? 400 : 600 }}>
-                {r.problem ? '—' : fe(r.amount)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
-        <Btn variant="primary" onClick={save} disabled={saving || parsed.ready === 0}>
-          {saving ? 'Γίνεται…'
-            : parsed.ready === 0 ? 'Καταχώρηση'
-            : `Καταχώρηση ${parsed.ready} · ${fe(parsed.total)}`}
-        </Btn>
-        {/* Το όριο λέγεται μόνο όταν το συναντάς. Να το διαφημίζουμε από πριν θα
-            ήταν να ζητάμε λεφτά πριν δείξουμε ότι δουλεύει. */}
-        {parsed.overLimit > 0 && (
-          <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            Το πλάνο σου δέχεται {limit} γραμμές τη φορά. Οι υπόλοιπες {parsed.overLimit} μένουν
-            στο πλαίσιο για να τις περάσεις σε δεύτερο γύρο.
-          </span>
-        )}
-      </div>
-    </Card>
   );
 }
 
