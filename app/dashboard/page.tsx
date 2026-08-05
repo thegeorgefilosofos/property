@@ -1,5 +1,6 @@
 'use client';
 
+import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import TabFinances  from './components/TabFinances';
@@ -988,7 +989,12 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selected, setSelected] = useState<Property | null>(null);
-  const [nav, setNav] = useState('overview');
+  // Η ΚΑΡΤΕΛΑ ΕΙΝΑΙ ΤΟΠΟΘΕΣΙΑ. Ήταν `useState`, οπότε η διεύθυνση έμενε
+  // `/dashboard` όσο βαθιά κι αν πήγαινε ο χρήστης: το «πίσω» του περιηγητή τον
+  // έβγαζε από την εφαρμογή αντί να τον γυρίσει καρτέλα, η ανανέωση τον πετούσε
+  // στην Επισκόπηση, και δεν μπορούσε να στείλει σύνδεσμο ούτε σελιδοδείκτη.
+  // Ίδια διεπαφή — κανένα από τα είκοσι `setNav` δεν άλλαξε.
+  const [nav, setNav] = useNavHistory('overview');
   // Deep-link καρτέλα ενοικιαστή → Απογραφή/Παράδοση με προ-συμπληρωμένα στοιχεία.
   const [handoverIntent, setHandoverIntent] = useState<{tenantName?:string;tenantPhone?:string;type?:'check_in'|'check_out'}|null>(null);
   // Ομαδοποιημένη πλοήγηση (accordion): ανοιχτή μένει η ομάδα του ενεργού tab.
