@@ -23,7 +23,7 @@ import { ReactNode, CSSProperties, useState, useEffect } from 'react';
 // σημεία που γράφουν `from '@/components/Theme'` να μη χρειαστεί να αλλάξουν.
 export { T, TT, fe, feAuto, fp, feOr, fpOr, DASH, fn, fd, fdLong } from './tokens';
 export type { Tone } from './tokens';
-import { T, TT, fe, type Tone } from './tokens';
+import { T, TT, fe, isBlankMetric, type Tone } from './tokens';
 
 // ═══ Skeleton, placeholder φόρτωσης (αντικαθιστά τα «Φόρτωση…») ══════════
 export function Skeleton({ w = '100%', h = 14, r = 8, style }: { w?: number | string; h?: number | string; r?: number; style?: CSSProperties }) {
@@ -192,6 +192,20 @@ const TONE_COLOR: Record<string, string> = {
 };
 
 export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number }) {
+  // ── ΜΙΑ ΣΕΙΡΑ ΜΗΔΕΝΙΚΑ ΔΕΝ ΕΙΝΑΙ ΣΥΝΟΨΗ ────────────────────────────────
+  // Σε άδεια οθόνη το Αρχείο τύπωνε «ΣΥΝΟΛΟ ΑΡΧΕΙΩΝ 0 · ΕΓΓΡΑΦΑ 0 ·
+  // ΦΩΤΟΓΡΑΦΙΕΣ 0 · ΚΑΤΗΓΟΡΙΕΣ 0» και από κάτω, με εικονίδιο και κουμπί,
+  // «Δεν έχεις ακόμη κανένα χαρτί εδώ». Η ίδια πληροφορία τέσσερις φορές με
+  // αριθμούς και μία με λόγια — και τα τέσσερα πλακίδια δεν μετρούσαν τίποτα.
+  //
+  // Ο κανόνας ΥΠΗΡΧΕ ήδη, γραμμένος στο χέρι σε δύο οθόνες (`items.length > 0 &&
+  // <KPIGrid…>` σε Checklist και Επαφές) και παραλειμμένος στις υπόλοιπες
+  // δώδεκα. Εδώ γράφεται ΜΙΑ φορά, στο primitive, οπότε ισχύει παντού.
+  //
+  // ΜΟΝΟ όταν ΚΑΝΕΝΑ πλακίδιο δεν μετράει κάτι. Ένα μηδενικό δίπλα σε νούμερο
+  // είναι απάντηση («εκκρεμότητες: 0») και μένει.
+  if (!items.length || items.every(k => isBlankMetric(k.value))) return null;
+
   // Ρευστό πλέγμα: γεμίζει όσες στήλες χωράνε (min 150px) και «σπάει» μόνο του
   // σε 2 ή 1 στήλες σε tablet/κινητό, χωρίς media queries, δουλεύει παντού.
   const cols = columns ?? items.length;

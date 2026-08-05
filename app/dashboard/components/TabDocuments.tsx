@@ -638,7 +638,7 @@ export default function TabDocuments({
   // Ενιαίο σημείο ανεβάσματος — ζει στο PageTitle (ή στη γραμμή εργαλείων όταν embedded).
   const uploadBtn = (
     <Btn variant="primary" onClick={() => setShowUpload(s => !s)}>
-      <svg {...S} width={15} height={15}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Φωτογράφισε
+      <svg {...S} width={15} height={15}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Καταχώριση αρχείου
     </Btn>
   );
   // Όταν το αρχείο είναι κενό, το κουμπί ζει ΜΟΝΟ στην κενή κατάσταση
@@ -659,33 +659,26 @@ export default function TabDocuments({
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       {!embedded && (
         <PageTitle title="Αρχείο"
-          sub="Ένας οργανωμένος ψηφιακός φάκελος: συμβόλαια, έγγραφα, φόροι, λογαριασμοί, πάροχοι, εγγυήσεις, τιμολόγια και φωτογραφίες, αυτόματα ταξινομημένα ώστε να τα βρίσκεις με 2 κλικ"
+          sub="Κάθε χαρτί του ακινήτου, αναγνωρισμένο και ταξινομημένο μόνο του"
           right={headerActions}/>
       )}
 
-      <KPIGrid items={[
-        { label: 'Σύνολο αρχείων', value: fn(items.length) },
-        { label: 'Έγγραφα',        value: fn(docCount) },
-        { label: 'Φωτογραφίες',    value: fn(photoCount) },
-        // Η «Καταγεγραμμένη αξία» είναι πλέον αληθινή: αθροίζει ΤΑ ΠΑΡΑΣΤΑΤΙΚΑ
-        // (property_documents.amount), όχι τα κάτοπτρα. Το υποκείμενο λέει σε πόσα
-        // από πόσα χαρτιά βασίζεται — ένα σύνολο χωρίς βάση είναι παραπλανητικό.
-        paperTotals.withAmount > 0
-          ? {
-              label: 'Αξία από τα παραστατικά', value: fe(paperTotals.sum),
-              sub: `από ${fn(paperTotals.withAmount)} ${paperTotals.withAmount === 1 ? 'χαρτί' : 'χαρτιά'}${paperTotals.missing ? ` · ${fn(paperTotals.missing)} χωρίς ποσό` : ''}`,
-            }
-          : isPro
-            ? { label: 'Αξία από τα παραστατικά', value: '—', sub: 'κανένα σαρωμένο χαρτί με ποσό ακόμη' }
-            : { label: 'Κατηγορίες', value: fn(activeCategories) },
-      ]}/>
+      {/* ΔΕΝ ΥΠΑΡΧΕΙ ΣΕΙΡΑ ΠΛΑΚΙΔΙΩΝ ΕΔΩ, ΚΑΙ ΕΙΝΑΙ ΣΚΟΠΙΜΟ.
+          Τύπωνε «Σύνολο αρχείων · Έγγραφα · Φωτογραφίες · Κατηγορίες» — και τα
+          τέσσερα απαντιούνται ήδη παρακάτω, καλύτερα: η γραμμή εργαλείων λέει
+          το πλήθος ΑΚΟΛΟΥΘΩΝΤΑΣ τα φίλτρα, και οι όψεις δίνουν το πλήθος κάθε
+          κατηγορίας πάνω στο ίδιο το κουμπί που τη φιλτράρει. Το πλακίδιο έλεγε
+          τον ίδιο αριθμό ακίνητο, δίπλα σε έναν ζωντανό — και σε άδειο ακίνητο
+          τέσσερα μηδενικά πάνω από ένα «δεν έχεις κανένα χαρτί».
+          Το μόνο που ΔΕΝ λεγόταν αλλού, η αξία των παραστατικών, ζει τώρα στην
+          κάρτα «ανά έτος» — δίπλα στην ανάλυσή της, όχι μακριά της. */}
 
       {/* Σύνολο ΑΝΑ ΕΤΟΣ, από τα δικά μου χαρτιά. Αυτό είναι το νούμερο που
           αντιπαρατίθεται στο προσυμπληρωμένο της ΑΑΔΕ — γι' αυτό υπάρχει. */}
       {paperTotals.years.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <SecHdr label="Σύνολο ανά έτος, από τα παραστατικά"
-            sub="Ό,τι διαβάστηκε από τα χαρτιά αυτού του ακινήτου. Ανεξάρτητο από τις καταχωρίσεις σε Λογαριασμούς και Δαπάνες."/>
+          <SecHdr label={`Από τα παραστατικά · ${fe(paperTotals.sum)}`}
+            sub={`${fn(paperTotals.withAmount)} ${paperTotals.withAmount === 1 ? 'χαρτί' : 'χαρτιά'} με ποσό${paperTotals.missing ? ` · ${fn(paperTotals.missing)} χωρίς` : ''}. Ανεξάρτητο από Λογαριασμούς και Δαπάνες.`}/>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
             {paperTotals.years.map(([y, e]) => (
               <div key={y} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 12px' }}>
@@ -705,8 +698,8 @@ export default function TabDocuments({
       {/* ══ Η ΜΙΑ ΕΠΙΦΑΝΕΙΑ: «Φωτογράφισε ή σύρε» ══════════════════════════ */}
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <SecHdr label="Φωτογράφισε ή σύρε"
-            sub={uploadMin ? undefined : 'Λογαριασμό, απόδειξη, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ ή φωτογραφία χώρου. Το αναγνωρίζουμε, σου δείχνουμε τι διαβάσαμε, και το καταχωρούμε παντού όπου ανήκει.'}
+          <SecHdr label="Καταχώριση αρχείων"
+            sub={uploadMin ? undefined : 'Λογαριασμός, απόδειξη, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ ή φωτογραφία χώρου. Αναγνωρίζεται, παρουσιάζεται προς έλεγχο, και καταχωρείται όπου ανήκει.'}
             right={<button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
               {uploadMin ? <svg {...S} width={16} height={16}><path d="m6 9 6 6 6-6"/></svg> : <IconX/>}
             </button>}/>
@@ -724,18 +717,18 @@ export default function TabDocuments({
                   <svg {...S} width={28} height={28}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {dragOver ? 'Άφησε τα αρχεία εδώ' : 'Σύρε εδώ ή κάνε κλικ'}
+                  {dragOver ? 'Αφήστε τα αρχεία εδώ' : 'Μεταφορά αρχείων ή επιλογή από τη συσκευή'}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5, lineHeight: 1.5 }}>
-                  Πολλά μαζί · φωτογραφία, PDF, Word, Excel · έως {MAX_SCAN_MB}MB το καθένα
+                  Φωτογραφία, PDF, Word ή Excel · πολλαπλά αρχεία · έως {MAX_SCAN_MB}MB ανά αρχείο
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                 <Btn variant="primary" onClick={() => cameraRef.current?.click()} disabled={busy}>
                   <svg {...S} width={15} height={15}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  Φωτογράφισε
+                  Λήψη φωτογραφίας
                 </Btn>
-                <Btn variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>Επίλεξε αρχεία</Btn>
+                <Btn variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>Επιλογή αρχείων</Btn>
               </div>
             </>
           )}
@@ -758,10 +751,10 @@ export default function TabDocuments({
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
                 <Btn variant="primary" onClick={commitAll} disabled={busy || drafts.every(d => d.status === 'saved' || d.status === 'failed')}>
-                  {busy ? 'Σε εξέλιξη…' : 'Καταχώρηση'}
+                  {busy ? 'Σε εξέλιξη…' : 'Καταχώριση'}
                 </Btn>
-                <Btn variant="ghost" onClick={clearDrafts} disabled={busy}>Καθάρισμα</Btn>
-                <Btn variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>Πρόσθεσε κι άλλα</Btn>
+                <Btn variant="ghost" onClick={clearDrafts} disabled={busy}>Απόρριψη</Btn>
+                <Btn variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>Προσθήκη αρχείων</Btn>
               </div>
             </div>
           )}
@@ -772,7 +765,10 @@ export default function TabDocuments({
       )}
 
 
-      {/* ── Γραμμή εργαλείων: σύνοψη + αναζήτηση + προβολή ──────────── */}
+      {/* ── Γραμμή εργαλείων: σύνοψη + αναζήτηση + προβολή ────────────
+          Κρύβεται όταν δεν υπάρχει ούτε ένα χαρτί: αναζήτηση μέσα στο τίποτα και
+          εναλλαγή προβολής του τίποτα είναι χειριστήρια χωρίς αντικείμενο. */}
+      {!loading && items.length > 0 && (
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         {/* Αντί για breadcrumb: τι βλέπεις ΤΩΡΑ. Το πλήθος και το άθροισμα
             ακολουθούν τα φίλτρα, γιατί αυτή είναι η ερώτηση του λογιστή
@@ -784,6 +780,14 @@ export default function TabDocuments({
               ? `${items.length} ${items.length === 1 ? 'αρχείο' : 'αρχεία'}`
               : `${visible.length} από ${items.length}`}
           </span>
+          {/* Η ανάλυση έγγραφα/φωτογραφίες: ένα υποκείμενο δίπλα στο πλήθος, όχι
+              δύο ξεχωριστά πλακίδια. Λέγεται μόνο όταν δεν φιλτράρεις — αλλιώς
+              θα μιλούσε για άλλο σύνολο από τον αριθμό δίπλα του. */}
+          {!filtering && photoCount > 0 && docCount > 0 && (
+            <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-tertiary)' }}>
+              {fn(docCount)} έγγραφα · {fn(photoCount)} φωτογραφίες
+            </span>
+          )}
           {visibleSum > 0 && (
             <span style={{ fontSize: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
               {money(visibleSum)}
@@ -817,6 +821,7 @@ export default function TabDocuments({
 
         {embedded && headerActions}
       </div>
+      )}
 
       {/* ── Οψεις ────────────────────────────────────────────────────────────
           Οι επιλογές είναι ΠΑΝΤΑ ορατές, όχι κρυμμένες πίσω από «Φίλτρα». Ο
@@ -882,15 +887,15 @@ export default function TabDocuments({
           {[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} h={120} r={12}/>)}
         </div>
       ) : items.length === 0 ? (
-        <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Δεν έχεις ακόμη κανένα χαρτί εδώ"
-          hint="Φωτογράφισε έναν λογαριασμό ΔΕΗ ή ΕΥΔΑΠ. Διαβάζουμε πάροχο, ΑΦΜ, ποσό, ημερομηνία και περίοδο, και το αρχειοθετούμε μόνο του."
-          action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Φωτογράφισε το πρώτο</Btn>}/></div>
+        <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Το αρχείο του ακινήτου είναι κενό"
+          hint="Από κάθε λογαριασμό, απόδειξη ή συμβόλαιο αναγνωρίζονται πάροχος, ΑΦΜ, ποσό, ημερομηνία και περίοδος — και το έγγραφο αρχειοθετείται στην κατηγορία του."
+          action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Καταχώριση πρώτου αρχείου</Btn>}/></div>
       ) : (
         <FileList items={visible} groups={groups} a={fileActions(true)}
           empty={<EmptyState icon={<SearchX size={20}/>}
             title="Κανένα αρχείο με αυτά τα φίλτρα"
-            hint={q ? `Δεν βρέθηκε αρχείο για «${query}». Δοκίμασε πάροχο, ποσό ή ΑΦΜ.`
-                    : 'Τα φίλτρα που διάλεξες δεν αφήνουν κανένα αρχείο. Πάτησε ξανά ένα από τα ενεργά για να το αφαιρέσεις.'}
+            hint={q ? `Καμία αντιστοιχία για «${query}». Η αναζήτηση καλύπτει πάροχο, ποσό και ΑΦΜ.`
+                    : 'Ο συνδυασμός των ενεργών φίλτρων δεν αφήνει κανένα αρχείο.'}
             action={<Btn variant="secondary" onClick={() => { setSel(clearAll()); setQuery(''); }}>Καθαρισμός φίλτρων</Btn>}/>}/>
       )}
 

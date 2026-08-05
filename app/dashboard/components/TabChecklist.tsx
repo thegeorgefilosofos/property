@@ -2219,7 +2219,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         )}
       />}
 
-      {items.length > 0 && <KPIGrid items={kpiItems} />}
+      <KPIGrid items={kpiItems} />
 
       {/* ΟΙ ΥΠΟΧΡΕΩΣΕΙΣ ΠΟΥ ΛΕΙΠΟΥΝ, ΣΤΗΝ ΟΘΟΝΗ ΚΑΙ ΟΧΙ ΜΕΣΑ ΣΕ ΜΕΝΟΥ. Ο χρήστης
           που δεν άνοιξε ποτέ τα «Πρότυπα» δεν είχε τρόπο να μάθει ότι υπάρχει

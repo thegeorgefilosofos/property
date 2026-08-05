@@ -65,7 +65,7 @@ export const TT = {
 // χρειάζεται και ο πυρήνας (insights, δάνεια, αποδόσεις παράγουν κείμενο για
 // τον χρήστη), αλλά το `lib/` δεν επιτρέπεται να εισάγει από το `components/`.
 // Οι οθόνες συνεχίζουν να γράφουν `import { fe } from '@/components/Theme'`.
-export { fe, feAuto, fp, fn, feOr, fpOr, DASH } from '@/lib/core/format';
+export { fe, feAuto, fp, fn, feOr, fpOr, DASH, isBlankMetric } from '@/lib/core/format';
 
 export const fd = (d: string | Date) =>
   new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
