@@ -88,17 +88,17 @@ export const PLANS: Record<PlanId, Plan> = {
   owner: {
     id: 'owner', name: 'Ιδιοκτήτης', priceMonthly: 9.9, priceAnnual: 99, maxProperties: 3, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
     tagline: 'Λίγα ακίνητα, όλα σε τάξη',
-    features: ['3 ακίνητα · +2 € το καθένα παραπάνω', 'Ό,τι έχει το «Ένα ακίνητο»', 'Σύγκριση ακινήτων μεταξύ τους', 'Λογιστικό ημερολόγιο (SoftOne, Epsilon, Xero)', `${TRIAL_DAYS} ημέρες δωρεάν δοκιμή`],
+    features: ['Έως 3 ακίνητα · +2 € το καθένα παραπάνω', 'Σύγκριση ακινήτων μεταξύ τους', 'Λογιστικό ημερολόγιο (SoftOne, Epsilon, Xero)', `${TRIAL_DAYS} ημέρες δωρεάν δοκιμή`],
   },
   agency: {
     id: 'agency', name: 'Επαγγελματίας', priceMonthly: 24.9, priceAnnual: 249, maxProperties: 15, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
     tagline: 'Διαχειριστές και μεσιτικά με ομάδα',
-    features: ['15 ακίνητα · +2 € το καθένα παραπάνω', 'Ομάδα: χρήστες, ρόλοι, δικαιώματα', 'Αναφορές με τη δική σου επωνυμία', 'Πελατολόγιο (CRM)', 'Συνιδιοκτήτες και διαχειριστική αμοιβή'],
+    features: ['Έως 15 ακίνητα · +2 € το καθένα παραπάνω', 'Ομάδα: χρήστες, ρόλοι, δικαιώματα', 'Αναφορές με τη δική σου επωνυμία', 'Πελατολόγιο (CRM)', 'Συνιδιοκτήτες και διαχειριστική αμοιβή'],
   },
   office: {
     id: 'office', name: 'Γραφείο', priceMonthly: 79.9, priceAnnual: 799, maxProperties: Infinity, trialDays: TRIAL_DAYS, extraPropertyPrice: 0,
     tagline: 'Χαρτοφυλάκιο, όχι ακίνητα',
-    features: ['Απεριόριστα ακίνητα', 'Ό,τι έχει ο Επαγγελματίας', 'Ομάδα χωρίς όριο χρηστών', 'Προτεραιότητα σε νέες δυνατότητες', 'Άμεση επικοινωνία'],
+    features: ['Απεριόριστα ακίνητα, χωρίς μετρητή', 'Ομάδα χωρίς όριο χρηστών', 'Προτεραιότητα σε νέες δυνατότητες', 'Άμεση επικοινωνία'],
   },
 };
 

@@ -167,6 +167,15 @@ const REFERRAL = [
   },
 ];
 
+// ΤΑ ΠΑΚΕΤΑ ΤΗΣ ΑΡΧΙΚΗΣ: μόνο όσα αγοράζονται. Το δωρεάν είναι κατάσταση, όχι
+// προϊόν, και ζει στα ψιλά γράμματα κάτω από τον πίνακα.
+const LANDING_PLANS = PLAN_ORDER.filter(id => PLANS[id].priceMonthly > 0);
+// Το προτεινόμενο είναι το «Ιδιοκτήτης»: εκεί υπάρχει περιθώριο να μεγαλώσει το
+// χαρτοφυλάκιο (τρία ακίνητα και +2 € το καθένα), ενώ το «Ένα ακίνητο» είναι
+// τελικός σταθμός. Ο μέσος αγοραστής δεν οδηγείται στο φθηνότερο, οδηγείται σε
+// αυτό που δεν θα χρειαστεί να αλλάξει σε έξι μήνες.
+const FEATURED_PLAN = 'owner';
+
 const GAP = 'clamp(30px, 4.2vw, 56px)';
 const GAP_ACT = 'clamp(48px, 6.5vw, 88px)';
 
@@ -837,7 +846,7 @@ export default async function Landing() {
 
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
-        <SectionHead over="Τιμολόγηση" title="Κοστίζει λιγότερο από έναν λογαριασμό ρεύματος" sub="Ξεκινάς δωρεάν με το πρώτο ακίνητο. Πληρώνεις μόνο όταν μεγαλώσει το χαρτοφυλάκιο." />
+        <SectionHead over="Τιμολόγηση" title="Κοστίζει λιγότερο από έναν λογαριασμό ρεύματος" sub="Κάθε πακέτο περιλαμβάνει ό,τι έχει το προηγούμενο. Τριάντα ημέρες δοκιμή, χωρίς κάρτα." />
         {/* ΜΙΑ ΠΗΓΗ ΓΙΑ ΤΙΣ ΤΙΜΕΣ ΚΑΙ ΤΑ ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ.
             Οι κάρτες ήταν γραμμένες με το χέρι: τιμές, ετήσιες τιμές και λίστες
             χαρακτηριστικά αντιγραμμένα από το lib/billing/plans.ts. Είχαν ήδη
@@ -849,33 +858,41 @@ export default async function Landing() {
             πέμπτο πλάνο σε δεύτερη σειρά, οπότε ο τιμοκατάλογος διαβαζόταν ως
             «τέσσερα και κάτι ακόμη» αντί για μία σκάλα. Ρητές πέντε στήλες πάνω
             από 1000px, δύο στο tablet, μία στο κινητό (globals.css). */}
-        <div className="lp-plans" style={{ display: 'grid', gridTemplateColumns: `repeat(${PLAN_ORDER.length}, minmax(0, 1fr))`, gap: 10, alignItems: 'stretch' }}>
-          {PLAN_ORDER.map(id => {
+        {/* ΤΕΣΣΕΡΑ ΠΑΚΕΤΑ, ΟΧΙ ΠΕΝΤΕ. Η κάρτα «Δωρεάν 0 €» δεν είναι πακέτο: είναι
+            εκεί που καταλήγεις όταν δεν αγοράζεις. Ως πέμπτη στήλη με τιμή «0 €»
+            έμπαινε στην ίδια σύγκριση με τα υπόλοιπα και έσπαγε τη σκάλα στην
+            αρχή της. Λέγεται μία φορά, στα ψιλά γράμματα από κάτω.
+
+            Η ΣΚΑΛΑ ΕΙΝΑΙ ΡΗΤΗ. Κάθε πακέτο λέει «Περιλαμβάνει ό,τι έχει το
+            προηγούμενο, και:» — και η κληρονομιά ΔΕΝ ξαναγράφεται μέσα στα
+            χαρακτηριστικά, όπου πριν εμφανιζόταν άτακτα σε δύο από τα τέσσερα. */}
+        <div className="lp-plans" style={{ display: 'grid', gridTemplateColumns: `repeat(${LANDING_PLANS.length}, minmax(0, 1fr))`, gap: 12, alignItems: 'stretch' }}>
+          {LANDING_PLANS.map((id, i) => {
             const plan = PLANS[id];
-            const free = plan.priceMonthly === 0;
+            const prev = i > 0 ? PLANS[LANDING_PLANS[i - 1]] : null;
             return (
               <PlanCard
                 key={id}
                 name={plan.name}
-                nameColor={id === 'solo' ? ACCENT : TEXT}
+                nameColor={id === FEATURED_PLAN ? ACCENT : TEXT}
                 sub={plan.tagline}
-                price={free ? '0 €' : `${fe(plan.priceMonthly, 2)}`}
-                per={free ? 'για πάντα' : 'τον μήνα'}
-                note={free ? 'Δεν λήγει ποτέ' : <>ή <strong style={{ color: TEXT }}>{plan.priceAnnual} € τον χρόνο</strong></>}
-                discount={free ? undefined : '2 μήνες δώρο'}
-                inherits={free ? 'Περιλαμβάνει:' : undefined}
+                price={fe(plan.priceMonthly, 2)}
+                per="τον μήνα"
+                note={<>ή <strong style={{ color: TEXT }}>{plan.priceAnnual} € τον χρόνο</strong></>}
+                discount="2 μήνες δώρο"
+                inherits={prev ? `Ό,τι έχει το «${prev.name}», και:` : 'Περιλαμβάνει:'}
                 // Το «30 ημέρες δωρεάν δοκιμή» ήταν ΚΑΙ τελευταία γραμμή χαρακτηριστικών
                 // ΚΑΙ το ίδιο το κουμπί από κάτω. Μία περιττή γραμμή σε κάθε κάρτα.
                 items={plan.features.filter(f => !f.includes('δωρεάν δοκιμή'))}
-                cta={free ? 'Ξεκίνα δωρεάν' : `${plan.trialDays} ημέρες δωρεάν →`}
-                ctaGhost={id !== 'solo'}
-                featured={id === 'solo'}
+                cta={`${plan.trialDays} ημέρες δωρεάν →`}
+                ctaGhost={id !== FEATURED_PLAN}
+                featured={id === FEATURED_PLAN}
               />
             );
           })}
         </div>
         <p style={{ fontSize: 12.5, color: FAINT, margin: '22px 0 0', maxWidth: 620, lineHeight: 1.6 }}>
-Όταν λήξει η δοκιμή, συνεχίζεις στο Δωρεάν με τα δεδομένα σου ανέπαφα. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
+Κάθε πακέτο ξεκινά με 30 ημέρες δοκιμή, χωρίς κάρτα. Όταν λήξει, συνεχίζεις δωρεάν με ένα ακίνητο και τα δεδομένα σου ανέπαφα. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
@@ -1021,11 +1038,15 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
           σε διαφορετικό ύψος η καθεμία. Σταθερό ύψος, όλα στοιχισμένα. */}
       <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(24px, 2.4vw, 29px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT, lineHeight: 1.1 }}>{price}</div>
       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{per}</div>
-      {/* Η «έκπτωση» ήταν ΠΡΑΣΙΝΗ κονκάρδα με πράσινο φόντο και πράσινο περίγραμμα
-          — το μόνο σημείο σημασιολογικού χρώματος σε ολόκληρο τον τιμοκατάλογο,
-          σε κάθε κάρτα. Λέγεται με λέξεις, στη σειρά της. */}
-      <div style={{ minHeight: 32, marginTop: 6, fontSize: 11.5, color: FAINT, lineHeight: 1.45 }}>
-        {note}{discount && <> · <strong style={{ color: TEXT, fontWeight: 600 }}>{discount}</strong></>}
+      {/* ΤΟ «2 ΜΗΝΕΣ ΔΩΡΟ» ΧΑΝΟΤΑΝ. Ήταν κολλημένο στο τέλος της ίδιας μικρής,
+          ξεθωριασμένης γραμμής με την ετήσια τιμή, μετά από μια τελεία — δηλαδή
+          το πιο δυνατό επιχείρημα της ετήσιας συνδρομής, γραμμένο σαν υποσημείωση
+          υποσημείωσης. Τώρα είναι δική του γραμμή, με το βάρος του κειμένου να
+          το ξεχωρίζει. (Πριν από αυτό ήταν πράσινη κονκάρδα με πράσινο φόντο: το
+          μόνο σημασιολογικό χρώμα σε όλον τον τιμοκατάλογο, σε κάθε κάρτα.) */}
+      <div style={{ minHeight: 34, marginTop: 6, fontSize: 11.5, color: FAINT, lineHeight: 1.45 }}>
+        <div>{note}</div>
+        {discount && <div style={{ color: TEXT, fontWeight: 600, marginTop: 2 }}>{discount}</div>}
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', margin: '14px 0 16px' }}>
         {inherits && <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 1 }}>{inherits}</div>}
