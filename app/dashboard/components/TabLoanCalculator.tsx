@@ -346,7 +346,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Αντοχή δόσης σε άνοδο επιτοκίου, διαδραστικό">
         <defs>
           <linearGradient id="stressBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--accent) 76%, transparent)"/></linearGradient>
-          <linearGradient id="stressOver" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--negative)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--negative) 74%, transparent)"/></linearGradient>
+          <linearGradient id="stressOver" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--text-tertiary)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--text-tertiary) 74%, transparent)"/></linearGradient>
           <filter id="stressLift" x="-40%" y="-20%" width="180%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="var(--text-primary)" floodOpacity="0.14"/></filter>
         </defs>
         {grid.map((gv,i)=>(<g key={i}><line x1={padL} y1={Y(gv)} x2={W-padR} y2={Y(gv)} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity={i===0?0.9:0.4}/><text x={W-padR+6} y={Y(gv)+3} style={{fontSize:9,fontFamily: T.font.sans,fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{fmt(gv)}</text></g>))}
@@ -375,7 +375,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
             <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:5,fontFamily: T.font.sans,textAlign:'center' as const}}>{s.label} · {fmtPct(s.rate)}</p>
             <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:3}}>
               <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Δόση τον μήνα</span>
-              <span style={{fontSize:12.5,color:over?'var(--negative)':'var(--accent)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,marginLeft:'auto'}}>{fmt(s.monthly)}</span>
+              <span style={{fontSize:12.5,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,marginLeft:'auto'}}>{fmt(s.monthly)}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:3}}>
               <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Αύξηση</span>
@@ -383,7 +383,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
             </div>
             <div style={{display:'flex',alignItems:'center',gap:14,paddingTop:5,marginTop:2,borderTop:'1px solid var(--border-subtle)'}}>
               <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Δόση προς εισόδημα</span>
-              <span style={{fontSize:12.5,color:dti>40?'var(--negative)':'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,marginLeft:'auto'}}>{fmtPct1(dti)}</span>
+              <span style={{fontSize:12.5,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,marginLeft:'auto'}}>{fmtPct1(dti)}</span>
             </div>
           </div>
         )
@@ -930,7 +930,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div>
               <NumberInput label="Ποσό δανείου (€)" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>
-                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:ltv>90?'var(--negative)':'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Δάνειο προς αξία {ltv.toFixed(1).replace('.',',')}%</span>
+                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Δάνειο προς αξία {fp(ltv, 1)}</span>
                 <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>Ίδια κεφάλαια: {fmtEur(PV-LA)}</span>
               </div>
             </div>
@@ -980,7 +980,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'18px 18px 16px',transition:'border-color 0.15s, box-shadow 0.15s',
             boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
             <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.k}</p>
-            <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
+            <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--text-primary)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
             <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.s}</p>
           </div>
           )
@@ -1212,7 +1212,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px 16px 14px',transition:'border-color 0.15s, box-shadow 0.15s',
               boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
               <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.k}</p>
-              <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
+              <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--text-primary)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
               <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.s}</p>
             </div>
             )
@@ -1227,11 +1227,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div style={{marginBottom:14}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:9}}>
                 <span style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Η δόση ως ποσοστό του εισοδήματος</span>
-                <span style={{fontSize:12.5,color:over?'var(--negative)':'var(--accent)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtPct1(usedPct)} <span style={{color:'var(--text-tertiary)'}}>από {Math.round(limitPct)}%</span></span>
+                <span style={{fontSize:12.5,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtPct1(usedPct)} <span style={{color:'var(--text-tertiary)'}}>από {Math.round(limitPct)}%</span></span>
               </div>
               <div style={{position:'relative',height:36,borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
                 <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${usedW}%`,borderRadius:'12px 0 0 12px',transition:'width 0.4s ease',
-                  background:over?'linear-gradient(90deg, color-mix(in srgb, var(--negative) 80%, transparent), var(--negative))':'linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, transparent), var(--accent))'}}/>
+                  background:over?'linear-gradient(90deg, color-mix(in srgb, var(--text-secondary) 55%, transparent), var(--text-secondary))':'linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, transparent), var(--accent))'}}/>
                 <div style={{position:'absolute',left:`${limitX}%`,top:0,bottom:0,width:0,borderLeft:'2px dashed var(--text-secondary)'}}/>
                 <span style={{position:'absolute',left:`calc(${limitX}% + 6px)`,top:'50%',transform:'translateY(-50%)',fontSize:10.5,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:600,whiteSpace:'nowrap' as const}}>Όριο {Math.round(limitPct)}%</span>
               </div>
@@ -1239,7 +1239,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           )
         })()}
         {!aff.affordable
-          ? <div style={{padding:'11px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--negative)',lineHeight:1.5,fontFamily: T.font.sans}}>Η δόση υπερβαίνει το όριο κατά {fmtEur(aff.gapMonthly)} τον μήνα. Μείωσε το ποσό έως {fmtEur(aff.maxLoan)} ή αύξησε τη διάρκεια.</p></div>
+          ? <div style={{padding:'11px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.5,fontFamily: T.font.sans}}>Η δόση υπερβαίνει το όριο κατά {fmtEur(aff.gapMonthly)} τον μήνα. Μείωσε το ποσό έως {fmtEur(aff.maxLoan)} ή αύξησε τη διάρκεια.</p></div>
           : <div style={{padding:'11px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-default)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.5,fontFamily: T.font.sans}}>Η δόση καλύπτεται άνετα. Απομένει περιθώριο έως {fmtEur(aff.maxMonthly-aff.requestedMonthly)} τον μήνα, που αντιστοιχεί σε επιπλέον δάνειο έως {fmtEur(aff.maxLoan-LA)}.</p></div>
         }
       </Section>
@@ -1267,7 +1267,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:14}}>
           <KPI label="Καθαρό κόστος αγοράς" value={fmtEur(rvb.buyNetAtHorizon)} sub={`σε ${horizon} έτη, μετά την περιουσία`}/>
           <KPI label="Κόστος ενοικίασης" value={fmtEur(rvb.rentAtHorizon)} sub={`σε ${horizon} έτη`}/>
-          <KPI label={buys?'Πλεονέκτημα αγοράς':'Πλεονέκτημα ενοικίασης'} value={fmtEur(Math.abs(rvb.advantageAtHorizon))} color={buys?'var(--accent)':'var(--text-primary)'} sub={rvb.breakEvenYear?`ισοσκελισμός στο έτος ${rvb.breakEvenYear}`:'χωρίς ισοσκελισμό στον ορίζοντα'}/>
+          <KPI label={buys?'Πλεονέκτημα αγοράς':'Πλεονέκτημα ενοικίασης'} value={fmtEur(Math.abs(rvb.advantageAtHorizon))} emphasis={buys} sub={rvb.breakEvenYear?`ισοσκελισμός στο έτος ${rvb.breakEvenYear}`:'χωρίς ισοσκελισμό στον ορίζοντα'}/>
         </div>
         <RentBuyChart buy={rvb.buyNetCostByYear} rent={rvb.rentCostByYear} horizon={horizon} breakEvenYear={rvb.breakEvenYear} fmt={fmtEur}/>
         <div style={{display:'flex',gap:16,marginTop:8}}>
@@ -1295,15 +1295,15 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:10}}>
               {isNewBuilding?(
                 <>
-                  <KPI label="ΦΠΑ 24%" value={fmtEur(vatOwed)} color="var(--text-primary)" sub="Αντί ΦΜΑ"/>
-                  <KPI label="Αξία ακινήτου" value={fmtEur(PV)} color="var(--text-primary)"/>
-                  <KPI label="Τιμή πριν ΦΠΑ" value={fmtEur(PV-vatOwed)} color="var(--text-secondary)"/>
+                  <KPI label="ΦΠΑ 24%" value={fmtEur(vatOwed)} sub="Αντί ΦΜΑ"/>
+                  <KPI label="Αξία ακινήτου" value={fmtEur(PV)}/>
+                  <KPI label="Τιμή πριν ΦΠΑ" value={fmtEur(PV-vatOwed)}/>
                 </>
               ):(
                 <>
-                  <KPI label={isCommercial?'ΦΜΑ 3%':'Όριο απαλλαγής ΦΜΑ'} value={isCommercial?fmtEur(fmaOwed):fmtEur(fmaEx)} color={isCommercial?'var(--text-primary)':'var(--accent)'}/>
-                  <KPI label="ΦΜΑ που αναλογεί" value={fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed)} color={fmaOwed===0?'var(--accent)':'var(--text-primary)'}/>
-                  <KPI label="Αξία ακινήτου" value={fmtEur(PV)} color="var(--text-primary)"/>
+                  <KPI label={isCommercial?'ΦΜΑ 3%':'Όριο απαλλαγής ΦΜΑ'} value={isCommercial?fmtEur(fmaOwed):fmtEur(fmaEx)} emphasis={!isCommercial}/>
+                  <KPI label="ΦΜΑ που αναλογεί" value={fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed)} emphasis={fmaOwed===0}/>
+                  <KPI label="Αξία ακινήτου" value={fmtEur(PV)}/>
                 </>
               )}
             </div>
@@ -1358,7 +1358,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtPct(s.rate)}</td>
                 <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(s.monthly)}</td>
                 <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:i===0?'var(--text-tertiary)':'var(--text-secondary)'}}>{i===0?'—':diff>=0?`+${fmtEur(diff)}`:`-${fmtEur(-diff)}`}</td>
-                <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:dti>40?"var(--negative)":"var(--text-primary)",fontWeight:600}}>{fmtPct1(dti)}</td>
+                <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:"var(--text-primary)",fontWeight:dti>40?700:500}}>{fmtPct1(dti)}</td>
               </tr>
             })}
           </tbody>
@@ -1376,10 +1376,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <NumberInput label="Κόστος μεταφοράς (€)" value={xferCost} onChange={setXferCost} suffix="€"/>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
-          <KPI label="Τρέχουσα δόση" value={fmtEur(currM)} color="var(--text-primary)"/>
-          <KPI label="Νέα δόση" value={fmtEur(newM)} color="var(--accent)" sub={`${fmtEur(mSav)} τον μήνα`}/>
-          <KPI label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} color={refSav>0?'var(--accent)':'var(--text-secondary)'} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
-          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'—'} color={brkEven&&brkEven<24?'var(--accent)':'var(--text-primary)'} sub="Απόσβεση εξόδων μεταφοράς"/>
+          <KPI label="Τρέχουσα δόση" value={fmtEur(currM)}/>
+          <KPI label="Νέα δόση" value={fmtEur(newM)} emphasis sub={`${fmtEur(mSav)} τον μήνα`}/>
+          <KPI label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} emphasis={refSav>0} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
+          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'—'} emphasis={!!brkEven && brkEven < 24} sub="Απόσβεση εξόδων μεταφοράς"/>
         </div>
       </Section>
       </>)}

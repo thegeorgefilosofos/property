@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, fe, InfoBanner, Card, EmptyState } from '@/components/Theme';
+import { T, fe, InfoBanner, Card, EmptyState, fp } from '@/components/Theme';
 import { notifyOk, notifyError } from '@/components/Toast';
 import { HandCoins, BarChart3 } from 'lucide-react';
 import { athensToday } from '@/lib/core/time';
@@ -251,7 +251,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <NumberInput label="Τα χιλιοστά μου (‰)" value={millesimi} onChange={sMill} suffix="‰" step={1} max={1000}/>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Το μερίδιό μου</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{(millRatio * 100).toFixed(2).replace('.', ',')}%</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fp((millRatio * 100), 2)}</div>
           </div>
         </div>
 

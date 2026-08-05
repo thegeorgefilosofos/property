@@ -110,7 +110,7 @@ export default function LandingCalculator() {
         </div>
         <div style={{ flex: 1 }} />
         <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
-          Ενδεικτικός υπολογισμός με τη φορολογική κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση 5% για συντήρηση. Υποστηρικτικός, δεν υποκαθιστά τον λογιστή σου.
+          Ενδεικτικός υπολογισμός με την κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση 5%. Δεν υποκαθιστά τον λογιστή σου.
         </p>
         <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>
           {/* Αχώριστο διάστημα πριν το βέλος: στα 320px η ετικέτα σπάει σε δύο

@@ -222,7 +222,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           <div style={{ height: '100%', width: `${pct}%`, background: isHigh ? 'var(--negative)' : isLow ? 'var(--positive)' : 'var(--accent)', borderRadius: 3 }}/>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{(avg * 2).toFixed(0)} €</span>
+          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{fe((avg * 2), 0)}</span>
         </div>
       </div>
     );
@@ -293,7 +293,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             <button
               onClick={() => upd({ dimotika: (parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1) })}
               style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-              Εφαρμογή {(parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1)}%
+              Εφαρμογή {fp((parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100), 1)}
             </button>
           )}
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>

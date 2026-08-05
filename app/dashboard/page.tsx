@@ -925,9 +925,9 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
               {isLet(prop) && propValue>0 && (
                 <div>
                   <strong style={{color:'var(--text-primary)',fontWeight:600}}>Απόδοση.</strong>{' '}
-                  <span title="Ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών">μεικτή {grossYield.toFixed(1)}%</span>
+                  <span title="Ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών">μεικτή {fp(grossYield, 1)}</span>
                   {' · '}
-                  <span title="Ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου">καθαρή {netYield.toFixed(1)}%</span>
+                  <span title="Ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου">καθαρή {fp(netYield, 1)}</span>
                   {propValue>0 && ` · αξία ${fmtEur(propValue)}`}
                 </div>
               )}

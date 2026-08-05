@@ -41,8 +41,8 @@ const FEATURES = [
   // πράγμα που δεν έχει κανένας ανταγωνιστής στη ζώνη τιμής μας. Μπαίνει
   // πρώτος, γιατί είναι ο λόγος που κάποιος διαλέγει εμάς και όχι ένα φύλλο
   // Excel — τα υπόλοιπα, με αρκετό κόπο, γίνονται και αλλού.
-  { t: 'Βοηθός που σκέφτεται στα ελληνικά', d: 'Συγκρίνει και προτείνει με βάση τα δικά σου ενοίκια και δαπάνες, όχι γενικότητες. Με φωνή, αν θέλεις.', i: 'M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12M8.5 12h.01M12 12h.01M15.5 12h.01' },
-  { t: 'Σύγκριση παρόχων ρεύματος και ασφάλισης', d: 'Τιμολόγια 11 παρόχων ρεύματος και 16 ασφαλιστικών εταιρειών, από στοιχεία που επαληθεύονται τακτικά.', i: 'M3 12h4l3 8 4-16 3 8h4' },
+  { t: 'Βοηθός στα ελληνικά', d: 'Συγκρίνει και προτείνει με βάση τα δικά σου ενοίκια και δαπάνες, όχι γενικότητες. Με φωνή, αν θέλεις.', i: 'M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12M8.5 12h.01M12 12h.01M15.5 12h.01' },
+  { t: 'Πάροχοι και ασφάλιση', d: 'Τιμολόγια 11 παρόχων ρεύματος και 16 ασφαλιστικών εταιρειών, από στοιχεία που επαληθεύονται τακτικά.', i: 'M3 12h4l3 8 4-16 3 8h4' },
   { t: 'Δάνειο χωρίς εκπλήξεις', d: 'Δόσεις, επιτόκια και έξοδα μεταβίβασης στα δικά σου στοιχεία, και έλεγχος αν δικαιούσαι το «Σπίτι μου ΙΙ».', i: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-4' },
   { t: 'Αποδόσεις και σενάρια μίσθωσης', d: 'Καθαρή απόδοση μετά τον φόρο, και η βραχυχρόνια μίσθωση δίπλα στη μακροχρόνια στα νούμερά σου.', i: 'M12 2v20M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7' },
   { t: 'Φορολογία 2026', d: 'Υποχρεώσεις, προθεσμίες και κλίμακα ενοικίων που ακολουθούν το έτος της δήλωσης, όχι το τρέχον ημερολόγιο.', i: 'M9 7h6M9 11h6M9 15h4M5 3h14v18l-3-2-2 2-2-2-2 2-3-2z' },
@@ -756,7 +756,7 @@ export default async function Landing() {
           {FEATURES.map((f, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(20px, 2.2vw, 24px)' }}>
               <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>{ic(f.i)}</div>
-              <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 7px', letterSpacing: '-0.02em' }}>{f.t}</h3>
+              <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 7px', letterSpacing: '-0.02em', textWrap: 'balance' }}>{f.t}</h3>
               <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0, textWrap: 'pretty' }}>{f.d}</p>
             </div>
           ))}
@@ -796,9 +796,9 @@ export default async function Landing() {
         <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(24px, 3vw, 38px)', display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 'clamp(24px, 3vw, 40px)', alignItems: 'center' }}>
           <div>
             <div className="lp-eyebrow">Ασφάλεια</div>
-            <h2 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 12px' }}>Τα δεδομένα σου είναι δικά σου</h2>
+            <h2 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 12px', textWrap: 'balance' }}>Τα δεδομένα σου είναι δικά σου</h2>
             <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0 }}>
-              Οι λογαριασμοί, τα συμβόλαια και τα νούμερά σου είναι από τα πιο ευαίσθητα δεδομένα που έχεις. Τα προστατεύουμε ανάλογα.
+              Οι λογαριασμοί, τα συμβόλαια και τα νούμερά σου είναι από τα πιο ευαίσθητα που έχεις, και προστατεύονται ανάλογα.
             </p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
@@ -840,8 +840,8 @@ export default async function Landing() {
             σε ένα email, η προθεσμία στο μυαλό σου.
           </p>
           <p style={{ fontSize: 15, lineHeight: 1.65, color: MUTED, margin: '0 0 18px', maxWidth: 820 }}>
-            Το Excel δεν ξέρει τι είναι τα κοινόχρηστα ή η Δήλωση Μίσθωσης, και δεν πρόκειται
-            να μάθει. Από εκεί ξεκίνησε το Property OS.
+            Τα φύλλα Excel και οι εφαρμογές σημειώσεων δεν φταίνε: απλώς δεν ξέρουν τι είναι τα κοινόχρηστα,
+            το Ε2 ή η Δήλωση Μίσθωσης, και δεν πρόκειται να μάθουν. Από εκεί ακριβώς ξεκίνησε το Property OS.
           </p>
           <Link href="/trust" className="lp-link" style={{ color: ACCENT, textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>
             Ποιοι είμαστε και πού βρίσκονται τα δεδομένα σου{' '}→
@@ -851,7 +851,7 @@ export default async function Landing() {
 
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
-        <SectionHead over="Τιμολόγηση" title="Κοστίζει λιγότερο από έναν λογαριασμό ρεύματος" sub="Κάθε πακέτο περιλαμβάνει ό,τι έχει το προηγούμενο. Τριάντα ημέρες δοκιμή, χωρίς κάρτα." />
+        <SectionHead over="Τιμολόγηση" title="Διάλεξε πόσο μεγάλο είναι το χαρτοφυλάκιό σου" sub="Κάθε πακέτο περιλαμβάνει ό,τι έχει το προηγούμενο. Τριάντα ημέρες δοκιμή, χωρίς κάρτα." />
         {/* ΜΙΑ ΠΗΓΗ ΓΙΑ ΤΙΣ ΤΙΜΕΣ ΚΑΙ ΤΑ ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ.
             Οι κάρτες ήταν γραμμένες με το χέρι: τιμές, ετήσιες τιμές και λίστες
             χαρακτηριστικά αντιγραμμένα από το lib/billing/plans.ts. Είχαν ήδη
@@ -884,7 +884,7 @@ export default async function Landing() {
                 price={fe(plan.priceMonthly, 2)}
                 per="τον μήνα"
                 note={<>ή <strong style={{ color: TEXT }}>{plan.priceAnnual} € τον χρόνο</strong></>}
-                discount="2 μήνες δώρο"
+                discount="2 μήνες δωρεάν"
                 inherits={prev ? `Ό,τι έχει το «${prev.name}», και:` : 'Περιλαμβάνει:'}
                 // Το «30 ημέρες δωρεάν δοκιμή» ήταν ΚΑΙ τελευταία γραμμή χαρακτηριστικών
                 // ΚΑΙ το ίδιο το κουμπί από κάτω. Μία περιττή γραμμή σε κάθε κάρτα.
@@ -897,7 +897,7 @@ export default async function Landing() {
           })}
         </div>
         <p style={{ fontSize: 12.5, color: FAINT, margin: '22px 0 0', maxWidth: 620, lineHeight: 1.6 }}>
-Κάθε πακέτο ξεκινά με 30 ημέρες δοκιμή, χωρίς κάρτα. Όταν λήξει, συνεχίζεις δωρεάν με ένα ακίνητο και τα δεδομένα σου ανέπαφα. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
+Κάθε πακέτο ξεκινά με 30 ημέρες δοκιμή χωρίς κάρτα. Όταν λήξει, συνεχίζεις δωρεάν με ένα ακίνητο και τα δεδομένα σου ανέπαφα. Χωρίς δέσμευση και χωρίς κρυφές χρεώσεις· οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
@@ -1036,22 +1036,31 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
       {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
       <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 3 }}>{name}</div>
       <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, minHeight: 32, lineHeight: 1.35 }}>{sub}</div>
-      {/* ΤΙΜΗ ΚΑΙ ΠΕΡΙΟΔΟΣ ΣΕ ΔΥΟ ΣΤΑΘΕΡΕΣ ΓΡΑΜΜΕΣ.
-          Ήταν στην ίδια γραμμή με `flexWrap`: στα «3,90 €» χωρούσε το «τον
-          μήνα» δίπλα, στα «24,90 €» και «79,90 €» έπεφτε από κάτω. Δύο κάρτες
-          με δύο γραμμές, τρεις με μία — και οι λίστες χαρακτηριστικών ξεκινούσαν
-          σε διαφορετικό ύψος η καθεμία. Σταθερό ύψος, όλα στοιχισμένα. */}
-      <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(24px, 2.4vw, 29px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT, lineHeight: 1.1 }}>{price}</div>
-      <div style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{per}</div>
-      {/* ΤΟ «2 ΜΗΝΕΣ ΔΩΡΟ» ΧΑΝΟΤΑΝ. Ήταν κολλημένο στο τέλος της ίδιας μικρής,
-          ξεθωριασμένης γραμμής με την ετήσια τιμή, μετά από μια τελεία — δηλαδή
-          το πιο δυνατό επιχείρημα της ετήσιας συνδρομής, γραμμένο σαν υποσημείωση
-          υποσημείωσης. Τώρα είναι δική του γραμμή, με το βάρος του κειμένου να
-          το ξεχωρίζει. (Πριν από αυτό ήταν πράσινη κονκάρδα με πράσινο φόντο: το
-          μόνο σημασιολογικό χρώμα σε όλον τον τιμοκατάλογο, σε κάθε κάρτα.) */}
-      <div style={{ minHeight: 34, marginTop: 6, fontSize: 11.5, color: FAINT, lineHeight: 1.45 }}>
-        <div>{note}</div>
-        {discount && <div style={{ color: TEXT, fontWeight: 600, marginTop: 2 }}>{discount}</div>}
+      {/* ΤΟ ΠΟΣΟ ΚΑΙ Η ΠΕΡΙΟΔΟΣ ΕΙΝΑΙ ΕΝΑ ΠΡΑΓΜΑ: «3,90 € τον μήνα» διαβάζεται
+          σαν φράση, όχι σαν αριθμός με λεζάντα από κάτω. Το `baseline` τα
+          στοιχίζει στη γραμμή γραφής, οπότε το μικρό «τον μήνα» κάθεται πάνω
+          στη βάση του μεγάλου ποσού αντί να αιωρείται στο κέντρο του.
+
+          Το `nowrap` είναι απαραίτητο, όχι διακοσμητικό: χωρίς αυτό το «τον
+          μήνα» έπεφτε κάτω από το «24,90 €» και «79,90 €» —τα δύο μεγαλύτερα
+          ποσά— και οι λίστες ξεκινούσαν σε διαφορετικό ύψος σε κάθε κάρτα. */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
+        <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(24px, 2.4vw, 29px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT, lineHeight: 1.1 }}>{price}</span>
+        <span style={{ fontSize: 12.5, color: MUTED }}>{per}</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: FAINT, marginTop: 5 }}>{note}</div>
+      {/* ΤΟ ΔΩΡΟ ΣΕ ΔΙΚΟ ΤΟΥ ΠΛΑΙΣΙΟ. Ήταν κολλημένο στο τέλος της ίδιας μικρής,
+          ξεθωριασμένης γραμμής με την ετήσια τιμή, μετά από μια τελεία: το πιο
+          δυνατό επιχείρημα της ετήσιας συνδρομής, γραμμένο σαν υποσημείωση
+          υποσημείωσης. Το πλαίσιο είναι ΟΥΔΕΤΕΡΟ — περίγραμμα και φόντο από τα
+          tokens της επιφάνειας, όχι πράσινη κονκάρδα «έκπτωσης»: ξεχωρίζει με
+          σχήμα, όχι με χρώμα-ετυμηγορία. */}
+      <div style={{ minHeight: 30, marginTop: 8 }}>
+        {discount && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 100,
+            border: `1px solid ${LINE}`, background: 'var(--bg-elevated)', padding: '3px 10px',
+            fontSize: 11, fontWeight: 700, color: TEXT, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>{discount}</span>
+        )}
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', margin: '14px 0 16px' }}>
         {inherits && <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 1 }}>{inherits}</div>}

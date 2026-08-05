@@ -1168,7 +1168,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     <KPI label="Μηνιαίο ενοίκιο" value={feAuto(income, 0)} />
                     <KPI label="Ετησίως" value={feAuto(income * 12, 0)} />
                     <KPI label="Αναμενόμενα φέτος" value={feAuto(incomeYtd, 0)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
-                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${feAuto(Math.abs(netFlow), 0)}`} color={netFlow < 0 ? 'var(--negative)' : undefined} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, αποθεματικά)." />
+                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${feAuto(Math.abs(netFlow), 0)}`} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, αποθεματικά)." />
                   </>
                 )}
               </div>
@@ -1308,7 +1308,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
             <KPI label="NOI / έτος" value={feAuto(invReturns.noi, 0)} />
-            <KPI label="Ταμειακή ροή" value={feAuto(invReturns.preTaxCashFlow, 0)} color={invReturns.preTaxCashFlow < 0 ? 'var(--negative)' : undefined} />
+            <KPI label="Ταμειακή ροή" value={feAuto(invReturns.preTaxCashFlow, 0)} />
             <KPI label="Cap rate" value={`${invReturns.capRatePct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
             <KPI label="Cash-on-cash" value={`${invReturns.cashOnCashPct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
           </div>

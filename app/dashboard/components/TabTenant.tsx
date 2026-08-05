@@ -567,7 +567,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
               return (
                 <div key={year} onClick={()=>{setYr(year);setUseCustom(false);}}
                   style={{ background:active?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`, borderRadius:T.radius.badge, padding:'7px 4px', textAlign:'center' as const, cursor:'pointer', transition:'all 0.15s' }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{rate.toFixed(1)}%</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{fp(rate, 1)}</div>
                   <div style={{ fontSize:8, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{year}</div>
                 </div>
               );
@@ -1926,7 +1926,7 @@ function RenewalView({ tenant, userId, comps, sqm }:{ tenant:Tenant; userId:stri
             <>
               <DataRow label={`Μέση τιμή ανά τ.μ. (${fn(perSqmValues.length)} συγκρίσιμα)`} value={<span style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(avgPerSqm)}</span>}/>
               <DataRow label={`× ${fn(sqm||0)} τ.μ. δικά σου`} value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(marketRent)}</span>}/>
-              <DataRow label="Απόκλιση τρέχοντος" value={<span style={{ color:marketDiff>0?'var(--positive)':marketDiff<0?'var(--warning)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{marketDiff>0?'+':''}{fmt(marketDiff)} ({marketDiffPct.toFixed(1)}%)</span>}/>
+              <DataRow label="Απόκλιση τρέχοντος" value={<span style={{ color:marketDiff>0?'var(--positive)':marketDiff<0?'var(--warning)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{marketDiff>0?'+':''}{fmt(marketDiff)} ({fp(marketDiffPct, 1)})</span>}/>
               {variance&&<div style={{ marginTop:12 }}><AlertBar text={variance} level="warning"/></div>}
               <div style={{ marginTop:10, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
                 {marketDiff<0?'Το τρέχον μίσθωμα είναι κάτω από την εκτίμηση της περιοχής για το μέγεθός σου. Οποιαδήποτε αύξηση σε ενεργή μίσθωση κατοικίας γίνεται μόνο με όρο αναπροσαρμογής ή νέα συμφωνία.':'Το τρέχον μίσθωμα είναι στο ή πάνω από την εκτίμηση της περιοχής για το μέγεθός σου.'}

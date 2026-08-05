@@ -16,18 +16,31 @@ export const cardStyle: React.CSSProperties = {
   background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:T.sp.lg,
 }
 
-// Ομοιόμορφο πλακίδιο μετρικής: λευκή τιμή, γαλάζια στο πέρασμα του κέρσορα/δαχτύλου·
-// αρνητικές τιμές κόκκινες· αν δοθεί color=var(--accent) η τιμή μένει μόνιμα γαλάζια
-// (θετικό/eligibility state). Ήπιο 3D στο hover.
-export function KPI({label,value,color,sub,title}:{label:string;value:string;color?:string;sub?:string;title?:string}) {
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΧΡΩΜΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙ' ΑΥΤΟ ΕΦΥΓΕ ΑΠΟ ΠΑΝΤΟΥ.
+// ─────────────────────────────────────────────────────────────────────────
+// Το πλακίδιο δεχόταν `color` και το ερμήνευε ΣΗΜΑΣΙΟΛΟΓΙΚΑ: `var(--negative)`
+// έβαφε την τιμή κόκκινη, `var(--accent)` την κρατούσε μόνιμα γαλάζια ως
+// «θετικό». Επειδή είναι το κοινό primitive και των δύο οθονών του Δανείου, η
+// παραβίαση κληρονομιόταν σε κάθε δείκτη: LTV πάνω από 90%, βαθμολογία κάτω από
+// 60, DTI πάνω από 40%, δόση πάνω από το όριο — δεκατέσσερα κόκκινα νούμερα σε
+// μία οθόνη που ο χρήστης βλέπει όταν σκέφτεται να πάρει δάνειο.
+//
+// Ένα δάνειο με LTV 92% δεν είναι «λάθος»: είναι ένα δάνειο με LTV 92%, και το
+// αν τον συμφέρει το κρίνει ο ίδιος. Το κόκκινο δεν πρόσθετε πληροφορία που δεν
+// έλεγε ήδη ο αριθμός — πρόσθετε ετυμηγορία.
+//
+// ΤΙ ΜΕΝΕΙ: η έμφαση, χωρίς σημασία. Το `emphasis` κρατά την τιμή σε πλήρη
+// ένταση κειμένου (`--text-primary`) αντί για τη δευτερεύουσα, και ο τόνος
+// μπαίνει ΜΟΝΟ στην αλληλεπίδραση — ίδιος κανόνας με το KPIGrid του Theme.
+// ═══════════════════════════════════════════════════════════════════════════
+export function KPI({label,value,emphasis,sub,title}:{label:string;value:string;emphasis?:boolean;sub?:string;title?:string}) {
   const [h,setH]=useState(false)
-  const isNeg = color==='var(--negative)'
-  const isPos = color==='var(--accent)'
   return (
     <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onTouchStart={()=>setH(true)} onTouchEnd={()=>setH(false)}
-      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'12px 16px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
+      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:T.radius.card,padding:'12px 16px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
       <p title={title} style={{...labelStyle,marginBottom:6,cursor:title?'help':undefined}}>{label}</p>
-      <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:isNeg?'var(--negative)':(isPos||h)?'var(--accent)':'var(--text-primary)',fontWeight:700,transition:'color 0.15s'}}>{value}</p>
+      <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:h?'var(--accent)':'var(--text-primary)',fontWeight:emphasis?700:600,transition:'color 0.15s'}}>{value}</p>
       {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily: T.font.sans}}>{sub}</p>}
     </div>
   )
