@@ -389,6 +389,25 @@ body {
 .client-card:has(.client-card-act button:focus-visible) .client-card-act { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .client-card:hover { transform: none; } }
 
+/* ── ΔΥΟ ΜΑΤΙΑ ΣΤΟΝ ΚΩΔΙΚΟ ─────────────────────────────────────────────────
+   Η φόρμα σχεδιάζει ΕΝΑ κουμπί «εμφάνιση κωδικού». Ο Edge και ο Chrome στα
+   Windows προσθέτουν ΔΙΚΟ ΤΟΥΣ, δεύτερο ματάκι μέσα στο πεδίο — δεν φαίνεται
+   σε macOS ή Linux, γι' αυτό περνούσε απαρατήρητο σε κάθε έλεγχο εδώ.
+
+   Το αποτέλεσμα δεν ήταν μόνο άσχημο: δύο κουμπιά με το ίδιο εικονίδιο και
+   διαφορετική συμπεριφορά, το ένα δίπλα στο άλλο, σε πεδίο κωδικού. Ο χρήστης
+   δεν ξέρει ποιο είναι της εφαρμογής και ποιο του περιηγητή.
+
+   Κρύβεται το ΔΙΚΟ ΤΟΥΣ, γιατί το δικό μας έχει ελληνική ετικέτα, κατάσταση
+   `aria-pressed` και ακολουθεί τα tokens. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear { display: none; }
+input[type="password"]::-webkit-textfield-decoration-container { visibility: hidden; }
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-strong-password-auto-fill-button {
+  visibility: hidden; pointer-events: none; margin: 0; width: 0;
+}
+
 /* ── ΤΟ ΤΑΜΕΙΟ (CashHero) ────────────────────────────────────────────────────
    Ο ήρωας της αρχικής οθόνης: δύο ποσά, ίδιο μέγεθος, δίπλα-δίπλα. Ίδια λογική
    με το .kpi-value — το μέγεθος πατά στο ΠΛΑΤΟΣ ΤΟΥ ΠΛΑΙΣΙΟΥ, όχι του
