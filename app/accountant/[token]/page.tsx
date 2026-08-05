@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { rentalIncomeTax, RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
+import { rentalIncomeTax, rentalBracketsForYear, bracketsLabelForYear, RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
 import { presumptiveDeductionRate, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
 import { T, feAuto, Card } from '@/components/Theme';
 
@@ -61,7 +61,10 @@ export default function AccountantPortal() {
   // Η έκπτωση προϋποθέτει τραπεζική είσπραξη (ν.5246/2025)· εδώ δεν ξέρουμε τον
   // τρόπο είσπραξης, οπότε εφαρμόζεται και δηλώνεται ρητά η προϋπόθεση.
   const taxableIncome = totalIncome * (1 - presumptiveDeductionRate(true));
-  const estTax = rentalIncomeTax(taxableIncome);
+  // Ο λογιστής ξεκινά στην ΠΡΟΗΓΟΥΜΕΝΗ χρονιά (γρ. 29) — δηλαδή ακριβώς εκεί
+  // όπου ίσχυε άλλη κλίμακα. Χωρίς αυτό, η μοναδική οθόνη που βλέπει
+  // επαγγελματίας έδειχνε φόρο 2026 σε δήλωση 2025.
+  const estTax = rentalIncomeTax(taxableIncome, rentalBracketsForYear(year));
 
   const row = (k: string, v: string, strong?: boolean) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -109,7 +112,7 @@ export default function AccountantPortal() {
               {row('Συνολικές καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
               {row('Εκτιμώμενος φόρος εισοδήματος (ενδεικτικά)', feAuto(estTax), true)}
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
-                Οι αριθμοί είναι ενδεικτικοί, βάσει των καταχωρήσεων του ιδιοκτήτη. {RENTAL_TAX_SUMMARY_2026} {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
+                Οι αριθμοί είναι ενδεικτικοί, βάσει των καταχωρήσεων του ιδιοκτήτη. Εφαρμόστηκε η {bracketsLabelForYear(year)} για εισοδήματα {year}. {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
               </div>
             </Card>
 

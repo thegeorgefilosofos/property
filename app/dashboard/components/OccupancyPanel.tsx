@@ -36,7 +36,7 @@ import { T, fe, Skeleton, Btn } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
-import { rentalIncomeTax } from '@/lib/billing/greekTax';
+import { rentalIncomeTax, rentalBracketsForYear } from '@/lib/billing/greekTax';
 
 const MONTHS = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
 
@@ -95,7 +95,10 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
   // νούμερο ο ιδιοκτήτης αποφασίζει αν θα βγάλει το ακίνητο από το Airbnb.
   // Τώρα και τα δύο σκέλη περνούν από την ΙΔΙΑ κλίμακα (rentalIncomeTax) με την
   // ίδια τεκμαρτή έκπτωση 5% (άρθρο 39 παρ.4 ΚΦΕ) και συγκρίνονται μετά φόρου.
-  const ltTax = rentalIncomeTax(ltRevenue * 0.95);
+  // …και με την κλίμακα ΤΟΥ ΙΔΙΟΥ ΕΤΟΥΣ: το βραχυχρόνιο σκέλος περνά από το
+  // `shortTermYearSummary(stays, year)`, οπότε αν εδώ έμενε η προεπιλογή, η
+  // σύγκριση των δύο θα ήταν πάλι ανόμοια — απλώς λιγότερο ορατά.
+  const ltTax = rentalIncomeTax(ltRevenue * 0.95, rentalBracketsForYear(year));
   const ltNet = ltRevenue - ltTax;
   const diff = stNet - ltNet;
 

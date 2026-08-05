@@ -30,7 +30,7 @@ import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { LOAN_COLUMNS, toLoanViews } from '@/lib/loans/shape'
 import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
-import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 } from '@/lib/billing/greekTax'
+import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
 import { exportAccountantBundle } from './accountantExport'
 import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
@@ -246,7 +246,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       return { id:p.id, name:p.name||'Ακίνητο', input }
     }).filter(x=>x.input.grossIncome>0)
     if(items.length===0) return null
-    return { con: consolidateIndividual(items.map(i=>({id:i.id,input:i.input}))), names:Object.fromEntries(items.map(i=>[i.id,i.name])), count:items.length }
+    return { con: consolidateIndividual(items.map(i=>({id:i.id,input:i.input})), rentalBracketsForYear(year)), names:Object.fromEntries(items.map(i=>[i.id,i.name])), count:items.length }
   },[allProps,allRent,allStays,year,propCount,prop,propertyId,rentsBank])
   const myTaxShare = useMemo(()=>consolidation?.con.perProperty.find(p=>p.id===propertyId)?.taxShare,[consolidation,propertyId])
   const portfolio = (mode==='professional' && elp==='personal') ? consolidation : null
@@ -260,7 +260,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           ekfaContributions: elpForm==='sole'&&ekfa!=='' ? Number(ekfa) : 0,
           presumptiveMinIncome: elpForm==='sole'&&grossIncome>0 ? Math.round(SELF_EMPLOYED_MIN_NET_INCOME_2026*(firstYears?0.5:1)) : undefined, enfia:0,
           climateLevy: regime==='individual_shortterm'?shortSummary.levyShortfall:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
-          otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear), uncollectedIncome:uncollectedRent }
+          otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear), uncollectedIncome:uncollectedRent, brackets: rentalBracketsForYear(year) }
       : { regime, grossIncome, enfia, overrideIncomeTax: myTaxShare, rentsPaidViaBank: rentsBank,
         // ΤΟ ΤΕΛΟΣ ΑΝΘΕΚΤΙΚΟΤΗΤΑΣ ΕΦΕΥΓΕ ΔΥΟ ΦΟΡΕΣ ΑΠΟ ΤΟ ΤΑΜΕΙΟ.
         // Το `grossIncome` εδώ είναι το `grossRevenue` της shortTermYearSummary,
@@ -275,8 +275,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           climateLevy: regime==='individual_shortterm' ? shortSummary.levyShortfall : 0,
           municipalTax: regime==='individual_shortterm' ? shortSummary.municipalTax : 0,
           otherCashExpenses: expensesTotal, loanPrincipal: loanAnnual, uncollectedIncome:uncollectedRent,
-          legallyClaimedUncollected: claimedUncollected }
-  ),[businessMode,elpForm,age,firstYears,distribution,ekfa,buildingDepr,claimedUncollected,rentsBank,regime,grossIncome,enfia,myTaxShare,shortSummary,expensesTotal,deductibleTotal,inventoryDepr,loanInterestYear,loanAnnual,uncollectedRent])
+          legallyClaimedUncollected: claimedUncollected, brackets: rentalBracketsForYear(year) }
+  ),[businessMode,year,elpForm,age,firstYears,distribution,ekfa,buildingDepr,claimedUncollected,rentsBank,regime,grossIncome,enfia,myTaxShare,shortSummary,expensesTotal,deductibleTotal,inventoryDepr,loanInterestYear,loanAnnual,uncollectedRent])
 
   // Συμβουλευτική, προτάσεις με αξία από τα πραγματικά δεδομένα (καθαρές, όχι θόρυβος).
   const advisory = useMemo(()=>buildAdvisory({
@@ -707,7 +707,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <InfoHint>
                 {businessMode
                   ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου και εξοπλισμού, καθώς και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9-44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους, με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
-                  : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική κλίμακα ενοικίων 2026. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).' : 'Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την κλίμακα 2026, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.')}
+                  : (regime==='individual_longterm' ? `Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική ${bracketsLabelForYear(year)}. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).` : `Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την ${bracketsLabelForYear(year)}, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.`)}
                 {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από αξία και τετραγωνικά. Καταχώρησε το ακριβές στους Λογαριασμούς.`:''}
               </InfoHint>
             </p>

@@ -28,7 +28,7 @@ import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
 import { money as csvEur } from './xlsxStyle';
 import { brandName, useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf';
-import { rentalIncomeTax, RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax';
+import { rentalIncomeTax, RENTAL_TAX_ROWS_2026, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax';
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
 import { TENANT_FIELDS, formFields, missingCritical, fieldDecision, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 import { whatsappLink, viberLink } from '@/lib/clients/messages';
@@ -1310,7 +1310,12 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
   const viaBank=tenant.e_payment!==false;
   const deductionRate=viaBank?PRESUMPTIVE_DEDUCTION_RATE:0;
   const taxable=annualRent*(1-deductionRate);
-  const tax=taxable>0?rentalIncomeTax(taxable):0;
+  // Η ΚΛΙΜΑΚΑ ΠΟΥ ΔΕΙΧΝΕΙ Η ΟΘΟΝΗ ΕΙΝΑΙ Η ΚΛΙΜΑΚΑ ΠΟΥ ΥΠΟΛΟΓΙΖΕΙ. Πιο κάτω
+  // τυπώνεται ο πίνακας `RENTAL_TAX_ROWS_2026`· εδώ γράφεται ρητά η ίδια χρονιά
+  // αντί να βασιζόμαστε στην προεπιλογή. Η προβολή αφορά το τρέχον μίσθωμα, όχι
+  // περασμένη χρήση — όταν αλλάξουν οι συντελεστές, πίνακας και υπολογισμός
+  // αλλάζουν μαζί ή δεν αλλάζει κανένας.
+  const tax=taxable>0?rentalIncomeTax(taxable,RENTAL_TAX_BRACKETS_2026):0;
   const effRate=annualRent>0?tax/annualRent:0;
   const isCommercial=tenant.lease_category==='commercial';
   const stampDuty=isCommercial?annualRent*COMMERCIAL_STAMP_DUTY:0;   // 3,6% επί του μισθώματος

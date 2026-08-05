@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Φορολογία βραχυχρόνιας μίσθωσης: σύνοψη ανά έτος από τα ΠΡΑΓΜΑΤΙΚΑ δεδομένα
 // διαμονών (client_stays). Ενώνει την υπάρχουσα, δατοσημασμένη λογική:
-//   • rentalIncomeTax  → κλίμακα φόρου εισοδήματος από ενοίκια (2026)
+//   • rentalIncomeTax  → κλίμακα φόρου εισοδήματος από ενοίκια, ΤΟΥ ΕΤΟΥΣ
 //   • climateLevyForNights → Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (ΤΑΚΚ)
 // Καθαρή λογική (χωρίς React/δίκτυο), δοκιμάσιμη. Οι εκτιμήσεις είναι ενδεικτικές
 // και προϋποθέτουν επιβεβαίωση από λογιστή.
@@ -22,7 +22,7 @@ import {
 } from '@/lib/clients/stayAmounts';
 import {
   climateLevyForNights, climateLevyRates, isHighSeasonMonth,
-  rentalIncomeTax, municipalAccommodationTax,
+  rentalIncomeTax, rentalBracketsForYear, municipalAccommodationTax,
 } from '@/lib/billing/greekTax';
 
 export interface PropertyTaxMeta { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean; rentsPaidViaBank?: boolean }
@@ -119,7 +119,10 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   // εφαρμόζεται η τεκμαρτή έκπτωση 5% (άρθρο 39 παρ.4 ΚΦΕ) → φορολογείται το 95%.
   // Προϋπόθεση (από 1/1/2026): είσπραξη μέσω τραπέζης· με μετρητά φορολογείται το 100%.
   const taxableFactor = meta?.rentsPaidViaBank === false ? 1 : 0.95;
-  const incomeTax = rentalIncomeTax(grossRevenue * taxableFactor);
+  // Η ΚΛΙΜΑΚΑ ΤΟΥ ΕΤΟΥΣ, ΟΧΙ ΠΑΝΤΑ ΤΟΥ 2026. Η συνάρτηση δέχεται `year` από
+  // την πρώτη μέρα και το χρησιμοποιούσε παντού ΕΚΤΟΣ από τον φόρο — που είναι
+  // το νούμερο για το οποίο υπάρχει.
+  const incomeTax = rentalIncomeTax(grossRevenue * taxableFactor, rentalBracketsForYear(year));
   // ΤΟ ΤΕΛΟΣ ΑΝΘΕΚΤΙΚΟΤΗΤΑΣ ΦΕΥΓΕΙ ΑΚΡΙΒΩΣ ΜΙΑ ΦΟΡΑ — ΟΥΤΕ ΔΥΟ, ΟΥΤΕ ΚΑΜΙΑ.
   //
   // Ο αρχικός τύπος έγραφε `− levy` και το αφαιρούσε ΔΥΟ φορές: μία μέσα στο

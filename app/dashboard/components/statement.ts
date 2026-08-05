@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { incomeStatement } from '@/lib/accounting/statement';
+import { rentalBracketsForYear } from '@/lib/billing/greekTax';
 import { printFontFaces } from '@/lib/print/fonts';
 import { notifyError } from '@/components/toastBus';
 
@@ -49,7 +50,15 @@ const s = (v: unknown) => (v == null || v === '' ? '' : String(v));
 
 export function printPropertyStatement(c: StatementCtx): void {
   const accent = reportAccent(c.branding); // ΜΟΝΟ για το σήμα P
-  const st = incomeStatement({ regime: 'individual_longterm', grossIncome: c.annualRent });
+  // Η ΑΝΑΦΟΡΑ ΕΙΧΕ ΕΤΟΣ ΣΤΟΝ ΤΙΤΛΟ ΚΑΙ ΚΛΙΜΑΚΑ ΑΛΛΗΣ ΧΡΟΝΙΑΣ. Δύο σειρές πιο
+  // κάτω τυπώνεται «Φόρος εισοδήματος (κλίμακα {c.year})», ενώ ο υπολογισμός
+  // έπαιρνε πάντα την προεπιλογή — τη νέα κλίμακα. Μια αναφορά του 2025, δηλαδή
+  // αυτή που εκτυπώνεται τώρα για τη δήλωση, έβγαζε 700 € λιγότερο φόρο σε
+  // 20.000 € ενοίκια και το έλεγε «κλίμακα 2025». Η κλίμακα ακολουθεί το έτος.
+  const st = incomeStatement({
+    regime: 'individual_longterm', grossIncome: c.annualRent,
+    brackets: rentalBracketsForYear(c.year),
+  });
   const tax = st.incomeTax;
   const net = c.annualRent - c.expensesYTD - tax;
   const preTax = c.annualRent - c.expensesYTD;
