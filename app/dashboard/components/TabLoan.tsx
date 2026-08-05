@@ -3,7 +3,9 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { must } from '@/lib/supabase/must'
 import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
-import { fp } from '@/lib/core/format'
+import { fp, fe } from '@/lib/core/format'
+import { fdLong } from '@/components/tokens'
+import { loanProgress } from '@/lib/loans/progress'
 import { T, ExportButton, EmptyState, Btn, Skeleton } from '@/components/Theme'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
@@ -497,38 +499,105 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         />
       )}
       {saved.map(loan=>{
-        const m=calcMonthly(loan.amount,loan.rate,loan.years)
-        const ti=m*loan.years*12-loan.amount
-        const ltv=loan.property_value>0?(loan.amount/loan.property_value)*100:0
-        const elapsed=loan.start_date?Math.floor((Date.now()-new Date(loan.start_date).getTime())/(1000*60*60*24*30.44)):0
-        const rem=Math.max(0,loan.years*12-elapsed)
+        // ═══ Η ΘΕΣΗ ΤΟΥ ΔΑΝΕΙΟΥ ΣΗΜΕΡΑ ═══════════════════════════════════════
+        // Η κάρτα έδειχνε πέντε πλακίδια ίδιου βάρους, με πρώτο το «Ποσό» — το
+        // ΑΡΧΙΚΟ κεφάλαιο, δηλαδή τον αριθμό που ίσχυε την ημέρα της υπογραφής
+        // και ποτέ ξανά. Όποιος πληρώνει οκτώ χρόνια διάβαζε ακόμη το ποσό της
+        // πρώτης μέρας σαν να ήταν το χρέος του, ενώ το ΥΠΟΛΟΙΠΟ — ο λόγος που
+        // ανοίγει κανείς αυτή την οθόνη — δεν υπήρχε πουθενά.
+        //
+        // Η ιεραρχία τώρα λέει μία πρόταση: ΧΡΩΣΤΑΩ ΤΟΣΑ, πληρώνω τόσα τον μήνα,
+        // τελειώνω τότε. Ό,τι δεν αλλάζει ποτέ (αρχικό ποσό, επιτόκιο, LTV)
+        // κατεβαίνει σε ήσυχη γραμμή στοιχείων· δεν είναι λιγότερο αληθινό,
+        // είναι λιγότερο επείγον.
+        const prog = loanProgress({
+          amount: loan.amount, annualRatePct: loan.rate, years: loan.years,
+          startDate: loan.start_date || null, today: athensToday(),
+        })
+        const m = prog ? prog.monthly : calcMonthly(loan.amount,loan.rate,loan.years)
+        const ltv = loan.property_value>0?(loan.amount/loan.property_value)*100:0
         return(
-          <div key={loan.id} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:16}}>
-            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
-              <div>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
-                  <p style={{fontSize:16,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)'}}>{loan.bank}</p>
-                  <span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-elevated)',color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>{loan.status==='active'?'Ενεργό':'Ανενεργό'}</span>
-                  <span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily: T.font.sans}}>{LOAN_TYPES[loan.loan_type as LoanType]?.label||loan.loan_type}</span>
+          <div key={loan.id} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:18}}>
+
+            {/* Ταυτότητα: τράπεζα, κατάσταση, είδος. */}
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:16}}>
+              <div style={{minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
+                  <p style={{fontSize:15,fontWeight:700,fontFamily:T.font.sans,color:'var(--text-primary)',letterSpacing:'-0.01em'}}>{loan.bank}</p>
+                  <span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily:T.font.sans}}>{LOAN_TYPES[loan.loan_type as LoanType]?.label||loan.loan_type}</span>
+                  {loan.status!=='active'&&<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-elevated)',color:'var(--text-tertiary)',fontFamily:T.font.sans}}>Ανενεργό</span>}
                 </div>
-                {loan.notes&&<p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>{loan.notes}</p>}
+                {loan.notes&&<p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{loan.notes}</p>}
               </div>
-              <button onClick={()=>deleteLoan(loan.id)} aria-label="Διαγραφή δανείου" title="Διαγραφή" style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-tertiary)',padding:8,margin:-4,display:'flex',borderRadius:8}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              {/* Ήταν «×» — το σύμβολο του κλεισίματος, πάνω δεξιά, εκεί ακριβώς
+                  όπου ο χρήστης το πατά για να ΦΥΓΕΙ. Διέγραφε το δάνειο. */}
+              <button onClick={()=>deleteLoan(loan.id)} aria-label="Διαγραφή δανείου" title="Διαγραφή δανείου"
+                style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-tertiary)',padding:8,margin:-4,display:'flex',borderRadius:8,flexShrink:0}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+              </button>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))',gap:8,marginBottom:12}}>
-              <KPI label="Ποσό" value={fmtEur(loan.amount)}/>
-              <KPI label="Επιτόκιο" value={fmtPct(loan.rate)} sub={loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό'}/>
-              <KPI label="Δόση τον μήνα" value={fmtEur(m)}/>
-              <KPI label="Συνολικοί τόκοι" value={fmtEur(ti)}/>
-              <KPI label="Δάνειο προς αξία" value={`${fp(ltv, 1)}`} title="Ποσοστό δανείου ως προς την αξία του ακινήτου"/>
-            </div>
-            {loan.start_date&&(
-              <div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,display:'flex',gap:24,flexWrap:'wrap'}}>
-                <div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{new Date(loan.start_date).toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})}</p></div>
-                <div><p style={{...labelStyle,marginBottom:2}}>Μήνες αποπληρωμής</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>~{elapsed}</p></div>
-                <div><p style={{...labelStyle,marginBottom:2}}>Υπόλοιποι μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>~{rem}</p></div>
+
+            {prog ? (<>
+              {/* Ο ΕΝΑΣ ΑΡΙΘΜΟΣ. Μεγαλύτερος από όλα τα υπόλοιπα, μόνος στη σειρά του. */}
+              <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:20,flexWrap:'wrap',marginBottom:14}}>
+                <div>
+                  <p style={{...labelStyle,marginBottom:4}}>Υπόλοιπο σήμερα</p>
+                  <p style={{fontSize:32,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1.05,color:'var(--text-primary)',fontFamily:T.font.sans}}>{fe(prog.balance)}</p>
+                  <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>
+                    από {fe(loan.amount)} · εκτίμηση με σταθερή δόση
+                  </p>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <p style={{...labelStyle,marginBottom:4}}>Δόση τον μήνα</p>
+                  <p style={{fontSize:20,fontWeight:600,color:'var(--text-primary)',fontFamily:T.font.sans,lineHeight:1.1}}>{fe(m)}</p>
+                  <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>
+                    {prog.remainingMonths} {prog.remainingMonths===1?'δόση ακόμη':'δόσεις ακόμη'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Η πρόοδος, ως μήκος και όχι ως χρώμα. Δείχνει αυτό που δεν
+                  φαίνεται αλλού: στα πρώτα χρόνια πληρώνεις κυρίως τόκους, οπότε
+                  η μπάρα υπολείπεται πάντα του χρόνου που πέρασε. */}
+              <div style={{marginBottom:14}}>
+                <div style={{height:6,borderRadius:100,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
+                  <div style={{width:`${Math.min(100,Math.max(0,prog.percentRepaid))}%`,height:'100%',background:'var(--accent)',borderRadius:100}}/>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',gap:12,marginTop:6}}>
+                  <span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>
+                    Εξοφλήθηκε {fp(prog.percentRepaid)} του κεφαλαίου σε {prog.paidMonths} από {prog.totalMonths} δόσεις
+                  </span>
+                  {prog.endDate&&<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,whiteSpace:'nowrap'}}>Λήξη {fdLong(prog.endDate)}</span>}
+                </div>
+              </div>
+
+              {/* Τόκοι: πληρωμένοι έναντι υπολοίπων. Το νούμερο που κάνει κάποιον
+                  να σκεφτεί αναχρηματοδότηση — και που δεν φαινόταν καθόλου. */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:12}}>
+                <KPI label="Τόκοι που πλήρωσες" value={fe(prog.interestPaid)}/>
+                <KPI label="Τόκοι που απομένουν" value={fe(prog.interestRemaining)} emphasis/>
+                <KPI label="Κεφάλαιο που εξοφλήθηκε" value={fe(prog.principalPaid)}/>
+              </div>
+            </>) : (
+              // Χωρίς ημερομηνία έναρξης δεν υπάρχει «σήμερα»: δεν τυπώνεται
+              // υπόλοιπο-εικασία, λέγεται τι λείπει για να υπολογιστεί.
+              <div style={{marginBottom:14}}>
+                <p style={{...labelStyle,marginBottom:4}}>Δόση τον μήνα</p>
+                <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',fontFamily:T.font.sans,lineHeight:1.1}}>{fe(m)}</p>
+                <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:5,fontFamily:T.font.sans}}>
+                  Συμπλήρωσε ημερομηνία έναρξης για να υπολογιστεί το υπόλοιπο και η λήξη.
+                </p>
               </div>
             )}
+
+            {/* Ό,τι δεν αλλάζει: μία ήσυχη γραμμή, όχι πλακίδια. */}
+            <div style={{display:'flex',gap:22,flexWrap:'wrap',paddingTop:12,borderTop:'1px solid var(--border-subtle)'}}>
+              <div><p style={{...labelStyle,marginBottom:2}}>Αρχικό ποσό</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fe(loan.amount)}</p></div>
+              <div><p style={{...labelStyle,marginBottom:2}}>Επιτόκιο</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fp(loan.rate)} · {loan.rate_type==='variable'?'κυμαινόμενο':'σταθερό'}</p></div>
+              <div><p style={{...labelStyle,marginBottom:2}}>Διάρκεια</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{loan.years} έτη</p></div>
+              {ltv>0&&<div><p style={{...labelStyle,marginBottom:2}}>Δάνειο προς αξία</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fp(ltv)}</p></div>}
+              {loan.start_date&&<div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fdLong(loan.start_date)}</p></div>}
+            </div>
           </div>
         )
       })}
