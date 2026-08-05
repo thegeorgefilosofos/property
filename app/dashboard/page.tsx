@@ -652,13 +652,18 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         </div>
       )}
 
+      {/* Η ΒΑΡΥΤΗΤΑ ΔΕΝ ΕΙΝΑΙ ΓΝΩΜΗ: είναι πόσα ΑΛΛΑ ξεκλειδώνει το βήμα.
+          Χωρίς αξία και ενοίκιο δεν υπάρχει καμία απόδοση, κανένας φόρος και
+          καμία σύγκριση — γι' αυτό 10. Η απογραφή βελτιώνει τις αποσβέσεις και
+          τίποτα άλλο — γι' αυτό 2. Η λήξη μίσθωσης φέρνει ΠΡΟΘΕΣΜΙΑ, οπότε όταν
+          πλησιάζει ανεβαίνει πάνω από όλα μόνη της. */}
       <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
-        { key:'details', label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
-        { key:'pricing', label:'Δες την προτεινόμενη τιμή σου', hint:'Δυναμική τιμή ανά νύχτα και φορολογική εικόνα βραχυχρόνιας μίσθωσης', done: hostStays.length>0, nav:'pricing' },
-        { key:'tenant',  label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
-        { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
-        { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
-        { key:'inv',     label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
+        { key:'details', weight:10, label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
+        { key:'tenant',  weight:8, due: tenant?.lease_end ?? null, label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
+        { key:'expense', weight:6, label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
+        { key:'bills',   weight:5, label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
+        { key:'pricing', weight:3, label:'Δες την προτεινόμενη τιμή σου', hint:'Δυναμική τιμή ανά νύχτα και φορολογική εικόνα βραχυχρόνιας μίσθωσης', done: hostStays.length>0, nav:'pricing' },
+        { key:'inv',     weight:2, label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
       ].filter(s => tabVisible(s.nav)) as SetupStep[]}/>
 
       {/* ═══ ΕΝΑ ΠΛΑΚΙΔΙΟ ΓΙΑ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ ══════════════════════════════
