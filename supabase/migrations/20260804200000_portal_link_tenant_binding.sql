@@ -44,14 +44,21 @@ comment on column public.portal_links.tenant_id is
 
 create index if not exists portal_links_tenant_idx on public.portal_links (tenant_id);
 
+-- ΣΥΣΧΕΤΙΣΜΕΝΟ ΥΠΟΕΡΩΤΗΜΑ, ΟΧΙ `FROM LATERAL`.
+-- Η πρώτη γραφή ήταν `update … from lateral (… where property_id = pl.property_id) t`
+-- και η Postgres την απέρριψε: «invalid reference to FROM-clause entry for table
+-- "pl"» (42P10). Ο πίνακας-στόχος ενός UPDATE ΔΕΝ βρίσκεται στο FROM, οπότε το
+-- lateral δεν τον βλέπει. Το υποερώτημα στο SET τον βλέπει κανονικά.
+--
+-- Ακίνητο χωρίς κανέναν ενοικιαστή αφήνει `null` — και το `where tenant_id is
+-- null` κάνει το migration επαναλήψιμο χωρίς να ξαναγράφει ό,τι έχει δεθεί.
 update public.portal_links pl
-   set tenant_id = t.id
-  from lateral (
-        select id from public.tenants
-         where property_id = pl.property_id
-         order by created_at desc
-         limit 1
-       ) t
+   set tenant_id = (
+         select t.id from public.tenants t
+          where t.property_id = pl.property_id
+          order by t.created_at desc
+          limit 1
+       )
  where pl.tenant_id is null;
 
 create or replace function public.get_portal_data(p_token text, p_pin text default null)
