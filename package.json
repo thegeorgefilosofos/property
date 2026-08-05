@@ -16,6 +16,8 @@
     "tokens": "node scripts/guard-tokens.mjs",
     "greek-time": "node scripts/greek-time.mjs",
     "sql-types": "node scripts/guard-sql-types.mjs",
+    "schema-drift": "node scripts/guard-schema-drift.mjs",
+    "pg-schema": "node scripts/pg-sandbox.mjs",
     "single-source": "node scripts/guard-single-source.mjs",
     "writes": "node scripts/unchecked-writes.mjs",
     "test": "node scripts/test.mjs",
