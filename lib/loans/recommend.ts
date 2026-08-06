@@ -28,11 +28,15 @@ export interface UserLoanNeeds {
 }
 
 // Ελάχιστο σχήμα τράπεζας που χρειάζεται ο recommender (συμβατό με BANKS_NORM).
+//
+// Τα `bank_id`/`bank_name` έφυγαν: ήταν τα ονόματα πεδίων του πίνακα
+// `bank_rates`, και τα δεχόταν κι εδώ ώστε να περνούν οι ζωντανές γραμμές
+// ακατέργαστες. Πλέον κάθε γραμμή περνά πρώτα από τον `normBank`, οπότε η
+// γέφυρα ζει σε ΕΝΑ σημείο αντί για δύο — και το `?? bank.bank_id` παρακάτω
+// ήταν διακλάδωση που δεν εκτελούνταν ποτέ όταν η γέφυρα δούλευε σωστά.
 export interface BankInput {
   id: string
   name: string
-  bank_id?: string                // εναλλακτικό όνομα πεδίου από τον πίνακα bank_rates (live)
-  bank_name?: string              // εναλλακτικό όνομα πεδίου από τον πίνακα bank_rates (live)
   fixed_min: number               // χαμηλότερο σταθερό επιτόκιο (%)
   variable_spread_min: number     // ελάχιστο spread πάνω από Euribor (%)
   max_ltv: number                 // μέγιστο LTV (%)
@@ -232,8 +236,8 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
     whyBits.push(`επιτόκιο ${fp(effectiveRatePct, 2)}`)
 
     return {
-      bankId: bank.id ?? bank.bank_id ?? '',
-      bankName: bank.name ?? bank.bank_name ?? '',
+      bankId: bank.id,
+      bankName: bank.name,
       rateType,
       nominalRatePct: Number(nominal.toFixed(2)),
       effectiveRatePct: Number(effectiveRatePct.toFixed(2)),

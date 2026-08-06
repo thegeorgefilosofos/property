@@ -1,5 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
+// Οι τύποι των γραμμών βγαίνουν από τα ίδια τα migrations (npm run db-types).
+// Η εισαγωγή είναι μόνο τύπων: σβήνεται στη μεταγλώττιση και δεν φτάνει στο Deno.
+import type { CalendarEventsRow, NotificationLogRow, RentPaymentsRow, TenantsRow, UserPropertiesRow } from '../../../lib/supabase/tables.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -13,6 +16,10 @@ const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@r
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
+// Τα δύο ερωτήματα ονόματος: ζητούν δύο στήλες, όχι ολόκληρη τη γραμμή.
+type TenantName   = Pick<TenantsRow, 'id' | 'full_name'>
+type PropertyName = Pick<UserPropertiesRow, 'id' | 'name'>
+
 // Πύλη ασφαλείας cron (zero-config): εξουσιοδότηση αν η κλήση φέρει (α) το
 // service-role key (Authorization: Bearer), (β) το προαιρετικό x-cron-secret env,
 // ή (γ) το κοινό μυστικό cron που είναι αποθηκευμένο στη ΒΔ (public.cron_secrets).
@@ -23,7 +30,7 @@ async function authorized(req: Request): Promise<boolean> {
   return authorizeCron(req, { serviceKey: SUPABASE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
-function buildEmail(events: any[], reminderType: string) {
+function buildEmail(events: CalendarEventsRow[], reminderType: string) {
   const typeLabel: Record<string, string> = {
     '7days': '7 μέρες', '3days': '3 μέρες', '1day': 'αύριο', 'today': 'ΣΗΜΕΡΑ', 'overdue': 'εκπρόθεσμα',
   }
@@ -34,7 +41,7 @@ function buildEmail(events: any[], reminderType: string) {
     financial: 'Οικονομικά', bills: 'Λογαριασμοί', maintenance: 'Συντήρηση', contract: 'Συμβόλαιο', tenant: 'Ενοικιαστής', reminder: 'Υπενθύμιση',
   }
   const isUrgent = reminderType === 'today' || reminderType === 'overdue'
-  const totalAmount = events.reduce((s: number, e: any) => s + (e.amount || 0), 0)
+  const totalAmount = events.reduce((s, e) => s + (e.amount || 0), 0)
 
   const eventRows = events.map(e => {
     const color = catColors[e.category] || '#9ca3af'
@@ -88,10 +95,10 @@ function buildEmail(events: any[], reminderType: string) {
 // Dunning email προς τον ιδιοκτήτη για ληξιπρόθεσμες δόσεις ενοικίου.
 // Ίδιο στυλ με buildEmail (header, κάρτα, Google-blue accent, CTA) αλλά πάντα
 // «urgent» (#d93025) και ΧΩΡΙΣ emoji — καθαρό, επαγγελματικό κείμενο.
-function buildDunningEmail(rows: any[], tenantMap: Record<string, any>, propMap: Record<string, any>, today: Date, noticeLabel: string, noticeNumber: number) {
-  const total = rows.reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0)
+function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, TenantName>, propMap: Record<string, PropertyName>, today: Date, noticeLabel: string, noticeNumber: number) {
+  const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0)
 
-  const rowsHtml = rows.map((r: any) => {
+  const rowsHtml = rows.map(r => {
     const tenant = r.tenant_id != null ? (tenantMap[r.tenant_id]?.full_name || null) : null
     const prop   = r.property_id != null ? (propMap[r.property_id]?.name || null) : null
     const primary = tenant || prop || '—'
@@ -187,30 +194,30 @@ Deno.serve(async (req) => {
 
       for (const check of checks) {
         if (!check.enabled) continue
-        const matching = events.filter((e: any) => e.event_date === check.date)
+        const matching = events.filter(e => e.event_date === check.date)
         if (!matching.length) continue
-        const { data: sent } = await supabase.from('notification_log').select('event_id').in('event_id', matching.map((e:any)=>e.id)).eq('reminder_type', check.type)
-        const sentIds = new Set((sent||[]).map((l:any)=>l.event_id))
-        const toSend  = matching.filter((e:any) => !sentIds.has(e.id))
+        const { data: sent } = await supabase.from('notification_log').select('event_id').in('event_id', matching.map(e=>e.id)).eq('reminder_type', check.type)
+        const sentIds = new Set(((sent||[]) as Pick<NotificationLogRow,'event_id'>[]).map(l=>l.event_id))
+        const toSend  = matching.filter(e => !sentIds.has(e.id))
         if (!toSend.length) continue
         const { subject, html } = buildEmail(toSend, check.type)
         const ok = await sendEmail(pref.reminder_email, subject, html)
         if (ok) {
-          await supabase.from('notification_log').insert(toSend.map((e:any) => ({ user_id: pref.user_id, event_id: e.id, reminder_type: check.type })))
+          await supabase.from('notification_log').insert(toSend.map(e => ({ user_id: pref.user_id, event_id: e.id, reminder_type: check.type })))
           totalSent++
         }
       }
 
-      const overdue = events.filter((e:any) => e.event_date < todayStr)
+      const overdue = events.filter(e => e.event_date < todayStr)
       if (overdue.length) {
-        const { data: sentOD } = await supabase.from('notification_log').select('event_id').in('event_id', overdue.map((e:any)=>e.id)).eq('reminder_type','overdue')
-        const sentODIds = new Set((sentOD||[]).map((l:any)=>l.event_id))
-        const toSendOD  = overdue.filter((e:any) => !sentODIds.has(e.id))
+        const { data: sentOD } = await supabase.from('notification_log').select('event_id').in('event_id', overdue.map(e=>e.id)).eq('reminder_type','overdue')
+        const sentODIds = new Set(((sentOD||[]) as Pick<NotificationLogRow,'event_id'>[]).map(l=>l.event_id))
+        const toSendOD  = overdue.filter(e => !sentODIds.has(e.id))
         if (toSendOD.length) {
           const { subject, html } = buildEmail(toSendOD, 'overdue')
           const ok = await sendEmail(pref.reminder_email, subject, html)
           if (ok) {
-            await supabase.from('notification_log').insert(toSendOD.map((e:any) => ({ user_id: pref.user_id, event_id: e.id, reminder_type: 'overdue' })))
+            await supabase.from('notification_log').insert(toSendOD.map(e => ({ user_id: pref.user_id, event_id: e.id, reminder_type: 'overdue' })))
             totalSent++
           }
         }
@@ -243,10 +250,10 @@ Deno.serve(async (req) => {
         .select('*').eq('user_id', pref.user_id).eq('paid', false).lt('due_date', todayStr)
       // Μόνο δόσεις με non-null due_date αυστηρά πριν από σήμερα (belt-and-suspenders·
       // η .lt() ήδη αποκλείει NULL due_date στην Postgres).
-      const overdue = (overdueRent || []).filter((r: any) => r.due_date != null && r.due_date < todayStr)
+      const overdue = ((overdueRent || []) as RentPaymentsRow[]).filter(r => r.due_date != null && r.due_date < todayStr)
       if (!overdue.length) continue
 
-      const overdueIds = overdue.map((r: any) => r.id)
+      const overdueIds = overdue.map(r => r.id)
       if (!overdueIds.length) continue
       // ΟΛΑ τα προηγούμενα dunning logs για αυτές τις δόσεις με μία query.
       const { data: priorLogs } = await supabase.from('notification_log')
@@ -267,7 +274,7 @@ Deno.serve(async (req) => {
       // είναι παλαιότερη από everyDays μέρες: now - lastNoticeTime >= everyDays*86400000).
       const now = new Date().getTime()
       const spacingMs = everyDays * 86400000
-      const toNotify = overdue.filter((r: any) => {
+      const toNotify = overdue.filter(r => {
         const count = priorCount[r.id] || 0
         if (count >= maxNotices) return false
         const last = lastNotice[r.id]
@@ -277,27 +284,27 @@ Deno.serve(async (req) => {
 
       // Escalation: notice number αυτού του send = priorCount + 1 ανά δόση· χρησιμοποιούμε
       // το MAX μεταξύ των eligible δόσεων για τον τόνο του subject.
-      const noticeNumber = Math.max(...toNotify.map((r: any) => (priorCount[r.id] || 0) + 1))
+      const noticeNumber = Math.max(...toNotify.map(r => (priorCount[r.id] || 0) + 1))
       const noticeLabel = noticeNumber >= 3 ? 'Τελική υπόμνηση' : noticeNumber === 2 ? 'Δεύτερη υπενθύμιση' : 'Υπενθύμιση'
 
       // Batched name lookups (κανένα N+1)· skip τα .in() όταν η λίστα ids είναι κενή.
-      const tenantIds = [...new Set(toNotify.map((r: any) => r.tenant_id).filter((v: any) => v != null))]
-      const propIds   = [...new Set(toNotify.map((r: any) => r.property_id).filter((v: any) => v != null))]
-      const tenantMap: Record<string, any> = {}
-      const propMap: Record<string, any> = {}
+      const tenantIds = [...new Set(toNotify.map(r => r.tenant_id).filter((v): v is string => v != null))]
+      const propIds   = [...new Set(toNotify.map(r => r.property_id).filter((v): v is string => v != null))]
+      const tenantMap: Record<string, TenantName> = {}
+      const propMap: Record<string, PropertyName> = {}
       if (tenantIds.length) {
         const { data: tRows } = await supabase.from('tenants').select('id, full_name').in('id', tenantIds)
-        for (const t of tRows || []) tenantMap[t.id] = t
+        for (const t of (tRows || []) as TenantName[]) tenantMap[t.id] = t
       }
       if (propIds.length) {
         const { data: pRows } = await supabase.from('user_properties').select('id, name').in('id', propIds)
-        for (const p of pRows || []) propMap[p.id] = p
+        for (const p of (pRows || []) as PropertyName[]) propMap[p.id] = p
       }
 
       const { subject, html } = buildDunningEmail(toNotify, tenantMap, propMap, today, noticeLabel, noticeNumber)
       const ok = await sendEmail(pref.reminder_email, subject, html)
       if (ok) {
-        await supabase.from('notification_log').insert(toNotify.map((r: any) => ({
+        await supabase.from('notification_log').insert(toNotify.map(r => ({
           user_id: pref.user_id, event_id: r.id, reminder_type: 'rent_overdue', created_at: new Date().toISOString(),
         })))
         dunningSent++

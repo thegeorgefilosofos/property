@@ -45,21 +45,60 @@ export const BANKS = [
 export const BANKS_VERIFIED = '2026-07-08'
 export const RATES_DISCLAIMER = 'Ενδεικτικά επιτόκια, επιβεβαίωσε τους ακριβείς όρους με την τράπεζα.'
 
-// Ενοποίηση σχήματος: τα στατικά δεδομένα χρησιμοποιούν fixed3.., ο πίνακας bank_rates
-// (live) χρησιμοποιεί fixed_3yr... Ο normBank γεφυρώνει τα δύο ώστε ο συγκριτικός
-// πίνακας να μη δείχνει «—» στην προεπιλεγμένη (fallback) κατάσταση.
-export function normBank<T extends Record<string, any>>(b: T) {
+// ── ΕΝΑ ΣΧΗΜΑ ΤΡΑΠΕΖΑΣ, ΟΧΙ ΔΥΟ ──────────────────────────────────────────
+// Τα στατικά δεδομένα χρησιμοποιούν `fixed3`, ο πίνακας `bank_rates` (ζωντανά)
+// χρησιμοποιεί `fixed_3yr`. Ο `normBank` γεφυρώνει τα δύο ώστε ο συγκριτικός
+// πίνακας να μη δείχνει «—» στην εφεδρική κατάσταση.
+//
+// Η γέφυρα υπήρχε ήδη· αυτό που έλειπε ήταν το ΟΝΟΜΑ του αποτελέσματος. Χωρίς
+// αυτό, ο τύπος ήταν `Record<string, any>` και η οθόνη διάβαζε κάθε στήλη με
+// `(bank as any)[k]` — δηλαδή ένα λάθος όνομα πεδίου έβγαινε ως κενό κελί.
+export interface ComparisonBank {
+  id: string;
+  name: string;
+  color: string;
+  fixed_3yr: string; fixed_5yr: string; fixed_10yr: string; fixed_15yr: string; fixed_20yr: string;
+  variable_spread_min: number; variable_spread_max: number; fixed_min: number;
+  max_ltv: number; max_years: number; max_amount: number; min_amount: number;
+  green_discount: number; spiti_mou: boolean;
+  features: string[]; programs: string[];
+  fees: string; note: string; url: string; verified_at: string;
+}
+
+/** Ό,τι μπορεί να δώσει είτε ο στατικός πίνακας είτε η βάση. */
+export interface RawBank {
+  id?: string; bank_id?: string; name?: string; bank_name?: string; color?: string;
+  fixed3?: string; fixed5?: string; fixed10?: string; fixed15?: string; fixed20?: string;
+  fixed_3yr?: string; fixed_5yr?: string; fixed_10yr?: string; fixed_15yr?: string; fixed_20yr?: string;
+  variable_spread_min?: number; variable_spread_max?: number; fixed_min?: number;
+  max_ltv?: number; max_years?: number; max_amount?: number; min_amount?: number;
+  green_discount?: number; spiti_mou?: boolean;
+  features?: string[]; programs?: string[];
+  fees?: string; note?: string; url?: string; verified_at?: string;
+}
+
+export function normBank(b: RawBank): ComparisonBank {
   return {
-    ...b,
-    fixed_3yr:  b.fixed_3yr  ?? b.fixed3,
-    fixed_5yr:  b.fixed_5yr  ?? b.fixed5,
-    fixed_10yr: b.fixed_10yr ?? b.fixed10,
-    fixed_15yr: b.fixed_15yr ?? b.fixed15,
-    fixed_20yr: b.fixed_20yr ?? b.fixed20,
+    id:   b.id   ?? b.bank_id   ?? '',
+    name: b.name ?? b.bank_name ?? '',
+    color: b.color ?? 'var(--accent)',
+    fixed_3yr:  b.fixed_3yr  ?? b.fixed3  ?? '',
+    fixed_5yr:  b.fixed_5yr  ?? b.fixed5  ?? '',
+    fixed_10yr: b.fixed_10yr ?? b.fixed10 ?? '',
+    fixed_15yr: b.fixed_15yr ?? b.fixed15 ?? '',
+    fixed_20yr: b.fixed_20yr ?? b.fixed20 ?? '',
+    variable_spread_min: b.variable_spread_min ?? 0,
+    variable_spread_max: b.variable_spread_max ?? 0,
+    fixed_min: b.fixed_min ?? 0,
+    max_ltv: b.max_ltv ?? 0, max_years: b.max_years ?? 0,
+    max_amount: b.max_amount ?? 0, min_amount: b.min_amount ?? 0,
+    green_discount: b.green_discount ?? 0, spiti_mou: !!b.spiti_mou,
+    features: b.features ?? [], programs: b.programs ?? [],
+    fees: b.fees ?? '', note: b.note ?? '', url: b.url ?? '',
     verified_at: b.verified_at ?? BANKS_VERIFIED,
   }
 }
-export const BANKS_NORM = BANKS.map(normBank)
+export const BANKS_NORM: ComparisonBank[] = BANKS.map(normBank)
 
 export const STATE_PROGRAMS = [
   { id:'spiti_mou_2', name:'Σπίτι μου ΙΙ', status:'active', type:'Κρατικό, άτοκο 50% (+ επιδότηση επιτοκίου για πολύτεκνους)', desc:'Χρηματοδότηση έως 190.000€ για πρώτη και κύρια κατοικία. Το 50% του δανείου είναι άτοκο (πόροι Ταμείου Ανάκαμψης), το υπόλοιπο 50% με επιτόκιο τράπεζας.', max_amount:190000, max_prop_value:250000, max_ltv:90, max_sqm:150, age_min:25, age_max:50, duration:'3–30 χρόνια (χωρίς περίοδο χάριτος)', application_deadline:'31/05/2026', deadline:'31/08/2026', deadline_urgent:true, verified_at:'2026-07-08', total_budget:'2 δισ. ευρώ (50% Ταμείο Ανάκαμψης + 50% τράπεζες)', criteria:['Ηλικία 25–50 ετών (γεννηθέντες 1976–2001 για αιτήσεις 2026)','Πρώτη και κύρια κατοικία','Εισόδημα: ενδεικτικά έγγαμοι 35.000€ +5.000€/παιδί, μονογονεϊκές 39.000€ (επιβεβαίωσε στην πύλη)','Αξία συμβολαίου ≤ 250.000€','Έως 150 τετραγωνικά μέτρα','Έτος κατασκευής ακινήτου έως και 2007 (για ΑμεΑ ≥67% έως και 31/12/2020)'], how_it_works:'50% του δανείου άτοκο (Ταμείο Ανάκαμψης) · 50% έντοκο (τράπεζα), για όλους. Τρίτεκνοι/πολύτεκνοι: επιπλέον επιδότηση 50% του επιτοκίου στο τραπεζικό 50% (το άτοκο κεφάλαιο παραμένει 50%)', extra:'Τρίτεκνοι/Πολύτεκνοι: επιδοτείται κατά 50% το επιτόκιο του τραπεζικού μισού, δεν γίνεται άτοκο το 75% του κεφαλαίου. Προθεσμία αίτησης 31/05/2026, σύναψη σύμβασης έως 31/08/2026', savings_example:'Δάνειο 150.000€ × 25 έτη με 50% άτοκο → εξοικονόμηση δεκάδων χιλιάδων € σε τόκους έναντι κανονικού δανείου', url:'https://stegasi.gov.gr/programs/spiti-mou-ii/', banks:['Εθνική','Alpha','Eurobank','Πειραιώς','Optima','CrediaBank'] },
@@ -69,6 +108,85 @@ export const STATE_PROGRAMS = [
   { id:'anakainizo_noikazo', name:'Ανακαινίζω και Νοικιάζω', status:'active', type:'Επιδότηση ανακαίνισης + εγγυημένο ενοίκιο ΟΠΕΚΑ', desc:'40% επιδότηση + εγγυημένο ενοίκιο 5 χρόνια', max_amount:15000, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'5 χρόνια', deadline:'Τρέχον', deadline_urgent:false, total_budget:'Τρέχον', criteria:['Κενό ακίνητο ≥3 χρόνια','€5.000–€40.000','Μίσθωση ΟΠΕΚΑ','Δέσμευση 5ετίας'], how_it_works:'40% επιδότηση ανακαίνισης + ενοίκιο αγοράς από ΟΠΕΚΑ για 5 χρόνια', extra:'Εγγυημένο εισόδημα, ιδανικό για επενδυτές', savings_example:'Κενό ακίνητο → ανακαίνιση + εγγυημένο εισόδημα', url:'https://www.opeka.gr', banks:['Εθνική','Πειραιώς','Eurobank'] },
   { id:'gefyra_3', name:'Γέφυρα 3', status:'active', type:'Επιδότηση δόσης, ευάλωτοι δανειολήπτες', desc:'Επιδότηση 50% αύξησης δόσης λόγω ανόδου Euribor', max_amount:null, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'12 μήνες', deadline:'Τρέχον, έλεγξε dovaluegreece.gr', deadline_urgent:false, total_budget:'Χρηματοδοτείται από τράπεζες', criteria:['Βεβαίωση ευάλωτου οφειλέτη','Κυμαινόμενο δάνειο','Εξασφάλιση πρώτης κατοικίας'], how_it_works:'50% αύξησης δόσης λόγω ΕΚΤ (βάση 30/06/2022) για 12 μήνες', extra:'Για ανέργους, χαμηλά εισοδήματα, συνταξιούχους', savings_example:'Αύξηση 80€/μήνα → επιδότηση 40€ × 12 = 480€/χρόνο', url:'https://dovaluegreece.gr/programma-epidotisis-dosis-logo-ayxisis-epitokion-gefyra-3', banks:['Όλες οι τράπεζες'] },
 ]
+
+// ── ΕΝΑ ΣΧΗΜΑ ΠΡΟΓΡΑΜΜΑΤΟΣ, ΟΧΙ ΔΥΟ ──────────────────────────────────────
+// Ο στατικός πίνακας λέει `desc`, `duration`, `extra`, `banks`. Ο πίνακας
+// `loan_programs` της βάσης λέει `description`, `duration_label`, `extra_info`,
+// `participating_banks`. Η οθόνη τα διάβαζε και τα δύο με `||` και με
+// `as any` — και ό,τι υπήρχε μόνο στη μία πλευρά (τετραγωνικά, ηλικία, «πώς
+// λειτουργεί») εμφανιζόταν ή εξαφανιζόταν ανάλογα με το αν είχε φορτώσει η βάση,
+// χωρίς κανείς να το βλέπει σαν πρόβλημα.
+export interface ComparisonProgram {
+  id: string;
+  name: string;
+  status: string;
+  type: string;
+  desc: string;
+  howItWorks: string;
+  extra: string;
+  savingsExample: string;
+  maxAmount: number | null;
+  maxLtv: number | null;
+  maxSqm: number | null;
+  ageMin: number | null;
+  ageMax: number | null;
+  duration: string;
+  deadline: string;
+  deadlineUrgent: boolean;
+  totalBudget: string;
+  criteria: string[];
+  banks: string[];
+  url: string;
+}
+
+/** Ό,τι μπορεί να δώσει είτε ο στατικός πίνακας είτε η βάση. */
+export interface RawProgram {
+  id?: string; program_id?: string; name?: string; status?: string;
+  type?: string; type_label?: string;
+  desc?: string; description?: string;
+  how_it_works?: string;
+  extra?: string; extra_info?: string;
+  savings_example?: string;
+  max_amount?: number | null; max_ltv?: number | null; max_sqm?: number | null;
+  age_min?: number | null; age_max?: number | null;
+  duration?: string; duration_label?: string;
+  deadline?: string | null; deadline_label?: string; deadline_urgent?: boolean;
+  total_budget?: string;
+  criteria?: string[];
+  banks?: string[]; participating_banks?: string[];
+  url?: string;
+}
+
+// Το «null» ως ΚΕΙΜΕΝΟ έφτανε από τη βάση σε πεδία που δεν συμπληρώθηκαν, και
+// τυπωνόταν αυτούσιο στην οθόνη. Καθαρίζεται εδώ, μία φορά, αντί για τρεις
+// ελέγχους `!== 'null'` σκορπισμένους στην απόδοση.
+const txt = (v?: string | null): string => (!v || v === 'null' || v === '-' ? '' : v)
+
+export function normProgram(p: RawProgram): ComparisonProgram {
+  return {
+    id: p.id ?? p.program_id ?? '',
+    name: p.name ?? '',
+    status: p.status ?? 'active',
+    type: txt(p.type ?? p.type_label),
+    desc: txt(p.desc ?? p.description),
+    howItWorks: txt(p.how_it_works),
+    extra: txt(p.extra ?? p.extra_info),
+    savingsExample: txt(p.savings_example),
+    maxAmount: p.max_amount ?? null,
+    maxLtv: p.max_ltv ?? null,
+    maxSqm: p.max_sqm ?? null,
+    ageMin: p.age_min ?? null,
+    ageMax: p.age_max ?? null,
+    duration: txt(p.duration ?? p.duration_label),
+    deadline: txt(p.deadline ?? p.deadline_label),
+    deadlineUrgent: !!p.deadline_urgent,
+    totalBudget: txt(p.total_budget),
+    criteria: p.criteria ?? [],
+    banks: p.participating_banks ?? p.banks ?? [],
+    url: p.url ?? '',
+  }
+}
+export const PROGRAMS_NORM: ComparisonProgram[] = STATE_PROGRAMS.map(normProgram)
 
 // ΑΦΑΙΡΕΘΗΚΑΝ το `rental_tax` και το `rental_expense_deduction`.
 // Ήταν ΤΡΙΤΟ αντίγραφο της φορολογικής κλίμακας ενοικίων και ΤΕΤΑΡΤΟ της τεκμαρτής

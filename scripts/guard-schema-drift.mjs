@@ -32,45 +32,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { readColumnNames } from './lib/pg-schema.mjs'
 
 // ── 1. Ο πραγματικός χάρτης σχήματος ─────────────────────────────────────
-const MIG = 'supabase/migrations'
-const schema = new Map()   // πίνακας → Set(στήλες)
-
-const base = readFileSync(join(MIG, '00000000000000_baseline.sql'), 'utf8')
-for (const m of base.matchAll(/CREATE TABLE IF NOT EXISTS "public"\."(\w+)" \(([\s\S]*?)\n\);/g)) {
-  const cols = new Set()
-  for (const line of m[2].split('\n')) {
-    const c = /^\s*"(\w+)"\s/.exec(line)
-    if (c) cols.add(c[1])
-  }
-  schema.set(m[1], cols)
-}
-for (const file of readdirSync(MIG).filter(f => f.endsWith('.sql')).sort()) {
-  const sql = readFileSync(join(MIG, file), 'utf8')
-  // ΕΝΑ `alter table` ΜΠΟΡΕΙ ΝΑ ΠΡΟΣΘΕΤΕΙ ΠΟΛΛΕΣ ΣΤΗΛΕΣ ΜΕ ΚΟΜΜΑΤΑ:
-  //   alter table client_stays
-  //     add column if not exists platform_fee numeric,
-  //     add column if not exists climate_levy numeric;
-  // Η πρώτη εκδοχή έπιανε μόνο την πρώτη, οπότε ο φύλακας «ανακάλυπτε» ότι
-  // λείπουν στήλες που είχαν προστεθεί κανονικά — τέσσερα ψευδώς θετικά μόνο
-  // σε αυτόν τον πίνακα.
-  for (const stmt of sql.matchAll(/alter\s+table\s+(?:only\s+)?(?:public\.)?"?(\w+)"?([\s\S]*?);/gi)) {
-    const cols = schema.get(stmt[1])
-    if (!cols) continue
-    for (const c of stmt[2].matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/gi)) cols.add(c[1])
-  }
-  // Οι όψεις και οι πίνακες που φτιάχνονται εκτός baseline
-  for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)"?\s*\(([\s\S]*?)\n\);/gi)) {
-    if (schema.has(m[1])) continue
-    const cols = new Set()
-    for (const line of m[2].split('\n')) {
-      const c = /^\s*"?(\w+)"?\s+\w/.exec(line)
-      if (c && !/^(constraint|primary|unique|foreign|check)$/i.test(c[1])) cols.add(c[1])
-    }
-    schema.set(m[1], cols)
-  }
-}
+// Διαβάζεται από τα migrations, μία φορά, σε κοινό σημείο: τον ίδιο χάρτη
+// χρειάζεται και η γεννήτρια των τύπων (scripts/gen-db-types.mjs). Γραμμένος
+// δύο φορές, θα απέκλιναν στο πρώτο migration με σύνταξη που είχε μάθει μόνο
+// ο ένας — και η απόκλιση θα ήταν αόρατη, γιατί και οι δύο θα «περνούσαν».
+const schema = readColumnNames()   // πίνακας → Set(στήλες)
 
 // ── 2. Οι κλήσεις της εφαρμογής ──────────────────────────────────────────
 const files = []

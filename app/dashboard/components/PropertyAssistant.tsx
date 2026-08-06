@@ -18,6 +18,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
+import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, EnergyTariffsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
 import { T, TT, feAuto, fp } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
@@ -205,7 +207,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
       supabase.from('checklist_items').select('description,category,priority,due_date,status,estimated_cost,assigned_contact_name').eq('property_id', propertyId).eq('user_id', userId).neq('status', 'done').neq('status', 'skipped').order('due_date', { ascending: true, nullsFirst: false }).limit(60),
     ]);
-    const expenses = exp || [];
+    // Οι γραμμές παίρνουν τους τύπους τους από το σχήμα (lib/supabase/tables.ts,
+    // παραγόμενο από τα migrations). Πριν, κάθε πρόσβαση σε στήλη περνούσε από
+    // `as any` — δηλαδή ένα ορθογραφικό λάθος σε όνομα στήλης δεν το έπιανε
+    // κανείς μέχρι να μην εμφανιστεί το νούμερο στην οθόνη.
+    const expenses = (exp || []) as ExpensesRow[];
+    const billRows = (bil || []) as BillsRow[];
+    const stays = (stayRows || []) as ClientStaysRow[];
+    const contacts = (contactRows || []) as ContactsRow[];
+    const insurance = st as Pick<UserPropertiesRow, 'insurance_company' | 'insurance_expiry' | 'insurance_amount'> | null;
 
     // ── ΤΑ ΝΟΥΜΕΡΑ ΠΟΥ ΘΑ ΠΕΙ Η ΝΟΑ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟΝ ΚΟΙΝΟ ΠΥΡΗΝΑ ────────────
     //
@@ -230,12 +240,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const catMap: Record<string, number> = {};
     ofYear.forEach(e => { const k = e.category || 'Άλλο'; catMap[k] = (catMap[k] || 0) + e.amount; });
     const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const unpaid = (bil || []).filter(b => !b.paid);
-    openBillsRef.current = unpaid.map((b: any) => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
+    const unpaid = billRows.filter(b => !b.paid);
+    openBillsRef.current = unpaid.map(b => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
     // Ανεξόφλητες δόσεις ενοικίου (για σήμανση «πληρωμένο» από τη συνομιλία)
     const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
     const { data: rentDue } = await supabase.from('rent_payments').select('id,period_month,period_year,amount,paid').eq('property_id', propertyId).eq('user_id', userId).eq('paid', false).order('period_year').order('period_month');
-    openRentRef.current = (rentDue || []).map((r: any) => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0 }));
+    openRentRef.current = ((rentDue || []) as RentPaymentsRow[]).map(r => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0 }));
     const t = ten?.[0];
     const rent = resolveRent({ tenantRent: t?.monthly_rent, targetRent: propContext.targetRent }).value;
     const value = resolveValue(propContext.value).value;
@@ -245,14 +255,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     const loanRows = toLoanViews(loans);
     const rateTypeGr = (rt?: string) => rt === 'variable' ? 'κυμαινόμενο' : rt === 'mixed' ? 'μεικτό' : 'σταθερό';
-    const monthlyDebt = loanRows.reduce((s, l: any) => s + annuityMonthly(l.amount || 0, l.rate || 0, l.years || 0), 0);
+    const monthlyDebt = loanRows.reduce((s, l) => s + annuityMonthly(l.amount || 0, l.rate || 0, l.years || 0), 0);
     const loanLine = loanRows.length
-      ? `Δάνεια (${loanRows.length}): εκτιμώμενη συνολική μηνιαία δόση ${eur(Math.round(monthlyDebt))}. ${loanRows.map((l: any) => `${l.bank || 'τράπεζα'} ${eur(l.amount || 0)} με ${fp(Number(l.rate || 0), 2)} ${rateTypeGr(l.rate_type)} σε ${l.years || 0} έτη`).join('; ')}`
+      ? `Δάνεια (${loanRows.length}): εκτιμώμενη συνολική μηνιαία δόση ${eur(Math.round(monthlyDebt))}. ${loanRows.map(l => `${l.bank || 'τράπεζα'} ${eur(l.amount || 0)} με ${fp(Number(l.rate || 0), 2)} ${rateTypeGr(l.rate_type ?? undefined)} σε ${l.years || 0} έτη`).join('; ')}`
       : 'Δεν έχει καταχωρηθεί δάνειο για αυτό το ακίνητο.';
 
     // Έσοδα φιλοξενίας (διαμονές επισκεπτών από το Πελατολόγιο συνδεδεμένες σε αυτό το ακίνητο).
-    const propStays = (stayRows || []).filter((s: any) => s.property_id === propertyId);
-    const propHostRevenue = propStays.reduce((sum: number, s: any) => sum + stayTotal(s), 0);
+    const propStays = stays.filter(s => s.property_id === propertyId);
+    const propHostRevenue = propStays.reduce((sum, s) => sum + stayTotal(s), 0);
     const hostingLine = propStays.length
       ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: Πελατολόγιο).`
       : '';
@@ -260,8 +270,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // ── Λογιστική εικόνα (ΙΔΙΑ μηχανή με την καρτέλα Λογιστική) ώστε Νόα να
     // συμβουλεύει με τον σωστό φόρο/καθαρό, όχι με πρόχειρες εκτιμήσεις. ──────────
     const isShortAcct = propStays.length > 0;
-    const yearStays = propStays.filter((s: any) => (s.check_in || '').slice(0, 4) === String(year));
-    const acctGross = isShortAcct ? yearStays.reduce((sum: number, s: any) => sum + stayTotal(s), 0) : rent * 12;
+    const yearStays = propStays.filter(s => (s.check_in || '').slice(0, 4) === String(year));
+    const acctGross = isShortAcct ? yearStays.reduce((sum, s) => sum + stayTotal(s), 0) : rent * 12;
     const acctStmt = incomeStatement({
       regime: isShortAcct ? 'individual_shortterm' : 'individual_longterm',
       grossIncome: acctGross, otherCashExpenses: paid, loanPrincipal: Math.round(monthlyDebt * 12),
@@ -273,11 +283,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε Νόα
     // να απαντά «τι εκκρεμεί;» με στοιχεία, όχι υποθέσεις, και να ξεχωρίζει τις ληξιπρόθεσμες.
-    const openTasks = chk || [];
-    const overdueTasks = openTasks.filter((i: any) => i.due_date && i.due_date < todayStr);
-    const taskCostSum = openTasks.reduce((s: number, i: any) => s + (Number(i.estimated_cost) || 0), 0);
+    const openTasks = (chk || []) as ChecklistItemsRow[];
+    const overdueTasks = openTasks.filter(i => i.due_date && i.due_date < todayStr);
+    const taskCostSum = openTasks.reduce((s, i) => s + (Number(i.estimated_cost) || 0), 0);
     const checklistLine = openTasks.length
-      ? `Ανοιχτές εκκρεμότητες (${openTasks.length}${overdueTasks.length ? `, εκ των οποίων ${overdueTasks.length} ληξιπρόθεσμες` : ''}${taskCostSum > 0 ? `, εκτιμώμενο κόστος ${eur(Math.round(taskCostSum))}` : ''}): ${openTasks.slice(0, 15).map((i: any) => `${i.description}${i.due_date ? ` [προθεσμία ${i.due_date}${i.due_date < todayStr ? ' — ΛΗΞΙΠΡΟΘΕΣΜΗ' : ''}]` : ''}${i.estimated_cost ? ` ~${eur(i.estimated_cost)}` : ''}${i.assigned_contact_name ? ` (ανάθεση: ${i.assigned_contact_name})` : ''}`).join('; ')}${openTasks.length > 15 ? ` (και ${openTasks.length - 15} ακόμη)` : ''}`
+      ? `Ανοιχτές εκκρεμότητες (${openTasks.length}${overdueTasks.length ? `, εκ των οποίων ${overdueTasks.length} ληξιπρόθεσμες` : ''}${taskCostSum > 0 ? `, εκτιμώμενο κόστος ${eur(Math.round(taskCostSum))}` : ''}): ${openTasks.slice(0, 15).map(i => `${i.description}${i.due_date ? ` [προθεσμία ${i.due_date}${i.due_date < todayStr ? ' — ΛΗΞΙΠΡΟΘΕΣΜΗ' : ''}]` : ''}${i.estimated_cost ? ` ~${eur(i.estimated_cost)}` : ''}${i.assigned_contact_name ? ` (ανάθεση: ${i.assigned_contact_name})` : ''}`).join('; ')}${openTasks.length > 15 ? ` (και ${openTasks.length - 15} ακόμη)` : ''}`
       : 'Δεν υπάρχουν ανοιχτές εκκρεμότητες.';
 
     // Τα νούμερα που τροφοδοτούν τις προτάσεις εκκίνησης. Ό,τι δεν υπάρχει
@@ -338,11 +348,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       value ? `Απόδοση: μεικτή ${fp(grossY, 1)}, καθαρή ${fp(netY, 1)}` : '',
       `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(owed)}). Κάθε ευρώ μετρημένο μία φορά· οι απλήρωτοι λογαριασμοί μετρούν στην ημερομηνία που λήγουν — ίδιος υπολογισμός με τις Δαπάνες και τη Σύγκριση.`,
       topCats.length ? `Μεγαλύτερες κατηγορίες: ${topCats.map(([c, a]) => `${c} ${eur(a)}`).join(', ')}` : '',
-      unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${(b as any).name || 'λογαριασμός'} ${eur(b.amount)}${(b as any).due_date ? ` λήξη ${(b as any).due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
+      unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${b.name || 'λογαριασμός'} ${eur(b.amount)}${b.due_date ? ` λήξη ${b.due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
       openRentRef.current.length ? `Ανεξόφλητες δόσεις ενοικίου (${openRentRef.current.length}): ${openRentRef.current.slice(0, 12).map(r => `${r.label} ${eur(r.amount)}`).join('; ')}` : '',
       t ? `Ενοικιαστής: ${t.full_name || 'καταχωρημένος'}${t.deposit_amount ? `, εγγύηση ${eur(t.deposit_amount)}` : ''}` : 'Δεν έχει καταχωρηθεί ενοικιαστής.',
       leaseEnd ? `Λήξη μίσθωσης: ${leaseEnd}${daysLease != null ? ` (σε ${daysLease} ημέρες)` : ''}` : '',
-      st?.insurance_company || st?.insurance_expiry ? `Ασφάλεια: ${st?.insurance_company || 'εταιρεία άγνωστη'}${st?.insurance_expiry ? `, λήξη ${st.insurance_expiry}` : ''}` : 'Ασφάλεια: δεν έχει καταχωρηθεί.',
+      insurance?.insurance_company || insurance?.insurance_expiry ? `Ασφάλεια: ${insurance?.insurance_company || 'εταιρεία άγνωστη'}${insurance?.insurance_expiry ? `, λήξη ${insurance.insurance_expiry}` : ''}` : 'Ασφάλεια: δεν έχει καταχωρηθεί.',
       loanLine,
       hostingLine,
       accountingLine,
@@ -360,14 +370,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       now: now.getTime(),
       property: {
         name: propContext.name, prop_type: propContext.propType, value, sqm: propContext.sqm,
-        target_rent: propContext.targetRent, insurance_expiry: st?.insurance_expiry, insurance_amount: (st as any)?.insurance_amount,
+        target_rent: propContext.targetRent, insurance_expiry: insurance?.insurance_expiry, insurance_amount: insurance?.insurance_amount,
       },
       tenant: t ? { monthly_rent: t.monthly_rent, lease_end: t.lease_end } : null,
       rent, propValue: value, grossYield: grossY, netYield: netY, expensesYTD: total,
-      expenses: expenses.map(e => ({ category: e.category, amount: e.amount || 0, date: e.date, paid: (e as any).paid !== false, payment_method: (e as any).payment_method })),
-      bills: (bil || []).map(b => ({ type: (b as any).category, amount: b.amount, paid: b.paid, due_date: (b as any).due_date })),
+      expenses: expenses.map(e => ({ category: e.category, amount: e.amount || 0, date: e.date, paid: e.paid !== false, payment_method: e.payment_method })),
+      bills: billRows.map(b => ({ type: b.category ?? undefined, amount: b.amount, paid: b.paid, due_date: b.due_date })),
       tasks: [], inventory: [],
-      checklist: openTasks.map((i: any) => ({ due_date: i.due_date, status: i.status, priority: i.priority })),
+      checklist: openTasks.map(i => ({ due_date: i.due_date, status: i.status ?? undefined, priority: i.priority ?? undefined })),
     }).filter(i => i.id !== 'profile-incomplete');
     const KIND_TXT: Record<string, string> = { urgent: 'ΕΠΕΙΓΟΝ', attention: 'ΠΡΟΣΟΧΗ', opportunity: 'ΕΥΚΑΙΡΙΑ', positive: 'ΘΕΤΙΚΟ' };
     setInsightsStr(insights.slice(0, 6).map(i => `• [${KIND_TXT[i.kind]}] ${i.title}${i.metric ? ` (${i.metric})` : ''}: ${i.detail}`).join('\n'));
@@ -376,7 +386,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const mLines: string[] = [];
     if (rates?.euribor_3m != null) mLines.push(`Euribor 3 μηνών: ${fp(Number(rates.euribor_3m), 2)} (ο δείκτης πάνω στον οποίο πατούν τα κυμαινόμενα επιτόκια στεγαστικών).`);
     if (rates?.bog_housing_new != null) mLines.push(`Μέσο επιτόκιο νέου στεγαστικού δανείου (στοιχεία Τράπεζας της Ελλάδος): περίπου ${fp(Number(rates.bog_housing_new), 2)}.`);
-    const kwh = (tar || []).map(r => Number((r as any).kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
+    const kwh = ((tar || []) as EnergyTariffsRow[]).map(r => Number(r.kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
     if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
     mLines.push(RENTAL_TAX_SUMMARY_2026);
     mLines.push(CLIMATE_LEVY_SUMMARY_2025);
@@ -384,22 +394,22 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     setMarketStr(mLines.join('\n'));
 
     // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
-    const clientRoster = clientRows || [];
-    clientsRef.current = clientRoster.map((c: any) => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || ''), vip: !!c.vip }));
+    const clientRoster = (clientRows || []) as ClientsRow[];
+    clientsRef.current = clientRoster.map(c => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || ''), vip: !!c.vip }));
     if (clientRoster.length) {
-      const staysByClient = new Map<string, any[]>();
-      (stayRows || []).forEach((s: any) => { const a = staysByClient.get(s.client_id) || []; a.push(s); staysByClient.set(s.client_id, a); });
+      const staysByClient = new Map<string, ClientStaysRow[]>();
+      stays.forEach(s => { const a = staysByClient.get(s.client_id) || []; a.push(s); staysByClient.set(s.client_id, a); });
       const nowMs = Date.now();
-      const revSince = (arr: any[], days: number) => arr.reduce((s, st) => {
+      const revSince = (arr: ClientStaysRow[], days: number) => arr.reduce((s, st) => {
         const d = st.check_out || st.check_in; if (!d) return s;
         const t = new Date(d).getTime(); if (isNaN(t) || (nowMs - t) > days * 86400000 || t > nowMs) return s;
         return s + (Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0));
       }, 0);
-      const cLines = clientRoster.slice(0, 50).map((c: any) => {
+      const cLines = clientRoster.slice(0, 50).map(c => {
         const arr = staysByClient.get(c.id) || [];
         const cs = clientStats(arr);
-        const lastBooking = arr.map((s: any) => s.check_in).filter(Boolean).sort().slice(-1)[0] || null;
-        const lastNote = arr.slice().sort((a: any, b: any) => String(a.check_in || '').localeCompare(String(b.check_in || ''))).map((s: any) => s.notes).filter((n: any) => n && String(n).trim()).slice(-1)[0];
+        const lastBooking = arr.map(s => s.check_in).filter(Boolean).sort().slice(-1)[0] || null;
+        const lastNote = arr.slice().sort((a, b) => String(a.check_in || '').localeCompare(String(b.check_in || ''))).map(s => s.notes).filter(n => n && String(n).trim()).slice(-1)[0];
         const bits: string[] = [c.full_name, CLIENT_TYPE_LABELS[c.type as ClientType] || c.type];
 
         if (cs.stayCount >= 2) bits.push('επαναλαμβανόμενος (2+ διαμονές)');
@@ -422,10 +432,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     // ── Επαφές τεχνικών/παρόχων (καρτέλα Επαφές): για να προτείνει ΠΟΙΟΝ
     // να καλέσει/προγραμματίσει για μια εργασία, ή να παραπέμψει αν λείπει ο ρόλος ──
-    const techRoster = (contactRows || []).filter((c: any) => c.full_name);
-    contactsRef.current = techRoster.map((c: any) => ({ name: c.full_name || '', role: c.role || 'other', phone: String(c.phone || ''), email: String(c.email || '') }));
+    const techRoster = contacts.filter(c => c.full_name);
+    contactsRef.current = techRoster.map(c => ({ name: c.full_name || '', role: c.role || 'other', phone: String(c.phone || ''), email: String(c.email || '') }));
     if (techRoster.length) {
-      const tLines = techRoster.slice(0, 60).map((c: any) => {
+      const tLines = techRoster.slice(0, 60).map(c => {
         const bits = [c.full_name, roleLabel(c.role || 'other')];
         if (c.phone) bits.push(`τηλ ${c.phone}`);
         return `• ${bits.filter(Boolean).join(' · ')}`;
@@ -752,10 +762,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [speaking, setSpeaking] = useState(false);
   const [handsFree, setHandsFree] = useState(false);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
-  const recRef = useRef<any>(null);
+  const recRef = useRef<SpeechRecognizer | null>(null);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const handsFreeRef = useRef(false);
-  const supportsSTT = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  const supportsSTT = speechSupported();
   const supportsTTS = typeof window !== 'undefined' && 'speechSynthesis' in window;
   useEffect(() => { handsFreeRef.current = handsFree; }, [handsFree]);
 
@@ -792,21 +802,23 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
   const stopListening = () => { try { recRef.current?.stop(); } catch { /* ignore */ } setListening(false); };
   const startListening = () => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = speechRecognizer();
     if (!SR) return;
     stopSpeaking();
     const rec = new SR();
     rec.lang = 'el-GR'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
     let finalText = '';
-    rec.onresult = (e: any) => {
+    rec.onresult = (e: SpeechEvent) => {
       let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const tr = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += tr; else interim += tr;
+      const res = e.results;
+      if (!res) return;
+      for (let i = e.resultIndex ?? 0; i < res.length; i++) {
+        const tr = res[i][0]?.transcript || '';
+        if (res[i].isFinal) finalText += tr; else interim += tr;
       }
       setInput((finalText + interim).trim());
     };
-    rec.onerror = (ev: any) => { setListening(false); if ((ev?.error || '') === 'not-allowed' || (ev?.error || '') === 'service-not-allowed') { setHandsFree(false); handsFreeRef.current = false; } };
+    rec.onerror = (ev: SpeechErrorEvent) => { setListening(false); if ((ev?.error || '') === 'not-allowed' || (ev?.error || '') === 'service-not-allowed') { setHandsFree(false); handsFreeRef.current = false; } };
     rec.onend = () => {
       setListening(false);
       const t = finalText.trim();

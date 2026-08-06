@@ -4,6 +4,7 @@
 // ώστε να μην επαναλαμβάνεται η ίδια λογική σε κάθε modal.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { speechRecognizer, type SpeechEvent } from '@/lib/core/speech';
 
 /** Ημερομηνία σε ελληνική μορφή ΗΗ/ΜΜ/ΕΕΕΕ (ανεκτικό σε άκυρη είσοδο). */
 export const grDate = (iso: string) => {
@@ -52,20 +53,15 @@ export async function archivePdfToProperty(i: ArchiveInput): Promise<void> {
 }
 
 // ── Φωνητική απάντηση «ναι / αργότερα» ───────────────────────────────────────
-interface SpeechEvent { results?: { [i: number]: { [j: number]: { transcript?: string } } } }
-interface SpeechRec { lang: string; interimResults: boolean; continuous: boolean; maxAlternatives: number; start(): void; onresult: (e: SpeechEvent) => void; onerror: () => void; onend: () => void }
-
-/** Υποστηρίζει ο browser αναγνώριση ομιλίας; (για απόκρυψη του μικροφώνου) */
-export function speechSupported(): boolean {
-  const g = globalThis as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
-  return !!(g.SpeechRecognition || g.webkitSpeechRecognition);
-}
+// Οι τύποι της αναγνώρισης ομιλίας ζουν σε ένα σημείο (lib/core/speech.ts).
+// Εδώ περιγράφονταν ιδιωτικά, και στη Νόα ως `any` — η ίδια διεπαφή, δύο φορές,
+// με δύο διαφορετικά επίπεδα αλήθειας.
+export { speechSupported } from '@/lib/core/speech';
 
 /** Ακούει μία σύντομη απάντηση στα ελληνικά και καλεί onYes/onNo. Επιστρέφει
  *  false αν δεν υποστηρίζεται, ώστε ο καλών να μην αλλάξει κατάσταση. */
 export function askByVoice(o: { onYes: () => void; onNo: () => void; onEnd?: () => void }): boolean {
-  const g = globalThis as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
-  const SR = g.SpeechRecognition || g.webkitSpeechRecognition;
+  const SR = speechRecognizer();
   if (!SR) return false;
   const rec = new SR();
   rec.lang = 'el-GR'; rec.interimResults = false; rec.continuous = false; rec.maxAlternatives = 1;
