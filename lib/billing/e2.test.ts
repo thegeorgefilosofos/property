@@ -2,7 +2,8 @@
 // Τρέξε: npx tsx lib/billing/e2.test.ts
 import {
   monthsRentedInYear, e2LeaseKind, e2IncomeCategory,
-  buildE2Row, e2RowToCells, buildE1Summary, e1LineToCells, type E2Property, type E2Tenant, type E2Payment, type E2Row, type E2Stay,
+  buildE2Row, e2RowToCells, buildE1Summary, e1LineToCells, E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells,
+  type E2Property, type E2Tenant, type E2Payment, type E2Row, type E2Stay,
 } from './e2';
 
 let passed = 0, failed = 0;
@@ -187,6 +188,38 @@ const STAYS: E2Stay[] = [
   ];
   const r = buildE2Row(SEASONAL, null, [], '999999999', 2025, legacy);
   ok('διαμονή χωρίς property_id μετράει (ιστορική γραμμή)', r.grossIncome === 968);
+}
+
+// ═══ Ο ΠΙΝΑΚΑΣ I ΕΧΕΙ ΑΡΙΘΜΗΜΕΝΕΣ ΣΤΗΛΕΣ, ΚΑΙ Η ΑΡΙΘΜΗΣΗ ΕΙΝΑΙ ΤΟΥ ΕΝΤΥΠΟΥ ═══
+// Το ΑΤΑΚ είναι το μόνο κλειδί που δένει το ακίνητο του Ε2 με τη γραμμή του στο
+// Ε9, και ο λογιστής το χρειάζεται. ΔΕΝ υπάρχει όμως στο επίσημο έντυπο: μια
+// στήλη παραπάνω μετατοπίζει όσες ακολουθούν και το φύλλο παύει να αντιστοιχεί
+// σε αυτό που ζητά το myAADE. Μπαίνει σε ΔΙΚΟ ΜΑΣ φύλλο ελέγχου, δίπλα στο ίδιο
+// α/α — το έντυπο μένει ακέραιο.
+//
+// Ο έλεγχος φυλάει και τα δύο: ότι το πλήθος και η σειρά των επίσημων στηλών δεν
+// μετακινούνται, και ότι καμία δεν λέγεται «ΑΤΑΚ».
+{
+  ok('ο Πίνακας I έχει ακριβώς δεκαεννέα στήλες', E2_OFFICIAL_HEADERS.length === 19);
+  ok('καμία επίσημη στήλη δεν είναι το ΑΤΑΚ',
+     E2_OFFICIAL_HEADERS.every(h => !/ΑΤΑΚ/i.test(h)));
+  // Οι δείκτες των αριθμητικών στηλών είναι θέσεις μέσα στη σειρά. Αν προστεθεί
+  // στήλη πριν από αυτές, δείχνουν σε λάθος κελί και τα ποσά μορφοποιούνται ως
+  // κείμενο ή αθροίζονται λάθος — χωρίς κανένα σφάλμα να εμφανιστεί.
+  ok('οι αριθμητικές στήλες δείχνουν μέσα στο εύρος',
+     Object.values(E2_NUM_COLS).every(i => i >= 0 && i < E2_OFFICIAL_HEADERS.length));
+  ok('η επιφάνεια είναι η πέμπτη στήλη, όπως στο έντυπο', E2_NUM_COLS.sqm === 4);
+  ok('τα τέσσερα ακαθάριστα είναι οι τέσσερις τελευταίες',
+     E2_NUM_COLS.gross16 === E2_OFFICIAL_HEADERS.length - 1
+     && E2_NUM_COLS.gross13 === E2_OFFICIAL_HEADERS.length - 4);
+  // Κάθε γραμμή που παράγουμε πρέπει να έχει ΑΚΡΙΒΩΣ όσα κελιά και οι επικεφαλίδες.
+  // ΠΡΟΣΟΧΗ ΣΤΟ ΠΟΙΑ ΣΥΝΑΡΤΗΣΗ: η `e2RowToCells` είναι η ΠΑΛΙΑ, εννιάστηλη
+  // αναπαράσταση (και έχει ΑΤΑΚ, γιατί δεν είναι το επίσημο έντυπο). Το φύλλο
+  // που πάει στο myAADE το χτίζει η `buildE2OfficialCells`.
+  const cells = buildE2OfficialCells(SEASONAL, null, [], '999999999', 2025, 1, []);
+  ok('η επίσημη γραμμή έχει όσα κελιά και οι επικεφαλίδες', cells.length === E2_OFFICIAL_HEADERS.length);
+  const legacy = e2RowToCells(buildE2Row(SEASONAL, null, [], '999999999', 2025, []), 1);
+  ok('η παλιά αναπαράσταση δεν συγχέεται με την επίσημη', legacy.length !== E2_OFFICIAL_HEADERS.length);
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

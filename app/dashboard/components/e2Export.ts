@@ -152,35 +152,58 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, buildMainSheet(officialRows, ownerAfmCommon, year), `Ε2 ${year}`);
 
-  // ── Φύλλο: Επισημάνσεις πριν την υποβολή ────────────────────────────────────
-  // Οι έλεγχοι (buildE2Row.flags) υπολογίζονταν αλλά πετιόνταν· τους δείχνουμε ώστε
-  // ο χρήστης να δει «Λείπει ΑΤΑΚ», «εκτίμηση», «συνιδιοκτησία < 100%» κ.λπ.
-  const flagged = properties
-    .map((p, i) => ({ n: i + 1, loc: p.address || p.atak || `Ακίνητο ${i + 1}`, flags: e2rows[i].flags }))
-    .filter(x => x.flags.length > 0);
-  if (flagged.length) {
+  // ═══ ΤΟ ΑΤΑΚ ΔΕΝ ΜΠΑΙΝΕΙ ΣΤΟΝ ΠΙΝΑΚΑ I, ΚΑΙ ΜΠΑΙΝΕΙ ΕΔΩ ═══════════════════
+  // Ο Πίνακας I του Ε2 έχει ΑΡΙΘΜΗΜΕΝΕΣ στήλες, από τη στήλη 2 ως τη 19, και η
+  // αρίθμηση είναι του εντύπου, όχι δική μας. Μια στήλη παραπάνω —όσο χρήσιμη κι
+  // αν είναι— μετατοπίζει όσες ακολουθούν και το φύλλο παύει να αντιστοιχεί σε
+  // αυτό που ζητά το myAADE. Το ΑΤΑΚ ΔΕΝ υπάρχει στο επίσημο έντυπο.
+  //
+  // Το χρειάζεται όμως ο λογιστής: είναι το μόνο κλειδί που δένει το ακίνητο του
+  // Ε2 με τη γραμμή του στο Ε9. Χωρίς αυτό, η διασταύρωση γίνεται με τη
+  // διεύθυνση — δηλαδή με κείμενο που γράφεται αλλιώς σε κάθε έντυπο.
+  //
+  // Η λύση δεν είναι συμβιβασμός: το επίσημο φύλλο μένει ακέραιο και το ΑΤΑΚ
+  // μπαίνει στο ΔΙΚΟ ΜΑΣ φύλλο ελέγχου, δίπλα στο ίδιο α/α. Ο λογιστής το βρίσκει,
+  // το έντυπο δεν χαλάει. Και όπου λείπει, το φύλλο το λέει — γιατί ένα ακίνητο
+  // χωρίς ΑΤΑΚ δεν διασταυρώνεται με τίποτα.
+  const checks = properties
+    .map((p, i) => ({
+      n: i + 1,
+      loc: p.address || `Ακίνητο ${i + 1}`,
+      atak: (p.atak || '').trim(),
+      flags: e2rows[i].flags,
+    }))
+    .filter(x => x.flags.length > 0 || !x.atak);
+  if (checks.length) {
     const fAoa: (string | number)[][] = [
-      ['ΕΠΙΣΗΜΑΝΣΕΙΣ ΠΡΙΝ ΤΗΝ ΥΠΟΒΟΛΗ'],
-      ['Έλεγξε και συμπλήρωσε τα παρακάτω πριν τα συμπληρώσεις στο myAADE.'],
+      ['ΕΛΕΓΧΟΣ ΠΡΙΝ ΤΗΝ ΥΠΟΒΟΛΗ'],
+      ['Το ΑΤΑΚ δεν είναι στήλη του εντύπου Ε2. Μπαίνει εδώ για να διασταυρώνεται κάθε ακίνητο με τη γραμμή του στο Ε9.'],
       [],
-      ['Α/Α', 'Ακίνητο', 'Επισημάνσεις'],
-      ...flagged.map(x => [x.n, x.loc, x.flags.join(' · ')]),
+      ['Α/Α', 'Ακίνητο', 'ΑΤΑΚ', 'Επισημάνσεις'],
+      ...checks.map(x => [
+        x.n,
+        x.loc,
+        x.atak || 'Δεν έχει οριστεί',
+        x.flags.length ? x.flags.join(' · ') : 'Χωρίς ΑΤΑΚ δεν γίνεται διασταύρωση με το Ε9.',
+      ]),
     ];
     const fws = XLSX.utils.aoa_to_sheet(fAoa);
-    fws['!cols'] = [{ wch: 6 }, { wch: 34 }, { wch: 82 }];
-    fws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }];
+    fws['!cols'] = [{ wch: 6 }, { wch: 34 }, { wch: 20 }, { wch: 72 }];
+    fws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }];
     fws['!rows'] = []; fws['!rows'][0] = { hpt: 22 }; fws['!rows'][1] = { hpt: 15 };
     setCell(fws, 0, 0, { s: S.title });
     setCell(fws, 1, 0, { s: S.sub });
-    for (let c = 0; c < 3; c++) setCell(fws, 3, c, { s: S.head });
-    flagged.forEach((x, i) => {
+    for (let c = 0; c < 4; c++) setCell(fws, 3, c, { s: S.head });
+    checks.forEach((x, i) => {
       const r = 4 + i;
       setCell(fws, r, 0, { s: S.num });
       setCell(fws, r, 1, { s: S.txt });
-      setCell(fws, r, 2, { s: S.txtWrap });
-      fws['!rows']![r] = { hpt: Math.max(18, Math.ceil(x.flags.join(' · ').length / 72) * 15 + 6) };
+      setCell(fws, r, 2, { s: S.txt });
+      setCell(fws, r, 3, { s: S.txtWrap });
+      const note = x.flags.length ? x.flags.join(' · ') : '';
+      fws['!rows']![r] = { hpt: Math.max(18, Math.ceil(note.length / 66) * 15 + 6) };
     });
-    XLSX.utils.book_append_sheet(wb, fws, 'Επισημάνσεις');
+    XLSX.utils.book_append_sheet(wb, fws, 'Έλεγχος και ΑΤΑΚ');
   }
 
   // ── Φύλλο 2: Οδηγίες συμπλήρωσης ────────────────────────────────────────────
