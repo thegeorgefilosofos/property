@@ -81,8 +81,9 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     try {
       const notice = adjustmentNoticeText({ tenantName: tenant.trim() || undefined, address: prop.address || undefined, effectiveDate: grDate(effective), method, res });
       const issued = await issueDocument(supabase, {
-        userId, docType: 'Ειδοποίηση αναπροσαρμογής μισθώματος', subject: [prop.name, tenant.trim()].filter(Boolean).join(' · '),
-        period: `Ισχύς από ${grDate(effective)}`, summary: { currentRent: res.currentRent, newRent: res.newRent, pct: res.pctApplied },
+        userId, docType: 'Ειδοποίηση αναπροσαρμογής μισθώματος', // Ίδιος λόγος με το μισθωτήριο: το «αντικείμενο» είναι δημόσιο.
+        subject: prop.name,
+        period: `Ισχύς από ${grDate(effective)}`, summary: { currentRent: res.currentRent, newRent: res.newRent, pct: res.pctApplied, tenant: tenant.trim() },
       });
       const model: PdfReportModel = {
         branding: branding ?? null, docType: 'Ειδοποίηση αναπροσαρμογής μισθώματος',

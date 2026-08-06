@@ -653,7 +653,11 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
   const uploadReceiptDoc = async(file:File) => {
     setDocUp(true)
     const path=`receipts/${propertyId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
-    const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:true})
+    // ΤΟ `upsert:true` ΔΕΝ ΕΙΧΕ ΠΟΛΙΤΙΚΗ ΝΑ ΤΟ ΣΤΗΡΙΞΕΙ. Ο κάδος έχει πολιτικές
+    // μόνο για εισαγωγή, ανάγνωση και διαγραφή — καμία για ενημέρωση, οπότε κάθε
+    // αντικατάσταση θα έσκαγε με σφάλμα δικαιωμάτων. Ούτως ή άλλως η διαδρομή
+    // περιέχει χρόνο και τυχαίο, άρα δεν υπάρχει τίποτα να αντικατασταθεί.
+    const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:false})
     if(error){notifyError('Σφάλμα upload: '+error.message);setDocUp(false);return}
     const prev=form.receipt_doc_url
     setForm(f=>({...f,receipt_doc_url:path,receipt_doc_name:file.name}))

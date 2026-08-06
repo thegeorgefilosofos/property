@@ -74,6 +74,12 @@ const STATUS_META:Record<ReconStatus,{label:string;color:string;strong:boolean}>
 
 // Οι ίδιοι τόνοι για το τυπωμένο χαρτί, όπου δεν υπάρχουν μεταβλητές θέματος.
 // Ήταν τέσσερα ωμά χρώματα, γραμμένα ΔΥΟ φορές μέσα στο αρχείο.
+// Πόσο ζει ο σύνδεσμος του λογιστή. Ίδια διάρκεια με την προεπιλογή της βάσης
+// (180 ημέρες), γραμμένη εδώ γιατί η ανανέωση γίνεται από τον πελάτη.
+const ACCOUNTANT_LINK_DAYS = 180
+const accountantLinkExpiry = () =>
+  new Date(Date.now() + ACCOUNTANT_LINK_DAYS * 86400000).toISOString()
+
 const STATUS_PRINT:Record<ReconStatus,string> = {
   paid:'#5f6368', partial:'#202124', unpaid:'#5f6368', overdue:'#202124',
 }
@@ -515,7 +521,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     setAcctBusy(true)
     try{
       const data = await savedData<{ token?:string }>('Ο σύνδεσμος για τον λογιστή δεν δημιουργήθηκε',
-        supabase.from('accountant_links').upsert({ user_id:userId, active:true }, { onConflict:'user_id' }).select('token').maybeSingle())
+        // Η ΛΗΞΗ ΑΝΑΝΕΩΝΕΤΑΙ ΡΗΤΑ. Το `expires_at` έχει προεπιλογή στη βάση, και
+        // οι προεπιλογές ισχύουν ΜΟΝΟ σε insert: ένας σύνδεσμος που ξαναμοιράζεται
+        // μετά τις εκατόν ογδόντα ημέρες θα απαντούσε «δεν βρέθηκε», χωρίς εξήγηση.
+        supabase.from('accountant_links').upsert({ user_id:userId, active:true, expires_at:accountantLinkExpiry() }, { onConflict:'user_id' }).select('token').maybeSingle())
       const token = data?.token
       if(token){
         const url = `${window.location.origin}/accountant/${token}`
@@ -531,9 +540,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(acctBusy) return
     setAcctBusy(true)
     try{
-      const fresh = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      // ΤΟ ΕΝΑΛΛΑΚΤΙΚΟ ΗΤΑΝ `Date.now()` ΚΑΙ `Math.random()`. Το token αυτό
+      // είναι διαπιστευτήριο για ΟΛΟ το χαρτοφυλάκιο — όνομα, ΑΤΑΚ, διεύθυνση,
+      // ενοίκια, δαπάνες. Η `Math.random` δεν είναι κρυπτογραφική: από δύο
+      // διαδοχικές εξόδους προβλέπεται όλη η ακολουθία, και η ώρα είναι γνωστή.
+      // Στην πράξη το `crypto.randomUUID` υπάρχει πάντα σε HTTPS, οπότε το
+      // εναλλακτικό δεν έτρεχε σχεδόν ποτέ — αλλά η υποβάθμιση ήταν ΣΙΩΠΗΛΗ.
+      // Καλύτερα να μη γίνει η ανάκληση παρά να γίνει με προβλέψιμο κλειδί.
+      const fresh = globalThis.crypto?.randomUUID?.()
+      if(!fresh){ setAcctBusy(false); notifyError('Ο περιηγητής δεν μπορεί να παραγάγει ασφαλή σύνδεσμο. Δοκίμασε από ασφαλή σύνδεση (https).'); return }
       const data = await savedData<{ token?:string }>('Ο σύνδεσμος δεν ανακλήθηκε',
-        supabase.from('accountant_links').upsert({ user_id:userId, token:fresh, active:true }, { onConflict:'user_id' }).select('token').maybeSingle())
+        supabase.from('accountant_links').upsert({ user_id:userId, token:fresh, active:true, expires_at:accountantLinkExpiry() }, { onConflict:'user_id' }).select('token').maybeSingle())
       const token = data?.token
       if(token){ setAcctLink(`${window.location.origin}/accountant/${token}`); setAcctCopied(false); setAcctRevoked(true); setTimeout(()=>setAcctRevoked(false),2600) }
     } finally { setAcctBusy(false) }

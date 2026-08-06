@@ -125,9 +125,15 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
         propertyAddress: prop.address || prop.name, sqm: prop.sqm ?? undefined, atak: prop.atak ?? undefined,
       };
       const issued = await issueDocument(supabase, {
-        userId, docType: 'Ιδιωτικό συμφωνητικό μίσθωσης', subject: [prop.name, tenant.trim()].filter(Boolean).join(' · '),
+        userId, docType: 'Ιδιωτικό συμφωνητικό μίσθωσης', // ΤΟ ΟΝΟΜΑ ΤΟΥ ΕΝΟΙΚΙΑΣΤΗ ΕΦΥΓΕ ΑΠΟ ΤΟ «ΑΝΤΙΚΕΙΜΕΝΟ».
+        // Το πεδίο αυτό το επιστρέφει η ΔΗΜΟΣΙΑ σελίδα επαλήθευσης σε όποιον έχει
+        // τον κωδικό του εγγράφου — και η ίδια σελίδα υπόσχεται ρητά ότι «δεν
+        // εμφανίζονται ευαίσθητα στοιχεία». Για ένα μισθωτήριο, ονοματεπώνυμο
+        // φυσικού προσώπου μαζί με τη διεύθυνση του ακινήτου είναι ακριβώς αυτό.
+        // Το όνομα μένει στο ιδιωτικό `summary`, που δεν εκτίθεται ποτέ.
+        subject: prop.name,
         period: `${grDate(res.start)} έως ${grDate(res.end)}`,
-        summary: { rent: res.monthlyRent, deposit: res.deposit, months: res.months, use },
+        summary: { rent: res.monthlyRent, deposit: res.deposit, months: res.months, use, tenant: tenant.trim() },
       });
       const model: PdfReportModel = {
         branding: branding ?? null, docType: 'Ιδιωτικό συμφωνητικό μίσθωσης',
