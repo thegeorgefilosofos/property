@@ -246,3 +246,33 @@ export function dueLabel(daysLeft: number | null): string | null {
   if (daysLeft === 1) return 'αύριο';
   return `σε ${daysLeft} ημέρες`;
 }
+
+// ── Η ΠΡΟΘΕΣΜΙΑ ΩΣ ΣΤΗΛΗ, ΟΧΙ ΩΣ ΦΡΑΣΗ ────────────────────────────────────
+// Το `dueLabel` δίνει μία φράση («22 ημέρες πίσω»), που είναι σωστή αλλά
+// αστοίχιστη: σε λίστα δέκα γραμμών κάθε φράση έχει άλλο μήκος και ο αριθμός
+// κάθεται κάθε φορά αλλού. Το μάτι δεν μπορεί να συγκρίνει κάθετα, και το
+// «22 πίσω» δεν ξεχωρίζει με τίποτα από το «σε 204».
+//
+// Εδώ ο αριθμός βγαίνει χωριστά από τη μονάδα, ώστε η οθόνη να τον στοιχίσει σε
+// δική του στήλη με ισοπλατή ψηφία — όπως κάθε οικονομική κατάσταση.
+export interface DueParts {
+  /** Ο αριθμός, ή null όταν δεν υπάρχει προθεσμία ή είναι σήμερα/αύριο. */
+  value: number | null;
+  /** Η μονάδα κάτω από τον αριθμό («ημέρες πίσω», «ημέρες»). */
+  unit: string;
+  /** Λέξη αντί για αριθμό, όταν ο αριθμός δεν προσθέτει τίποτα. */
+  word: string | null;
+  overdue: boolean;
+}
+
+export function dueParts(daysLeft: number | null): DueParts {
+  if (daysLeft == null) return { value: null, unit: '', word: null, overdue: false };
+  if (daysLeft < 0) {
+    const n = Math.abs(daysLeft);
+    return { value: n, unit: n === 1 ? 'ημέρα πίσω' : 'ημέρες πίσω', word: null, overdue: true };
+  }
+  // «σήμερα» και «αύριο» διαβάζονται αμέσως· το «0» και το «1» θέλουν μετάφραση.
+  if (daysLeft === 0) return { value: null, unit: '', word: 'σήμερα', overdue: false };
+  if (daysLeft === 1) return { value: null, unit: '', word: 'αύριο', overdue: false };
+  return { value: daysLeft, unit: daysLeft === 1 ? 'ημέρα' : 'ημέρες', word: null, overdue: false };
+}

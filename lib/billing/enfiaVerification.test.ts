@@ -109,10 +109,6 @@ const REDS = ENFIA_REDUCTIONS.map(r => r.key)
   }
 }
 
-console.log(`enfiaVerification — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
-if (failed > 0) { console.log('Πρώτες αποτυχίες:'); for (const f of fails) console.log('  ✗ ' + f); process.exit(1) }
-console.log('όλα πέρασαν — ο ΕΝΦΙΑ επαληθεύτηκε σε ' + passed.toLocaleString('el-GR') + ' ελέγχους')
-
 // ═══ ΤΑ ΚΛΙΜΑΚΙΑ ΠΑΛΑΙΟΤΗΤΑΣ ══════════════════════════════════════════════
 // Ο νόμος έχει ΕΞΙ κλιμάκια. Ο πίνακας είχε πέντε — έλειπε το «15-19 έτη» και
 // το προηγούμενο τα κατάπινε, χρεώνοντας 1,15 αντί για 1,10 σε κάθε κτίσμα
@@ -148,3 +144,7 @@ console.log('όλα πέρασαν — ο ΕΝΦΙΑ επαληθεύτηκε σ
   ok('κτίσμα 17 ετών: 407 € και όχι 425,50 €', Math.round(swra * 100) / 100 === 407)
   ok('η υπερχρέωση ήταν 18,50 €', Math.round((palio - swra) * 100) / 100 === 18.50)
 }
+
+console.log(`enfiaVerification — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
+if (failed > 0) { console.log('Πρώτες αποτυχίες:'); for (const f of fails) console.log('  ✗ ' + f); process.exit(1) }
+console.log('όλα πέρασαν — ο ΕΝΦΙΑ επαληθεύτηκε σε ' + passed.toLocaleString('el-GR') + ' ελέγχους')

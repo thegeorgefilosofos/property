@@ -1,0 +1,61 @@
+#!/usr/bin/env node
+// ═══════════════════════════════════════════════════════════════════════════
+// ΚΑΝΕΝΑΣ ΕΛΕΓΧΟΣ ΜΕΤΑ ΤΗ ΓΡΑΜΜΗ ΑΝΑΦΟΡΑΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Οι σουίτες εδώ τελειώνουν με δύο γραμμές: μία που τυπώνει τη σύνοψη και μία
+// που βγάζει κωδικό εξόδου αν κάτι απέτυχε. Ό,τι γραφτεί ΜΕΤΑ από αυτές
+// εκτελείται κανονικά — αλλά το αποτέλεσμά του δεν μετριέται και δεν κοιτάζεται
+// από κανέναν. Η σουίτα τυπώνει «όλα πέρασαν» και βγάζει μηδέν, ό,τι κι αν
+// βρήκαν οι τελευταίοι έλεγχοι.
+//
+// ΕΓΙΝΕ ΔΥΟ ΦΟΡΕΣ ΜΕΣΑ ΣΤΗΝ ΙΔΙΑ ΜΕΡΑ, και τις δύο επειδή προσέθεσα ελέγχους
+// στο τέλος αρχείου με `>>`. Την πρώτη φορά το κατάλαβα μόνο επειδή έτρεξα τη
+// σουίτα και με τον ΠΑΛΙΟ κώδικα: πέρασε κι εκεί. Τη δεύτερη, επειδή το πλήθος
+// των ελέγχων δεν είχε αλλάξει.
+//
+// Δεν είναι λάθος προσοχής που διορθώνεται με προσοχή: είναι σχήμα αρχείου που
+// τιμωρεί την πιο φυσική κίνηση (πρόσθεσε στο τέλος). Ο φύλακας το πιάνει.
+// ═══════════════════════════════════════════════════════════════════════════
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+
+const ROOTS = ['lib', 'app', 'components', 'supabase']
+
+function walk(dir, out) {
+  if (!existsSync(dir)) return
+  for (const e of readdirSync(dir)) {
+    if (e === 'node_modules' || e === '.next') continue
+    const full = join(dir, e)
+    if (statSync(full).isDirectory()) walk(full, out)
+    else if (e.endsWith('.test.ts')) out.push(full)
+  }
+}
+
+const files = []
+for (const r of ROOTS) walk(r, files)
+
+// Οι συναρτήσεις ισχυρισμού που χρησιμοποιούν οι σουίτες του έργου.
+const ASSERT = /^\s*(ok|eq|near|is|assert|expect)\s*\(/
+// Η γραμμή που τερματίζει: τυπώνει σύνοψη ή βγάζει κωδικό εξόδου.
+const REPORT = /process\.exit\(|console\.log\((?:fail|failed)\s*[=<>]/
+
+const problems = []
+for (const f of files) {
+  const lines = readFileSync(f, 'utf8').split('\n')
+  let lastReport = -1
+  lines.forEach((l, i) => { if (REPORT.test(l)) lastReport = i })
+  if (lastReport < 0) continue
+  for (let i = lastReport + 1; i < lines.length; i++) {
+    if (ASSERT.test(lines[i])) problems.push({ file: f, line: i + 1, text: lines[i].trim().slice(0, 78) })
+  }
+}
+
+if (problems.length) {
+  console.error(`✗ ${problems.length} έλεγχοι γραμμένοι ΜΕΤΑ τη γραμμή αναφοράς της σουίτας.\n`)
+  console.error('  Εκτελούνται, αλλά το αποτέλεσμά τους δεν μετριέται και δεν κρίνει τίποτα:')
+  console.error('  η σουίτα τυπώνει «πέρασαν» και βγάζει μηδέν ό,τι κι αν βρουν.\n')
+  for (const p of problems) console.error(`  ${p.file}:${p.line}\n     ${p.text}`)
+  console.error('\n  Μετάφερέ τους ΠΡΙΝ από τη γραμμή που τυπώνει τη σύνοψη.')
+  process.exit(1)
+}
+console.log(`✅ Ουρά σουιτών: κανένας έλεγχος μετά τη γραμμή αναφοράς (${files.length} αρχεία).`)

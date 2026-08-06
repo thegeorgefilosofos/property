@@ -5,7 +5,7 @@
 // δύο, τα ελλιπή στοιχεία δύο. Αυτό το αρχείο κρατά τη συγχώνευση ειλικρινή: αν
 // κάποιος προσθέσει πηγή χωρίς να δηλώσει θέμα, τα διπλότυπα επιστρέφουν σιωπηλά.
 import {
-  buildAgenda, obligationSubject, insightSubject, overdueCount, dueLabel,
+  buildAgenda, obligationSubject, insightSubject, overdueCount, dueLabel, dueParts,
   type InsightLike, type ObligationLike, type SetupLike,
 } from './agenda'
 
@@ -143,6 +143,24 @@ ok('χωρίς προθεσμία, καμία ετικέτα', dueLabel(null) ==
 // ── ΚΕΝΗ ΕΙΣΟΔΟΣ ─────────────────────────────────────────────────────────
 ok('τίποτα μέσα, τίποτα έξω', buildAgenda({ today: TODAY }).length === 0)
 ok('και ο μετρητής δεν σκάει', overdueCount([]) === 0)
+
+// ── Η προθεσμία σε στήλη ───────────────────────────────────────────────────
+// Ο αριθμός πρέπει να βγαίνει ΧΩΡΙΣΤΑ από τη μονάδα, αλλιώς η στήλη δεν
+// στοιχίζεται. Και το πρόσημο δεν χάνεται: το «πίσω» είναι στη μονάδα.
+{
+  const past = dueParts(-22);
+  ok('εκπρόθεσμο: θετικός αριθμός', past.value === 22);
+  ok('εκπρόθεσμο: η μονάδα λέει «πίσω»', past.unit === 'ημέρες πίσω');
+  ok('εκπρόθεσμο: σημαδεύεται', past.overdue === true);
+  const one = dueParts(-1);
+  ok('μία ημέρα πίσω, ενικός', one.unit === 'ημέρα πίσω');
+  const soon = dueParts(204);
+  ok('μελλοντικό: σκέτος αριθμός', soon.value === 204 && soon.unit === 'ημέρες');
+  ok('μελλοντικό: δεν είναι εκπρόθεσμο', soon.overdue === false);
+  ok('σήμερα: λέξη αντί για μηδέν', dueParts(0).word === 'σήμερα' && dueParts(0).value === null);
+  ok('αύριο: λέξη αντί για ένα', dueParts(1).word === 'αύριο' && dueParts(1).value === null);
+  ok('χωρίς προθεσμία: τίποτα', dueParts(null).value === null && dueParts(null).word === null);
+}
 
 console.log(fail === 0 ? `✓ agenda: ${pass} έλεγχοι πέρασαν` : `✗ agenda: ${fail} απέτυχαν από ${pass + fail}`)
 if (fail > 0) process.exit(1)

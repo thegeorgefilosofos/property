@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn, fp, fd, ABSENT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
-import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
+import { STATUSES, BY_KEY, readStatus, writeStatus, type PropertyStatus } from '@/lib/property/status';
 import { fillOnlyEmpty, firstFilled } from '@/lib/core/prefill';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
@@ -21,10 +21,16 @@ const STATUS_COLORS: Record<string, string> = {
   rented: 'var(--text-secondary)', vacant: 'var(--text-secondary)', own_use: 'var(--text-secondary)',
   renovation: 'var(--text-secondary)', for_sale: 'var(--text-secondary)', seasonal: 'var(--text-secondary)', disputed: 'var(--text-secondary)',
 };
-const STATUS_LABELS: Record<string, string> = {
-  rented: 'Ενοικιάζεται', vacant: 'Κενό', own_use: 'Ιδιοχρησία',
-  renovation: 'Ανακαίνιση', for_sale: 'Προς Πώληση', seasonal: 'Εποχιακό', disputed: 'Αμφισβητούμενο',
-};
+// ΤΟ ΛΕΞΙΛΟΓΙΟ ΤΩΝ ΚΑΤΑΣΤΑΣΕΩΝ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ ΕΔΩ.
+//
+// Υπήρχε δεύτερος πίνακας ετικετών, και είχε ήδη αποκλίνει από τον κανονικό:
+// η κεφαλίδα του ακινήτου έλεγε «Μακροχρόνια μίσθωση», ο οδηγός «Ενοικιάζεται»·
+// η κεφαλίδα «Βραχυχρόνια μίσθωση», ο οδηγός «Εποχιακό»· και το «Προς πώληση»
+// γραφόταν με δύο διαφορετικές κεφαλαιοποιήσεις. Ίδιο πεδίο, ίδια βάση, τρεις
+// διαφωνίες — ο χρήστης δεν μπορούσε να ξέρει ότι μιλάει για το ίδιο πράγμα.
+//
+// Πηγή είναι το `lib/property/status.ts`, που κρατά και τις επεξηγήσεις και
+// ξέρει τι γράφεται στη βάση (`writeStatus`) για κάθε επιλογή.
 const PROP_TYPE_LABELS: Record<string, string> = {
   apartment: 'Διαμέρισμα', house: 'Μονοκατοικία', studio: 'Στούντιο',
   maisonette: 'Μεζονέτα', office: 'Γραφείο', shop: 'Κατάστημα',
@@ -61,13 +67,13 @@ const STEPS = ['Τύπος', 'Βασικά', 'Οικονομικά', 'Ρυθμί
 // Ίδια πεδία/ετικέτες με την καρτέλα «Ρυθμίσεις» (TabSettings).
 interface PropertySettings {
   owner_name: string; owner_afm: string; owner_phone: string; owner_email: string;
-  electricity_provider: string; water_provider: string; internet_provider: string; internet_plan: string;
+  electricity_provider: string; water_provider: string; internet_provider: string;
   property_manager: string; property_manager_phone: string;
   insurance_company: string; insurance_policy: string; insurance_expiry: string; notes: string;
 }
 const INIT_SETTINGS: PropertySettings = {
   owner_name: '', owner_afm: '', owner_phone: '', owner_email: '',
-  electricity_provider: '', water_provider: '', internet_provider: '', internet_plan: '',
+  electricity_provider: '', water_provider: '', internet_provider: '',
   property_manager: '', property_manager_phone: '',
   insurance_company: '', insurance_policy: '', insurance_expiry: '', notes: '',
 };
@@ -157,8 +163,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [createdId, setCreatedId] = useState<string | null>(null);
 
   const [propType, setPropType] = useState(existing?.prop_type || 'apartment');
-  const [status, setStatus] = useState(existing?.status_detail && existing.status_detail !== 'seasonal' ? existing.status_detail : 'vacant');
-  const [airbnb, setAirbnb] = useState(existing?.status_detail === 'seasonal' || existing?.rental_mode === 'short_term');
+  // ΜΙΑ κατάσταση, στο λεξιλόγιο της εφαρμογής. Η μετάφραση προς τις δύο
+  // στήλες της βάσης γίνεται από το `writeStatus`, που τις γράφει ΜΑΖΙ.
+  const [statusKey, setStatusKey] = useState<PropertyStatus>(existing ? readStatus(existing) : 'vacant');
+  // Η βραχυχρόνια ΔΕΝ είναι πια ξεχωριστός διακόπτης: είναι μία από τις επτά καταστάσεις.
+  const airbnb = statusKey === 'rent_short';
   // ΑΜΑ: πεδίο ΤΟΥ ΑΚΙΝΗΤΟΥ, ζητούμενο τη στιγμή που η κατάσταση γίνεται
   // βραχυχρόνια — όχι κρυμμένο σε accordion άλλης καρτέλας πίσω από τρίτο
   // διακόπτη. Το 2025 στάλθηκαν 12.145 καταχωρίσεις για απενεργοποίηση επειδή
@@ -263,7 +272,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const ownershipN = num(ownership);
   const isShared = ownershipN != null && ownershipN > 0 && ownershipN < 100;
   // Airbnb ⇒ status seasonal
-  const effStatus = airbnb ? 'seasonal' : status;
+  const dbStatus = writeStatus(statusKey);
 
   const valueN = num(value);
   // Η αντικειμενική αξία τροφοδοτεί την προεπισκόπηση απόδοσης όταν λείπει η εμπορική
@@ -300,7 +309,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       year_built: isLandLike ? null : (yearBuilt ? parseInt(yearBuilt) : null),
       ownership: num(ownership) ?? 100,
       co_owners: isShared ? coOwners.map(x => x.trim()).filter(Boolean) : null,
-      status_detail: effStatus,
+      status_detail: dbStatus.status_detail,
       obj_value: num(objValue),
       enfia: num(enfia),
       purchase_date: purchaseDate || null,
@@ -309,7 +318,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       parking_spaces: isLandLike ? null : (parking ? parseInt(parking) : null),
       storage_sqm: isLandLike ? null : num(storageSqm),
       bedrooms: isLandLike ? null : (bedrooms ? parseInt(bedrooms) : null),
-      rental_mode: rentalModeFromAirbnb(airbnb),
+      rental_mode: dbStatus.rental_mode,
       // Ο ΑΜΑ γράφεται μόνο όταν το ακίνητο είναι βραχυχρόνιο. Αν γυρίσει σε
       // μακροχρόνια, ΔΕΝ σβήνεται (μπορεί να ξαναγίνει Airbnb και ο αριθμός
       // μένει ο ίδιος) — απλώς παύει να ζητείται.
@@ -424,37 +433,38 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
               <div>
                 <label style={labelStyle}>Κατάσταση</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, opacity: airbnb ? 0.5 : 1, pointerEvents: airbnb ? 'none' : 'auto' }}>
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => {
-                    const sel = status === k;
+                {/* ΕΠΤΑ ΕΠΙΛΟΓΕΣ, ΙΔΙΕΣ ΑΚΡΙΒΩΣ ΜΕ ΤΗΝ ΚΕΦΑΛΙΔΑ ΤΟΥ ΑΚΙΝΗΤΟΥ.
+                    Η κάθε μία φέρει και την επεξήγησή της, όπως στο μενού: η
+                    διαφορά μακροχρόνιας και βραχυχρόνιας δεν είναι προφανής από
+                    τον τίτλο, και ήταν ο λόγος που υπήρχε χωριστός διακόπτης. */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 8 }}>
+                  {STATUSES.map(st => {
+                    const sel = statusKey === st.key;
                     return (
-                      <button key={k} onClick={() => setStatus(k)} style={{
-                        display: 'flex', alignItems: 'center', height: T.h.sm, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
-                        border: sel ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
+                      <button key={st.key} onClick={() => setStatusKey(st.key)} aria-pressed={sel} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
+                        padding: '10px 14px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left',
+                        transition: `border-color .15s ${T.ease.standard}, background .15s ${T.ease.standard}`,
+                        border: `1px solid ${sel ? 'var(--accent)' : 'var(--border-default)'}`,
                         background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
-                        fontFamily: T.font.sans, fontSize: 13, fontWeight: 500,
-                        color: sel ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        fontFamily: T.font.sans,
                       }}>
-                        {v}
+                        <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: 'var(--text-primary)' }}>{st.label}</span>
+                        <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--text-tertiary)' }}>{st.hint}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              <button onClick={() => setAirbnb(a => !a)} style={{
-                display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
-                border: airbnb ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
-                background: airbnb ? 'var(--accent-soft)' : 'var(--bg-surface)', transition: 'all 0.15s',
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</div>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
-                </div>
-                <div style={{ width: 44, height: 26, borderRadius: 12, background: airbnb ? 'var(--accent)' : 'var(--bg-overlay)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ position: 'absolute', top: 3, left: airbnb ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-                </div>
-              </button>
+              {/* Ο ΔΙΑΚΟΠΤΗΣ «Βραχυχρόνια μίσθωση (Airbnb / Booking)» ΕΦΥΓΕ.
+                  Έκανε ό,τι ακριβώς και το chip «Βραχυχρόνια μίσθωση» — έγραφε
+                  την ίδια κατάσταση — και όσο ήταν αναμμένος ΝΕΚΡΩΝΕ ολόκληρη τη
+                  σειρά των chips (opacity 0.5, pointerEvents none). Δύο
+                  χειριστήρια για ένα πεδίο, με το ένα να απενεργοποιεί το άλλο:
+                  ο χρήστης δεν μπορούσε να καταλάβει ποιο είναι το κανονικό.
+                  Ο ΑΜΑ, που ήταν ο πραγματικός λόγος να ξεχωρίζει η βραχυχρόνια,
+                  εμφανίζεται από μόνος του μόλις επιλεγεί εκείνη η κατάσταση. */}
 
               {/* Ο ΑΜΑ ΕΜΦΑΝΙΖΕΤΑΙ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΤΟ ΑΚΙΝΗΤΟ ΓΙΝΕΤΑΙ ΒΡΑΧΥΧΡΟΝΙΟ.
                   Δεν υπάρχει ξεχωριστός διακόπτης και δεν κρύβεται σε accordion
@@ -639,6 +649,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
               {/* Πάροχοι */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* ΤΟ «ΠΡΟΓΡΑΜΜΑ» ΕΦΥΓΕ. Ζητούσε το εμπορικό όνομα του πακέτου
+                    internet — κάτι που ούτε ο ίδιος ο συνδρομητής θυμάται, δεν
+                    χρησιμοποιείται πουθενά στην εφαρμογή, και δεν αλλάζει καμία
+                    απόφαση. Μια φόρμα καταχώρισης δεν έχει δικαίωμα να ρωτά κάτι
+                    που δεν πρόκειται να χρησιμοποιήσει. */}
                 <div style={sectionLabelStyle}>Πάροχοι</div>
                 <div style={grid2}>
                   <Field label="Ρεύμα">
@@ -649,9 +664,6 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   </Field>
                   <Field label="Internet">
                     <input style={inputStyle} value={settings.internet_provider} onChange={setSf('internet_provider')} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Πρόγραμμα">
-                    <input style={inputStyle} value={settings.internet_plan} onChange={setSf('internet_plan')} onFocus={onFocus} onBlur={onBlur} />
                   </Field>
                 </div>
               </div>
@@ -695,15 +707,15 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || ABSENT}</div>
                   <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
                 </div>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[effStatus] }} />{STATUS_LABELS[effStatus]}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: STATUS_COLORS[dbStatus.status_detail] }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[dbStatus.status_detail] }} />{BY_KEY[statusKey].label}
                 </span>
               </div>
 
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 14, overflow: 'hidden' }}>
                 {([
                   ['Τύπος', PROP_TYPE_LABELS[propType]],
-                  ['Κατάσταση', STATUS_LABELS[effStatus]],
+                  ['Κατάσταση', BY_KEY[statusKey].label],
                   airbnb ? ['Βραχυχρόνια μίσθωση', 'Ναι (Airbnb / Booking)'] : null,
                   ['Διεύθυνση', address.trim() || ABSENT],
                   postalCode.trim() ? ['Ταχ. Κώδικας', postalCode.trim()] : null,
