@@ -1,19 +1,33 @@
 #!/usr/bin/env node
-// Lint-debt ratchet — a free, standardized guard against lint regressions.
+// ═══════════════════════════════════════════════════════════════════════════
+// ΚΑΣΤΑΝΙΑ LINT — ΚΑΙ ΜΙΑ ΜΙΚΡΗ ΛΙΣΤΑ ΠΟΥ ΔΕΝ ΧΩΡΑΕΙ ΣΕ ΚΑΣΤΑΝΙΑ
 //
-// The project carries legacy ESLint debt (mostly no-explicit-any and unused
-// vars) that isn't worth a risky mass-fix. Instead of making lint fully blocking
-// (which would fail every PR) or fully informational (which lets debt grow), this
-// enforces a MONOTONIC ceiling: the number of lint errors may only go DOWN.
+// Η εφαρμογή κουβαλά παλιό χρέος lint (κυρίως `any` και αχρησιμοποίητες
+// μεταβλητές) που δεν αξίζει μαζική επιδιόρθωση. Αντί το lint να είναι είτε
+// απαγορευτικό (θα κοβόταν κάθε αλλαγή) είτε καθαρά ενημερωτικό (το χρέος θα
+// μεγάλωνε), κρατιέται μονότονο όριο: ο αριθμός ΜΟΝΟ πέφτει.
 //
-// CI fails if errors exceed scripts/lint-baseline.json → any NEW error must be
-// fixed. When you clean some up, lower the baseline to lock the gain in.
+// ΤΟ ΛΑΘΟΣ ΠΟΥ ΓΕΝΝΗΣΕ ΤΗ ΛΙΣΤΑ. Τρία hooks γράφτηκαν κάτω από ένα
+// `if (loading) return`. Ο κανόνας `react-hooks/rules-of-hooks` το ανέφερε
+// αμέσως — και το μήνυμα εξαφανίστηκε μέσα σε 416 άλλα σφάλματα, γιατί η
+// καστάνια μετρούσε ΠΛΗΘΟΣ, όχι ΕΙΔΟΣ. Το αποτέλεσμα έφτασε στην παραγωγή: ο
+// React σταματούσε ολόκληρη την εφαρμογή σε κάθε φόρτωση, μόλις τελείωνε η
+// φόρτωση και εμφανίζονταν τα τρία hooks που έλειπαν πριν.
+//
+// Ένα σφάλμα που ΕΓΓΥΑΤΑΙ κατάρρευση δεν είναι χρέος. Δεν το ανέχεσαι λίγο.
+// Τα είδη της λίστας παρακάτω είναι πάντα μηδέν, ανεξάρτητα από το όριο.
+// ═══════════════════════════════════════════════════════════════════════════
 
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
 const baseline = JSON.parse(readFileSync(new URL('./lint-baseline.json', import.meta.url), 'utf8'))
 const cap = baseline.maxErrors
+
+// Κανόνες μηδενικής ανοχής: παραβίασή τους δεν είναι ύφος, είναι κατάρρευση.
+//   · rules-of-hooks  → «rendered more hooks than during the previous render»
+//   · no-undef        → ReferenceError την ώρα της εκτέλεσης
+const FATAL_RULES = new Set(['react-hooks/rules-of-hooks', 'no-undef'])
 
 let raw = ''
 try {
@@ -37,14 +51,24 @@ try {
 
 let errors = 0
 const byRule = {}
+const fatal = []
 for (const file of results) {
   for (const m of file.messages) {
     if (m.severity === 2) {
       errors++
       const r = m.ruleId || '(parse)'
       byRule[r] = (byRule[r] || 0) + 1
+      if (FATAL_RULES.has(r)) fatal.push(`${file.filePath.replace(process.cwd() + '/', '')}:${m.line}  ${r}`)
     }
   }
+}
+
+if (fatal.length) {
+  console.error(`\n🔴 ${fatal.length} ${fatal.length === 1 ? 'σφάλμα' : 'σφάλματα'} μηδενικής ανοχής — δεν μετράνε στο όριο, απαγορεύονται.`)
+  console.error('   Ένα hook σε λάθος σειρά σταματά ΟΛΗ την εφαρμογή στον περιηγητή του χρήστη.\n')
+  for (const f of fatal) console.error('   ' + f)
+  console.error('')
+  process.exit(1)
 }
 
 const top = Object.entries(byRule).sort((a, b) => b[1] - a[1]).slice(0, 8)

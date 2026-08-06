@@ -1021,6 +1021,28 @@ export default function Dashboard() {
   // στην Επισκόπηση, και δεν μπορούσε να στείλει σύνδεσμο ούτε σελιδοδείκτη.
   // Ίδια διεπαφή — κανένα από τα είκοσι `setNav` δεν άλλαξε.
   const [nav, setNav] = useNavHistory('overview');
+  // ═══ ΤΟ «ΠΙΣΩ» ΣΗΜΑΙΝΕΙ «ΕΚΕΙ ΠΟΥ ΗΜΟΥΝ», ΟΧΙ «ΣΤΗΝ ΑΡΧΙΚΗ» ═══════════════
+  // Ο σύνδεσμος επιστροφής έγραφε πάντα «Επισκόπηση», όποιος κι αν ήταν ο δρόμος.
+  // Από τότε που οι Εκκρεμότητες ανοίγουν από το Ημερολόγιο, αυτό είναι λάθος
+  // δύο φορές: λέει ψέματα για το πού θα σε πάει, και σε βγάζει δύο βήματα πίσω
+  // από εκεί που ήσουν. Κρατάμε την προηγούμενη καρτέλα και επιστρέφουμε ΕΚΕΙ.
+  //
+  // ΓΙΑΤΙ ΕΔΩ ΠΑΝΩ ΚΑΙ ΟΧΙ ΔΙΠΛΑ ΣΤΗ ΧΡΗΣΗ ΤΟΥ. Πιο κάτω, ανάμεσα σε αυτά τα
+  // τρία hooks και στην κορυφή του component, μεσολαβεί ένα `if (loading)
+  // return`. Όσο φόρτωνε η σελίδα, το component απέδιδε ΤΡΙΑ hooks λιγότερα·
+  // μόλις τελείωνε η φόρτωση εμφανίζονταν, και ο React σταματούσε ολόκληρη την
+  // εφαρμογή με «rendered more hooks than during the previous render». Δηλαδή
+  // δεν έσκαγε σε κάποια σπάνια διαδρομή: έσκαγε σε ΚΑΘΕ φόρτωση.
+  //
+  // Παρακολουθεί το `nav` και όχι το `navSafe`, που γεννιέται μετά: μια καρτέλα
+  // που έπαψε να ισχύει κόβεται ούτως ή άλλως από το `navVisible` παρακάτω.
+  const prevNavRef = useRef<string>('overview');
+  const [backTo, setBackTo] = useState<string>('overview');
+  useEffect(() => {
+    setBackTo(prevNavRef.current);
+    prevNavRef.current = nav;
+  }, [nav]);
+
   // Deep-link καρτέλα ενοικιαστή → Απογραφή/Παράδοση με προ-συμπληρωμένα στοιχεία.
   const [handoverIntent, setHandoverIntent] = useState<{tenantName?:string;tenantPhone?:string;type?:'check_in'|'check_out'}|null>(null);
   // Ομαδοποιημένη πλοήγηση (accordion): ανοιχτή μένει η ομάδα του ενεργού tab.
@@ -1450,19 +1472,9 @@ export default function Dashboard() {
   // την παλιά οθόνη.
   const navSafe = navVisible(nav) ? nav : 'overview';
 
-  // ═══ ΤΟ «ΠΙΣΩ» ΣΗΜΑΙΝΕΙ «ΕΚΕΙ ΠΟΥ ΗΜΟΥΝ», ΟΧΙ «ΣΤΗΝ ΑΡΧΙΚΗ» ═══════════════
-  // Ο σύνδεσμος επιστροφής έγραφε πάντα «Επισκόπηση», όποιος κι αν ήταν ο δρόμος.
-  // Από τότε που οι Εκκρεμότητες ανοίγουν από το Ημερολόγιο, αυτό είναι λάθος
-  // δύο φορές: λέει ψέματα για το πού θα σε πάει, και σε βγάζει δύο βήματα πίσω
-  // από εκεί που ήσουν. Κρατάμε την προηγούμενη καρτέλα και επιστρέφουμε ΕΚΕΙ.
-  const prevNavRef = useRef<string>('overview');
-  const [backTo, setBackTo] = useState<string>('overview');
-  useEffect(() => {
-    setBackTo(prevNavRef.current);
-    prevNavRef.current = navSafe;
-  }, [navSafe]);
   // Αν η προηγούμενη καρτέλα δεν ισχύει πια (άλλαξε κατάσταση ακινήτου) ή είναι
-  // η ίδια, η Επισκόπηση είναι ο ασφαλής προορισμός.
+  // η ίδια, η Επισκόπηση είναι ο ασφαλής προορισμός. Το `backTo` κρατιέται πιο
+  // πάνω, μαζί με τα υπόλοιπα hooks· εδώ μένει μόνο η κρίση.
   const backTab = backTo !== navSafe && navVisible(backTo) ? backTo : 'overview';
   const backLabel = NAV_ITEMS.find(i => i.id === backTab)?.label ?? 'Επισκόπηση';
 
