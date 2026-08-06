@@ -175,7 +175,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
               OwnerSplit, με διαφορετική στοίχιση σε κάθε παράθυρο. */}
           {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε ακίνητο για να συντάξεις δήλωση αναπροσαρμογής." /> : (
             <>
-              <ScanButton label="Σάρωσε έγγραφο" hint="Γρήγορη καταχώρηση στοιχείων." onExtract={doc => {
+              <ScanButton label="Συμπλήρωσε από φωτογραφία" hint="Διαβάζει τα στοιχεία και γεμίζει τη φόρμα. Δεν καταχωρεί τίποτα μόνο του." onExtract={doc => {
                 if (doc.tenant_name) setTenant(doc.tenant_name);
                 if (doc.monthly_rent) setCurrentRent(String(doc.monthly_rent));
                 if (doc.landlord_name && !ownerName.trim()) setOwnerName(doc.landlord_name);

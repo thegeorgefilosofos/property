@@ -11,6 +11,11 @@ import { T } from '@/components/Theme';
 import { scanDocument } from './scanDoc';
 import type { ScannedDoc } from '@/lib/billing/documents';
 
+// ΤΟ ΟΝΟΜΑ ΠΡΕΠΕΙ ΝΑ ΛΕΕΙ ΤΙ ΘΑ ΓΙΝΕΙ. Και οι τρεις καλούντες έγραφαν «Σάρωσε
+// έγγραφο» — ακριβώς η ίδια λέξη με το κεντρικό κουμπί της εφαρμογής, που όμως
+// κάνει ΑΛΛΟ πράγμα: εκείνο καταχωρεί σε λογαριασμούς, δαπάνες και ημερολόγιο,
+// αυτό εδώ απλώς γεμίζει τη φόρμα που έχεις μπροστά σου. Ο χρήστης δεν μπορούσε
+// να προβλέψει αν η φωτογραφία του θα αποθηκευτεί ή όχι.
 export default function ScanButton({ label, hint, onExtract }: { label: string; hint?: string; onExtract: (doc: ScannedDoc) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);

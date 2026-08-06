@@ -705,10 +705,16 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
       <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:20}}>
         <div style={{minWidth:0}}>
           <AthensNow style={{fontFamily:T.font.sans,fontSize:11,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.02em',marginBottom:4,minHeight:15}}/>
-          <h1 style={{fontSize:26,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',fontFamily:T.font.sans,lineHeight:1.15,margin:0,overflow:'hidden',textOverflow:'ellipsis'}}>{prop.name}</h1>
-          <div style={{fontFamily:T.font.sans,fontSize:12,color:'var(--text-tertiary)',marginTop:4}}>
-            {[PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο', statusLabelOf(prop), prop.address||null].filter(Boolean).join(' · ')}
-          </div>
+          {/* Η ΤΑΥΤΟΤΗΤΑ ΤΟΥ ΑΚΙΝΗΤΟΥ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΚΑΙ ΤΗ ΛΕΕΙ Η ΜΠΑΡΑ.
+              Εδώ γραφόταν ξανά, εξήντα εικονοστοιχεία κάτω από την ίδια
+              πρόταση: όνομα, τύπος, κατάσταση, διεύθυνση — τα ίδια τέσσερα
+              πεδία, με δεύτερη μορφοποίηση, και τρίτη φορά στην κάρτα
+              «Στοιχεία ακινήτου» πιο κάτω. Η πρώτη οθόνη ξόδευε τον πιο ακριβό
+              της χώρο για να επαναλάβει ό,τι μόλις είχε διαβαστεί, και το
+              Ταμείο — ο λόγος που ανοίγει κανείς την εφαρμογή — έπεφτε κάτω
+              από τη γραμμή του ματιού.
+              Μένει η ώρα Ελλάδας, που δεν τη λέει κανείς άλλος και που δίνει
+              νόημα στο «ως σήμερα» κάθε ποσού από κάτω. */}
         </div>
         <button onClick={()=>printPropertyStatement({
           propName: prop.name, address: prop.address||undefined, postalCode: prop.postal_code||undefined,
@@ -976,7 +982,11 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
         <ToolTile title="Εκκρεμότητες" metric={openChk ? `${openChk} ανοιχτές` : 'Καμία εκκρεμότητα'} sub="Εργασίες, προθεσμίες, παραδόσεις" badge={chkAttention} onOpen={() => onNavigate('checklist')} />
         <ToolTile title="Αρχείο" metric={docCount ? `${docCount} ${docCount === 1 ? 'έγγραφο' : 'έγγραφα'}` : 'Ανέβασε έγγραφα'} sub="Συμβόλαια, λογαριασμοί, φωτογραφίες" onOpen={() => onNavigate('documents')} />
-        <ToolTile title="Απογραφή" metric={inv.length ? `${inv.length} ${inv.length === 1 ? 'αντικείμενο' : 'αντικείμενα'}` : 'Κατέγραψε εξοπλισμό'} sub="Εξοπλισμός, εγγυήσεις, αποσβέσεις" badge={warrantySoon.length} onOpen={() => onNavigate('inventory')} />
+        {/* Το πλακίδιο «Απογραφή» έφυγε. Ήταν τρίτο όνομα για το ίδιο πράγμα
+            («Απογραφή» εδώ, «Έπιπλα / Εξοπλισμός» στη μπάρα, «Έπιπλα και
+            εξοπλισμός» στον τίτλο της) και δεύτερος δρόμος προς αυτό: ο
+            εξοπλισμός ζει τώρα μέσα στο Αρχείο, μαζί με τα χαρτιά και τις
+            επαφές του ακινήτου. Ένα όνομα, ένας δρόμος. */}
       </div>
       )}
     </div>
@@ -1539,7 +1549,7 @@ export default function Dashboard() {
               <circle cx="12" cy="13" r="4"/>
             </svg>
           </span>
-          <span className="quick-add-label">Σάρωσε έγγραφο</span>
+          <span className="quick-add-label">Φωτογράφισε έγγραφο</span>
         </button>
 
         <div className="sidebar-section">
@@ -1722,9 +1732,15 @@ export default function Dashboard() {
                   μπάρα του ακινήτου — chrome που ανήκει σε ΟΛΗ την εφαρμογή —
                   και εμφανιζόταν για μία μόνο καρτέλα. Ζει τώρα στο μενού της
                   ίδιας της απογραφής, μαζί με τις άλλες της ενέργειες. */}
-              <button onClick={()=>setNav('referral')} title={isPartner?'Είσαι Συνεργάτης Property OS · Πρόγραμμα Συνεργατών':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'} · Πρόγραμμα ${effProfileType==='professional'?'Συνεργατών':'Πρόσκλησης'}`} aria-label="Η ιδιότητά μου και το πρόγραμμα πρόσκλησης" style={{display:'flex',alignItems:'center',height:T.h.md,padding:0,border:'none',background:'transparent',cursor:'pointer',marginRight:8,borderRadius:'50%',transition:'transform .15s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
+              {/* ΤΟ ΕΜΒΛΗΜΑ ΕΙΝΑΙ ΕΝΔΕΙΞΗ, ΟΧΙ ΚΟΥΜΠΙ. Ήταν δεύτερο σημείο εισόδου
+                  στο ίδιο πρόγραμμα, με τρίτη διατύπωση του ονόματός του — και
+                  διαβάζεται ως κατάσταση, όχι ως πλοήγηση: κανείς δεν πατά ένα
+                  σήμα ιδιότητας περιμένοντας να αλλάξει σελίδα. Ο δρόμος είναι
+                  το μενού, με ένα όνομα. */}
+              <span title={isPartner?'Είσαι Συνεργάτης Property OS':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'}`}
+                style={{display:'flex',alignItems:'center',height:T.h.md,marginRight:8}}>
                 <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} showLabel={false} size={30} />
-              </button>
+              </span>
               <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση και γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
                 <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
