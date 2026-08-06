@@ -120,7 +120,10 @@ export function insightSubject(id: string): string {
 const KIND_WEIGHT: Record<string, number> = {
   urgent: 9, attention: 7, opportunity: 4, positive: 1,
 };
-const PRIORITY_WEIGHT: Record<string, number> = { high: 9, medium: 6, low: 3 };
+// Το «critical» έλειπε και έπεφτε στο `?? 5` — δηλαδή ΚΑΤΩ από το «medium» (6).
+// Μια κρίσιμη υποχρέωση χωρίς κοντινή προθεσμία καθόταν πιο χαμηλά από μια
+// μεσαία, ακριβώς επειδή ήταν κρίσιμη.
+const PRIORITY_WEIGHT: Record<string, number> = { critical: 12, high: 9, medium: 6, low: 3 };
 
 function toDaysLeft(iso: string | null | undefined, today: string): number | null {
   if (!iso) return null;

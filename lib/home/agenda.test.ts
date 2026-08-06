@@ -207,5 +207,52 @@ ok('και ο μετρητής δεν σκάει', overdueCount([]) === 0)
      buildAgenda({ obligations: [obl('κοντινό', 30)], today: '2026-08-06', horizonDays: 0 }).length === 1)
 }
 
+// ── ΤΟ ΚΡΙΣΙΜΟ ΕΙΝΑΙ ΠΑΝΩ ΑΠΟ ΤΟ ΜΕΣΑΙΟ ──────────────────────────────────
+// Ο πίνακας βαρών είχε high/medium/low. Το «critical» δεν υπήρχε, οπότε έπεφτε
+// στο εφεδρικό 5 — κάτω από το medium (6). Μια κρίσιμη υποχρέωση χωρίς κοντινή
+// προθεσμία καθόταν χαμηλότερα από μια μεσαία ΕΠΕΙΔΗ ήταν κρίσιμη.
+{
+  const list = buildAgenda({
+    obligations: [
+      obl({ id: 'a', title: 'Μεσαία', date: '', daysUntil: Number.NaN, priority: 'medium' }),
+      obl({ id: 'b', title: 'Κρίσιμη', date: '', daysUntil: Number.NaN, priority: 'critical' }),
+    ],
+    today: TODAY,
+  })
+  ok('χωρίς προθεσμία, το κρίσιμο προηγείται του μεσαίου', list[0]?.title === 'Κρίσιμη')
+  ok('και τα δύο μένουν στη λίστα', list.length === 2)
+}
+
+// ── ΟΙ ΕΡΓΑΣΙΕΣ ΣΥΝΤΗΡΗΣΗΣ ΜΠΑΙΝΟΥΝ ΣΤΗΝ ΙΔΙΑ ΣΕΙΡΑ ─────────────────────
+// Η Επισκόπηση περνά τις εργασίες του `maintenance_tasks` ως υποχρεώσεις με
+// `daysUntil: NaN`, ώστε τις ημέρες να τις μετρήσει η ίδια η ατζέντα από την
+// ημερομηνία — με ημερολόγιο Αθήνας, όχι με δεύτερη δική της μέτρηση.
+{
+  const list = buildAgenda({
+    obligations: [
+      obl({ id: 'lease_end', title: 'Λήξη μίσθωσης', date: '2026-09-30', daysUntil: 56 }),
+      obl({ id: 'task:1', title: 'Έλεγχος λέβητα', date: '2026-08-07', daysUntil: Number.NaN }),
+    ],
+    today: TODAY,
+  })
+  ok('η εργασία με NaN παίρνει ημέρες από την ημερομηνία',
+     list.find(i => i.title === 'Έλεγχος λέβητα')?.daysLeft === 2)
+  ok('και μπαίνει ΠΡΙΝ από ό,τι λήγει αργότερα', list[0]?.title === 'Έλεγχος λέβητα')
+}
+
+// Εργασία εκτός ορίζοντα δεν είναι «τώρα»· εκπρόθεσμη είναι πάντα.
+{
+  const far = buildAgenda({
+    obligations: [obl({ id: 'task:2', title: 'Μακρινή', date: '2027-06-01', daysUntil: Number.NaN })],
+    today: TODAY, horizonDays: 100,
+  })
+  ok('εργασία πέρα από τον ορίζοντα δεν εμφανίζεται', far.length === 0)
+  const late = buildAgenda({
+    obligations: [obl({ id: 'task:3', title: 'Ξεχασμένη', date: '2026-05-01', daysUntil: Number.NaN })],
+    today: TODAY, horizonDays: 100,
+  })
+  ok('εκπρόθεσμη εργασία μένει πάντα', late.length === 1 && (late[0].daysLeft ?? 0) < 0)
+}
+
 console.log(fail === 0 ? `✓ agenda: ${pass} έλεγχοι πέρασαν` : `✗ agenda: ${fail} απέτυχαν από ${pass + fail}`)
 if (fail > 0) process.exit(1)

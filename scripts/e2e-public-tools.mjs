@@ -84,7 +84,13 @@ const num = t => Number(String(t).replace(/[^\d,.-]/g,'').replace(/\./g,'').repl
   const inputs = p.locator('input')
   await inputs.nth(0).fill('120'); await inputs.nth(1).fill('3200')
   await p.locator('select').nth(0).selectOption('ground')
-  await p.locator('select').nth(1).selectOption('under_5')
+  // ΤΟ ΚΛΕΙΔΙ ΑΛΛΑΞΕ ΟΤΑΝ Η ΚΛΙΜΑΚΑ ΠΗΡΕ ΤΗΝ ΕΚΤΗ ΖΩΝΗ. Ο νόμος έχει ΕΞΙ ζώνες
+  // παλαιότητας· ο κώδικας είχε πέντε και χρέωνε τα κτίρια 15 ως 19 ετών με τον
+  // συντελεστή της προηγούμενης ζώνης. Με τη διόρθωση, τα κλειδιά έγιναν
+  // y0_4 … y26_plus. Το σενάριο εδώ ζητούσε ακόμη το παλιό «under_5»: η επιλογή
+  // δεν υπήρχε πια στο DOM και το σενάριο κρεμούσε τριάντα δευτερόλεπτα, χωρίς
+  // να πει ΓΙΑΤΙ. Ο συντελεστής (1,25) είναι ο ίδιος, άρα και το αναμενόμενο ποσό.
+  await p.locator('select').nth(1).selectOption('y0_4')
   await p.waitForTimeout(300)
   ok('120τμ / ζώνη 3200 / ισόγειο / νεόδμητο → 1.026 €', Math.abs((await read()) - 1026) < 0.02)
 

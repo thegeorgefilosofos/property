@@ -30,8 +30,8 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, fp, fe, type KPIItem } from '@/components/Theme';
-import { Building2, Receipt, ListChecks, FileText } from 'lucide-react';
+import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, fp, fe, feOr, fd, type KPIItem } from '@/components/Theme';
+import { Building2, Receipt, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
 import PropertyAssistant from './components/PropertyAssistant';
@@ -224,9 +224,13 @@ const BOTTOM_NAV = [
   { id:'more', label:'Μενού', icon: ic('M4 6h16|M4 12h16|M4 18h16') },
 ];
 
-const fmt = (n:number|null|undefined, decimals=0) =>
-  n == null ? '—' : n.toLocaleString('el-GR', { minimumFractionDigits:decimals, maximumFractionDigits:decimals });
-const fmtEur = (n:number|null|undefined) => n == null ? '—' : `${fmt(n)} €`;
+// ═══ ΔΥΟ ΤΥΠΟΙ ΠΟΣΟΥ ΣΤΗΝ ΙΔΙΑ ΕΦΑΡΜΟΓΗ, ΚΑΙ Ο ΕΝΑΣ ΕΒΓΑΖΕ ΠΑΥΛΑ ══════════
+// Ο τοπικός `fmtEur` έγραφε ακέραια ευρώ («1.234 €») ενώ ο κοινός `fe` γράφει
+// πάντα δύο δεκαδικά («1.234,50 €»): στην ΙΔΙΑ οθόνη, το πλακίδιο «Δαπάνες»
+// στοιχιζόταν αλλού από το «Καθαρό αποτέλεσμα». Και για `null` επέστρεφε «—»,
+// δηλαδή σύμβολο σε θέση ποσού, σε δεκαοκτώ σημεία της Επισκόπησης.
+// Ο κοινός τύπος τα λύνει και τα δύο: `feOr` γράφει «0,00 €» για το άγνωστο.
+const fmtEur = feOr;
 
 // MD3 form styles
 const mdInput: React.CSSProperties = {
@@ -430,7 +434,9 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
     const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ count:dCount },{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
-      supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
+      // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
+      // ατζέντα, που τις ταξινομεί μαζί με όλα τα υπόλοιπα κατά προθεσμία.
+      supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(60),
       supabase.from('tenants').select('id,monthly_rent,lease_start,lease_end').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
@@ -641,11 +647,31 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [prop, tenantFull, maint, todayIso],
   );
+  // ═══ ΔΥΟ ΛΙΣΤΕΣ «ΤΙ ΕΡΧΕΤΑΙ», Η ΜΙΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΛΛΗ ═══════════════════
+  // Η ατζέντα στην κορυφή έλεγε «τι χρειάζεται τώρα». Τρεις ζώνες πιο κάτω, μια
+  // κάρτα «Επόμενες Εργασίες» έδειχνε ΑΛΛΕΣ πέντε επερχόμενες δουλειές — από
+  // άλλον πίνακα, με δική της ταξινόμηση, χωρίς να ξέρει η μία για την άλλη.
+  // Ο χρήστης έπρεπε να διαβάσει δύο λίστες και να τις συγχωνεύσει στο μυαλό
+  // του για να καταλάβει τι είναι πρώτο. Τώρα τις συγχωνεύει η μηχανή.
+  const taskObligations = useMemo(
+    () => tasks.filter(t => t.title).map(t => ({
+      id: `task:${t.id}`,
+      title: t.title,
+      note: '',
+      date: t.due_date || '',
+      // NaN: η ατζέντα υπολογίζει μόνη της τις ημέρες από την ημερομηνία, με
+      // ημερολόγιο Αθήνας. Δεν της δίνουμε δεύτερη, δική μας μέτρηση.
+      daysUntil: Number.NaN,
+      priority: t.priority === 'critical' ? 'critical' : t.priority === 'high' ? 'high' : 'medium',
+    })),
+    [tasks],
+  );
   const agendaAll = useMemo(
-    () => buildAgenda({ insights, obligations, setup: setupSteps, today: todayIso,
+    () => buildAgenda({ insights, obligations: [...obligations, ...taskObligations],
+                        setup: setupSteps, today: todayIso,
                         horizonDays: prefs.agendaHorizonDays }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [insights, obligations, setupSteps, todayIso, prefs.agendaHorizonDays],
+    [insights, obligations, taskObligations, setupSteps, todayIso, prefs.agendaHorizonDays],
   );
   // Πέντε στην αρχική. Η πλήρης λίστα ζει στις «Εκκρεμότητες» — και η οθόνη το λέει.
   const agenda = agendaAll.slice(0, 5);
@@ -701,7 +727,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)';}}
           onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)';}}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-          Αναφορά (PDF)
+          Αναφορά σε PDF
         </button>
       </div>
 
@@ -778,7 +804,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         </div>
         <div className="card">
           <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-            <span><span className="section-dot"/> Κατηγορίες Δαπανών · {MONTHS_LONG[selMonth]} {chartYear}</span>
+            <span><span className="section-dot"/> Κατηγορίες δαπανών · {MONTHS_LONG[selMonth]} {chartYear}</span>
             {selMonthTotal>0 && <span style={{fontFamily: T.font.mono,fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
           </div>
           {selCatEntries.length===0
@@ -799,46 +825,28 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         </div>
       </div>
 
-      <SecHdr label="Το ακίνητο" sub="Στοιχεία, εργασίες και πάγια κόστη" />
-      <div className="grid-3" style={{marginBottom:24}}>
+      <SecHdr label="Το ακίνητο" sub="Στοιχεία και πάγια κόστη" />
+      <div className="grid-main">
+        {/* ═══ ΔΕΚΑΤΡΕΙΣ ΣΕΙΡΕΣ ΔΙΠΛΑ ΣΕ ΠΕΝΤΕ ══════════════════════════════
+            Ο πίνακας στοιχείων ήταν μία στήλη ζευγαριών σε πλέγμα τριών ίσων
+            καρτών: γέμιζε δεκατρείς σειρές ενώ οι διπλανές κάρτες γέμιζαν πέντε,
+            και η σειρά τελείωνε με μισή κάρτα κείμενο και δυόμισι κάρτες κενό.
+            Τα ίδια ζεύγη σε ΔΥΟ στήλες πέφτουν στις επτά σειρές και ζυγίζουν με
+            το διπλανό — η ίδια πληροφορία, χωρίς το κενό. */}
         <div className="card">
-          <div className="section-label"><span className="section-dot"/> Στοιχεία Ακινήτου</div>
-          <table style={{width:'100%',borderCollapse:'collapse'}}>
-            <tbody>
-              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
-                <tr key={i}>
-                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily: T.font.sans,color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
-                  <td style={{padding:'8px 0',fontFamily: T.font.sans,color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="card">
-          <div className="section-label"><span className="section-dot"/> Επόμενες Εργασίες</div>
-          {tasks.length===0
-            ? <EmptyState icon={<ListChecks size={20}/>} title="Δεν υπάρχουν εκκρεμείς εργασίες" hint="Οι επόμενες προθεσμίες και παραδόσεις θα εμφανιστούν εδώ." action={<Btn variant="secondary" onClick={()=>onNavigate('checklist')}>Νέα εκκρεμότητα</Btn>} />
-            : <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {/* Η κουκκίδα ήταν `high ? A : medium ? A : A`: τρεις κλάδοι, ίδια
-                    τιμή — προσποιούνταν ότι κωδικοποιεί προτεραιότητα. Τώρα είναι
-                    ουδέτερη και η προτεραιότητα λέγεται με λέξεις, όπου υπάρχει. */}
-                {tasks.map(t => (
-                  <div key={t.id} style={{display:'flex',alignItems:'flex-start',gap:10}}>
-                    <div style={{width:6,height:6,borderRadius:'50%',background:'var(--border-subtle)',marginTop:6,flexShrink:0}}/>
-                    <div>
-                      <div style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-primary)',lineHeight:'20px'}}>{t.title}</div>
-                      <div style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-tertiary)',marginTop:2}}>
-                        {[t.due_date ? new Date(t.due_date).toLocaleDateString('el-GR') : null,
-                          t.priority==='high'||t.priority==='critical' ? 'υψηλή προτεραιότητα' : null].filter(Boolean).join(' · ')}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <div className="section-label"><span className="section-dot"/> Στοιχεία ακινήτου</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,230px),1fr))',columnGap:28}}>
+            {([['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά μέτρα`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή κλάση',prop.pea_class],['Θέσεις στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τετραγωνικά μέτρα`:null],['Αντικειμενική αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]] as [string,string|null][]).filter(([,v])=>v).map(([k,v]) => (
+              <div key={k} title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου, από το έντυπο Ε9':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ο ετήσιος φόρος περιουσίας':undefined}
+                style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,padding:'8px 0',borderBottom:'1px solid var(--border-subtle)'}}>
+                <span style={{fontFamily:T.font.sans,color:'var(--text-secondary)',fontSize:12.5,letterSpacing:'0.25px',whiteSpace:'nowrap'}}>{k}</span>
+                <span style={{fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:12.5,letterSpacing:'0.25px',textAlign:'right',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
               </div>
-          }
+            ))}
+          </div>
         </div>
         <div className="card">
-          <div className="section-label"><span className="section-dot"/> Μέσοι Λογαριασμοί</div>
+          <div className="section-label"><span className="section-dot"/> Μέσοι λογαριασμοί</div>
           {bills.length===0
             ? <EmptyState icon={<FileText size={20}/>} title="Δεν υπάρχουν λογαριασμοί" hint="Πρόσθεσε ρεύμα, νερό και πάγια για να δεις μέσο μηνιαίο κόστος." action={<Btn variant="secondary" onClick={()=>onNavigate('finances')}>Λογαριασμοί</Btn>} />
             : <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -894,8 +902,10 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           { label:'Δαπάνες', value:fmtEur(Math.round(projectedExpYear)),
             sub: [`${fmtEur(totalExpYTD)} ως σήμερα`, recurringCount>0 ? `${recurringCount} πάγιες` : null].filter(Boolean).join(' · '),
             title:`Οι δαπάνες που έχεις καταχωρήσει για το ${year}, μετρημένες όσες φορές πραγματικά συμβαίνουν.` },
-          { label:'Αξία ακινήτου', value: propValue>0 ? fmtEur(propValue) : fe(0),
-            title: prop.value ? 'Εμπορική αξία, όπως την έχεις καταχωρήσει.' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική.' },
+          // Χωρίς εμπορική ΚΑΙ χωρίς αντικειμενική αξία, το πλακίδιο έγραφε
+          // «0,00 €»: όχι μέτρηση, αλλά απουσία μέτρησης ντυμένη σαν μέτρηση.
+          ...(propValue>0 ? [{ label:'Αξία ακινήτου', value: fmtEur(propValue),
+            title: prop.value ? 'Εμπορική αξία, όπως την έχεις καταχωρήσει.' : 'Αντικειμενική αξία από το έντυπο Ε9, επειδή δεν έχει καταχωρηθεί εμπορική.' }] : []),
         ];
         // ΙΔΙΟ ΠΛΑΚΙΔΙΟ, ΟΧΙ ΙΔΙΑ ΒΑΡΥΤΗΤΑ. Τα τέσσερα παραπάνω είναι η αλυσίδα
         // που καταλήγει στο «Καθαρό αποτέλεσμα» — το συμπέρασμα της χρονιάς. Τα
@@ -906,18 +916,21 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         const extra: KPIItem[] = [];
         if (loans.length > 0) extra.push({
           label:'Δόση δανείου / μήνα', value:fmtEur(Math.round(monthlyDebt)),
-          sub: debtLtv>0 ? `δάνειο προς αξία ${fp(debtLtv, 0)}` : undefined,
+          sub: debtLtv>0 ? `δάνειο προς αξία ${fp(debtLtv)}` : undefined,
           title:'Εκτιμώμενη τοκοχρεολυτική δόση. ΔΕΝ αφαιρείται από το καθαρό αποτέλεσμα παραπάνω — το κεφάλαιο δεν είναι δαπάνη.' });
         if (hostStays.length > 0) extra.push({
           label:`Έσοδα φιλοξενίας ${year}`, value:fmtEur(Math.round(hostingYTD)),
-          sub: [hostingNights>0?`${hostingNights} διανυκτερεύσεις`:null, nextArrival?`επόμενη άφιξη ${new Date(nextArrival).toLocaleDateString('el-GR')}`:null].filter(Boolean).join(' · ') || undefined,
+          sub: [hostingNights>0?`${hostingNights} διανυκτερεύσεις`:null, nextArrival?`επόμενη άφιξη ${fd(nextArrival)}`:null].filter(Boolean).join(' · ') || undefined,
           title:'Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα «Επισκέπτες».' });
         // ΟΙ «ΕΚΚΡΕΜΕΙΣ ΔΑΠΑΝΕΣ» ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Είναι ακριβώς το «Χρωστάω» του
         // Ταμείου, στην κορυφή της ίδιας οθόνης — το ίδιο ποσό δύο φορές, με
         // διαφορετικό όνομα και σε απόσταση ενός scroll.
         return (
           <>
-            <KPIGrid columns={4} items={items} />
+            {/* Το πλήθος στηλών ακολουθεί το πλήθος των πλακιδίων. Με σταθερό
+                τέσσερα, το ακίνητο χωρίς έσοδα άπλωνε ένα ή δύο πλακίδια σε
+                τέσσερις θέσεις και άφηνε τη μισή σειρά κενή. */}
+            <KPIGrid columns={Math.min(4, Math.max(2, items.length))} items={items} />
             {/* Η απόδοση σε μία γραμμή αντί για δύο πλακίδια: είναι
                 συμφραζόμενο του αποτελέσματος, όχι ισότιμο μέγεθος μαζί του. Η
                 πλήρης ανάλυση ζει στις «Αποδόσεις», που είναι η καρτέλα της. */}
@@ -925,9 +938,9 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
               {isLet(prop) && propValue>0 && (
                 <div>
                   <strong style={{color:'var(--text-primary)',fontWeight:600}}>Απόδοση.</strong>{' '}
-                  <span title="Ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών">μεικτή {fp(grossYield, 1)}</span>
+                  <span title="Ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών">μεικτή {fp(grossYield)}</span>
                   {' · '}
-                  <span title="Ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου">καθαρή {fp(netYield, 1)}</span>
+                  <span title="Ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου">καθαρή {fp(netYield)}</span>
                   {propValue>0 && ` · αξία ${fmtEur(propValue)}`}
                 </div>
               )}
@@ -943,7 +956,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
       {/* Διαχείριση & Εργαλεία, δευτερεύουσες ενέργειες, κάτω από την οικονομική
           εικόνα. Ίδια κεφαλίδα ενότητας με τις υπόλοιπες — ήταν χειρόγραφη
           γραμμή με τα ίδια περίπου styles και μισό pixel διαφορά. */}
-      <SecHdr label="Διαχείριση & εργαλεία" />
+      <SecHdr label="Διαχείριση και εργαλεία" />
       <PortalShare propertyId={prop.id} userId={userId} />
       <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
       <PaymentLinks />
