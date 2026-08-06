@@ -68,9 +68,28 @@ for (const m of base.matchAll(/ADD CONSTRAINT "(\w+)_pkey" PRIMARY KEY \("(\w+)"
   const table = m[1].replace(/_pkey$/, '')
   if (tables.includes(table)) out.push(`alter table public.${table} add primary key (${m[2]});`)
 }
-for (const m of base.matchAll(/ADD CONSTRAINT "(\w+)_(\w+)_key" UNIQUE \("([\w", ]+)"\)/g)) {
-  const table = m[1]
-  if (tables.includes(table)) out.push(`alter table public.${table} add unique (${m[3].replace(/"/g, '')});`)
+// ── ΟΙ ΜΟΝΑΔΙΚΟΙ ΠΕΡΙΟΡΙΣΜΟΙ ─────────────────────────────────────────────────
+// ΤΟ ΟΝΟΜΑ ΔΕΝ ΣΠΑΕΙ ΜΕ ΜΑΝΤΕΨΙΑ. Η προηγούμενη εκδοχή ήταν
+//     /ADD CONSTRAINT "(\w+)_(\w+)_key" UNIQUE .../
+// και το `\w+` είναι άπληστο: το `property_settings_property_id_key` έσπαγε σε
+// «property_settings_property» + «id». Πίνακας με τέτοιο όνομα δεν υπάρχει, ο
+// έλεγχος `tables.includes(...)` απέτυχε σιωπηλά, και ο περιορισμός ΔΕΝ έμπαινε
+// καθόλου στη δοκιμαστική βάση.
+//
+// Χάνονταν έτσι όλοι οι μοναδικοί περιορισμοί των πινάκων με σύνθετο όνομα —
+// δηλαδή σχεδόν όλων. Και ακριβώς πάνω σε αυτούς στηρίζεται το `on conflict`:
+// ένα upsert που στην παραγωγή ρίχνει 42P10 περνούσε εδώ καθαρό, επειδή εδώ ο
+// περιορισμός δεν υπήρχε ώστε να συγκρουστεί. Το sandbox γράφτηκε για να μη
+// δοκιμάζουμε βάση που δεν υπάρχει, και σε αυτό το σημείο έκανε ακριβώς αυτό.
+//
+// Τώρα το όνομα δοκιμάζεται ως πρόθεμα ΓΝΩΣΤΟΥ πίνακα, με τον μακρύτερο να
+// κερδίζει (ώστε το `property_settings_*` να μην αποδοθεί σε τυχόν `property_*`).
+for (const m of base.matchAll(/ADD CONSTRAINT "(\w+_key)" UNIQUE \("([\w", ]+)"\)/g)) {
+  const name = m[1]
+  const table = tables
+    .filter(t => name.startsWith(t + '_'))
+    .sort((a, b) => b.length - a.length)[0]
+  if (table) out.push(`alter table public.${table} add unique (${m[2].replace(/"/g, '')});`)
 }
 
 // ── 3. Στήλες που πρόσθεσαν τα επόμενα migrations ────────────────────────

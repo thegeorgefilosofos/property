@@ -35,6 +35,56 @@ export interface TaxStay extends StayAmountLike {
 const y4 = (d?: string | null) => (d || '').slice(0, 4);
 const addDay = (isoDate: string) => { const dt = new Date(isoDate + 'T00:00:00Z'); dt.setUTCDate(dt.getUTCDate() + 1); return dt.toISOString().slice(0, 10); };
 
+/**
+ * Πόσες από τις διανυκτερεύσεις μιας διαμονής πέφτουν μέσα στο έτος, και πόσες
+ * είναι συνολικά. Χρειάζεται ώστε ό,τι μοιράζεται ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ να
+ * μοιράζεται με τον ίδιο κανόνα και στις δύο πλευρές του λογαριασμού.
+ */
+function nightsSplit(s: TaxStay, year: number): { inYear: number; total: number } {
+  if (!s.check_in) return { inYear: 0, total: 0 };
+  const start = s.check_in.slice(0, 10);
+  const end = s.check_out ? s.check_out.slice(0, 10) : null;
+  const ys = String(year);
+  if (end && end > start) {
+    let d = start, guard = 0, inYear = 0, total = 0;
+    while (d < end && guard++ < 400) {
+      total++;
+      if (d.slice(0, 4) === ys) inYear++;
+      d = addDay(d);
+    }
+    return { inYear, total };
+  }
+  const n = Math.max(0, s.nights || 0);
+  return { inYear: start.slice(0, 4) === ys ? n : 0, total: n };
+}
+
+/**
+ * ΤΟ ΕΙΣΠΡΑΓΜΕΝΟ ΤΕΛΟΣ ΠΟΥ ΑΝΑΛΟΓΕΙ ΣΤΟ ΕΤΟΣ.
+ *
+ * Η διαμονή 28/12 → 5/1 χρεωνόταν το τέλος ΔΥΟ φορές. Οι διανυκτερεύσεις
+ * μοιράζονταν σωστά στα δύο έτη (τέσσερις τον Δεκέμβριο, τέσσερις τον Ιανουάριο),
+ * άρα και το ΟΦΕΙΛΟΜΕΝΟ τέλος. Το ΕΙΣΠΡΑΓΜΕΝΟ όμως αποδιδόταν ολόκληρο στο έτος
+ * του check-in:
+ *
+ *   2025 → οφείλει 8, εισέπραξε 16 → διαφορά 0
+ *   2026 → οφείλει 8, εισέπραξε  0 → διαφορά 8   ← χρεώνεται ξανά
+ *
+ * Και τα 8 € έμπαιναν στους φόρους του 2026 ως ακάλυπτο τέλος, μειώνοντας το
+ * καθαρό ταμείο — για ποσό που ο επισκέπτης είχε ήδη πληρώσει.
+ *
+ * Ο κανόνας: το τέλος είναι ανά διανυκτέρευση, οπότε μοιράζεται όπως οι
+ * διανυκτερεύσεις. Διαμονή που δεν αγγίζει το έτος συνεισφέρει μηδέν.
+ */
+export function collectedLevyForYear(stays: TaxStay[], year: number): number {
+  let sum = 0;
+  for (const s of stays) {
+    const { inYear, total } = nightsSplit(s, year);
+    if (!inYear || !total) continue;
+    sum += levyOfStay(s) * (inYear / total);
+  }
+  return sum;
+}
+
 /** Διανυκτερεύσεις ανά μήνα (12 τιμές, 0=Ιαν) που πέφτουν εντός του έτους. */
 export function nightsByMonthForYear(stays: TaxStay[], year: number): number[] {
   const out = new Array(12).fill(0);
@@ -112,7 +162,12 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   const grossRevenue = inYear.reduce((sum, s) => sum + declarableGrossOrTotal(s), 0);
   const unresolved = inYear.filter(s => declarableGross(s) == null && declarableGrossOrTotal(s) > 0);
   const platformFees = inYear.reduce((sum, s) => sum + platformFee(s), 0);
-  const collectedLevy = inYear.reduce((sum, s) => sum + levyOfStay(s), 0);
+  // ΟΧΙ `inYear.reduce(...)`. Το οφειλόμενο τέλος βγαίνει από τις διανυκτερεύσεις
+  // που πέφτουν ΜΕΣΑ στο έτος (nightsByMonth), οπότε και το εισπραγμένο πρέπει να
+  // μετρηθεί με τον ίδιο κανόνα. Με φιλτράρισμα κατά check-in, μια διαμονή που
+  // περνά την Πρωτοχρονιά έδινε όλο το τέλος στο πρώτο έτος και τίποτα στο
+  // δεύτερο — που το ξαναχρέωνε.
+  const collectedLevy = collectedLevyForYear(stays, year);
   const levy = climateLevyForNights(nightsByMonth, meta?.sqm, meta?.isHouse);
   const municipalTax = meta ? municipalAccommodationTax(grossRevenue, meta) : 0;
   // Βραχυχρόνια φυσικού προσώπου χωρίς υπηρεσίες = εισόδημα από ακίνητη περιουσία:

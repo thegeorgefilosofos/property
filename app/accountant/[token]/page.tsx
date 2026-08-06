@@ -16,7 +16,16 @@ import { T, feAuto, Card } from '@/components/Theme';
 
 interface Expense { category: string; amount: number; date: string }
 interface Stay { check_in: string | null; check_out: string | null; nights: number | null; total: number | null }
-interface Prop { name: string; atak: string | null; address: string | null; prop_type: string | null; rent: number | null; expenses: Expense[]; stays: Stay[] }
+interface Prop {
+  name: string; atak: string | null; address: string | null; prop_type: string | null;
+  /** Εισπραχθέν ενοίκιο ΤΟΥ ΕΤΟΥΣ, από rent_payments — ίδια πηγή με το Ε2. */
+  rent_collected: number | null;
+  /** Σε πόσες καταχωρημένες περιόδους βασίζεται. 0 = δεν καταχωρήθηκε τίποτα. */
+  rent_months: number | null;
+  /** Τι νοικιάζεται ΣΗΜΕΡΑ. Συμφραζόμενο, όχι έσοδο του έτους. */
+  rent_monthly: number | null;
+  expenses: Expense[]; stays: Stay[];
+}
 interface Data { owner: string | null; year: number; properties: Prop[] }
 
 const sum = (a: number[]) => a.reduce((s, v) => s + (v || 0), 0);
@@ -46,11 +55,16 @@ export default function AccountantPortal() {
   // Σύνολα (ο φόρος εισοδήματος είναι προοδευτικός στο ΣΥΝΟΛΟ των ενοικίων)
   const props = data?.properties || [];
   const perProp = props.map(p => {
-    const rentAnnual = (p.rent || 0) * 12;
+    // ΗΤΑΝ `(p.rent || 0) * 12`, με το `p.rent` να είναι το μίσθωμα του τελευταίου
+    // μισθωτή — χωρίς φίλτρο έτους, χωρίς σχέση με τις ημερομηνίες της μίσθωσης.
+    // Ο πίνακας ανοίγει στην ΠΡΟΗΓΟΥΜΕΝΗ χρονιά, οπότε μισθωτής που μπήκε φέτος
+    // παρήγαγε δωδεκάμηνο εισόδημα για χρονιά που το ακίνητο απέδωσε μηδέν.
+    const rentAnnual = p.rent_collected || 0;
+    const rentMonths = p.rent_months || 0;
     const shortGross = sum((p.stays || []).map(s => s.total || 0));
     const income = rentAnnual + shortGross;
     const expenses = sum((p.expenses || []).map(e => e.amount || 0));
-    return { p, rentAnnual, shortGross, income, expenses };
+    return { p, rentAnnual, rentMonths, shortGross, income, expenses };
   });
   const totalIncome = sum(perProp.map(x => x.income));
   const totalExpenses = sum(perProp.map(x => x.expenses));
@@ -113,7 +127,7 @@ export default function AccountantPortal() {
               {row('Συνολικές καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
               {row('Εκτιμώμενος φόρος εισοδήματος (ενδεικτικά)', feAuto(estTax), true)}
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
-                Οι αριθμοί είναι ενδεικτικοί, βάσει των καταχωρήσεων του ιδιοκτήτη. Εφαρμόστηκε η {bracketsLabelForYear(year)} για εισοδήματα {year}. {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
+                Τα ενοίκια είναι οι ΕΙΣΠΡΑΞΕΙΣ που καταχώρησε ο ιδιοκτήτης για το {year} — όχι το συμβατικό μίσθωμα επί δώδεκα. Εφαρμόστηκε η {bracketsLabelForYear(year)} για εισοδήματα {year}. {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
               </div>
             </Card>
 
@@ -121,7 +135,16 @@ export default function AccountantPortal() {
               <Card key={i}>
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{x.p.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{[x.p.address, x.p.atak ? `ΑΤΑΚ ${x.p.atak}` : null].filter(Boolean).join(' · ') || 'Χωρίς στοιχεία'}</div>
-                {x.rentAnnual > 0 && row('Ενοίκια (ετήσια)', feAuto(x.rentAnnual))}
+                {x.rentAnnual > 0 && row(`Ενοίκια ${year} · ${x.rentMonths} ${x.rentMonths === 1 ? 'καταχωρημένη περίοδος' : 'καταχωρημένες περίοδοι'}`, feAuto(x.rentAnnual))}
+                {/* ΤΟ ΜΗΔΕΝ ΛΕΓΕΤΑΙ, ΔΕΝ ΠΑΡΑΛΕΙΠΕΤΑΙ. Ένα ακίνητο που απλώς
+                    λείπει από τη λίστα διαβάζεται ως «δεν απέδωσε»· ο λογιστής
+                    πρέπει να ξέρει ότι δεν καταχωρήθηκε τίποτα, για να ρωτήσει. */}
+                {x.rentAnnual === 0 && x.shortGross === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                    Καμία καταχωρημένη είσπραξη ενοικίου για το {year}
+                    {x.p.rent_monthly ? ` — σήμερα νοικιάζεται ${feAuto(x.p.rent_monthly)} τον μήνα` : ''}.
+                  </div>
+                )}
                 {x.shortGross > 0 && row('Βραχυχρόνια (καταγεγραμμένο ποσό)', feAuto(x.shortGross))}
                 {row('Δαπάνες έτους', feAuto(x.expenses))}
                 {(x.p.expenses || []).length > 0 && (

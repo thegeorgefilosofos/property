@@ -44,10 +44,19 @@ begin
   -- Ο περιορισμός πάνω στον οποίο θα γίνεται πλέον το upsert. Αν λείψει, το
   -- `on conflict (property_id)` σκάει με 42P10 και η τιμή πάλι δεν αποθηκεύεται —
   -- δηλαδή το ίδιο σφάλμα με άλλο πρόσωπο.
+  --
+  -- Ο έλεγχος γίνεται στις ΣΤΗΛΕΣ, όχι στο όνομα. Το `on conflict` δεν κοιτά
+  -- ποτέ όνομα περιορισμού· ψάχνει μοναδικό ευρετήριο πάνω στη στήλη. Ένας
+  -- έλεγχος με `conname = 'property_settings_property_id_key'` θα έπεφτε σε κάθε
+  -- βάση όπου ο ίδιος ακριβώς περιορισμός δημιουργήθηκε ανώνυμα — δηλαδή θα
+  -- κατήγγειλε ως λάθος κάτι που δουλεύει μια χαρά.
   if not exists (
-    select 1 from pg_constraint
-    where conname = 'property_settings_property_id_key' and conrelid = 'public.property_settings'::regclass
+    select 1 from pg_constraint c
+    where c.conrelid = 'public.property_settings'::regclass
+      and c.contype in ('u', 'p')
+      and c.conkey = array[(select attnum from pg_attribute
+                            where attrelid = c.conrelid and attname = 'property_id')]
   ) then
-    raise exception 'λείπει ο μοναδικός περιορισμός property_settings_property_id_key';
+    raise exception 'ο property_settings χρειάζεται μοναδικό περιορισμό ΜΟΝΟ στο property_id, αλλιώς το on conflict σκάει με 42P10';
   end if;
 end $$;

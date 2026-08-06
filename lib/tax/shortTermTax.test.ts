@@ -1,7 +1,7 @@
 // Δοκιμές φορολογικής σύνοψης βραχυχρόνιας. Τρέξε: npx tsx lib/tax/shortTermTax.test.ts
 import {
   nightsByMonthForYear, channelBreakdownForYear, shortTermYearSummary, yearsWithStays,
-  guestPriceBreakdown,
+  guestPriceBreakdown, collectedLevyForYear, type TaxStay,
 } from './shortTermTax';
 import { climateLevyForNights, rentalIncomeTax, CLIMATE_LEVY_STR_2025 } from '../billing/greekTax';
 
@@ -170,6 +170,48 @@ ok('μονοκατοικία >80τμ → υψηλό κλιμάκιο τέλου�
 const bdFee = guestPriceBreakdown('2026-08-15', 100, { platformFeeRate: 0.15 });
 ok('με ιστορικό προμήθειας → payout = ακαθάριστο − προμήθεια', bdFee.platformFee === 15 && bdFee.payout === 100 - 8 - 15);
 ok('η προμήθεια δεν αγγίζει το δηλωτέο ακαθάριστο', bdFee.declarableGross === bdHigh.declarableGross);
+
+// ═══ Η ΔΙΑΜΟΝΗ ΠΟΥ ΠΕΡΝΑ ΤΗΝ ΠΡΩΤΟΧΡΟΝΙΑ ══════════════════════════════════
+// Το τέλος ανθεκτικότητας χρεωνόταν ΔΥΟ φορές. Οι διανυκτερεύσεις μοιράζονταν
+// σωστά στα δύο έτη (άρα και το οφειλόμενο τέλος), αλλά το ΕΙΣΠΡΑΓΜΕΝΟ
+// αποδιδόταν ολόκληρο στο έτος του check-in — οπότε το δεύτερο έτος έβλεπε
+// οφειλή χωρίς κάλυψη και την περνούσε στους φόρους του ιδιοκτήτη.
+{
+  // 28/12/2025 → 5/1/2026: οκτώ διανυκτερεύσεις, τέσσερις σε κάθε έτος.
+  const nye = [{
+    check_in: '2025-12-28', check_out: '2026-01-05', nights: 8,
+    gross_guest_paid: 1216, climate_levy: 16, platform_fee: 0,
+    amount_basis: 'gross', total: 1216, channel: 'airbnb',
+  }] as unknown as TaxStay[]
+  const meta = { sqm: 70, isHouse: false, individual: true }
+  const a = shortTermYearSummary(nye, 2025, meta)
+  const b = shortTermYearSummary(nye, 2026, meta)
+
+  ok('οι διανυκτερεύσεις μοιράζονται στα δύο έτη', a.totalNights === 4 && b.totalNights === 4)
+  // Το εισπραγμένο ακολουθεί τις διανυκτερεύσεις: 8 € σε κάθε έτος, όχι 16 και 0.
+  ok('το εισπραγμένο τέλος μοιράζεται κι αυτό', Math.abs(a.collectedLevy - 8) < 0.01 && Math.abs(b.collectedLevy - 8) < 0.01)
+  ok('το σύνολο του εισπραγμένου παραμένει 16', Math.abs((a.collectedLevy + b.collectedLevy) - 16) < 0.01)
+  // ΤΟ ΚΑΘΑΥΤΟ ΣΦΑΛΜΑ: το δεύτερο έτος δεν ξαναχρεώνει.
+  ok('κανένα ακάλυπτο τέλος στο πρώτο έτος', a.levyShortfall === 0)
+  ok('κανένα ακάλυπτο τέλος στο δεύτερο έτος', b.levyShortfall === 0)
+  ok('το καθαρό του δεύτερου έτους δεν είναι αρνητικό από φάντασμα τέλους', b.net >= 0)
+
+  // Έλεγχος ότι δεν σπάσαμε την αντίθετη περίπτωση: αν ΔΕΝ εισπράχθηκε τέλος,
+  // εξακολουθεί να οφείλεται — σε κάθε έτος το μερίδιό του.
+  const nyeNoLevy = [{ ...(nye[0] as object), climate_levy: 0 }] as unknown as TaxStay[]
+  const c = shortTermYearSummary(nyeNoLevy, 2026, meta)
+  ok('χωρίς είσπραξη, το τέλος εξακολουθεί να οφείλεται', c.levyShortfall > 0)
+}
+{
+  // Διαμονή εξ ολοκλήρου εκτός έτους δεν συνεισφέρει τίποτα.
+  const far = [{
+    check_in: '2024-06-01', check_out: '2024-06-05', nights: 4,
+    gross_guest_paid: 400, climate_levy: 8, amount_basis: 'gross', total: 400,
+  }] as unknown as TaxStay[]
+  const s = shortTermYearSummary(far, 2026, { sqm: 70, isHouse: false })
+  ok('διαμονή άλλης χρονιάς: μηδέν εισπραγμένο', s.collectedLevy === 0)
+  ok('διαμονή άλλης χρονιάς: μηδέν οφειλόμενο', s.levy === 0)
+}
 
 console.log(`\nshortTermTax — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
