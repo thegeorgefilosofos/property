@@ -26,7 +26,7 @@ import { resolveRent, resolveValue, computeYields } from '@/lib/billing/property
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
-import { annuityMonthly } from '@/lib/loans/recommend';
+import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
 import { LOAN_COLUMNS, toLoanViews } from '@/lib/loans/shape';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
@@ -130,7 +130,20 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Άλλα σημεία (π.χ. έλεγχος ισοζυγίου) ανοίγουν το πάνελ με προ-συμπληρωμένη ερώτηση.
     const openAsk = (e: Event) => { const q = String((e as CustomEvent).detail?.q || '').trim(); setOpen(true); if (q) setInput(q); };
     window.addEventListener('pos:ask', openAsk);
-    return () => { window.removeEventListener('pos:open-feedback', openFb); window.removeEventListener('pos:ask', openAsk); };
+    // ΤΟ ΠΛΗΚΤΡΟΛΟΓΙΟ ΑΝΟΙΓΕΙ ΚΑΙ ΚΛΕΙΝΕΙ. Ο βοηθός ήταν προσβάσιμος μόνο με το
+    // ποντίκι, πάνω σε ένα πλωτό κουμπί — για κάτι που θέλει να είναι το κύριο
+    // μονοπάτι, αυτό είναι το μακρύτερο. Το Escape κλείνει, όπως κάθε άλλο
+    // επίπεδο της εφαρμογής.
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setOpen(o => !o); return; }
+      if (e.key === 'Escape' && !listeningRef.current) setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pos:open-feedback', openFb);
+      window.removeEventListener('pos:ask', openAsk);
+      window.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   // Προτιμήσεις από localStorage (μία φορά). Το όνομα δεν φορτώνεται: είναι ένα.
@@ -244,8 +257,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     openBillsRef.current = unpaid.map(b => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
     // Ανεξόφλητες δόσεις ενοικίου (για σήμανση «πληρωμένο» από τη συνομιλία)
     const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
-    const { data: rentDue } = await supabase.from('rent_payments').select('id,period_month,period_year,amount,paid').eq('property_id', propertyId).eq('user_id', userId).eq('paid', false).order('period_year').order('period_month');
-    openRentRef.current = ((rentDue || []) as RentPaymentsRow[]).map(r => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0 }));
+    // ΟΛΕΣ ΟΙ ΔΟΣΕΙΣ, ΟΧΙ ΜΟΝΟ ΟΙ ΑΠΛΗΡΩΤΕΣ. Το φίλτρο `paid=false` σήμαινε ότι ο
+    // βοηθός δεν είχε καμία εικόνα συνέπειας πληρωμών, και ότι τα δεδουλευμένα
+    // έσοδα της χρονιάς έπρεπε να μαντευτούν από το ενοίκιο επί δώδεκα.
+    const { data: rentAll } = await supabase.from('rent_payments').select('id,period_month,period_year,amount,paid').eq('property_id', propertyId).eq('user_id', userId).order('period_year').order('period_month');
+    openRentRef.current = ((rentAll || []) as RentPaymentsRow[]).filter(r => !r.paid).map(r => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0 }));
     const t = ten?.[0];
     const rent = resolveRent({ tenantRent: t?.monthly_rent, targetRent: propContext.targetRent }).value;
     const value = resolveValue(propContext.value).value;
@@ -256,6 +272,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const loanRows = toLoanViews(loans);
     const rateTypeGr = (rt?: string) => rt === 'variable' ? 'κυμαινόμενο' : rt === 'mixed' ? 'μεικτό' : 'σταθερό';
     const monthlyDebt = loanRows.reduce((s, l) => s + annuityMonthly(l.amount || 0, l.rate || 0, l.years || 0), 0);
+    // Ο τόκος της φετινής χρήσης, ώστε το κεφάλαιο να ξεχωρίζει από τη δόση.
+    const loanInterestYear = loanRows.reduce((s, l) => {
+      const startY = l.start_date ? Number(String(l.start_date).slice(0, 4)) : year;
+      return s + interestForYear(l.amount || 0, l.rate || 0, l.years || 0, year - startY + 1);
+    }, 0);
     const loanLine = loanRows.length
       ? `Δάνεια (${loanRows.length}): εκτιμώμενη συνολική μηνιαία δόση ${eur(Math.round(monthlyDebt))}. ${loanRows.map(l => `${l.bank || 'τράπεζα'} ${eur(l.amount || 0)} με ${fp(Number(l.rate || 0), 2)} ${rateTypeGr(l.rate_type ?? undefined)} σε ${l.years || 0} έτη`).join('; ')}`
       : 'Δεν έχει καταχωρηθεί δάνειο για αυτό το ακίνητο.';
@@ -271,14 +292,36 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // συμβουλεύει με τον σωστό φόρο/καθαρό, όχι με πρόχειρες εκτιμήσεις. ──────────
     const isShortAcct = propStays.length > 0;
     const yearStays = propStays.filter(s => (s.check_in || '').slice(0, 4) === String(year));
-    const acctGross = isShortAcct ? yearStays.reduce((sum, s) => sum + stayTotal(s), 0) : rent * 12;
+
+    // ── ΤΟ ΜΕΙΚΤΟ ΕΙΣΟΔΗΜΑ ΕΙΝΑΙ ΤΙ ΟΦΕΙΛΕΤΑΙ, ΚΑΙ ΤΟ ΤΑΜΕΙΟ ΕΙΝΑΙ ΤΙ ΜΠΗΚΕ ──
+    // Εδώ γραφόταν `rent * 12`, όπου το `rent` μπορεί να προέρχεται από τον
+    // ΣΤΟΧΟ του ακινήτου (resolveRent → πηγή 'target'). Δηλαδή ένας στόχος
+    // γινόταν «μεικτά έσοδα» και θεωρούνταν δώδεκα μήνες εισπραγμένοι — ενώ
+    // λίγες γραμμές πιο πάνω η ίδια συνάρτηση έχει τη λίστα των ανεξόφλητων
+    // δόσεων. Πάνω σε αυτή την παραδοχή έβγαιναν πέντε ποσά σε ευρώ, ως γεγονότα.
+    //
+    // Τώρα: τα δεδουλευμένα βγαίνουν από τις ΚΑΤΑΧΩΡΗΜΕΝΕΣ δόσεις του έτους,
+    // και όσα δεν εισπράχθηκαν δηλώνονται ρητά στη μηχανή ως `uncollectedIncome`
+    // — πεδίο που υπάρχει ακριβώς γι' αυτό. Χωρίς καμία δόση, πέφτουμε στον
+    // στόχο ΚΑΙ το λέμε στην ίδια πρόταση.
+    const yearRent = (rentAll || []) as RentPaymentsRow[];
+    const accruedRent = yearRent.filter(r => r.period_year === year).reduce((s, r) => s + (r.amount || 0), 0);
+    const collectedRent = yearRent.filter(r => r.period_year === year && r.paid).reduce((s, r) => s + (r.amount || 0), 0);
+    const rentFromTarget = accruedRent <= 0;
+    const longGross = rentFromTarget ? rent * 12 : accruedRent;
+    const acctGross = isShortAcct ? yearStays.reduce((sum, s) => sum + stayTotal(s), 0) : longGross;
     const acctStmt = incomeStatement({
       regime: isShortAcct ? 'individual_shortterm' : 'individual_longterm',
-      grossIncome: acctGross, otherCashExpenses: paid, loanPrincipal: Math.round(monthlyDebt * 12),
+      grossIncome: acctGross, otherCashExpenses: paid,
+      // ΤΟ ΠΕΔΙΟ ΖΗΤΑΕΙ ΚΕΦΑΛΑΙΟ, ΟΧΙ ΔΟΣΗ. Εδώ περνιόταν η τοκοχρεολυτική δόση
+      // επί δώδεκα, που περιλαμβάνει και τον τόκο: το ταμείο έβγαινε μικρότερο
+      // από την πραγματικότητα κατά όλο τον ετήσιο τόκο.
+      loanPrincipal: Math.max(0, Math.round(monthlyDebt * 12 - loanInterestYear)),
+      uncollectedIncome: isShortAcct || rentFromTarget ? 0 : Math.max(0, accruedRent - collectedRent),
     });
     const acctProv = taxProvision(acctStmt, now.getMonth() + 1);
     const accountingLine = acctGross > 0
-      ? `Λογιστική ${year} (${isShortAcct ? 'βραχυχρόνια' : 'μακροχρόνια'} μίσθωση): μεικτά έσοδα ${eur(Math.round(acctStmt.grossIncome))}, φορολογητέο ${eur(Math.round(acctStmt.taxableIncome))}, εκτιμώμενος φόρος εισοδήματος ${eur(Math.round(acctStmt.incomeTax))} (μέσος συντελεστής ${fp((acctStmt.effectiveRate * 100), 1)}), καθαρό αποτέλεσμα ${eur(Math.round(acctStmt.netProfit))}. Πρόταση πρόβλεψης φόρου: περίπου ${eur(Math.round(acctProv.monthly))} τον μήνα να μπαίνουν στην άκρη. Εκτίμηση με την κλίμακα 2026 (μακροχρόνια: τεκμαρτή έκπτωση 5%· βραχυχρόνια: φόρος στα μεικτά)· τελική επιβεβαίωση με λογιστή/ΑΑΔΕ.`
+      ? `Λογιστική ${year} (${isShortAcct ? 'βραχυχρόνια' : 'μακροχρόνια'} μίσθωση): μεικτά έσοδα ${eur(Math.round(acctStmt.grossIncome))}${!isShortAcct && rentFromTarget ? ' (βάσει ενοικίου-στόχου, δεν έχουν καταχωρηθεί δόσεις)' : ''}${!isShortAcct && !rentFromTarget && accruedRent > collectedRent ? `, από τα οποία ανείσπρακτα ${eur(Math.round(accruedRent - collectedRent))}` : ''}, φορολογητέο ${eur(Math.round(acctStmt.taxableIncome))}, εκτιμώμενος φόρος εισοδήματος ${eur(Math.round(acctStmt.incomeTax))} (μέσος συντελεστής ${fp((acctStmt.effectiveRate * 100), 1)}), καθαρό αποτέλεσμα ${eur(Math.round(acctStmt.netProfit))}. Πρόταση πρόβλεψης φόρου: περίπου ${eur(Math.round(acctProv.monthly))} τον μήνα να μπαίνουν στην άκρη. Εκτίμηση με την κλίμακα 2026 (μακροχρόνια: τεκμαρτή έκπτωση 5%· βραχυχρόνια: φόρος στα μεικτά)· τελική επιβεβαίωση με λογιστή ή ΑΑΔΕ.`
       : '';
 
     // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε Νόα
@@ -308,7 +351,18 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Προτίμησε τη ΒΑΣΗ που έχει ορίσει ο χρήστης στην καρτέλα Τιμολόγηση (αν υπάρχει).
     const { data: pset } = await supabase.from('pricing_settings').select('base,weekend_premium').eq('user_id', userId).eq('property_id', propertyId).maybeSingle();
     const wkndPrem = pset?.weekend_premium != null ? Number(pset.weekend_premium) : 0.18;
-    const priceBase = (pset?.base != null ? Number(pset.base) : 0) || suggestBase(propStays) || (propContext.targetRent ? Math.round((propContext.targetRent / 30) * 2.2) : 0);
+    // ΚΑΜΙΑ ΒΑΣΗ ΑΠΟ ΤΟ ΠΟΥΘΕΝΑ. Εδώ υπήρχε τρίτο εναλλακτικό:
+    // `(ενοίκιο-στόχος / 30) × 2,2`. Είναι ακριβώς ο τύπος που το
+    // lib/pricing/dynamicPricing.ts διέγραψε ρητά και εξηγεί γιατί: καμία πηγή,
+    // κανένας γεωγραφικός διαχωρισμός, 60 τετραγωνικά στη Λάρισα έβγαζαν την
+    // ίδια τιμή με 60 στη Μύκονο. Ο βοηθός τον ξαναέγραφε εδώ, και πάνω του
+    // έχτιζε ΠΛΗΡΗ πίνακα δώδεκα μηνών με συγκεκριμένα ποσά ανά νύχτα.
+    // Η επιφύλαξη «εκτίμηση, χωρίς επαρκές ιστορικό» έμπαινε μόνο στη γραμμή της
+    // βάσης, όχι στον πίνακα που διάβαζε ο χρήστης.
+    //
+    // Το `else` παρακάτω λέει ήδη τη σωστή αλήθεια: χωρίς ιστορικό, ο χρήστης
+    // ορίζει βάση στην Τιμολόγηση.
+    const priceBase = (pset?.base != null ? Number(pset.base) : 0) || suggestBase(propStays);
     if (priceBase > 0) {
       const adrVal = realizedAdr(propStays);
       const MON = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
@@ -559,7 +613,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         description: description.slice(0, 120), amount,
         category, expense_group: group,
         date: useDate,
-        paid_by: 'owner', payment_method: 'cash', paid: true,
+        // ΤΟ «ΜΕΤΡΗΤΑ» ΔΕΝ ΤΟ ΕΙΠΕ ΚΑΝΕΙΣ. Ο τρόπος πληρωμής έχει φορολογική
+        // σημασία στην εφαρμογή (τα ενοίκια κατοικίας θέλουν τράπεζα για την
+        // τεκμαρτή έκπτωση), και εδώ γραφόταν σταθερά «μετρητά» επειδή έτσι
+        // βολεύει τη φόρμα. Μένει κενό: ο χρήστης το συμπληρώνει αν χρειαστεί.
+        paid_by: 'owner', paid: true,
       }));
       setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα δαπάνη
       loadContext();
@@ -698,13 +756,21 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       // σταθερό κείμενο: ένα χειρόγραφο «Συντήρηση & Επισκευές» ήταν πέμπτη
       // εκδοχή ονόματος κατηγορίας, και η ομάδα του δίπλα του ήταν ανεξάρτητη.
       const taskCat = classifyExpense(d);
-      let calId: string | null = null, expId: string | null = null;
+      let calId: string | null = null;
       if (newId && due) { const data = await must(supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: d, event_date: due, category: 'maintenance', amount: est, priority: priority === 'normal' ? 'medium' : priority, status: 'pending', recurring: false, source: 'checklist' }).select('id').single()); calId = (data as { id?: string } | null)?.id || null; }
-      if (newId && est > 0) { const data = await must(supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, description: d, amount: est, category: taskCat.category, expense_group: taskCat.group, date: due || today, paid_by: 'owner', paid: false, notes: 'Προγραμματισμένη εκκρεμότητα' }).select('id').single()); expId = (data as { id?: string } | null)?.id || null; }
-      if (newId && (calId || expId)) await must(supabase.from('checklist_items').update({ calendar_event_id: calId, expense_id: expId }).eq('id', newId));
+      // ΜΙΑ ΕΚΤΙΜΗΣΗ ΔΕΝ ΓΙΝΕΤΑΙ ΔΑΠΑΝΗ. Εδώ γραφόταν γραμμή στον πίνακα
+      // `expenses` με ποσό που είχε βγάλει το ΜΟΝΤΕΛΟ («θα κοστίσει γύρω στα
+      // 150 ευρώ»). Στην επόμενη ερώτηση το ίδιο ποσό επέστρεφε στα συμφραζόμενα
+      // ως «Δαπάνες φέτος: σύνολο X» και έμπαινε στην καθαρή απόδοση. Δηλαδή ο
+      // βοηθός διάβαζε ως γεγονός ό,τι είχε μαντέψει δύο βήματα πριν.
+      //
+      // Η ίδια η καρτέλα Εκκρεμότητες έχει ήδη αυτόν τον κανόνα γραμμένο: δαπάνη
+      // υπάρχει μόνο όταν υπάρχει παραστατικό. Η εκτίμηση ζει στο
+      // `estimated_cost` της εκκρεμότητας, όπου ΕΙΝΑΙ εκτίμηση και το λέει.
+      if (newId && calId) await must(supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId));
       const bits: string[] = [];
-      if (due) bits.push('προθεσμία + υπενθύμιση email');
-      if (est > 0) bits.push(`~${est}€ στον προϋπολογισμό`);
+      if (due) bits.push('προθεσμία και υπενθύμιση με email');
+      if (est > 0) bits.push(`εκτίμηση ${eur(est)}`);
       setMsgs(m => [...m, { role: 'assistant', text: `Το πρόσθεσα στις Εκκρεμότητες: «${d}»${bits.length ? `, ${bits.join(', ')}` : ''}. Θέλεις να το δεις;`, action: { type: 'go', tab: 'checklist' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να προσθέσω την εκκρεμότητα τώρα. Δοκίμασε από την καρτέλα Εκκρεμότητες.' }]);
@@ -860,7 +926,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const res = await fetch('/api/anthropic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-        body: JSON.stringify({ max_tokens: 900, system, messages: history.map(m => ({ role: m.role, content: m.text })) }),
+        // ΗΤΑΝ 900, ΜΕ ΤΟ ΤΑΒΑΝΙ ΤΟΥ ΔΙΑΚΟΜΙΣΤΗ ΣΤΑ 2000. Μια ανάλυση δανείου ή ένας
+        // πίνακας τιμών ανά μήνα κοβόταν στη μέση, και ο χρήστης διάβαζε μισό
+        // συλλογισμό χωρίς να ξέρει ότι λείπει κάτι.
+        body: JSON.stringify({ max_tokens: 1800, system, messages: history.map(m => ({ role: m.role, content: m.text })) }),
       });
       const data = await res.json();
       if (!res.ok) {

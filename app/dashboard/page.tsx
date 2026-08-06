@@ -18,6 +18,7 @@ import TabTenant    from './components/TabTenant';
 import TabLoan      from './components/TabLoan';
 import TabAccounting from './components/TabAccounting';
 import TabInventory from './components/TabInventory';
+import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
@@ -1471,6 +1472,11 @@ export default function Dashboard() {
       // Η καρτέλα ΔΕΝ μηδενίζεται στην αλλαγή ακινήτου — δες switchProperty.
       action: () => switchProperty(p),
     })),
+    // Η ΝΟΑ ΕΛΕΙΠΕ ΑΠΟ ΤΗΝ ΠΑΛΕΤΑ ΕΝΤΟΛΩΝ. Ο μόνος δρόμος ήταν το πλωτό κουμπί,
+    // δηλαδή το ποντίκι — και μπαίνει πρώτη, γιατί είναι ο συντομότερος δρόμος
+    // προς οτιδήποτε άλλο στη λίστα.
+    { id: 'act-ask', label: `Ρώτα τη ${ASSISTANT_NAME}`, hint: 'Βοηθός', keywords: 'noa βοηθός assistant ρώτα σάρωσε',
+      action: () => window.dispatchEvent(new CustomEvent('pos:ask', { detail: { q: '' } })) },
     { id: 'act-add', label: 'Προσθήκη ακινήτου', hint: 'Ενέργεια', keywords: 'new property add', action: () => tryAddProperty() },
     { id: 'act-signout', label: 'Αποσύνδεση', hint: 'Ενέργεια', keywords: 'logout sign out exit', action: () => signOut() },
   ];
