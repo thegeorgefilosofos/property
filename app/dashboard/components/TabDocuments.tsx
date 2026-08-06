@@ -7,6 +7,7 @@ import { SearchX, FolderOpen, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
 import { downloadCsv } from './exportCsv';
+import { saved } from '@/components/dbWrite';
 import { money } from './xlsxStyle';
 import { useAppPreferences } from './useAppPreferences';
 // Η ΜΙΑ μηχανή σάρωσης/καταχώρισης. Το Αρχείο δεν έχει δική του λογική OCR, δικό
@@ -527,7 +528,9 @@ export default function TabDocuments({
     // στις προτιμήσεις — λειτουργικά «σωστό», σιωπηλά λάθος ως προς την επιλογή τους.
     if (prefs.confirmBeforeDelete && !(await confirmDialog('Να διαγραφεί οριστικά αυτό το αρχείο;', { tone: 'negative' }))) return;
     await supabase.storage.from('property-files').remove([it.raw.file_path]);
-    await supabase.from('property_documents').delete().eq('id', it.raw.id);
+    // Αν χαθεί η γραμμή αλλά μείνει το αρχείο, ή το αντίστροφο, ο χρήστης βλέπει
+    // το αρχείο να «επιστρέφει» στην επόμενη φόρτωση. Καλύτερα να το μάθει τώρα.
+    if (!await saved('Το αρχείο δεν διαγράφηκε', supabase.from('property_documents').delete().eq('id', it.raw.id))) return;
     if (lightbox?.id === it.id) setLightbox(null);
     fetchAll();
   };
@@ -565,7 +568,8 @@ export default function TabDocuments({
     // διάλογος έχει δικό του scrim, οπότε η επιλογή δεν αλλάζει όσο ρωτάει.
     if (prefs.confirmBeforeDelete && !(await confirmDialog(`Να διαγραφούν οριστικά ${selRaw.length} ${selRaw.length === 1 ? 'αρχείο' : 'αρχεία'};`, { tone: 'negative' }))) return;
     await supabase.storage.from('property-files').remove(selRaw.map(i => i.raw!.file_path));
-    await supabase.from('property_documents').delete().in('id', selRaw.map(i => i.raw!.id));
+    if (!await saved('Τα αρχεία δεν διαγράφηκαν',
+      supabase.from('property_documents').delete().in('id', selRaw.map(i => i.raw!.id)))) return;
     setSelected(new Set()); fetchAll();
   };
   const bulkDownload = () => { selItems.filter(i => i.url).forEach(i => window.open(i.url!, '_blank', 'noopener')); };

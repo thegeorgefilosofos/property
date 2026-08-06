@@ -25,6 +25,7 @@ import { exportAllData } from '@/lib/dataExport';
 import { PLANS, normalizePlan } from '@/lib/billing/plans';
 import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState } from '@/lib/billing/entitlements';
 import { athensToday } from '@/lib/core/time';
+import { savedData } from '@/components/dbWrite';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -89,7 +90,8 @@ function AccountantLink({ userId }: { userId: string }) {
   }, [userId]);
   const gen = async () => {
     setBusy(true);
-    const { data } = await supabase.from('accountant_links').upsert({ user_id: userId, active: true }, { onConflict: 'user_id' }).select('token').maybeSingle();
+    const data = await savedData<{ token?: string }>('Ο σύνδεσμος για τον λογιστή δεν δημιουργήθηκε',
+      supabase.from('accountant_links').upsert({ user_id: userId, active: true }, { onConflict: 'user_id' }).select('token').maybeSingle());
     setBusy(false);
     if (data?.token) { const u = `${window.location.origin}/accountant/${data.token}`; setUrl(u); try { await navigator.clipboard.writeText(u); setCopied(true); setTimeout(() => setCopied(false), 2600); } catch { /* ignore */ } }
   };

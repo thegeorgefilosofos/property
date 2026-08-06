@@ -9,6 +9,7 @@ import {
 import { T, feAuto, Btn } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import { rentDueOccurrence, applyExdate } from '@/lib/calendar/rentDue';
+import { saved } from '@/components/dbWrite';
 
 // ─── Re-exports for TabTenant ─────────────────────────────────────────────────
 export { Toggle, NumberInput, TextInput, Textarea, FREQ_OPTIONS };
@@ -443,14 +444,18 @@ export async function syncTenantSchedule(
     const evById = new Map<string, string>();
     (exEv || []).forEach((r: { id: string; source: string | null }) => { if (r.source) evById.set(r.source, r.id); });
     const evInsert = events.filter(e => !evById.has(e.source as string));
-    if (evInsert.length) await supabase.from('calendar_events').insert(evInsert);
+    // «Best-effort» σημαίνει ότι δεν μπλοκάρει την αποθήκευση του ενοικιαστή, όχι
+    // ότι η αποτυχία μένει κρυφή: ένα ημερολόγιο που δεν γέμισε φαίνεται άδειο
+    // χωρίς λόγο. Η `saved` λέει το γιατί και συνεχίζει.
+    if (evInsert.length) await saved('Οι υπενθυμίσεις του ενοικιαστή δεν μπήκαν στο ημερολόγιο',
+      supabase.from('calendar_events').insert(evInsert));
     if (mode === 'save') {
       for (const e of events) {
         const id = evById.get(e.source as string);
         if (!id) continue;
-        await supabase.from('calendar_events').update({
+        await saved('Η υπενθύμιση του ενοικιαστή δεν ενημερώθηκε', supabase.from('calendar_events').update({
           event_date: e.event_date, amount: e.amount, title: e.title, notes: e.notes,
-        }).eq('id', id);
+        }).eq('id', id));
       }
     }
 
@@ -460,7 +465,8 @@ export async function syncTenantSchedule(
       .eq('property_id', propertyId).like('template_id', `${prefix}%`);
     const haveCk = new Set((exCk || []).map((r: { template_id: string | null }) => r.template_id));
     const ckInsert = tasks.filter(tk => !haveCk.has(tk.template_id as string));
-    if (ckInsert.length) await supabase.from('checklist_items').insert(ckInsert);
+    if (ckInsert.length) await saved('Οι εκκρεμότητες του ενοικιαστή δεν δημιουργήθηκαν',
+      supabase.from('checklist_items').insert(ckInsert));
   } catch {
     /* best-effort: ο συγχρονισμός δεν πρέπει ποτέ να μπλοκάρει την αποθήκευση */
   }
@@ -486,7 +492,8 @@ export async function setRentDueOccurrencePaid(
     const occ = rentDueOccurrence(row.event_date, year, month);
     const next = applyExdate(row.recurrence_exdates, occ, paid);
     if (!next) return; // no-op
-    await supabase.from('calendar_events').update({ recurrence_exdates: next }).eq('id', row.id);
+    await saved('Η υπενθύμιση ενοικίου δεν ενημερώθηκε', supabase.from('calendar_events')
+      .update({ recurrence_exdates: next }).eq('id', row.id));
   } catch {
     /* best-effort */
   }

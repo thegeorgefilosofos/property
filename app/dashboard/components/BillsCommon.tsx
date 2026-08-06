@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
 import { T, fe, InfoBanner, Card, EmptyState, fp } from '@/components/Theme';
-import { notifyOk, notifyError } from '@/components/Toast';
+import { notifyOk } from '@/components/Toast';
+import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
 import { athensToday } from '@/lib/core/time';
 
@@ -124,10 +125,10 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const save = useCallback((patch: Record<string, unknown>) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      await supabase.from('bills_settings').upsert({
+      await saved('Οι ρυθμίσεις κοινοχρήστων δεν αποθηκεύτηκαν', supabase.from('bills_settings').upsert({
         property_id: propertyId, user_id: String(userId), section: 'common',
         data: patch, updated_at: new Date().toISOString(),
-      }, { onConflict: 'property_id,section' });
+      }, { onConflict: 'property_id,section' }));
     }, 800);
   }, [propertyId, userId]);
 
@@ -163,25 +164,24 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
     const e = extras[i];
     if (!e || e.transferredToExpenses || transferring === i) return;
     setTransferring(i);
-    try {
-      await supabase.from('expenses').insert({
-        property_id: propertyId, user_id: String(userId),
-        amount: parseFloat(e.amount),
-        description: `Κοινόχρηστα, ${e.reason}`,
-        date: e.date || athensToday(),
-        category: 'Κοινόχρηστα',
-      });
-      const n = extras.map((ex, j) => j === i ? { ...ex, transferredToExpenses: true } : ex);
-      setExtras(n); upd({ extras: n });
-      // Ο τόνος (θετικό/αρνητικό) δηλώνεται πια ρητά. Πριν, η επιτυχία ξεχώριζε από
-      // την αποτυχία με `transferMsg.startsWith('Σφάλμα')` — αν άλλαζε η διατύπωση
-      // του μηνύματος, η αποτυχία εμφανιζόταν ουδέτερη και διαβαζόταν ως επιτυχία.
-      notifyOk(`«${e.reason}», ${fe(parseFloat(e.amount), 2)} προστέθηκε στις Δαπάνες`);
-    } catch {
-      notifyError('Σφάλμα, δοκίμασε ξανά');
-    } finally {
-      setTransferring(null);
-    }
+    // Το try/catch που ήταν εδώ δεν έπιανε ποτέ τίποτα: το Supabase επιστρέφει
+    // σφάλμα, δεν το πετά. Η δαπάνη μπορούσε να μη γραφτεί και η έκτακτη να
+    // σημειωθεί «μεταφέρθηκε» — χαμένη και από τις δύο πλευρές.
+    const ok = await saved('Η έκτακτη δαπάνη δεν καταχωρήθηκε', supabase.from('expenses').insert({
+      property_id: propertyId, user_id: String(userId),
+      amount: parseFloat(e.amount),
+      description: `Κοινόχρηστα, ${e.reason}`,
+      date: e.date || athensToday(),
+      category: 'Κοινόχρηστα',
+    }));
+    setTransferring(null);
+    if (!ok) return;
+    const n = extras.map((ex, j) => j === i ? { ...ex, transferredToExpenses: true } : ex);
+    setExtras(n); upd({ extras: n });
+    // Ο τόνος (θετικό/αρνητικό) δηλώνεται πια ρητά. Πριν, η επιτυχία ξεχώριζε από
+    // την αποτυχία με `transferMsg.startsWith('Σφάλμα')` — αν άλλαζε η διατύπωση
+    // του μηνύματος, η αποτυχία εμφανιζόταν ουδέτερη και διαβαζόταν ως επιτυχία.
+    notifyOk(`«${e.reason}», ${fe(parseFloat(e.amount), 2)} προστέθηκε στις Δαπάνες`);
   };
 
   const mgmtInfo    = MGMT_INFO[mgmtType];

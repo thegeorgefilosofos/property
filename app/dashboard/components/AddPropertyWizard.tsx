@@ -334,8 +334,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     let propertyId: string | null = savedId;
     let err: { message?: string } | null = null;
     if (savedId) {
-      const res = await supabase.from('user_properties').update(payload).eq('id', savedId);
-      err = res.error;
+      const { error: uErr } = await supabase.from('user_properties').update(payload).eq('id', savedId);
+      err = uErr;
     } else {
       const res = await supabase.from('user_properties').insert({ user_id: userId, ...payload }).select('id').single();
       err = res.error;

@@ -1,6 +1,7 @@
 // app/dashboard/components/BillsSettings.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { saved } from '@/components/dbWrite';
 
 // Singleton, ένας client για όλο το hook
 const supabase = createClient();
@@ -83,17 +84,15 @@ export function useBillsSettings<T extends Record<string, any>>(
   const doSave = useCallback(async (snapshot: T, key: string) => {
     const [savePropertyId, saveSection] = key.split('::');
     if (!savePropertyId || !userId) return; // userId truly missing → nothing to attribute the write to
-    try {
-      await supabase.from('bills_settings').upsert({
-        property_id: savePropertyId,
-        user_id:     String(userId),
-        section:     saveSection,
-        data:        snapshot,
-        updated_at:  new Date().toISOString(),
-      }, { onConflict: 'property_id,section' });
-    } catch (_) {
-      // Silent fail, δεν crash το UI αν αποτύχει το save
-    }
+    // Η σιωπηλή αποτυχία που ήταν εδώ έκρυβε ακριβώς ό,τι έπρεπε να φανεί: ο
+    // χρήστης γύριζε σε άλλο ακίνητο και οι ρυθμίσεις του δεν υπήρχαν.
+    await saved('Οι ρυθμίσεις λογαριασμών δεν αποθηκεύτηκαν', supabase.from('bills_settings').upsert({
+      property_id: savePropertyId,
+      user_id:     String(userId),
+      section:     saveSection,
+      data:        snapshot,
+      updated_at:  new Date().toISOString(),
+    }, { onConflict: 'property_id,section' }));
   }, [userId]);
 
   // Keep a ref to the latest doSave so the unmount-flush effect (which only

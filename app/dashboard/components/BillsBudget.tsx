@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { TextInput } from './UIComponents';
 import { T, fe, feAuto, fn, Skeleton, SkeletonKPIs } from '@/components/Theme';
 import { notify } from '@/components/Toast';
+import { saved } from '@/components/dbWrite';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { rolloverNext, strWaterfall, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement } from '@/lib/accounting/statement';
@@ -645,12 +646,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       setSaving(true);
-      try {
-        await supabase.from('bills_settings').upsert(
-          { property_id: propertyId, user_id: userId, section: 'budgets', data },
-          { onConflict: 'property_id,section' }
-        );
-      } finally { setSaving(false); }
+      await saved('Οι στόχοι προϋπολογισμού δεν αποθηκεύτηκαν', supabase.from('bills_settings').upsert(
+        { property_id: propertyId, user_id: userId, section: 'budgets', data },
+        { onConflict: 'property_id,section' }
+      ));
+      setSaving(false);
     }, 800);
   }, [propertyId, userId]);
 
@@ -744,11 +744,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const removeDemo = async () => {
     if (!propertyId || demoBusy || demoIds.length === 0) return;
     setDemoBusy(true);
-    try {
-      await supabase.from('expenses').delete().in('id', demoIds);
-      persistCats({ __demo: '[]' });
-      await loadData();
-    } finally { setDemoBusy(false); }
+    const gone = await saved('Τα δείγματα δεν διαγράφηκαν', supabase.from('expenses').delete().in('id', demoIds));
+    if (gone) { persistCats({ __demo: '[]' }); await loadData(); }
+    setDemoBusy(false);
   };
 
   // Μετονομασία κατηγορίας: custom → ενημέρωση __custom· βασική → override στο __labels.
@@ -972,17 +970,20 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         const total = overBudget.reduce((s, c) => s + ((actuals[c.key] || 0) - catBudget(c.key)), 0);
         const title = `Υπέρβαση προϋπολογισμού: ${overBudget.map(c => c.label).join(', ')}`;
         if (ids.length > 0) {
-          await supabase.from('calendar_events').update({ title, amount: Math.round(total) }).eq('id', ids[0]);
-          if (ids.length > 1 && !cancelled) await supabase.from('calendar_events').delete().in('id', ids.slice(1));
+          await saved('Η ειδοποίηση υπέρβασης δεν ενημερώθηκε',
+            supabase.from('calendar_events').update({ title, amount: Math.round(total) }).eq('id', ids[0]));
+          if (ids.length > 1 && !cancelled) await saved('Οι διπλές ειδοποιήσεις δεν καθαρίστηκαν',
+            supabase.from('calendar_events').delete().in('id', ids.slice(1)));
         } else if (!cancelled) {
-          await supabase.from('calendar_events').insert({
+          await saved('Η ειδοποίηση υπέρβασης δεν δημιουργήθηκε', supabase.from('calendar_events').insert({
             property_id: propertyId, user_id: userId, title, category: 'financial',
             event_date: `${y}-${p2(mo + 1)}-${p2(_now.getDate())}`, priority: 'high',
             status: 'pending', source: 'budget', amount: Math.round(total), recurring: false,
-          });
+          }));
         }
       } else if (ids.length > 0) {
-        await supabase.from('calendar_events').delete().in('id', ids);
+        await saved('Η ειδοποίηση υπέρβασης δεν αφαιρέθηκε',
+          supabase.from('calendar_events').delete().in('id', ids));
       }
     })();
     return () => { cancelled = true; };

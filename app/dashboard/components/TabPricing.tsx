@@ -34,6 +34,7 @@ import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 import { shortTermCashflow } from '@/lib/tax/shortTermCashflow';
 import { mergeLedger, type LedgerBill, type LedgerExpense } from '@/lib/expenses/ledger';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
+import { saved } from '@/components/dbWrite';
 import { Tag } from 'lucide-react';
 import { NumberInput } from './UIComponents';
 import { exportPricingWorkbook } from './pricingExport';
@@ -180,7 +181,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   useEffect(() => {
     if (!touched || base <= 0) return;
     const t = setTimeout(async () => {
-      await persist({ base, min, max, wknd, minStay });
+      // «Αποθηκεύτηκε» χωρίς έλεγχο είναι το χειρότερο μήνυμα που υπάρχει.
+      if (!await saved('Η τιμολόγηση δεν αποθηκεύτηκε', persist({ base, min, max, wknd, minStay }))) return;
       // Το μήνυμα λέει ΤΙ ΙΣΧΥΕΙ, όχι τι θα κερδίσεις: η πρόβλεψη εσόδων έφυγε
       // επειδή ήταν ταυτολογία, και μαζί της κάθε υπόσχεση ποσού.
       const range = `${fe(min || base, 0)}–${fe(max || base, 0)}`;

@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { T, fe, Btn, EmptyState, Skeleton, SkeletonKPIs, fp } from '@/components/Theme';
 import { notifyError } from '@/components/toastBus';
+import { saved, savedData } from '@/components/dbWrite';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
@@ -419,15 +420,15 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     }
     if (data) {
       setBills(prev => [data, ...prev]);
+      // Ο λογαριασμός σώθηκε ήδη. Αν λείψει η δαπάνη, ο χρήστης πρέπει να το
+      // μάθει εδώ — αλλιώς λείπει από τα βιβλία και κανείς δεν ξέρει γιατί.
       if (payload.paid) {
-        try {
-          await supabase.from('expenses').insert({
-            property_id: propertyId, user_id: userId, amount: parseFloat(form.amount),
-            description: form.name, date: athensToday(),
-            category: cat(form.category).label, expense_group: 'bills',
-            paid_by: form.paid_by, share_percent: sharePercent, share_note: shareNote,
-          });
-        } catch (_) {}
+        await saved('Ο λογαριασμός αποθηκεύτηκε, αλλά η δαπάνη δεν καταχωρήθηκε', supabase.from('expenses').insert({
+          property_id: propertyId, user_id: userId, amount: parseFloat(form.amount),
+          description: form.name, date: athensToday(),
+          category: cat(form.category).label, expense_group: 'bills',
+          paid_by: form.paid_by, share_percent: sharePercent, share_note: shareNote,
+        }));
       }
     }
     setForm({ category: 'electricity', name: '', amount: '', kwh: '', period: '', date_from: '', due_date: '', recurring: true, notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '', paid_by: 'owner', share_percent: '', share_note: '' });
@@ -440,12 +441,20 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     if (!bill) return;
     const newPaid = !bill.paid;
     setBills(prev => prev.map(b => b.id === id ? { ...b, paid: newPaid } : b));
-    await supabase.from('bills').update({ paid: newPaid, paid_at: newPaid ? new Date().toISOString() : null }).eq('id', id);
+    // Η οθόνη άλλαξε πριν από τη βάση. Αν η βάση δεν ακολουθήσει, η οθόνη
+    // γυρίζει πίσω — αλλιώς δείχνει πληρωμένο κάτι που δεν είναι.
+    if (!await saved('Ο λογαριασμός δεν ενημερώθηκε', supabase.from('bills')
+      .update({ paid: newPaid, paid_at: newPaid ? new Date().toISOString() : null }).eq('id', id))) {
+      setBills(prev => prev.map(b => b.id === id ? { ...b, paid: bill.paid } : b));
+      return;
+    }
 
     // Cascade (undo-safe): το συνδεδεμένο έξοδο & γεγονός ημερολογίου ακολουθούν
     // την κατάσταση του λογαριασμού μέσω bill_id. Καμία διπλοεγγραφή.
-    const { data: expHit } = await supabase.from('expenses').update({ paid: newPaid }).eq('bill_id', id).select('id');
-    await supabase.from('calendar_events').update({ status: newPaid ? 'paid' : 'pending' }).eq('bill_id', id);
+    const expHit = await savedData<{ id: string }[]>('Η συνδεδεμένη δαπάνη δεν ενημερώθηκε',
+      supabase.from('expenses').update({ paid: newPaid }).eq('bill_id', id).select('id'));
+    await saved('Το γεγονός ημερολογίου δεν ενημερώθηκε',
+      supabase.from('calendar_events').update({ status: newPaid ? 'paid' : 'pending' }).eq('bill_id', id));
 
     // Αν το σημειώνουμε πληρωμένο και ΔΕΝ υπάρχει συνδεδεμένο έξοδο, το
     // δημιουργούμε — από την ΙΔΙΑ απόφαση με την οθόνη Δαπανών.
@@ -465,8 +474,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   };
 
   const deleteBill = async (id: string) => {
+    const gone = bills.find(b => b.id === id);
     setBills(prev => prev.filter(b => b.id !== id));
-    await supabase.from('bills').delete().eq('id', id);
+    // Η γραμμή έφυγε από την οθόνη. Αν δεν έφυγε από τη βάση, επιστρέφει —
+    // αλλιώς ξαναεμφανίζεται μόνη της στην επόμενη φόρτωση.
+    if (!await saved('Ο λογαριασμός δεν διαγράφηκε', supabase.from('bills').delete().eq('id', id)) && gone)
+      setBills(prev => [gone, ...prev].sort((a, b) => (b.due_date || '').localeCompare(a.due_date || '')));
   };
 
   const calc = useMemo(() => {

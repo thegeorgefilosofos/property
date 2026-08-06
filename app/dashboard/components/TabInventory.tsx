@@ -18,6 +18,7 @@ import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDi
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { notifyError, notifyOk } from '@/components/Toast';
+import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress';
@@ -1677,12 +1678,12 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     // Αν αποτύχει η εγγραφή (π.χ. δεν έχει τρέξει η migration), μην δημιουργήσεις ορφανές εγγραφές στο κύκλωμα.
     if(schedErr){notifyError('Σφάλμα αποθήκευσης: '+schedErr.message);setSaving(false);return}
     // Αν έχει ήδη γίνει (δηλωμένη τελευταία εκτέλεση) κατέγραψε πληρωμένη δαπάνη για το ιστορικό.
-    if(form.last_done&&est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
+    if(form.last_done&&est>0) await saved('Η πραγματοποιημένη συντήρηση δεν καταγράφηκε στις δαπάνες',supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'}))
     // Κύκλωμα για την επόμενη προγραμματισμένη εκτέλεση.
     const calId=await makeCalEvent(form.task,form.item_name,nextDue,est)
     const expId=await makePlannedExpense(form.task,form.item_name,nextDue,est)
     const sid=(sched as {id?:string}|null)?.id
-    if(sid&&(calId||expId)) await supabase.from('inventory_maintenance').update({calendar_event_id:calId||null,expense_id:expId||null}).eq('id',sid)
+    if(sid&&(calId||expId)) await saved('Η σύνδεση με το ημερολόγιο δεν αποθηκεύτηκε',supabase.from('inventory_maintenance').update({calendar_event_id:calId||null,expense_id:expId||null}).eq('id',sid))
     setAdding(false);setForm({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:'',est_cost:0});setSaving(false);onSaved()
   }
   const SchedRow=({s}:{s:MaintenanceSchedule})=>{

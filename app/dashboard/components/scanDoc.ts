@@ -25,6 +25,7 @@ import {
 } from '@/lib/billing/documents';
 import { fillOnlyEmpty } from '@/lib/core/prefill';
 import { athensToday } from '@/lib/core/time';
+import { saved, savedData } from '@/components/dbWrite';
 import {
   matchPaymentToBills, providerFromBillName,
   type MatchCandidate, type MatchResult,
@@ -398,8 +399,10 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
   const today = input.today || athensToday();
   const doc = normalizeScannedDoc(input.doc);
   const plan = planDocSave(doc, today);
-  const saved: string[] = [];
-  const add = (s: string) => { if (!saved.includes(s)) saved.push(s); };
+  // Ονομάζεται `written` και όχι `saved`: το `saved` είναι πια ο βοηθός που
+  // ελέγχει αν το γράψιμο πέτυχε, και δύο πράγματα δεν μοιράζονται ένα όνομα.
+  const written: string[] = [];
+  const add = (s: string) => { if (!written.includes(s)) written.push(s); };
 
   try {
     // ── 0) Συμφωνία απόδειξης με εκκρεμή λογαριασμό — με τα πέντε πεδία.
@@ -428,9 +431,12 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
     let reconciled = false;
 
     if (payOff) {
-      await supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', payOff);
-      const { data: updExp } = await supabase.from('expenses').update({ paid: true }).eq('bill_id', payOff).select('id');
-      await supabase.from('calendar_events').update({ status: 'paid' }).eq('bill_id', payOff);
+      await saved('Ο λογαριασμός δεν σημειώθηκε εξοφλημένος',
+        supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', payOff));
+      const updExp = await savedData<{ id: string }[]>('Η συνδεδεμένη δαπάνη δεν σημειώθηκε πληρωμένη',
+        supabase.from('expenses').update({ paid: true }).eq('bill_id', payOff).select('id'));
+      await saved('Το γεγονός ημερολογίου δεν ενημερώθηκε',
+        supabase.from('calendar_events').update({ status: 'paid' }).eq('bill_id', payOff));
       // Αν ο εξοφλημένος λογαριασμός δεν είχε συνδεδεμένο έξοδο, δημιούργησέ το
       // τώρα ώστε η πληρωμή να φαίνεται στις Δαπάνες.
       if ((!updExp || !updExp.length) && plan.expense) {
@@ -483,10 +489,9 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
         .order('updated_at', { ascending: false }).limit(1);
       const cur = existing && existing.length ? existing[0] : null;
       const sameTenant = cur && nrm(cur.full_name as string) === nrm(plan.tenant.full_name as string);
-      const q = sameTenant
+      const { error: tErr } = await (sameTenant
         ? supabase.from('tenants').update(stripEmpty(plan.tenant)).eq('id', cur!.id)
-        : supabase.from('tenants').insert({ property_id: propertyId, user_id: userId, ...stripEmpty(plan.tenant) });
-      const { error: tErr } = await q;
+        : supabase.from('tenants').insert({ property_id: propertyId, user_id: userId, ...stripEmpty(plan.tenant) }));
       if (!tErr) add('Ενοικιαστής');
     }
 
@@ -534,8 +539,8 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
       if (r.ok) add('Αρχείο');
     }
 
-    if (!saved.length) return { saved: [], error: 'save' };
-    return { saved };
+    if (!written.length) return { saved: [], error: 'save' };
+    return { saved: written };
   } catch { return { saved: [], error: 'save' }; }
 }
 

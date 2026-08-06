@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn, fd } from '@/components/Theme';
+import { saved } from '@/components/dbWrite';
 import { TextInput } from './UIComponents';
 import { amaState, amaSummary, cleanAma, isValidAmaFormat, amaLengthLooksUnusual, AMA_COPY, type AmaRow } from '@/lib/property/ama';
 
@@ -72,18 +73,20 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
     if (!isValidAmaFormat(v)) return;
     setBusy(true);
     // Νέος ΑΜΑ ⇒ η προηγούμενη επιβεβαίωση αγγελίας ΔΕΝ ισχύει πια.
-    await supabase.from('user_properties')
+    const ok = await saved('Ο αριθμός μητρώου δεν αποθηκεύτηκε', supabase.from('user_properties')
       .update({ ama: v, ama_listed_confirmed_at: v === (p.ama || '') ? p.ama_listed_confirmed_at : null })
-      .eq('id', p.id);
-    setBusy(false); setEditing(null); setDraft('');
+      .eq('id', p.id));
+    setBusy(false);
+    if (!ok) return;
+    setEditing(null); setDraft('');
     load();
   };
 
   const confirmListed = async (p: AmaProperty, on: boolean) => {
     setBusy(true);
-    await supabase.from('user_properties')
+    await saved('Η επιβεβαίωση αγγελίας δεν αποθηκεύτηκε', supabase.from('user_properties')
       .update({ ama_listed_confirmed_at: on ? new Date().toISOString() : null })
-      .eq('id', p.id);
+      .eq('id', p.id));
     setBusy(false);
     load();
   };

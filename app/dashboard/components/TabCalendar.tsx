@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
+import { savedData } from '@/components/dbWrite'
 import { T, Spinner, Skeleton, EmptyState, Chip, feAuto, fe } from '@/components/Theme'
 import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
 import {
@@ -1227,7 +1228,11 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
     if(!token){
       const{data}=await supabase.from('calendar_feed_tokens').select('token').eq('user_id',userId).maybeSingle()
       token=data?.token||null
-      if(!token){ const{data:ins}=await supabase.from('calendar_feed_tokens').insert({user_id:userId}).select('token').single(); token=(ins as any)?.token||null }
+      if(!token){
+        const ins=await savedData<{token?:string}>('Ο σύνδεσμος συνδρομής δεν δημιουργήθηκε',
+          supabase.from('calendar_feed_tokens').insert({user_id:userId}).select('token').single())
+        token=ins?.token||null
+      }
       setFeedToken(token)
     }
     setShowSubscribe(true)

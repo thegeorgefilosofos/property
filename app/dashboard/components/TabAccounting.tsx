@@ -8,6 +8,7 @@ import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/a
 import { REGULATORY_UPDATES_2026, type RegulatoryUpdate, type UpdateAudience } from '@/lib/accounting/updates2026'
 import { transferCosts } from '@/lib/accounting/transfer'
 import { InfoHint } from './InfoHint'
+import { saved, savedData } from '@/components/dbWrite'
 import BankImport from './BankImport'
 import E2ReconcileCard from './E2ReconcileCard'
 import { Landmark, Lock, Unlock } from 'lucide-react'
@@ -436,7 +437,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   }
   async function unlockYear(){
     setLockErr(null); setClosing(null)
-    await supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year)
+    await saved('Το κλείδωμα της χρήσης δεν άνοιξε',
+      supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year))
   }
 
   // Δημιουργεί/ανακτά τον σύνδεσμο της πύλης λογιστή και τον αντιγράφει. Ο λογιστής
@@ -445,8 +447,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(acctBusy) return
     setAcctBusy(true)
     try{
-      const { data } = await supabase.from('accountant_links').upsert({ user_id:userId, active:true }, { onConflict:'user_id' }).select('token').maybeSingle()
-      const token = (data as { token?:string } | null)?.token
+      const data = await savedData<{ token?:string }>('Ο σύνδεσμος για τον λογιστή δεν δημιουργήθηκε',
+        supabase.from('accountant_links').upsert({ user_id:userId, active:true }, { onConflict:'user_id' }).select('token').maybeSingle())
+      const token = data?.token
       if(token){
         const url = `${window.location.origin}/accountant/${token}`
         setAcctLink(url)
@@ -462,8 +465,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     setAcctBusy(true)
     try{
       const fresh = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
-      const { data } = await supabase.from('accountant_links').upsert({ user_id:userId, token:fresh, active:true }, { onConflict:'user_id' }).select('token').maybeSingle()
-      const token = (data as { token?:string } | null)?.token
+      const data = await savedData<{ token?:string }>('Ο σύνδεσμος δεν ανακλήθηκε',
+        supabase.from('accountant_links').upsert({ user_id:userId, token:fresh, active:true }, { onConflict:'user_id' }).select('token').maybeSingle())
+      const token = data?.token
       if(token){ setAcctLink(`${window.location.origin}/accountant/${token}`); setAcctCopied(false); setAcctRevoked(true); setTimeout(()=>setAcctRevoked(false),2600) }
     } finally { setAcctBusy(false) }
   }
