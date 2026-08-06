@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useId, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, settingsField, ABSENT } from '@/components/Theme';
+import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import Billing from './Billing';
@@ -167,25 +167,8 @@ function DeleteAccount() {
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ready = confirmText.trim().toUpperCase() === 'ΔΙΑΓΡΑΦΗ';
-
-  // GDPR data portability: download every row of your own data as one JSON file.
-  const exportData = async () => {
-    if (exporting) return;
-    setExporting(true); setError(null);
-    const { data, error } = await supabase.rpc('export_my_data');
-    setExporting(false);
-    if (error) { setError(error.message || 'Η εξαγωγή απέτυχε. Δοκίμασε ξανά.'); return; }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `propertyos-data-${athensToday()}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  };
 
   const del = async () => {
     if (!ready || busy) return;
@@ -198,16 +181,6 @@ function DeleteAccount() {
 
   return (
     <div style={divider}>
-      {/* Εξαγωγή δεδομένων (GDPR — φορητότητα): κατέβασμα όλων των δεδομένων σε ένα αρχείο. */}
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Εξαγωγή δεδομένων</div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
-        Κατέβασε όλα τα δεδομένα σου (ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς και τα υπόλοιπα) σε ένα αρχείο JSON. Δικαίωμα φορητότητας δεδομένων.
-      </div>
-      <button onClick={exportData} disabled={exporting}
-        style={{ appearance: 'none', cursor: exporting ? 'not-allowed' : 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, marginBottom: 24 }}>
-        {exporting ? 'Εξαγωγή…' : 'Κατέβασε τα δεδομένα μου (JSON)'}
-      </button>
-
       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
         Διαγράφει οριστικά τον λογαριασμό και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα την εξαγωγή δεδομένων παραπάνω.
@@ -398,6 +371,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const manageRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState('');
+  const [exportOk, setExportOk] = useState('');
   const [reduceMotion, setReduceMotion] = useState(false);
   const [largeText, setLargeText] = useState(false);
 
@@ -501,10 +475,14 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
   const exportAll = async () => {
     if (exporting) return;
-    setExporting(true); setExportErr('');
-    const res = await exportAllData(userId);
+    setExporting(true); setExportErr(''); setExportOk('');
+    const res = await exportAllData();
     setExporting(false);
-    if (!res.ok) setExportErr('Δεν ήταν δυνατή η εξαγωγή αυτή τη στιγμή. Δοκίμασε ξανά.');
+    if (!res.ok) { setExportErr('Δεν ήταν δυνατή η εξαγωγή αυτή τη στιγμή. Δοκίμασε ξανά.'); return; }
+    // ΤΙ ΚΑΤΕΒΗΚΕ, ΜΕ ΑΡΙΘΜΟΥΣ. Ένα αρχείο που εμφανίζεται στις λήψεις χωρίς
+    // καμία ένδειξη δεν επιβεβαιώνει τίποτα — και σε αίτημα φορητότητας
+    // δεδομένων ο χρήστης έχει κάθε λόγο να θέλει να ξέρει ότι πήρε τα πάντα.
+    setExportOk(`Κατέβηκαν ${fn(res.rows ?? 0)} εγγραφές από ${fn(res.tables ?? 0)} πίνακες.`);
   };
 
   // Προσβασιμότητα: διάβασε τις αποθηκευμένες προτιμήσεις, εφάρμοσέ τες ζωντανά.
@@ -718,9 +696,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
       {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
       <CollapsibleSection title="Δεδομένα & Απόρρητο" delay="340ms">
-        <SettingRow title="Εξαγωγή όλων των δεδομένων σου" desc="Κατέβασε σε ένα αρχείο όλα σου τα δεδομένα (ακίνητα, δαπάνες, λογαριασμοί, ενοικιαστές, πελάτες, έγγραφα). Δικό σου, όποτε το θελήσεις."
+        <SettingRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σας αφορά, σε ένα αρχείο JSON: ακίνητα, μισθώσεις, δαπάνες, λογαριασμοί, πελάτες, έγγραφα και ό,τι άλλο έχει καταχωρηθεί. Δικαίωμα φορητότητας δεδομένων."
           control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
         {exportErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{exportErr}</div>}
+        {exportOk && <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 8 }}>{exportOk}</div>}
         <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Μόνο τις ρυθμίσεις αυτού του ακινήτου, σε αρχείο CSV για γρήγορη ματιά."
           control={<Btn variant="secondary" onClick={exportSettingsCsv}>Εξαγωγή CSV</Btn>} />
         <div style={{ marginTop: 12 }}>
