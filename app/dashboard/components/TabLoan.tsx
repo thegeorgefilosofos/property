@@ -6,10 +6,10 @@ import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
 import { fp, fe } from '@/lib/core/format'
 import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
-import { T, ExportButton, EmptyState, Btn, Skeleton } from '@/components/Theme'
+import { T, ExportButton, EmptyState } from '@/components/Theme'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
-import { Landmark, Gift } from 'lucide-react'
+import { Gift } from 'lucide-react'
 import { downloadXlsx, type XlsxMode } from './exportXlsx'
 import TabLoanCalculator from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
@@ -28,12 +28,11 @@ import ApprovalPanel from './ApprovalPanel'
 import EsisScanPanel from './EsisScanPanel'
 import BankRatesAdmin from './BankRatesAdmin'
 import { InfoDot } from './UIComponents'
-import { KPI, LensBar, labelStyle, cardStyle } from './LoanShared'
+import { KPI, LensBar, labelStyle } from './LoanShared'
 import { athensToday } from '@/lib/core/time';
 
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
-const fmtRateStr = (v:unknown):string => String(v ?? '').trim().replace(/\./g,',').replace(/\s*-\s*/g,'–')
 // Πρώτος αριθμός (επιτόκιο «από») ενός εύρους ή μονής τιμής → number.
 const rateNum = (v:unknown):number|null => { const m = String(v ?? '').match(/-?\d+[.,]?\d*/); return m ? parseFloat(m[0].replace(',','.')) : null }
 // Δύο δεκαδικά με κόμμα, τυποποιημένα: 3.4 → «3,40», 2 → «2,00».
@@ -266,7 +265,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
   const market      = useMarketRates()
   const {banks:liveBanks,loading:banksLoading,verifiedAt} = useBankRates()
-  const {programs:livePrograms,loading:programsLoading}   = useLoanPrograms()
+  const {programs:livePrograms }   = useLoanPrograms()
   const {isAdmin} = useIsAdmin()
 
   const BANKS    = liveBanks.length    ? liveBanks    : BANKS_NORM
@@ -484,21 +483,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           </div>
         )
       })()}
-      {/* Όσο τρέχει η loadSaved δείχνουμε το σχήμα των καρτών δανείου, ώστε να μη
-          διαβάζεται για μια στιγμή το «δεν υπάρχουν δάνεια» ως απάντηση. */}
-      {loadingSaved&&(
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          {[0,1].map(i=><Skeleton key={i} h={140} r={14}/>)}
-        </div>
-      )}
-      {!loadingSaved&&saved.length===0&&(
-        <EmptyState
-          icon={<Landmark size={20}/>}
-          title="Δεν υπάρχουν αποθηκευμένα δάνεια"
-          hint="Χρησιμοποίησε τον Υπολογιστή Δανείου για να υπολογίσεις και να αποθηκεύσεις δάνεια."
-          action={<Btn variant="secondary" onClick={scrollToCalc}>Άνοιξε τον Υπολογιστή Δανείου</Btn>}
-        />
-      )}
+      {/* Η κατάσταση φόρτωσης και η κενή κατάσταση έφυγαν από εδώ: το μπλοκ
+          αποδίδεται πλέον ΜΟΝΟ όταν υπάρχουν δάνεια, οπότε καμία από τις δύο δεν
+          μπορούσε να εμφανιστεί. Και η κενή κατάσταση έστελνε «άνοιξε τον
+          Υπολογιστή Δανείου» — ο οποίος είναι τώρα ακριβώς από κάτω. */}
       {saved.map(loan=>{
         // ═══ Η ΘΕΣΗ ΤΟΥ ΔΑΝΕΙΟΥ ΣΗΜΕΡΑ ═══════════════════════════════════════
         // Η κάρτα έδειχνε πέντε πλακίδια ίδιου βάρους, με πρώτο το «Ποσό» — το
@@ -634,7 +622,23 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         </div>
       </div>
 
-      {/* ═══ ΥΠΟΛΟΓΙΣΤΗΣ — πάντα ορατός στην κορυφή ═══ */}
+      {/* ═══ ΤΟ ΔΑΝΕΙΟ ΣΟΥ — ΠΡΩΤΟ, ΠΑΝΤΑ ═══════════════════════════════════
+          Ζούσε σε `MiniSection order={8}`, μέσα στον φακό «Μάθε περισσότερα»,
+          ΚΑΤΩ ΑΠΟ ΤΙΣ «Επίσημες πηγές» — το σχόλιο του κώδικα το έγραφε ρητά.
+          Δηλαδή ο ιδιοκτήτης που έχει δάνειο άνοιγε την καρτέλα Δάνειο και
+          έβλεπε: υπολογιστή για δάνειο που δεν έχει πάρει, μετά σύσταση για
+          δάνειο που δεν ψάχνει, και για να δει ΤΟ ΔΙΚΟ ΤΟΥ έπρεπε να αλλάξει
+          φάκο και να περάσει επτά πτυσσόμενες ενότητες με γλωσσάρι, ιστορικό
+          Euribor και συνδέσμους της Τράπεζας Ελλάδος.
+
+          Το υπόλοιπο, η δόση και η λήξη είναι ο λόγος που ανοίγει αυτή την
+          οθόνη κάποιος που ΗΔΗ έχει δάνειο. Ο υπολογιστής είναι για όποιον
+          ψάχνει — χρήσιμος, αλλά δεύτερος. ═══════════════════════════════ */}
+      {!loadingSaved && saved.length > 0 && (
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>{savedContent}</div>
+      )}
+
+      {/* ═══ ΥΠΟΛΟΓΙΣΤΗΣ ═══ */}
       <div ref={calcRef}>
         <TabLoanCalculator
           propertyId={propertyId} userId={userId}
@@ -1503,11 +1507,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </div>
           </MiniSection>
 
-          {/* ── Αποθηκευμένα δάνεια — στο τέλος του οδηγού, κάτω από τις πηγές ── */}
-          <MiniSection order={8} title="Αποθηκευμένα δάνεια" defaultOpen={saved.length>0}
-            meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{saved.length>0?`${saved.length} δάνεια`:'Παρακολούθηση υπολοίπου'}</span>}>
-            {savedContent}
-          </MiniSection>
         </div>
         )}
       </LensPanel>)}
