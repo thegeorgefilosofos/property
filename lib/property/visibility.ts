@@ -194,6 +194,24 @@ export interface Decision {
   visible: boolean;
   /** Γιατί όχι, με λόγια. Κενό όταν φαίνεται. */
   reason: string;
+  /**
+   * ΑΦΟΡΑ ΚΑΝ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ;
+   *
+   * Δύο εντελώς διαφορετικοί λόγοι κρύβουν μια καρτέλα, και μέχρι τώρα
+   * συγχέονταν σε ένα `visible: false`:
+   *
+   *   · «Δεν το χρειάζεσαι ΑΚΟΜΗ» — λίγα ακίνητα για σύγκριση, δεν έχεις φτάσει
+   *     ως εκεί. Προσωρινό. Με «δείξε τα όλα» έχει νόημα να φανεί αχνά, ώστε ο
+   *     χρήστης να ξέρει ότι υπάρχει.
+   *   · «ΔΕΝ ΙΣΧΥΕΙ για αυτό το ακίνητο» — ο Ενοικιαστής σε βραχυχρόνια, οι
+   *     Αποδόσεις σε ιδιοχρησία. Δεν είναι «όχι ακόμη», είναι «ποτέ, όσο το
+   *     ακίνητο είναι αυτό που είναι».
+   *
+   * Το «δείξε τα όλα» ανασταίνει το πρώτο. Το δεύτερο ΔΕΝ επιτρέπεται να το
+   * αναστήσει: ένας ιδιοκτήτης βραχυχρόνιας που βλέπει «Ενοικιαστής» στο μενού
+   * δεν βλέπει μια δυνατότητα, βλέπει λάθος.
+   */
+  applies: boolean;
 }
 
 /**
@@ -209,27 +227,28 @@ export function tabDecision(tabId: string, ctx: OwnerContext, selected: Property
   if (min !== undefined) {
     if (ctx.properties.length < min) {
       return {
-        visible: false,
+        visible: false, applies: true,
         reason: min === 2
           ? 'Χρειάζονται τουλάχιστον δύο ακίνητα.'
           : `Εμφανίζεται από ${min} ακίνητα και πάνω.`,
       };
     }
     if (tabId === 'comparison' && !canCompare(ctx.properties)) {
-      return { visible: false, reason: 'Δεν υπάρχουν δύο ακίνητα ίδιου τύπου για σύγκριση.' };
+      return { visible: false, applies: true, reason: 'Δεν υπάρχουν δύο ακίνητα ίδιου τύπου για σύγκριση.' };
     }
   }
 
   const statuses = BY_STATUS[tabId];
   if (statuses) {
-    if (!selected) return { visible: false, reason: 'Δεν έχει επιλεγεί ακίνητο.' };
+    if (!selected) return { visible: false, applies: true, reason: 'Δεν έχει επιλεγεί ακίνητο.' };
     const s = readStatus(selected);
     if (!statuses.includes(s)) {
-      return { visible: false, reason: reasonForStatus(tabId, s) };
+      // Η κατάσταση του ακινήτου το αποκλείει: δεν είναι «όχι ακόμη».
+      return { visible: false, applies: false, reason: reasonForStatus(tabId, s) };
     }
   }
 
-  return { visible: true, reason: '' };
+  return { visible: true, applies: true, reason: '' };
 }
 
 /**

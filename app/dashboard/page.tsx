@@ -126,11 +126,13 @@ const NAV_ITEMS = [
   { id:'accounting', label:'Λογιστική' },
   { id:'loan',       label:'Δάνειο' },
   { id:'tenant',     label:'Ενοικιαστής' },
+  { id:'pricing',    label:'Βραχυχρόνια' },
   { id:'clients',    label:'Πελάτης' },
   { id:'inventory',  label:'Έπιπλα / Εξοπλισμός' },
   { id:'documents',  label:'Αρχείο' },
   { id:'checklist',  label:'Εκκρεμότητες' },
   { id:'roi',        label:'Απόδοση' },
+  { id:'plan',       label:'Αξιοποίηση' },
   { id:'referral',   label:'Πρόγραμμα Πρόσκλησης' },
   { id:'settings',   label:'Λογαριασμός' },
 ];
@@ -177,9 +179,18 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',                    ids: ['portfolio'] },
   { label: '',                    ids: ['calendar'] },
   { label: 'Οικονομικά',          ids: ['finances','accounting','loan'] },
-  { label: 'Μίσθωση',             ids: ['tenant','clients'] },
+  // Η βραχυχρόνια ΕΙΧΕ χωθεί μέσα στην καρτέλα «Πελάτης», που απαιτεί πλάνο
+  // Επαγγελματία. Αποτέλεσμα: ο ιδιώτης με ακίνητο σε Airbnb δεν έφτανε ΠΟΤΕ στη
+  // δυναμική τιμή ούτε στο «τι μου μένει» — τα δύο εργαλεία που τον αφορούν
+  // περισσότερο από κάθε άλλο. Το πελατολόγιο μένει επαγγελματικό εργαλείο· η
+  // βραχυχρόνια μίσθωση δεν είναι, και στέκει μόνη της.
+  { label: 'Μίσθωση',             ids: ['tenant','pricing','clients'] },
   { label: 'Εργαλεία',            ids: ['inventory','documents','checklist'] },
-  { label: '',                    ids: ['roi'] },
+  // Η Απόδοση απαντά στο «αξίζει;» όταν το ακίνητο αποδίδει. Η Αξιοποίηση
+  // απαντά στο «τι να το κάνω;» όταν δεν αποδίδει. Ίδια θέση, γιατί είναι η ίδια
+  // στιγμή στο μυαλό του ιδιοκτήτη — και ποτέ μαζί, γιατί οι καταστάσεις τους
+  // δεν τέμνονται.
+  { label: '',                    ids: ['roi','plan'] },
   { label: '',                    ids: ['referral'] },
   { label: '',                    ids: ['settings'] },
 ];
@@ -379,7 +390,6 @@ type OverviewKPI = KPIItem & { incomeOnly?: boolean };
 // Οι καταστάσεις όπου το «Σχέδιο» είναι η ΚΥΡΙΑ δουλειά του ιδιοκτήτη — και οι
 // μόνες όπου εμφανίζεται. Σε μισθωμένο ακίνητο δεν υπάρχει σχέδιο να φτιαχτεί:
 // υπάρχει ενοίκιο να εισπραχθεί.
-const PLAN_STATUSES = new Set(['vacant', 'for_sale', 'renovation', 'disputed']);
 const PLAN_SUB: Record<string, string> = {
   vacant:     'Κενό — πώς θα μισθωθεί ή θα αξιοποιηθεί',
   for_sale:   'Προς πώληση — τιμή, χρονισμός, φόρος υπεραξίας',
@@ -1406,7 +1416,11 @@ export default function Dashboard() {
 
   // Ορατή στην πλοήγηση: ό,τι αφορά τον χρήστη — και, αν ζήτησε «δείξε τα όλα»,
   // και τα υπόλοιπα, αχνά και με τον λόγο ως tooltip.
-  const navVisible = (id: string) => decide(id).visible || showAllTabsPref;
+  // Το «δείξε τα όλα» ανασταίνει ό,τι κρύβεται επειδή δεν χρειάζεται ΑΚΟΜΗ. ΔΕΝ
+  // ανασταίνει ό,τι δεν ισχύει καθόλου για αυτό το ακίνητο: ο Ενοικιαστής σε
+  // βραχυχρόνια, οι Αποδόσεις σε ιδιοχρησία. Εκεί το αχνό κουμπί δεν είναι
+  // δυνατότητα που δεν έχει ανοίξει, είναι λάθος στην οθόνη.
+  const navVisible = (id: string) => { const d = decide(id); return d.visible || (showAllTabsPref && d.applies); };
 
   // Αν ο χρήστης βρίσκεται σε καρτέλα που μόλις έπαψε να τον αφορά (άλλαξε την
   // κατάσταση, διέγραψε ακίνητο), δεν τον αφήνουμε σε οθόνη που δεν ισχύει.
@@ -1518,7 +1532,7 @@ export default function Dashboard() {
               .filter(id => isTabPurchasable(effProfileType, id)
                          && (id===nav || SELF_DISCLOSING.has(id) || isTabVisible(id, disclosure)))
               .map(id => ({ id, d: decide(id) }))
-              .filter(x => x.d.visible || showAllTabsPref);
+              .filter(x => x.d.visible || (showAllTabsPref && x.d.applies));
             if (items.length === 0) return null;
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
@@ -1716,6 +1730,22 @@ export default function Dashboard() {
               {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} plan={effPlan} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
+              {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
+                  Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πλάνο
+                  Επαγγελματία. Ο ιδιώτης με ακίνητο σε Airbnb δεν έφτανε ΠΟΤΕ
+                  στη δυναμική τιμή ούτε στο «τι μου μένει» — τα δύο εργαλεία που
+                  τον αφορούν περισσότερο από κάθε άλλο. Το πελατολόγιο μένει
+                  επαγγελματικό εργαλείο· η βραχυχρόνια μίσθωση δεν είναι. */}
+              {navSafe==='pricing'   && (<>
+                <AmaStrip userId={user.id} propertyId={selected.id}/>
+                <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>
+              </>)}
+              {navSafe==='plan'      && (
+                <>
+                  <SecHdr label="Αξιοποίηση ακινήτου" sub={PLAN_SUB[readStatus(selected)]}/>
+                  <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>
+                </>
+              )}
               {navSafe==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {/* ═══ ΑΠΟΔΟΣΗ — ΜΙΑ ΚΑΡΤΕΛΑ ΓΙΑ ΜΙΑ ΕΡΩΤΗΣΗ ═══════════════════════
                   Τρεις καρτέλες απαντούσαν στο ίδιο πράγμα από τρεις μεριές:
@@ -1728,12 +1758,17 @@ export default function Dashboard() {
               {navSafe==='roi' && (
                 <>
                   <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>
-                  {PLAN_STATUSES.has(readStatus(selected)) && (
-                    <div style={{marginTop:28}}>
-                      <SecHdr label="Σχέδιο για αυτό το ακίνητο" sub={PLAN_SUB[readStatus(selected)]}/>
-                      <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>
-                    </div>
-                  )}
+                  {/* ═══ ΤΟ «ΣΧΕΔΙΟ» ΗΤΑΝ ΕΔΩ, ΚΑΙ ΔΕΝ ΤΟ ΕΒΛΕΠΕ ΚΑΝΕΙΣ ═══════════
+                      Αποδιδόταν μέσα στην Απόδοση, με συνθήκη τις τέσσερις
+                      καταστάσεις κενό / προς πώληση / ανακαίνιση / αμφισβητούμενο.
+                      Μόνο που η Απόδοση φαίνεται ΑΚΡΙΒΩΣ στις δύο άλλες
+                      καταστάσεις — μακροχρόνια και βραχυχρόνια — γιατί χωρίς
+                      έσοδο δεν υπάρχει απόδοση να μετρηθεί. Οι δύο συνθήκες ήταν
+                      αλληλοαποκλειόμενες: το Σχέδιο δεν εμφανίστηκε ποτέ σε
+                      κανέναν χρήστη. Τετρακόσιες εβδομήντα οκτώ γραμμές
+                      συμβουλευτικής, γραμμένες και απρόσιτες.
+
+                      Τώρα στέκει μόνο του στο μενού, ακριβώς εκεί που λείπει. */}
                   {properties.length > 1 && (
                     <div style={{marginTop:28}}>
                       <SecHdr label="Σε σχέση με τα υπόλοιπα ακίνητά σου" sub={`${properties.length} ακίνητα δίπλα-δίπλα`}/>
@@ -1763,12 +1798,6 @@ export default function Dashboard() {
                       ακριβώς τους επισκέπτες αυτής της καρτέλας. Ως χωριστή
                       καρτέλα ήταν ένας προορισμός που κανείς δεν σκεφτόταν να
                       επισκεφθεί όταν όριζε τιμή. */}
-                  {/* Δύο επικεφαλίδες για ένα πράγμα: εδώ στεκόταν «Τιμολόγηση ανά
-                      νύχτα» και αμέσως από κάτω ο δικός της τίτλος. Η οθόνη
-                      συστήνεται μόνη της. */}
-                  <div style={{marginTop:28}}>
-                    <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>
-                  </div>
                 </>
               )}
               {/* Πάροχοι, τεχνικοί, τράπεζες: είναι στοιχεία ΤΟΥ ΑΚΙΝΗΤΟΥ, όπως

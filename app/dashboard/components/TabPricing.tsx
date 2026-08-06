@@ -36,7 +36,6 @@ import { mergeLedger, type LedgerBill, type LedgerExpense } from '@/lib/expenses
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { Tag } from 'lucide-react';
 import { NumberInput } from './UIComponents';
-import AmaStrip from './AmaStrip';
 import { exportPricingWorkbook } from './pricingExport';
 import {
   recommendPrices, summarize, suggestBase, suggestGuardrails, bookedDatesFromStays,
@@ -360,9 +359,15 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      {/* Η γραμμή του ΑΜΑ ΠΡΩΤΗ, πάνω από τα πάντα και ποτέ πίσω από paywall:
-          το πρόβλημα που κοστίζει εισόδημα σήμερα δεν περιμένει κύλιση. */}
-      <AmaStrip userId={userId} propertyId={propertyId} />
+      {/* ═══ Η ΓΡΑΜΜΗ ΤΟΥ ΑΜΑ ΑΠΟΔΙΔΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΚΑΙ ΕΡΙΧΝΕ ΤΗΝ ΚΑΡΤΕΛΑ ═══
+          Στεκόταν εδώ ΚΑΙ στην καρτέλα «Πελάτης» που φιλοξενεί αυτή την οθόνη.
+          Δεν ήταν μόνο διπλοτυπία: και τα δύο αντίγραφα άνοιγαν κανάλι realtime
+          με το ΙΔΙΟ όνομα, `ama-strip-<χρήστης><ακίνητο>`. Ο πελάτης της Supabase
+          επιστρέφει το ΥΠΑΡΧΟΝ κανάλι για ίδιο όνομα, οπότε το δεύτερο αντίγραφο
+          καλούσε `.on()` πάνω σε κανάλι που είχε ήδη κάνει `subscribe()` — και
+          αυτό πετά εξαίρεση. Ολόκληρη η καρτέλα έδειχνε «Αυτή η ενότητα δεν
+          φόρτωσε». Το ίδιο πράγμα σε δύο σημεία δεν ήταν αισθητικό πρόβλημα εδώ:
+          ήταν το σφάλμα. */}
 
       <PageTitle title="Βραχυχρόνια μίσθωση" titleHint="Προτεινόμενη τιμή ανά νύχτα από τα δικά σου δεδομένα και την ελληνική εποχικότητα. Οι τιμές είναι προτάσεις, τις εφαρμόζεις εσύ στα κανάλια."
         sub="Τι να ζητήσεις ανά νύχτα, ποιες μέρες μένουν κενές, και τι σου μένει στο χέρι μετά από έξοδα, τέλη και φόρο."

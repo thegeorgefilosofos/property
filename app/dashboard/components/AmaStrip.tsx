@@ -50,8 +50,16 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
 
   // Ζωντανή ενημέρωση: αν αλλάξει η κατάσταση του ακινήτου σε βραχυχρόνια από
   // άλλη οθόνη, η γραμμή εμφανίζεται μόνη της. Δεν περιμένει refresh.
+  // Το όνομα του καναλιού είναι ΜΟΝΑΔΙΚΟ ανά προσάρτηση. Με σταθερό όνομα, δύο
+  // αντίγραφα του ίδιου component στην ίδια σελίδα —ή ένα που ξαναπροσαρτάται
+  // πριν προλάβει να καθαρίσει το προηγούμενο— πέφτουν πάνω στο ίδιο κανάλι, και
+  // το `.on()` μετά το `subscribe()` πετά εξαίρεση που ρίχνει όλη την καρτέλα.
+  // Η διπλοτυπία διορθώθηκε στο σημείο της· αυτό εδώ κάνει το λάθος αδύνατο.
   useEffect(() => {
-    const ch = supabase.channel('ama-strip-' + userId + (propertyId || ''))
+    // Το μοναδικό επίθεμα παράγεται ΜΕΣΑ στο effect. Στο σώμα του component θα
+    // ήταν ακάθαρτη κλήση κατά την απόδοση — και ο ίδιος ο έλεγχος lint το πιάνει.
+    const unique = Math.random().toString(36).slice(2, 10);
+    const ch = supabase.channel(`ama-strip-${userId}${propertyId || ''}-${unique}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_properties', filter: `user_id=eq.${userId}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
