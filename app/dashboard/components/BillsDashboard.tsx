@@ -16,6 +16,7 @@ import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@/lib/expenses/sharing';
 import { athensToday } from '@/lib/core/time';
+import { deriveMonthlyByCategory, monthlyTotals, averageMonthly } from '@/lib/bills/monthlyHistory';
 
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
@@ -40,12 +41,12 @@ interface Props { propertyId: string; userId: string; propertyName?: string; pro
 const CATEGORIES = [
   { value: 'electricity', label: 'Ρεύμα',                       icon: 'bolt',                    color: '#f9ab00' },
   { value: 'common',      label: 'Κοινόχρηστα',                  icon: 'building',                color: 'var(--text-secondary)' },
-  { value: 'internet',    label: 'Internet / Τηλεόραση',          icon: 'wifi',                    color: 'var(--accent)' },
+  { value: 'internet',    label: 'Διαδίκτυο και τηλεόραση',       icon: 'wifi',                    color: 'var(--accent)' },
   { value: 'water',       label: 'Νερό',                         icon: 'drop',                    color: '#12b5cb' },
-  { value: 'gas',         label: 'Αέριο / Θέρμανση',             icon: 'flame',                   color: '#d93025' },
+  { value: 'gas',         label: 'Αέριο και θέρμανση',            icon: 'flame',                   color: '#d93025' },
   { value: 'insurance',   label: 'Ασφάλεια',                     icon: 'shield',                  color: '#00897b' },
-  { value: 'security',    label: 'Security / Συναγερμός',         icon: 'lock',                    color: '#9334e6' },
-  { value: 'streaming',   label: 'Streaming / Συνδρομές',         icon: 'device-tv',               color: '#a142f4' },
+  { value: 'security',    label: 'Συναγερμός',                    icon: 'lock',                    color: '#9334e6' },
+  { value: 'streaming',   label: 'Συνδρομές',                     icon: 'device-tv',               color: '#a142f4' },
   { value: 'enfia',       label: 'ΕΝΦΙΑ',                        icon: 'landmark',                color: 'var(--text-tertiary)' },
   { value: 'dimotika',    label: 'Δημοτικά Τέλη',               icon: 'building-community',      color: 'var(--text-tertiary)' },
   { value: 'cleaning',    label: 'Καθαρισμός',                   icon: 'sparkles',                color: '#7cb342' },
@@ -315,21 +316,6 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const histInputStyle = (isCurrent: boolean): React.CSSProperties => ({
-  width: '100%',
-  background: isCurrent ? 'rgba(26,115,232,0.06)' : 'var(--bg-base)',
-  border: `1px solid ${isCurrent ? 'var(--accent)' : 'var(--border-subtle)'}`,
-  borderRadius: T.radius.badge,
-  padding: '5px 3px',
-  color: 'var(--text-primary)',
-  fontSize: 11,
-  fontFamily: T.font.mono,
-  fontVariantNumeric: 'tabular-nums',
-  outline: 'none',
-  textAlign: 'center',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.15s',
-});
 
 export default function BillsDashboard({ propertyId, userId, propertyName = 'Ακίνητό μου', propertyAddress = '' }: Props) {
   const supabase = createClient();
@@ -350,8 +336,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   // του, είχε σύγκριση τιμολογίων. Η κατηγορία είναι φίλτρο, όχι προορισμός.
   const [catFilter, setCatFilter] = useState<string>('all');
   const [chartView, setChartView] = useState<'area' | 'bar' | 'category'>('area');
-  const [budgets,   setBudgets]   = useState<Record<string, string>>({});
-  const [showBudgets, setShowBudgets] = useState(false);
   const [form, setForm] = useState({
     category: 'electricity', name: '', amount: '', kwh: '',
     period: '', date_from: '', due_date: '', recurring: true,
@@ -376,18 +360,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     }
   }, [propertyId, currentYear]);
 
-  const loadBudgets = useCallback(async () => {
-    const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle();
-    if (data?.data) setBudgets(data.data as Record<string, string>);
-  }, [propertyId]);
-
   useEffect(() => {
     if (!propertyId) return;
     let mounted = true;
 
     loadBills();
     loadHistory();
-    loadBudgets();
 
     const channel = supabase
       .channel(`dashboard_bills_${propertyId}`)
@@ -402,32 +380,11 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, [propertyId, loadBills, loadHistory, loadBudgets]);
+  }, [propertyId, loadBills, loadHistory]);
 
-  const saveHistoryCell = async (category: string, month: number, value: string) => {
-    const amount = parseFloat(value) || 0;
-    await supabase.from('bills_history').upsert(
-      { property_id: propertyId, user_id: userId, category, month, year: currentYear, amount, updated_at: new Date().toISOString() },
-      { onConflict: 'property_id,category,month,year' }
-    );
-  };
-
-  const updateHistory = (category: string, month: number, value: string) => {
-    setHistory(h => {
-      const n = { ...h };
-      n[category] = [...(n[category] || Array(12).fill(''))];
-      n[category][month] = value;
-      return n;
-    });
-    saveHistoryCell(category, month, value);
-  };
-
-  const saveBudgets = async (b: Record<string, string>) => {
-    await supabase.from('bills_settings').upsert(
-      { property_id: propertyId, user_id: userId, section: 'budgets', data: b, updated_at: new Date().toISOString() },
-      { onConflict: 'property_id,section' }
-    );
-  };
+  // Το `bills_history` ΔΙΑΒΑΖΕΤΑΙ αλλά δεν γράφεται πια από εδώ: ό,τι έχει
+  // συμπληρώσει ο χρήστης μένει και υπερισχύει, νέα χειρόγραφη καταχώριση όμως
+  // δεν ζητείται. Ήταν το ίδιο νούμερο, δεύτερη φορά, σε άλλο σχήμα.
 
   const addBill = async () => {
     if (!form.name || !form.amount) return;
@@ -524,17 +481,21 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       // Ο δικός του μέσος όρος από τους μήνες που ΕΧΟΥΝ στοιχεία. Κάτω από
       // MIN_MONTHS_FOR_BASELINE μένει 0, δηλαδή «καμία σύγκριση» — δεν εφευρίσκουμε βάση.
       benchmark: (() => {
-        const vals = (history[c.value] || []).map(v => parseFloat(v) || 0).filter(v => v > 0);
+        const vals = (deriveMonthlyByCategory(bills, currentYear, history)[c.value] || []).filter((v: number) => v > 0);
         if (vals.length < MIN_MONTHS_FOR_BASELINE) return 0;
-        return vals.reduce((a, b) => a + b, 0) / vals.length;
+        return vals.reduce((a: number, b: number) => a + b, 0) / vals.length;
       })(),
     })).filter(c => c.monthly > 0);
 
-    const historyTotals = Array(12).fill(0).map((_, i) =>
-      CATEGORIES.reduce((s, c) => s + (parseFloat(history[c.value]?.[i]) || 0), 0)
-    );
-    const filled    = historyTotals.filter(v => v > 0);
-    const avgMonthly = filled.length > 0 ? filled.reduce((a, b) => a + b, 0) / filled.length : totalMonthly;
+    // ═══ ΤΟ ΙΣΤΟΡΙΚΟ ΔΕΝ ΖΗΤΙΕΤΑΙ ΠΙΑ, ΥΠΟΛΟΓΙΖΕΤΑΙ ═══════════════════════════
+    // Ήταν άθροισμα 204 πεδίων που συμπλήρωνε ο χρήστης με το χέρι, ξαναγράφοντας
+    // ποσά που είχε ήδη καταχωρίσει δέκα εκατοστά πιο πάνω. Όποιος δεν το έκανε
+    // έβλεπε «Μέσο μηνιαίο 0,00 €» για πάντα, δίπλα σε λίστα γεμάτη λογαριασμούς.
+    // Ό,τι έχει ήδη γραφτεί στο `bills_history` υπερισχύει — δεν σβήνουμε δουλειά
+    // που έγινε, σταματάμε μόνο να τη ζητάμε.
+    const monthlyByCat = deriveMonthlyByCategory(bills, currentYear, history);
+    const historyTotals = monthlyTotals(monthlyByCat);
+    const avgMonthly = averageMonthly(historyTotals) || totalMonthly;
     const maxHistory = Math.max(...historyTotals, totalMonthly, 1);
 
     const alerts: { type: 'danger' | 'warning' | 'info'; msg: string; bill?: string }[] = [];
@@ -549,15 +510,16 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       alerts.push({ type: 'warning', msg, bill: b.id });
     });
     byCategory.forEach(c => {
-      const budget = parseFloat(budgets[c.value] || '0');
-      if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, υπέρβαση budget (${fe(budget, 0)})` });
-      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, 30%+ πάνω από τον δικό σου μέσο όρο (${fe(c.benchmark, 0)})` });
+      // Η ειδοποίηση υπέρβασης ορίου έφυγε μαζί με τον πίνακα ορίων: το όριο
+      // ορίζεται στην καρτέλα «Προϋπολογισμός». Μένει η σύγκριση με τον ΔΙΚΟ ΤΟΥ
+      // μέσο όρο, που δεν είναι στόχος αλλά μέτρηση.
+      if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly)} τον μήνα, πάνω από 30% σε σχέση με τον δικό σου μέσο όρο (${fe(c.benchmark)})` });
     });
 
     const areaData = MONTHS_GR.map((m, i) => {
       const obj: any = { month: m };
-      CATEGORIES.filter(c => history[c.value]?.some(v => parseFloat(v) > 0)).forEach(c => {
-        obj[c.label] = parseFloat(history[c.value]?.[i]) || 0;
+      CATEGORIES.filter(c => monthlyByCat[c.value]?.some((v: number) => v > 0)).forEach(c => {
+        obj[c.label] = monthlyByCat[c.value]?.[i] || 0;
       });
       obj['Σύνολο'] = historyTotals[i];
       return obj;
@@ -568,8 +530,8 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       pct: c.benchmark > 0 ? Math.round((c.monthly / c.benchmark - 1) * 100) : 0,
     }));
 
-    return { totalMonthly, totalUnpaid, totalPaid, overdue, dueSoon, byCategory, historyTotals, avgMonthly, maxHistory, alerts, areaData, categoryData };
-  }, [bills, history, budgets]);
+    return { totalMonthly, totalUnpaid, totalPaid, overdue, dueSoon, byCategory, historyTotals, monthlyByCat, avgMonthly, maxHistory, alerts, areaData, categoryData };
+  }, [bills, history, currentYear]);
 
   // Οι κατηγορίες που όντως υπάρχουν στους λογαριασμούς, με το πλήθος τους, στη
   // σειρά του καταλόγου (όχι σε σειρά εισαγωγής — αλλιώς χοροπηδούν τα κουμπιά).
@@ -609,7 +571,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             const bg     = type === 'danger'  ? 'rgba(197,34,31,0.06)'  : type === 'warning' ? 'rgba(242,153,0,0.06)'  : 'rgba(26,115,232,0.05)';
             const border = type === 'danger'  ? 'rgba(197,34,31,0.2)'   : type === 'warning' ? 'rgba(242,153,0,0.2)'   : 'rgba(26,115,232,0.15)';
             const col    = type === 'danger'  ? 'var(--negative)'        : type === 'warning' ? 'var(--warning)'        : 'var(--accent)';
-            const label  = type === 'danger'  ? 'Ληξιπρόθεσμα'          : type === 'warning' ? 'Προσεχείς Πληρωμές'   : 'Πληροφορίες';
+            const label  = type === 'danger'  ? 'Ληξιπρόθεσμα'          : type === 'warning' ? 'Προσεχείς πληρωμές'   : 'Πληροφορίες';
             return (
               <div key={type} style={{ background: bg, border: `1px solid ${border}`, borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 8 }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: col, textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 8, fontFamily: T.font.sans }}>{label}</div>
@@ -633,10 +595,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
-          { label: 'Πάγια / Μήνα',  value: fe(calc.totalMonthly, 0),  sub: fe(calc.totalMonthly * 12, 0) + '/έτος',              neg: false },
-          { label: 'Εκκρεμείς',     value: fe(calc.totalUnpaid, 0),   sub: bills.filter(b => !b.paid).length + ' λογαριασμοί', neg: calc.totalUnpaid > 0 },
-          { label: 'Πληρωμένοι',    value: fe(calc.totalPaid, 0),     sub: bills.filter(b => b.paid).length + ' λογαριασμοί',  neg: false },
-          { label: 'Μέσο Μηνιαίο',  value: fe(calc.avgMonthly, 0),    sub: 'βάσει ιστορικού',                                  neg: false },
+          { label: 'Πάγια τον μήνα', value: fe(calc.totalMonthly), sub: `${fe(calc.totalMonthly * 12)} τον χρόνο`,             neg: false },
+          { label: 'Εκκρεμείς',      value: fe(calc.totalUnpaid),  sub: `${bills.filter(b => !b.paid).length} λογαριασμοί`,     neg: calc.totalUnpaid > 0 },
+          { label: 'Πληρωμένοι',     value: fe(calc.totalPaid),    sub: `${bills.filter(b => b.paid).length} λογαριασμοί`,      neg: false },
+          // ΤΟ «ΜΕΣΟ ΜΗΝΙΑΙΟ» ΕΦΥΓΕ. Ήταν το τέταρτο πλακίδιο εδώ ΚΑΙ το πρώτο
+          // από τα τρία κάτω από τον πίνακα ιστορικού: το ίδιο νούμερο, δύο
+          // φορές στην ίδια οθόνη, με την ίδια ετικέτα.
         ].map((k, i) => (
           <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -653,18 +617,20 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             style={{ padding: '8px 16px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; }}>
-            Excel
+            Εξαγωγή σε Excel
           </button>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowBudgets(s => !s)}
-            style={{ padding: '8px 16px', borderRadius: T.radius.btn, border: `1px solid ${showBudgets ? 'var(--accent)' : 'var(--border-subtle)'}`, background: showBudgets ? 'rgba(26,115,232,0.1)' : 'transparent', color: showBudgets ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
-            Όρια Budget
-          </button>
+          {/* ═══ ΤΟ BUDGET ΕΧΕΙ ΔΙΚΗ ΤΟΥ ΚΑΡΤΕΛΑ, ΔΙΠΛΑ ══════════════════════
+              Εδώ υπήρχε κουμπί «Όρια Budget» που άνοιγε πίνακα με δεκαοκτώ πεδία
+              ορίων ανά κατηγορία — ολόκληρος προϋπολογισμός, μέσα στην οθόνη των
+              συμβολαίων, ενώ η καρτέλα «Προϋπολογισμός» είναι η ΑΜΕΣΩΣ διπλανή.
+              Το ίδιο εργαλείο σε δύο σημεία σημαίνει δύο πιθανές απαντήσεις στο
+              «πού ορίζω το όριό μου», και μία από τις δύο θα είναι λάθος. */}
           {!showForm ? (
             <button onClick={() => setShowForm(true)}
               style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: T.h.md, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' as const }}>
-              + Προσθήκη Λογαριασμού
+              Προσθήκη λογαριασμού
             </button>
           ) : (
             <button onClick={() => setShowForm(false)}
@@ -674,39 +640,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           )}
         </div>
       </div>
-
-      {showBudgets && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-          {secHdr('Όρια Budget ανά Κατηγορία')}
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 14, fontFamily: T.font.sans }}>Ορισμός μέγιστου αποδεκτού ποσού ανά κατηγορία</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10 }}>
-            {CATEGORIES.map(c => {
-              const current = bills.filter(b => b.category === c.value && b.recurring).reduce((s, b) => s + b.amount, 0);
-              const budget  = parseFloat(budgets[c.value] || '0');
-              const over    = budget > 0 && current > budget;
-              const near    = budget > 0 && current > budget * 0.8 && !over;
-              return (
-                <div key={c.value} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: `1px solid ${over ? 'rgba(197,34,31,0.25)' : near ? 'rgba(242,153,0,0.25)' : 'var(--border-subtle)'}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, flex: 1 }}>{c.label}</span>
-                    {current > 0 && <span style={{ fontSize: 10, color: over ? 'var(--negative)' : near ? 'var(--warning)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{current.toLocaleString('el-GR')}€</span>}
-                  </div>
-                  <NumberInput
-                    label=""
-                    value={budgets[c.value] || ''}
-                    onChange={v => { const b = { ...budgets, [c.value]: v }; setBudgets(b); saveBudgets(b); }}
-                    suffix="€"
-                    step={5}
-                  />
-                  {over && <div style={{ fontSize: 10, color: 'var(--negative)', marginTop: 6, fontFamily: T.font.sans }}>Υπέρβαση κατά {(current - budget).toFixed(0)}€</div>}
-                  {near && !over && <div style={{ fontSize: 10, color: 'var(--warning)', marginTop: 6, fontFamily: T.font.sans }}>Κοντά στο όριο</div>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {showForm && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
@@ -772,14 +705,14 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-          <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Λογαριασμοί & Πάγια</span>
+          <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Καταχωρημένα</span>
           {bills.length > 1 && (
             <select value={billSort} onChange={e => setBillSort(e.target.value as BillSort)} title="Ταξινόμηση"
               style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
               {(Object.keys(BILL_SORT_LABELS) as BillSort[]).map(k => <option key={k} value={k}>{BILL_SORT_LABELS[k]}</option>)}
             </select>
           )}
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{visibleBills.length} εγγραφές</span>
+          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{visibleBills.length===1?'1 εγγραφή':`${visibleBills.length} εγγραφές`}</span>
         </div>
 
         {/* Φίλτρο κατηγορίας: μόνο οι κατηγορίες που ΕΧΟΥΝ λογαριασμούς. Δεκαοκτώ
@@ -803,8 +736,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <EmptyState
             icon={<Receipt size={20} />}
             title="Δεν υπάρχουν λογαριασμοί"
-            hint="Πρόσθεσε τα πάγια έξοδα του ακινήτου σου"
-            action={<Btn variant="primary" onClick={() => setShowForm(true)}>+ Προσθήκη Λογαριασμού</Btn>}
+            hint="Πρόσθεσε τα συμβόλαια παρόχων και τα πάγια έξοδα του ακινήτου: ρεύμα, κοινόχρηστα, διαδίκτυο, ασφάλεια."
+            /* Το κουμπί «Προσθήκη λογαριασμού» στέκει ήδη στη γραμμή εργαλείων,
+               τριάντα εικονοστοιχεία πιο πάνω, με το ίδιο ακριβώς κείμενο. */
           />
         ) : visibleBills.length === 0 ? (
           <EmptyState
@@ -1035,113 +969,37 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         );
       })()}
 
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-        {secHdr(`Ιστορικό ${currentYear}`)}
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 14, fontFamily: T.font.sans }}>Καταχώρησε τα ποσά από τους λογαριασμούς σου ανά μήνα για να δεις τα γραφήματα.</div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 900 }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--text-secondary)', fontWeight: 400, fontSize: 9, textTransform: 'uppercase' as const, borderBottom: '1px solid var(--border-subtle)', width: 120, fontFamily: T.font.sans }}>Κατηγορία</th>
-                {MONTHS_GR.map((m, i) => (
-                  <th key={i} style={{ padding: '6px 4px', color: i === currentMonth ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: i === currentMonth ? 700 : 400, fontSize: 9, borderBottom: '1px solid var(--border-subtle)', textAlign: 'center', fontFamily: T.font.sans }}>{m}</th>
-                ))}
-                <th style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontWeight: 400, fontSize: 9, borderBottom: '1px solid var(--border-subtle)', textAlign: 'right', fontFamily: T.font.sans }}>Σύνολο</th>
-              </tr>
-            </thead>
-            <tbody>
-              {CATEGORIES.filter(c => c.value !== 'other').map(c => {
-                const rowTotal = history[c.value]?.reduce((s, v) => s + (parseFloat(v) || 0), 0) || 0;
-                return (
-                  <tr key={c.value} className="po-fig-card" tabIndex={0}>
-                    <td style={{ padding: '4px 8px', fontSize: 10, borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' as const }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{c.label}</span>
-                      </div>
-                    </td>
-                    {MONTHS_GR.map((_, i) => (
-                      <td key={i} style={{ padding: '2px', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <input
-                          type="number"
-                          value={history[c.value]?.[i] || ''}
-                          onChange={e => updateHistory(c.value, i, e.target.value)}
-                          style={histInputStyle(i === currentMonth)}
-                        />
-                      </td>
-                    ))}
-                    <td className="po-fig" data-tone={rowTotal > 0 ? 'accent' : undefined} style={{ padding: '4px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderBottom: '1px solid var(--border-subtle)', textAlign: 'right', fontSize: 11 }}>
-                      {rowTotal > 0 ? fe(rowTotal, 0) : fe(0)}
-                    </td>
-                  </tr>
-                );
-              })}
-              <tr className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)' }}>
-                <td style={{ padding: 8, fontWeight: 700, fontSize: 11, fontFamily: T.font.sans }}>Σύνολο</td>
-                {calc.historyTotals.map((t, i) => (
-                  <td key={i} className="po-fig" data-tone={t > 0 ? (t > calc.avgMonthly * 1.2 ? 'negative' : 'positive') : undefined} style={{ padding: '5px 2px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', fontSize: 10 }}>
-                    {t > 0 ? Math.round(t) : '—'}
-                  </td>
-                ))}
-                <td style={{ padding: 8, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontSize: 11 }}>
-                  {fe(calc.historyTotals.reduce((a, b) => a + b, 0), 0)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginTop: 16 }}>
-          {[
-            { label: 'Μέσο Μηνιαίο', value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—', tone: undefined as string | undefined },
-            { label: 'Ακριβότερος',  value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', tone: 'negative' as string | undefined },
-            { label: 'Φθηνότερος',   value: calc.historyTotals.filter(t => t > 0).length > 0 ? `${Math.round(Math.min(...calc.historyTotals.filter(t => t > 0)))} €` : '—', tone: 'positive' as string | undefined },
-          ].map((k, i) => (
-            <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
-              <div className="po-fig" data-tone={k.tone} style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
-              <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, marginTop: 2, fontFamily: T.font.sans }}>{k.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ═══ ΔΙΑΚΟΣΙΑ ΤΕΣΣΕΡΑ ΠΕΔΙΑ ΠΟΥ ΖΗΤΟΥΣΑΝ ΤΑ ΙΔΙΑ ΝΟΥΜΕΡΑ ΔΕΥΤΕΡΗ ΦΟΡΑ ══
+          Δεκαεπτά κατηγορίες επί δώδεκα μήνες, με τη λεζάντα «Καταχώρησε τα ποσά
+          από τους λογαριασμούς σου ανά μήνα». Τα ποσά ήταν ΗΔΗ καταχωρημένα: κάθε
+          λογαριασμός στη λίστα από πάνω έχει ποσό, κατηγορία, ημερομηνία και
+          δήλωση αν είναι πάγιος. Τώρα το ιστορικό υπολογίζεται από αυτά και
+          διαβάζεται· δεν συμπληρώνεται.
 
+          Και το «Ημερολόγιο πληρωμών» έφυγε μαζί: ήταν οι ΙΔΙΟΙ λογαριασμοί, της
+          ίδιας οθόνης, ξαναγραμμένοι ανά ημέρα του μήνα. */}
+      {calc.historyTotals.some(t => t > 0) && (
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-        {secHdr(`Ημερολόγιο Πληρωμών, ${MONTHS_GR[currentMonth]}`)}
-        {bills.filter(b => b.due_date && new Date(b.due_date).getMonth() === currentMonth).length === 0 ? (
-          <EmptyState icon={<CalendarDays size={20} />} title="Δεν υπάρχουν λογαριασμοί με ημερομηνία λήξης αυτόν τον μήνα" />
-        ) : (
-          Array.from({ length: 31 }, (_, d) => d + 1).map(day => {
-            const dayBills = bills.filter(b => {
-              if (!b.due_date) return false;
-              const d = new Date(b.due_date);
-              return d.getMonth() === currentMonth && d.getDate() === day;
-            });
-            if (dayBills.length === 0) return null;
-            const isToday = today.getDate() === day && today.getMonth() === currentMonth;
+        {secHdr(`Κόστος ανά μήνα, ${currentYear}`)}
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 16, fontFamily: T.font.sans }}>
+          Υπολογισμένο από τους λογαριασμούς σου. Οι πάγιοι μετρούν σε κάθε μήνα που τρέχουν, οι εφάπαξ μόνο στον μήνα τους.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 6, alignItems: 'end', height: 132 }}>
+          {calc.historyTotals.map((t, i) => {
+            const max = Math.max(...calc.historyTotals, 1);
+            const isNow = i === currentMonth;
             return (
-              <div key={day} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center' }}>
-                <div style={{ width: 34, height: 34, borderRadius: T.radius.badge + 2, background: isToday ? 'var(--accent)' : 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: isToday ? 'var(--accent-text)' : 'var(--text-primary)', flexShrink: 0, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-                  {day}
-                </div>
-                <div style={{ flex: 1 }}>
-                  {dayBills.map(b => {
-                    const c = cat(b.category);
-                    return (
-                      <div key={b.id} className="po-fig-card" tabIndex={0} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 11, color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: b.paid ? 'line-through' : 'none', fontFamily: T.font.sans }}>{b.name}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span className="po-fig" data-tone={b.paid ? undefined : 'accent'} style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(b.amount, 2)}</span>
-                          <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 3, background: b.paid ? 'var(--bg-elevated)' : 'rgba(197,34,31,0.1)', color: b.paid ? 'var(--text-tertiary)' : 'var(--negative)', fontFamily: T.font.sans }}>{b.paid ? 'Πληρώθηκε' : 'ΕΚΚΡΕΜΕΣ'}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div key={i} title={`${MONTHS_GR[i]}: ${fe(t)}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: 9.5, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isNow ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: isNow ? 700 : 400 }}>{t > 0 ? Math.round(t) : ''}</span>
+                <div style={{ width: '100%', height: `${max > 0 ? Math.max(2, (t / max) * 100) : 2}%`, background: isNow ? 'var(--accent)' : 'var(--bg-overlay)', borderRadius: '4px 4px 2px 2px', transition: 'height 0.4s' }}/>
+                <span style={{ fontSize: 9.5, fontFamily: T.font.sans, color: isNow ? 'var(--accent)' : 'var(--text-tertiary)', fontWeight: isNow ? 700 : 400 }}>{MONTHS_GR[i].slice(0, 3)}</span>
               </div>
             );
-          })
-        )}
+          })}
+        </div>
       </div>
+      )}
+
     </div>
   );
 }
