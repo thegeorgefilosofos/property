@@ -831,7 +831,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       {/* Η γραμμή του ΑΜΑ ΠΡΩΤΗ. Δεν εξαρτάται από πλάνο ούτε από entitlement. */}
       <AmaStrip userId={userId} />
 
-      <PageTitle title="Επισκέπτες" sub="Οι κρατήσεις σου με τα σωστά ποσά: τι πλήρωσε ο επισκέπτης, τι κρατά η πλατφόρμα, τι δηλώνεις — και ποιες διαμονές δεν έχουν δηλωθεί ακόμη."
+      <PageTitle title="Επισκέπτες" sub="Κρατήσεις, δηλωτέα ποσά και εκκρεμείς δηλώσεις διαμονής"
         right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setComposeOpen(true)}>Σύνταξη email</Btn>}{allStays.length > 0 && <ExportButton onClick={exportCsv} label="Εξαγωγή διαμονών" />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />

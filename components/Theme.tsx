@@ -458,19 +458,29 @@ export function ExportButton({ onClick, onExportData, label = 'Εξαγωγή Ex
 // ήθελε εικονίδιο δεν μπορούσε να χρησιμοποιήσει το primitive, οπότε έγραφε
 // δικό του από την αρχή. Ένα primitive που δεν καλύπτει τη συνηθισμένη ανάγκη
 // δεν αγνοείται από αμέλεια· παρακάμπτεται από ανάγκη.
+// ═══ EmptyState ═══════════════════════════════════════════════════════════
+// ΤΟ ΚΕΝΟ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΠΙΑΝΕΙ ΠΕΡΙΣΣΟΤΕΡΟ ΧΩΡΟ ΑΠΟ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ.
+//
+// Μια οθόνη σαν την Απογραφή ή τον Ενοικιαστή έχει έξι ως οκτώ κενές
+// καταστάσεις. Με την προηγούμενη διάταξη κάθε μία έπιανε ~258px, δηλαδή πάνω
+// από δύο ολόκληρες οθόνες κύλισης για να πει «δεν υπάρχει τίποτα ακόμη».
+//
+// ΤΙ ΜΕΤΡΗΘΗΚΕ (τρεις πραγματικές κενές καταστάσεις, οθόνη 1280px):
+//   πριν  · εικονίδιο 44px από πάνω, υπόδειξη σε 380px, περιθώριο 40px → 775px, 8 γραμμές
+//   μετά  · εικονίδιο 18px πλάι στον τίτλο, υπόδειξη σε 620px, περιθώριο 26px → 474px, 5 γραμμές
+//
+// Το κέρδος δεν είναι το περιθώριο· είναι το ΠΛΑΤΟΣ. Στα 380px και μέγεθος 11
+// μια πρόταση 150 χαρακτήρων σπάει σε τρεις γραμμές. Στα 620px χωρά σε δύο, και
+// διαβάζεται σαν πρόταση αντί για στήλη. Το εικονίδιο δεν χάθηκε — μετακόμισε
+// δίπλα στον τίτλο, όπου κάνει την ίδια δουλειά με το ένα τρίτο του ύψους.
 export function EmptyState({ title, hint, action, icon }: { title: string; hint?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <div style={{ textAlign: 'center' as const, padding: '40px 20px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-      {icon && (
-        <div aria-hidden style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 44, height: 44, margin: '0 auto 12px', borderRadius: T.radius.inner + 2,
-          background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-          color: 'var(--text-tertiary)',
-        }}>{icon}</div>
-      )}
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{title}</div>
-      {hint && <div style={{ fontSize: 11, lineHeight: 1.6, maxWidth: 380, margin: '0 auto' }}>{hint}</div>}
+    <div style={{ textAlign: 'center' as const, padding: '26px 20px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
+        {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-tertiary)', flexShrink: 0 }}>{icon}</span>}
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
+      </div>
+      {hint && <div style={{ fontSize: 11.5, lineHeight: 1.6, maxWidth: 620, margin: '0 auto', textWrap: 'pretty' as const }}>{hint}</div>}
       {action && <div style={{ marginTop: 14 }}>{action}</div>}
     </div>
   );

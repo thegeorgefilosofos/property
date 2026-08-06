@@ -17,7 +17,7 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { confirmDialog } from '@/components/ConfirmDialog';
@@ -88,7 +88,7 @@ type PayMethod = typeof PAY_METHODS[number];
 const todayISO = () => athensToday();
 // Τελευταία ημέρα του ΕΠΟΜΕΝΟΥ μήνα από μια ημερομηνία (προθεσμία δήλωσης ΑΑΔΕ).
 const lastDayNextMonth = (iso:string) => {
-  const d = new Date(iso+'T00:00:00'); if(isNaN(d.getTime())) return '—';
+  const d = new Date(iso+'T00:00:00'); if(isNaN(d.getTime())) return ABSENT_DATE;
   const last = new Date(d.getFullYear(), d.getMonth()+2, 0);
   return last.toLocaleDateString('el-GR', { day:'2-digit', month:'long', year:'numeric' });
 };
@@ -359,7 +359,7 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
         <KpiCard label="Βασικό Ενοίκιο" value={fmt(tenant.monthly_rent)} color="var(--text-primary)"/>
         <KpiCard label="Σύνολο Μηνιαίως" value={fmt(totalTenant)} color="var(--text-primary)"/>
         <KpiCard label="Κόστη Ιδιοκτήτη" value={fmt(ownerCosts)} color="var(--text-primary)"/>
-        <KpiCard label="Λήξη Μίσθωσης" value={d==null?'—':d<0?'Έληξε':`${d} ημέρες`} color={st?.color||'var(--text-primary)'}/>
+        <KpiCard label="Λήξη Μίσθωσης" value={d==null?ABSENT_DATE:d<0?'Έληξε':`${d} ημέρες`} color={st?.color||'var(--text-primary)'}/>
         <KpiCard label="Εκκρεμή Ποσά" value={fmt(unpaidAmt)} color={unpaidAmt>0?'var(--negative)':'var(--positive)'}/>
         <KpiCard label="Εγγύηση" value={fmt(tenant.deposit_amount)} color={tenant.deposit_returned?'var(--positive)':'var(--accent)'}/>
       </div>
@@ -416,7 +416,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
   const branding = useReportBranding(userId);
   const TDE=CPI_BY_YEAR;
   const fmtE = fe;
-  const fmtDate=(d:string|null)=>d?new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):'—';
+  const fmtDate=(d:string|null)=>d?new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):ABSENT_DATE;
   const rent=tenant.monthly_rent||0;
   const daysExp=tenant.lease_end?Math.ceil((new Date(tenant.lease_end+'T00:00:00').getTime()-Date.now())/86400000):null;
   const thisYear=new Date().getFullYear();
@@ -938,7 +938,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   const monthLabel=(p:RentPayment)=>`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`;
 
   const printReceipt=(p:RentPayment)=>{
-    const paidDate=p.paid_date?rDate(p.paid_date+'T00:00:00'):'—';
+    const paidDate=p.paid_date?rDate(p.paid_date+'T00:00:00'):ABSENT_DATE;
     const landlord=branding?.companyName?brandName(branding):'Property OS';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     const tenantLine=`${p.tenant_id?(tenant.full_name||''):''}${tenant.afm?` · ΑΦΜ ${tenant.afm}`:''}`;
@@ -1351,7 +1351,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
         {perPropertyCaveat
           ? `Έχεις ${fn(propertyCount)} ακίνητα: επειδή ο φόρος είναι προοδευτικός στο άθροισμα, το ποσό εδώ είναι μικρότερο από το μερίδιο που θα αναλογεί πραγματικά σε αυτό το ακίνητο. Το συνολικό νούμερο βγαίνει στα «Λογιστικά».`
           : 'Αν αποκτήσεις δεύτερο ακίνητο που αποδίδει, το άθροισμα μπορεί να ανεβάσει κλιμάκιο και ο φόρος να μη είναι το άθροισμα των δύο εκτιμήσεων.'}{' '}
-        Ενοίκιο {fe(tenant.monthly_rent||0)}/μήνα, τύπος μίσθωσης «{tenant.lease_category?LEASE_CATEGORY_LABELS[tenant.lease_category]:'—'}»
+        Ενοίκιο {fe(tenant.monthly_rent||0)}/μήνα, τύπος μίσθωσης «{tenant.lease_category?LEASE_CATEGORY_LABELS[tenant.lease_category]:ABSENT}»
         {viaBank
           ? `, με τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} (φορολογητέο ${fe(taxable)}) επειδή το ενοίκιο εισπράττεται μέσω τραπέζης.`
           : '. Επειδή το ενοίκιο ΔΕΝ δηλώνεται ως ηλεκτρονική είσπραξη, η τεκμαρτή έκπτωση 5% δεν εφαρμόζεται και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.'}
@@ -1491,8 +1491,8 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
           Η εγγύηση επιστρέφεται στη λήξη της μίσθωσης {dueDate?<>(<strong style={{ color:'var(--text-primary)' }}>{fmtD(dueDate)}</strong>){tenant.move_out_date?', βάσει της ημερομηνίας αποχώρησης':''}</>:'(δεν έχει οριστεί ημερομηνία λήξης/αποχώρησης)'}, μετά από <strong style={{ color:'var(--text-primary)' }}>έλεγχο για φθορές</strong> και <strong style={{ color:'var(--text-primary)' }}>εξόφληση τυχόν εκκρεμών οφειλών</strong>.
         </div>
         <DataRow label="Εγγύηση σε κατοχή" value={<span style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(deposit)}</span>}/>
-        <DataRow label="Εκκρεμή ενοίκια" value={<span style={{ color:unpaid>0?'var(--negative)':'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{unpaid>0?`-${fmt(unpaid)}`:'—'}</span>}/>
-        <DataRow label="Χρεώσιμες φθορές" value={<span style={{ color:chargeable>0?'var(--negative)':'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{chargeable>0?`-${fmt(chargeable)}`:'—'}</span>}/>
+        <DataRow label="Εκκρεμή ενοίκια" value={<span style={{ color:unpaid>0?'var(--negative)':'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{unpaid>0?`-${fmt(unpaid)}`:fmt(0)}</span>}/>
+        <DataRow label="Χρεώσιμες φθορές" value={<span style={{ color:chargeable>0?'var(--negative)':'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{chargeable>0?`-${fmt(chargeable)}`:fmt(0)}</span>}/>
         <DataRow label="Καθαρό επιστρεπτέο (εκτίμηση)" value={<span style={{ color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(netReturn)}</span>}/>
         <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
           Ενδεικτικός υπολογισμός βάσει των εκκρεμών ενοικίων και των φθορών που έχεις σημειώσει ως χρεώσιμες στον ενοικιαστή. Ο τελικός συμψηφισμός γίνεται κατά την παράδοση.
@@ -1526,7 +1526,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
 
   // Ομαδοποίηση ανά έτος μίσθωσης (από lease_start· αλλιώς ανά ημερολογιακό έτος).
   const bucketOf=(occurred:string|null):{key:string;label:string;sort:number}=>{
-    if(!occurred) return { key:'—', label:'Χωρίς ημερομηνία', sort:-1 };
+    if(!occurred) return { key:'', label:'Χωρίς ημερομηνία', sort:-1 };
     const oy=new Date(occurred+'T00:00:00');
     if(tenant.lease_start){
       const ls=new Date(tenant.lease_start+'T00:00:00');
@@ -1707,7 +1707,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
     setBusy(false); onRefresh(); notifyOk('Καταγράφηκε στις φθορές');
   };
   const del=async(m:MaintenanceReq)=>{ if(!(await confirmDialog('Διαγραφή αιτήματος;',{tone:'negative'}))) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
-  const gdt=(d:string|null)=>d?new Date(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):'—';
+  const gdt=(d:string|null)=>d?new Date(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):ABSENT_DATE;
   const openAssign=(m:MaintenanceReq)=>{ setAssignFor(m.id); setAf({name:m.assignee_name||'',contact:m.assignee_contact||''}); };
   const saveAssign=async(m:MaintenanceReq)=>{
     setBusy(true);
@@ -2321,7 +2321,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
       {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
 
-      <PageTitle title="Ενοικιαστής" sub="Μητρώο ενοικιαστών του ακινήτου: τρέχων και ιστορικοί, με πλήρες ντοσιέ ανά μίσθωση."
+      <PageTitle title="Ενοικιαστής" sub="Τρέχουσα και προηγούμενες μισθώσεις, με πλήρες ντοσιέ"
         right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
           <ExportButton onClick={exportRoster}/>
           <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Μισθωτήριο</Btn>
@@ -2378,7 +2378,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       {([
                         { l:'Μηνιαίο ενοίκιο', v:fmt(t.monthly_rent), strong:true },
                         { l:'Εγγύηση', v:fmt(t.deposit_amount) },
-                        { l:'Ληξιπρόθεσμη οφειλή', v:od?fmt(od.amount):'—', neg:!!od },
+                        { l:'Ληξιπρόθεσμη οφειλή', v:fmt(od?od.amount:0), neg:!!od },
                       ] as {l:string;v:string;strong?:boolean;neg?:boolean}[]).map((m,i)=>(
                         <div key={i} style={{ flex:1, minWidth:0, paddingLeft:i?12:0, borderLeft:i?'1px solid var(--border-subtle)':'none' }}>
                           <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase' as const, letterSpacing:'0.05em', color:'var(--text-tertiary)', marginBottom:4, whiteSpace:'nowrap' as const, overflow:'hidden', textOverflow:'ellipsis' }}>{m.l}</div>

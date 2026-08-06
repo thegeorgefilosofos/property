@@ -422,7 +422,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   if (loading) return (
     <div>
-      <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα όλων των ακινήτων σου" />
+      <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα του χαρτοφυλακίου" />
       <SkeletonKPIs n={4} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2, 3].map(i => <Skeleton key={i} h={54} />)}</div>
     </div>
@@ -430,7 +430,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   if (!properties.length) return (
     <div>
-      <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα όλων των ακινήτων σου" />
+      <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα του χαρτοφυλακίου" />
       <EmptyState icon={<Building2 size={20} />} title="Δεν υπάρχουν ακόμη ακίνητα" hint="Πρόσθεσε το πρώτο σου ακίνητο για να δεις τη συγκεντρωτική εικόνα εδώ." />
     </div>
   );
