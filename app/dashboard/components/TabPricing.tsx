@@ -32,6 +32,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn } from '@/components/Theme';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 import { shortTermCashflow } from '@/lib/tax/shortTermCashflow';
+import { mergeLedger, type LedgerBill, type LedgerExpense } from '@/lib/expenses/ledger';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { Tag } from 'lucide-react';
 import { NumberInput } from './UIComponents';
@@ -120,12 +121,20 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // Οι λειτουργικές δαπάνες της χρονιάς, και πόσα ακίνητα έχει ο φορολογούμενος
   // (κρίνει την εξαίρεση του τέλους παρεπιδημούντων: ισχύει έως δύο ακίνητα).
   const loadCashflowInputs = useCallback(async () => {
-    const [{ data: exp }, { count }] = await Promise.all([
-      supabase.from('expenses').select('amount').eq('property_id', propertyId).eq('user_id', userId)
-        .gte('date', `${nowYear}-01-01`).lte('date', `${nowYear}-12-31`),
+    const [{ data: exp }, { data: bil }, { count }] = await Promise.all([
+      supabase.from('expenses').select('id,bill_id,description,category,expense_group,amount,date,paid,is_recurring')
+        .eq('property_id', propertyId).eq('user_id', userId),
+      supabase.from('bills').select('id,name,category,amount,due_date,paid,paid_at,recurring,created_at')
+        .eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     ]);
-    setOpex((exp || []).reduce((sum: number, e: { amount?: number | null }) => sum + (Number(e.amount) || 0), 0));
+    // ΚΑΘΕ ΕΥΡΩ ΜΙΑ ΦΟΡΑ. Ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ΙΔΙΟ
+    // γεγονός: αθροίζοντας και τα δύο, τα λειτουργικά έξοδα θα έβγαιναν διπλά και
+    // το «μένει σε εσένα» θα έδειχνε λιγότερα απ' όσα πραγματικά μένουν. Η
+    // συγχώνευση γίνεται από τον κοινό πυρήνα, τον ίδιο που χρησιμοποιούν οι
+    // Δαπάνες και ο Προϋπολογισμός — αλλιώς δύο οθόνες μετράνε αλλιώς το ίδιο.
+    const { entries } = mergeLedger((bil || []) as LedgerBill[], (exp || []) as LedgerExpense[]);
+    setOpex(entries.filter(e => e.date.slice(0, 4) === String(nowYear)).reduce((sum, e) => sum + e.amount, 0));
     setPropCount(Math.max(1, count || 1));
   }, [propertyId, userId, nowYear]);
 

@@ -398,6 +398,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const branding = useReportBranding(userId);
   const [loading, setLoading] = useState(true);
   const [genOfficial, setGenOfficial] = useState(false);
+  // ═══ ΧΩΡΙΣ ΕΦΕ, ΧΩΡΙΣ ΣΥΓΧΡΟΝΙΣΜΟ ════════════════════════════════════════
+  // Η πρώτη γραφή κρατούσε `inputsOpen` σε state και το γύριζε με `useEffect`
+  // μόλις συμπληρώνονταν τα στοιχεία. Δύο προβλήματα: το `empty` υπολογίζεται
+  // ΜΕΤΑ από πρόωρη επιστροφή, άρα τα hooks έμπαιναν υπό συνθήκη — σφάλμα που
+  // σπάει τη σειρά των hooks μεταξύ renders· και ένα state που απλώς αντιγράφει
+  // ένα άλλο δεν είναι κατάσταση, είναι αντίγραφο που μπορεί να αποκλίνει.
+  //
+  // Τώρα η προεπιλογή ΠΑΡΑΓΕΤΑΙ: ανοιχτό όσο λείπουν στοιχεία, κλειστό μόλις
+  // υπάρχει αποτέλεσμα. Το `null` σημαίνει «δεν έχει αποφασίσει ο χρήστης»· μόλις
+  // πατήσει, η επιλογή του καρφώνεται και δεν την ξαναγυρίζει κανείς.
+  const [inputsPinned, setInputsPinned] = useState<boolean | null>(null);
   const pro = profileType === 'professional';
 
   // Καθεστώς: επαγγελματίας → φυσικό/νομικό· μίσθωση → μακροχρόνια/βραχυχρόνια.
@@ -956,6 +967,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   const regimeLabel = pro ? (entity === 'company' ? 'Επιχείρηση · Νομικό πρόσωπο' : 'Επιχείρηση · Φυσικό πρόσωπο') : 'Ιδιώτης';
   const empty = term === 'short' ? (nVal <= 0 || grossAnnual <= 0) : (nVal <= 0 || nRent <= 0);
+  const inputsOpen = inputsPinned ?? empty;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -979,8 +991,37 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </div>
       </div>
 
-      {/* Στοιχεία (πάντα προσβάσιμα) */}
+      {/* ═══ ΟΚΤΩ ΠΕΔΙΑ ΑΝΑΜΕΣΑ ΣΤΟΝ ΧΡΗΣΤΗ ΚΑΙ ΣΤΟ ΑΠΟΤΕΛΕΣΜΑ ══════════════════
+          Η κάρτα των στοιχείων ήταν πάντα ανοιχτή: τέσσερα πεδία, μια γραμμή
+          εκτίμησης, άλλα τέσσερα πεδία στη βραχυχρόνια, και μετά δύο παράγραφοι
+          φορολογίας. Ο χρήστης που άνοιγε τις Αποδόσεις για να δει την απόδοσή
+          του κατέβαινε πρώτα ολόκληρη φόρμα που είχε ήδη συμπληρώσει.
+
+          Τα πεδία είναι ρύθμιση, όχι περιεχόμενο. Μένουν στην κορυφή γιατί εκεί
+          ανήκουν, αλλά μαζεμένα σε μία γραμμή που λέει τι ισχύει — και ανοίγουν
+          με ένα κλικ. Όταν λείπουν στοιχεία, ανοίγουν μόνα τους: τότε ΕΙΝΑΙ το
+          περιεχόμενο. */}
       <div style={card}>
+        <button onClick={() => setInputsPinned(!inputsOpen)} aria-expanded={inputsOpen} className="acc-toggle"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', flexShrink: 0 }}><Percent size={15} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={titleStyle}>Στοιχεία υπολογισμού</p>
+            <p style={{ ...subStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {empty
+                ? (term === 'short' ? 'Συμπλήρωσε αξία, πληρότητα και τιμή ανά νύχτα' : 'Συμπλήρωσε αξία ακινήτου και μηνιαίο μίσθωμα')
+                : [
+                    `Αξία ${fe(nVal)}`,
+                    term === 'short' ? `${stOcc || 0}% πληρότητα` : `${fe(Number(rent) || 0)} τον μήνα`,
+                    term === 'short' ? `${fe(Number(stAdr) || 0)} ανά νύχτα` : null,
+                    `${fe(Number(opex) || 0)} έξοδα τον χρόνο`,
+                    reg?.label || null,
+                  ].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          <ChevronRight size={17} style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: inputsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.18s' }} />
+        </button>
+        {inputsOpen && (<div style={{ marginTop: 16 }}>
         <div style={g4}>
           <NumberInput label="Αξία ακινήτου" value={value} onChange={setValue} suffix="€" step={5000} />
           <NumberInput label={term === 'short' ? 'Ενοίκιο μακροχρόνιας' : 'Μηνιαίο ενοίκιο'} value={rent} onChange={setRent} suffix="€" step={50} />
@@ -1013,46 +1054,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 </p>
               </div>
             )}
-            {!empty && (
-              <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Τέλη και φορολογία βραχυχρόνιας</span>
-                </div>
-                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος Ανθεκτικότητας (ΤΑΚΚ) <TermInfo text={G.takk} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(st.climateLevy, 0)} τον χρόνο</div></div>
-                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος παρεπιδημούντων <TermInfo text={G.transient_tax} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{st.municipalTax > 0 ? `${fe(st.municipalTax, 0)} τον χρόνο` : 'Εξαιρείται'}</div></div>
-                </div>
-                <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
-                  Το Τέλος Ανθεκτικότητας χρεώνεται ανά διανυκτέρευση, με υψηλότερη τιμή στην υψηλή περίοδο και για μονοκατοικίες και βίλες. Το τέλος παρεπιδημούντων (0,5%) εξαιρεί τους μικρούς ιδιοκτήτες (έως δύο ακίνητα, ως φυσικό πρόσωπο). {individualPerson ? 'Όταν η δραστηριότητα ξεπεράσει τα όρια (πολλά ακίνητα ή παροχή υπηρεσιών ξενοδοχειακού τύπου), θεωρείται επιχειρηματική και υπάγεται σε ΦΠΑ και στην κλίμακα του άρθρου 15· είναι θέμα του λογιστή.' : 'Ως νομικό πρόσωπο, τα έσοδα υπάγονται σε ΦΠΑ και εταιρική φορολογία, ενώ τα τέλη εκπίπτουν ως δαπάνες.'} Κάθε ακίνητο χρειάζεται Αριθμό Μητρώου Ακινήτων σε κάθε αγγελία. Οι τελικές υποχρεώσεις επιβεβαιώνονται με τον λογιστή ή την ΑΑΔΕ.
-                </p>
-              </div>
-            )}
           </div>
         )}
-        {/* ── ΦΟΡΟΛΟΓΙΚΕΣ ΠΑΡΑΔΟΧΕΣ, ΟΡΑΤΕΣ ─────────────────────────────────
-            Η είσπραξη μέσω τραπέζης ήταν καρφωμένη σε `true` μέσα στον κώδικα και
-            η έκπτωση 5% παρουσιαζόταν αλλού ως «αυτόματη». Είναι απόφαση του
-            χρήστη με μετρήσιμη συνέπεια στον φόρο του, άρα ζει στην οθόνη. */}
-        {!empty && !pro && (
-          <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS, marginBottom: 10 }}>Φορολογικές παραδοχές</span>
-            <Toggle checked={rentsBank} onChange={setRentsBank}
-              label="Τα ενοίκια εισπράττονται μέσω τραπέζης"
-              note={PRESUMPTIVE_RULE_2026} />
-            <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
-              {consolidated
-                ? <>{CONSOLIDATION_NOTE} Το χαρτοφυλάκιό σου: <strong style={{ color: 'var(--text-primary)' }}>{portfolioTax.count} ακίνητα</strong> με ενοίκια {fe(portfolioTax.totalAnnualRent, 0)} και συνολικό φόρο {fe(portfolioTax.totalTax, 0)} (μέσος συντελεστής {fp(portfolioTax.effectiveRate * 100)}, οριακός {fp(portfolioTax.marginalRate * 100)}). Το μερίδιο αυτού του ακινήτου είναι <strong style={{ color: 'var(--text-primary)' }}>{fe(annualTax, 0)}</strong>. Αν υπολογιζόταν μόνο του, θα έδειχνε {fe(portfolioTax.perProperty.find(p => p.id === propertyId)?.standaloneTax ?? 0, 0)} — δηλαδή λιγότερα από την πραγματικότητα.</>
-                : <>Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026 (15% έως 12.000 €, 25% έως 24.000 €, 35% έως 35.000 €, 45% πάνω από αυτά), στο σύνολο των ενοικίων σου. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου. Οριακός συντελεστής {fp(portfolioTax.marginalRate * 100)}.</>}
-            </p>
-          </div>
-        )}
-        {empty && (
-          <EmptyState
-            icon={<Percent size={20} />}
-            title="Λείπουν στοιχεία για υπολογισμό"
-            hint={term === 'short' ? 'Συμπλήρωσε αξία, πληρότητα και τιμή ανά νύχτα.' : 'Συμπλήρωσε αξία ακινήτου και μηνιαίο μίσθωμα.'}
-          />
-        )}
+        </div>)}
+        {/* Η άδεια κατάσταση έλεγε με εικονίδιο και τίτλο ό,τι λέει ήδη ο
+            υπότιτλος της ενότητας από πάνω, δύο εκατοστά πιο ψηλά. */}
       </div>
 
       {!empty && (<>
@@ -1309,6 +1315,52 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </Section>
         )}
 
+
+        {/* ═══ Η ΦΟΡΟΛΟΓΙΑ ΕΙΝΑΙ ΕΞΗΓΗΣΗ, ΟΧΙ ΠΡΟΫΠΟΘΕΣΗ ══════════════════════
+            Δύο μπλοκ πυκνού κειμένου —τα τέλη της βραχυχρόνιας και οι φορολογικές
+            παραδοχές— κάθονταν ΜΕΣΑ στην κάρτα των πεδίων, πάντα ανοιχτά, ανάμεσα
+            στον χρήστη και στο αποτέλεσμα. Δηλαδή για να δεις την απόδοσή σου
+            έπρεπε να προσπεράσεις δύο παραγράφους για το πώς φορολογείται.
+            Τα νούμερα που περιέχουν είναι ήδη μέσα στα πλακίδια από πάνω· εδώ
+            μένει το «γιατί», για όποιον το ζητήσει. Ο διακόπτης της είσπραξης
+            μέσω τραπέζης μένει μαζί τους, γιατί είναι φορολογική παραδοχή. */}
+        <Section icon={<Landmark size={15} />} title="Τέλη και φορολογία" sub={term === 'short' ? 'Τέλος ανθεκτικότητας, παρεπιδημούντων και πώς προκύπτει ο φόρος' : 'Πώς προκύπτει ο φόρος και τι τον αλλάζει'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {term === 'short' && (<>
+            {!empty && (
+              <div style={{ marginTop: 0, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Τέλη και φορολογία βραχυχρόνιας</span>
+                </div>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος Ανθεκτικότητας (ΤΑΚΚ) <TermInfo text={G.takk} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(st.climateLevy, 0)} τον χρόνο</div></div>
+                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος παρεπιδημούντων <TermInfo text={G.transient_tax} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{st.municipalTax > 0 ? `${fe(st.municipalTax, 0)} τον χρόνο` : 'Εξαιρείται'}</div></div>
+                </div>
+                <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
+                  Το Τέλος Ανθεκτικότητας χρεώνεται ανά διανυκτέρευση, με υψηλότερη τιμή στην υψηλή περίοδο και για μονοκατοικίες και βίλες. Το τέλος παρεπιδημούντων (0,5%) εξαιρεί τους μικρούς ιδιοκτήτες (έως δύο ακίνητα, ως φυσικό πρόσωπο). {individualPerson ? 'Όταν η δραστηριότητα ξεπεράσει τα όρια (πολλά ακίνητα ή παροχή υπηρεσιών ξενοδοχειακού τύπου), θεωρείται επιχειρηματική και υπάγεται σε ΦΠΑ και στην κλίμακα του άρθρου 15· είναι θέμα του λογιστή.' : 'Ως νομικό πρόσωπο, τα έσοδα υπάγονται σε ΦΠΑ και εταιρική φορολογία, ενώ τα τέλη εκπίπτουν ως δαπάνες.'} Κάθε ακίνητο χρειάζεται Αριθμό Μητρώου Ακινήτων σε κάθε αγγελία. Οι τελικές υποχρεώσεις επιβεβαιώνονται με τον λογιστή ή την ΑΑΔΕ.
+                </p>
+              </div>
+            )}
+            </>)}
+            {/* ΦΟΡΟΛΟΓΙΚΕΣ ΠΑΡΑΔΟΧΕΣ ─────────────────────────────────
+            Η είσπραξη μέσω τραπέζης ήταν καρφωμένη σε `true` μέσα στον κώδικα και
+            η έκπτωση 5% παρουσιαζόταν αλλού ως «αυτόματη». Είναι απόφαση του
+            χρήστη με μετρήσιμη συνέπεια στον φόρο του, άρα ζει στην οθόνη. */}
+        {!empty && !pro && (
+          <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS, marginBottom: 10 }}>Φορολογικές παραδοχές</span>
+            <Toggle checked={rentsBank} onChange={setRentsBank}
+              label="Τα ενοίκια εισπράττονται μέσω τραπέζης"
+              note={PRESUMPTIVE_RULE_2026} />
+            <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
+              {consolidated
+                ? <>{CONSOLIDATION_NOTE} Το χαρτοφυλάκιό σου: <strong style={{ color: 'var(--text-primary)' }}>{portfolioTax.count} ακίνητα</strong> με ενοίκια {fe(portfolioTax.totalAnnualRent, 0)} και συνολικό φόρο {fe(portfolioTax.totalTax, 0)} (μέσος συντελεστής {fp(portfolioTax.effectiveRate * 100)}, οριακός {fp(portfolioTax.marginalRate * 100)}). Το μερίδιο αυτού του ακινήτου είναι <strong style={{ color: 'var(--text-primary)' }}>{fe(annualTax, 0)}</strong>. Αν υπολογιζόταν μόνο του, θα έδειχνε {fe(portfolioTax.perProperty.find(p => p.id === propertyId)?.standaloneTax ?? 0, 0)} — δηλαδή λιγότερα από την πραγματικότητα.</>
+                : <>Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026 (15% έως 12.000 €, 25% έως 24.000 €, 35% έως 35.000 €, 45% πάνω από αυτά), στο σύνολο των ενοικίων σου. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου. Οριακός συντελεστής {fp(portfolioTax.marginalRate * 100)}.</>}
+            </p>
+          </div>
+        )}
+          </div>
+        </Section>
         {/* Μοχλοί μεγιστοποίησης — επαγγελματίας (πλήρες) / ιδιώτης (μόνο βασικά) */}
         <Section icon={<Wallet size={15} />} title="Μοχλοί μεγιστοποίησης απόδοσης" sub={pro ? 'Συγκεκριμένες κινήσεις με μετρήσιμη επίδραση και κίνδυνο' : 'Απλές κινήσεις που αυξάνουν την καθαρή απόδοση'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
