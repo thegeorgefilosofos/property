@@ -54,11 +54,13 @@ interface Props { propertyId: string; userId: string; propContext: PropContext; 
 type Action = AssistantAction;
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
 // Σύστημα αναγνώρισης αντικειμένου από φωτο (συσκευασία/ετικέτα/booklet/απόδειξη).
-const IMG_ITEM_SCAN_SYSTEM = `Είσαι σύστημα ανάγνωσης φωτογραφίας για διαχείριση ακινήτου. Αναγνώρισε ΤΙ δείχνει η φωτογραφία και επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON.
-Αν είναι ΑΠΟΔΕΙΞΗ/ΛΟΓΑΡΙΑΣΜΟΣ/ΤΙΜΟΛΟΓΙΟ (δαπάνη — π.χ. ΔΕΗ, ΕΥΔΑΠ, τηλεπικοινωνίες, υδραυλικός, κοινόχρηστα):
-{"kind":"expense","description":"σύντομα τι αφορά (π.χ. «ΔΕΗ ρεύμα», «Υδραυλικός»)","amount":"ΤΕΛΙΚΟ πληρωτέο ποσό σε € (αριθμός)","date":"YYYY-MM-DD ημερομηνία παραστατικού/έκδοσης ή κενό"}
-Αν είναι ΑΝΤΙΚΕΙΜΕΝΟ/ΣΥΣΚΕΥΗ/ΕΞΟΠΛΙΣΜΟΣ:
-{"kind":"item","name":"","brand":"","model":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό"}
+// ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Αυτό το prompt διάβαζε ΚΑΙ αποδείξεις, δηλαδή
+// ήταν δεύτερος αναγνώστης παραστατικών δίπλα στον κανονικό (scanDoc) — με
+// λιγότερα πεδία, χωρίς πάροχο, χωρίς περίοδο, χωρίς ΑΦΜ εκδότη. Ακριβώς τα
+// πεδία που χρειάζεται η συμφωνία με εκκρεμή λογαριασμό. Τώρα διαβάζει μόνο
+// αυτό που ο άλλος δεν κάνει: τι συσκευή δείχνει η φωτογραφία.
+const IMG_ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης ΑΝΤΙΚΕΙΜΕΝΟΥ από φωτογραφία, για την απογραφή ενός ακινήτου. Επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON:
+{"name":"","brand":"","model":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό"}
 Το name περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Άφησε κενά όσα δεν διακρίνονται. Χωρίς κείμενο εκτός JSON.`
 // Ελαφρύ ευρετήριο πελατών, ώστε να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ.
 type ClientLite = { id: string; name: string; phone: string; afm: string; vip: boolean };
@@ -66,9 +68,15 @@ type ClientLite = { id: string; name: string; phone: string; afm: string; vip: b
 type ContactLite = { name: string; role: string; phone: string; email: string };
 
 import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from '@/lib/assistant/openers';
+import { scanFile, commitScannedDoc, type ReconcileQuestion } from './scanDoc';
+import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import { athensToday, athensNowLabel, daysUntil } from '@/lib/core/time';
 
 const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
+// Η ερώτηση συμφωνίας σε μία πρόταση. Οι ίδιοι λόγοι που δείχνει και η οθόνη
+// σάρωσης — δεν εφευρίσκεται δεύτερη διατύπωση για την ίδια απόφαση.
+const reconcilePrompt = (q: { question: string; options: { label: string; reasons: string[] }[] }): string =>
+  `${q.question} Βρήκα ${q.options.length === 1 ? 'έναν λογαριασμό που ταιριάζει' : `${q.options.length} λογαριασμούς που ταιριάζουν`}. Διάλεξε παρακάτω, ή «Κανέναν» για νέα εγγραφή.`;
 const navLabel = (id: string) => NAV_MAP.find(n => n.id === id)?.label || id;
 const onlyDigits = (p: string) => (p || '').replace(/\D/g, '');
 // Ετικέτα κουμπιού επικοινωνίας ανά κανάλι (χωρίς emoji, ελληνικά).
@@ -86,6 +94,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [prefs, setPrefs] = useState<AssistantPrefs>(DEFAULT_PREFS);
+  // Η ανοιχτή ερώτηση συμφωνίας: ποιον εκκρεμή λογαριασμό εξοφλεί η απόδειξη.
+  const [reconcile, setReconcile] = useState<ReconcileQuestion | null>(null);
   const [editing, setEditing] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -122,6 +132,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Ανοιχτά στοιχεία προς πληρωμή, για τη σήμανση «πληρωμένο» ([[paid:…]]).
   const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
   const openRentRef = useRef<{ id: string; label: string; amount: number }[]>([]);
+  // Το σαρωμένο παραστατικό που περιμένει έγκριση. Είναι ref και όχι κατάσταση:
+  // δεν το ζωγραφίζει τίποτα — το μήνυμα δίπλα του το περιγράφει ήδη — και μία
+  // σάρωση είναι σε εξέλιξη κάθε φορά.
+  const pendingDocRef = useRef<{ doc: ScannedDoc; file: File } | null>(null);
   // Το `ask` ορίζεται πολύ πιο κάτω και κλείνει πάνω σε κατάσταση που αλλάζει.
   // Ο ακροατής του `pos:ask` γράφεται μία φορά (deps []), οπότε τον φτάνει μέσω
   // ref — αλλιώς θα κρατούσε για πάντα το πρώτο, άδειο, στιγμιότυπο.
@@ -186,6 +200,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
     setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr(''); setOpenerCtx(null);
+    // Το σαρωμένο παραστατικό ανήκει στο ακίνητο που ήταν ανοιχτό όταν
+    // φωτογραφήθηκε. Χωρίς αυτό, ένα πάτημα «Καταχώρησε» μετά την αλλαγή
+    // ακινήτου θα έγραφε τον λογαριασμό της Κυψέλης στη Γλυφάδα.
+    pendingDocRef.current = null; setReconcile(null);
     const mem = loadPrefs()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);
@@ -529,6 +547,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'task') { addTask(a); return; }
     else if (a.type === 'paid') { markPaid(a.description, a.amount); return; }
     else if (a.type === 'inventory') { registerInventory(a); return; }
+    else if (a.type === 'commit-doc') { commitPendingDoc(); return; }
     else if (a.type === 'feedback') { setFeedbackOpen(true); return; }
     if (!keepOpen) setOpen(false);
   };
@@ -615,6 +634,41 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   };
 
   // Καταχώρηση δαπάνης με μία φράση: η κατηγορία/ομάδα προκύπτει αυτόματα.
+  // ── Η ΚΑΤΑΧΩΡΙΣΗ ΤΟΥ ΣΑΡΩΜΕΝΟΥ ΠΑΡΑΣΤΑΤΙΚΟΥ ────────────────────────────────
+  // Καμία λογική εδώ: όλα τα αποφασίζει το commitScannedDoc, που είναι η ίδια
+  // συνάρτηση που καλεί και η οθόνη σάρωσης της εφαρμογής. Ο βοηθός μόνο ρωτά
+  // και ανακοινώνει — και ανακοινώνει ΟΣΑ ΕΓΙΝΑΝ ΠΡΑΓΜΑΤΙΚΑ, γιατί το
+  // αποτέλεσμα επιστρέφει τη λίστα των καρτελών που ενημερώθηκαν.
+  const commitPendingDoc = async (choice?: string | null) => {
+    const pending = pendingDocRef.current;
+    if (!pending || busy) return;
+    setBusy(true);
+    try {
+      const r = await commitScannedDoc({
+        doc: pending.doc, file: pending.file, propertyId, userId,
+        ...(choice !== undefined ? { reconcileChoice: choice } : {}),
+      });
+
+      // ΟΤΑΝ ΔΕΝ ΕΙΝΑΙ ΣΙΓΟΥΡΗ, ΡΩΤΑ. Δεν έχει γραφτεί τίποτα ακόμη: η μηχανή
+      // επιστρέφει την ερώτηση αντί να μαντέψει ποιον λογαριασμό εξοφλεί η
+      // απόδειξη. Μια λάθος εικασία εδώ σημαίνει λογαριασμός σημειωμένος
+      // πληρωμένος που δεν πληρώθηκε.
+      if (r.ask) { setMsgs(m => [...m, { role: 'assistant', text: reconcilePrompt(r.ask as ReconcileQuestion) }]); setReconcile(r.ask); setBusy(false); return; }
+
+      pendingDocRef.current = null;
+      setReconcile(null);
+      if (r.error || !r.saved.length) {
+        setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταχωρήσω τώρα. Δοκίμασε από τη σάρωση της εφαρμογής, όπου μπορείς και να διορθώσεις ό,τι διάβασα λάθος.', action: { type: 'scan' } }]);
+        setBusy(false); return;
+      }
+      setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα εγγραφή
+      loadContext();
+      setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Ενημερώθηκαν: ${r.saved.join(', ')}.`, action: { type: 'go', tab: 'expenses' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταχωρήσω τώρα. Δοκίμασε ξανά.' }]);
+    } finally { setBusy(false); }
+  };
+
   const registerExpense = async (description: string, amount: number, date?: string) => {
     const { group, category, deductible } = classifyExpense(description);
     const today = athensToday();
@@ -987,14 +1041,45 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     finally { setBusy(false); }
   };
 
-  // Αναγνώριση αντικειμένου από ΦΩΤΟΓΡΑΦΙΑ (συσκευασία/ετικέτα/booklet/απόδειξη) →
-  // προτείνει καταχώρηση στην Απογραφή με ένα άγγιγμα. Vision, με χρονικό όριο.
+  // ── ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΠΕΡΝΑΕΙ ΑΠΟ ΤΗ ΜΙΑ ΜΗΧΑΝΗ, ΟΧΙ ΑΠΟ ΔΕΥΤΕΡΗ ──────────────
+  //
+  // ΤΙ ΓΙΝΟΤΑΝ. Ο βοηθός είχε δικό του διάβασμα απόδειξης: ένα ελαφρύ prompt που
+  // έβγαζε περιγραφή, ποσό και ημερομηνία, και μετά έγραφε ΜΙΑ γραμμή στις
+  // δαπάνες. Η εφαρμογή όμως έχει ήδη ολόκληρη μηχανή γι' αυτό (scanDoc), και
+  // κάνει τρία πράγματα που ο βοηθός δεν έκανε κανένα:
+  //   · ΣΥΜΦΩΝΙΑ: αν η απόδειξη εξοφλεί εκκρεμή λογαριασμό, τον σημαίνει
+  //     πληρωμένο αντί να φτιάξει δεύτερη εγγραφή για το ίδιο ευρώ.
+  //   · ΔΙΠΛΟΕΓΓΡΑΦΗ: αν η ίδια δαπάνη υπάρχει ήδη, δεν την ξαναγράφει.
+  //   · ΑΡΧΕΙΟ: ανεβάζει το πρωτότυπο, ώστε το χαρτί να υπάρχει στον έλεγχο.
+  // Ο ιδιοκτήτης που φωτογράφιζε τον λογαριασμό ΔΕΗ αφού τον είχε ήδη
+  // καταχωρήσει, τον μετρούσε δύο φορές — και το διπλό ποσό ταξίδευε στη
+  // Λογιστική και στην πρόβλεψη φόρου.
+  //
+  // Η ΦΩΤΟΓΡΑΦΙΑ ΑΝΤΙΚΕΙΜΕΝΟΥ ΜΕΝΕΙ ΕΔΩ. Το scanFile κρίνει ντετερμινιστικά: αν
+  // δεν βρει ΚΑΝΕΝΑ στοιχείο παραστατικού, δεν είναι χαρτί. Τότε — και μόνο
+  // τότε — τρέχει η αναγνώριση συσκευής, που η μηχανή του Αρχείου δεν κάνει.
   const askImage = async (file: File) => {
     if (!file.type.startsWith('image/') || busy) return;
     if (file.size > 10 * 1024 * 1024) { setMsgs(m => [...m, { role: 'assistant', text: 'Η φωτογραφία είναι πολύ μεγάλη (>10MB). Δοκίμασε μικρότερη.' }]); return; }
     setErr('');
     setMsgs(m => [...m, { role: 'user', text: 'Φωτογραφία (απόδειξη/λογαριασμός ή αντικείμενο)' }]);
     setBusy(true);
+
+    // ── 1) Είναι παραστατικό; Το απαντά η ίδια σάρωση με το Αρχείο ──────────
+    try {
+      const scan = await scanFile(file);
+      if (scan.kind === 'document' && scan.doc) {
+        pendingDocRef.current = { doc: scan.doc, file };
+        const d = scan.doc;
+        const bits = [d.provider, d.amount != null ? eur(d.amount) : null, d.period || d.issue_date].filter(Boolean).join(' · ');
+        setMsgs(m => [...m, { role: 'assistant',
+          text: `Διάβασα ${DOC_TYPE_LABELS[d.doc_type] || 'παραστατικό'}${bits ? `: ${bits}` : ''}. Να το καταχωρήσω; Θα ελέγξω πρώτα αν εξοφλεί κάτι που ήδη περιμένει, και θα κρατήσω το πρωτότυπο στο Αρχείο.`,
+          action: { type: 'commit-doc', label: d.title || d.provider || 'παραστατικό' } }]);
+        setBusy(false); return;
+      }
+    } catch { /* πέφτουμε στην αναγνώριση αντικειμένου παρακάτω */ }
+
+    // ── 2) Δεν είναι χαρτί: τι αντικείμενο δείχνει; ────────────────────────
     try {
       const b64: string | null = await new Promise(res => { const r = new FileReader(); r.onload = () => res((r.result as string).split(',')[1] || null); r.onerror = () => res(null); r.readAsDataURL(file); });
       if (!b64) { setBusy(false); return; }
@@ -1012,23 +1097,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const txt: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || '{}';
       let d: Record<string, string> = {};
       try { d = JSON.parse(txt.replace(/```json?|```/g, '').trim()); } catch { /* ignore */ }
-
-      // ΔΑΠΑΝΗ (απόδειξη/λογαριασμός/τιμολόγιο) → πρόταση καταχώρησης στον προϋπολογισμό,
-      // με το σωστό ποσό, μήνα (ημερομηνία παραστατικού) και αυτόματη κατηγορία.
-      if (d.kind === 'expense') {
-        const amt = d.amount ? Math.round((parseFloat(String(d.amount).replace(/[^\d.,]/g, '').replace(',', '.')) || 0) * 100) / 100 : 0;
-        const desc = (d.description || 'Δαπάνη').slice(0, 120);
-        if (amt > 0) {
-          const dt = /^\d{4}-\d{2}-\d{2}$/.test(String(d.date)) && !isNaN(new Date(d.date).getTime()) ? d.date : undefined;
-          const action = { type: 'expense' as const, description: desc, amount: amt, ...(dt ? { date: dt } : {}) };
-          const MON = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-          const when = dt ? ` · ${MON[new Date(dt).getMonth()]}` : '';
-          setMsgs(m => [...m, { role: 'assistant', text: `Διάβασα δαπάνη: ${desc} ${eur(amt)}${when}. Να την προσθέσω στον προϋπολογισμό; (μπορείς μετά να αλλάξεις κατηγορία/μήνα στις Δαπάνες)`, action }]);
-          setBusy(false); return;
-        }
-        setMsgs(m => [...m, { role: 'assistant', text: 'Είδα παραστατικό αλλά δεν διάβασα καθαρά το ποσό. Πες μου το ποσό ή δοκίμασε καθαρότερη λήψη.' }]);
-        setBusy(false); return;
-      }
 
       const CATS = ['Έπιπλα', 'Ηλεκτρικές Συσκευές', 'Ηλεκτρονικά', 'Υδραυλικά', 'Θέρμανση & Ψύξη', 'Φωτιστικά', 'Διακόσμηση', 'Λοιπά'];
       const name = (d.name || [d.brand, d.model].filter(Boolean).join(' ') || '').slice(0, 120);
@@ -1280,6 +1348,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'paid' ? `Σήμανση πληρωμένο: ${m.action.description}`
                           : m.action.type === 'task' ? `Νέα εκκρεμότητα`
                           : m.action.type === 'inventory' ? `Κατέγραψε: ${m.action.name}`
+                          : m.action.type === 'commit-doc' ? `Καταχώρησε: ${m.action.label}`
                           : m.action.type === 'feedback' ? 'Γράψε την αξιολόγησή σου'
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
@@ -1288,6 +1357,26 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     )}
                   </div>
                 ))}
+                {/* ── Η ΑΠΑΝΤΗΣΗ ΣΤΗΝ ΕΡΩΤΗΣΗ ΣΥΜΦΩΝΙΑΣ ─────────────────────────
+                    Μία στήλη επιλογών με τον λόγο κάθε μιας από κάτω, και το
+                    «Κανέναν» τελευταίο. Δεν χρωματίζεται καμία: η μηχανή έχει
+                    ήδη πει ότι ΔΕΝ είναι σίγουρη, και ένα τονισμένο κουμπί θα
+                    ήταν ακριβώς η εικασία που απέφυγε. */}
+                {reconcile && !busy && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
+                    {reconcile.options.map(o => (
+                      <button key={o.id} type="button" onClick={() => commitPendingDoc(o.id)}
+                        style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 12.5, cursor: 'pointer', minHeight: T.h.md }}>
+                        <span style={{ fontWeight: 650 }}>{o.label}</span>
+                        {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 11.5 }}>{o.reasons.join(' · ')}</span>}
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => commitPendingDoc(null)}
+                      style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12.5, cursor: 'pointer', minHeight: T.h.md }}>
+                      Κανέναν, κράτησέ το ως νέα εγγραφή
+                    </button>
+                  </div>
+                )}
                 {busy && <div style={{ display: 'flex', gap: 5, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}
                 {err && (
                   <div style={{ background: err === 'key' ? 'var(--bg-elevated)' : 'var(--warning-soft)', border: `1px solid ${err === 'key' ? 'var(--border-subtle)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '10px 13px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>

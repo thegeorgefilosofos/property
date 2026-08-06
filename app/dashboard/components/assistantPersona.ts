@@ -428,6 +428,12 @@ export type AssistantAction =
   | { type: 'paid'; description: string; amount?: number }
   | { type: 'inventory'; name: string; category?: string; value?: number; brand?: string; model?: string; room?: string }
   | { type: 'reach'; name: string; channel: 'whatsapp' | 'viber' | 'email' | 'call'; text?: string }
+  // Καταχώριση σαρωμένου παραστατικού μέσα από τη ΜΙΑ μηχανή του Αρχείου
+  // (scanDoc.commitScannedDoc): συμφωνία με εκκρεμή λογαριασμό, προστασία
+  // διπλοεγγραφής, αρχειοθέτηση του πρωτοτύπου. Το ίδιο το έγγραφο δεν
+  // ταξιδεύει εδώ — μένει στον βοηθό, γιατί μια ενέργεια είναι πρόθεση, όχι
+  // μεταφορέας δεδομένων.
+  | { type: 'commit-doc'; label: string }
   | { type: 'feedback' };
 
 // Ντετερμινιστικό fallback ημερομηνίας για το [[book:]]: αν το μοντέλο δεν έδωσε
