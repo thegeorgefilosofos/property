@@ -44,6 +44,9 @@ const SELF = ['components/tokens.ts']
 const OWN_FORMATTERS = /const (?:eur|pct|money|nf|fmtE?)\s*=\s*\([^)]*\)\s*=>[^\n]*toLocaleString\('el-GR'/
 
 const problems = []
+// Καστάνια: μόνο προς τα κάτω.
+const decimals = []
+const DECIMALS_LIMIT = 24
 
 for (const file of files) {
   const rel = file.split('\\').join('/')
@@ -68,6 +71,26 @@ for (const file of files) {
       problems.push({ file: rel, line: i + 1, what: `toFixed(${m[1]}) με ${m[2]} — τελεία αντί για κόμμα`, text: raw.trim() })
     }
 
+    // ── Η ΤΡΙΤΗ ΤΡΥΠΑ: ΣΩΣΤΟ ΚΟΜΜΑ, ΛΑΘΟΣ ΠΛΗΘΟΣ ΔΕΚΑΔΙΚΩΝ ────────────────
+    // Το `.toLocaleString('el-GR')` βάζει σωστά κόμμα και τελεία — και ακριβώς
+    // γι' αυτό περνούσε καθαρό. Δεν βάζει όμως ΔΕΚΑΔΙΚΑ: γράφει «751 €» εκεί που
+    // ο κοινός τύπος γράφει «751,00 €». Στην ίδια οθόνη του Ημερολογίου, το ίδιο
+    // ποσό εμφανιζόταν «751,00 €» στη γραμμή σύνοψης (που περνούσε από τύπο
+    // νομίσματος) και «751 €» στη ράγα δίπλα (που δεν περνούσε). Και το ευρώ
+    // κολλούσε στο ψηφίο, χωρίς το κενό που βάζει ο τύπος.
+    //
+    // Ο φύλακας υπήρχε για να μην υπάρχουν δύο συστήματα αρίθμησης στην ίδια
+    // γραμμή, και δύο υπήρχαν. Έλεγχος που δηλώνει κάλυψη την οποία δεν έχει
+    // είναι χειρότερος από κανέναν έλεγχο.
+    if (!ownFormatters) {
+      for (const m of line.matchAll(/\.toLocaleString\(\s*'el-GR'((?:\s*,[^)]*)?)\)\s*\}?\s*(?:€|%)/g)) {
+        // Αν η κλήση ζητά ήδη ρητά δύο δεκαδικά, γράφει ό,τι θα έγραφε ο κοινός
+        // τύπος. Είναι διπλοτυπία, όχι ασυνέπεια — και δεν την πιάνει αυτός ο φύλακας.
+        if (/minimumFractionDigits:\s*2/.test(m[1])) continue
+        decimals.push({ file: rel, line: i + 1, text: raw.trim() })
+      }
+    }
+
     // toLocaleString() χωρίς locale: μορφή του περιηγητή, διαφορετική στον server.
     if (!ownFormatters) {
       for (const _ of line.matchAll(/\.toLocaleString\(\s*\)/g)) {
@@ -75,6 +98,16 @@ for (const file of files) {
       }
     }
   })
+}
+
+// ── Η ΚΑΣΤΑΝΙΑ ΤΩΝ ΔΕΚΑΔΙΚΩΝ ───────────────────────────────────────────────
+if (decimals.length > DECIMALS_LIMIT) {
+  console.error(`✗ ${decimals.length} ποσά/ποσοστά με toLocaleString('el-GR') χωρίς δύο δεκαδικά — πάνω από το όριο ${DECIMALS_LIMIT}.\n`)
+  console.error('  Γράφουν «751 €» εκεί που ο κοινός τύπος γράφει «751,00 €», και κολλούν')
+  console.error('  το ευρώ στο ψηφίο. Στην ίδια οθόνη συνυπάρχουν και οι δύο μορφές.\n')
+  for (const d of decimals) console.error(`  ${d.file}:${d.line}\n     ${d.text.slice(0, 110)}`)
+  console.error('\n  Γράψε: fe(x) για ποσό, fp(x) για ποσοστό.')
+  process.exit(1)
 }
 
 if (problems.length) {
@@ -89,4 +122,7 @@ if (problems.length) {
   process.exit(1)
 }
 
-console.log('✅ Ελληνικοί αριθμοί: κάθε ποσοστό και ποσό στην οθόνη περνά από κοινό τύπο.')
+console.log(`✅ Ελληνικοί αριθμοί: σωστή υποδιαστολή παντού· ${decimals.length} σημεία χωρίς δύο δεκαδικά ≤ όριο ${DECIMALS_LIMIT}.`)
+if (decimals.length < DECIMALS_LIMIT) {
+  console.log(`   ↓ Βελτίωση κατά ${DECIMALS_LIMIT - decimals.length}. Κατέβασε το DECIMALS_LIMIT σε ${decimals.length}.`)
+}

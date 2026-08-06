@@ -201,7 +201,7 @@ function StatusDot({ status }: { status: EventStatus }) {
 // Μετατροπή γεγονότος σε είσοδο για τους συνδέσμους εξωτερικών ημερολογίων.
 function toCalInput(e: CalEvent) {
   const cat = CATEGORIES[e.category]?.label || ''
-  const details = [e.notes||'', e.amount?`Ποσό: ${e.amount.toLocaleString('el-GR')} €`:''].filter(Boolean).join(' · ')
+  const details = [e.notes||'', e.amount?`Ποσό: ${fe(e.amount)}`:''].filter(Boolean).join(' · ')
   return { title: (cat?`${cat}: `:'')+e.title, date: e.event_date, time: e.event_time||undefined, durationMinutes: e.duration_minutes||undefined, details }
 }
 function downloadEventIcs(e: CalEvent) {
@@ -491,7 +491,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                         ))}
                         {dayEvents.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:3, fontFamily: T.font.sans }}>+{dayEvents.length-3} ακόμα</span>}
                       </div>
-                      {dayAmt>0&&<div style={{ marginTop:2 }}><span style={{ fontSize:10, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>{Math.round(dayAmt).toLocaleString('el-GR')} €</span></div>}
+                      {dayAmt>0&&<div style={{ marginTop:2 }}><span style={{ fontSize:10, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>{fe(dayAmt)}</span></div>}
                     </>
                   )}
                 </div>
@@ -875,7 +875,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
             {amt>0&&!editing&&(
               <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', padding:'10px 12px', borderRadius:10, background:form.add_expense?'var(--accent-soft)':'var(--bg-surface)', border:'1px solid '+(form.add_expense?'var(--accent-border)':'var(--border-subtle)'), transition:'all 0.15s' }}>
                 <input type="checkbox" checked={form.add_expense} onChange={e=>setForm(f=>({...f,add_expense:e.target.checked}))} style={{ width:16, height:16, accentColor:'var(--accent)', cursor:'pointer' }}/>
-                <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> & τον <strong>Προϋπολογισμό</strong> ({amt.toLocaleString('el-GR')} €)</span>
+                <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> & τον <strong>Προϋπολογισμό</strong> ({fe(amt)} €)</span>
               </label>
             )}
             {/* Επικοινωνία */}
@@ -1430,7 +1430,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Property OS//Calendar 1.0//EL','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Property OS, Ημερολόγιο','X-WR-TIMEZONE:Europe/Athens']
     filtered.forEach(e=>{
       const d=e.event_date.replace(/-/g,''); const cat=CATEGORIES[e.category]
-      const descParts=[e.notes||'', e.amount?`Ποσό: ${e.amount.toLocaleString('el-GR')} €`:''].filter(Boolean)
+      const descParts=[e.notes||'', e.amount?`Ποσό: ${fe(e.amount)}`:''].filter(Boolean)
       lines.push('BEGIN:VEVENT',
         `UID:${e.id}@property-os`,
         `DTSTAMP:${stamp}`,
@@ -1455,7 +1455,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     const fmtD=(s:string)=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,(m||1)-1,d||1).toLocaleDateString('el-GR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})}
     const rows=up.length?up.map(e=>{const cat=CATEGORIES[e.category];const d=daysUntil(e.event_date);const tag=d<0?`${Math.abs(d)} ημ. πριν`:d===0?'Σήμερα':`σε ${d} ημ.`;const col=d<0?'#c5221f':d<=7?'#e37400':'#5f6368';return `<tr>
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;white-space:nowrap">${esc(fmtD(e.event_date))}</td>
-      <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;font-weight:600">${esc(e.title)}${e.amount?` <span style="color:#1a73e8;font-family:monospace">${e.amount.toLocaleString('el-GR')} €</span>`:''}</td>
+      <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;font-weight:600">${esc(e.title)}${e.amount?` <span style="color:#1a73e8;font-family:monospace">${fe(e.amount)}</span>`:''}</td>
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:11px;color:#5f6368">${esc(cat?.label||'')}</td>
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:12px;font-weight:700;color:${col};white-space:nowrap;text-align:right">${tag}</td></tr>`}).join(''):'<tr><td colspan="4" style="padding:24px;text-align:center;color:#80868b">Καμία εκκρεμότητα.</td></tr>'
     const html=`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Ημερολόγιο, Property OS</title>

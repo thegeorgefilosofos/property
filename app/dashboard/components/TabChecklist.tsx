@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T, fn, fe, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE } from '@/components/Theme'
+import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE } from '@/components/Theme'
 import { notify, notifyOk } from '@/components/Toast'
 import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
@@ -1116,7 +1116,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         {item._receipt && item.actual_cost > 0 && (
           <span title={`Παραστατικό: ${item._receipt.name}`} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--positive)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-            {item.actual_cost.toLocaleString('el-GR')}€
+            {fe(item.actual_cost)}
           </span>
         )}
         {/* Η ΕΠΙΣΗΜΗ ΠΗΓΗ, σε κάθε υποχρέωση που δεν την έγραψε ο χρήστης. Χωρίς
@@ -1452,7 +1452,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
             <FL>Πραγματικό κόστος</FL>
             {item?._receipt ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item._receipt.amount.toLocaleString('el-GR')} €</span>
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(item._receipt.amount)}</span>
                 <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
                   {item._receipt.provider ? `${item._receipt.provider} · ` : ''}{fmtDate(item._receipt.date)} · {item._receipt.name}
                 </span>
@@ -1656,8 +1656,8 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
     // γραμμή του Αρχείου, το λέμε: το παραστατικό υπάρχει αλλά δεν θα φαίνεται
     // στην καρτέλα Αρχείο, και ο χρήστης πρέπει να το ξέρει, όχι να το ανακαλύψει.
     onSaved(docId
-      ? `Καταχωρήθηκε ${amountNum.toLocaleString('el-GR')} € με παραστατικό στο Αρχείο`
-      : `Καταχωρήθηκε ${amountNum.toLocaleString('el-GR')} €. Το αρχείο αποθηκεύτηκε, αλλά δεν μπήκε στο Αρχείο.`)
+      ? `Καταχωρήθηκε ${fe(amountNum)} με παραστατικό στο Αρχείο`
+      : `Καταχωρήθηκε ${fe(amountNum)}. Το αρχείο αποθηκεύτηκε, αλλά δεν μπήκε στο Αρχείο.`)
     onClose()
   }
 
@@ -2383,7 +2383,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--border-default), transparent)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {catPct}%{catEst > 0 ? ` · ${catEst.toLocaleString('el-GR')}€` : ''}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {fp(catPct)}{catEst > 0 ? ` · ${fe(catEst)}` : ''}</span>
                 </div>
                 <div style={{ height: 3, borderRadius: 3, background: 'var(--bg-elevated)', marginBottom: 8, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: catPct + '%', background: catPct === 100 ? 'var(--positive)' : 'var(--accent)', borderRadius: 3, transition: 'width 0.4s' }} />
