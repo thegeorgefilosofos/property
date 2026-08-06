@@ -173,16 +173,18 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // ── Αποθήκευση ρυθμίσεων (debounced) ──────────────────────────────────────
   const settingsRef = useRef({ base, min, max, wknd, minStay, touched });
   useEffect(() => { settingsRef.current = { base, min, max, wknd, minStay, touched }; });
+  // Ο έλεγχος ζει ΕΔΩ, μαζί με το γράψιμο, και όχι στον καλούντα: έτσι δεν
+  // υπάρχει διαδρομή που να αποθηκεύει χωρίς να ρωτά αν αποθηκεύτηκε.
   const persist = useCallback((v: { base: number; min: number; max: number; wknd: number; minStay: number }) =>
-    supabase.from('pricing_settings').upsert({
+    saved('Η τιμολόγηση δεν αποθηκεύτηκε', supabase.from('pricing_settings').upsert({
       user_id: userId, property_id: propertyId, base: v.base, min_price: v.min || null, max_price: v.max || null,
       weekend_premium: v.wknd / 100, min_stay: v.minStay, updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,property_id' }), [userId, propertyId]);
+    }, { onConflict: 'user_id,property_id' })), [userId, propertyId]);
   useEffect(() => {
     if (!touched || base <= 0) return;
     const t = setTimeout(async () => {
       // «Αποθηκεύτηκε» χωρίς έλεγχο είναι το χειρότερο μήνυμα που υπάρχει.
-      if (!await saved('Η τιμολόγηση δεν αποθηκεύτηκε', persist({ base, min, max, wknd, minStay }))) return;
+      if (!await persist({ base, min, max, wknd, minStay })) return;
       // Το μήνυμα λέει ΤΙ ΙΣΧΥΕΙ, όχι τι θα κερδίσεις: η πρόβλεψη εσόδων έφυγε
       // επειδή ήταν ταυτολογία, και μαζί της κάθε υπόσχεση ποσού.
       const range = `${fe(min || base, 0)}–${fe(max || base, 0)}`;

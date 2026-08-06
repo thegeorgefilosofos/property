@@ -270,12 +270,15 @@ export function buildDocDefinition(model: PdfReportModel): Node {
     ],
   };
 
-  const qrBlock: Node = {
+  // Κενή διεύθυνση σημαίνει ότι το έγγραφο δεν μπήκε στο μητρώο. Τότε δεν
+  // τυπώνεται ούτε κωδικός QR ούτε υπόσχεση επαλήθευσης: το χαρτί λέει μόνο
+  // όσα μπορεί να στηρίξει.
+  const qrBlock: Node = model.meta.verifyUrl ? {
     width: 58, alignment: 'right', stack: [
       { qr: model.meta.verifyUrl, fit: 52, foreground: INK, eccLevel: 'M' },
       { text: 'Επαλήθευση', fontSize: 6.5, color: FAINT, alignment: 'center', margin: [0, 3, 0, 0] },
     ],
-  };
+  } : { width: 0, text: '' };
 
   const header: Node[] = [
     { columns: [brandBlock, metaBlock, qrBlock], columnGap: 16 },
@@ -318,7 +321,9 @@ export function buildDocDefinition(model: PdfReportModel): Node {
             { text: `Σελίδα ${currentPage} / ${pageCount}`, alignment: 'right', fontSize: 7.5, color: FAINT },
           ], margin: [0, 6, 0, 0],
         },
-        { text: `Γνήσιο & επαληθεύσιμο έγγραφο: ${model.meta.verifyUrl}`, fontSize: 7, color: '#b6bcc4', margin: [0, 2, 0, 0] },
+        ...(model.meta.verifyUrl
+          ? [{ text: `Γνήσιο και επαληθεύσιμο έγγραφο: ${model.meta.verifyUrl}`, fontSize: 7, color: '#b6bcc4', margin: [0, 2, 0, 0] }]
+          : []),
       ],
     }),
   };

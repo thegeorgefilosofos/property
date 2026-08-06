@@ -1,10 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // issue — καταχώρηση επίσημου εγγράφου (true PDF) στο μητρώο & δημιουργία
 // μοναδικού, μη-απαριθμήσιμου αρ. εγγράφου + δημόσιου URL επαλήθευσης.
-// Η αποτυχία καταχώρησης ΔΕΝ μπλοκάρει την παραγωγή του PDF — η επαλήθευση
-// απλώς ενεργοποιείται μόλις στηθεί ο πίνακας issued_documents.
+// Η αποτυχία καταχώρησης ΔΕΝ μπλοκάρει την παραγωγή του PDF, αλλά ΑΦΑΙΡΕΙ τη
+// διεύθυνση επαλήθευσης: χωρίς γραμμή στο μητρώο, ο κωδικός QR και η φράση
+// «γνήσιο και επαληθεύσιμο έγγραφο» οδηγούσαν σε σελίδα που δεν βρίσκει τίποτα.
+// Ένα έγγραφο που υπόσχεται επαλήθευση την οποία δεν μπορεί να δώσει είναι
+// χειρότερο από ένα έγγραφο που δεν την υπόσχεται.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { createClient } from '@/lib/supabase/client';
+import { saved } from '@/components/dbWrite';
 
 type SB = ReturnType<typeof createClient>;
 
@@ -46,12 +50,11 @@ export async function issueDocument(supabase: SB, input: IssueInput): Promise<Is
   const verifyUrl = `${origin}/verify/${id}`;
   const summary = input.summary || {};
   const cs = checksum(JSON.stringify(summary) + '|' + (input.subject || '') + '|' + issuedAt);
-  try {
-    await supabase.from('issued_documents').insert({
+  const registered = await saved('Το έγγραφο δεν καταχωρήθηκε στο μητρώο, οπότε εκδίδεται χωρίς επαλήθευση',
+    supabase.from('issued_documents').insert({
       id, user_id: input.userId, doc_type: input.docType,
       subject: input.subject || '', period: input.period || '',
       issued_at: issuedAt, summary, checksum: cs,
-    });
-  } catch { /* graceful: το PDF παράγεται ούτως ή άλλως */ }
-  return { id, issuedAt, verifyUrl, checksum: cs };
+    }));
+  return { id, issuedAt, verifyUrl: registered ? verifyUrl : '', checksum: cs };
 }

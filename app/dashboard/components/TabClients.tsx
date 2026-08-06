@@ -50,6 +50,7 @@ import {
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import { downloadCsv } from './exportCsv';
+import { saved, savedData } from '@/components/dbWrite';
 import { money, intGr } from './xlsxStyle';
 import ClientCompose from './ClientCompose';
 import {
@@ -413,14 +414,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       notes: f.notes.trim() || null,
       updated_at: new Date().toISOString(),
     };
-    if (editing) await supabase.from('clients').update(payload).eq('id', editing.id);
-    else await supabase.from('clients').insert(payload);
-    setSaving(false); setModalOpen(false); load();
+    const ok = await saved('Η καταχώρηση δεν αποθηκεύτηκε', editing
+      ? supabase.from('clients').update(payload).eq('id', editing.id)
+      : supabase.from('clients').insert(payload));
+    setSaving(false);
+    if (!ok) return;
+    setModalOpen(false); load();
   };
 
   const del = async (c: Client) => {
     if (!(await confirmDialog('Να διαγραφεί η καταχώρηση;', { tone: 'negative' }))) return;
-    await supabase.from('clients').delete().eq('id', c.id);
+    if (!await saved('Η καταχώρηση δεν διαγράφηκε', supabase.from('clients').delete().eq('id', c.id))) return;
     if (openId === c.id) setOpenId(null);
     load();
   };
@@ -434,7 +438,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const copyCheckinLink = async () => {
     if (!openId) return;
     const propId = (propsByClient.get(openId) || [])[0]?.id || null;
-    const { data } = await supabase.from('checkin_links').upsert({ user_id: userId, client_id: openId, property_id: propId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle();
+    const data = await savedData<{ token?: string }>('Ο σύνδεσμος προ-άφιξης δεν δημιουργήθηκε',
+      supabase.from('checkin_links').upsert({ user_id: userId, client_id: openId, property_id: propId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle());
     if (data?.token) { try { await navigator.clipboard.writeText(`${window.location.origin}/checkin/${data.token}`); } catch { /* ignore */ } setCheckinCopied(true); setTimeout(() => setCheckinCopied(false), 2600); }
   };
 
@@ -483,7 +488,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const name = emailDraft.name.trim();
     let clientId = clients.find(c => c.full_name.trim().toLowerCase() === name.toLowerCase())?.id || null;
     if (!clientId) {
-      const { data } = await supabase.from('clients').insert({ user_id: userId, type: 'client', full_name: name }).select('id').maybeSingle();
+      const data = await savedData<{ id?: string }>('Ο πελάτης δεν δημιουργήθηκε',
+        supabase.from('clients').insert({ user_id: userId, type: 'client', full_name: name }).select('id').maybeSingle());
       clientId = data?.id || null;
     }
     if (clientId) {
@@ -491,7 +497,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       const gross = parseFloat(emailDraft.gross) || 0;
       const fee = parseFloat(emailDraft.fee) || 0;
       const levy = parseFloat(emailDraft.levy) || 0;
-      await supabase.from('client_stays').insert({
+      await saved('Η κράτηση δεν αποθηκεύτηκε', supabase.from('client_stays').insert({
         user_id: userId, client_id: clientId, check_in: emailDraft.check_in || null, check_out: emailDraft.check_out || null,
         nights, channel: emailDraft.channel || null,
         gross_guest_paid: gross || null, platform_fee: fee || null, climate_levy: levy || null,
@@ -499,19 +505,19 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         // επισκέπτης μείον το τέλος, που δεν είναι έσοδο του ιδιοκτήτη).
         total: gross ? Math.max(0, gross - levy) : null,
         amount_basis: gross ? 'gross' : 'unknown',
-      });
+      }));
     }
     setEmailBusy(false); setEmailOpen(false); setEmailText(''); setEmailDraft(null);
     load(); loadStays();
   };
 
   const linkProperty = async (clientId: string, propId: string) => {
-    await supabase.from('user_properties').update({ client_id: propId ? clientId : null }).eq('id', propId);
-    load();
+    if (await saved('Το ακίνητο δεν συνδέθηκε',
+      supabase.from('user_properties').update({ client_id: propId ? clientId : null }).eq('id', propId))) load();
   };
   const unlinkProperty = async (propId: string) => {
-    await supabase.from('user_properties').update({ client_id: null }).eq('id', propId);
-    load();
+    if (await saved('Το ακίνητο δεν αποσυνδέθηκε',
+      supabase.from('user_properties').update({ client_id: null }).eq('id', propId))) load();
   };
 
   // ── Διαμονές ──────────────────────────────────────────────────────────────
@@ -593,28 +599,36 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       damage_item_id: stayForm.damages ? (stayForm.damage_item_id || null) : null,
       notes: stayForm.notes.trim() || null,
     };
-    if (stayForm.id) await supabase.from('client_stays').update(payload).eq('id', stayForm.id);
-    else await supabase.from('client_stays').insert(payload);
-    setSavingStay(false); setStayFormOpen(false); loadStays();
+    const ok = await saved('Η διαμονή δεν αποθηκεύτηκε', stayForm.id
+      ? supabase.from('client_stays').update(payload).eq('id', stayForm.id)
+      : supabase.from('client_stays').insert(payload));
+    setSavingStay(false);
+    if (!ok) return;
+    setStayFormOpen(false); loadStays();
   };
-  const delStay = async (s: Stay) => { if (!(await confirmDialog('Να διαγραφεί η διαμονή;', { tone: 'negative' }))) return; await supabase.from('client_stays').delete().eq('id', s.id); loadStays(); };
+  const delStay = async (s: Stay) => {
+    if (!(await confirmDialog('Να διαγραφεί η διαμονή;', { tone: 'negative' }))) return;
+    if (await saved('Η διαμονή δεν διαγράφηκε', supabase.from('client_stays').delete().eq('id', s.id))) loadStays();
+  };
   // Ένα κλικ από τη λίστα: δηλώθηκε / δεν δηλώθηκε. Η δήλωση βραχυχρόνιας
   // διαμονής είναι μία ανά κράτηση και η προθεσμία τρέχει — δεν πρέπει να
   // απαιτεί άνοιγμα φόρμας.
   const toggleDeclared = async (s: Stay) => {
-    await supabase.from('client_stays')
+    if (await saved('Η δήλωση της διαμονής δεν άλλαξε', supabase.from('client_stays')
       .update({ declared_at: isDeclared(s) ? null : new Date().toISOString() })
-      .eq('id', s.id);
-    loadStays();
+      .eq('id', s.id))) loadStays();
   };
 
   // ── Σχόλια ────────────────────────────────────────────────────────────────
   const saveNote = async () => {
     if (!openId || !noteForm.body.trim()) return;
-    await supabase.from('client_notes').insert({ user_id: userId, client_id: openId, kind: noteForm.kind, body: noteForm.body.trim() });
+    if (!await saved('Το σχόλιο δεν αποθηκεύτηκε',
+      supabase.from('client_notes').insert({ user_id: userId, client_id: openId, kind: noteForm.kind, body: noteForm.body.trim() }))) return;
     setNoteForm({ kind: 'note', body: '' }); loadNotes(openId);
   };
-  const delNote = async (n: Note) => { await supabase.from('client_notes').delete().eq('id', n.id); if (openId) loadNotes(openId); };
+  const delNote = async (n: Note) => {
+    if (await saved('Το σχόλιο δεν διαγράφηκε', supabase.from('client_notes').delete().eq('id', n.id)) && openId) loadNotes(openId);
+  };
 
   // ── Έγγραφα πελάτη ────────────────────────────────────────────────────────
   const onDocFile = async (file: File | null | undefined) => {
@@ -640,8 +654,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const delDoc = async (d: ClientDoc) => {
     if (!(await confirmDialog('Να διαγραφεί οριστικά το έγγραφο;', { tone: 'negative' }))) return;
     await supabase.storage.from('property-files').remove([d.file_path]);
-    await supabase.from('client_documents').delete().eq('id', d.id);
-    if (openId) loadDocs(openId);
+    if (await saved('Το έγγραφο δεν διαγράφηκε', supabase.from('client_documents').delete().eq('id', d.id)) && openId) loadDocs(openId);
   };
 
   // ── Εισαγωγή iCal ─────────────────────────────────────────────────────────
@@ -713,8 +726,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   };
   const delIcalFeed = async (f: IcalFeed) => {
     if (!(await confirmDialog('Να αφαιρεθεί ο σύνδεσμος αυτόματου συγχρονισμού; Οι ήδη εισαγμένες κρατήσεις παραμένουν.', { tone: 'negative' }))) return;
-    await supabase.from('ical_feeds').delete().eq('id', f.id);
-    loadIcalFeeds();
+    if (await saved('Ο σύνδεσμος συγχρονισμού δεν αφαιρέθηκε',
+      supabase.from('ical_feeds').delete().eq('id', f.id))) loadIcalFeeds();
   };
   // Συνθετικός πελάτης ανά κανάλι για τις εισαγόμενες κρατήσεις (το iCal δεν
   // περιέχει ταυτότητα επισκέπτη). Δημιουργείται μία φορά, με σαφή ονομασία.

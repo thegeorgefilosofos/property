@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { must } from '@/lib/supabase/must'
+import { saved } from '@/components/dbWrite'
 import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
 import { fp, fe } from '@/lib/core/format'
 import { fdLong, ABSENT } from '@/components/tokens'
@@ -247,7 +248,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     if(bankName) notifyOk(`Εφαρμόστηκε το επιτόκιο: ${bankName}`)
     scrollToCalc()
   }
-  const [saved,setSaved] = useState<SavedLoan[]>([])
+  // Ονομάζεται `savedLoans`: το `saved` ανήκει πια στον βοηθό που ελέγχει αν ένα
+  // γράψιμο πέτυχε, και δύο πράγματα δεν μοιράζονται ένα όνομα.
+  const [savedLoans,setSaved] = useState<SavedLoan[]>([])
   const [filterSpiti,setFS] = useState(false)
   const [selBank,setSelBank] = useState<string|null>(null)
   const [appliedLoan,setAppliedLoan] = useState<AppliedLoan|undefined>(undefined)
@@ -328,17 +331,20 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
       const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate())
       events.push({property_id:propertyId,user_id:userId,title,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:note,source:src})
     }
-    await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src)
-    for(let i=0;i<events.length;i+=20)await supabase.from('calendar_events').insert(events.slice(i,i+20))
+    if(!await saved('Οι παλιές δόσεις δεν καθαρίστηκαν',supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src))) return
+    // Οι δόσεις γράφονται σε παρτίδες. Αν σπάσει μία, οι υπόλοιπες δεν έχουν
+    // νόημα: το ημερολόγιο θα έδειχνε μισό δάνειο και θα το έλεγε ολόκληρο.
+    for(let i=0;i<events.length;i+=20)
+      if(!await saved('Οι δόσεις δεν αποθηκεύτηκαν στο ημερολόγιο',supabase.from('calendar_events').insert(events.slice(i,i+20)))) return
     if(!silent) notifyOk(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){
-    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:athensToday()})
+    if(!await saved('Η δόση δεν καταχωρήθηκε στις δαπάνες',supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:athensToday()}))) return
     notifyOk('Δόση καταχωρήθηκε στις Δαπάνες')
   }
   async function deleteLoan(id:string){
     if(!(await confirmDialog('Διαγραφή δανείου;',{tone:'negative'})))return
-    await supabase.from('loans').delete().eq('id',id)
+    if(!await saved('Το δάνειο δεν διαγράφηκε',supabase.from('loans').delete().eq('id',id))) return
     await loadSaved()
   }
 
@@ -403,7 +409,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     downloadXlsx(`Αποθηκευμένα_δάνεια_${athensToday()}`, [{
       name: 'Δάνεια',
       title: 'Αποθηκευμένα δάνεια',
-      subtitle: `Property OS · ${saved.length} ${saved.length===1?'δάνειο':'δάνεια'} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
+      subtitle: `Property OS · ${savedLoans.length} ${savedLoans.length===1?'δάνειο':'δάνεια'} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
       columns: [
         { header:'Τράπεζα', kind:'text', width:20 },
         { header:'Τύπος δανείου', kind:'text', width:22 },
@@ -418,7 +424,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         { header:'Κατάσταση', kind:'text', width:12 },
         { header:'Σημειώσεις', kind:'text', width:30 },
       ],
-      rows: saved.map(loan=>{
+      rows: savedLoans.map(loan=>{
         const m=calcMonthly(loan.amount,loan.rate,loan.years)
         const ti=m*loan.years*12-loan.amount
         const ltv=loan.property_value>0?(loan.amount/loan.property_value)*100:0
@@ -437,13 +443,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const savedContent = (
     <div style={{display:'flex',flexDirection:'column',gap:12}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-        <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{saved.length} δάνεια</span>
-        <ExportButton disabled={saved.length===0} onClick={()=>exportSavedLoans()} onExportData={()=>exportSavedLoans('data')}/>
+        <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{savedLoans.length} δάνεια</span>
+        <ExportButton disabled={savedLoans.length===0} onClick={()=>exportSavedLoans()} onExportData={()=>exportSavedLoans('data')}/>
       </div>
 
       {/* ── Ενιαίο δάνειο: όλα τα δάνεια του δανειολήπτη σε μία εικόνα ── */}
-      {saved.length>0&&(()=>{
-        const rows = saved.map(l=>{ const m=calcMonthly(l.amount,l.rate,l.years); return { l, m, ti:m*l.years*12-l.amount } })
+      {savedLoans.length>0&&(()=>{
+        const rows = savedLoans.map(l=>{ const m=calcMonthly(l.amount,l.rate,l.years); return { l, m, ti:m*l.years*12-l.amount } })
         const totalAmount = rows.reduce((s,r)=>s+r.l.amount,0)
         const totalMonthly = rows.reduce((s,r)=>s+r.m,0)
         const totalInterest = rows.reduce((s,r)=>s+r.ti,0)
@@ -490,7 +496,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           αποδίδεται πλέον ΜΟΝΟ όταν υπάρχουν δάνεια, οπότε καμία από τις δύο δεν
           μπορούσε να εμφανιστεί. Και η κενή κατάσταση έστελνε «άνοιξε τον
           Υπολογιστή Δανείου» — ο οποίος είναι τώρα ακριβώς από κάτω. */}
-      {saved.map(loan=>{
+      {savedLoans.map(loan=>{
         // ═══ Η ΘΕΣΗ ΤΟΥ ΔΑΝΕΙΟΥ ΣΗΜΕΡΑ ═══════════════════════════════════════
         // Η κάρτα έδειχνε πέντε πλακίδια ίδιου βάρους, με πρώτο το «Ποσό» — το
         // ΑΡΧΙΚΟ κεφάλαιο, δηλαδή τον αριθμό που ίσχυε την ημέρα της υπογραφής
@@ -637,7 +643,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           Το υπόλοιπο, η δόση και η λήξη είναι ο λόγος που ανοίγει αυτή την
           οθόνη κάποιος που ΗΔΗ έχει δάνειο. Ο υπολογιστής είναι για όποιον
           ψάχνει — χρήσιμος, αλλά δεύτερος. ═══════════════════════════════ */}
-      {!loadingSaved && saved.length > 0 && (
+      {!loadingSaved && savedLoans.length > 0 && (
         <div style={{display:'flex',flexDirection:'column',gap:12}}>{savedContent}</div>
       )}
 

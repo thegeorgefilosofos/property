@@ -63,6 +63,7 @@ import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
 import BillingNudge from './components/BillingNudge';
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
+import { saved, savedData } from '@/components/dbWrite';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -327,7 +328,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
     const { data: sourceItems } = await supabase.from('inventory_items').select('*').eq('property_id', sourceId);
     if (sourceItems?.length) {
       const newItems = sourceItems.map(item => ({ ...item, id: undefined, property_id: currentPropertyId, user_id: userId, created_at: undefined, updated_at: undefined }));
-      await supabase.from('inventory_items').insert(newItems);
+      if (!await saved('Η απογραφή δεν αντιγράφηκε', supabase.from('inventory_items').insert(newItems))) { setCopying(false); return; }
     }
     setCopying(false); onCopied();
   };
@@ -1190,9 +1191,19 @@ export default function Dashboard() {
 
   // Μία πηγή αλήθειας για το «απλοποιημένο μενού»: το κουμπί στην μπάρα και ο
   // διακόπτης στις Ρυθμίσεις γράφουν εδώ, ώστε η αλλαγή να φαίνεται αμέσως.
+  // Το όνομα ιδιοκτήτη τυπώνεται σε κάθε επίσημο έγγραφο. Αν δεν αποθηκευτεί,
+  // η επόμενη έκδοση βγαίνει με το παλιό και κανείς δεν καταλαβαίνει γιατί.
+  const saveOwnerName = async (n: string) => {
+    if (!user) return;
+    setOwnerName(n);
+    await saved('Το όνομα ιδιοκτήτη δεν αποθηκεύτηκε', supabase.from('billing_profiles')
+      .upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }));
+  };
+
   const setNavShowAllPref = (v: boolean) => {
     setNavShowAll(v);
-    if (user) supabase.from('onboarding_progress').upsert({ user_id: user.id, nav_show_all: v }, { onConflict: 'user_id' }).then(() => {});
+    if (user) void saved('Η προτίμηση μενού δεν αποθηκεύτηκε',
+      supabase.from('onboarding_progress').upsert({ user_id: user.id, nav_show_all: v }, { onConflict: 'user_id' }));
   };
   const showAllTabs = () => setNavShowAllPref(true);
 
@@ -1290,7 +1301,8 @@ export default function Dashboard() {
 
   const updateStatus = async (status: PropertyStatus) => {
     if (!selected||!user) return;
-    await supabase.from('user_properties').update(writeStatus(status)).eq('id', selected.id);
+    if (!await saved('Η κατάσταση του ακινήτου δεν άλλαξε',
+      supabase.from('user_properties').update(writeStatus(status)).eq('id', selected.id))) return;
     setStatusDropdown(false);
     await fetchProperties(user.id);
   };
@@ -1316,7 +1328,10 @@ export default function Dashboard() {
     // Καθαρισμός συνδεδεμένων εγγραφών (best-effort· η RLS περιορίζει στα δικά σου).
     const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences','client_stays','pricing_settings','ical_feeds'];
     await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', pid)));
-    await supabase.from('user_properties').delete().eq('id', pid).eq('user_id', user.id);
+    // Το ακίνητο είναι η τελευταία γραμμή που φεύγει. Αν μείνει, ο χρήστης το
+    // βλέπει άδειο στη λίστα και νομίζει ότι κάτι χάλασε μόνο του.
+    if (!await saved('Το ακίνητο δεν διαγράφηκε',
+      supabase.from('user_properties').delete().eq('id', pid).eq('user_id', user.id))) return;
     // Σβήσε τη συνομιλία/μνήμη του βοηθού για το συγκεκριμένο ακίνητο (τοπικά στον browser).
     try { clearAssistantHistory(pid); } catch {}
     if (selected?.id === pid) setSelected(null);
@@ -1335,11 +1350,13 @@ export default function Dashboard() {
     const childTables = ['expenses','calendar_events','bills','tenants','inventory_items','loans','property_settings','rent_comparables','property_documents','client_stays','pricing_settings','ical_feeds'];
     for (const p of demoProps) {
       await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', p.id)));
-      await supabase.from('user_properties').delete().eq('id', p.id).eq('user_id', user.id);
+      if (!await saved('Το δείγμα ακινήτου δεν αφαιρέθηκε',
+        supabase.from('user_properties').delete().eq('id', p.id).eq('user_id', user.id))) return;
       try { clearAssistantHistory(p.id); } catch {}
     }
     // Σβήσε και τους demo πελάτες (και τις διαμονές τους μέσω cascade στη βάση).
-    await supabase.from('clients').delete().eq('user_id', user.id).like('full_name', 'Demo —%');
+    await saved('Οι δείγματα πελάτες δεν αφαιρέθηκαν',
+      supabase.from('clients').delete().eq('user_id', user.id).like('full_name', 'Demo —%'));
     setSelected(null);
     await fetchProperties(user.id);
     setNav('overview');
@@ -1353,7 +1370,8 @@ export default function Dashboard() {
     if (draft && user) {
       const { count } = await supabase.from('property_documents').select('id', { count: 'exact', head: true }).eq('property_id', draft);
       if ((count || 0) === 0) {
-        await supabase.from('user_properties').delete().eq('id', draft).eq('user_id', user.id);
+        if (!await saved('Το κενό προσχέδιο δεν καθαρίστηκε',
+          supabase.from('user_properties').delete().eq('id', draft).eq('user_id', user.id))) return;
         if (selected?.id === draft) setSelected(null);
         await fetchProperties(user.id);
       }
@@ -1747,7 +1765,7 @@ export default function Dashboard() {
               {navSafe==='portfolio' && (isTabAllowed(ent,'portfolio')
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα του χαρτοφυλακίου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
-              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
+              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} ownerName={ownerName} onSaveOwnerName={saveOwnerName} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} plan={effPlan} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
@@ -1909,9 +1927,11 @@ export default function Dashboard() {
         onAddProperty={()=>{ setShowWelcome(false); setShowAddModal(true); }}
         onScanCreate={async()=>{
           setShowWelcome(false);
-          const { data } = await supabase.from('user_properties').insert({ user_id:user.id, name:'Νέο ακίνητο', prop_type:'apartment', status_detail:'vacant' }).select('*').single();
+          const data = await savedData<Property>('Το ακίνητο δεν δημιουργήθηκε',
+            supabase.from('user_properties').insert({ user_id:user.id, name:'Νέο ακίνητο', prop_type:'apartment', status_detail:'vacant' }).select('*').single());
           await fetchProperties(user.id);
-          if (data) { setSelected(data); setScanDraftId(data.id); }
+          if (!data) return;
+          setSelected(data); setScanDraftId(data.id);
           setNav('overview'); setQuickAddOpen(true);
         }}
         onProfile={setProfileType}

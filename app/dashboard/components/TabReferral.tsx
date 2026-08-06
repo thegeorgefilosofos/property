@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { downloadCsv, csvDate } from './exportCsv';
+import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
 import { T, TT, Badge, TierBadge, ExportButton, EmptyState, SkeletonKPIs, fn } from '@/components/Theme';
 import { UserPlus } from 'lucide-react';
@@ -148,7 +149,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     let alive = true;
     (async () => {
       try {
-        await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
+        await saved('Ο κωδικός σύστασης δεν καταχωρήθηκε',
+          supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' }));
         // Καταγράφει την ανά-σύσταση αξία στο ledger (idempotent) πριν το διαβάσουμε.
         await supabase.rpc('reconcile_referral_rewards', { p_code: code });
         const [{ data }, { data: sp }, { data: rw }, { data: ls }, { data: st }] = await Promise.all([
