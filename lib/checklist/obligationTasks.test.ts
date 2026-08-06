@@ -3,9 +3,9 @@
 //   npx tsx lib/checklist/obligationTasks.test.ts
 import { readFileSync } from 'node:fs'
 import {
-  taxTaskDrafts, lawTaskDrafts, obligationDrafts, pendingDrafts, audiencesFor, taxTaskRef, TAX_REF_PREFIX,
+  taxTaskDrafts, lawTaskDrafts, obligationDrafts, pendingDrafts, audiencesFor,
   expenseFromReceipt, actualCostFromReceipt, costVariance,
-  isTaxTaskRef, isLawTaskRef, isGeneratedRef, taxTaskRef,
+  isTaxTaskRef, isLawTaskRef, isGeneratedRef, taxTaskRef, TAX_REF_PREFIX,
   type ReceiptEntry,
 } from './obligationTasks'
 import { UPDATE_ACTIONS, actionableUpdatesFor, REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026'

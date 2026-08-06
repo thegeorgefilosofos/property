@@ -31,8 +31,20 @@ const mdInputBase: React.CSSProperties = {
   transition: 'border-color 0.15s, box-shadow 0.15s',
 };
 
+// ═══ Η ΕΤΙΚΕΤΑ ΠΟΥ ΤΣΑΚΙΖΕΙ ΚΑΤΕΒΑΖΕΙ ΜΟΝΟ ΤΟ ΔΙΚΟ ΤΗΣ ΠΕΔΙΟ ══════════════
+// Σε σειρά με πέντε πεδία, μία ετικέτα δύο λέξεων τσακίζει σε δεύτερη γραμμή
+// και το πλαίσιό της κατεβαίνει δεκαοκτώ εικονοστοιχεία χαμηλότερα από τα
+// υπόλοιπα τέσσερα. Η σειρά παύει να είναι σειρά, και το μάτι το βλέπει αμέσως
+// χωρίς να ξέρει γιατί.
+//
+// Η λύση δεν είναι να κονταίνουν όλες οι ετικέτες: είναι να κρατούν την ίδια
+// ΘΕΣΗ βάσης. Δύο γραμμές ύψους, στοιχισμένες στο κάτω μέρος, ώστε είτε μία
+// είτε δύο λέξεις, το πεδίο ξεκινά πάντα από το ίδιο σημείο.
 const mdLabelBase: React.CSSProperties = {
-  display: 'block',
+  display: 'flex',
+  alignItems: 'flex-end',
+  minHeight: 32,
+  lineHeight: 1.3,
   fontFamily: T.font.sans,
   fontSize: 12,
   fontWeight: 500,
@@ -161,7 +173,7 @@ export function NumberInput({
 
   return (
     <div className={className}>
-      {label && <label htmlFor={inputId} style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label htmlFor={inputId} style={mdLabelBase}>{label}{infoNode(labelInfo)}</label>}
       <div style={{
         width: '100%',
         background: 'var(--bg-surface)',
@@ -364,7 +376,7 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }} id={`${idRef.current}-label`}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label style={mdLabelBase} id={`${idRef.current}-label`}>{label}{infoNode(labelInfo)}</label>}
       <div
         ref={triggerRef}
         role="combobox"

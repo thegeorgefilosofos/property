@@ -275,7 +275,16 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // Κανονικοποίηση 0..1. Επιστρέφει και την «οπτική» ένταση με πιο απότομη
   // καμπύλη ώστε οι μέρες αιχμής να ξεχωρίζουν έντονα από τις χαμηλές.
   const norm = (p: number) => { const { lo, hi } = priceRange; return hi <= lo ? 0.5 : Math.max(0, Math.min(1, (p - lo) / (hi - lo))); };
-  const fillOpacity = (t: number) => 0.05 + Math.pow(t, 1.25) * 0.93;
+  // ═══ ΔΥΟ ΚΩΔΙΚΟΠΟΙΗΣΕΙΣ ΓΙΑ ΤΗΝ ΙΔΙΑ ΤΙΜΗ ═══════════════════════════════
+  // Κάθε κελί είχε ΚΑΙ γέμισμα ΚΑΙ αριθμό: το γέμισμα έφτανε το 98% του accent,
+  // δηλαδή σχεδόν συμπαγές γαλάζιο, και από πάνω του καθόταν το ποσό. Τρία
+  // πλέγματα επί σαράντα δύο κελιά έβγαζαν έναν τοίχο μπλε όπου δεν ξεχώριζε
+  // ούτε η ακριβή μέρα ούτε η φθηνή — και τα δύο ήταν χρωματιστά.
+  //
+  // Ο αριθμός είναι το περιεχόμενο· το γέμισμα είναι υπόδειξη. Κρατά το ένα
+  // έκτο της έντασης: αρκετό για να σαρώσεις με το μάτι πού ανεβαίνει, πολύ
+  // λίγο για να ανταγωνιστεί ό,τι γράφει από πάνω του.
+  const fillOpacity = (t: number) => 0.03 + Math.pow(t, 1.25) * 0.14;
 
   // Ομαδοποίηση όλου του έτους ανά μήνα (για το ημερολόγιο).
   const months = useMemo(() => {
@@ -378,8 +387,12 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         sub="Τι να ζητήσεις ανά νύχτα, ποιες μέρες μένουν κενές, και τι σου μένει στο χέρι μετά από έξοδα, τέλη και φόρο."
         right={rows.length > 0 ? <ExportButton onClick={exportXlsx} label="Εξαγωγή Excel" /> : undefined} />
 
+      {/* Ήταν τέσσερις γραμμές πριν φανεί το πρώτο πεδίο, και τρεις από αυτές
+          εξηγούσαν τι ΔΕΝ κάνει η οθόνη. Το ουσιώδες χωρά σε μία: οι τιμές είναι
+          προτάσεις, όχι αυτόματη αλλαγή. Το «από πού βγαίνει» το λέει η ίδια η
+          ημέρα όταν την πατήσεις, ονομαστικά και με την πηγή της. */}
       <InfoBanner tone="info">
-        Οι τιμές είναι <strong>προτάσεις</strong>, όχι αυτόματη αλλαγή στα κανάλια. Κάθε πρόταση προκύπτει από τη βάση που ορίζεις εσύ, επί πολλαπλασιαστές που φαίνονται ονομαστικά με την <strong>πηγή τους</strong> (πάτησε μια ημέρα). Δεν υπάρχει πρόβλεψη εσόδων ούτε «επιπλέον κέρδος»: χωρίς δεδομένο ελαστικότητας ζήτησης, κάθε τέτοιο νούμερο θα ήταν ταυτολογία. Οι κλεισμένες ημέρες και οι ρυθμίσεις ενημερώνονται <strong>σε πραγματικό χρόνο</strong>.
+        Οι τιμές είναι <strong>προτάσεις</strong>, όχι αυτόματη αλλαγή στα κανάλια. Πάτησε μια ημέρα για να δεις από πού προκύπτει η δική της.
       </InfoBanner>
 
       {/* Ρυθμίσεις (τυποποιημένα πεδία, αποθηκεύονται αυτόματα) */}
@@ -390,7 +403,10 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         <NumberInput label="Προσαύξηση σαββατοκύριακου" value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
         <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix="νύχτες" />
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Έτος</div>
+          {/* Η ετικέτα γραφόταν στο χέρι, με άλλο βάρος και χωρίς το ύψος βάσης
+              των υπόλοιπων πεδίων: το χειριστήριο έπεφτε σε δική του σειρά και
+              δεν στοιχιζόταν με κανένα. Ίδιο στυλ, ίδια θέση. */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', minHeight: 32, lineHeight: 1.3, fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: 6 }}>Έτος</div>
           {/* Τρέχον + επόμενο. Το nowYear+2 σήμαινε 1.096 υπολογισμένες ημέρες
               για τιμές που κανείς δεν ορίζει δύο χρόνια μπροστά. */}
           <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', height: 40 }}>
@@ -593,20 +609,31 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                         const t = past ? 0 : norm(d.price);
                         const top = !past && t > 0.82 && !d.booked;     // κορυφαία αιχμή: έξτρα έμφαση
                         return (
-                          <button key={dayNum} onClick={() => setSel(d)} title={d.holidayName || ''}
-                            aria-label={`${fd(d.date)}: ${d.booked ? 'ήδη κλεισμένη' : `προτεινόμενη τιμή ${fe(d.price, 0)}`}${d.holidayName ? `, ${d.holidayName}` : ''}`}
+                          <button key={dayNum} onClick={() => setSel(d)} title={[d.holidayName, d.booked ? 'Ήδη κλεισμένη' : `Προτεινόμενη τιμή ${fe(d.price)}`].filter(Boolean).join(' · ')}
+                            aria-label={`${fd(d.date)}: ${d.booked ? 'ήδη κλεισμένη' : `προτεινόμενη τιμή ${fe(d.price)}`}${d.holidayName ? `, ${d.holidayName}` : ''}`}
                             aria-pressed={sel?.date === d.date} style={{
                             position: 'relative', aspectRatio: '1', borderRadius: 8, cursor: 'pointer', overflow: 'hidden',
                             border: sel?.date === d.date ? '2px solid var(--accent)' : top ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
                             background: d.booked ? 'var(--bg-base)' : 'var(--surface-raised)', padding: 0,
-                            boxShadow: top ? '0 2px 10px -2px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                            transform: top ? 'scale(1.04)' : 'none', zIndex: top ? 1 : 0, opacity: past ? 0.4 : 1,
+                            opacity: past ? 0.4 : 1,
                           }}>
+                            {/* Το κελί δεν μεγαλώνει πια στην αιχμή: ένα κελί που
+                                αλλάζει μέγεθος σπάει το πλέγμα γύρω του και το
+                                μάτι το διαβάζει ως σφάλμα. Η αιχμή ξεχωρίζει από
+                                το περίγραμμα και το βάρος του αριθμού. */}
                             {!d.booked && !past && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
-                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}>{dayNum}</span>
-                            <span style={{ position: 'relative', fontSize: top ? 12 : 11, fontWeight: top ? 800 : 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
-                              {d.booked ? '—' : fe(d.price, 0).replace(/\s?€/, '')}
+                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
+                            {/* Ακέραια ευρώ στο κελί, δύο δεκαδικά στην ανάλυση που
+                                ανοίγει με το πάτημα. Σε τετράγωνο σαράντα
+                                εικονοστοιχείων το «45,00» είναι πέντε χαρακτήρες
+                                για να πει αυτό που λένε δύο. Η ακριβής τιμή ζει
+                                στην ετικέτα προσβασιμότητας και στην ανάλυση. */}
+                            {/* Κλεισμένη ημέρα: δεν έχει προτεινόμενη τιμή, και η
+                                παύλα που έμπαινε στη θέση της διαβαζόταν ως
+                                «λείπει τιμή» αντί για «είναι πιασμένη». */}
+                            <span style={{ position: 'relative', fontSize: d.booked ? 9 : 12, fontWeight: d.booked ? 600 : top ? 800 : 600, fontFamily: d.booked ? T.font.sans : T.font.num, fontVariantNumeric: 'tabular-nums', color: d.booked ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
+                              {d.booked ? 'πιασμένη' : fn(d.price)}
                             </span>
                             {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: 'var(--text-secondary)' }} />}
                           </button>
