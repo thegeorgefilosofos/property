@@ -8,7 +8,8 @@ import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/a
 import { REGULATORY_UPDATES_2026, type RegulatoryUpdate, type UpdateAudience } from '@/lib/accounting/updates2026'
 import { transferCosts } from '@/lib/accounting/transfer'
 import { InfoHint } from './InfoHint'
-import { HAS_BUSINESS, type LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
+import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
+import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { ClientStaysRow, ExpensesRow, InventoryItemsRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables'
 import type { LoanView } from '@/lib/loans/shape'
 import type { TaxStay } from '@/lib/tax/shortTermTax'
@@ -40,7 +41,7 @@ import { useReportBranding } from '@/lib/reportBranding'
 import { exportAccountantBundle } from './accountantExport'
 import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
 import { defaultBookkeeping, type LegalForm } from '@/lib/accounting/dossier'
-import { readStatus, type PropertyStatus } from '@/lib/property/status'
+import { readStatus, type PropertyStatus, type StatusRow } from '@/lib/property/status'
 import { printAccountingReport, downloadOfficialAccountingReport, type ReconLite } from './accountingReport'
 import { printRentCertificate, downloadOfficialRentCertificate } from './rentCertificate'
 import ReportBuilder from './ReportBuilder'
@@ -60,11 +61,21 @@ function athensNow(){ return new Date(new Date().toLocaleString('en-US',{timeZon
 function athensYear(){ return athensNow().getFullYear() }
 function todayAthens(){ const d=athensNow(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 
-const STATUS_META:Record<ReconStatus,{label:string;color:string}> = {
-  paid:     { label:'Πληρώθηκε', color:'var(--positive)' },
-  partial:  { label:'Μερικώς',   color:'var(--warning)' },
-  unpaid:   { label:'Εκκρεμεί',  color:'var(--text-secondary)' },
-  overdue:  { label:'Εκπρόθεσμο', color:'var(--negative)' },
+// ΧΩΡΙΣ ΣΗΜΑΣΙΟΛΟΓΙΚΟ ΠΡΑΣΙΝΟ ΚΑΙ ΚΟΚΚΙΝΟ. Η κατάσταση της δόσης λέγεται με τη
+// ΛΕΞΗ της, που είναι σαφής και σε όποιον δεν ξεχωρίζει χρώματα. Το βάρος του
+// κειμένου ξεχωρίζει ό,τι ζητά ενέργεια από ό,τι έκλεισε — ιεραρχία με μέγεθος
+// και βάρος, όπως σε κάθε άλλη οθόνη της εφαρμογής.
+const STATUS_META:Record<ReconStatus,{label:string;color:string;strong:boolean}> = {
+  paid:     { label:'Πληρώθηκε',  color:'var(--text-tertiary)',  strong:false },
+  partial:  { label:'Μερικώς',    color:'var(--text-primary)',   strong:true  },
+  unpaid:   { label:'Εκκρεμεί',   color:'var(--text-secondary)', strong:false },
+  overdue:  { label:'Εκπρόθεσμο', color:'var(--text-primary)',   strong:true  },
+}
+
+// Οι ίδιοι τόνοι για το τυπωμένο χαρτί, όπου δεν υπάρχουν μεταβλητές θέματος.
+// Ήταν τέσσερα ωμά χρώματα, γραμμένα ΔΥΟ φορές μέσα στο αρχείο.
+const STATUS_PRINT:Record<ReconStatus,string> = {
+  paid:'#5f6368', partial:'#202124', unpaid:'#5f6368', overdue:'#202124',
 }
 
 // Κάρτα λογιστικής: καθαρή, ανασηκωμένη με σκιά (3D) αλλά ΧΩΡΙΣ λευκό περίγραμμα/
@@ -114,8 +125,21 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   //
   // Το `legal_form` ξέρει ήδη και τα δύο: αν υπάρχει επιχείρηση, και αν είναι
   // ατομική ή νομικό πρόσωπο. Αν κάτι είναι λάθος, διορθώνεται εκεί που δηλώθηκε.
-  const elp: 'personal'|'business' = HAS_BUSINESS.has(legalForm) ? 'business' : 'personal'
-  const elpForm: 'sole'|'company' = legalForm === 'company' ? 'company' : 'sole'
+  // ── ΤΟ «ΦΥΣΙΚΟ ΠΡΟΣΩΠΟ Ή ΕΠΙΧΕΙΡΗΣΗ» ΜΕΝΕΙ ΕΡΩΤΗΣΗ, ΚΑΙ ΝΑ ΓΙΑΤΙ ────────
+  // Το είχα παραγάγει από τη νομική μορφή: «έχει επιχείρηση, άρα επιχείρηση».
+  // Είναι λάθος, και το γράφει η ίδια η εφαρμογή σε τρία σημεία: το ενοίκιο
+  // φυσικού προσώπου φορολογείται με το ΑΡΘΡΟ 40 (δική του κλίμακα, τεκμαρτή
+  // έκπτωση 5%), όχι με το άρθρο 15. Το κριτήριο είναι αν το ΑΚΙΝΗΤΟ ανήκει
+  // στην επιχείρηση, όχι αν ο ιδιοκτήτης έχει ΑΦΜ επιχείρησης για άσχετη
+  // δραστηριότητα. Σε ενοίκια 18.000 €, η παραγωγή έβγαζε φόρο 2.012 αντί
+  // 3.075 και πρόβλεψη 167,70 τον μήνα αντί 292,75: ο χρήστης θα έβρισκε το
+  // κενό στο εκκαθαριστικό.
+  //
+  // Άρα μένει επιλογή, με προεπιλογή το σωστό για τη συντριπτική πλειονότητα.
+  const [elp,setElp] = useState<'personal'|'business'>('personal')
+  // Η ΜΟΡΦΗ όμως ΔΕΝ είναι ερώτηση: δηλώθηκε στην υποδοχή και η αντιστοίχισή
+  // της σε φορολογικό καθεστώς ζει σε ένα σημείο, με τεστ (lib/accounting/taxProfile).
+  const elpForm = businessFormOf(legalForm)
   // Ηλικία, μόνο για τη μειωμένη κλίμακα νέων (ν.5246/2025). Τοπική, προαιρετική.
   const [age,setAge] = useState<number|''>('')
   // Επιχειρηματικές παράμετροι (τοπικές, προαιρετικές): ετήσιες εισφορές ΕΦΚΑ,
@@ -227,7 +251,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     finally{ setLoading(false) }
   })() },[propertyId,userId,refreshKey])
 
-  const regime:TaxRegime = (prop?.rental_mode==='short_term') ? 'individual_shortterm' : 'individual_longterm'
+  // ΩΜΟ `rental_mode` ΕΧΑΝΕ ΤΑ ΒΡΑΧΥΧΡΟΝΙΑ ΑΚΙΝΗΤΑ. Όσα σημάνθηκαν πριν από τη
+  // μετάβαση κρατούν `status_detail: 'seasonal'` χωρίς `rental_mode` — και το
+  // ίδιο κάνει το δείγμα επίδειξης της εφαρμογής. Για αυτά, το καθεστώς έβγαινε
+  // «μακροχρόνια», τα μεικτά έσοδα διαβάζονταν από τις δόσεις ενοικίου (που δεν
+  // υπάρχουν στη βραχυχρόνια) και το αποτέλεσμα ήταν ΜΗΔΕΝ έσοδα, μηδέν φόρος,
+  // μηδέν πρόβλεψη — σε PDF με αριθμό εγγράφου και κωδικό QR επαλήθευσης.
+  const regime:TaxRegime = readStatus(prop as StatusRow) === 'rent_short' ? 'individual_shortterm' : 'individual_longterm'
   const propCount = Math.max(1, allProps.length)
   // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από αξία+τ.μ.
   const enfia = useMemo(()=>{
@@ -266,7 +296,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // ακινήτου να είναι το ΜΕΡΙΔΙΟ του από τον συνολικό, σωστά και για πολλά ακίνητα.
   const consolidation = useMemo(()=>{
     const items = (allProps.length?allProps:[{id:propertyId,name:prop?.name,rental_mode:prop?.rental_mode,enfia:prop?.enfia,sqm:prop?.sqm}]).map(p=>{
-      const rmode:TaxRegime = p.rental_mode==='short_term' ? 'individual_shortterm' : 'individual_longterm'
+      const rmode:TaxRegime = readStatus(p as StatusRow) === 'rent_short' ? 'individual_shortterm' : 'individual_longterm'
       const pRentAccrued = allRent.filter(r=>r.property_id===p.id&&r.period_year===year).reduce((s,r)=>s+(r.amount||0),0)
       const pStays = allStays.filter(s=>s.property_id===p.id)
       const pShort = shortTermYearSummary(pStays, year, { sqm:p.sqm??null, isHouse:false, propertyCount:propCount, individual:true })
@@ -521,24 +551,26 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   }
 
   function printReport(){
-    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:{paid:'#188038',partial:'#e37400',unpaid:'#5f6368',overdue:'#c5221f'}[r.status] } })
+    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:STATUS_PRINT[r.status] } })
     printAccountingReport({
       propName: prop?.name||'Ακίνητο', address: prop?.address??undefined, year, regimeLabel,
       statement, provision, reconciliation: reconLite,
       expectedTotal: rs.expectedTotal, collectedTotal: rs.collectedTotal, outstanding: rs.outstanding,
+      enfiaEstimated,
       branding,
     })
   }
 
   async function officialReport(){
     if(genOfficial) return
-    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:{paid:'#188038',partial:'#e37400',unpaid:'#5f6368',overdue:'#c5221f'}[r.status] } })
+    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:STATUS_PRINT[r.status] } })
     setGenOfficial(true)
     try {
       await downloadOfficialAccountingReport({
         propName: prop?.name||'Ακίνητο', address: prop?.address??undefined, year, regimeLabel,
         statement, provision, reconciliation: reconLite,
         expectedTotal: rs.expectedTotal, collectedTotal: rs.collectedTotal, outstanding: rs.outstanding,
+        enfiaEstimated,
         branding,
       }, { supabase, userId })
     } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
@@ -577,6 +609,25 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily: T.font.sans }}>{regimeLabel} · έσοδα, φόρος και καθαρό αποτέλεσμα, με βάση τα πραγματικά σου δεδομένα.</p>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          {/* ΜΙΑ ΕΡΩΤΗΣΗ, ΟΧΙ ΔΥΟ. Δίπλα σε αυτή ζούσε δεύτερη, «Ατομική ή
+              νομικό πρόσωπο», που είναι η νομική μορφή: δηλώθηκε στην υποδοχή
+              και δεν ξαναρωτιέται. Αυτή εδώ είναι διαφορετικό ερώτημα και δεν
+              συμπεραίνεται: αν το ΑΚΙΝΗΤΟ ανήκει στην επιχείρηση. Το ενοίκιο
+              φυσικού προσώπου φορολογείται με το άρθρο 40, ακόμη κι όταν ο
+              ιδιοκτήτης έχει επιχείρηση για κάτι άλλο. */}
+          {mode==='professional'&&(
+            <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
+              {([['personal','Ενοίκια ιδιώτη'],['business','Μέσω επιχείρησης']] as [typeof elp,string][]).map(([e,label])=>(
+                <button key={e} onClick={()=>setElp(e)}
+                  title={e==='personal'?'Άρθρο 40: δική του κλίμακα, με τεκμαρτή έκπτωση 5%':'Άρθρο 15 ή εταιρικός συντελεστής, όταν το ακίνητο ανήκει στην επιχείρηση'}
+                  style={{ height:T.h.sm, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontFamily:T.font.sans, fontSize:12,
+                    fontWeight: elp===e?600:400, background: elp===e?'var(--bg-surface)':'transparent',
+                    color: elp===e?'var(--text-primary)':'var(--text-secondary)' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <ActionMenu label="Εργαλεία και αναφορές" title="Αναφορές και εργαλεία διαχείρισης" icon={<Printer size={14}/>} items={[
             { key:'print', label:'Λογιστική αναφορά', description:'Σύνοψη εσόδων, φόρου και καθαρού σε PDF, έτοιμη για τον λογιστή σου', icon:<Printer size={16}/>, onClick:printReport },
             { key:'official', label:'Επίσημη αναφορά', description:'Υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης', icon:<ShieldCheck size={16}/>, onClick:officialReport, busy:genOfficial },
@@ -767,8 +818,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               {recon.map((r,i)=>{ const m=STATUS_META[r.status]; return (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:10, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)' }}>
-                  <span style={{ width:8, height:8, borderRadius:'50%', background:m.color, flexShrink:0 }}/>
-                  <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}>{r.expected.label}</span>
+                  {/* Η κουκκίδα έφυγε: έλεγε με χρώμα ό,τι λέει η λέξη δίπλα της. */}
+                  <span style={{ flex:1, fontSize:13, fontWeight:m.strong?600:400, color:'var(--text-primary)', fontFamily: T.font.sans }}>{r.expected.label}</span>
                   <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur2(r.paidAmount)} / {eur2(r.expected.amount)}</span>
                   <span style={{ fontSize:11, fontWeight:600, color:'var(--text-primary)', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:18, padding:'2px 9px', fontFamily: T.font.sans, minWidth:78, textAlign:'center' }}>{m.label}</span>
                 </div>

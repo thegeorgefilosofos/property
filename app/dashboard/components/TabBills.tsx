@@ -99,7 +99,6 @@ export default function TabBills({
   const [openTools,  setOpenTools]  = useState(false);
   const [tool,       setTool]       = useState<ToolId | null>(null);
   const [strip,      setStrip]      = useState<StripData>({ recurringPerMonth: null, overdueCount: 0, tenantName: '', updatedAt: '' });
-  const [realtimeOk, setRealtimeOk] = useState(false);
   // Το `strip` ξεκινά με μηδενικά, οπότε η κεφαλίδα δεν έδειχνε κανένα chip και
   // μετά τα chips εμφανίζονταν μονομιάς και έσπρωχναν τη γραμμή. Δύο σκελετοί
   // κρατούν τη θέση τους όσο τρέχουν τα παράλληλα ερωτήματα.
@@ -135,7 +134,7 @@ export default function TabBills({
     const ch = supabase
       .channel(`tabbills_${propertyId}`)
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadStrip(); })
-      .subscribe(s => { if (mounted) setRealtimeOk(s === 'SUBSCRIBED'); });
+      .subscribe();
     channelRef.current = ch;
     return () => { mounted = false; supabase.removeChannel(ch); channelRef.current = null; };
   }, [propertyId, loadStrip]);
@@ -169,11 +168,11 @@ export default function TabBills({
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <span title={realtimeOk ? (strip.updatedAt ? `Live · ενημερώθηκε ${strip.updatedAt}` : 'Live') : 'Εκτός σύνδεσης'}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: realtimeOk ? 'var(--positive)' : 'var(--text-tertiary)', cursor: 'default', fontFamily: T.font.sans }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: realtimeOk ? 'var(--positive)' : 'var(--border-default)', display: 'inline-block', animation: realtimeOk ? 'pulse 2s infinite' : 'none' }}/>
-            Live
-          </span>
+          {/* Η ΠΡΑΣΙΝΗ ΚΟΥΚΚΙΔΑ «LIVE» ΕΦΥΓΕ. Δεν ήταν πληροφορία του ιδιοκτήτη:
+              ήταν η κατάσταση μιας σύνδεσης websocket, με αγγλική λέξη και με
+              σημασιολογικό πράσινο, μόνιμα στην κορυφή της οθόνης. Ό,τι έχει να
+              πει μια χαμένη σύνδεση το λέει η ίδια η οθόνη όταν τα νούμερα δεν
+              ανανεώνονται — και τότε αρκεί η ανανέωση της σελίδας. */}
           {showSkeleton ? (
             <>
               <Skeleton w={90} h={24} r={T.radius.pill} />

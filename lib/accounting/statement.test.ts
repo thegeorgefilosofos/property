@@ -2,7 +2,7 @@
 import {
   incomeStatement, taxProvision, consolidateIndividual, PRESUMPTIVE_DEDUCTION_RATE,
 } from './statement'
-import { rentalIncomeTax } from '@/lib/billing/greekTax'
+import { rentalIncomeTax, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax'
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 
 let passed = 0, failed = 0
@@ -295,6 +295,25 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   const st = incomeStatement({ regime: 'individual_shortterm', grossIncome: sum.grossRevenue,
                               climateLevy: sum.levyShortfall, municipalTax: sum.municipalTax })
   ok('το ακάλυπτο τέλος φεύγει από το ταμείο', near(st.netCash, sum.net))
+}
+
+// ── ΤΟ ΚΑΘΑΡΟ ΤΟΥ ΧΑΡΤΟΦΥΛΑΚΙΟΥ ΕΧΕΙ ΤΟΝ ΙΔΙΟ ΟΡΙΣΜΟ ΜΕ ΤΟ ΑΝΑ ΑΚΙΝΗΤΟ ──────
+// Το ενοποιημένο έγραφε «φορολογητέο − φόρος», το ανά ακίνητο «μεικτά − φόρος».
+// Η διαφορά είναι ακριβώς η τεκμαρτή έκπτωση 5%, που είναι φορολογική παραδοχή
+// και όχι δαπάνη: κανείς δεν πλήρωσε αυτά τα λεφτά. Κανένα τεστ δεν το κάλυπτε,
+// και το νούμερο θα εμφανιζόταν τη στιγμή που κάποιος θα το έβαζε σε οθόνη.
+{
+  const items = [1, 2, 3].map(i => ({
+    id: `p${i}`,
+    input: { regime: 'individual_longterm' as const, grossIncome: 8000 },
+  }));
+  const con = consolidateIndividual(items, RENTAL_TAX_BRACKETS_2026);
+  ok('το ενοποιημένο καθαρό είναι μεικτά μείον φόρος',
+     Math.abs(con.netProfit - (con.grossIncome - con.incomeTax)) < 0.01);
+  // Και συμφωνεί με τον ορισμό του incomeStatement για το ίδιο σύνολο.
+  const single = incomeStatement({ regime: 'individual_longterm', grossIncome: 24000 });
+  ok('ίδιος ορισμός με το ανά ακίνητο',
+     Math.abs((con.grossIncome - con.incomeTax) - (single.grossIncome - single.incomeTax)) < 0.01);
 }
 
 console.log(`statement.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

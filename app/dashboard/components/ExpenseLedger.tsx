@@ -231,7 +231,11 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           if (error) throw error;
         }
       } else if (e.expenseId) {
-        await supabase.from('expenses').update({ paid: true }).eq('id', e.expenseId);
+        // Το try/catch από πάνω κάνει τη δουλειά του μόνο αν κάτι ΠΕΤΑΞΕΙ, και το
+        // Supabase δεν πετά. Χωρίς αυτή τη γραμμή, η δαπάνη έμενε απλήρωτη και η
+        // οθόνη έλεγε «Μπήκε ως πληρωμένο».
+        const { error } = await supabase.from('expenses').update({ paid: true }).eq('id', e.expenseId);
+        if (error) throw error;
       }
       notify('Μπήκε ως πληρωμένο');
       await load();

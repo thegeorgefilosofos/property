@@ -337,9 +337,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       const { error: uErr } = await supabase.from('user_properties').update(payload).eq('id', savedId);
       err = uErr;
     } else {
-      const res = await supabase.from('user_properties').insert({ user_id: userId, ...payload }).select('id').single();
-      err = res.error;
-      propertyId = res.data?.id ?? null;
+      const { data: created, error: iErr } = await supabase.from('user_properties').insert({ user_id: userId, ...payload }).select('id').single();
+      err = iErr;
+      propertyId = created?.id ?? null;
       // Το κρατάμε ΠΡΙΝ από το δεύτερο βήμα: από εδώ και πέρα κάθε νέα
       // προσπάθεια ενημερώνει αυτό το ακίνητο αντί να φτιάχνει άλλο.
       if (propertyId) setCreatedId(propertyId);

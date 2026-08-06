@@ -1820,7 +1820,7 @@ export default function Dashboard() {
                   η Σύγκριση μόνο με δεύτερο ακίνητο. Καμία υποκαρτέλα. */}
               {navSafe==='roi' && (
                 <>
-                  <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType} legalForm={legalForm}/>
+                  <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType} legalForm={taxForm}/>
                   {/* ═══ ΤΟ «ΣΧΕΔΙΟ» ΗΤΑΝ ΕΔΩ, ΚΑΙ ΔΕΝ ΤΟ ΕΒΛΕΠΕ ΚΑΝΕΙΣ ═══════════
                       Αποδιδόταν μέσα στην Απόδοση, με συνθήκη τις τέσσερις
                       καταστάσεις κενό / προς πώληση / ανακαίνιση / αμφισβητούμενο.

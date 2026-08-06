@@ -20,7 +20,7 @@ import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } fr
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
-import { saved } from '@/components/dbWrite';
+import { saved, savedData } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import LeaseModal from './LeaseModal';
 import LeaseDeclaration from './LeaseDeclaration';
@@ -1039,7 +1039,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
       try{
         const safe=file.name.replace(/[^\w.\-]+/g,'_'); const path=`${userId}/${propertyId}/document/${Date.now()}_${safe}`;
         const{error:upErr}=await supabase.storage.from('property-files').upload(path,file,{upsert:false,contentType:file.type||undefined});
-        if(!upErr){ const{data:ins}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',title:(doc.title||file.name).slice(0,200),doc_date:doc.issue_date||todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id').single(); docId=ins?.id||null; }
+        if(!upErr){ const ins=await savedData<{id?:string}>('Το έγγραφο δεν μπήκε στο Αρχείο',supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',title:(doc.title||file.name).slice(0,200),doc_date:doc.issue_date||todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id').single()); docId=ins?.id||null; }
       }catch{ /* archive optional */ }
       const amount=typeof doc.amount==='number'?doc.amount:0;
       const dateISO=doc.issue_date||doc.due_date||todayISO();
@@ -1521,7 +1521,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
     else { if(!await saved('Η φθορά δεν καταχωρήθηκε', supabase.from('tenant_damages').insert(payload))) return; }
     setBusy(false); setAddOpen(false); setF(blankF()); setEditId(null); onRefresh();
   };
-  const del=async(d:TenantDamage)=>{ if(!(await confirmDialog('Διαγραφή φθοράς;',{tone:'negative'}))) return; await supabase.from('tenant_damages').delete().eq('id',d.id); onRefresh(); };
+  const del=async(d:TenantDamage)=>{ if(!(await confirmDialog('Διαγραφή φθοράς;',{tone:'negative'}))) return; if(await saved('Η φθορά δεν διαγράφηκε',supabase.from('tenant_damages').delete().eq('id',d.id))) onRefresh(); };
 
   // Ομαδοποίηση ανά έτος μίσθωσης (από lease_start· αλλιώς ανά ημερολογιακό έτος).
   const bucketOf=(occurred:string|null):{key:string;label:string;sort:number}=>{
@@ -1692,10 +1692,10 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
     setBusy(true);
     await saved('Το αίτημα δεν κλείστηκε', supabase.from('maintenance_requests').update({ status:'done', resolved_at:new Date().toISOString() }).eq('id',m.id));
     if(Number.isFinite(cost)&&cost>0){
-      await supabase.from('expenses').insert({
+      await saved('Το αίτημα έκλεισε, αλλά το κόστος δεν καταχωρήθηκε στις δαπάνες', supabase.from('expenses').insert({
         property_id:propertyId, user_id:userId, amount:cost, date:todayISO(),
         category:'maintenance', description:[m.title,m.assignee_name].filter(Boolean).join(' · ').slice(0,120),
-      });
+      }));
     }
     setBusy(false); setDoneFor(null); setDoneCost(''); onRefresh();
     notifyOk(Number.isFinite(cost)&&cost>0?'Ολοκληρώθηκε και καταχωρήθηκε στις δαπάνες':'Ολοκληρώθηκε');
@@ -1705,7 +1705,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
     await saved('Η φθορά δεν καταγράφηκε', supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(': ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' }));
     setBusy(false); onRefresh(); notifyOk('Καταγράφηκε στις φθορές');
   };
-  const del=async(m:MaintenanceReq)=>{ if(!(await confirmDialog('Διαγραφή αιτήματος;',{tone:'negative'}))) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
+  const del=async(m:MaintenanceReq)=>{ if(!(await confirmDialog('Διαγραφή αιτήματος;',{tone:'negative'}))) return; if(await saved('Το αίτημα δεν διαγράφηκε',supabase.from('maintenance_requests').delete().eq('id',m.id))) onRefresh(); };
   const gdt=(d:string|null)=>d?new Date(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):ABSENT_DATE;
   const openAssign=(m:MaintenanceReq)=>{ setAssignFor(m.id); setAf({name:m.assignee_name||'',contact:m.assignee_contact||''}); };
   const saveAssign=async(m:MaintenanceReq)=>{
@@ -2239,7 +2239,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     const path=`${userId}/${t.id}/${file.name}`;
     const{error:upErr}=await supabase.storage.from('lease-documents').upload(path,file,{upsert:true});
     if(upErr){setError(upErr.message);setUploading(false);return;}
-    await supabase.from('tenants').update({lease_doc_name:file.name}).eq('id',t.id);
+    // Το αρχείο ανέβηκε ήδη. Αν δεν καταγραφεί το όνομά του, ο ενοικιαστής δεν
+    // έχει συμβόλαιο πουθενά στην οθόνη — και το αρχείο υπάρχει, αόρατο.
+    if(!await saved('Το συμβόλαιο ανέβηκε, αλλά δεν συνδέθηκε με τον ενοικιαστή',supabase.from('tenants').update({lease_doc_name:file.name}).eq('id',t.id))){setUploading(false);return;}
     setUploading(false);notifyOk('Το PDF ανέβηκε');fetch_();
   };
   const openLeaseDoc=async(t:Tenant)=>{

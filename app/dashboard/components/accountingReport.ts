@@ -27,6 +27,17 @@ export interface AccountingReportCtx {
   expectedTotal: number
   collectedTotal: number
   outstanding: number
+  /**
+   * Ο ΕΝΦΙΑ είναι αυτόματη εκτίμηση, όχι ποσό από εκκαθαριστικό.
+   *
+   * Η οθόνη το έλεγε ήδη· το ΧΑΡΤΙ δεν το έλεγε. Ο λογιστής έβλεπε γραμμή
+   * «ΕΝΦΙΑ 438 €» δίπλα σε αριθμό εγγράφου και κωδικό QR επαλήθευσης, χωρίς
+   * κανένα σημάδι ότι το νούμερο το έβγαλε μοντέλο από την αξία και τα
+   * τετραγωνικά — και η εκτίμηση μπορεί να πέσει έξω πάνω από το διπλάσιο,
+   * γιατί η κλίμακα δεικτοδοτείται από την ΑΝΤΙΚΕΙΜΕΝΙΚΗ τιμή ζώνης και εδώ
+   * τροφοδοτείται με την εμπορική αξία ανά τετραγωνικό.
+   */
+  enfiaEstimated?: boolean
   branding?: ReportBranding | null
 }
 
@@ -38,6 +49,11 @@ const esc = (str: string) => String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp
 
 // Κοινό, λιτό disclaimer (ίδιο σε print & επίσημο PDF) — νομικά επαρκές, χωρίς φλυαρία.
 const DISCLAIMER = 'Ενημερωτικό έγγραφο, όχι επίσημη φορολογική δήλωση. Τα ποσά είναι ενδεικτικά· επιβεβαίωσέ τα με τον λογιστή σου ή στο myAADE.'
+
+/** Ό,τι πρέπει να διαβάσει ο λογιστής πριν πιστέψει τα νούμερα. */
+const disclaimerOf = (c: AccountingReportCtx): string => c.enfiaEstimated
+  ? `${DISCLAIMER} Ο ΕΝΦΙΑ είναι αυτόματη εκτίμηση από την αξία και τα τετραγωνικά, όχι ποσό από εκκαθαριστικό.`
+  : DISCLAIMER
 
 export function printAccountingReport(c: AccountingReportCtx): void {
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -65,7 +81,7 @@ export function printAccountingReport(c: AccountingReportCtx): void {
   const brandMark = brandLogoImg(c.branding, 34) || `<div class="mark">P</div>`
   const contact = brandContactLine(c.branding)
 
-  const disclaimer = DISCLAIMER
+  const disclaimer = disclaimerOf(c)
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <title>Λογιστική αναφορά · ${esc(c.propName)} ${esc(String(c.year))}</title>
@@ -208,7 +224,7 @@ export async function downloadOfficialAccountingReport(c: AccountingReportCtx, o
     branding: c.branding, docType: 'Λογιστική αναφορά', title: c.propName,
     subtitle: [c.regimeLabel, `Χρήση ${c.year}`, c.address].filter(Boolean).join(' · '),
     meta: { id: issued.id, issuedAt: issued.issuedAt, verifyUrl: issued.verifyUrl, note: `Χρήση ${c.year}` },
-    sections, disclaimer: DISCLAIMER,
+    sections, disclaimer: disclaimerOf(c),
   }
   await generateReportPdf(model, `Λογιστική_αναφορά_${c.propName}_${c.year}`)
 }

@@ -10,6 +10,8 @@ import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
 import { readStatus, type StatusRow } from '@/lib/property/status'
+import { businessFormOf } from '@/lib/accounting/taxProfile'
+import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
 import { EmptyState, Skeleton, SkeletonKPIs, fe, fn, T } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
@@ -54,7 +56,7 @@ const ST_ALIAS: Record<string, string> = {
 const stRefFor = (regionKey: string): ShortTermStat =>
   SHORT_TERM.find(s => s.key === (ST_ALIAS[regionKey] || regionKey)) || SHORT_TERM[0];
 
-interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; legalForm?: 'individual' | 'company'; }
+interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; legalForm?: DossierLegalForm; }
 
 const fp = (n: number) => `${(isFinite(n) ? n : 0).toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 // Ρεαλιστικό εύρος συνολικής ετήσιας απόδοσης για πολυετείς προβολές/σύγκριση: προστατεύει
@@ -421,7 +423,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // προφίλ, και οι τρεις οθόνες να του δώσουν τρεις διαφορετικούς φόρους.
   //
   // Αν κάτι είναι λάθος, διορθώνεται εκεί που δηλώθηκε.
-  const entity: 'sole' | 'company' = legalForm === 'company' ? 'company' : 'sole';
+  // Η αντιστοίχιση ζει σε ένα σημείο, με τεστ. Εδώ γραφόταν ως έκφραση, ΚΑΙ
+  // έπαιρνε τη δυαδική περίληψη της νομικής μορφής, όπου η ατομική επιχείρηση
+  // είχε ήδη γίνει «νομικό πρόσωπο»: σε κέρδος 100.000 € ο φόρος έβγαινε 25.900
+  // αντί 34.300, και στα μικρά εισοδήματα υπερδιπλάσιος.
+  const entity = businessFormOf(legalForm);
   const [term, setTerm] = useState<'long' | 'short'>('long');
 
   // Στοιχεία (prefill από τα δεδομένα του ακινήτου, με δυνατότητα διόρθωσης).

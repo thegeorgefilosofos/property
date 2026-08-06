@@ -33,14 +33,32 @@ export interface StrWaterfall {
   gross: number; platformFee: number; climateFee: number; cleaning: number
   management: number; taxReserve: number; net: number; netPerNight: number; marginPct: number
 }
+/**
+ * Το μέρος του ακαθάριστου που φορολογείται: τεκμαρτή έκπτωση 5% (άρθρο 39 §4).
+ * Ίδια παραδοχή με το lib/tax/shortTermTax.ts, ώστε οι δύο οθόνες να μη
+ * διαφωνούν — εκεί ζει και η εξαίρεση για είσπραξη με μετρητά.
+ */
+const TAXABLE_SHARE_OF_GROSS = 0.95
+
 export function strWaterfall(i: StrWaterfallInput): StrWaterfall {
   const gross = Math.max(0, i.gross || 0)
   const platformFee = r0(gross * (i.platformFeePct || 0) / 100)
   const climateFee = r0((i.climateFeePerNight || 0) * (i.nights || 0))
   const management = r0(gross * (i.managementPct || 0) / 100)
   const cleaning = r0(Math.max(0, i.cleaningFee || 0))
-  // Φορολογητέα βάση: μεικτό μείον προμήθειες/αμοιβές (απλοποίηση για κράτηση).
-  const taxableBase = Math.max(0, gross - platformFee - management)
+  // ── Η ΠΡΟΜΗΘΕΙΑ ΤΗΣ ΠΛΑΤΦΟΡΜΑΣ ΔΕΝ ΜΕΙΩΝΕΙ ΤΟ ΔΗΛΩΤΕΟ ΕΙΣΟΔΗΜΑ ───────────
+  // Εδώ γραφόταν `gross − platformFee − management` και μετά επίπεδος
+  // συντελεστής. Η μηχανή της βραχυχρόνιας (lib/tax/shortTermTax.ts) φορολογεί
+  // το ΑΚΑΘΑΡΙΣΤΟ με την τεκμαρτή έκπτωση 5%, και το γράφει ρητά στην κορυφή
+  // της: «φόρος στα ακαθάριστα, δεν αφαιρούνται πρώτα τα έξοδα». Η προμήθεια
+  // είναι δαπάνη, όχι μείωση εσόδου.
+  //
+  // Σε ακαθάριστα 20.000 € με προμήθεια 15%, η παλιά βάση έβγαζε κράτηση φόρου
+  // 2.550 € αντί για 3.550 €: ο ιδιοκτήτης έβαζε στην άκρη χίλια ευρώ λιγότερα
+  // από όσα θα χρειαστεί, και το «καθαρό» του waterfall ήταν ισόποσα αισιόδοξο.
+  //
+  // Το τεστ κατοχύρωνε τον λάθος τύπο· άλλαξε μαζί του.
+  const taxableBase = Math.max(0, gross * TAXABLE_SHARE_OF_GROSS)
   const taxReserve = r0(taxableBase * (i.incomeTaxPct || 0) / 100)
   const net = r0(gross - platformFee - climateFee - cleaning - management - taxReserve)
   const netPerNight = (i.nights || 0) > 0 ? r0(net / i.nights) : net

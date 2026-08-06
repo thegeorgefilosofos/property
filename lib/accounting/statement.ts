@@ -303,7 +303,12 @@ export function consolidateIndividual(
     taxShare: totalTaxable > 0 ? cents(totalIncomeTax * (x.statement.taxableIncome / totalTaxable)) : 0,
   }))
 
-  const netProfit = cents(totalTaxable - totalIncomeTax)
+  // ΙΔΙΟΣ ΟΡΙΣΜΟΣ ΜΕ ΤΟ ΑΝΑ ΑΚΙΝΗΤΟ. Εδώ γραφόταν `φορολογητέο − φόρος`, ενώ το
+  // `incomeStatement` για φυσικό πρόσωπο ορίζει ρητά `μεικτά − φόρος`, γιατί η
+  // τεκμαρτή έκπτωση 5% είναι φορολογική παραδοχή, ΟΧΙ πραγματική δαπάνη: δεν
+  // βγήκαν λεφτά από την τσέπη κανενός. Σε τρία ακίνητα των 8.000 €, οι δύο
+  // τύποι διέφεραν κατά 1.200 € — ακριβώς το πέντε τοις εκατό.
+  const netProfit = cents(totalGross - totalIncomeTax)
   const netCash = cents(
     statements.reduce((s, x) => s + (x.statement.netCash + x.statement.incomeTax), 0) - totalIncomeTax,
   )

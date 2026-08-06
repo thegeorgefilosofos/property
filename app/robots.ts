@@ -8,7 +8,11 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard', '/portal/', '/checkin/', '/reset-password'],
+      // ΕΛΕΙΠΑΝ ΔΥΟ. Ο σύνδεσμος του λογιστή εκθέτει ΟΛΟ το χαρτοφυλάκιο —
+      // όνομα, ΑΤΑΚ, διεύθυνση, ενοίκια, δαπάνες, διαμονές — και δεν ήταν στη
+      // λίστα. Ούτε η κατάργηση συνδρομής, που φέρει διεύθυνση ηλεκτρονικού
+      // ταχυδρομείου στη διεύθυνση της σελίδας.
+      disallow: ['/dashboard', '/portal/', '/checkin/', '/accountant/', '/unsubscribe/', '/verify/', '/reset-password'],
     },
     sitemap: 'https://propertyos.gr/sitemap.xml',
   }
