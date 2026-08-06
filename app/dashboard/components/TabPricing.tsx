@@ -235,15 +235,15 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   const occNights = useMemo(() => seasonsShown.reduce((a, s) => a + occ.nights[s], 0), [seasonsShown, occ]);
 
   const kpis = useMemo(() => [
-    { label: 'Μέση τιμή / νύχτα', value: base > 0 ? fe(sum.avg, 0) : fe(0), sub: 'διαθέσιμες ημέρες' },
-    { label: 'Κατώτατη πρόταση', value: base > 0 ? fe(sum.min, 0) : fe(0), sub: 'χαμηλότερη ημέρα' },
-    { label: 'Αιχμή', value: base > 0 ? fe(sum.max, 0) : fe(0), sub: 'υψηλότερη πρόταση' },
+    { label: 'Μέση τιμή ανά νύχτα', value: base > 0 ? fe(sum.avg) : fe(0), sub: 'Διαθέσιμες ημέρες' },
+    { label: 'Κατώτατη πρόταση', value: base > 0 ? fe(sum.min) : fe(0), sub: 'Χαμηλότερη ημέρα' },
+    { label: 'Υψηλότερη πρόταση', value: base > 0 ? fe(sum.max) : fe(0), sub: 'Ακριβότερη ημέρα' },
     {
       label: 'Πληρότητα από το ιστορικό',
       value: measuredOcc != null ? measuredOcc + '%' : fp(0),
       sub: measuredOcc != null
         ? `${occNights} πραγματικές νύχτες`
-        : `χρειάζονται ${MIN_NIGHTS_FOR_OCCUPANCY}+ νύχτες ανά εποχή`,
+        : `Χρειάζονται τουλάχιστον ${MIN_NIGHTS_FOR_OCCUPANCY} νύχτες ανά εποχή`,
     },
   ], [sum, base, measuredOcc, occNights]);
 
@@ -344,15 +344,20 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     const b = guestPriceBreakdown(date, price, { sqm: propertySqm ?? null, isHouse, platformFeeRate: feeRate });
     return (
       <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-        Τιμή στον επισκέπτη <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(b.guestPrice, 0)}</strong>
-        {' · '}τέλος ανθεκτικότητας <strong style={{ fontFamily: T.font.num }}>{fe(b.climateLevy, 0)}</strong>{' '}
-        <span style={{ color: 'var(--text-tertiary)' }}>({b.highSeason ? 'υψηλή περίοδος' : 'χαμηλή περίοδος'} — <strong>δεν είναι έσοδό σου</strong>)</span>
-        {' · '}
-        {b.platformFee != null
-          ? <>προμήθεια ~<strong style={{ fontFamily: T.font.num }}>{fe(b.platformFee, 0)}</strong> <span style={{ color: 'var(--text-tertiary)' }}>({Math.round((b.platformFeeRate || 0) * 100)}% από τις δικές σου καταγεγραμμένες διαμονές — δαπάνη, <strong>όχι</strong> μείωση εσόδου)</span></>
-          : <span style={{ color: 'var(--text-tertiary)' }}>προμήθεια: δεν την ξέρουμε — κατέγραψέ τη σε μια διαμονή και θα εμφανιστεί εδώ</span>}
-        {' → '}δηλωτέο ακαθάριστο <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(b.declarableGross, 0)}</strong>
-        {b.payout != null && <> · μένει σε εσένα <strong style={{ fontFamily: T.font.num }}>{fe(b.payout, 0)}</strong></>}
+        {/* Ήταν μία γραμμή με τρεις παρενθέσεις, δύο παύλες, ένα βέλος και έξι
+            έντονα — τέσσερις σειρές κειμένου για να πει μια αφαίρεση. Η αφαίρεση
+            γράφεται όπως γράφεται μια αφαίρεση: στη σειρά, με τα ποσά στοιχισμένα. */}
+        Τιμή στον επισκέπτη <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(b.guestPrice)}</strong>
+        {' · '}τέλος ανθεκτικότητας <strong style={{ fontFamily: T.font.num }}>{fe(b.climateLevy)}</strong>
+        {' · '}δηλωτέο ακαθάριστο <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(b.declarableGross)}</strong>
+        {b.platformFee != null && <>{' · '}προμήθεια <strong style={{ fontFamily: T.font.num }}>{fe(b.platformFee)}</strong></>}
+        {b.payout != null && <>{' · '}μένει σε εσένα <strong style={{ fontFamily: T.font.num }}>{fe(b.payout)}</strong></>}
+        <div style={{ marginTop: 5, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+          Το τέλος ανθεκτικότητας ({b.highSeason ? 'υψηλή' : 'χαμηλή'} περίοδος) εισπράττεται για το κράτος και δεν είναι έσοδό σου.{' '}
+          {b.platformFee != null
+            ? `Η προμήθεια (${Math.round((b.platformFeeRate || 0) * 100)}%, από τις δικές σου καταγεγραμμένες διαμονές) είναι δαπάνη και δεν μειώνει το δηλωτέο έσοδο.`
+            : 'Την προμήθεια δεν την ξέρουμε. Κατέγραψέ τη σε μια διαμονή και θα εμφανιστεί εδώ.'}
+        </div>
       </div>
     );
   };
@@ -382,7 +387,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         <NumberInput label="Βασική τιμή ανά νύχτα" value={base ? String(base) : ''} onChange={v => mark(setBase)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Κατώτατο όριο" value={min ? String(min) : ''} onChange={v => mark(setMin)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Ανώτατο όριο" value={max ? String(max) : ''} onChange={v => mark(setMax)(Number(v) || 0)} suffix="€" />
-        <NumberInput label="Premium Σαββατοκύριακου" value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
+        <NumberInput label="Προσαύξηση σαββατοκύριακου" value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
         <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix="νύχτες" />
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Έτος</div>
@@ -565,7 +570,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
           {/* Ημερολόγιο-heatmap */}
           <div style={{ marginTop: 24 }}>
-            <SecHdr label="Ημερολόγιο τιμών" sub="Πιο σκούρο μπλε = υψηλότερη προτεινόμενη τιμή. Πάτησε μια ημέρα για ανάλυση."
+            <SecHdr label="Ημερολόγιο τιμών" sub="Όσο πιο σκούρη η ημέρα, τόσο υψηλότερη η προτεινόμενη τιμή. Πάτησε μια ημέρα για ανάλυση."
               right={pastCount > 0 ? <button onClick={() => setShowPast(v => !v)} style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 100, padding: '6px 14px', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, color: 'var(--text-secondary)', cursor: 'pointer' }}>{showPast ? 'Κρύψε προηγούμενους μήνες' : `Δείξε προηγούμενους μήνες (${pastCount})`}</button> : undefined} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
               {visibleMonths.map(([key, days]) => {

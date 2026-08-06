@@ -47,6 +47,9 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   // Το ακριβές μήνυμα του server (π.χ. υπέρβαση ορίου AI), ώστε να μη λέμε
   // «δοκίμασε ξανά» εκεί που το ξαναπάτημα κοστίζει άλλη μία ερώτηση.
   const [serverMessage, setServerMessage] = useState<string | null>(null);
+  // Η κάρτα άνοιγε και δεν έκλεινε ποτέ. Ό,τι μπορεί να εμφανιστεί μόνο του
+  // πρέπει να μπορεί και να φύγει, χωρίς να χαθεί ο τρόπος να ξανάρθει.
+  const [collapsed, setCollapsed] = useState(false);
   const [failed, setFailed] = useState(false);
 
   async function generateSuggestions() {
@@ -78,7 +81,14 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
       // έλεγχο, οπότε κάθε ξαναπάτημα κατανάλωνε άλλη μία ερώτηση από το πακέτο
       // του χρήστη. Το λάθος μήνυμα άδειαζε ενεργά το υπόλοιπό του.
       if (!response.ok || data.error) {
-        setServerMessage(typeof data.error === 'string' ? data.error : null);
+        // ΜΟΝΟ ΤΑ ΜΗΝΥΜΑΤΑ ΠΟΥ ΓΡΑΦΤΗΚΑΝ ΓΙΑ ΤΟΝ ΧΡΗΣΤΗ ΦΤΑΝΟΥΝ ΣΕ ΑΥΤΟΝ.
+        // Ο διακομιστής επιστρέφει και εσωτερικούς κωδικούς («AI error»,
+        // «unauthorized», «internal error»). Περνούσαν αυτούσιοι στην οθόνη, και
+        // ο ιδιοκτήτης διάβαζε «AI error» κάτω από το σήμα της Νόα: αγγλικά,
+        // ακατανόητα, και χωρίς να του λένε τι να κάνει. Τα ελληνικά μηνύματα
+        // (όριο ερωτήσεων, υπηρεσία εκτός) είναι γραμμένα γι' αυτόν και περνούν.
+        const msg = typeof data.error === 'string' ? data.error : '';
+        setServerMessage(/[Α-Ωα-ωΆ-Ώά-ώ]/.test(msg) ? msg : null);
         throw new Error(data.error || `HTTP ${response.status}`);
       }
       setServerMessage(null);
@@ -142,14 +152,14 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   // Χωρίς προτάσεις μένει μία γραμμή, στο βάρος του κειμένου γύρω της. Η κάρτα
   // εμφανίζεται μόνο όταν υπάρχει περιεχόμενο ή σφάλμα να αναφερθεί.
   const hasSomethingToSay = visibleSuggestions.length > 0 || loadingSugg || failed;
-  if (!hasSomethingToSay) {
+  if (!hasSomethingToSay || collapsed) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <span style={{ ...TT.caption }}>{suggestionsSub()}</span>
-        <button onClick={generateSuggestions} style={{
+        <button onClick={() => { setCollapsed(false); generateSuggestions(); }} style={{
           background: 'none', border: 'none', padding: 0, cursor: 'pointer',
           color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
-        }}>Δες τι έρχεται</button>
+        }}>{collapsed && visibleSuggestions.length > 0 ? `Δες τις προτάσεις (${visibleSuggestions.length})` : 'Δες τι έρχεται'}</button>
       </div>
     );
   }
@@ -166,6 +176,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
             <p style={{ ...TT.caption, marginTop: 2 }}>{suggestionsSub()}</p>
           </div>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         <button onClick={generateSuggestions} disabled={loadingSugg} style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           height: T.h.md, padding: '0 16px',
@@ -181,6 +192,15 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = loadingSugg ? 'var(--border-subtle)' : 'var(--border-default)'; }}>
           {loadingSugg ? 'Διαβάζει το ακίνητο…' : 'Δες τι έρχεται'}
         </button>
+        {/* Η κάρτα κλείνει. Οι προτάσεις δεν χάνονται: η γραμμή που μένει τις
+            ξαναφέρνει με το πλήθος τους, ώστε το κλείσιμο να μη μοιάζει διαγραφή. */}
+        <button onClick={() => setCollapsed(true)} aria-label="Σύμπτυξη προτάσεων" title="Σύμπτυξη"
+          style={{ width: T.h.md, height: T.h.md, borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}>
+          <X size={14} aria-hidden />
+        </button>
+        </div>
       </div>
 
       {/* Μία στήλη, χωρισμένη με γραμμές αντί για κάρτες: πέντε πλαίσια μέσα σε

@@ -1162,7 +1162,13 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
 
 
 // Main Component
-export default function TabCalendar({ propertyId, userId }: { propertyId:string; userId:string }) {
+export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenTasks }: {
+  propertyId:string; userId:string;
+  /** Πόσες εκκρεμότητες είναι ανοιχτές. Δείχνεται δίπλα στον σύνδεσμο, όχι ως σήμα. */
+  openTasks?: number;
+  /** Άνοιγμα των Εκκρεμοτήτων. Έφυγαν από την πλαϊνή μπάρα και ανοίγουν από εδώ. */
+  onOpenTasks?: () => void;
+}) {
   const supabase=createClient()
   const [events,setEvents]=useState<CalEvent[]>([])
   const [loading,setLoading]=useState(true)
@@ -1523,6 +1529,21 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+      {/* ═══ ΟΙ ΕΚΚΡΕΜΟΤΗΤΕΣ ΑΝΟΙΓΟΥΝ ΑΠΟ ΕΔΩ ══════════════════════════════════
+          Ήταν δική τους γραμμή στην πλαϊνή μπάρα, στα «Εργαλεία», δίπλα στην
+          απογραφή επίπλων. Είναι όμως προθεσμίες, και τις προθεσμίες τις ψάχνει
+          κανείς στο ημερολόγιο. Μία λέξη με τον αριθμό των ανοιχτών: η μπάρα
+          γλιτώνει μια γραμμή και η καρτέλα βρίσκεται εκεί που τη σκέφτεσαι. */}
+      {onOpenTasks && (
+        <div style={{ display:'flex', justifyContent:'flex-end' }}>
+          <button onClick={onOpenTasks}
+            style={{ background:'none', border:'none', padding:0, cursor:'pointer', fontFamily: T.font.sans, fontSize:12, fontWeight:600, color:'var(--accent)', display:'inline-flex', alignItems:'center', gap:6 }}>
+            Εκκρεμότητες
+            {openTasks > 0 && <span style={{ fontFamily: T.font.mono, fontVariantNumeric:'tabular-nums', color:'var(--text-tertiary)', fontWeight:500 }}>{openTasks}</span>}
+          </button>
+        </div>
+      )}
 
       {/* Εκπρόθεσμα — ΜΙΑ γραμμή, ίδια γλώσσα με το μπάνερ των λήξεων.
           Η γραμμή KPI έφυγε: επαναλάμβανε τα ίδια τρία νούμερα μέσα σε 40px (το

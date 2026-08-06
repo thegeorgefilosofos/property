@@ -185,7 +185,11 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   // περισσότερο από κάθε άλλο. Το πελατολόγιο μένει επαγγελματικό εργαλείο· η
   // βραχυχρόνια μίσθωση δεν είναι, και στέκει μόνη της.
   { label: 'Μίσθωση',             ids: ['tenant','pricing','clients'] },
-  { label: 'Εργαλεία',            ids: ['inventory','documents','checklist'] },
+  // ΟΙ ΕΚΚΡΕΜΟΤΗΤΕΣ ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Είναι προθεσμίες, και οι προθεσμίες ζουν
+  // στο Ημερολόγιο — εκεί τις ψάχνει ο ιδιοκτήτης, όχι στα «Εργαλεία» δίπλα στην
+  // απογραφή επίπλων. Η πλαϊνή μπάρα γλιτώνει μια γραμμή, η καρτέλα δεν χάθηκε:
+  // ανοίγει από το ίδιο το Ημερολόγιο, με τον αριθμό των ανοιχτών δίπλα της.
+  { label: 'Εργαλεία',            ids: ['inventory','documents'] },
   // Η Απόδοση απαντά στο «αξίζει;» όταν το ακίνητο αποδίδει. Η Αξιοποίηση
   // απαντά στο «τι να το κάνω;» όταν δεν αποδίδει. Ίδια θέση, γιατί είναι η ίδια
   // στιγμή στο μυαλό του ιδιοκτήτη — και ποτέ μαζί, γιατί οι καταστάσεις τους
@@ -1729,7 +1733,7 @@ export default function Dashboard() {
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα του χαρτοφυλακίου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} plan={effPlan} onScan={()=>setQuickAddOpen(true)}/>}
-              {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
+              {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
                   Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πλάνο
                   Επαγγελματία. Ο ιδιώτης με ακίνητο σε Airbnb δεν έφτανε ΠΟΤΕ
