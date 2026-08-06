@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
+import { readStatus, type StatusRow } from '@/lib/property/status'
 import { EmptyState, Skeleton, SkeletonKPIs, fe, fn, T } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
@@ -53,7 +54,7 @@ const ST_ALIAS: Record<string, string> = {
 const stRefFor = (regionKey: string): ShortTermStat =>
   SHORT_TERM.find(s => s.key === (ST_ALIAS[regionKey] || regionKey)) || SHORT_TERM[0];
 
-interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; }
+interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; legalForm?: 'individual' | 'company'; }
 
 const fp = (n: number) => `${(isFinite(n) ? n : 0).toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 // Ρεαλιστικό εύρος συνολικής ετήσιας απόδοσης για πολυετείς προβολές/σύγκριση: προστατεύει
@@ -393,7 +394,7 @@ function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange
 const DEFAULT_LOAN_YEARS = '25';
 const DEFAULT_SELL_COSTS_PCT = '3';
 
-export default function TabRentROI({ propertyId, userId, propertyValue, profileType = 'individual' }: Props) {
+export default function TabRentROI({ propertyId, userId, propertyValue, profileType = 'individual', legalForm = 'individual' }: Props) {
   const supabase = createClient();
   const branding = useReportBranding(userId);
   const [loading, setLoading] = useState(true);
@@ -411,8 +412,16 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [inputsPinned, setInputsPinned] = useState<boolean | null>(null);
   const pro = profileType === 'professional';
 
-  // Καθεστώς: επαγγελματίας → φυσικό/νομικό· μίσθωση → μακροχρόνια/βραχυχρόνια.
-  const [entity, setEntity] = useState<'sole' | 'company'>('sole');
+  // ── ΔΥΟ ΔΙΑΚΟΠΤΕΣ ΠΟΥ ΞΑΝΑΡΩΤΟΥΣΑΝ Ο,ΤΙ Η ΕΦΑΡΜΟΓΗ ΗΔΗ ΞΕΡΕΙ ─────────────
+  // Η νομική μορφή δηλώνεται ΜΙΑ φορά, στην εγγραφή, και ζει στο
+  // `billing_profiles.legal_form`. Η μίσθωση είναι η κατάσταση του ακινήτου και
+  // αλλάζει από το μενού της μπάρας. Εδώ υπήρχαν τοπικά αντίγραφα και των δύο,
+  // με δικά τους κουμπιά — και η Λογιστική είχε ΤΡΙΤΟ ζευγάρι. Ο χρήστης
+  // μπορούσε να δηλώσει «Νομικό πρόσωπο» εδώ, «Ατομική» δίπλα και «Φυσικό» στο
+  // προφίλ, και οι τρεις οθόνες να του δώσουν τρεις διαφορετικούς φόρους.
+  //
+  // Αν κάτι είναι λάθος, διορθώνεται εκεί που δηλώθηκε.
+  const entity: 'sole' | 'company' = legalForm === 'company' ? 'company' : 'sole';
   const [term, setTerm] = useState<'long' | 'short'>('long');
 
   // Στοιχεία (prefill από τα δεδομένα του ακινήτου, με δυνατότητα διόρθωσης).
@@ -496,7 +505,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         setOtherRents(prRows.filter(x => x.id !== propertyId).map(x => {
           const cfg = rcMap.get(x.id);
           const monthly = Number(cfg?.actual_rent) || Number(cfg?.target_rent) || Number(x.target_rent) || 0;
-          return { id: x.id, annualRent: monthly * 12, shortTerm: x.rental_mode === 'short_term' };
+          return { id: x.id, annualRent: monthly * 12, shortTerm: readStatus(x as StatusRow) === 'rent_short' };
         }));
         // Το `amount`/`rate` δεν είναι στήλες: υπολογίζονται από το loan_amount
         // και το rate_type/fixed_rate/euribor/spread (lib/loans/shape.ts).
@@ -509,7 +518,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         setPSqm(p.sqm && p.sqm > 0 ? p.sqm : null);
         setPType(p.prop_type || null);
         setPName(p.name || '');
-        if (p.rental_mode === 'short_term') setTerm('short');
+        // ΩΜΟ `rental_mode` ΕΧΑΝΕ ΤΑ ΠΑΛΙΑ ΑΚΙΝΗΤΑ. Όσα σημάνθηκαν πριν από τη
+        // μετάβαση κρατούν `status_detail: 'seasonal'`, που σημαίνει ακριβώς το
+        // ίδιο. Το readStatus είναι η μία ανάγνωση που ξέρει και τα δύο.
+        setTerm(readStatus(p as StatusRow) === 'rent_short' ? 'short' : 'long');
         const savedR = localStorage.getItem(K('region'));
         if (savedR) setRegion(savedR === 'mykonos_santorini' ? 'mykonos' : savedR); // συμβατότητα με παλαιό κλειδί
         // Δεδομένα κοινότητας για τον ΤΚ του ακινήτου (ανώνυμα· μόνο με ≥5 ακίνητα).
@@ -978,8 +990,6 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: SANS }}>{regimeLabel} · πραγματική απόδοση του ακινήτου και σύγκριση με την αγορά.</p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {pro && <Seg value={entity} onChange={setEntity} options={[['sole', 'Φυσικό πρόσωπο'], ['company', 'Νομικό πρόσωπο']]} />}
-          <Seg value={term} onChange={setTerm} options={[['long', 'Μακροχρόνια'], ['short', 'Βραχυχρόνια']]} />
           {!empty && (<>
             <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ArrowUpRight size={14} /> Αναφορά PDF

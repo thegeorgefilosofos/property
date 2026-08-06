@@ -43,6 +43,9 @@ export const WHO_LABEL: Record<Who, string> = {
 
 export type LegalForm = 'individual' | 'sole_trader' | 'partnership' | 'company';
 
+/** Οι τέσσερις μορφές ως τιμές, για επικύρωση ό,τι διαβάζεται από τη βάση. */
+export const LEGAL_FORMS: readonly LegalForm[] = ['individual', 'sole_trader', 'partnership', 'company'];
+
 export const LEGAL_FORM_LABEL: Record<LegalForm, string> = {
   individual: 'Φυσικό πρόσωπο',
   sole_trader: 'Ατομική επιχείρηση',

@@ -7,7 +7,7 @@ import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
 import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
 import { tabDecision, canCompare, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
-import { HAS_BUSINESS } from '@/lib/accounting/dossier';
+import { HAS_BUSINESS, LEGAL_FORMS, type LegalForm as DossierLegalForm } from '@/lib/accounting/dossier';
 import AmaStrip from './components/AmaStrip';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
@@ -1103,6 +1103,11 @@ export default function Dashboard() {
   // Αν λείπει ή είναι άγνωστη η τιμή, μένει το ασφαλές 'individual': κρύβει τα
   // εταιρικά αντί να τα εφευρίσκει σε κάποιον που δεν έχει επιχείρηση.
   const [legalForm, setLegalForm] = useState<LegalForm>('individual');
+  // Η ΑΡΧΙΚΗ ΝΟΜΙΚΗ ΜΟΡΦΗ, ΟΧΙ Η ΔΥΑΔΙΚΗ ΤΗΣ ΠΕΡΙΛΗΨΗ. Το `legalForm` παραπάνω
+  // συμπτύσσει τέσσερις μορφές σε δύο, γιατί αυτό χρειάζεται η ορατότητα
+  // καρτελών. Η Λογιστική όμως θέλει τη διάκριση ατομική / νομικό πρόσωπο, και
+  // επειδή δεν την έπαιρνε, τη ρωτούσε ξανά με δικό της διακόπτη.
+  const [taxForm, setTaxForm] = useState<DossierLegalForm>('individual');
   const [isPartner, setIsPartner] = useState(false);      // ιδιότητα Συνεργάτη (referral_partners)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
   const [kbdHint, setKbdHint] = useState('Ctrl K');       // ένδειξη συντόμευσης ανά πλατφόρμα (Mac → ⌘K)
@@ -1245,7 +1250,9 @@ export default function Dashboard() {
       // Ιδιότητα Συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan, profile_type, comp_plan, comp_until, legal_form').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); setLegalForm(HAS_BUSINESS.has((data as { legal_form?: string|null } | null)?.legal_form ?? '') ? 'company' : 'individual'); });
+      supabase.from('billing_profiles').select('plan, profile_type, comp_plan, comp_until, legal_form').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); const raw = (data as { legal_form?: string|null } | null)?.legal_form ?? '';
+        setLegalForm(HAS_BUSINESS.has(raw) ? 'company' : 'individual');
+        setTaxForm(LEGAL_FORMS.includes(raw as DossierLegalForm) ? raw as DossierLegalForm : 'individual'); });
       // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,
       // idempotent). Εφαρμόζεται για την επόμενη φόρτωση· δεν είναι gameable από τον client.
       supabase.rpc('sync_comp_from_referrals').then(() => {});
@@ -1813,7 +1820,7 @@ export default function Dashboard() {
                   η Σύγκριση μόνο με δεύτερο ακίνητο. Καμία υποκαρτέλα. */}
               {navSafe==='roi' && (
                 <>
-                  <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>
+                  <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType} legalForm={legalForm}/>
                   {/* ═══ ΤΟ «ΣΧΕΔΙΟ» ΗΤΑΝ ΕΔΩ, ΚΑΙ ΔΕΝ ΤΟ ΕΒΛΕΠΕ ΚΑΝΕΙΣ ═══════════
                       Αποδιδόταν μέσα στην Απόδοση, με συνθήκη τις τέσσερις
                       καταστάσεις κενό / προς πώληση / ανακαίνιση / αμφισβητούμενο.
@@ -1842,7 +1849,7 @@ export default function Dashboard() {
                 </>
               )}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
-              {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType} onNavigate={(t)=>setNav(t)}/>}
+              {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} onNavigate={(t)=>setNav(t)}/>}
               {navSafe==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {/* Ο ΕΛΕΓΧΟΣ ΤΟΥ ΑΜΑ ΕΙΝΑΙ ΕΞΩ ΑΠΟ ΤΟ FeatureLock, ΣΚΟΠΙΜΑ.

@@ -3,11 +3,12 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { T, Skeleton, SkeletonKPIs, fe } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
-import { ChevronLeft, ChevronRight, User, Briefcase, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
 import { REGULATORY_UPDATES_2026, type RegulatoryUpdate, type UpdateAudience } from '@/lib/accounting/updates2026'
 import { transferCosts } from '@/lib/accounting/transfer'
 import { InfoHint } from './InfoHint'
+import { HAS_BUSINESS, type LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
 import type { ClientStaysRow, ExpensesRow, InventoryItemsRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables'
 import type { LoanView } from '@/lib/loans/shape'
 import type { TaxStay } from '@/lib/tax/shortTermTax'
@@ -91,7 +92,7 @@ function Check({ checked, onChange, label, hint, align='center' }:{ checked:bool
   )
 }
 
-export default function TabAccounting({ propertyId, userId, profileType='individual', onNavigate }: { propertyId:string; userId:string; profileType?:'individual'|'professional'; onNavigate?:(tab:string)=>void }) {
+export default function TabAccounting({ propertyId, userId, profileType='individual', legalForm='individual', onNavigate }: { propertyId:string; userId:string; profileType?:'individual'|'professional'; legalForm?:DossierLegalForm; onNavigate?:(tab:string)=>void }) {
   const supabase = createClient()
   const branding = useReportBranding(userId)
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false)
@@ -105,8 +106,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Η καρτέλα ακολουθεί το προφίλ (Ρυθμίσεις): ο ιδιώτης βλέπει απλή εικόνα, ο
   // επαγγελματίας τη διάκριση Φυσικό πρόσωπο / Επιχείρηση (ΕΛΠ). Χωρίς περιττό toggle.
   const mode:'individual'|'professional' = profileType
-  const [elp,setElp] = useState<'personal'|'business'>('personal')
-  const [elpForm,setElpForm] = useState<'sole'|'company'>('sole')
+  // ── ΔΥΟ ΔΙΑΚΟΠΤΕΣ ΠΟΥ ΞΑΝΑΡΩΤΟΥΣΑΝ ΤΗ ΝΟΜΙΚΗ ΜΟΡΦΗ ──────────────────────
+  // Δηλώνεται ΜΙΑ φορά, στην υποδοχή, και ζει στο `billing_profiles.legal_form`.
+  // Εδώ υπήρχαν δύο τοπικά αντίγραφά της, με δικά τους κουμπιά, και η καρτέλα
+  // Αποδόσεις είχε τρίτο. Ο χρήστης μπορούσε να δηλώσει «Νομικό πρόσωπο» εδώ,
+  // «Ατομική» δίπλα και «Φυσικό» στο προφίλ — τρεις οθόνες, τρεις φόροι.
+  //
+  // Το `legal_form` ξέρει ήδη και τα δύο: αν υπάρχει επιχείρηση, και αν είναι
+  // ατομική ή νομικό πρόσωπο. Αν κάτι είναι λάθος, διορθώνεται εκεί που δηλώθηκε.
+  const elp: 'personal'|'business' = HAS_BUSINESS.has(legalForm) ? 'business' : 'personal'
+  const elpForm: 'sole'|'company' = legalForm === 'company' ? 'company' : 'sole'
   // Ηλικία, μόνο για τη μειωμένη κλίμακα νέων (ν.5246/2025). Τοπική, προαιρετική.
   const [age,setAge] = useState<number|''>('')
   // Επιχειρηματικές παράμετροι (τοπικές, προαιρετικές): ετήσιες εισφορές ΕΦΚΑ,
@@ -568,20 +577,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily: T.font.sans }}>{regimeLabel} · έσοδα, φόρος και καθαρό αποτέλεσμα, με βάση τα πραγματικά σου δεδομένα.</p>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-          {mode==='professional'&&(
-            <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
-              {([['personal','Φυσικό πρόσωπο',User],['business','Επιχείρηση (ΕΛΠ)',Briefcase]] as [typeof elp,string,typeof User][]).map(([e,label,Icon])=>(
-                <button key={e} onClick={()=>setElp(e)} style={{ display:'flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:elp===e?600:500, background:elp===e?'var(--accent)':'transparent', color:elp===e?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{<Icon size={13}/>}{label}</button>
-              ))}
-            </div>
-          )}
-          {businessMode&&(
-            <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
-              {([['sole','Ατομική'],['company','Νομικό πρόσωπο']] as [typeof elpForm,string][]).map(([f,label])=>(
-                <button key={f} onClick={()=>setElpForm(f)} title={f==='sole'?'Ατομική επιχείρηση, προοδευτική κλίμακα 9-44%':'Νομικό πρόσωπο (ΑΕ/ΕΠΕ/ΙΚΕ/ΟΕ/ΕΕ), σταθερό 22%'} style={{ height:T.h.sm, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:elpForm===f?600:500, background:elpForm===f?'var(--accent)':'transparent', color:elpForm===f?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{label}</button>
-              ))}
-            </div>
-          )}
           <ActionMenu label="Εργαλεία και αναφορές" title="Αναφορές και εργαλεία διαχείρισης" icon={<Printer size={14}/>} items={[
             { key:'print', label:'Λογιστική αναφορά', description:'Σύνοψη εσόδων, φόρου και καθαρού σε PDF, έτοιμη για τον λογιστή σου', icon:<Printer size={16}/>, onClick:printReport },
             { key:'official', label:'Επίσημη αναφορά', description:'Υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης', icon:<ShieldCheck size={16}/>, onClick:officialReport, busy:genOfficial },
