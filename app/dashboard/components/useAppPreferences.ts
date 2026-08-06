@@ -9,13 +9,22 @@ export interface AppPreferences {
   // Ειδοποιήσεις
   liveNotifications: boolean;        // Ζωντανές ειδοποιήσεις στην Επισκόπηση
   deadlineAlerts: boolean;           // Ειδοποιήσεις λήξεων & προθεσμιών
+  /**
+   * Πόσο μακριά μπροστά δείχνει η αρχική οθόνη, σε ημέρες.
+   *
+   * Η λίστα «Τι χρειάζεται τώρα» γέμιζε με δόσεις ΕΝΦΙΑ του επόμενου
+   * καλοκαιριού (222 ημέρες) και έσπρωχνε κάτω το εκπρόθεσμο. Το όριο δεν
+   * μπορεί όμως να είναι ίδιο για όλους: άλλο ρυθμό έχει ο ιδιοκτήτης ενός
+   * διαμερίσματος και άλλο το γραφείο με δεκαπέντε. Ρυθμίζεται.
+   * Το ΕΚΠΡΟΘΕΣΜΟ δεν κρύβεται ποτέ, με καμία τιμή.
+   */
+  agendaHorizonDays: 30 | 60 | 100 | 180 | 365;
   // Αρχείο & Καταχωρήσεις
   autoSuggestCategory: boolean;      // Αυτόματη πρόταση κατηγορίας βάσει παρόχου
   confirmBeforeDelete: boolean;      // Επιβεβαίωση πριν τη διαγραφή
   // Εμφάνιση
   compactView: boolean;              // Συμπαγής προβολή
   showSmartTips: boolean;            // Εμφάνιση έξυπνων συμβουλών
-  decimals: '0' | '2';               // Δεκαδικά στα ποσά
   // Μνήμη & Δεδομένα
   rememberAcrossProperties: boolean; // Να θυμάται τις προτιμήσεις σε όλα τα ακίνητα
 }
@@ -23,11 +32,11 @@ export interface AppPreferences {
 export const DEFAULT_PREFERENCES: AppPreferences = {
   liveNotifications: true,
   deadlineAlerts: true,
+  agendaHorizonDays: 100,
   autoSuggestCategory: true,
   confirmBeforeDelete: true,
   compactView: false,
   showSmartTips: true,
-  decimals: '0',
   rememberAcrossProperties: false,
 };
 

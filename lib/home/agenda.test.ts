@@ -5,7 +5,7 @@
 // δύο, τα ελλιπή στοιχεία δύο. Αυτό το αρχείο κρατά τη συγχώνευση ειλικρινή: αν
 // κάποιος προσθέσει πηγή χωρίς να δηλώσει θέμα, τα διπλότυπα επιστρέφουν σιωπηλά.
 import {
-  buildAgenda, obligationSubject, insightSubject, overdueCount, dueLabel, dueParts,
+  buildAgenda, obligationSubject, insightSubject, overdueCount, dueLabel, dueParts, shortNote,
   type InsightLike, type ObligationLike, type SetupLike,
 } from './agenda'
 
@@ -87,7 +87,10 @@ ok('το ολοκληρωμένο βήμα δεν μπαίνει', buildAgenda({
 
 // ── ΣΕΙΡΑ ΠΙΕΣΗΣ ─────────────────────────────────────────────────────────
 {
-  const a = buildAgenda({ today: TODAY,
+  // Ρητός, φαρδύς ορίζοντας: ΕΔΩ ελέγχεται η ΣΕΙΡΑ, όχι το πόσο μακριά βλέπει η
+  // λίστα. Χωρίς αυτό, η προθεσμία των 148 ημερών θα φιλτραριζόταν από την
+  // προεπιλογή των 100 και ο έλεγχος ταξινόμησης δεν θα είχε τι να ταξινομήσει.
+  const a = buildAgenda({ today: TODAY, horizonDays: 400,
     obligations: [
       obl({ id: 'a', title: 'ληξιπρόθεσμη', date: '2026-07-20', daysUntil: -16 }),
       obl({ id: 'b', title: 'σε-3-ημέρες',  date: '2026-08-08', daysUntil: 3 }),
@@ -160,6 +163,48 @@ ok('και ο μετρητής δεν σκάει', overdueCount([]) === 0)
   ok('σήμερα: λέξη αντί για μηδέν', dueParts(0).word === 'σήμερα' && dueParts(0).value === null);
   ok('αύριο: λέξη αντί για ένα', dueParts(1).word === 'αύριο' && dueParts(1).value === null);
   ok('χωρίς προθεσμία: τίποτα', dueParts(null).value === null && dueParts(null).word === null);
+}
+
+// ── Η σημείωση της αρχικής: μία πρόταση, χωρίς διευθύνσεις ────────────────
+{
+  const full = 'Καταληκτική υποβολή δήλωσης φορολογίας εισοδήματος (Ε1). Το εισόδημα δηλώνεται στο Ε2. '
+             + 'Επιβεβαίωσε στο myAADE (https://www.aade.gr/eforologiko-imerologio) και στο https://www.taxheaven.gr/calendar. '
+             + 'Ποιος το κάνει: Το κάνει ο λογιστής.'
+  const short = shortNote(full)
+  ok('κρατά μόνο την πρώτη πρόταση', short === 'Καταληκτική υποβολή δήλωσης φορολογίας εισοδήματος (Ε1).')
+  ok('καμία διεύθυνση δεν επιβιώνει', !/https?:/.test(short))
+  ok('χωράει σε δύο γραμμές', short.length <= 150)
+  ok('κενό μένει κενό', shortNote('') === '' && shortNote(null) === '')
+  ok('μικρό κείμενο περνά ατόφιο', shortNote('Δύο λέξεις.') === 'Δύο λέξεις.')
+  // Δεν σπάει σε συντομογραφία ούτε σε δεκαδικό.
+  ok('δεν κόβει στο «τ.μ.»', shortNote('Ακίνητο 85 τ.μ. στο κέντρο. Δεύτερη πρόταση.') === 'Ακίνητο 85 τ.μ. στο κέντρο.')
+  const long = shortNote('Α'.repeat(400))
+  ok('πολύ μεγάλη πρόταση κόβεται με αποσιωπητικά', long.length <= 151 && long.endsWith('…'))
+}
+
+// ── Ο ορίζοντας: τι μπαίνει στην πρώτη οθόνη ──────────────────────────────
+{
+  const obl = (id: string, daysUntil: number): ObligationLike =>
+    ({ id, title: id, note: '', date: '2026-12-31', daysUntil, priority: 'medium' } as ObligationLike)
+  const items = buildAgenda({
+    obligations: [obl('κοντινό', 30), obl('στο όριο', 100), obl('μακρινό', 101), obl('πολύ μακρινό', 222), obl('εκπρόθεσμο', -22)],
+    today: '2026-08-06',
+  })
+  const keys = items.map(i => i.title)
+  ok('το κοντινό μπαίνει', keys.includes('κοντινό'))
+  ok('το όριο των 100 μπαίνει', keys.includes('στο όριο'))
+  ok('το 101 ΔΕΝ μπαίνει', !keys.includes('μακρινό'))
+  ok('το 222 ΔΕΝ μπαίνει', !keys.includes('πολύ μακρινό'))
+  // ΤΟ ΕΚΠΡΟΘΕΣΜΟ ΔΕΝ ΚΟΒΕΤΑΙ ΠΟΤΕ. Όριο που κρύβει καθυστέρηση είναι επικίνδυνο.
+  ok('το εκπρόθεσμο μπαίνει πάντα', keys.includes('εκπρόθεσμο'))
+  ok('και είναι πρώτο', items[0].title === 'εκπρόθεσμο')
+
+  const wide = buildAgenda({ obligations: [obl('μακρινό', 222)], today: '2026-08-06', horizonDays: 365 })
+  ok('με μεγαλύτερο ορίζοντα φαίνεται', wide.map(i => i.title).includes('μακρινό'))
+  const narrow = buildAgenda({ obligations: [obl('κοντινό', 30)], today: '2026-08-06', horizonDays: 7 })
+  ok('με μικρότερο ορίζοντα κόβεται', !narrow.map(i => i.title).includes('κοντινό'))
+  ok('άκυρος ορίζοντας πέφτει στην προεπιλογή',
+     buildAgenda({ obligations: [obl('κοντινό', 30)], today: '2026-08-06', horizonDays: 0 }).length === 1)
 }
 
 console.log(fail === 0 ? `✓ agenda: ${pass} έλεγχοι πέρασαν` : `✗ agenda: ${fail} απέτυχαν από ${pass + fail}`)

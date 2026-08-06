@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T, fn, PageTitle, KPIGrid, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, type KPIItem, ABSENT, ABSENT_DATE } from '@/components/Theme'
+import { T, fn, fe, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE } from '@/components/Theme'
 import { notify, notifyOk } from '@/components/Toast'
 import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
@@ -2184,11 +2184,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // 3 έξυπνα, συνδυασμένα KPI αντί για 5 — clean & minimal: εκκρεμείς · προσοχή · ολοκλήρωση.
   const openCount = stats.total - stats.done
   const attention = stats.overdue + stats.critical
-  const kpiItems: KPIItem[] = [
-    { label: 'Εκκρεμείς', value: fn(openCount), sub: stats.inProgress > 0 ? `${stats.inProgress} σε εξέλιξη` : `από ${stats.total} συνολικά` },
-    { label: 'Χρειάζονται Προσοχή', value: fn(attention), tone: stats.overdue > 0 ? 'negative' : attention > 0 ? 'warning' : 'neutral', sub: stats.overdue > 0 ? `${stats.overdue} εκπρόθεσμες` : stats.critical > 0 ? `${stats.critical} κρίσιμες` : 'όλα εντάξει' },
-    { label: 'Ολοκλήρωση', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'neutral', sub: `${stats.done}/${stats.total}` },
-  ]
+  // ΤΑ ΤΡΙΑ ΠΛΑΚΙΔΙΑ ΕΦΥΓΑΝ. Έλεγαν τους ΙΔΙΟΥΣ τρεις αριθμούς με τον υπότιτλο
+  // της σελίδας, με τη γραμμή προόδου και με τα chips των κατηγοριών: το «6»
+  // τυπωνόταν πέντε φορές («6 εργασίες», «ΕΚΚΡΕΜΕΙΣ 6», «από 6 συνολικά»,
+  // «0/6», «Όλα (6)») και το «0%» τέσσερις. Τετρακόσια εικονοστοιχεία για να
+  // ειπωθούν τρεις αριθμοί, που τώρα λέγονται μία φορά ο καθένας: το πλήθος
+  // στον υπότιτλο, η πρόοδος στη μπάρα, η κατανομή στα chips.
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto', fontFamily: T.font.sans }}>
@@ -2205,7 +2206,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {!embedded && <PageTitle
         title="Εκκρεμότητες"
         titleHint="Λίστα ελέγχου εργασιών ακινήτου"
-        sub={`${stats.total} εργασίες · ${stats.done} ολοκληρωμένα · ${stats.pct}% πρόοδος`}
+        sub={openCount === 0
+          ? `Ολοκληρώθηκαν και οι ${fn(stats.total)}`
+          : `${fn(openCount)} ${openCount === 1 ? 'ανοιχτή' : 'ανοιχτές'}`
+            + (attention > 0 ? ` · ${fn(attention)} ${attention === 1 ? 'χρειάζεται' : 'χρειάζονται'} προσοχή` : '')
+            + ` · ${fn(stats.done)} από ${fn(stats.total)} ολοκληρωμένες`}
         right={loading || items.length === 0 ? undefined : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Btn variant="ghost" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
@@ -2219,7 +2224,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         )}
       />}
 
-      <KPIGrid items={kpiItems} />
 
       {/* ΟΙ ΥΠΟΧΡΕΩΣΕΙΣ ΠΟΥ ΛΕΙΠΟΥΝ, ΣΤΗΝ ΟΘΟΝΗ ΚΑΙ ΟΧΙ ΜΕΣΑ ΣΕ ΜΕΝΟΥ. Ο χρήστης
           που δεν άνοιξε ποτέ τα «Πρότυπα» δεν είχε τρόπο να μάθει ότι υπάρχει
@@ -2238,26 +2242,25 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </InfoBanner>
       )}
 
-      {/* Progress */}
+      {/* Η ΠΡΟΟΔΟΣ ΩΣ ΓΡΑΜΜΗ, ΧΩΡΙΣ ΔΙΚΗ ΤΗΣ ΕΤΙΚΕΤΑ.
+          Είχε επικεφαλίδα «Συνολική Πρόοδος» και ποσοστό δεξιά — δηλαδή έλεγε
+          για τρίτη φορά το «0%» που έγραφαν ήδη ο υπότιτλος της σελίδας και το
+          πλακίδιο «Ολοκλήρωση». Μια μπάρα ΕΙΝΑΙ ποσοστό· δεν χρειάζεται να το
+          ανακοινώσει. Το κόστος μένει: είναι άλλη πληροφορία, όχι επανάληψη. */}
       {stats.total > 0 && (
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Συνολική Πρόοδος</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-              {(stats.totalEstimated > 0 || stats.totalActual > 0) && (
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-                  {/* ΔΥΟ ΝΟΥΜΕΡΑ ΜΕ ΔΙΑΦΟΡΕΤΙΚΟ ΒΑΡΟΣ, ΟΝΟΜΑΤΙΣΜΕΝΑ. Το «πραγμ.»
-                      δίπλα στο «εκτιμ.» έμοιαζε με δύο μετρήσεις, ενώ το πρώτο
-                      ήταν πάντα 0 και το δεύτερο άθροισμα σταθερών του προτύπου. */}
-                  {stats.totalActual > 0 ? `${stats.totalActual.toLocaleString('el-GR')}€ με παραστατικό` : ''}{stats.totalActual > 0 && stats.totalEstimated > 0 ? ' · ' : ''}{stats.totalEstimated > 0 ? `${stats.totalEstimated.toLocaleString('el-GR')}€ δική σου εκτίμηση` : ''}
-                </span>
-              )}
-              <span style={{ fontSize: 12, fontWeight: 700, color: stats.pct === 100 ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{stats.pct}%</span>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ height: 4, borderRadius: 100, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: stats.pct + '%', background: 'var(--accent)', borderRadius: 100,
+                          transition: `width .4s ${T.ease.standard}` }} />
+          </div>
+          {(stats.totalEstimated > 0 || stats.totalActual > 0) && (
+            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans,
+                          fontVariantNumeric: 'tabular-nums' }}>
+              {stats.totalActual > 0 ? `${fe(stats.totalActual)} με παραστατικό` : ''}
+              {stats.totalActual > 0 && stats.totalEstimated > 0 ? ' · ' : ''}
+              {stats.totalEstimated > 0 ? `${fe(stats.totalEstimated)} εκτίμηση` : ''}
             </div>
-          </div>
-          <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: stats.pct + '%', background: stats.pct === 100 ? 'var(--positive)' : 'var(--accent)', borderRadius: 6, transition: 'width 0.6s cubic-bezier(.4,0,.2,1)' }} />
-          </div>
+          )}
         </div>
       )}
 

@@ -642,9 +642,10 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
     [prop, tenantFull, maint, todayIso],
   );
   const agendaAll = useMemo(
-    () => buildAgenda({ insights, obligations, setup: setupSteps, today: todayIso }),
+    () => buildAgenda({ insights, obligations, setup: setupSteps, today: todayIso,
+                        horizonDays: prefs.agendaHorizonDays }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [insights, obligations, setupSteps, todayIso],
+    [insights, obligations, setupSteps, todayIso, prefs.agendaHorizonDays],
   );
   // Πέντε στην αρχική. Η πλήρης λίστα ζει στις «Εκκρεμότητες» — και η οθόνη το λέει.
   const agenda = agendaAll.slice(0, 5);

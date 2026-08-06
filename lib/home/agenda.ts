@@ -155,14 +155,62 @@ function merge(a: AgendaItem, b: AgendaItem): AgendaItem {
  * @param limit Πόσα να επιστραφούν. Η αρχική οθόνη δείχνει λίγα· η πλήρης λίστα
  *   ζει στις «Εκκρεμότητες». `0` = όλα.
  */
+/**
+ * Πόσο μακριά βλέπει η λίστα, σε ημέρες.
+ *
+ * ΓΙΑΤΙ ΥΠΑΡΧΕΙ ΟΡΙΟ: μια προθεσμία στα 222 ημέρες δεν είναι «τι χρειάζεται
+ * τώρα» — είναι ημερολόγιο. Η αρχική οθόνη γέμιζε με δόσεις ΕΝΦΙΑ του επόμενου
+ * καλοκαιριού και έσπρωχνε κάτω το εκπρόθεσμο, δηλαδή το μόνο που ζητούσε
+ * ενέργεια σήμερα. Ό,τι είναι μακρύτερα ζει στο Ημερολόγιο και στις
+ * Εκκρεμότητες, όπου το ψάχνει κανείς επίτηδες.
+ *
+ * ΤΟ ΕΚΠΡΟΘΕΣΜΟ ΔΕΝ ΚΟΒΕΤΑΙ ΠΟΤΕ, όσο παλιό κι αν είναι: αρνητικές ημέρες
+ * περνούν πάντα. Ένα όριο που κρύβει καθυστερήσεις είναι επικίνδυνο.
+ */
+export const DEFAULT_HORIZON_DAYS = 100;
+
+/**
+ * Η ΣΗΜΕΙΩΣΗ ΤΗΣ ΑΡΧΙΚΗΣ ΕΙΝΑΙ ΜΙΑ ΠΡΟΤΑΣΗ, ΟΧΙ ΟΛΟΚΛΗΡΟ ΤΟ ΔΕΛΤΙΟ.
+ *
+ * Οι υποχρεώσεις φτιάχνουν το κείμενό τους με συνένωση: τίτλος, κόστος, ισχύς,
+ * νομική βάση, ποιος το κάνει, και δύο ωμά URL για επαλήθευση. Στην καρτέλα
+ * Εκκρεμότητες αυτό είναι σωστό — εκεί ψάχνεις λεπτομέρεια. Στην πρώτη οθόνη
+ * γινόταν πέντε γραμμές με https:// μέσα στη μέση, δηλαδή τοίχος που κανείς δεν
+ * διαβάζει και που έθαβε τις υπόλοιπες εκκρεμότητες.
+ *
+ * Κρατιέται η ΠΡΩΤΗ πρόταση, χωρίς διευθύνσεις. Η πλήρης εξήγηση δεν χάνεται:
+ * ζει ακέραιη στην καρτέλα, που είναι ένα κλικ μακριά.
+ */
+export function shortNote(text: string | null | undefined, maxChars = 150): string {
+  const clean = (text || '')
+    .replace(/https?:\/\/\S+/g, '')          // διευθύνσεις: δεν διαβάζονται σε πρόταση
+    .replace(/\(\s*\)/g, '')                  // παρενθέσεις που έμειναν άδειες
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  if (!clean) return '';
+  // Πρώτη πρόταση: τελεία ακολουθούμενη από κενό και κεφαλαίο, ώστε να μη
+  // σπάει σε συντομογραφίες («τ.μ.») ούτε σε δεκαδικά («15,5»).
+  const m = /^(.+?[.;!?])(\s+[Α-ΩA-Z«"]|$)/.exec(clean);
+  const first = (m ? m[1] : clean).trim();
+  if (first.length <= maxChars) return first;
+  const cut = first.slice(0, maxChars);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > 40 ? cut.slice(0, sp) : cut).trim() + '…';
+}
+
 export function buildAgenda(input: {
   insights?: InsightLike[];
   obligations?: ObligationLike[];
   setup?: SetupLike[];
   today: string;
   limit?: number;
+  /** Ημέρες μπροστά που εμφανίζονται. Προεπιλογή 100· ρυθμίζεται από τον χρήστη. */
+  horizonDays?: number;
 }): AgendaItem[] {
   const { today } = input;
+  const horizon = Number.isFinite(input.horizonDays) && (input.horizonDays as number) > 0
+    ? (input.horizonDays as number)
+    : DEFAULT_HORIZON_DAYS;
   const bySubject = new Map<string, AgendaItem>();
 
   const add = (item: AgendaItem) => {
@@ -171,11 +219,14 @@ export function buildAgenda(input: {
   };
 
   for (const o of input.obligations || []) {
+    const days = Number.isFinite(o.daysUntil) ? o.daysUntil : toDaysLeft(o.date, today);
+    // Πέρα από τον ορίζοντα: δεν είναι «τώρα». Το εκπρόθεσμο (αρνητικό) μένει.
+    if (days != null && days > horizon) continue;
     add({
       key: obligationSubject(o.id),
-      title: o.title, note: o.note,
+      title: o.title, note: shortNote(o.note),
       due: o.date ? o.date.slice(0, 10) : null,
-      daysLeft: Number.isFinite(o.daysUntil) ? o.daysUntil : toDaysLeft(o.date, today),
+      daysLeft: days,
       action: null, origin: 'obligation',
       weight: PRIORITY_WEIGHT[o.priority] ?? 5,
       who: o.who,
@@ -188,7 +239,7 @@ export function buildAgenda(input: {
     if (i.kind === 'positive') continue;
     add({
       key: insightSubject(i.id),
-      title: i.title, note: i.detail,
+      title: i.title, note: shortNote(i.detail),
       due: null, daysLeft: null,
       action: i.action || null, origin: 'insight',
       weight: KIND_WEIGHT[i.kind] ?? 5,
