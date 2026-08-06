@@ -608,11 +608,11 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         {/* Contract dates + E-bill toggle */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 14, alignItems: 'center' }}>
           <DatePicker
-            label="Έναρξη Σύμβασης"
+            label="Έναρξη σύμβασης"
             value={contractStart}
             onChange={v => { setContractStart(v); save({ contractStart: v }); }}
           />
-          <CustomSelect label="Διάρκεια Σύμβασης" value={contractMonths}
+          <CustomSelect label="Διάρκεια σύμβασης" value={contractMonths}
             onChange={v => { setContractMonths(v); save({ contractMonths: v }); }}
             options={DURATION_OPTIONS}/>
           {contractExpiry && (
@@ -642,8 +642,8 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       <div style={card}>
         {secHdr('Κατανάλωση και εκτιμώμενο κόστος')}
         <div style={{ display: 'grid', gridTemplateColumns: tariff.kwh_night ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14, marginBottom: 14 }}>
-          <NumberInput label="Μέση Μηνιαία Κατανάλωση (kWh)" value={kwhMonthly} onChange={v => { setKwhMonthly(v); save({ kwhMonthly: v }); }} suffix="kWh" step={10}/>
-          {tariff.kwh_night && <NumberInput label="Νυχτερινή Κατανάλωση (%)" value={nightPct} onChange={v => { setNightPct(v); save({ nightPct: v }); }} suffix="%" step={5}/>}
+          <NumberInput label="Μέση μηνιαία κατανάλωση" value={kwhMonthly} onChange={v => { setKwhMonthly(v); save({ kwhMonthly: v }); }} suffix="kWh" step={10}/>
+          {tariff.kwh_night && <NumberInput label="Νυχτερινή κατανάλωση" value={nightPct} onChange={v => { setNightPct(v); save({ nightPct: v }); }} suffix="%" step={5}/>}
           {tariff.type === 'dynamic' && <NumberInput label="Μηνιαίο Κόστος (€), Από Λογαριασμό" value={manualMonthly} onChange={v => { setManualMonthly(v); save({ manualMonthly: v }); }} suffix="€" step={1}/>}
         </div>
 
@@ -686,7 +686,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             {MONTHS_GR.map((m, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 9, color: i === currentMonth ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 4, fontWeight: i === currentMonth ? 700 : 400, fontFamily: T.font.sans }}>{m}</div>
-                <input type="number" value={kwhHistory[i] || ''} placeholder="—"
+                <input type="number" value={kwhHistory[i] || ''} placeholder="0"
                   style={histInputStyle(i === currentMonth, hoveredMonth === i)}
                   onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}
                   onChange={e => {

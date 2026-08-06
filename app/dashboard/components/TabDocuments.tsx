@@ -1216,7 +1216,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
               <TextInput label="Τίτλος" value={doc.title || ''} onChange={t => onPatchDoc({ title: t })} placeholder="Σύντομη περιγραφή"/>
             </div>
             <div style={g2x}>
-              <TextInput label={mark('Πάροχος / Εκδότης', 'provider')} value={doc.provider || ''} onChange={t => onPatchDoc({ provider: t })} placeholder="Όπως γράφεται στο χαρτί"/>
+              <TextInput label={mark('Πάροχος ή εκδότης', 'provider')} value={doc.provider || ''} onChange={t => onPatchDoc({ provider: t })} placeholder="Όπως γράφεται στο χαρτί"/>
               {hasMoney(doc.doc_type) && (
                 <TextInput label={mark('ΑΦΜ παρόχου', 'provider_afm')} value={doc.provider_afm || ''} onChange={t => onPatchDoc({ provider_afm: t.replace(/\D/g, '') })} placeholder="9 ψηφία"/>
               )}
@@ -1224,7 +1224,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
             {hasMoney(doc.doc_type) && (
               <div style={g2x}>
                 <NumberInput label={mark('Ποσό (€)', amountKey)} value={doc[amountKey] != null ? String(doc[amountKey]) : ''}
-                  onChange={t => onPatchDoc({ [amountKey]: t.trim() ? parseFloat(t.replace(',', '.')) || undefined : undefined } as Partial<ScannedDoc>)} placeholder="—"/>
+                  onChange={t => onPatchDoc({ [amountKey]: t.trim() ? parseFloat(t.replace(',', '.')) || undefined : undefined } as Partial<ScannedDoc>)} placeholder="0,00"/>
                 <DatePicker label={mark('Ημερομηνία έκδοσης', 'issue_date')} value={doc.issue_date || ''} onChange={t => onPatchDoc({ issue_date: t })}/>
               </div>
             )}
@@ -1326,12 +1326,12 @@ function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => 
           options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
         {one && (<>
           <div style={g2x}>
-            <TextInput label="Πάροχος / Εκδότης" value={supplier} onChange={setSupplier} placeholder="Όπως γράφεται στο παραστατικό"/>
+            <TextInput label="Πάροχος ή εκδότης" value={supplier} onChange={setSupplier} placeholder="Όπως γράφεται στο παραστατικό"/>
             <TextInput label="ΑΦΜ παρόχου" value={afm} onChange={setAfm} placeholder="9 ψηφία"/>
           </div>
           {afmBad && <div style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ. Διόρθωσέ το ή άφησέ το κενό.</div>}
           <div style={g2x}>
-            <NumberInput label="Ποσό (€)" value={amount} onChange={setAmount} placeholder="—"/>
+            <NumberInput label="Ποσό" suffix="€" value={amount} onChange={setAmount} placeholder="0,00"/>
             <DatePicker label="Ημερομηνία έκδοσης" value={issue} onChange={setIssue}/>
           </div>
           <div style={g2x}>

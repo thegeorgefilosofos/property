@@ -314,9 +314,9 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         {/* FIX: 3 cols so DatePicker has enough room, was 4 cols causing overflow */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <CustomSelect label="Τύπος Διαχείρισης"  value={mgmtType}   onChange={sMgmt}  options={MGMT_TYPES}/>
-          <NumberInput  label="Μηνιαίο Κόστος (€)" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
-          <NumberInput  label="Ημέρα Χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
+          <CustomSelect label="Τύπος διαχείρισης"  value={mgmtType}   onChange={sMgmt}  options={MGMT_TYPES}/>
+          <NumberInput  label="Μηνιαίο κόστος" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
+          <NumberInput  label="Ημέρα χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
         </div>
 
         {/* Info banner */}
@@ -397,12 +397,12 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         {/* FIX: 2+2 grid layout so DatePicker label doesn't overflow */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <NumberInput label="Υπόλοιπο Ταμείου (€)" value={fundBalance}  onChange={sFundBal} suffix="€" step={100}/>
-          <NumberInput label="Μερίδιό Μου (%)"        value={fundMyPct}    onChange={sFundPct} suffix="%" step={1} max={100}/>
+          <NumberInput label="Υπόλοιπο ταμείου" value={fundBalance}  onChange={sFundBal} suffix="€" step={100}/>
+          <NumberInput label="Μερίδιό μου"        value={fundMyPct}    onChange={sFundPct} suffix="%" step={1} max={100}/>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <NumberInput label="Μηνιαία Εισφορά (€)"   value={fundMonthly}  onChange={sFundM}   suffix="€" step={5}/>
-          <DatePicker  label="Τελευταία Ενημέρωση"    value={fundLastDate} onChange={sFundD}/>
+          <NumberInput label="Μηνιαία εισφορά"   value={fundMonthly}  onChange={sFundM}   suffix="€" step={5}/>
+          <DatePicker  label="Τελευταία ενημέρωση"    value={fundLastDate} onChange={sFundD}/>
         </div>
 
         {myFundShare > 0 && (
@@ -429,7 +429,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
             <TextInput   label="Αιτία"       value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
-            <NumberInput label="Ποσό (€)"    value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
+            <NumberInput label="Ποσό"    value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
             <DatePicker  label="Ημερομηνία" value={extraDate}   onChange={setExtraDate}/>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

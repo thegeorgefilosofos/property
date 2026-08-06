@@ -1790,7 +1790,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           {thisWeek.length>0&&<Section title="Επόμενες 7 μέρες" color="var(--accent)" events={thisWeek} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {thisMonth.length>0&&<Section title="Αυτόν τον μήνα" color="var(--text-secondary)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {later.length>0&&<Section title="Αργότερα" color="var(--text-secondary)" events={later} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {done.length>0&&<Section title="Ολοκληρωμένα / Ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed desc bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {done.length>0&&<Section title="Ολοκληρωμένα και ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed desc bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {/* ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ ΚΕΝΕΣ ΚΑΤΑΣΤΑΣΕΙΣ, ΟΧΙ ΜΙΑ. Το «άλλαξε φίλτρο» σε
               λογαριασμό χωρίς ούτε ένα γεγονός στέλνει τον χρήστη να ψάξει
               ρύθμιση που δεν φταίει· το «πρόσθεσε γεγονός» σε φιλτραρισμένη όψη

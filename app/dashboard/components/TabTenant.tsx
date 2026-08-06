@@ -357,11 +357,11 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
 
       {/* KPI Strip */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap:10, marginBottom:20 }}>
-        <KpiCard label="Βασικό Ενοίκιο" value={fmt(tenant.monthly_rent)} color="var(--text-primary)"/>
-        <KpiCard label="Σύνολο Μηνιαίως" value={fmt(totalTenant)} color="var(--text-primary)"/>
-        <KpiCard label="Κόστη Ιδιοκτήτη" value={fmt(ownerCosts)} color="var(--text-primary)"/>
-        <KpiCard label="Λήξη Μίσθωσης" value={d==null?ABSENT_DATE:d<0?'Έληξε':`${d} ημέρες`} color={st?.color||'var(--text-primary)'}/>
-        <KpiCard label="Εκκρεμή Ποσά" value={fmt(unpaidAmt)} color={unpaidAmt>0?'var(--negative)':'var(--positive)'}/>
+        <KpiCard label="Βασικό ενοίκιο" value={fmt(tenant.monthly_rent)} color="var(--text-primary)"/>
+        <KpiCard label="Σύνολο μηνιαίως" value={fmt(totalTenant)} color="var(--text-primary)"/>
+        <KpiCard label="Κόστη ιδιοκτήτη" value={fmt(ownerCosts)} color="var(--text-primary)"/>
+        <KpiCard label="Λήξη μίσθωσης" value={d==null?ABSENT_DATE:d<0?'Έληξε':`${d} ημέρες`} color={st?.color||'var(--text-primary)'}/>
+        <KpiCard label="Εκκρεμή ποσά" value={fmt(unpaidAmt)} color={unpaidAmt>0?'var(--negative)':'var(--positive)'}/>
         <KpiCard label="Εγγύηση" value={fmt(tenant.deposit_amount)} color={tenant.deposit_returned?'var(--positive)':'var(--accent)'}/>
       </div>
 
@@ -390,9 +390,9 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
         {payments.length>0&&(
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginTop:20 }}>
             <KpiCard label="Πληρωμές" value={`${paidPay.length}/${payments.length}`} color="var(--text-primary)"/>
-            <KpiCard label="Ποσοστό Εξόφλησης" value={`${fp(((paidPay.length/payments.length)*100), 0)}`} color="var(--text-primary)"/>
-            <KpiCard label="Μέση Καθυστέρηση" value={avgLate>0?`${avgLate.toFixed(0)} ημέρες`:'Χωρίς'} color={avgLate>7?'var(--warning)':'var(--positive)'}/>
-            <KpiCard label="Εισπραχθέντα Σύνολο" value={fmt(totalReceived)} color="var(--text-primary)"/>
+            <KpiCard label="Ποσοστό εξόφλησης" value={`${fp(((paidPay.length/payments.length)*100), 0)}`} color="var(--text-primary)"/>
+            <KpiCard label="Μέση καθυστέρηση" value={avgLate>0?`${avgLate.toFixed(0)} ημέρες`:'Χωρίς'} color={avgLate>7?'var(--warning)':'var(--positive)'}/>
+            <KpiCard label="Εισπραχθέντα σύνολο" value={fmt(totalReceived)} color="var(--text-primary)"/>
           </div>
         )}
       </div>
@@ -403,8 +403,8 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
         <DataRow label="Ακαθάριστα Ενοίκια ανά Έτος" value={<span style={{ color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(annualRent)}</span>}/>
         <DataRow label="Κόστη Ιδιοκτήτη ανά Έτος" value={<span style={{ color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>-{fmt(totalCosts)}</span>}/>
         <DataRow label="Καθαρό Εισόδημα ανά Έτος" value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(netIncome)}</span>}/>
-        <DataRow label="Εισπραχθέντα Σύνολο" value={<span style={{ color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(totalReceived)}</span>}/>
-        <DataRow label="Εκκρεμή Σύνολο" value={<span style={{ color:unpaidAmt>0?'var(--negative)':'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(unpaidAmt)}</span>}/>
+        <DataRow label="Εισπραχθέντα σύνολο" value={<span style={{ color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(totalReceived)}</span>}/>
+        <DataRow label="Εκκρεμή σύνολο" value={<span style={{ color:unpaidAmt>0?'var(--negative)':'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(unpaidAmt)}</span>}/>
       </div>
     </div>
   );
@@ -1140,11 +1140,11 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
               <SelectField label="Μήνας" value={String(payF.period_month)} onChange={v=>setPayF(f=>({...f,period_month:+v}))} options={MONTHS_FULL.map((m,i)=>({value:String(i+1),label:m}))}/>
               <NumberInput label="Έτος" value={String(payF.period_year)} onChange={v=>setPayF(f=>({...f,period_year:+v}))} min={2000}/>
               <NumberInput label="Ποσό" value={payF.amount} onChange={v=>setPayF(f=>({...f,amount:v}))} suffix="€" placeholder={tenant.monthly_rent?.toString()}/>
-              <SelectField label="Τρόπος Πληρωμής" value={payF.method} onChange={v=>setPayF(f=>({...f,method:v as PayMethod}))} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+              <SelectField label="Τρόπος πληρωμής" value={payF.method} onChange={v=>setPayF(f=>({...f,method:v as PayMethod}))} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Εξοφλήθη</div><Toggle on={payF.paid} onChange={v=>setPayF(f=>({...f,paid:v}))} label="Ναι" labelOff="Όχι"/></div>
-              {payF.paid&&<DateField label="Ημερομηνία Πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
+              {payF.paid&&<DateField label="Ημερομηνία πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
               <TextInput label="Σημείωση" value={payF.notes} onChange={v=>setPayF(f=>({...f,notes:v}))} placeholder="προαιρετικό"/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -1204,7 +1204,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
             <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>Σήμανση ως πληρωμένο</div>
             <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:16 }}>{monthLabel(mark.p)} · {fmt(mark.p.amount)}</div>
             <div style={{ marginBottom:14 }}>
-              <SelectField label="Τρόπος Πληρωμής" value={mark.method} onChange={v=>setMark(m=>m?{...m,method:v as PayMethod}:m)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+              <SelectField label="Τρόπος πληρωμής" value={mark.method} onChange={v=>setMark(m=>m?{...m,method:v as PayMethod}:m)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
             </div>
             <div style={{ marginBottom:18 }}>
               <TextInput label="Σύνδεσμος Απόδειξης (προαιρετικό)" value={mark.receipt} onChange={v=>setMark(m=>m?{...m,receipt:v}:m)} placeholder="https://..."/>
@@ -1281,7 +1281,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
                     <SelectField value={scan.periodId||''} onChange={v=>setScan(sc=>sc?{...sc,periodId:v}:sc)}
                       options={open.map(p=>({ value:p.id, label:`${monthLabel(p)} · ${fmt(p.amount)}` }))}/>
                     <div style={{ marginTop:12 }}>
-                      <SelectField label="Τρόπος Πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+                      <SelectField label="Τρόπος πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
                     </div>
                   </div>
                 )}
@@ -1403,7 +1403,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
               ?'Για επαγγελματική μίσθωση ισχύει η ελάχιστη νόμιμη διάρκεια των τριών ετών.'
               :'Για μίσθωση κατοικίας ισχύει η τριετής ελάχιστη προστασία διάρκειας, ακόμη κι αν συμφωνηθεί μικρότερος χρόνος.'} Η εγγύηση{tenant.deposit_amount?` (${fe(tenant.deposit_amount)})`:''} επιστρέφεται στη λήξη, μετά από έλεγχο για φθορές.
           </InfoBlock>
-          <InfoBlock title="Τέλος χαρτοσήμου / Ψηφιακό Τέλος Συναλλαγής" tone={isCommercial?'var(--warning)':'var(--positive)'}>
+          <InfoBlock title="Τέλος χαρτοσήμου και ψηφιακό τέλος συναλλαγής" tone={isCommercial?'var(--warning)':'var(--positive)'}>
             {isCommercial
               ?`Επαγγελματική μίσθωση: τέλος 3,6% επί του μισθώματος — πλέον «Ψηφιακό Τέλος Συναλλαγής», με τον ίδιο συντελεστή 3,60% (ν.5135/2024). Για ετήσιο ενοίκιο ${fe(annualRent)}, ανέρχεται σε ${fe(stampDuty)} τον χρόνο (${fe(stampDuty/12)} τον μήνα), που κατανέμεται συνήθως 50/50 μεταξύ εκμισθωτή και μισθωτή. Δεν οφείλεται αν η μίσθωση έχει νομίμως υπαχθεί σε ΦΠΑ.`
               :'Μίσθωση κατοικίας: δεν επιβάλλεται τέλος χαρτοσήμου / Ψηφιακό Τέλος Συναλλαγής.'}
@@ -1468,11 +1468,11 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16 }}>
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
         <SectionTitle>Στοιχεία Εγγύησης</SectionTitle>
-        <DataRow label="Ποσό Εγγύησης" value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(deposit)}</span>}/>
-        <DataRow label="Τρόπος Καταβολής" value={methodLabel}/>
-        <DataRow label="Ημερομηνία Καταβολής" value={fmtD(tenant.deposit_paid_on)}/>
+        <DataRow label="Ποσό εγγύησης" value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(deposit)}</span>}/>
+        <DataRow label="Τρόπος καταβολής" value={methodLabel}/>
+        <DataRow label="Ημερομηνία καταβολής" value={fmtD(tenant.deposit_paid_on)}/>
         <DataRow label="Κατάσταση" value={tenant.deposit_returned?<StatusBadge label="Επεστράφη" color="var(--positive)" bg="var(--positive-dim)"/>:<StatusBadge label="Σε κατοχή" color="var(--accent)" bg="var(--accent-dim)"/>}/>
-        {tenant.deposit_returned&&tenant.deposit_return_date&&<DataRow label="Ημερομηνία Επιστροφής" value={fmtD(tenant.deposit_return_date)}/>}
+        {tenant.deposit_returned&&tenant.deposit_return_date&&<DataRow label="Ημερομηνία επιστροφής" value={fmtD(tenant.deposit_return_date)}/>}
         {!tenant.deposit_returned&&deposit>0&&(
           <button style={{ ...s.btnSm, marginTop:14, width:'100%', textAlign:'center' as const }}
             onClick={async()=>{await saved('Η επιστροφή εγγύησης δεν καταχωρήθηκε', supabase.from('tenants').update({deposit_returned:true,deposit_return_date:todayISO()}).eq('id',tenant.id));onReturned();}}>
@@ -1555,9 +1555,9 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
     <div>
       {damages.length>0&&(
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10, marginBottom:16 }}>
-          <KpiCard label="Συνολικό Κόστος" value={fmt(totalCost)} color="var(--text-primary)"/>
-          <KpiCard label="Χρέωση Ενοικιαστή" value={fmt(chargedTotal)} color={chargedTotal>0?'var(--warning)':'var(--positive)'}/>
-          <KpiCard label="Εκκρεμείς Επισκευές" value={String(openRepairs)} color={openRepairs>0?'var(--warning)':'var(--positive)'}/>
+          <KpiCard label="Συνολικό κόστος" value={fmt(totalCost)} color="var(--text-primary)"/>
+          <KpiCard label="Χρέωση ενοικιαστή" value={fmt(chargedTotal)} color={chargedTotal>0?'var(--warning)':'var(--positive)'}/>
+          <KpiCard label="Εκκρεμείς επισκευές" value={String(openRepairs)} color={openRepairs>0?'var(--warning)':'var(--positive)'}/>
         </div>
       )}
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
@@ -1578,7 +1578,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} label="Ναι" labelOff="Όχι"/></div>
-              {f.repaired&&<DateField label="Ημερομηνία Επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
+              {f.repaired&&<DateField label="Ημερομηνία επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
               <TextInput label="Σημείωση" value={f.notes} onChange={v=>setF(x=>({...x,notes:v}))} placeholder="προαιρετικό"/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -1760,7 +1760,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
                   {assignFor===m.id&&(
                     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:14, marginBottom:10 }}>
                       <div style={{ ...s.g2, marginBottom:10 }}>
-                        <TextInput label="Συνεργείο / Τεχνικός" value={af.name} onChange={v=>setAf(a=>({...a,name:v}))} placeholder="Παράδειγμα: Υδραυλικός Παπαδόπουλος"/>
+                        <TextInput label="Συνεργείο ή τεχνικός" value={af.name} onChange={v=>setAf(a=>({...a,name:v}))} placeholder="Παράδειγμα: Υδραυλικός Παπαδόπουλος"/>
                         <TextInput label="Τηλέφωνο ή ηλεκτρονικό ταχυδρομείο" value={af.contact} onChange={v=>setAf(a=>({...a,contact:v}))} placeholder="69XXXXXXXX"/>
                       </div>
                       {savedContacts.length>0&&(
@@ -1789,7 +1789,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
                       </div>
                       <div style={{ display:'flex', gap:8, alignItems:'flex-end', flexWrap:'wrap' as const }}>
                         <div style={{ width:150 }}>
-                          <TextInput label="Κόστος (€)" value={doneCost} onChange={setDoneCost} placeholder="Προαιρετικό"/>
+                          <TextInput label="Κόστος" suffix="€" value={doneCost} onChange={setDoneCost} placeholder="Προαιρετικό"/>
                         </div>
                         <div style={{ flex:1 }}/>
                         <button style={s.btnGhost} onClick={()=>setDoneFor(null)}>Ακύρωση</button>
@@ -2553,7 +2553,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             <div style={{ ...s.g3, marginBottom:6 }}>
               {show('tenant.full_name')&&<TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v=>sf('full_name',v)}/>}
               {show('tenant.afm')&&<TextInput label="ΑΦΜ" value={form.afm} onChange={v=>sf('afm',v)}/>}
-              {show('tenant.phone')&&<TextInput label="Κινητό Τηλέφωνο" value={form.phone} onChange={v=>sf('phone',v)}/>}
+              {show('tenant.phone')&&<TextInput label="Κινητό τηλέφωνο" value={form.phone} onChange={v=>sf('phone',v)}/>}
             </div>
             <Why id="tenant.afm"/>
 
@@ -2581,8 +2581,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               </>
             )}
             <div style={{ ...s.g3, marginBottom:6 }}>
-              {show('tenant.lease_start')&&<DateField label="Έναρξη Μίσθωσης" value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
-              {show('tenant.lease_end')&&<DateField label="Λήξη Μίσθωσης" value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
+              {show('tenant.lease_start')&&<DateField label="Έναρξη μίσθωσης" value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
+              {show('tenant.lease_end')&&<DateField label="Λήξη μίσθωσης" value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
               {form.lease_type==='custom'&&<NumberInput label="Ημέρες" value={String(form.custom_lease_days)} onChange={v=>sf('custom_lease_days',parseInt(v)||0)} suffix="ημ."/>}
             </div>
             <Why id="tenant.lease_start"/>
@@ -2591,8 +2591,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             {/* ── ΤΟ ΕΝΟΙΚΙΟ ───────────────────────────────────────────────── */}
             <SectionTitle>Το ενοίκιο</SectionTitle>
             <div style={{ ...s.g3, marginBottom:6 }}>
-              {show('tenant.rent')&&<NumberInput label="Μηνιαίο Ενοίκιο" value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>}
-              {show('tenant.rent_due_day')&&<SelectField label="Ημέρα Πληρωμής" value={form.rent_due_day} onChange={v=>sf('rent_due_day',v)} options={Array.from({length:28},(_,i)=>({value:String(i+1),label:`${i+1}η`}))}/>}
+              {show('tenant.rent')&&<NumberInput label="Μηνιαίο ενοίκιο" value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>}
+              {show('tenant.rent_due_day')&&<SelectField label="Ημέρα πληρωμής" value={form.rent_due_day} onChange={v=>sf('rent_due_day',v)} options={Array.from({length:28},(_,i)=>({value:String(i+1),label:`${i+1}η`}))}/>}
             </div>
             <div style={{ marginBottom:16 }}><Why id="tenant.rent_due_day"/></div>
             {show('tenant.rent_iban')&&(
@@ -2615,7 +2615,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             <SectionTitle>Εγγύηση</SectionTitle>
             {show('tenant.deposit')&&(
               <div style={{ ...s.g3, marginBottom:6 }}>
-                <NumberInput label="Ποσό Εγγύησης" value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
+                <NumberInput label="Ποσό εγγύησης" value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
               </div>
             )}
             <Why id="tenant.deposit"/>
@@ -2649,7 +2649,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             <SectionTitle>Μισθωτήριο και λοιπά έγγραφα</SectionTitle>
             <div style={{ marginBottom:12 }}><Why id="tenant.lease_doc"/></div>
             <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20 }}>
-              <TextInput label="Εξωτερικός Σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="https://drive.google.com/..."/>
+              <TextInput label="Εξωτερικός σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="https://drive.google.com/..."/>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:14, flexWrap:'wrap' as const }}>
                 <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
                   {docBusy?'Ανέβασμα…':'Ανέβασμα αρχείου'}
@@ -2685,7 +2685,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
                     {more('tenant.email')&&(
                       <div style={{ marginBottom:16 }}>
-                        <TextInput label="Ηλεκτρονικό Ταχυδρομείο" value={form.email} onChange={v=>sf('email',v)} type="email"/>
+                        <TextInput label="Ηλεκτρονικό ταχυδρομείο" value={form.email} onChange={v=>sf('email',v)} type="email"/>
                         <Why id="tenant.email"/>
                       </div>
                     )}
@@ -2703,15 +2703,15 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     )}
                     {more('tenant.payment_frequency')&&(
                       <div style={{ marginBottom:16 }}>
-                        <SelectField label="Συχνότητα Εξόφλησης" value={form.payment_frequency} onChange={v=>sf('payment_frequency',v)} options={[{value:'monthly',label:'Μηνιαία'},{value:'bimonthly',label:'Διμηνιαία'},{value:'quarterly',label:'Τριμηνιαία'}]}/>
+                        <SelectField label="Συχνότητα εξόφλησης" value={form.payment_frequency} onChange={v=>sf('payment_frequency',v)} options={[{value:'monthly',label:'Μηνιαία'},{value:'bimonthly',label:'Διμηνιαία'},{value:'quarterly',label:'Τριμηνιαία'}]}/>
                         <Why id="tenant.payment_frequency"/>
                       </div>
                     )}
                     {more('tenant.id_doc')&&(
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
-                          <SelectField label="Τύπος Εγγράφου Ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
-                          <TextInput label="Αριθμός Εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
+                          <SelectField label="Τύπος εγγράφου ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
+                          <TextInput label="Αριθμός εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
                         </div>
                         <Why id="tenant.id_doc"/>
                         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'14px 16px', marginTop:12 }}>
@@ -2738,8 +2738,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     {(more('tenant.deposit_method')||more('tenant.deposit_paid_on'))&&(
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
-                          {more('tenant.deposit_method')&&<SelectField label="Τρόπος Καταβολής Εγγύησης" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>}
-                          {more('tenant.deposit_paid_on')&&<DateField label="Ημερομηνία Καταβολής Εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
+                          {more('tenant.deposit_method')&&<SelectField label="Τρόπος καταβολής εγγύησης" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>}
+                          {more('tenant.deposit_paid_on')&&<DateField label="Ημερομηνία καταβολής εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
                         </div>
                         <Why id="tenant.deposit_method"/>
                       </div>
@@ -2748,7 +2748,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
                           <div><div style={{ ...labelStyle, marginBottom:8 }}>Επεστράφη η εγγύηση</div><Toggle on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)} label="Ναι" labelOff="Όχι"/></div>
-                          {form.deposit_returned&&<DateField label="Ημερομηνία Επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
+                          {form.deposit_returned&&<DateField label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
                         </div>
                         <Why id="tenant.deposit_returned"/>
                       </div>
@@ -2758,14 +2758,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                         <div style={{ ...s.g3, marginBottom:6 }}>
                           <div><div style={{ ...labelStyle, marginBottom:8 }}>Περιλαμβάνεται στο ενοίκιο</div><Toggle on={form.parking_included} onChange={v=>sf('parking_included',v)} label="Ναι" labelOff="Όχι"/></div>
                           <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρεώνεται ξεχωριστά</div><Toggle on={form.parking_extra} onChange={v=>sf('parking_extra',v)} label="Ναι" labelOff="Όχι"/></div>
-                          {form.parking_extra&&<NumberInput label="Μηνιαία Τιμή Στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
+                          {form.parking_extra&&<NumberInput label="Μηνιαία τιμή στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
                         </div>
                         <Why id="tenant.parking"/>
                       </div>
                     )}
                     {more('tenant.extra_perks')&&(
                       <div style={{ marginBottom:16 }}>
-                        <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Παράδειγμα: Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
+                        <Textarea label="Επιπλέον παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Παράδειγμα: Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
                         <Why id="tenant.extra_perks"/>
                       </div>
                     )}

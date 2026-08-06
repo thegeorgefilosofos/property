@@ -1623,7 +1623,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
       {preferred.length > 0 && (
         <div style={{ marginBottom: 22, padding: '16px 20px', background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)' }}>
-          <SecHdr label="Γρήγορη Πρόσβαση" />
+          <SecHdr label="Γρήγορη πρόσβαση" />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {preferred.map(c => {
               const meta = ROLE_META[c.role] || { groupColor: 'var(--text-tertiary)', label: c.role, GroupIcon: Users }

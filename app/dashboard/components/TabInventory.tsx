@@ -927,7 +927,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
             ))}
           </div>
         )}
-        <SectionLabel label="Νέα Επισκευή"/>
+        <SectionLabel label="Νέα επισκευή"/>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
           <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={form.repair_date} onChange={v=>setForm(f=>({...f,repair_date:v}))}/></div>
           <div><label style={labelStyle}>Κόστος (€)</label><NumberInput value={String(form.cost)} onChange={v=>setForm(f=>({...f,cost:parseFloat(v)||0}))} suffix="€" min={0}/></div>
@@ -1513,7 +1513,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
         <div><label style={labelStyle}>Σημειώσεις</label><TextInput value={notes} onChange={setNotes} placeholder="Γενικές παρατηρήσεις…"/></div>
       </div>
       <div>
-        <SectionLabel label="Κατάσταση Αντικειμένων" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{items.length} αντικείμενα</span>}/>
+        <SectionLabel label="Κατάσταση αντικειμένων" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{items.length} αντικείμενα</span>}/>
         <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'-4px 0 10px',lineHeight:1.5}}>Πάτησε τη μικρογραφία για να τραβήξεις <strong style={{color:'var(--text-secondary)'}}>φωτογραφία της τρέχουσας κατάστασης</strong>, χρονοσφραγίζεται και μπαίνει στο εκτυπώσιμο πρωτόκολλο ως απόδειξη.</p>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {items.map(item=>(
@@ -2099,7 +2099,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
 
       {!embedded && <PageTitle
-        title="Έπιπλα / Εξοπλισμός"
+        title="Έπιπλα και εξοπλισμός"
         sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
         right={<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
           <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>

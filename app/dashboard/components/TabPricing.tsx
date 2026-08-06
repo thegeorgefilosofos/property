@@ -379,7 +379,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
       {/* Ρυθμίσεις (τυποποιημένα πεδία, αποθηκεύονται αυτόματα) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, margin: '18px 0 6px' }}>
-        <NumberInput label="Βασική τιμή / νύχτα" value={base ? String(base) : ''} onChange={v => mark(setBase)(Number(v) || 0)} suffix="€" />
+        <NumberInput label="Βασική τιμή ανά νύχτα" value={base ? String(base) : ''} onChange={v => mark(setBase)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Κατώτατο όριο" value={min ? String(min) : ''} onChange={v => mark(setMin)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Ανώτατο όριο" value={max ? String(max) : ''} onChange={v => mark(setMax)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Premium Σαββατοκύριακου" value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
@@ -422,7 +422,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10, marginBottom: 12 }}>
                   {[0, 1, 2, 3].map(i => (
-                    <NumberInput key={i} label={`Ανταγωνιστής ${i + 1}`} value={comps[i] || ''} onChange={v => setComp(i, v)} suffix="€" step={5} placeholder="—" />
+                    <NumberInput key={i} label={`Ανταγωνιστής ${i + 1}`} value={comps[i] || ''} onChange={v => setComp(i, v)} suffix="€" step={5} placeholder="0,00" />
                   ))}
                 </div>
                 {compBase > 0 ? (

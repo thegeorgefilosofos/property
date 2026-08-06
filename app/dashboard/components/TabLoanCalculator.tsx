@@ -898,7 +898,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',gap:12}}>
             <CustomSelect label="Τύπος ακινήτου" value={propType} onChange={v=>{setPropType(v);setActivePreset(null)}} options={PROP_TYPE_OPTIONS}/>
             <CustomSelect label="Περιοχή" value={area} onChange={v=>{setArea(v);setActivePreset(null)}} options={AREA_OPTIONS}/>
-            <NumberInput label="Τιμή αγοράς (€)" value={propValue} onChange={v=>{setPropValue(v);setActivePreset(null)}} suffix="€"/>
+            <NumberInput label="Τιμή αγοράς" value={propValue} onChange={v=>{setPropValue(v);setActivePreset(null)}} suffix="€"/>
             <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)" value={sqm} onChange={v=>{setSqm(v);setActivePreset(null)}} suffix="τ.μ."/>
             <CustomSelect label="Σκοπός δανείου" labelInfo={LOAN_TYPES[loanType].tax_note?<InfoDot text={LOAN_TYPES[loanType].tax_note}/>:undefined} value={loanType} onChange={v=>{setLoanType(v as LoanType);setActivePreset(null)}} options={LOAN_TYPE_OPTIONS}/>
             <CustomSelect label="Τύπος δανειολήπτη" labelInfo={<InfoDot text={[BORROWER_PROFILES[borrower].tax_benefits,BORROWER_PROFILES[borrower].special].filter(Boolean).join(' · ')}/>} value={borrower} onChange={v=>{setBorrower(v as BorrowerType);setActivePreset(null)}} options={borrowerOptions}/>
@@ -933,7 +933,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',gap:12,alignItems:'start'}}>
             <div>
-              <NumberInput label="Ποσό δανείου (€)" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
+              <NumberInput label="Ποσό δανείου" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>
                 <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Δάνειο προς αξία {fp(ltv, 1)}</span>
                 <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>Ίδια κεφάλαια: {fmtEur(PV-LA)}</span>
@@ -957,7 +957,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               )}
             </div>
             <div>
-              <NumberInput label="Έκτακτη μηνιαία πληρωμή (€)" value={extraPay} onChange={setExtraPay} suffix="€" placeholder="0"/>
+              <NumberInput label="Έκτακτη μηνιαία πληρωμή" value={extraPay} onChange={setExtraPay} suffix="€" placeholder="0"/>
               {extraSav&&EP>0&&(
                 <div style={{marginTop:6,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
                   <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Εξοικονομείς {Math.round(extraSav.savedMonths/12)} χρόνια και {fmtEur(extraSav.savedInt)} τόκους</p>
@@ -1202,7 +1202,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         const aff = affordability({ incomeMonthly:INC, firstHome, desiredAmount:LA, ratePct:effRate, years:Y })
         return (
       <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος" defaultOpen>
-        <div style={{marginBottom:16}}><NumberInput label="Μηνιαίο καθαρό εισόδημα (€)" value={income} onChange={setIncome} suffix="€"/></div>
+        <div style={{marginBottom:16}}><NumberInput label="Μηνιαίο καθαρό εισόδημα" value={income} onChange={setIncome} suffix="€"/></div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,marginBottom:16}}>
           {[
             {k:'Μέγιστη δόση τον μήνα',v:fmtEur(aff.maxMonthly),s:`${Math.round(aff.limitPct*100)}% του εισοδήματος${firstHome?', πρώτη κατοικία':''}`,accent:false,neg:false},
@@ -1264,7 +1264,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         const buys = rvb.advantageAtHorizon>0
         return (
       <Section title="Ενοικίαση ή αγορά" sub={`Σύγκριση συνολικού κόστους σε ${horizon} έτη`}>
-        <div style={{marginBottom:6,maxWidth:280}}><NumberInput label="Μηνιαίο ενοίκιο αντίστοιχου ακινήτου (€)" value={rentShown} onChange={v=>{setMonthlyRent(v);setRentTouched(true)}} suffix="€"/></div>
+        <div style={{marginBottom:6,maxWidth:280}}><NumberInput label="Μηνιαίο ενοίκιο αντίστοιχου ακινήτου" value={rentShown} onChange={v=>{setMonthlyRent(v);setRentTouched(true)}} suffix="€"/></div>
         <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:12,lineHeight:1.55,fontFamily: T.font.sans}}>
           {rentTouched ? 'Δική σου υπόθεση.' : rentAssumptionText}
           {rentTouched && <> <button type="button" onClick={()=>{setMonthlyRent('');setRentTouched(false)}} style={{border:'none',background:'none',padding:0,color:'var(--accent)',fontSize:11,fontFamily: T.font.sans,fontWeight:600,cursor:'pointer',textDecoration:'underline'}}>Επαναφορά στο τεκμηριωμένο ({fmtEur(rentRef.monthly)})</button></>}
@@ -1374,11 +1374,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
       <Section title="Ανάλυση αναχρηματοδότησης" sub="Σημείο απόσβεσης, πότε αξίζει η μεταφορά">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginBottom:14}}>
-          <NumberInput label="Υπόλοιπο (€)" value={remBal} onChange={setRemBal} suffix="€"/>
+          <NumberInput label="Υπόλοιπο" value={remBal} onChange={setRemBal} suffix="€"/>
           <NumberInput label="Χρόνια που μένουν" value={remYears} onChange={setRemYears} suffix="έτη"/>
-          <NumberInput label="Τρέχον επιτόκιο (%)" value={curRate} onChange={setCurRate} suffix="%" step={0.05}/>
-          <NumberInput label="Νέο επιτόκιο (%)" value={newRate} onChange={setNewRate} suffix="%" step={0.05}/>
-          <NumberInput label="Κόστος μεταφοράς (€)" value={xferCost} onChange={setXferCost} suffix="€"/>
+          <NumberInput label="Τρέχον επιτόκιο" value={curRate} onChange={setCurRate} suffix="%" step={0.05}/>
+          <NumberInput label="Νέο επιτόκιο" value={newRate} onChange={setNewRate} suffix="%" step={0.05}/>
+          <NumberInput label="Κόστος μεταφοράς" value={xferCost} onChange={setXferCost} suffix="€"/>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
           <KPI label="Τρέχουσα δόση" value={fmtEur(currM)}/>

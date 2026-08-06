@@ -330,7 +330,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 14 }}>
         <KPICard label="Μέσος όρος τον μήνα" value={fmtEur(stats.avgMonthly)} hint={`σε ${stats.monthsWithData} ${stats.monthsWithData === 1 ? 'μήνα' : 'μήνες'} με κινήσεις`} />
         <KPICard label="Πρόβλεψη έτους" value={fmtEur(stats.projectedAnnual)} hint="με βάση τον ρυθμό σου" />
-        <KPICard label="Πάγιες / επαναλαμβανόμενες" value={fmtEur(stats.recurringTotal)} />
+        <KPICard label="Πάγιες και επαναλαμβανόμενες" value={fmtEur(stats.recurringTotal)} />
         <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} positive={stats.totalSavings > 0} hint={stats.totalSavings > 0 ? 'επιστροφές και εκπτώσεις' : undefined} />
         {stats.topCat && <KPICard label="Μεγαλύτερη κατηγορία" value={stats.topCat[0]} hint={fmtEur(stats.topCat[1])} />}
       </div>

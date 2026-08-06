@@ -504,7 +504,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 </Field>
               </div>
               <Field label="ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)">
-                <input style={monoInputStyle} value={atak} onChange={e => setAtak(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 ψηφία, από το Ε9 / περιουσιολόγιο" onFocus={onFocus} onBlur={onBlur} />
+                <input style={monoInputStyle} value={atak} onChange={e => setAtak(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 ψηφία, από το Ε9 ή το περιουσιολόγιο" onFocus={onFocus} onBlur={onBlur} />
               </Field>
               {isLandLike ? (
                 <Field label={sqmLabel}>
@@ -520,7 +520,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                       <CustomSelect value={floor} onChange={setFloor} placeholder="Επίλεξε"
                         options={FLOOR_OPTS.map(f => ({ value: f, label: f }))} />
                     </Field>
-                    <Field label="Έτος Κατασκευής">
+                    <Field label="Έτος κατασκευής">
                       <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
                     </Field>
                   </div>
@@ -529,11 +529,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                       <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε"
                         options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />
                     </Field>
-                    <Field label="Τύπος Θέρμανσης">
+                    <Field label="Τύπος θέρμανσης">
                       <CustomSelect value={heating} onChange={setHeating} placeholder="Επίλεξε"
                         options={HEATING_OPTS.map(([v, l]) => ({ value: v, label: l }))} />
                     </Field>
-                    <Field label="Θέσεις Στάθμευσης">
+                    <Field label="Θέσεις στάθμευσης">
                       <input style={monoInputStyle} type="number" value={parking} onChange={e => setParking(e.target.value)} placeholder="1" onFocus={onFocus} onBlur={onBlur} />
                     </Field>
                   </div>
@@ -565,7 +565,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <Field label="Τιμή Αγοράς (€)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
-                <Field label="Ημερομηνία Αγοράς">
+                <Field label="Ημερομηνία αγοράς">
                   <DatePicker value={purchaseDate} onChange={setPurchaseDate} />
                 </Field>
 
@@ -675,7 +675,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <Field label="Διαχειριστής">
                     <input style={inputStyle} value={settings.property_manager} onChange={setSf('property_manager')} onFocus={onFocus} onBlur={onBlur} />
                   </Field>
-                  <Field label="Τηλέφωνο Διαχειριστή">
+                  <Field label="Τηλέφωνο διαχειριστή">
                     <input style={inputStyle} value={settings.property_manager_phone} onChange={setSf('property_manager_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
                   </Field>
                   <Field label="Ασφαλιστική">
@@ -685,7 +685,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     <input style={inputStyle} value={settings.insurance_policy} onChange={setSf('insurance_policy')} onFocus={onFocus} onBlur={onBlur} />
                   </Field>
                 </div>
-                <Field label="Λήξη Ασφάλισης">
+                <Field label="Λήξη ασφάλισης">
                   <DatePicker value={settings.insurance_expiry} onChange={v => setSettings(p => ({ ...p, insurance_expiry: v }))} />
                 </Field>
               </div>

@@ -198,7 +198,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
   XLSX.utils.book_append_sheet(wb, ws1, 'Σύνοψη');
 
-  const headers2 = ['Κατηγορία','Ονομασία / Πάροχος','Ποσό (€)','ΦΠΑ %','Περίοδος','Ημερομηνία Λήξης','Τύπος','Κατάσταση','Ημέρες έως Λήξη','Κατανάλωση (kWh)','Σημειώσεις'];
+  const headers2 = ['Κατηγορία','Ονομασία ή πάροχος','Ποσό (€)','ΦΠΑ %','Περίοδος','Ημερομηνία Λήξης','Τύπος','Κατάσταση','Ημέρες έως Λήξη','Κατανάλωση (kWh)','Σημειώσεις'];
   const detailRows: (string | number | null | undefined)[][] = [headers2, ...bills
     .sort((a, b) => {
       const ad = a.due_date ? new Date(a.due_date).getTime() : 9e12;
@@ -230,7 +230,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     ['ΕΚΚΡΕΜΕΙΣ & ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ', null, null, null, null, null],
     [`${pending.length} εκκρεμείς · ${overdue.length} ληξιπρόθεσμοι · Εξαγωγή: ${today}`, null, null, null, null, null],
     [''],
-    ['Κατάσταση', 'Κατηγορία', 'Ονομασία / Πάροχος', 'Ποσό (€)', 'Ημερομηνία Λήξης', 'Ημέρες έως Λήξη'],
+    ['Κατάσταση', 'Κατηγορία', 'Ονομασία ή πάροχος', 'Ποσό (€)', 'Ημερομηνία Λήξης', 'Ημέρες έως Λήξη'],
     ...pending
       .sort((a, b) => {
         const ad = a.due_date ? new Date(a.due_date).getTime() : 0;
@@ -260,7 +260,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
       ['ΠΑΓΙΑ ΚΟΣΤΗ, ΜΗΝΙΑΙΕΣ ΔΑΠΑΝΕΣ', null, null, null, null],
       [`Ακίνητο: ${propertyName} · Σύνολο: ${fe(totalM, 2)} / μήνα`, null, null, null, null],
       [''],
-      ['Κατηγορία', 'Ονομασία / Πάροχος', 'Μηνιαίο (€)', 'Ετήσιο (€)', '% Συνόλου'],
+      ['Κατηγορία', 'Ονομασία ή πάροχος', 'Μηνιαίο (€)', 'Ετήσιο (€)', '% Συνόλου'],
       ...recurring
         .sort((a, b) => b.amount - a.amount)
         .map(b => [
@@ -645,9 +645,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 18, fontFamily: T.font.sans }}>Νέος Λογαριασμός / Πάγιο</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2fr 1fr 1.4fr', gap: 10, marginBottom: 12 }}>
-            <CustomSelect label="Κατηγορία Λογαριασμού" value={form.category} onChange={v => sf('category', v)} options={CAT_OPTIONS}/>
-            <TextInput label="Ονομασία / Πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="Παράδειγμα: ΔΕΗ Πράσινο Ιουνίου"/>
-            <NumberInput label="Ποσό (€)" value={form.amount} onChange={v => sf('amount', v)} suffix="€" step={1}/>
+            <CustomSelect label="Κατηγορία λογαριασμού" value={form.category} onChange={v => sf('category', v)} options={CAT_OPTIONS}/>
+            <TextInput label="Ονομασία ή πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="Παράδειγμα: ΔΕΗ Πράσινο Ιουνίου"/>
+            <NumberInput label="Ποσό" value={form.amount} onChange={v => sf('amount', v)} suffix="€" step={1}/>
             <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate', v)} options={VAT_OPTIONS}/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: form.period === 'custom' ? '1fr 1fr 1fr auto 1fr' : '1fr 1fr auto 1fr', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
@@ -656,12 +656,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               if (v !== 'custom') sf('date_from', '');
             }} options={PERIOD_OPTIONS}/>
             {form.period === 'custom' ? (
-              <DatePicker label="Ημερομηνία Έναρξης" value={form.date_from} onChange={v => sf('date_from', v)}/>
+              <DatePicker label="Ημερομηνία έναρξης" value={form.date_from} onChange={v => sf('date_from', v)}/>
             ) : (
-              <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
+              <DatePicker label="Ημερομηνία λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
             )}
             {form.period === 'custom' && (
-              <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
+              <DatePicker label="Ημερομηνία λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
             )}
             <div style={{ paddingTop: 22 }}><Toggle on={form.recurring} onChange={v => sf('recurring', v)} label="Πάγιο" labelOff="Εφάπαξ"/></div>
             <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="Παράδειγμα: δόση…"/>
@@ -670,18 +670,18 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Λεπτομέρειες Ρεύματος</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 10 }}>
-                <NumberInput label="Κατανάλωση (kWh)" value={(form as any)['kwh']}         onChange={v => sf('kwh', v)}         suffix="kWh" step={0.01}/>
-                <NumberInput label="ΕΡΤ (€)"           value={(form as any)['ert']}         onChange={v => sf('ert', v)}         suffix="€"   step={0.01}/>
+                <NumberInput label="Κατανάλωση" value={(form as any)['kwh']}         onChange={v => sf('kwh', v)}         suffix="kWh" step={0.01}/>
+                <NumberInput label="ΕΡΤ"           value={(form as any)['ert']}         onChange={v => sf('ert', v)}         suffix="€"   step={0.01}/>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                <NumberInput label="ΕΤΜΕΑΡ (€)"        value={(form as any)['etmear']}      onChange={v => sf('etmear', v)}      suffix="€"   step={0.01}/>
-                <NumberInput label="Δημοτικά Τέλη (€)"      value={(form as any)['dimotika_amt']} onChange={v => sf('dimotika_amt', v)} suffix="€"  step={0.01}/>
+                <NumberInput label="ΕΤΜΕΑΡ"        value={(form as any)['etmear']}      onChange={v => sf('etmear', v)}      suffix="€"   step={0.01}/>
+                <NumberInput label="Δημοτικά τέλη"      value={(form as any)['dimotika_amt']} onChange={v => sf('dimotika_amt', v)} suffix="€"  step={0.01}/>
               </div>
             </div>
           )}
           {/* Διαμοιρασμός λογαριασμού — ίδιο μοντέλο με τις δαπάνες */}
           <div style={{ display: 'grid', gridTemplateColumns: SHARED_SCOPES.has(form.paid_by) ? '1.4fr 1fr 2fr' : '1.4fr', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
-            <CustomSelect label="Πληρώνει / Διαμοιρασμός" value={form.paid_by} onChange={v => sf('paid_by', v)} options={PAID_BY_OPTIONS}/>
+            <CustomSelect label="Ποιος πληρώνει" value={form.paid_by} onChange={v => sf('paid_by', v)} options={PAID_BY_OPTIONS}/>
             {SHARED_SCOPES.has(form.paid_by) && <>
               <NumberInput label="Το μερίδιό μου" value={form.share_percent} onChange={v => sf('share_percent', v)} placeholder="50" suffix="%" step={1} max={100}/>
               <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note', v)} placeholder="Παράδειγμα: συνιδιοκτήτης, ενοικιαστής"/>

@@ -1161,7 +1161,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     <KPI label="Έσοδα μήνα" value={feAuto(income, 0)} />
                     <KPI label="Από την αρχή έτους" value={feAuto(incomeYtd, 0)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
                     <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
-                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? feAuto(Math.round(income / strNights), 0) : fe(0)} />
+                    <KPI label="Μέση τιμή ανά βραδιά" value={strNights > 0 ? feAuto(Math.round(income / strNights), 0) : fe(0)} />
                   </>
                 ) : (
                   <>
@@ -1267,7 +1267,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {/* Ο μήνας — μετρικές + πρόοδος σε ΕΝΑ πλαίσιο (χωρίς διπλότυπη κάρτα «Σύνολο») */}
       <div className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: 12 }}>
-          <KPI label="Στόχος / μήνα" value={feAuto(masterBudget, 0)} />
+          <KPI label="Στόχος τον μήνα" value={feAuto(masterBudget, 0)} />
           <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={feAuto(viewActualTotal, 0)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
           {isCurMonth
             ? <KPI label="Πρόβλεψη μήνα" value={feAuto(forecastTotal, 0)} />
