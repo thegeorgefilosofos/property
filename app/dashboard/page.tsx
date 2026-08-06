@@ -412,7 +412,6 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   // επιστρέφει το ερώτημα.
   const [loans, setLoans] = useState<LoanView[]>([]);
   const [hostStays, setHostStays] = useState<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }[]>([]);
-  const [contactCount, setContactCount] = useState(0);   // πλήθος επαφών (για το πλακίδιο-σύνοψη)
   const [docCount, setDocCount] = useState(0);           // πλήθος εγγράφων στο αρχείο
   // Το ΤΑΜΕΙΟ: περίοδοι ενοικίου και συντηρήσεις εξοπλισμού. Διαβάζονται ΕΔΩ και
   // όχι σε δικό τους panel, γιατί τροφοδοτούν την ΕΝΙΑΙΑ λίστα «τι χρειάζεται
@@ -428,7 +427,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ count:cCount },{ count:dCount },{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
+    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ count:dCount },{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
@@ -441,7 +440,6 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
       // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
       supabase.from('expenses').select('amount,date,category,is_recurring,recurring_frequency').eq('property_id',prop.id).eq('user_id',userId),
       // Μόνο πλήθη (head) για τα πλακίδια-σύνοψη Επαφές / Αρχείο.
-      supabase.from('contacts').select('id',{count:'exact',head:true}).eq('property_id',prop.id),
       supabase.from('property_documents').select('id',{count:'exact',head:true}).eq('property_id',prop.id),
       // ΟΛΟ το χαρτοφυλάκιο: ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ (Ε1),
       // οπότε δεν αρκούν τα δεδομένα του επιλεγμένου ακινήτου. Ίδια σειρά
@@ -456,7 +454,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses(allExp||[]);
-    setContactCount(cCount||0); setDocCount(dCount||0);
+    setDocCount(dCount||0);
     const rcById = new Map((allRc||[]).map((r:any)=>[r.property_id, r]));
     const tenById = new Map<string,number>();
     (allTen||[]).forEach((t:any)=>{ const v = Number(t.monthly_rent)||0; if (v > (tenById.get(t.property_id)||0)) tenById.set(t.property_id, v); });
@@ -956,7 +954,6 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
       {profileType==='individual' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
         <ToolTile title="Εκκρεμότητες" metric={openChk ? `${openChk} ανοιχτές` : 'Καμία εκκρεμότητα'} sub="Εργασίες, προθεσμίες, παραδόσεις" badge={chkAttention} onOpen={() => onNavigate('checklist')} />
-        <ToolTile title="Επαφές" metric={contactCount ? `${contactCount} ${contactCount === 1 ? 'επαφή' : 'επαφές'}` : 'Πρόσθεσε επαφές'} sub="Πάροχοι, τράπεζες, τεχνικοί" onOpen={() => onNavigate('contacts')} />
         <ToolTile title="Αρχείο" metric={docCount ? `${docCount} ${docCount === 1 ? 'έγγραφο' : 'έγγραφα'}` : 'Ανέβασε έγγραφα'} sub="Συμβόλαια, λογαριασμοί, φωτογραφίες" onOpen={() => onNavigate('documents')} />
         <ToolTile title="Απογραφή" metric={inv.length ? `${inv.length} ${inv.length === 1 ? 'αντικείμενο' : 'αντικείμενα'}` : 'Κατέγραψε εξοπλισμό'} sub="Εξοπλισμός, εγγυήσεις, αποσβέσεις" badge={warrantySoon.length} onOpen={() => onNavigate('inventory')} />
       </div>
@@ -1490,9 +1487,11 @@ export default function Dashboard() {
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
           {NAV_GROUPS.map((group,gi) => {
-            // Χωρίς διπλότυπα: τα εργαλεία (Απογραφή/Αρχείο/Εκκρεμότητες/Επαφές) είναι
-            // δωρεάν και στα δύο προφίλ· εμφανίζονται όμως σε ΕΝΑ σημείο ανά προφίλ —
-            // στον Ιδιώτη μέσα στην Επισκόπηση, στον Επαγγελματία στην πλαϊνή μπάρα.
+            // Χωρίς διπλότυπα: τα εργαλεία (Απογραφή/Αρχείο/Εκκρεμότητες) είναι δωρεάν
+            // και στα δύο προφίλ· εμφανίζονται όμως σε ΕΝΑ σημείο ανά προφίλ — στον
+            // Ιδιώτη μέσα στην Επισκόπηση, στον Επαγγελματία στην πλαϊνή μπάρα.
+            // Οι Επαφές δεν αναφέρονται εδώ γιατί ΔΕΝ είναι εργαλείο του μενού:
+            // αποδίδονται ως ενότητα μέσα στο Αρχείο, όπου και ανήκουν.
             if (group.label==='Εργαλεία' && effProfileType!=='professional') return null;
             // ΤΡΙΑ ΦΙΛΤΡΑ, ΤΡΕΙΣ ΔΙΑΦΟΡΕΤΙΚΕΣ ΕΡΩΤΗΣΕΙΣ:
             //   1. Θα το φτάσει ποτέ με πλάνο του προφίλ του; (αλλιώς ούτε λουκέτο)
