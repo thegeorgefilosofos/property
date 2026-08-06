@@ -225,7 +225,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const initAmount = propertyValue && propertyValue > 0 ? Math.round(propertyValue * 0.8) : 150000
   // Ενοποιημένη ροή: ένας υπολογιστής στην κορυφή + έξυπνες πτυσσόμενες ενότητες.
   // Μία ανοιχτή τη φορά, ώστε να παραμένει καθαρό — όχι «σούπερ μάρκετ» με καρτέλες.
-  const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'|'guide'>('advisor')
+  const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'>('advisor')
   // Το προφίλ ακολουθεί την καθολική ρύθμιση της εφαρμογής (Ρυθμίσεις → τύπος
   // προφίλ). ΜΙΑ πηγή αλήθειας — χωρίς διπλό διακόπτη μέσα στην καρτέλα.
   const profile: 'individual'|'business' = profileType==='professional' ? 'business' : 'individual'
@@ -657,11 +657,22 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
       </div>
 
       {/* ═══ COCKPIT: εναλλαγή φακών επί τόπου — ένα πάνελ τη φορά ═══ */}
+      {/* ΤΡΕΙΣ ΦΑΚΟΙ, ΟΧΙ ΤΕΣΣΕΡΙΣ.
+          Η «Σύσταση» και το «Μάθε περισσότερα» ήταν και τα δύο συμβουλευτική,
+          χωρισμένη σε δύο προορισμούς: στον πρώτο η ανάλυση του δικού σου
+          σεναρίου, στον δεύτερο επτά ενότητες αναφοράς (γλωσσάρι, πώς
+          λειτουργεί ένα στεγαστικό, γιατί απορρίπτεται μια αίτηση, ιστορικό
+          Euribor, επίσημες πηγές). Ο χρήστης δεν έχει τρόπο να ξέρει σε ποιον
+          από τους δύο ζει η απάντησή του — και το «Πώς λειτουργεί» έβγαινε από
+          τον έναν και συνεχιζόταν στον άλλο.
+
+          Τώρα είναι μία «Συμβουλευτική»: πρώτα η ανάλυση του σεναρίου σου, μετά
+          η γνώση. Τα «Τράπεζες» και «Προγράμματα» μένουν χωριστά γιατί είναι
+          ΔΕΔΟΜΕΝΑ (επιτόκια, κρατικά προγράμματα), όχι συμβουλή. */}
       <LensBar value={openSec} onChange={v=>setOpenSec(v as any)} items={[
-        {id:'advisor',label:'Σύσταση'},
+        {id:'advisor',label:'Συμβουλευτική'},
         {id:'banks',label:'Τράπεζες'},
         {id:'programs',label:'Προγράμματα'},
-        {id:'guide',label:'Μάθε περισσότερα'},
       ]}/>
 
       {/* ═══ ΣΥΓΚΡΙΣΗ ΤΡΑΠΕΖΩΝ ═══ */}
@@ -888,7 +899,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
       </LensPanel>)}
 
       {/* ═══ ΣΥΣΤΑΣΗ ΚΑΙ ΑΝΑΛΥΣΗ ═══ */}
-      {openSec==='advisor' && (<LensPanel title="Σύσταση και ανάλυση δανείου" subtitle={`Βάσει ${fmtEur(LA)} / ${Y} χρόνια · από τον Υπολογιστή`}>
+      {openSec==='advisor' && (<LensPanel title="Συμβουλευτική δανείου" subtitle={`Βάσει ${fmtEur(LA)} / ${Y} χρόνια · από τον Υπολογιστή`}>
         <LoanDocScan
           banks={BANKS}
           euribor={market.euribor_3m || MARKET_FALLBACK.euribor_3m}
@@ -1305,11 +1316,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           </div>
         )
       })()}
-      </LensPanel>)}
 
-      {/* ═══ ΟΔΗΓΟΣ ΚΑΙ ΔΙΑΔΙΚΑΣΙΑ ═══ */}
-      {openSec==='guide' && (<LensPanel title="Μάθε περισσότερα" subtitle="Διαδικασία, διαχειριστές και κόκκινα δάνεια, απορρίψεις, γλωσσάρι, πηγές">
-        {openSec==='guide'&&(
+          {/* ── Η ΓΝΩΣΗ, ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΝΑΛΥΣΗ ──────────────────────────────────
+              Ήταν χωριστός φακός «Μάθε περισσότερα». Ο χρήστης έπρεπε να
+              μαντέψει σε ποιον από τους δύο ζει η απάντησή του, και το «Πώς
+              λειτουργεί ένα στεγαστικό δάνειο» ξεκινούσε στον έναν και
+              συνεχιζόταν στον άλλο. Τώρα είναι η δεύτερη μισή της ίδιας
+              σελίδας: πρώτα τι ισχύει για ΕΣΕΝΑ, μετά τι ισχύει γενικά. */}
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           {/* Προσαρμοζόμενος τόνος ανά προφίλ — καθοδήγηση για ιδιώτες, ανάλυση για επαγγελματίες */}
           <div style={{padding:'13px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
@@ -1508,8 +1521,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           </MiniSection>
 
         </div>
-        )}
       </LensPanel>)}
+
 
     </div>
   )
