@@ -19,11 +19,11 @@ import {
 // Όλα τα δεδομένα χρήστη περνούν από rEsc() (προστασία από stored-XSS).
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface BillEntry {
-  id: string; category: string; name: string; amount: number;
-  period?: string; due_date?: string; paid: boolean; recurring: boolean;
-  vat_rate?: number; kwh?: number; notes?: string;
-}
+// Δεύτερη χειρόγραφη περιγραφή του ίδιου πίνακα δεν υπάρχει: ο λογαριασμός
+// ΕΙΝΑΙ η γραμμή του `bills`, με τους τύπους που δίνουν τα migrations.
+type BillEntry = BillsRow;
+
+import type { BillsRow } from '@/lib/supabase/tables';
 
 interface BillsData {
   propertyName: string; propertyAddress: string; bills: BillEntry[];
@@ -54,7 +54,10 @@ const CAT: Record<string, string> = {
   other:       'Άλλο',
 };
 
-const catLabel = (v: string) => CAT[v] || v;
+// Η κατηγορία δέχεται κενό στη βάση: τότε ο λογαριασμός είναι «Άλλο», γιατί
+// κάθε λογαριασμός ανήκει κάπου στην εξαγωγή, ακόμη κι όταν κανείς δεν το είπε.
+const OTHER_CAT = 'other';
+const catLabel = (v: string | null) => (v ? CAT[v] || v : CAT[OTHER_CAT] || 'Άλλο');
 const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 const MONTHS_SH   = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -89,9 +92,10 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
     // Κατανομή ανά κατηγορία (πάγια)
     const byCat: Record<string, { label: string; monthly: number; count: number }> = {};
     data.bills.filter(b => b.recurring).forEach(b => {
-      if (!byCat[b.category]) byCat[b.category] = { label: catLabel(b.category), monthly: 0, count: 0 };
-      byCat[b.category].monthly += b.amount;
-      byCat[b.category].count++;
+      const key = b.category || OTHER_CAT;
+      if (!byCat[key]) byCat[key] = { label: catLabel(b.category), monthly: 0, count: 0 };
+      byCat[key].monthly += b.amount;
+      byCat[key].count++;
     });
     const catEntries  = Object.entries(byCat).sort((a, b) => b[1].monthly - a[1].monthly);
     const topCategory = catEntries[0]?.[1] || null;

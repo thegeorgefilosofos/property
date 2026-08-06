@@ -12,6 +12,7 @@ import {
 import { T, fe, Btn, EmptyState, Skeleton, SkeletonKPIs, fp } from '@/components/Theme';
 import { notifyError } from '@/components/toastBus';
 import { saved, savedData } from '@/components/dbWrite';
+import type { BillsRow, BillsHistoryRow } from '@/lib/supabase/tables';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
@@ -29,14 +30,11 @@ const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιο�
 
 const fmtDateGR = (iso: string) => iso ? new Date(iso).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
-interface BillEntry {
-  id: string; property_id?: string; user_id?: string;
-  category: string; name: string; amount: number;
-  vat_rate?: number; period?: string; due_date: string;
-  paid: boolean; recurring: boolean; notes?: string;
-  kwh?: number; ert?: number; etmear?: number; dimotika?: number;
-  created_at?: string;
-}
+// Ο λογαριασμός ΕΙΝΑΙ η γραμμή του πίνακα `bills`, όχι μια δεύτερη περιγραφή
+// της. Η χειρόγραφη εκδοχή που ζούσε εδώ είχε μείνει πίσω κατά τέσσερις στήλες
+// (paid_by, share_percent, share_note, paid_at) — γι' αυτό η οθόνη τις διάβαζε
+// με `(b as any).paid_by`, δηλαδή παρακάμπτοντας τον τύπο που η ίδια όρισε.
+type BillEntry = BillsRow;
 interface Props { propertyId: string; userId: string; propertyName?: string; propertyAddress?: string; }
 
 const CATEGORIES = [
@@ -110,7 +108,29 @@ const PERIOD_OPTIONS = periodOptions(new Date());
 // συνήθως;». Όταν δεν υπάρχει αρκετό ιστορικό, ΔΕΝ δείχνουμε σύγκριση.
 const MIN_MONTHS_FOR_BASELINE = 3;
 
-const cat = (v: string) => CATEGORIES.find(c => c.value === v) || CATEGORIES[CATEGORIES.length - 1];
+// Η στήλη `category` δέχεται κενό στη βάση. Χωρίς αυτό στον τύπο, κάθε κλήση
+// χρειαζόταν `!` ή cast — δηλαδή η υπόσχεση «πάντα υπάρχει» που η βάση δεν δίνει.
+// Η ΑΡΧΙΚΗ ΦΟΡΜΑ, ΜΙΑ ΦΟΡΑ. Ήταν γραμμένη δύο φορές, ολόκληρη: στην αρχική
+// κατάσταση και στο καθάρισμα μετά την αποθήκευση. Ένα πεδίο που προστίθεται
+// στη μία και ξεχνιέται στην άλλη μένει με την παλιά του τιμή στην επόμενη
+// καταχώριση — δηλαδή ο επόμενος λογαριασμός γεννιέται με ξένα στοιχεία.
+const EMPTY_FORM = {
+  category: 'electricity', name: '', amount: '', kwh: '',
+  period: '', date_from: '', due_date: '', recurring: true,
+  notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '',
+  paid_by: 'owner', share_percent: '', share_note: '',
+};
+type BillForm = typeof EMPTY_FORM;
+
+/** Οι τρεις όψεις του γραφήματος, δηλωμένες μία φορά και ως τύπος. */
+const CHART_VIEWS = [
+  { id: 'area',     label: 'Τάση'       },
+  { id: 'bar',      label: 'Μηνιαίο'    },
+  { id: 'category', label: 'Κατηγορίες' },
+] as const;
+type ChartView = typeof CHART_VIEWS[number]['id'];
+
+const cat = (v: string | null) => CATEGORIES.find(c => c.value === v) || CATEGORIES[CATEGORIES.length - 1];
 
 const CatIcon = ({ name, size = 14, color }: { name: string; size?: number; color?: string }) => {
   const icons: Record<string, string> = {
@@ -210,7 +230,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
       const days = b.due_date ? daysUntil(b.due_date) ?? 0 : null;
       return [
         cat(b.category).label,
-        b.name,
+        b.name || cat(b.category).label,
         b.amount,
         b.vat_rate || 0,
         b.period || '',
@@ -243,7 +263,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
         return [
           days !== null && days < 0 ? '⚠ ΛΗΞΙΠΡΟΘΕΣΜΟΣ' : days !== null && days <= 7 ? '! ΛΗΓΕΙ ΣΥΝΤΟΜΑ' : 'Εκκρεμεί',
           cat(b.category).label,
-          b.name,
+          b.name || cat(b.category).label,
           b.amount,
           b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—',
           days !== null ? (days < 0 ? `${Math.abs(days)} ημέρες πριν` : days === 0 ? 'ΣΗΜΕΡΑ' : `σε ${days} ημέρες`) : '—',
@@ -266,7 +286,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
         .sort((a, b) => b.amount - a.amount)
         .map(b => [
           cat(b.category).label,
-          b.name,
+          b.name || cat(b.category).label,
           b.amount,
           b.amount * 12,
           totalM > 0 ? Math.round((b.amount / totalM) * 100) + '%' : '0%',
@@ -301,16 +321,26 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   XLSX.writeFile(wb, filename);
 }
 
-const ChartTooltip = ({ active, payload, label }: any) => {
+// Το recharts δίνει το περιεχόμενο του tooltip ως στοιχείο και το καλεί με
+// δικά του props. Περιγράφονται εδώ όσα ΔΙΑΒΑΖΕΙ αυτό το tooltip, και τίποτα
+// άλλο: μια πλήρης αντιγραφή των τύπων της βιβλιοθήκης θα ήταν τρίτο αντίγραφο
+// που παλιώνει με την επόμενη αναβάθμιση.
+interface ChartTooltipProps {
+  active?: boolean;
+  label?: string | number;
+  payload?: { name?: string; value?: number; color?: string }[];
+}
+
+const ChartTooltip = ({ active, payload, label }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 12, fontFamily: T.font.sans }}>
       <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>{label}</div>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }}/>
           <span style={{ color: 'var(--text-secondary)' }}>{p.name}:</span>
-          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(p.value, 0)}</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(p.value ?? 0, 0)}</span>
         </div>
       ))}
     </div>
@@ -336,14 +366,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   // έπρεπε να διαλέξει καρτέλα «Ρεύμα» — που όμως δεν είχε τους λογαριασμούς
   // του, είχε σύγκριση τιμολογίων. Η κατηγορία είναι φίλτρο, όχι προορισμός.
   const [catFilter, setCatFilter] = useState<string>('all');
-  const [chartView, setChartView] = useState<'area' | 'bar' | 'category'>('area');
-  const [form, setForm] = useState({
-    category: 'electricity', name: '', amount: '', kwh: '',
-    period: '', date_from: '', due_date: '', recurring: true,
-    notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '',
-    paid_by: 'owner', share_percent: '', share_note: '',
-  });
-  const sf = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+  const [chartView, setChartView] = useState<ChartView>('area');
+  const [form, setForm] = useState<BillForm>(EMPTY_FORM);
+  // Η φόρμα είναι ΟΛΗ κείμενο εκτός από δύο διακόπτες: τα ποσά μπαίνουν ως
+// συμβολοσειρές και μετατρέπονται μία φορά, στην αποθήκευση.
+type BillForm = typeof EMPTY_FORM;
+const sf = <K extends keyof BillForm>(k: K, v: BillForm[K]) => setForm(f => ({ ...f, [k]: v }));
 
   const loadBills = useCallback(async () => {
     setLoading(true);
@@ -356,7 +384,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     const { data, error } = await supabase.from('bills_history').select('*').eq('property_id', propertyId).eq('year', currentYear);
     if (!error && data) {
       const h = Object.fromEntries(CATEGORIES.map(c => [c.value, Array(12).fill('')]));
-      data.forEach((row: any) => { if (h[row.category]) h[row.category][row.month] = row.amount > 0 ? String(row.amount) : ''; });
+      (data as BillsHistoryRow[]).forEach(row => { if (row.category && h[row.category]) h[row.category][row.month] = (row.amount ?? 0) > 0 ? String(row.amount) : ''; });
       setHistory(h);
     }
   }, [propertyId, currentYear]);
@@ -431,7 +459,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         }));
       }
     }
-    setForm({ category: 'electricity', name: '', amount: '', kwh: '', period: '', date_from: '', due_date: '', recurring: true, notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '', paid_by: 'owner', share_percent: '', share_note: '' });
+    setForm(EMPTY_FORM);
     setShowForm(false);
     setSaving(false);
   };
@@ -530,7 +558,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     });
 
     const areaData = MONTHS_GR.map((m, i) => {
-      const obj: any = { month: m };
+      const obj: Record<string, string | number> = { month: m };
       CATEGORIES.filter(c => monthlyByCat[c.value]?.some((v: number) => v > 0)).forEach(c => {
         obj[c.label] = monthlyByCat[c.value]?.[i] || 0;
       });
@@ -683,12 +711,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Λεπτομέρειες Ρεύματος</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 10 }}>
-                <NumberInput label="Κατανάλωση" value={(form as any)['kwh']}         onChange={v => sf('kwh', v)}         suffix="kWh" step={0.01}/>
-                <NumberInput label="ΕΡΤ"           value={(form as any)['ert']}         onChange={v => sf('ert', v)}         suffix="€"   step={0.01}/>
+                <NumberInput label="Κατανάλωση" value={form.kwh}         onChange={v => sf('kwh', v)}         suffix="kWh" step={0.01}/>
+                <NumberInput label="ΕΡΤ"           value={form.ert}         onChange={v => sf('ert', v)}         suffix="€"   step={0.01}/>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                <NumberInput label="ΕΤΜΕΑΡ"        value={(form as any)['etmear']}      onChange={v => sf('etmear', v)}      suffix="€"   step={0.01}/>
-                <NumberInput label="Δημοτικά τέλη"      value={(form as any)['dimotika_amt']} onChange={v => sf('dimotika_amt', v)} suffix="€"  step={0.01}/>
+                <NumberInput label="ΕΤΜΕΑΡ"        value={form.etmear}      onChange={v => sf('etmear', v)}      suffix="€"   step={0.01}/>
+                <NumberInput label="Δημοτικά τέλη"      value={form.dimotika_amt} onChange={v => sf('dimotika_amt', v)} suffix="€"  step={0.01}/>
               </div>
             </div>
           )}
@@ -792,7 +820,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                           <span style={{ fontSize: 12, fontWeight: 600, textDecoration: b.paid ? 'line-through' : 'none', color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{b.name}</span>
                           {b.recurring && <span style={{ fontSize: 8, background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', padding: '1px 6px', borderRadius: 3, fontWeight: 600, fontFamily: T.font.sans }}>ΠΑΓΙΟ</span>}
-                          {SHARED_SCOPES.has((b as any).paid_by || '') && <span title={(b as any).share_note ? `Μοιρασμένο με ${(b as any).share_note} · μερίδιό μου ${fe(ownerShareAmount({ amount: b.amount, paid_by: (b as any).paid_by, share_percent: (b as any).share_percent }))}` : 'Μοιρασμένος λογαριασμός'} style={{ fontSize: 8, background: 'var(--bg-overlay)', color: 'var(--text-secondary)', padding: '1px 6px', borderRadius: 3, fontWeight: 600, fontFamily: T.font.sans }}>μοιρασμένο · {(b as any).share_percent != null ? (b as any).share_percent : 50}%</span>}
+                          {SHARED_SCOPES.has(b.paid_by || '') && <span title={b.share_note ? `Μοιρασμένο με ${b.share_note} · μερίδιό μου ${fe(ownerShareAmount({ amount: b.amount, paid_by: b.paid_by, share_percent: b.share_percent }))}` : 'Μοιρασμένος λογαριασμός'} style={{ fontSize: 8, background: 'var(--bg-overlay)', color: 'var(--text-secondary)', padding: '1px 6px', borderRadius: 3, fontWeight: 600, fontFamily: T.font.sans }}>μοιρασμένο · {b.share_percent != null ? b.share_percent : 50}%</span>}
                           <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontWeight: 600, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>{c.label}</span>
                           {b.vat_rate ? <span title="Φόρος Προστιθέμενης Αξίας" style={{ fontSize: 8, color: 'var(--text-tertiary)', background: 'var(--bg-overlay)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>ΦΠΑ {b.vat_rate}%</span> : null}
                         </div>
@@ -825,12 +853,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                             recurring: b.recurring || false,
                             notes: b.notes || '',
                             vat_rate: String(b.vat_rate || '6'),
-                            ert: String((b as any).ert || ''),
+                            ert: String(b.ert || ''),
                             etmear: String(b.etmear || ''),
                             dimotika_amt: String(b.dimotika || ''),
-                            paid_by: (b as any).paid_by || 'owner',
-                            share_percent: String((b as any).share_percent ?? ''),
-                            share_note: (b as any).share_note || '',
+                            paid_by: b.paid_by || 'owner',
+                            share_percent: String(b.share_percent ?? ''),
+                            share_note: b.share_note || '',
                           });
                           setShowForm(true);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -861,8 +889,8 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ανάλυση & Γραφήματα</span>
             <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 3, gap: 2, border: '1px solid var(--border-subtle)' }}>
-              {[{ id: 'area', label: 'Τάση' }, { id: 'bar', label: 'Μηνιαίο' }, { id: 'category', label: 'Κατηγορίες' }].map(v => (
-                <button key={v.id} onClick={() => setChartView(v.id as any)}
+              {CHART_VIEWS.map(v => (
+                <button key={v.id} onClick={() => setChartView(v.id)}
                   style={{ padding: '5px 12px', borderRadius: T.radius.badge + 2, border: 'none', background: chartView === v.id ? 'var(--accent)' : 'transparent', color: chartView === v.id ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 11, fontWeight: chartView === v.id ? 700 : 400, cursor: 'pointer', transition: 'all 0.15s', fontFamily: T.font.sans }}>
                   {v.label}
                 </button>

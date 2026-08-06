@@ -48,7 +48,32 @@ const distinctInsurers = (companyIds: string[]): number =>
   new Set(companyIds.map(c => BRAND_PARENT[c] ?? c)).size;
 
 // ─── Insurance data ────────────────────────────────────────────────────────────
-const INSURANCE_COMPANIES = [
+// ΤΟ ΣΧΗΜΑ ΔΗΛΩΝΕΤΑΙ, ΔΕΝ ΣΥΜΠΕΡΑΙΝΕΤΑΙ. Χωρίς τον τύπο, ο μεταγλωττιστής
+// έβγαζε ένωση από τριάντα διαφορετικά σχήματα αντικειμένου (άλλο πρόγραμμα έχει
+// `covers`, άλλο όχι) και κάθε ανάγνωση πεδίου χρειαζόταν `(p as any)`. Δηλαδή
+// μια ορθογραφία σε όνομα πεδίου περνούσε αθόρυβα και το κελί έμενε κενό.
+interface CatalogPlan {
+  id: string;
+  name: string;
+  /** Ενδεικτικό μηνιαίο, ΠΟΤΕ πραγματική προσφορά. */
+  monthly: number;
+  annual?: number;
+  covers?: string[];
+  earthquake?: boolean;
+  flood?: boolean;
+  natural?: boolean;
+}
+interface InsuranceCompany {
+  value: string;
+  label: string;
+  url: string;
+  agent_label: string;
+  propertyTypes: string[];
+  note: string;
+  plans: CatalogPlan[];
+}
+
+const INSURANCE_COMPANIES: InsuranceCompany[] = [
   { value: 'hellas_direct', label: 'Hellas Direct',            url: 'https://www.hellasdirect.gr/asfaleia-katoikias', agent_label: 'Ψηφιακή, χωρίς ασφαλιστή',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Βραχυχρόνια Μίσθωση'],
     note: 'Modular καλύψεις, τιμή εξαρτάται από τετραγωνικά, ζώνη, αξία. Δωρεάν αποτίμηση online.',
@@ -208,13 +233,25 @@ const miniSelectStyle: React.CSSProperties = {
   fontSize: 11, outline: 'none', fontFamily: T.font.sans, cursor: 'pointer',
 };
 
-interface StreamingEntry { service: string; planId: string; customPrice: string; splitPeople: number; splitActive: boolean; renewalDate: string; }
-interface CloudEntry     { service: string; planId: string; customPrice: string; splitPeople: number; splitActive: boolean; renewalDate: string; }
+// Οι δύο εγγραφές συνδρομής ήταν λέξη προς λέξη ίδιες. Η μία περιγραφή αρκεί:
+// αν αύριο προστεθεί πεδίο στη μία, δεν υπάρχει δεύτερη να ξεχαστεί.
+interface SubscriptionEntry { service: string; planId: string; customPrice: string; splitPeople: number; splitActive: boolean; renewalDate: string; }
+type StreamingEntry = SubscriptionEntry;
+type CloudEntry     = SubscriptionEntry;
 interface OtherSub       { name: string; price: string; renewalDate: string; }
 
 // ─── Ασφαλιστικό Comparison Engine ─────────────────────────────────────────────
 // Simulates real-time insurance quotes based on property data
 // When insurancemarket.gr API becomes available, replace computeQuotes() with real API call
+/** Τα τέσσερα φίλτρα προσφορών, δηλωμένα μία φορά και ως τύπος. */
+const QUOTE_FILTERS = [
+  { key: 'all',        label: 'Όλα'                 },
+  { key: 'earthquake', label: 'Σεισμός'             },
+  { key: 'flood',      label: 'Πλημμύρα'            },
+  { key: 'natural',    label: 'Φυσικές Καταστροφές' },
+] as const;
+type QuoteFilter = typeof QUOTE_FILTERS[number]['key'];
+
 interface LiveQuote {
   company: string;
   companyLabel: string;
@@ -270,7 +307,7 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
   return INSURANCE_COMPANIES
     .filter(c => c.value !== 'other')
     .flatMap(c => (c.plans ?? []).map(p => {
-      const base = (p as any).monthly;
+      const base = p.monthly;
       const estimate = base * totalFactor;
       // ΤΟ ΕΤΗΣΙΟ ΔΕΝ ΕΙΝΑΙ ΜΗΝΙΑΙΟ ΕΠΙ ΔΩΔΕΚΑ. Κάθε πρόγραμμα φέρει και δικό του
       // annual, που είναι εκπτωτικό: η Hellas Direct «Κτίριο & Περιεχόμενο» κάνει
@@ -283,13 +320,13 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
         company:       c.value,
         companyLabel:  c.label,
         plan:          p.id,
-        planLabel:     (p as any).name,
+        planLabel:     p.name,
         monthlyEstimate: Math.round(estimate * 100) / 100,
         annualEstimate:  Math.round(estimate * 12 * annualRatio * 100) / 100,
-        earthquake:    (p as any).earthquake,
-        flood:         (p as any).flood,
-        natural:       (p as any).natural,
-        covers:        (p as any).covers || [],
+        earthquake:    !!p.earthquake,
+        flood:         !!p.flood,
+        natural:       !!p.natural,
+        covers:        p.covers || [],
         url:           c.url,
         confidence:    'estimated' as const,
       };
@@ -439,7 +476,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   // ── Live quotes state ─────────────────────────────────────────────────────
   const [liveQuotes,      setLiveQuotes]      = useState<LiveQuote[]>([]);
   const [quotesLoading,   setQuotesLoading]   = useState(false);
-  const [quotesFilter,    setQuotesFilter]    = useState<'all'|'earthquake'|'flood'|'natural'>('all');
+  const [quotesFilter,    setQuotesFilter]    = useState<QuoteFilter>('all');
   const [showQuotes,      setShowQuotes]      = useState(false);
   const quotesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -486,7 +523,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           year_built?: number; rental_mode?: string; target_rent?: number;
         };
         if (svc?.data || prop) {
-          const d = (svc?.data as any) || {};
+          // Τα διασταυρούμενα στοιχεία έρχονται από τις ρυθμίσεις ΕΝΦΙΑ, όπου το `data`
+        // είναι ελεύθερο jsonb. Δηλώνονται όσα πεδία διαβάζονται, και μόνο αυτά.
+        const d = (svc?.data ?? {}) as { enfiaSqm?: string; enfiaZone?: string; enfiaFloor?: string; enfiaAge?: string };
           const propSqm = p.sqm ? String(p.sqm) : '';
           setCrossProperty({
             sqm:          d.enfiaSqm       || propSqm         || '',
@@ -530,7 +569,10 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     activeStreaming, activeCloud, otherSubs,
   } = ps;
 
-  const u = (patch: any) => updPs(patch);
+  // Οι ρυθμίσεις ασφάλισης έχουν σχήμα, και το `u` το σέβεται: μια ορθογραφία σε
+// όνομα πεδίου γίνεται σφάλμα μεταγλώττισης αντί για ρύθμιση που δεν ισχύει ποτέ.
+type InsuranceSettings = typeof ps;
+const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
 
   // Auto-fill from cross-tab data if not manually set
   const effectiveSqm    = insSqm    || crossProperty.sqm    || '';
@@ -554,7 +596,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     // ο υπολογισμός γινόταν τοπικά. Το ψεύτικο περίμενε είναι ψέμα στην οθόνη.
     quotesTimer.current = setTimeout(() => {
       const quotes = computeLiveQuotes(sqm, pVal, cVal, effectiveFloor, effectiveAge);
-      const currentMonthly = parseFloat(insCustomPrice) || ((insCompany?.plans ?? []).find(p => p.id === insPlanId) as any)?.monthly || 0;
+      const currentMonthly = parseFloat(insCustomPrice) || (insCompany?.plans ?? []).find(p => p.id === insPlanId)?.monthly || 0;
       const withSavings = quotes.map(q => ({ ...q, savings: currentMonthly > 0 ? currentMonthly - q.monthlyEstimate : undefined }));
       setLiveQuotes(withSavings);
       setQuotesLoading(false);
@@ -564,7 +606,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId]);
 
   const insCompany = INSURANCE_COMPANIES.find(c => c.value === insProvider);
-  const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId) as any;
+  const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId);
   const insCost    = parseFloat(insCustomPrice) || insPlan?.monthly || 0;
 
   const effectiveCovers     = insEditCovers && insCustomCovers ? insCustomCovers.split(',').map(s => s.trim()).filter(Boolean) : (insPlan?.covers || []);
@@ -617,7 +659,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     : INSURANCE_COMPANIES;
 
   const insOptions     = relevantCompanies.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
-  const insPlanOptions = ((insCompany?.plans ?? [])).map(p => ({ value: p.id, label: `${(p as any).name}, ~${(p as any).monthly > 0 ? `${fe((p as any).monthly, 2)}` : 'Χειροκίνητο'}` }));
+  const insPlanOptions = (insCompany?.plans ?? []).map(p => ({ value: p.id, label: `${p.name}, ~${p.monthly > 0 ? `${fe(p.monthly, 2)}` : 'Χειροκίνητο'}` }));
 
   // ── Sync-back στο ακίνητο: μία πηγή αλήθειας για το υπόλοιπο app ──────────
   // Η κάρτα ακινήτου διαβάζει insurance_company / insurance_amount /
@@ -704,7 +746,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         priority: 'medium',
         status: 'pending',
         recurring: false,
-        notes: `Πρόγραμμα: ${(insCompany?.plans ?? []).find((p: any) => p.id === insPlanId)?.name ?? ''}. Σύγκρινε εναλλακτικές πριν ανανεώσεις.`,
+        notes: `Πρόγραμμα: ${(insCompany?.plans ?? []).find(p => p.id === insPlanId)?.name ?? ''}. Σύγκρινε εναλλακτικές πριν ανανεώσεις.`,
         source: 'system',
       });
       if (!error) setCalendarSynced(true);
@@ -764,7 +806,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       u({ activeStreaming: [...(activeStreaming || []), { service: svc, planId: s?.plans[0].id || '', customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }] });
     }
   };
-  const updateS = (svc: string, field: string, val: any) =>
+  const updateS = <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) =>
     u({ activeStreaming: (activeStreaming || []).map(a => a.service === svc ? { ...a, [field]: val } : a) });
 
   const toggleCloud = (svc: string) => {
@@ -775,7 +817,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       u({ activeCloud: [...(activeCloud || []), { service: svc, planId: s?.plans[0].id || '', customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }] });
     }
   };
-  const updateC = (svc: string, field: string, val: any) =>
+  const updateC = <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) =>
     u({ activeCloud: (activeCloud || []).map(a => a.service === svc ? { ...a, [field]: val } : a) });
 
   const [newSubName, setNewSubName] = useState('');
@@ -914,13 +956,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                {[
-                  { key: 'all',       label: 'Όλα'       },
-                  { key: 'earthquake',label: 'Σεισμός'   },
-                  { key: 'flood',     label: 'Πλημμύρα'  },
-                  { key: 'natural',   label: 'Φυσικές Καταστροφές' },
-                ].map(f => (
-                  <button key={f.key} onClick={() => setQuotesFilter(f.key as any)}
+                {QUOTE_FILTERS.map(f => (
+                  <button key={f.key} onClick={() => setQuotesFilter(f.key)}
                     style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'var(--accent-soft)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
                     {f.label}
                   </button>
@@ -1154,7 +1191,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {active && (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
                     <CustomSelect value={active.planId} onChange={v => updateS(svc.value, 'planId', v)}
-                      options={(svc.plans ?? []).map((p: any) => ({ value: p.id, label: p.name }))} />
+                      options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
                       <div onClick={() => updateS(svc.value, 'splitActive', !active.splitActive)}
                         style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
@@ -1215,7 +1252,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {active ? (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>
                     <CustomSelect value={active.planId} onChange={v => updateC(svc.value, 'planId', v)}
-                      options={(svc.plans ?? []).map((p: any) => ({ value: p.id, label: p.name }))} />
+                      options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</div>
                   </div>
                 ) : (
@@ -1253,7 +1290,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.price))} / μήνα</span>
-                <button onClick={() => u({ otherSubs: (otherSubs || []).filter((_: any, j: number) => j !== i) })}
+                <button onClick={() => u({ otherSubs: (otherSubs || []).filter((_, j) => j !== i) })}
                   style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
             </div>

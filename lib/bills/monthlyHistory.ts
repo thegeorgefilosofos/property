@@ -22,12 +22,14 @@
 // έγινε· σταματάμε μόνο να τη ζητάμε.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Τα κενά είναι ρητά: κάθε ένα από αυτά τα πεδία δέχεται NULL στη βάση, και ο
+// τύπος που το έκρυβε ανάγκαζε κάθε καλούντα σε cast.
 export interface BillLike {
-  category: string;
+  category: string | null;
   amount: number;
   /** «YYYY-MM-DD» ή κενό. */
   due_date?: string | null;
-  recurring?: boolean;
+  recurring?: boolean | null;
   /** 'monthly' | 'bimonthly' | 'quarterly' | 'biannual' | 'annual' | άλλο. */
   period?: string | null;
 }

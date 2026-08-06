@@ -8,6 +8,9 @@ import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/a
 import { REGULATORY_UPDATES_2026, type RegulatoryUpdate, type UpdateAudience } from '@/lib/accounting/updates2026'
 import { transferCosts } from '@/lib/accounting/transfer'
 import { InfoHint } from './InfoHint'
+import type { ClientStaysRow, ExpensesRow, InventoryItemsRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables'
+import type { LoanView } from '@/lib/loans/shape'
+import type { TaxStay } from '@/lib/tax/shortTermTax'
 import { saved, savedData } from '@/components/dbWrite'
 import BankImport from './BankImport'
 import E2ReconcileCard from './E2ReconcileCard'
@@ -168,15 +171,29 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const updateAge=(v:number|'')=>{ setAge(v); try{ if(v) localStorage.setItem('acc_age',String(v)); else localStorage.removeItem('acc_age') }catch{} }
   const updateEkfa=(v:number|'')=>{ setEkfa(v); try{ if(v) localStorage.setItem('acc_ekfa',String(v)); else localStorage.removeItem('acc_ekfa') }catch{} }
   const updateFirstYears=(v:boolean)=>{ setFirstYears(v); try{ localStorage.setItem('acc_first3',v?'1':'0') }catch{} }
-  const [expenses,setExpenses] = useState<any[]>([])
-  const [rent,setRent] = useState<any[]>([])
-  const [stays,setStays] = useState<any[]>([])
-  const [loans,setLoans] = useState<any[]>([])
-  const [inventory,setInventory] = useState<any[]>([])
-  const [prop,setProp] = useState<any>(null)
-  const [allProps,setAllProps] = useState<any[]>([])
-  const [allRent,setAllRent] = useState<any[]>([])
-  const [allStays,setAllStays] = useState<any[]>([])
+  // ── ΤΙ ΑΚΡΙΒΩΣ ΖΗΤΑΕΙ ΚΑΘΕ ΕΡΩΤΗΜΑ ──────────────────────────────────────
+  // Οι τύποι γραμμών γεννιούνται από τα migrations (lib/supabase/tables.ts) και
+  // κόβονται με `Pick` στις στήλες που ΟΝΤΩΣ ζητά το `select`. Έτσι μια στήλη
+  // που δεν ζητήθηκε δεν μπορεί να διαβαστεί κατά λάθος παρακάτω — σφάλμα που
+  // με `any[]` έβγαινε ως `undefined` και κατέληγε σε μηδενικό ποσό στην οθόνη.
+  type ExpenseRow  = Pick<ExpensesRow, 'date'|'amount'|'category'|'expense_group'|'description'>
+  type RentRow     = Pick<RentPaymentsRow, 'period_year'|'period_month'|'amount'|'paid'|'paid_date'|'due_date'>
+  type PortfolioRentRow = RentRow & Pick<RentPaymentsRow, 'property_id'>
+  type StayRow     = TaxStay & Pick<ClientStaysRow, 'id'|'channel'|'declared_at'>
+  type PortfolioStayRow = StayRow & Pick<ClientStaysRow, 'property_id'>
+  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'>
+  type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'>
+  type InventoryRow = Pick<InventoryItemsRow, 'purchase_value'|'category'|'purchase_date'>
+
+  const [expenses,setExpenses] = useState<ExpenseRow[]>([])
+  const [rent,setRent] = useState<RentRow[]>([])
+  const [stays,setStays] = useState<StayRow[]>([])
+  const [loans,setLoans] = useState<LoanView[]>([])
+  const [inventory,setInventory] = useState<InventoryRow[]>([])
+  const [prop,setProp] = useState<PropRow|null>(null)
+  const [allProps,setAllProps] = useState<PropListRow[]>([])
+  const [allRent,setAllRent] = useState<PortfolioRentRow[]>([])
+  const [allStays,setAllStays] = useState<PortfolioStayRow[]>([])
 
   useEffect(()=>{ (async()=>{
     setLoading(true)
@@ -192,8 +209,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('user_id',userId),
         supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
       ])
-      setExpenses(ex.data||[]); setRent(rp.data||[]); setStays(st.data||[]); setLoans(toLoanViews(ln.data))
-      setProp(pr.data||null); setAllProps(aps.data||[]); setAllRent(arp.data||[]); setAllStays(ast.data||[]); setInventory(inv.data||[])
+      setExpenses((ex.data||[]) as ExpenseRow[]); setRent((rp.data||[]) as RentRow[])
+      setStays((st.data||[]) as StayRow[]); setLoans(toLoanViews(ln.data))
+      setProp((pr.data||null) as PropRow|null); setAllProps((aps.data||[]) as PropListRow[])
+      setAllRent((arp.data||[]) as PortfolioRentRow[]); setAllStays((ast.data||[]) as PortfolioStayRow[])
+      setInventory((inv.data||[]) as InventoryRow[])
     }catch(_){ /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
     finally{ setLoading(false) }
   })() },[propertyId,userId,refreshKey])
@@ -209,14 +229,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
 
   // Ενεργό δάνειο στη χρήση Y; (μεταξύ έτους έναρξης και λήξης).
-  const loanActiveInYear = (l:any)=>{ const yrs=Number(l.years)||0; if(yrs<=0)return false; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; return year>=startY && year<startY+yrs }
+  const loanActiveInYear = (l:LoanView)=>{ const yrs=Number(l.years)||0; if(yrs<=0)return false; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; return year>=startY && year<startY+yrs }
 
   // Ετήσια στοιχεία τρέχοντος ακινήτου. Φόρος επί ΔΕΔΟΥΛΕΥΜΕΝΟΥ (accrued) ενοικίου
   //, φορολογείται ό,τι οφείλεται, ανεξάρτητα είσπραξης· τα ανείσπρακτα μειώνουν
   // μόνο το ταμείο. (Μακροχρόνια.)
   const rentAccruedYear = useMemo(()=>rent.filter(p=>p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
   const rentCollectedYear = useMemo(()=>rent.filter(p=>p.paid&&p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
-  const shortSummary = useMemo(()=>shortTermYearSummary(stays as any, year, { sqm: prop?.sqm, isHouse:false, propertyCount:propCount, individual:true }),[stays,year,prop,propCount])
+  const shortSummary = useMemo(()=>shortTermYearSummary(stays, year, { sqm: prop?.sqm, isHouse:false, propertyCount:propCount, individual:true }),[stays,year,prop,propCount])
   const expensesYear = useMemo(()=>expenses.filter(e=>(e.date||'').slice(0,4)===String(year)&&(e.amount||0)>0),[expenses,year])
   // Εξαιρούμε τον ΕΝΦΙΑ ως δαπάνη, τον μετράμε ξεχωριστά (αποφυγή διπλομέτρησης).
   const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
@@ -239,7 +259,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const items = (allProps.length?allProps:[{id:propertyId,name:prop?.name,rental_mode:prop?.rental_mode,enfia:prop?.enfia,sqm:prop?.sqm}]).map(p=>{
       const rmode:TaxRegime = p.rental_mode==='short_term' ? 'individual_shortterm' : 'individual_longterm'
       const pRentAccrued = allRent.filter(r=>r.property_id===p.id&&r.period_year===year).reduce((s,r)=>s+(r.amount||0),0)
-      const pStays = allStays.filter(s=>s.property_id===p.id) as any[]
+      const pStays = allStays.filter(s=>s.property_id===p.id)
       const pShort = shortTermYearSummary(pStays, year, { sqm:p.sqm??null, isHouse:false, propertyCount:propCount, individual:true })
       const gross = rmode==='individual_shortterm' ? pShort.grossRevenue : pRentAccrued
       const input:StatementInput = { regime:rmode, grossIncome:gross, enfia: resolveEnfia({ propertyEnfia:p.enfia }).annual, rentsPaidViaBank: rentsBank,
@@ -309,7 +329,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const entries = useMemo<LedgerInput[]>(()=>{
     const out:LedgerInput[]=[]
     for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_GR[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
-    for(const s of stays){ if((s.total||0)>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:s.total, source:'stay' }) } }
+    for(const s of stays){ if((s.total||0)>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:s.total||0, source:'stay' }) } }
     for(const e of expenses){ if((e.amount||0)>0&&e.date){ out.push({ date:e.date, type:'expense', category:e.category||'Δαπάνες', description:e.description||'Δαπάνη', amount:e.amount, source:'expense' }) } }
     return out
   },[rent,stays,expenses])
@@ -324,7 +344,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const journalLines = useMemo(()=>{
     const incomes:IncomeRec[] = []
     for(const p of rent){ if(p.paid&&(p.amount||0)>0&&p.period_year===year){ incomes.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount, description:`Ενοίκιο ${MONTHS_GR[(p.period_month||1)-1]} ${p.period_year}` }) } }
-    for(const s of stays){ if((s.total||0)>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:s.total, description:`Κράτηση ${s.channel||''}`.trim() }) } }
+    for(const s of stays){ if((s.total||0)>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:s.total||0, description:`Κράτηση ${s.channel||''}`.trim() }) } }
     const exp:ExpenseRec[] = []
     for(const e of expenses){ if((e.amount||0)>0&&e.date&&String(e.date).slice(0,4)===String(year)){ exp.push({ date:e.date, amount:e.amount, category:e.category, description:e.description }) } }
     const loanPayments:LoanPaymentRec[] = []
@@ -337,7 +357,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const recon = useMemo(()=>{
     const yr = rent.filter(p=>p.period_year===year)
     const expected:Expected[] = yr.map(p=>({ id:`${p.period_year}-${p.period_month}`, date:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount||0, label:`${MONTHS_GR[(p.period_month||1)-1]} ${p.period_year}` }))
-    const actual:Actual[] = yr.filter(p=>p.paid).map(p=>({ refId:`${p.period_year}-${p.period_month}`, date:p.paid_date, amount:p.amount||0, paid:true }))
+    const actual:Actual[] = yr.filter(p=>p.paid).map(p=>({ refId:`${p.period_year}-${p.period_month}`, date:p.paid_date||'', amount:p.amount||0, paid:true }))
     return reconcile(expected, actual, todayAthens())
   },[rent,year])
   const rs = useMemo(()=>reconSummary(recon),[recon])
@@ -387,33 +407,41 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   }),[prop,statement,provision,book,dossierGaps])
 
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
-  const [closing,setClosing] = useState<{ snapshot:any; locked_at:string }|null>(null)
+  // Το στιγμιότυπο της κλεισμένης χρήσης: ό,τι γράφεται στο `snapshot`, και
+  // τίποτα άλλο. Η υπογραφή `sig` είναι που ξεχωρίζει το «κλειδωμένο» από το
+  // «κλειδωμένο αλλά άλλαξαν τα δεδομένα από τότε».
+  interface BookSnapshot {
+    sig: string
+    taxableIncome: number; incomeTax: number; netProfit: number; netCash: number
+    provisionMonthly: number; collectedTotal: number; expectedTotal: number
+  }
+  const [closing,setClosing] = useState<{ snapshot:BookSnapshot; locked_at:string }|null>(null)
   const [lockErr,setLockErr] = useState<string|null>(null)
   useEffect(()=>{ (async()=>{
     const { data } = await supabase.from('book_closings').select('snapshot,locked_at').eq('property_id',propertyId).eq('user_id',userId).eq('year',year).maybeSingle()
-    setClosing((data as any)||null)
+    setClosing((data as { snapshot:BookSnapshot; locked_at:string }|null)||null)
   })() },[propertyId,userId,year,refreshKey])
   useEffect(()=>{ (async()=>{
     const { data } = await supabase.from('tenants').select('full_name,afm').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ ascending:false }).limit(1).maybeSingle()
-    setTenant((data as any)||null)
+    setTenant((data as { full_name?:string; afm?:string }|null)||null)
   })() },[propertyId,userId,refreshKey])
   // Ετήσια βεβαίωση ενοικίου: μόνο εισπραγμένα μισθώματα του έτους, ανά μήνα.
   function printCertificate(){
-    const paid = rent.filter((p:any)=>p.paid&&p.period_year===year).sort((a:any,b:any)=>(a.period_month||0)-(b.period_month||0))
-    const months = paid.map((p:any)=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
+    const paid = rent.filter(p=>p.paid&&p.period_year===year).sort((a,b)=>(a.period_month||0)-(b.period_month||0))
+    const months = paid.map(p=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
     const total = months.reduce((s,m)=>s+m.amount,0)
-    printRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding })
+    printRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address??undefined, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding })
   }
   // Επίσημο true-PDF της βεβαίωσης ενοικίου (ίδια δεδομένα με την εκτυπώσιμη), με
   // αρ. εγγράφου & QR επαλήθευσης — καταχωρείται στο μητρώο εγγράφων.
   async function officialRentCertificate(){
     if(genOfficialCert) return
-    const paid = rent.filter((p:any)=>p.paid&&p.period_year===year).sort((a:any,b:any)=>(a.period_month||0)-(b.period_month||0))
-    const months = paid.map((p:any)=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
+    const paid = rent.filter(p=>p.paid&&p.period_year===year).sort((a,b)=>(a.period_month||0)-(b.period_month||0))
+    const months = paid.map(p=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
     const total = months.reduce((s,m)=>s+m.amount,0)
     setGenOfficialCert(true)
     try {
-      await downloadOfficialRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding }, { supabase, userId })
+      await downloadOfficialRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address??undefined, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding }, { supabase, userId })
     } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
     finally { setGenOfficialCert(false) }
   }
@@ -486,7 +514,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   function printReport(){
     const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:{paid:'#188038',partial:'#e37400',unpaid:'#5f6368',overdue:'#c5221f'}[r.status] } })
     printAccountingReport({
-      propName: prop?.name||'Ακίνητο', address: prop?.address, year, regimeLabel,
+      propName: prop?.name||'Ακίνητο', address: prop?.address??undefined, year, regimeLabel,
       statement, provision, reconciliation: reconLite,
       expectedTotal: rs.expectedTotal, collectedTotal: rs.collectedTotal, outstanding: rs.outstanding,
       branding,
@@ -499,7 +527,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     setGenOfficial(true)
     try {
       await downloadOfficialAccountingReport({
-        propName: prop?.name||'Ακίνητο', address: prop?.address, year, regimeLabel,
+        propName: prop?.name||'Ακίνητο', address: prop?.address??undefined, year, regimeLabel,
         statement, provision, reconciliation: reconLite,
         expectedTotal: rs.expectedTotal, collectedTotal: rs.collectedTotal, outstanding: rs.outstanding,
         branding,
