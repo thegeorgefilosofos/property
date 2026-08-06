@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CustomSelect } from './UIComponents';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
+import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
 import { yearOccupancy } from '@/lib/clients/reports';
 import { athensToday, daysUntil } from '@/lib/core/time';
@@ -35,6 +36,8 @@ type Mode = 'short' | 'long' | 'vacant';
 
 interface Row {
   id: string; name: string; typeLabel: string; mode: Mode;
+  /** Η κατάσταση ΟΠΩΣ ΤΗ ΔΗΛΩΣΕ ο ιδιοκτήτης, όχι όπως τη μαντεύουν τα δεδομένα. */
+  statusLabel: string;
   revenue: number; expenses: number; net: number;
   /** Το `revenue` δεν είναι βεβαιότητα: ενοίκιο × μήνες (μακροχρόνια) ή
    *  διαμονές με απροσδιόριστη βάση ποσού (βραχυχρόνια). */
@@ -160,7 +163,15 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const pay = payByProp.get(p.id);
       const hasRentRows = (pay?.rows || 0) > 0;
       const hasTenant = (rentByProp.get(p.id) || 0) > 0 || hasRentRows;
+      // ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ ΜΕ ΕΝΑ ΟΝΟΜΑ. Το `mode` κρίνει ΠΩΣ υπολογίζονται
+      // τα έσοδα (διαμονές ή μηνιαίο ενοίκιο) και βγαίνει σωστά από τα δεδομένα.
+      // Χρησιμοποιούνταν όμως ΚΑΙ ως η «Κατάσταση» στη στήλη του πίνακα, με δικό
+      // του λεξιλόγιο. Αποτέλεσμα: ακίνητο που ο ιδιοκτήτης σήμανε «Ιδιοχρησία»
+      // ή «Προς πώληση» εμφανιζόταν «Κενό», και βραχυχρόνιο χωρίς καταχωρημένες
+      // διαμονές εμφανιζόταν επίσης «Κενό». Η οθόνη διέψευδε δήλωση που μόλις
+      // είχε κάνει ο χρήστης, δύο κλικ πριν.
       const mode: Mode = staysY.length ? 'short' : hasTenant ? 'long' : 'vacant';
+      const declaredStatus = statusLabel(p as StatusRow);
       // ΤΑ «ΕΣΟΔΑ ΕΤΟΥΣ» ΤΗΣ ΜΑΚΡΟΧΡΟΝΙΑΣ ΗΤΑΝ ΥΠΟΘΕΣΗ — ΚΑΙ ΕΜΠΑΙΝΑΝ ΣΕ
       // ΥΠΟΓΕΓΡΑΜΜΕΝΟ PDF ΜΕ QR ΕΠΑΛΗΘΕΥΣΗΣ.
       //
@@ -216,7 +227,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const annualRevenue = mode === 'long' ? rent * 12 : mode === 'short' ? Math.round(revenue * (365 / daysElapsed)) : 0;
       const annualExpenses = Math.round(expenses * (12 / monthsElapsed));
       return {
-        id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode,
+        id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode, statusLabel: declaredStatus,
         revenue, expenses, net: revenue - expenses, revenueEstimated, staysUnresolved, rentExpected,
         occupancy, nights, availableDays: occ.availableDays, pending: unpaid + chkAtt, owed,
         value: p.value || 0, annualRevenue, annualExpenses,
@@ -417,7 +428,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   const exportCsv = () => {
     const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Βάση εσόδων', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Διαθέσιμες ημέρες', 'Νύχτες', 'Εκκρεμότητες', 'Οφειλές (€)'];
-    const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, MODE_LABEL[r.mode], r.revenue, revenueBasis(r), r.expenses, r.net, r.occupancy ?? '', r.occupancy != null ? r.availableDays : '', r.nights, r.pending, r.owed]);
+    const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, r.statusLabel, r.revenue, revenueBasis(r), r.expenses, r.net, r.occupancy ?? '', r.occupancy != null ? r.availableDays : '', r.nights, r.pending, r.owed]);
     downloadCsv(`xartofylakio_${year}`, head, lines);
   };
 
@@ -509,7 +520,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                     {/* Η κατάσταση είναι ΟΝΟΜΑ, όχι κρίση: το «Κενό» δεν είναι
                         χειρότερο από το «Μισθωμένο» σε ένα ακίνητο που μόλις
                         ανακαινίστηκε. Ίδιος ουδέτερος τόνος για όλες. */}
-                    <Badge tone="neutral">{MODE_LABEL[r.mode]}</Badge>
+                    <Badge tone="neutral">{r.statusLabel}</Badge>
                   </td>
                   <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
                   <Num v={eur(r.expenses)} muted />
@@ -734,7 +745,9 @@ function Num({ v, muted, bold, tone, mark, title }: { v: string; muted?: boolean
   );
 }
 
-const MODE_LABEL: Record<Mode, string> = { short: 'Βραχυχρόνια', long: 'Μισθωμένο', vacant: 'Κενό' };
+// Το MODE_LABEL έφυγε: ήταν τρίτο λεξιλόγιο για την κατάσταση ακινήτου, δίπλα
+// στο lib/property/status.ts (η μία πηγή) και σε έναν ακόμη πίνακα στη Σύγκριση.
+// Το `mode` μένει, αλλά μόνο για ό,τι είναι: πώς υπολογίζονται τα έσοδα.
 
 /** Από πού βγήκε το ποσό των εσόδων — ταξιδεύει μαζί του σε κάθε εξαγωγή. */
 const revenueBasis = (r: Row): string =>

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
+import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { downloadCsv } from './exportCsv';
 import { money, dec2, percent } from './xlsxStyle';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
@@ -47,10 +48,12 @@ const budgetTotalOf = (data: Record<string, unknown> | null | undefined): number
     .reduce((s, [, v]) => s + parseFloat(String(v)), 0);
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  rented: 'Ενοικιάζεται', vacant: 'Κενό', own_use: 'Ιδιοχρησία', renovation: 'Ανακαίνιση',
-  for_sale: 'Προς Πώληση', seasonal: 'Εποχιακό', disputed: 'Αμφισβητούμενο',
-};
+// Ο πίνακας STATUS_LABELS έφυγε: ήταν ΤΡΙΤΟ λεξιλόγιο για την κατάσταση
+// ακινήτου («Ενοικιάζεται», «Εποχιακό»), δίπλα στο lib/property/status.ts που
+// είναι η μία πηγή («Μακροχρόνια μίσθωση», «Βραχυχρόνια μίσθωση») και σε ένα
+// ακόμη στο Χαρτοφυλάκιο. Το ίδιο ακίνητο λεγόταν αλλιώς σε κάθε οθόνη, και
+// διάβαζε ωμό `status_detail` — άρα αγνοούσε το `rental_mode`, που είναι το
+// πεδίο που γράφει σήμερα το dropdown κατάστασης.
 
 // Ο τύπος ακινήτου με ανθρώπινα λόγια, για τον τίτλο της ομάδας. Ό,τι δεν
 // αναγνωρίζεται εμφανίζεται όπως το έγραψε ο χρήστης.
@@ -279,7 +282,7 @@ export default function TabComparison({ properties, userId }: Props) {
     // εκεί που δεν ξέρουμε, παράγει λάθος μέσους όρους στα χέρια του λογιστή.
     const c = (n: number | null) => (n == null ? '' : money(n));
     const rows = rowsData.map(r => [
-      r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '',
+      r.p.name, statusLabel(r.p as StatusRow) || r.p.prop_type || '',
       c(r.value), r.sqm > 0 ? dec2(r.sqm) : '', c(r.perSqm), c(r.rent), c(r.rent == null ? null : r.rent * 12),
       r.grossYield == null ? '' : percent(r.grossYield), money(r.recurringMonthly), money(r.expensesYTD),
       c(r.netMonthly), c(r.netMonthly == null ? null : r.netMonthly * 12), money(r.taxShare),
@@ -361,7 +364,7 @@ export default function TabComparison({ properties, userId }: Props) {
                         δεν γράφεται παύλα για κάθε πεδίο χωριστά. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
                       style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                      {[STATUS_LABELS[r.p.status_detail || ''] || null, r.sqm > 0 ? `${fn(r.sqm)} τετραγωνικά` : null, r.value != null ? fe(r.value, 0) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
+                      {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τετραγωνικά` : null, r.value != null ? fe(r.value, 0) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
                     </div>
                   </th>
                 ))}

@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
 import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
-import { tabDecision, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
+import { tabDecision, canCompare, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
 import { HAS_BUSINESS } from '@/lib/accounting/dossier';
 import AmaStrip from './components/AmaStrip';
 import TabCalendar  from './components/TabCalendar';
@@ -19,6 +19,7 @@ import TabLoan      from './components/TabLoan';
 import TabAccounting from './components/TabAccounting';
 import TabInventory from './components/TabInventory';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
+import { mergeLedger, ledgerTotal } from '@/lib/expenses/ledger';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
@@ -146,12 +147,13 @@ const NAV_ITEMS = [
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
 
 // Εικονίδια πλοήγησης, καθαρή, γρήγορη οπτική αναγνώριση (ακόμη κι από άπειρο μάτι).
+// Τέσσερα κλειδιά έφυγαν από εδώ: comparison, bills, expenses και contacts. Δεν
+// αντιστοιχούσαν σε καμία καρτέλα του NAV_ITEMS, και το `expenses` ήταν ακριβές
+// αντίγραφο του `finances`. Ένα εικονίδιο χωρίς καρτέλα δεν αποδίδεται ποτέ,
+// αλλά διαβάζεται από τον επόμενο σαν να υπάρχει η καρτέλα του.
 const NAV_ICON: Record<string,string> = {
   portfolio: 'M4 5h6v6H4z|M14 5h6v6h-6z|M4 15h6v4H4z|M14 13h6v6h-6z',
   overview:  'M3 9.5 12 3l9 6.5|M5 10v10h14V10',
-  comparison:'M4 20V10|M10 20V4|M16 20v-7|M20 20H2',
-  bills:     'M5 3h14v18l-3-2-2 2-2-2-2 2-3-2V3|M9 8h6|M9 12h6',
-  expenses:  'M3 12h4l3 8 4-16 3 8h4',
   finances:  'M3 12h4l3 8 4-16 3 8h4',
   accounting:'M4 3h16v18H4z|M8 7h8|M8 11h8|M8 15h5|M16 19l1.5 1.5L21 17',
   calendar:  'M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4',
@@ -163,7 +165,6 @@ const NAV_ICON: Record<string,string> = {
   loan:      'M3 21h18|M5 21V10l7-5 7 5v11|M9 21v-6h6v6',
   inventory: 'M21 16V8l-9-5-9 5v8l9 5 9-5z|M3.3 7 12 12l8.7-5|M12 22V12',
   checklist: 'M9 11l3 3L22 4|M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
-  contacts:  'M4 4h16v16H4z|M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z|M6 16c0-2 4-2 4-2s4 0 4 2|M15 8h3|M15 12h3',
   documents: 'M4 4h6l2 3h8v13H4z',
   clients:   'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2|M9 11a4 4 0 0 0 0-8 4 4 0 0 0 0 8z|M23 21v-2a4 4 0 0 0-3-3.87|M16 3.13a4 4 0 0 1 0 7.75',
   settings:  'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L3 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 2.4h5l.3-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6a7 7 0 0 0 .1-1z',
@@ -222,7 +223,19 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
 // Το αντίγραφο στην αποκάλυψη έφυγε — εδώ δηλώνεται ότι την απόφαση την παίρνει
 // η κατάσταση. Η εμφάνιση δεν αλλάζει: οι δύο κανόνες έλεγαν το ίδιο πράγμα, και
 // η πλοήγηση τους συνδύαζε ούτως ή άλλως με «και».
-const SELF_DISCLOSING = new Set(['roi']);   // plan/pricing/comparison συγχωνεύτηκαν στην Απόδοση και στον Πελάτη
+//
+// ΤΟ ΣΥΝΟΛΟ ΕΙΧΕ ΜΕΙΝΕΙ ΜΕ ΕΝΑ ΜΕΛΟΣ, ΚΑΙ ΔΥΟ ΚΑΡΤΕΛΕΣ ΗΤΑΝ ΑΠΡΟΣΙΤΕΣ.
+// Το σχόλιο έλεγε ότι η Τιμολόγηση και η Αξιοποίηση «συγχωνεύτηκαν» αλλού. Δεν
+// συγχωνεύτηκαν: και οι δύο στέκουν στο μενού. Επειδή όμως έφυγαν από τους
+// κανόνες σήματος της αποκάλυψης ΚΑΙ δεν μπήκαν εδώ, το `isTabVisible`
+// επέστρεφε ψευδές μέχρι ο χρήστης «να τις έχει ήδη επισκεφθεί» — και ο μόνος
+// δρόμος επίσκεψης ήταν το μενού, όπου δεν εμφανίζονταν.
+//
+// Δηλαδή: ο ιδιοκτήτης κενού ακινήτου δεν έβλεπε ΠΟΤΕ την Αξιοποίηση, και ο
+// ιδιοκτήτης με Airbnb δεν έβλεπε ΠΟΤΕ τη Βραχυχρόνια. Τα δύο εργαλεία που τους
+// αφορούν περισσότερο από κάθε άλλο, γραμμένα και απρόσιτα — ακριβώς το σφάλμα
+// που περιγράφει το σχόλιο τριάντα γραμμές πιο πάνω, ξαναζωντανό.
+const SELF_DISCLOSING = new Set(['roi', 'pricing', 'plan']);
 
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
 
@@ -347,11 +360,16 @@ const PLAN_SUB: Record<string, string> = {
 };
 
 
-function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property;
+function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
    *  είναι προοδευτική στο σύνολο του φορολογούμενου, όχι ανά ακίνητο. */
   properties: Property[];
-  userId: string; ownerName?: string; onSaveOwnerName?: (n: string) => void | Promise<void>; onNavigate: (tab: string) => void; onCleanDemo?: () => void; profileType: 'individual'|'professional';
+  // ΤΟ ΟΝΟΜΑ ΙΔΙΟΚΤΗΤΗ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Περνούσε ως prop μαζί με χειριστή
+  // αποθήκευσης, και ΚΑΝΕΝΑ από τα δύο δεν χρησιμοποιήθηκε ποτέ μέσα στο σώμα:
+  // η οθόνη δεν το έδειχνε και δεν το άλλαζε. Το όνομα ζει στο
+  // `property_settings.owner_name`, όπου το γράφει ο οδηγός προσθήκης ακινήτου
+  // και το διαβάζουν τα επίσημα έγγραφα και η δήλωση μίσθωσης.
+  userId: string; onNavigate: (tab: string) => void; onCleanDemo?: () => void; profileType: 'individual'|'professional';
   /** Οδηγεί κάπου αυτό το βήμα; Βήμα που δείχνει σε καρτέλα η οποία δεν αφορά τον
    *  χρήστη είναι νεκρός σύνδεσμος: το πάτημα θα τον γύριζε στην Επισκόπηση. */
   tabVisible: (id: string) => boolean }) {
@@ -452,7 +470,15 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prop.id, load]);
 
-  const totalExpYTD = expenses.reduce((s,e)=>s+e.amount,0);
+  // ── ΜΙΑ ΔΑΠΑΝΗ, ΕΝΑ ΣΥΝΟΛΟ, ΣΕ ΟΛΕΣ ΤΙΣ ΟΘΟΝΕΣ ──────────────────────────
+  // Εδώ αθροίζονταν ΜΟΝΟ οι γραμμές του πίνακα `expenses`. Ο απλήρωτος
+  // λογαριασμός όμως δεν έχει δαπάνη πίσω του — η δαπάνη γεννιέται στην πληρωμή.
+  // Άρα το ίδιο ευρώ μετρούσε στις «Δαπάνες» και στη «Σύγκριση», δεν μετρούσε
+  // εδώ, αλλά μετρούσε στο «Χρωστάω» της ΙΔΙΑΣ οθόνης, τετρακόσια εικονοστοιχεία
+  // πιο πάνω. Το lib/expenses/ledger.ts γράφτηκε ακριβώς γι' αυτό, με το σχόλιο
+  // «τρεις οθόνες, τρία διαφορετικά σύνολα» — και η Επισκόπηση δεν το κάλεσε ποτέ.
+  const ledger = useMemo(() => mergeLedger(bills, expenses), [bills, expenses]);
+  const totalExpYTD = ledgerTotal(ledger.entries);
   // ΤΑΣΗ ΔΑΠΑΝΩΝ: ΙΔΙΟ ΔΙΑΣΤΗΜΑ, ΟΧΙ ΟΛΟΚΛΗΡΟ ΤΟ ΠΡΟΗΓΟΥΜΕΝΟ ΕΤΟΣ.
   // Πριν, το YTD (π.χ. δύο μήνες) συγκρινόταν με τους δώδεκα μήνες της περσινής
   // χρονιάς, οπότε κάθε Φεβρουάριο ο χρήστης διάβαζε «−78% σε σχέση με πέρσι» —
@@ -464,7 +490,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const expDeltaPct = expPrevSame > 0 ? Math.round((expThisY - expPrevSame)/expPrevSame*100) : null;
   // Διαχωρισμός πληρωμένων/εκκρεμών: το σύνολο (accrual) οδηγεί την απόδοση, αλλά
   // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).
-  const paidExpYTD = expenses.filter(e => e.paid !== false).reduce((s,e)=>s+e.amount,0);
+  const paidExpYTD = ledgerTotal(ledger.entries.filter(e => e.paid));
   const pendingExpYTD = totalExpYTD - paidExpYTD;
   // Single source of truth: ίδιος υπολογισμός ενοικίου/αξίας/απόδοσης παντού.
   const rent = resolveRent({ tenantRent: tenant?.monthly_rent, targetRent: prop.target_rent }).value;
@@ -1052,7 +1078,12 @@ export default function Dashboard() {
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
   const [compPlan, setCompPlan] = useState<string|null>(null);   // δωρεάν πρόσβαση: επίπεδο (π.χ. από referral)
   const [compUntil, setCompUntil] = useState<string|null>(null); // δωρεάν πρόσβαση: λήξη (ISO)
-  const [ownerName, setOwnerName] = useState('');         // όνομα ιδιοκτήτη για προσφώνηση (billing_profiles.owner_name)
+  // ΤΟ ΟΝΟΜΑ ΙΔΙΟΚΤΗΤΗ ΕΙΧΕ ΔΥΟ ΣΤΗΛΕΣ ΚΑΙ ΚΑΝΕΝΑΝ ΑΝΑΓΝΩΣΤΗ ΕΔΩ.
+  // Διαβαζόταν από το `billing_profiles.owner_name`, κρατιόταν σε κατάσταση, και
+  // περνούσε στην Επισκόπηση μαζί με χειριστή αποθήκευσης — που δεν
+  // χρησιμοποιούσε κανένα από τα δύο. Το όνομα που ΟΝΤΩΣ τυπώνεται στα επίσημα
+  // έγγραφα και στη δήλωση μίσθωσης ζει στο `property_settings.owner_name`,
+  // γράφεται στον οδηγό προσθήκης ακινήτου, και είναι η μία πηγή.
   const [profileType, setProfileType] = useState<'individual'|'professional'>('individual'); // τύπος προφίλ → οδηγεί το interface
   // ΝΟΜΙΚΗ ΜΟΡΦΗ (φυσικό / νομικό πρόσωπο): ένα από τα τρία κριτήρια ορατότητας.
   //
@@ -1178,15 +1209,6 @@ export default function Dashboard() {
 
   // Μία πηγή αλήθειας για το «απλοποιημένο μενού»: το κουμπί στην μπάρα και ο
   // διακόπτης στις Ρυθμίσεις γράφουν εδώ, ώστε η αλλαγή να φαίνεται αμέσως.
-  // Το όνομα ιδιοκτήτη τυπώνεται σε κάθε επίσημο έγγραφο. Αν δεν αποθηκευτεί,
-  // η επόμενη έκδοση βγαίνει με το παλιό και κανείς δεν καταλαβαίνει γιατί.
-  const saveOwnerName = async (n: string) => {
-    if (!user) return;
-    setOwnerName(n);
-    await saved('Το όνομα ιδιοκτήτη δεν αποθηκεύτηκε', supabase.from('billing_profiles')
-      .upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }));
-  };
-
   const setNavShowAllPref = (v: boolean) => {
     setNavShowAll(v);
     if (user) void saved('Η προτίμηση μενού δεν αποθηκεύτηκε',
@@ -1223,7 +1245,7 @@ export default function Dashboard() {
       // Ιδιότητα Συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan, owner_name, profile_type, comp_plan, comp_until, legal_form').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); setLegalForm(HAS_BUSINESS.has((data as { legal_form?: string|null } | null)?.legal_form ?? '') ? 'company' : 'individual'); });
+      supabase.from('billing_profiles').select('plan, profile_type, comp_plan, comp_until, legal_form').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); setLegalForm(HAS_BUSINESS.has((data as { legal_form?: string|null } | null)?.legal_form ?? '') ? 'company' : 'individual'); });
       // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,
       // idempotent). Εφαρμόζεται για την επόμενη φόρτωση· δεν είναι gameable από τον client.
       supabase.rpc('sync_comp_from_referrals').then(() => {});
@@ -1584,23 +1606,36 @@ export default function Dashboard() {
             </div>
           );})}
 
-          {/* Οι κρυμμένες καρτέλες δεν είναι μυστικό: λέμε πόσες είναι και ανοίγουν
-              με ένα κλικ. Χωρίς αυτό, η σταδιακή αποκάλυψη γίνεται εξαφάνιση. */}
+          {/* ΟΙ ΚΡΥΜΜΕΝΕΣ ΚΑΡΤΕΛΕΣ ΔΕΝ ΕΙΝΑΙ ΜΥΣΤΙΚΟ, ΚΑΙ Ο ΔΙΑΚΟΠΤΗΣ ΕΧΕΙ ΔΥΟ ΚΑΤΕΥΘΥΝΣΕΙΣ.
+              Το κουμπί ήταν μονόδρομος: μόλις πατιόταν, το πλήθος των κρυμμένων
+              γινόταν μηδέν και το ίδιο το κουμπί ΕΞΑΦΑΝΙΖΟΤΑΝ. Το μενού έμενε
+              γεμάτο για πάντα, εκτός αν ο χρήστης μάντευε ότι η αναίρεση λέγεται
+              «Απλοποιημένο μενού», βρίσκεται σε άλλη καρτέλα, μέσα σε πτυσσόμενη
+              ενότητα. Τώρα η επιστροφή είναι στο ίδιο σημείο με τη μετάβαση. */}
           {(() => {
             // Μετρώνται μόνο όσες ΑΦΟΡΟΥΝ τον χρήστη: το «+3» δεν πρέπει να υπόσχεται
             // καρτέλες που, μόλις τις αποκαλύψει, θα του πουν ότι δεν τον αφορούν.
-            const hidden = hiddenTabCount(
-              NAV_GROUPS.flatMap(g => (g.label==='Εργαλεία' && effProfileType!=='professional') ? [] : g.ids)
-                        .filter(id => isTabPurchasable(effProfileType, id) && decide(id).visible
-                                   && id !== nav && !SELF_DISCLOSING.has(id)),
-              disclosure,
-            );
+            const candidates = NAV_GROUPS.flatMap(g => g.ids)
+              .filter(id => isTabPurchasable(effProfileType, id) && decide(id).visible
+                         && id !== nav && !SELF_DISCLOSING.has(id));
+            if (navShowAll) {
+              // Χωρίς κρυμμένες, δεν υπάρχει τι να επαναφέρεις.
+              if (hiddenTabCount(candidates, { ...disclosure, showAll: false }) === 0) return null;
+              return (
+                <button type="button" onClick={() => setNavShowAllPref(false)} className="sidebar-item" style={{ color: 'var(--text-tertiary)' }}
+                  title="Κρύβει ξανά όσες καρτέλες δεν χρειάζεσαι αυτή τη στιγμή. Δεν χάνεται τίποτα: επανέρχονται με ένα κλικ.">
+                  <span className="sidebar-item-icon" aria-hidden>{ic('M4 6h16|M4 12h10|M4 18h6')}</span>
+                  <span className="sidebar-item-label">Λιγότερες καρτέλες</span>
+                </button>
+              );
+            }
+            const hidden = hiddenTabCount(candidates, disclosure);
             if (hidden === 0) return null;
             return (
               <button type="button" onClick={showAllTabs} className="sidebar-item" style={{ color: 'var(--text-tertiary)' }}
-                title="Η εφαρμογή δείχνει πρώτα όσα χρειάζεσαι τώρα. Οι υπόλοιπες καρτέλες εμφανίζονται μόλις αποκτήσουν νόημα — ή όλες μαζί από εδώ.">
+                title="Η εφαρμογή δείχνει πρώτα όσα χρειάζεσαι τώρα. Οι υπόλοιπες καρτέλες εμφανίζονται μόλις αποκτήσουν νόημα, ή τώρα με ένα κλικ.">
                 <span className="sidebar-item-icon" aria-hidden>{ic('M4 6h16|M4 12h16|M4 18h16')}</span>
-                <span className="sidebar-item-label">Δες όλες τις καρτέλες</span>
+                <span className="sidebar-item-label">Όλες οι καρτέλες</span>
                 <span style={{ marginLeft: 'auto', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>+{hidden}</span>
               </button>
             );
@@ -1748,7 +1783,7 @@ export default function Dashboard() {
               {navSafe==='portfolio' && (isTabAllowed(ent,'portfolio')
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα του χαρτοφυλακίου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
-              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} ownerName={ownerName} onSaveOwnerName={saveOwnerName} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
+              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={effProfileType} plan={effPlan} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
@@ -1790,7 +1825,13 @@ export default function Dashboard() {
                       συμβουλευτικής, γραμμένες και απρόσιτες.
 
                       Τώρα στέκει μόνο του στο μενού, ακριβώς εκεί που λείπει. */}
-                  {properties.length > 1 && (
+                  {/* ΔΥΟ ΚΑΝΟΝΕΣ ΓΙΑ ΕΝΑ ΕΡΩΤΗΜΑ. Εδώ αρκούσε «πάνω από ένα
+                      ακίνητο», ενώ η ίδια η εφαρμογή ορίζει τη σύγκριση ως δύο
+                      ακίνητα ΙΔΙΟΥ ΤΥΠΟΥ (canCompare). Με διαμέρισμα και θέση
+                      στάθμευσης, η οθόνη τύπωνε τίτλο και υπότιτλο «2 ακίνητα
+                      δίπλα-δίπλα», και από κάτω η ίδια η σύγκριση απαντούσε
+                      «δεν υπάρχουν δύο ακίνητα ίδιου τύπου». */}
+                  {canCompare(properties) && (
                     <div style={{marginTop:28}}>
                       <SecHdr label="Σε σχέση με τα υπόλοιπα ακίνητά σου" sub={`${properties.length} ακίνητα δίπλα-δίπλα`}/>
                       {isTabAllowed(ent,'comparison')
@@ -1827,9 +1868,12 @@ export default function Dashboard() {
               {nav==='documents' && (
                 <>
                   <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>
+                  {/* Η επικεφαλίδα ζει ΜΕΣΑ στο component, μαζί με τις ενέργειές
+                      της. Εδώ γραφόταν δεύτερη φορά, και από κάτω το ίδιο το
+                      component τύπωνε τίτλο σελίδας με υπότιτλο που έλεγε την
+                      ίδια πρόταση με άλλες λέξεις. */}
                   <div style={{marginTop:28}}>
-                    <SecHdr label="Επαφές του ακινήτου" sub="Πάροχοι, τεχνικοί, τράπεζες, ασφαλιστές"/>
-                    <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>
+                    <TabContacts propertyId={selected.id} userId={user.id} embedded profileType={effProfileType} properties={properties}/>
                   </div>
                   {/* ΤΑ ΠΡΑΓΜΑΤΑ ΤΟΥ ΑΚΙΝΗΤΟΥ, ΜΑΖΙ ΜΕ ΤΑ ΧΑΡΤΙΑ ΚΑΙ ΤΟΥΣ
                       ΑΝΘΡΩΠΟΥΣ ΤΟΥ. Ο εξοπλισμός ήταν «εργαλείο» στην πλαϊνή

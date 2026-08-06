@@ -1554,10 +1554,12 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           εμφανίζονταν ΜΟΝΟ αν υπήρχε ήδη επαφή: ο νέος χρήστης δεν έβλεπε ποτέ τη
           σάρωση και ο μόνος δρόμος για την πρώτη του επαφή ήταν η φόρμα. Το κύριο
           κουμπί είναι η ΦΩΤΟΓΡΑΦΙΑ, όχι η χειροκίνητη καταχώριση. */}
-      {!embedded && <PageTitle
-        title="Επαφές"
-        sub="Συνεργάτες, πάροχοι και υπηρεσίες του ακινήτου"
-        right={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ΕΝΘΕΤΟ: ΕΠΙΚΕΦΑΛΙΔΑ ΕΝΟΤΗΤΑΣ, ΟΧΙ ΔΕΥΤΕΡΟΣ ΤΙΤΛΟΣ ΣΕΛΙΔΑΣ.
+          Μέσα στο Αρχείο υπήρχαν δύο τίτλοι πρώτου επιπέδου ο ένας κάτω από τον
+          άλλο, με δύο υπότιτλους που έλεγαν την ίδια πρόταση με άλλες λέξεις.
+          Οι ενέργειες είναι ΟΙ ΙΔΙΕΣ και στις δύο μορφές: γράφονται μία φορά. */}
+      {(() => {
+      const actions = <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <Btn variant="secondary" onClick={openAdd}>Νέα επαφή</Btn>
           {contacts.length > 0 && <details className="po-menu" style={{ position: 'relative' }}>
             <summary style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
@@ -1579,8 +1581,11 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             </div>
           </details>}
           <Btn variant="primary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωση κάρτας'}</Btn>
-        </div>}
-      />}
+        </div>;
+      return embedded
+        ? <SecHdr label="Επαφές του ακινήτου" sub="Πάροχοι, τεχνικοί, τράπεζες, ασφαλιστές" right={actions}/>
+        : <PageTitle title="Επαφές" sub="Συνεργάτες, πάροχοι και υπηρεσίες του ακινήτου" right={actions}/>;
+      })()}
 
       {/* ══ ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ ══════════════════════════════════════════
           Πριν εδώ υπήρχαν ΔΥΟ ζώνες που έλεγαν το ίδιο: τρία πλακίδια
