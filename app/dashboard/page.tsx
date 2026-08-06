@@ -1763,8 +1763,10 @@ export default function Dashboard() {
                       ακριβώς τους επισκέπτες αυτής της καρτέλας. Ως χωριστή
                       καρτέλα ήταν ένας προορισμός που κανείς δεν σκεφτόταν να
                       επισκεφθεί όταν όριζε τιμή. */}
+                  {/* Δύο επικεφαλίδες για ένα πράγμα: εδώ στεκόταν «Τιμολόγηση ανά
+                      νύχτα» και αμέσως από κάτω ο δικός της τίτλος. Η οθόνη
+                      συστήνεται μόνη της. */}
                   <div style={{marginTop:28}}>
-                    <SecHdr label="Τιμολόγηση ανά νύχτα" sub="Δυναμική τιμή και φορολογική εικόνα βραχυχρόνιας"/>
                     <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>
                   </div>
                 </>

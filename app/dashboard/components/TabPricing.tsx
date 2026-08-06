@@ -29,7 +29,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn } from '@/components/Theme';
+import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
+import { shortTermCashflow } from '@/lib/tax/shortTermCashflow';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { Tag } from 'lucide-react';
 import { NumberInput } from './UIComponents';
@@ -77,6 +79,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   const [saveNote, setSaveNote] = useState<string | null>(null);
   const [gapTitles, setGapTitles] = useState<Set<string>>(new Set()); // κενά ήδη στο Ημερολόγιο
   const compsKey = `pos-pricing-comps-${propertyId}`;
+  const [opex, setOpex] = useState(0);
+  const [propCount, setPropCount] = useState(1);
   const [comps, setComps] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(compsKey) || '[]'); } catch { return []; } });
   const [compsOpen, setCompsOpen] = useState(false);
   const loadedSettings = useRef(false);
@@ -84,7 +88,9 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // ── Φόρτωση διαμονών + αποθηκευμένων ρυθμίσεων ─────────────────────────────
   const loadStays = useCallback(async () => {
     const { data } = await supabase.from('client_stays')
-      .select('check_in,check_out,nights,nightly_rate,total,gross_guest_paid,platform_fee,climate_levy,amount_basis')
+      // Το `declared_at` και το `channel` χρειάζονται για τη φορολογική σύνοψη:
+      // πόσες διαμονές δεν έχουν Δήλωση Βραχυχρόνιας, και ανά ποιο κανάλι.
+      .select('check_in,check_out,nights,nightly_rate,total,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at,channel')
       .eq('user_id', userId).eq('property_id', propertyId);
     setStays((data || []) as PriceStay[]);
   }, [userId, propertyId]);
@@ -110,6 +116,19 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     }
   }, [userId, propertyId]);
 
+  // ═══ ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ ΠΟΥ ΕΛΕΙΠΑΝ ΓΙΑ ΝΑ ΚΛΕΙΣΕΙ Η ΑΛΥΣΙΔΑ ═══════════════════
+  // Οι λειτουργικές δαπάνες της χρονιάς, και πόσα ακίνητα έχει ο φορολογούμενος
+  // (κρίνει την εξαίρεση του τέλους παρεπιδημούντων: ισχύει έως δύο ακίνητα).
+  const loadCashflowInputs = useCallback(async () => {
+    const [{ data: exp }, { count }] = await Promise.all([
+      supabase.from('expenses').select('amount').eq('property_id', propertyId).eq('user_id', userId)
+        .gte('date', `${nowYear}-01-01`).lte('date', `${nowYear}-12-31`),
+      supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    ]);
+    setOpex((exp || []).reduce((sum: number, e: { amount?: number | null }) => sum + (Number(e.amount) || 0), 0));
+    setPropCount(Math.max(1, count || 1));
+  }, [propertyId, userId, nowYear]);
+
   // Ποια κενά έχουν ήδη υπενθύμιση στο Ημερολόγιο (για toggle προσθήκη/αφαίρεση).
   const loadGapEvents = useCallback(async () => {
     const { data } = await supabase.from('calendar_events').select('title').eq('property_id', propertyId).eq('source', 'pricing_gap');
@@ -117,8 +136,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   }, [propertyId]);
 
   useEffect(() => {
-    (async () => { setLoading(true); await Promise.all([loadStays(), loadSettings(), loadGapEvents(), loadPropType()]); setLoading(false); })();
-  }, [loadStays, loadSettings, loadGapEvents, loadPropType]);
+    (async () => { setLoading(true); await Promise.all([loadStays(), loadSettings(), loadGapEvents(), loadPropType(), loadCashflowInputs()]); setLoading(false); })();
+  }, [loadStays, loadSettings, loadGapEvents, loadPropType, loadCashflowInputs]);
 
   // ── Realtime: διαμονές, iCal, ρυθμίσεις → ζωντανή ενημέρωση ────────────────
   useEffect(() => {
@@ -220,6 +239,27 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     },
   ], [sum, base, measuredOcc, occNights]);
 
+  // ═══ Η ΑΠΑΝΤΗΣΗ ΣΤΟ «ΠΟΣΑ ΜΕΝΟΥΝ ΣΕ ΕΜΕΝΑ» ═══════════════════════════════
+  // Ήταν σκορπισμένη σε τρεις οθόνες: η δυναμική τιμή εδώ, τα έσοδα και οι
+  // διανυκτερεύσεις στην Επισκόπηση, ο φόρος με τα τέλη στη Λογιστική. Ο
+  // ιδιοκτήτης έπρεπε να επισκεφθεί και τις τρεις και να κάνει την αφαίρεση
+  // μόνος του — δηλαδή να κάνει ό,τι υποτίθεται ότι κάνει η εφαρμογή.
+  const taxSummary = useMemo(
+    () => shortTermYearSummary(stays, nowYear, { sqm: propertySqm ?? null, isHouse, propertyCount: propCount, individual: true }),
+    [stays, nowYear, propertySqm, isHouse, propCount],
+  );
+  const cashflow = useMemo(
+    () => shortTermCashflow({
+      grossRevenue: taxSummary.grossRevenue,
+      platformFees: taxSummary.platformFees,
+      operatingExpenses: opex,
+      municipalTax: taxSummary.municipalTax,
+      levyShortfall: taxSummary.levyShortfall,
+      incomeTax: taxSummary.incomeTax,
+    }),
+    [taxSummary, opex],
+  );
+
   const priceRange = useMemo(() => {
     const avail = rows.filter(r => !r.booked).map(r => r.price);
     return { lo: avail.length ? Math.min(...avail) : 0, hi: avail.length ? Math.max(...avail) : 1 };
@@ -315,8 +355,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
           το πρόβλημα που κοστίζει εισόδημα σήμερα δεν περιμένει κύλιση. */}
       <AmaStrip userId={userId} propertyId={propertyId} />
 
-      <PageTitle title="Δυναμική τιμολόγηση" titleHint="Προτεινόμενη τιμή ανά νύχτα από τα δικά σου δεδομένα και την ελληνική εποχικότητα. Οι τιμές είναι προτάσεις, τις εφαρμόζεις εσύ στα κανάλια."
-        sub="Εύρος τιμής ανά ημέρα, κενές μέρες προς πλήρωση, και τι μένει τελικά σε εσένα από κάθε τιμή."
+      <PageTitle title="Βραχυχρόνια μίσθωση" titleHint="Προτεινόμενη τιμή ανά νύχτα από τα δικά σου δεδομένα και την ελληνική εποχικότητα. Οι τιμές είναι προτάσεις, τις εφαρμόζεις εσύ στα κανάλια."
+        sub="Τι να ζητήσεις ανά νύχτα, ποιες μέρες μένουν κενές, και τι σου μένει στο χέρι μετά από έξοδα, τέλη και φόρο."
         right={rows.length > 0 ? <ExportButton onClick={exportXlsx} label="Εξαγωγή Excel" /> : undefined} />
 
       <InfoBanner tone="info">
@@ -401,6 +441,74 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
       ) : (
         <>
           <KPIGrid items={kpis} />
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              ΑΠΟ ΤΑ ΕΚΑΤΟ ΕΥΡΩ ΤΟΥ ΕΠΙΣΚΕΠΤΗ, ΠΟΣΑ ΜΕΝΟΥΝ ΣΕ ΕΜΕΝΑ
+              ─────────────────────────────────────────────────────────────────
+              Η δυναμική τιμή από πάνω λέει τι να ζητήσεις. Αυτό εδώ λέει τι σου
+              μένει αφού ζητηθεί — και ήταν το μόνο που έλειπε, γιατί ζούσε
+              μοιρασμένο σε δύο άλλες οθόνες: τα έσοδα στην Επισκόπηση, ο φόρος
+              με τα τέλη στη Λογιστική. Ο ιδιοκτήτης έκανε την αφαίρεση στο μυαλό
+              του, ανάμεσα σε τρεις καρτέλες.
+
+              ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ ΤΗ ΛΟΓΙΣΤΙΚΗ. Εκεί το «καθαρό» απαντά σε
+              φορολογικό ερώτημα και αφαιρεί μόνο φόρο και τέλη. Εδώ απαντά σε
+              ταμειακό και αφαιρεί ΚΑΙ τα έξοδα. Δύο σωστά νούμερα, δύο
+              διαφορετικές ερωτήσεις, δύο διαφορετικές λέξεις. */}
+          {taxSummary.stayCount > 0 && (
+            <div className="card" style={{ marginTop: 20 }}>
+              <SecHdr label={`Τι μένει σε εσένα, ${nowYear}`}
+                sub={`Από ${fn(taxSummary.totalNights)} διανυκτερεύσεις σε ${taxSummary.stayCount === 1 ? 'μία διαμονή' : `${fn(taxSummary.stayCount)} διαμονές`}`}
+                right={cashflow.keptPct != null
+                  ? <span title="Ποσοστό των ακαθαρίστων που καταλήγει σε εσένα" style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fp(cashflow.keptPct)}</span>
+                  : undefined} />
+
+              {/* Μία στήλη, μία υποδιαστολή. Οι εκροές έχουν εσοχή ώστε να
+                  διαβάζονται ως αφαιρέσεις από τη γραμμή που τις γεννά, χωρίς
+                  να χρειάζεται πρόσημο που θα μετακινούσε τα ψηφία. */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {cashflow.steps.map(step => {
+                  const isTotal = step.kind === 'total';
+                  const isOut = step.kind === 'out';
+                  return (
+                    <div key={step.key} title={step.note}
+                      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16,
+                        padding: isTotal ? '14px 0 2px' : '9px 0',
+                        borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
+                        marginTop: isTotal ? 6 : 0 }}>
+                      <span style={{ fontFamily: T.font.sans, fontSize: isTotal ? 14 : 12.5,
+                        fontWeight: isTotal ? 700 : 400,
+                        color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        paddingLeft: isOut ? 14 : 0, minWidth: 0 }}>{step.label}</span>
+                      <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+                        fontSize: isTotal ? 19 : 13,
+                        fontWeight: isTotal ? 700 : 500,
+                        color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {isOut ? '−' : cashflow.net < 0 && isTotal ? '−' : ''}{fe(step.amount)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Η αναλογία με μια ματιά: πόσο από τη μπάρα μένει δικό σου. */}
+              {cashflow.keptPct != null && cashflow.net > 0 && (
+                <div style={{ marginTop: 14, height: 6, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, cashflow.keptPct)}%`, background: 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' }} />
+                </div>
+              )}
+
+              {/* ΟΠΟΥ ΤΟ ΝΟΥΜΕΡΟ ΕΙΝΑΙ ΕΚΤΙΜΗΣΗ, ΤΟ ΛΕΜΕ ΔΙΠΛΑ ΤΟΥ. Διαμονές με
+                  απροσδιόριστη βάση ποσού κάνουν τα ακαθάριστα εκτίμηση· διαμονές
+                  χωρίς Δήλωση Βραχυχρόνιας είναι εκκρεμότητα, όχι λογιστικό λάθος. */}
+              <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.65 }}>
+                Ο φόρος υπολογίζεται στα ακαθάριστα με την κλίμακα ενοικίων, όχι στο υπόλοιπο μετά τα έξοδα. Δεν περιλαμβάνονται δόσεις δανείου.
+                {taxSummary.unresolvedCount > 0 && ` ${taxSummary.unresolvedCount === 1 ? 'Μία διαμονή' : `${fn(taxSummary.unresolvedCount)} διαμονές`} χωρίς ανάλυση ποσού σε ακαθάριστο, προμήθεια και τέλος: τα ακαθάριστα είναι εκτίμηση ως τότε.`}
+                {taxSummary.undeclaredCount > 0 && ` ${taxSummary.undeclaredCount === 1 ? 'Μία διαμονή δεν έχει' : `${fn(taxSummary.undeclaredCount)} διαμονές δεν έχουν`} Δήλωση Βραχυχρόνιας Διαμονής.`}
+              </div>
+            </div>
+          )}
 
           {/* Η μετρημένη πληρότητα, με την απόδειξή της. Καμία προβολή εσόδων:
               πολλαπλασιάζοντας τις δικές μας προτάσεις με τη δική μας εκτίμηση
