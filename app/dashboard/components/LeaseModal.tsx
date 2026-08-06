@@ -79,14 +79,25 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   useEffect(() => {
     if (!open || !propId) return;
     (async () => {
-      const { data } = await supabase.from('tenants').select('full_name,afm,monthly_rent,deposit,lease_start')
-        .eq('property_id', propId).eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle();
-      const t = data as { full_name?: string; afm?: string; monthly_rent?: number; deposit?: number; lease_start?: string } | null;
+      // Η ΣΤΗΛΗ ΤΗΣ ΕΓΓΥΗΣΗΣ ΛΕΓΕΤΑΙ `deposit_amount`.
+      // Ο πίνακας `tenants` έχει δύο: μια παλιά `deposit` που δεν διαβάζει
+      // κανείς, και τη `deposit_amount` που χρησιμοποιεί ΟΛΗ η υπόλοιπη
+      // εφαρμογή — η καρτέλα Ενοικιαστή, το πλακίδιο «Εγγύηση σε κατοχή», η
+      // εξαγωγή, η σάρωση μισθωτηρίου, και η πύλη του ενοικιαστή.
+      //
+      // Αυτή η οθόνη ήταν η μόνη που χρησιμοποιούσε την παλιά, ΚΑΙ ΣΤΙΣ ΔΥΟ
+      // ΚΑΤΕΥΘΥΝΣΕΙΣ. Άρα: το πεδίο «Εγγύηση» εμφανιζόταν πάντα κενό, παρότι ο
+      // χρήστης το είχε ήδη καταχωρίσει· και ό,τι έγραφε εδώ εξαφανιζόταν από
+      // παντού αλλού μόλις έκλεινε το παράθυρο. Χωρίς κανένα σφάλμα: η στήλη
+      // υπάρχει, οπότε το γράψιμο πετύχαινε κανονικά.
+      const { data } = await supabase.from('tenants').select('full_name,afm,monthly_rent,deposit_amount,lease_start')
+        .eq('property_id', propId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
+      const t = data as { full_name?: string; afm?: string; monthly_rent?: number; deposit_amount?: number; lease_start?: string } | null;
       if (!t) return;
       if (t.full_name) setTenant(p => p || t.full_name!);
       if (t.afm) setTenantAfm(p => p || String(t.afm));
       if (t.monthly_rent) setRent(p => p || String(t.monthly_rent));
-      if (t.deposit) setDeposit(p => p || String(t.deposit));
+      if (t.deposit_amount) setDeposit(p => p || String(t.deposit_amount));
     })();
   }, [open, propId, userId, supabase]);
 
@@ -162,8 +173,8 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
       });
 
       // Ενημέρωση/δημιουργία ενοικιαστή από το υπογεγραμμένο συμφωνητικό.
-      const payload = { full_name: tenant.trim(), afm: tenantAfm.trim() || null, monthly_rent: res.monthlyRent, deposit: res.deposit || null, lease_start: res.start, lease_end: res.end };
-      const { data: cur } = await supabase.from('tenants').select('id').eq('property_id', prop.id).eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const payload = { full_name: tenant.trim(), afm: tenantAfm.trim() || null, monthly_rent: res.monthlyRent, deposit_amount: res.deposit || null, lease_start: res.start, lease_end: res.end };
+      const { data: cur } = await supabase.from('tenants').select('id').eq('property_id', prop.id).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
       // Το try/catch από πάνω δεν καλύπτει αυτό: το Supabase δεν πετά. Χωρίς τον
       // έλεγχο, το συμφωνητικό αρχειοθετούνταν και ο ενοικιαστής δεν υπήρχε πουθενά.
       await saved('Ο ενοικιαστής δεν ενημερώθηκε από το συμφωνητικό', (cur as { id?: string } | null)?.id

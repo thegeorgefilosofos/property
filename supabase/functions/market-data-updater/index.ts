@@ -234,12 +234,29 @@ Deno.serve(async (req: Request) => {
 })
 
 // ── Program deadline management ───────────────────────────────────────────────
+// ΤΡΕΙΣ ΣΤΗΛΕΣ ΠΟΥ ΔΕΝ ΥΠΑΡΧΟΥΝ ΕΚΑΝΑΝ ΑΥΤΗ ΤΗ ΣΥΝΑΡΤΗΣΗ ΝΑ ΜΗΝ ΚΑΝΕΙ ΤΙΠΟΤΑ.
+//
+// Ο πίνακας `loan_programs` έχει κλειδί `program_id` και κατάσταση `status`.
+// Δεν έχει `is_active`, δεν έχει `expired_at`, δεν έχει `id`. Το φίλτρο
+// `.neq('status', 'ended')` απορριπτόταν ολόκληρο με 42703, το `programs`
+// γύριζε null, και ο βρόχος δεν έτρεχε ΠΟΤΕ.
+//
+// Το cron τρέχει κάθε πρωί στις 08:00 UTC και επέστρεφε καθαρή, άδεια λίστα.
+// Δηλαδή: ληγμένα προγράμματα («Σπίτι μου ΙΙ», «Εξοικονομώ») έμεναν για πάντα
+// ενεργά στην καρτέλα Δάνειο, και καμία υπενθύμιση προθεσμίας στις 90, 60, 30,
+// 14 και 7 ημέρες δεν δημιουργήθηκε ποτέ. Ο ιδιοκτήτης έχανε την προθεσμία
+// επιδότησης και τίποτα δεν του το είπε.
+//
+// Η μία πηγή αλήθειας για το «ενεργό» είναι το `status`: η όψη
+// `active_loan_programs` φιλτράρει ήδη με
+// `coalesce(status,'active') <> 'ended' and (deadline is null or deadline >= current_date)`.
+// Μια στήλη `is_active` θα ήταν δεύτερη, και θα απέκλιναν.
 async function manageProgramDeadlines() {
   const today = new Date()
   const { data: programs } = await supabase
     .from('loan_programs')
     .select('*')
-    .eq('is_active', true)
+    .neq('status', 'ended')
     .not('deadline', 'is', null)
 
   const results: string[] = []
@@ -250,14 +267,14 @@ async function manageProgramDeadlines() {
 
     if (daysLeft < 0) {
       await supabase.from('loan_programs')
-        .update({ is_active: false, status: 'expired', expired_at: today.toISOString() })
-        .eq('id', prog.id)
+        .update({ status: 'ended' })
+        .eq('program_id', prog.program_id)
       results.push(`EXPIRED: ${prog.name}`)
     } else {
       if (prog.deadline_urgent !== (daysLeft <= 30)) {
         await supabase.from('loan_programs')
           .update({ deadline_urgent: daysLeft <= 30 })
-          .eq('id', prog.id)
+          .eq('program_id', prog.program_id)
       }
       if ([90, 60, 30, 14, 7].includes(daysLeft)) {
         await createProgramReminders(prog, daysLeft)
@@ -291,7 +308,7 @@ async function createProgramReminders(prog: any, daysLeft: number) {
       event_date:  prog.deadline,
       priority:    daysLeft <= 14 ? 'high' : daysLeft <= 30 ? 'medium' : 'low',
       status:      'pending',
-      notes:       prog.deadline_note ?? `Deadline προγράμματος ${prog.name}.`,
+      notes:       prog.deadline_label ?? `Προθεσμία προγράμματος ${prog.name}.`,
       source:      'system',
     })
   }

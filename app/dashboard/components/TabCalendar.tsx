@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
-import type { CalendarEventsRow, ClientStaysRow } from '@/lib/supabase/tables'
+import type { BillsRow, CalendarEventsRow, ClientStaysRow } from '@/lib/supabase/tables'
 import type { TenantScheduleInput } from './TabTenantHelpers'
 
 // Ό,τι διαβάζει ο συγχρονισμός από κάθε πίνακα, γραμμένο εδώ και μόνο εδώ.
@@ -623,10 +623,17 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
       const bills=await must(supabase.from('bills').select('*').eq('property_id',propertyId))
       await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills'))
       const today=new Date()
-      const rows=(bills||[]).filter((b:any)=>b.due_date||b.next_due_date).map((b:any)=>{
-        let dueDate=b.due_date||b.next_due_date; const d=new Date(dueDate)
+      // ΔΥΟ ΝΕΚΡΑ ΕΝΑΛΛΑΚΤΙΚΑ ΠΕΔΙΑ. Το `next_due_date` δεν υπάρχει σε κανέναν
+      // από τους πίνακες, και το `provider` υπάρχει μόνο στα τιμολόγια ρεύματος.
+      // Το `(b:any)` τα έκρυβε από τον μεταγλωττιστή, όπως το `as any` στα δάνεια.
+      // Αποτέλεσμα: λογαριασμός χωρίς όνομα γινόταν γεγονός με τίτλο
+      // «Λογαριασμός» — πέντε πανομοιότυπες γραμμές στο ημερολόγιο, χωρίς να
+      // ξεχωρίζει ποια είναι το ρεύμα και ποια το νερό. Ο τύπος του λογαριασμού
+      // υπάρχει και είναι ήδη ο τίτλος του στην Επισκόπηση.
+      const rows=((bills||[]) as BillsRow[]).filter(b=>b.due_date).map(b=>{
+        let dueDate=b.due_date; const d=new Date(dueDate)
         if(d<today){d.setMonth(today.getMonth());d.setFullYear(today.getFullYear());if(d<today)d.setMonth(d.getMonth()+1);dueDate=d.toISOString().split('T')[0]}
-        return{property_id:propertyId,user_id:userId,title:b.name||b.provider||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,priority:'medium' as EventPriority,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null,source:'bills'}
+        return{property_id:propertyId,user_id:userId,title:b.name||b.type||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,priority:'medium' as EventPriority,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null,source:'bills'}
       })
       if(rows.length)await must(supabase.from('calendar_events').insert(rows))
       // ΤΟ ΣΚΑΝΑΡΙΣΜΕΝΟ ΔΙΑΓΡΑΦΕΤΑΙ ΜΕΤΑ, ΚΑΙ ΜΟΝΟ ΑΝ ΠΕΤΥΧΕ Η ΕΓΓΡΑΦΗ.

@@ -83,7 +83,12 @@ interface Property {
 // τίποτα. Ό,τι ζητά το ερώτημα, δηλώνεται εδώ.
 interface Expense  { id:string; amount:number; date:string; category:string; description:string;
                      paid?:boolean|null; expense_group?:string|null; payment_method?:string|null; }
-interface Bill     { id:string; type:string; amount:number; avg_amount:number|null; paid:boolean;
+// Το `avg_amount` έφυγε: ΔΕΝ είναι στήλη κανενός πίνακα. Επειδή το ερώτημα
+// κάνει `select('*')`, καμία 42703 δεν έσκαγε — απλώς ήταν πάντα undefined, και
+// το `b.avg_amount || b.amount` έδειχνε το ποσό του ΤΕΛΕΥΤΑΙΟΥ λογαριασμού κάτω
+// από τον τίτλο «Μέσοι λογαριασμοί». Ο ιδιοκτήτης έβλεπε τον Ιανουάριο του
+// ρεύματος, με τη θέρμανση μέσα, και έχτιζε πάνω του ετήσιο προϋπολογισμό.
+interface Bill     { id:string; type:string; amount:number; paid:boolean;
                      due_date?:string|null; name?:string|null; }
 interface Task     { id:string; title:string; due_date:string|null; priority:string; completed:boolean; }
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
@@ -519,6 +524,22 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const projectedExpYear = allExpenses.reduce((s,e) => s + e.amount * occMonths(e, year).length, 0);
   const recurringCount = allExpenses.filter(e => e.is_recurring && occMonths(e, year).length > 0).length;
 
+  // ΜΕΣΟΣ ΟΡΟΣ ΑΝΑ ΤΥΠΟ ΛΟΓΑΡΙΑΣΜΟΥ, ΥΠΟΛΟΓΙΣΜΕΝΟΣ. Η κάρτα λεγόταν «Μέσοι
+  // λογαριασμοί» και έδειχνε το ποσό του τελευταίου. Ο μέσος όρος βγαίνει από
+  // τις γραμμές που ήδη έχουμε φορτώσει: καμία επιπλέον κλήση, καμία δεύτερη
+  // πηγή, και το πλήθος γράφεται δίπλα ώστε να φαίνεται σε τι στηρίζεται.
+  const billAverages = useMemo(() => {
+    const byType = new Map<string, { sum: number; count: number }>();
+    for (const b of bills) {
+      const key = b.type || b.name || 'Λογαριασμός';
+      const cur = byType.get(key) || { sum: 0, count: 0 };
+      byType.set(key, { sum: cur.sum + (b.amount || 0), count: cur.count + 1 });
+    }
+    return [...byType.entries()]
+      .map(([type, { sum, count }]) => ({ type, avg: sum / count, count }))
+      .sort((a, b) => b.avg - a.avg);
+  }, [bills]);
+
   // ── Σύνοψη εκκρεμοτήτων για τα πλακίδια ────────────────────────────────────
   // ΑΦΑΙΡΕΘΗΚΕ ο πίνακας `alerts`: 25 γραμμές που κατασκεύαζαν επτά ειδοποιήσεις
   // από τη βάση (λογαριασμοί, εργασίες, checklist, εγγυήσεις, κατάσταση
@@ -800,13 +821,19 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         </div>
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Μέσοι λογαριασμοί</div>
-          {bills.length===0
-            ? <EmptyState icon={<FileText size={20}/>} title="Κανένας λογαριασμός ακόμη" hint="Πρόσθεσε ρεύμα, νερό και πάγια για να δεις μέσο μηνιαίο κόστος." action={<Btn variant="secondary" onClick={()=>onNavigate('finances')}>Λογαριασμοί</Btn>} />
+          {billAverages.length===0
+            ? <EmptyState icon={<FileText size={20}/>} title="Κανένας λογαριασμός ακόμη" hint="Πρόσθεσε ρεύμα, νερό και πάγια για να δεις μέσους όρους."/>
             : <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {bills.slice(0,5).map(b => (
-                  <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>{b.type}</div>
-                    <div style={{fontFamily: T.font.mono,fontSize:13,color:'var(--text-primary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(b.avg_amount||b.amount)}</div>
+                {billAverages.slice(0,5).map(b => (
+                  <div key={b.type} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
+                    <div style={{minWidth:0,fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {b.type}
+                      {/* ΤΟ ΠΛΗΘΟΣ ΛΕΓΕΤΑΙ. Ένας «μέσος όρος» από έναν λογαριασμό δεν
+                          είναι μέσος όρος, και ο χρήστης πρέπει να ξέρει σε πόσα
+                          στηρίζεται το νούμερο πριν χτίσει πάνω του προϋπολογισμό. */}
+                      <span style={{color:'var(--text-tertiary)',fontSize:11}}> ({b.count})</span>
+                    </div>
+                    <div style={{fontFamily: T.font.mono,fontSize:13,color:'var(--text-primary)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{fmtEur(b.avg)}</div>
                   </div>
                 ))}
               </div>

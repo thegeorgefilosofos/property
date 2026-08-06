@@ -189,7 +189,10 @@ Deno.serve(async (req) => {
         { type: '7days', enabled: pref.reminder_7days, date: fmt(in7days) },
         { type: '3days', enabled: pref.reminder_3days, date: fmt(in3days) },
         { type: '1day',  enabled: pref.reminder_1day,  date: fmt(in1day)  },
-        { type: 'today', enabled: true,                 date: todayStr     },
+        // ΗΤΑΝ ΣΤΑΘΕΡΟ `true`. Ο διακόπτης «Ημέρα εκτέλεσης» υπήρχε στην οθόνη
+        // ρυθμίσεων, δεν είχε στήλη στη βάση, και εδώ αγνοούνταν ολότελα: ό,τι κι
+        // αν επέλεγε ο χρήστης, το μήνυμα της ίδιας ημέρας έφευγε.
+        { type: 'today', enabled: pref.reminder_today !== false, date: todayStr },
       ]
 
       for (const check of checks) {
@@ -208,7 +211,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      const overdue = events.filter(e => e.event_date < todayStr)
+      // Το ίδιο ίσχυε για τα εκπρόθεσμα: ο διακόπτης υπήρχε και κανείς δεν τον διάβαζε.
+      const overdue = pref.reminder_overdue === false ? [] : events.filter(e => e.event_date < todayStr)
       if (overdue.length) {
         const { data: sentOD } = await supabase.from('notification_log').select('event_id').in('event_id', overdue.map(e=>e.id)).eq('reminder_type','overdue')
         const sentODIds = new Set(((sentOD||[]) as Pick<NotificationLogRow,'event_id'>[]).map(l=>l.event_id))
