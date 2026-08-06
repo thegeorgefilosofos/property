@@ -707,10 +707,10 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
           <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Καταχωρημένα</span>
           {bills.length > 1 && (
-            <select value={billSort} onChange={e => setBillSort(e.target.value as BillSort)} title="Ταξινόμηση"
-              style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
-              {(Object.keys(BILL_SORT_LABELS) as BillSort[]).map(k => <option key={k} value={k}>{BILL_SORT_LABELS[k]}</option>)}
-            </select>
+            <div style={{ minWidth: 170 }}>
+              <CustomSelect value={billSort} onChange={v => setBillSort(v as BillSort)}
+                options={(Object.keys(BILL_SORT_LABELS) as BillSort[]).map(k => ({ value: k, label: BILL_SORT_LABELS[k] }))} />
+            </div>
           )}
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{visibleBills.length===1?'1 εγγραφή':`${visibleBills.length} εγγραφές`}</span>
         </div>

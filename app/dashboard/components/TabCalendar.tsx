@@ -16,7 +16,7 @@ import {
   Printer, CheckSquare, CalendarDays, ArrowRight,
   TrendingUp, Clock, Info, MoreHorizontal, Share2, CalendarPlus, Repeat,
 } from 'lucide-react'
-import { DatePicker } from './UIComponents'
+import { DatePicker, CustomSelect } from './UIComponents'
 import { allCalendarLinks, buildICS } from '@/lib/calendar/externalLinks'
 import { holidayName, isWeekend } from '@/lib/calendar/greekHolidays'
 import { expandRecurring } from '@/lib/calendar/recurrence'
@@ -801,8 +801,9 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   const fld: React.CSSProperties = { width:'100%', boxSizing:'border-box', height:T.h.lg, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, outline:'none', transition:'border-color 0.15s' }
   const focus=(e:React.FocusEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>e.currentTarget.style.borderColor='var(--accent)'
   const blur=(e:React.FocusEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>e.currentTarget.style.borderColor='var(--border-default)'
-  const chevron="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%239aa0a6'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\")"
-  const sel: React.CSSProperties = {...fld, appearance:'none' as any, cursor:'pointer', backgroundImage:chevron, backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center', paddingRight:34}
+  // Το βέλος-εικόνα και το στυλ του ντόπιου <select> έφυγαν μαζί με τα ίδια τα
+  // <select>: ήταν καρφωμένο γκρι που δεν άλλαζε ποτέ με το θέμα, δίπλα σε
+  // λίστα επιλογών που τη ζωγράφιζε το λειτουργικό με δικά του χρώματα.
   const lbl: React.CSSProperties = { fontFamily: T.font.sans, fontSize:11, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:6 }
   const amt=parseFloat(form.amount)
   const canSave=!!form.title.trim()&&!!form.event_date
@@ -871,14 +872,10 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
 
           {showDetails&&(<>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <div>
-                <label style={lbl}>Κατηγορία</label>
-                <select style={sel} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value as EventCategory}))} onFocus={focus} onBlur={blur}>{Object.entries(CATEGORIES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
-              </div>
-              <div>
-                <label style={lbl}>Προτεραιότητα</label>
-                <select style={sel} value={form.priority} onChange={e=>setForm(f=>({...f,priority:e.target.value as EventPriority}))} onFocus={focus} onBlur={blur}>{Object.entries(PRIORITIES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
-              </div>
+              <CustomSelect label="Κατηγορία" value={form.category} onChange={v=>setForm(f=>({...f,category:v as EventCategory}))}
+                options={Object.entries(CATEGORIES).map(([k,v])=>({ value:k, label:v.label }))}/>
+              <CustomSelect label="Προτεραιότητα" value={form.priority} onChange={v=>setForm(f=>({...f,priority:v as EventPriority}))}
+                options={Object.entries(PRIORITIES).map(([k,v])=>({ value:k, label:v.label }))}/>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
@@ -888,9 +885,8 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
               {form.event_time&&(
                 <div>
                   <label style={lbl}>Διάρκεια</label>
-                  <select style={sel} value={form.duration} onChange={e=>setForm(f=>({...f,duration:e.target.value}))} onFocus={focus} onBlur={blur}>
-                    <option value="">Χωρίς διάρκεια</option><option value="30">30 λεπτά</option><option value="60">1 ώρα</option><option value="90">1 ώρα 30 λεπτά</option><option value="120">2 ώρες</option><option value="180">3 ώρες</option>
-                  </select>
+                  <CustomSelect value={form.duration} onChange={v=>setForm(f=>({...f,duration:v}))} placeholder="Χωρίς διάρκεια"
+                    options={[{value:'',label:'Χωρίς διάρκεια'},{value:'30',label:'30 λεπτά'},{value:'60',label:'1 ώρα'},{value:'90',label:'1 ώρα 30 λεπτά'},{value:'120',label:'2 ώρες'},{value:'180',label:'3 ώρες'}]}/>
                 </div>
               )}
             </div>
@@ -958,10 +954,9 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
               </div>
               {form.recurring&&(
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:12 }}>
-                  <select style={sel} value={form.recurring_interval} onChange={e=>setForm(f=>({...f,recurring_interval:e.target.value}))} onFocus={focus} onBlur={blur}>{RECURRING_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>
-                  <select style={sel} value={form.recurrence_end_mode} onChange={e=>setForm(f=>({...f,recurrence_end_mode:e.target.value as FormState['recurrence_end_mode']}))} onFocus={focus} onBlur={blur}>
-                    <option value="none">Χωρίς λήξη</option><option value="until">Μέχρι ημερομηνία</option><option value="count">Για πλήθος φορών</option>
-                  </select>
+                  <CustomSelect value={form.recurring_interval} onChange={v=>setForm(f=>({...f,recurring_interval:v}))} options={RECURRING_OPTIONS.map(o=>({ value:o.value, label:o.label }))}/>
+                  <CustomSelect value={form.recurrence_end_mode} onChange={v=>setForm(f=>({...f,recurrence_end_mode:v as FormState['recurrence_end_mode']}))}
+                    options={[{value:'none',label:'Χωρίς λήξη'},{value:'until',label:'Μέχρι ημερομηνία'},{value:'count',label:'Για πλήθος φορών'}]}/>
                   {form.recurrence_end_mode==='until'&&<div style={{ gridColumn:'1 / -1' }}><DatePicker value={form.recurrence_until} onChange={v=>setForm(f=>({...f,recurrence_until:v}))}/></div>}
                   {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="Παράδειγμα: 12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}
                 </div>

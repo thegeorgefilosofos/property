@@ -842,6 +842,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const invForStay = stayForm.property_id ? inv.filter(i => i.property_id === stayForm.property_id) : inv;
   // Πλαίσιο για τα πρότυπα μηνυμάτων: πελάτης + πρώτο συνδεδεμένο ακίνητο + πιο
   // πρόσφατη διαμονή (τα dcStays είναι σε φθίνουσα σειρά, άρα [0] = πιο πρόσφατη).
+  // Οι νύχτες, όταν και οι δύο ημερομηνίες υπάρχουν: αφαίρεση, όχι ερώτηση.
+  const derivedNights = stayNights(stayForm.check_in, stayForm.check_out) || null;
   const dcFirstProp = dc ? (propsByClient.get(dc.id) || [])[0] : undefined;
   const msgCtx = dc ? { clientName: dc.full_name, propertyName: dcFirstProp?.name, address: undefined, checkIn: dcStays[0]?.check_in, checkOut: dcStays[0]?.check_out } : null;
 
@@ -1149,11 +1151,16 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </span>
                 ))}
                 {(propsByClient.get(dc.id) || []).length === 0 && unlinkedProps.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Κανένα ακίνητο</span>}
+                {/* ΝΤΟΠΙΟ <select> ΜΕΣΑ ΣΕ ΟΘΟΝΗ ΜΕ ΔΙΚΟ ΤΗΣ ΣΥΣΤΗΜΑ ΠΕΔΙΩΝ.
+                    Το λειτουργικό το σχεδίαζε μόνο του: άλλο βέλος, άλλη γωνία,
+                    άλλη γραμματοσειρά, άλλο φόντο στη λίστα — και στο σκούρο θέμα
+                    λευκό πλαίσιο σε σκούρα σελίδα. Ένα πεδίο, το ίδιο με τα άλλα. */}
                 {unlinkedProps.length > 0 && (
-                  <select value="" onChange={e => { if (e.target.value) linkProperty(dc.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12, height: T.h.md, width: 'auto', minWidth: 170, padding: '4px 12px' }}>
-                    <option value="" disabled hidden>Πρόσθεσε ακίνητο</option>
-                    {unlinkedProps.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                  <div style={{ minWidth: 190 }}>
+                    <CustomSelect value="" onChange={v => { if (v) linkProperty(dc.id, v); }}
+                      options={unlinkedProps.map(p => ({ value: p.id, label: p.name }))}
+                      placeholder="Πρόσθεσε ακίνητο" />
+                  </div>
                 )}
               </div>
             </div>
@@ -1209,10 +1216,22 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     </div>
                     <DatePicker label="Άφιξη" value={stayForm.check_in} onChange={v => onStayDates({ check_in: v })} />
                     <DatePicker label="Αναχώρηση" value={stayForm.check_out} onChange={v => onStayDates({ check_out: v })} />
-                    <NumberInput label="Διανυκτερεύσεις" value={stayForm.nights} onChange={v => setStayForm(f => ({ ...f, nights: v }))} />
+                    {/* ΟΙ ΝΥΧΤΕΣ ΔΕΝ ΕΙΝΑΙ ΕΡΩΤΗΣΗ ΟΤΑΝ ΥΠΑΡΧΟΥΝ ΟΙ ΗΜΕΡΟΜΗΝΙΕΣ.
+                        Ήταν πεδίο που γέμιζε μόνο του από τις δύο ημερομηνίες και
+                        μετά επιτρεπόταν να το αλλάξεις: τρίτη πηγή αλήθειας για
+                        κάτι που είναι αφαίρεση. Ο χρήστης που έγραφε άλλον αριθμό
+                        δεν μάθαινε ποτέ ποιος από τους δύο μέτρησε. */}
+                    {derivedNights != null ? (
+                      <div>
+                        <div style={{ ...lbl, marginBottom: 6 }}>Διανυκτερεύσεις</div>
+                        <div style={{ height: T.h.lg, display: 'flex', alignItems: 'center', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{derivedNights}</div>
+                      </div>
+                    ) : (
+                      <NumberInput label="Διανυκτερεύσεις" value={stayForm.nights} onChange={v => setStayForm(f => ({ ...f, nights: v }))} />
+                    )}
                     <NumberInput label="Άτομα" value={stayForm.guests} onChange={v => setStayForm(f => ({ ...f, guests: v }))} />
                     <CustomSelect label="Κανάλι" value={stayForm.channel} onChange={v => setStayForm(f => ({ ...f, channel: v }))} options={channelOptions} />
-                    <NumberInput label="Τιμή / νύχτα" value={stayForm.nightly_rate} onChange={v => setStayForm(f => ({ ...f, nightly_rate: v }))} suffix="€" />
+                    <NumberInput label="Τιμή ανά νύχτα" value={stayForm.nightly_rate} onChange={v => setStayForm(f => ({ ...f, nightly_rate: v }))} suffix="€" />
                   </div>
 
                   {/* ── ΤΑ ΤΡΙΑ ΠΟΣΑ ─────────────────────────────────────────
@@ -1659,7 +1678,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div style={fGrid}>
                 <div style={{ gridColumn: '1 / -1' }}><TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} /></div>
                 <TextInput label="Τηλέφωνο" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
-                <TextInput label="Email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" />
+                <TextInput label="Ηλεκτρονικό ταχυδρομείο" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" />
               </div>
 
               {/* Η «μαύρη λίστα» έγινε αυτό: ιδιωτική σημείωση, ΧΩΡΙΣ ετικέτα

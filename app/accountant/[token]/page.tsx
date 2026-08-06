@@ -1,4 +1,5 @@
 'use client';
+import { CustomSelect } from '@/app/dashboard/components/UIComponents';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Accountant portal, read-only πύλη λογιστή (χωρίς login). Διαβάζει μέσω
@@ -97,9 +98,10 @@ export default function AccountantPortal() {
             <span style={{ fontSize: 16, fontWeight: 700 }}>Πύλη Λογιστή</span>
           </div>
           {state === 'ok' && (
-            <select value={year} onChange={e => setYear(parseInt(e.target.value, 10))} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.mono, fontWeight: 700 }}>
-              {[nowYear, nowYear - 1, nowYear - 2, nowYear - 3].map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <div style={{ minWidth: 120 }}>
+              <CustomSelect value={String(year)} onChange={v => setYear(parseInt(v, 10))}
+                options={[nowYear, nowYear - 1, nowYear - 2, nowYear - 3].map(y => ({ value: String(y), label: String(y) }))} />
+            </div>
           )}
         </div>
       </header>

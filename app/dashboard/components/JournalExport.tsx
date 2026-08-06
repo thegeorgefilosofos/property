@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
+import { CustomSelect } from './UIComponents';
 import {
   buildJournal, journalTotals, trialBalance, journalToCsv, auditJournal,
   type JournalFormat, type IncomeRec, type ExpenseRec, type JournalAudit, type LoanPaymentRec,
@@ -197,8 +198,14 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
           <div>
             <div style={{ ...TT.label, marginBottom: 8 }}>ΠΕΡΙΟΔΟΣ</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...field, minWidth: 110 }}>{yearsAvail.map(y => <option key={y} value={y}>{y}</option>)}</select>
-              <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ ...field, minWidth: 150 }}><option value={0}>Όλο το έτος</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
+              <div style={{ minWidth: 120 }}>
+                <CustomSelect value={String(year)} onChange={v => setYear(Number(v))}
+                  options={yearsAvail.map(y => ({ value: String(y), label: String(y) }))} />
+              </div>
+              <div style={{ minWidth: 160 }}>
+                <CustomSelect value={String(month)} onChange={v => setMonth(Number(v))}
+                  options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))]} />
+              </div>
             </div>
           </div>
 

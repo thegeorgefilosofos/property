@@ -1,4 +1,5 @@
 'use client';
+import { CustomSelect } from '@/app/dashboard/components/UIComponents';
 // ═══════════════════════════════════════════════════════════════════════════
 // ΔΩΡΕΑΝ ΥΠΟΛΟΓΙΣΤΗΣ ΕΝΦΙΑ — ο διαδραστικός πυρήνας
 // ─────────────────────────────────────────────────────────────────────────
@@ -95,18 +96,10 @@ export function EnfiaCalculator() {
           <label htmlFor={ids.zone} style={label}>Τιμή ζώνης (€/τ.μ.)</label>
           <input id={ids.zone} inputMode="decimal" value={zonePrice} onChange={e => setZonePrice(e.target.value)} style={numField}/>
         </div>
-        <div>
-          <label htmlFor={ids.floor} style={label}>Όροφος</label>
-          <select id={ids.floor} value={floor} onChange={e => setFloor(e.target.value)} style={field}>
-            {FLOORS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor={ids.age} style={label}>Παλαιότητα</label>
-          <select id={ids.age} value={age} onChange={e => setAge(e.target.value)} style={field}>
-            {AGES.map(a => <option key={a.key} value={a.key}>{a.label}</option>)}
-          </select>
-        </div>
+        <CustomSelect label="Όροφος" value={floor} onChange={setFloor}
+          options={FLOORS.map(f => ({ value: f.key, label: f.label }))} />
+        <CustomSelect label="Παλαιότητα" value={age} onChange={setAge}
+          options={AGES.map(a => ({ value: a.key, label: a.label }))} />
         <div>
           <label htmlFor={ids.own} style={label}>Ποσοστό ιδιοκτησίας (%)</label>
           <input id={ids.own} inputMode="numeric" value={ownership} onChange={e => setOwnership(e.target.value)} style={numField}/>

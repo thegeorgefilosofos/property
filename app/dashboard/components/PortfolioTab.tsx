@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { CustomSelect } from './UIComponents';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
@@ -589,15 +590,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Κατηγορία</label>
-                <select value={bulkCat} onChange={e => setBulkCat(e.target.value)} style={fieldStyle}>
-                  {TASK_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
+                <CustomSelect value={bulkCat} onChange={setBulkCat}
+                  options={TASK_CATEGORIES.map(c => ({ value: c.id, label: c.label }))} />
               </div>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Προτεραιότητα</label>
-                <select value={bulkPriority} onChange={e => setBulkPriority(e.target.value)} style={fieldStyle}>
-                  {TASK_PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+                <CustomSelect value={bulkPriority} onChange={setBulkPriority}
+                  options={TASK_PRIORITIES.map(p => ({ value: p.value, label: p.label }))} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -614,9 +613,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
             <SecHdr label="Καταστάσεις ιδιοκτήτη" sub={`Έσοδα, δαπάνες και καθαρό ανά ακίνητο · ${year}`}
               right={<button type="button" aria-label="Κλείσιμο" onClick={() => setShowStatements(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1 }}>✕</button>} />
-            <select value={stmt?.id || ''} onChange={e => setStmtOwner(e.target.value)} style={{ ...fieldStyle, marginBottom: 18 }}>
-              {owners.map(o => <option key={o.id} value={o.id}>{o.name} · {o.rows.length} {o.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</option>)}
-            </select>
+            <div style={{ marginBottom: 18 }}>
+              <CustomSelect value={stmt?.id || ''} onChange={setStmtOwner}
+                options={owners.map(o => ({ value: o.id, label: `${o.name} · ${o.rows.length} ${o.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}` }))} />
+            </div>
 
             {stmt && (
               <>

@@ -11,6 +11,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
+import { CustomSelect } from './UIComponents';
 import {
   validateDoc, docSummaryLine,
   DOC_TYPES, DOC_FIELD_LABELS, type ScannedDoc, type DocType,
@@ -472,13 +473,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
             {/* Πεδία ανά τύπο */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 10 }}>
               {(edited.doc_type === 'bill' || edited.doc_type === 'payment') && (
-                <div>
-                  <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Κατηγορία</label>
-                  <select value={edited.category || 'other'} onChange={e => setEdited(p => p ? { ...p, category: e.target.value } : p)}
-                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, outline: 'none', fontFamily: T.font.sans }}>
-                    {Object.entries(CATEGORY_LABELS).map(([val, l]) => <option key={val} value={val}>{l}</option>)}
-                  </select>
-                </div>
+                <CustomSelect label="Κατηγορία" value={edited.category || 'other'}
+                  onChange={v => setEdited(p => p ? { ...p, category: v } : p)}
+                  options={Object.entries(CATEGORY_LABELS).map(([val, l]) => ({ value: val, label: l as string }))} />
               )}
               {TYPE_FIELDS[edited.doc_type].map(f => {
                 const k = String(f.key);

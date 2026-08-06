@@ -518,25 +518,15 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       <div style={card}>
         {secHdr('Πάροχος και τιμολόγιο')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 7, fontFamily: T.font.sans }}>Πάροχος</div>
-            <select value={provider} onChange={e => {
-              const p = e.target.value; setProvider(p);
-              const prov = PROVIDERS.find(x => x.value === p);
-              const firstId = prov?.tariffs[0]?.id || '';
-              setTariffId(firstId);
-              save({ elecProvider: p, elecTariff: firstId });
-            }} style={{ width: '100%', height: T.h.lg, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
-              {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 7, fontFamily: T.font.sans }}>Τιμολόγιο</div>
-            <select value={tariffId} onChange={e => { setTariffId(e.target.value); save({ elecTariff: e.target.value }); }}
-              style={{ width: '100%', height: T.h.lg, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
-              {providerObj.tariffs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          </div>
+          <CustomSelect label="Πάροχος" value={provider} onChange={p => {
+            setProvider(p);
+            const prov = PROVIDERS.find(x => x.value === p);
+            const firstId = prov?.tariffs[0]?.id || '';
+            setTariffId(firstId);
+            save({ elecProvider: p, elecTariff: firstId });
+          }} options={PROVIDERS.map(p => ({ value: p.value, label: p.label }))} />
+          <CustomSelect label="Τιμολόγιο" value={tariffId} onChange={v => { setTariffId(v); save({ elecTariff: v }); }}
+            options={providerObj.tariffs.map(t => ({ value: t.id, label: t.name }))} />
         </div>
 
         {/* Selected tariff card */}

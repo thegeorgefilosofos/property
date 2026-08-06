@@ -14,7 +14,12 @@ export interface MsgContext {
   discountPct?: number | null; // για πρόταση επιστροφής (προεπιλογή 10%)
 }
 
-export type MsgTemplateId = 'welcome' | 'checkin' | 'during' | 'review' | 'thanks' | 'returning';
+// ΠΕΝΤΕ ΠΡΟΤΥΠΑ, ΠΕΝΤΕ ΔΟΥΛΕΙΕΣ. Ήταν έξι: το «Ευχαριστία και επιστροφή»
+// έλεγε «ευχαριστούμε» (όπως το «Αίτημα αξιολόγησης») και «έλα ξανά» (όπως η
+// «Προσφορά επιστροφής»), χωρίς να ζητά ούτε αξιολόγηση ούτε να προσφέρει
+// έκπτωση. Ένα πρότυπο που είναι ο αδύναμος συνδυασμός δύο άλλων δεν διαλέγεται
+// ποτέ συνειδητά· απλώς μεγαλώνει τη λίστα από την οποία πρέπει να διαλέξεις.
+export type MsgTemplateId = 'welcome' | 'checkin' | 'during' | 'review' | 'returning';
 
 export interface MsgTemplate {
   id: MsgTemplateId;
@@ -71,13 +76,6 @@ export const MSG_TEMPLATES: MsgTemplate[] = [
     build: c => {
       const n = firstName(c.clientName);
       return `${n ? n + ', ' : ''}ευχαριστούμε πολύ που έμεινες ${atProp(c)}. Ελπίζουμε να πέρασες τέλεια! Αν σου άρεσε, θα εκτιμούσαμε πολύ μια σύντομη αξιολόγηση, μας βοηθάει πραγματικά. Καλή συνέχεια!`;
-    },
-  },
-  {
-    id: 'thanks', label: 'Ευχαριστία & επιστροφή',
-    build: c => {
-      const n = firstName(c.clientName);
-      return `${n ? n + ', ' : ''}ευχαριστούμε που μας εμπιστεύτηκες. Θα χαρούμε πολύ να σε φιλοξενήσουμε ξανά ${atProp(c)}, όποτε θελήσεις. Καλό ταξίδι!`;
     },
   },
   {

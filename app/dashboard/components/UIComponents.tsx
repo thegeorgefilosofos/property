@@ -79,6 +79,18 @@ export function InfoDot({ text }: { text: string }) {
   );
 }
 
+// ── ΤΟ labelInfo ΠΟΥ ΕΓΙΝΕ ΠΑΡΑΓΡΑΦΟΣ ΜΕΣΑ ΣΤΗΝ ΕΤΙΚΕΤΑ ────────────────────
+// Ο τύπος είναι ReactNode, οπότε μια συμβολοσειρά περνά τον μεταγλωττιστή και
+// ΤΥΠΩΝΕΤΑΙ κολλητά στην ετικέτα. Το αποτέλεσμα στην οθόνη ήταν
+// «Πλήρωσε ο επισκέπτηςΤο ΣΥΝΟΛΟ που πλήρωσε ο επισκέπτης, πριν αφαιρεθεί
+// προμήθεια…» — τρεις παράγραφοι στη θέση τριών ετικετών, χωρίς κενό, χωρίς
+// τελεία, με τη φόρμα να τριπλασιάζεται σε ύψος.
+//
+// Η διόρθωση δεν είναι να θυμάται ο καλών να τυλίγει: είναι να μη ΜΠΟΡΕΙ να
+// ξεχάσει. Κείμενο σημαίνει επεξήγηση, και η επεξήγηση ζει πίσω από την κουκκίδα.
+const infoNode = (info: ReactNode): ReactNode =>
+  typeof info === 'string' ? <InfoDot text={info} /> : info;
+
 // ─── Number Input ─────────────────────────────────────────────────────────────
 interface NumberInputProps {
   label?: string;
@@ -149,7 +161,7 @@ export function NumberInput({
 
   return (
     <div className={className}>
-      {label && <label htmlFor={inputId} style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }}>{label}{labelInfo}</label>}
+      {label && <label htmlFor={inputId} style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }}>{label}{infoNode(labelInfo)}</label>}
       <div style={{
         width: '100%',
         background: 'var(--bg-surface)',
@@ -352,7 +364,7 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }} id={`${idRef.current}-label`}>{label}{labelInfo}</label>}
+      {label && <label style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }} id={`${idRef.current}-label`}>{label}{infoNode(labelInfo)}</label>}
       <div
         ref={triggerRef}
         role="combobox"

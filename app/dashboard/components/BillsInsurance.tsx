@@ -1137,9 +1137,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {!active && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 15, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}>από {fe(svc.plans[0].price)} / μήνα</div>}
                 {active && (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
-                    <select value={active.planId} onChange={e => updateS(svc.value, 'planId', e.target.value)} style={miniSelectStyle}>
-                      {(svc.plans ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    <CustomSelect value={active.planId} onChange={v => updateS(svc.value, 'planId', v)}
+                      options={(svc.plans ?? []).map((p: any) => ({ value: p.id, label: p.name }))} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
                       <div onClick={() => updateS(svc.value, 'splitActive', !active.splitActive)}
                         style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
@@ -1199,9 +1198,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 </div>
                 {active ? (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>
-                    <select value={active.planId} onChange={e => updateC(svc.value, 'planId', e.target.value)} style={{ ...miniSelectStyle, fontSize: 9, padding: '4px 6px' }}>
-                      {(svc.plans ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    <CustomSelect value={active.planId} onChange={v => updateC(svc.value, 'planId', v)}
+                      options={(svc.plans ?? []).map((p: any) => ({ value: p.id, label: p.name }))} />
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</div>
                   </div>
                 ) : (

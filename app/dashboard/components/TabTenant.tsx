@@ -532,12 +532,8 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
           {/* Year selector */}
           <div style={{ marginBottom:16 }}>
             <div style={{ ...labelStyle, marginBottom:8 }}>Έτος Αναπροσαρμογής</div>
-            <select value={yr} onChange={e=>{ const v=e.target.value; setYr(v); setUseCustom(cpiFor(parseInt(v))===null); }} style={selectStyle}>
-              {years.map(y=>{
-                const v=cpiFor(y);
-                return <option key={y} value={String(y)}>{y}{v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${fp(v, 1)}`}</option>;
-              })}
-            </select>
+            <SelectField value={yr} onChange={v=>{ setYr(v); setUseCustom(cpiFor(parseInt(v))===null); }}
+              options={years.map(y=>{ const v=cpiFor(y); return { value:String(y), label:`${y}${v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${fp(v, 1)}`}` }; })}/>
           </div>
 
           {/* Έτος χωρίς δείκτη: το λέμε, δεν το μπαλώνουμε */}
@@ -725,9 +721,8 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12, marginBottom:12 }}>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Τύπος Επικοινωνίας</div>
-                <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value as any}))} style={inputStyle}>
-                  {Object.entries(TYPE_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}
-                </select>
+                <SelectField value={form.type} onChange={v=>setForm(f=>({...f,type:v as any}))}
+                  options={Object.entries(TYPE_LABELS).map(([k,v])=>({ value:k, label:v }))}/>
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Ημερομηνία</div>
@@ -1093,9 +1088,10 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
           <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' as const }}>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ημέρα λήξης</span>
-              <select value={rentDueDay} onChange={e=>setRentDueDay(+e.target.value)} style={{ height:32, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, color:'var(--text-primary)', fontSize:12, fontFamily:T.font.mono, padding:'0 8px', cursor:'pointer' }}>
-                {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
-              </select>
+              <div style={{ minWidth:88 }}>
+                <SelectField value={String(rentDueDay)} onChange={v=>setRentDueDay(+v)}
+                  options={Array.from({length:28},(_,i)=>i+1).map(d=>({ value:String(d), label:String(d) }))}/>
+              </div>
             </div>
             <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σάρωσε απόδειξη</button>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.target.value='';}}/>
@@ -1282,9 +1278,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
                 ):(
                   <div style={{ marginBottom:16 }}>
                     <div style={{ ...labelStyle, marginBottom:8 }}>Αντιστοίχιση σε δόση</div>
-                    <select value={scan.periodId||''} onChange={e=>setScan(sc=>sc?{...sc,periodId:e.target.value}:sc)} style={inputStyle}>
-                      {open.map(p=><option key={p.id} value={p.id}>{monthLabel(p)} · {fmt(p.amount)}</option>)}
-                    </select>
+                    <SelectField value={scan.periodId||''} onChange={v=>setScan(sc=>sc?{...sc,periodId:v}:sc)}
+                      options={open.map(p=>({ value:p.id, label:`${monthLabel(p)} · ${fmt(p.amount)}` }))}/>
                     <div style={{ marginTop:12 }}>
                       <SelectField label="Τρόπος Πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
                     </div>

@@ -6,7 +6,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
-import { DatePicker } from './UIComponents'
+import { DatePicker, CustomSelect } from './UIComponents'
 import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
@@ -1655,10 +1655,10 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Όνομα, τηλέφωνο, email, ΑΦΜ ή IBAN" style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
         </div>
         {allTags.length > 0 && (
-          <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...iStyle, minWidth: 150, width: 'auto', cursor: 'pointer' }}>
-            <option value="">Όλες οι ετικέτες</option>
-            {allTags.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <div style={{ minWidth: 170 }}>
+            <CustomSelect value={filterTag} onChange={setFilterTag} placeholder="Όλες οι ετικέτες"
+              options={[{ value: '', label: 'Όλες οι ετικέτες' }, ...allTags.map(t => ({ value: t, label: t }))]} />
+          </div>
         )}
         {/* Ταξινόμηση: δύο επιλογές, ορατές. Ένα αναδυόμενο μενού για δύο τιμές
             κρύβει τη μισή πληροφορία πίσω από ένα κλικ, χωρίς λόγο. */}
@@ -1808,9 +1808,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                     <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος ή ΔΕΗ Α.Ε." />
                   </CField>
                   <CField d={cf('contact.role')}>
-                    <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
-                      {ROLE_SELECT_OPTIONS.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
-                    </select>
+                    <CustomSelect value={form.role} onChange={v => setForm(f => ({ ...f, role: v }))}
+                      options={ROLE_SELECT_OPTIONS.filter(o => !o.disabled).map(o => ({ value: o.value, label: o.label }))} />
                     {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Γράψε ελεύθερα κατηγορία ή όνομα εταιρείας" /></div>}
                   </CField>
                   <CField d={cf('contact.phone')}>
@@ -1886,9 +1885,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                         </div>
                         {(form.extra.scope || 'property') !== 'portfolio' && properties.length > 0 && (
                           <div style={{ marginTop: 12 }}>
-                            <select value={form.extra.scope_property_id || propertyId} onChange={e => setExtra('scope_property_id', e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>
-                              {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                            <CustomSelect value={form.extra.scope_property_id || propertyId} onChange={v => setExtra('scope_property_id', v)}
+                              options={properties.map(p => ({ value: p.id, label: p.name }))} />
                           </div>
                         )}
                       </CField>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
-import { DatePicker } from './UIComponents'
+import { DatePicker, CustomSelect } from './UIComponents'
 import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE } from '@/components/Theme'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
@@ -87,8 +87,11 @@ function FL({ children }: { children: React.ReactNode }) {
 function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
   return <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
 }
+// Ένα σημείο για όλα τα πεδία επιλογής της οθόνης. Ήταν ντόπιο <select>, δηλαδή
+// το λειτουργικό ζωγράφιζε τη λίστα με δικά του χρώματα μέσα σε μια οθόνη που
+// έχει δικό της σύστημα πεδίων.
 function Sel({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
-  return <select value={value} onChange={e => onChange(e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>{options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+  return <CustomSelect value={value} onChange={onChange} options={options} />
 }
 // Σαφής, μη-διφορούμενη ένδειξη χρόνου: ολογράφως «ημέρες» (ποτέ «μ» που μπερδεύεται με μήνες).
 function relDays(n: number) { const a = Math.abs(n); return a === 0 ? 'σήμερα' : `${a} ${a === 1 ? 'ημέρα' : 'ημέρες'}` }
@@ -1430,10 +1433,10 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
             <div><FL>Ανάθεση σε επαφή</FL>
-              <select value={form.assigned_contact_id} onChange={e => { const c = contacts.find(x => x.id === e.target.value); setForm(f => ({ ...f, assigned_contact_id: e.target.value, assigned_contact_name: c?.full_name || '' })) }} style={{ ...iStyle, cursor: 'pointer' }}>
-                <option value="">— Χωρίς ανάθεση —</option>
-                {contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-              </select>
+              <CustomSelect value={form.assigned_contact_id}
+                onChange={v => { const c = contacts.find(x => x.id === v); setForm(f => ({ ...f, assigned_contact_id: v, assigned_contact_name: c?.full_name || '' })) }}
+                placeholder="Χωρίς ανάθεση"
+                options={[{ value: '', label: 'Χωρίς ανάθεση' }, ...contacts.map(c => ({ value: c.id, label: c.full_name }))]} />
             </div>
           </div>
           <div>
