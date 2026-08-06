@@ -213,13 +213,13 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       <div style={{ marginTop: 10, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 10, fontFamily: T.font.sans }}>
           <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
-          <span style={{ fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isHigh ? 'var(--negative)' : isLow ? 'var(--positive)' : 'var(--text-primary)' }}>
+          <span style={{ fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
             {isHigh ? `+${fp(((current / avg - 1) * 100), 0)} πάνω από τον μέσο όρο` : isLow ? `-${fp(((1 - current / avg) * 100), 0)} κάτω από τον μέσο όρο` : 'Στο μέσο όρο'}
           </span>
         </div>
         <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
           <div style={{ position: 'absolute', left: '50%', top: -3, width: 2, height: 12, background: 'var(--text-tertiary)', borderRadius: 3 }}/>
-          <div style={{ height: '100%', width: `${pct}%`, background: isHigh ? 'var(--negative)' : isLow ? 'var(--positive)' : 'var(--accent)', borderRadius: 3 }}/>
+          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--series-in)', borderRadius: 3 }}/>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
           <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{fe((avg * 2), 0)}</span>

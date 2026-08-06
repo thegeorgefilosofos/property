@@ -172,7 +172,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   const unbrighten = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.filter = 'none'; };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
+    <div role="dialog" aria-modal="true" aria-label="Καλωσόρισμα" style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
       <style>{`@keyframes welcomeIn{from{opacity:0;transform:translateY(8px) scale(0.98)}to{opacity:1;transform:none}}`}</style>
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(440px, 100%)', overflow: 'hidden', boxShadow: 'var(--elev-3)', fontFamily: T.font.sans, animation: 'welcomeIn 0.3s cubic-bezier(0.2,0,0,1)' }}>
         {/* Κεφαλίδα: παράλειψη */}

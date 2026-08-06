@@ -318,7 +318,11 @@ const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const tone=E
 // μπερδεύεται με τη φορολογική απόσβεση του ΚΦΕ. Γεμάτη μπάρα = αξία που κρατάει.
 const DepBar = ({pct,left}:{pct:number;left:number}) => {
   const remaining = Math.max(0, 100 - pct)
-  const c = remaining>60?'var(--positive)':remaining>30?'var(--warning)':'var(--negative)'
+  // Η υπολειπόμενη αξία δεν είναι βαθμός. Ένα ψυγείο στο 45% δεν είναι
+  // «κίτρινο» και στο 70% δεν είναι «πράσινο» — απλώς έχει την ηλικία του.
+  // Το μήκος της μπάρας λέει ήδη πόσο μένει· το χρώμα μπαίνει μόνο όταν η
+  // αξία έχει σχεδόν εξαντληθεί, δηλαδή όταν πλησιάζει αντικατάσταση.
+  const c = remaining>20?'var(--series-in)':'var(--warning)'
   return (
     <div title={NOT_TAX_DEPRECIATION_NOTE}>
       <div style={{height:3,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
@@ -907,9 +911,12 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
           </div>
           <button onClick={onClose} style={{width:T.h.lg,height:T.h.lg,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
+        {/* Το ξεπέρασμα του ορίου είναι προειδοποίηση· το «εντός ορίων» δεν
+            είναι βραβείο. Πράσινο πλαίσιο γύρω από ένα κόστος επισκευών λέει
+            στον χρήστη «μπράβο που ξόδεψες», που δεν το εννοούσε κανείς. */}
         {totalCost>0&&curVal>0&&(
-          <div style={{padding:'10px 14px',background:totalCost>curVal*0.5?'var(--negative-dim)':'var(--positive-dim)',borderRadius:T.radius.inner,border:`1px solid ${totalCost>curVal*0.5?'var(--negative-border)':'var(--positive-border)'}`}}>
-            <p style={{fontSize:12,color:totalCost>curVal*0.5?'var(--negative)':'var(--positive)',fontWeight:500,fontFamily:T.font.sans}}>{totalCost>curVal*0.5?`Κόστος επισκευών ${fe(totalCost)} > 50% τρέχουσας αξίας ${fe(curVal)}`:`Επισκευές ${fe(totalCost)} εντός ορίων vs αξία ${fe(curVal)}`}</p>
+          <div style={{padding:'10px 14px',background:totalCost>curVal*0.5?'var(--warning-soft)':'var(--bg-elevated)',borderRadius:T.radius.inner,border:`1px solid ${totalCost>curVal*0.5?'var(--warning-border)':'var(--border-subtle)'}`}}>
+            <p style={{fontSize:12,color:totalCost>curVal*0.5?'var(--warning)':'var(--text-secondary)',fontWeight:500,fontFamily:T.font.sans}}>{totalCost>curVal*0.5?`Οι επισκευές (${fe(totalCost)}) ξεπερνούν το μισό της τρέχουσας αξίας (${fe(curVal)}). Σκέψου αντικατάσταση.`:`Επισκευές ${fe(totalCost)} σε αξία ${fe(curVal)}.`}</p>
           </div>
         )}
         <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}/>

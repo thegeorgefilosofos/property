@@ -767,7 +767,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                         {t.type === 'dynamic' ? '—' : fe(t.monthly * 12)}
                       </td>
                       <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const,
-                        color: isCur ? 'var(--text-tertiary)' : t.diff < 0 ? 'var(--positive)' : t.diff > 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>
+                        color: isCur ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}>
                         {isCur ? '—' : t.diff === 0 ? '—' : `${t.diff < 0 ? '' : '+'}${fe(t.diff)}`}
                       </td>
                     </tr>

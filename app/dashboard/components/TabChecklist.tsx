@@ -131,7 +131,7 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0, opacity: 0.7 }}><path d="M6 9l6 6 6-6"/></svg>
       </button>
       {open && createPortal(
-        <div ref={menuRef} style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, boxShadow: '0 12px 40px rgba(0,0,0,0.35)', padding: 6, zIndex: 2000 }}>
+        <div ref={menuRef} style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, boxShadow: 'var(--elev-3)', padding: 6, zIndex: 2000 }}>
           {options.map(o => {
             const sel = o.value === value
             return (
@@ -172,17 +172,27 @@ const CATEGORIES = [
   { id: 'financial',  label: 'Οικονομικά',            color: CATEGORY_DOT },
   { id: 'other',      label: 'Άλλο',                  color: CATEGORY_DOT },
 ]
+// ΤΕΣΣΕΡΑ ΧΡΩΜΑΤΑ ΓΙΑ ΤΕΣΣΕΡΙΣ ΠΡΟΤΕΡΑΙΟΤΗΤΕΣ, ΤΕΣΣΕΡΑ ΓΙΑ ΤΕΣΣΕΡΙΣ
+// ΚΑΤΑΣΤΑΣΕΙΣ: οκτώ αποχρώσεις σε μια οθόνη που ήδη έχει κατηγορίες,
+// ημερομηνίες και σήματα. Και τα φόντα ήταν καρφωμένα rgba του iOS, που δεν
+// άλλαζαν ποτέ με το θέμα — γαλάζιο-σε-γαλάζιο στο σκούρο.
+//
+// Ό,τι απαιτεί ενέργεια κρατά χρώμα: το «Κρίσιμο» και το «Υψηλή». Το
+// «Κανονική», το «Χαμηλή», το «Εκκρεμεί» και το «Παραλείφθηκε» δεν έχουν τίποτα
+// να πουν με απόχρωση. Η ολοκλήρωση παίρνει το χρώμα των ενεργειών, όχι του
+// επιτεύγματος: δεκαοκτώ πράσινα κουμπάκια σε μια λίστα γίνονται το πιο δυνατό
+// χρώμα της οθόνης, και το σήμα της εφαρμογής μένει για τα δευτερεύοντα.
 const PRIORITIES = [
-  { value: 'critical', label: 'Κρίσιμο',  color: 'var(--negative)', bg: 'rgba(255,59,48,0.12)' },
-  { value: 'high',     label: 'Υψηλή',    color: 'var(--warning)', bg: 'rgba(255,149,0,0.12)' },
-  { value: 'normal',   label: 'Κανονική', color: 'var(--info)', bg: 'rgba(10,132,255,0.12)' },
-  { value: 'low',      label: 'Χαμηλή',   color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)' },
+  { value: 'critical', label: 'Κρίσιμο',  color: 'var(--negative)',      bg: 'var(--negative-soft)' },
+  { value: 'high',     label: 'Υψηλή',    color: 'var(--warning)',       bg: 'var(--warning-soft)' },
+  { value: 'normal',   label: 'Κανονική', color: 'var(--text-secondary)', bg: 'var(--bg-elevated)' },
+  { value: 'low',      label: 'Χαμηλή',   color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
 ]
 const STATUSES = [
-  { value: 'pending',     label: 'Εκκρεμεί',     color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)' },
-  { value: 'in_progress', label: 'Σε εξέλιξη',   color: 'var(--info)', bg: 'rgba(10,132,255,0.12)' },
-  { value: 'done',        label: 'Ολοκληρώθηκε', color: 'var(--positive)', bg: 'rgba(52,199,89,0.12)' },
-  { value: 'skipped',     label: 'Παραλείφθηκε', color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)' },
+  { value: 'pending',     label: 'Εκκρεμεί',     color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
+  { value: 'in_progress', label: 'Σε εξέλιξη',   color: 'var(--text-secondary)', bg: 'var(--bg-elevated)' },
+  { value: 'done',        label: 'Ολοκληρώθηκε', color: 'var(--accent)',         bg: 'var(--accent-soft)' },
+  { value: 'skipped',     label: 'Παραλείφθηκε', color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
 ]
 const RECURRING_OPTIONS = [
   { value: 'none',      label: 'Χωρίς επανάληψη' },
@@ -394,7 +404,7 @@ function SubTaskEditor({ subtasks, onChange }: { subtasks: SubTask[]; onChange: 
         {subtasks.map(st => (
           <div key={st.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
             <button type="button" onClick={() => onChange(subtasks.map(s => s.id === st.id ? { ...s, done: !s.done } : s))}
-              style={{ width: 18, height: 18, borderRadius: 6, border: '2px solid ' + (st.done ? 'var(--positive)' : 'var(--border-default)'), background: st.done ? 'var(--positive)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+              style={{ width: 18, height: 18, borderRadius: 6, border: '2px solid ' + (st.done ? 'var(--accent)' : 'var(--border-default)'), background: st.done ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
               {st.done && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2" strokeLinecap="round"/></svg>}
             </button>
             <span style={{ flex: 1, fontSize: 13, color: st.done ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: st.done ? 'line-through' : 'none' }}>{st.text}</span>
@@ -1078,8 +1088,12 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
     setShowMenu(s => !s)
   }
 
-  const cbColor = done ? 'var(--positive)' : overdue ? 'var(--negative)' : 'var(--border-default)'
-  const cbBg = done ? 'var(--positive)' : 'transparent'
+  // Ο κύκλος ολοκλήρωσης γέμιζε πράσινος. Σε λίστα με δεκαοκτώ εργασίες, τα
+  // πράσινα κουμπάκια γίνονταν το πιο δυνατό χρώμα της οθόνης — και το χρώμα
+  // του σήματος έμενε για τα δευτερεύοντα. Η ολοκλήρωση είναι ενέργεια του
+  // χρήστη, όχι ετυμηγορία: παίρνει το χρώμα των ενεργειών.
+  const cbColor = done ? 'var(--accent)' : overdue ? 'var(--negative)' : 'var(--border-default)'
+  const cbBg = done ? 'var(--accent)' : 'transparent'
   // Ένα και μόνο control ανά σειρά: όταν είναι ενεργή η «Επιλογή» (ή η σειρά είναι
   // επιλεγμένη) εμφανίζεται το τετράγωνο checkbox επιλογής· αλλιώς το στρογγυλό toggle
   // ολοκλήρωσης. Ποτέ και τα δύο μαζί — τέλος στο «διπλό checkbox».
@@ -1100,7 +1114,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         // Στρογγυλό toggle ολοκλήρωσης (Gmail/Linear pattern)
         <button type="button" onClick={() => { if (!blocked) onToggle() }} aria-label={done ? 'Αναίρεση ολοκλήρωσης' : 'Ολοκλήρωση'}
           style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', animation: pop ? 'taskCheckPop 0.44s cubic-bezier(.34,1.56,.64,1)' : undefined }}
-          onMouseEnter={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'var(--positive-soft)' } }}
+          onMouseEnter={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-soft)' } }}
           onMouseLeave={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
           {done && (
             <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={pop ? { strokeDasharray: 16, animation: 'taskCheckDraw 0.32s ease 0.08s both' } : undefined}/></svg>
@@ -1137,7 +1151,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         {/* ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΚΑΙ ΤΟ ΠΟΣΟ ΤΟΥ. Φαίνεται μόνο όταν υπάρχει αρχείο:
             ποσό χωρίς χαρτί δεν εμφανίζεται πουθενά σε αυτή την οθόνη. */}
         {item._receipt && item.actual_cost > 0 && (
-          <span title={`Παραστατικό: ${item._receipt.name}`} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--positive)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
+          <span title={`Παραστατικό: ${item._receipt.name}`} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             {fe(item.actual_cost)}
           </span>
@@ -1211,7 +1225,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, lineHeight: 1.4, paddingRight: 8, fontFamily: T.font.sans }}>{item.description}</div>
-        <button type="button" onClick={e => { e.stopPropagation(); onToggle() }} style={{ width: 20, height: 20, borderRadius: 6, border: '2px solid ' + (item.status === 'done' ? 'var(--positive)' : 'var(--border-default)'), background: item.status === 'done' ? 'var(--positive)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+        <button type="button" onClick={e => { e.stopPropagation(); onToggle() }} style={{ width: 20, height: 20, borderRadius: 6, border: '2px solid ' + (item.status === 'done' ? 'var(--accent)' : 'var(--border-default)'), background: item.status === 'done' ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
           {item.status === 'done' && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
         </button>
       </div>
@@ -1246,7 +1260,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
           const overdue = isOverdue(item.due_date, item.status); const done = item.status === 'done'; const due = daysUntil(item.due_date)
           return (
             <div key={item.id} style={{ marginBottom: 14, position: 'relative' }}>
-              <div style={{ position: 'absolute', left: -26, top: 8, width: 14, height: 14, borderRadius: '50%', background: done ? 'var(--positive)' : overdue ? 'var(--negative)' : 'var(--text-tertiary)', border: '2px solid var(--bg-base)', zIndex: 1 }} />
+              <div style={{ position: 'absolute', left: -26, top: 8, width: 14, height: 14, borderRadius: '50%', background: done ? 'var(--accent)' : overdue ? 'var(--negative)' : 'var(--text-tertiary)', border: '2px solid var(--bg-base)', zIndex: 1 }} />
               <div onClick={() => onEdit(item)} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.inner, padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.borderColor = overdue ? 'var(--negative-border)' : 'var(--border-subtle)')}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1306,8 +1320,8 @@ function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pending, sma
   // Η πρώτη προθεσμία που λείπει, για να λέει η κάρτα κάτι αληθινό και όχι πλήθος.
   const firstDue = pending.filter(d => !!d.due_date).sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''))[0]
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 620, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+    <div role="dialog" aria-modal="true" aria-label="Επιλογή προτύπου" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 620, border: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -1430,8 +1444,8 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
   } : mkEmpty())
   // Ένα καθαρό form — χωρίς tabs, χωρίς επαναλήψεις (Google λογική).
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
+    <div role="dialog" aria-modal="true" aria-label="Στοιχεία εκκρεμότητας" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 28px 16px', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
           <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}</h3>
           <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: T.h.sm, height: T.h.sm, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -1688,8 +1702,8 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
 
   const busy = stage === 'reading' || stage === 'saving'
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
+    <div role="dialog" aria-modal="true" aria-label="Νέα εργασία σε επιλεγμένα" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)' }}>
         <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>Φωτογράφισε το τιμολόγιο</h3>
         <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 20px', lineHeight: 1.5 }}>
           {item.description}
@@ -1783,7 +1797,7 @@ function ExportMenu({ onExcel, onPdf, onHandover }: { onExcel: () => void; onPdf
         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="m6 9 6 6 6-6"/></svg>
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 250, boxShadow: '0 16px 48px rgba(0,0,0,0.3)' }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 250, boxShadow: 'var(--elev-3)' }}>
           {opts.map((o, i) => (
             <button key={i} type="button" onClick={() => { o.fn(); setOpen(false) }}
               style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
@@ -2234,8 +2248,8 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
       {showCelebration && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9997, pointerEvents: 'none' }}>
-          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '32px 48px', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, color: 'var(--positive)', marginBottom: 8 }}>100% Ολοκληρώθηκε!</div>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '32px 48px', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
+            <div style={{ fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Όλα ολοκληρώθηκαν</div>
             <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Όλες οι εργασίες έχουν ολοκληρωθεί</div>
           </div>
         </div>
@@ -2393,7 +2407,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           {STATUSES.map(s => (
             <div key={s.value}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: T.radius.inner, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', marginBottom: 10 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.value === 'done' ? 'var(--positive)' : s.value === 'in_progress' ? 'var(--info)' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.value === 'done' ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0 }} />
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, fontFamily: T.font.sans }}>{s.label}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{boardCols[s.value as keyof typeof boardCols].length}</span>
               </div>
@@ -2424,7 +2438,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {fp(catPct)}{catEst > 0 ? ` · ${fe(catEst)}` : ''}</span>
                 </div>
                 <div style={{ height: 3, borderRadius: 3, background: 'var(--bg-elevated)', marginBottom: 8, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: catPct + '%', background: catPct === 100 ? 'var(--positive)' : 'var(--accent)', borderRadius: 3, transition: 'width 0.4s' }} />
+                  <div style={{ height: '100%', width: catPct + '%', background: 'var(--series-in)', borderRadius: 3, transition: 'width 0.4s' }} />
                 </div>
                 <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
                   {catItems.map((item, idx) => (
@@ -2456,7 +2470,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
       {/* Γραμμή μαζικών ενεργειών — εμφανίζεται μόλις επιλεγεί ≥1 εργασία */}
       {selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(520px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
+        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: 'min(520px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
           <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
             <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{selected.size === filtered.length ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>
@@ -2491,8 +2505,8 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {receiptItem && <ReceiptScanModal item={receiptItem} propertyId={propertyId} userId={userId} onClose={() => setReceiptItem(null)} onSaved={msg => { notifyOk(msg); fetchAll() }} />}
 
       {deleteId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
+        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
             </div>
@@ -2507,8 +2521,8 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       )}
 
       {bulkDeleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
+        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση μαζικής διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
             </div>

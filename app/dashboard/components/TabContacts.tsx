@@ -428,7 +428,7 @@ function QRCodeModal({ contact, onClose }: { contact: Contact; onClose: () => vo
   // QR τοπικά: η κάρτα επαφής (όνομα, τηλέφωνο, email) δεν φεύγει από τη συσκευή.
   const qrUrl = qrDataUrl(vcard, { size: 240 })
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 20 }}>
+    <div role="dialog" aria-modal="true" aria-label="Αρχεία επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 320, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <QrCode size={28} color="var(--accent)" style={{ margin: '0 auto 12px' }} />
         <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>QR Επαφής</h3>
@@ -496,7 +496,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
     ...notesLog.map(n => ({ date: n.ts.split('T')[0], title: n.text, sub: 'Σημείωση', color: 'var(--accent)' })),
   ].filter(x => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20)
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
+    <div role="dialog" aria-modal="true" aria-label="Ιστορικό επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 540, maxHeight: '85vh', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div><h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Ιστορικό Συνεργασίας</h3><p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '3px 0 0' }}>{contact.full_name}</p></div>
@@ -573,7 +573,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
   const [amount, setAmount] = useState(''); const [description, setDescription] = useState(contact.full_name); const [saving, setSaving] = useState(false)
   const save = async () => { if (!amount) return; setSaving(true); await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, contact_id: contact.id, amount: parseFloat(amount), description, date: athensToday(), category: 'Αμοιβές Συνεργατών' }); setSaving(false); onSaved(); onClose() }
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
+    <div role="dialog" aria-modal="true" aria-label="Εκτύπωση καρτέλας" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Receipt size={18} color="var(--accent)" /></div>
@@ -596,7 +596,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
   const [title, setTitle] = useState('Ραντεβού με ' + contact.full_name); const [date, setDate] = useState(tomorrow.toISOString().split('T')[0]); const [saving, setSaving] = useState(false)
   const save = async () => { if (!title || !date) return; setSaving(true); await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: date, category: 'tenant', priority: 'medium', status: 'pending', recurring: false, source: 'manual' }); setSaving(false); onSaved(date); onClose() }
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
+    <div role="dialog" aria-modal="true" aria-label="Κωδικός QR επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CalendarPlus size={18} color="var(--accent)" /></div>
@@ -1036,7 +1036,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
 
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
+    <div role="dialog" aria-modal="true" aria-label="Καρτέλα επαφής" onClick={onClose} style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 460px)', height: '100%', background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)', boxShadow: '-24px 0 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dossierIn .28s cubic-bezier(.2,0,0,1)' }}>
         <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}} .dsr-act:hover{border-color:var(--accent-border);background:var(--accent-soft);color:var(--accent)} .dsr-del{border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-secondary)} .dsr-del:hover{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}`}</style>
 
@@ -1523,7 +1523,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
       <input ref={cardRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runCardScan(f); e.currentTarget.value = '' }} />
       {scanning && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div role="dialog" aria-modal="true" aria-label="Κατάλογος επαφών" style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '26px 32px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
             <div style={{ width: 22, height: 22, border: '2.5px solid var(--border-default)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'contactsSpin 0.7s linear infinite' }} />
             <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Ανάλυση κάρτας…</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εξάγω τα στοιχεία επαφής</div></div>
@@ -1780,7 +1780,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
       {/* MODAL */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+        <div role="dialog" aria-modal="true" aria-label="Στοιχεία επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 600, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '22px 28px 18px', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1925,7 +1925,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       )}
 
       {deleteId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
@@ -1941,7 +1941,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       )}
 
       {dup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: 20 }}>
+        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση μαζικής διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
             <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Υπάρχει ήδη παρόμοια επαφή</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 16px', lineHeight: 1.55 }}>Βρέθηκε επαφή με το ίδιο τηλέφωνο ή ΑΦΜ. Θέλεις να τη συγχωνεύσεις (να συμπληρωθούν τα νέα στοιχεία) ή να δημιουργήσεις ξεχωριστή εγγραφή;</p>

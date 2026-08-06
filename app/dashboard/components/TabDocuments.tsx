@@ -902,7 +902,7 @@ export default function TabDocuments({
       {/* ── Lightbox (εικόνα ή προεπισκόπηση PDF) ───────────────────────── */}
       {lightbox && lightbox.url && (
         <div onClick={() => setLightbox(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, flexDirection: 'column', gap: 12 }}>
+          style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, flexDirection: 'column', gap: 12 }}>
           <button onClick={() => setLightbox(null)} title="Κλείσιμο" style={{ position: 'absolute', top: 18, right: 18, width: 38, height: 38, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconX size={16}/></button>
           {isPdfItem(lightbox)
             ? <iframe title={lightbox.title} src={lightbox.url} onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 900px)', height: '82%', border: 'none', borderRadius: T.radius.inner, background: '#fff' }}/>
@@ -985,7 +985,7 @@ function FileInner({ items, a }: { items: Item[]; a: FileActions }) {
 // Στρογγυλό κουμπί ενέργειας πάνω από thumbnail (grid) — σκουρόχρωμο για αντίθεση.
 const OverlayBtn = ({ title, onClick, children }: { title: string; onClick: (e: React.MouseEvent) => void; children: React.ReactNode }) => (
   <button onClick={onClick} title={title}
-    style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>{children}</button>
+    style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: T.scrim, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>{children}</button>
 );
 
 function FileCard({ i, a }: { i: Item; a: FileActions }) {
@@ -1002,7 +1002,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         {i.isImage && i.url
           ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <span style={{ color: 'var(--accent)' }}><svg {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
-        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 8, fontWeight: 800, letterSpacing: '0.05em', color: '#fff', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
+        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 8, fontWeight: 800, letterSpacing: '0.05em', color: '#fff', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
         {selectable && (hov || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/></div>}
         {hov && i.raw && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
@@ -1260,7 +1260,7 @@ function ModalShell({ title, sub, children, onCancel, onConfirm, confirmLabel, c
   title: string; sub?: string; children: React.ReactNode; onCancel: () => void; onConfirm: () => void; confirmLabel: string; confirmDisabled?: boolean;
 }) {
   return (
-    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div role="dialog" aria-modal="true" aria-label="Στοιχεία εγγράφου" onClick={onCancel} style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={e => e.stopPropagation()} className="card" style={{ width: '100%', maxWidth: 440, margin: 0 }}>
         <SecHdr label={title} sub={sub}/>
         <div style={{ marginBottom: 18 }}>{children}</div>

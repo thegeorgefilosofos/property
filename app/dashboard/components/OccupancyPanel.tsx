@@ -190,7 +190,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
                 {kpi('Εκτιμώμενος φόρος', `− ${fe(tax.incomeTax)}`, 'var(--text-secondary)', 'Κλίμακα εισοδήματος από ακίνητα, επί του 95% των ακαθαρίστων (τεκμαρτή έκπτωση 5%). Ενδεικτικό — επιβεβαίωσε με τον λογιστή.')}
                 {kpi('Μένει καθαρά', fe(stNet), 'var(--text-primary)',
                   `${fe(tax.grossRevenue)} ακαθάριστα − ${fe(tax.incomeTax)} φόρος${tax.municipalTax > 0 ? ` − ${fe(tax.municipalTax)} τέλος παρεπιδημούντων` : ''}${tax.levyShortfall > 0 ? ` − ${fe(tax.levyShortfall)} ακάλυπτο τέλος ανθεκτικότητας` : ''}${tot.platformFees > 0 ? ` − ${fe(tot.platformFees)} προμήθειες πλατφορμών` : ''}. Η προμήθεια δεν μειώνει το δηλωτέο έσοδο, φεύγει όμως από την τσέπη σου.${tot.platformFees > 0 ? '' : ' Δεν υπάρχει καταγεγραμμένη προμήθεια σε αυτές τις κρατήσεις — αν υπήρξε, το πραγματικό υπόλοιπο είναι μικρότερο.'}`)}
-                {longTermMonthly > 0 && kpi('Διαφορά vs μακροχρόνια (μετά φόρου)', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, diff >= 0 ? 'var(--positive)' : 'var(--negative)',
+                {longTermMonthly > 0 && kpi('Διαφορά vs μακροχρόνια (μετά φόρου)', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, 'var(--text-primary)',
                   `Και τα δύο μετά φόρου, ώστε να συγκρίνονται: βραχυχρόνια ${fe(stNet)} έναντι ${fe(ltNet)} από μακροχρόνια (${fe(ltRevenue)} ενοίκιο − ${fe(ltTax)} φόρος). Ίδια κλίμακα και στα δύο, με τεκμαρτή έκπτωση 5%. Ο φόρος υπολογίζεται μόνο για αυτό το ακίνητο· με περισσότερα ακίνητα η κλίμακα ανεβαίνει και στις δύο πλευρές. Ενδεικτικό — επιβεβαίωσε με τον λογιστή.`)}
               </div>
 

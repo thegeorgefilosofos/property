@@ -361,7 +361,7 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
         <KpiCard label="Σύνολο μηνιαίως" value={fmt(totalTenant)} color="var(--text-primary)"/>
         <KpiCard label="Κόστη ιδιοκτήτη" value={fmt(ownerCosts)} color="var(--text-primary)"/>
         <KpiCard label="Λήξη μίσθωσης" value={d==null?ABSENT_DATE:d<0?'Έληξε':`${d} ημέρες`} color={st?.color||'var(--text-primary)'}/>
-        <KpiCard label="Εκκρεμή ποσά" value={fmt(unpaidAmt)} color={unpaidAmt>0?'var(--negative)':'var(--positive)'}/>
+        <KpiCard label="Εκκρεμή ποσά" value={fmt(unpaidAmt)} color={unpaidAmt>0?'var(--negative)':'var(--text-primary)'}/>
         <KpiCard label="Εγγύηση" value={fmt(tenant.deposit_amount)} color={tenant.deposit_returned?'var(--positive)':'var(--accent)'}/>
       </div>
 
@@ -1077,7 +1077,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
       {/* KPI strip */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginBottom:16 }}>
         <KpiCard label="Εισπραχθέντα" value={fmt(received)} color="var(--text-primary)"/>
-        <KpiCard label="Ληξιπρόθεσμα" value={fmt(arrearsTotal)} sub={`${overdue.length} δόσεις`} color={arrearsTotal>0?'var(--negative)':'var(--positive)'}/>
+        <KpiCard label="Ληξιπρόθεσμα" value={fmt(arrearsTotal)} sub={`${overdue.length} δόσεις`} color={arrearsTotal>0?'var(--negative)':'var(--text-primary)'}/>
         <KpiCard label="Εκκρεμείς" value={String(open.length)} color={open.length>0?'var(--warning)':'var(--positive)'}/>
         <KpiCard label="Δόσεις" value={`${payments.filter(p=>p.paid).length}/${payments.length}`} color="var(--text-primary)"/>
       </div>
@@ -2412,7 +2412,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       </div>
                       <div style={{ textAlign:'right' as const }}>
                         <span style={{ fontSize:14, fontWeight:700, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', color:'var(--text-primary)' }}>{fmt(cur)}</span>
-                        {diff!==0&&<span style={{ marginLeft:8, fontSize:11, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', color:diff>0?'var(--positive)':'var(--negative)' }}>{diff>0?'+':''}{fmt(diff)}</span>}
+                        {diff!==0&&<span style={{ marginLeft:8, fontSize:11, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{diff>0?'+':''}{fmt(diff)}</span>}
                       </div>
                     </div>
                   );
