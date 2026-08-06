@@ -557,7 +557,7 @@ function printContactCard(contact: Contact, branding?: ReportBranding | null) {
     <hr>
     ${contact.phone ? `<div class="row"><span class="label">Τηλέφωνο</span><span>${esc(contact.phone)}${extra.whatsapp ? '<span class="badge" style="background:#dcfce7;color:#166534">WA</span>' : ''}${extra.viber ? '<span class="badge" style="background:#ede9fe;color:#5b21b6">VB</span>' : ''}</span></div>` : ''}
     ${extra.phone2 ? `<div class="row"><span class="label">2ο Τηλέφωνο</span><span>${esc(extra.phone2)}</span></div>` : ''}
-    ${contact.email ? `<div class="row"><span class="label">Email</span><span>${esc(contact.email)}</span></div>` : ''}
+    ${contact.email ? `<div class="row"><span class="label">Ηλεκτρονικό ταχυδρομείο</span><span>${esc(contact.email)}</span></div>` : ''}
     ${extra.website ? `<div class="row"><span class="label">Ιστοσελίδα</span><span>${esc(extra.website)}</span></div>` : ''}
     ${extra.office_address ? `<div class="row"><span class="label">Διεύθυνση</span><span>${esc(extra.office_address)}</span></div>` : ''}
     ${extra.afm ? `<div class="row"><span class="label">ΑΦΜ</span><span>${esc(extra.afm)}</span></div>` : ''}
@@ -664,7 +664,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   // ── Sheet 2: Αναλυτικές Επαφές ─────────────────────────────────────────
   const headers = [
     'Ονοματεπώνυμο', 'Κατηγορία', 'Ρόλος',
-    'Κύριο Τηλέφωνο', 'WhatsApp', 'Viber', 'Κινητό', 'Email',
+    'Κύριο Τηλέφωνο', 'WhatsApp', 'Viber', 'Κινητό', 'Ηλεκτρονικό ταχυδρομείο',
     'Ιστοσελίδα', 'Διεύθυνση Γραφείου',
     'ΑΦΜ', 'IBAN', 'IRIS',
     'Επόμενο Ραντεβού',
@@ -714,7 +714,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   XLSX.utils.book_append_sheet(wb, ws2, 'Αναλυτικές Επαφές')
 
   // ── Sheet 3: Κατάλογος Επαφών (ταχεία αναφορά) ─────────────────────────
-  const dirHeaders = ['Ονοματεπώνυμο', 'Ρόλος', 'Τηλέφωνο', 'Email', 'ΑΦΜ', 'WhatsApp', 'IRIS']
+  const dirHeaders = ['Ονοματεπώνυμο', 'Ρόλος', 'Τηλέφωνο', 'Ηλεκτρονικό ταχυδρομείο', 'ΑΦΜ', 'WhatsApp', 'IRIS']
   const dirRows: (string | number)[][] = [dirHeaders]
   contacts
     .sort((a, b) => a.full_name.localeCompare(b.full_name, 'el'))
@@ -762,7 +762,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
 
   const preferredSection = preferred.length
     ? reportSection('Προτιμώμενες επαφές')
-      + `<table><thead><tr><th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Email</th></tr></thead><tbody>`
+      + `<table><thead><tr><th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Ηλεκτρονικό ταχυδρομείο</th></tr></thead><tbody>`
       + preferred.map(c => {
           const role = ROLE_META[c.role]?.label || c.role
           return `<tr>`
@@ -791,7 +791,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
     }).join('')
     return reportSection(`${g.label} · ${byGroup[g.id].length} επαφές`)
       + `<table><thead><tr>`
-      +   `<th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Email</th>`
+      +   `<th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Ηλεκτρονικό ταχυδρομείο</th>`
       +   `<th>ΑΦΜ</th><th>IBAN</th>`
       + `</tr></thead><tbody>${rows}</tbody></table>`
   }).join('')
@@ -887,7 +887,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             {contact.phone && <QuickAct as="a" href={'tel:' + contact.phone} title="Κλήση"><Phone size={13} /></QuickAct>}
             {extra.whatsapp && contact.phone && <QuickAct as="a" href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" title="WhatsApp" label="WA" />}
             {extra.viber && contact.phone && <QuickAct as="a" href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} title="Viber" label="VB" />}
-            {contact.email && <QuickAct as="a" href={'mailto:' + contact.email} title="Email"><Mail size={13} /></QuickAct>}
+            {contact.email && <QuickAct as="a" href={'mailto:' + contact.email} title="Ηλεκτρονικό ταχυδρομείο"><Mail size={13} /></QuickAct>}
             <QuickAct as="button" onClick={() => setShowActions(s => !s)} title="Περισσότερες ενέργειες"><span style={{ fontSize: 17, fontWeight: 700, lineHeight: 0, marginTop: -5 }}>···</span></QuickAct>
           </div>
           {showActions && (
@@ -1061,7 +1061,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           {contact.phone && <CommButton label="Κλήση" Icon={Phone} href={'tel:' + contact.phone} accent />}
           {contact.phone && <CommButton label="WhatsApp" Icon={MessageSquare} href={'https://wa.me/' + digits(contact.phone)} target="_blank" />}
           {contact.phone && <CommButton label="Viber" Icon={Phone} href={'viber://chat?number=' + digits(contact.phone)} />}
-          {contact.email && <CommButton label="Email" Icon={Mail} href={'mailto:' + contact.email} />}
+          {contact.email && <CommButton label="Ηλεκτρονικό ταχυδρομείο" Icon={Mail} href={'mailto:' + contact.email} />}
           {site && <CommButton label="Ιστοσελίδα" Icon={Globe} href={site} target="_blank" />}
         </div>
 
@@ -1612,7 +1612,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             </div>
             <div style={{ width: 1, height: 22, background: 'var(--border-subtle)', flexShrink: 0 }} />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <BulkBtn icon={Mail} label="Email" onClick={bulkEmail} disabled={!hasEmail} />
+              <BulkBtn icon={Mail} label="Ηλεκτρονικό ταχυδρομείο" onClick={bulkEmail} disabled={!hasEmail} />
               <BulkBtn icon={FileText} label="Εξαγωγή vCard" onClick={bulkVcard} disabled={none} />
               <BulkBtn icon={Trash2} label="Διαγραφή" onClick={bulkDelete} disabled={none} danger />
             </div>
@@ -1751,7 +1751,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ width: 8 }} />
             <div style={{ width: 200, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Όνομα</div>
             <div style={{ width: 140, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Τηλέφωνο</div>
-            <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Email</div>
+            <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ηλεκτρονικό ταχυδρομείο</div>
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>ΑΦΜ</div>
           </div>

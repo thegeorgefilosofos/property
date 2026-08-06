@@ -35,6 +35,15 @@ const NOT_ABSENCE = /^(Ξεκίνα|Όλα |Όλες |Δεν εκκρεμεί|Σ
 
 const badTitle = [];
 const badSpelling = [];
+const badEnglish = [];
+
+// ── Ξένες λέξεις που έχουν ελληνικό όνομα στην εφαρμογή ───────────────────
+// Το «Email» ήταν σε είκοσι πέντε σημεία, δίπλα σε «Τηλέφωνο» και «Ονοματεπώνυμο».
+// Δεν είναι μάρκα όπως το WhatsApp ή το Viber: έχει ελληνική λέξη, και η οθόνη
+// που μιλά ελληνικά παντού εκτός από ένα πεδίο δεν διαβάζεται ως επιμελημένη.
+const ENGLISH = [
+  [/(?:^|[>"'\s])Email(?:[<"'\s.,:]|$)/, '«Email» → «Ηλεκτρονικό ταχυδρομείο»'],
+];
 
 for (const file of FILES) {
   const src = readFileSync(file, 'utf8');
@@ -45,7 +54,16 @@ for (const file of FILES) {
     if (/\bακόμα\b/.test(line)) badSpelling.push(`${file}:${i + 1}  ${line.trim().slice(0, 90)}`);
   });
 
-  // ── Κανόνας 2: κανένας τίτλος EmptyState δεν ξεκινά με «Δεν υπάρχ» ─────
+  // ── Κανόνας 2: καμία αγγλική λέξη που έχει ελληνικό όνομα ─────────────
+  lines.forEach((line, i) => {
+    const t = line.trim();
+    if (t.startsWith('//') || t.startsWith('*')) return;
+    for (const [re, msg] of ENGLISH) {
+      if (re.test(line)) badEnglish.push(`${file}:${i + 1}  ${msg}  ${t.slice(0, 70)}`);
+    }
+  });
+
+  // ── Κανόνας 3: κανένας τίτλος EmptyState δεν ξεκινά με «Δεν υπάρχ» ─────
   for (const m of src.matchAll(/<EmptyState[\s\S]{0,500}?\/>/g)) {
     const t = m[0].match(/title=\{?[`"']([^`"']+)/);
     if (!t) continue;
@@ -81,5 +99,12 @@ if (badTitle.length) {
   console.error('');
 }
 
+if (badEnglish.length) {
+  failed = true;
+  console.error(`✗ ${badEnglish.length} αγγλικές λέξεις που έχουν ελληνικό όνομα.\n`);
+  for (const b of badEnglish) console.error('   ' + b);
+  console.error('');
+}
+
 if (failed) process.exit(1);
-console.log('✅ Κενές καταστάσεις: μία διατύπωση ανά κατάσταση, μία ορθογραφία για το «ακόμη».');
+console.log('✅ Λεκτικά: μία διατύπωση ανά κατάσταση, μία ορθογραφία για το «ακόμη», ελληνικά ονόματα.');

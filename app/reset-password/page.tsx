@@ -125,7 +125,7 @@ export default function ResetPasswordPage() {
               <p style={subs}>Δώσε το email σου και θα σου στείλουμε έναν σύνδεσμο για να ορίσεις νέο κωδικό.</p>
               <form onSubmit={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label htmlFor="rp-email" style={label}>Email</label>
+                  <label htmlFor="rp-email" style={label}>Ηλεκτρονικό ταχυδρομείο</label>
                   <input id="rp-email" name="email" autoComplete="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="onoma@email.com" style={field}
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 </div>

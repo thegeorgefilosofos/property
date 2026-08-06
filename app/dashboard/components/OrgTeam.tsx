@@ -626,7 +626,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
             value={inviteEmail}
             onChange={e => { setInviteEmail(e.target.value); if (inviteError) setInviteError(null); if (inviteNote) setInviteNote(null); }}
             onKeyDown={e => { if (e.key === 'Enter') void invite(); }}
-            placeholder="Email του μέλους"
+            placeholder="Ηλεκτρονικό ταχυδρομείο του μέλους"
             style={{ ...fieldStyle, flex: 1, minWidth: 220 }}
           />
           <div style={{ width: 150 }}>

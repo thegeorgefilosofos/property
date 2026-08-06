@@ -48,7 +48,7 @@ import {
   T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, fe, fd,
 } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
-import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UIComponents';
+import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import { money, intGr } from './xlsxStyle';
 import ClientCompose from './ClientCompose';
@@ -144,17 +144,12 @@ const emptyStay = (): StayForm => ({
 });
 
 // ── Διακόπτης σήματος (φθορές) σε var(--negative) ───────────────────────────
-function FlagSwitch({ on, onChange, onLabel, offLabel, tone = 'negative' }: { on: boolean; onChange: (v: boolean) => void; onLabel: string; offLabel: string; tone?: 'negative' | 'warning' | 'accent' | 'positive' }) {
-  const c = `var(--${tone})`;
-  return (
-    <button onClick={() => onChange(!on)} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-      <span style={{ width: 42, height: 26, borderRadius: 12, background: on ? c : 'transparent', border: `2px solid ${on ? c : 'var(--border-default)'}`, position: 'relative', transition: 'all .2s', flexShrink: 0, display: 'inline-block' }}>
-        <span style={{ position: 'absolute', top: '50%', left: on ? 'calc(100% - 20px)' : 2, transform: 'translateY(-50%)', width: 16, height: 16, borderRadius: '50%', background: on ? 'var(--bg-surface)' : 'var(--text-secondary)', transition: 'all .2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
-      </span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: on ? c : 'var(--text-secondary)', fontFamily: T.font.sans }}>{on ? onLabel : offLabel}</span>
-    </button>
-  );
-}
+// Ο διακόπτης αυτής της οθόνης ήταν αντίγραφο του κοινού `Toggle`, με μία
+// προσθήκη: χρώμα ετυμηγορίας. Πράσινο για «δηλώθηκε», κόκκινο για «φθορές».
+// Δηλαδή η ίδια χειρονομία έβγαζε δύο διαφορετικά συναισθήματα, και μια
+// καταγραμμένη φθορά διαβαζόταν ως σφάλμα του χρήστη αντί για γεγονός που
+// κατέγραψε σωστά. Ένας διακόπτης, ένα χρώμα, και μαζί ήρθαν πληκτρολόγιο,
+// role=switch και aria-checked που εδώ έλειπαν.
 
 // ── Τυποποιημένα κοινά στοιχεία (avatar / πλακίδιο στατιστικού) ──────────────
 // Αρχικά ονόματος: έως 2 λέξεις, κεφαλαία· fallback «?».
@@ -813,7 +808,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   // Επικεφαλίδα ενότητας φόρμας (καθαρή, με τελεία accent και λεπτή γραμμή). Απλή
   // συνάρτηση που επιστρέφει JSX (όχι component) ώστε να μη χάνουν focus τα πεδία.
   const secHead = (t: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 13px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
       <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
       <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
     </div>
@@ -1091,9 +1086,14 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         );
       })()}
 
-      {/* ── Ντοσιέ πελάτη (drawer) ─────────────────────────────────────────── */}
+      {/* ── Ντοσιέ πελάτη (drawer) ───────────────────────────────────────────
+          ΤΕΣΣΕΡΑ ΠΑΡΑΘΥΡΑ ΧΩΡΙΣ ΝΑ ΤΟ ΛΕΝΕ. Κανένα δεν δήλωνε role=dialog ούτε
+          aria-modal: ο αναγνώστης οθόνης συνέχιζε να διαβάζει τη σελίδα από
+          κάτω σαν να μην είχε ανοίξει τίποτα. Και το πλωτό κουμπί του βοηθού
+          δεν είχε τρόπο να καταλάβει ότι κάθεται πάνω στο «Αποθήκευση». */}
       {dc && dcStats && (
-        <div onClick={() => { setOpenId(null); setStayFormOpen(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 900, display: 'flex', justifyContent: 'flex-end' }}>
+        <div onClick={() => { setOpenId(null); setStayFormOpen(false); }} role="dialog" aria-modal="true" aria-label="Καρτέλα επισκέπτη"
+          style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 900, display: 'flex', justifyContent: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', width: 'min(720px, 100%)', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
             {/* Sticky header: avatar + όνομα + σήματα συμμόρφωσης + ενέργειες.
                 Καμία βαθμολογία, κανένα VIP, καμία «μαύρη λίστα». */}
@@ -1156,7 +1156,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     άλλη γραμματοσειρά, άλλο φόντο στη λίστα — και στο σκούρο θέμα
                     λευκό πλαίσιο σε σκούρα σελίδα. Ένα πεδίο, το ίδιο με τα άλλα. */}
                 {unlinkedProps.length > 0 && (
-                  <div style={{ minWidth: 190 }}>
+                  <div style={{ flex: '1 1 220px', minWidth: 190 }}>
                     <CustomSelect value="" onChange={v => { if (v) linkProperty(dc.id, v); }}
                       options={unlinkedProps.map(p => ({ value: p.id, label: p.name }))}
                       placeholder="Πρόσθεσε ακίνητο" />
@@ -1171,8 +1171,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={lbl}>Στοιχεία άφιξης</div>
                 <Btn variant="secondary" onClick={copyCheckinLink}>{checkinCopied ? 'Ο σύνδεσμος αντιγράφηκε' : 'Αντιγραφή συνδέσμου'}</Btn>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: checkins.length ? 12 : 0 }}>
-                Στείλε τον σύνδεσμο στον επισκέπτη για να συμπληρώσει τα στοιχεία διαμονής του (ταυτότητα, εθνικότητα, άφιξη) πριν φτάσει.
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: checkins.length ? 10 : 0 }}>
+                Ο επισκέπτης συμπληρώνει μόνος του ταυτότητα, εθνικότητα και ώρα άφιξης πριν φτάσει.
               </div>
               {checkins.map(ci => (
                 <div key={ci.id} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', marginTop: 8 }}>
@@ -1241,11 +1241,16 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       ακαθάριστο, και ο φάκελος του λογιστή ζητούσε ακαθάριστο. */}
                   {secHead('Ποσά')}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                    <NumberInput label="Πλήρωσε ο επισκέπτης" labelInfo="Το ΣΥΝΟΛΟ που πλήρωσε ο επισκέπτης, πριν αφαιρεθεί προμήθεια. Στο Airbnb είναι το «Σύνολο επισκέπτη»."
+                    {/* ΚΑΜΙΑ ΚΟΥΚΚΙΔΑ ΕΠΕΞΗΓΗΣΗΣ ΕΔΩ. Ήταν τρεις, μία σε κάθε
+                        πεδίο, και έλεγαν ακριβώς ό,τι λέει η σύνοψη δύο σειρές
+                        πιο κάτω με πραγματικούς αριθμούς: τι πλήρωσε ο
+                        επισκέπτης, τι πάει στο κράτος, τι εκπίπτει. Το ίδιο
+                        πράγμα δύο φορές, τη μία με ποντίκι από πάνω. */}
+                    <NumberInput label="Πλήρωσε ο επισκέπτης"
                       value={stayForm.gross_guest_paid} onChange={v => setStayForm(f => ({ ...f, gross_guest_paid: v }))} suffix="€" step={10} />
-                    <NumberInput label="Τέλος ανθεκτικότητας" labelInfo="Εισπράττεται από τον επισκέπτη και αποδίδεται στο κράτος. ΔΕΝ είναι έσοδό σου και δεν δηλώνεται ως έσοδο."
+                    <NumberInput label="Τέλος ανθεκτικότητας"
                       value={stayForm.climate_levy} onChange={v => setStayForm(f => ({ ...f, climate_levy: v }))} suffix="€" step={2} />
-                    <NumberInput label="Προμήθεια πλατφόρμας" labelInfo="Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο ακαθάριστο."
+                    <NumberInput label="Προμήθεια πλατφόρμας"
                       value={stayForm.platform_fee} onChange={v => setStayForm(f => ({ ...f, platform_fee: v }))} suffix="€" step={5} />
                   </div>
 
@@ -1302,9 +1307,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {/* ── ΔΗΛΩΣΗ ΒΡΑΧΥΧΡΟΝΙΑΣ ΔΙΑΜΟΝΗΣ (μία ανά κράτηση) ───── */}
                   {secHead('Δήλωση βραχυχρόνιας διαμονής')}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, alignItems: 'end' }}>
-                    <FlagSwitch on={stayForm.declared} tone="positive"
+                    <Toggle on={stayForm.declared}
                       onChange={v => setStayForm(f => ({ ...f, declared: v, declared_at: v ? (f.declared_at || todayStr()) : '' }))}
-                      onLabel="Δηλώθηκε στο myAADE" offLabel="Αδήλωτη" />
+                      label="Δηλώθηκε στο myAADE" labelOff="Αδήλωτη" />
                     {stayForm.declared && <DatePicker label="Ημερομηνία δήλωσης" value={stayForm.declared_at} onChange={v => setStayForm(f => ({ ...f, declared_at: v }))} />}
                   </div>
 
@@ -1312,18 +1317,26 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {secHead('Φθορές και σημειώσεις')}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
-                      <FlagSwitch on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} onLabel="Καταγράφηκαν φθορές" offLabel="Χωρίς φθορές" />
+                      <Toggle on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} label="Καταγράφηκαν φθορές" labelOff="Χωρίς φθορές" />
                     </div>
                     {stayForm.damages && (
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <CustomSelect label="Ποιο αντικείμενο" labelInfo="Η σύνδεση με την Απογραφή δίνει στον λογιστή δαπάνη με παραστατικό, αντί για ελεύθερο κείμενο."
+                      <>
+                        <CustomSelect label="Ποιο αντικείμενο"
                           value={stayForm.damage_item_id} onChange={v => setStayForm(f => ({ ...f, damage_item_id: v }))}
-                          placeholder={invForStay.length ? 'Επίλεξε από την Απογραφή' : 'Δεν υπάρχουν αντικείμενα στην Απογραφή'}
-                          options={invForStay.map(i => ({ value: i.id, label: i.current_value != null ? `${i.name} · ${fe(i.current_value, 0)}` : i.name }))} />
-                      </div>
+                          placeholder={invForStay.length ? 'Επίλεξε από την Απογραφή' : 'Καμία καταχώρηση στην Απογραφή'}
+                          options={invForStay.map(i => ({ value: i.id, label: i.current_value != null ? `${i.name} · ${fe(i.current_value)}` : i.name }))} />
+                        <NumberInput label="Κόστος φθοράς" value={stayForm.damage_cost} onChange={v => setStayForm(f => ({ ...f, damage_cost: v }))} suffix="€" />
+                      </>
                     )}
-                    {stayForm.damages && <NumberInput label="Κόστος φθοράς" value={stayForm.damage_cost} onChange={v => setStayForm(f => ({ ...f, damage_cost: v }))} suffix="€" />}
-                    {stayForm.damages && <div><TextInput label="Σημείωση φθοράς" value={stayForm.damage_note} onChange={v => setStayForm(f => ({ ...f, damage_note: v }))} /></div>}
+                    {/* ΔΥΟ ΚΟΥΤΙΑ ΕΛΕΥΘΕΡΟΥ ΚΕΙΜΕΝΟΥ, ΣΑΡΑΝΤΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΜΑΚΡΙΑ.
+                        Το «Σημείωση φθοράς» δεν έλεγε τίποτα που να μη χωρά στις
+                        «Σημειώσεις», και ο χρήστης έπρεπε να αποφασίσει σε ποιο
+                        από τα δύο γράφει. Έμεινε ένα. Το πεδίο επανεμφανίζεται
+                        μόνο σε παλιές γραμμές που ΕΧΟΥΝ ήδη τιμή, ώστε να μπορεί
+                        να διαβαστεί και να καθαριστεί, όχι για να ξαναγεμίσει. */}
+                    {stayForm.damages && stayForm.damage_note.trim() !== '' && (
+                      <TextInput label="Παλαιότερη σημείωση φθοράς" value={stayForm.damage_note} onChange={v => setStayForm(f => ({ ...f, damage_note: v }))} />
+                    )}
                     <div style={{ gridColumn: '1 / -1' }}>
                       <TextInput label="Σημειώσεις" value={stayForm.notes} onChange={v => setStayForm(f => ({ ...f, notes: v }))} />
                     </div>
@@ -1506,7 +1519,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
       {/* ── Εισαγωγή κράτησης από email (AI) ──────────────────────────────── */}
       {emailOpen && (
-        <div onClick={() => setEmailOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+        <div onClick={() => setEmailOpen(false)} role="dialog" aria-modal="true" aria-label="Εισαγωγή κράτησης από μήνυμα"
+          style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(600px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -1558,7 +1572,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
       {/* ── Εισαγωγή iCal (Airbnb/Booking) ────────────────────────────────── */}
       {icalOpen && (
-        <div onClick={() => setIcalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+        <div onClick={() => setIcalOpen(false)} role="dialog" aria-modal="true" aria-label="Εισαγωγή iCal"
+          style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(680px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
@@ -1571,16 +1586,19 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <button onClick={() => setIcalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px' }}>
-              <InfoBanner tone="info">Το iCal δίνει μόνο τις ημερομηνίες κράτησης, χωρίς όνομα επισκέπτη ή τιμή. Οι εισαγωγές καταχωρούνται σε συγκεντρωτικό πελάτη ανά κανάλι (π.χ. «Κρατήσεις Airbnb») για σωστή πληρότητα και ιστορικό. Αποθήκευσε τον σύνδεσμο για αυτόματο συγχρονισμό, ή επικόλλησε χειροκίνητα το .ics.</InfoBanner>
+              {/* Ήταν τέσσερις γραμμές κειμένου πριν από το πρώτο πεδίο, και οι τρεις
+                  εξηγούσαν πράγματα που φαίνονται μόνα τους μόλις γίνει η εισαγωγή.
+                  Έμεινε το ένα που πρέπει να ξέρεις ΠΡΙΝ: τι δεν θα έρθει. */}
+              <InfoBanner tone="info">Το iCal φέρνει μόνο ημερομηνίες, χωρίς όνομα επισκέπτη ή ποσό.</InfoBanner>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14, margin: '16px 0' }}>
                 <CustomSelect label="Ακίνητο" value={icalPropertyId} onChange={setIcalPropertyId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επίλεξε ακίνητο" />
                 <CustomSelect label="Κανάλι" value={icalChannel} onChange={v => setIcalChannel(v as 'airbnb' | 'booking' | 'other')} options={[{ value: 'airbnb', label: 'Airbnb' }, { value: 'booking', label: 'Booking' }, { value: 'other', label: 'Άλλο' }]} />
               </div>
 
               {/* Αυτόματος συγχρονισμός μέσω συνδέσμου (server-side, χωρίς CORS) */}
-              {secHead('Αυτόματος συγχρονισμός (σύνδεσμος)')}
+              {secHead('Αυτόματος συγχρονισμός')}
               <div style={{ marginBottom: 12 }}>
-                <TextInput label="Σύνδεσμος iCal (URL)" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
+                <TextInput label="Σύνδεσμος iCal" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
                 <Btn variant="secondary" onClick={fetchIcalFromUrl} disabled={icalBusy || !icalUrl.trim()}>{icalBusy ? 'Ανάκτηση…' : 'Ανάκτηση και προεπισκόπηση'}</Btn>
@@ -1611,13 +1629,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               )}
 
               {/* Χειροκίνητη εισαγωγή με επικόλληση */}
-              {secHead('Χειροκίνητα (επικόλληση .ics)')}
+              {secHead('Χειροκίνητη επικόλληση')}
               <div style={{ marginBottom: 12 }}>
                 <Textarea label="Περιεχόμενο .ics" value={icalText} onChange={setIcalText} rows={5} placeholder="BEGIN:VCALENDAR ..." />
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
                 <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>Ανάλυση επικόλλησης</Btn>
-                {icalEvents && <FlagSwitch on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} onLabel="Και μπλοκαρίσματα ημερομηνιών" offLabel="Μόνο κρατήσεις" />}
+                {icalEvents && <Toggle on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} label="Και μπλοκαρίσματα ημερομηνιών" labelOff="Μόνο κρατήσεις" />}
               </div>
               {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>{icalMsg.text}</div>}
               {icalEvents && (() => {
@@ -1636,7 +1654,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
                       {toImport.slice(0, 40).map((d, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, color: 'var(--text-secondary)', padding: '6px 10px', background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 8 }}>
-                          <span>{fd(d.check_in)} - {fd(d.check_out)}</span>
+                          <span>{fd(d.check_in)} έως {fd(d.check_out)}</span>
                           <span style={{ color: 'var(--text-tertiary)' }}>{d.nights} νύχτες{d.blocked ? ' · μπλοκάρισμα' : ''}</span>
                         </div>
                       ))}
@@ -1658,7 +1676,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
       {/* ── Φόρμα νέου/επεξεργασίας πελάτη (premium, δομημένη σε ενότητες) ───── */}
       {modalOpen && (
-        <div onClick={() => setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+        <div onClick={() => setModalOpen(false)} role="dialog" aria-modal="true" aria-label="Στοιχεία επισκέπτη"
+          style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(680px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
             {/* Sticky header με avatar αρχικών */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>

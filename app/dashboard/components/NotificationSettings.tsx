@@ -150,7 +150,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label htmlFor="notif-email" style={lbl}>Email αποστολής</label>
+          <label htmlFor="notif-email" style={lbl}>Ηλεκτρονικό ταχυδρομείο αποστολής</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <input id="notif-email" className="po-field" style={{ ...settingsField, flex: 1 }} type="email" placeholder="ονομα@email.com"
               value={prefs.reminder_email} onChange={e => setPrefs(p => ({ ...p, reminder_email: e.target.value }))}/>

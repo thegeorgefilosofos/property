@@ -54,7 +54,7 @@ export const STAY_CHANNEL_LABELS: Record<StayChannel, string> = {
 export type NoteKind = 'note' | 'call' | 'email' | 'visit' | 'damage' | 'other';
 export const NOTE_KINDS: NoteKind[] = ['note', 'call', 'email', 'visit', 'damage', 'other'];
 export const NOTE_KIND_LABELS: Record<NoteKind, string> = {
-  note: 'Σημείωση', call: 'Τηλεφώνημα', email: 'Email', visit: 'Επίσκεψη', damage: 'Φθορά', other: 'Άλλο',
+  note: 'Σημείωση', call: 'Τηλεφώνημα', email: 'Ηλεκτρονικό ταχυδρομείο', visit: 'Επίσκεψη', damage: 'Φθορά', other: 'Άλλο',
 };
 
 export interface StayLike {

@@ -963,6 +963,25 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // περιθώριο του .app-content που κρατά το περιεχόμενο μακριά από εδώ.
   const FAB_H = 52;
   const fabRef = useRef<HTMLButtonElement | null>(null);
+
+  // ═══ ΤΟ ΚΟΥΜΠΙ ΠΟΥ ΚΑΘΟΤΑΝ ΠΑΝΩ ΣΤΟ «ΑΠΟΘΗΚΕΥΣΗ» ════════════════════════
+  // Το `.app-content` κρατά κάτω περιθώριο για το πλωτό κουμπί, οπότε στη σελίδα
+  // δεν εμποδίζει. Σε παράθυρο όμως, που είναι `fixed` και ζωγραφίζεται από πάνω,
+  // το περιθώριο δεν ισχύει: το κουμπί κάθεται ακριβώς πάνω στη δεξιά κάτω γωνία,
+  // δηλαδή πάνω στο «Αποθήκευση» κάθε φόρμας της εφαρμογής.
+  //
+  // Το σήμα δεν το επινοούμε: κάθε παράθυρο δηλώνει `aria-modal="true"` — και
+  // όσα δεν το δήλωναν, τώρα το δηλώνουν. Όσο υπάρχει ένα ανοιχτό, ο βοηθός
+  // αποσύρεται. Μόλις κλείσει, επιστρέφει.
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const check = () => setOverlayOpen(!!document.querySelector('[aria-modal="true"]'));
+    check();
+    const mo = new MutationObserver(check);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-modal'] });
+    return () => mo.disconnect();
+  }, []);
   const fabBox = () => {
     const r = fabRef.current?.getBoundingClientRect();
     return { w: r?.width || FAB_H, h: r?.height || FAB_H };
@@ -1041,14 +1060,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       {/* Το κουμπί που τη φέρνει μπροστά, σε κάθε καρτέλα.
           Ονομαστικό, όχι διακοσμητικό: λέει ΠΟΙΑ είναι και ΤΙ κάνεις μαζί της,
           γιατί ένα ανώνυμο πλωτό κουκκί δεν το πατά κανείς δεύτερη φορά. */}
-      {!open && (
+      {!open && !overlayOpen && (
         <div className="pa-fab-wrap" style={fabFixed}>
           <button ref={fabRef} className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(true)}
             aria-label={openAria()} title="Σύρετε για μετακίνηση"
             style={{ cursor: dragging ? 'grabbing' : 'pointer' }}>
             <span className="pa-mark" aria-hidden>{ASSISTANT_INITIAL}</span>
             <span className="pa-fab-cta">{cta}</span>
-            {(listening || speaking) && <span className="pa-fab-live" style={{ background: listening ? 'var(--negative)' : 'var(--accent-text)' }} />}
+            {(listening || speaking) && <span className="pa-fab-live" style={{ background: listening ? 'var(--negative)' : 'var(--accent)' }} />}
           </button>
         </div>
       )}
@@ -1230,14 +1249,21 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         @keyframes pa-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
         @keyframes pa-pulse{0%,100%{opacity:1}50%{opacity:.35}}
         .pa-fab-wrap{position:fixed;right:24px;bottom:var(--fab-gap);z-index:1200;display:flex;align-items:center}
-        .pa-fab{position:fixed;right:24px;bottom:var(--fab-gap);height:var(--fab-h);padding:0 20px 0 8px;border-radius:100px;border:1px solid var(--accent-border);background:var(--accent);color:var(--accent-text);cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--highlight-inset),var(--elev-2);z-index:1201;transition:box-shadow .2s ${T.ease.standard},transform .14s cubic-bezier(.2,0,0,1)}
+        /* ΗΣΥΧΟ ΩΣ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΤΟ ΘΕΛΕΙΣ. Ήταν κορεσμένο γαλάζιο πλήκτρο με
+           λευκό δίσκο, δηλαδή το πιο δυνατό στοιχείο κάθε οθόνης — πιο δυνατό
+           από τα ποσά, τις προθεσμίες και το κύριο κουμπί της σελίδας. Ένας
+           βοηθός δεν φωνάζει πάνω από αυτό που βοηθά. Τώρα είναι επιφάνεια της
+           εφαρμογής με διακριτικό περίγραμμα· γεμίζει με το χρώμα του σήματος
+           μόλις πλησιάσει ο κέρσορας ή πάρει εστίαση. */
+        .pa-fab{position:fixed;right:24px;bottom:var(--fab-gap);height:var(--fab-h);padding:0 20px 0 8px;border-radius:100px;border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary);cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--highlight-inset),var(--elev-1);z-index:1201;transition:background .18s ${T.ease.standard},border-color .18s ${T.ease.standard},color .18s ${T.ease.standard},box-shadow .2s ${T.ease.standard},transform .14s cubic-bezier(.2,0,0,1)}
         .pa-fab-wrap .pa-fab{position:relative;right:auto;bottom:auto}
-        .pa-fab:hover{box-shadow:var(--highlight-inset),var(--elev-3);transform:translateY(-1px)}
+        .pa-fab:hover,.pa-fab:focus-visible{background:var(--accent);border-color:var(--accent);color:var(--accent-text);box-shadow:var(--highlight-inset),var(--elev-3);transform:translateY(-1px)}
+        .pa-fab:hover .pa-mark,.pa-fab:focus-visible .pa-mark{background:var(--accent-text);color:var(--accent)}
         .pa-fab:active{transform:translateY(0)}
         .pa-fab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
         /* Το σήμα: το αρχικό μέσα σε φωτεινό δίσκο. Καμία εικονογραφία, κανένα
            «σπινθήρισμα» — το όνομα είναι το σήμα. */
-        .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-text);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:17px;line-height:1;letter-spacing:-.01em}
+        .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:17px;line-height:1;letter-spacing:-.01em;transition:background .18s ${T.ease.standard},color .18s ${T.ease.standard}}
         .pa-fab-cta{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
         .pa-fab-close{padding:0;width:var(--fab-h);justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
         .pa-fab-live{position:absolute;top:8px;left:34px;width:9px;height:9px;border-radius:50%;animation:pa-pulse 1.4s infinite}

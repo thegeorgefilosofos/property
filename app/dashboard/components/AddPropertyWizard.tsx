@@ -642,7 +642,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     <input style={inputStyle} value={settings.owner_phone} onChange={setSf('owner_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
                   </Field>
                 </div>
-                <Field label="Email">
+                <Field label="Ηλεκτρονικό ταχυδρομείο">
                   <input type="email" style={inputStyle} value={settings.owner_email} onChange={setSf('owner_email')} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
               </div>

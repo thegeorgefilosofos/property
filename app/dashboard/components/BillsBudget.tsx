@@ -1634,7 +1634,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
               {showSettings && (
                 <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 10 }}>
-                  {settingToggle('notifyOverspend', notifyOn, 'Ειδοποίηση σε υπέρβαση', 'Email όταν μια κατηγορία ξεπεράσει τον στόχο, μέσω των προτιμήσεων ειδοποιήσεων και του Ημερολογίου.')}
+                  {settingToggle('notifyOverspend', notifyOn, 'Ειδοποίηση σε υπέρβαση', 'Ειδοποίηση όταν μια κατηγορία ξεπεράσει τον στόχο, μέσω των προτιμήσεων ειδοποιήσεων και του Ημερολογίου.')}
                   {settingToggle('rollover', rolloverOn, 'Μεταφορά υπολοίπου', 'Το αδιάθετο ή η υπέρβαση του μήνα μεταφέρεται στον επόμενο, αντί για μηδενισμό κάθε μήνα.')}
                 </div>
               )}

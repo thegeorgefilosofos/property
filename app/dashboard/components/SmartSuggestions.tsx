@@ -18,7 +18,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Check, Plus, X, RotateCcw, CircleCheckBig, ListChecks } from 'lucide-react';
+import { Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
 import { T, TT, fe, EmptyState } from '@/components/Theme';
 import { ASSISTANT_INITIAL, suggestionsTitle, suggestionsSub } from '@/lib/assistant/identity';
 
@@ -133,6 +133,27 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   const dismiss = (idx: number) => setDismissedIds(prev => new Set([...prev, idx]));
   const visibleSuggestions = suggestions.filter((_, i) => !dismissedIds.has(i));
 
+  // ═══ ΟΤΑΝ ΔΕΝ ΕΧΕΙ ΝΑ ΠΕΙ ΤΙΠΟΤΑ, ΔΕΝ ΠΙΑΝΕΙ ΚΑΡΤΑ ═══════════════════════
+  // Η κάρτα αποδιδόταν πάντα: πλαίσιο, σκιά, σήμα, τίτλος, υπότιτλος, κουμπί,
+  // και από κάτω κενή κατάσταση «Καμία πρόταση ακόμη» με δεύτερη προτροπή για
+  // το ίδιο κουμπί. Διακόσια εικονοστοιχεία στο τέλος κάθε λίστας για να πει
+  // ότι δεν έχει τίποτα να πει, με το ίδιο μήνυμα δύο φορές.
+  //
+  // Χωρίς προτάσεις μένει μία γραμμή, στο βάρος του κειμένου γύρω της. Η κάρτα
+  // εμφανίζεται μόνο όταν υπάρχει περιεχόμενο ή σφάλμα να αναφερθεί.
+  const hasSomethingToSay = visibleSuggestions.length > 0 || loadingSugg || failed;
+  if (!hasSomethingToSay) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <span style={{ ...TT.caption }}>{suggestionsSub()}</span>
+        <button onClick={generateSuggestions} style={{
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
+        }}>Δες τι έρχεται</button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)', marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -165,7 +186,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
       {/* Μία στήλη, χωρισμένη με γραμμές αντί για κάρτες: πέντε πλαίσια μέσα σε
           πλαίσιο διαβάζονται σαν θόρυβος, πέντε γραμμές σαν λίστα. */}
       {failed && (
-        <p style={{ ...TT.bodySm, marginTop: 4, maxWidth: 620 }}>
+        <p style={{ ...TT.bodySm, marginTop: 4 }}>
           {serverMessage ? serverMessage : <>
           Δεν κατάφερα να διαβάσω το ακίνητο αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο —
           δεν θα σου δείξω προτάσεις με νούμερα που δεν προέρχονται από τα δικά σου στοιχεία.
@@ -190,7 +211,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
                     <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{s.title}</span>
                     {s.amount != null && <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(s.amount)}</span>}
                   </div>
-                  <p style={{ ...TT.caption, marginTop: 3, maxWidth: 620 }}>{s.reason}</p>
+                  <p style={{ ...TT.caption, marginTop: 3 }}>{s.reason}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                     <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
                     {s.recurring && (
@@ -230,10 +251,6 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
 
       {suggestions.length > 0 && visibleSuggestions.length === 0 && (
         <EmptyState icon={<CircleCheckBig size={20} />} title="Όλες οι προτάσεις διεκπεραιώθηκαν" hint="Ζήτα νέα ματιά όταν αλλάξουν δαπάνες, λογαριασμοί ή μίσθωση." />
-      )}
-
-      {suggestions.length === 0 && !loadingSugg && (
-        <EmptyState icon={<ListChecks size={20} />} title="Καμία πρόταση ακόμη" hint="Πάτα «Δες τι έρχεται» για προτάσεις με βάση τα δικά σου δεδομένα." />
       )}
 
     </div>

@@ -264,7 +264,7 @@ export default function SecuritySettings() {
         <div style={subLabel}>Τρέχουσα σύνδεση</div>
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Email</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ηλεκτρονικό ταχυδρομείο</span>
             <span style={{ ...rowVal, color: 'var(--text-primary)' }}>{email || ABSENT}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>

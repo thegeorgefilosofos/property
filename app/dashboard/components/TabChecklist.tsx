@@ -150,16 +150,27 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+// ═══ ΕΝΝΕΑ ΚΑΤΗΓΟΡΙΕΣ, ΠΕΝΤΕ ΧΡΩΜΑΤΑ, ΚΑΝΕΝΑ ΝΟΗΜΑ ════════════════════════
+// Η «Παράδοση Ακινήτου» ήταν πράσινη και η «Αποχώρηση Ενοικιαστή» κόκκινη. Μια
+// αποχώρηση δεν είναι αποτυχία και μια παράδοση δεν είναι επιτυχία· είναι δύο
+// στιγμές της ίδιας μίσθωσης. Το «Airbnb» ήταν επίσης κόκκινο, η «Συντήρηση»
+// πορτοκαλί, τα «Νομικά» μπλε. Πέντε σημασιολογικά χρώματα σε μια οθόνη που
+// απλώς ταξινομεί, και το μάτι ψάχνει νόημα που δεν υπάρχει.
+//
+// Την κατηγορία τη λέει το ΟΝΟΜΑ της. Η τελεία μένει για να δένει οπτικά τη
+// σειρά με την επικεφαλίδα της, σε έναν ουδέτερο τόνο. Χρώμα κρατά μόνο ό,τι
+// σημαίνει «κάτι πρέπει να γίνει»: η εκπρόθεσμη ημερομηνία.
+const CATEGORY_DOT = 'var(--text-tertiary)'
 const CATEGORIES = [
-  { id: 'checkin',     label: 'Παράδοση Ακινήτου',    color: 'var(--positive)' },
-  { id: 'checkout',   label: 'Αποχώρηση Ενοικιαστή', color: 'var(--negative)' },
-  { id: 'maintenance',label: 'Συντήρηση',              color: 'var(--warning)' },
-  { id: 'legal',      label: 'Νομικά / ΑΑΔΕ',         color: 'var(--info)' },
-  { id: 'renovation', label: 'Ανακαίνιση',            color: 'var(--info)' },
-  { id: 'purchase',   label: 'Αγορά Ακινήτου',        color: 'var(--info)' },
-  { id: 'airbnb',     label: 'Short-term / Airbnb',   color: 'var(--negative)' },
-  { id: 'financial',  label: 'Οικονομικά',            color: 'var(--accent)' },
-  { id: 'other',      label: 'Άλλο',                  color: 'var(--text-secondary)' },
+  { id: 'checkin',    label: 'Παράδοση ακινήτου',     color: CATEGORY_DOT },
+  { id: 'checkout',   label: 'Αποχώρηση ενοικιαστή',  color: CATEGORY_DOT },
+  { id: 'maintenance',label: 'Συντήρηση',             color: CATEGORY_DOT },
+  { id: 'legal',      label: 'Νομικά και ΑΑΔΕ',       color: CATEGORY_DOT },
+  { id: 'renovation', label: 'Ανακαίνιση',            color: CATEGORY_DOT },
+  { id: 'purchase',   label: 'Αγορά ακινήτου',        color: CATEGORY_DOT },
+  { id: 'airbnb',     label: 'Βραχυχρόνια μίσθωση',   color: CATEGORY_DOT },
+  { id: 'financial',  label: 'Οικονομικά',            color: CATEGORY_DOT },
+  { id: 'other',      label: 'Άλλο',                  color: CATEGORY_DOT },
 ]
 const PRIORITIES = [
   { value: 'critical', label: 'Κρίσιμο',  color: 'var(--negative)', bg: 'rgba(255,59,48,0.12)' },
@@ -304,13 +315,21 @@ function getPri(v: string) { return PRIORITIES.find(p => p.value === v) || PRIOR
 function getStatusMeta(v: string) { return STATUSES.find(s => s.value === v) || STATUSES[0] }
 // ── Ήρεμες οπτικές ενδείξεις (χαμηλός κορεσμός, όχι «σουπερμάρκετ») ──────────
 // Μόνο η κρίσιμη/υψηλή προτεραιότητα παίρνει χρώμα· οι υπόλοιπες μένουν ουδέτερες.
-function priDotColor(v: string) { return v === 'critical' ? 'var(--negative)' : v === 'high' ? 'var(--warning)' : 'var(--text-tertiary)' }
+// ΤΟ ΒΑΡΟΣ, ΟΧΙ Η ΑΠΟΧΡΩΣΗ. Ήταν κόκκινη τελεία για «κρίσιμο», πορτοκαλί για
+// «υψηλό» και γκρι για όλα τα υπόλοιπα — δηλαδή ΚΑΘΕ σειρά είχε μια χρωματιστή
+// κουκκίδα, και οι δώδεκα σειρές χωρίς προθεσμία έμοιαζαν εξίσου επείγουσες με
+// τις δύο που έληγαν. Τώρα η κουκκίδα εμφανίζεται μόνο όπου η προτεραιότητα
+// είναι όντως ανεβασμένη: γεμάτη για κρίσιμο, περίγραμμα για υψηλό, τίποτα για
+// τα υπόλοιπα. Χρώμα κρατά μόνο η εκπρόθεσμη ημερομηνία.
+function priDotColor(v: string) { return v === 'critical' ? 'var(--text-primary)' : 'var(--text-tertiary)' }
+/** Δείχνεται τελεία; Μόνο για ανεβασμένη προτεραιότητα. */
+function priShowDot(v: string) { return v === 'critical' || v === 'high' }
 // Μικρή, διακριτική ένδειξη προτεραιότητας: τελεία + ήσυχη ετικέτα.
 function PriorityCue({ priority }: { priority: string }) {
   const label = getPri(priority).label
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: priDotColor(priority), flexShrink: 0 }} />
+      {priShowDot(priority) && <span style={{ width: 6, height: 6, borderRadius: '50%', background: priority === 'critical' ? priDotColor(priority) : 'transparent', border: priority === 'critical' ? 'none' : '1.5px solid var(--text-tertiary)', boxSizing: 'border-box', flexShrink: 0 }} />}
       <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: priority === 'critical' ? 600 : 400 }}>{label}</span>
     </span>
   )
@@ -1092,7 +1111,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
       {/* Ήρεμη, σαρώσιμη σειρά: τελεία προτεραιότητας + τίτλος + προθεσμία + μία ένδειξη (ανάθεση).
           Δευτερεύοντα (ετικέτες, κόστος, υπο-εργασίες, σχόλια, επανάληψη) ζουν στην προβολή λεπτομερειών. */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span title={'Προτεραιότητα: ' + getPri(item.priority).label} style={{ width: 7, height: 7, borderRadius: '50%', background: priDotColor(item.priority), flexShrink: 0 }} />
+        {priShowDot(item.priority) && <span title={'Προτεραιότητα: ' + getPri(item.priority).label} style={{ width: 7, height: 7, borderRadius: '50%', background: item.priority === 'critical' ? priDotColor(item.priority) : 'transparent', border: item.priority === 'critical' ? 'none' : '1.5px solid var(--text-tertiary)', boxSizing: 'border-box', flexShrink: 0 }} />}
         <span style={{ fontSize: 14, fontWeight: 500, color: done || blocked ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1, fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'opacity 0.3s ease, color 0.3s ease' }}>
           {item.description}
         </span>
@@ -1123,15 +1142,11 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
             {fe(item.actual_cost)}
           </span>
         )}
-        {/* Η ΕΠΙΣΗΜΗ ΠΗΓΗ, σε κάθε υποχρέωση που δεν την έγραψε ο χρήστης. Χωρίς
-            αυτόν τον σύνδεσμο ο χρήστης δεν έχει τρόπο να ελέγξει την ημερομηνία. */}
-        {item._src && (
-          <a href={item._src} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-            title="Επίσημη πηγή, ανοίγει σε νέα καρτέλα"
-            style={{ flexShrink: 0, fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans, textDecoration: 'none' }}>
-            Πηγή
-          </a>
-        )}
+        {/* Η «Πηγή» ήταν γαλάζιος σύνδεσμος σε ΚΑΘΕ θεσμική υποχρέωση: σε
+            λίστα με δεκαοκτώ γραμμές, δεκαοκτώ σύνδεσμοι που κανείς δεν πατά
+            δύο φορές. Η ημερομηνία εξακολουθεί να χρειάζεται επαλήθευση, οπότε
+            ο σύνδεσμος δεν χάθηκε: ζει στο μενού ενεργειών της σειράς, μαζί με
+            τα υπόλοιπα. Έξω από τη σειρά, μέσα στη σειρά όταν τον θέλεις. */}
       </div>
 
       {/* Μία διακριτική ενέργεια «···» — όλες οι λειτουργίες μαζεμένες, καθαρή σειρά. */}
@@ -1161,6 +1176,12 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
             { label: 'Υπενθύμιση σε WhatsApp', sub: 'Άνοιγμα με έτοιμο μήνυμα', icon: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z', fn: () => { window.open(`https://wa.me/?text=${encodeURIComponent('Υπενθύμιση: ' + item.description + (item.due_date ? ` έως ${fmtDate(item.due_date)}` : ''))}`, '_blank'); setShowMenu(false) } },
             { label: 'Υπενθύμιση σε Viber', sub: 'Άνοιγμα με έτοιμο μήνυμα', icon: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z', fn: () => { window.open(`viber://forward?text=${encodeURIComponent('Υπενθύμιση: ' + item.description + (item.due_date ? ` έως ${fmtDate(item.due_date)}` : ''))}`, '_blank'); setShowMenu(false) } },
             { label: 'Αντιγραφή', sub: 'Δημιουργία αντιγράφου', icon: 'M9 9h13v13H9z M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1', fn: () => { onDuplicate(); setShowMenu(false) } },
+            // Η επίσημη πηγή της προθεσμίας. Ήταν γαλάζιος σύνδεσμος πάνω στη
+            // σειρά, σε κάθε θεσμική υποχρέωση· εδώ είναι μία γραμμή σε μενού
+            // που ανοίγει όποιος τη θέλει, και η λίστα ξαναβρίσκει την ησυχία της.
+            ...(item._src ? [
+              { label: 'Επίσημη πηγή', sub: 'Άνοιγμα σε νέα καρτέλα', icon: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3', fn: () => { window.open(item._src!, '_blank', 'noopener,noreferrer'); setShowMenu(false) } },
+            ] : []),
             { label: 'Διαγραφή', sub: '', icon: 'M3 6h18 M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6', danger: true, fn: () => { onDelete(); setShowMenu(false) } },
           ] as RowAction[]).map((a, i) => (
             <button key={i} type="button" onClick={a.fn}
@@ -2443,8 +2464,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             {[
               { label: selected.size === filtered.length ? 'Καθαρισμός επιλογής' : `Επιλογή όλων (${filtered.length})`, fn: () => { if (selected.size === filtered.length) setSelected(new Set()); else setSelected(new Set(filtered.map(i => i.id))) }, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
-              { label: 'Ολοκλήρωση', fn: bulkComplete, color: 'var(--positive)', hoverBg: 'var(--positive-soft)' },
-              { label: 'Διαγραφή', fn: () => setBulkDeleteConfirm(true), color: 'var(--negative)', hoverBg: 'var(--negative-soft)' },
+              // Πράσινο και κόκκινο δίπλα δίπλα σε δύο ενέργειες που εκτελεί ο
+              // ίδιος άνθρωπος με τον ίδιο τρόπο. Η διαγραφή ζητά ούτως ή άλλως
+              // επιβεβαίωση, και ΕΚΕΙ το κόκκινο έχει νόημα.
+              { label: 'Ολοκλήρωση', fn: bulkComplete, color: 'var(--text-primary)', hoverBg: 'var(--bg-surface)' },
+              { label: 'Διαγραφή', fn: () => setBulkDeleteConfirm(true), color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
             ].map((a, i, arr) => (
               <button key={i} type="button" onClick={a.fn}
                 style={{ flex: 1, padding: '12px 4px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a.color, fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}

@@ -652,7 +652,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   const [form,setForm]=useState({type:'call' as CommLog['type'],summary:'',date:athensToday(),outcome:''});
   const [saving,setSaving]=useState(false);
   const TYPE_LABELS:Record<string,string>={call:'Τηλεφωνική Κλήση',email:'Ηλεκτρονικό Ταχυδρομείο',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
-  const TYPE_SHORT:Record<string,string>={call:'Κλήση',email:'Email',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
+  const TYPE_SHORT:Record<string,string>={call:'Κλήση',email:'Ηλεκτρονικό ταχυδρομείο',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
 
   useEffect(()=>{loadLogs();},[tenant.id]);
   const loadLogs=async()=>{
@@ -690,7 +690,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
           {tenant.email&&(
             <a href={`mailto:${tenant.email}`} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:'16px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none', color:'var(--text-primary)' }}>
               <div style={{ width:36, height:36, borderRadius:18, background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>
-              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>Email</div><div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const, maxWidth:120 }}>{tenant.email}</div></div>
+              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>Ηλεκτρονικό ταχυδρομείο</div><div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const, maxWidth:120 }}>{tenant.email}</div></div>
             </a>
           )}
           {tenant.phone&&(
@@ -1244,7 +1244,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, marginBottom:18 }}>
               {tenant.phone&&<a href={whatsappLink(msgDigits(tenant.phone),paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>WhatsApp</a>}
               {tenant.phone&&<a href={viberLink(paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>Viber</a>}
-              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Αίτημα πληρωμής ενοικίου '+monthLabel(req))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Email</a>}
+              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Αίτημα πληρωμής ενοικίου '+monthLabel(req))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
               {/* Το catch ήταν κενό: αν η αντιγραφή αποτύγχανε (άρνηση δικαιώματος, μη ασφαλές
                   context), ο χρήστης νόμιζε ότι το κείμενο ήταν στο πρόχειρο και το επικολλούσε στο κενό. */}
               <button style={s.btnGhost} onClick={()=>{ try{ navigator.clipboard.writeText(paymentRequestText(req)); notifyOk('Το κείμενο αντιγράφηκε'); }catch{ notifyError('Δεν έγινε η αντιγραφή. Επίλεξε και αντίγραψε το κείμενο χειροκίνητα.'); } }}>Αντιγραφή κειμένου</button>
@@ -1761,7 +1761,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
                     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:14, marginBottom:10 }}>
                       <div style={{ ...s.g2, marginBottom:10 }}>
                         <TextInput label="Συνεργείο / Τεχνικός" value={af.name} onChange={v=>setAf(a=>({...a,name:v}))} placeholder="Παράδειγμα: Υδραυλικός Παπαδόπουλος"/>
-                        <TextInput label="Τηλέφωνο / Email" value={af.contact} onChange={v=>setAf(a=>({...a,contact:v}))} placeholder="69XXXXXXXX"/>
+                        <TextInput label="Τηλέφωνο ή ηλεκτρονικό ταχυδρομείο" value={af.contact} onChange={v=>setAf(a=>({...a,contact:v}))} placeholder="69XXXXXXXX"/>
                       </div>
                       {savedContacts.length>0&&(
                         <div style={{ marginBottom:10 }}>
@@ -1803,7 +1803,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
                     {m.status!=='done'&&<button style={s.btnSm} disabled={busy} onClick={()=>{ setDoneFor(m.id); setDoneCost(''); }}>Ολοκληρώθηκε</button>}
                     <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>openAssign(m)}>{(m.assignee_name||m.assignee_contact)?'Ανάθεση':'Ανάθεση σε συνεργείο'}</button>
                     {m.assignee_contact&&normalizePhone(m.assignee_contact).length>=10&&<a href={whatsappLink(msgDigits(m.assignee_contact),contractorText(m))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp συνεργείου</a>}
-                    {m.assignee_contact&&m.assignee_contact.includes('@')&&<a href={`mailto:${m.assignee_contact}?subject=${encodeURIComponent('Εργασία: '+m.title)}&body=${encodeURIComponent(contractorText(m))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Email συνεργείου</a>}
+                    {m.assignee_contact&&m.assignee_contact.includes('@')&&<a href={`mailto:${m.assignee_contact}?subject=${encodeURIComponent('Εργασία: '+m.title)}&body=${encodeURIComponent(contractorText(m))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Μήνυμα στο συνεργείο</a>}
                     <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>toDamage(m)}>Καταγραφή ως φθορά</button>
                     <button style={s.btnDng} disabled={busy} onClick={()=>del(m)}>Διαγραφή</button>
                   </div>
@@ -1956,7 +1956,7 @@ function RenewalView({ tenant, userId, comps, sqm }:{ tenant:Tenant; userId:stri
               {tenant.phone&&<a href={whatsappLink(phoneDigits,proposalText)} target="_blank" rel="noopener noreferrer" style={{ ...s.btnSm, textDecoration:'none' }}>WhatsApp</a>}
               {tenant.phone&&<a href={viberLink(proposalText)} target="_blank" rel="noopener noreferrer" style={{ ...s.btnSm, textDecoration:'none' }}>Viber</a>}
               <button style={s.btnSm} onClick={()=>navigator.clipboard?.writeText(proposalText)}>Αντιγραφή</button>
-              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Πρόταση ανανέωσης μίσθωσης')}&body=${encodeURIComponent(proposalText)}`} style={{ ...s.btnSm, textDecoration:'none' }}>Email</a>}
+              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Πρόταση ανανέωσης μίσθωσης')}&body=${encodeURIComponent(proposalText)}`} style={{ ...s.btnSm, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
             </div>
           </>
         )}
@@ -2255,7 +2255,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   // ── Εξαγωγή CSV μητρώου ──────────────────────────────────────────────────────
   const exportRoster=()=>{
     downloadCsv(`enoikiastes_${todayISO()}`,
-      ['Ονοματεπώνυμο','Κατάσταση','ΑΦΜ','Τηλέφωνο','Email','Είδος μίσθωσης','Έναρξη','Λήξη','Αποχώρηση','Ημέρα πληρωμής','Μηνιαίο ενοίκιο (€)','Εγγύηση (€)','Τρόπος εγγύησης','Ημερομηνία καταβολής εγγύησης','Επεστράφη'],
+      ['Ονοματεπώνυμο','Κατάσταση','ΑΦΜ','Τηλέφωνο','Ηλεκτρονικό ταχυδρομείο','Είδος μίσθωσης','Έναρξη','Λήξη','Αποχώρηση','Ημέρα πληρωμής','Μηνιαίο ενοίκιο (€)','Εγγύηση (€)','Τρόπος εγγύησης','Ημερομηνία καταβολής εγγύησης','Επεστράφη'],
       [...tenants].map(t=>[
         t.full_name, isPastTenant(t)?'Προηγούμενος':'Τρέχων', t.afm||'', t.phone||'', t.email||'',
         t.lease_category?LEASE_CATEGORY_LABELS[t.lease_category]:'', csvDate(t.lease_start), csvDate(t.lease_end), csvDate(t.move_out_date),

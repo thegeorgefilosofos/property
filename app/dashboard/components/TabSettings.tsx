@@ -286,12 +286,12 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
     <Card className="acc-section">
       <SecHdr label="Προφίλ" />
 
-      {/* Email */}
+      {/* Ηλεκτρονικό ταχυδρομείο */}
       <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
         {!emailEdit ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Email</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ηλεκτρονικό ταχυδρομείο</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginTop: 2, overflowWrap: 'anywhere' }}>{email || ABSENT}</div>
             </div>
             {editBtn(() => { setEmailVal(email); setEmailMsg(null); setEmailEdit(true); })}

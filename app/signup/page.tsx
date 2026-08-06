@@ -161,7 +161,7 @@ export default function SignupPage() {
                   <input id="su-name" name="name" autoComplete="name" type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Γιώργος Παπαδόπουλος" style={field} onFocus={focus} onBlur={blur} />
                 </div>
                 <div>
-                  <label htmlFor="su-email" style={label}>Email</label>
+                  <label htmlFor="su-email" style={label}>Ηλεκτρονικό ταχυδρομείο</label>
                   <input id="su-email" name="email" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="onoma@email.com" required style={field} onFocus={focus} onBlur={blur} />
                 </div>
                 <div>

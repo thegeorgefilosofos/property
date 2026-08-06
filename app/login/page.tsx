@@ -99,7 +99,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label htmlFor="login-email" style={label}>Email</label>
+              <label htmlFor="login-email" style={label}>Ηλεκτρονικό ταχυδρομείο</label>
               <input id="login-email" name="email" autoComplete="email" type="email" value={email} required onChange={e => setEmail(e.target.value)} placeholder="onoma@email.com" style={field}
                 onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                 onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />

@@ -31,7 +31,7 @@ const IDENTITY_ROWS: { label: string; value: string }[] = [
   { label: 'ΔΟΥ', value: orPending(IDENTITY.doy) },
   { label: 'ΓΕΜΗ', value: orPending(IDENTITY.gemi) },
   { label: 'Τηλέφωνο', value: orPending(IDENTITY.phone) },
-  { label: 'Email υποστήριξης', value: IDENTITY.supportEmail },
+  { label: 'Ηλεκτρονικό ταχυδρομείο υποστήριξης', value: IDENTITY.supportEmail },
 ];
 
 // ── Πού πάνε τα δεδομένα: ο κατάλογος υπεργολάβων, σε απλά ελληνικά ────────

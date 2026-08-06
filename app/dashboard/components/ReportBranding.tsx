@@ -107,7 +107,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
           <TextInput label="Επωνυμία / Όνομα γραφείου" value={companyName} onChange={setCompanyName} placeholder="Παράδειγμα: Παπαδόπουλος Real Estate" />
           <TextInput label="Τηλέφωνο επικοινωνίας" value={phone} onChange={setPhone} placeholder="210 0000000" />
-          <TextInput label="Email επικοινωνίας" value={email} onChange={setEmail} placeholder="info@grafeio.gr" />
+          <TextInput label="Ηλεκτρονικό ταχυδρομείο επικοινωνίας" value={email} onChange={setEmail} placeholder="info@grafeio.gr" />
         </div>
       </Card>
 

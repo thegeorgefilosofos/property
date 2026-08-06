@@ -131,7 +131,7 @@ export const TENANT_FIELDS: readonly FieldRule[] = [
   { id: 'tenant.full_name', label: 'Ονοματεπώνυμο', why: 'Μπαίνει στο μισθωτήριο και στο Ε2.', when: isLong },
   { id: 'tenant.afm', label: 'ΑΦΜ', why: 'Το Ε2 ζητά ΑΦΜ μισθωτή. Χωρίς αυτό η δήλωση δεν κλείνει.', when: isLong, critical: true },
   { id: 'tenant.phone', label: 'Τηλέφωνο', why: 'Για να τον βρεις όταν χρειαστεί.', when: isLong },
-  { id: 'tenant.email', label: 'Email', why: 'Για αποδείξεις και ειδοποιήσεις.', when: isLong, rare: true },
+  { id: 'tenant.email', label: 'Ηλεκτρονικό ταχυδρομείο', why: 'Για αποδείξεις και ειδοποιήσεις.', when: isLong, rare: true },
   { id: 'tenant.id_doc', label: 'Έγγραφο ταυτοποίησης', why: 'Ο αριθμός ταυτότητας ή διαβατηρίου γράφεται στο μισθωτήριο. Χωρίς αυτόν το συμβόλαιο δεν ταυτοποιεί τον μισθωτή.', when: isLong, rare: true },
   { id: 'tenant.iban', label: 'IBAN ενοικιαστή', why: 'Για να του επιστρέψεις την εγγύηση χωρίς να τον ψάχνεις μετά την αποχώρηση.', when: isLong, rare: true },
   // Το επάγγελμα δεν πάει πουθενά αλλού. Μένει επειδή είναι το μόνο στοιχείο που
@@ -231,7 +231,7 @@ export const CONTACT_FIELDS: readonly FieldRule[] = [
   { id: 'contact.phone', label: 'Τηλέφωνο', why: 'Ο κύριος τρόπος επικοινωνίας με τον συνεργάτη.', selfEvident: true },
   { id: 'contact.afm', label: 'ΑΦΜ', why: 'Συνδέει τα παραστατικά του με την επαφή. Χωρίς αυτό, το ταίριασμα γίνεται με το όνομα και αστοχεί.', },
   { id: 'contact.iban', label: 'IBAN', why: 'Για πληρωμή χωρίς νέα επικοινωνία με τον συνεργάτη.', selfEvident: true, rare: true },
-  { id: 'contact.email', label: 'Email', why: 'Για τιμολόγια, προσφορές και γραπτή αλληλογραφία.', selfEvident: true, rare: true },
+  { id: 'contact.email', label: 'Ηλεκτρονικό ταχυδρομείο', why: 'Για τιμολόγια, προσφορές και γραπτή αλληλογραφία.', selfEvident: true, rare: true },
   // ── «Περισσότερα»: το καθένα κάνει κάτι, αλλά όχι για τους περισσότερους ──
   { id: 'contact.mobile', label: 'Κινητό', why: 'Δεύτερος αριθμός, όταν στον πρώτο απαντά γραφείο.', selfEvident: true, rare: true },
   { id: 'contact.messaging', label: 'WhatsApp ή Viber', why: 'Ανοίγει συνομιλία με τον καταχωρημένο αριθμό, χωρίς αντιγραφή.', rare: true },

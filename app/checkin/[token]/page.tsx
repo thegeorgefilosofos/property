@@ -106,7 +106,7 @@ export default function GuestCheckin() {
                     <div><label style={label}>Ημερομηνία γέννησης</label><input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} style={field} /></div>
                     <div><label style={label}>Ημερομηνία άφιξης</label><input type="date" value={arrival} onChange={e => setArrival(e.target.value)} style={field} /></div>
                     <div><label style={label}>Τηλέφωνο</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+30…" style={field} /></div>
-                    <div><label style={label}>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} style={field} /></div>
+                    <div><label style={label}>Ηλεκτρονικό ταχυδρομείο</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} style={field} /></div>
                     <div><label style={label}>Αριθμός ατόμων</label><input inputMode="numeric" value={guests} onChange={e => setGuests(e.target.value.replace(/[^\d]/g, ''))} placeholder="Παράδειγμα: 2" style={field} /></div>
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
