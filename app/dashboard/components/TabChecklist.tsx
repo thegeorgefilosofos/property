@@ -1200,7 +1200,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
       {subtasks.length > 0 && (
         <div>
           <div style={{ height: 3, borderRadius: 3, background: 'var(--bg-elevated)', overflow: 'hidden', marginBottom: 3 }}>
-            <div style={{ height: '100%', width: (subDone / subtasks.length * 100) + '%', background: 'var(--positive)', borderRadius: 3 }} />
+            <div style={{ height: '100%', width: (subDone / subtasks.length * 100) + '%', background: 'var(--series-in)', borderRadius: 3 }} />
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{subDone}/{subtasks.length} υπο-εργασίες</div>
         </div>

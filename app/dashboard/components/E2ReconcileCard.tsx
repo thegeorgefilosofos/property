@@ -27,18 +27,17 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, TT, EmptyState, Btn } from '@/components/Theme';
+import { T, TT, EmptyState, Btn, fe } from '@/components/Theme';
 import { loadE2Rows, runE2Export } from './e2Export';
 import { notify, notifyError } from '@/components/Toast';
 import { reconcileE2, type DeclaredRow, type OurEvidence, type Line } from '@/lib/billing/e2Reconcile';
 import type { E2Row } from '@/lib/billing/e2';
 
-const eur = (n: number) =>
-  `${Math.round(n).toLocaleString('el-GR')} €`;
-
-/** Χρώμα ΜΟΝΟ όταν σημαίνει κάτι: συμφωνία, διαφορά, ή λείπει γραμμή. */
+// Χρώμα ΜΟΝΟ όπου υπάρχει κάτι να γίνει. Η συμφωνία δεν είναι επίτευγμα που
+// θέλει πράσινο· είναι η αναμενόμενη κατάσταση και γράφεται με τον τόνο του
+// κειμένου. Ό,τι χρειάζεται προσοχή ξεχωρίζει τότε από μόνο του.
 function toneOf(l: Line): { color: string; label: string } {
-  if (l.verdict === 'match') return { color: 'var(--positive)', label: 'Συμφωνούν' };
+  if (l.verdict === 'match') return { color: 'var(--text-secondary)', label: 'Συμφωνούν' };
   if (l.verdict === 'only_theirs') return { color: 'var(--negative)', label: 'Μόνο στο έντυπο' };
   if (l.verdict === 'only_ours') return { color: 'var(--warning)', label: 'Μόνο στα δικά σου' };
   const unexplained = Math.abs(l.unexplained ?? 0) > 1;
@@ -131,7 +130,7 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
       <div style={card}>
         <EmptyState
           title="Έλεγχος του προσυμπληρωμένου Ε2"
-          hint="Μόλις προσθέσεις ακίνητο με ΑΤΑΚ και καταχωρήσεις μισθώματα, θα μπορείς να συγκρίνεις τι λέει η ΑΑΔΕ με τι λένε τα δικά σου στοιχεία — πριν υπογράψεις."
+          hint="Με ένα ακίνητο που έχει ΑΤΑΚ και καταχωρημένα μισθώματα, η σύγκριση με το προσυμπληρωμένο έντυπο γίνεται εδώ, πριν υπογράψεις."
         />
       </div>
     );
@@ -146,10 +145,9 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
             {exporting ? 'Σε εξέλιξη…' : 'Λήψη Ε2 σε Excel'}
           </Btn>
         </div>
-        <p style={{ ...TT.bodySm, marginTop: 4, maxWidth: 640 }}>
-          Η ΑΑΔΕ σου στέλνει το Ε2 συμπληρωμένο. Είναι συχνά λάθος — γι&apos; αυτό σου
-          επιτρέπει να το διορθώσεις. Άνοιξε το myAADE, γράψε εδώ το ακαθάριστο που
-          δείχνει για κάθε ακίνητο, και θα δεις πού διαφέρει από τα δικά σου στοιχεία.
+        <p style={{ ...TT.bodySm, marginTop: 4 }}>
+          Η ΑΑΔΕ στέλνει το Ε2 προσυμπληρωμένο και συχνά λανθασμένο. Γράψε το ακαθάριστο
+          που δείχνει το myAADE για κάθε ακίνητο και θα δεις πού διαφέρει από τα δικά σου.
         </p>
       </div>
 
@@ -158,15 +156,14 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
         <div style={{
           padding: '12px 14px', marginBottom: 14,
           background: 'var(--bg-elevated)', borderRadius: T.radius.inner,
-          borderLeft: `2px solid ${result.needsAttention === 0 ? 'var(--positive)' : 'var(--warning)'}`,
+          borderLeft: `2px solid ${result.needsAttention === 0 ? 'var(--border-default)' : 'var(--warning)'}`,
         }}>
           <span style={{ ...TT.body, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
             {result.headline}
           </span>
           {awaiting > 0 && (
             <p style={{ ...TT.caption, marginTop: 4 }}>
-              {awaiting === 1 ? 'Ένα ακίνητο δεν έχει ακόμη νούμερο από το έντυπο.'
-                              : `${awaiting} ακίνητα δεν έχουν ακόμη νούμερο από το έντυπο.`}
+              {awaiting} {awaiting === 1 ? 'ακίνητο ακόμη χωρίς' : 'ακίνητα ακόμη χωρίς'} νούμερο από το έντυπο.
             </p>
           )}
         </div>
@@ -187,13 +184,13 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ ...TT.body, fontWeight: 600 }}>{r.address || r.atak || 'Ακίνητο'}</div>
                   <div style={{ ...TT.caption, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
-                    {r.atak ? `ΑΤΑΚ ${r.atak} · ` : ''}Τα δικά σου: {eur(r.grossIncome)}
+                    {r.atak ? `ΑΤΑΚ ${r.atak} · ` : ''}Τα δικά σου: {fe(r.grossIncome)}
                     {r.months ? ` · ${r.months} μήνες` : ''}
                   </div>
                   {/* Ο ΑΤΑΚ είναι το μόνο κλειδί ταύτισης. Χωρίς αυτόν δεν συγκρίνουμε. */}
                   {!r.atak && (
                     <div style={{ ...TT.caption, marginTop: 4, color: 'var(--warning)' }}>
-                      Λείπει ο ΑΤΑΚ. Συμπλήρωσέ τον για να γίνει η σύγκριση.
+                      Χωρίς ΑΤΑΚ δεν γίνεται σύγκριση.
                     </div>
                   )}
                 </div>
@@ -203,7 +200,7 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
                   </label>
                   <input
                     id={`e2-${i}`} type="number" inputMode="decimal" style={inp}
-                    placeholder="—" disabled={!r.atak}
+                    placeholder="0,00" disabled={!r.atak}
                     value={declared[r.atak] ?? ''}
                     onChange={e => setDeclared(d => ({ ...d, [r.atak]: e.target.value }))}
                   />
@@ -216,11 +213,11 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
                     {tone.label}
                     {line.diff != null && Math.abs(line.diff) > 1 &&
                       <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                        {' · '}διαφορά {eur(Math.abs(line.diff))}
+                        {' · '}διαφορά {fe(Math.abs(line.diff))}
                       </span>}
                   </div>
                   {line.reasons.map(reason => (
-                    <p key={reason.code} style={{ ...TT.caption, marginTop: 5, maxWidth: 620 }}>
+                    <p key={reason.code} style={{ ...TT.caption, marginTop: 5 }}>
                       {reason.text}
                     </p>
                   ))}
@@ -244,15 +241,15 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
         }}>
           <div style={{ ...TT.bodySm, fontWeight: 600 }}>
             Το έντυπο έχει γραμμή για ΑΤΑΚ {l.atak} που δεν υπάρχει στα ακίνητά σου
-            {l.theirs != null ? ` (${eur(l.theirs)})` : ''}.
+            {l.theirs != null ? ` (${fe(l.theirs)})` : ''}.
           </div>
           <p style={{ ...TT.caption, marginTop: 4 }}>{l.action}</p>
         </div>
       ))}
 
-      <p style={{ ...TT.caption, marginTop: 14, maxWidth: 640 }}>
-        Δεν σου λέμε ποιο νούμερο είναι σωστό — αυτό είναι δική σου απόφαση, με τον
-        λογιστή σου. Δείχνουμε πού διαφέρουν και τι εξηγεί τη διαφορά.
+      <p style={{ ...TT.caption, marginTop: 14 }}>
+        Ποιο νούμερο είναι σωστό το αποφασίζεις εσύ με τον λογιστή σου. Εδώ φαίνεται πού
+        διαφέρουν και τι εξηγεί τη διαφορά.
       </p>
     </div>
   );

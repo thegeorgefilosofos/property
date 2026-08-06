@@ -52,7 +52,6 @@ import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UI
 import { downloadCsv } from './exportCsv';
 import { money, intGr } from './xlsxStyle';
 import ClientCompose from './ClientCompose';
-import AmaStrip from './AmaStrip';
 import {
   stayNights, stayTotal, clientStats, normalizePhone,
   clientMatches, STAY_CHANNELS, STAY_CHANNEL_LABELS, NOTE_KINDS, NOTE_KIND_LABELS,
@@ -202,6 +201,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [reportYearMenu, setReportYearMenu] = useState(false);
   const [checkins, setCheckins] = useState<any[]>([]);   // υποβολές pre-check-in του ανοιχτού πελάτη
   const [checkinCopied, setCheckinCopied] = useState(false);
+  // Ποιο πρότυπο μηνύματος είναι επιλεγμένο. Πέντε πρότυπα επί τρία κουμπιά το
+  // καθένα έκαναν δεκαπέντε κουμπιά σε μία ενότητα — και μόνο τρία από αυτά
+  // χρησίμευαν κάθε φορά. Τώρα διαλέγεις πρότυπο, βλέπεις ΟΛΟ το κείμενο, και
+  // οι τρεις ενέργειες είναι μία φορά, κάτω από αυτό.
+  const [msgId, setMsgId] = useState<string>(MSG_TEMPLATES[0].id);
+  const [msgCopied, setMsgCopied] = useState(false);
   // Εισαγωγή κράτησης από email (Airbnb/Booking) με τη βοήθεια του AI
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailText, setEmailText] = useState('');
@@ -344,23 +349,37 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   // ΤΑ KPI. Δεν υπάρχει «Επαναλαμβανόμενοι» (ο επισκέπτης του Airbnb έρχεται μία
   // φορά, το νούμερο θα ήταν 0 για πάντα) ούτε «Επισήμανση/μαύρη λίστα».
   // Υπάρχει το μόνο που κοστίζει χρήματα σήμερα: οι αδήλωτες διαμονές.
+  // ΤΟ ΜΗΔΕΝ ΔΕΝ ΕΙΝΑΙ ΕΠΙΤΕΥΓΜΑ. Οι αδήλωτες διαμονές έβγαιναν πράσινες όταν
+  // ήταν μηδέν — δηλαδή η οθόνη επιβράβευε τον χρήστη που δεν έχει καταχωρίσει
+  // ακόμη καμία κράτηση. Χρώμα μπαίνει μόνο όταν υπάρχει κάτι να γίνει.
+  // Και καμία πλακέτα δεν λέει το ίδιο μηδενικό δύο φορές: το «Νύχτες 0» με
+  // υπότιτλο «0 διαμονές» ήταν η ίδια πληροφορία, γραμμένη δύο φορές.
   const kpis = useMemo(() => {
     const tot = totals(stays);
+    const plural = (n: number) => (n === 1 ? 'διαμονή' : 'διαμονές');
     return [
-      { label: 'Επισκέπτες', value: String(clients.length) },
+      {
+        label: 'Επισκέπτες',
+        value: String(clients.length),
+        sub: tot.count > 0 ? `${tot.count} ${plural(tot.count)} συνολικά` : 'Καμία καταχωρημένη κράτηση',
+      },
       {
         label: 'Δηλωτέα ακαθάριστα',
-        value: fe(tot.revenue, 0),
-        sub: tot.unresolved > 0 ? `${tot.unresolved} ${tot.unresolved === 1 ? 'διαμονή' : 'διαμονές'} με απροσδιόριστο ποσό` : 'χωρίς το τέλος ανθεκτικότητας',
+        value: fe(tot.revenue),
+        sub: tot.unresolved > 0 ? `${tot.unresolved} ${plural(tot.unresolved)} με απροσδιόριστο ποσό` : 'Χωρίς το τέλος ανθεκτικότητας',
         tone: (tot.unresolved > 0 ? 'warning' : 'neutral') as 'warning' | 'neutral',
       },
       {
         label: 'Αδήλωτες διαμονές',
         value: String(tot.undeclared),
         sub: 'Δήλωση Βραχυχρόνιας Διαμονής',
-        tone: (tot.undeclared > 0 ? 'negative' : 'positive') as 'negative' | 'positive',
+        tone: (tot.undeclared > 0 ? 'negative' : 'neutral') as 'negative' | 'neutral',
       },
-      { label: 'Νύχτες', value: String(tot.nights), sub: `${tot.count} ${tot.count === 1 ? 'διαμονή' : 'διαμονές'}` },
+      {
+        label: 'Νύχτες',
+        value: String(tot.nights),
+        sub: tot.count > 0 ? `Μέση διάρκεια ${(tot.nights / tot.count).toFixed(1).replace('.', ',')}` : 'Χωρίς νύχτες ακόμη',
+      },
     ];
   }, [clients, stays]);
 
@@ -778,7 +797,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     downloadCsv(`diamones_${todayStr()}`, [
       'Επισκέπτης', 'Ακίνητο', 'Άφιξη', 'Αναχώρηση', 'Νύχτες', 'Κανάλι',
       'Πλήρωσε ο επισκέπτης', 'Τέλος ανθεκτικότητας', 'Προμήθεια πλατφόρμας',
-      'ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ', 'Σημείωση ποσού', 'Payout',
+      'ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ', 'Σημείωση ποσού', 'Καθαρή είσπραξη',
       'Δήλωση βραχυχρόνιας διαμονής', 'Κόστος φθοράς', 'Αντικείμενο / σημείωση φθοράς',
     ], rows);
   };
@@ -828,11 +847,24 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      {/* Η γραμμή του ΑΜΑ ΠΡΩΤΗ. Δεν εξαρτάται από πλάνο ούτε από entitlement. */}
-      <AmaStrip userId={userId} />
-
+      {/* Η γραμμή του ΑΜΑ αποδίδεται από τη σελίδα, ΠΑΝΩ από αυτή την καρτέλα και
+          δεμένη στο επιλεγμένο ακίνητο. Εδώ υπήρχε δεύτερο αντίγραφο χωρίς
+          `propertyId`: ο χρήστης έβλεπε την ίδια προειδοποίηση δύο φορές, τη μία
+          για όλα τα ακίνητα μαζί. Δύο φορές το ίδιο δεν είναι έμφαση. */}
       <PageTitle title="Επισκέπτες" sub="Κρατήσεις, δηλωτέα ποσά και εκκρεμείς δηλώσεις διαμονής"
-        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setComposeOpen(true)}>Σύνταξη email</Btn>}{allStays.length > 0 && <ExportButton onClick={exportCsv} label="Εξαγωγή διαμονών" />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
+        right={(clients.length > 0 || props.length > 0) ? (
+          // ΜΙΑ ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ, ΚΑΙ ΟΙ ΥΠΟΛΟΙΠΕΣ ΜΕ ΤΟ ΙΔΙΟ ΒΑΡΟΣ.
+          // Τρεις σύνδεσμοι χωρίς περίγραμμα δίπλα σε ένα κουμπί με περίγραμμα
+          // δίπλα σε ένα γεμάτο: τέσσερα διαφορετικά βάρη για ενέργειες της ίδιας
+          // σειράς. Τώρα δευτερεύουσες όλες, κύρια μία.
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Btn variant="secondary" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>
+            {props.length > 0 && <Btn variant="secondary" onClick={openIcal}>Σύνδεση ημερολογίου</Btn>}
+            {clients.length > 0 && <Btn variant="secondary" onClick={() => setComposeOpen(true)}>Μαζικό μήνυμα</Btn>}
+            {allStays.length > 0 && <ExportButton onClick={exportCsv} label="Εξαγωγή διαμονών" />}
+            <Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>
+          </div>
+        ) : undefined} />
 
       <KPIGrid items={kpis} />
 
@@ -881,7 +913,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       {undeclared > 0 && <Badge tone="negative">{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
-                      {unresolved > 0 && <Badge tone="warning">ποσό;</Badge>}
+                      {unresolved > 0 && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
                       {st.hasDamage && <Badge tone="negative">Φθορές</Badge>}
                     </div>
                     <div className="client-card-act">
@@ -902,7 +934,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       { l: 'Διαμονές', v: String(st.stayCount) },
                       { l: 'Νύχτες', v: String(st.nights) },
                       { l: 'Ακαθάριστα', v: fe(totals(cStays).revenue, 0), strong: true, t: 'Δηλωτέο ακαθάριστο, χωρίς το τέλος ανθεκτικότητας' },
-                      { l: 'ADR', v: fe(st.adr, 0), t: 'Μέση τιμή ανά διανυκτέρευση' },
+                      { l: 'Μέση νύχτα', v: fe(st.adr, 0), t: 'Δηλωτέο ακαθάριστο διά τις νύχτες' },
                     ] as { l: string; v: string; strong?: boolean; t?: string }[]).map((m, i) => (
                       <div key={i} title={m.t} style={{ flex: 1, minWidth: 0, paddingLeft: i ? 12 : 0, borderLeft: i ? '1px solid var(--border-subtle)' : 'none' }}>
                         <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.l}</div>
@@ -911,7 +943,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Χωρίς διαμονές ακόμη</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Χωρίς καταγεγραμμένες διαμονές</div>
                 )}
 
                 {/* Επικοινωνία: compact chips */}
@@ -925,8 +957,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</span>
                     </a>}
-                    {c.phone && <a onClick={e => e.stopPropagation()} href={waLink(c.phone)} target="_blank" rel="noopener noreferrer" style={msgLink}>WhatsApp</a>}
-                    {c.phone && <a onClick={e => e.stopPropagation()} href={viberLink(c.phone)} style={msgLink}>Viber</a>}
+                    {/* WhatsApp και Viber ΔΕΝ επαναλαμβάνονται εδώ. Ζουν στην
+                        καρτέλα του επισκέπτη, μαζί με τα πρότυπα μηνυμάτων —
+                        δηλαδή εκεί που ξέρεις ΤΙ θα στείλεις. Στο πλέγμα με
+                        δώδεκα κάρτες ήταν σαράντα οκτώ σύνδεσμοι επικοινωνίας. */}
                   </div>
                 )}
 
@@ -990,7 +1024,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {tot.unresolved > 0 && (
               <InfoBanner tone="warning">
-                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount, 0)}): καταγράφηκαν πριν το app ξεχωρίσει τα ακαθάριστα από το payout, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης — χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
+                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount, 0)}): καταγράφηκαν πριν η εφαρμογή ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης — χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
               </InfoBanner>
             )}
 
@@ -1003,7 +1037,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees, 0) : fe(0), { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}
               {statTile(
                 'Πληρότητα',
-                occ.availableDays > 0 ? `${occ.pct}%` : '—',
+                occ.availableDays > 0 ? `${occ.pct}%` : 'Χωρίς κρατήσεις',
                 { title: occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${monthShort[occ.openFromMonth]}–${monthShort[occ.openToMonth!]} ${reportYear}) — όχι σε 365` : 'Χωρίς κρατήσεις' },
               )}
               {occ.peak && statTile(
@@ -1024,7 +1058,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(r.revenue, 0)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{r.nights} νύχτες · {r.count} διαμονές</span></span>
                       </div>
                       <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--accent)', borderRadius: 6 }} />
+                        <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--series-in)', borderRadius: 6 }} />
                       </div>
                       {r.unresolved > 0 && <div style={{ fontSize: 10, color: 'var(--warning)', marginTop: 3 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
                     </div>
@@ -1038,7 +1072,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
                     {months.map((v, i) => (
                       <div key={i} title={`${monthNames[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
-                        <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--accent)', borderRadius: '3px 3px 0 0' }} />
+                        <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--series-in)', borderRadius: '3px 3px 0 0' }} />
                       </div>
                     ))}
                   </div>
@@ -1087,7 +1121,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 {([
                   ['Τηλέφωνο', dc.phone ? <a href={`tel:${dc.phone}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.phone}</a> : null],
-                  ['Email', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : null],
+                  ['Ηλεκτρονικό ταχυδρομείο', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : null],
                 ] as [string, React.ReactNode][]).filter(([, v]) => v != null).map(([k, v], i) => (
                   <div key={i}>
                     <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k}</div>
@@ -1124,10 +1158,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               </div>
             </div>
 
-            {/* Check-in επισκέπτη: σύνδεσμος για να συμπληρώσει τα στοιχεία του πριν την άφιξη */}
+            {/* Άφιξη επισκέπτη: σύνδεσμος για να συμπληρώσει τα στοιχεία του πριν φτάσει */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
-                <div style={lbl}>Check-in επισκέπτη</div>
+                <div style={lbl}>Στοιχεία άφιξης</div>
                 <Btn variant="secondary" onClick={copyCheckinLink}>{checkinCopied ? 'Ο σύνδεσμος αντιγράφηκε' : 'Αντιγραφή συνδέσμου'}</Btn>
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: checkins.length ? 12 : 0 }}>
@@ -1152,19 +1186,21 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 116px), 1fr))', gap: 10, marginBottom: 24 }}>
                 {statTile('Ακαθάριστα', fe(dcTotals.revenue, 0), { title: 'Δηλωτέο ακαθάριστο: τι πλήρωσε ο επισκέπτης μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται.' })}
                 {dcTotals.platformFees > 0 && statTile('Προμήθειες', fe(dcTotals.platformFees, 0), { title: 'Δαπάνη που εκπίπτει, όχι μείωση εσόδου' })}
-                {dcTotals.climateLevy > 0 && statTile('Τέλος ανθεκτ.', fe(dcTotals.climateLevy, 0), { title: 'Εισπράχθηκε για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
+                {dcTotals.climateLevy > 0 && statTile('Τέλος ανθεκτικότητας', fe(dcTotals.climateLevy, 0), { title: 'Εισπράχθηκε για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
                 {statTile('Νύχτες', String(dcStats.nights))}
                 {statTile('Διαμονές', String(dcStats.stayCount))}
-                {statTile('ADR', fe(dcStats.adr, 0), { title: 'Μέση τιμή ανά διανυκτέρευση' })}
-                {statTile('Τελευταία', dcStats.lastVisit ? fd(dcStats.lastVisit) : '-')}
+                {statTile('Μέση τιμή νύχτας', fe(dcStats.adr, 0), { title: 'Δηλωτέο ακαθάριστο διά τις νύχτες' })}
+                {/* Η παύλα σε θέση τιμής δεν λέει «καμία»· λέει «κάτι έσπασε».
+                    Η πλακέτα εμφανίζεται μόνο όταν υπάρχει ημερομηνία να δείξει. */}
+                {dcStats.lastVisit && statTile('Τελευταία επίσκεψη', fd(dcStats.lastVisit))}
                 {dcUndeclared > 0 && statTile('Αδήλωτες', String(dcUndeclared), { neg: true, title: 'Διαμονές χωρίς Δήλωση Βραχυχρόνιας Διαμονής' })}
                 {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal, 0), { neg: true })}
               </div>
             )}
 
-            {/* Διαμονές / Επισκέψεις */}
+            {/* Διαμονές */}
             <div style={{ marginBottom: 24 }}>
-              <SecHdr label="Διαμονές / Επισκέψεις" right={!stayFormOpen ? <Btn variant="secondary" onClick={openStayNew}>Νέα διαμονή</Btn> : undefined} />
+              <SecHdr label="Διαμονές" right={!stayFormOpen ? <Btn variant="secondary" onClick={openStayNew}>Νέα διαμονή</Btn> : undefined} />
               {stayFormOpen && (
                 <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: 'var(--well-inset)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
@@ -1213,7 +1249,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     if (g <= 0) {
                       return stayForm.basis === 'unknown' && (parseFloat(stayForm.legacyTotal) || 0) > 0 ? (
                         <InfoBanner tone="warning">
-                          Αυτή η διαμονή έχει καταγεγραμμένο ποσό <strong>{fe(parseFloat(stayForm.legacyTotal), 0)}</strong> αλλά <strong>δεν ξέρουμε τι είναι</strong>: ακαθάριστο ή payout. Καταγράφηκε πριν το app τα ξεχωρίσει και δεν μαντεύουμε. Συμπλήρωσε «Πλήρωσε ο επισκέπτης» και το ακαθάριστο θα υπολογιστεί σωστά — ή δήλωσε παρακάτω τι σημαίνει το ποσό.
+                          Αυτή η διαμονή έχει καταγεγραμμένο ποσό <strong>{fe(parseFloat(stayForm.legacyTotal), 0)}</strong> αλλά <strong>δεν ξέρουμε τι είναι</strong>: ακαθάριστο ή καθαρή είσπραξη. Καταγράφηκε πριν η εφαρμογή τα ξεχωρίσει και δεν μαντεύουμε. Συμπλήρωσε «Πλήρωσε ο επισκέπτης» και το ακαθάριστο θα υπολογιστεί σωστά — ή δήλωσε παρακάτω τι σημαίνει το ποσό.
                         </InfoBanner>
                       ) : null;
                     }
@@ -1280,7 +1316,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               )}
               {dcStays.length === 0 && !stayFormOpen ? (
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0' }}>Δεν έχουν καταγραφεί διαμονές.</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0' }}>Χωρίς καταγεγραμμένες διαμονές</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {dcStays.map(s => {
@@ -1300,14 +1336,14 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                                   το app είχε όλες τις κρατήσεις χωρίς να
                                   παρακολουθεί καμία. */}
                               {!declared && <Badge tone="negative">Αδήλωτη</Badge>}
-                              {review && <Badge tone="warning">Ακαθάριστο ή payout;</Badge>}
+                              {review && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                               {s.check_in && <span>{fd(s.check_in)}{s.check_out ? ` - ${fd(s.check_out)}` : ''}</span>}
                               <span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{n} νύχτες</span>
                               {s.guests != null && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{s.guests} άτομα</span></>}
                               {s.channel && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{STAY_CHANNEL_LABELS[s.channel as keyof typeof STAY_CHANNEL_LABELS] || s.channel}</span></>}
-                              {declared && s.declared_at && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span style={{ color: 'var(--positive)' }}>δηλώθηκε {fd(s.declared_at)}</span></>}
+                              {declared && s.declared_at && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span style={{ color: 'var(--text-secondary)' }}>δηλώθηκε {fd(s.declared_at)}</span></>}
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
@@ -1330,7 +1366,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                           </div>
                           <div style={{ display: 'flex', gap: 10 }}>
                             {/* Ένα κλικ. Η προθεσμία της δήλωσης δεν περιμένει φόρμα. */}
-                            <button onClick={() => toggleDeclared(s)} style={{ background: 'none', border: 'none', color: declared ? 'var(--text-tertiary)' : 'var(--positive)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, padding: 0 }}>
+                            <button onClick={() => toggleDeclared(s)} style={{ background: 'none', border: 'none', color: declared ? 'var(--text-tertiary)' : 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, padding: 0 }}>
                               {declared ? 'Αναίρεση δήλωσης' : 'Σημείωσε ως δηλωμένη'}
                             </button>
                             <button onClick={() => openStayEdit(s)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, padding: 0 }}>Επεξεργασία</button>
@@ -1345,30 +1381,35 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               )}
             </div>
 
-            {/* Μηνύματα (έτοιμα πρότυπα προς τον πελάτη/επισκέπτη) */}
+            {/* ═══ ΜΗΝΥΜΑΤΑ — ΕΝΑ ΚΕΙΜΕΝΟ ΤΗ ΦΟΡΑ, ΤΡΕΙΣ ΕΝΕΡΓΕΙΕΣ ═════════════
+                Ήταν πέντε κάρτες με τρία κουμπιά η καθεμία: δεκαπέντε στόχους
+                σε μία ενότητα, και το κείμενο κομμένο στις δύο γραμμές, ώστε ο
+                χρήστης να στέλνει κάτι που δεν έχει διαβάσει ολόκληρο.
+                Τώρα: διαλέγεις πρότυπο, το βλέπεις όλο, το στέλνεις. */}
             <div style={{ marginBottom: 24 }}>
               <SecHdr label="Μηνύματα" sub="Έτοιμα πρότυπα για WhatsApp, Viber ή αντιγραφή" />
-              {!dc.phone && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>Χωρίς αποθηκευμένο τηλέφωνο θα διαλέξεις επαφή μέσα στην εφαρμογή. Πρόσθεσε τηλέφωνο για αποστολή με ένα άγγιγμα.</div>}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {MSG_TEMPLATES.map(t => {
-                  const text = buildMessage(t.id, msgCtx!);
-                  return (
-                    <div key={t.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                        <div style={{ minWidth: 0, flex: '1 1 240px' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{t.label}</div>
-                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{text}</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
-                          <a href={whatsappLink(dc.phone ? msgDigits(dc.phone) : '', text)} target="_blank" rel="noopener noreferrer" style={msgLink}>WhatsApp</a>
-                          <a href={viberTextLink(text)} style={msgLink}>Viber</a>
-                          <button onClick={() => navigator.clipboard?.writeText(text)} style={{ ...msgLink, cursor: 'pointer', fontFamily: T.font.sans }}>Αντιγραφή</button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                {MSG_TEMPLATES.map(t => (
+                  <button key={t.id} style={chip(t.id === msgId)}
+                    onClick={() => { setMsgId(t.id); setMsgCopied(false); }}>{t.label}</button>
+                ))}
               </div>
+              {(() => {
+                const active = MSG_TEMPLATES.find(t => t.id === msgId) || MSG_TEMPLATES[0];
+                const text = buildMessage(active.id, msgCtx!);
+                return (
+                  <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{text}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+                      <a href={whatsappLink(dc.phone ? msgDigits(dc.phone) : '', text)} target="_blank" rel="noopener noreferrer" style={msgLink}>WhatsApp</a>
+                      <a href={viberTextLink(text)} style={msgLink}>Viber</a>
+                      <button onClick={() => { navigator.clipboard?.writeText(text); setMsgCopied(true); }}
+                        style={{ ...msgLink, cursor: 'pointer', fontFamily: T.font.sans }}>{msgCopied ? 'Αντιγράφηκε' : 'Αντιγραφή'}</button>
+                      {!dc.phone && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Χωρίς αποθηκευμένο τηλέφωνο θα διαλέξεις επαφή μέσα στην εφαρμογή.</span>}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Έγγραφα (ταυτότητα, συμβόλαιο, αποδείξεις) */}
@@ -1381,7 +1422,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <input ref={docFileRef} type="file" style={{ display: 'none' }} onChange={e => onDocFile(e.target.files?.[0])} />
                 <Btn variant="secondary" onClick={() => docFileRef.current?.click()} disabled={docBusy}>{docBusy ? 'Ανέβασμα…' : 'Ανέβασμα αρχείου'}</Btn>
               </div>
-              {docMsg && <div style={{ fontSize: 12, color: docMsg.error ? 'var(--negative)' : 'var(--positive)', marginBottom: 12 }}>{docMsg.text}</div>}
+              {docMsg && <div style={{ fontSize: 12, color: docMsg.error ? 'var(--negative)' : 'var(--text-secondary)', marginBottom: 12 }}>{docMsg.text}</div>}
               {docs.length === 0 ? (
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0' }}>Δεν έχουν αποθηκευτεί έγγραφα.</div>
               ) : (
@@ -1559,7 +1600,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>Ανάλυση επικόλλησης</Btn>
                 {icalEvents && <FlagSwitch on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} onLabel="Και μπλοκαρίσματα ημερομηνιών" offLabel="Μόνο κρατήσεις" />}
               </div>
-              {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--positive)', marginBottom: 12, lineHeight: 1.5 }}>{icalMsg.text}</div>}
+              {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>{icalMsg.text}</div>}
               {icalEvents && (() => {
                 const drafts = icalToStayDrafts(icalEvents, { propertyId: icalPropertyId || 'x', channel: icalChannel });
                 const bookings = drafts.filter(d => !d.blocked);
@@ -1614,7 +1655,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {/* Τέσσερα πεδία. Δεν ζητάμε ΑΦΜ, ταυτότητα, διεύθυνση, εθνικότητα
                   ή «πηγή γνωριμίας» από κάποιον που θα μείνει τρεις νύχτες: είναι
                   δεδομένα προσωπικού χαρακτήρα που δεν προκαλούσαν καμία ενέργεια. */}
-              {secHead('Στοιχεία & επικοινωνία')}
+              {secHead('Στοιχεία επικοινωνίας')}
               <div style={fGrid}>
                 <div style={{ gridColumn: '1 / -1' }}><TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} /></div>
                 <TextInput label="Τηλέφωνο" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />

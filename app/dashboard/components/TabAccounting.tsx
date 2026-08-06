@@ -1040,24 +1040,58 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:cashOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
             <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές {year}</p>
           </button>
+          {/* ═══ ΤΟ ΓΡΑΦΗΜΑ ΠΟΥ ΞΕΚΙΝΑ ΑΠΟ ΤΟ ΜΗΔΕΝ ══════════════════════════
+              Ήταν δύο λωρίδες των έξι εικονοστοιχείων, στοιβαγμένες, και οι δύο
+              να ξεκινούν από την ίδια αριστερή άκρη: για να καταλάβεις αν ο
+              μήνας ήταν θετικός έπρεπε να συγκρίνεις μήκη με το μάτι. Και ήταν
+              πράσινη και κόκκινη, δηλαδή κάθε μήνας με έξοδα διαβαζόταν σαν
+              προειδοποίηση.
+
+              Τώρα ένας άξονας στο μηδέν, εκροή αριστερά, εισροή δεξιά. Το
+              πρόσημο του μήνα φαίνεται από την πλευρά που βαραίνει, πριν
+              διαβαστεί οποιοσδήποτε αριθμός. Οι επικεφαλίδες πάνω από τον
+              άξονα ΕΙΝΑΙ το υπόμνημα — δεν ξαναγράφεται από κάτω. */}
           {cashOpen&&(cash.every(c=>!c.income&&!c.expense)?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'4px 0' }}>Καμία κίνηση για το {year}.</p>
           ):(<>
+          <div style={{ display:'flex', alignItems:'center', gap:14, paddingBottom:8, marginBottom:4, borderBottom:'1px solid var(--border-subtle)' }}>
+            <span style={{ width:104, flexShrink:0 }}/>
+            <div style={{ flex:1, display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+              <span style={{ flex:1, textAlign:'right', display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:6, fontSize:10.5, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                <span style={{ width:8, height:8, borderRadius:2, background:'var(--series-out)' }}/>Έξοδα
+              </span>
+              <span style={{ width:1, flexShrink:0 }}/>
+              <span style={{ flex:1, display:'inline-flex', alignItems:'center', gap:6, fontSize:10.5, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                <span style={{ width:8, height:8, borderRadius:2, background:'var(--series-in)' }}/>Έσοδα
+              </span>
+            </div>
+            <span style={{ width:110, flexShrink:0, textAlign:'right', fontSize:10.5, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Καθαρή ροή</span>
+          </div>
           <div style={{ display:'flex', flexDirection:'column' }}>
             {cash.map((c,i)=>{ const net=c.income-c.expense; const empty=!c.income&&!c.expense; return (
-              <div key={i} style={{ display:'flex', alignItems:'center', gap:14, padding:'6px 0' }}>
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:14, height:26 }}>
                 <span style={{ width:104, flexShrink:0, fontSize:12, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontFamily: T.font.sans }}>{MONTHS_GR_FULL[i]}</span>
-                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:3 }}>
-                  <div style={{ height:6, borderRadius:3, width:`${Math.round(c.income/maxCash*100)}%`, minWidth:c.income>0?4:0, background:'var(--positive)', opacity:0.85 }} title={`Έσοδα: ${eur(c.income)}`}/>
-                  <div style={{ height:6, borderRadius:3, width:`${Math.round(c.expense/maxCash*100)}%`, minWidth:c.expense>0?4:0, background:'var(--negative)', opacity:0.75 }} title={`Έξοδα: ${eur(c.expense)}`}/>
+                <div style={{ flex:1, display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                  <div style={{ flex:1, display:'flex', justifyContent:'flex-end', minWidth:0 }}>
+                    {c.expense>0&&<div title={`Έξοδα ${eur(c.expense)}`} style={{ height:11, borderRadius:'3px 1px 1px 3px', width:`${Math.max(1.5, c.expense/maxCash*100)}%`, background:'var(--series-out)' }}/>}
+                  </div>
+                  {/* Ο άξονας του μηδενός: μία γραμμή, σε κάθε σειρά, ώστε οι
+                      δώδεκα μήνες να μετριούνται από το ίδιο σημείο. */}
+                  <span style={{ width:1, height:16, flexShrink:0, background:'var(--series-axis)' }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    {c.income>0&&<div title={`Έσοδα ${eur(c.income)}`} style={{ height:11, borderRadius:'1px 3px 3px 1px', width:`${Math.max(1.5, c.income/maxCash*100)}%`, background:'var(--series-in)' }}/>}
+                  </div>
                 </div>
-                <span style={{ width:96, flexShrink:0, textAlign:'right', fontSize:11.5, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{empty?'':eur(net)}</span>
+                <span style={{ width:110, flexShrink:0, textAlign:'right', fontSize:12, fontWeight:empty?400:600, color:empty?'var(--text-tertiary)':'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{empty?'':eur(net)}</span>
               </div>
             )})}
           </div>
-          <div style={{ display:'flex', gap:16, marginTop:12, paddingTop:10, borderTop:'1px solid var(--border-subtle)' }}>
-            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}><span style={{ width:8, height:8, borderRadius:3, background:'var(--positive)', opacity:0.85 }}/>Έσοδα</span>
-            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--text-secondary)', fontFamily: T.font.sans }}><span style={{ width:8, height:8, borderRadius:3, background:'var(--negative)', opacity:0.75 }}/>Έξοδα</span>
+          {/* Το σύνολο της χρονιάς, μία φορά, στο ίδιο πλάτος με τη στήλη του. */}
+          <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:6, paddingTop:10, borderTop:'1px solid var(--border-default)' }}>
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο {year}</span>
+            <span style={{ width:110, flexShrink:0, textAlign:'right', fontSize:13, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>
+              {eur(cash.reduce((s,c)=>s+c.income-c.expense,0))}
+            </span>
           </div>
           </>))}
         </div>

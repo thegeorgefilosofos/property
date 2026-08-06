@@ -1535,7 +1535,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           και το «Εκκρεμή ποσά» της ήταν το ΤΡΙΤΟ διαφορετικό νούμερο με την ίδια
           ετικέτα. Έμεινε μία εμβέλεια, δηλωμένη στην οθόνη: του μήνα. */}
       {/* ═══ ΤΟ ΙΔΙΟ ΤΕΣΣΕΡΑ, ΤΡΕΙΣ ΦΟΡΕΣ ═══════════════════════════════════
-          Ήταν ΔΥΟ ζώνες: μια γραμμή «4 εκπρόθεσμα · δες ποια», και από κάτω μια
+          Ήταν ΔΥΟ ζώνες: μια γραμμή «4 εκπρόθεσμα · Εμφάνιση», και από κάτω μια
           κάρτα που ΞΑΝΑΕΓΡΑΦΕ «ΕΚΠΡΟΘΕΣΜΑ · 4» ως δική της επικεφαλίδα, με δικό
           της κουμπί κλεισίματος δίπλα στο βέλος που μόλις είχε πατηθεί. Δύο
           επικεφαλίδες, δύο μετρητές, δύο τρόποι να κλείσει το ίδιο πράγμα.
@@ -1553,7 +1553,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             style={{ display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left', background:'transparent', border:'none', borderBottom:showOverdue?'1px solid var(--border-subtle)':'none', padding:'11px 16px', cursor:'pointer' }}>
             <AlertTriangle size={14} color="var(--negative)"/>
             <p style={{ fontSize:13.5, color:'var(--text-secondary)', fontFamily: T.font.sans, letterSpacing:'0.1px', margin:0, flex:1 }}>
-              {overdue.length===1?'1 εκπρόθεσμο':`${overdue.length} εκπρόθεσμα`} · <span style={{ color:'var(--text-primary)' }}>{showOverdue?'σύμπτυξη':'δες ποια'}</span>
+              {overdue.length===1?'1 εκπρόθεσμο':`${overdue.length} εκπρόθεσμα`} · <span style={{ color:'var(--text-primary)' }}>{showOverdue?'Απόκρυψη':'Εμφάνιση'}</span>
             </p>
             <ChevronDown size={15} style={{ color:'var(--text-tertiary)', transform:showOverdue?'rotate(180deg)':'none', transition:'transform 0.15s' }}/>
           </button>

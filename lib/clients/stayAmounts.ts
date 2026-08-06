@@ -34,7 +34,7 @@ export const AMOUNT_BASES: AmountBasis[] = ['unknown', 'gross', 'payout'];
 export const AMOUNT_BASIS_LABELS: Record<AmountBasis, string> = {
   unknown: 'Απροσδιόριστο',
   gross: 'Ακαθάριστο (τι πλήρωσε ο επισκέπτης)',
-  payout: 'Payout (τι εισέπραξες)',
+  payout: 'Καθαρή είσπραξη (τι εισέπραξες)',
 };
 
 export interface StayAmountLike extends StayLike {
