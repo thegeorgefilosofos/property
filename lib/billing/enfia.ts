@@ -52,9 +52,24 @@ const LEGACY_AGE_KEY: Record<string, string> = {
   '20_25': 'y20_25', '25_30': 'y26_plus', over_30: 'y26_plus',
 }
 
+/**
+ * Το κλειδί παλαιότητας σε ΚΑΝΟΝΙΚΗ μορφή, από νέο ή παλιό όνομα.
+ *
+ * Υπάρχει ως εξαγόμενο γιατί η παλαιότητα δεν διαβάζεται μόνο εδώ: την
+ * χρησιμοποιεί και η ασφάλιση για τον κίνδυνο του κτιρίου. Εκεί η σύγκριση
+ * γινόταν με τα ΠΑΛΙΑ ονόματα ενώ η αποθηκευμένη τιμή είχε γίνει το νέο, οπότε
+ * καμία συνθήκη δεν ταίριαζε ποτέ και ο συντελεστής έβγαινε πάντα 1,00: μια
+ * μονοκατοικία του 1975 έπαιρνε την ίδια εκτίμηση με νεόδμητη. Ένα σημείο
+ * μετάφρασης, ώστε να μη χρειάζεται κανείς άλλος να ξέρει τα παλιά ονόματα.
+ */
+export function normalizeEnfiaAgeKey(key: string | null | undefined): string {
+  const k = (key || '').trim()
+  return LEGACY_AGE_KEY[k] || k
+}
+
 /** Ο συντελεστής παλαιότητας για κλειδί — νέο ή παλιό. Άγνωστο → 1,00 (καμία προσαύξηση). */
 export function enfiaAgeCoef(key: string | null | undefined): number {
-  const k = LEGACY_AGE_KEY[key || ''] || key || ''
+  const k = normalizeEnfiaAgeKey(key)
   return ENFIA_AGE_BANDS.find(b => b.key === k)?.coef ?? 1.00
 }
 

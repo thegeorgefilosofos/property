@@ -83,14 +83,21 @@ const num = t => Number(String(t).replace(/[^\d,.-]/g,'').replace(/\./g,'').repl
 
   const inputs = p.locator('input')
   await inputs.nth(0).fill('120'); await inputs.nth(1).fill('3200')
-  await p.locator('select').nth(0).selectOption('ground')
+  // ΤΑ ΝΤΟΠΙΑ <select> ΕΦΥΓΑΝ ΑΠΟ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ: το λειτουργικό ζωγράφιζε τη
+  // λίστα με δικά του χρώματα μέσα σε οθόνη με δικό της σύστημα πεδίων. Εδώ
+  // οδηγείται πλέον το CustomSelect — άνοιγμα του combobox, κλικ στην επιλογή —
+  // δηλαδή ακριβώς ό,τι κάνει ο χρήστης, με την ετικέτα και όχι με το κλειδί.
+  const pick = async (i, optionLabel) => {
+    await p.locator('[role="combobox"]').nth(i).click()
+    await p.locator('[role="option"]', { hasText: optionLabel }).first().click()
+    await p.waitForTimeout(150)
+  }
+  await pick(0, 'Ισόγειο')
   // ΤΟ ΚΛΕΙΔΙ ΑΛΛΑΞΕ ΟΤΑΝ Η ΚΛΙΜΑΚΑ ΠΗΡΕ ΤΗΝ ΕΚΤΗ ΖΩΝΗ. Ο νόμος έχει ΕΞΙ ζώνες
   // παλαιότητας· ο κώδικας είχε πέντε και χρέωνε τα κτίρια 15 ως 19 ετών με τον
-  // συντελεστή της προηγούμενης ζώνης. Με τη διόρθωση, τα κλειδιά έγιναν
-  // y0_4 … y26_plus. Το σενάριο εδώ ζητούσε ακόμη το παλιό «under_5»: η επιλογή
-  // δεν υπήρχε πια στο DOM και το σενάριο κρεμούσε τριάντα δευτερόλεπτα, χωρίς
-  // να πει ΓΙΑΤΙ. Ο συντελεστής (1,25) είναι ο ίδιος, άρα και το αναμενόμενο ποσό.
-  await p.locator('select').nth(1).selectOption('y0_4')
+  // συντελεστή της προηγούμενης ζώνης. Ο συντελεστής της πρώτης ζώνης (1,25)
+  // δεν άλλαξε, άρα ούτε το αναμενόμενο ποσό.
+  await pick(1, 'Έως 4 έτη')
   await p.waitForTimeout(300)
   ok('120τμ / ζώνη 3200 / ισόγειο / νεόδμητο → 1.026 €', Math.abs((await read()) - 1026) < 0.02)
 
@@ -114,8 +121,12 @@ for (const path of ['/ypologismos-forou-enoikion','/ypologismos-enfia']) {
     const p = await page(ctx, path)
     const m = await p.evaluate(() => ({
       overflow: document.documentElement.scrollWidth > innerWidth + 1,
-      unlabelled: [...document.querySelectorAll('input,select')].filter(el =>
-        !el.getAttribute('aria-label') && !document.querySelector(`label[for="${el.id}"]`)).length,
+      // Μαζί με τα input, ελέγχονται και τα combobox του CustomSelect: όταν τα
+      // ντόπια <select> έφυγαν, ο έλεγχος προσβασιμότητας θα σταματούσε σιωπηλά
+      // να κοιτάζει πεδία επιλογής — δηλαδή θα περνούσε επειδή δεν βρίσκει τίποτα.
+      unlabelled: [...document.querySelectorAll('input,select,[role="combobox"]')].filter(el =>
+        !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby')
+        && !document.querySelector(`label[for="${el.id}"]`)).length,
       h1: document.querySelectorAll('h1').length,
       jsonld: document.querySelectorAll('script[type="application/ld+json"]').length,
     }))

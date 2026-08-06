@@ -6,6 +6,8 @@ import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, Spinner } from '@/components/Theme';
 import { notifyError } from '@/components/Toast';
+import { saved } from '@/components/dbWrite';
+import { athensToday } from '@/lib/core/time';
 
 const fk = (n: number) => `${fe(n, 4)}`;
 
@@ -246,8 +248,10 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     ['dei', 'protergia', 'heron', 'zenith', 'nrg', 'elin', 'enerwave'].includes(s.gasProvider);
   const dualFuelTariff = tariff?.dual_fuel_discount;
 
-  const now = new Date();
-  const isHeatingSeason = [10, 11, 12, 1, 2, 3].includes(now.getMonth() + 1);
+  // Ο μήνας από την ώρα της Αθήνας: ο περιηγητής ενός χρήστη σε άλλη ζώνη
+  // μπορεί να είναι ήδη στον επόμενο μήνα, και η περίοδος θέρμανσης να αρχίσει
+  // ή να τελειώσει μια μέρα νωρίτερα από ό,τι στην πραγματικότητα.
+  const isHeatingSeason = [10, 11, 12, 1, 2, 3].includes(Number(athensToday().slice(5, 7)));
   const noGasDataYet = effective === 0 && kwh === 0;
 
   // ── Sync-back: properties.heating ────────────────────────────────────────────
@@ -281,19 +285,24 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
         .eq('event_date', expiryStr).limit(1);
       if (existing?.length) { setCalendarSynced(true); return; }
 
-      await supabase.from('calendar_events').insert({
-        property_id: propertyId,
-        user_id: userId,
-        title: `Λήξη Σύμβασης Φυσικού Αερίου, ${provider?.label ?? ''}`,
-        category: 'gas_contract',
-        event_date: expiryStr,
-        amount: effective > 0 ? effective : null,
-        priority: 'medium',
-        status: 'pending',
-        recurring: false,
-        notes: `Σύμβαση ${tariff?.name ?? ''} λήγει. Σύγκρινε νέα τιμολόγια πριν ανανεώσεις.`,
-        source: 'system',
-      }).then(() => setCalendarSynced(true));
+      // Το `.then(() => setCalendarSynced(true))` δήλωνε επιτυχία χωρίς να
+      // κοιτάξει: ο Supabase δεν πετά, οπότε μια απόρριψη από πολιτική RLS
+      // κατέληγε σε «συγχρονίστηκε», η υπενθύμιση λήξης δεν έμπαινε ποτέ στο
+      // ημερολόγιο, και ο χρήστης το μάθαινε όταν είχε λήξει η σύμβαση.
+      if (await saved('Η υπενθύμιση λήξης δεν μπήκε στο ημερολόγιο',
+        supabase.from('calendar_events').insert({
+          property_id: propertyId,
+          user_id: userId,
+          title: `Λήξη σύμβασης φυσικού αερίου, ${provider?.label ?? ''}`,
+          category: 'gas_contract',
+          event_date: expiryStr,
+          amount: effective > 0 ? effective : null,
+          priority: 'medium',
+          status: 'pending',
+          recurring: false,
+          notes: `Η σύμβαση ${tariff?.name ?? ''} λήγει. Σύγκρινε νέα τιμολόγια πριν ανανεώσεις.`,
+          source: 'system',
+        }))) setCalendarSynced(true);
     })();
   }, [propertyId, s.gasContractStart, s.gasContractMonths]);
 
@@ -307,7 +316,19 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
   }, [kwh, ttf, s.gasTariffId, segmentFilter]);
 
   const bestMonthly = allTariffs[0]?.monthly || 0;
-  const savings     = effective - bestMonthly;
+  // ═══ ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ ΔΕΝ ΕΙΝΑΙ ΤΟΥ ΙΔΙΟΥ ΕΙΔΟΥΣ ══════════════════════════
+  // Η εξοικονόμηση υπολογιζόταν ως `effective − bestMonthly`. Το `effective`
+  // είναι το ΠΡΑΓΜΑΤΙΚΟ ποσό του λογαριασμού όταν ο χρήστης το έχει γράψει:
+  // μέσα του κάθονται ρυθμιζόμενες χρεώσεις δικτύου, ΕΦΚ και ΦΠΑ 6%. Το
+  // `bestMonthly` είναι μόνο η χρέωση προμήθειας. Η αφαίρεση έβγαζε τη διαφορά
+  // ΦΟΡΩΝ ΚΑΙ ΔΙΚΤΥΟΥ και την παρουσίαζε ως «δυνητική εξοικονόμηση αλλάζοντας
+  // πάροχο» — ποσό που δεν πρόκειται να εξοικονομηθεί ποτέ, γιατί οι χρεώσεις
+  // αυτές είναι ίδιες σε κάθε πάροχο. Όσο μεγαλύτερος ο λογαριασμός, τόσο
+  // μεγαλύτερο το ψέμα.
+  //
+  // Η σύγκριση γίνεται τώρα προμήθεια προς προμήθεια: το τρέχον πρόγραμμα με
+  // τη ΔΙΚΗ ΤΟΥ κατανάλωση, απέναντι στο φθηνότερο με την ίδια κατανάλωση.
+  const savings     = calcMonthly - bestMonthly;
 
   const providerOptions = GAS_PROVIDERS.map(p => ({ value: p.value, label: p.label }));
   const tariffOptions   = (provider?.tariffs ?? []).filter(t => t.segment === segmentFilter)
@@ -320,7 +341,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     <div style={{ display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Διαφάνεια τιμών, τι ακριβώς βλέπεις ── */}
-      <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
+      <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
         <strong style={{ color: 'var(--text-primary)' }}>Διαφάνεια τιμών:</strong> Οι τιμές αφορούν μόνο τη <strong>χρέωση προμήθειας</strong> (ανταγωνιστικό σκέλος), χωρίς ρυθμιζόμενες χρεώσεις δικτύου, <span title="Ειδικός Φόρος Κατανάλωσης">ΕΦΚ</span> και <span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span>, ο τελικός λογαριασμός είναι υψηλότερος.
         Σήμανση κάθε τιμής: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>✓ Επιβεβαιωμένη</span> (επίσημη, {LAST_VERIFIED}) ·{' '}
         <span title="Δείκτης χονδρικής τιμής φυσικού αερίου στην ευρωπαϊκή αγορά (Title Transfer Facility)" style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>ƒ Τύπος TTF</span> (υπολογίζεται από τον επίσημο τύπο του παρόχου) ·{' '}
@@ -329,18 +350,18 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
 
       {/* ── Επισκόπηση κόστους ── */}
       <div style={card}>
-        {secHdr('Φυσικό Αέριο, Τρέχον Κόστος', `Τελευταία επαλήθευση δεδομένων: ${LAST_VERIFIED}`)}
+        {secHdr('Τρέχον κόστος', `Τελευταία επαλήθευση δεδομένων: ${LAST_VERIFIED}`)}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Μηνιαίο Κόστος (προμήθεια)</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Μηνιαίο κόστος προμήθειας</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ετήσιο Κόστος (εκτίμηση)</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ετήσιο κόστος, εκτίμηση</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', lineHeight: 1 }}>{fe(effective * 12)}</div>
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Δίκτυο Διανομής</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Δίκτυο διανομής</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1.2 }}>{NETWORK_OPERATORS.find(n => n.value === s.networkOperator)?.label}</div>
           </div>
         </div>
@@ -350,32 +371,33 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       <div style={card}>
         {secHdr('Στοιχεία σύνδεσης και πάροχος')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <CustomSelect label="Διαχειριστής Δικτύου (ΕΔΑ)" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
-          <CustomSelect label="Τύπος Θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })}
+          <CustomSelect label="Διαχειριστής δικτύου" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
+          <CustomSelect label="Τύπος θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })}
             options={[
-              { value: 'autonomous_gas', label: 'Αυτόνομη Θέρμανση Αερίου' },
-              { value: 'central_gas',    label: 'Κεντρική Θέρμανση (Κοινόχρηστο)' },
-              { value: 'combi',          label: 'Συνδυαστικό (Αέριο + Άλλη Πηγή)' },
+              { value: 'autonomous_gas', label: 'Αυτόνομη θέρμανση αερίου' },
+              { value: 'central_gas',    label: 'Κεντρική θέρμανση, κοινόχρηστη' },
+              { value: 'combi',          label: 'Συνδυαστικό, αέριο και άλλη πηγή' },
             ]}/>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <CustomSelect label="Πάροχος Φυσικού Αερίου" value={s.gasProvider}
+          <CustomSelect label="Πάροχος" value={s.gasProvider}
             onChange={v => upd({ gasProvider: v, gasTariffId: GAS_PROVIDERS.find(p => p.value === v)?.tariffs[0]?.id || '' })}
             options={providerOptions}/>
           <CustomSelect label="Πρόγραμμα" value={s.gasTariffId || provider?.tariffs[0]?.id || ''} onChange={v => upd({ gasTariffId: v })} options={tariffOptions}/>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-          <NumberInput label="Μηνιαία Κατανάλωση (kWh)" value={s.gasKwhMonthly} onChange={v => upd({ gasKwhMonthly: v })} suffix="kWh"/>
-          <NumberInput label="Πραγματικό Κόστος / Μήνα (€)" value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
+          <NumberInput label="Μηνιαία κατανάλωση" value={s.gasKwhMonthly} onChange={v => upd({ gasKwhMonthly: v })} suffix="kWh"/>
+          <NumberInput label="Πραγματικό κόστος τον μήνα" labelInfo="Ολόκληρο το ποσό του λογαριασμού, με δίκτυο, ΕΦΚ και ΦΠΑ. Χρησιμοποιείται για την παρακολούθηση κόστους, ΟΧΙ για τη σύγκριση παρόχων: εκεί συγκρίνεται προμήθεια με προμήθεια."
+            value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginTop: 14 }}>
-          <DatePicker label="Έναρξη Σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
-          <NumberInput label="Διάρκεια Σύμβασης (μήνες)" value={s.gasContractMonths} onChange={v => upd({ gasContractMonths: v })} suffix="μήνες"/>
+          <DatePicker label="Έναρξη σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
+          <NumberInput label="Διάρκεια σύμβασης" value={s.gasContractMonths} onChange={v => upd({ gasContractMonths: v })} suffix="μήνες"/>
         </div>
 
         {/* TTF, για τα κυμαινόμενα */}
         <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14, alignItems: 'end' }}>
-          <NumberInput label="Τρέχουσα τιμή TTF (€/MWh)" value={s.ttfPrice} onChange={v => upd({ ttfPrice: v })} suffix="€/MWh" step={1}/>
+          <NumberInput label="Τρέχουσα τιμή TTF" value={s.ttfPrice} onChange={v => upd({ ttfPrice: v })} suffix="€/MWh" step={1}/>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, paddingBottom: 6 }}>
             Τα κυμαινόμενα προγράμματα (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή TTF.
             Η μηνιαία τιμή δημοσιεύεται στο{' '}
@@ -417,7 +439,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       {kwh > 0 && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, flexWrap: 'wrap' as const, gap: 10 }}>
-            {secHdr('Σύγκριση Παρόχων Φυσικού Αερίου', `Βάσει ${kwh} kWh/μήνα και TTF ${s.ttfPrice} €/MWh, χρέωση προμήθειας, χωρίς ρυθμιζόμενες/ΦΠΑ`)}
+            {secHdr('Σύγκριση παρόχων', `Βάσει ${kwh} kWh/μήνα και TTF ${s.ttfPrice} €/MWh, χρέωση προμήθειας, χωρίς ρυθμιζόμενες/ΦΠΑ`)}
             <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
@@ -434,7 +456,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-                Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το φθηνότερο τιμολόγιο, επιβεβαίωσε πάντα την τρέχουσα προσφορά στον πάροχο.
+                Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(savings)} τον μήνα</strong> ({fe(savings * 12)} τον χρόνο) με το φθηνότερο πρόγραμμα, στη χρέωση προμήθειας. Δίκτυο, ΕΦΚ και ΦΠΑ είναι ίδια σε κάθε πάροχο και δεν εξοικονομούνται. Επιβεβαίωσε την τρέχουσα προσφορά στον πάροχο.
               </span>
             </div>
           )}
@@ -453,9 +475,9 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                   const isBest = i === 0;
                   const diff   = t.monthly - bestMonthly;
                   return (
-                    <tr key={t.id} style={{ background: t.isCurrent ? 'rgba(26,115,232,0.04)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
+                    <tr key={t.id} style={{ background: t.isCurrent ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 600 }}>
-                        {!t.isCurrent && isBest && <span style={{ fontSize: 7, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}
+                        {!t.isCurrent && isBest && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', marginRight: 6, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Φθηνότερο</span>}
                         {t.providerLabel}
                       </td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>{t.name}</td>
@@ -469,8 +491,12 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(t.fixed)}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--accent)' }}>{fe(t.monthly)}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>{fe(t.monthly * 12)}</td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: diff === 0 ? 'var(--text-tertiary)' : diff > 0 ? 'var(--negative)' : 'var(--positive)' }}>
-                        {diff === 0 ? '—' : diff > 0 ? `+${fe(diff)}` : fe(diff)}
+                      {/* Ο πίνακας είναι ήδη ταξινομημένος από το φθηνότερο: η
+                          κατεύθυνση της διαφοράς φαίνεται από τη θέση, δεν
+                          χρειάζεται φανάρι. Και το μηδέν λέγεται με μηδέν, όχι
+                          με παύλα που διαβάζεται ως «λείπει». */}
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
+                        {diff > 0 ? `+${fe(diff)}` : fe(diff)}
                       </td>
                     </tr>
                   );
@@ -529,7 +555,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
 
       {/* ── Χρήσιμες πληροφορίες ── */}
       <div style={card}>
-        {secHdr('Χρήσιμες Πληροφορίες')}
+        {secHdr('Χρήσιμες πληροφορίες')}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Το δίκτυο διανομής ανήκει στον τοπικό διαχειριστή (ΕΔΑ Αττικής, ΕΔΑ ΘΕΣΣ ή ΔΕΔΑ), δεν αλλάζει όποιον πάροχο κι αν επιλέξεις. Η αλλαγή παρόχου είναι καθαρά εμπορική, δεν γίνεται καμία επέμβαση στον αγωγό ή τον λέβητα, και ολοκληρώνεται σε περίπου 3 εβδομάδες χωρίς χρέωση.
@@ -541,8 +567,8 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
             Τα κίτρινα/κυμαινόμενα τιμολόγια ακολουθούν τον δείκτη TTF (ευρωπαϊκή χονδρεμπορική αγορά). Οι τιμές ανεβαίνουν συνήθως τον χειμώνα λόγω ζήτησης θέρμανσης, αν θες σιγουριά, κλείδωσε σταθερό πριν την ψυχρή περίοδο.
           </div>
           <a href="https://www.gov.gr/upourgeia/oloi-foreis/ruthmistike-arkhe-apobleton-energeias-kai-udaton/sugkrise-timon-elektrikes-energeias-kai-phusikou-aeriou" target="_blank" rel="noopener noreferrer"
-            style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
-            Επίσημη Σύγκριση Τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> (gov.gr) →
+            style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
+            Επίσημη σύγκριση τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> (gov.gr) →
           </a>
         </div>
       </div>

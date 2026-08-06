@@ -9,7 +9,7 @@
 
 import {
   estimateENFIA, enfiaExtraPropertyTax, wealthReductionPct,
-  ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_COEF, ENFIA_REDUCTIONS, ENFIA_AGE_BANDS, enfiaAgeCoef,
+  ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_COEF, ENFIA_REDUCTIONS, ENFIA_AGE_BANDS, enfiaAgeCoef, normalizeEnfiaAgeKey,
   ENFIA_SURCHARGE_THRESHOLD, ENFIA_SURCHARGE_BRACKETS,
   ENFIA_EXTRA_TAX_FREE, ENFIA_EXTRA_WEALTH_THRESHOLD,
 } from './enfia'
@@ -143,6 +143,32 @@ const REDS = ENFIA_REDUCTIONS.map(r => r.key)
   const palio = sqm * zone * 1.00 * 1.15
   ok('κτίσμα 17 ετών: 407 € και όχι 425,50 €', Math.round(swra * 100) / 100 === 407)
   ok('η υπερχρέωση ήταν 18,50 €', Math.round((palio - swra) * 100) / 100 === 18.50)
+}
+
+// ═══ ΤΟ ΚΛΕΙΔΙ ΠΑΛΑΙΟΤΗΤΑΣ ΔΙΑΒΑΖΕΤΑΙ ΚΑΙ ΕΞΩ ΑΠΟ ΤΟΝ ΕΝΦΙΑ ══════════════════
+// Η ασφάλιση κατοικίας υπολογίζει τον κίνδυνο κτιρίου από την ΙΔΙΑ ρύθμιση, και
+// συνέκρινε με τα ΠΑΛΙΑ ονόματα ενώ η αποθηκευμένη τιμή είχε γίνει το νέο:
+// καμία συνθήκη δεν ταίριαζε, ο συντελεστής έβγαινε πάντα 1,00, και μια οικοδομή
+// του 1975 έπαιρνε την ίδια εκτίμηση ασφαλίστρου με νεόδμητη. Το σφάλμα ήταν
+// αόρατο γιατί το αποτέλεσμα ΕΒΓΑΙΝΕ — απλώς ήταν πάντα το ίδιο.
+{
+  for (const [legacy, modern] of [
+    ['under_5', 'y0_4'], ['5_10', 'y5_9'], ['10_20', 'y10_14'],
+    ['20_25', 'y20_25'], ['25_30', 'y26_plus'], ['over_30', 'y26_plus'],
+  ] as [string, string][]) {
+    ok(`«${legacy}» μεταφράζεται σε «${modern}»`, normalizeEnfiaAgeKey(legacy) === modern)
+  }
+  for (const b of ENFIA_AGE_BANDS) {
+    ok(`το νέο κλειδί «${b.key}» μένει ως έχει`, normalizeEnfiaAgeKey(b.key) === b.key)
+  }
+  ok('κενό δίνει κενό, όχι undefined', normalizeEnfiaAgeKey(null) === '' && normalizeEnfiaAgeKey('') === '')
+  ok('κενά γύρω από το κλειδί δεν το κρύβουν', normalizeEnfiaAgeKey('  under_5 ') === 'y0_4')
+  // Κάθε κλειδί που μπορεί να φτάσει στην ασφάλιση καταλήγει σε ΓΝΩΣΤΗ ζώνη.
+  const known = new Set(ENFIA_AGE_BANDS.map(b => b.key))
+  for (const k of ['under_5', '5_10', '10_20', '20_25', '25_30', 'over_30',
+                   ...ENFIA_AGE_BANDS.map(b => b.key)]) {
+    ok(`«${k}» καταλήγει σε αναγνωρίσιμη ζώνη`, known.has(normalizeEnfiaAgeKey(k)))
+  }
 }
 
 console.log(`enfiaVerification — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

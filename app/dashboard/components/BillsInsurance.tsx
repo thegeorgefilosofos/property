@@ -6,6 +6,21 @@ import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UICo
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, InfoBanner, Skeleton, SkeletonKPIs } from '@/components/Theme';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
+import { normalizeEnfiaAgeKey } from '@/lib/billing/enfia';
+
+// ═══ Ο ΚΙΝΔΥΝΟΣ ΠΑΛΑΙΟΤΗΤΑΣ ΠΟΥ ΗΤΑΝ ΠΑΝΤΑ 1,00 ═══════════════════════════
+// Η παλαιότητα διαβάζεται από τη ρύθμιση `enfiaAge`, της οποίας τα κλειδιά
+// έγιναν έξι (y0_4 … y26_plus) όταν διορθώθηκε η κλίμακα του ΕΝΦΙΑ. Εδώ όμως
+// η σύγκριση έμεινε στα ΠΑΛΙΑ ονόματα ('under_5', '25_30', 'over_30'), και η
+// προεπιλογή ήταν επίσης παλιά ('10_20'). Καμία συνθήκη δεν ταίριαζε ποτέ σε
+// καμία αποθηκευμένη τιμή: ο συντελεστής έβγαινε 1,00 για όλους. Μια οικοδομή
+// του 1975 έπαιρνε ακριβώς την ίδια εκτίμηση ασφαλίστρου με νεόδμητη.
+//
+// Το κλειδί περνά τώρα από την ίδια μετάφραση με τον ΕΝΦΙΑ, οπότε δουλεύει και
+// με τα παλιά ονόματα που κάθονται ήδη στις ρυθμίσεις των χρηστών.
+const AGE_RISK: Record<string, number> = {
+  y0_4: 0.90, y5_9: 0.95, y10_14: 1.00, y15_19: 1.05, y20_25: 1.10, y26_plus: 1.20,
+};
 
 const INSURANCEMARKET_URL = 'https://www.insurancemarket.gr/asfaleia-katoikias';
 const PRICEFOX_URL = 'https://www.pricefox.gr/asfalia-katoikias/';
@@ -244,7 +259,7 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
   const CONTENT_REFERENCE = 20000;
   const contentF     = contentValue > 0 ? Math.max(0.9, Math.min(1.4, contentValue / CONTENT_REFERENCE)) : 1;
   const floorRisk    = floor === 'ground' ? 1.15 : floor === 'basement' ? 1.25 : 1.0;
-  const ageRisk      = age === 'over_30' ? 1.20 : age === '25_30' ? 1.10 : age === 'under_5' ? 0.90 : 1.0;
+  const ageRisk      = AGE_RISK[normalizeEnfiaAgeKey(age)] ?? 1.0;
   // Η σεισμική ζώνη ΔΕΝ βγαίνει από το όνομα της πόλης. Ο παλιός κώδικας έψαχνε
   // αν το κείμενο περιείχε «Αθήν» και πρόσθετε 5%. Η ζώνη ορίζεται από χάρτη
   // κανονισμού, όχι από αλφαριθμητικά, και η Αθήνα δεν είναι καν η πιο
@@ -330,7 +345,7 @@ export function insuranceSwitchFinding(
 
   const cheaper = computeLiveQuotes(
     sqm, propValue, contentValue,
-    String(s.insFloor ?? 'second'), String(s.insAge ?? '10_20'),
+    String(s.insFloor ?? 'second'), String(s.insAge ?? 'y10_14'),
   )
     .filter(q => q.plan !== s.insPlanId)
     .filter(q => (!needEq || q.earthquake) && (!needFl || q.flood) && (!needNa || q.natural))
@@ -477,7 +492,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
             sqmFrom:      d.enfiaSqm ? 'enfia' : propSqm ? 'property' : undefined,
             zone:         d.enfiaZone      || '',
             floor:        d.enfiaFloor     || 'second',
-            age:          d.enfiaAge       || '10_20',
+            age:          d.enfiaAge       || 'y10_14',
             city:         p.address        || '',
             propertyType: p.prop_type      || '',
             isRented:     p.status_detail === 'rented',
@@ -500,7 +515,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     insCustomCovers: '', insEditCovers: false,
     insCustomEarthquake: false, insCustomFlood: false, insCustomNatural: false,
     // NEW: property details for live quotes
-    insSqm: '', insFloor: 'second', insAge: '10_20', insCity: '',
+    insSqm: '', insFloor: 'second', insAge: 'y10_14', insCity: '',
     activeStreaming: [] as StreamingEntry[],
     activeCloud:     [] as CloudEntry[],
     otherSubs:       [] as OtherSub[],
@@ -519,7 +534,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   // Auto-fill from cross-tab data if not manually set
   const effectiveSqm    = insSqm    || crossProperty.sqm    || '';
   const effectiveFloor  = insFloor  || crossProperty.floor  || 'second';
-  const effectiveAge    = insAge    || crossProperty.age    || '10_20';
+  const effectiveAge    = insAge    || crossProperty.age    || 'y10_14';
   const effectiveCity   = insCity   || crossProperty.city   || '';
 
   // ── Live quotes computation (debounced) ──────────────────────────────────
@@ -786,7 +801,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Checklist renewal banner ──────────────────────────────────────── */}
       {checklistRenewal && checklistRenewal.daysLeft !== null && checklistRenewal.daysLeft <= 60 && (
-        <div style={{ background: checklistRenewal.daysLeft <= 7 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${checklistRenewal.daysLeft <= 7 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ background: checklistRenewal.daysLeft <= 7 ? 'var(--negative-soft)' : 'var(--warning-soft)', border: `1px solid ${checklistRenewal.daysLeft <= 7 ? 'var(--negative-border)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: checklistRenewal.daysLeft <= 7 ? 'var(--negative)' : 'var(--warning)', flexShrink: 0 }}/>
           <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans }}>
             <span style={{ fontWeight: 700, color: checklistRenewal.daysLeft <= 7 ? 'var(--negative)' : 'var(--warning)' }}>Ανανέωση ασφαλιστηρίου </span>
@@ -798,7 +813,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Auto-detected property type banner ──────────────────────────── */}
       {detectedPropertyType && (
-        <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+        <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
           <span style={{ color: 'var(--text-secondary)' }}>
             Ανιχνεύθηκε τύπος ακινήτου: <strong style={{ color: 'var(--accent)' }}>{detectedPropertyType}</strong>, εμφανίζονται {insOptions.length} σχετικές ασφαλιστικές εταιρείες.
           </span>
@@ -811,7 +826,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         const hasFl = effectiveFloodState;
         if (hasEq && hasFl) return null;
         return (
-          <div style={{ background: 'rgba(242,153,0,0.05)', border: '1px solid rgba(242,153,0,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+          <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }}/>
             <span style={{ color: 'var(--text-secondary)' }}>
               {!hasEq && !hasFl ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό ούτε πλημμύρα.' : !hasEq ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό.' : 'Το πρόγραμμά σου δεν καλύπτει πλημμύρα.'}
@@ -832,7 +847,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Renewal alerts ──────────────────────────────────────────────── */}
       {renewalAlerts.map((a, i) => (
-        <div key={i} style={{ background: a.type === 'danger' ? 'rgba(197,34,31,0.08)' : a.type === 'warning' ? 'rgba(242,153,0,0.08)' : 'rgba(26,115,232,0.06)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+        <div key={i} style={{ background: a.type === 'danger' ? 'var(--negative-soft)' : a.type === 'warning' ? 'var(--warning-soft)' : 'var(--accent-soft)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)', flexShrink: 0 }}/>
           <strong>{a.name}</strong>: {a.daysLeft === 0 ? 'Λήγει ΣΗΜΕΡΑ' : `Λήγει σε ${a.daysLeft} ημέρες`}
         </div>
@@ -855,7 +870,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Ασφάλεια Κατοικίας ───────────────────────────────────────────── */}
       <div style={card}>
-        {secHdr('Ασφάλεια Κατοικίας')}
+        {secHdr('Ασφάλεια κατοικίας')}
 
         {/* ── Property details for live quotes ──────────────────────────── */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
@@ -869,12 +884,12 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           )}
           {/* FIX: 2+2 grid, Πόλη label doesn't overflow */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-            <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
-            <TextInput   label="Πόλη / Περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη…"/>
+            <NumberInput label="Εμβαδόν"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
+            <TextInput   label="Πόλη ή περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη…"/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-            <NumberInput label="Αξία Κτηρίου (€)"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
-            <NumberInput label="Αξία Περιεχομένου (€)" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
+            <NumberInput label="Αξία κτηρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
+            <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
           </div>
         </div>
 
@@ -905,7 +920,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   { key: 'natural',   label: 'Φυσικές Καταστροφές' },
                 ].map(f => (
                   <button key={f.key} onClick={() => setQuotesFilter(f.key as any)}
-                    style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'rgba(26,115,232,0.1)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
+                    style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'var(--accent-soft)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
                     {f.label}
                   </button>
                 ))}
@@ -971,18 +986,18 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   return (
                     <div key={q.plan}
                       onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
-                      style={{ background: isCurrent ? 'rgba(26,115,232,0.07)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
+                      style={{ background: isCurrent ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
                       {/* ΟΧΙ «ΚΑΛΥΤΕΡΗ ΤΙΜΗ». Η πρώτη θέση ανήκει στο πιο
                           ΚΑΤΑΛΛΗΛΟ, που συχνά δεν είναι το φθηνότερο. Η παλιά
                           ετικέτα έλεγε ψέματα για το ίδιο το κριτήριο. */}
-                      {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΤΑΛΛΗΛΟΤΕΡΟ</div>}
-                      {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
+                      {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΤΑΛΛΗΛΟΤΕΡΟ</div>}
+                      {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
                       <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
                       <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
                       <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>εκτίμηση / μήνα</div>
                       {q.savings !== undefined && q.savings > 0 && (
-                        <div style={{ fontSize: 9, color: 'var(--positive)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)}/μήνα</div>
+                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)} τον μήνα</div>
                       )}
                       <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' as const }}>
                         {q.earthquake && <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
@@ -1017,7 +1032,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                       const isCur = q.company === insProvider && q.plan === insPlanId;
                       return (
                         <tr key={q.plan} onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
-                          style={{ cursor: 'pointer', background: isCur ? 'rgba(26,115,232,0.08)' : 'transparent', transition: 'background 0.15s' }}>
+                          style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
                           <td style={{ padding: '6px 8px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{q.companyLabel}{isCur ? ' ✓' : ''}</td>
                           <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 9 }}>{q.planLabel}</td>
                           <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? '✓' : '—'}</td>
@@ -1025,7 +1040,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                           <td style={{ padding: '6px 8px', color: q.natural   ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.natural   ? '✓' : '—'}</td>
                           <td style={{ padding: '6px 8px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(q.monthlyEstimate)}</td>
                           <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 9, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: q.savings !== undefined && q.savings > 0 ? 'var(--positive)' : q.savings !== undefined && q.savings < 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>
+                          <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: 'var(--text-secondary)' }}>
                             {q.savings !== undefined && q.savings !== 0 ? `${q.savings > 0 ? '+' : ''}${fe(q.savings)}` : '—'}
                           </td>
                         </tr>
@@ -1044,25 +1059,25 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         {(!parseFloat(effectiveSqm) || !parseFloat(insPropValue)) && (
           // Τα σκληροκωδικοποιημένα rgba(26,115,232,…) αγνοούσαν τα tokens: στο σκούρο
           // θέμα το πλαίσιο έμενε γαλάζιο-σε-γαλάζιο. Το InfoBanner παίρνει χρώμα από τον τόνο.
-          <InfoBanner tone="info">Συμπλήρωσε εμβαδόν + αξία κτηρίου για Συγκριτική Εκτίμηση Ασφαλίστρων προγραμμάτων</InfoBanner>
+          <InfoBanner tone="info">Συμπλήρωσε εμβαδόν και αξία κτηρίου για συγκριτική εκτίμηση ασφαλίστρων.</InfoBanner>
         )}
 
         {/* ── Current plan selection ────────────────────────────────────── */}
         <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 4 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον Πρόγραμμα</div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον πρόγραμμα</div>
           <div style={g3}>
-            <CustomSelect label="Ασφαλιστική Εταιρεία" value={insProvider}
+            <CustomSelect label="Ασφαλιστική εταιρεία" value={insProvider}
               onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
               options={insOptions}/>
-            <CustomSelect label="Πρόγραμμα Ασφάλισης" value={insPlanId}
+            <CustomSelect label="Πρόγραμμα ασφάλισης" value={insPlanId}
               onChange={v => u({ insPlanId: v, insEditCovers: false })}
               options={insPlanOptions}/>
-            <NumberInput label="Πραγματικό Κόστος / μήνα (€)" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
+            <NumberInput label="Πραγματικό κόστος τον μήνα" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
           </div>
           <div style={g4}>
             <TextInput   label={insCompany?.agent_label || 'Ασφαλιστής'} value={insAgentName}    onChange={v => u({ insAgentName: v })}    placeholder="Ονοματεπώνυμο"/>
-            <TextInput   label="Τηλέφωνο Ασφαλιστή"                      value={insAgentPhone}   onChange={v => u({ insAgentPhone: v })}   placeholder="69xxxxxxxx"/>
-            <DatePicker  label="Ημερομηνία Ανανέωσης"                     value={insRenewalDate}  onChange={v => u({ insRenewalDate: v })}/>
+            <TextInput   label="Τηλέφωνο ασφαλιστή"                      value={insAgentPhone}   onChange={v => u({ insAgentPhone: v })}   placeholder="69xxxxxxxx"/>
+            <DatePicker  label="Ημερομηνία ανανέωσης"                     value={insRenewalDate}  onChange={v => u({ insRenewalDate: v })}/>
             {insCompany?.url && (
               <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
                 <a href={insCompany.url} target="_blank" rel="noopener noreferrer"
@@ -1099,12 +1114,12 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   <div style={{ display: 'flex', gap: 16 }}>
                     <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς Σεισμό"/>
                     <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς Πλημμύρα"/>
-                    <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές Καταστροφές" labelOff="Χωρίς"/>
+                    <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές" labelOff="Χωρίς"/>
                   </div>
                 </div>
               )}
               {effectiveEarthquake && effectiveFloodState && (
-                <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
+                <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
                   Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
                 </div>
               )}
@@ -1153,7 +1168,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                         </div>
                       )}
                     </div>
-                    <NumberInput label="Τιμή αν διαφέρει (€)" value={active.customPrice} onChange={v => updateS(svc.value, 'customPrice', v)} suffix="€" step={0.5}/>
+                    <NumberInput label="Τιμή αν διαφέρει" value={active.customPrice} onChange={v => updateS(svc.value, 'customPrice', v)} suffix="€" step={0.5}/>
                     <DatePicker label="Ημερομηνία ανανέωσης" value={active.renewalDate} onChange={v => updateS(svc.value, 'renewalDate', v)}/>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{active.splitActive && (active.splitPeople || 2) > 1 ? `Μερίδιό σου (÷${active.splitPeople})` : 'Μηνιαίο κόστος'}</span>
@@ -1213,12 +1228,12 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Άλλες Πάγιες Συνδρομές ───────────────────────────────────────── */}
       <div style={card}>
-        {secHdr('Άλλες Πάγιες Συνδρομές')}
+        {secHdr('Άλλες πάγιες συνδρομές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
             <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus..."/>
-            <NumberInput label="Κόστος / μήνα (€)" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
-            <DatePicker  label="Ημερομηνία Ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
+            <NumberInput label="Κόστος τον μήνα" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
+            <DatePicker  label="Ημερομηνία ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={() => { if (newSubName && newSubPrice) { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); } }}
