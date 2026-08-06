@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, EmptyState, Skeleton } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
+import { saved } from '@/components/dbWrite';
 
 interface Req { id: string; title: string; description: string | null; contact: string | null; status: string; created_at: string; photos?: string[] | null; }
 
@@ -67,8 +68,10 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   const saveLink = async () => {
     setBusy(true);
     const v = payLink.trim();
-    await supabase.from('portal_links').update({ payment_link: v || null }).eq('property_id', propertyId).eq('user_id', userId);
-    setBusy(false); notifyOk('Ο σύνδεσμος πληρωμής αποθηκεύτηκε');
+    const ok = await saved('Ο σύνδεσμος πληρωμής δεν αποθηκεύτηκε',
+      supabase.from('portal_links').update({ payment_link: v || null }).eq('property_id', propertyId).eq('user_id', userId));
+    setBusy(false);
+    if (ok) notifyOk('Ο σύνδεσμος πληρωμής αποθηκεύτηκε');
   };
   const savePin = async () => {
     if (!token) return;
@@ -131,7 +134,10 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   const url = token && typeof window !== 'undefined' ? `${window.location.origin}/portal/${token}` : '';
   const copy = () => { if (url) { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } };
-  const setStatus = async (id: string, status: string) => { await supabase.from('maintenance_requests').update({ status }).eq('id', id); load(); };
+  const setStatus = async (id: string, status: string) => {
+    if (await saved('Η κατάσταση του αιτήματος δεν άλλαξε',
+      supabase.from('maintenance_requests').update({ status }).eq('id', id))) load();
+  };
 
   // Cross-tab: αίτημα βλάβης → Ημερολόγιο (προγραμματισμός επισκευής)
   const toCalendar = async (r: Req) => {

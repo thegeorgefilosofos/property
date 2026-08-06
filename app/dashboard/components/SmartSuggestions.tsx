@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
 import { T, TT, fe, EmptyState } from '@/components/Theme';
+import { saved } from '@/components/dbWrite';
 import { ASSISTANT_INITIAL, suggestionsTitle, suggestionsSub } from '@/lib/assistant/identity';
 
 interface Suggestion {
@@ -128,16 +129,18 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
     setAddingId(idx);
     const today = new Date();
     const eventDate = new Date(today.getFullYear(), today.getMonth() + 1, 1).toISOString().split('T')[0];
-    await supabase.from('calendar_events').insert({
+    const ok = await saved('Η πρόταση δεν μπήκε στο ημερολόγιο', supabase.from('calendar_events').insert({
       property_id: propertyId, user_id: userId,
       title: s.title, category: s.category,
       event_date: eventDate, amount: s.amount || null,
       priority: s.priority || 'medium', status: 'pending',
       recurring: s.recurring, recurring_interval: s.recurring_interval || null,
       notes: `Πρόταση: ${s.reason}`, source: 'manual',
-    });
+    }));
     setAddingId(null);
-    setDismissedIds(prev => new Set([...prev, idx]));
+    // Η πρόταση φεύγει από τη λίστα ΜΟΝΟ αν μπήκε κάπου αλλού. Αλλιώς χάνεται
+    // και από τα δύο σημεία.
+    if (ok) setDismissedIds(prev => new Set([...prev, idx]));
   }
 
   const dismiss = (idx: number) => setDismissedIds(prev => new Set([...prev, idx]));

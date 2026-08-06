@@ -20,6 +20,7 @@ import { T, TT, Btn, Modal, Spinner } from '@/components/Theme';
 import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide-react';
 import { notifyError } from '@/components/Toast';
 import { must } from '@/lib/supabase/must';
+import { saved } from '@/components/dbWrite';
 import {
   buildLeaseDeclaration, declarationSheet, RULES,
   type LeaseDeclarationInput, type DeclField,
@@ -134,12 +135,12 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
     setSaving(true);
     const at = new Date().toISOString();
     setSubmitted({ at, ref: refInput.trim() });
-    try {
-      await supabase.from('activity_log').insert({
-        user_id: userId, action: 'lease_declaration_submitted', entity: 'property', entity_id: propertyId,
-        metadata: { reference: refInput.trim() || null, deadline: decl.deadline.due },
-      });
-    } catch { /* το μητρώο δραστηριότητας είναι προαιρετικό */ }
+    // Το μητρώο δραστηριότητας δεν μπλοκάρει τη δήλωση, αλλά η σιωπή του
+    // σήμαινε ότι η καταχώριση έλειπε από το ιστορικό χωρίς κανείς να το ξέρει.
+    await saved('Η δήλωση δεν καταγράφηκε στο ιστορικό', supabase.from('activity_log').insert({
+      user_id: userId, action: 'lease_declaration_submitted', entity: 'property', entity_id: propertyId,
+      metadata: { reference: refInput.trim() || null, deadline: decl.deadline.due },
+    }));
     setSaving(false);
   };
 

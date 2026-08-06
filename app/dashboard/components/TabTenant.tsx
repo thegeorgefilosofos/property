@@ -759,7 +759,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6 }}>{log.summary}</div>
             </div>
-            <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή καταγραφής επικοινωνίας;',{tone:'negative'})))return;await supabase.from('tenant_comm_log').delete().eq('id',log.id);loadLogs();}}>Διαγραφή</button>
+            <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή καταγραφής επικοινωνίας;',{tone:'negative'})))return;if(await saved('Η καταγραφή δεν διαγράφηκε',supabase.from('tenant_comm_log').delete().eq('id',log.id)))loadLogs();}}>Διαγραφή</button>
           </div>
         ))}
       </div>
@@ -1186,7 +1186,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
                       {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
                       {tenant.phone&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
                       {tenant.phone&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
-                      <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;await supabase.from('rent_payments').delete().eq('id',p.id);onRefresh();}}>Διαγραφή</button>
+                      <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;if(await saved('Η πληρωμή δεν διαγράφηκε',supabase.from('rent_payments').delete().eq('id',p.id)))onRefresh();}}>Διαγραφή</button>
                     </div>
                   </td>
                 </tr>
@@ -2189,10 +2189,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       parking_included:form.parking_included,parking_extra:form.parking_extra,parking_extra_price:n(form.parking_extra_price),
       lease_doc_external_url:form.lease_doc_external_url||null,
     };
-    const q=editId
+    const{data:savedRow,error:err}=await(editId
       ?supabase.from('tenants').update(payload).eq('id',editId).select('*').single()
-      :supabase.from('tenants').insert(payload).select('*').single();
-    const{data:savedRow,error:err}=await q;
+      :supabase.from('tenants').insert(payload).select('*').single());
     if(err){
       const msg=err.message||'Άγνωστο σφάλμα';
       // Μετάφραση των συχνών αιτιών σε σαφές, ενεργήσιμο ελληνικό μήνυμα.
@@ -2207,12 +2206,11 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     // εγγράφων, συγχρονισμός ημερολογίου) δεν πρέπει ΠΟΤΕ να μπλοκάρουν το κλείσιμο
     // της φόρμας ή την ανανέωση — αλλιώς η καρτέλα θα «κολλούσε» με το ρελ. να γυρίζει.
     const savedTenant=(savedRow||null) as (TenantScheduleInput&{rent_due_day?:number|null})|null;
-    try{
-      if(savedTenant?.id && !editId && formDocs.length){
-        await supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id));
-      }
-      if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
-    }catch{ /* δευτερεύον — αγνοείται· ο ενοικιαστής έχει ήδη αποθηκευτεί */ }
+    if(savedTenant?.id && !editId && formDocs.length){
+      await saved('Τα έγγραφα δεν συνδέθηκαν με τον ενοικιαστή',
+        supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id)));
+    }
+    if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
     setSaving(false);setIsForm(false);
     notifyOk(editId?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');
     await fetch_();
@@ -2495,7 +2493,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                             <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, overflow:'hidden', textOverflow:'ellipsis' }}>{dc.lease_doc_name}</div>
                             <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ανεβασμένο συμβόλαιο</div>
                           </div>
-                          <button style={s.btnDng} onClick={async()=>{if(!dc.lease_doc_name)return;await supabase.storage.from('lease-documents').remove([`${userId}/${dc.id}/${dc.lease_doc_name}`]);await supabase.from('tenants').update({lease_doc_url:null,lease_doc_name:null}).eq('id',dc.id);notify('PDF διαγράφηκε');fetch_();}}>Διαγραφή</button>
+                          <button style={s.btnDng} onClick={async()=>{if(!dc.lease_doc_name)return;await supabase.storage.from('lease-documents').remove([`${userId}/${dc.id}/${dc.lease_doc_name}`]);if(!await saved('Το συμβόλαιο δεν αποσυνδέθηκε',supabase.from('tenants').update({lease_doc_url:null,lease_doc_name:null}).eq('id',dc.id)))return;notify('PDF διαγράφηκε');fetch_();}}>Διαγραφή</button>
                         </div>
                         <button onClick={()=>openLeaseDoc(dc)} style={{ ...s.btnGold, display:'inline-block', marginBottom:10 }}>Άνοιγμα PDF</button>
                         <div style={{ marginTop:10 }}>

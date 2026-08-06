@@ -10,6 +10,8 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
+import { saved } from '@/components/dbWrite';
+import { must } from '@/lib/supabase/must';
 import { defaultBookkeeping, type LegalForm, type BookKeeping } from '@/lib/accounting/dossier';
 
 interface Props {
@@ -48,7 +50,8 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   const [profile, setProfile] = useState<'individual' | 'professional'>('individual');
   const chooseProfile = (v: 'individual' | 'professional') => {
     setProfile(v); onProfile?.(v);
-    supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' }).then(() => {});
+    void saved('Ο τύπος προφίλ δεν αποθηκεύτηκε',
+      supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' }));
   };
 
   // ── Νομική μορφή ─────────────────────────────────────────────────────────
@@ -67,7 +70,8 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
 
   const saveLegal = (form: LegalForm, bk: BookKeeping) => {
     setLegalForm(form); setBooks(bk);
-    supabase.from('billing_profiles').upsert({ user_id: userId, legal_form: form, bookkeeping: bk }, { onConflict: 'user_id' }).then(() => {});
+    void saved('Η νομική μορφή δεν αποθηκεύτηκε',
+      supabase.from('billing_profiles').upsert({ user_id: userId, legal_form: form, bookkeeping: bk }, { onConflict: 'user_id' }));
   };
   // Η μορφή προτείνει βιβλία (ΙΚΕ → διπλογραφικά, ατομική/ΟΕ → απλογραφικά) αλλά
   // ο χρήστης έχει τον τελευταίο λόγο: μια Ο.Ε. μπορεί κάλλιστα να είναι διπλογραφικά.
@@ -78,7 +82,8 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   };
 
   const mark = async (patch: Record<string, boolean>) => {
-    try { await supabase.from('onboarding_progress').upsert({ user_id: userId, welcomed: true, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }); } catch {}
+    await saved('Η πρόοδος της υποδοχής δεν αποθηκεύτηκε', supabase.from('onboarding_progress')
+      .upsert({ user_id: userId, welcomed: true, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }));
   };
 
   const addProperty = async () => { await mark({}); onAddProperty(); };
@@ -96,9 +101,12 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
       if (pe || !prop) throw new Error(pe?.message || 'demo property');
       const pid = prop.id as string;
 
-      const { data: cl } = await supabase.from('clients').insert({
+      // Το try/catch εδώ ΕΧΕΙ αληθινή εναλλακτική (κανονική προσθήκη ακινήτου),
+      // οπότε το σωστό εργαλείο είναι η `must`: κάνει το σφάλμα να πετάξει, ώστε
+      // μισό δείγμα να μη φτάσει ποτέ στην οθόνη.
+      const cl = await must(supabase.from('clients').insert({
         user_id: userId, type: 'client', full_name: 'Demo: Επισκέπτης', stage: 'closed', notes: 'Δείγμα για επίδειξη.',
-      }).select('id').single();
+      }).select('id').single());
       const clientId = cl?.id as string | undefined;
 
       if (clientId) {
@@ -108,11 +116,11 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
           const co = new Date(ci); co.setDate(co.getDate() + nights);
           return { user_id: userId, client_id: clientId, property_id: pid, check_in: iso(ci), check_out: iso(co), nights, nightly_rate: rate, total: nights * rate, channel };
         };
-        await supabase.from('client_stays').insert([
+        await must(supabase.from('client_stays').insert([
           mk(-45, 4, 95, 'airbnb'), mk(-20, 3, 110, 'booking'), mk(8, 5, 120, 'airbnb'), mk(30, 2, 130, 'airbnb'),
-        ]);
+        ]));
       }
-      await supabase.from('pricing_settings').upsert({ user_id: userId, property_id: pid, base: 100, min_price: 60, max_price: 220, weekend_premium: 0.18, min_stay: 2, updated_at: new Date().toISOString() }, { onConflict: 'user_id,property_id' });
+      await must(supabase.from('pricing_settings').upsert({ user_id: userId, property_id: pid, base: 100, min_price: 60, max_price: 220, weekend_premium: 0.18, min_stay: 2, updated_at: new Date().toISOString() }, { onConflict: 'user_id,property_id' }));
 
       await mark({ demo_seen: true, first_property: true });
       onDemoReady(pid);
