@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
 import { yearOccupancy } from '@/lib/clients/reports';
@@ -437,19 +437,28 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   return (
     <div>
-      <PageTitle title="Χαρτοφυλάκιο" sub={`${properties.length} ${properties.length === 1 ? 'ακίνητο' : 'ακίνητα'} · έσοδα & εκκρεμότητες ${year}`}
+      <PageTitle title="Χαρτοφυλάκιο" sub={`${properties.length} ${properties.length === 1 ? 'ακίνητο' : 'ακίνητα'} · έσοδα και εκκρεμότητες ${year}`}
         right={<>
           <Btn variant="ghost" onClick={openStatements}>Καταστάσεις ιδιοκτήτη</Btn>
           <ExportButton onClick={exportCsv} label="Εξαγωγή CSV" />
         </>} />
 
+      {/* ═══ ΤΕΣΣΕΡΑ ΧΡΩΜΑΤΑ ΣΕ ΠΕΝΤΕ ΠΛΑΚΙΔΙΑ ══════════════════════════════
+          Τα έσοδα ήταν πράσινα ακόμη και στο μηδέν, το καθαρό κόκκινο, οι
+          εκκρεμότητες πορτοκαλί, η ταξινομημένη στήλη μπλε. Σε χαρτοφυλάκιο δύο
+          ακινήτων, τέσσερα σημασιολογικά χρώματα σε μία ματιά — και κανένα δεν
+          ξεχωρίζει, γιατί όλα φωνάζουν. Η ιεραρχία βγαίνει από μέγεθος, βάρος
+          και θέση· το πρόσημο το λέει ήδη το ίδιο το ποσό. */}
       <KPIGrid columns={5} items={[
         { label: 'Ακίνητα', value: String(properties.length) },
-        { label: `Έσοδα ${year}`, value: eur(totalRevenue), tone: 'positive',
+        { label: `Έσοδα ${year}`, value: eur(totalRevenue),
           sub: estimatedRows.length ? `${estimatedRows.length} ${estimatedRows.length === 1 ? 'ακίνητο' : 'ακίνητα'} με εκτίμηση` : undefined },
-        { label: `Καθαρό ${year}`, value: eur(totalRevenue - totalExpenses), sub: `δαπάνες ${eur(totalExpenses)}`, tone: (totalRevenue - totalExpenses) >= 0 ? 'positive' : 'negative' },
-        { label: 'Μέση πληρότητα', value: avgOcc != null ? `${avgOcc}%` : '—', sub: shortRows.length ? `${shortRows.length} βραχυχρόνια` : 'χωρίς βραχυχρόνια' },
-        { label: 'Εκκρεμότητες', value: totalOwed > 0 ? `${totalPending} · ${fe(totalOwed, 0)}` : String(totalPending), tone: totalPending > 0 ? 'warning' : 'positive' },
+        { label: `Καθαρό ${year}`, value: eur(totalRevenue - totalExpenses), sub: `δαπάνες ${eur(totalExpenses)}` },
+        // Πληρότητα χωρίς καμία βραχυχρόνια δεν είναι μηδέν, είναι ερώτημα χωρίς
+        // αντικείμενο. Το πλακίδιο δεν εμφανίζεται καθόλου.
+        ...(avgOcc != null ? [{ label: 'Μέση πληρότητα', value: fp(avgOcc),
+          sub: `${shortRows.length} ${shortRows.length === 1 ? 'βραχυχρόνια' : 'βραχυχρόνια'}` }] : []),
+        { label: 'Εκκρεμότητες', value: totalOwed > 0 ? `${totalPending} · ${fe(totalOwed)}` : String(totalPending) },
       ]} />
 
       {/* Συγκεντρωτική απόδοση χαρτοφυλακίου (σταθμισμένη με την αξία) */}
@@ -496,15 +505,18 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                     <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{r.typeLabel}</div>
                   </td>
                   <td style={{ padding: '13px 14px' }}>
-                    <Badge tone={r.mode === 'short' ? 'accent' : r.mode === 'long' ? 'positive' : 'neutral'}>{MODE_LABEL[r.mode]}</Badge>
+                    {/* Η κατάσταση είναι ΟΝΟΜΑ, όχι κρίση: το «Κενό» δεν είναι
+                        χειρότερο από το «Μισθωμένο» σε ένα ακίνητο που μόλις
+                        ανακαινίστηκε. Ίδιος ουδέτερος τόνος για όλες. */}
+                    <Badge tone="neutral">{MODE_LABEL[r.mode]}</Badge>
                   </td>
                   <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
                   <Num v={eur(r.expenses)} muted />
-                  <Num v={eur(r.net)} tone={r.net >= 0 ? 'var(--positive)' : 'var(--negative)'} bold />
+                  <Num v={eur(r.net)} bold />
                   <td style={{ padding: '13px 14px', textAlign: 'right' }} title={occupancyTitle(r)}>
                     {r.occupancy != null
-                      ? <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 13, color: 'var(--text-primary)' }}>{r.occupancy}%</span>
-                      : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>—</span>}
+                      ? <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, color: 'var(--text-primary)' }}>{fp(r.occupancy)}</span>
+                      : <span style={{ fontFamily: T.font.sans, fontSize: 11.5, color: 'var(--text-tertiary)' }}>{r.mode === 'short' ? ABSENT_SHORT : 'Δεν ισχύει'}</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     {r.pending > 0
@@ -514,11 +526,11 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                         // διαφορά στο τι θα κάνει ο ιδιοκτήτης σήμερα το πρωί.
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}
                               title={r.owed > 0 ? `${r.pending} εκκρεμή, από τα οποία ${fe(r.owed, 0)} σε απλήρωτους λογαριασμούς` : `${r.pending} εκκρεμή`}>
-                          <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
-                          {r.owed > 0 && <span style={{ fontFamily: T.font.mono, fontSize: 11, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fe(r.owed, 0)}</span>}
+                          <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 11.5, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
+                          {r.owed > 0 && <span style={{ fontFamily: T.font.num, fontSize: 11.5, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fe(r.owed)}</span>}
                         </span>
                       )
-                      : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>—</span>}
+                      : <span style={{ fontFamily: T.font.sans, fontSize: 11.5, color: 'var(--text-tertiary)' }}>Καμία</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
@@ -530,19 +542,25 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         </div>
       </div>
       <div style={{ marginTop: 10, fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-        Έσοδα βραχυχρόνιας από τις καταχωρημένες διαμονές· μακροχρόνιας από τις εισπράξεις που έχεις καταχωρήσει. Όπου δεν υπάρχει καμία καταχωρημένη δόση ενοικίου, το ποσό είναι εκτίμηση (ενοίκιο × μήνες που πέρασαν) και σημειώνεται με «εκτίμηση» — στην οθόνη, στο CSV και μέσα στο PDF. Πληρότητα = νύχτες προς τις διαθέσιμες ημέρες, ο ίδιος ορισμός με την «Πληρότητα» της Επισκόπησης. Κλικ σε ακίνητο για την πλήρη Επισκόπηση.
+        {/* Ήταν τέσσερις προτάσεις σε τρεις σειρές, κάτω από πίνακα δύο γραμμών.
+            Οι δύο εξηγούσαν ορισμούς που ζουν ήδη ως επεξήγηση πάνω σε κάθε
+            κελί, και η τελευταία περιέγραφε ότι μια γραμμή πίνακα ανοίγει. */}
+        Όπου δεν υπάρχει καταχωρημένη δόση ενοικίου, το ποσό είναι εκτίμηση και σημειώνεται δίπλα του.
       </div>
 
       {/* Ήρεμη μπάρα μαζικών ενεργειών (Gmail/Linear style) */}
       {selected.size > 0 && (
         <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
           <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
-            <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
+            <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{allSelected ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             {[
-              { label: allSelected ? 'Καθαρισμός' : `Επιλογή όλων (${rows.length})`, fn: toggleAll, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
+              // Όταν είναι όλα επιλεγμένα, το «Καθαρισμός» έκανε ό,τι ακριβώς και
+              // το ✕ δεξιά του: δύο κουμπιά για μία ενέργεια, δίπλα-δίπλα. Μένει
+              // η επιλογή όλων, που είναι η μόνη που προσθέτει κάτι.
+              ...(allSelected ? [] : [{ label: `Επιλογή όλων (${rows.length})`, fn: toggleAll, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' }]),
               { label: 'Νέα εργασία σε επιλεγμένα', fn: () => setShowBulk(true), color: 'var(--accent)', hoverBg: 'var(--accent-soft)' },
             ].map((a, i, arr) => (
               <button key={i} type="button" onClick={a.fn}
@@ -618,14 +636,14 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                           <td style={{ padding: '11px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</td>
                           <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
                           <Num v={eur(r.expenses)} muted />
-                          <Num v={eur(r.net)} tone={r.net >= 0 ? 'var(--positive)' : 'var(--negative)'} bold />
+                          <Num v={eur(r.net)} bold />
                         </tr>
                       ))}
                       <tr style={{ borderTop: '2px solid var(--border-subtle)' }}>
                         <td style={{ padding: '13px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Σύνολο</td>
                         <Num v={eur(stmt.revenue)} bold />
                         <Num v={eur(stmt.expenses)} muted bold />
-                        <Num v={eur(stmt.net)} tone={stmt.net >= 0 ? 'var(--positive)' : 'var(--negative)'} bold />
+                        <Num v={eur(stmt.net)} bold />
                       </tr>
                     </tbody>
                   </table>
@@ -639,7 +657,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
                   <Btn variant="secondary" onClick={printStatement}>Εκτύπωση / PDF</Btn>
                   <Btn variant="secondary" onClick={officialStatement} disabled={genOfficial}><ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}</Btn>
-                  <ExportButton onClick={exportStatement} label="Εξαγωγή CSV" />
+                  {/* Λεγόταν κι αυτό «Εξαγωγή CSV», όπως το κουμπί της κεφαλίδας
+                      τριάντα εικονοστοιχεία πιο πάνω — δύο αρχεία με το ίδιο όνομα
+                      και άλλο περιεχόμενο. Εδώ είναι η κατάσταση του ιδιοκτήτη. */}
+                  <ExportButton onClick={exportStatement} label="Κατάσταση σε CSV" />
                 </div>
               </>
             )}
@@ -695,17 +716,20 @@ function PStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</div>
-      <div style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{value}</div>
+      <div style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{value}</div>
     </div>
   );
 }
 
 function Num({ v, muted, bold, tone, mark, title }: { v: string; muted?: boolean; bold?: boolean; tone?: string; mark?: string; title?: string }) {
+  // ΜΙΑ ΓΡΑΜΜΑΤΟΣΕΙΡΑ ΓΙΑ ΤΟΥΣ ΑΡΙΘΜΟΥΣ. Ο πίνακας έγραφε τα ποσά σε monospace
+  // ενώ τα πλακίδια από πάνω τα έγραφαν στην αριθμητική του θέματος: το ίδιο
+  // «0,00 €» φαινόταν δύο διαφορετικά πράγματα σε απόσταση εκατό εικονοστοιχείων.
   return (
-    <td title={title} style={{ padding: '13px 14px', textAlign: 'right', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: bold ? 700 : 400, color: tone || (muted ? 'var(--text-secondary)' : 'var(--text-primary)') }}>
+    <td title={title} style={{ padding: '13px 14px', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: bold ? 700 : 400, color: tone || (muted ? 'var(--text-secondary)' : 'var(--text-primary)') }}>
       {v}
       {/* Η σήμανση της εκτίμησης μπαίνει ΔΙΠΛΑ ΣΤΟ ΠΟΣΟ: σε υποσημείωση δεν τη διαβάζει κανείς. */}
-      {mark && <span style={{ marginLeft: 5, fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, color: 'var(--warning)' }}>{mark}</span>}
+      {mark && <span style={{ marginLeft: 5, fontFamily: T.font.sans, fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)' }}>{mark}</span>}
     </td>
   );
 }
