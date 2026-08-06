@@ -30,7 +30,7 @@ const ctx = (o: Partial<FieldContext>): FieldContext =>
   ok('όλες έχουν επίσημη πηγή', owner.every(d => (d.sourceUrl || '').startsWith('https://')));
   ok('όλες είναι κρίσιμες για συμμόρφωση', owner.every(d => d.critical));
   ok('όλες λένε ποιος το κάνει', owner.every(d => /Ποιος το κάνει:/.test(d.note)));
-  ok('όλες λένε πόσο σίγουρη είναι η ημερομηνία', owner.every(d => /(Ημερομηνία του νόμου|επιβεβαίωσέ την)/.test(d.note)));
+  ok('όλες λένε πόσο σίγουρη είναι η ημερομηνία', owner.every(d => /(ορίζει ο νόμος|επιβεβαίωσέ την)/.test(d.note)));
   ok('μοναδικά κλειδιά', new Set(owner.map(d => d.ref)).size === owner.length);
   ok('κάθε κλειδί είναι φορολογικό', owner.every(d => isTaxTaskRef(d.ref) && isGeneratedRef(d.ref)));
   ok('κανένα εκτιμώμενο κόστος στο σχέδιο', owner.every(d => !('estimated_cost' in d)));

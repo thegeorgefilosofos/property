@@ -30,7 +30,7 @@ import { toStaySpan, staysOnDay, segMeta, channelColor, CHANNEL_COLORS, type Sta
 import { buildInviteICS, inviteMailto, inviteWhatsApp, inviteViber, canInvite } from '@/lib/calendar/invite'
 import {
   taxObligationsHorizon, taxObligationToEvent, taxProfileOf, taxKindMeta, taxKindOfEventSource,
-  TAX_EVENT_CATEGORY, CONFIDENCE_LABEL, AADE_CALENDAR_URL, TAXHEAVEN_CALENDAR_URL,
+  TAX_EVENT_CATEGORY, CONFIDENCE_LABEL, CONFIDENCE_HINT, AADE_CALENDAR_URL, TAXHEAVEN_CALENDAR_URL,
 } from '@/lib/tax/greekTaxCalendar'
 import { WHO_LABEL } from '@/lib/accounting/dossier'
 import { annuityMonthly } from '@/lib/loans/recommend'
@@ -286,15 +286,19 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
   const relLbl = (n:number) => { const a=Math.abs(n); return a===1?'1 ημέρα':`${a} ημέρες` }
   const [hover,setHover]=useState(false)
   const [menuOpen,setMenuOpen]=useState(false)
-  // Χρώμα μόνο όπου μετράει: η αριστερή γραμμή δείχνει κατηγορία (διακριτικά), ή
-  // κόκκινο όταν εκπρόθεσμο. Χωρίς πολύχρωμα badges/πηγή — καθαρή, ακριβή αίσθηση.
-  const accentBar = overdue?'var(--negative)':`color-mix(in srgb, ${cat.color} 50%, transparent)`
+  // ═══ ΤΟ ΕΚΠΡΟΘΕΣΜΟ ΔΕΝ ΧΡΕΙΑΖΕΤΑΙ ΚΟΚΚΙΝΟ ══════════════════════════════════
+  // Η κάρτα βαφόταν κόκκινη σε περίγραμμα και σε λωρίδα. Με τέσσερα εκπρόθεσμα
+  // στη σειρά, η οθόνη γινόταν ένα κόκκινο μπλοκ όπου τίποτα δεν ξεχωρίζει από
+  // τίποτα — και το κόκκινο σταματά να σημαίνει κάτι όταν το φοράνε όλοι.
+  // Η ίδια οθόνη το λύνει ήδη αλλού με ιεραρχία: πιο έντονη λωρίδα και πιο βαρύ
+  // νούμερο ημερών. Ίδια γλώσσα με τη λίστα «τι χρειάζεται τώρα» της Επισκόπησης.
+  const accentBar = overdue?'var(--accent)':`color-mix(in srgb, ${cat.color} 50%, transparent)`
 
   return (
     <div onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} style={{ display:'flex', alignItems:'flex-start', gap:11, padding:'12px 15px',
       background: selected?'var(--accent-dim)':done?'var(--bg-elevated)':'var(--bg-surface)',
-      border:`1px solid ${selected?'var(--border-accent)':overdue?'var(--negative-border)':'var(--border-subtle)'}`,
-      borderLeft:`3px solid ${accentBar}`,
+      border:`1px solid ${selected?'var(--border-accent)':'var(--border-subtle)'}`,
+      borderLeft:`${overdue?4:3}px solid ${accentBar}`,
       borderRadius:10, opacity:done?0.62:1, transition:'all 0.15s', boxShadow:'var(--shadow-sm)',
     }}>
       {bulkMode&&onSelect&&(
@@ -333,20 +337,27 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
             </a>
           )}
         </div>
+        {/* ═══ ΤΡΙΑ ΠΡΑΓΜΑΤΑ, ΤΑ ΔΥΟ ΙΔΙΑ ΣΕ ΚΑΘΕ ΚΑΡΤΑ ══════════════════════
+            Κάθε φορολογική προθεσμία κουβαλούσε τρεις ενδείξεις. Η μία —ποιος
+            την κάνει— αλλάζει ανά υποχρέωση και μένει. Οι άλλες δύο ήταν οι
+            ίδιες σε όλες: μια ολόκληρη προτροπή σε ετικέτα, και ένας σύνδεσμος
+            προς την ΙΔΙΑ σελίδα της ΑΑΔΕ. Με τέσσερα εκπρόθεσμα στη σειρά, ο
+            χρήστης διάβαζε τέσσερις φορές την ίδια πρόταση και έβλεπε τέσσερις
+            φορές τον ίδιο σύνδεσμο — που υπάρχει ούτως ή άλλως, μία φορά, στην
+            κορδέλα των φορολογικών προθεσμιών πάνω από τη λίστα. */}
         {taxInfo&&(
           <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginTop:7 }}>
             <Chip tone="neutral" title="Ποιος κάνει αυτή τη δουλειά">{WHO_LABEL[taxInfo.who]}</Chip>
-            <Chip tone={taxInfo.confidence==='statutory'?'neutral':'warning'}
-              title={taxInfo.confidence==='statutory'?'Σταθερή προθεσμία που ορίζει ο νόμος':'Η ακριβής ημερομηνία ανακοινώνεται κάθε χρόνο — επιβεβαίωσέ την στην πηγή'}>
+            <Chip tone="neutral" title={CONFIDENCE_HINT[taxInfo.confidence]}>
               {CONFIDENCE_LABEL[taxInfo.confidence]}
             </Chip>
-            <a href={taxInfo.official_url} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
-              style={{ fontSize:11, fontWeight:600, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>myAADE</a>
           </div>
         )}
       </div>
       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5, flexShrink:0 }}>
-        <span style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', fontWeight:due===0?600:400, color:due===0?'var(--text-primary)':'var(--text-secondary)' }}>
+        {/* Το βάρος κάνει τη δουλειά που έκανε το χρώμα: εκπρόθεσμο και σημερινό
+            διαβάζονται πιο έντονα, τα υπόλοιπα υποχωρούν. */}
+        <span style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', fontWeight:(overdue||due===0)?600:400, color:(overdue||due===0)?'var(--text-primary)':'var(--text-secondary)' }}>
           {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':due===1?'Αύριο':fmt(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
         </span>
         {!bulkMode&&(
@@ -803,11 +814,22 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
           <button aria-label="Κλείσιμο" onClick={onClose} style={{ width:T.h.sm, height:T.h.sm, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding:'18px 22px', overflowY:'auto', display:'flex', flexDirection:'column', gap:14 }}>
+        {/* ═══ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΚΟΒΟΤΑΝ ΣΤΗ ΜΕΣΗ ══════════════════════════════
+            Το σώμα είχε `overflowY:'auto'` μέσα σε στήλη flex — και αυτό ΔΕΝ
+            αρκεί. Χωρίς `minHeight:0` ένα παιδί flex δεν επιτρέπεται να
+            συρρικνωθεί κάτω από το περιεχόμενό του, οπότε δεν κύλησε ποτέ:
+            μεγάλωσε πέρα από το `maxHeight` του διαλόγου και η ετικέτα
+            «Κατάσταση» έμεινε μισοκρυμμένη πίσω από τη γραμμή των κουμπιών.
+            Δεν φαίνεται σε άδεια φόρμα· φαίνεται μόλις ανοίξουν οι λεπτομέρειες. */}
+        <div style={{ padding:'18px 22px', overflowY:'auto', flex:'1 1 auto', minHeight:0, display:'flex', flexDirection:'column', gap:14 }}>
           {/* Τίτλος + έξυπνη ανάγνωση φυσικής γλώσσας (quick-add) */}
           <div>
-            <input autoFocus value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} onFocus={focus} onBlur={blur} placeholder="Παράδειγμα: Service λέβητα Παρασκευή 10πμ" style={{...fld, height:48, fontSize:16, fontWeight:500}}/>
+            {/* Ήταν το μόνο πεδίο ΧΩΡΙΣ ετικέτα: το τι ζητούσε το έλεγε μόνο το
+                κείμενο-υπόδειγμα, που εξαφανίζεται με το πρώτο γράμμα. Και το
+                υπόδειγμα έγραφε «Service λέβητα Παρασκευή 10πμ»: μία αγγλική
+                λέξη και μία συντομογραφία ώρας, σε ελληνική εφαρμογή. */}
+            <label style={lbl}>Τίτλος</label>
+            <input autoFocus value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} onFocus={focus} onBlur={blur} placeholder="Συντήρηση λέβητα, Παρασκευή 10:00" style={{...fld, height:48, fontSize:16, fontWeight:500}}/>
             {(()=>{ if(editing)return null; const qa=parseQuickAdd(form.title, new Date()); const hasExtra=!!(qa.date||qa.time)&&(qa.date!==form.event_date||qa.time!==(form.event_time||null)||qa.title!==form.title); if(!hasExtra)return null
               const dLbl=qa.date?new Date(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
               return (
@@ -859,14 +881,14 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
-                <label style={lbl}>Ποσό (€)</label>
-                <input type="number" style={fld} placeholder="0" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} onFocus={focus} onBlur={blur}/>
+                <label style={lbl}>Ποσό σε ευρώ</label>
+                <input type="number" style={fld} placeholder="0,00" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} onFocus={focus} onBlur={blur}/>
               </div>
               {form.event_time&&(
                 <div>
                   <label style={lbl}>Διάρκεια</label>
                   <select style={sel} value={form.duration} onChange={e=>setForm(f=>({...f,duration:e.target.value}))} onFocus={focus} onBlur={blur}>
-                    <option value="">—</option><option value="30">30 λεπτά</option><option value="60">1 ώρα</option><option value="90">1 ώρα 30 λεπτά</option><option value="120">2 ώρες</option><option value="180">3 ώρες</option>
+                    <option value="">Χωρίς διάρκεια</option><option value="30">30 λεπτά</option><option value="60">1 ώρα</option><option value="90">1 ώρα 30 λεπτά</option><option value="120">2 ώρες</option><option value="180">3 ώρες</option>
                   </select>
                 </div>
               )}
@@ -875,18 +897,18 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
             {amt>0&&!editing&&(
               <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', padding:'10px 12px', borderRadius:10, background:form.add_expense?'var(--accent-soft)':'var(--bg-surface)', border:'1px solid '+(form.add_expense?'var(--accent-border)':'var(--border-subtle)'), transition:'all 0.15s' }}>
                 <input type="checkbox" checked={form.add_expense} onChange={e=>setForm(f=>({...f,add_expense:e.target.checked}))} style={{ width:16, height:16, accentColor:'var(--accent)', cursor:'pointer' }}/>
-                <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> & τον <strong>Προϋπολογισμό</strong> ({fe(amt)} €)</span>
+                <span style={{ fontSize:12.5, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> & τον <strong>Προϋπολογισμό</strong> ({fe(amt)})</span>
               </label>
             )}
             {/* Επικοινωνία */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
                 <label style={lbl}>Τηλέφωνο</label>
-                <input type="tel" style={fld} placeholder="69…" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} onFocus={focus} onBlur={blur}/>
+                <input type="tel" style={fld} placeholder="6912345678" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} onFocus={focus} onBlur={blur}/>
               </div>
               <div>
-                <label style={lbl}>Email</label>
-                <input type="email" style={fld} placeholder="name@…" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} onFocus={focus} onBlur={blur}/>
+                <label style={lbl}>Ηλεκτρονική διεύθυνση</label>
+                <input type="email" style={fld} placeholder="onoma@etaireia.gr" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} onFocus={focus} onBlur={blur}/>
               </div>
             </div>
             {/* Πρόσκληση συμμετέχοντα — στέλνει invite (.ics/mailto/WhatsApp/Viber) στην επαφή */}
@@ -898,24 +920,30 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
                 <div>
                   <label style={lbl}>Πρόσκληση</label>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    {cap.email&&<a href={inviteMailto(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><FileText size={13}/>Email</a>}
+                    {cap.email&&<a href={inviteMailto(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><FileText size={13}/>Με μήνυμα</a>}
                     {cap.phone&&<a href={inviteWhatsApp(inv)} target="_blank" rel="noreferrer" style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>WhatsApp</a>}
                     {cap.phone&&<a href={inviteViber(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>Viber</a>}
-                    <button type="button" onClick={()=>{ const blob=new Blob([buildInviteICS(inv)],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='invite.ics'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000) }} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarPlus size={13}/>.ics</button>
+                    <button type="button" onClick={()=>{ const blob=new Blob([buildInviteICS(inv)],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='invite.ics'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000) }} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarPlus size={13}/>Αρχείο ημερολογίου</button>
                   </div>
                 </div>
               )
             })()}
             <div>
-              <label style={lbl}>Σύνδεσμος (τιμολόγιο, σύμβαση)</label>
+              <label style={lbl}>Σύνδεσμος τιμολογίου ή σύμβασης</label>
               <input style={fld} placeholder="https://…" value={form.attachment_url} onChange={e=>setForm(f=>({...f,attachment_url:e.target.value}))} onFocus={focus} onBlur={blur}/>
             </div>
             {/* Κατάσταση */}
             <div>
               <label style={lbl}>Κατάσταση</label>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                {/* Η επιλεγμένη κατάσταση βαφόταν με το ΣΗΜΑΣΙΟΛΟΓΙΚΟ χρώμα της:
+                    πορτοκαλί το «Εκκρεμεί», πράσινο το «Πληρώθηκε», κόκκινο το
+                    «Ακυρώθηκε». Δηλαδή η φόρμα έβγαζε ετυμηγορία για μια επιλογή
+                    που μόλις έκανε ο χρήστης, και το «Εκκρεμεί» —η προεπιλογή
+                    κάθε νέου γεγονότος— άνοιγε πάντα με προειδοποιητικό χρώμα.
+                    Η επιλογή δείχνει ΕΠΙΛΟΓΗ, με το χρώμα της επιλογής. */}
                 {Object.entries(STATUSES).map(([k,v])=>(
-                  <button key={k} onClick={()=>setForm(f=>({...f,status:k as EventStatus}))} style={{ height:T.h.sm, padding:'0 14px', borderRadius:18, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:500, border:`1px solid ${form.status===k?v.color:'var(--border-subtle)'}`, background:form.status===k?`color-mix(in srgb, ${v.color} 10%, transparent)`:'transparent', color:form.status===k?v.color:'var(--text-secondary)', transition:'all 0.15s' }}>{v.label}</button>
+                  <button key={k} onClick={()=>setForm(f=>({...f,status:k as EventStatus}))} style={{ height:T.h.sm, padding:'0 14px', borderRadius:18, cursor:'pointer', fontSize:12.5, fontFamily: T.font.sans, fontWeight:form.status===k?600:500, border:`1px solid ${form.status===k?'var(--accent-border)':'var(--border-subtle)'}`, background:form.status===k?'var(--accent-soft)':'transparent', color:form.status===k?'var(--accent)':'var(--text-secondary)', transition:'all 0.15s' }}>{v.label}</button>
                 ))}
               </div>
             </div>
@@ -1248,7 +1276,16 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   // Κάθε γεγονός περνά από ΜΙΑ κανονικοποίηση κατηγορίας: άλλες καρτέλες γράφουν
   // τιμές που το ημερολόγιο δεν γνώριζε ('rent_due', 'insurance_renewal', …) και
   // έσπαγαν την απόδοση. Μεταφράζονται εδώ, μία φορά, για όλες τις χρήσεις.
-  const normalize=(rows:CalEvent[]|null)=>(rows||[]).map(e=>({...e,category:canonicalCategory(e.category)}))
+  // ΟΤΑΝ ΞΕΡΟΥΜΕ ΟΤΙ ΕΙΝΑΙ ΦΟΡΟΛΟΓΙΚΗ ΠΡΟΘΕΣΜΙΑ, ΤΟ ΛΕΜΕ. Παλιές εγγραφές
+  // συγχρονισμού έχουν αποθηκευμένη κατηγορία «contract», οπότε το «Ε9, δήλωση
+  // μεταβολών ακινήτων» και ο ΕΝΦΙΑ εμφανίζονταν ως «Συμβόλαιο» — ενώ η ίδια
+  // κάρτα από δίπλα έδειχνε στοιχεία ΑΑΔΕ. Η πηγή του γεγονότος τα αναγνωρίζει
+  // με βεβαιότητα (γι' αυτό εμφανίζονται τα στοιχεία), άρα η κατηγορία
+  // διορθώνεται στην ανάγνωση και για τα παλιά δεδομένα, μία φορά, εδώ.
+  const normalize=(rows:CalEvent[]|null)=>(rows||[]).map(e=>({
+    ...e,
+    category: taxKindOfEventSource(e.source) ? TAX_EVENT_CATEGORY : canonicalCategory(e.category),
+  }))
   async function load() {
     setLoading(true)
     const{data}=await supabase.from('calendar_events').select('*').eq('property_id',propertyId).order('event_date')

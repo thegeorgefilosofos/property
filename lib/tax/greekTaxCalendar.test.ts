@@ -3,7 +3,7 @@
 import {
   greekPropertyTaxObligations, taxObligationToEvent, taxObligationNotes, nextWorkingDay, lastWorkingDayOfMonth,
   taxObligationsHorizon, taxProfileOf, taxEventSource, taxKindOfEventSource, taxKindMeta,
-  isTaxEventSource, TAX_KINDS, TAX_EVENT_CATEGORY, CONFIDENCE_LABEL,
+  isTaxEventSource, TAX_KINDS, TAX_EVENT_CATEGORY, CONFIDENCE_LABEL, CONFIDENCE_HINT,
   type TaxObligation,
 } from './greekTaxCalendar'
 import { isNonWorkingDay } from '../calendar/greekHolidays'
@@ -90,7 +90,8 @@ ok('announced → priority medium', owner
   .filter(o => o.confidence === 'announced')
   .every(o => taxObligationToEvent(o, 'p', 'u').priority === 'medium'))
 ok('notes λένε ποιος το κάνει', owner.every(o => taxObligationNotes(o).includes(WHO_LABEL[o.who])))
-ok('notes λένε πόσο σίγουρη είναι η ημερομηνία', owner.every(o => taxObligationNotes(o).includes(CONFIDENCE_LABEL[o.confidence])))
+ok('notes λένε πόσο σίγουρη είναι η ημερομηνία, με την πλήρη εξήγηση',
+   owner.every(o => taxObligationNotes(o).includes(CONFIDENCE_HINT[o.confidence])))
 
 // ── διαφορετικό έτος μετακινεί σωστά ─────────────────────────────────────────
 const y2027 = greekPropertyTaxObligations(2027, 'owner')

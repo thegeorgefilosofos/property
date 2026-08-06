@@ -21,7 +21,7 @@ import { join } from 'node:path'
 import { computeObligations, calendarWritable, oblToCalendarCategory, type Obligation } from './obligations'
 import {
   taxObligationsHorizon, taxObligationToEvent, taxEventSource, taxKindOfEventSource,
-  taxObligationNotes, lastWorkingDayOfMonth, nextWorkingDay, TAX_EVENT_CATEGORY, CONFIDENCE_LABEL,
+  taxObligationNotes, lastWorkingDayOfMonth, nextWorkingDay, TAX_EVENT_CATEGORY, CONFIDENCE_LABEL, CONFIDENCE_HINT,
 } from '@/lib/tax/greekTaxCalendar'
 import { declarationDeadline } from '@/lib/tax/leaseDeclaration'
 import { WHO_LABEL } from '@/lib/accounting/dossier'
@@ -112,7 +112,7 @@ ok('η μακροχρόνια ΔΕΝ βλέπει βραχυχρόνιες', !ob
 ok('κάθε υποχρέωση λέει ποιον αφορά', obls.every(o => !!WHO_LABEL[o.who]))
 ok('οι θεσμικές φέρουν confidence', taxObls.every(o => o.confidence === 'statutory' || o.confidence === 'announced'))
 ok('οι θεσμικές φέρουν επίσημη πηγή', taxObls.every(o => (o.officialUrl || '').includes('aade.gr')))
-ok('το confidence φαίνεται στο κείμενο', taxObls.every(o => o.note.includes(CONFIDENCE_LABEL[o.confidence!])))
+ok('το confidence φαίνεται στο κείμενο', taxObls.every(o => o.note.includes(CONFIDENCE_HINT[o.confidence!])))
 ok('η ΕΝΦΙΑ 1η δόση είναι «announced»', enfiaFirst!.confidence === 'announced')
 ok('η δήλωση διαμονής είναι «statutory»', shortTax.find(o => taxKindOfEventSource(o.source) === 'str-registry')!.confidence === 'statutory')
 ok('ΕΝΦΙΑ: ο ιδιοκτήτης', enfiaFirst!.who === 'owner')
