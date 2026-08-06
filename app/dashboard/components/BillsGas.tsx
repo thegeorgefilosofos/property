@@ -348,7 +348,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
 
       {/* ── Στοιχεία σύνδεσης ── */}
       <div style={card}>
-        {secHdr('Στοιχεία Σύνδεσης & Πάροχος')}
+        {secHdr('Στοιχεία σύνδεσης και πάροχος')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Διαχειριστής Δικτύου (ΕΔΑ)" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
           <CustomSelect label="Τύπος Θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })}
@@ -495,7 +495,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           hints.push({ text: `Το τρέχον πρόγραμμα έχει Dual Fuel έκπτωση −${fk(dualFuelTariff)}/kWh λόγω κοινού παρόχου με το ρεύμα.`, severity: 'info' });
         }
         if (isHeatingSeason && noGasDataYet && s.heatingType === 'autonomous_gas') {
-          hints.push({ text: 'Είμαστε σε περίοδο θέρμανσης και δεν έχεις καταχωρήσει ακόμα κατανάλωση ή κόστος αερίου. Συμπλήρωσε τα στοιχεία για ακριβή παρακολούθηση.', severity: 'warning' });
+          hints.push({ text: 'Είμαστε σε περίοδο θέρμανσης και δεν έχεις καταχωρήσει ακόμη κατανάλωση ή κόστος αερίου. Συμπλήρωσε τα στοιχεία για ακριβή παρακολούθηση.', severity: 'warning' });
         }
         if (tariff?.type === 'variable' && kwh > 800) {
           hints.push({ text: `Με ${kwh} kWh/μήνα, ένα σταθερό τιμολόγιο θα σε προστάτευε από διακυμάνσεις TTF τον χειμώνα, τότε οι τιμές συνήθως ανεβαίνουν.`, severity: 'tip' });

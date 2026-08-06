@@ -340,7 +340,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
         {otherProperties.length === 0 ? (
           /* Το κενό <p style={{fontSize:32}}> ήταν νεκρή υποδοχή εικονιδίου: το primitive
              δεν δεχόταν icon, οπότε κάποιος άφησε τη θέση του και δεν την γέμισε ποτέ. */
-          <EmptyState icon={<Building2 size={20}/>} title="Δεν υπάρχουν άλλα ακίνητα" hint="Η αντιγραφή απογραφής χρειάζεται δεύτερο ακίνητο ως πηγή." />
+          <EmptyState icon={<Building2 size={20}/>} title="Κανένα άλλο ακίνητο" hint="Η αντιγραφή απογραφής χρειάζεται δεύτερο ακίνητο ως πηγή." />
         ) : (
           <>
             <div>
@@ -818,7 +818,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
             {selMonthTotal>0 && <span style={{fontFamily: T.font.mono,fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
           </div>
           {selCatEntries.length===0
-            ? <EmptyState icon={<Receipt size={20}/>} title={`Δεν υπάρχουν δαπάνες για ${MONTHS_LONG[selMonth]} ${chartYear}`} hint="Διάλεξε άλλον μήνα ή καταχώρησε δαπάνη στην καρτέλα «Δαπάνες»." />
+            ? <EmptyState icon={<Receipt size={20}/>} title={`Δεν βρέθηκαν δαπάνες για ${MONTHS_LONG[selMonth]} ${chartYear}`} hint="Διάλεξε άλλον μήνα ή καταχώρησε δαπάνη στην καρτέλα «Δαπάνες»." />
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {/* Η κουκκίδα είναι ουδέτερη: ο πίνακας `catColors` ήταν πέντε
                     πανομοιότυπες τιμές, δηλαδή πέντε φορές το ίδιο χρώμα με τη
@@ -858,7 +858,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Μέσοι λογαριασμοί</div>
           {bills.length===0
-            ? <EmptyState icon={<FileText size={20}/>} title="Δεν υπάρχουν λογαριασμοί" hint="Πρόσθεσε ρεύμα, νερό και πάγια για να δεις μέσο μηνιαίο κόστος." action={<Btn variant="secondary" onClick={()=>onNavigate('finances')}>Λογαριασμοί</Btn>} />
+            ? <EmptyState icon={<FileText size={20}/>} title="Κανένας λογαριασμός ακόμη" hint="Πρόσθεσε ρεύμα, νερό και πάγια για να δεις μέσο μηνιαίο κόστος." action={<Btn variant="secondary" onClick={()=>onNavigate('finances')}>Λογαριασμοί</Btn>} />
             : <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {bills.slice(0,5).map(b => (
                   <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -1662,13 +1662,13 @@ export default function Dashboard() {
               <button onClick={()=>setNav('referral')} title={isPartner?'Είσαι Συνεργάτης Property OS · Πρόγραμμα Συνεργατών':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'} · Πρόγραμμα ${effProfileType==='professional'?'Συνεργατών':'Πρόσκλησης'}`} aria-label="Η ιδιότητά μου και το πρόγραμμα πρόσκλησης" style={{display:'flex',alignItems:'center',height:T.h.md,padding:0,border:'none',background:'transparent',cursor:'pointer',marginRight:8,borderRadius:'50%',transition:'transform .15s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
                 <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} showLabel={false} size={30} />
               </button>
-              <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση & γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση και γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
                 <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
               </button>
             </>
           ) : (
-            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div></>
+            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμη</div></>
           )}
         </header>
 

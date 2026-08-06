@@ -880,7 +880,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       </div>
 
       {clients.length === 0 ? (
-        <EmptyState icon={<Users size={20} />} title="Δεν υπάρχουν επισκέπτες ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb/Booking με «Εισαγωγή iCal» ή επικόλλησε ένα email κράτησης — και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
+        <EmptyState icon={<Users size={20} />} title="Κανένας επισκέπτης ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb/Booking με «Εισαγωγή iCal» ή επικόλλησε ένα email κράτησης — και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
       ) : filtered.length === 0 ? (
         // Ο έλεγχος από πάνω κοιτούσε τα `clients`, αλλά το πλέγμα αποδίδει τα
         // `filtered`: με αναζήτηση ή φίλτρο που δεν ταιριάζει σε κανέναν, ο χρήστης
@@ -1290,7 +1290,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </div>
 
                   {/* ── ΦΘΟΡΕΣ, ΣΥΝΔΕΔΕΜΕΝΕΣ ΜΕ ΤΗΝ ΑΠΟΓΡΑΦΗ ────────────── */}
-                  {secHead('Φθορές & σημειώσεις')}
+                  {secHead('Φθορές και σημειώσεις')}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
                       <FlagSwitch on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} onLabel="Καταγράφηκαν φθορές" offLabel="Χωρίς φθορές" />
@@ -1564,8 +1564,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <TextInput label="Σύνδεσμος iCal (URL)" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-                <Btn variant="secondary" onClick={fetchIcalFromUrl} disabled={icalBusy || !icalUrl.trim()}>{icalBusy ? 'Ανάκτηση…' : 'Ανάκτηση & προεπισκόπηση'}</Btn>
-                <Btn variant="primary" onClick={saveIcalFeed} disabled={icalBusy || !icalUrl.trim() || !icalPropertyId}>Αποθήκευση & αυτόματος συγχρονισμός</Btn>
+                <Btn variant="secondary" onClick={fetchIcalFromUrl} disabled={icalBusy || !icalUrl.trim()}>{icalBusy ? 'Ανάκτηση…' : 'Ανάκτηση και προεπισκόπηση'}</Btn>
+                <Btn variant="primary" onClick={saveIcalFeed} disabled={icalBusy || !icalUrl.trim() || !icalPropertyId}>Αποθήκευση και αυτόματος συγχρονισμός</Btn>
               </div>
 
               {/* Αποθηκευμένοι σύνδεσμοι (ανά επιλεγμένο ακίνητο) */}

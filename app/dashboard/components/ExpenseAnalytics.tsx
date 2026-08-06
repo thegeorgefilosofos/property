@@ -331,7 +331,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
         <KPICard label="Μέσος όρος τον μήνα" value={fmtEur(stats.avgMonthly)} hint={`σε ${stats.monthsWithData} ${stats.monthsWithData === 1 ? 'μήνα' : 'μήνες'} με κινήσεις`} />
         <KPICard label="Πρόβλεψη έτους" value={fmtEur(stats.projectedAnnual)} hint="με βάση τον ρυθμό σου" />
         <KPICard label="Πάγιες / επαναλαμβανόμενες" value={fmtEur(stats.recurringTotal)} />
-        <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} positive={stats.totalSavings > 0} hint={stats.totalSavings > 0 ? 'επιστροφές & εκπτώσεις' : undefined} />
+        <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} positive={stats.totalSavings > 0} hint={stats.totalSavings > 0 ? 'επιστροφές και εκπτώσεις' : undefined} />
         {stats.topCat && <KPICard label="Μεγαλύτερη κατηγορία" value={stats.topCat[0]} hint={fmtEur(stats.topCat[1])} />}
       </div>
 
@@ -360,7 +360,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
           <SectionLabel label="Πού πάνε τα χρήματα" />
           {groupData.length > 0
             ? <RankBars data={groupData} total={stats.total} />
-            : <EmptyState icon={<Receipt size={20} />} title="Καμία κίνηση στην περίοδο" hint="Άλλαξε περίοδο ή καταχώρησε δαπάνες για να δεις πού πάνε τα χρήματα." />}
+            : <EmptyState icon={<Receipt size={20} />} title="Δεν βρέθηκαν κινήσεις στην περίοδο" hint="Άλλαξε περίοδο ή καταχώρησε δαπάνες για να δεις πού πάνε τα χρήματα." />}
         </Card>
 
         {/* Σωρευτικές έτους */}
@@ -404,7 +404,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               );
             })}
             {Object.keys(stats.byPayment).length === 0 && (
-              <EmptyState icon={<CreditCard size={20} />} title="Κανένας τρόπος πληρωμής" hint="Δήλωσε κάρτα ή μετρητά στις δαπάνες για να δεις κατανομή και επιστροφές χρημάτων." />
+              <EmptyState icon={<CreditCard size={20} />} title="Κανένας τρόπος πληρωμής ακόμη" hint="Δήλωσε κάρτα ή μετρητά στις δαπάνες για να δεις κατανομή και επιστροφές χρημάτων." />
             )}
             {stats.totalCashback > 0 && (
               <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

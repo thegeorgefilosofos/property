@@ -147,7 +147,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
         </div>
 
         <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Δεν υπάρχουν ακίνητα" hint="Πρόσθεσε ακίνητο για να ορίσεις ποσοστά συνιδιοκτησίας." /> : (
+          {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε ακίνητο για να ορίσεις ποσοστά συνιδιοκτησίας." /> : (
             <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <div style={{ flex: '2 1 200px', minWidth: 0 }}>
@@ -240,7 +240,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
           <span style={{ ...TT.bodySm }}>{prop?.name || ABSENT} · {periodLabel}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Btn variant="secondary" onClick={() => { saveLayout(); onClose(); }}>Αποθήκευση & κλείσιμο</Btn>
+            <Btn variant="secondary" onClick={() => { saveLayout(); onClose(); }}>Αποθήκευση και κλείσιμο</Btn>
             <Btn variant="primary" onClick={exportPdf} disabled={busy || !result.valid}>{busy ? 'Δημιουργία…' : 'Κατάσταση κατανομής (PDF)'}</Btn>
           </div>
         </div>

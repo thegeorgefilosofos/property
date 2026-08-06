@@ -23,7 +23,9 @@
     "writes": "node scripts/unchecked-writes.mjs",
     "test": "node scripts/test.mjs",
     "e2e": "node scripts/e2e-public-tools.mjs",
-    "greek-numbers": "node scripts/guard-greek-numbers.mjs"
+    "greek-numbers": "node scripts/guard-greek-numbers.mjs",
+    "dashes": "node scripts/guard-dashes.mjs",
+    "empty-states": "node scripts/guard-empty-states.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

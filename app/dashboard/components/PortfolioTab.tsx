@@ -431,7 +431,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   if (!properties.length) return (
     <div>
       <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα του χαρτοφυλακίου" />
-      <EmptyState icon={<Building2 size={20} />} title="Δεν υπάρχουν ακόμη ακίνητα" hint="Πρόσθεσε το πρώτο σου ακίνητο για να δεις τη συγκεντρωτική εικόνα εδώ." />
+      <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε το πρώτο σου ακίνητο για να δεις τη συγκεντρωτική εικόνα εδώ." />
     </div>
   );
 
@@ -612,7 +612,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       {showStatements && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowStatements(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
-            <SecHdr label="Καταστάσεις ιδιοκτήτη" sub={`Έσοδα, δαπάνες & καθαρό ανά ακίνητο · ${year}`}
+            <SecHdr label="Καταστάσεις ιδιοκτήτη" sub={`Έσοδα, δαπάνες και καθαρό ανά ακίνητο · ${year}`}
               right={<button type="button" aria-label="Κλείσιμο" onClick={() => setShowStatements(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1 }}>✕</button>} />
             <select value={stmt?.id || ''} onChange={e => setStmtOwner(e.target.value)} style={{ ...fieldStyle, marginBottom: 18 }}>
               {owners.map(o => <option key={o.id} value={o.id}>{o.name} · {o.rows.length} {o.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</option>)}

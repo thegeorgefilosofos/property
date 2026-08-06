@@ -516,7 +516,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
       {/* ── Provider + Tariff + Contract ── */}
       <div style={card}>
-        {secHdr('Πάροχος & Τιμολόγιο')}
+        {secHdr('Πάροχος και τιμολόγιο')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 7, fontFamily: T.font.sans }}>Πάροχος</div>
@@ -650,7 +650,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
       {/* ── Κατανάλωση + υπολογισμός ── */}
       <div style={card}>
-        {secHdr('Κατανάλωση & Εκτιμώμενο Κόστος')}
+        {secHdr('Κατανάλωση και εκτιμώμενο κόστος')}
         <div style={{ display: 'grid', gridTemplateColumns: tariff.kwh_night ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14, marginBottom: 14 }}>
           <NumberInput label="Μέση Μηνιαία Κατανάλωση (kWh)" value={kwhMonthly} onChange={v => { setKwhMonthly(v); save({ kwhMonthly: v }); }} suffix="kWh" step={10}/>
           {tariff.kwh_night && <NumberInput label="Νυχτερινή Κατανάλωση (%)" value={nightPct} onChange={v => { setNightPct(v); save({ nightPct: v }); }} suffix="%" step={5}/>}

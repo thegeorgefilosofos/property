@@ -1115,7 +1115,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Streaming & Ψυχαγωγία ────────────────────────────────────────── */}
       <div style={card}>
-        {secHdr('Streaming & Ψυχαγωγία')}
+        {secHdr('Streaming και ψυχαγωγία')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
           {STREAMING.map(svc => {
             const active  = (activeStreaming || []).find(a => a.service === svc.value);
@@ -1182,7 +1182,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Cloud & Λογισμικό ────────────────────────────────────────────── */}
       <div style={card}>
-        {secHdr('Cloud & Λογισμικό')}
+        {secHdr('Cloud και λογισμικό')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: 8, marginBottom: 14 }}>
           {CLOUD.map(svc => {
             const active  = (activeCloud || []).find(a => a.service === svc.value);

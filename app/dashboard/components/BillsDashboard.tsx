@@ -735,7 +735,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         {bills.length === 0 ? (
           <EmptyState
             icon={<Receipt size={20} />}
-            title="Δεν υπάρχουν λογαριασμοί"
+            title="Κανένας λογαριασμός ακόμη"
             hint="Πρόσθεσε τα συμβόλαια παρόχων και τα πάγια έξοδα του ακινήτου: ρεύμα, κοινόχρηστα, διαδίκτυο, ασφάλεια."
             /* Το κουμπί «Προσθήκη λογαριασμού» στέκει ήδη στη γραμμή εργαλείων,
                τριάντα εικονοστοιχεία πιο πάνω, με το ίδιο ακριβώς κείμενο. */
@@ -743,8 +743,8 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         ) : visibleBills.length === 0 ? (
           <EmptyState
             icon={<Receipt size={20} />}
-            title={`Κανένας λογαριασμός στην κατηγορία «${cat(catFilter).label}»`}
-            hint="Πρόσθεσε τον πρώτο λογαριασμό αυτής της κατηγορίας, ή δες όλες τις κατηγορίες μαζί."
+            title={`Δεν βρέθηκαν λογαριασμοί στην κατηγορία «${cat(catFilter).label}»`}
+            hint="Δες όλες τις κατηγορίες μαζί, ή πρόσθεσε τον πρώτο λογαριασμό αυτής."
             action={<Btn onClick={() => setCatFilter('all')}>Όλες οι κατηγορίες</Btn>}
           />
         ) : (

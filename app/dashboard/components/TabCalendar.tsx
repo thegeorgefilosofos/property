@@ -501,7 +501,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                             </div>
                           </Tooltip>
                         ))}
-                        {dayEvents.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:3, fontFamily: T.font.sans }}>+{dayEvents.length-3} ακόμα</span>}
+                        {dayEvents.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:3, fontFamily: T.font.sans }}>+{dayEvents.length-3} ακόμη</span>}
                       </div>
                       {dayAmt>0&&<div style={{ marginTop:2 }}><span style={{ fontSize:10, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>{fe(dayAmt)}</span></div>}
                     </>
@@ -1785,7 +1785,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
               {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode}/>))}
             </div>
           )}
-          {monthEvents.length===0&&<EmptyState icon={<CalendarDays size={20}/>} title="Δεν υπάρχουν γεγονότα αυτόν τον μήνα" hint="Πάτησε σε μια ημέρα για να προσθέσεις ραντεβού, πληρωμή ή υπενθύμιση." />}
+          {monthEvents.length===0&&<EmptyState icon={<CalendarDays size={20}/>} title="Δεν βρέθηκαν γεγονότα αυτόν τον μήνα" hint="Πάτησε σε μια ημέρα για να προσθέσεις ραντεβού, πληρωμή ή υπενθύμιση." />}
         </div>
       )}
 
@@ -1796,7 +1796,13 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           {thisMonth.length>0&&<Section title="Αυτόν τον μήνα" color="var(--text-secondary)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {later.length>0&&<Section title="Αργότερα" color="var(--text-secondary)" events={later} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {done.length>0&&<Section title="Ολοκληρωμένα / Ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed desc bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {filtered.length===0&&<EmptyState icon={<CalendarDays size={20}/>} title="Δεν υπάρχουν γεγονότα" hint="Άλλαξε φίλτρο ή περίοδο, ή πρόσθεσε νέο γεγονός." />}
+          {/* ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ ΚΕΝΕΣ ΚΑΤΑΣΤΑΣΕΙΣ, ΟΧΙ ΜΙΑ. Το «άλλαξε φίλτρο» σε
+              λογαριασμό χωρίς ούτε ένα γεγονός στέλνει τον χρήστη να ψάξει
+              ρύθμιση που δεν φταίει· το «πρόσθεσε γεγονός» σε φιλτραρισμένη όψη
+              κρύβει ότι τα γεγονότα υπάρχουν και απλώς δεν ταιριάζουν. */}
+          {filtered.length===0&&(events.length===0
+            ? <EmptyState icon={<CalendarDays size={20}/>} title="Κανένα γεγονός ακόμη" hint="Πάτησε σε μια ημέρα για να προσθέσεις ραντεβού, πληρωμή ή υπενθύμιση." />
+            : <EmptyState icon={<CalendarDays size={20}/>} title="Δεν βρέθηκαν γεγονότα" hint="Άλλαξε φίλτρο ή περίοδο για να δεις τα υπόλοιπα." />)}
         </div>
       )}
 

@@ -631,7 +631,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
       {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (Επαγγελματίας ή μέλος ομάδας) ───────────── */}
       {(profileType === 'professional' || inOrg) && (
-        <CollapsibleSection title="Οργανισμός & Ομάδα" delay="110ms">
+        <CollapsibleSection title="Οργανισμός και ομάδα" delay="110ms">
           <OrgTeam userId={userId} />
         </CollapsibleSection>
       )}
@@ -705,7 +705,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       </CollapsibleSection>
 
       {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
-      <CollapsibleSection title="Δεδομένα & Απόρρητο" delay="340ms">
+      <CollapsibleSection title="Δεδομένα και απόρρητο" delay="340ms">
         <SettingRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σας αφορά, σε ένα αρχείο JSON: ακίνητα, μισθώσεις, δαπάνες, λογαριασμοί, πελάτες, έγγραφα και ό,τι άλλο έχει καταχωρηθεί. Δικαίωμα φορητότητας δεδομένων."
           control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
         {exportErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{exportErr}</div>}

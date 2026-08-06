@@ -893,7 +893,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           {activePrograms.length===0&&(
             <EmptyState
               icon={<Gift size={20}/>}
-              title="Δεν υπάρχουν ενεργά προγράμματα"
+              title="Κανένα ενεργό πρόγραμμα"
               hint="Τα κρατικά προγράμματα στέγασης εμφανίζονται εδώ μόλις ανοίξει νέος κύκλος."
             />
           )}

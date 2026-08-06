@@ -398,7 +398,7 @@ function CommentsEditor({ comments, onChange }: { comments: Comment[]; onChange:
         <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
-        {comments.length === 0 && <EmptyState icon={<MessageSquare size={20} />} title="Δεν υπάρχουν σχόλια ακόμα" hint="Γράψε σημείωση για να κρατήσεις το ιστορικό της εκκρεμότητας." />}
+        {comments.length === 0 && <EmptyState icon={<MessageSquare size={20} />} title="Κανένα σχόλιο ακόμη" hint="Γράψε σημείωση για να κρατήσεις το ιστορικό της εκκρεμότητας." />}
         {comments.map(c => (
           <div key={c.id} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)', position: 'relative' }}>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{new Date(c.ts).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
@@ -1833,7 +1833,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     if (tenantData && tenantData.length > 0 && !existingTemplates.has('checkin'))
       suggestions.push({ title: 'Νέος Ενοικιαστής', reason: 'Βρέθηκε ενοικιαστής, δημιούργησε check-in checklist', templateKey: 'checkin' })
     if (!(itemData || []).some((i: any) => i.category === 'maintenance') && !existingTemplates.has('maintenance'))
-      suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Δεν υπάρχουν εργασίες συντήρησης ακόμα', templateKey: 'maintenance' })
+      suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Καμία εργασία συντήρησης ακόμη', templateKey: 'maintenance' })
     // Ο τίτλος ακολουθεί την ετικέτα του προτύπου: το «Νομικά / ΑΑΔΕ» έγινε
     // «Έγγραφα ακινήτου» όταν οι φορολογικές υποχρεώσεις έφυγαν από το πρότυπο
     // και πήγαν στο ένα ημερολόγιο. Δύο ονόματα για το ίδιο κουμπί μπερδεύουν.
@@ -2360,7 +2360,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<SearchX size={20} />}
-          title="Δεν βρέθηκαν αποτελέσματα"
+          title="Δεν βρέθηκαν εκκρεμότητες"
           hint="Δοκίμασε διαφορετικά φίλτρα ή καθάρισε την αναζήτηση."
           action={<Btn variant="secondary" onClick={clearFilters}>Καθαρισμός φίλτρων</Btn>}
         />

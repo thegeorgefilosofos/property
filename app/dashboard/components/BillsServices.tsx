@@ -502,7 +502,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 // Τα tokens accent-soft/accent-border ακολουθούν το θέμα.
                 <EmptyState
                   icon={<Calculator size={20} />}
-                  title="Συμπλήρωσε εμβαδόν + τιμή ζώνης"
+                  title="Συμπλήρωσε εμβαδόν και τιμή ζώνης"
                   hint="Η τιμή ζώνης βρίσκεται στο myAADE → Εφαρμογές → Δήλωση Ε9/ΕΝΦΙΑ"
                   action={
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>

@@ -887,13 +887,13 @@ export default function TabDocuments({
           {[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} h={120} r={12}/>)}
         </div>
       ) : items.length === 0 ? (
-        <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Το αρχείο του ακινήτου είναι κενό"
+        <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Κανένα έγγραφο ακόμη"
           hint="Από κάθε λογαριασμό, απόδειξη ή συμβόλαιο αναγνωρίζονται πάροχος, ΑΦΜ, ποσό, ημερομηνία και περίοδος — και το έγγραφο αρχειοθετείται στην κατηγορία του."
           action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Καταχώριση πρώτου αρχείου</Btn>}/></div>
       ) : (
         <FileList items={visible} groups={groups} a={fileActions(true)}
           empty={<EmptyState icon={<SearchX size={20}/>}
-            title="Κανένα αρχείο με αυτά τα φίλτρα"
+            title="Δεν βρέθηκαν έγγραφα"
             hint={q ? `Καμία αντιστοιχία για «${query}». Η αναζήτηση καλύπτει πάροχο, ποσό και ΑΦΜ.`
                     : 'Ο συνδυασμός των ενεργών φίλτρων δεν αφήνει κανένα αρχείο.'}
             action={<Btn variant="secondary" onClick={() => { setSel(clearAll()); setQuery(''); }}>Καθαρισμός φίλτρων</Btn>}/>}/>

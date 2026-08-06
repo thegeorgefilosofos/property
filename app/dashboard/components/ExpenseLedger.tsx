@@ -414,8 +414,10 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           hint="Τράβα μια φωτογραφία ενός λογαριασμού και μπαίνει μόνος του. Ή γράψ' τον με το χέρι, θέλει πέντε δευτερόλεπτα."
           action={onScan ? <Btn variant="primary" onClick={onScan}>Φωτογραφία λογαριασμού</Btn> : <Btn variant="primary" onClick={() => setAdding(true)}>Νέα δαπάνη</Btn>}
         />
+      // Ο τίτλος λέει ήδη ότι δεν βρέθηκε τίποτα. Ο υπότιτλος έλεγε το ίδιο με
+      // άλλα λόγια· τώρα λέει ΤΙ αναζητήθηκε, που είναι το χρήσιμο.
       ) : months.length === 0 ? (
-        <EmptyState title="Καμία δαπάνη με αυτή την αναζήτηση" hint={`Δεν βρέθηκε τίποτα για «${q}».`}
+        <EmptyState title="Δεν βρέθηκαν δαπάνες" hint={`Καμία εγγραφή δεν ταιριάζει με «${q}».`}
           action={<Btn variant="secondary" onClick={() => setQ('')}>Καθάρισε την αναζήτηση</Btn>} />
       ) : (
         <Card pad="sm" gap={false}>

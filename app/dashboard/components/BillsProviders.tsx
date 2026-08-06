@@ -304,7 +304,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
       {/* ── Internet & Σταθερό Τηλέφωνο ──────────────────────────────────── */}
       <div style={card}>
-        {secHdr('Internet & Σταθερό Τηλέφωνο', { url: 'https://www.eett.gr/opencms/opencms/EETT/Electronic_Communications/Market360/', text: 'ΕΕΤΤ 360° Σύγκριση →' })}
+        {secHdr('Internet και σταθερό τηλέφωνο', { url: 'https://www.eett.gr/opencms/opencms/EETT/Electronic_Communications/Market360/', text: 'ΕΕΤΤ 360° Σύγκριση →' })}
         <div style={g2}>
           <CustomSelect label="Πάροχος" value={s.internetProvider}
             onChange={v => upd({ internetProvider: v, internetPlanId: '', internetPrice: '', internetSpeed: '' })}
@@ -540,7 +540,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
       {/* ── Security & Συναγερμός ─────────────────────────────────────────── */}
       <div style={card}>
-        {secHdr('Security & Συναγερμός')}
+        {secHdr('Συναγερμός και ασφάλεια χώρου')}
         <div style={g3}>
           <CustomSelect label="Εταιρεία"            value={s.securityCompany}  onChange={v => upd({ securityCompany: v })}  options={SECURITY_COMPANIES.map(c => ({ value: c.value, label: c.label }))}/>
           <TextInput    label="Πρόγραμμα / Πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="Παράδειγμα: Basic Monitor"/>

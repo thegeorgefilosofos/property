@@ -105,7 +105,12 @@ interface MaintenanceSchedule {
 export interface HandoverIntent { tenantName?: string; tenantPhone?: string; type?: 'check_in'|'check_out' }
 interface TabInventoryProps { propertyId: string; userId: string; profileType?: 'individual'|'professional' }
 
-const CATEGORIES = ['Επιπλα','Ηλεκτρικες Συσκευες','Ηλεκτρονικα','Υδραυλικα','Θερμανση & Ψυξη','Φωτιστικα','Διακοσμηση','Λοιπα']
+// ΜΙΑ ΛΙΣΤΑ ΚΑΤΗΓΟΡΙΩΝ, ΟΧΙ ΔΥΟ. Δίπλα σε αυτή ζούσε δεύτερη, χωρίς τόνους
+// («Επιπλα», «Ηλεκτρικες Συσκευες»), που δεν τη διάβαζε κανείς — υπόλειμμα από
+// παλαιότερη εκδοχή. Έμοιαζε όμως με την κανονική μορφή αποθήκευσης, οπότε η
+// επόμενη προσθήκη θα την έγραφε στη βάση και οι κατηγορίες θα σταματούσαν να
+// ταιριάζουν σιωπηλά: οι διάρκειες ζωής (USEFUL_LIFE_YEARS) κλειδώνουν σε ΑΥΤΑ
+// τα ονόματα, με τους τόνους τους.
 const CATEGORIES_DISPLAY = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά']
 const ROOM_PRESETS = [
   // Κατοικία — χώροι ημέρας
@@ -1371,7 +1376,7 @@ function WarrantiesTab({items,onWarrantyReminder}:{items:InventoryItem[];onWarra
       <WSection title="Λήγουν μέσα σε 90 ημέρες" color="var(--warning)" list={soon}/>
       <WSection title="Έχουν λήξει" color="var(--negative)" list={expired}/>
       <WSection title="Σε ισχύ" color="var(--positive)" list={valid}/>
-      {withW.length===0&&<EmptyState icon={<ShieldCheck size={20}/>} title="Καμία εγγύηση καταχωρημένη" hint="Βάλε ημερομηνία λήξης εγγύησης στα αντικείμενα και θα ειδοποιείσαι πριν λήξουν." />}
+      {withW.length===0&&<EmptyState icon={<ShieldCheck size={20}/>} title="Καμία εγγύηση ακόμη" hint="Βάλε ημερομηνία λήξης εγγύησης στα αντικείμενα και θα ειδοποιείσαι πριν λήξουν." />}
     </div>
   )
 }

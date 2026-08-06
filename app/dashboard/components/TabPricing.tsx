@@ -449,7 +449,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
       ) : base <= 0 ? (
         <EmptyState
           icon={<Tag size={20} />}
-          title="Δεν υπάρχει βασική τιμή"
+          title="Καμία βασική τιμή ακόμη"
           hint="Όρισε τιμή ανά νύχτα, ή καταχώρησε διαμονές (χειροκίνητα ή με εισαγωγή iCal) για να υπολογιστεί αυτόματα από το ιστορικό σου."
         />
       ) : (

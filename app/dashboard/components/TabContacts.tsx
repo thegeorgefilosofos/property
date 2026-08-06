@@ -400,7 +400,7 @@ function FileUploader({ files, onChange, contactId }: { files: { name: string; u
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-        {files.length === 0 && <EmptyState icon={<FileText size={20} />} title="Δεν υπάρχουν αρχεία" hint="Ανέβασε συμβόλαια, τιμολόγια ή φωτογραφίες που αφορούν αυτή την επαφή." />}
+        {files.length === 0 && <EmptyState icon={<FileText size={20} />} title="Κανένα αρχείο ακόμη" hint="Ανέβασε συμβόλαια, τιμολόγια ή φωτογραφίες που αφορούν αυτή την επαφή." />}
         {files.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
             <FileText size={16} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
@@ -522,7 +522,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
                   Χωρίς ΑΦΜ, τα παραστατικά αυτού του παρόχου δεν συνδέονται με την επαφή: το ταίριασμα γίνεται με το όνομα και αστοχεί. Συμπλήρωσέ το μία φορά στην επεξεργασία της επαφής.
                 </div>
               )}
-              {timeline.length === 0 ? <EmptyState icon={<History size={20} />} title="Δεν υπάρχει ιστορικό ακόμα" hint="Δαπάνες, παραστατικά με το ΑΦΜ του και σημειώσεις εμφανίζονται εδώ χρονολογικά." /> : (
+              {timeline.length === 0 ? <EmptyState icon={<History size={20} />} title="Καμία κίνηση ακόμη" hint="Δαπάνες, παραστατικά με το ΑΦΜ του και σημειώσεις εμφανίζονται εδώ χρονολογικά." /> : (
                 <div style={{ position: 'relative' }}>
                   <div style={{ position: 'absolute', left: 15, top: 0, bottom: 0, width: 1, background: 'var(--border-subtle)' }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1733,7 +1733,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       ) : contacts.length === 0 ? (
         <EmptyState
           icon={<Users size={20} />}
-          title="Δεν υπάρχουν επαφές"
+          title="Καμία επαφή ακόμη"
           hint="Φωτογράφισε την επαγγελματική κάρτα ή ένα τιμολόγιό του: διαβάζονται όνομα, ειδικότητα, τηλέφωνο, ΑΦΜ και IBAN, και τα ελέγχεις πριν αποθηκευτούν."
           action={<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
             <ContactActionTile Icon={Camera} label="Φωτογράφισε κάρτα" sub={scanning ? 'Ανάλυση…' : 'ή τιμολόγιο του συνεργάτη'} onClick={() => cardRef.current?.click()} primary />
@@ -1741,7 +1741,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           </div>}
         />
       ) : processed.length === 0 ? (
-        <EmptyState icon={<SearchX size={20} />} title="Καμία επαφή με αυτά τα κριτήρια"
+        <EmptyState icon={<SearchX size={20} />} title="Δεν βρέθηκαν επαφές"
           hint={letter ? `Καμία επαφή στο «${letter}» με τα ενεργά φίλτρα.` : 'Ο συνδυασμός αναζήτησης, κατηγορίας και φίλτρων δεν αφήνει καμία επαφή.'}
           action={<Btn variant="secondary" onClick={() => { setSearch(''); setFilterGroup('all'); setFilterTag(''); setLetterFilter(null); setAttention(null) }}>Καθαρισμός φίλτρων</Btn>} />
       ) : viewMode === 'compact' ? (

@@ -287,7 +287,7 @@ const filledTenantIds = (t:{full_name?:string|null;afm?:string|null;lease_catego
 // ─── Payment Bar Chart ────────────────────────────────────────────────────────
 function PaymentBars({ payments }:{payments:RentPayment[]}) {
   if(!payments.length) return (
-    <EmptyState icon={<BarChart3 size={20}/>} title="Δεν υπάρχουν δεδομένα πληρωμών" hint="Μόλις καταγραφεί η πρώτη είσπραξη, το γράφημα 12 μηνών γεμίζει αυτόματα." />
+    <EmptyState icon={<BarChart3 size={20}/>} title="Καμία πληρωμή ακόμη" hint="Μόλις καταγραφεί η πρώτη είσπραξη, το γράφημα 12 μηνών γεμίζει αυτόματα." />
   );
   const last12=[...payments].sort((a,b)=>b.period_year-a.period_year||b.period_month-a.period_month).slice(0,12).reverse();
   return (
@@ -751,7 +751,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
         )}
 
         {loading&&<Spinner label="Φόρτωση…" />}
-        {!loading&&logs.length===0&&<EmptyState icon={<MessageSquare size={20}/>} title="Καμία επικοινωνία καταγεγραμμένη" hint="Κατέγραψε κλήσεις, μηνύματα και επισκέψεις για να έχεις πλήρες ιστορικό με τον ενοικιαστή." />}
+        {!loading&&logs.length===0&&<EmptyState icon={<MessageSquare size={20}/>} title="Καμία επικοινωνία ακόμη" hint="Κατέγραψε κλήσεις, μηνύματα και επισκέψεις για να έχεις πλήρες ιστορικό με τον ενοικιαστή." />}
         {!loading&&logs.map(log=>(
           <div key={log.id} style={{ display:'flex', gap:14, alignItems:'flex-start', padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
             <div style={{ width:38, height:38, borderRadius:18, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16 }}>
@@ -1161,7 +1161,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
         {payments.length===0?(
           <EmptyState
             icon={<Banknote size={20}/>}
-            title="Δεν υπάρχουν δόσεις"
+            title="Καμία δόση ακόμη"
             hint={tenant.lease_start&&tenant.monthly_rent?'Πάτησε «Δημιουργία δόσεων» για αυτόματη συμπλήρωση από τη μίσθωση.':'Όρισε έναρξη μίσθωσης και μηνιαίο μίσθωμα για αυτόματη δημιουργία δόσεων.'}
             action={tenant.lease_start&&tenant.monthly_rent?<Btn variant="primary" onClick={generateNow} disabled={busy}>Δημιουργία δόσεων</Btn>:undefined}
           />
@@ -1403,7 +1403,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
               ?'Στις υφιστάμενες επαγγελματικές μισθώσεις (ΠΔ 34/1995), η αναπροσαρμογή για το 2026 δεν επιτρέπεται να ξεπερνά το 3% επί του μισθώματος του 2025 — ακόμη κι αν οι αγοραίες τιμές ανέβηκαν περισσότερο. Το όριο δεν ισχύει σε νέα μίσθωση που υπογράφεις μέσα στο 2026.'
               :'Σε ενεργή μίσθωση κατοικίας δεν μπορείς να αυξήσεις μονομερώς το ενοίκιο κατά τη διάρκεια της σύμβασης — μόνο αν υπάρχει ρητός όρος αναπροσαρμογής (π.χ. ΔΤΚ ή σταθερό ποσοστό). Νέο, υψηλότερο μίσθωμα μπαίνει μόνο με νέα συμφωνία που αποδέχεται και ο μισθωτής. Για το 2026 δεν ισχύει γενικό κρατικό πλαφόν στα ενοίκια κατοικίας (το όριο 3% αφορά μόνο τις εμπορικές μισθώσεις).'}
           </InfoBlock>
-          <InfoBlock title="Ελάχιστη διάρκεια & εγγύηση">
+          <InfoBlock title="Ελάχιστη διάρκεια και εγγύηση">
             {isCommercial
               ?'Για επαγγελματική μίσθωση ισχύει η ελάχιστη νόμιμη διάρκεια των τριών ετών.'
               :'Για μίσθωση κατοικίας ισχύει η τριετής ελάχιστη προστασία διάρκειας, ακόμη κι αν συμφωνηθεί μικρότερος χρόνος.'} Η εγγύηση{tenant.deposit_amount?` (${fe(tenant.deposit_amount)})`:''} επιστρέφεται στη λήξη, μετά από έλεγχο για φθορές.
@@ -1594,7 +1594,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
         )}
 
         {damages.length===0?(
-          <EmptyState icon={<Hammer size={20}/>} title="Καμία φθορά ή επισκευή" hint="Κατέγραψε φθορές με φωτογραφίες και κόστος, για τεκμηρίωση στην απόδοση της εγγύησης." />
+          <EmptyState icon={<Hammer size={20}/>} title="Καμία φθορά ή επισκευή ακόμη" hint="Κατέγραψε φθορές με φωτογραφίες και κόστος, για τεκμηρίωση στην απόδοση της εγγύησης." />
         ):groups.map(g=>(
           <div key={g.label} style={{ marginBottom:18 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
@@ -1733,7 +1733,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
           Αιτήματα που στέλνει ο ενοικιαστής μέσω της πύλης. Διαχειρίσου την κατάστασή τους και, αν πρόκειται για φθορά, κατέγραψέ τα στο ιστορικό φθορών.
         </div>
         {list.length===0?(
-          <EmptyState icon={<Wrench size={20}/>} title="Κανένα αίτημα βλάβης" hint="Όταν ο ενοικιαστής στείλει αίτημα από την πύλη, θα εμφανιστεί εδώ για διαχείριση." />
+          <EmptyState icon={<Wrench size={20}/>} title="Κανένα αίτημα βλάβης ακόμη" hint="Όταν ο ενοικιαστής στείλει αίτημα από την πύλη, θα εμφανιστεί εδώ για διαχείριση." />
         ):(
           <div style={{ display:'flex', flexDirection:'column' as const, gap:12 }}>
             {list.map(m=>{

@@ -443,7 +443,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {extras.length === 0 && (
           <EmptyState
             icon={<HandCoins size={20} />}
-            title="Καμία έκτακτη εισφορά"
+            title="Καμία έκτακτη εισφορά ακόμη"
             hint="Κατέγραψε έκτακτες χρεώσεις κοινοχρήστων (π.χ. ανακαίνιση, ασανσέρ) για σωστό ετήσιο σύνολο."
           />
         )}
@@ -490,7 +490,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {history.every(v => !v) && (
           <EmptyState
             icon={<BarChart3 size={20} />}
-            title="Το γράφημα είναι κενό"
+            title="Κανένα μηνιαίο ποσό ακόμη"
             hint="Καταχώρησε μηνιαία ποσά κοινοχρήστων παρακάτω για να δεις την εξέλιξη του έτους."
           />
         )}
