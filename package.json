@@ -26,7 +26,8 @@
     "greek-numbers": "node scripts/guard-greek-numbers.mjs",
     "dashes": "node scripts/guard-dashes.mjs",
     "empty-states": "node scripts/guard-empty-states.mjs",
-    "native-fields": "node scripts/guard-native-fields.mjs"
+    "native-fields": "node scripts/guard-native-fields.mjs",
+    "dead-exports": "node scripts/guard-dead-exports.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

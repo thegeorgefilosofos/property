@@ -480,7 +480,7 @@ export function EmptyState({ title, hint, action, icon }: { title: string; hint?
         {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-tertiary)', flexShrink: 0 }}>{icon}</span>}
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
       </div>
-      {hint && <div style={{ fontSize: 11.5, lineHeight: 1.6, maxWidth: 620, margin: '0 auto', textWrap: 'pretty' as const }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11.5, lineHeight: 1.6, margin: '0 auto', textWrap: 'pretty' as const }}>{hint}</div>}
       {action && <div style={{ marginTop: 14 }}>{action}</div>}
     </div>
   );

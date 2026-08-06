@@ -23,13 +23,6 @@
 /** Οι πέντε οικογένειες. Περισσότερες δεν χωρούν σε ένα κεφάλι. */
 export type Family = 'home' | 'upkeep' | 'official' | 'setup' | 'other';
 
-export const FAMILY_LABEL: Record<Family, string> = {
-  home:     'Πάγια του σπιτιού',
-  upkeep:   'Συντήρηση και επισκευές',
-  official: 'Φόροι και επίσημα',
-  setup:    'Εξοπλισμός και ανακαίνιση',
-  other:    'Άλλα',
-};
 
 export interface Category {
   slug: string;

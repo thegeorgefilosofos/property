@@ -30,7 +30,6 @@ import { stayTotal, type StayLike } from './clients';
 
 /** Τι σημαίνει το `total` μιας γραμμής. Δες το migration 20260730091000. */
 export type AmountBasis = 'unknown' | 'gross' | 'payout';
-export const AMOUNT_BASES: AmountBasis[] = ['unknown', 'gross', 'payout'];
 export const AMOUNT_BASIS_LABELS: Record<AmountBasis, string> = {
   unknown: 'Απροσδιόριστο',
   gross: 'Ακαθάριστο (τι πλήρωσε ο επισκέπτης)',

@@ -56,7 +56,7 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Πλάνο {plan.name}</span>
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px', lineHeight: 1.2 }}>{title}</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.6, maxWidth: 480 }}>{benefit}</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.6 }}>{benefit}</p>
 
             {/* Τι ξεκλειδώνεις, όχι τι πληρώνεις */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 16 }}>

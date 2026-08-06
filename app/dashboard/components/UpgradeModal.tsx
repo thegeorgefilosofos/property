@@ -73,7 +73,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 8 }}>
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 6px' }}>Χρειάζεσαι λίγο περισσότερο χώρο</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55, maxWidth: 520 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
               Το πλάνο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}.{' '}
               {needsProfileSwitch
                 ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» — περνά αμέσως, χωρίς προϋπόθεση — και ξεκλειδώνει η αγορά του πλάνου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>

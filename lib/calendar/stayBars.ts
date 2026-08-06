@@ -56,9 +56,6 @@ export function segMeta(stay: StaySpan, dateStr: string, col: number): {
 }
 
 // Ετικέτα μπάρας: όνομα + (προαιρετικά) κανάλι όταν χωράει.
-export function barLabel(stay: StaySpan): string {
-  return stay.guest
-}
 
 // Χρωματική διάκριση ανά κανάλι — επίσημα χρώματα Airbnb/Booking, εναρμονισμένα
 // με το app (λεπτή απόχρωση, λευκό κείμενο). Άγνωστο κανάλι → μπλε accent του app.

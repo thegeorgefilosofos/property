@@ -234,9 +234,7 @@ export const MARKET_SOURCES: { label: string; href: string }[] = [
 
 // ── Βοηθητικά ───────────────────────────────────────────────────────────────
 export const regionByKey = (key: string) => REGIONS.find(r => r.key === key)
-export const shortTermByKey = (key: string) => SHORT_TERM.find(s => s.key === key)
 export const midPricePerSqm = (r: RegionYield) => Math.round((r.pricePerSqm[0] + r.pricePerSqm[1]) / 2)
-export const midRentPerSqm = (r: RegionYield) => Math.round((r.rentPerSqm[0] + r.rentPerSqm[1]) / 2)
 
 // Ενδεικτικός συντελεστής αξίας ανά τύπο ακινήτου (η αξία € ανά τετραγωνικό διαφέρει λιγότερο από
 // το ADR ανά τύπο — μικρές αποκλίσεις). Καθαρά ενδεικτικός.

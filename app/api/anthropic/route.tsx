@@ -218,7 +218,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Only POST allowed
+// Μόνο POST· κάθε άλλη μέθοδος απαντά 405.
 export async function GET() {
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

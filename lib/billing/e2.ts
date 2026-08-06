@@ -64,8 +64,6 @@ export function monthsRentedInYear(leaseStart: string | null, leaseEnd: string |
 }
 
 export interface E2Row { atak: string; address: string; ownerAfm: string; ownershipPct: number; leaseKind: string; months: number; incomeCategory: string; grossIncome: number; flags: string[]; }
-export const E2_HEADERS = ['Α/Α', 'ΑΤΑΚ', 'Διεύθυνση Ακινήτου', 'ΑΦΜ Συνιδιοκτήτη', 'Ποσοστό Συνιδιοκτησίας (%)', 'Είδος Μίσθωσης', 'Μήνες Εκμίσθωσης', 'Κατηγορία Εισοδήματος', 'Ακαθάριστο Εισόδημα (€)'];
-
 /**
  * Μία γραμμή Ε2. Το `stays` είναι οι διαμονές ΑΥΤΟΥ του ακινήτου (όπως το
  * `payments`, ομαδοποιημένες από τον καλούντα)· χρησιμοποιείται μόνο στη

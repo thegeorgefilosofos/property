@@ -85,9 +85,6 @@ export function defaultBookkeeping(form: LegalForm): BookKeeping {
  */
 export const HAS_BUSINESS: ReadonlySet<string> = new Set<LegalForm>(['sole_trader', 'partnership', 'company']);
 
-export function hasBusinessActivity(form: LegalForm): boolean {
-  return HAS_BUSINESS.has(form);
-}
 
 export interface Requirement {
   id: string;

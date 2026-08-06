@@ -42,11 +42,10 @@ export function formatNumber(n: number, p: IntlPrefs = DEFAULT_INTL, decimals = 
   return new Intl.NumberFormat(bcp47(p.locale), { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(Number(n) || 0);
 }
 
-/** Ημερομηνία στο locale εμφάνισης. */
-export function formatDate(d: string | Date, p: IntlPrefs = DEFAULT_INTL): string {
-  const t = new Date(d);
-  return isNaN(t.getTime()) ? '' : t.toLocaleDateString(bcp47(p.locale), { day: '2-digit', month: 'short', year: 'numeric' });
-}
+// ΔΕΥΤΕΡΟΣ ΜΟΡΦΟΠΟΙΗΤΗΣ ΗΜΕΡΟΜΗΝΙΑΣ, ΧΩΡΙΣ ΚΑΝΕΝΑΝ ΚΑΤΑΝΑΛΩΤΗ. Η εφαρμογή
+// γράφει ημερομηνίες από το `fd` και τους βοηθούς ώρας Αθήνας, που ξέρουν και
+// τη ζώνη. Ένας ακόμη, με άλλη μορφή («15 Ιαν 2026» αντί «15/01/2026»), ήταν
+// η επόμενη ασυμφωνία που περίμενε να τη διαλέξει κάποιος.
 
 // ── Ελάχιστο λεξικό διεπαφής (starter) — EL/EN. Επεκτείνεται σταδιακά· ο πυρήνας
 // t() είναι έτοιμος ώστε το UI να «γυρίζει» γλώσσα χωρίς αλλαγή αρχιτεκτονικής.
@@ -70,5 +69,6 @@ export function t(key: string, locale: Locale = 'el'): string {
   return s ? (locale === 'en' ? s.en : s.el) : key;
 }
 
-// Συνήθη νομίσματα για επιλογή στις Ρυθμίσεις.
-export const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'AUD', 'CAD'] as const;
+// Ο κατάλογος νομισμάτων έφυγε: η εφαρμογή υπολογίζει, δηλώνει και εξάγει σε
+// ευρώ σε κάθε της σημείο, και μια λίστα έξι νομισμάτων υποσχόταν επιλογή που
+// δεν υπάρχει πουθενά.

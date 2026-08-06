@@ -43,7 +43,6 @@ export function usefulLifeYears(category?: string): number {
 }
 
 // ── Καταστάσεις που σηματοδοτούν πρόβλημα ────────────────────────────────
-export const BAD_CONDITIONS = ['Κακή', 'Εκτός Λειτουργίας'] as const
 
 // Ελάχιστο αντικείμενο εισόδου — δέχεται το InventoryItem αλλά ζητά μόνο ό,τι χρειάζεται.
 export interface DepreciableItem {

@@ -70,7 +70,7 @@ function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
       <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0, minWidth: 98 }}>{label}</span>
-      <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1, minWidth: 220, maxWidth: 620 }}>{children}</span>
+      <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1, minWidth: 220 }}>{children}</span>
     </div>
   );
 }
@@ -208,7 +208,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textDecoration: on ? 'line-through' : 'none' }}>{s.title}</span>
             <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{ACTOR_LABEL[s.who]}</span>
           </div>
-          <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 3, maxWidth: 680 }}>{s.detail}</div>
+          <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 3 }}>{s.detail}</div>
           {s.when && <Meta label="Πότε">{s.when}</Meta>}
           {s.cost && <Meta label="Αν παραλειφθεί">{s.cost}</Meta>}
         </div>
@@ -219,7 +219,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   const optionRow = (o: Option, first: boolean) => (
     <div key={o.id} style={{ padding: '16px 2px', borderTop: first ? 'none' : '1px solid var(--border-subtle)' }}>
       <div style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>{o.title}</div>
-      <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4, maxWidth: 680 }}>{o.payoff}</div>
+      <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{o.payoff}</div>
       {/* Οι τρεις άξονες σε τυπογραφικό πλέγμα: ίδια θέση σε κάθε επιλογή, ώστε
           το μάτι να συγκρίνει κατακόρυφα χωρίς να ξαναδιαβάζει. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, margin: '12px 0 2px' }}>
@@ -256,8 +256,8 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
       <div style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>
         {plan.label} · {property.name}
       </div>
-      <h1 style={{ ...TT.display, margin: 0, maxWidth: 720 }}>{plan.headline}</h1>
-      <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0', maxWidth: 700 }}>{plan.lede}</p>
+      <h1 style={{ ...TT.display, margin: 0 }}>{plan.headline}</h1>
+      <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0' }}>{plan.lede}</p>
 
       {/* ── ΤΙ ΕΙΔΟΥΣ ΕΚΚΡΕΜΟΤΗΤΑ: αλλάζει ΟΛΗ τη σειρά, άρα ρωτιέται πρώτο ── */}
       {isDispute && (
@@ -300,8 +300,8 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
 
         {plan.next ? (
           <>
-            <div style={{ ...TT.h1, marginTop: 10, maxWidth: 640 }}>{plan.next.title}</div>
-            <div style={{ ...TT.body, color: 'var(--text-secondary)', marginTop: 8, maxWidth: 660 }}>{plan.next.detail}</div>
+            <div style={{ ...TT.h1, marginTop: 10 }}>{plan.next.title}</div>
+            <div style={{ ...TT.body, color: 'var(--text-secondary)', marginTop: 8 }}>{plan.next.detail}</div>
             {plan.next.when && <Meta label="Πότε">{plan.next.when}</Meta>}
             {plan.next.cost && <Meta label="Αν παραλειφθεί">{plan.next.cost}</Meta>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: T.sp.xl, flexWrap: 'wrap' }}>
@@ -312,7 +312,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         ) : (
           <>
             <div style={{ ...TT.h1, marginTop: 10 }}>Δεν μένει κάτι ανοιχτό.</div>
-            <div style={{ ...TT.body, color: 'var(--text-secondary)', marginTop: 8, maxWidth: 660 }}>
+            <div style={{ ...TT.body, color: 'var(--text-secondary)', marginTop: 8 }}>
               Πέρασες όλη τη σειρά. Αν άλλαξε κάτι στο ακίνητο, άλλαξε και την κατάστασή του: αυτή η καρτέλα
               υπάρχει για όσο διαρκεί η μεταβατική περίοδος, όχι για πάντα.
             </div>
@@ -387,7 +387,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12 }}>
             <Badge tone="warning">Προς επιβεβαίωση</Badge>
-            <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1, maxWidth: 620 }}>{sale.note}</span>
+            <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1 }}>{sale.note}</span>
           </div>
         </Section>
       )}
@@ -402,10 +402,10 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                 <span style={{ fontFamily: T.font.sans, fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)' }}>{f.title}</span>
                 <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{FUNDING_KIND_LABEL[f.kind]}</span>
               </div>
-              <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4, maxWidth: 680 }}>{f.what}</div>
+              <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{f.what}</div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 10 }}>
                 <Badge tone="warning">Προς επιβεβαίωση</Badge>
-                <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1, maxWidth: 620 }}>{f.confirm}</span>
+                <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1 }}>{f.confirm}</span>
               </div>
               {f.href && (
                 <a href={f.href} target="_blank" rel="noopener noreferrer"
@@ -437,7 +437,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                 </div>
               )}
             </div>
-            <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 10, maxWidth: 640 }}>
+            <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 10 }}>
               Υπολογισμένο με υποθετικό επιτόκιο {ASSUMED_RATE_PCT}%, μόνο για να δεις το μέγεθος της δόσης.
               Τα πραγματικά επιτόκια και τα έξοδα τα συγκρίνεις στην καρτέλα Δάνεια, με τα σημερινά στοιχεία των τραπεζών.
             </div>
@@ -451,7 +451,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         {plan.rules.map((r, i) => (
           <div key={r.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</div>
-            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4, maxWidth: 680 }}>{r.body}</div>
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{r.body}</div>
           </div>
         ))}
       </Section>
@@ -463,14 +463,14 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         right={<Badge tone="warning">{plan.verify.length}</Badge>}>
         {plan.verify.map((v, i) => (
           <div key={v.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-            <div style={{ ...TT.body, color: 'var(--text-primary)', maxWidth: 680 }}>{v.what}</div>
+            <div style={{ ...TT.body, color: 'var(--text-primary)' }}>{v.what}</div>
             <Meta label="Πού">{v.where}</Meta>
             <Meta label="Γιατί αλλάζει">{v.why}</Meta>
           </div>
         ))}
       </Section>
 
-      <p style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: T.sp.section, paddingTop: T.sp.lg, borderTop: '1px solid var(--border-subtle)', maxWidth: 700 }}>
+      <p style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: T.sp.section, paddingTop: T.sp.lg, borderTop: '1px solid var(--border-subtle)' }}>
         {PLAN_DISCLAIMER}
       </p>
     </div>

@@ -73,7 +73,7 @@ export default function SpitiMouPanel({
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 100, background: hardFail ? 'var(--bg-elevated)' : 'var(--accent)', color: hardFail ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT, maxWidth: 340 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT }}>
               Το 50% του δανείου είναι <strong style={{ color: 'var(--text-primary)' }}>άτοκο</strong> (Ταμείο Ανάκαμψης) και το 50% με το επιτόκιο της τράπεζας{elig.rateSubsidyShare > 0 ? ', με επιπλέον 50% επιδότηση επιτοκίου για πολύτεκνους' : ''}.
             </p>
           </div>

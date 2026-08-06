@@ -57,7 +57,6 @@ const BOOKS_LABEL: Record<BookKeeping, string> = {
   single_entry: 'Απλογραφικά',
   double_entry: 'Διπλογραφικά',
 }
-export const bookkeepingLabel = (b: BookKeeping): string => BOOKS_LABEL[b]
 
 const DEFAULTS: DossierProfile = { form: 'individual', books: 'none', hasRenovation: false, hasLoan: false, ownershipChanged: false }
 
@@ -262,7 +261,7 @@ export default function AccountantDossier({
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 260 }}>
             <p style={eyebrow}>Τι πάει στον λογιστή · {year}</p>
-            <p style={{ fontSize: 19, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em', lineHeight: 1.45, margin: '10px 0 0', maxWidth: 620 }}>
+            <p style={{ fontSize: 19, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em', lineHeight: 1.45, margin: '10px 0 0' }}>
               {ready.message}
             </p>
           </div>

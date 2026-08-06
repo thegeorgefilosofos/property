@@ -630,7 +630,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         </div>
       )}
 
-      <p style={{ ...TT.caption, lineHeight: 1.6, maxWidth: 640 }}>
+      <p style={{ ...TT.caption, lineHeight: 1.6 }}>
         Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει {ACTIVATION_MIN_PROPERTIES === 1 ? 'ένα ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και σαρώσει {ACTIVATION_MIN_DOCUMENTS === 1 ? 'ένα έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} έγγραφα`} στο PropertyOS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
         {' '}Όλες οι ανταμοιβές είναι δωρεάν μήνες ή δωρεάν ακίνητα στη δική σου συνδρομή — δεν διαχειριζόμαστε πληρωμές και δεν αποδίδουμε μετρητά.
       </p>
