@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, fp, fd } from '@/components/Theme';
+import { T, fe, fn, fp, fd, ABSENT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
@@ -669,7 +669,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <Field label="Ασφαλιστική">
                     <input style={inputStyle} value={settings.insurance_company} onChange={setSf('insurance_company')} onFocus={onFocus} onBlur={onBlur} />
                   </Field>
-                  <Field label="Αρ. Πολίτικής">
+                  <Field label="Αριθμός ασφαλιστηρίου">
                     <input style={inputStyle} value={settings.insurance_policy} onChange={setSf('insurance_policy')} onFocus={onFocus} onBlur={onBlur} />
                   </Field>
                 </div>
@@ -692,7 +692,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
                 <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || '—'}</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || ABSENT}</div>
                   <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
                 </div>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
@@ -705,24 +705,24 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   ['Τύπος', PROP_TYPE_LABELS[propType]],
                   ['Κατάσταση', STATUS_LABELS[effStatus]],
                   airbnb ? ['Βραχυχρόνια μίσθωση', 'Ναι (Airbnb / Booking)'] : null,
-                  ['Διεύθυνση', address.trim() || '—'],
+                  ['Διεύθυνση', address.trim() || ABSENT],
                   postalCode.trim() ? ['Ταχ. Κώδικας', postalCode.trim()] : null,
                   atak.trim() ? ['ΑΤΑΚ', atak.trim()] : null,
-                  [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : '—'],
+                  [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : `${fn(0)}τετραγωνικά`],
                   isLandLike ? null : ['Όροφος', floor.trim() ? floor.trim() : '—'],
                   isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() ? yearBuilt.trim() : '—'],
                   isLandLike ? null : (peaClass ? ['Ενεργειακή Κλάση', peaClass] : null),
                   isLandLike ? null : (heating ? ['Θέρμανση', HEATING_OPTS.find(h => h[0] === heating)?.[1] || heating] : null),
                   isLandLike ? null : (parking.trim() ? ['Θέσεις Στάθμευσης', parking.trim()] : null),
                   isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
-                  ['Εμπορική Αξία', valueN != null ? fe(valueN, 0) : '—'],
+                  ['Εμπορική Αξία', valueN != null ? fe(valueN, 0) : fe(0)],
                   num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
                   num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
-                  ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : '—'],
+                  ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : fe(0)],
                   purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
-                  [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : '—'],
+                  [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : fe(0)],
                   ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
-                  ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield, 1)}` : '—'],
+                  ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield, 1)}` : fp(0)],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                     <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>

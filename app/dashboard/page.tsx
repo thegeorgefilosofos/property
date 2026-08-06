@@ -30,7 +30,7 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, fp, type KPIItem } from '@/components/Theme';
+import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, fp, fe, type KPIItem } from '@/components/Theme';
 import { Building2, Receipt, ListChecks, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
@@ -895,7 +895,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
           { label:'Δαπάνες', value:fmtEur(Math.round(projectedExpYear)),
             sub: [`${fmtEur(totalExpYTD)} ως σήμερα`, recurringCount>0 ? `${recurringCount} πάγιες` : null].filter(Boolean).join(' · '),
             title:`Οι δαπάνες που έχεις καταχωρήσει για το ${year}, μετρημένες όσες φορές πραγματικά συμβαίνουν.` },
-          { label:'Αξία ακινήτου', value: propValue>0 ? fmtEur(propValue) : '—',
+          { label:'Αξία ακινήτου', value: propValue>0 ? fmtEur(propValue) : fe(0),
             title: prop.value ? 'Εμπορική αξία, όπως την έχεις καταχωρήσει.' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική.' },
         ];
         // ΙΔΙΟ ΠΛΑΚΙΔΙΟ, ΟΧΙ ΙΔΙΑ ΒΑΡΥΤΗΤΑ. Τα τέσσερα παραπάνω είναι η αλυσίδα

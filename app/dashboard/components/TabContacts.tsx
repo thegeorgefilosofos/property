@@ -7,7 +7,7 @@ import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs } from '@/components/Theme'
+import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
 import { brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
@@ -508,7 +508,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
           ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 24 }}>
-                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : '—', color: 'var(--text-primary)' },
+                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : fe(0), color: 'var(--text-primary)' },
                   { label: 'Παραστατικά με το ΑΦΜ του', value: docs.length > 0 ? `${docs.length}${docsTotal > 0 ? ' · ' + fe(docsTotal) : ''}` : (afm.length === 9 ? '0' : '—'), color: 'var(--text-primary)' },
                   { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
                   <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
@@ -723,9 +723,9 @@ async function exportContactsExcel(contacts: Contact[]) {
       dirRows.push([
         c.full_name,
         ROLE_META[c.role]?.label || c.role,
-        c.phone || '—',
-        c.email || '—',
-        ex.afm || '—',
+        c.phone || ABSENT,
+        c.email || ABSENT,
+        ex.afm || ABSENT,
         ex.whatsapp ? 'WA' : '',
         ex.iris ? 'IRIS' : '',
       ])
@@ -769,7 +769,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
             + `<td><div style="font-weight:600;color:#111">${rEsc(c.full_name)}</div>`
             +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
             + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}</td>`
-            + `<td>${rEsc(c.email || '—')}</td>`
+            + `<td>${rEsc(c.email || ABSENT)}</td>`
             + `</tr>`
         }).join('')
       + `</tbody></table>`
@@ -784,7 +784,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
         + `<td><div style="font-weight:600;color:#111">${rEsc(c.full_name)}</div>`
         +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
         + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}${mark(ex.whatsapp, 'WA')}${mark(ex.viber, 'VB')}</td>`
-        + `<td>${rEsc(c.email || '—')}</td>`
+        + `<td>${rEsc(c.email || ABSENT)}</td>`
         + `<td class="tnum">${ex.afm ? rEsc(ex.afm) : '—'}</td>`
         + `<td class="tnum">${iban}</td>`
         + `</tr>`
@@ -1182,8 +1182,8 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.full_name}</div>
         <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>{meta.label}{scopePortfolio && <span title="Όλο το χαρτοφυλάκιο" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent)' }}><Globe size={10} /></span>}</div>
       </div>
-      <div style={{ width: 140, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone || '—'}</div>
-      <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || '—'}</div>
+      <div style={{ width: 140, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone || ABSENT}</div>
+      <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || ABSENT}</div>
       <div style={{ display: 'flex', gap: 4, maxWidth: 160, flexWrap: 'wrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}</div>
       <div style={{ width: 120, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.afm ? 'ΑΦΜ ' + extra.afm : ''}</div>
       <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : hov ? 1 : 0, pointerEvents: bulkMode ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>

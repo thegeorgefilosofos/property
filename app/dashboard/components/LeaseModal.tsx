@@ -277,7 +277,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
               <div style={{ maxWidth: 260 }}>
                 <div style={lbl}>Τόπος υπογραφής</div>
-                <input value={place} onChange={e => setPlace(e.target.value)} onFocus={onF} onBlur={onB} placeholder="π.χ. Αθήνα" style={field} />
+                <input value={place} onChange={e => setPlace(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Παράδειγμα: Αθήνα" style={field} />
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>

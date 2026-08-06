@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { must } from '@/lib/supabase/must'
 import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
 import { fp, fe } from '@/lib/core/format'
-import { fdLong } from '@/components/tokens'
+import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
 import { T, ExportButton, EmptyState, Btn, Skeleton } from '@/components/Theme'
 import { notifyOk, notifyError } from '@/components/Toast'
@@ -39,7 +39,8 @@ const rateNum = (v:unknown):number|null => { const m = String(v ?? '').match(/-?
 // Δύο δεκαδικά με κόμμα, τυποποιημένα: 3.4 → «3,40», 2 → «2,00».
 const fmtRate2 = (n:number):string => n.toFixed(2).replace('.',',')
 // Κελί πίνακα/κάρτας: πάντα ενιαία μορφή «X,XX%» (επιτόκιο εκκίνησης).
-const cellRate = (v:unknown):string => { const n = rateNum(v); return n===null ? '—' : `${fmtRate2(n)}%` }
+const NO_RATE = 'Χωρίς στοιχεία'
+const cellRate = (v:unknown):string => { const n = rateNum(v); return n===null ? NO_RATE : `${fmtRate2(n)}%` }
 
 // Επικεφαλίδα ενεργού φακού — ο τίτλος τον οποίο το LensBar έχει επιλέξει.
 function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:string;right?:React.ReactNode;children:React.ReactNode}) {
@@ -686,7 +687,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             {BANKS.filter((b:any)=>!filterSpiti||b.spiti_mou).map((bank:any)=>{
               const key = String(bank.id||bank.bank_id||bank.bank_name||bank.name)
               const on = selBank===key
-              const fixed5 = bank.fixed_5yr||bank.fixed5||bank.fixed_min||'—'
+              const fixed5 = bank.fixed_5yr||bank.fixed5||bank.fixed_min||ABSENT
               const bankRate = publishedRate(bank)
             const myM = bankRate !== null && LA > 0 ? calcMonthly(LA, bankRate, Y) : null
               return (
@@ -699,11 +700,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   </div>
                   <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12}}>
                     <div style={{minWidth:0}}>
-                      <p style={{fontSize:20,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1,letterSpacing:'-0.02em',whiteSpace:'nowrap'}}>{cellRate(fixed5)==='—'?'—':<>από <span style={{color:(on||hoverBank===key)?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{cellRate(fixed5)}</span></>}</p>
+                      <p style={{fontSize:20,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1,letterSpacing:'-0.02em',whiteSpace:'nowrap'}}>{cellRate(fixed5)===NO_RATE?NO_RATE:<>από <span style={{color:(on||hoverBank===key)?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{cellRate(fixed5)}</span></>}</p>
                       <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>Σταθερό 5 ετών</p>
                     </div>
                     <div style={{textAlign:'right' as const,flexShrink:0}}>
-                      <p style={{fontSize:13.5,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,lineHeight:1}}>{myM!==null?fmtEur(myM):'—'}</p>
+                      <p style={{fontSize:13.5,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,lineHeight:1}}>{myM!==null?fmtEur(myM):fe(0)}</p>
                       <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>{myM!==null?'δόση':'χωρίς δημοσιευμένο επιτόκιο'}{myM!==null&&bank.max_ltv?` · έως ${bank.max_ltv}%`:''}</p>
                     </div>
                   </div>
@@ -744,7 +745,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
                   {[
                     {label:'Κυμαινόμενο περιθώριο',value:bank.variable_spread_min!==undefined?`+${fmtRate2(bank.variable_spread_min)}–${fmtRate2(bank.variable_spread_max)}%`:'—',sub:varRate?`≈ ${varRate} σήμερα`:null},
-                    {label:'Εκτιμώμενη δόση',value: myM !== null ? fmtEur(myM) : '—',sub: myM !== null ? `${fmtEur(LA)} · ${Y} έτη` : bankRate === null ? 'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο' : 'Συμπλήρωσε ποσό δανείου για υπολογισμό'},
+                    {label:'Εκτιμώμενη δόση',value: myM !== null ? fmtEur(myM) : fe(0),sub: myM !== null ? `${fmtEur(LA)} · ${Y} έτη` : bankRate === null ? 'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο' : 'Συμπλήρωσε ποσό δανείου για υπολογισμό'},
                     {label:'Μέγιστο δάνειο προς αξία',value:bank.max_ltv?`${bank.max_ltv}%`:'—',sub:bank.max_amount?`έως ${fmtEur(bank.max_amount)}`:null},
                     {label:'Σπίτι μου ΙΙ',value:bank.spiti_mou?'Ναι':'Όχι',sub:bank.spiti_mou?'Συμμετέχει στο πρόγραμμα':'Δεν συμμετέχει'},
                   ].map(s=>(

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T, fn, PageTitle, KPIGrid, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, type KPIItem } from '@/components/Theme'
+import { T, fn, PageTitle, KPIGrid, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, type KPIItem, ABSENT, ABSENT_DATE } from '@/components/Theme'
 import { notify, notifyOk } from '@/components/Toast'
 import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
@@ -268,7 +268,7 @@ const TEMPLATES: Record<string, Template> = {
     { description: 'Φωτογράφηση από επαγγελματία', category: 'airbnb', priority: 'high' },
     { description: 'Εγγραφή στο Μητρώο Βραχυχρόνιας Μίσθωσης ΑΑΔΕ', category: 'legal', priority: 'critical' },
     { description: 'Ρύθμιση καναλιού καθαριότητας', category: 'airbnb', priority: 'high' },
-    { description: 'Ανεφοδιασμός (σαπούνια, χαρτί κλπ)', category: 'airbnb', priority: 'normal', recurring: 'monthly' },
+    { description: 'Ανεφοδιασμός (σαπούνια, χαρτί και άλλα)', category: 'airbnb', priority: 'normal', recurring: 'monthly' },
     { description: 'Τσεκ κλιματισμού πριν κάθε σεζόν', category: 'airbnb', priority: 'high', recurring: 'quarterly' },
   ]},
   purchase: { label: 'Αγορά Ακινήτου', when: c => c.propertyCount >= 3 || c.status === 'for_sale', why: 'Χαρτοφυλάκιο σε κίνηση', items: [
@@ -543,9 +543,9 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
         getCat(item.category).label,
         item.description,
         getPri(item.priority).label,
-        item.due_date ? fmtDate(item.due_date) : '—',
+        item.due_date ? fmtDate(item.due_date) : ABSENT_DATE,
         d !== null ? (d < 0 ? `${Math.abs(d)} πριν` : `${d} ημέρες`) : '—',
-        item.assigned_contact_name || '—',
+        item.assigned_contact_name || ABSENT,
         item._who ? WHO_LABEL[item._who] : '—',
         item.estimated_cost || '',
       ]
@@ -876,19 +876,19 @@ ${sectionHtml(4, 'Μετρητές Παροχών', `
       <div class="meter-title">ΔΕΗ / Ρεύμα</div>
       <div class="meter-val"></div>
       <div class="meter-unit">kWh</div>
-      <div class="meter-serial">Αρ. Σειράς: ____________________</div>
+      <div class="meter-serial">Αριθμός σειράς: ____________________</div>
     </div>
     <div class="meter-card">
       <div class="meter-title">ΕΥΔΑΠ / Νερό</div>
       <div class="meter-val"></div>
       <div class="meter-unit">m³</div>
-      <div class="meter-serial">Αρ. Σειράς: ____________________</div>
+      <div class="meter-serial">Αριθμός σειράς: ____________________</div>
     </div>
     <div class="meter-card">
       <div class="meter-title">Φυσικό Αέριο</div>
       <div class="meter-val"></div>
       <div class="meter-unit">m³</div>
-      <div class="meter-serial">Αρ. Σειράς: ____________________</div>
+      <div class="meter-serial">Αριθμός σειράς: ____________________</div>
     </div>
   </div>
   <div style="margin-top:12px">
@@ -1412,7 +1412,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
           <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: T.h.sm, height: T.h.sm, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="π.χ. Service καλοριφέρ" /></div>
+          <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Παράδειγμα: Service καλοριφέρ" /></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
             <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
             <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
@@ -1706,7 +1706,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
               <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="0" type="number" /></div>
               <div><FL>Ημερομηνία *</FL><DatePicker value={date} onChange={setDate} /></div>
             </div>
-            <div><FL>Πάροχος</FL><Inp value={provider} onChange={setProvider} placeholder="π.χ. Υδραυλικές Εργασίες ΕΠΕ" /></div>
+            <div><FL>Πάροχος</FL><Inp value={provider} onChange={setProvider} placeholder="Παράδειγμα: Υδραυλικές Εργασίες ΕΠΕ" /></div>
             <div><FL>Περιγραφή δαπάνης</FL><Inp value={desc} onChange={setDesc} placeholder="Περιγραφή" /></div>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
               Καταχωρείται ως <strong style={{ color: 'var(--text-secondary)' }}>{expenseCategoryFor(item.category).cat}</strong>, πληρωμένη, με το αρχείο συνημμένο στο Αρχείο.

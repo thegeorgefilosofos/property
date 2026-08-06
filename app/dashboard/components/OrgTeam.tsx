@@ -17,7 +17,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, Chip, EmptyState, Skeleton, settingsField } from '@/components/Theme';
+import { T, Btn, Chip, EmptyState, Skeleton, settingsField, ABSENT } from '@/components/Theme';
 import { Users } from 'lucide-react';
 import { logActivity } from '@/lib/activity';
 import { CustomSelect } from './UIComponents';
@@ -500,7 +500,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                       <span style={{
                         fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{m.email || '—'}</span>
+                      }}>{m.email || ABSENT}</span>
                       {isYou && <Chip tone="neutral">Εσύ</Chip>}
                     </div>
 

@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Badge, EmptyState, Spinner } from '@/components/Theme';
+import { T, TT, Btn, Badge, EmptyState, Spinner, ABSENT } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { CustomSelect as Select } from './UIComponents';
@@ -238,7 +238,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
-          <span style={{ ...TT.bodySm }}>{prop?.name || '—'} · {periodLabel}</span>
+          <span style={{ ...TT.bodySm }}>{prop?.name || ABSENT} · {periodLabel}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             <Btn variant="secondary" onClick={() => { saveLayout(); onClose(); }}>Αποθήκευση & κλείσιμο</Btn>
             <Btn variant="primary" onClick={exportPdf} disabled={busy || !result.valid}>{busy ? 'Δημιουργία…' : 'Κατάσταση κατανομής (PDF)'}</Btn>

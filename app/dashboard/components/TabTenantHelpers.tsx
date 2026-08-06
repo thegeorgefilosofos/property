@@ -250,7 +250,7 @@ export function ServicesEditor({ value, onChange }: { value: ServiceLine[] | nul
             alignItems:'end', gap:'12px', padding:'12px 14px',
             background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px',
           }}>
-            <TextInput label="Περιγραφή" value={l.name} onChange={v => upd(i, { name: v })} placeholder="π.χ. Συντήρηση καυστήρα" />
+            <TextInput label="Περιγραφή" value={l.name} onChange={v => upd(i, { name: v })} placeholder="Παράδειγμα: Συντήρηση καυστήρα" />
             <NumberInput label="Κόστος / μήνα" value={l.cost ? String(l.cost) : ''} onChange={v => upd(i, { cost: parseFloat(v) || 0 })} suffix="€" step={0.01} />
             <UIServiceBySelect label="Ποιος πληρώνει" value={l.payer} onChange={v => upd(i, { payer: v })} />
             <button type="button" onClick={() => del(i)} title="Αφαίρεση γραμμής"

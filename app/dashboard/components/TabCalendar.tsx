@@ -775,7 +775,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
         <div style={{ padding:'18px 22px', overflowY:'auto', display:'flex', flexDirection:'column', gap:14 }}>
           {/* Τίτλος + έξυπνη ανάγνωση φυσικής γλώσσας (quick-add) */}
           <div>
-            <input autoFocus value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} onFocus={focus} onBlur={blur} placeholder="π.χ. Service λέβητα Παρασκευή 10πμ" style={{...fld, height:48, fontSize:16, fontWeight:500}}/>
+            <input autoFocus value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} onFocus={focus} onBlur={blur} placeholder="Παράδειγμα: Service λέβητα Παρασκευή 10πμ" style={{...fld, height:48, fontSize:16, fontWeight:500}}/>
             {(()=>{ if(editing)return null; const qa=parseQuickAdd(form.title, new Date()); const hasExtra=!!(qa.date||qa.time)&&(qa.date!==form.event_date||qa.time!==(form.event_time||null)||qa.title!==form.title); if(!hasExtra)return null
               const dLbl=qa.date?new Date(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
               return (
@@ -902,7 +902,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
                     <option value="none">Χωρίς λήξη</option><option value="until">Μέχρι ημερομηνία</option><option value="count">Για πλήθος φορών</option>
                   </select>
                   {form.recurrence_end_mode==='until'&&<div style={{ gridColumn:'1 / -1' }}><DatePicker value={form.recurrence_until} onChange={v=>setForm(f=>({...f,recurrence_until:v}))}/></div>}
-                  {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="π.χ. 12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}
+                  {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="Παράδειγμα: 12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}
                 </div>
               )}
             </div>

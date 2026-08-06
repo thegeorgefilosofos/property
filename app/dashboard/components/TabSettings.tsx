@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useId, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, settingsField } from '@/components/Theme';
+import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, settingsField, ABSENT } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import Billing from './Billing';
@@ -319,7 +319,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Email</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginTop: 2, overflowWrap: 'anywhere' }}>{email || '—'}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginTop: 2, overflowWrap: 'anywhere' }}>{email || ABSENT}</div>
             </div>
             {editBtn(() => { setEmailVal(email); setEmailMsg(null); setEmailEdit(true); })}
           </div>

@@ -999,8 +999,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 εμφανιζόταν στο «16%». */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
               {statTile('Δηλωτέα ακαθάριστα', fe(tot.revenue, 0))}
-              {statTile('Τέλος ανθεκτικότητας', tot.climateLevy > 0 ? fe(tot.climateLevy, 0) : '—', { title: 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
-              {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees, 0) : '—', { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}
+              {statTile('Τέλος ανθεκτικότητας', tot.climateLevy > 0 ? fe(tot.climateLevy, 0) : fe(0), { title: 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
+              {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees, 0) : fe(0), { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}
               {statTile(
                 'Πληρότητα',
                 occ.availableDays > 0 ? `${occ.pct}%` : '—',

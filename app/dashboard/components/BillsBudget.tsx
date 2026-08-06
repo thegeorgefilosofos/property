@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput } from './UIComponents';
-import { T, feAuto, fn, Skeleton, SkeletonKPIs } from '@/components/Theme';
+import { T, fe, feAuto, fn, Skeleton, SkeletonKPIs } from '@/components/Theme';
 import { notify } from '@/components/Toast';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { rolloverNext, strWaterfall, investmentReturns } from '@/lib/billing/budgetPro';
@@ -1161,7 +1161,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     <KPI label="Έσοδα μήνα" value={feAuto(income, 0)} />
                     <KPI label="Από την αρχή έτους" value={feAuto(incomeYtd, 0)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
                     <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
-                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? feAuto(Math.round(income / strNights), 0) : '—'} />
+                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? feAuto(Math.round(income / strNights), 0) : fe(0)} />
                   </>
                 ) : (
                   <>
@@ -1606,7 +1606,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               {addingCat && (
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 180 }}>
-                    <TextInput label="Νέα κατηγορία" value={newCatName} onChange={setNewCatName} placeholder="π.χ. Καθαριότητα, Φύλαξη…"
+                    <TextInput label="Νέα κατηγορία" value={newCatName} onChange={setNewCatName} placeholder="Παράδειγμα: Καθαριότητα, Φύλαξη…"
                       onKeyDown={e => { if (e.key === 'Enter' && newCatName.trim()) { addCategory(newCatName); setNewCatName(''); } }}/>
                   </div>
                   <button type="button" disabled={!newCatName.trim()}
@@ -1713,7 +1713,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                           <span style={{ width: 74, flexShrink: 0, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σημείωση</span>
                           <input type="text" value={ex?.note ?? ''} maxLength={120}
                             onChange={e => patchExcl(it.id, { note: e.target.value })}
-                            placeholder="π.χ. το μισό το πλήρωσε ο συγκάτοικος"
+                            placeholder="Παράδειγμα: το μισό το πλήρωσε ο συγκάτοικος"
                             style={{ flex: 1, minWidth: 0, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', transition: 'border-color 0.15s' }}
                             onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
                             onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />

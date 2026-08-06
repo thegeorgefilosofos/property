@@ -102,12 +102,12 @@ export default function GuestCheckin() {
                   <div><label style={label}>Ονοματεπώνυμο *</label><input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Όπως στην ταυτότητα/διαβατήριο" style={field} /></div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                     <div><label style={label}>Αριθμός ταυτότητας / διαβατηρίου</label><input value={idNumber} onChange={e => setIdNumber(e.target.value)} style={field} /></div>
-                    <div><label style={label}>Εθνικότητα</label><input value={nationality} onChange={e => setNationality(e.target.value)} placeholder="π.χ. Ελληνική" style={field} /></div>
+                    <div><label style={label}>Εθνικότητα</label><input value={nationality} onChange={e => setNationality(e.target.value)} placeholder="Παράδειγμα: Ελληνική" style={field} /></div>
                     <div><label style={label}>Ημερομηνία γέννησης</label><input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} style={field} /></div>
                     <div><label style={label}>Ημερομηνία άφιξης</label><input type="date" value={arrival} onChange={e => setArrival(e.target.value)} style={field} /></div>
                     <div><label style={label}>Τηλέφωνο</label><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+30…" style={field} /></div>
                     <div><label style={label}>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} style={field} /></div>
-                    <div><label style={label}>Αριθμός ατόμων</label><input inputMode="numeric" value={guests} onChange={e => setGuests(e.target.value.replace(/[^\d]/g, ''))} placeholder="π.χ. 2" style={field} /></div>
+                    <div><label style={label}>Αριθμός ατόμων</label><input inputMode="numeric" value={guests} onChange={e => setGuests(e.target.value.replace(/[^\d]/g, ''))} placeholder="Παράδειγμα: 2" style={field} /></div>
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
                     <input type="checkbox" checked={accepts} onChange={e => setAccepts(e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent)' }} />

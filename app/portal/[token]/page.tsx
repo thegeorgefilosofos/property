@@ -10,7 +10,7 @@ import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { T, feAuto, fdLong } from '@/components/Theme';
+import { T, feAuto, fdLong, ABSENT_DATE } from '@/components/Theme';
 
 interface DueItem { id: string; year: number; month: number; amount: number; due_date: string | null; declared: boolean }
 
@@ -23,7 +23,7 @@ interface PortalData {
 }
 
 const eur = (n: number | null) => (n == null ? '—' : feAuto(n));
-const gdate = (d: string | null) => (d ? fdLong(d) : '—');
+const gdate = (d: string | null) => (d ? fdLong(d) : ABSENT_DATE);
 const GR_MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const monthLabel = (month: number, year: number) => `${GR_MONTHS[month - 1] ?? ''} ${year}`.trim();
 
@@ -338,7 +338,7 @@ export default function TenantPortal() {
                 </div>
               ) : (
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div><label style={label}>Θέμα</label><input required value={title} onChange={e => setTitle(e.target.value)} placeholder="π.χ. Διαρροή στο μπάνιο" style={field} /></div>
+                  <div><label style={label}>Θέμα</label><input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Παράδειγμα: Διαρροή στο μπάνιο" style={field} /></div>
                   <div><label style={label}>Περιγραφή</label><textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Περίγραψε το πρόβλημα…" rows={4} style={{ ...field, resize: 'vertical' }} /></div>
                   <div><label style={label}>Τηλέφωνο επικοινωνίας (προαιρετικό)</label><input value={contact} onChange={e => setContact(e.target.value)} placeholder="69XXXXXXXX" style={field} /></div>
 

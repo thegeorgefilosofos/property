@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd, fe, fn, KPIGrid, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton } from '@/components/Theme';
+import { T, fd, fe, fn, KPIGrid, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE } from '@/components/Theme';
 import { SearchX, FolderOpen, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
@@ -1017,7 +1017,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
           <OriginTag i={i}/>
           {i.value != null && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
-          <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : '—'}</span>
+          <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>
         </div>
         {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα →</a>}
       </div>
@@ -1200,7 +1200,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
             <div style={g2x}>
               <CustomSelect label="Κατηγορία φωτογραφίας" value={d.category} onChange={c => onPatch({ category: c })}
                 options={PHOTO_CATEGORIES.map(c => ({ value: c, label: c }))}/>
-              <TextInput label="Τι δείχνει" value={d.photoTitle || ''} onChange={t => onPatch({ photoTitle: t })} placeholder="π.χ. Σαλόνι, βόρειος τοίχος"/>
+              <TextInput label="Τι δείχνει" value={d.photoTitle || ''} onChange={t => onPatch({ photoTitle: t })} placeholder="Παράδειγμα: Σαλόνι, βόρειος τοίχος"/>
             </div>
           ) : doc ? (<>
             {(v.blocking.length > 0 || v.invalid.length > 0 || v.recommended.length > 0) && (

@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
-import { T, feAuto, fp } from '@/components/tokens';
+import { T, fe, feAuto, fp } from '@/components/tokens';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate, RENTAL_TAX_ROWS_2026,
 } from '@/lib/billing/greekTax';
@@ -143,7 +143,7 @@ export function RentTaxCalculator() {
                     <td style={{ ...td, textAlign: 'right', fontFamily: T.font.mono }}>{row.rate}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
                       color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                      {active ? feAuto(slice * (Number(row.rate.replace('%', '')) / 100)) : '—'}
+                      {active ? feAuto(slice * (Number(row.rate.replace('%', '')) / 100)) : fe(0)}
                     </td>
                   </tr>
                 );

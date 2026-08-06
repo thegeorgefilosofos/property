@@ -515,7 +515,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
-              <input value={newField.label} placeholder="Νέο πεδίο (π.χ. Αρ. πρωτοκόλλου)" onChange={e => setNewField(f => ({ ...f, label: e.target.value }))}
+              <input value={newField.label} placeholder="Νέο πεδίο (π.χ. Αριθμός πρωτοκόλλου)" onChange={e => setNewField(f => ({ ...f, label: e.target.value }))}
                 style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
               <input value={newField.value} placeholder="Τιμή" onChange={e => setNewField(f => ({ ...f, value: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter' && newField.label.trim()) { setEdited(p => p ? { ...p, custom: [...(p.custom || []), { ...newField }] } : p); setNewField({ label: '', value: '' }); } }}
@@ -557,7 +557,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{typeMeta?.label}</div>
                 <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                  {edited.amount ? fe(edited.amount) : edited.monthly_rent ? `${fe(edited.monthly_rent)}/μήνα` : edited.premium ? fe(edited.premium) : '—'}
+                  {edited.amount ? fe(edited.amount) : edited.monthly_rent ? `${fe(edited.monthly_rent)}/μήνα` : edited.premium ? fe(edited.premium) : fe(0)}
                 </div>
               </div>
               <button onClick={() => save()} disabled={saving || !canSave || !!ask}

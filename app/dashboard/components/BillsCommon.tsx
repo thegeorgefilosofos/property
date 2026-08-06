@@ -228,8 +228,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Διαχείριση / μήνα',  value: mgmtMonthly > 0 ? fe(mgmtMonthly) : 'Δωρεάν' },
-          { label: 'Ταμείο / μήνα',      value: parseFloat(fundMonthly) > 0 ? fe(parseFloat(fundMonthly)) : '—' },
-          { label: 'Μέσος Όρος Κοινοχρήστων',  value: monthlyAvg > 0 ? fe(monthlyAvg) : '—' },
+          { label: 'Ταμείο / μήνα',      value: parseFloat(fundMonthly) > 0 ? fe(parseFloat(fundMonthly)) : fe(0) },
+          { label: 'Μέσος Όρος Κοινοχρήστων',  value: monthlyAvg > 0 ? fe(monthlyAvg) : fe(0) },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -274,7 +274,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             <input
               type="number" inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)} placeholder="0"
               style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
-            <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : '—'}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : fe(0)}</div>
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, padding: '3px 8px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const,
                 background: r.payer === 'tenant' ? 'var(--accent-soft)' : 'var(--bg-elevated)',

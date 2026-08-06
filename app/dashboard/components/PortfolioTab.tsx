@@ -339,7 +339,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     if (longEst.length) parts.push(`Εκτίμηση, όχι είσπραξη: για ${longEst.map(r => r.name).join(', ')} δεν υπάρχει καμία καταχωρημένη δόση ενοικίου για το ${year}. Τα ποσά αυτά προκύπτουν από το μηνιαίο ενοίκιο επί τους μήνες που πέρασαν και ΔΕΝ αντιστοιχούν σε καταγεγραμμένη είσπραξη.`);
     if (shortEst.length) parts.push(`Απροσδιόριστη βάση ποσού: για ${shortEst.map(r => `${r.name} (${r.staysUnresolved})`).join(', ')} υπάρχουν διαμονές καταχωρημένες πριν το app ξεχωρίσει τα ακαθάριστα από το payout, οπότε δεν είναι βέβαιο αν το ποσό είναι τι πλήρωσε ο επισκέπτης ή τι εισπράχθηκε.`);
     if (!parts.length) return null;
-    return `${parts.join(' ')} Τα ποσά αυτά φέρουν την ένδειξη «εκτ.».`;
+    return `${parts.join(' ')} Τα ποσά αυτά φέρουν την ένδειξη «εκτίμηση».`;
   };
 
   const exportStatement = () => {
@@ -354,7 +354,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const printStatement = () => {
     if (!stmt) return;
     const bodyRows = stmt.rows.map(r =>
-      `<tr><td>${rEsc(r.name)}</td><td class="n">${rEsc(rEur(r.revenue) + (r.revenueEstimated ? ' (εκτ.)' : ''))}</td><td class="n">${rEsc(rEur(r.expenses))}</td><td class="n">${rEsc(rSigned(r.net))}</td></tr>`
+      `<tr><td>${rEsc(r.name)}</td><td class="n">${rEsc(rEur(r.revenue) + (r.revenueEstimated ? ' (εκτίμηση)' : ''))}</td><td class="n">${rEsc(rEur(r.expenses))}</td><td class="n">${rEsc(rSigned(r.net))}</td></tr>`
     ).join('');
     const note = estimateNote(stmt.rows);
     const totalRow = `<tr class="result"><td>Σύνολο</td><td class="n">${rEsc(rEur(stmt.revenue))}</td><td class="n">${rEsc(rEur(stmt.expenses))}</td><td class="n">${rEsc(rSigned(stmt.net))}</td></tr>`;
@@ -386,7 +386,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         {
           type: 'table', title: 'Ανάλυση ανά ακίνητο',
           head: ['Ακίνητο', 'Έσοδα', 'Δαπάνες', 'Καθαρό'], align: ['l', 'r', 'r', 'r'],
-          rows: stmt.rows.map(r => [r.name, pEur(r.revenue) + (r.revenueEstimated ? ' (εκτ.)' : ''), pEur(r.expenses), pSigned(r.net)]),
+          rows: stmt.rows.map(r => [r.name, pEur(r.revenue) + (r.revenueEstimated ? ' (εκτίμηση)' : ''), pEur(r.expenses), pSigned(r.net)]),
           result: ['Σύνολο', pEur(stmt.revenue), pEur(stmt.expenses), pSigned(stmt.net)],
         },
       ];
@@ -498,7 +498,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                   <td style={{ padding: '13px 14px' }}>
                     <Badge tone={r.mode === 'short' ? 'accent' : r.mode === 'long' ? 'positive' : 'neutral'}>{MODE_LABEL[r.mode]}</Badge>
                   </td>
-                  <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτ.' : undefined} title={revenueTitle(r)} />
+                  <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
                   <Num v={eur(r.expenses)} muted />
                   <Num v={eur(r.net)} tone={r.net >= 0 ? 'var(--positive)' : 'var(--negative)'} bold />
                   <td style={{ padding: '13px 14px', textAlign: 'right' }} title={occupancyTitle(r)}>
@@ -530,7 +530,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         </div>
       </div>
       <div style={{ marginTop: 10, fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-        Έσοδα βραχυχρόνιας από τις καταχωρημένες διαμονές· μακροχρόνιας από τις εισπράξεις που έχεις καταχωρήσει. Όπου δεν υπάρχει καμία καταχωρημένη δόση ενοικίου, το ποσό είναι εκτίμηση (ενοίκιο × μήνες που πέρασαν) και σημειώνεται με «εκτ.» — στην οθόνη, στο CSV και μέσα στο PDF. Πληρότητα = νύχτες προς τις διαθέσιμες ημέρες, ο ίδιος ορισμός με την «Πληρότητα» της Επισκόπησης. Κλικ σε ακίνητο για την πλήρη Επισκόπηση.
+        Έσοδα βραχυχρόνιας από τις καταχωρημένες διαμονές· μακροχρόνιας από τις εισπράξεις που έχεις καταχωρήσει. Όπου δεν υπάρχει καμία καταχωρημένη δόση ενοικίου, το ποσό είναι εκτίμηση (ενοίκιο × μήνες που πέρασαν) και σημειώνεται με «εκτίμηση» — στην οθόνη, στο CSV και μέσα στο PDF. Πληρότητα = νύχτες προς τις διαθέσιμες ημέρες, ο ίδιος ορισμός με την «Πληρότητα» της Επισκόπησης. Κλικ σε ακίνητο για την πλήρη Επισκόπηση.
       </div>
 
       {/* Ήρεμη μπάρα μαζικών ενεργειών (Gmail/Linear style) */}
@@ -567,7 +567,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
             <h3 style={{ color: 'var(--text-primary)', margin: '0 0 4px', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', fontFamily: T.font.sans }}>Νέα εργασία σε επιλεγμένα</h3>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 20px', fontFamily: T.font.sans }}>Δημιουργείται μία ίδια εργασία σε {selected.size} {selected.size === 1 ? 'ακίνητο' : 'ακίνητα'}.</p>
             <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Περιγραφή</label>
-            <input autoFocus value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="π.χ. Έλεγχος κλιματιστικών" style={{ ...fieldStyle, marginBottom: 16 }} />
+            <input autoFocus value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="Παράδειγμα: Έλεγχος κλιματιστικών" style={{ ...fieldStyle, marginBottom: 16 }} />
             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Κατηγορία</label>
@@ -616,7 +616,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                       {stmt.rows.map(r => (
                         <tr key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                           <td style={{ padding: '11px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</td>
-                          <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτ.' : undefined} title={revenueTitle(r)} />
+                          <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
                           <Num v={eur(r.expenses)} muted />
                           <Num v={eur(r.net)} tone={r.net >= 0 ? 'var(--positive)' : 'var(--negative)'} bold />
                         </tr>

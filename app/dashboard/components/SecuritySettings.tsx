@@ -11,7 +11,7 @@
 
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, settingsField, Spinner } from '@/components/Theme';
+import { T, Btn, settingsField, Spinner, ABSENT } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
 import { checkPassword } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
@@ -265,7 +265,7 @@ export default function SecuritySettings() {
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Email</span>
-            <span style={{ ...rowVal, color: 'var(--text-primary)' }}>{email || '—'}</span>
+            <span style={{ ...rowVal, color: 'var(--text-primary)' }}>{email || ABSENT}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Τελευταία σύνδεση</span>

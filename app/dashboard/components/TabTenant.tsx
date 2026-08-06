@@ -17,7 +17,7 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { confirmDialog } from '@/components/ConfirmDialog';
@@ -554,7 +554,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
           {useCustom&&(
             <div style={{ marginBottom:16 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό Αναπροσαρμογής (%)</div>
-              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="π.χ. 3.5" step="0.1"
+              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="Παράδειγμα: 3.5" step="0.1"
                 style={{ ...selectStyle, border:'1px solid var(--border-default)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:14 }}/>
             </div>
           )}
@@ -734,7 +734,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
-                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="π.χ. Θετικό, αρνητικό…" style={inputStyle}/>
+                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="Παράδειγμα: Θετικό, αρνητικό…" style={inputStyle}/>
               </div>
             </div>
             <div style={{ marginBottom:14 }}>
@@ -953,7 +953,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
         + reportRow('Μισθωτής', tenantLine)
         + (propLabel()?reportRow('Ακίνητο', propLabel()):'')
         + reportRow('Περίοδος', monthLabel(p))
-        + reportRow('Τρόπος πληρωμής', p.method||'—')
+        + reportRow('Τρόπος πληρωμής', p.method||ABSENT)
         + reportRow('Ημερομηνία πληρωμής', paidDate)
         + reportRow('Ποσό', rEur(p.amount), 'result')
       + `</tbody></table>`
@@ -996,7 +996,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     const svcRows=lines.length
       ? lines.map(l=>reportRow(l.label, rEur(l.amount))).join('')
       : `<tr><td colspan="2" class="empty">Καμία επιπλέον υπηρεσία</td></tr>`;
-    const tenantLine=`${tenant.full_name||'—'}${tenant.afm?` · ΑΦΜ ${tenant.afm}`:''}`;
+    const tenantLine=`${tenant.full_name||ABSENT}${tenant.afm?` · ΑΦΜ ${tenant.afm}`:''}`;
     const html=reportHead(`Μηνιαία Κατάσταση ${num}`)
       + `<body><div class="page">`
       + reportHeader(branding, 'Μηνιαία κατάσταση', { rightLabel:'Περίοδος', rightValue:monthLabel(p), rightNote:`Έκδοση ${rDate()}` })
@@ -1173,7 +1173,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
                     {p.services_charge&&p.services_charge>0?<span style={{ display:'block', fontSize:10, fontWeight:400, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>ενοίκιο {fmt(p.base_rent)} + υπηρεσίες {fmt(p.services_charge)}</span>:null}
                   </td>
                   <td style={s.td}><StatusPill p={p}/>{p.tenant_declared&&!p.paid?<span style={{ display:'block', marginTop:4, fontSize:9.5, color:'var(--warning)', fontFamily:T.font.sans, fontWeight:600 }}>Δηλώθηκε από μισθωτή</span>:null}</td>
-                  <td style={s.tdM}>{p.method||'—'}</td>
+                  <td style={s.tdM}>{p.method||ABSENT}</td>
                   <td style={s.tdM}>{fmtD(p.paid_date)}</td>
                   <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize:10, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{p.days_late} ημ.</span>:null}</td>
                   <td style={s.td}>
@@ -1464,7 +1464,7 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
   const chargeable=damages.filter(d=>d.charged_to_tenant).reduce((a,d)=>a+(d.cost||0),0);
   const netReturn=Math.max(0,deposit-unpaid-chargeable);
   const dueDate=tenant.move_out_date||tenant.lease_end||null;
-  const methodLabel=tenant.deposit_method||'—';
+  const methodLabel=tenant.deposit_method||ABSENT;
   return (
     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16 }}>
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
@@ -1575,7 +1575,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρέωση στον ενοικιαστή</div><Toggle on={f.charged_to_tenant} onChange={v=>setF(x=>({...x,charged_to_tenant:v}))} label="Ναι" labelOff="Όχι"/></div>
             </div>
             <div style={{ marginBottom:14 }}>
-              <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="π.χ. Φθορά πάγκου κουζίνας"/>
+              <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="Παράδειγμα: Φθορά πάγκου κουζίνας"/>
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} label="Ναι" labelOff="Όχι"/></div>
@@ -1755,13 +1755,13 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
                   )}
                   {(m.assignee_name||m.assignee_contact)&&assignFor!==m.id&&(
                     <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:10 }}>
-                      Ανατέθηκε σε: <strong style={{ color:'var(--text-primary)' }}>{m.assignee_name||'—'}</strong>{m.assignee_contact?` · ${m.assignee_contact}`:''}
+                      Ανατέθηκε σε: <strong style={{ color:'var(--text-primary)' }}>{m.assignee_name||ABSENT}</strong>{m.assignee_contact?` · ${m.assignee_contact}`:''}
                     </div>
                   )}
                   {assignFor===m.id&&(
                     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:14, marginBottom:10 }}>
                       <div style={{ ...s.g2, marginBottom:10 }}>
-                        <TextInput label="Συνεργείο / Τεχνικός" value={af.name} onChange={v=>setAf(a=>({...a,name:v}))} placeholder="π.χ. Υδραυλικός Παπαδόπουλος"/>
+                        <TextInput label="Συνεργείο / Τεχνικός" value={af.name} onChange={v=>setAf(a=>({...a,name:v}))} placeholder="Παράδειγμα: Υδραυλικός Παπαδόπουλος"/>
                         <TextInput label="Τηλέφωνο / Email" value={af.contact} onChange={v=>setAf(a=>({...a,contact:v}))} placeholder="69XXXXXXXX"/>
                       </div>
                       {savedContacts.length>0&&(
@@ -2689,7 +2689,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     )}
                     {more('tenant.profession')&&(
                       <div style={{ marginBottom:16 }}>
-                        <TextInput label="Επάγγελμα" value={form.profession} onChange={v=>sf('profession',v)} placeholder="π.χ. Μηχανικός"/>
+                        <TextInput label="Επάγγελμα" value={form.profession} onChange={v=>sf('profession',v)} placeholder="Παράδειγμα: Μηχανικός"/>
                         <Why id="tenant.profession"/>
                       </div>
                     )}
@@ -2763,7 +2763,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     )}
                     {more('tenant.extra_perks')&&(
                       <div style={{ marginBottom:16 }}>
-                        <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="π.χ. Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
+                        <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Παράδειγμα: Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
                         <Why id="tenant.extra_perks"/>
                       </div>
                     )}

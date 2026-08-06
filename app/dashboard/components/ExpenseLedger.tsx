@@ -603,7 +603,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
         <label style={{ gridColumn: 'span 2', minWidth: 0 }}>
           <span style={lab}>Τι ήταν;</span>
           <input ref={first} value={what} onChange={e => setWhat(e.target.value)} style={field}
-            placeholder="π.χ. λογαριασμός ΔΕΗ, υδραυλικός" />
+            placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
         </label>
         <label>
           <span style={lab}>Πόσο;</span>

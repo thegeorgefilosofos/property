@@ -275,8 +275,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           // Ένα ποσό φόρου χωρίς σήμανση διαβάζεται ως βεβαιότητα. Η ετικέτα λέει
           // αν είναι το ποσό του εκκαθαριστικού ή νούμερο του υπολογιστή.
           { label: enfia.source === 'estimate' ? 'ΕΝΦΙΑ / μήνα (εκτίμηση)' : 'ΕΝΦΙΑ / μήνα',
-            value: enfiaM > 0 ? fe(enfiaM) : '—' },
-          { label: 'Δημοτικά Τέλη (μέσος όρος) / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : '—' },
+            value: enfiaM > 0 ? fe(enfiaM) : fe(0) },
+          { label: 'Δημοτικά Τέλη (μέσος όρος) / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : fe(0) },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -428,7 +428,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   suffix="€" step={50}/>
                 <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μηνιαία Αναγωγή</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : '—'}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : fe(0)}</div>
                 </div>
               </div>
               {/* Ποιο από τα δύο νούμερα μετράει, γραμμένο εκεί που φαίνονται και τα δύο. */}
@@ -538,7 +538,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {dimotikaPct > 0 ? `${fp(dimotikaPct, 1)}` : '—'}
+                {dimotikaPct > 0 ? `${fp(dimotikaPct, 1)}` : fp(0)}
               </span>
               <div>
                 <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό Δημοτικών Τελών</div>

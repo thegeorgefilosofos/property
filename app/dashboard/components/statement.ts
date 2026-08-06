@@ -69,7 +69,7 @@ export function printPropertyStatement(c: StatementCtx): void {
   const totalCat = c.categories.reduce((sum, [, v]) => sum + v, 0);
   const cats = [...c.categories].sort((a, b) => b[1] - a[1]);
   const leaseType = c.shortTerm ? 'Βραχυχρόνια (Airbnb / Booking)' : 'Μακροχρόνια';
-  const rentLabel = c.shortTerm ? 'Μηνιαίο έσοδο (εκτ.)' : 'Μηνιαίο ενοίκιο';
+  const rentLabel = c.shortTerm ? 'Μηνιαίο έσοδο (εκτίμηση)' : 'Μηνιαίο ενοίκιο';
 
   const addr = [s(c.address), c.postalCode ? `Τ.Κ. ${s(c.postalCode)}` : ''].filter(Boolean).join(' · ');
   const info: [string, string][] = ([

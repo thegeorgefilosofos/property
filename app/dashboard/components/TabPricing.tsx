@@ -29,7 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { Tag } from 'lucide-react';
 import { NumberInput } from './UIComponents';
@@ -208,12 +208,12 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   const occNights = useMemo(() => seasonsShown.reduce((a, s) => a + occ.nights[s], 0), [seasonsShown, occ]);
 
   const kpis = useMemo(() => [
-    { label: 'Μέση τιμή / νύχτα', value: base > 0 ? fe(sum.avg, 0) : '—', sub: 'διαθέσιμες ημέρες' },
-    { label: 'Κατώτατη πρόταση', value: base > 0 ? fe(sum.min, 0) : '—', sub: 'χαμηλότερη ημέρα' },
-    { label: 'Αιχμή', value: base > 0 ? fe(sum.max, 0) : '—', sub: 'υψηλότερη πρόταση' },
+    { label: 'Μέση τιμή / νύχτα', value: base > 0 ? fe(sum.avg, 0) : fe(0), sub: 'διαθέσιμες ημέρες' },
+    { label: 'Κατώτατη πρόταση', value: base > 0 ? fe(sum.min, 0) : fe(0), sub: 'χαμηλότερη ημέρα' },
+    { label: 'Αιχμή', value: base > 0 ? fe(sum.max, 0) : fe(0), sub: 'υψηλότερη πρόταση' },
     {
       label: 'Πληρότητα από το ιστορικό',
-      value: measuredOcc != null ? measuredOcc + '%' : '—',
+      value: measuredOcc != null ? measuredOcc + '%' : fp(0),
       sub: measuredOcc != null
         ? `${occNights} πραγματικές νύχτες`
         : `χρειάζονται ${MIN_NIGHTS_FOR_OCCUPANCY}+ νύχτες ανά εποχή`,

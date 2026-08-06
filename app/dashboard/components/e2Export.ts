@@ -32,7 +32,7 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
     [],
     ['ΣΤΟΙΧΕΙΑ ΥΠΟΧΡΕΟΥ'],
     ['ΑΦΜ / Ονοματεπώνυμο', ownerAfmCommon],
-    ['Αρ. Υποβολής / Ημερομηνία', ''],
+    ['Αριθμός υποβολής / Ημερομηνία', ''],
     ['Στοιχεία Λογιστή', ''],
     [],
     [`ΠΙΝΑΚΑΣ I — ΕΚΜΙΣΘΟΥΜΕΝΑ / ΛΟΙΠΑ ΑΚΙΝΗΤΑ (${officialRows.length} ${officialRows.length === 1 ? 'ακίνητο' : 'ακίνητα'})`],

@@ -7,6 +7,7 @@
 // ημ. έκδοσης, εκδότης. Καμία ευαίσθητη πληροφορία/ποσά.
 // ═══════════════════════════════════════════════════════════════════════════
 import BrandMark from '@/components/BrandMark';
+import { ABSENT } from '@/components/tokens';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -65,7 +66,7 @@ export default function VerifyDocument() {
             <div style={{ fontSize: 40, lineHeight: 1 }}>⚠️</div>
             <div style={{ fontSize: 18, fontWeight: 700, marginTop: 12 }}>Δεν βρέθηκε έγγραφο</div>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 8 }}>
-              Ο κωδικός <strong style={{ color: 'var(--text-primary)' }}>{id || '—'}</strong> δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το Property OS.
+              Ο κωδικός <strong style={{ color: 'var(--text-primary)' }}>{id || ABSENT}</strong> δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το Property OS.
               Ελέγξτε ότι σαρώσατε σωστά το QR ή ζητήστε νέο αντίγραφο από τον εκδότη.
             </p>
           </div>
