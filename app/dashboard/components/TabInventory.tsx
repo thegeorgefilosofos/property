@@ -104,6 +104,9 @@ interface MaintenanceSchedule {
   est_cost?: number; calendar_event_id?: string; expense_id?: string
 }
 export interface HandoverIntent { tenantName?: string; tenantPhone?: string; type?: 'check_in'|'check_out' }
+/** Ό,τι διαβάζει η απογραφή από τα ΑΛΛΑ ακίνητα: μόνο πώς να τα ονομάσει. */
+interface InventoryPropertyOption { id: string; name?: string | null; address?: string | null; nickname?: string | null }
+
 interface TabInventoryProps { propertyId: string; userId: string; profileType?: 'individual'|'professional' }
 
 // ΜΙΑ ΛΙΣΤΑ ΚΑΤΗΓΟΡΙΩΝ, ΟΧΙ ΔΥΟ. Δίπλα σε αυτή ζούσε δεύτερη, χωρίς τόνους
@@ -1879,7 +1882,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   )
 }
 
-export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed,properties=[]}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void;properties?:any[]}) {
+export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed,properties=[]}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void;properties?:InventoryPropertyOption[]}) {
   const [activeTab,setActiveTab] = useState<'items'|'care'|'handover'|'overview'>('items')
   const [handoverSeed,setHandoverSeed] = useState<(HandoverIntent&{n:number})|null>(null)
   // Deep-link από την καρτέλα ενοικιαστή: άνοιξε κατευθείαν τη «Παράδοση» σε νέο πρωτόκολλο με προ-συμπληρωμένα στοιχεία.

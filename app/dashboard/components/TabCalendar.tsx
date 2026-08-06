@@ -5,6 +5,18 @@ import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
+import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
+import type { CalendarEventsRow, ClientStaysRow } from '@/lib/supabase/tables'
+import type { TenantScheduleInput } from './TabTenantHelpers'
+
+// Ό,τι διαβάζει ο συγχρονισμός από κάθε πίνακα, γραμμένο εδώ και μόνο εδώ.
+type TenantScheduleRow = TenantScheduleInput & { rent_due_day?: number | null }
+type StayWithGuest = Pick<ClientStaysRow, 'id'|'check_in'|'check_out'|'total'|'nights'|'guests'|'channel'> & { clients?: { full_name?: string | null } | null }
+// Νέο γεγονός: υποχρεωτικά μόνο όσα δεν δέχονται κενό στη βάση· τα υπόλοιπα
+// συμπληρώνονται ή μένουν. Το `id` και το `recurrence_exdates` τα δίνει η βάση.
+type CalendarEventInsert =
+  Pick<CalendarEventsRow, 'property_id'|'user_id'|'title'|'category'|'event_date'>
+  & Partial<Omit<CalendarEventsRow, 'id'|'property_id'|'user_id'|'title'|'category'|'event_date'|'recurrence_exdates'>>
 import { savedData } from '@/components/dbWrite'
 import { T, Spinner, Skeleton, EmptyState, Chip, feAuto, fe } from '@/components/Theme'
 import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
@@ -182,7 +194,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
     <div ref={ref} style={{ display:'inline-flex' }} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
       {children}
       {show && text && createPortal(
-        <div style={{ position:'fixed', left:pos.left, top:pos.top, transform:`translate(-50%, ${pos.below?'0':'-100%'})`, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 13px', fontSize:12, lineHeight:1.5, color:'var(--text-primary)', fontFamily: T.font.sans, zIndex:3000, pointerEvents:'none', width:W, maxWidth:'calc(100vw - 16px)', whiteSpace:'pre-wrap' as any, boxShadow:'0 12px 40px rgba(0,0,0,0.32)' }}>
+        <div style={{ position:'fixed', left:pos.left, top:pos.top, transform:`translate(-50%, ${pos.below?'0':'-100%'})`, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 13px', fontSize:12, lineHeight:1.5, color:'var(--text-primary)', fontFamily: T.font.sans, zIndex:3000, pointerEvents:'none', width:W, maxWidth:'calc(100vw - 16px)', whiteSpace:'pre-wrap' as const, boxShadow:'0 12px 40px rgba(0,0,0,0.32)' }}>
           {text}
         </div>, document.body)}
     </div>
@@ -639,14 +651,18 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     if(k==='leases'){
       const tenants=await must(supabase.from('tenants').select('*').eq('property_id',propertyId).neq('status','past'))
       let n=0
-      for(const t of (tenants||[])){ await syncTenantSchedule(supabase,t as any,propertyId,userId,'save',{rentDueDay:(t as any).rent_due_day??1}); if((t as any).monthly_rent)n++ }
+      for(const t of ((tenants||[]) as TenantScheduleRow[])){
+        await syncTenantSchedule(supabase,t,propertyId,userId,'save',{rentDueDay:t.rent_due_day??1})
+        if(t.monthly_rent)n++
+      }
       return n
     }
     // ── Κρατήσεις (με όνομα επισκέπτη) ──
     if(k==='bookings'){
       const stays=await must(supabase.from('client_stays').select('id,check_in,check_out,total,nights,guests,channel,clients(full_name)').eq('property_id',propertyId))
       await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','booking:%'))
-      const rows=buildBookingEvents((stays||[]).map((s:any)=>({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,nights:s.nights,guests:s.guests,channel:s.channel,guest_name:s.clients?.full_name??null})),propertyId,userId)
+      // Κράτηση χωρίς ημερομηνία άφιξης δεν γίνεται γεγονός: δεν υπάρχει μέρα να μπει.
+      const rows=buildBookingEvents(((stays||[]) as StayWithGuest[]).filter((s):s is StayWithGuest&{check_in:string}=>!!s.check_in).map(s=>({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,nights:s.nights,guests:s.guests,channel:s.channel,guest_name:s.clients?.full_name??null})),propertyId,userId)
       if(rows.length)await must(supabase.from('calendar_events').insert(rows))
       return rows.length
     }
@@ -663,15 +679,26 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     }
     // ── Δόσεις δανείου: ίδιο source με το κουμπί των Δανείων → idempotent, χωρίς διπλά ──
     if(k==='loans'){
-      const loans=await must(supabase.from('loans').select('*').eq('property_id',propertyId))
+      // ΤΟ ΠΟΣΟ ΤΟΥ ΔΑΝΕΙΟΥ ΔΕΝ ΛΕΓΕΤΑΙ `amount`, ΚΑΙ ΤΟ ΕΠΙΤΟΚΙΟ ΔΕΝ ΕΙΝΑΙ ΣΤΗΛΗ.
+      // Εδώ διαβαζόταν `(l as any).amount` και `(l as any).rate`. Η στήλη λέγεται
+      // `loan_amount`, και το επιτόκιο προκύπτει από `fixed_rate` ή από
+      // `euribor + spread` ανάλογα με τον τύπο. Δηλαδή και τα δύο έβγαιναν
+      // undefined, το `Number(undefined)||0` τα έκανε μηδέν, και το `if(!amount)`
+      // παρακάτω πετούσε ΚΑΘΕ δάνειο: ο συγχρονισμός δόσεων απαντούσε πάντα
+      // «μηδέν» και κανείς δεν καταλάβαινε γιατί το ημερολόγιο έμενε άδειο.
+      //
+      // Ο μεταφραστής υπάρχει ήδη και είναι ένας: lib/loans/shape.ts. Το `as any`
+      // ήταν ακριβώς αυτό που έκρυβε το λάθος από τον μεταγλωττιστή.
+      const loans=toLoanViews(await must(supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId)))
       let n=0
-      for(const l of (loans||[])){
-        const amount=Number((l as any).amount)||0, rate=Number((l as any).rate)||0, years=Number((l as any).years)||0
-        const start=(l as any).start_date||todayStr(); const bank=cleanBank((l as any).bank)
+      for(const l of loans){
+        if(!isActiveLoan(l))continue
+        const amount=l.amount, rate=l.rate, years=Number(l.years)||0
+        const start=l.start_date||todayStr(); const bank=cleanBank(l.bank)
         if(!amount||!years)continue
         const monthly=annuityMonthly(amount,rate,years); if(!monthly)continue
         const src='loan_schedule:'+(bank||'γενικό').toLowerCase().replace(/\s+/g,'_').slice(0,40)
-        const d=new Date(start); const cnt2=Math.min(years*12,60); const rows:any[]=[]
+        const d=new Date(start); const cnt2=Math.min(years*12,60); const rows:CalendarEventInsert[]=[]
                 // ΤΟ ΠΟΣΟ ΚΡΑΤΑΕΙ ΤΑ ΛΕΠΤΑ ΤΟΥ. Ήταν `Math.round(monthly)`: μια δόση
         // 751,43 € αποθηκευόταν ως 751 και το ημερολόγιο διαφωνούσε με την
         // τράπεζα κατά 43 λεπτά τον μήνα, δηλαδή πάνω από πέντε ευρώ τον χρόνο.

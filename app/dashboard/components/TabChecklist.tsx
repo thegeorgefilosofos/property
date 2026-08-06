@@ -7,6 +7,7 @@ import { DatePicker, CustomSelect } from './UIComponents'
 import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE } from '@/components/Theme'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
+import type { ChecklistItemsRow } from '@/lib/supabase/tables'
 import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
@@ -363,7 +364,21 @@ interface NotePayload {
   note: string; subtasks: SubTask[]; comments: Comment[]; tags: string[]
   ref?: string | null; src?: string | null; who?: Who | null; receipt?: ItemReceipt | null
 }
-function parseItem(item: ChecklistItem): ChecklistItem {
+// ΤΟ ΜΟΝΟ ΣΗΜΕΙΟ ΠΟΥ ΓΡΑΜΜΗ ΒΑΣΗΣ ΓΙΝΕΤΑΙ ΕΚΚΡΕΜΟΤΗΤΑ ΟΘΟΝΗΣ.
+// Η βάση δέχεται κενό σε στήλες που η οθόνη θεωρεί δεδομένες (ακίνητο, χρήστης,
+// κατάσταση). Τα κενά κλείνουν ΕΔΩ, μία φορά, αντί να ταξιδεύουν μέσα στην
+// καρτέλα ως `null` που κανείς δεν περιμένει.
+function parseItem(row: ChecklistItemsRow): ChecklistItem {
+  const item: ChecklistItem = {
+    ...(row as unknown as ChecklistItem),
+    property_id: row.property_id ?? '',
+    user_id: row.user_id ?? '',
+    note: row.note ?? null,
+    completed: row.completed ?? false,
+    created_at: row.created_at ?? '',
+    estimated_cost: row.estimated_cost ?? 0,
+    actual_cost: row.actual_cost ?? 0,
+  }
   try {
     const p = JSON.parse(item.note || '{}')
     if (p?.__cv === 2) return {
@@ -1831,22 +1846,25 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       supabase.from('contacts').select('id,full_name,role,phone,property_id').eq('user_id', userId).order('full_name'),
       supabase.from('contacts').select('id,full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
     ])
-    setItems((itemData || []).map(parseItem))
+    // Οι γραμμές παίρνουν τον τύπο του πίνακα· το `parseItem` είναι η μία πύλη
+    // που τις μετατρέπει στο σχήμα της οθόνης, με τα κενά συμπληρωμένα.
+    const rows = (itemData || []) as ChecklistItemsRow[]
+    setItems(rows.map(parseItem))
     // Χαρτοφυλάκιο-wide λίστα επαφών ώστε να επιλέγεται π.χ. ο ψυκτικός όπου κι αν είναι
     // αποθηκευμένος· οι επαφές του τρέχοντος ακινήτου προηγούνται (σταθερή ταξινόμηση).
-    setContacts([...(contactData || [])].sort((a: any, b: any) =>
+    setContacts([...((contactData || []) as Contact[])].sort((a, b) =>
       (a.property_id === propertyId ? 0 : 1) - (b.property_id === propertyId ? 0 : 1)
     ))
-    const existingTemplates = new Set((itemData || []).map((i: any) => i.template_id).filter(Boolean))
+    const existingTemplates = new Set(rows.map(i => i.template_id).filter(Boolean))
     const suggestions: SmartSuggestion[] = []
     if (tenantData && tenantData.length > 0 && !existingTemplates.has('checkin'))
       suggestions.push({ title: 'Νέος Ενοικιαστής', reason: 'Βρέθηκε ενοικιαστής, δημιούργησε check-in checklist', templateKey: 'checkin' })
-    if (!(itemData || []).some((i: any) => i.category === 'maintenance') && !existingTemplates.has('maintenance'))
+    if (!rows.some(i => i.category === 'maintenance') && !existingTemplates.has('maintenance'))
       suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Καμία εργασία συντήρησης ακόμη', templateKey: 'maintenance' })
     // Ο τίτλος ακολουθεί την ετικέτα του προτύπου: το «Νομικά / ΑΑΔΕ» έγινε
     // «Έγγραφα ακινήτου» όταν οι φορολογικές υποχρεώσεις έφυγαν από το πρότυπο
     // και πήγαν στο ένα ημερολόγιο. Δύο ονόματα για το ίδιο κουμπί μπερδεύουν.
-    if (!(itemData || []).some((i: any) => i.category === 'legal'))
+    if (!rows.some(i => i.category === 'legal'))
       suggestions.push({ title: TEMPLATES.legal.label, reason: 'Ασφαλιστήριο, ΠΕΑ, βεβαίωση μηχανικού', templateKey: 'legal' })
     setSmartSuggestions(suggestions.slice(0, 2))
 
@@ -1900,7 +1918,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       const isPaid = enfiaBillData?.[0]?.paid === true
       setEnfiaPaid(isPaid)
       if (isPaid && itemData) {
-        const enfiaTask = (itemData as any[]).find((i: any) => i.description?.toLowerCase().includes('ενφια') && i.status !== 'done')
+        const enfiaTask = rows.find(i => i.description?.toLowerCase().includes('ενφια') && i.status !== 'done')
         if (enfiaTask) {
           await saved('Ο ΕΝΦΙΑ δεν σημειώθηκε πληρωμένος',
             supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', enfiaTask.id))
