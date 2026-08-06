@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, fn, KPIGrid, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE } from '@/components/Theme';
+import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { SearchX, FolderOpen, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
@@ -994,6 +995,10 @@ const OverlayBtn = ({ title, onClick, children }: { title: string; onClick: (e: 
 
 function FileCard({ i, a }: { i: Item; a: FileActions }) {
   const [hov, setHov] = useState(false);
+  // Σε οθόνη αφής δεν υπάρχει hover: οι ενέργειες μένουν μόνιμα ορατές, αλλιώς
+  // η μετονομασία και η διαγραφή αρχείου είναι απλώς απρόσιτες.
+  const coarse = useCoarsePointer();
+  const shown = hov || coarse;
   const sel = a.selected.has(i.id);
   const preview = canPreview(i);
   const canFix = !!i.raw && i.raw.kind === 'document';
@@ -1007,8 +1012,8 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
           ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <span style={{ color: 'var(--accent)' }}><svg {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
         {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 8, fontWeight: 800, letterSpacing: '0.05em', color: '#fff', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
-        {selectable && (hov || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/></div>}
-        {hov && i.raw && (
+        {selectable && (shown || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/></div>}
+        {shown && i.raw && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
             <OverlayBtn title="Μετονομασία" onClick={e => { e.stopPropagation(); a.onRename(i); }}><IconPencil size={13}/></OverlayBtn>
             {canFix && <OverlayBtn title="Διόρθωση αναγνώρισης" onClick={e => { e.stopPropagation(); a.onFix(i); }}><IconMoveFolder size={13}/></OverlayBtn>}
@@ -1037,13 +1042,15 @@ const RowBtn = ({ title, onClick, children }: { title: string; onClick: () => vo
 
 function FileRow({ i, a }: { i: Item; a: FileActions }) {
   const [hov, setHov] = useState(false);
+  const coarse = useCoarsePointer();
+  const shown = hov || coarse;
   const sel = a.selected.has(i.id);
   const canFix = !!i.raw && i.raw.kind === 'document';
   const selectable = !!i.raw || !!i.url;
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ display: 'flex', alignItems: 'center', gap: 12, background: sel ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${sel ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 14px', transition: `background 0.14s ${T.ease.standard}` }}>
-      <div style={{ width: 18, display: 'flex', flexShrink: 0 }}>{selectable && (hov || sel) && <SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/>}</div>
+      <div style={{ width: 18, display: 'flex', flexShrink: 0 }}>{selectable && (shown || sel) && <SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/>}</div>
       {i.isImage && i.url
         ? <img src={i.url} alt="" onClick={() => a.onOpenLightbox(i)} style={{ width: 40, height: 40, borderRadius: T.radius.badge, objectFit: 'cover', flexShrink: 0, cursor: 'pointer', border: '1px solid var(--border-subtle)' }}/>
         : <div onClick={() => { if (canPreview(i)) a.onOpenLightbox(i); }} style={{ width: 40, height: 40, borderRadius: T.radius.badge, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)', cursor: canPreview(i) ? 'pointer' : 'default' }}>
@@ -1060,7 +1067,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
         </div>
       </div>
       {i.value != null && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' }}>{fe(i.value)}</span>}
-      {hov && i.raw && (
+      {shown && i.raw && (
         <>
           <RowBtn title="Μετονομασία" onClick={() => a.onRename(i)}><IconPencil size={14}/></RowBtn>
           {canFix && <RowBtn title="Διόρθωση αναγνώρισης" onClick={() => a.onFix(i)}><IconMoveFolder size={14}/></RowBtn>}

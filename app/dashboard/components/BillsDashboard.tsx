@@ -685,13 +685,18 @@ const sf = <K extends keyof BillForm>(k: K, v: BillForm[K]) => setForm(f => ({ .
       {showForm && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 18, fontFamily: T.font.sans }}>Νέος Λογαριασμός / Πάγιο</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2fr 1fr 1.4fr', gap: 10, marginBottom: 12 }}>
+          {/* ΚΑΡΦΩΤΕΣ ΣΤΗΛΕΣ ΣΕ ΟΘΟΝΗ 375. Ήταν «1.3fr 2fr 1fr 1.4fr»: τέσσερις
+              στήλες που δεν τσάκιζαν ποτέ, οπότε στο κινητό το «Ποσό» έβγαινε
+              ~53 εικονοστοιχεία. Είναι ο βασικότερος δρόμος καταχώρησης της
+              εφαρμογής. Το ίδιο auto-fit που χρησιμοποιεί ήδη το πλαίσιο
+              ρεύματος δέκα γραμμές πιο κάτω. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 10, marginBottom: 12 }}>
             <CustomSelect label="Κατηγορία λογαριασμού" value={form.category} onChange={v => sf('category', v)} options={CAT_OPTIONS}/>
             <TextInput label="Ονομασία ή πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="Παράδειγμα: ΔΕΗ Πράσινο Ιουνίου"/>
             <NumberInput label="Ποσό" value={form.amount} onChange={v => sf('amount', v)} suffix="€" step={1}/>
             <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate', v)} options={VAT_OPTIONS}/>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: form.period === 'custom' ? '1fr 1fr 1fr auto 1fr' : '1fr 1fr auto 1fr', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
             <CustomSelect label="Περίοδος" value={form.period} onChange={v => {
               sf('period', v);
               if (v !== 'custom') sf('date_from', '');
@@ -812,8 +817,18 @@ const sf = <K extends keyof BillForm>(k: K, v: BillForm[K]) => setForm(f => ({ .
                   const daysLeft = b.due_date ? daysUntil(b.due_date) ?? 0 : null;
                   return (
                     <div key={b.id} className="po-fig-card" tabIndex={0} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
-                      <button onClick={() => togglePaid(b.id)} style={{ width: 22, height: 22, borderRadius: T.radius.badge, border: `2px solid ${b.paid ? 'var(--accent)' : 'var(--border-default)'}`, background: b.paid ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {b.paid && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
+                      {/* Η ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ ΤΗΣ ΟΘΟΝΗΣ ΗΤΑΝ ΑΝΩΝΥΜΗ. Κύκλος 22×22
+                          χωρίς κείμενο, χωρίς όνομα, με την κατάσταση να φαίνεται
+                          μόνο από το γέμισμα: ο αναγνώστης οθόνης έλεγε σκέτο
+                          «κουμπί». Το `aria-pressed` λέει και ΤΙ κατάσταση έχει.
+                          Ο κύκλος μένει 22 — μεγαλώνει η περιοχή αφής γύρω του
+                          με padding, όχι το ίδιο το σχήμα. */}
+                      <button onClick={() => togglePaid(b.id)}
+                        aria-label={b.paid ? 'Σήμανση ως απλήρωτο' : 'Σήμανση ως πληρωμένο'} aria-pressed={!!b.paid}
+                        style={{ width: 44, height: 44, margin: -11, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span aria-hidden style={{ width: 22, height: 22, borderRadius: T.radius.badge, border: `2px solid ${b.paid ? 'var(--accent)' : 'var(--border-default)'}`, background: b.paid ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+                          {b.paid && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round"/></svg>}
+                        </span>
                       </button>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' as const, marginBottom: 3 }}>
@@ -870,7 +885,7 @@ const sf = <K extends keyof BillForm>(k: K, v: BillForm[K]) => setForm(f => ({ .
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                         </svg>
                       </button>
-                      <button onClick={() => deleteBill(b.id)} style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      <button onClick={() => deleteBill(b.id)} aria-label="Διαγραφή λογαριασμού" style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(197,34,31,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--negative)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}>
                         ✕

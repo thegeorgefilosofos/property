@@ -6,9 +6,14 @@ import { T } from '@/components/Theme';
 import { athensToday } from '@/lib/core/time';
 
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
-// Ύψος 40, γωνία 4, 1px border + accent focus-ring
-// (χωρίς μετατόπιση layout — δεν αλλάζει πάχος border/padding στο focus).
-export const FIELD_HEIGHT = 40;
+// Γωνία 10, 1px border + accent focus-ring (χωρίς μετατόπιση layout — δεν
+// αλλάζει πάχος border/padding στο focus).
+//
+// Το ύψος ΔΕΝ είναι πια αριθμός: είναι το `T.h.lg` της κοινής κλίμακας, δηλαδή
+// 40 στο ποντίκι και 44 στο δάχτυλο. Ήταν σταθερό 40, δηλαδή κάθε πεδίο φόρμας
+// της εφαρμογής έπεφτε κάτω από το ελάχιστο μέγεθος αφής. Δεύτερη σταθερά με
+// δεύτερη τιμή θα ήταν δεύτερη κλίμακα.
+export const FIELD_HEIGHT = T.h.lg;
 // Ακτίνα πεδίων: ίδια με τα κουμπιά και το inner token (T.radius.inner = 10),
 // ώστε πεδία και κουμπιά να έχουν την ίδια γεωμετρία παντού.
 export const FIELD_RADIUS = T.radius.inner;

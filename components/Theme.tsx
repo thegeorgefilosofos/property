@@ -16,7 +16,7 @@
 // --negative, --bg-*, --text-*, --border-*).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { ReactNode, CSSProperties, useState, useEffect } from 'react';
+import { ReactNode, CSSProperties, useState, useEffect, useRef } from 'react';
 
 // Τα tokens ζουν σε module ΧΩΡΙΣ React (components/tokens.ts) ώστε να μπορεί να
 // τα εισάγει και Server Component. Εδώ ξανα-εξάγονται αυτούσια, ώστε τα ~600
@@ -108,6 +108,12 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
   title: ReactNode; ariaLabel?: string; subtitle?: ReactNode; icon?: ReactNode;
   width?: number; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Πού γυρίζει η εστίαση όταν κλείσει. Χωρίς αυτό, ο χρήστης πληκτρολογίου
+  // πέφτει στο <body> και ξαναρχίζει το Tab από την κορυφή της σελίδας — το
+  // ίδιο μοτίβο που λύνει ήδη σωστά το ConfirmDialog.
+  const returnTo = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -115,12 +121,40 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  // ── ΕΣΤΙΑΣΗ ΜΕΣΑ, ΚΑΙ ΕΠΙΣΤΡΟΦΗ ΜΕΤΑ ───────────────────────────────────
+  useEffect(() => {
+    if (!open) return;
+    returnTo.current = (document.activeElement as HTMLElement | null) ?? null;
+    // Το ίδιο το πλαίσιο, όχι το πρώτο κουμπί: το πρώτο κουμπί κάθε παραθύρου
+    // είναι το «×», και μια εστίαση που ξεκινά από το κλείσιμο διαβάζεται σαν
+    // πρόταση να φύγεις. Με tabIndex -1 ο αναγνώστης οθόνης διαβάζει τον τίτλο
+    // και το Tab συνεχίζει από εκεί, μέσα στο παράθυρο.
+    panelRef.current?.focus();
+    const back = returnTo.current;
+    return () => { if (back?.isConnected) back.focus(); };
+  }, [open]);
+
+  // ── ΤΟ ΦΟΝΤΟ ΔΕΝ ΚΥΛΑ ───────────────────────────────────────────────────
+  // Με ανοιχτό παράθυρο, το σύρσιμο πάνω στο σκοτεινό φόντο κυλούσε τη σελίδα
+  // από πίσω: ο χρήστης έκλεινε το παράθυρο και έβρισκε άλλο σημείο της λίστας
+  // από αυτό που άφησε. Κλειδώνει η `.app-content`, που είναι ο πραγματικός
+  // κύλινδρος της εφαρμογής (το `body` δεν κυλά — το κέλυφος έχει overflow
+  // hidden), και το `document.body` για τις δημόσιες σελίδες που δεν το έχουν.
+  useEffect(() => {
+    if (!open) return;
+    const targets = [document.querySelector<HTMLElement>('.app-content'), document.body]
+      .filter((el): el is HTMLElement => !!el);
+    const prev = targets.map(el => el.style.overflow);
+    targets.forEach(el => { el.style.overflow = 'hidden'; });
+    return () => { targets.forEach((el, i) => { el.style.overflow = prev[i]; }); };
+  }, [open]);
+
   if (!open) return null;
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel ?? (typeof title === 'string' ? title : undefined)}
-      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: T.sp.lg }}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: `min(${width}px, 100%)`, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
+      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: T.sp.lg, overscrollBehavior: 'contain' }}>
+      <div ref={panelRef} tabIndex={-1} onClick={e => e.stopPropagation()}
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: `min(${width}px, 100%)`, maxHeight: '92dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)', outline: 'none', overscrollBehavior: 'contain' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           {icon && (
@@ -130,8 +164,10 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
             <div style={{ ...TT.h2 }}>{title}</div>
             {subtitle && <div style={{ ...TT.bodySm, marginTop: 1 }}>{subtitle}</div>}
           </div>
+          {/* Το padding ήταν 4, δηλαδή στόχος ~21×30: ένα «×» που αστοχεί στο
+              δάχτυλο κλείνει άλλο πράγμα από αυτό που ήθελε ο χρήστης. */}
           <button onClick={onClose} aria-label="Κλείσιμο"
-            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4, fontFamily: T.font.sans }}>×</button>
+            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 11, margin: -7, fontFamily: T.font.sans }}>×</button>
         </div>
 
         <div style={{ padding: T.sp.xxl, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: T.sp.xl }}>
@@ -377,7 +413,11 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
   children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost'; disabled?: boolean; type?: 'button' | 'submit';
 }) {
   const base: CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', gap: 8,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    // Το padding έδινε ύψος ~38: κάτω από το ελάχιστο μέγεθος αφής, σε 148
+    // σημεία. Το `minHeight` από την κοινή κλίμακα το ανεβάζει στα 44 όταν ο
+    // δείκτης είναι δάχτυλο, χωρίς να αλλάξει τίποτα στο ποντίκι.
+    minHeight: T.h.md,
     padding: '9px 18px', borderRadius: T.radius.btn,
     fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,

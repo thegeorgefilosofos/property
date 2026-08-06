@@ -19,6 +19,7 @@ import TabLoan      from './components/TabLoan';
 import TabAccounting from './components/TabAccounting';
 import TabInventory from './components/TabInventory';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
+import type { OpenerContext } from '@/lib/assistant/openers';
 import { mergeLedger, ledgerTotal } from '@/lib/expenses/ledger';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
@@ -57,6 +58,7 @@ import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, CORE_
 import AthensNow from './components/AthensNow';
 import CashHero from './components/CashHero';
 import AgendaPanel from './components/AgendaPanel';
+import AssistantStrip, { askAssistant } from './components/AssistantStrip';
 import { cashPosition } from '@/lib/home/cash';
 import { buildAgenda, type SetupLike as SetupStep } from '@/lib/home/agenda';
 import { computeObligations, type OblMaint } from './components/obligations';
@@ -609,6 +611,27 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
     today: todayIso,
   }), [rentPeriods, bills, expenses, todayIso]);
 
+  // ── ΤΑ ΝΟΥΜΕΡΑ ΠΟΥ ΔΙΝΟΥΜΕ ΣΤΗ ΝΟΑ ───────────────────────────────────────
+  // Ίδια δομή με αυτήν που φτιάχνει ο ίδιος ο βοηθός (PropertyAssistant), γιατί
+  // την παράγει η ίδια μηχανή (lib/assistant/openers.ts) και ο κανόνας της είναι
+  // ένας: κανένα νούμερο που δεν υπάρχει. Γι' αυτό `null` όσο φορτώνει — ο
+  // χαιρετισμός τότε λέει «κοιτάζω τα στοιχεία σου», όχι «δεν έχεις τίποτα».
+  //
+  // Χωρίς useMemo: είναι εννέα αναθέσεις πεδίων σε ένα αντικείμενο — ο
+  // μεταγλωττιστής του React το απομνημονεύει μόνος του, και μια χειροκίνητη
+  // απομνημόνευση εδώ τον εμποδίζει να βελτιστοποιήσει ΟΛΟ το component.
+  const assistantCtx: OpenerContext | null = loading ? null : {
+    propertyName: prop.name,
+    monthlyRent: rent || undefined,
+    propertyValue: propValue || undefined,
+    expensesYtd: totalExpYTD || undefined,
+    openTasks: openChk,
+    overdueRent: cash.owedToMe.overdue || undefined,
+    hasLoan: loans.length > 0,
+    isShortTerm: isShortTerm(prop),
+    propertyCount: properties.length || undefined,
+  };
+
   // ── Έξυπνα insights: ο «σύμβουλος» διαβάζει τα δεδομένα και προτεραιοποιεί ──
   const insights = computeInsights({
     now: now.getTime(),
@@ -752,6 +775,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
           τρεις αριθμοί που ο ιδιοκτήτης ξέρει απ' έξω και που δεν αλλάζουν από
           μήνα σε μήνα. Αυτό που ΔΕΝ ήξερε, και είναι ο λόγος που ανοίγει την
           εφαρμογή, ήταν αν μπήκε το ενοίκιο και τι πρέπει να πληρώσει. */}
+      {/* Η Νόα πριν από το Ταμείο, όχι πίσω από πλωτό κουμπί στη γωνία. Είναι
+          μία γραμμή, όχι κάρτα: παρούσα, χωρίς να διεκδικεί τη θέση των ποσών. */}
+      <AssistantStrip ctx={assistantCtx} />
+
       <CashHero cash={cash} showIncome={isLet(prop)} onNavigate={onNavigate} />
 
       {/* Μία λίστα «τι χρειάζεται τώρα», στη θέση των τεσσάρων που έλεγαν εν
@@ -1515,7 +1542,7 @@ export default function Dashboard() {
     // δηλαδή το ποντίκι — και μπαίνει πρώτη, γιατί είναι ο συντομότερος δρόμος
     // προς οτιδήποτε άλλο στη λίστα.
     { id: 'act-ask', label: `Ρώτα τη ${ASSISTANT_NAME}`, hint: 'Βοηθός', keywords: 'noa βοηθός assistant ρώτα σάρωσε',
-      action: () => window.dispatchEvent(new CustomEvent('pos:ask', { detail: { q: '' } })) },
+      action: () => askAssistant() },
     { id: 'act-add', label: 'Προσθήκη ακινήτου', hint: 'Ενέργεια', keywords: 'new property add', action: () => tryAddProperty() },
     { id: 'act-signout', label: 'Αποσύνδεση', hint: 'Ενέργεια', keywords: 'logout sign out exit', action: () => signOut() },
   ];
@@ -1556,7 +1583,12 @@ export default function Dashboard() {
           <div className="sidebar-section-label">{effProfileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
           {properties.map(p => (
             <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>switchProperty(p)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();switchProperty(p);}}}>
-              <div className="prop-item-dot" style={{background:STATUS_COLORS[readStatus(p)]}}/>
+              {/* Η κατάσταση λεγόταν ΜΟΝΟ με απόχρωση σε τελεία 8 εικονοστοιχείων:
+                  «ενοικιασμένο», «κενό», «ανακαίνιση» και «προς πώληση» ήταν
+                  τέσσερα χρώματα και τίποτα άλλο. Το `title` τη δείχνει στο
+                  ποντίκι, το κρυφό κείμενο τη λέει στον αναγνώστη οθόνης. */}
+              <div className="prop-item-dot" title={statusLabelOf(p)} style={{background:STATUS_COLORS[readStatus(p)]}}/>
+              <span className="sr-only">{statusLabelOf(p)}</span>
               <span className="prop-item-name">{p.name}</span>
               <button className="prop-item-del" title="Διαγραφή ακινήτου και όλων των δεδομένων του" aria-label={`Διαγραφή ακινήτου ${p.name}`}
                 onClick={e=>{ e.stopPropagation(); deletePropertyById(p.id, p.name); }}
@@ -1926,16 +1958,23 @@ export default function Dashboard() {
 
       {/* Κάτω μπάρα πλοήγησης, μόνο σε κινητό (≤768px, μέσω CSS) */}
       {selected && (
-        <nav className="bottom-nav">
+        <nav className="bottom-nav" aria-label="Κύρια πλοήγηση">
           {BOTTOM_NAV.map(item => {
             const isActive = item.id !== 'more' && nav === item.id;
             const onTap = item.id === 'more' ? () => setSidebarOpen(true) : () => setNav(item.id);
-            const badge = item.id === 'more' && (inventoryAlerts + checklistAlerts) > 0;
+            const alerts = inventoryAlerts + checklistAlerts;
+            const badge = item.id === 'more' && alerts > 0;
             return (
-              <button key={item.id} className={`bottom-nav-item ${isActive?'active':''}`} onClick={onTap} style={{position:'relative'}}>
+              // Η ΕΝΕΡΓΗ ΚΑΡΤΕΛΑ ΛΕΓΟΤΑΝ ΜΟΝΟ ΜΕ ΧΡΩΜΑ, και η κόκκινη τελεία
+              // ήταν σκέτη τελεία: δύο πληροφορίες που ο αναγνώστης οθόνης δεν
+              // μπορούσε να μεταφέρει με κανέναν τρόπο. Το `aria-current` λέει
+              // πού βρίσκεσαι, και το σήμα αποκτά τον αριθμό του.
+              <button key={item.id} className={`bottom-nav-item ${isActive?'active':''}`} onClick={onTap}
+                aria-current={isActive ? 'page' : undefined} style={{position:'relative'}}>
                 {badge && <span className="bottom-nav-badge"/>}
                 {item.icon}
                 <span>{item.label}</span>
+                {badge && <span className="sr-only">{alerts === 1 ? '1 εκκρεμότητα' : `${alerts} εκκρεμότητες`}</span>}
               </button>
             );
           })}

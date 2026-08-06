@@ -170,7 +170,11 @@ body {
 
   --text-primary:   #202124;   /* Google exact */
   --text-secondary: #5f6368;
-  --text-tertiary:  #6b7075;   /* 3η βαθμίδα, WCAG AA (≥4.5:1) και πάνω στο off-white --bg-base, όχι μόνο σε λευκό */
+  /* 3η βαθμίδα. ΜΕΤΡΗΜΕΝΗ ΣΤΗΝ ΠΙΟ ΣΚΟΥΡΗ ΕΠΙΦΑΝΕΙΑ, ΟΧΙ ΣΤΟ ΛΕΥΚΟ: ήταν
+     #6b7075, που περνούσε στο --bg-base αλλά έπεφτε σε 4,49:1 πάνω στο
+     --bg-elevated (φόντο των περισσότερων παραθύρων) και 4,15:1 στο
+     --bg-overlay. Τώρα 4,67:1 στη χειρότερη περίπτωση των τεσσάρων. */
+  --text-tertiary:  #63686d;
   --text-inverse:   #ffffff;
 
   --border-subtle:  #e8eaed;   /* Google exact divider */
@@ -253,7 +257,9 @@ body {
 
   --text-primary:   #e8eaed;
   --text-secondary: #9aa0a6;
-  --text-tertiary:  #949a9f;   /* ενισχυμένο για WCAG AA στο σκούρο φόντο */
+  /* Ίδιος λόγος με το φωτεινό: ήταν #949a9f, δηλαδή 4,24:1 στο --bg-elevated
+     και 3,68:1 στο --bg-overlay. Τώρα 4,67:1 στη χειρότερη των τεσσάρων. */
+  --text-tertiary:  #a8aeb3;
   --text-inverse:   #1f1f1f;
 
   --border-subtle:  #3c4043;
@@ -415,6 +421,11 @@ body {
    εμφανίζεται μόνο σε focus-visible, όχι σε mouse-focus που θα το «κόλλαγε». */
 .client-card:hover .client-card-act { opacity: 1; }
 .client-card:has(.client-card-act button:focus-visible) .client-card-act { opacity: 1; }
+/* ΧΩΡΙΣ hover ΔΕΝ ΥΠΑΡΧΕΙ «ΑΠΟΚΑΛΥΨΗ», ΥΠΑΡΧΕΙ ΜΟΝΟ ΑΠΟΥΣΙΑ. Στο δάχτυλο ούτε
+   το :hover ούτε το :focus-visible πυροδοτούνται από ένα απλό πάτημα, οπότε οι
+   ενέργειες της κάρτας πελάτη ήταν αόρατες σε κάθε χρήστη κινητού. Το ίδιο
+   αρχείο ήξερε ήδη τη λύση: βλ. .po-onbstep-chev πιο κάτω. */
+@media (hover: none) { .client-card-act { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .client-card:hover { transform: none; } }
 
 /* ── ΔΥΟ ΜΑΤΙΑ ΣΤΟΝ ΚΩΔΙΚΟ ─────────────────────────────────────────────────
@@ -572,7 +583,13 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 ══════════════════════════════════════════════════════════════ */
 .app-shell {
   display: flex;
+  /* Στο Safari του iPhone το `100vh` ΔΕΝ είναι το ορατό ύψος: μετρά σαν να μην
+     υπάρχει η μπάρα διευθύνσεων, οπότε το κάτω άκρο του κελύφους — και μαζί το
+     περιθώριο που κρατά η `.app-content` για την πλοήγηση — πέφτει εκτός
+     οθόνης. Το `100dvh` είναι το πραγματικά ορατό· το `100vh` μένει από πάνω
+     ως εναλλακτικό για τα ελάχιστα προγράμματα που δεν το ξέρουν. */
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--bg-base);
 }
@@ -795,7 +812,9 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   min-width: 18px; height: 18px;
   border-radius: 8px;
   background: var(--negative);
-  color: #fff;
+  /* Ο μετρητής εκκρεμοτήτων είναι ΠΛΗΡΟΦΟΡΙΑ, όχι διακοσμητικό: πρέπει να
+     διαβάζεται. Με καρφωτό #fff έβγαινε 2,50:1 στο σκούρο θέμα. */
+  color: var(--on-tone);
   font-size: 10px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   padding: 0 5px;
@@ -889,7 +908,10 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   width: 32px; height: 32px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  /* Ήταν καρφωτό #fff: στο σκούρο θέμα το accent είναι ανοιχτό παστέλ, οπότε
+     τα λευκά αρχικά έβγαιναν 2,11:1 — μουτζούρα, όχι διακριτικότητα. Ο κανόνας
+     υπάρχει από πάνω και είναι ρητός: ΠΟΤΕ #fff πάνω σε κορεσμένο γέμισμα. */
+  color: var(--on-tone);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
@@ -1023,12 +1045,55 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 :root {
   --fab-h: 52px;
   --fab-gap: 24px;
+
+  /* ── Η ΚΛΙΜΑΚΑ ΤΩΝ ΧΕΙΡΙΣΤΗΡΙΩΝ ────────────────────────────────────────
+     Η μοναδική πηγή για το ύψος κάθε κουμπιού, πεδίου και chip. Το
+     components/tokens.ts (T.h) δείχνει εδώ, ώστε τα 215 inline styles που
+     δεν μπορεί να τα φτάσει καμία media query να ακολουθούν μία γραμμή. */
+  --h-sm: 32px;   /* chips, δευτερεύοντα κουμπιά */
+  --h-md: 36px;   /* κανονικά πεδία και κουμπιά */
+  --h-lg: 40px;   /* κύρια πεδία φόρμας */
+
+  /* ── ΠΟΥ ΚΑΘΟΝΤΑΙ ΤΑ ΠΛΩΤΑ ΣΤΟΙΧΕΙΑ ──────────────────────────────────
+     Μηνύματα επιβεβαίωσης και γραμμές μαζικών ενεργειών κάθονταν όλα στα
+     24-28 από το κάτω άκρο — δηλαδή, στο κινητό, ΠΑΝΩ στην κάτω πλοήγηση,
+     που είναι σταθερή στο μηδέν. Τα κουμπιά τους έκρυβαν τα εικονίδια
+     πλοήγησης και έκλεβαν το πάτημα. Μία τιμή, ένα σημείο. */
+  --float-bottom: 24px;
+  /* Πάνω από την πλοήγηση (900), κάτω από τα παράθυρα (1200+). */
+  --float-z: 950;
+}
+
+/* ΤΟ ΔΑΧΤΥΛΟ ΘΕΛΕΙ 44. Δεν είναι αισθητική επιλογή: κάτω από αυτό, το πάτημα
+   αστοχεί και ο χρήστης πατά τον διπλανό στόχο. Η συνθήκη είναι ο ΔΕΙΚΤΗΣ και
+   όχι το πλάτος — ένα tablet 900 εικονοστοιχείων χειρίζεται με δάχτυλο, ένα
+   παράθυρο 500 στην επιφάνεια εργασίας με ποντίκι. */
+@media (pointer: coarse) {
+  :root {
+    --h-sm: 40px;
+    --h-md: 44px;
+    --h-lg: 44px;
+  }
 }
 
 /* Hide number spinners */
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+/* ── ΚΕΙΜΕΝΟ ΜΟΝΟ ΓΙΑ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ ────────────────────────────────────
+   Όπου η οθόνη λέει κάτι με σχήμα ή χρώμα — μια τελεία κατάστασης, ένα σήμα
+   εκκρεμοτήτων — η ίδια πληροφορία πρέπει να υπάρχει και ως λέξεις. Δεν είναι
+   `display:none`: αυτό θα την έκρυβε και από τον αναγνώστη. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* Google-style focus ring for all interactive elements */
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
@@ -1324,6 +1389,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
      να καθαρίζει το ψηλότερο από τα δύο — τα 80px κάλυπταν μόνο την πλοήγηση,
      οπότε το κουμπί συνέχιζε να κάθεται πάνω στην τελευταία κάρτα. */
   .app-content { padding-bottom: calc(82px + var(--fab-h) + 16px); }
+  /* Πάνω από την πλοήγηση ΚΑΙ πάνω από το κουμπί του βοηθού: ακριβώς το ίδιο
+     ύψος που κρατά ήδη ελεύθερο η `.app-content` από πάνω. */
+  :root { --float-bottom: calc(82px + var(--fab-h) + 12px); }
 }
 .bottom-nav-item {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;

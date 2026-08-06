@@ -1313,7 +1313,7 @@ function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pending, sma
               <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Έτοιμα πρότυπα</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>Έτοιμες λίστες εργασιών, και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.</p>
             </div>
-            <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            <button type="button" onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
         <div style={{ padding: '18px 28px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -2175,19 +2175,41 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     notifyOk(`Προστέθηκαν ${fresh.length} ${fresh.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}, με ημερομηνία και πηγή`)
   }
 
+  // ΔΥΟ ΕΡΩΤΗΜΑΤΑ, ΟΧΙ ΕΝΑ ΑΝΑ ΕΡΓΑΣΙΑ.
+  // Ήταν σειριακός βρόχος με ένα INSERT ανά γραμμή προτύπου: σε πρότυπο είκοσι
+  // εργασιών, είκοσι διαδοχικές διαδρομές στη βάση, η μία μετά την άλλη. Στο
+  // κινητό με σύνδεση κινητής τηλεφωνίας αυτό είναι δευτερόλεπτα αναμονής για
+  // μία ενέργεια που ο χρήστης θεωρεί στιγμιαία. Το αρχείο ήδη το ήξερε: το
+  // `bulkComplete` δέκα γραμμές πιο κάτω το γράφει ρητά στο σχόλιό του.
+  //
+  // Ο ΛΟΓΟΣ ΠΟΥ ΕΓΙΝΑΝ ΔΥΟ ΚΑΙ ΟΧΙ ΕΝΑ: οι εργασίες αλυσιδώνονται μεταξύ τους
+  // (`depends_on` δείχνει σε γραμμή του ίδιου προτύπου), και το αναγνωριστικό
+  // της γεννιέται από τη βάση. Πρώτα μπαίνουν όλες, μετά δένονται οι κρίκοι.
   const loadTemplate = async (key: string) => {
     const tpl = TEMPLATES[key]; if (!tpl) return
-    const insertedIds: string[] = []
-    for (let i = 0; i < tpl.items.length; i++) {
-      const tItem = tpl.items[i]
-      // `estimated_cost: 0` και όχι σταθερά προτύπου: τα 24 επινοημένα κόστη
-      // σβήστηκαν. Ό,τι κόστος μπει, το βάζει ο χρήστης ή το τιμολόγιο.
-      const data = await savedData<{ id?: string }>('Το πρότυπο δεν φορτώθηκε ολόκληρο',
-        supabase.from('checklist_items').insert({ property_id: propertyId, user_id: userId, description: tItem.description, category: tItem.category, priority: tItem.priority, recurring: tItem.recurring || 'none', status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: [], comments: [], tags: [] }), estimated_cost: 0, actual_cost: 0, sort_order: i, template_id: key, depends_on: tItem.depends_on_idx !== undefined && insertedIds[tItem.depends_on_idx] ? insertedIds[tItem.depends_on_idx] : null }).select('id').single())
-      // Οι εργασίες αλυσιδώνονται μεταξύ τους (depends_on). Αν σπάσει ο κρίκος,
-      // η συνέχεια θα έγραφε εξαρτήσεις σε ανύπαρκτες γραμμές.
-      if (!data?.id) { fetchAll(); return }
-      insertedIds.push(data.id)
+    // `estimated_cost: 0` και όχι σταθερά προτύπου: τα 24 επινοημένα κόστη
+    // σβήστηκαν. Ό,τι κόστος μπει, το βάζει ο χρήστης ή το τιμολόγιο.
+    const rows = tpl.items.map((tItem, i) => ({
+      property_id: propertyId, user_id: userId, description: tItem.description, category: tItem.category,
+      priority: tItem.priority, recurring: tItem.recurring || 'none', status: 'pending', completed: false,
+      note: serializeNote({ note: '', subtasks: [], comments: [], tags: [] }),
+      estimated_cost: 0, actual_cost: 0, sort_order: i, template_id: key, depends_on: null,
+    }))
+    const inserted = await savedData<{ id: string; sort_order: number }[]>('Το πρότυπο δεν φορτώθηκε',
+      supabase.from('checklist_items').insert(rows).select('id,sort_order'))
+    if (!inserted) { fetchAll(); return }
+
+    // Η σειρά επιστροφής δεν είναι εγγυημένη· το `sort_order` είναι ο δείκτης
+    // που έγραψε το πρότυπο, άρα η μόνη ασφαλής αντιστοίχιση.
+    const idByIndex = new Map(inserted.map(r => [r.sort_order, r.id]))
+    const links = tpl.items
+      .map((tItem, i) => ({ id: idByIndex.get(i), dep: tItem.depends_on_idx !== undefined ? idByIndex.get(tItem.depends_on_idx) : undefined }))
+      .filter((l): l is { id: string; dep: string } => !!l.id && !!l.dep)
+    // Οι εξαρτήσεις δείχνουν σε διαφορετική γραμμή η καθεμία, οπότε δεν
+    // συμπτύσσονται σε ένα update — τρέχουν όμως παράλληλα, όχι σε σειρά.
+    if (links.length) {
+      await Promise.all(links.map(l => saved('Μια εξάρτηση εργασίας δεν αποθηκεύτηκε',
+        supabase.from('checklist_items').update({ depends_on: l.dep }).eq('id', l.id))))
     }
     fetchAll(); notifyOk(`«${tpl.label}» φορτώθηκε, ${tpl.items.length} εργασίες`)
   }
@@ -2493,7 +2515,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
       {/* Γραμμή μαζικών ενεργειών — εμφανίζεται μόλις επιλεγεί ≥1 εργασία */}
       {selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: 'min(520px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
+        <div style={{ position: 'fixed', bottom: 'var(--float-bottom)', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--float-z)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: 'min(520px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
           <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
             <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{selected.size === filtered.length ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>

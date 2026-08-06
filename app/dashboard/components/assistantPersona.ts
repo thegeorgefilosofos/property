@@ -653,9 +653,17 @@ export function loadPrefs(): AssistantPrefs | null {
   } catch { return null; }
 }
 
+/** Το συμβάν που λέει «οι ρυθμίσεις του βοηθού άλλαξαν». */
+export const PREFS_EVENT = 'pos:assistant-prefs';
+
 export function savePrefs(prefs: AssistantPrefs) {
   if (typeof window === 'undefined') return;
   try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
+  // Το `storage` του περιηγητή ΔΕΝ πυροδοτείται στην καρτέλα που έγραψε: χωρίς
+  // αυτό, η γραμμή της Επισκόπησης θα συνέχιζε να μιλά στον ενικό ώσπου να
+  // ανανεώσει ο χρήστης τη σελίδα, ενώ η συνομιλία δίπλα της θα είχε ήδη
+  // αλλάξει σε πληθυντικό ευγενείας.
+  try { window.dispatchEvent(new Event(PREFS_EVENT)); } catch { /* ignore */ }
 }
 
 // ── Μνήμη συνομιλίας ανά ακίνητο (localStorage), μόνο αν το θέλει ο χρήστης ──

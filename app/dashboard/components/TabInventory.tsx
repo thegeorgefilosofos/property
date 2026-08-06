@@ -1,7 +1,7 @@
 'use client'
 
 import { BRAND_MARK_INK } from '@/components/BrandMark';
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
@@ -564,7 +564,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:28,width:'100%',maxWidth:600,maxHeight:'85vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Μαζική Εισαγωγή <span title="CSV: αρχείο τιμών χωρισμένων με κόμμα· ανοίγει σε Excel/λογιστικά φύλλα">CSV</span></p>
-          <button onClick={onClose} style={{width:T.h.md,height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          <button onClick={onClose} aria-label="Κλείσιμο" style={{width:T.h.md,height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         {step==='upload'&&(
           <>
@@ -723,7 +723,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
               <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{item?'Επεξεργασία Αντικειμένου':'Νέο Αντικείμενο'}</p>
               {item&&<p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:2,fontFamily:T.font.sans}}>{item.name}</p>}
             </div>
-            <button onClick={onClose} style={{width:T.h.lg,height:T.h.lg,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='none'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            <button onClick={onClose} aria-label="Κλείσιμο" style={{width:T.h.lg,height:T.h.lg,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='none'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
         <div style={{padding:'20px 28px',display:'flex',flexDirection:'column',gap:18,flex:1,overflowY:'auto'}}>
@@ -920,7 +920,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
             <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Επισκευές</p>
             <p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:2,fontFamily:T.font.sans}}>{item.name}</p>
           </div>
-          <button onClick={onClose} style={{width:T.h.lg,height:T.h.lg,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          <button onClick={onClose} aria-label="Κλείσιμο" style={{width:T.h.lg,height:T.h.lg,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         {/* Το ξεπέρασμα του ορίου είναι προειδοποίηση· το «εντός ορίων» δεν
             είναι βραβείο. Πράσινο πλαίσιο γύρω από ένα κόστος επισκευών λέει
@@ -1181,25 +1181,33 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
   const [showNeedsAction,setShowNeedsAction] = useState(false)
   const allRooms = [...new Set(items.map(i=>i.room).filter(Boolean))]
   const actionCount = items.filter(needsAction).length
-  const filtered = items
-    .filter(item=>{
+  // ΤΟ ΚΛΕΙΔΙ ΤΑΞΙΝΟΜΗΣΗΣ ΥΠΟΛΟΓΙΖΕΤΑΙ ΜΙΑ ΦΟΡΑ ΑΝΑ ΑΝΤΙΚΕΙΜΕΝΟ, ΟΧΙ ΑΝΑ ΣΥΓΚΡΙΣΗ.
+  // Πριν, ο συγκριτής καλούσε `calcCurrentValue` / `calcMonthlyCost` μέσα του,
+  // δηλαδή O(n log n) φορές — και όλο αυτό ξανά σε κάθε απόδοση, άρα σε κάθε
+  // πλήκτρο της αναζήτησης. Τώρα: n υπολογισμοί, μέσα σε useMemo.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const kept = items.filter(item=>{
       if(showNeedsAction&&!needsAction(item)) return false
       if(filterCat!=='Όλες'&&item.category!==filterCat) return false
       if(filterRoom!=='Όλα'&&item.room!==filterRoom) return false
-      if(search&&!item.name.toLowerCase().includes(search.toLowerCase())&&!(item.brand||'').toLowerCase().includes(search.toLowerCase())) return false
+      if(q&&!item.name.toLowerCase().includes(q)&&!(item.brand||'').toLowerCase().includes(q)) return false
       return true
     })
-    .sort((a,b)=>{
-      // Το όνομα συγκρίνεται ως κείμενο, όλα τα άλλα ως αριθμοί. Δύο ξεχωριστές
-      // διαδρομές, ώστε ο τύπος να μη χρειάζεται να είναι `any` για να χωρέσουν.
-      if(sortKey==='name') return sortDir==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name)
-      const num=(i:InventoryItem):number =>
-        sortKey==='value'        ? calcCurrentValue(i)
-      : sortKey==='energy'       ? calcMonthlyCost(i,kwhPrice)
-      : sortKey==='age'          ? (i.purchase_date?new Date(i.purchase_date).getTime():0)
-      :                            calcDepreciationPct(i)
-      return sortDir==='asc'?num(a)-num(b):num(b)-num(a)
-    })
+    // Το όνομα συγκρίνεται ως κείμενο, όλα τα άλλα ως αριθμοί. Δύο ξεχωριστές
+    // διαδρομές, ώστε ο τύπος να μη χρειάζεται να είναι `any` για να χωρέσουν.
+    const dir = sortDir==='asc' ? 1 : -1
+    if(sortKey==='name') return [...kept].sort((a,b)=>dir*a.name.localeCompare(b.name))
+    const num=(i:InventoryItem):number =>
+      sortKey==='value'        ? calcCurrentValue(i)
+    : sortKey==='energy'       ? calcMonthlyCost(i,kwhPrice)
+    : sortKey==='age'          ? (i.purchase_date?new Date(i.purchase_date).getTime():0)
+    :                            calcDepreciationPct(i)
+    return kept
+      .map(item=>({ item, key: num(item) }))
+      .sort((a,b)=>dir*(a.key-b.key))
+      .map(d=>d.item)
+  }, [items, showNeedsAction, filterCat, filterRoom, search, sortKey, sortDir, kwhPrice])
   const itemActions = (item:InventoryItem):OverflowAction[] => [
     {label:'Επεξεργασία',icon:IconEdit,onClick:()=>onEdit(item)},
     {label:'Επισκευές & ιστορικό',icon:IconRepair,onClick:()=>onRepair(item)},

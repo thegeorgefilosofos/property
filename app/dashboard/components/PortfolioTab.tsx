@@ -562,7 +562,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
       {/* Ήρεμη μπάρα μαζικών ενεργειών (Gmail/Linear style) */}
       {selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
+        <div style={{ position: 'fixed', bottom: 'var(--float-bottom)', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--float-z)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
           <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
             <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{allSelected ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>

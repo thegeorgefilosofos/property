@@ -542,8 +542,15 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
           {MONTHS_GR.map((m, i) => (
             <div key={i}>
-              <label style={{ fontSize: 8, color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-secondary)' : 'var(--text-tertiary)', display: 'block', marginBottom: 3, textAlign: 'center', fontFamily: T.font.sans, fontWeight: i === currentMonth ? 700 : 400, transition: 'color 0.15s' }}>{m}</label>
+              {/* Η ΕΤΙΚΕΤΑ ΠΕΡΙΤΥΛΙΓΕΙ ΤΟ ΠΕΔΙΟ, ΔΕΝ ΚΑΘΕΤΑΙ ΑΠΛΩΣ ΑΠΟ ΠΑΝΩ.
+                  Χωρίς σύνδεση, ο αναγνώστης οθόνης έλεγε δώδεκα φορές «πεδίο
+                  αριθμού, €» χωρίς να πει ποιον μήνα. Και τα 8 εικονοστοιχεία
+                  ήταν αδιάβαστα σε κινητό — 10 είναι το ελάχιστο που έχει νόημα
+                  για ετικέτα δίπλα σε ποσό. */}
+              <label style={{ fontSize: 10, color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-secondary)' : 'var(--text-tertiary)', display: 'block', marginBottom: 3, textAlign: 'center', fontFamily: T.font.sans, fontWeight: i === currentMonth ? 700 : 400, transition: 'color 0.15s' }}>
+                <span style={{ display: 'block', marginBottom: 3 }}>{m}</span>
               <input
+                aria-label={`${m}, ποσό σε ευρώ`}
                 type="number"
                 value={history[i]}
                 onChange={e => sHist(i, e.target.value)}
@@ -554,6 +561,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 onBlur={() => setHoveredMonth(null)}
                 style={histInputStyle(i === currentMonth, hoveredMonth === i)}
               />
+              </label>
             </div>
           ))}
         </div>

@@ -122,13 +122,28 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Ανοιχτά στοιχεία προς πληρωμή, για τη σήμανση «πληρωμένο» ([[paid:…]]).
   const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
   const openRentRef = useRef<{ id: string; label: string; amount: number }[]>([]);
+  // Το `ask` ορίζεται πολύ πιο κάτω και κλείνει πάνω σε κατάσταση που αλλάζει.
+  // Ο ακροατής του `pos:ask` γράφεται μία φορά (deps []), οπότε τον φτάνει μέσω
+  // ref — αλλιώς θα κρατούσε για πάντα το πρώτο, άδειο, στιγμιότυπο.
+  const askRef = useRef<((q: string) => void) | null>(null);
 
   // Ο μηνιαίος nudge (ή άλλο σημείο) μπορεί να ανοίξει τη φόρμα αξιολόγησης.
   useEffect(() => {
     const openFb = () => { setOpen(true); setFeedbackOpen(true); };
     window.addEventListener('pos:open-feedback', openFb);
     // Άλλα σημεία (π.χ. έλεγχος ισοζυγίου) ανοίγουν το πάνελ με προ-συμπληρωμένη ερώτηση.
-    const openAsk = (e: Event) => { const q = String((e as CustomEvent).detail?.q || '').trim(); setOpen(true); if (q) setInput(q); };
+    // Το `send` στέλνει αμέσως, αντί να συμπληρώσει το πεδίο. Το χρειάζεται η
+    // γραμμή της Επισκόπησης: εκεί ο χρήστης ΔΙΑΛΕΓΕΙ έτοιμη ερώτηση, ακριβώς
+    // όπως και μέσα στο πάνελ — και εκεί το πάτημα στέλνει. Ίδια πράξη, ίδια
+    // συμπεριφορά. Ο έλεγχος ισοζυγίου αντίθετα προτείνει διατύπωση που ο
+    // χρήστης μπορεί να θέλει να αλλάξει, γι' αυτό μένει στο πεδίο.
+    const openAsk = (e: Event) => {
+      const d = (e as CustomEvent).detail as { q?: string; send?: boolean } | undefined;
+      const q = String(d?.q || '').trim();
+      setOpen(true);
+      if (!q) return;
+      if (d?.send) askRef.current?.(q); else setInput(q);
+    };
     window.addEventListener('pos:ask', openAsk);
     // ΤΟ ΠΛΗΚΤΡΟΛΟΓΙΟ ΑΝΟΙΓΕΙ ΚΑΙ ΚΛΕΙΝΕΙ. Ο βοηθός ήταν προσβάσιμος μόνο με το
     // ποντίκι, πάνω σε ένα πλωτό κουμπί — για κάτι που θέλει να είναι το κύριο
@@ -1027,6 +1042,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     finally { setBusy(false); }
   };
 
+  // Η τρέχουσα εκδοχή του `ask` για τον ακροατή του `pos:ask`.
+  useEffect(() => { askRef.current = ask; });
+
   // Ο χαιρετισμός λέει ΤΙ ΒΛΕΠΕΙ, όχι τι είναι. Το «ρώτησέ με οτιδήποτε» δεν λέει
   // τίποτα· το «βλέπω τα ενοίκια και τις δαπάνες του Χ» λέει τα πάντα, και είναι
   // ο λόγος που ο χρήστης θα ρωτήσει κάτι δικό του αντί για κάτι γενικό.
@@ -1349,12 +1367,22 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         .pa-fab-close{padding:0;width:var(--fab-h);justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
         .pa-fab-live{position:absolute;top:8px;left:34px;width:9px;height:9px;border-radius:50%;animation:pa-pulse 1.4s infinite}
         .pa-panel{position:fixed;right:24px;bottom:92px;width:390px;max-width:calc(100vw - 32px);height:min(600px,calc(100vh - 130px));background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:18px;box-shadow:var(--highlight-inset),var(--elev-3);z-index:1200;display:flex;flex-direction:column;overflow:hidden}
-        @media (max-width:600px){
+        /* ΤΟ ΟΡΙΟ ΕΙΝΑΙ 768, ΟΣΟ ΚΑΙ ΤΗΣ ΚΑΤΩ ΠΛΟΗΓΗΣΗΣ.
+           Ήταν 600 ενώ η κάτω πλοήγηση εμφανίζεται στα 768: στο ενδιάμεσο —
+           iPad mini όρθιο, Galaxy Fold ανοιχτό, τα περισσότερα tablet Android —
+           το κουμπί έμενε στα 24 από κάτω με z-index 1201 πάνω από το 900 της
+           πλοήγησης, και κάθιζε ακριβώς πάνω στα δύο δεξιά της στοιχεία.
+           Δύο διαφορετικά όρια για το ίδιο γεγονός είναι πάντα σφάλμα. */
+        @media (max-width:768px){
           .pa-fab-wrap{bottom:82px;right:16px}
-          /* Στο κινητό ο χώρος είναι ιερός: μένει το σήμα, φεύγει η πρόσκληση. */
-          .pa-fab{bottom:82px;right:16px;padding:0 8px;gap:0}
+          .pa-fab{bottom:82px;right:16px}
+          .pa-panel{right:8px;left:8px;bottom:78px;width:auto;max-width:none;height:min(560px,calc(100dvh - 100px))}
+        }
+        /* Στο κινητό ο χώρος είναι ιερός: μένει το σήμα, φεύγει η πρόσκληση.
+           Αυτό είναι όντως θέμα ΠΛΑΤΟΥΣ, γι' αυτό κρατά το δικό του όριο. */
+        @media (max-width:600px){
+          .pa-fab{padding:0 8px;gap:0}
           .pa-fab-cta{display:none}
-          .pa-panel{right:8px;left:8px;bottom:78px;width:auto;max-width:none;height:min(560px,calc(100vh - 100px))}
         }
         @media (prefers-reduced-motion:reduce){
           .pa-fab,.pa-fab:hover{transition:none;transform:none}

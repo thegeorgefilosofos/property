@@ -429,7 +429,7 @@ function QRCodeModal({ contact, onClose }: { contact: Contact; onClose: () => vo
   // QR τοπικά: η κάρτα επαφής (όνομα, τηλέφωνο, email) δεν φεύγει από τη συσκευή.
   const qrUrl = qrDataUrl(vcard, { size: 240 })
   return (
-    <div role="dialog" aria-modal="true" aria-label="Αρχεία επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 20 }}>
+    <div role="dialog" aria-modal="true" aria-label="QR επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 320, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <QrCode size={28} color="var(--accent)" style={{ margin: '0 auto 12px' }} />
         <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>QR Επαφής</h3>
@@ -1541,7 +1541,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
       <input ref={cardRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runCardScan(f); e.currentTarget.value = '' }} />
       {scanning && (
-        <div role="dialog" aria-modal="true" aria-label="Κατάλογος επαφών" style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div role="dialog" aria-modal="true" aria-label="Ανάλυση κάρτας" style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '26px 32px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
             <div style={{ width: 22, height: 22, border: '2.5px solid var(--border-default)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'contactsSpin 0.7s linear infinite' }} />
             <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Ανάλυση κάρτας…</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εξάγω τα στοιχεία επαφής</div></div>
@@ -1964,7 +1964,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       )}
 
       {dup && (
-        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση μαζικής διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: 20 }}>
+        <div role="dialog" aria-modal="true" aria-label="Υπάρχει ήδη παρόμοια επαφή" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
             <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Υπάρχει ήδη παρόμοια επαφή</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 16px', lineHeight: 1.55 }}>Βρέθηκε επαφή με το ίδιο τηλέφωνο ή ΑΦΜ. Θέλεις να τη συγχωνεύσεις (να συμπληρωθούν τα νέα στοιχεία) ή να δημιουργήσεις ξεχωριστή εγγραφή;</p>

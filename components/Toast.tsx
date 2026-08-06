@@ -69,7 +69,7 @@ export function ToastHost() {
       aria-live="polite"
       aria-atomic="false"
       style={{
-        position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)',
+        position: 'fixed', left: '50%', bottom: 'var(--float-bottom)', transform: 'translateX(-50%)',
         zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 8, pointerEvents: 'none', maxWidth: 'min(92vw, 460px)',
       }}

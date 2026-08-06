@@ -732,8 +732,19 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     return{savedMonths:Y*12-months,savedInt:Math.max(0,totalInt-ti)}
   },[LA,effRate,Y,EP,monthly,totalInt])
 
-  useMemo(()=>{
+  // ΕΝΗΜΕΡΩΣΗ ΤΟΥ ΓΟΝΕΑ ΜΕΤΑ ΤΗΝ ΑΠΟΔΟΣΗ, ΟΧΙ ΜΕΣΑ ΣΕ ΑΥΤΗΝ.
+  // Ήταν `useMemo` που δεν επέστρεφε τίποτα και υπήρχε μόνο για την παρενέργεια:
+  // καλούσε `onStateChange` ΚΑΤΑ ΤΗ ΔΙΑΡΚΕΙΑ του render, δηλαδή άλλαζε κατάσταση
+  // άλλου component ενώ αυτό αποδιδόταν ακόμη — από εκεί βγαίνει το «Cannot
+  // update a component while rendering a different component» και ένα επιπλέον
+  // πέρασμα απόδοσης σε κάθε πληκτρολόγηση. Το React δεν εγγυάται καν πότε
+  // τρέχει ένα useMemo. Ίδιες εξαρτήσεις, σωστό εργαλείο.
+  useEffect(()=>{
     onStateChange?.({loanType,borrowerType:borrower,loanAmount:LA,years:Y,rateType,effectiveRate:effRate,monthly,totalInterest:totalInt,propertyValue:PV,sqm:SQM,propType,area,incomeMonthly:INC,marital,children:Number(children)||0})
+    // Το `onStateChange` λείπει σκόπιμα: οι γονείς το περνούν ως ανώνυμη
+    // συνάρτηση, οπότε αλλάζει ταυτότητα σε κάθε render και θα έκανε τον βρόχο
+    // ατέρμονο. Ό,τι στέλνουμε εξαρτάται μόνο από τα παρακάτω.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   },[loanType,borrower,LA,Y,rateType,effRate,monthly,totalInt,PV,SQM,propType,area,INC,marital,children])
 
   const bankName = bankId==='custom'?customBank:BANKS.find(b=>b.id===bankId)?.name||''
