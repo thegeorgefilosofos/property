@@ -98,7 +98,7 @@ export async function loadE2Rows(
             tenantByProp: Map<string, E2Tenant>; paymentsByProp: Map<string, E2Payment[]>;
             afmByProp: Map<string, string>; staysByProp: Map<string, E2Stay[]> }> {
   const { data: props } = await supabase.from('user_properties')
-    .select('id, atak, address, postal_code, ownership, prop_type, status_detail, target_rent, sqm, floor')
+    .select('id, atak, address, postal_code, ownership, prop_type, status_detail, rental_mode, target_rent, sqm, floor')
     .eq('user_id', userId).order('created_at');
   const properties = (props || []) as E2Property[];
   if (!properties.length) {

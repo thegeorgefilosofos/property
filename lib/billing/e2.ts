@@ -7,8 +7,13 @@
 // Το ακαθάριστο είναι δεδουλευμένο (ανεξαρτήτως είσπραξης).
 // ═══════════════════════════════════════════════════════════════════════════
 import { shortTermYearSummary, type TaxStay } from '@/lib/tax/shortTermTax';
+import { readStatus } from '@/lib/property/status';
 
-export interface E2Property { id: string; atak: string | null; address: string | null; postal_code: string | null; ownership: string | number | null; prop_type: string | null; status_detail: string | null; target_rent: number | null; sqm?: number | null; floor?: string | number | null; }
+// Το `rental_mode` ΔΕΝ υπήρχε εδώ, και γι' αυτό το έντυπο δεν μπορούσε να
+// ξεχωρίσει βραχυχρόνια από μακροχρόνια όταν η κατάσταση ήταν «rented».
+// Ακριβώς αυτό το ζευγάρι πεδίων περιγράφει το lib/property/status.ts ως πηγή
+// ασυμφωνίας: «ακίνητο μπορούσε να είναι 'rented' με rental_mode 'short_term'».
+export interface E2Property { id: string; atak: string | null; address: string | null; postal_code: string | null; ownership: string | number | null; prop_type: string | null; status_detail: string | null; rental_mode?: string | null; target_rent: number | null; sqm?: number | null; floor?: string | number | null; }
 export interface E2Tenant { property_id: string; afm: string | null; monthly_rent: number | null; lease_start: string | null; lease_end: string | null; lease_type: string | null; full_name?: string | null; }
 export interface E2Payment { property_id: string; amount: number | null; period_year: number; period_month: number; }
 /** Διαμονή βραχυχρόνιας (client_stays) — τα ΠΡΑΓΜΑΤΙΚΑ έσοδα ενός `seasonal` ακινήτου. */
@@ -21,7 +26,13 @@ export const E2_LEASE_KIND: Record<string, { code: string; label: string }> = {
   own_use: { code: '17', label: 'Ιδιοχρησιμοποίηση' },
   vacant: { code: '39', label: 'Κενό (μη μισθωμένο)' },   // στήλη 17 Ε2: επιβεβαιωμένος
 };
-export function e2LeaseKind(status: string | null): { code: string; label: string } {
+export function e2LeaseKind(status: string | null, rentalMode?: string | null): { code: string; label: string } {
+  // Το `rental_mode` κρίνει ΠΡΩΤΟ, όπως και στο `readStatus`. Χωρίς αυτό, ακίνητο
+  // αποθηκευμένο «rented» + «short_term» έπαιρνε κωδικό 1 (Εκμίσθωση) αντί για
+  // 60 (Βραχυχρόνια μίσθωση) — λάθος κωδικός σε στήλη του εντύπου.
+  const mode = (rentalMode ?? '').trim();
+  if (mode === 'short_term') return E2_LEASE_KIND.seasonal;
+  if (mode === 'long_term') return E2_LEASE_KIND.rented;
   return E2_LEASE_KIND[status || ''] || { code: '', label: '' }; // renovation/for_sale/disputed → χειροκίνητο
 }
 
@@ -75,12 +86,18 @@ export function buildE2Row(p: E2Property, tenant: E2Tenant | null, payments: E2P
   const flags: string[] = [];
   const on = typeof p.ownership === 'string' ? parseFloat(p.ownership) : p.ownership;
   const ownershipPct = (on == null || isNaN(on as number)) ? 100 : (on as number);
-  const kind = e2LeaseKind(p.status_detail);
+  const kind = e2LeaseKind(p.status_detail, p.rental_mode);
   if (!kind.code) flags.push('Χρειάζεται χειροκίνητος καθορισμός είδους μίσθωσης');
   const mm = monthsRentedInYear(tenant?.lease_start ?? null, tenant?.lease_end ?? null, year, p.status_detail);
   if (mm.estimated && mm.months > 0) flags.push('Μήνες εκμίσθωσης: εκτίμηση');
   const yearRows = payments.filter(x => x.period_year === year);
-  const shortTerm = p.status_detail === 'seasonal';
+  // ΜΙΑ ΑΝΑΓΝΩΣΗ ΚΑΤΑΣΤΑΣΗΣ, Η ΚΟΙΝΗ. Ήταν `status_detail === 'seasonal'` — που
+  // αγνοεί το `rental_mode`. Ακίνητο αποθηκευμένο ως «rented» με mode
+  // «short_term» (το `readStatus` το λέει ρητά βραχυχρόνιο) περνούσε εδώ για
+  // μακροχρόνιο: οι διαμονές του ΔΕΝ μετριούνταν καθόλου, και το ακαθάριστο
+  // έβγαινε από μισθώματα ή από τον στόχο ενοικίου — σε φορολογικό έντυπο.
+  const status = readStatus(p);
+  const shortTerm = status === 'rent_short';
   // ΑΜΥΝΑ: ΚΡΑΤΑΜΕ ΜΟΝΟ ΤΙΣ ΔΙΑΜΟΝΕΣ ΑΥΤΟΥ ΤΟΥ ΑΚΙΝΗΤΟΥ.
   //
   // Η υπογραφή δέχεται πίνακα διαμονών και μέχρι τώρα τον χρησιμοποιούσε
@@ -230,7 +247,7 @@ export const E2_NUM_COLS = { sqm: 4, months: 12, monthly: 13, pct: 14, gross13: 
 export function buildE2OfficialCells(p: E2Property, tenant: E2Tenant | null, payments: E2Payment[], ownerAfm: string, year: number, index: number, stays: E2Stay[] = []): (string | number)[] {
   const base = buildE2Row(p, tenant, payments, ownerAfm, year, stays); // επαναχρησιμοποίηση: μήνες, ποσοστό, ακαθάριστο μεριδίου
   const win = leaseWindowInYear(tenant?.lease_start ?? null, tenant?.lease_end ?? null, year, p.status_detail);
-  const kind = e2LeaseKind(p.status_detail);
+  const kind = e2LeaseKind(p.status_detail, p.rental_mode);
   const monthly = tenant?.monthly_rent ?? p.target_rent ?? 0;
   const rentLike = p.status_detail === 'rented' || p.status_detail === 'seasonal';
   const ownUse = p.status_detail === 'own_use';
