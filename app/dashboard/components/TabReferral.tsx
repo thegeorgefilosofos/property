@@ -226,7 +226,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const partner = stats?.partner ?? false;
   const streak = Math.min(stats?.streak ?? 0, STREAK_TARGET_MONTHS);
   const streakPct = Math.min(100, (streak / STREAK_TARGET_MONTHS) * 100);
-  const coldStart = !!stats && stats.invites === 0;
   const youBase = individualReferrerReward(referrerPaying, 'free');   // τι κερδίζεις για δωρεάν φίλο
   const friendBase = refereeWelcome('free');                          // τι κερδίζει ο φίλος (μένει δωρεάν)
   const myTier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : (isPro ? 'agency' : 'owner');
@@ -314,12 +313,19 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
       {/* ── Κεφαλίδα ── */}
       <div style={{ marginBottom: T.sp.xxl }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
+        {/* ═══ Η ΙΔΙΟΤΗΤΑ ΤΡΕΙΣ ΦΟΡΕΣ ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ ══════════════════════════
+            Το σήμα «Ιδιώτης» στεκόταν εδώ, ξανά στην κάρτα των στατιστικών από
+            κάτω, και ΗΔΗ στην πάνω μπάρα της εφαρμογής — που φαίνεται σε κάθε
+            καρτέλα. Η ιδιότητα του χρήστη δεν αλλάζει επειδή άνοιξε τις
+            προσκλήσεις: δεν είναι πληροφορία αυτής της οθόνης, είναι κατάσταση
+            του λογαριασμού, και λέγεται εκεί που ζει ο λογαριασμός. */}
+        <div style={{ marginBottom: 10 }}>
           <div style={{ ...TT.label, color: 'var(--accent)' }}>{isPro ? 'PropertyOS · Πρόγραμμα Συνεργατών' : 'PropertyOS · Πρόγραμμα Πρόσκλησης'}</div>
-          <TierBadge tier={myTier} />
         </div>
         <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Προσκάλεσε τους πελάτες σου. Πάρε τον ίδιο φάκελο από όλους.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
-        <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: 640, marginTop: 8 }}>
+        {/* Το `maxWidth: 640` έκοβε την παράγραφο στη μέση της οθόνης και άφηνε
+            το δεξί μισό κενό, ενώ οι κάρτες από κάτω πιάνουν όλο το πλάτος. */}
+        <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: '72ch', marginTop: 8 }}>
           {isPro
             ? 'Κάθε ιδιοκτήτης που προσκαλείς φτάνει σε εσένα με τον ίδιο φάκελο, στην ίδια δομή, με ονόματα αρχείων που δεν αλλάζουν από χρόνο σε χρόνο. Εσύ σταματάς να κυνηγάς έγγραφα τον Ιούνιο και κερδίζεις δωρεάν μήνες Επαγγελματία.'
             : 'Δείξε του πώς να βάλει το ακίνητό του σε τάξη. Με κάθε ιδιοκτήτη που ξεκινά, κερδίζετε και οι δύο.'}
@@ -378,19 +384,16 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         </div>
       </div>
 
-      {/* ── Cold-start: προτροπή πρώτης πρόσκλησης ── */}
-      {coldStart && (
-        <div className="ref-rise" style={{ ...card, borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 170%)', padding: PAD, marginBottom: T.sp.xl, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <span style={{ width: 40, height: 40, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Ic d="M22 2 11 13|M22 2 15 22l-4-9-9-4z" s={20} />
-          </span>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ ...TT.h2, fontSize: 13 }}>Κάνε την πρώτη σου πρόσκληση</div>
-            <div style={{ ...TT.bodySm, marginTop: 2 }}>Στείλε τον σύνδεσμό σου σε {isPro ? 'έναν πελάτη-ιδιοκτήτη' : 'έναν ιδιοκτήτη ακινήτου'} και ξεκίνα να κερδίζεις από σήμερα.</div>
-          </div>
-          <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ height: T.h.lg, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>Μοιράσου τώρα</button>
-        </div>
-      )}
+      {/* ═══ Η ΠΡΟΤΡΟΠΗ ΠΟΥ ΕΠΑΝΕΛΑΒΕ ΤΑ ΚΟΥΜΠΙΑ ΑΠΟ ΠΑΝΩ ══════════════════
+          Εδώ ζούσε κάρτα «Κάνε την πρώτη σου πρόσκληση» με κουμπί «Μοιράσου
+          τώρα», σε έντονο πλαίσιο και βαμμένο φόντο. Δεκαπέντε εικονοστοιχεία
+          πιο πάνω, στην ίδια οθόνη, υπάρχουν ήδη επτά τρόποι να μοιραστεί ο
+          σύνδεσμος: WhatsApp, Viber, Telegram, μήνυμα, αντιγραφή, κωδικός QR
+          και κοινοποίηση. Η κάρτα δεν πρόσθετε δρόμο, πρόσθετε πλαίσιο — και
+          μάλιστα το πιο έντονο της σελίδας, γύρω από το λιγότερο νέο πράγμα.
+
+          Ένα προϊόν που φωνάζει στον χρήστη να κάνει αυτό που μόλις του έδειξε
+          πώς να κάνει δεν είναι εργαλείο· είναι διαφήμιση του εαυτού του. */}
 
       {/* Όσο το `stats` είναι null δεν αποδιδόταν ΤΙΠΟΤΑ εδώ: οι τρεις μετρικές
           έπεφταν μέσα αργότερα και έσπρωχναν όλη τη σελίδα προς τα κάτω, τη στιγμή
@@ -398,9 +401,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       {!stats && <SkeletonKPIs n={3} />}
 
       {/* ── Τα κέρδη σου με μια ματιά (μόλις υπάρχει δραστηριότητα) ── */}
-      {!coldStart && stats && stats.invites > 0 && (
+      {stats && stats.invites > 0 && (
         <div className="ref-rise ref-hover-accent" style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 160%)', padding: PAD, marginBottom: T.sp.xl, display: 'flex', alignItems: 'center', gap: 'clamp(16px, 3vw, 28px)', flexWrap: 'wrap' }}>
-          <TierBadge tier={myTier} showLabel={false} size={48} />
           {([
             ['Προσκλήσεις', stats.invites, false],
             ['Ενεργοποιήθηκαν', stats.activated, true],

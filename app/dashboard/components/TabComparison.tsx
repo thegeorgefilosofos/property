@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, fp, DASH, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
+import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
 import { downloadCsv } from './exportCsv';
@@ -213,7 +213,20 @@ export default function TabComparison({ properties, userId }: Props) {
   // Η ΕΠΕΞΗΓΗΣΗ ΖΕΙ ΜΕΣΑ ΣΤΗ ΜΕΤΡΙΚΗ. Πριν υπήρχε χωριστός πίνακας `METRIC_TIPS`
   // με ΚΛΕΙΔΙ ΤΗΝ ΕΛΛΗΝΙΚΗ ΕΤΙΚΕΤΑ: αλλάζοντας «Δαπάνες Έτους» σε «Δαπάνες
   // έτους» —πεζό έψιλον— το tooltip εξαφανιζόταν αθόρυβα, χωρίς κανένα σφάλμα.
-  const metrics: { label: string; tip?: string; get: (r: typeof rowsData[number]) => number | null; fmt: (n: number) => string; dir: Dir }[] = [
+  // ═══ ΕΙΚΟΣΙ ΔΥΟ ΤΕΤΡΑΓΩΝΙΚΑ ΔΙΠΛΑ ΣΕ ΕΞΗΝΤΑ ΠΕΝΤΕ ════════════════════════
+  // Ο πίνακας σύγκρινε ΑΠΟΛΥΤΑ ΕΥΡΩ: «Δαπάνες 751,00 € έναντι 324,10 €». Με
+  // τριπλάσιο εμβαδόν, το μεγάλο ακίνητο κερδίζει πάντα στα έσοδα και χάνει
+  // πάντα στα έξοδα — και η οθόνη το παραδεχόταν με προειδοποίηση από πάνω, και
+  // μετά το έκανε έτσι κι αλλιώς. Προειδοποίηση που δεν αλλάζει τη μέτρηση δεν
+  // είναι ειλικρίνεια, είναι άλλοθι.
+  //
+  // Η δίκαιη βάση είναι το τετραγωνικό, και ο δείκτης που δεν εξαρτάται καθόλου
+  // από μέγεθος είναι το ΚΟΣΤΟΣ ΑΝΑ ΕΥΡΩ ΕΣΟΔΟΥ: πόσα ξοδεύεις για να μπει ένα
+  // ευρώ. Αυτό είναι συμπέρασμα· το «751 έναντι 324» δεν είναι.
+  const perSqmOf = (v: number | null, sqm: number): number | null =>
+    v == null || !(sqm > 0) ? null : Math.round((v / sqm) * 100) / 100;
+
+  const allMetrics: { label: string; tip?: string; get: (r: typeof rowsData[number]) => number | null; fmt: (n: number) => string; dir: Dir }[] = [
     { label: 'Μηνιαίο ενοίκιο', get: r => r.rent, fmt: n => fe(n, 0), dir: 'high',
       tip: 'Από το μισθωτήριο· αν δεν υπάρχει, ο στόχος ενοικίου του ακινήτου.' },
     { label: 'Μεικτή απόδοση', get: r => r.grossYield, fmt: n => fp(n), dir: 'high',
@@ -226,7 +239,20 @@ export default function TabComparison({ properties, userId }: Props) {
       tip: 'Ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ των ακινήτων σου (Ε1), όχι ανά ακίνητο. Εδώ φαίνεται το μερίδιο κάθε ακινήτου από τον ένα φόρο.' },
     { label: 'Καθαρό ανά μήνα (εκτίμηση)', get: r => r.netMonthly, fmt: n => fe(n, 0), dir: 'high',
       tip: 'Εκτίμηση: ενοίκιο − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.' },
+    // ── ΟΙ ΤΡΕΙΣ ΓΡΑΜΜΕΣ ΠΟΥ ΔΕΝ ΕΞΑΡΤΩΝΤΑΙ ΑΠΟ ΜΕΓΕΘΟΣ ───────────────────
+    { label: 'Ενοίκιο ανά τετραγωνικό', get: r => perSqmOf(r.rent, r.sqm), fmt: n => fe(n), dir: 'high',
+      tip: 'Μηνιαίο ενοίκιο διά το εμβαδόν. Η μόνη δίκαιη σύγκριση ανάμεσα σε ακίνητα διαφορετικού μεγέθους: ένα μεγαλύτερο ακίνητο βγάζει περισσότερα ούτως ή άλλως.' },
+    { label: 'Δαπάνες ανά τετραγωνικό', get: r => perSqmOf(r.expensesYTD, r.sqm), fmt: n => fe(n), dir: 'none',
+      tip: 'Δαπάνες έτους διά το εμβαδόν. Δείχνει αν ένα ακίνητο κοστίζει περισσότερο επειδή είναι ακριβό στη συντήρηση ή απλώς επειδή είναι μεγαλύτερο.' },
+    { label: 'Κόστος ανά ευρώ εσόδου', get: r => (r.rent == null || r.rent <= 0 ? null : Math.round((r.expensesYTD / (r.rent * 12)) * 100) / 100),
+      fmt: n => fe(n), dir: 'low',
+      tip: 'Πόσα ξοδεύεις για να μπει ένα ευρώ. Δεν εξαρτάται ούτε από μέγεθος ούτε από αξία, άρα συγκρίνει ό,τι δεν συγκρίνουν τα υπόλοιπα. Εδώ το χαμηλότερο ΕΙΝΑΙ καλύτερο, γιατί το κλάσμα προϋποθέτει ότι υπάρχει έσοδο.' },
   ];
+  // ═══ ΓΡΑΜΜΗ ΧΩΡΙΣ ΚΑΝΕΝΑ ΣΤΟΙΧΕΙΟ ΔΕΝ ΕΙΝΑΙ ΓΡΑΜΜΗ ══════════════════════
+  // Η «Μεικτή απόδοση» εμφανιζόταν με παύλα ΚΑΙ στις δύο στήλες: μια ολόκληρη
+  // σειρά πίνακα για να ανακοινώσει ότι δεν ξέρουμε τίποτα. Η απουσία λέγεται
+  // με απουσία — η γραμμή δεν αποδίδεται καθόλου.
+  const metrics = allMetrics.filter(m => rowsData.some(r => m.get(r) != null));
 
   // Η «καλύτερη τιμή» βγαίνει ΜΟΝΟ από όσα ξέρουμε. Ένα ακίνητο χωρίς ενοίκιο δεν
   // έχει «τη χαμηλότερη» δαπάνη επειδή τυχαίνει να είναι κενό το κελί του — και
@@ -335,7 +361,7 @@ export default function TabComparison({ properties, userId }: Props) {
                         δεν γράφεται παύλα για κάθε πεδίο χωριστά. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
                       style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                      {[STATUS_LABELS[r.p.status_detail || ''] || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value, 0) : null, r.perSqm != null ? `${fe(r.perSqm, 0)}/τ.μ.` : null].filter(Boolean).join(' · ') || DASH}
+                      {[STATUS_LABELS[r.p.status_detail || ''] || null, r.sqm > 0 ? `${fn(r.sqm)} τετραγωνικά` : null, r.value != null ? fe(r.value, 0) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
                     </div>
                   </th>
                 ))}
@@ -354,7 +380,10 @@ export default function TabComparison({ properties, userId }: Props) {
                         <td key={r.p.id} style={{ ...td,
                           color: v == null ? 'var(--text-tertiary)' : isBest ? 'var(--text-primary)' : 'var(--text-secondary)',
                           fontWeight: isBest ? 700 : 400 }}>
-                          {v == null ? DASH : m.fmt(v)}
+                          {/* Ήταν παύλα. Σε στήλη αριθμών η παύλα δεν έχει
+                              υποδιαστολή, δεν στοιχίζεται με τίποτα, και τρυπάει
+                              τη γραμμή. Η λέξη το λέει και διαβάζεται. */}
+                          {v == null ? <span style={{ fontFamily: T.font.sans, fontSize: 11 }}>{ABSENT_SHORT}</span> : m.fmt(v)}
                         </td>
                       );
                     })}
@@ -372,7 +401,7 @@ export default function TabComparison({ properties, userId }: Props) {
           οθόνης. Μένει μόνο ό,τι δεν λέγεται αλλού: πώς διαβάζεται ο πίνακας. */}
       {!loading && (
         <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Έντονα</strong> το υψηλότερο ενοίκιο, απόδοση και καθαρό. Στις δαπάνες δεν υπάρχει «καλύτερο»: το χαμηλότερο κόστος είναι συνήθως το ακίνητο που δεν αποδίδει. <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{DASH}</strong> όπου λείπει στοιχείο.
+          <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Έντονα</strong> το υψηλότερο ενοίκιο, απόδοση και καθαρό. Στις δαπάνες δεν υπάρχει «καλύτερο»: το χαμηλότερο κόστος είναι συνήθως το ακίνητο που δεν αποδίδει. «{ABSENT_SHORT}» όπου λείπει στοιχείο. Οι τρεις τελευταίες γραμμές δεν εξαρτώνται από το μέγεθος, οπότε είναι οι μόνες που συγκρίνουν δίκαια ακίνητα διαφορετικού εμβαδού.
           {portfolioTax.count > 1 && ` ${CONSOLIDATION_NOTE}`}
         </div>
       )}

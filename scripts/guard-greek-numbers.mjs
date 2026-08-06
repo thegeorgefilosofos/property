@@ -46,7 +46,7 @@ const OWN_FORMATTERS = /const (?:eur|pct|money|nf|fmtE?)\s*=\s*\([^)]*\)\s*=>[^\
 const problems = []
 // Καστάνια: μόνο προς τα κάτω.
 const decimals = []
-const DECIMALS_LIMIT = 24
+const DECIMALS_LIMIT = 23
 
 for (const file of files) {
   const rel = file.split('\\').join('/')
