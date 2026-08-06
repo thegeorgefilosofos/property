@@ -6,9 +6,9 @@ import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ExportButton, ABSENT, ABSENT_DATE } from '@/components/Theme'
-import { PackageOpen, SearchX, ShieldCheck, ClipboardCheck } from 'lucide-react'
-import { downloadCsv, csvDate, csvSafe } from './exportCsv'
+import { T, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE } from '@/components/Theme'
+import { PackageOpen, SearchX, ClipboardCheck } from 'lucide-react'
+import { csvSafe } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
 import { depreciate, replacementSuggestion, portfolioSummary, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import { formFields, INVENTORY_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields'
@@ -20,6 +20,7 @@ import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { notifyError, notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
+import { ActionMenu } from '@/components/ActionMenu';
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress';
 
@@ -115,7 +116,10 @@ interface TabInventoryProps { propertyId: string; userId: string; profileType?: 
 // επόμενη προσθήκη θα την έγραφε στη βάση και οι κατηγορίες θα σταματούσαν να
 // ταιριάζουν σιωπηλά: οι διάρκειες ζωής (USEFUL_LIFE_YEARS) κλειδώνουν σε ΑΥΤΑ
 // τα ονόματα, με τους τόνους τους.
-const CATEGORIES_DISPLAY = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά']
+// Ο κατάλογος ήταν γραμμένος ΕΞΙ φορές μέσα στο αρχείο: στη φόρμα, στο φίλτρο,
+// στη μαζική εισαγωγή, στην κατανομή αξίας, στην εξαγωγή PDF, και εδώ. Μια νέα
+// κατηγορία θα έμπαινε σε πέντε από τις έξι και το φίλτρο θα την έκρυβε αθόρυβα.
+export const INVENTORY_CATEGORIES: readonly string[] = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά']
 const ROOM_PRESETS = [
   // Κατοικία — χώροι ημέρας
   'Σαλόνι','Καθιστικό','Κουζίνα','Τραπεζαρία',
@@ -159,10 +163,9 @@ const ENERGY_TONE: Record<string,'positive'|'warning'|'negative'> = {
   'B':'warning','C':'warning','D':'warning',
   'E':'negative','F':'negative','G':'negative',
 }
-const CATEGORY_ICONS: Record<string,string> = {
-  'Έπιπλα':'','Ηλεκτρικές Συσκευές':'','Ηλεκτρονικά':'',
-  'Υδραυλικά':'','Θέρμανση & Ψύξη':'','Φωτιστικά':'','Διακόσμηση':'','Λοιπά':'',
-}
+// Το CATEGORY_ICONS έφυγε: ήταν χάρτης οκτώ κατηγοριών σε οκτώ ΚΕΝΕΣ
+// συμβολοσειρές. Δεν αποδιδόταν πουθενά, αλλά διαβαζόταν από τον επόμενο σαν
+// να σήμαινε κάτι.
 // Τυπική διάρκεια ζωής ανά κατηγορία: ζει ΜΟΝΟ στο lib/inventory/depreciation.ts
 // (USEFUL_LIFE_YEARS), μαζί με τα τεστ της και τη σημείωση ότι δεν είναι ΚΦΕ.
 // Το REPLACEMENT_RANGES έφυγε: «Ηλεκτρονικά: 150–2000 €» παρουσιαζόταν ως «στοιχείο
@@ -544,7 +547,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
       const cols=lines[i].split(',').map(c=>c.replace(/^"|"$/g,'').trim())
       if(!cols[0])continue
       const cat=cols[1]||'Λοιπά'; const cond=cols[6]||'Καλή'
-      if(!['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].includes(cat))errs.push(`Γραμμή ${i+1}: Άγνωστη κατηγορία "${cat}"`)
+      if(![...INVENTORY_CATEGORIES].includes(cat))errs.push(`Γραμμή ${i+1}: Άγνωστη κατηγορία "${cat}"`)
       parsed.push({name:cols[0],category:cat,room:cols[2]||'',brand:cols[3]||'',model:cols[4]||'',serial_number:cols[5]||'',condition:CONDITIONS.includes(cond)?cond:'Καλή',purchase_value:parseFloat(cols[7])||0,purchase_date:cols[8]||'',warranty_expiry:cols[9]||'',energy_class:cols[10]||'',power_watts:parseFloat(cols[11])||0,daily_hours_use:parseFloat(cols[12])||0,replacement_cost:parseFloat(cols[13])||0})
     }
     setRows(parsed);setErrors(errs);if(parsed.length>0)setStep('preview')
@@ -628,7 +631,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
   const [saving,setSaving] = useState(false)
   const [scanning,setScanning] = useState(false)
   const scanRef = useRef<HTMLInputElement>(null)
-  const set = (k:keyof InventoryItem,v:any) => setForm(f=>({...f,[k]:v}))
+  const set = <K extends keyof InventoryItem>(k:K,v:InventoryItem[K]) => setForm(f=>({...f,[k]:v}))
   const isElectric = ['Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Φωτιστικά','Θέρμανση & Ψύξη'].includes(form.category||'')
   // Ποια πεδία βλέπει ΑΥΤΟΣ ο χρήστης, σε ΑΥΤΗ τη φόρμα, τώρα.
   const fields = formFields(INVENTORY_FIELDS, ctx)
@@ -681,7 +684,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
           brand:f.brand||d.brand||'',
           model:f.model||d.model||'',
           serial_number:f.serial_number||d.serial_number||'',
-          category:d.category&&['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].includes(d.category)?d.category:f.category,
+          category:d.category&&[...INVENTORY_CATEGORIES].includes(d.category)?d.category:f.category,
           purchase_value:f.purchase_value||Math.round(num(d.price)),
           warranty_expiry:f.warranty_expiry||d.warranty_expiry||'',
           energy_class:f.energy_class||(ENERGY_CLASSES.includes(d.energy_class)?d.energy_class:''),
@@ -760,7 +763,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
           </Field>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
             <Field d={f('inv.category')}>
-              <CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(c=>({value:c,label:c}))}/>
+              <CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={[...INVENTORY_CATEGORIES].map(c=>({value:c,label:c}))}/>
             </Field>
             <Field d={f('inv.condition')}>
               <CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/>
@@ -981,42 +984,92 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
 // Χωρίς `profileType`: ο επαγγελματίας δεν βλέπει πια ΔΙΑΦΟΡΕΤΙΚΑ νούμερα αξίας.
 // Έβλεπε τέσσερα επιπλέον κελιά κάτω από τον τίτλο «Απόσβεση», που είναι ακριβώς
 // ο χρήστης για τον οποίο η λέξη σημαίνει κάτι νομικά διαφορετικό.
-function OverviewTab({items,repairs,kwhPrice,kwhControl,handovers=[],onOpenHandover}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;kwhControl?:React.ReactNode;handovers?:InventoryHandover[];onOpenHandover?:()=>void}) {
-  const totalRepairs = repairs.reduce((s,r)=>s+(r.cost||0),0)
-  const electricItems = items.filter(i=>i.power_watts>0&&i.daily_hours_use>0)
-  const byCategory = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
-  const maxVal = Math.max(...byCategory.map(x=>x.val),1)
-  const topEnergy = [...electricItems].sort((a,b)=>calcMonthlyCost(b,kwhPrice)-calcMonthlyCost(a,kwhPrice)).slice(0,5)
-  const warrantySoon = items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90})
-  const badCondition = items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας')
-  const needReplacement = items.filter(i=>replacementSuggestion(i).suggested)
-  // Ενοποιημένο «κέντρο ενεργειών»: ό,τι χρειάζεται προσοχή, σε μία λίστα με προτεραιότητα (χωρίς 3 σκόρπιες κάρτες).
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΙΑ ΣΕΛΙΔΑ, ΜΙΑ ΙΕΡΑΡΧΙΑ
+// ─────────────────────────────────────────────────────────────────────────
+// Ήταν τρεις υποκαρτέλες: «Αντικείμενα», «Εγγυήσεις και Συντήρηση»,
+// «Επισκόπηση». Τρία κλικ για να δεις την κατάσταση ενός σπιτιού με δέκα
+// αντικείμενα, και η ίδια πληροφορία σε δύο από τις τρεις: η εγγύηση που λήγει
+// ήταν και στο «Χρειάζονται προσοχή» της Επισκόπησης και σε δική της ενότητα
+// στη Φροντίδα· η κατάσταση του αντικειμένου ήταν και σήμα στην κάρτα του και
+// γραμμή στη λίστα προσοχής.
+//
+// Τώρα η σελίδα διαβάζεται από πάνω προς τα κάτω σαν πρόταση:
+//   τι πρέπει να κάνω → τι έχω → τι έχω προγραμματίσει → πού πάει το ρεύμα
+//   και η αξία → τι έχω παραδώσει.
+// Κάθε πράγμα λέγεται σε ΕΝΑ σημείο, εκείνο όπου μπορείς να το κάνεις.
+// ═══════════════════════════════════════════════════════════════════════════
+function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];onEdit:(i:InventoryItem)=>void;onWarrantyReminder:(i:InventoryItem)=>void}) {
+  const [pushed,setPushed] = useState<Set<string>>(new Set())
+  // ΜΙΑ ΛΙΣΤΑ, ΤΑΞΙΝΟΜΗΜΕΝΗ ΚΑΤΑ ΣΟΒΑΡΟΤΗΤΑ, ΧΩΡΙΣ ΧΡΩΜΑ.
+  // Η σοβαρότητα φαίνεται από τη ΣΕΙΡΑ: πρώτα ό,τι χάλασε, μετά ό,τι γερνά,
+  // τελευταία η εγγύηση που τρέχει. Μια κόκκινη κουκκίδα δεν προσθέτει τίποτα
+  // που δεν λέει ήδη η θέση, και σε όποιον δεν ξεχωρίζει χρώματα δεν λέει τίποτα.
   const attention = (() => {
-    const out: {item:InventoryItem;sev:string;label:string;rank:number;kind:'cond'|'repl'|'warr'}[] = []
+    const out: {item:InventoryItem;label:string;kind:'cond'|'repl'|'warr'}[] = []
     const seen = new Set<string>()
-    badCondition.forEach(i=>{out.push({item:i,sev:'var(--negative)',label:'Κακή κατάσταση',rank:0,kind:'cond'});seen.add(i.id)})
-    needReplacement.forEach(i=>{if(seen.has(i.id))return;out.push({item:i,sev:'var(--warning)',label:'Προτείνεται αντικατάσταση',rank:1,kind:'repl'});seen.add(i.id)})
-    warrantySoon.forEach(i=>{if(seen.has(i.id))return;out.push({item:i,sev:'var(--accent)',label:'Εγγύηση λήγει σύντομα',rank:2,kind:'warr'});seen.add(i.id)})
-    return out.sort((a,b)=>a.rank-b.rank)
+    const add = (list:InventoryItem[], label:string, kind:'cond'|'repl'|'warr') =>
+      list.forEach(i=>{ if(seen.has(i.id))return; out.push({item:i,label,kind}); seen.add(i.id) })
+    add(items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας'), 'Κακή κατάσταση', 'cond')
+    add(items.filter(i=>replacementSuggestion(i).suggested), 'Προτείνεται αντικατάσταση', 'repl')
+    add(items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90}), 'Η εγγύηση λήγει σύντομα', 'warr')
+    return out
   })()
 
-  // ═══ ΤΙ ΔΕΝ ΛΕΕΙ ΠΙΑ ΑΥΤΗ Η ΟΘΟΝΗ ═══════════════════════════════════════════
-  // Είχε δική της σειρά μετρικών (Αντικείμενα · Υπολειπόμενη αξία · Κόστος
-  // αντικατάστασης · Ρεύμα) ΑΚΡΙΒΩΣ ΚΑΤΩ από τη σειρά μετρικών της Απογραφής, που
-  // στέκει πάνω από τις υποκαρτέλες και φαίνεται σε όλες. Δύο πλέγματα, το ένα
-  // κολλητά στο άλλο, με τα ίδια δύο νούμερα στα ίδια πλακίδια.
-  //
-  // Μαζί έφυγε και η κάρτα «Εκτιμώμενη υπολειπόμενη αξία»: μπάρα προόδου που
-  // ξανάγραφε το ίδιο ποσό και το ίδιο σύνολο αγοράς, με τρίτη διατύπωση. Το
-  // ποσοστό που μένει είναι πλέον η υποσημείωση του πλακιδίου — μία πρόταση, όχι
-  // κάρτα ύψους εκατόν είκοσι εικονοστοιχείων.
-  //
-  // Εδώ μένει ΜΟΝΟ ό,τι δεν είναι αριθμός-σύνολο: τι χρειάζεται προσοχή, πού πάει
-  // το ρεύμα, πώς μοιράζεται η αξία, τι έχει παραδοθεί.
-  // ═════════════════════════════════════════════════════════════════════════════
-  if(items.length===0) return (
-    <EmptyState icon={<PackageOpen size={20}/>} title="Ξεκίνα την Απογραφή" hint="Κατέγραψε έπιπλα, συσκευές και εξοπλισμό: αξία, εγγυήσεις, κατανάλωση και αποσβέσεις." />
+  if(attention.length===0) return (
+    <div style={{...cardStyle,display:'flex',alignItems:'center',gap:14,padding:'16px 20px'}}>
+      <div style={{width:36,height:36,borderRadius:T.radius.pill,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'var(--text-secondary)'}}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <div style={{minWidth:0}}>
+        <p style={{fontSize:14,fontWeight:600,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Τίποτα δεν χρειάζεται προσοχή</p>
+        <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Καμία εγγύηση κοντά στη λήξη, καμία κακή κατάσταση, καμία πρόταση αντικατάστασης.</p>
+      </div>
+    </div>
   )
+
+  return (
+    <div style={cardStyle}>
+      <SectionLabel label="Χρειάζονται προσοχή" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{attention.length} {attention.length===1?'αντικείμενο':'αντικείμενα'}</span>}/>
+      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+        {attention.slice(0,6).map(({item,label,kind})=>(
+          <div key={item.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
+            <div style={{minWidth:0,flex:1}}>
+              <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
+              <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {label}{item.room?` · ${item.room}`:''}
+                {kind==='warr'&&item.warranty_expiry?` · ${fmtDate(item.warranty_expiry)}`:''}
+                {kind==='repl'&&item.replacement_cost?` · ${fe(item.replacement_cost)}`:''}
+              </p>
+            </div>
+            {/* ΜΙΑ ΕΝΕΡΓΕΙΑ ΑΝΑ ΓΡΑΜΜΗ, ΕΚΕΙΝΗ ΠΟΥ ΛΥΝΕΙ ΤΟ ΣΥΓΚΕΚΡΙΜΕΝΟ.
+                Πριν, η γραμμή έδειχνε ένα σήμα κατάστασης, δηλαδή ξανάλεγε την
+                αιτία που μόλις διαβάστηκε δίπλα, και δεν πρόσφερε τίποτα να κάνεις. */}
+            {kind==='warr'
+              ? <button onClick={()=>{onWarrantyReminder(item);setPushed(p=>new Set(p).add(item.id))}} disabled={pushed.has(item.id)}
+                  style={{flexShrink:0,padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:pushed.has(item.id)?'var(--text-tertiary)':'var(--text-secondary)',fontSize:11.5,fontFamily:T.font.sans,fontWeight:500,cursor:pushed.has(item.id)?'default':'pointer',whiteSpace:'nowrap'}}>
+                  {pushed.has(item.id)?'Στο ημερολόγιο':'Υπενθύμιση'}
+                </button>
+              : <button onClick={()=>onEdit(item)}
+                  style={{flexShrink:0,padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:11.5,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>
+                  Άνοιγμα
+                </button>}
+          </div>
+        ))}
+      </div>
+      {attention.length>6&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,marginTop:10,textAlign:'center'}}>και {attention.length-6} ακόμη, με το φίλτρο «Προσοχή» παρακάτω</p>}
+    </div>
+  )
+}
+
+// Πού πάει η αξία και πού πάει το ρεύμα. Δύο κάρτες δίπλα δίπλα, και ΜΟΝΟ όταν
+// υπάρχει τι να δείξουν: χωρίς μετρημένη κατανάλωση δεν υπάρχει κάρτα ρεύματος.
+function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;kwhControl?:React.ReactNode}) {
+  const totalRepairs = repairs.reduce((s,r)=>s+(r.cost||0),0)
+  const electricItems = items.filter(i=>i.power_watts>0&&i.daily_hours_use>0)
+  const byCategory = [...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
+  const maxVal = Math.max(...byCategory.map(x=>x.val),1)
+  const topEnergy = [...electricItems].sort((a,b)=>calcMonthlyCost(b,kwhPrice)-calcMonthlyCost(a,kwhPrice)).slice(0,5)
 
   const categoriesCard = (
     <div style={cardStyle}>
@@ -1041,106 +1094,70 @@ function OverviewTab({items,repairs,kwhPrice,kwhControl,handovers=[],onOpenHando
     </div>
   )
 
+  if(electricItems.length===0) return categoriesCard
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:20}}>
-      {/* Κέντρο ενεργειών — μία σαφής απάντηση στο «τι πρέπει να κάνω». */}
-      {attention.length===0?(
-        <div style={{...cardStyle,display:'flex',alignItems:'center',gap:14,padding:'16px 20px'}}>
-          <div style={{width:40,height:40,borderRadius:T.radius.pill,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'var(--text-secondary)'}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-          </div>
-          <div style={{minWidth:0}}>
-            <p style={{fontSize:14,fontWeight:600,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Τίποτα δεν χρειάζεται προσοχή</p>
-            <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Καμία εγγύηση κοντά στη λήξη, καμία κακή κατάσταση, καμία πρόταση αντικατάστασης.</p>
-          </div>
-        </div>
-      ):(
-        <div style={cardStyle}>
-          <SectionLabel label="Χρειάζονται προσοχή" right={<Badge label={String(attention.length)} color={attention.some(a=>a.kind==='cond')?'var(--negative)':'var(--warning)'}/>}/>
-          <div style={{display:'flex',flexDirection:'column',gap:6}}>
-            {attention.slice(0,6).map(({item,sev,label,kind})=>(
-              <div key={item.id} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
-                <span style={{width:7,height:7,borderRadius:'50%',background:sev,flexShrink:0}}/>
-                <div style={{minWidth:0,flex:1}}>
-                  <p style={{fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
-                  <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}{item.room?` · ${item.room}`:''}</p>
-                </div>
-                <div style={{flexShrink:0}}>
-                  {kind==='cond'&&<Badge label={item.condition} color={CONDITION_COLOR[item.condition]}/>}
-                  {kind==='repl'&&<span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{item.replacement_cost?fe(item.replacement_cost):'Αντικατάσταση'}</span>}
-                  {kind==='warr'&&<Badge label={warrantyStatus(item.warranty_expiry).label} color={warrantyStatus(item.warranty_expiry).color}/>}
-                </div>
-              </div>
-            ))}
-          </div>
-          {attention.length>6&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,marginTop:10,textAlign:'center'}}>και {attention.length-6} ακόμη στην καρτέλα Αντικείμενα</p>}
-        </div>
-      )}
-
-      {/* ΧΩΡΙΣ ΜΕΤΡΗΣΗ ΡΕΥΜΑΤΟΣ ΔΕΝ ΥΠΑΡΧΕΙ ΚΑΡΤΑ ΡΕΥΜΑΤΟΣ. Πριν έμπαινε μισή
-          στήλη με άδεια κατάσταση που ζητούσε Watt — δηλαδή ένα κενό κουτί δίπλα
-          σε ένα γεμάτο, με ασύμμετρο ύψος. Η απουσία λέγεται με απουσία. */}
-      {electricItems.length>0?(
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,300px),1fr))',gap:16,alignItems:'start'}}>
-          <div style={cardStyle}>
-            <SectionLabel label="Κατανάλωση ρεύματος" right={kwhControl}/>
-            {topEnergy.map(item=>{
-              const mc=calcMonthlyCost(item,kwhPrice); const maxMc=calcMonthlyCost(topEnergy[0],kwhPrice)
-              return (
-                <div key={item.id} style={{marginBottom:10}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4,gap:8}}>
-                    <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
-                      {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
-                      <span style={{fontSize:11,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</span>
-                    </div>
-                    <span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,flexShrink:0}}>{kwhPrice>0?`${fe(mc)} τον μήνα`:`${fn(calcMonthlyKwh(item),1)} kWh`}</span>
-                  </div>
-                  <div style={{height:3,background:'var(--border-subtle)',borderRadius:3}}><div style={{height:3,borderRadius:3,background:'var(--accent)',width:`${maxMc>0?(mc/maxMc)*100:0}%`}}/></div>
-                </div>
-              )
-            })}
-            {/* Η τιμή ανά κιλοβατώρα λέγεται ΜΙΑ φορά, στην υποσημείωση του
-                πλακιδίου «Ρεύμα ανά μήνα». Εδώ μένει μόνο η προτροπή όταν λείπει. */}
-            {kwhPrice<=0&&(
-              <p style={{marginTop:12,fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.5}}>
-                Δεν έχεις δηλώσει τιμή ανά κιλοβατώρα, οπότε δείχνουμε μόνο κατανάλωση. Γράψε την τιμή του λογαριασμού σου δίπλα.
-              </p>
-            )}
-          </div>
-          {categoriesCard}
-        </div>
-      ):categoriesCard}
-
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,300px),1fr))',gap:16,alignItems:'start'}}>
       <div style={cardStyle}>
-        <SectionLabel label="Ιστορικό παραδόσεων" right={onOpenHandover?<button onClick={onOpenHandover} style={{padding:'0 12px',height:28,borderRadius:T.radius.pill,border:'1px solid var(--accent-border)',background:'var(--accent-soft)',color:'var(--accent)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'Νέο πρωτόκολλο'}</button>:undefined}/>
-        {handovers.length===0
-          ?<p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή κατάστασης εξοπλισμού στην είσοδο και στην έξοδο του ενοικιαστή: απόδειξη για την εγγύηση. Δημιούργησε ένα πρωτόκολλο ή ξεκίνησέ το από την καρτέλα του ενοικιαστή.</p>
-          :<div style={{display:'flex',flexDirection:'column',gap:6}}>
-            {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
-              const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
-              return (
-                <div key={h.id} onClick={onOpenHandover} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:onOpenHandover?'pointer':'default'}}>
-                  <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
-                  <div style={{minWidth:0,flex:1}}>
-                    <p style={{fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
-                    <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)} · {snap.length} αντικείμενα</p>
-                  </div>
-                  {bad>0&&<Badge label={`${bad} με φθορά`} color="var(--negative)"/>}
+        <SectionLabel label="Κατανάλωση ρεύματος" right={kwhControl}/>
+        {topEnergy.map(item=>{
+          const mc=calcMonthlyCost(item,kwhPrice); const maxMc=calcMonthlyCost(topEnergy[0],kwhPrice)
+          return (
+            <div key={item.id} style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4,gap:8}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+                  {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
+                  <span style={{fontSize:11,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</span>
                 </div>
-              )
-            })}
-            {handovers.length>4&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,textAlign:'center',marginTop:4}}>και {handovers.length-4} ακόμη</p>}
-          </div>
-        }
+                <span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,flexShrink:0}}>{kwhPrice>0?`${fe(mc)} τον μήνα`:`${fn(calcMonthlyKwh(item),1)} kWh`}</span>
+              </div>
+              <div style={{height:3,background:'var(--border-subtle)',borderRadius:3}}><div style={{height:3,borderRadius:3,background:'var(--accent)',width:`${maxMc>0?(mc/maxMc)*100:0}%`}}/></div>
+            </div>
+          )
+        })}
+        {kwhPrice<=0&&(
+          <p style={{marginTop:12,fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.5}}>
+            Δεν έχεις δηλώσει τιμή ανά κιλοβατώρα, οπότε δείχνουμε μόνο κατανάλωση. Γράψε την τιμή του λογαριασμού σου δίπλα.
+          </p>
+        )}
       </div>
+      {categoriesCard}
     </div>
   )
 }
 
+// Το ιστορικό παραδόσεων, με το κουμπί που το ανοίγει πάνω του.
+function HandoverCard({handovers,onOpenHandover}:{handovers:InventoryHandover[];onOpenHandover:()=>void}) {
+  return (
+    <div style={cardStyle}>
+      <SectionLabel label="Παραδόσεις και παραλαβές" right={<button onClick={onOpenHandover} style={{padding:'0 12px',height:28,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'Νέο πρωτόκολλο'}</button>}/>
+      {handovers.length===0
+        ?<p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή της κατάστασης του εξοπλισμού στην είσοδο και στην έξοδο του ενοικιαστή: η απόδειξη για την εγγύηση.</p>
+        :<div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
+            const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
+            return (
+              <div key={h.id} onClick={onOpenHandover} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:'pointer'}}>
+                <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
+                <div style={{minWidth:0,flex:1}}>
+                  <p style={{fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
+                  <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)} · {snap.length} αντικείμενα</p>
+                </div>
+                {bad>0&&<span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans,flexShrink:0}}>{bad} με φθορά</span>}
+              </div>
+            )
+          })}
+          {handovers.length>4&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,textAlign:'center',marginTop:4}}>και {handovers.length-4} ακόμη</p>}
+        </div>
+      }
+    </div>
+  )
+}
+
+
 type SortKey = 'name'|'value'|'energy'|'age'|'depreciation'
 
-function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder,onBulkDelete,onBulkRoom}:{
-  items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number
+function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder,onBulkDelete,onBulkRoom}:{
+  items:InventoryItem[];kwhPrice:number
   onAdd:()=>void;onEdit:(i:InventoryItem)=>void;onDelete:(id:string)=>void
   onRepair:(i:InventoryItem)=>void;onQR:(i:InventoryItem)=>void
   onUpdateCondition:(id:string,c:string)=>void
@@ -1169,14 +1186,15 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       return true
     })
     .sort((a,b)=>{
-      let va:any=0,vb:any=0
-      if(sortKey==='name'){va=a.name;vb=b.name}
-      else if(sortKey==='value'){va=calcCurrentValue(a);vb=calcCurrentValue(b)}
-      else if(sortKey==='energy'){va=calcMonthlyCost(a,kwhPrice);vb=calcMonthlyCost(b,kwhPrice)}
-      else if(sortKey==='age'){va=a.purchase_date?new Date(a.purchase_date).getTime():0;vb=b.purchase_date?new Date(b.purchase_date).getTime():0}
-      else if(sortKey==='depreciation'){va=calcDepreciationPct(a);vb=calcDepreciationPct(b)}
-      if(typeof va==='string') return sortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va)
-      return sortDir==='asc'?va-vb:vb-va
+      // Το όνομα συγκρίνεται ως κείμενο, όλα τα άλλα ως αριθμοί. Δύο ξεχωριστές
+      // διαδρομές, ώστε ο τύπος να μη χρειάζεται να είναι `any` για να χωρέσουν.
+      if(sortKey==='name') return sortDir==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name)
+      const num=(i:InventoryItem):number =>
+        sortKey==='value'        ? calcCurrentValue(i)
+      : sortKey==='energy'       ? calcMonthlyCost(i,kwhPrice)
+      : sortKey==='age'          ? (i.purchase_date?new Date(i.purchase_date).getTime():0)
+      :                            calcDepreciationPct(i)
+      return sortDir==='asc'?num(a)-num(b):num(b)-num(a)
     })
   const itemActions = (item:InventoryItem):OverflowAction[] => [
     {label:'Επεξεργασία',icon:IconEdit,onClick:()=>onEdit(item)},
@@ -1196,7 +1214,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
         <div style={{flex:1,minWidth:180}}><TextInput value={search} onChange={setSearch} placeholder="Αναζήτηση αντικειμένου, μάρκας…"/></div>
-        <div style={{width:150}}><CustomSelect value={filterCat} onChange={setFilterCat} options={['Όλες',...['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].filter(c=>items.some(i=>i.category===c))].map(c=>({value:c,label:c==='Όλες'?'Όλες οι κατηγορίες':c}))}/></div>
+        <div style={{width:150}}><CustomSelect value={filterCat} onChange={setFilterCat} options={['Όλες',...[...INVENTORY_CATEGORIES].filter(c=>items.some(i=>i.category===c))].map(c=>({value:c,label:c==='Όλες'?'Όλες οι κατηγορίες':c}))}/></div>
         {allRooms.length>0&&<div style={{width:140}}><CustomSelect value={filterRoom} onChange={setFilterRoom} options={[{value:'Όλα',label:'Όλα τα δωμάτια'},...allRooms.map(r=>({value:r,label:r}))]}/></div>}
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <div style={{width:196}}><CustomSelect value={sortKey} onChange={v=>setSortKey(v as SortKey)} options={(Object.keys(SORT_LABELS) as SortKey[]).map(k=>({value:k,label:`Ταξινόμηση: ${SORT_LABELS[k]}`}))}/></div>
@@ -1340,57 +1358,15 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
   )
 }
 
-function WarrantiesTab({items,onWarrantyReminder}:{items:InventoryItem[];onWarrantyReminder:(i:InventoryItem)=>Promise<boolean>}) {
-  const [pushing,setPushing] = useState<string|null>(null)
-  const [pushed,setPushed] = useState<Set<string>>(new Set())
-  // ΤΟ `embedded` ΗΤΑΝ ΠΑΝΤΑ ΑΛΗΘΕΣ: μοναδικός καλών αυτής της ενότητας είναι η
-  // «Φροντίδα», που την ενσωματώνει. Ό,τι κρεμόταν από το `!embedded` — ένα πλέγμα
-  // τριών μετρικών και μία επεξηγηματική κορδέλα — δεν είχε αποδοθεί ποτέ σε καμία
-  // οθόνη. Νεκρός κώδικας που όμως διάβαζε ο επόμενος και τον λογάριαζε.
-  const withW = items.filter(i=>i.warranty_expiry).sort((a,b)=>new Date(a.warranty_expiry).getTime()-new Date(b.warranty_expiry).getTime())
-  const expired = withW.filter(i=>daysUntil(i.warranty_expiry)<0)
-  const soon = withW.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90})
-  const valid = withW.filter(i=>daysUntil(i.warranty_expiry)>90)
-  const pushCal = async(item:InventoryItem) => {
-    setPushing(item.id)
-    const ok=await onWarrantyReminder(item)
-    setPushing(null)
-    if(ok) setPushed(p=>new Set(p).add(item.id))
-  }
-  const WSection = ({title,color,list}:{title:string;color:string;list:InventoryItem[]}) => list.length===0?null:(
-    <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:16}}>
-      <SectionLabel label={title} right={<Badge label={String(list.length)} color={color}/>}/>
-      <div style={{display:'flex',flexDirection:'column',gap:8}}>
-        {list.map(item=>{const ws=warrantyStatus(item.warranty_expiry);return(
-          <div key={item.id} style={{display:'grid',gridTemplateColumns:'1fr auto auto auto',gap:10,alignItems:'center',padding:'10px 12px',background:'var(--bg-surface)',borderRadius:T.radius.inner}}>
-            <div>
-              <p style={{fontSize:12,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
-              <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.brand}{item.model?` ${item.model}`:''} · {item.category}</p>
-            </div>
-            {item.receipt_doc_url
-              ?<button onClick={()=>openInventoryDoc(item.receipt_doc_url)} title="Άνοιγμα απόδειξης ή εγγύησης" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:10.5,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Απόδειξη</button>
-              :item.serial_number?<p style={{fontSize:10,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>Σειριακός {item.serial_number}</p>:<span/>}
-            <Badge label={ws.label} color={ws.color}/>
-            {daysUntil(item.warranty_expiry)>=0&&daysUntil(item.warranty_expiry)<=90&&(
-              <button onClick={()=>pushCal(item)} disabled={pushing===item.id||pushed.has(item.id)} style={{padding:'5px 10px',borderRadius:T.radius.pill,border:`1px solid ${pushed.has(item.id)?'var(--positive)':'var(--border-subtle)'}`,background:pushed.has(item.id)?'var(--positive-dim)':'none',color:pushed.has(item.id)?'var(--positive)':'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:'pointer',whiteSpace:'nowrap'}}>
-                {pushing===item.id?'...':pushed.has(item.id)?'Προστέθηκε':'Ημερολόγιο'}
-              </button>
-            )}
-          </div>
-        )})}
-      </div>
-    </div>
-  )
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      <SectionLabel label="Εγγυήσεις" right={withW.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{withW.length} με ημερομηνία λήξης</span>:undefined}/>
-      <WSection title="Λήγουν μέσα σε 90 ημέρες" color="var(--warning)" list={soon}/>
-      <WSection title="Έχουν λήξει" color="var(--negative)" list={expired}/>
-      <WSection title="Σε ισχύ" color="var(--positive)" list={valid}/>
-      {withW.length===0&&<EmptyState icon={<ShieldCheck size={20}/>} title="Καμία εγγύηση ακόμη" hint="Βάλε ημερομηνία λήξης εγγύησης στα αντικείμενα και θα ειδοποιείσαι πριν λήξουν." />}
-    </div>
-  )
-}
+// ΟΙ ΕΓΓΥΗΣΕΙΣ ΔΕΝ ΕΧΟΥΝ ΔΙΚΗ ΤΟΥΣ ΕΝΟΤΗΤΑ ΠΙΑ.
+// Ήταν λίστα με τρία υπο-τμήματα: «λήγουν σε 90 ημέρες», «έχουν λήξει», «σε
+// ισχύ». Δηλαδή η ίδια λίστα αντικειμένων, τρεις φορές, φιλτραρισμένη με
+// ημερομηνία — δίπλα στη λίστα αντικειμένων που ήδη δείχνει την εγγύηση ως σήμα
+// σε κάθε κάρτα. Ό,τι είχε αξία κρατήθηκε και μπήκε εκεί που ανήκει:
+//   · «λήγει σύντομα» → μία γραμμή στο «Χρειάζονται προσοχή», με το κουμπί που
+//     βάζει την υπενθύμιση στο ημερολόγιο·
+//   · η απόδειξη → στο μενού του κάθε αντικειμένου, δίπλα στην επεξεργασία·
+//   · «σε ισχύ» → δεν είναι εργασία, είναι κατάσταση, και τη λέει η κάρτα.
 
 function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:InventoryItem[];handovers:InventoryHandover[];propertyId:string;userId:string;onSaved:()=>void;seed?:(HandoverIntent&{n:number})|null}) {
   const [mode,setMode] = useState<'list'|'new'|'compare'>('list')
@@ -1618,9 +1594,6 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   // Και εδώ το `embedded` ήταν πάντα αληθές, άρα το πλέγμα των τριών μετρικών
   // που κρεμόταν από το `!embedded` δεν αποδόθηκε ποτέ. Έλεγε ούτως ή άλλως τα
   // ίδια τρία νούμερα με τα σήματα των τριών ενοτήτων ακριβώς από κάτω.
-  const overdue=schedules.filter(s=>daysUntil(s.next_due)<0)
-  const soon=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30})
-  const upcoming=schedules.filter(s=>daysUntil(s.next_due)>30)
   const today=()=>athensToday()
   const taskTitle=(task:string,item_name:string)=>`Συντήρηση: ${task}${item_name?`, ${item_name}`:''}`
   // Το «κύκλωμα»: μια προγραμματισμένη εργασία → εγγραφή ημερολογίου (υπενθύμιση/εκκρεμότητα)
@@ -1708,9 +1681,21 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   }
   return (
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      {/* ΟΙ ΠΡΟΤΕΙΝΟΜΕΝΕΣ ΕΡΓΑΣΙΕΣ ΕΓΙΝΑΝ ΜΕΝΟΥ.
+          Ήταν πλέγμα έξι καρτών με έξι κουμπιά «Προσθήκη», που καταλάμβανε μισή
+          οθόνη και εμφανιζόταν ΜΟΝΟ όταν δεν υπήρχε καμία εργασία — δηλαδή
+          εξαφανιζόταν ακριβώς τη στιγμή που ο χρήστης μάθαινε ότι υπάρχει. Τώρα
+          είναι ένα μενού που ζει πάντα δίπλα στον τίτλο. */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
         <SectionLabel label="Συντήρηση" right={schedules.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{schedules.length} {schedules.length===1?'εργασία':'εργασίες'}</span>:undefined}/>
-        {!adding&&<button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:T.h.md,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>Νέα εργασία</button>}
+        {!adding&&<ActionMenu label="Νέα εργασία" items={[
+          ...DEFAULT_MAINTENANCE.map((sug,i)=>({
+            key:`sug${i}`, label:sug.task,
+            description:`κάθε ${sug.interval_months} μήνες · ${sug.category}`,
+            onClick:()=>addSuggested(sug),
+          })),
+          {key:'own', label:'Δική μου εργασία', description:'Ορίζεις εσύ τι, κάθε πότε και με τι κόστος.', onClick:()=>setAdding(true)},
+        ]}/>}
       </div>
       {adding&&(
         <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
@@ -1733,25 +1718,16 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
           </div>
         </div>
       )}
-      {schedules.length===0&&(
-        <div style={cardStyle}>
-          <SectionLabel label="Προτεινόμενες εργασίες"/>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
-            {DEFAULT_MAINTENANCE.map((s,i)=>(
-              <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner}}>
-                <div>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>κάθε {s.interval_months} μήνες · {s.category}</p>
-                </div>
-                <button onClick={()=>addSuggested(s)} style={{padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:11,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>Προσθήκη</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {overdue.length>0&&<div style={{display:'flex',flexDirection:'column',gap:6}}><SectionLabel label="Σε καθυστέρηση" right={<Badge label={String(overdue.length)} color="var(--negative)"/>}/>{overdue.map(s=><SchedRow key={s.id} s={s}/>)}</div>}
-      {soon.length>0&&<div style={{display:'flex',flexDirection:'column',gap:6}}><SectionLabel label="Επόμενες 30 ημέρες" right={<Badge label={String(soon.length)} color="var(--warning)"/>}/>{soon.map(s=><SchedRow key={s.id} s={s}/>)}</div>}
-      {upcoming.length>0&&<div style={{display:'flex',flexDirection:'column',gap:6}}><SectionLabel label="Επερχόμενες"/>{upcoming.map(s=><SchedRow key={s.id} s={s}/>)}</div>}
+      {/* ΜΙΑ ΛΙΣΤΑ, ΟΧΙ ΤΡΕΙΣ. Ήταν χωρισμένη σε «σε καθυστέρηση», «επόμενες 30
+          ημέρες» και «επερχόμενες», με σήμα-πλήθος σε κάθε επικεφαλίδα. Κάθε
+          γραμμή ΗΔΗ γράφει πόσες ημέρες λείπουν ή πόσες καθυστερεί, οπότε οι
+          τρεις επικεφαλίδες επαναλάμβαναν ό,τι έλεγε η ίδια η σειρά. Ταξινομημένη
+          κατά ημερομηνία, η καθυστέρηση είναι από μόνη της πρώτη. */}
+      {schedules.length===0
+        ? <EmptyState icon={<ClipboardCheck size={20}/>} title="Καμία προγραμματισμένη συντήρηση" hint="Διάλεξε μια έτοιμη εργασία από το μενού, ή όρισε δική σου. Μπαίνει στο ημερολόγιο με υπενθύμιση." />
+        : <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {[...schedules].sort((a,b)=>daysUntil(a.next_due)-daysUntil(b.next_due)).map(s=><SchedRow key={s.id} s={s}/>)}
+          </div>}
     </div>
   )
 }
@@ -1768,16 +1744,15 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
 // καταλαμβάνει την κορυφή της οθόνης για να επαναλάβει ό,τι θα διαβαστεί ούτως
 // ή άλλως δύο εκατοστά πιο κάτω. Έφυγαν και τα τέσσερα.
 // ═══════════════════════════════════════════════════════════════════════════
-function CareTab({items,schedules,propertyId,userId,onSaved,onWarrantyReminder}:{items:InventoryItem[];schedules:MaintenanceSchedule[];propertyId:string;userId:string;onSaved:()=>void;onWarrantyReminder:(i:InventoryItem)=>Promise<boolean>}) {
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:28}}>
-      <WarrantiesTab items={items} onWarrantyReminder={onWarrantyReminder}/>
-      <MaintenanceTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={onSaved}/>
-    </div>
-  )
-}
-
-function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number}) {
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΕΞΑΓΩΓΕΣ ΕΙΝΑΙ ΕΝΕΡΓΕΙΕΣ, ΟΧΙ ΕΝΟΤΗΤΑ ΤΗΣ ΣΕΛΙΔΑΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Ήταν κάρτα με τρεις γραμμές, μόνιμα στο κάτω μέρος της οθόνης. Μια εξαγωγή
+// όμως δεν είναι πληροφορία που κοιτάς: είναι κάτι που κάνεις μία φορά στους
+// έξι μήνες. Κατέλαβε το τέλος κάθε επίσκεψης για να προσφέρει κάτι που σχεδόν
+// ποτέ δεν ζητήθηκε εκείνη τη στιγμή. Τώρα ζουν στο μενού της κεφαλίδας.
+// ═══════════════════════════════════════════════════════════════════════════
+function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number}) {
   const totalCurrent=items.reduce((s,i)=>s+calcCurrentValue(i),0)
   const totalRepairs=repairs.reduce((s,r)=>s+(r.cost||0),0)
   const electricItems=items.filter(i=>i.power_watts>0&&i.daily_hours_use>0)
@@ -1795,7 +1770,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='απογραφη.csv';a.click()
   }
   const exportPDF=()=>{
-    const byCat=['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
+    const byCat=[...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
     const catRows=byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>reportRow(`${cat} (${count})`,rEur(val))).join('')
     const detailRows=items.map(i=>`<tr><td><strong>${rEsc(i.name)}</strong>${i.brand?`<br><small class="muted">${rEsc(i.brand)} ${rEsc(i.model||'')}</small>`:''}</td><td>${rEsc(i.energy_class||ABSENT)}</td><td>${rEsc(i.condition)}</td><td class="n">${rEsc(rEur(i.purchase_value||0))}</td><td class="n">${rEsc(rEur(calcCurrentValue(i)))}</td><td class="n">${rEsc(rPct(Math.max(0,100-calcDepreciationPct(i))))}</td><td class="n">${rEsc(rEur(i.replacement_cost||0))}</td><td class="n">${rEsc(calcMonthlyKwh(i)+' kWh')}</td><td>${rEsc(i.warranty_expiry?fmtDate(i.warranty_expiry):ABSENT_DATE)}</td></tr>`).join('')
     const html = reportHead('Απογραφή ακινήτου')
@@ -1857,38 +1832,25 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   // Η πρόταση για την υπασφάλιση ζει ΜΟΝΟ εδώ, στην περιγραφή της έκθεσης που
   // αφορά τον ασφαλιστή. Το ίδιο κείμενο υπήρχε και ως χωριστό πλαίσιο από κάτω.
   // ═══════════════════════════════════════════════════════════════════════════
-  const EXPORTS = [
-    {title:'Απογραφή σε PDF',desc:'Πλήρης έκθεση με αξίες, ενεργειακές κλάσεις, ηλικία και εγγυήσεις, έτοιμη για εκτύπωση ή αρχειοθέτηση.',fn:exportPDF,primary:true},
-    {title:'Έκθεση ασφάλισης',desc:missingRepl>0
-      ? `Φωτογραφία και δηλωμένο κόστος αντικατάστασης ανά αντικείμενο. Λείπει από ${missingRepl} στα ${items.length}: όπου λείπει γράφεται ρητά, γιατί ασφάλιση με ελλιπές άθροισμα σημαίνει υπασφάλιση που φαίνεται μόνο μετά τη ζημιά.`
-      : 'Φωτογραφία και δηλωμένο κόστος αντικατάστασης ανά αντικείμενο, για όλα τα αντικείμενα, έτοιμη για τον ασφαλιστή.',fn:exportInsurancePDF,primary:false},
-    {title:'Αναλυτικά δεδομένα σε CSV',desc:'Όλα τα πεδία σε αρχείο συμβατό με λογιστικά φύλλα, για τον λογιστή ή για δικό σου αρχείο.',fn:exportCSV,primary:false},
+  return [
+    {key:'pdf',   label:'Απογραφή σε PDF',           description:'Αξίες, ενεργειακές κλάσεις, ηλικία και εγγυήσεις, έτοιμη για εκτύπωση.', onClick:exportPDF},
+    {key:'insur', label:'Έκθεση για τον ασφαλιστή',  description:missingRepl>0
+      ? `Φωτογραφία και κόστος αντικατάστασης ανά αντικείμενο. Λείπει από ${missingRepl} στα ${items.length} και γράφεται ρητά: ελλιπές άθροισμα σημαίνει υπασφάλιση που φαίνεται μόνο μετά τη ζημιά.`
+      : 'Φωτογραφία και κόστος αντικατάστασης ανά αντικείμενο, για όλα.', onClick:exportInsurancePDF},
+    {key:'csv',   label:'Αναλυτικά δεδομένα σε CSV', description:'Όλα τα πεδία σε αρχείο για λογιστικά φύλλα.', onClick:exportCSV},
   ]
-  return (
-    <div style={cardStyle}>
-      <SectionLabel label="Εξαγωγές"/>
-      <div style={{display:'flex',flexDirection:'column',gap:8}}>
-        {EXPORTS.map(({title,desc,fn,primary})=>(
-          <div key={title} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
-            <div style={{minWidth:0,flex:1}}>
-              <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:3}}>{title}</p>
-              <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.5}}>{desc}</p>
-            </div>
-            <button onClick={fn} style={{flexShrink:0,padding:'0 18px',height:T.h.md,borderRadius:T.radius.pill,background:primary?'var(--accent)':'var(--bg-surface)',border:primary?'none':'1px solid var(--border-default)',color:primary?'var(--accent-text)':'var(--text-primary)',fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer',whiteSpace:'nowrap'}}>Δημιουργία</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed,properties=[]}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void;properties?:InventoryPropertyOption[]}) {
-  const [activeTab,setActiveTab] = useState<'items'|'care'|'handover'|'overview'>('items')
+  // ΔΥΟ ΣΕΛΙΔΕΣ, ΟΧΙ ΤΕΣΣΕΡΙΣ ΥΠΟΚΑΡΤΕΛΕΣ. Η απογραφή είναι μία σελίδα που
+  // διαβάζεται από πάνω προς τα κάτω. Το πρωτόκολλο παράδοσης είναι χωριστή
+  // εργασία με δικό της βήμα-βήμα, οπότε μένει δική του σελίδα.
+  const [page,setPage] = useState<'main'|'handover'>('main')
   const [handoverSeed,setHandoverSeed] = useState<(HandoverIntent&{n:number})|null>(null)
   // Deep-link από την καρτέλα ενοικιαστή: άνοιξε κατευθείαν τη «Παράδοση» σε νέο πρωτόκολλο με προ-συμπληρωμένα στοιχεία.
   useEffect(()=>{
     if(handoverIntent){
-      setActiveTab('handover')
+      setPage('handover')
       setHandoverSeed({...handoverIntent,n:Date.now()})
       onIntentConsumed?.()
     }
@@ -1937,7 +1899,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     if(iR.data){
       // Καμία εγγραφή κατά την ανάγνωση: οι υπενθυμίσεις ημερολογίου δημιουργούνται
       // ΜΟΝΟ με ρητή ενέργεια του χρήστη (κουμπί «Ημερολόγιο»), όχι αυτόματα σε κάθε load.
-      const loadedItems=iR.data.map((i:any)=>({...i,photos:i.photos||[]}))
+      const loadedItems=(iR.data as InventoryItem[]).map(i=>({...i,photos:i.photos||[]}))
       setItems(loadedItems)
     }
     if(rR.data)setRepairs(rR.data)
@@ -2045,19 +2007,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     notifyOk(`Προστέθηκε υπενθύμιση εγγύησης στο ημερολόγιο για «${item.name}».`)
     return true
   }
-  const exportInventoryCsv=()=>downloadCsv(
-    `apografi_${athensToday()}`,
-    ['Αντικείμενο','Κατηγορία','Δωμάτιο','Μάρκα','Κατάσταση','Ημερομηνία Αγοράς','Τιμή Αγοράς (€)','Τρέχουσα Αξία (€)','Εγγύηση έως'],
-    items.map(item=>[item.name,item.category,item.room||'',item.brand||'',item.condition,csvDate(item.purchase_date),csvEur(item.purchase_value),csvEur(calcCurrentValue(item)),csvDate(item.warranty_expiry)])
-  )
-
-  // «Παράδοση» δεν είναι πια tab — είναι υπο-σελίδα, προσβάσιμη από την καρτέλα ενοικιαστή (deep-link)
-  // και από το «Ιστορικό Παραδόσεων» στην Επισκόπηση.
-  const TABS=[
-    {key:'items',label:'Αντικείμενα'},
-    {key:'care',label:'Εγγυήσεις & Συντήρηση'},
-    {key:'overview',label:'Επισκόπηση'},
-  ] as const
+  const exportActions = inventoryExports({items,repairs,kwhPrice})
+  // ΔΥΟ ΕΞΑΓΩΓΕΣ CSV ΤΩΝ ΙΔΙΩΝ ΔΕΔΟΜΕΝΩΝ ΔΕΝ ΥΠΑΡΧΟΥΝ ΠΙΑ. Η κεφαλίδα είχε
+  // δική της, με εννέα στήλες· το μενού έχει την πλήρη, με είκοσι. Ο χρήστης
+  // κατέβαζε «την απογραφή» και έπαιρνε άλλο αρχείο ανάλογα με το πού πάτησε.
 
   // ═══ ΠΟΙΟΣ ΒΛΕΠΕΙ ΑΠΟΓΡΑΦΗ ΕΞΟΠΛΙΣΜΟΥ ═══════════════════════════════════
   // Ένα κενό διαμέρισμα, μια ιδιοχρησία ή ένα γυμνό ενοίκιο δεν έχουν εξοπλισμό να
@@ -2112,9 +2065,19 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       {!embedded && <PageTitle
         title="Έπιπλα και εξοπλισμός"
         sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
+        /* ΕΝΑ ΚΟΥΜΠΙ, ΚΑΙ ΕΝΑ ΜΕΝΟΥ. Ήταν τρία κουμπιά στην κεφαλίδα και άλλες
+           τρεις εξαγωγές σε δική τους κάρτα στο τέλος της σελίδας — έξι ενέργειες
+           για μια οθόνη που έχει ΜΙΑ κύρια: πρόσθεσε αντικείμενο. */
         right={<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-          <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
-          <ExportButton onClick={exportInventoryCsv} disabled={items.length===0}/>
+          <ActionMenu label="Περισσότερα" items={[
+            {key:'bulk',label:'Μαζική εισαγωγή',description:'Επικόλλησε λίστα ή αρχείο και μπαίνουν όλα μαζί.',onClick:()=>setShowBulkImport(true)},
+            {key:'hand',label:'Πρωτόκολλο παράδοσης',description:'Κατάσταση εξοπλισμού στην είσοδο ή στην έξοδο του ενοικιαστή.',onClick:()=>setPage('handover'),disabled:items.length===0},
+            // Η αντιγραφή ζούσε ΚΑΙ ως κουμπί στην καθολική μπάρα του ακινήτου
+            // (με δικό της modal) ΚΑΙ ως επιλογή στην άδεια κατάσταση εδώ. Δύο
+            // δρόμοι για την ίδια πράξη, ο ένας ορατός μόνο όταν δεν έχεις τίποτα.
+            ...otherProps.map(op=>({key:`clone${op.id}`,label:`Αντιγραφή από «${op.label}»`,description:'Προσθέτει τα αντικείμενα του άλλου ακινήτου σε αυτό.',onClick:()=>cloneFromProperty(op.id),busy:cloning})),
+            ...exportActions.map(a=>({...a,disabled:items.length===0})),
+          ]}/>
           <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>
         </div>}
       />}
@@ -2181,7 +2144,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
               ))}
             </div>
           </div>
-        : activeTab==='handover' ? null : (
+        : page==='handover' ? null : (
             // ΚΑΝΕΝΑ ΜΗΔΕΝΙΚΟ ΠΛΑΚΙΔΙΟ. Ρεύμα εμφανίζεται μόνο όταν υπάρχει
             // μετρημένη κατανάλωση, κόστος αντικατάστασης μόνο όταν έχει δηλωθεί
             // έστω μία φορά. Ένα πλακίδιο που γράφει «0,00 €» δεν λέει «δεν
@@ -2203,47 +2166,33 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           )
       )}
 
-      {!loading && items.length>0 && activeTab==='handover' && (
+      {!loading && items.length>0 && page==='handover' && (
         <div style={{marginTop:8}}>
-          <button onClick={()=>setActiveTab('overview')} style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',marginBottom:16,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,cursor:'pointer'}}>
+          <button onClick={()=>setPage('main')} style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',marginBottom:16,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            Πίσω στην Απογραφή
+            Πίσω στα έπιπλα και τον εξοπλισμό
           </button>
           <HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData} seed={handoverSeed}/>
         </div>
       )}
 
-      {(loading || items.length > 0) && activeTab!=='handover' && (<>
-      <div style={{display:'flex',gap:2,borderBottom:'1px solid var(--border-subtle)',marginLeft:-24,marginRight:-24,paddingLeft:24,overflowX:'auto',marginTop:24,marginBottom:24}}>
-        {TABS.map(tab=>(
-          <button key={tab.key} onClick={()=>setActiveTab(tab.key)}
-            style={{padding:'12px 18px',fontSize:13,fontWeight:activeTab===tab.key?500:400,fontFamily:T.font.sans,color:activeTab===tab.key?'var(--accent)':'var(--text-secondary)',borderBottom:`2px solid ${activeTab===tab.key?'var(--accent)':'transparent'}`,borderLeft:'none',borderRight:'none',borderTop:'none',background:'none',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s',display:'flex',alignItems:'center',gap:6,marginBottom:-1}}
-            onMouseEnter={e=>{if(activeTab!==tab.key)(e.currentTarget as HTMLButtonElement).style.color='var(--text-primary)'}}
-            onMouseLeave={e=>{if(activeTab!==tab.key)(e.currentTarget as HTMLButtonElement).style.color='var(--text-secondary)'}}
-          >
-            {tab.label}
-            {/* Το σήμα μένει ΜΟΝΟ στη «Φροντίδα»: εκεί κρύβεται δουλειά που δεν
-                φαίνεται από αλλού. Στα «Αντικείμενα» το ίδιο νούμερο το γράφει το
-                φίλτρο «Προσοχή» μέσα στην ίδια καρτέλα, και στην «Επισκόπηση» η
-                λίστα «Χρειάζονται προσοχή» — τρεις φορές το ίδιο πλήθος. */}
-            {tab.key==='care'&&(overdueCount>0||warnCount>0)&&<span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:16,height:16,borderRadius:8,background:overdueCount>0?'var(--negative)':'var(--warning)',color:'var(--text-inverse)',fontSize:9,fontWeight:700,padding:'0 4px'}}>{overdueCount+warnCount}</span>}
-          </button>
-        ))}
-      </div>
-
-      {loading
-        // Σκελετός στο σχήμα που έρχεται (μετρικές + πλέγμα καρτών): ο δείκτης
-        // φόρτωσης άφηνε κενή σελίδα και μετά «τίναζε» το περιεχόμενο προς τα κάτω.
-        ?<><SkeletonKPIs n={4}/><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14}}>{[0,1,2,3,4,5].map(i=><Skeleton key={i} h={180} r={14}/>)}</div></>
-        :(
-          <>
-            {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder} onBulkDelete={handleBulkDelete} onBulkRoom={handleBulkRoom}/>}
-            {activeTab==='care'&&<CareTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData} onWarrantyReminder={handleWarrantyReminder}/>}
-            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} kwhControl={kwhControl} handovers={handovers} onOpenHandover={()=>setActiveTab('handover')}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
-          </>
-        )
-      }
-      </>)}
+      {/* ═══ ΜΙΑ ΣΕΛΙΔΑ, ΔΙΑΒΑΖΕΤΑΙ ΑΠΟ ΠΑΝΩ ΠΡΟΣ ΤΑ ΚΑΤΩ ══════════════════
+          τι πρέπει να κάνω · τι έχω · τι έχω προγραμματίσει · πού πάει η αξία
+          και το ρεύμα · τι έχω παραδώσει. Καμία υποκαρτέλα, κανένα κλικ για να
+          δεις την κατάσταση ενός σπιτιού με δέκα αντικείμενα. */}
+      {(loading || items.length > 0) && page==='main' && (
+        <div style={{display:'flex',flexDirection:'column',gap:28,marginTop:24}}>
+          {loading
+            ?<><SkeletonKPIs n={4}/><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14}}>{[0,1,2,3,4,5].map(i=><Skeleton key={i} h={180} r={14}/>)}</div></>
+            :<>
+              <AttentionCard items={items} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onWarrantyReminder={handleWarrantyReminder}/>
+              <ItemsTab items={items} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder} onBulkDelete={handleBulkDelete} onBulkRoom={handleBulkRoom}/>
+              <MaintenanceTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/>
+              <AnalysisCards items={items} repairs={repairs} kwhPrice={kwhPrice} kwhControl={kwhControl}/>
+              <HandoverCard handovers={handovers} onOpenHandover={()=>setPage('handover')}/>
+            </>}
+        </div>
+      )}
     </div>
   )
 }

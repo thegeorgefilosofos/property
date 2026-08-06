@@ -190,7 +190,12 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   // στο Ημερολόγιο — εκεί τις ψάχνει ο ιδιοκτήτης, όχι στα «Εργαλεία» δίπλα στην
   // απογραφή επίπλων. Η πλαϊνή μπάρα γλιτώνει μια γραμμή, η καρτέλα δεν χάθηκε:
   // ανοίγει από το ίδιο το Ημερολόγιο, με τον αριθμό των ανοιχτών δίπλα της.
-  { label: 'Εργαλεία',            ids: ['inventory','documents'] },
+  // ΤΑ «ΕΡΓΑΛΕΙΑ» ΕΓΙΝΑΝ ΜΙΑ ΚΑΡΤΕΛΑ. Η ομάδα κρατούσε δύο πράγματα που δεν
+  // έμοιαζαν μεταξύ τους — το Αρχείο και τα Έπιπλα — κάτω από ένα όνομα που δεν
+  // λέει τίποτα για κανένα από τα δύο. Ο εξοπλισμός ζει τώρα εκεί που τον
+  // ψάχνει κανείς: στο Αρχείο του ακινήτου, κάτω από τις επαφές του, μαζί με τα
+  // χαρτιά και τους ανθρώπους που τον αφορούν. Μια γραμμή λιγότερη στην μπάρα.
+  { label: '',                    ids: ['documents'] },
   // Η Απόδοση απαντά στο «αξίζει;» όταν το ακίνητο αποδίδει. Η Αξιοποίηση
   // απαντά στο «τι να το κάνω;» όταν δεν αποδίδει. Ίδια θέση, γιατί είναι η ίδια
   // στιγμή στο μυαλό του ιδιοκτήτη — και ποτέ μαζί, γιατί οι καταστάσεις τους
@@ -310,78 +315,11 @@ function useChecklistAlerts(propertyId: string | null) {
   return alertCount;
 }
 
-// Copy Inventory Modal
-function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onCopied}: {
-  properties: Property[]; currentPropertyId: string; userId: string; onClose: ()=>void; onCopied: ()=>void;
-}) {
-  const supabase = createClient();
-  const [sourceId, setSourceId] = useState('');
-  const [copying, setCopying] = useState(false);
-  const [preview, setPreview] = useState<{name:string;category:string}[]>([]);
-  const otherProperties = properties.filter(p => p.id !== currentPropertyId);
-  useEffect(() => {
-    if (!sourceId) { setPreview([]); return; }
-    supabase.from('inventory_items').select('name,category').eq('property_id', sourceId).limit(5).then(({data})=>setPreview(data||[]));
-  }, [sourceId]);
-  const handleCopy = async () => {
-    if (!sourceId) return; setCopying(true);
-    const { data: sourceItems } = await supabase.from('inventory_items').select('*').eq('property_id', sourceId);
-    if (sourceItems?.length) {
-      const newItems = sourceItems.map(item => ({ ...item, id: undefined, property_id: currentPropertyId, user_id: userId, created_at: undefined, updated_at: undefined }));
-      if (!await saved('Η απογραφή δεν αντιγράφηκε', supabase.from('inventory_items').insert(newItems))) { setCopying(false); return; }
-    }
-    setCopying(false); onCopied();
-  };
-  return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
-      <div style={{background:'var(--bg-surface)',borderRadius:14,padding:24,width:'100%',maxWidth:480,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div>
-            <p style={{fontFamily: T.font.sans,fontSize:20,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
-            <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
-          </div>
-          <button onClick={onClose} style={{width:40,height:T.h.lg,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-        </div>
-        {otherProperties.length === 0 ? (
-          /* Το κενό <p style={{fontSize:32}}> ήταν νεκρή υποδοχή εικονιδίου: το primitive
-             δεν δεχόταν icon, οπότε κάποιος άφησε τη θέση του και δεν την γέμισε ποτέ. */
-          <EmptyState icon={<Building2 size={20}/>} title="Κανένα άλλο ακίνητο" hint="Η αντιγραφή απογραφής χρειάζεται δεύτερο ακίνητο ως πηγή." />
-        ) : (
-          <>
-            <div>
-              <p style={mdLabel}>Πηγή Απογραφής</p>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {otherProperties.map(p => (
-                  <div key={p.id} onClick={()=>setSourceId(p.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderRadius:12,border:`1px solid ${sourceId===p.id?'var(--accent)':'var(--border-default)'}`,background:sourceId===p.id?'var(--accent-dim)':'transparent',cursor:'pointer',transition:'all 0.2s'}}>
-                    <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[readStatus(p)],flexShrink:0}}/>
-                    <div>
-                      <p style={{fontFamily: T.font.sans,fontSize:14,fontWeight:500,color:'var(--text-primary)'}}>{p.name}</p>
-                      <p style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)'}}>{PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type}{p.address?` · ${p.address}`:''}</p>
-                    </div>
-                    {sourceId===p.id&&<span style={{marginLeft:'auto',display:'inline-flex',color:'var(--accent)'}}><svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-            {preview.length > 0 && (
-              <div style={{padding:'12px 16px',background:'var(--bg-elevated)',borderRadius:12}}>
-                <p style={{...mdLabel,marginBottom:8}}>Προεπισκόπηση ({preview.length}+ αντικείμενα)</p>
-                {preview.map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',marginBottom:4}}><span>{item.name}</span><span style={{color:'var(--text-tertiary)'}}>{item.category}</span></div>)}
-              </div>
-            )}
-            <div style={{padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
-              <p style={{fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
-            </div>
-            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-              <button onClick={onClose} style={{height:T.h.lg,padding:'0 24px',borderRadius:18,border:'none',background:'transparent',color:'var(--accent)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
-              <button onClick={handleCopy} disabled={!sourceId||copying} style={{height:T.h.lg,padding:'0 24px',borderRadius:18,border:'none',background:!sourceId||copying?'var(--bg-overlay)':'var(--accent)',color:!sourceId||copying?'var(--text-tertiary)':'var(--accent-text)',fontFamily: T.font.sans,fontSize:14,fontWeight:500,cursor:!sourceId||copying?'not-allowed':'pointer'}}>{copying?'Αντιγραφή…':'Αντιγραφή'}</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+// Το CopyInventoryModal έφυγε ολόκληρο. Η αντιγραφή απογραφής από άλλο ακίνητο
+// ζούσε σε ΔΥΟ σημεία: εδώ, ως modal που άνοιγε από κουμπί της καθολικής μπάρας,
+// και μέσα στην ίδια την απογραφή, ως επιλογή που φαινόταν μόνο όταν δεν είχες
+// κανένα αντικείμενο. Μία πράξη, δύο υλοποιήσεις, δύο διαφορετικές στιγμές
+// εμφάνισης. Έμεινε εκείνη που ζει δίπλα στα δεδομένα που αντιγράφει.
 
 // Overview Tab
 // Ο ΚΑΝΟΝΑΣ ΔΕΝ ΚΡΕΜΕΤΑΙ ΠΛΕΟΝ ΑΠΟ ΤΗ ΔΙΑΤΥΠΩΣΗ ΤΗΣ ΕΤΙΚΕΤΑΣ.
@@ -1076,7 +1014,6 @@ export default function Dashboard() {
   /** Η ανάγνωση ακινήτων απέτυχε — ΔΙΑΦΟΡΕΤΙΚΟ από «δεν έχει ακίνητα». */
   const [loadError, setLoadError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showCopyInventory, setShowCopyInventory] = useState(false);
   const [statusDropdown, setStatusDropdown] = useState(false);
   const [editProperty, setEditProperty] = useState<Property | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
@@ -1706,9 +1643,10 @@ export default function Dashboard() {
                   {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
                 </div>
               </div>
-              {navSafe==='inventory'&&properties.length>1&&(
-                <button onClick={()=>setShowCopyInventory(true)} style={{height:T.h.md,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily: T.font.sans,fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
-              )}
+              {/* Η «Αντιγραφή απογραφής» έφυγε από ΕΔΩ. Ήταν κουμπί στην καθολική
+                  μπάρα του ακινήτου — chrome που ανήκει σε ΟΛΗ την εφαρμογή —
+                  και εμφανιζόταν για μία μόνο καρτέλα. Ζει τώρα στο μενού της
+                  ίδιας της απογραφής, μαζί με τις άλλες της ενέργειες. */}
               <button onClick={()=>setNav('referral')} title={isPartner?'Είσαι Συνεργάτης Property OS · Πρόγραμμα Συνεργατών':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'} · Πρόγραμμα ${effProfileType==='professional'?'Συνεργατών':'Πρόσκλησης'}`} aria-label="Η ιδιότητά μου και το πρόγραμμα πρόσκλησης" style={{display:'flex',alignItems:'center',height:T.h.md,padding:0,border:'none',background:'transparent',cursor:'pointer',marginRight:8,borderRadius:'50%',transition:'transform .15s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
                 <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} showLabel={false} size={30} />
               </button>
@@ -1860,6 +1798,22 @@ export default function Dashboard() {
                     <SecHdr label="Επαφές του ακινήτου" sub="Πάροχοι, τεχνικοί, τράπεζες, ασφαλιστές"/>
                     <TabContacts propertyId={selected.id} userId={user.id} profileType={effProfileType} properties={properties}/>
                   </div>
+                  {/* ΤΑ ΠΡΑΓΜΑΤΑ ΤΟΥ ΑΚΙΝΗΤΟΥ, ΜΑΖΙ ΜΕ ΤΑ ΧΑΡΤΙΑ ΚΑΙ ΤΟΥΣ
+                      ΑΝΘΡΩΠΟΥΣ ΤΟΥ. Ο εξοπλισμός ήταν «εργαλείο» στην πλαϊνή
+                      μπάρα, δίπλα στο Αρχείο, κάτω από ένα όνομα ομάδας που δεν
+                      έλεγε τίποτα για κανένα από τα δύο. Εδώ είναι μία γραμμή
+                      που οδηγεί στην πλήρη σελίδα, όχι δεύτερο αντίγραφό της. */}
+                  <div style={{marginTop:28}}>
+                    <SecHdr label="Έπιπλα και εξοπλισμός" sub="Αξία, εγγυήσεις, συντήρηση και παράδοση"/>
+                    <button onClick={()=>setNav('inventory')}
+                      style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 16px',borderRadius:12,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:'inherit'}}>
+                      <div style={{minWidth:0,flex:1}}>
+                        <p style={{fontSize:13.5,fontWeight:500,color:'var(--text-primary)',marginBottom:2}}>Άνοιγμα απογραφής</p>
+                        <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.5}}>Ό,τι υπάρχει μέσα στο ακίνητο, με την αξία του, την εγγύησή του και το πρωτόκολλο παράδοσης.</p>
+                      </div>
+                      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
                 </>
               )}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
@@ -1951,7 +1905,6 @@ export default function Dashboard() {
         onClose={()=>setShowWelcome(false)} />}
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {editProperty&&user&&<AddPropertyWizard userId={user.id} existing={editProperty} onClose={()=>setEditProperty(null)} onSaved={async()=>{setEditProperty(null);await fetchProperties(user.id);}}/>}
-      {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
       {showUpgrade&&<UpgradeModal currentCount={properties.length} planId={effPlan} profileType={effProfileType} onClose={()=>setShowUpgrade(false)} onManage={()=>{setShowUpgrade(false);setNav('settings');}}/>}
     </div>
   );
