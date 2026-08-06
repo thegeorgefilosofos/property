@@ -20,6 +20,7 @@ import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } fr
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
+import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import LeaseModal from './LeaseModal';
 import LeaseDeclaration from './LeaseDeclaration';
@@ -665,7 +666,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   };
   const saveLog=async()=>{
     if(!form.summary.trim())return;setSaving(true);
-    await supabase.from('tenant_comm_log').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,type:form.type,summary:form.summary.trim(),date:form.date,outcome:form.outcome||null});
+    await saved('Η καταγραφή επικοινωνίας δεν αποθηκεύτηκε', supabase.from('tenant_comm_log').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,type:form.type,summary:form.summary.trim(),date:form.date,outcome:form.outcome||null}));
     setSaving(false);setShowAdd(false);setForm({type:'call',summary:'',date:athensToday(),outcome:''});loadLogs();
   };
 
@@ -903,17 +904,20 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     const ids=staleUnpaid.map(p=>p.id); if(!ids.length) return;
     setBusy(true);
     // Ενημερώνει μόνο τις συγκεκριμένες εκκρεμείς δόσεις (όχι δηλωμένες/χειροκίνητες εκτός λίστας).
-    await supabase.from('rent_payments').update({amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}).in('id',ids);
-    setBusy(false); onRefresh(); notifyOk('Οι εκκρεμείς δόσεις ενημερώθηκαν');
+    const okSync=await saved('Οι δόσεις δεν ενημερώθηκαν', supabase.from('rent_payments').update({amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}).in('id',ids));
+    setBusy(false); if(!okSync) return;
+    onRefresh(); notifyOk('Οι εκκρεμείς δόσεις ενημερώθηκαν');
   };
 
   const doMarkPaid=async(p:RentPayment,method:PayMethod,receipt:string,paidDate:string,docId?:string|null)=>{
     const daysLate=p.due_date && paidDate>p.due_date ? Math.ceil((new Date(paidDate).getTime()-new Date(p.due_date).getTime())/86400000) : 0;
-    await supabase.from('rent_payments').update({paid:true,paid_date:paidDate,method,receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null,days_late:daysLate}).eq('id',p.id);
+    // ΕΙΣΠΡΑΞΗ ΕΝΟΙΚΙΟΥ. Αν αυτό αποτύχει σιωπηλά, ο ιδιοκτήτης θεωρεί ότι
+    // πληρώθηκε, η δόση μένει ανοιχτή, και το ξαναβλέπει μήνες μετά στη δήλωση.
+    if(!await saved('Η πληρωμή δεν καταχωρήθηκε', supabase.from('rent_payments').update({paid:true,paid_date:paidDate,method,receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null,days_late:daysLate}).eq('id',p.id))) return;
     await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,true);
     onRefresh(); notifyOk('Καταχωρήθηκε ως πληρωμένο');
   };
-  const doUnpay=async(p:RentPayment)=>{ await supabase.from('rent_payments').update({paid:false,paid_date:null,days_late:null}).eq('id',p.id); await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,false); onRefresh(); };
+  const doUnpay=async(p:RentPayment)=>{ if(!await saved('Η αναίρεση δεν αποθηκεύτηκε', supabase.from('rent_payments').update({paid:false,paid_date:null,days_late:null}).eq('id',p.id))) return; await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,false); onRefresh(); };
 
   const savePay=async()=>{
     // Ήταν ΠΡΑΣΙΝΟ ενώ πρόκειται για σφάλμα επικύρωσης — το παλιό banner είχε έναν
@@ -1476,7 +1480,7 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
         {tenant.deposit_returned&&tenant.deposit_return_date&&<DataRow label="Ημερομηνία Επιστροφής" value={fmtD(tenant.deposit_return_date)}/>}
         {!tenant.deposit_returned&&deposit>0&&(
           <button style={{ ...s.btnSm, marginTop:14, width:'100%', textAlign:'center' as const }}
-            onClick={async()=>{await supabase.from('tenants').update({deposit_returned:true,deposit_return_date:todayISO()}).eq('id',tenant.id);onReturned();}}>
+            onClick={async()=>{await saved('Η επιστροφή εγγύησης δεν καταχωρήθηκε', supabase.from('tenants').update({deposit_returned:true,deposit_return_date:todayISO()}).eq('id',tenant.id));onReturned();}}>
             Σήμανση ως Επεστράφη
           </button>
         )}
@@ -1518,8 +1522,8 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
     if(!f.description.trim()) return;
     setBusy(true);
     const payload={ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:f.occurred_on||null, description:f.description.trim(), cost:f.cost?Math.max(0,parseFloat(f.cost)):null, charged_to_tenant:f.charged_to_tenant, repaired:f.repaired, repaired_on:f.repaired?(f.repaired_on||todayISO()):null, notes:f.notes.trim()||null };
-    if(editId) await supabase.from('tenant_damages').update(payload).eq('id',editId);
-    else await supabase.from('tenant_damages').insert(payload);
+    if(editId){ if(!await saved('Η φθορά δεν ενημερώθηκε', supabase.from('tenant_damages').update(payload).eq('id',editId))) return; }
+    else { if(!await saved('Η φθορά δεν καταχωρήθηκε', supabase.from('tenant_damages').insert(payload))) return; }
     setBusy(false); setAddOpen(false); setF(blankF()); setEditId(null); onRefresh();
   };
   const del=async(d:TenantDamage)=>{ if(!(await confirmDialog('Διαγραφή φθοράς;',{tone:'negative'}))) return; await supabase.from('tenant_damages').delete().eq('id',d.id); onRefresh(); };
@@ -1683,7 +1687,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
   const [doneCost,setDoneCost]=useState('');
   const setStatus=async(m:MaintenanceReq,status:string)=>{
     setBusy(true);
-    await supabase.from('maintenance_requests').update({ status, resolved_at: status==='done'?new Date().toISOString():null }).eq('id',m.id);
+    await saved('Η κατάσταση του αιτήματος δεν αποθηκεύτηκε', supabase.from('maintenance_requests').update({ status, resolved_at: status==='done'?new Date().toISOString():null }).eq('id',m.id));
     setBusy(false); onRefresh(); notifyOk('Το αίτημα ενημερώθηκε');
   };
   // Ολοκλήρωση εργασίας: σημειώνεται «done» και, αν δοθεί κόστος, καταχωρείται
@@ -1691,7 +1695,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
   const completeWithCost=async(m:MaintenanceReq)=>{
     const cost=parseFloat(String(doneCost).replace(',','.'));
     setBusy(true);
-    await supabase.from('maintenance_requests').update({ status:'done', resolved_at:new Date().toISOString() }).eq('id',m.id);
+    await saved('Το αίτημα δεν κλείστηκε', supabase.from('maintenance_requests').update({ status:'done', resolved_at:new Date().toISOString() }).eq('id',m.id));
     if(Number.isFinite(cost)&&cost>0){
       await supabase.from('expenses').insert({
         property_id:propertyId, user_id:userId, amount:cost, date:todayISO(),
@@ -1703,7 +1707,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
   };
   const toDamage=async(m:MaintenanceReq)=>{
     setBusy(true);
-    await supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(': ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' });
+    await saved('Η φθορά δεν καταγράφηκε', supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(': ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' }));
     setBusy(false); onRefresh(); notifyOk('Καταγράφηκε στις φθορές');
   };
   const del=async(m:MaintenanceReq)=>{ if(!(await confirmDialog('Διαγραφή αιτήματος;',{tone:'negative'}))) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
@@ -1711,7 +1715,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
   const openAssign=(m:MaintenanceReq)=>{ setAssignFor(m.id); setAf({name:m.assignee_name||'',contact:m.assignee_contact||''}); };
   const saveAssign=async(m:MaintenanceReq)=>{
     setBusy(true);
-    await supabase.from('maintenance_requests').update({ assignee_name:af.name.trim()||null, assignee_contact:af.contact.trim()||null, status:m.status==='new'?'in_progress':m.status }).eq('id',m.id);
+    await saved('Η ανάθεση δεν αποθηκεύτηκε', supabase.from('maintenance_requests').update({ assignee_name:af.name.trim()||null, assignee_contact:af.contact.trim()||null, status:m.status==='new'?'in_progress':m.status }).eq('id',m.id));
     setBusy(false); setAssignFor(null); onRefresh(); notifyOk('Η ανάθεση αποθηκεύτηκε');
   };
   // Μήνυμα προς συνεργείο (τίτλος, περιγραφή, ακίνητο, σύνδεσμοι φωτογραφιών).
@@ -2221,14 +2225,17 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
   const markMovedOut=async(t:Tenant)=>{
     if(!(await confirmDialog(`Σήμανση αποχώρησης για «${t.full_name}»; Θα μεταφερθεί στους προηγούμενους ενοικιαστές.`))) return;
-    await supabase.from('tenants').update({status:'past',move_out_date:todayISO()}).eq('id',t.id);
+    if(!await saved('Η αποχώρηση δεν καταχωρήθηκε', supabase.from('tenants').update({status:'past',move_out_date:todayISO()}).eq('id',t.id))) return;
     notify('Ο ενοικιαστής μεταφέρθηκε στο ιστορικό'); fetch_();
   };
   const delTenant=async(t:Tenant)=>{
     if(!(await confirmDialog(`Οριστική διαγραφή «${t.full_name}»; Θα διαγραφούν και οι πληρωμές/φθορές του.`,{tone:'negative',confirmLabel:'Οριστική διαγραφή'}))) return;
-    await supabase.from('rent_payments').delete().eq('tenant_id',t.id);
-    await supabase.from('tenant_damages').delete().eq('tenant_id',t.id);
-    await supabase.from('tenants').delete().eq('id',t.id);
+    // Η ΣΕΙΡΑ ΕΧΕΙ ΣΗΜΑΣΙΑ: πρώτα τα εξαρτημένα, τελευταίος ο ενοικιαστής. Αν
+    // κάποιο βήμα αποτύχει, σταματάμε — αλλιώς μένουν ορφανές πληρωμές που δεν
+    // φαίνονται πουθενά και εξακολουθούν να μετράνε σε αθροίσματα.
+    if(!await saved('Οι πληρωμές του ενοικιαστή δεν διαγράφηκαν', supabase.from('rent_payments').delete().eq('tenant_id',t.id))) return;
+    if(!await saved('Οι φθορές του ενοικιαστή δεν διαγράφηκαν', supabase.from('tenant_damages').delete().eq('tenant_id',t.id))) return;
+    if(!await saved('Ο ενοικιαστής δεν διαγράφηκε', supabase.from('tenants').delete().eq('id',t.id))) return;
     if(openId===t.id) setOpenId(null);
     notify('Διαγράφηκε'); fetch_();
   };
