@@ -6,6 +6,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
 import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE } from '@/components/Theme'
 import { notify, notifyOk } from '@/components/Toast'
+import { saved, savedData } from '@/components/dbWrite'
 import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
@@ -1977,20 +1978,28 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       completed: done, completed_at: done ? new Date().toISOString() : null,
     }
     if (editItem) {
-      await supabase.from('checklist_items').update(payload).eq('id', editItem.id)
+      // Η ΚΥΡΙΑ ΑΠΟΘΗΚΕΥΣΗ ΣΤΑΜΑΤΑ ΤΗ ΡΟΗ ΟΤΑΝ ΑΠΟΤΥΧΕΙ. Πριν, μια ενημέρωση που
+      // απορριπτόταν από RLS δεν έλεγε τίποτα: η φόρμα έκλεινε και το μήνυμα
+      // «Η εκκρεμότητα ενημερώθηκε» εμφανιζόταν κανονικά.
+      if (!await saved('Η εκκρεμότητα δεν ενημερώθηκε',
+          supabase.from('checklist_items').update(payload).eq('id', editItem.id))) return
       // Reconcile συνδεδεμένο event: ενημέρωση / δημιουργία / διαγραφή αν αφαιρέθηκε η προθεσμία.
       // Οι φορολογικές υποχρεώσεις ΔΕΝ αποκτούν δικό τους event από εδώ: το γράφει
       // η Επισκόπηση/Ημερολόγιο με κλειδί `tax:<id>` και θα ήταν διπλότυπο.
       if (editItem.calendar_event_id) {
-        if (payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), recurring: payload.recurring !== 'none' }).eq('id', editItem.calendar_event_id)
-        else { await supabase.from('calendar_events').delete().eq('id', editItem.calendar_event_id); await supabase.from('checklist_items').update({ calendar_event_id: null }).eq('id', editItem.id) }
-      } else if (payload.due_date && !isGeneratedRef(editItem._ref)) { const c = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost }); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
+        if (payload.due_date) await saved('Η υπενθύμιση στο ημερολόγιο δεν ενημερώθηκε', supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), recurring: payload.recurring !== 'none' }).eq('id', editItem.calendar_event_id))
+        else if (await saved('Η υπενθύμιση δεν αφαιρέθηκε από το ημερολόγιο', supabase.from('calendar_events').delete().eq('id', editItem.calendar_event_id))) {
+          await saved('Ο σύνδεσμος με το ημερολόγιο δεν καθαρίστηκε', supabase.from('checklist_items').update({ calendar_event_id: null }).eq('id', editItem.id))
+        }
+      } else if (payload.due_date && !isGeneratedRef(editItem._ref)) { const c = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost }); if (c) await saved('Ο σύνδεσμος με το ημερολόγιο δεν αποθηκεύτηκε', supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id)) }
     } else {
-      const { data: ins } = await supabase.from('checklist_items').insert(payload).select('id').single()
-      const newId = (ins as { id?: string } | null)?.id
+      const ins = await savedData<{ id?: string }>('Η εκκρεμότητα δεν προστέθηκε',
+        supabase.from('checklist_items').insert(payload).select('id').single())
+      if (!ins) return
+      const newId = ins.id
       if (newId && payload.due_date) {
         const calId = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost })
-        if (calId) await supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId)
+        if (calId) await saved('Ο σύνδεσμος με το ημερολόγιο δεν αποθηκεύτηκε', supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId))
       }
     }
     setShowAddModal(false); setEditItem(null); fetchAll()
@@ -2003,31 +2012,34 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     togglingRef.current.add(item.id)
     try {
       const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
-      await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
+      // Το τσεκάρισμα είναι η πιο συχνή ενέργεια της οθόνης. Αν αποτύχει σιωπηλά,
+      // ο χρήστης βλέπει το κουτάκι γεμάτο, φεύγει, γυρίζει και το βρίσκει άδειο.
+      if (!await saved('Η κατάσταση δεν αποθηκεύτηκε',
+          supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id))) return
       if (newStatus === 'done') {
         // ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΔΕΝ ΞΕ-ΠΛΗΡΩΝΕΤΑΙ ΚΑΙ ΔΕΝ ΞΑΝΑ-ΠΛΗΡΩΝΕΤΑΙ. Εδώ η
         // ολοκλήρωση έκανε `expenses.paid = true` και η αναίρεση `paid = false`.
         // Έβγαζε νόημα όσο η δαπάνη ήταν μια εκτίμηση που «θα γίνει»· τώρα η
         // δαπάνη υπάρχει μόνο όταν υπάρχει τιμολόγιο, και ένα τιμολόγιο που
         // πληρώθηκε δεν γίνεται απλήρωτο επειδή ξανάνοιξε μια εκκρεμότητα.
-        if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
+        if (item.calendar_event_id) await saved('Το ημερολόγιο δεν ενημερώθηκε', supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id))
         if (item.recurring !== 'none' && item.due_date) {
           const newDue = nextDueDate(item.due_date, item.recurring)
           // Η επόμενη εμφάνιση ξεκινά ΧΩΡΙΣ παραστατικό και χωρίς πραγματικό
           // κόστος: το τιμολόγιο του περασμένου έτους δεν ισχύει για το επόμενο.
-          const { data: rec } = await supabase.from('checklist_items').insert({
+          const rec = await savedData<{ id?: string }>('Η επόμενη επανάληψη δεν δημιουργήθηκε', supabase.from('checklist_items').insert({
             property_id: item.property_id, user_id: item.user_id,
             description: item.description, category: item.category, priority: item.priority,
             recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
             note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }),
             estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-          }).select('id').single()
-          const recId = (rec as { id?: string } | null)?.id
-          if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId) }
-          notifyOk(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
+          }).select('id').single())
+          const recId = rec?.id
+          if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await saved('Ο σύνδεσμος με το ημερολόγιο δεν αποθηκεύτηκε', supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId)) }
+          if (recId) notifyOk(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
         }
       } else if (item.calendar_event_id) {
-        await supabase.from('calendar_events').update({ status: 'pending' }).eq('id', item.calendar_event_id)
+        await saved('Το ημερολόγιο δεν ενημερώθηκε', supabase.from('calendar_events').update({ status: 'pending' }).eq('id', item.calendar_event_id))
       }
       await fetchAll()
     } finally { togglingRef.current.delete(item.id) }
@@ -2037,18 +2049,20 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Το αντίγραφο ΔΕΝ κληρονομεί ούτε το παραστατικό ούτε την ταυτότητα
     // υποχρέωσης: ένα τιμολόγιο ανήκει σε μία δαπάνη, και δύο γραμμές με το ίδιο
     // `ref` θα σήμαιναν διπλή υποχρέωση.
-    await supabase.from('checklist_items').insert({ property_id: item.property_id, user_id: item.user_id, description: item.description + ' (αντίγραφο)', category: item.category, priority: item.priority, recurring: item.recurring, due_date: item.due_date, status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: item._subtasks || [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }), estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: (item.sort_order || 0) + 1 })
+    if (!await saved('Η εργασία δεν αντιγράφηκε', supabase.from('checklist_items').insert({ property_id: item.property_id, user_id: item.user_id, description: item.description + ' (αντίγραφο)', category: item.category, priority: item.priority, recurring: item.recurring, due_date: item.due_date, status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: item._subtasks || [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }), estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: (item.sort_order || 0) + 1 }))) return
     fetchAll(); notifyOk('Η εργασία αντιγράφηκε')
   }
 
   const deleteItem = async (id: string) => {
     const it = items.find(i => i.id === id)
-    if (it?.calendar_event_id) await supabase.from('calendar_events').delete().eq('id', it.calendar_event_id)
+    if (it?.calendar_event_id) await saved('Η υπενθύμιση δεν αφαιρέθηκε από το ημερολόγιο', supabase.from('calendar_events').delete().eq('id', it.calendar_event_id))
     // Η ΔΑΠΑΝΗ ΜΕ ΠΑΡΑΣΤΑΤΙΚΟ ΕΠΙΖΕΙ ΤΗΣ ΕΚΚΡΕΜΟΤΗΤΑΣ. Εδώ διαγραφόταν η
     // συνδεδεμένη γραμμή των Δαπανών (όσο ήταν απλήρωτη εκτίμηση, σωστό). Τώρα
     // κάθε συνδεδεμένη δαπάνη έχει τιμολόγιο πίσω της: το χρήμα ξοδεύτηκε
     // πραγματικά και δεν παύει να ξοδεύτηκε όταν σβήνεται μια εργασία.
-    await supabase.from('checklist_items').delete().eq('id', id)
+    // Η διαγραφή που «πέτυχε» χωρίς να πετύχει είναι η χειρότερη: ο χρήστης
+    // βλέπει «διαγράφηκε», η γραμμή επιστρέφει στην επόμενη ανανέωση.
+    if (!await saved('Η εκκρεμότητα δεν διαγράφηκε', supabase.from('checklist_items').delete().eq('id', id))) return
     setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); notify('Η εκκρεμότητα διαγράφηκε')
   }
 

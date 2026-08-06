@@ -37,6 +37,7 @@ import { annuityMonthly } from '@/lib/loans/recommend'
 import { syncTenantSchedule } from './TabTenantHelpers'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
+import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
 
 type EventCategory = 'tax' | 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
@@ -1214,7 +1215,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
       const evs=parseICS(text)
       if(!evs.length){ notify('Δεν βρέθηκαν γεγονότα στο αρχείο.',{tone:'warning'}); return }
       const rows=evs.map(ev=>({property_id:propertyId,user_id:userId,title:ev.title,category:'reminder' as EventCategory,event_date:ev.date,event_time:ev.time,duration_minutes:ev.durationMinutes,notes:ev.notes,attachment_url:null,priority:'medium' as EventPriority,status:'pending' as EventStatus,recurring:false,source:'import'}))
-      await supabase.from('calendar_events').insert(rows)
+      await saved('Τα γεγονότα δεν εισήχθησαν', supabase.from('calendar_events').insert(rows))
       await load()
       notifyOk(`Εισήχθησαν ${rows.length} γεγονότα.`)
     }catch{ notifyError('Το αρχείο δεν διαβάστηκε.') }
@@ -1359,7 +1360,11 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     const amt=parseFloat(form.amount)
     if(!form.add_expense||!(amt>0))return
     const catMap:Record<string,string>={maintenance:'Συντήρηση & Επισκευές',bills:'Λογαριασμοί',contract:'Ασφάλιση & Νομικά',financial:'Λοιπά έξοδα',tenant:'Λοιπά έξοδα',reminder:'Λοιπά έξοδα'}
-    try{ await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,amount:amt,description:form.title,date:form.event_date,category:catMap[form.category]||'Λοιπά έξοδα',expense_group:form.category==='maintenance'?'maintenance':'general',paid:form.status==='paid'}) }catch{}
+    // ΤΟ `try{}catch{}` ΕΔΩ ΗΤΑΝ ΔΙΠΛΑ ΑΟΡΑΤΟ: ο Supabase δεν πετά, οπότε δεν
+    // έπιανε τίποτα· και το κενό `catch` θα κατάπινε ό,τι έπιανε. Ο χρήστης
+    // τσέκαρε ρητά «καταχώρησέ το και στις Δαπάνες» και δεν μάθαινε ποτέ αν έγινε.
+    await saved('Η δαπάνη δεν καταχωρήθηκε στα έξοδα',
+      supabase.from('expenses').insert({property_id:propertyId,user_id:userId,amount:amt,description:form.title,date:form.event_date,category:catMap[form.category]||'Λοιπά έξοδα',expense_group:form.category==='maintenance'?'maintenance':'general',paid:form.status==='paid'}))
   }
   // Μετακίνηση με σύρσιμο (drag): αλλάζει ημερομηνία (και ώρα σε προβολή ωρών). Οι
   // εικονικές εμφανίσεις σειράς ΔΕΝ σύρονται (θα άλλαζαν όλη τη σειρά αμφίσημα).
@@ -1368,7 +1373,10 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     const patch:{event_date:string;event_time?:string|null}={event_date:newDate}
     if(newTime!==undefined)patch.event_time=newTime
     setEvents(prev=>prev.map(e=>e.id===id?{...e,...patch}:e))
-    await supabase.from('calendar_events').update(patch).eq('id',id)
+    // Αισιόδοξη μετακίνηση: η κάρτα πηγαίνει στη νέα ημέρα αμέσως. Αν η αποθήκευση
+    // αποτύχει, ΠΡΕΠΕΙ να γυρίσει πίσω — αλλιώς ο χρήστης βλέπει το γεγονός στη
+    // νέα θέση, κλείνει, και το βρίσκει στην παλιά χωρίς να έχει καταλάβει γιατί.
+    if(!await saved('Η μετακίνηση δεν αποθηκεύτηκε', supabase.from('calendar_events').update(patch).eq('id',id))) await load()
   }
   async function saveEvent(){
     if(!form.title||!form.event_date)return
@@ -1393,16 +1401,20 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     const base=editingEvent; const occ=editOccDate||base.event_date; const payload=buildPayload()
     try{
       if(scope==='all'){
-        await supabase.from('calendar_events').update(payload).eq('id',base.id)
+        await saved('Η σειρά δεν ενημερώθηκε', supabase.from('calendar_events').update(payload).eq('id',base.id))
       }else if(scope==='this'){
         // Απόσπαση μόνο αυτής: νέο μεμονωμένο με τις αλλαγές + εξαίρεση της ημέρας από τη σειρά.
-        await supabase.from('calendar_events').insert({...payload,event_date:occ,recurring:false,recurring_interval:null,recurrence_until:null,recurrence_count:null})
-        const ex=Array.from(new Set([...(base.recurrence_exdates||[]),occ]))
-        await supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',base.id)
+        // Η ΣΕΙΡΑ ΤΩΝ ΔΥΟ ΕΧΕΙ ΣΗΜΑΣΙΑ: αν μπει η εξαίρεση χωρίς να έχει
+        // δημιουργηθεί το μεμονωμένο, η εμφάνιση εξαφανίζεται εντελώς.
+        if(await saved('Η εξαίρεση της ημέρας δεν αποθηκεύτηκε', supabase.from('calendar_events').insert({...payload,event_date:occ,recurring:false,recurring_interval:null,recurrence_until:null,recurrence_count:null}))){
+          const ex=Array.from(new Set([...(base.recurrence_exdates||[]),occ]))
+          await saved('Η ημέρα δεν αφαιρέθηκε από τη σειρά', supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',base.id))
+        }
       }else{
         // Αυτό και τα επόμενα: κόψε τη σειρά την προηγούμενη μέρα + νέα σειρά από την occ.
-        await supabase.from('calendar_events').update({recurrence_until:addDaysStr(occ,-1),recurrence_count:null}).eq('id',base.id)
-        await supabase.from('calendar_events').insert({...payload,event_date:occ})
+        if(await saved('Η σειρά δεν κόπηκε στη σωστή ημερομηνία', supabase.from('calendar_events').update({recurrence_until:addDaysStr(occ,-1),recurrence_count:null}).eq('id',base.id))){
+          await saved('Η νέα σειρά δεν δημιουργήθηκε', supabase.from('calendar_events').insert({...payload,event_date:occ}))
+        }
       }
     }catch{}
     await load(); setScopePrompt(false); setShowModal(false); setEditOccDate(null); setSaving(false)
@@ -1412,13 +1424,13 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     // Ολοκλήρωση εικονικής εμφάνισης → απόσπασέ την ως «πληρωμένη» + εξαίρεσέ την από τη σειρά.
     if(e._virtual&&e._seriesId){
       const base=events.find(x=>x.id===e._seriesId); if(!base)return
-      await supabase.from('calendar_events').insert({property_id:base.property_id,user_id:base.user_id,title:base.title,category:base.category,event_date:e.event_date,event_time:base.event_time||null,duration_minutes:base.duration_minutes||null,amount:base.amount??null,priority:base.priority,status:'paid',recurring:false,recurring_interval:null,notes:base.notes||null,attachment_url:base.attachment_url||null,source:base.source})
+      if(!await saved('Η ολοκλήρωση δεν αποθηκεύτηκε', supabase.from('calendar_events').insert({property_id:base.property_id,user_id:base.user_id,title:base.title,category:base.category,event_date:e.event_date,event_time:base.event_time||null,duration_minutes:base.duration_minutes||null,amount:base.amount??null,priority:base.priority,status:'paid',recurring:false,recurring_interval:null,notes:base.notes||null,attachment_url:base.attachment_url||null,source:base.source}))) return
       const ex=Array.from(new Set([...(base.recurrence_exdates||[]),e.event_date]))
-      await supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',base.id)
+      await saved('Η ημέρα δεν αφαιρέθηκε από τη σειρά', supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',base.id))
       await load(); return
     }
     const ns:EventStatus=e.status==='paid'?'pending':'paid'
-    await supabase.from('calendar_events').update({status:ns}).eq('id',e.id)
+    if(!await saved('Η κατάσταση δεν αποθηκεύτηκε', supabase.from('calendar_events').update({status:ns}).eq('id',e.id))) return
     setEvents(prev=>prev.map(ev=>ev.id===e.id?{...ev,status:ns}:ev))
   }
   // Έγινε async επειδή ο διάλογος επιβεβαίωσης δεν παγώνει πια τη σελίδα όπως το
@@ -1431,22 +1443,24 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     const ev=events.find(e=>e.id===id)
     if(ev?.recurring){ setDeleteScope({seriesId:id,occ:ev.event_date}); return }
     if(!(await confirmDialog('Διαγραφή γεγονότος;',{tone:'negative'})))return
-    supabase.from('calendar_events').delete().eq('id',id).then(()=>{})
+    // Ήταν `.then(()=>{})`: η διαγραφή ξεκινούσε και κανείς δεν περίμενε ούτε
+    // κοιτούσε το αποτέλεσμα, ενώ η γραμμή έφευγε ήδη από την οθόνη.
+    if(!await saved('Το γεγονός δεν διαγράφηκε', supabase.from('calendar_events').delete().eq('id',id))) return
     setEvents(prev=>prev.filter(e=>e.id!==id))
   }
   async function applyDeleteScope(scope:'this'|'following'|'all'){
     if(!deleteScope)return; const {seriesId,occ}=deleteScope
     const base=events.find(e=>e.id===seriesId); if(!base){setDeleteScope(null);return}
-    if(scope==='all'){await supabase.from('calendar_events').delete().eq('id',seriesId)}
-    else if(scope==='this'){const ex=Array.from(new Set([...(base.recurrence_exdates||[]),occ]));await supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',seriesId)}
-    else{await supabase.from('calendar_events').update({recurrence_until:addDaysStr(occ,-1),recurrence_count:null}).eq('id',seriesId)}
+    if(scope==='all'){await saved('Η σειρά δεν διαγράφηκε', supabase.from('calendar_events').delete().eq('id',seriesId))}
+    else if(scope==='this'){const ex=Array.from(new Set([...(base.recurrence_exdates||[]),occ]));await saved('Η ημέρα δεν αφαιρέθηκε από τη σειρά', supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',seriesId))}
+    else{await saved('Η σειρά δεν κόπηκε', supabase.from('calendar_events').update({recurrence_until:addDaysStr(occ,-1),recurrence_count:null}).eq('id',seriesId))}
     await load(); setDeleteScope(null)
   }
 
   function toggleSelect(id:string){setSelectedIds(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
   async function bulkMarkPaid(){
     if(!selectedIds.size)return
-    await Promise.all([...selectedIds].map(id=>supabase.from('calendar_events').update({status:'paid'}).eq('id',id)))
+    await Promise.all([...selectedIds].map(id=>saved('Ένα γεγονός δεν σημειώθηκε ως πληρωμένο', supabase.from('calendar_events').update({status:'paid'}).eq('id',id))))
     await load(); setSelectedIds(new Set()); setBulkMode(false)
   }
   async function bulkDelete(){
@@ -1455,7 +1469,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     // τα γεγονότα που σβήνουν προέρχονται πλέον από την ίδια, μία λίστα.
     const ids=[...selectedIds]
     if(!ids.length||!(await confirmDialog(`Διαγραφή ${ids.length} γεγονότων;`,{tone:'negative'})))return
-    await Promise.all(ids.map(id=>supabase.from('calendar_events').delete().eq('id',id)))
+    await Promise.all(ids.map(id=>saved('Ένα γεγονός δεν διαγράφηκε', supabase.from('calendar_events').delete().eq('id',id))))
     await load(); setSelectedIds(new Set()); setBulkMode(false)
   }
 

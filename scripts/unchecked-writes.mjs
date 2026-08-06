@@ -31,7 +31,7 @@ import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 // Το όριο κατεβαίνει καθώς διορθώνονται σημεία. ΠΟΤΕ δεν ανεβαίνει.
-const LIMIT = 163;
+const LIMIT = 132;
 
 // Το γράψιμο αναγνωρίζεται ΜΟΝΟ ως κρίκος αλυσίδας που ξεκινά από `.from('πίνακας')`.
 // Χωρίς αυτό, ένα `new Set(...).delete(x)` μετριόταν ως εγγραφή στη βάση.
@@ -71,9 +71,21 @@ for (const f of files()) {
 
     total++;
     const ln = lineAt(m.index);
-    const before = lines.slice(Math.max(0, ln - 1 - LOOKBACK), ln).join('\n');
-    const scope = before + '\n' + chain;
-    const checked = /must\s*\(/.test(scope) || /\berror\b/.test(scope) || /\bthrow\b/.test(scope);
+    // Η ΑΡΧΗ ΤΗΣ ΙΔΙΑΣ ΓΡΑΜΜΗΣ ΜΕΤΡΑΕΙ. Η αλυσίδα ξεκινά στο `.from(`, οπότε ό,τι
+    // προηγείται ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ έμενε έξω από τον έλεγχο. Δηλαδή το
+    // `if (!await saved('…', supabase.from('x').update(…)))` δεν αναγνωριζόταν
+    // ως ελεγμένο: ο έλεγχος βρισκόταν δεκαπέντε χαρακτήρες αριστερά και ο
+    // φύλακας κοιτούσε μόνο τις ΠΡΟΗΓΟΥΜΕΝΕΣ γραμμές. Μετρούσε ως σφάλμα ακριβώς
+    // τη διόρθωσή του.
+    const before = lines.slice(Math.max(0, ln - 1 - LOOKBACK), ln - 1).join('\n');
+    const sameLine = lines[ln - 1] || '';
+    const scope = before + '\n' + sameLine + '\n' + chain;
+    // Τρεις αναγνωρισμένοι τρόποι να ελεγχθεί ένα γράψιμο:
+    //   · `must(…)`        πετά, ώστε να γίνει αληθινό ένα υπάρχον try/catch
+    //   · `saved(…)`       ρωτά, το λέει στον χρήστη, επιστρέφει ψευδές
+    //   · `error` / `throw` χειροκίνητος έλεγχος επί τόπου
+    const checked = /must\s*\(/.test(scope) || /\bsaved(Data)?\s*\(/.test(scope)
+                 || /\berror\b/.test(scope) || /\bthrow\b/.test(scope);
     if (!checked) hits.push(`${f}:${ln}  ${(lines[ln - 1] || '').trim().slice(0, 100)}`);
   }
 }
