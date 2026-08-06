@@ -7,6 +7,7 @@ import { fp, fe } from '@/lib/core/format'
 import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
 import { T, ExportButton, EmptyState } from '@/components/Theme'
+import { loanEventTitle, UNSET_BANK } from './TabCalendar'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
 import { Gift } from 'lucide-react'
@@ -317,8 +318,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     // Ξεχωριστή, ιδιότυπη πηγή ανά τράπεζα → idempotent (δεν διπλογράφεται στο
     // ξαναπάτημα, ούτε μπερδεύεται με χειροκίνητα γεγονότα). Ρητές δόσεις, όχι
     // recurring, ώστε να μη διπλασιάζονται από την ανάπτυξη επαναλαμβανόμενων.
-    const src='loan_schedule:'+(bankName||'γενικό').toLowerCase().replace(/\s+/g,'_').slice(0,40)
-    const title=`Δόση δανείου${bankName?`, ${bankName}`:''}`
+    // Ίδιο κλειδί πηγής και ίδιος τίτλος με τη γεννήτρια του Ημερολογίου: αν
+    // αποκλίνουν, οι δύο δρόμοι φτιάχνουν ΔΥΟ σειρές για το ίδιο δάνειο.
+    const src='loan_schedule:'+((bankName.trim()===UNSET_BANK?'':bankName.trim())||'γενικό').toLowerCase().replace(/\s+/g,'_').slice(0,40)
+    const title=loanEventTitle(bankName)
     // Οι σημειώσεις κρατούν ποιο δάνειο και τι ποσό, για συμψηφισμό/αναγνώριση.
     const note=`Δόση ${fmtEur(monthly)} τον μήνα${loanAmount?` · Δάνειο ${fmtEur(loanAmount)}`:''}${bankName?` · ${bankName}`:''}`
     for(let i=0;i<n;i++){

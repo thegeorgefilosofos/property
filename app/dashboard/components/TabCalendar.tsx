@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
-import { T, Spinner, Skeleton, EmptyState, Chip, feAuto } from '@/components/Theme'
+import { T, Spinner, Skeleton, EmptyState, Chip, feAuto, fe } from '@/components/Theme'
 import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
@@ -14,7 +14,7 @@ import {
   ChevronDown, Edit2, Trash2, RotateCcw,
   Euro, Wrench, RefreshCw, Landmark,
   Printer, CheckSquare, CalendarDays, ArrowRight,
-  TrendingUp, Clock, Info, MoreHorizontal, Share2, CalendarPlus,
+  TrendingUp, Clock, Info, MoreHorizontal, Share2, CalendarPlus, Repeat,
 } from 'lucide-react'
 import { DatePicker } from './UIComponents'
 import { allCalendarLinks, buildICS } from '@/lib/calendar/externalLinks'
@@ -23,6 +23,7 @@ import { expandRecurring } from '@/lib/calendar/recurrence'
 import { findConflicts } from '@/lib/calendar/availability'
 import { parseICS } from '@/lib/calendar/icsImport'
 import { parseQuickAdd } from '@/lib/calendar/quickAdd'
+import { groupSeries, rowCount, type SeriesRow } from '@/lib/calendar/series'
 import { dueReminders, notifyBody } from '@/lib/calendar/notify'
 import { buildBookingEvents } from '@/lib/calendar/bookingEvents'
 import { toStaySpan, staysOnDay, segMeta, channelColor, CHANNEL_COLORS, type StaySpan } from '@/lib/calendar/stayBars'
@@ -125,6 +126,26 @@ const RECURRING_OPTIONS = [
 
 const MONTH_NAMES_GR  = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
 const MONTH_SHORT_GR  = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ']
+// «Γεγονότα Αύγουστος» δεν είναι ελληνικά. Ο μήνας μετά από ουσιαστικό μπαίνει
+// σε γενική, και η γενική δεν βγαίνει με κανόνα από την ονομαστική.
+const MONTH_GENITIVE_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου']
+
+// ═══ ΤΟ ΓΕΜΙΣΜΑ ΠΟΥ ΕΓΙΝΕ ΔΕΔΟΜΕΝΟ ═══════════════════════════════════════
+// Ο υπολογιστής δανείου αποθήκευε `bank: bankName || 'Μη καθορισμένη'`. Η φράση
+// «Μη καθορισμένη» δεν είναι όνομα τράπεζας: είναι το κείμενο που θα έδειχνε η
+// οθόνη ΑΝ έλειπε το όνομα. Γραμμένη στη στήλη, έγινε δεδομένο — και βγήκε
+// στο ημερολόγιο ως «Δόση δανείου, Μη καθορισμένη», σε κάθε μία από τις εξήντα
+// δόσεις. Η απουσία ανήκει στην οθόνη, όχι στη βάση.
+export const UNSET_BANK = 'Μη καθορισμένη'
+const cleanBank = (b: string | null | undefined): string => {
+  const v = (b || '').trim()
+  return !v || v === UNSET_BANK ? '' : v
+}
+/** «Δόση δανείου, Πειραιώς» — ή σκέτο «Δόση δανείου» όταν η τράπεζα δεν έχει δηλωθεί. */
+export const loanEventTitle = (bank: string | null | undefined): string => {
+  const b = cleanBank(bank)
+  return b ? `Δόση δανείου, ${b}` : 'Δόση δανείου'
+}
 const DAY_NAMES_GR    = ['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ']
 
 const EMPTY_FORM: FormState = {
@@ -390,7 +411,14 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
   // Οι κρατήσεις φαίνονται ως ενιαία μπάρα διαμονής — κρύβουμε τα booking: chips
   // ώστε να μη διπλογράφονται.
   const eventsForDay=(day:number)=>{ const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; return events.filter(e=>e.event_date===ds&&!(e.source||'').startsWith('booking:')) }
-  const upcoming7=upcomingAll.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0).sort((a,b)=>a.event_date.localeCompare(b.event_date)).slice(0,7)
+  // Έπαιρνε τα ΕΠΤΑ ΠΡΩΤΑ εκκρεμή. Με δάνειο εικοσαετίας, και τα επτά ήταν δόσεις
+  // του ίδιου δανείου: η ράγα «Επόμενα» έγραφε επτά φορές «Δόση δανείου 751,00 €»
+  // και δεν έδειχνε ΠΟΤΕ τίποτε άλλο — ούτε λήξη μίσθωσης, ούτε φορολογική
+  // προθεσμία. Τώρα μαζεύεται πρώτα η σειρά, και μετά κρατιούνται επτά ΘΕΣΕΙΣ.
+  const upcomingRows=groupSeries(
+    upcomingAll.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0)
+               .sort((a,b)=>a.event_date.localeCompare(b.event_date))
+  ).slice(0,7)
   const monthPendingAmt=events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
   const monthPaid=events.filter(e=>e.status==='paid')
 
@@ -399,23 +427,19 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
-            <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length} γεγονότα</span>
-            {monthPendingAmt>0&&<span title={`Άθροισμα των εκκρεμών ποσών ${MONTH_NAMES_GR[month]} ${year} — μόνο αυτού του μήνα`} style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{monthPendingAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'})} εκκρεμή {MONTH_NAMES_GR[month]}</span>}
-            <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{monthPaid.length} πληρωμένα</span>
-            <div style={{ marginLeft:'auto', display:'flex', gap:12, flexWrap:'wrap' }}>
-              {Object.entries(CATEGORIES).map(([k,c])=>(
-                <div key={k} style={{ display:'flex', alignItems:'center', gap:4 }}>
-                  <span style={{ width:8, height:8, borderRadius:3, background:c.color, display:'inline-block' }}/>
-                  <span style={{ fontSize:11, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{c.label}</span>
-                </div>
-              ))}
-              {Array.from(new Set(stays.map(s=>(s.channel||'').toLowerCase()).filter(c=>CHANNEL_COLORS[c]))).map(ch=>(
-                <div key={ch} style={{ display:'flex', alignItems:'center', gap:4 }}>
-                  <span style={{ width:8, height:8, borderRadius:3, background:CHANNEL_COLORS[ch].solid, display:'inline-block' }}/>
-                  <span style={{ fontSize:11, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{CHANNEL_COLORS[ch].label}</span>
-                </div>
-              ))}
-            </div>
+            {/* ═══ ΕΠΤΑ ΚΟΥΚΚΙΔΕΣ ΣΤΟ ΙΔΙΟ ΓΚΡΙ ══════════════════════════════
+                Ο υπόμνημα κατηγοριών έπιανε όλη τη δεξιά πλευρά της γραμμής:
+                επτά τετραγωνάκια δίπλα σε επτά λέξεις. ΚΑΙ ΤΑ ΕΠΤΑ έχουν
+                `color: var(--text-secondary)` — το ίδιο ακριβώς γκρι. Ένα
+                υπόμνημα του οποίου όλα τα δείγματα είναι ίδια δεν ξεχωρίζει
+                τίποτα: είναι διακόσμηση με το σχήμα της πληροφορίας, και
+                μάλιστα η μεγαλύτερη σε έκταση στην οθόνη. Η κατηγορία λέγεται
+                με λέξεις πάνω σε κάθε γεγονός, εκεί που χρειάζεται.
+
+                Και «1 γεγονότα». Ο πληθυντικός ήταν σταθερός. */}
+            <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length===1?'1 γεγονός':`${events.length} γεγονότα`}</span>
+            {monthPendingAmt>0&&<span title={`Άθροισμα των εκκρεμών ποσών ${MONTH_GENITIVE_GR[month]} ${year}, μόνο αυτού του μήνα`} style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{fe(monthPendingAmt)} εκκρεμή</span>}
+            <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{monthPaid.length===1?'1 πληρωμένο':`${monthPaid.length} πληρωμένα`}</span>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--border-subtle)' }}>
             {DAY_NAMES_GR.map(d=>(
@@ -477,28 +501,32 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
         </div>
       </div>
       <div className="cal-rail" style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
-          <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>{MONTH_NAMES_GR[currentDate.getMonth()]}</p>
-          {events.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα γεγονός</p>}
-          {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
-        </div>
+        {/* Εδώ ζούσε ΤΡΙΤΗ εκδοχή του ίδιου υπομνήματος: κάρτα με τον μήνα
+            ως τίτλο και μία σειρά ανά κατηγορία με το πλήθος της. Με ένα
+            γεγονός στον μήνα, έγραφε «Αύγουστος / Οικονομικά 1» — δηλαδή
+            κατέλαβε μια ολόκληρη κάρτα για να πει «ένα», τη στιγμή που η
+            γραμμή σύνοψης το έλεγε ήδη και το ίδιο το γεγονός φαινόταν από
+            κάτω. */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
           <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα</p>
-          {upcoming7.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα εκκρεμές</p>}
+          {upcomingRows.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα εκκρεμές</p>}
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {upcoming7.map(ev=>{
+            {upcomingRows.map(row=>{
+              const ev=row.kind==='series'?row.lead:row.event
               const d=daysUntil(ev.event_date); const cat=CATEGORIES[ev.category]
               const when=d===0?'Σήμερα':d===1?'Αύριο':`σε ${d} ημέρες`
               const soon=d<=1
+              const more=row.kind==='series'?row.count-1:0
               return (
-                <div key={ev.id} title={`${ev.title}${ev.event_time?`, ${ev.event_time}`:''} ${when}`} style={{ display:'flex', gap:9, alignItems:'flex-start' }}>
+                <div key={row.kind==='series'?row.key:ev.id} title={`${ev.title}${ev.event_time?`, ${ev.event_time}`:''} ${when}`} style={{ display:'flex', gap:9, alignItems:'flex-start' }}>
                   <div style={{ width:3, borderRadius:3, background:cat.color, alignSelf:'stretch', flexShrink:0, minHeight:30, opacity:0.85 }}/>
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontSize:12.5, fontFamily: T.font.sans, color:'var(--text-primary)', lineHeight:1.35, marginBottom:3, letterSpacing:'0.1px' }}>{ev.title}</p>
                     <div style={{ display:'flex', gap:8, alignItems:'baseline', flexWrap:'wrap' }}>
                       <span style={{ fontSize:11.5, fontFamily: T.font.sans, fontWeight:soon?600:400, color:soon?'var(--text-primary)':'var(--text-tertiary)' }}>{when}</span>
-                      {ev.amount!=null&&<span style={{ fontSize:11.5, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</span>}
+                      {ev.amount!=null&&<span style={{ fontSize:11.5, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{fe(ev.amount)}</span>}
                     </div>
+                    {more>0&&<p style={{ fontSize:11, fontFamily: T.font.sans, color:'var(--text-tertiary)', margin:'3px 0 0' }}>{row.kind==='series'&&row.cadence?`${row.cadence}, ` : ''}{more===1?'1 ακόμη':`${more} ακόμη`}</p>}
                   </div>
                 </div>
               )
@@ -626,12 +654,16 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
       let n=0
       for(const l of (loans||[])){
         const amount=Number((l as any).amount)||0, rate=Number((l as any).rate)||0, years=Number((l as any).years)||0
-        const start=(l as any).start_date||todayStr(); const bank=(l as any).bank||''
+        const start=(l as any).start_date||todayStr(); const bank=cleanBank((l as any).bank)
         if(!amount||!years)continue
         const monthly=annuityMonthly(amount,rate,years); if(!monthly)continue
         const src='loan_schedule:'+(bank||'γενικό').toLowerCase().replace(/\s+/g,'_').slice(0,40)
         const d=new Date(start); const cnt2=Math.min(years*12,60); const rows:any[]=[]
-        for(let i=0;i<cnt2;i++){ const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate()); rows.push({property_id:propertyId,user_id:userId,title:`Δόση δανείου${bank?`, ${bank}`:''}`,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:`${Math.round(monthly).toLocaleString('el-GR')} €/μήνα`,source:src}) }
+                // ΤΟ ΠΟΣΟ ΚΡΑΤΑΕΙ ΤΑ ΛΕΠΤΑ ΤΟΥ. Ήταν `Math.round(monthly)`: μια δόση
+        // 751,43 € αποθηκευόταν ως 751 και το ημερολόγιο διαφωνούσε με την
+        // τράπεζα κατά 43 λεπτά τον μήνα, δηλαδή πάνω από πέντε ευρώ τον χρόνο.
+        const monthlyExact=Math.round(monthly*100)/100
+        for(let i=0;i<cnt2;i++){ const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate()); rows.push({property_id:propertyId,user_id:userId,title:loanEventTitle(bank),category:'financial',event_date:ev.toISOString().split('T')[0],amount:monthlyExact,priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:`${fe(monthlyExact)} ανά μήνα`,source:src}) }
         await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src))
         for(let i=0;i<rows.length;i+=20)await must(supabase.from('calendar_events').insert(rows.slice(i,i+20)))
         n+=rows.length
@@ -927,26 +959,93 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
 }
 
 // Section
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΙΑ ΣΕΙΡΑ, ΜΙΑ ΓΡΑΜΜΗ
+// ─────────────────────────────────────────────────────────────────────────
+// Η καρτέλα που εκπροσωπεί ολόκληρο πρόγραμμα δόσεων. Λέει ό,τι θέλει να ξέρει
+// κανείς με μια ματιά — τι είναι, πότε είναι η επόμενη, με τι ρυθμό, πόσες
+// μένουν και πόσο κάνουν συνολικά — και ανοίγει σε πλήρη ανάλυση με ένα κλικ.
+//
+// Το ποσό στα δεξιά είναι της ΕΠΟΜΕΝΗΣ δόσης, όχι το σύνολο: αυτό είναι που θα
+// φύγει από τον λογαριασμό. Το σύνολο λέγεται με λέξεις από κάτω, ώστε να μη
+// μπερδεύεται με το ποσό της γραμμής.
+function SeriesCard({ group, onToggle, onEdit, onDelete, bulkMode, selectedIds, onSelect }: {
+  group: SeriesRow<CalEvent> & { kind:'series' }
+  onToggle:(e:CalEvent)=>void; onEdit:(e:CalEvent)=>void; onDelete:(id:string)=>void
+  bulkMode?:boolean; selectedIds?:Set<string>; onSelect?:(id:string)=>void
+}) {
+  const [open,setOpen]=useState(false)
+  const { lead, rest, count, cadence, lastDate, totalAmount } = group
+  const cat = CATEGORIES[lead.category]
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:11, padding:'12px 15px', background:'var(--bg-surface)',
+        border:'1px solid var(--border-subtle)', borderLeft:`3px solid color-mix(in srgb, ${cat.color} 50%, transparent)`,
+        borderRadius:10, boxShadow:'var(--shadow-sm)' }}>
+        <span title="Επαναλαμβανόμενη σειρά" style={{ flexShrink:0, width:18, height:18, borderRadius:'50%', border:'2px solid var(--border-default)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-tertiary)' }}>
+          <Repeat size={9}/>
+        </span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <p style={{ fontSize:13.5, fontFamily: T.font.sans, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{lead.title}</p>
+          <p style={{ fontSize:11.5, fontFamily: T.font.sans, color:'var(--text-tertiary)', margin:'3px 0 0' }}>
+            {[cadence, `επόμενη ${fmt(lead.event_date)}`, `${count} συνολικά έως ${fmt(lastDate)}`].filter(Boolean).join(' · ')}
+            {totalAmount!=null&&<> · σύνολο <span style={{ fontVariantNumeric:'tabular-nums' }}>{fe(totalAmount)}</span></>}
+          </p>
+        </div>
+        {lead.amount!=null&&(
+          <span style={{ fontSize:13, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', flexShrink:0 }}>{fe(lead.amount)}</span>
+        )}
+        <button onClick={()=>setOpen(o=>!o)} aria-expanded={open}
+          style={{ flexShrink:0, display:'flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 11px', borderRadius:T.radius.pill, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:11.5, fontFamily: T.font.sans, cursor:'pointer', whiteSpace:'nowrap' }}>
+          {open?'Σύμπτυξη':'Ανάλυση'}
+          <ChevronDown size={12} style={{ transform:open?'rotate(180deg)':'none', transition:'transform 0.2s' }}/>
+        </button>
+      </div>
+      {open&&(
+        <div style={{ display:'flex', flexDirection:'column', gap:7, paddingLeft:18, borderLeft:'1px solid var(--border-subtle)', marginLeft:7 }}>
+          {[lead,...rest].map(e=>(
+            <EventCard key={e.id} event={e} onToggleStatus={onToggle} onEdit={onEdit} onDelete={onDelete}
+              selected={selectedIds?.has(e.id)} onSelect={onSelect} bulkMode={bulkMode}/>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=false, desc=false, bulkMode, selectedIds, onSelect }: {
   title:string; color:string; events:CalEvent[]; onToggle:(e:CalEvent)=>void; onEdit:(e:CalEvent)=>void; onDelete:(id:string)=>void
   collapsed?:boolean; desc?:boolean; bulkMode?:boolean; selectedIds?:Set<string>; onSelect?:(id:string)=>void
 }) {
   const [open,setOpen]=useState(!collapsed)
   const sorted=[...events].sort((a,b)=>desc?b.event_date.localeCompare(a.event_date):a.event_date.localeCompare(b.event_date))
+  // ═══ ΕΚΑΤΟΝ ΔΕΚΑΕΝΝΕΑ ΓΡΑΜΜΕΣ ΠΟΥ ΕΛΕΓΑΝ ΤΟ ΙΔΙΟ ══════════════════════════
+  // Ένα δάνειο εικοσαετίας γράφει μία εγγραφή ανά δόση. Στην «Αργότερα» αυτό
+  // γινόταν εκατόν δεκαεννέα διαδοχικές, πανομοιότυπες γραμμές «Δόση δανείου ·
+  // 751,00 €», και ό,τι άλλο είχε το ημερολόγιο —μια λήξη μίσθωσης, ένας
+  // έλεγχος λέβητα— θαβόταν από κάτω. Στη μαζική επιλογή, το πρώτο πράγμα που
+  // έβλεπε ο χρήστης ήταν εκατό κουτάκια για το ίδιο δάνειο.
+  //
+  // Οι εγγραφές μένουν στη βάση μία-μία, γιατί καθεμιά πληρώνεται χωριστά. Εδώ
+  // εμφανίζονται σαν αυτό που είναι: μία σειρά, με «Ανάλυση» για όποιον τη θέλει.
+  const rows=groupSeries(sorted)
+  const shown=rows.reduce((n,r)=>n+rowCount(r),0)
   return (
     <div>
       <button onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, background:'none', border:'none', cursor:'pointer', marginBottom:open?11:0, padding:0 }}>
         <span style={{ width:6, height:6, borderRadius:3, background:color, flexShrink:0, opacity:0.9 }}/>
         <span style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:600, color:'var(--text-primary)', letterSpacing:'0.06em', textTransform:'uppercase' }}>{title}</span>
-        <span style={{ fontSize:11.5, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--text-tertiary)', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'0 7px', lineHeight:'17px' }}>{events.length}</span>
+        <span style={{ fontSize:11.5, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--text-tertiary)', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'0 7px', lineHeight:'17px' }}>{shown}</span>
         <ChevronDown size={13} color="var(--text-tertiary)" style={{ transform:open?'rotate(180deg)':'none', transition:'transform 0.2s' }}/>
       </button>
       {open&&(
         <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-          {sorted.map(e=>(
-            <EventCard key={e.id} event={e} onToggleStatus={onToggle} onEdit={onEdit} onDelete={onDelete}
-              selected={selectedIds?.has(e.id)} onSelect={onSelect} bulkMode={bulkMode}/>
-          ))}
+          {rows.map(r=>r.kind==='series'
+            ?<SeriesCard key={r.key} group={r} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete}
+               bulkMode={bulkMode} selectedIds={selectedIds} onSelect={onSelect}/>
+            :<EventCard key={r.event.id} event={r.event} onToggleStatus={onToggle} onEdit={onEdit} onDelete={onDelete}
+               selected={selectedIds?.has(r.event.id)} onSelect={onSelect} bulkMode={bulkMode}/>
+          )}
         </div>
       )}
     </div>
@@ -1384,38 +1483,44 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           μπάνερ λήξεων έλεγε τον ίδιο αριθμό, η ράγα «Επόμενα» τα ίδια γεγονότα),
           και το «Εκκρεμή ποσά» της ήταν το ΤΡΙΤΟ διαφορετικό νούμερο με την ίδια
           ετικέτα. Έμεινε μία εμβέλεια, δηλωμένη στην οθόνη: του μήνα. */}
-      {overdue.length>0&&(
-        <button onClick={()=>setShowOverdue(o=>!o)} aria-expanded={showOverdue}
-          style={{ display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--negative)', borderRadius:10, padding:'10px 16px', cursor:'pointer' }}>
-          <AlertTriangle size={14} color="var(--negative)"/>
-          <p style={{ fontSize:13.5, color:'var(--text-secondary)', fontFamily: T.font.sans, letterSpacing:'0.1px', margin:0, flex:1 }}>
-            {overdue.length} εκπρόθεσμ{overdue.length===1?'ο':'α'} · <span style={{ color:'var(--text-primary)' }}>{showOverdue?'κλείσε τη λίστα':'δες ποια'}</span>
-          </p>
-          <ChevronDown size={15} style={{ color:'var(--text-tertiary)', transform:showOverdue?'rotate(180deg)':'none', transition:'transform 0.15s' }}/>
-        </button>
-      )}
+      {/* ═══ ΤΟ ΙΔΙΟ ΤΕΣΣΕΡΑ, ΤΡΕΙΣ ΦΟΡΕΣ ═══════════════════════════════════
+          Ήταν ΔΥΟ ζώνες: μια γραμμή «4 εκπρόθεσμα · δες ποια», και από κάτω μια
+          κάρτα που ΞΑΝΑΕΓΡΑΦΕ «ΕΚΠΡΟΘΕΣΜΑ · 4» ως δική της επικεφαλίδα, με δικό
+          της κουμπί κλεισίματος δίπλα στο βέλος που μόλις είχε πατηθεί. Δύο
+          επικεφαλίδες, δύο μετρητές, δύο τρόποι να κλείσει το ίδιο πράγμα.
 
-      {/* Εκπρόθεσμα — αναλυτικά, χρονολογικά (παλαιότερο πρώτο) */}
-      {showOverdue&&overdue.length>0&&(
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 24px -14px rgba(0,0,0,0.5)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9, padding:'11px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
-            <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--negative)', flexShrink:0 }}/>
-            <p style={{ fontSize:12.5, fontFamily: T.font.sans, fontWeight:600, color:'var(--text-primary)', margin:0, flex:1, letterSpacing:'0.06em', textTransform:'uppercase' }}>Εκπρόθεσμα · {overdue.length}</p>
-            <button aria-label="Κλείσιμο" onClick={()=>setShowOverdue(false)} style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-primary)';e.currentTarget.style.borderColor='var(--border-default)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-subtle)'}}><X size={14}/></button>
-          </div>
-          <div>
-            {[...overdue].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map((e,i,arr)=>{ const late=Math.abs(daysUntil(e.event_date)); const cat=CATEGORIES[e.category]; return (
-              <button key={e.id} onClick={()=>openEdit(e)} style={{ display:'flex', alignItems:'center', gap:12, width:'100%', textAlign:'left', padding:'11px 16px', border:'none', borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none', background:'transparent', cursor:'pointer', transition:'background 0.12s' }} onMouseEnter={ev=>ev.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
-                <span style={{ width:7, height:7, borderRadius:3, background:cat.color, flexShrink:0 }}/>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ fontSize:13.5, fontFamily: T.font.sans, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>{e.title}</p>
-                  <p style={{ fontSize:11.5, fontFamily: T.font.sans, color:'var(--text-tertiary)', margin:'2px 0 0' }}>{fmt(e.event_date)}{e.event_time?` · ${e.event_time}`:''}</p>
-                </div>
-                {e.amount!=null&&<span style={{ fontSize:13, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{e.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</span>}
-                <span style={{ fontSize:11.5, fontFamily: T.font.sans, color:'var(--text-tertiary)', flexShrink:0 }}>πριν {late===1?'1 ημέρα':`${late} ημέρες`}</span>
-              </button>
-            )})}
-          </div>
+          Και ΤΡΙΤΗ φορά στην «Ατζέντα»: εκεί η λίστα έχει ήδη δική της ενότητα
+          «Εκπρόθεσμα» με τα ίδια τέσσερα, αναλυτικά. Οι δύο ζώνες αποδίδονταν
+          από πάνω ούτως ή άλλως, οπότε ο χρήστης έβλεπε τα τέσσερα εκπρόθεσμα
+          τρεις φορές στην ίδια οθόνη.
+
+          Τώρα: μία κάρτα, η επικεφαλίδα της είναι το κουμπί, και μόνο στην όψη
+          «Μήνας» — γιατί μόνο εκεί λείπει. */}
+      {viewMode==='month'&&overdue.length>0&&(
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--negative)', borderRadius:12, overflow:'hidden' }}>
+          <button onClick={()=>setShowOverdue(o=>!o)} aria-expanded={showOverdue}
+            style={{ display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left', background:'transparent', border:'none', borderBottom:showOverdue?'1px solid var(--border-subtle)':'none', padding:'11px 16px', cursor:'pointer' }}>
+            <AlertTriangle size={14} color="var(--negative)"/>
+            <p style={{ fontSize:13.5, color:'var(--text-secondary)', fontFamily: T.font.sans, letterSpacing:'0.1px', margin:0, flex:1 }}>
+              {overdue.length===1?'1 εκπρόθεσμο':`${overdue.length} εκπρόθεσμα`} · <span style={{ color:'var(--text-primary)' }}>{showOverdue?'σύμπτυξη':'δες ποια'}</span>
+            </p>
+            <ChevronDown size={15} style={{ color:'var(--text-tertiary)', transform:showOverdue?'rotate(180deg)':'none', transition:'transform 0.15s' }}/>
+          </button>
+          {showOverdue&&(
+            <div>
+              {[...overdue].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map((e,i,arr)=>{ const late=Math.abs(daysUntil(e.event_date)); const cat=CATEGORIES[e.category]; return (
+                <button key={e.id} onClick={()=>openEdit(e)} style={{ display:'flex', alignItems:'center', gap:12, width:'100%', textAlign:'left', padding:'11px 16px', border:'none', borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none', background:'transparent', cursor:'pointer', transition:'background 0.12s' }} onMouseEnter={ev=>ev.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
+                  <span style={{ width:7, height:7, borderRadius:3, background:cat.color, flexShrink:0 }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ fontSize:13.5, fontFamily: T.font.sans, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>{e.title}</p>
+                    <p style={{ fontSize:11.5, fontFamily: T.font.sans, color:'var(--text-tertiary)', margin:'2px 0 0' }}>{fmt(e.event_date)}{e.event_time?` · ${e.event_time}`:''}</p>
+                  </div>
+                  {e.amount!=null&&<span style={{ fontSize:13, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{fe(e.amount)}</span>}
+                  <span style={{ fontSize:11.5, fontFamily: T.font.sans, color:'var(--text-tertiary)', flexShrink:0 }}>πριν {late===1?'1 ημέρα':`${late} ημέρες`}</span>
+                </button>
+              )})}
+            </div>
+          )}
         </div>
       )}
 
@@ -1625,7 +1730,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'))}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
+              <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_GENITIVE_GR[currentDate.getMonth()]}</p>
               {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode}/>))}
             </div>
           )}

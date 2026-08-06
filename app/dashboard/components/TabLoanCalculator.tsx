@@ -7,7 +7,7 @@ import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './xlsxStyle'
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge } from '@/components/Theme'
+import { T, Badge, ABSENT } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { createClient } from '@/lib/supabase/client'
 import { useReportBranding } from '@/lib/reportBranding'
@@ -754,7 +754,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     setHasAgent(false);setAgentPct('2');setActivePreset(null)
     notify('Επαναφορά στις προεπιλογές')
   }
-  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);notifyOk('Το δάνειο αποθηκεύτηκε')}
+  // ΤΟ ΟΝΟΜΑ ΤΗΣ ΤΡΑΠΕΖΑΣ ΑΠΟΘΗΚΕΥΕΤΑΙ ΚΕΝΟ ΟΤΑΝ ΕΙΝΑΙ ΚΕΝΟ. Έγραφε τη φράση
+  // «Μη καθορισμένη» ΜΕΣΑ στη στήλη: το κείμενο που θα έδειχνε η οθόνη αν έλειπε
+  // το όνομα, γινόταν το ίδιο δεδομένο. Από εκεί βγήκε στο ημερολόγιο ως «Δόση
+  // δανείου, Μη καθορισμένη» σε εξήντα δόσεις, και σε κάθε αναφορά από κάτω.
+  // Η απουσία λέγεται στην οθόνη, με τη λέξη της οθόνης.
+  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName.trim(),loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);notifyOk('Το δάνειο αποθηκεύτηκε')}
 
   // ── Ημερομηνία δόσης i (1..n) με βάση την έναρξη ──────────────────────────────
   function installmentDate(i:number){
@@ -795,7 +800,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       reportKpi('Συνολική αποπληρωμή', rEur(LA+totalInt)),
     ].join('')
     const detailRows=[
-      reportRow('Τράπεζα', bankName||'Μη καθορισμένη'),
+      reportRow('Τράπεζα', bankName.trim()||ABSENT),
       reportRow('Επιτόκιο', `${rPct(effRate)} · ${rateType==='variable'?'κυμαινόμενο':'σταθερό'}`),
       reportRow('Διάρκεια', `${Y} έτη (${Y*12} δόσεις)`),
     ].join('')
@@ -826,7 +831,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   async function officialAmort(){
     if(genOfficial) return
     if(!amort.length){notify('Δεν υπάρχουν δόσεις προς εξαγωγή',{tone:'warning'});return}
-    const bankLabel = bankName || 'Μη καθορισμένη'
+    const bankLabel = bankName.trim() || ABSENT
     const termLabel = `${Y} έτη (${Y*12} δόσεις)`
     const totalRepayment = LA+totalInt
     setGenOfficial(true)
