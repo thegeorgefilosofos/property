@@ -1,5 +1,6 @@
 'use client';
 
+import { daysUntil } from '@/lib/core/time';
 import {
   NumberInput, CustomSelect, DatePicker as UIDatePicker,
   Toggle, TextInput, Textarea, ServiceBySelect as UIServiceBySelect,
@@ -124,7 +125,7 @@ export const fmt = (n: number | null | undefined) =>
 export const fmtD = (d: string | null) =>
   !d ? '—' : new Date(d).toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' });
 export const daysLeft = (end: string | null) =>
-  !end ? null : Math.ceil((new Date(end).getTime() - Date.now()) / 86400000);
+  !end ? null : daysUntil(end);
 export const leaseSt = (d: number | null) => {
   if (d == null) return null;
   if (d < 0)   return { label:'Έληξε',    color:'var(--negative)', bg:'var(--negative-dim)' };

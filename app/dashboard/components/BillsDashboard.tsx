@@ -15,7 +15,7 @@ import { planBillPayment } from '@/lib/expenses/pay';
 import { Receipt, CalendarDays } from 'lucide-react';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@/lib/expenses/sharing';
-import { athensToday } from '@/lib/core/time';
+import { athensToday, daysUntil } from '@/lib/core/time';
 import { deriveMonthlyByCategory, monthlyTotals, averageMonthly } from '@/lib/bills/monthlyHistory';
 
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
@@ -157,7 +157,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   const unpaidA = bills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
   const paidA   = bills.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
   const overdue = bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) < now);
-  const dueSoon = bills.filter(b => !b.paid && b.due_date && (() => { const d = Math.ceil((new Date(b.due_date!).getTime() - now.getTime()) / 86400000); return d >= 0 && d <= 7; })());
+  const dueSoon = bills.filter(b => !b.paid && b.due_date && (() => { const d = daysUntil(b.due_date!) ?? 0; return d >= 0 && d <= 7; })());
   const pending = bills.filter(b => !b.paid);
   const recurring = bills.filter(b => b.recurring);
 
@@ -206,7 +206,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
       return ad - bd;
     })
     .map(b => {
-      const days = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000) : null;
+      const days = b.due_date ? daysUntil(b.due_date) ?? 0 : null;
       return [
         cat(b.category).label,
         b.name,
@@ -238,7 +238,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
         return ad - bd;
       })
       .map(b => {
-        const days = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000) : null;
+        const days = b.due_date ? daysUntil(b.due_date) ?? 0 : null;
         return [
           days !== null && days < 0 ? '⚠ ΛΗΞΙΠΡΟΘΕΣΜΟΣ' : days !== null && days <= 7 ? '! ΛΗΓΕΙ ΣΥΝΤΟΜΑ' : 'Εκκρεμεί',
           cat(b.category).label,
@@ -503,7 +503,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       alerts.push({ type: 'danger', msg: `${overdue.length} ληξιπρόθεσμος/-οι: ${overdue.map(b => b.name).join(', ')}, Σύνολο: ${fe(overdue.reduce((s, b) => s + b.amount, 0), 0)}` });
     }
     dueSoon.forEach(b => {
-      const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
+      const daysLeft = b.due_date ? daysUntil(b.due_date) ?? 0 : null;
       const msg = daysLeft === 0 ? `"${b.name}" λήγει ΣΗΜΕΡΑ, ${fe(b.amount, 0)}`
                 : daysLeft === 1 ? `"${b.name}" λήγει ΑΥΡΙΟ, ${fe(b.amount, 0)}`
                 : `"${b.name}" σε ${daysLeft} ημέρες, ${fe(b.amount, 0)}`;
@@ -768,7 +768,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                 </div>
                 {groupBills.map(b => {
                   const c = cat(b.category);
-                  const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
+                  const daysLeft = b.due_date ? daysUntil(b.due_date) ?? 0 : null;
                   return (
                     <div key={b.id} className="po-fig-card" tabIndex={0} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
                       <button onClick={() => togglePaid(b.id)} style={{ width: 22, height: 22, borderRadius: T.radius.badge, border: `2px solid ${b.paid ? 'var(--accent)' : 'var(--border-default)'}`, background: b.paid ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

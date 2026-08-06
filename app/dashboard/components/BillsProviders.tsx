@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { daysUntil } from '@/lib/core/time';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fp, Spinner } from '@/components/Theme';
@@ -360,7 +361,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
         {/* Contract renewal alert */}
         {s.internetContractEnd && (() => {
-          const days = Math.ceil((new Date(s.internetContractEnd).getTime() - Date.now()) / 86400000);
+          const days = daysUntil(s.internetContractEnd) ?? 0;
           if (days > 90 || days < 0) return null;
           return (
             <div style={{ background: days <= 14 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${days <= 14 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>

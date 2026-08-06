@@ -1,6 +1,7 @@
 'use client';
 
 import { useReportBranding } from '@/lib/reportBranding';
+import { daysUntil } from '@/lib/core/time';
 import {
   reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport,
   rEur, rPct, rEsc, rDate,
@@ -65,7 +66,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
     const currentMonth = now.getMonth();
     const year         = now.getFullYear();
 
-    const daysTo = (d: string) => Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000);
+    const daysTo = (d: string) => daysUntil(d) ?? 0;
 
     const overdue   = data.bills.filter(b => !b.paid && b.due_date && daysTo(b.due_date) < 0);
     const dueSoon30 = data.bills

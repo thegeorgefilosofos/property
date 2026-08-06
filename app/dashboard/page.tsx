@@ -62,7 +62,7 @@ import { taxProfileOf } from '@/lib/tax/greekTaxCalendar';
 import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
 import BillingNudge from './components/BillingNudge';
-import { athensToday } from '@/lib/core/time';
+import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -525,7 +525,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   const rent = resolveRent({ tenantRent: tenant?.monthly_rent, targetRent: prop.target_rent }).value;
   const propValue = resolveValue(prop.value, prop.obj_value).value;
   const { annualRent, grossYield, netYield } = computeYields(rent, propValue, totalExpYTD);
-  const daysToExpiry = tenant?.lease_end ? Math.ceil((new Date(tenant.lease_end).getTime()-Date.now())/86400000) : null;
+  const daysToExpiry = tenant?.lease_end ? (athensDaysUntil(tenant.lease_end) ?? 0) : null;
   // Δάνεια: εκτιμώμενη μηνιαία δόση και δείκτης δανείου προς αξία (η Επισκόπηση «ξέρει» πλέον τα δάνεια).
   const monthlyDebt = loans.reduce((s,l)=>s+annuityMonthly(l.amount||0,l.rate||0,l.years||0),0);
   const totalDebt = loans.reduce((s,l)=>s+(l.amount||0),0);
@@ -587,7 +587,7 @@ function OverviewTab({ prop, properties, userId, ownerName, onSaveOwnerName, onN
   // την κάνει το InsightsBoard (computeInsights) και το ObligationsPanel· αυτός
   // ο πίνακας ήταν τρίτη, αόρατη μηχανή που πλήρωνε ερωτήματα χωρίς αποδέκτη.
   // Μένουν μόνο τα μεγέθη που εμφανίζονται πραγματικά στα πλακίδια.
-  const daysUntil = (d: string | null | undefined) => d ? Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000) : null;
+  const daysUntil = (d: string | null | undefined) => d ? athensDaysUntil(d) ?? 0 : null;
   const chkOverdue  = chk.filter(c => { const x = daysUntil(c.due_date); return x != null && x < 0; });
   const chkCritical = chk.filter(c => c.priority === 'critical' && c.status === 'pending');
   const warrantySoon = inv.filter(i => { const x = daysUntil(i.warranty_expiry); return x != null && x >= 0 && x <= 90; });

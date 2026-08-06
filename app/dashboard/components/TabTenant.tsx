@@ -37,7 +37,7 @@ import { normalizePhone } from '@/lib/clients/clients';
 import { SYSTEM_PROMPT } from './DocumentScan';
 import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
 import { escHtml as esc } from '@/lib/reportBranding';
-import { athensToday } from '@/lib/core/time';
+import { athensToday, daysUntil } from '@/lib/core/time';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
@@ -419,7 +419,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
   const fmtE = fe;
   const fmtDate=(d:string|null)=>d?new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):ABSENT_DATE;
   const rent=tenant.monthly_rent||0;
-  const daysExp=tenant.lease_end?Math.ceil((new Date(tenant.lease_end+'T00:00:00').getTime()-Date.now())/86400000):null;
+  const daysExp=tenant.lease_end?(daysUntil(tenant.lease_end) ?? 0):null;
   const thisYear=new Date().getFullYear();
   // Προεπιλογή το ΤΡΕΧΟΝ έτος: αν δεν έχει τιμή, ο χρήστης το βλέπει αμέσως και
   // δίνει το ποσοστό ο ίδιος, αντί να στείλει σιωπηλά τον περσινό δείκτη.

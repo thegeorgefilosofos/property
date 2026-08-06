@@ -64,7 +64,7 @@ type ClientLite = { id: string; name: string; phone: string; afm: string; vip: b
 type ContactLite = { name: string; role: string; phone: string; email: string };
 
 import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from '@/lib/assistant/openers';
-import { athensToday, athensNowLabel } from '@/lib/core/time';
+import { athensToday, athensNowLabel, daysUntil } from '@/lib/core/time';
 
 const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
 const navLabel = (id: string) => NAV_MAP.find(n => n.id === id)?.label || id;
@@ -241,7 +241,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const value = resolveValue(propContext.value).value;
     const { grossYield: grossY, netYield: netY } = computeYields(rent, value, total);
     const leaseEnd = t?.lease_end || null;
-    const daysLease = leaseEnd ? Math.ceil((new Date(leaseEnd).getTime() - Date.now()) / 86400000) : null;
+    const daysLease = leaseEnd ? daysUntil(leaseEnd) ?? 0 : null;
 
     const loanRows = toLoanViews(loans);
     const rateTypeGr = (rt?: string) => rt === 'variable' ? 'κυμαινόμενο' : rt === 'mixed' ? 'μεικτό' : 'σταθερό';

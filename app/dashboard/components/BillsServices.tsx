@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { daysUntil } from '@/lib/core/time';
 import { Calculator } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
@@ -148,7 +149,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         setCrossTabData({
           enfiaChecklist: chk?.[0] ? {
             status: chk[0].status,
-            daysLeft: chk[0].due_date ? Math.ceil((new Date(chk[0].due_date).getTime() - Date.now()) / 86400000) : null,
+            daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null,
           } : undefined,
           insuranceEq:    (ins?.data as any)?.insCustomEarthquake || false,
           insuranceFlood: (ins?.data as any)?.insCustomFlood || false,
@@ -188,7 +189,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const currentMonth = today.getMonth();
   const maxH         = Math.max(...(s.dimotikaHistory || []).map((v: string) => parseFloat(v) || 0), 1);
   const nextDeadline = ENFIA_DEADLINES.find(d => new Date(d.date) >= today);
-  const daysToDeadline = nextDeadline ? Math.ceil((new Date(nextDeadline.date).getTime() - today.getTime()) / 86400000) : null;
+  const daysToDeadline = nextDeadline ? daysUntil(nextDeadline.date) ?? 0 : null;
 
   const toggleReduction = (key: string) => {
     const cur = s.enfiaReductions || [];
@@ -342,7 +343,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {ENFIA_DEADLINES.map((d, i) => {
             const isPast = new Date(d.date) < today;
             const isNext = d === nextDeadline;
-            const dLeft  = Math.ceil((new Date(d.date).getTime() - today.getTime()) / 86400000);
+            const dLeft  = daysUntil(d.date) ?? 0;
             return (
               <div key={i} style={{ background: isNext ? 'rgba(26,115,232,0.1)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
                 <div style={{ fontSize: 8, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>

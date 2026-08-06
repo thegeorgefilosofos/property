@@ -15,7 +15,7 @@ import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, o
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
-import { athensToday } from '@/lib/core/time';
+import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -279,7 +279,7 @@ function fmtDate(d: string) {
   if (!d) return ''
   try { return new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
 }
-function daysUntil(d: string) { if (!d) return null; return Math.round((new Date(d).getTime() - Date.now()) / 86400000) }
+function daysUntil(d: string) { if (!d) return null; return athensDaysUntil(d) ?? 0 }
 function isOverdue(d: string) { const n = daysUntil(d); return n !== null && n < 0 }
 // HTML-escape any dynamic value interpolated into printable/PDF HTML written via document.write.
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -448,7 +449,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       try {
         // Checklist
         const { data: chk } = await supabase.from('checklist_items').select('status,due_date').eq('property_id', propertyId).ilike('description', '%ασφαλιστήριο%').limit(1);
-        if (chk?.[0]) setChecklistRenewal({ daysLeft: chk[0].due_date ? Math.ceil((new Date(chk[0].due_date).getTime() - Date.now()) / 86400000) : null });
+        if (chk?.[0]) setChecklistRenewal({ daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null });
 
         // Property data from services (ΕΝΦΙΑ has sqm, zone, floor, age)
         const { data: svc } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'services').maybeSingle();
@@ -590,7 +591,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   const renewalAlerts: { name: string; daysLeft: number; type: 'danger'|'warning'|'info' }[] = [];
   const checkRenewal = (name: string, dateStr: string, days: number) => {
     if (!dateStr) return;
-    const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
+    const diff = daysUntil(dateStr) ?? 0;
     if (diff >= 0 && diff <= days) renewalAlerts.push({ name, daysLeft: diff, type: diff <= 3 ? 'danger' : diff <= 7 ? 'warning' : 'info' });
   };
   if (insRenewalDate) checkRenewal(`Ασφάλεια κατοικίας (${insCompany?.label})`, insRenewalDate, 60);
@@ -1243,7 +1244,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           </div>
         </div>
         {(otherSubs || []).map((s, i) => {
-          const daysLeft = s.renewalDate ? Math.ceil((new Date(s.renewalDate).getTime() - Date.now()) / 86400000) : null;
+          const daysLeft = s.renewalDate ? daysUntil(s.renewalDate) ?? 0 : null;
           return (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
               <div>

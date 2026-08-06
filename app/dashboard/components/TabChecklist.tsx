@@ -32,7 +32,7 @@ import type { StatusRow } from '@/lib/property/status';
 // Καμία δική μας λογική OCR, καμία δεύτερη δρομολόγηση.
 import { scanDocument } from './scanDoc';
 import { normalizeScannedDoc, planDocSave, type ScannedDoc } from '@/lib/billing/documents';
-import { athensToday } from '@/lib/core/time';
+import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import SmartSuggestions from './SmartSuggestions';
 
 const supabase = createSupabaseClient()
@@ -319,7 +319,7 @@ function isOverdue(due: string | null, status: string) {
   if (!due || status === 'done' || status === 'skipped') return false
   return new Date(due) < new Date()
 }
-function daysUntil(d: string | null) { if (!d) return null; return Math.round((new Date(d).getTime() - Date.now()) / 86400000) }
+function daysUntil(d: string | null) { if (!d) return null; return athensDaysUntil(d) ?? 0 }
 function getCat(id: string) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1] }
 function getPri(v: string) { return PRIORITIES.find(p => p.value === v) || PRIORITIES[2] }
 function getStatusMeta(v: string) { return STATUSES.find(s => s.value === v) || STATUSES[0] }
