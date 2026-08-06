@@ -41,7 +41,7 @@ const supabase = createSupabaseClient()
 type Priority = 'critical' | 'high' | 'normal' | 'low'
 type Status   = 'pending' | 'in_progress' | 'done' | 'skipped'
 type Recurring = 'none' | 'monthly' | 'quarterly' | 'yearly'
-type ViewMode  = 'list' | 'board' | 'timeline'
+type ViewMode  = 'list' | 'timeline'
 type FilterStatus = 'all' | 'pending' | 'in_progress' | 'done' | 'overdue'
 
 interface SubTask  { id: string; text: string; done: boolean }
@@ -1215,37 +1215,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
   )
 }
 
-// ─── BoardCard ────────────────────────────────────────────────────────────────
-function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: () => void; onEdit: () => void }) {
-  const cat = getCat(item.category)
-  const overdue = isOverdue(item.due_date, item.status)
-  const subtasks = item._subtasks || []; const subDone = subtasks.filter(s => s.done).length
-  return (
-    <div onClick={onEdit} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderLeft: '3px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
-      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, lineHeight: 1.4, paddingRight: 8, fontFamily: T.font.sans }}>{item.description}</div>
-        <button type="button" onClick={e => { e.stopPropagation(); onToggle() }} style={{ width: 20, height: 20, borderRadius: 6, border: '2px solid ' + (item.status === 'done' ? 'var(--accent)' : 'var(--border-default)'), background: item.status === 'done' ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-          {item.status === 'done' && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-        </button>
-      </div>
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: subtasks.length > 0 ? 8 : 0 }}>
-        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
-        <PriorityCue priority={item.priority} />
-        {item.due_date && <span style={{ fontSize: 10, color: overdue ? 'var(--negative)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</span>}
-        {item.estimated_cost > 0 && <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost}€</span>}
-      </div>
-      {subtasks.length > 0 && (
-        <div>
-          <div style={{ height: 3, borderRadius: 3, background: 'var(--bg-elevated)', overflow: 'hidden', marginBottom: 3 }}>
-            <div style={{ height: '100%', width: (subDone / subtasks.length * 100) + '%', background: 'var(--series-in)', borderRadius: 3 }} />
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{subDone}/{subtasks.length} υπο-εργασίες</div>
-        </div>
-      )}
-    </div>
-  )
-}
+// Η BoardCard έφυγε μαζί με την όψη kanban που την αποδίδε.
 
 // ─── TimelineView ─────────────────────────────────────────────────────────────
 function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item: ChecklistItem) => void }) {
@@ -1832,7 +1802,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const [selectMode, setSelectMode] = useState(false)
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
-  const [hideCompleted, setHideCompleted] = useState(false)
   const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([])
   const [tenantInfo, setTenantInfo] = useState<{full_name?: string; phone?: string; afm?: string; email?: string} | null>(null)
   const [loanPayment, setLoanPayment] = useState(0)
@@ -1964,11 +1933,39 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   // Όσες υποχρεώσεις ΔΕΝ υπάρχουν ήδη στη λίστα. Το κλειδί είναι το `ref`, ώστε
   // δεύτερο πάτημα να μην γράφει διπλότυπα ούτε όταν αλλάξει η διατύπωση.
+  // ═══ Η ΙΔΙΑ ΠΡΟΘΕΣΜΙΑ, ΔΥΟ ΦΟΡΕΣ, ΣΕ ΔΥΟ ΠΙΝΑΚΕΣ ═══════════════════════════
+  // Οι θεσμικές προθεσμίες βγαίνουν από ΜΙΑ πηγή (greekTaxCalendar), αλλά τις
+  // γράφουν ΔΥΟ οθόνες σε δύο πίνακες: το Ημερολόγιο σε `calendar_events` με
+  // κλειδί `tax:<id>`, οι Εκκρεμότητες σε `checklist_items` με το ίδιο `<id>`.
+  // Όποιος πάτησε και τα δύο κουμπιά έβλεπε τον ίδιο ΕΝΦΙΑ δύο φορές, με δύο
+  // ελαφρώς διαφορετικούς τίτλους, και δεν είχε τρόπο να καταλάβει ότι είναι
+  // το ίδιο πράγμα.
+  //
+  // Η λύση δεν είναι να διαγραφεί το ένα: και οι δύο οθόνες έχουν λόγο να τις
+  // δείχνουν. Είναι να μη ΠΡΟΤΕΙΝΕΤΑΙ ξανά ό,τι υπάρχει ήδη αλλού. Το «Λείπουν
+  // Ν υποχρεώσεις» μετρά πλέον μόνο όσες δεν έχει ούτε το ημερολόγιο.
+  const [calendarTaxRefs, setCalendarTaxRefs] = useState<string[]>([])
+  useEffect(() => {
+    if (!propertyId) return
+    let alive = true
+    ;(async () => {
+      const { data } = await supabase.from('calendar_events')
+        .select('source').eq('property_id', propertyId).like('source', 'tax:%')
+      // Το κλειδί είναι ΤΟ ΙΔΙΟ και στους δύο πίνακες: `tax:<id>`. Το `source`
+      // του γεγονότος μπαίνει αυτούσιο· κόβοντας το πρόθεμα δεν θα ταίριαζε ποτέ.
+      if (alive) setCalendarTaxRefs((data || []).map(r => String(r.source)))
+    })()
+    return () => { alive = false }
+  }, [propertyId, supabase])
+
   const pendingObligations = useMemo(() => {
     const today = athensToday()
-    const have = items.map(i => i._ref).filter((r): r is string => !!r)
+    const have = [
+      ...items.map(i => i._ref).filter((r): r is string => !!r),
+      ...calendarTaxRefs,
+    ]
     return pendingDrafts(obligationDrafts(today, taxProfile, fieldCtx), have)
-  }, [items, taxProfile, fieldCtx])
+  }, [items, taxProfile, fieldCtx, calendarTaxRefs])
   /** Η πρώτη προθεσμία που λείπει. Ένα όνομα και μια ημερομηνία πείθουν· ένα
    *  σκέτο πλήθος δεν λέει τίποτα σε κανέναν. */
   const nextObligation = useMemo(
@@ -2221,13 +2218,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const matchCat = filterCat === 'all' || item.category === filterCat
     const matchPri = filterPri === 'all' || item.priority === filterPri
     const q = search.toLowerCase()
-    return matchStatus && matchCat && matchPri && (!hideCompleted || item.status !== 'done') && (!q || item.description.toLowerCase().includes(q) || (item.assigned_contact_name || '').toLowerCase().includes(q) || (item._tags || []).some(t => t.toLowerCase().includes(q)))
-  }), [items, filterStatus, filterCat, filterPri, search, hideCompleted])
+    return matchStatus && matchCat && matchPri && (!q || item.description.toLowerCase().includes(q) || (item.assigned_contact_name || '').toLowerCase().includes(q) || (item._tags || []).some(t => t.toLowerCase().includes(q)))
+  }), [items, filterStatus, filterCat, filterPri, search])
 
   const grouped = useMemo(() => { const g: Record<string, ChecklistItem[]> = {}; filtered.forEach(item => { if (!g[item.category]) g[item.category] = []; g[item.category].push(item) }); return g }, [filtered])
-  const boardCols = useMemo(() => ({ pending: filtered.filter(i => i.status === 'pending'), in_progress: filtered.filter(i => i.status === 'in_progress'), done: filtered.filter(i => i.status === 'done'), skipped: filtered.filter(i => i.status === 'skipped') }), [filtered])
   const usedCats = CATEGORIES.filter(c => items.some(i => i.category === c.id))
-  const completedCount = items.filter(i => i.status === 'done').length
   const hasFilters = filterStatus !== 'all' || filterCat !== 'all' || filterPri !== 'all' || !!search
   const clearFilters = () => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all'); setSearch('') }
 
@@ -2326,16 +2321,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           options={[{ value: 'all', label: 'Όλες οι καταστάσεις' }, ...STATUSES.map(s => ({ value: s.value, label: s.label })), { value: 'overdue', label: 'Ληξιπρόθεσμα' }]} />
         <FilterSelect value={filterPri} onChange={setFilterPri} minWidth={178}
           options={[{ value: 'all', label: 'Όλες οι προτεραιότητες' }, ...PRIORITIES.map(p => ({ value: p.value, label: p.label }))]} />
-        {completedCount > 0 && (
-          <button type="button" onClick={() => setHideCompleted(h => !h)}
-            title={hideCompleted ? 'Εμφάνιση ολοκληρωμένων εργασιών' : 'Απόκρυψη ολοκληρωμένων εργασιών'}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'var(--bg-surface)', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
-            {hideCompleted
-              ? <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
-              : <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
-            Ολοκληρωμένα ({completedCount})
-          </button>
-        )}
+        {/* ΤΟ «ΟΛΟΚΛΗΡΩΜΕΝΑ» ΗΤΑΝ ΔΕΥΤΕΡΟ ΦΙΛΤΡΟ ΓΙΑ ΤΗΝ ΙΔΙΑ ΣΤΗΛΗ, ΚΑΙ
+            ΜΠΟΡΟΥΣΑΝ ΝΑ ΔΙΑΦΩΝΗΣΟΥΝ. Το φίλτρο κατάστασης έχει ήδη
+            «Ολοκληρώθηκε»: με αυτό επιλεγμένο ΚΑΙ τον διακόπτη ενεργό, η λίστα
+            άδειαζε και δεν υπήρχε τίποτα στην οθόνη να εξηγήσει γιατί — δύο
+            χειριστήρια που λένε αντίθετα πράγματα για το ίδιο πεδίο. Έμεινε το
+            φίλτρο, που είναι το γενικό και το εξηγήσιμο. */}
         {viewMode === 'list' && items.length > 3 && (
           <button type="button" onClick={() => { if (selectMode) exitSelectMode(); else setSelectMode(true) }}
             title="Επιλογή εργασιών για μαζικές ενέργειες"
@@ -2344,13 +2335,21 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           </button>
         )}
         <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
-          {(['list', 'board', 'timeline'] as ViewMode[]).map(v => (
-            <button key={v} type="button" title={v === 'board' ? 'Πίνακας καρτών (kanban)' : v === 'timeline' ? 'Χρονολόγιο κατά προθεσμία' : 'Λίστα ανά κατηγορία'} onClick={() => { setViewMode(v); if (v !== 'list') exitSelectMode() }} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
-              {v === 'list' ? 'Λίστα' : v === 'board' ? 'Πίνακας' : 'Χρονολόγιο'}
+          {/* ΔΥΟ ΔΙΑΤΑΞΕΙΣ, ΟΧΙ ΤΡΕΙΣ. Ο «Πίνακας» ήταν kanban: τέσσερις στήλες
+              κατάστασης, με κάρτες που μετακινούνται. Για έξι εκκρεμότητες ενός
+              διαμερίσματος είναι εργαλείο ομάδας λογισμικού, όχι ιδιοκτήτη — και
+              η αλλαγή κατάστασης γίνεται ήδη με ένα κλικ στη σειρά. Έμειναν οι
+              δύο που απαντούν σε πραγματικές ερωτήσεις: «τι έχω ανά κατηγορία»
+              και «τι λήγει πότε». */}
+          {(['list', 'timeline'] as ViewMode[]).map(v => (
+            <button key={v} type="button" title={v === 'timeline' ? 'Κατά προθεσμία' : 'Ανά κατηγορία'} onClick={() => { setViewMode(v); if (v !== 'list') exitSelectMode() }} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+              {v === 'list' ? 'Ανά κατηγορία' : 'Κατά προθεσμία'}
             </button>
           ))}
         </div>
-        {hasFilters && <button type="button" onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Καθαρισμός</button>}
+        {/* Ο καθαρισμός φίλτρων ήταν κόκκινος, σαν διαγραφή. Δεν σβήνει τίποτα:
+            επαναφέρει την όψη. */}
+        {hasFilters && <button type="button" onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Καθαρισμός φίλτρων</button>}
       </div>}
 
       {/* Category pills */}
@@ -2402,24 +2401,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           hint="Δοκίμασε διαφορετικά φίλτρα ή καθάρισε την αναζήτηση."
           action={<Btn variant="secondary" onClick={clearFilters}>Καθαρισμός φίλτρων</Btn>}
         />
-      ) : viewMode === 'board' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 16, alignItems: 'start' }}>
-          {STATUSES.map(s => (
-            <div key={s.value}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: T.radius.inner, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', marginBottom: 10 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.value === 'done' ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0 }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, fontFamily: T.font.sans }}>{s.label}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{boardCols[s.value as keyof typeof boardCols].length}</span>
-              </div>
-              {boardCols[s.value as keyof typeof boardCols].map(item => (
-                <BoardCard key={item.id} item={item} onToggle={() => toggleItem(item)} onEdit={() => { setEditItem(item); setShowAddModal(true) }} />
-              ))}
-              {boardCols[s.value as keyof typeof boardCols].length === 0 && (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: 12, borderRadius: T.radius.inner, border: '1px dashed var(--border-subtle)' }}>Καμία εργασία</div>
-              )}
-            </div>
-          ))}
-        </div>
       ) : viewMode === 'timeline' ? (
         <TimelineView items={filtered} onEdit={item => { setEditItem(item); setShowAddModal(true) }} />
       ) : (

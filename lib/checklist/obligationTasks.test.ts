@@ -3,12 +3,13 @@
 //   npx tsx lib/checklist/obligationTasks.test.ts
 import { readFileSync } from 'node:fs'
 import {
-  taxTaskDrafts, lawTaskDrafts, obligationDrafts, pendingDrafts, audiencesFor,
+  taxTaskDrafts, lawTaskDrafts, obligationDrafts, pendingDrafts, audiencesFor, taxTaskRef, TAX_REF_PREFIX,
   expenseFromReceipt, actualCostFromReceipt, costVariance,
   isTaxTaskRef, isLawTaskRef, isGeneratedRef, taxTaskRef,
   type ReceiptEntry,
 } from './obligationTasks'
 import { UPDATE_ACTIONS, actionableUpdatesFor, REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026'
+import { taxEventSource, TAX_SOURCE_PREFIX } from '@/lib/tax/greekTaxCalendar'
 import type { FieldContext } from '@/lib/property/fields'
 
 let passed = 0, failed = 0;
@@ -96,6 +97,20 @@ eq('επιχείρηση με δάνειο', audiencesFor(ctx({ status: 'rent_lo
   ok('περιέχει και φορολογικές και νομοθετικές', all.some(d => isTaxTaskRef(d.ref)) && all.some(d => isLawTaskRef(d.ref)));
   eq('χωρίς υπάρχουσες, όλες είναι νέες', pendingDrafts(all, []).length, all.length);
   eq('με όλες υπάρχουσες, καμία νέα', pendingDrafts(all, all.map(d => d.ref)).length, 0);
+
+  // ═══ ΤΟ ΚΛΕΙΔΙ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΣΕ ΔΥΟ ΠΙΝΑΚΕΣ, ΚΑΙ ΠΡΕΠΕΙ ΝΑ ΜΕΙΝΕΙ ═════════
+  // Την ίδια θεσμική προθεσμία τη γράφουν δύο οθόνες: το Ημερολόγιο σε
+  // `calendar_events.source` και οι Εκκρεμότητες σε `checklist_items` ως `ref`.
+  // Οι Εκκρεμότητες σταματούν να προτείνουν ό,τι έχει ήδη το ημερολόγιο — αλλά
+  // ΜΟΝΟ αν τα δύο κλειδιά γράφονται ολόγραφα ίδια. Αν αποκλίνουν (πρόθεμα που
+  // κόπηκε, μορφή που άλλαξε), η αντιπαραβολή αποτυγχάνει ΣΙΩΠΗΛΑ και ο χρήστης
+  // ξαναβλέπει τις ίδιες τέσσερις ημερομηνίες σε δύο οθόνες.
+  ok('το κλειδί της εκκρεμότητας και του γεγονότος είναι το ίδιο αλφαριθμητικό',
+     taxTaskRef('enfia_2026_1') === taxEventSource('enfia_2026_1'));
+  ok('τα δύο προθέματα δεν έχουν αποκλίνει', TAX_REF_PREFIX === TAX_SOURCE_PREFIX);
+  eq('γεγονός ημερολογίου αναγνωρίζεται ως υπάρχουσα υποχρέωση',
+     pendingDrafts(all, all.map(d => taxEventSource(d.ref.slice(TAX_REF_PREFIX.length))))
+       .filter(d => d.ref.startsWith(TAX_REF_PREFIX)).length, 0);
   eq('μερική επικάλυψη', pendingDrafts(all, [all[0].ref]).length, all.length - 1);
   ok('άγνωστο κλειδί δεν μπερδεύεται', pendingDrafts(all, [taxTaskRef('δεν-υπάρχει')]).length === all.length);
 }

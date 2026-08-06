@@ -1432,6 +1432,22 @@ export default function Dashboard() {
   // την παλιά οθόνη.
   const navSafe = navVisible(nav) ? nav : 'overview';
 
+  // ═══ ΤΟ «ΠΙΣΩ» ΣΗΜΑΙΝΕΙ «ΕΚΕΙ ΠΟΥ ΗΜΟΥΝ», ΟΧΙ «ΣΤΗΝ ΑΡΧΙΚΗ» ═══════════════
+  // Ο σύνδεσμος επιστροφής έγραφε πάντα «Επισκόπηση», όποιος κι αν ήταν ο δρόμος.
+  // Από τότε που οι Εκκρεμότητες ανοίγουν από το Ημερολόγιο, αυτό είναι λάθος
+  // δύο φορές: λέει ψέματα για το πού θα σε πάει, και σε βγάζει δύο βήματα πίσω
+  // από εκεί που ήσουν. Κρατάμε την προηγούμενη καρτέλα και επιστρέφουμε ΕΚΕΙ.
+  const prevNavRef = useRef<string>('overview');
+  const [backTo, setBackTo] = useState<string>('overview');
+  useEffect(() => {
+    setBackTo(prevNavRef.current);
+    prevNavRef.current = navSafe;
+  }, [navSafe]);
+  // Αν η προηγούμενη καρτέλα δεν ισχύει πια (άλλαξε κατάσταση ακινήτου) ή είναι
+  // η ίδια, η Επισκόπηση είναι ο ασφαλής προορισμός.
+  const backTab = backTo !== navSafe && navVisible(backTo) ? backTo : 'overview';
+  const backLabel = NAV_ITEMS.find(i => i.id === backTab)?.label ?? 'Επισκόπηση';
+
   // ── ΑΛΛΑΓΗ ΑΚΙΝΗΤΟΥ ΧΩΡΙΣ ΝΑ ΧΑΝΕΤΑΙ Η ΘΕΣΗ ────────────────────────────────
   //
   // Κάθε αλλαγή ακινήτου έκανε `setNav('overview')`. Ο ιδιοκτήτης με τρία ακίνητα
@@ -1720,12 +1736,12 @@ export default function Dashboard() {
                 σφάλμα σε μία να μην κρατά κλειδωμένες τις υπόλοιπες. */}
             <TabBoundary name={nav} key={nav}>
             <div className="app-content">
-              {['contacts','documents','checklist','inventory'].includes(navSafe) && (
-                <button onClick={()=>setNav('overview')} title="Πίσω στην Επισκόπηση" aria-label="Πίσω στην Επισκόπηση"
+              {['contacts','documents','checklist','inventory','calendar'].includes(navSafe) && (
+                <button onClick={()=>setNav(backTab)} title={`Πίσω: ${backLabel}`} aria-label={`Πίσω: ${backLabel}`}
                   style={{display:'inline-flex',alignItems:'center',gap:6,marginBottom:14,padding:'4px 4px 4px 0',border:'none',background:'transparent',color:'var(--text-tertiary)',fontFamily: T.font.sans,fontSize:13,fontWeight:600,cursor:'pointer'}}
                   onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}>
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                  Επισκόπηση
+                  {backLabel}
                 </button>
               )}
               {navSafe==='portfolio' && (isTabAllowed(ent,'portfolio')
