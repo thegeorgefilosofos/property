@@ -294,7 +294,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const [loadingSaved,setLoadingSaved] = useState(true)
 
   const market      = useMarketRates()
-  const {banks:liveBanks,loading:banksLoading,verifiedAt} = useBankRates()
+  const {banks:liveBanks,loading:banksLoading,verifiedAt,reload:reloadBanks} = useBankRates()
   const {programs:livePrograms }   = useLoanPrograms()
   const {isAdmin} = useIsAdmin()
 
@@ -717,9 +717,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
       {/* ═══ ΣΥΓΚΡΙΣΗ ΤΡΑΠΕΖΩΝ ═══ */}
       {openSec==='banks' && (<LensPanel title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}${banksStale?' · χρήζουν επαλήθευσης':''}`}>
-        {openSec==='banks'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          {isAdmin && <BankRatesAdmin onSaved={()=>{}}/>}
+          {/* Ο διαχειριστής αποθήκευε νέα επιτόκια και η οθόνη κρατούσε τα ΠΑΛΙΑ:
+              το onSaved ήταν κενό, οπότε ο πίνακας σύγκρισης, οι κάρτες τραπεζών
+              και η ημερομηνία επιβεβαίωσης έμεναν στις τιμές που είχε φέρει το
+              useBankRates κατά την προσάρτηση. Το BankRatesAdmin ξαναδιάβαζε
+              ΜΟΝΟ τον δικό του πίνακα, άρα ο διαχειριστής έβλεπε δύο διαφορετικά
+              επιτόκια για την ίδια τράπεζα στην ίδια οθόνη. Το hook επιστρέφει
+              πλέον `reload` και δένεται εδώ. */}
+          {isAdmin && <BankRatesAdmin onSaved={reloadBanks}/>}
           {banksStale&&(
             <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10}}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
@@ -856,12 +862,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </p>
           </MiniSection>
         </div>
-        )}
       </LensPanel>)}
 
       {/* ═══ ΚΡΑΤΙΚΑ ΠΡΟΓΡΑΜΜΑΤΑ ═══ */}
       {openSec==='programs' && (<LensPanel title="Κρατικά προγράμματα" subtitle={`${activePrograms.length} ενεργά · Σπίτι μου ΙΙ, Αναβαθμίζω, Εξοικονομώ`}>
-        {openSec==='programs'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={{padding:'2px 2px 4px'}}>
             <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
@@ -927,7 +931,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             />
           )}
         </div>
-        )}
       </LensPanel>)}
 
       {/* ═══ ΣΥΣΤΑΣΗ ΚΑΙ ΑΝΑΛΥΣΗ ═══ */}
@@ -940,7 +943,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           onSaveLoan={handleSaveLoan}
           onOpenCalculator={scrollToCalc}
         />
-        {openSec==='advisor'&&(()=>{
+        {(()=>{
         const cs = calcState
         const ltv = cs.propertyValue>0?(cs.loanAmount/cs.propertyValue)*100:0
         const totalCost = cs.monthly*cs.years*12

@@ -45,7 +45,13 @@ for (const t of ['pricing', 'roi', 'comparison']) {
 }
 ok('απογραφή με είδη → Απογραφή', isTabVisible('inventory', { signals: { hasInventory: true } }))
 ok('έγγραφα → Αρχείο', isTabVisible('documents', { signals: { hasDocuments: true } }))
-ok('επαφές → Επαφές', isTabVisible('contacts', { signals: { hasContacts: true } }))
+// ΟΙ ΕΠΑΦΕΣ ΔΕΝ ΚΡΙΝΟΝΤΑΙ ΕΔΩ, ΚΑΙ ΤΟ ΚΛΕΙΔΩΝΟΥΜΕ. Ο κανόνας `contacts` και το
+// σήμα `hasContacts` έφυγαν: το 'contacts' δεν είναι κωδικός των NAV_GROUPS
+// ούτε του NAV_ORDER, άρα κανένα από τα τρία σημεία που διαβάζουν την
+// αποκάλυψη δεν το ρωτούσε ποτέ — και το σήμα κόστιζε ένα COUNT σε κάθε
+// φόρτωση. Ο έλεγχος μένει ώστε να μην ξαναγραφτεί σιωπηλά.
+ok('οι Επαφές: καμία γνώμη από τη σταδιακή αποκάλυψη',
+  !isTabVisible('contacts', { signals: { hasLoan: true, hasInventory: true, hasDocuments: true, openTasks: 5, daysSinceSignup: 400 } }))
 ok('ανοιχτές εργασίες → Εκκρεμότητες', isTabVisible('checklist', { signals: { openTasks: 2 } }))
 ok('καμία εργασία → όχι Εκκρεμότητες', !isTabVisible('checklist', { signals: { openTasks: 0 } }))
 ok('7η ημέρα → Πρόγραμμα Πρόσκλησης', isTabVisible('referral', { signals: { daysSinceSignup: 7 } }))

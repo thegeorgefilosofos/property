@@ -53,11 +53,3 @@ export const TASK_STATUSES: readonly TaskLevel[] = [
   { value: 'done',        label: 'Ολοκληρώθηκε'  },
   { value: 'skipped',     label: 'Παραλείφθηκε'  },
 ] as const;
-
-const label = (list: readonly { label: string }[], key: string, get: (x: never) => string): string =>
-  (list as readonly Record<string, string>[]).find(x => get(x as never) === key)?.label ?? key;
-
-/** Η ετικέτα μιας κατηγορίας. Άγνωστος κωδικός επιστρέφεται αυτούσιος, ώστε να φαίνεται. */
-export const taskCategoryLabel = (id: string): string => label(TASK_CATEGORIES, id, (x: { id: string }) => x.id);
-export const taskPriorityLabel = (v: string): string => label(TASK_PRIORITIES, v, (x: { value: string }) => x.value);
-export const taskStatusLabel   = (v: string): string => label(TASK_STATUSES,   v, (x: { value: string }) => x.value);

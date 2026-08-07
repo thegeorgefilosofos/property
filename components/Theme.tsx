@@ -96,22 +96,14 @@ export function Card({ children, style, className, pad = 'sm', gap = true, eleva
   );
 }
 
-// ═══ Modal, ΜΙΑ επιφάνεια για κάθε παράθυρο ═══════════════════════════════
-// Πριν, κάθε modal έφτιαχνε μόνο του overlay/πλαίσιο: 7 διαφορετικές
-// διαφάνειες και 8 διαφορετικά radius, οπότε το app έμοιαζε με πολλά apps.
-// Εδώ ορίζεται μία φορά: ίδιο scrim, ίδιο radius, ίδια κεφαλίδα (εικονίδιο +
-// τίτλος + υπότιτλος + ×), ίδιο padding, ίδιο υποσέλιδο ενεργειών.
-// Κλείνει με κλικ στο φόντο ή Escape· το περιεχόμενο κυλά, header/footer όχι.
-export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width = 620, children, footer, footerInfo }: {
-  open: boolean; onClose: () => void;
-  /** Δέχεται και JSX (π.χ. τίτλος με <InfoHint>). Για τεχνολογίες υποβοήθησης δώσε ariaLabel. */
-  title: ReactNode; ariaLabel?: string; subtitle?: ReactNode; icon?: ReactNode;
-  width?: number; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
-}) {
+// ═══ useOverlayShell — η συμπεριφορά κάθε επικάλυψης, μία φορά ════════════
+// Escape, εστίαση μέσα και επιστροφή μετά, κλείδωμα κύλισης φόντου. Ήταν
+// γραμμένη στο Modal και ΘΑ ξαναγραφόταν στο SideSheet — δηλαδή θα φτιάχναμε
+// ακριβώς τη διπλοεγγραφή που ήρθαμε να σβήσουμε. Ζει εδώ, τη μοιράζονται.
+function useOverlayShell(open: boolean, onClose: () => void) {
   const panelRef = useRef<HTMLDivElement>(null);
   // Πού γυρίζει η εστίαση όταν κλείσει. Χωρίς αυτό, ο χρήστης πληκτρολογίου
-  // πέφτει στο <body> και ξαναρχίζει το Tab από την κορυφή της σελίδας — το
-  // ίδιο μοτίβο που λύνει ήδη σωστά το ConfirmDialog.
+  // πέφτει στο <body> και ξαναρχίζει το Tab από την κορυφή της σελίδας.
   const returnTo = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -122,13 +114,13 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
   }, [open, onClose]);
 
   // ── ΕΣΤΙΑΣΗ ΜΕΣΑ, ΚΑΙ ΕΠΙΣΤΡΟΦΗ ΜΕΤΑ ───────────────────────────────────
+  // Το ίδιο το πλαίσιο, όχι το πρώτο κουμπί: το πρώτο κουμπί κάθε παραθύρου
+  // είναι το «×», και μια εστίαση που ξεκινά από το κλείσιμο διαβάζεται σαν
+  // πρόταση να φύγεις. Με tabIndex -1 ο αναγνώστης οθόνης διαβάζει τον τίτλο
+  // και το Tab συνεχίζει από εκεί, μέσα στο παράθυρο.
   useEffect(() => {
     if (!open) return;
     returnTo.current = (document.activeElement as HTMLElement | null) ?? null;
-    // Το ίδιο το πλαίσιο, όχι το πρώτο κουμπί: το πρώτο κουμπί κάθε παραθύρου
-    // είναι το «×», και μια εστίαση που ξεκινά από το κλείσιμο διαβάζεται σαν
-    // πρόταση να φύγεις. Με tabIndex -1 ο αναγνώστης οθόνης διαβάζει τον τίτλο
-    // και το Tab συνεχίζει από εκεί, μέσα στο παράθυρο.
     panelRef.current?.focus();
     const back = returnTo.current;
     return () => { if (back?.isConnected) back.focus(); };
@@ -149,6 +141,76 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
     return () => { targets.forEach((el, i) => { el.style.overflow = prev[i]; }); };
   }, [open]);
 
+  return panelRef;
+}
+
+// ═══ SideSheet, ΜΙΑ επιφάνεια για κάθε ντοσιέ ═════════════════════════════
+// ΤΟ ΠΡΟΒΛΗΜΑ, ΜΕΤΡΗΜΕΝΟ. Τρία πλαϊνά ντοσιέ — επαφής, επισκέπτη, ενοικιαστή —
+// γραμμένα ξεχωριστά, με:
+//     πλάτος   460 / 720 / 980
+//     φόντο    --bg-base / --bg-surface / --bg-surface
+//     σκιά     -24px 0 80px rgba(...) / var(--elev-3) / var(--elev-3)
+//     κλείσιμο «×» πάνω δεξιά / «‹» πάνω αριστερά / κλικ στο φόντο μόνο
+// Τρία ίδια πράγματα που έμοιαζαν με τρεις διαφορετικές εφαρμογές — και μόνο
+// το ένα κλείδωνε την κύλιση του φόντου, μόνο το ένα άκουγε Escape.
+//
+// ΓΙΑΤΙ ΞΕΧΩΡΙΣΤΟ ΑΠΟ ΤΟ Modal: το ντοσιέ ΔΕΝ είναι παράθυρο. Είναι δεύτερη
+// στήλη με πλήρες ύψος, που ανοίγει δίπλα στη λίστα και κρατά το πλαίσιο του
+// «πού είμαι». Ένα κεντραρισμένο παράθυρο θα έκρυβε τη λίστα από την οποία
+// ήρθε ο χρήστης. Ίδια συμπεριφορά (useOverlayShell), άλλη γεωμετρία.
+export function SideSheet({ open, onClose, ariaLabel, width = 640, header, footer, children }: {
+  open: boolean; onClose: () => void;
+  /** Υποχρεωτικό: ο αναγνώστης οθόνης δεν βλέπει την κεφαλίδα σου. */
+  ariaLabel: string;
+  width?: number;
+  /** Η κεφαλίδα του ντοσιέ. Το κουμπί κλεισίματος μπαίνει από το ίδιο το SideSheet. */
+  header?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  const panelRef = useOverlayShell(open, onClose);
+  if (!open) return null;
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel}
+      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', justifyContent: 'flex-end', zIndex: 1000, overscrollBehavior: 'contain' }}>
+      <div ref={panelRef} tabIndex={-1} onClick={e => e.stopPropagation()}
+        style={{ width: `min(${width}px, 100%)`, height: '100%', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', display: 'flex', flexDirection: 'column', overflow: 'hidden', outline: 'none', overscrollBehavior: 'contain', animation: 'sheetIn 0.22s cubic-bezier(0.2,0,0,1) both' }}>
+        <style>{`@keyframes sheetIn{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
+          @media (prefers-reduced-motion: reduce){@keyframes sheetIn{from{opacity:1}to{opacity:1}}}`}</style>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>{header}</div>
+          <button onClick={onClose} aria-label="Κλείσιμο"
+            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 11, margin: -7, fontFamily: T.font.sans, flexShrink: 0 }}>×</button>
+        </div>
+
+        <div style={{ flex: 1, padding: T.sp.xxl, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: T.sp.xl }}>
+          {children}
+        </div>
+
+        {footer && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: T.sp.sm, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══ Modal, ΜΙΑ επιφάνεια για κάθε παράθυρο ═══════════════════════════════
+// Πριν, κάθε modal έφτιαχνε μόνο του overlay/πλαίσιο: 7 διαφορετικές
+// διαφάνειες και 8 διαφορετικά radius, οπότε το app έμοιαζε με πολλά apps.
+// Εδώ ορίζεται μία φορά: ίδιο scrim, ίδιο radius, ίδια κεφαλίδα (εικονίδιο +
+// τίτλος + υπότιτλος + ×), ίδιο padding, ίδιο υποσέλιδο ενεργειών.
+// Κλείνει με κλικ στο φόντο ή Escape· το περιεχόμενο κυλά, header/footer όχι.
+export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width = 620, children, footer, footerInfo }: {
+  open: boolean; onClose: () => void;
+  /** Δέχεται και JSX (π.χ. τίτλος με <InfoHint>). Για τεχνολογίες υποβοήθησης δώσε ariaLabel. */
+  title: ReactNode; ariaLabel?: string; subtitle?: ReactNode; icon?: ReactNode;
+  width?: number; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
+}) {
+  const panelRef = useOverlayShell(open, onClose);
   if (!open) return null;
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel ?? (typeof title === 'string' ? title : undefined)}

@@ -2,7 +2,7 @@
 // Fetches live market data from Supabase (which gets it from ECB + ΤτΕ daily)
 // Falls back to hardcoded values if DB unavailable
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export interface LiveMarketRates {
@@ -131,32 +131,36 @@ export function useMarketRates() {
   return data
 }
 
+// ΓΙΑΤΙ ΕΠΙΣΤΡΕΦΕΙ `reload`.
+// Ο διαχειριστής αποθήκευε νέα επιτόκια από το BankRatesAdmin και η οθόνη
+// κρατούσε τα ΠΑΛΙΑ: το hook φόρτωνε μία φορά, μέσα σε useEffect με κενές
+// εξαρτήσεις, και δεν έδινε τίποτα να ξανακληθεί. Το BankRatesAdmin ξαναδιάβαζε
+// ΜΟΝΟ τον δικό του πίνακα, οπότε στην ίδια οθόνη φαίνονταν δύο διαφορετικά
+// επιτόκια για την ίδια τράπεζα — το νέο στον πίνακα του διαχειριστή, το παλιό
+// στις κάρτες σύγκρισης από κάτω. Και η ημερομηνία «επιβεβαιώθηκε» έμενε πίσω.
 export function useBankRates() {
   const [banks, setBanks] = useState<LiveBankRate[]>([])
   const [loading, setLoading] = useState(true)
   const [verifiedAt, setVerifiedAt] = useState<string>('')
   const supabase = createClient()
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const { data } = await supabase
-          .from('bank_rates')
-          .select('*')
-          .eq('is_active', true)
-          .order('fixed_min', { ascending: true })
+  const reload = useCallback(async () => {
+    const { data } = await supabase
+      .from('bank_rates')
+      .select('*')
+      .eq('is_active', true)
+      .order('fixed_min', { ascending: true })
 
-        if (data?.length) {
-          setBanks(data)
-          setVerifiedAt(data[0].verified_at)
-        }
-      } catch {}
-      setLoading(false)
+    if (data?.length) {
+      setBanks(data)
+      setVerifiedAt(data[0].verified_at)
     }
-    load()
-  }, [])
+    setLoading(false)
+  }, [supabase])
 
-  return { banks, loading, verifiedAt }
+  useEffect(() => { reload().catch(() => setLoading(false)) }, [reload])
+
+  return { banks, loading, verifiedAt, reload }
 }
 
 // Ελέγχει αν ο συνδεδεμένος χρήστης ανήκει στη λίστα διαχειριστών (app_admins).

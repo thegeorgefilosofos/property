@@ -5,6 +5,7 @@ import {
   accountingSections, accountingScope, normType,
   type OwnerContext, type PropertyLike,
 } from './visibility';
+import { NAV_LABELS } from '../nav/labels';
 
 let pass = 0, fail = 0;
 function eq(name: string, got: unknown, want: unknown) {
@@ -225,6 +226,62 @@ eq('τίτλος για ιδιοχρησία', accountingScope(ctxOf([flat({ sta
     eq(`${s.key}: το isLet συμφωνεί με την ορατότητα των Αποδόσεων`,
        isLet(row as never), tabDecision('roi', ctx, row).visible);
   }
+}
+
+// ═══ ΑΓΝΩΣΤΟΣ ΚΩΔΙΚΟΣ ΚΑΡΤΕΛΑΣ: Η ΠΡΟΕΠΙΛΟΓΗ ΕΙΝΑΙ «ΟΧΙ» ══════════════════
+//
+// Η `tabDecision` τελείωνε με `visible: true` για ΟΤΙΔΗΠΟΤΕ δεν έπεφτε σε
+// κανόνα. Η καρτέλα όμως διαβάζεται από το hash της διεύθυνσης, και η
+// `parseNavHash` δέχεται ό,τι ταιριάζει στο /^[a-zA-Z0-9_-]+$/: το «#finance»
+// —ένα γράμμα λείπει από το «#finances»— περνούσε ως έγκυρη καρτέλα. Στη
+// σελίδα, το `navSafe` γυρίζει στην Επισκόπηση μόνο όταν ο έλεγχος πει όχι,
+// οπότε ο χρήστης έμενε σε οθόνη με κεφαλίδα και ΚΕΝΟ σώμα: κάθε συνθήκη
+// απόδοσης είναι σύγκριση ακριβούς κωδικού και καμία δεν ταίριαζε.
+const UNKNOWN_PREFIX = 'Δεν υπάρχει καρτέλα';
+const known = (id: string) =>
+  !tabDecision(id, ctxOf([flat()]), flat()).reason.startsWith(UNKNOWN_PREFIX);
+{
+  for (const junk of ['finance', 'Roi', 'roi ', 'tenants', 'ροι', '', 'ovreview', '__proto__', 'toString']) {
+    const d = tabDecision(junk, ctxOf([flat()]), flat());
+    ok(`«${junk}»: δεν φαίνεται`, !d.visible);
+    // ΚΑΙ ΔΕΝ ΑΝΑΣΤΑΙΝΕΤΑΙ ΜΕ «ΔΕΙΞΕ ΤΑ ΟΛΑ»: η πλοήγηση εμφανίζει αχνά ό,τι
+    // έχει `applies: true`. Με `true` εδώ, η τρύπα θα έκλεινε μόνο για όσους
+    // δεν έχουν πατήσει «Όλες οι καρτέλες».
+    ok(`«${junk}»: ούτε με «δείξε τα όλα»`, !d.applies);
+    ok(`«${junk}»: ο λόγος το λέει`, d.reason.startsWith(UNKNOWN_PREFIX));
+  }
+  eq('ο λόγος γράφει τον ίδιο τον κωδικό', tabDecision('finance', ctxOf([flat()]), flat()).reason,
+    'Δεν υπάρχει καρτέλα με κωδικό «finance».');
+  // Το φίλτρο καταλόγου τους κόβει κι αυτό, χωρίς δεύτερο κανόνα.
+  ok('το visibleTabs δεν περνά άγνωστο κωδικό',
+    !visibleTabs([...ALL, 'finance'], ctxOf([flat()]), flat()).includes('finance'));
+}
+
+// ΚΑΜΙΑ ΥΠΑΡΚΤΗ ΚΑΡΤΕΛΑ ΔΕΝ ΜΠΛΟΚΑΡΕΤΑΙ ΑΠΟ ΤΟΝ ΝΕΟ ΚΑΝΟΝΑ.
+// Ο έλεγχος δεν ρωτά αν φαίνονται —αυτό το κρίνουν οι συνθήκες παραπάνω και
+// σωστά κρύβουν τον Ενοικιαστή σε βραχυχρόνια— αλλά αν αναγνωρίζονται ως
+// υπαρκτές. Ο κατάλογος διαβάζεται από τη ΜΙΑ πηγή ονομάτων, ώστε καμία νέα
+// καρτέλα να μη χρειάζεται δεύτερη καταχώρηση.
+{
+  for (const id of Object.keys(NAV_LABELS)) ok(`η «${id}» αναγνωρίζεται`, known(id));
+  // Εκτός μενού, αλλά ζωντανοί κωδικοί: η Σύγκριση αποδίδεται μέσα στην Απόδοση
+  // και έχει δικό της κανόνα εδώ· οι Επαφές είναι ενότητα του Αρχείου και
+  // προορισμός του βοηθού.
+  ok('η Σύγκριση αναγνωρίζεται', known('comparison'));
+  ok('οι Επαφές αναγνωρίζονται', known('contacts'));
+  // ΨΕΥΔΟ-ΚΑΡΤΕΛΕΣ: ενέργειες, όχι οθόνες. Τις στέλνουν το βήμα ρύθμισης της
+  // ατζέντας (nav 'edit') και η μηχανή insights (κουμπί «Σάρωση»). Ισχύουν
+  // πάντα· αν τις έκοβε ο κανόνας, τα κουμπιά τους θα εξαφανίζονταν.
+  for (const id of ['scan', 'edit']) {
+    const d = tabDecision(id, ctxOf([flat()]), flat());
+    ok(`η ψευδο-καρτέλα «${id}» αναγνωρίζεται`, known(id));
+    ok(`η ψευδο-καρτέλα «${id}» φαίνεται`, d.visible);
+  }
+  // Ο νέος έλεγχος μπαίνει ΠΡΩΤΟΣ, αλλά δεν σκιάζει το δίχτυ του εξοπλισμού:
+  // καρτέλα με δεδομένα μέσα δεν κρύβεται ποτέ.
+  const ownUse = flat({ status_detail: 'own_use', rental_mode: null });
+  ok('ο εξοπλισμός με δεδομένα μένει ορατός',
+    tabDecision('inventory', ctxOf([ownUse]), ownUse, { hasInventory: true }).visible);
 }
 
 console.log(fail === 0 ? `✓ visibility: ${pass} έλεγχοι πέρασαν` : `✗ visibility: ${fail} απέτυχαν από ${pass + fail}`);

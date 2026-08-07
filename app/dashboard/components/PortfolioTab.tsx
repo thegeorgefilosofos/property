@@ -19,8 +19,15 @@ import { athensToday, daysUntil } from '@/lib/core/time';
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
 import { portfolioReturns } from '@/lib/market/portfolio';
 import { downloadCsv } from './exportCsv';
-import { reportHead, reportHeader, reportSection, reportDisclaimer, openReport, rEsc, rEur, rSigned } from './reportPdf';
 import { useReportBranding } from '@/lib/reportBranding';
+// Ο κατάλογος κατηγοριών/προτεραιοτήτων ζει σε ΜΙΑ πηγή. Εδώ ήταν γραμμένος
+// δεύτερη φορά με άλλες ετικέτες («Short-term / Airbnb» στα αγγλικά, «Νομικά /
+// ΑΑΔΕ» αντί «Νομικά και ΑΑΔΕ») και χωρίς δύο κατηγορίες (Ανακαίνιση, Αγορά
+// ακινήτου): εργασία γραμμένη από τις Εκκρεμότητες δεν είχε αντίστοιχη επιλογή εδώ.
+import { TASK_CATEGORIES, TASK_PRIORITIES } from '@/lib/checklist/taxonomy';
+// Τα σχήματα των γραμμών βγαίνουν από το παραγόμενο σχήμα της βάσης, όχι από
+// αντίγραφα στο χέρι: μετονομασία στήλης σπάει τη μεταγλώττιση εδώ, όχι την οθόνη.
+import type { ClientStaysRow, BillsRow, ExpensesRow, TenantsRow, ChecklistItemsRow, RentPaymentsRow, UserPropertiesRow, ClientsRow } from '@/lib/supabase/tables';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import { ShieldCheck, Building2 } from 'lucide-react';
@@ -28,7 +35,7 @@ import { notifyOk, notifyError } from '@/components/Toast';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 /** Δόση ενοικίου όπως την καταχωρεί ο ιδιοκτήτης — `paid` = εισπράχθηκε. */
-interface RentPay { property_id: string; amount: number | null; paid: boolean | null; period_month: number | null; }
+type RentPay = Pick<RentPaymentsRow, 'property_id' | 'amount' | 'paid' | 'period_month'>;
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
 
 const eur = (n: number) => fe(n, 0);
@@ -75,25 +82,17 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   // ο μεταγλωττιστής δεν τις έβλεπε πουθενά αλλού: ένα λάθος όνομα πεδίου
   // παρακάτω («nightlyRate» αντί «nightly_rate») θα έδινε αθόρυβα `undefined`,
   // δηλαδή μηδέν έσοδα σε ολόκληρο χαρτοφυλάκιο, χωρίς κανένα σφάλμα.
-  type StayRow = {
-    property_id: string | null; check_in: string | null; check_out: string | null;
-    total: number | null; nights: number | null; nightly_rate: number | null;
-    gross_guest_paid: number | null; platform_fee: number | null;
-    climate_levy: number | null; amount_basis: string | null;
-  };
-  type BillRow = {
-    id: string; name: string | null; amount: number | null; paid: boolean | null;
-    paid_at: string | null; created_at: string | null; due_date: string | null;
-    category: string | null; recurring: boolean | null; property_id: string | null;
-  };
-  type ExpRow = {
-    id: string; bill_id: string | null; amount: number | null; date: string;
-    description: string | null; category: string | null; paid: boolean | null;
-    expense_group: string | null; is_recurring: boolean | null;
-    store_vendor: string | null; property_id: string | null;
-  };
-  type TenantRow = { property_id: string | null; monthly_rent: number | null; updated_at: string | null };
-  type ChkRow = { property_id: string | null; status: string | null; priority: string | null; due_date: string | null };
+  // Ύστερα ήταν αντιγραμμένα στο χέρι — σωστά, αλλά ξένα προς τη βάση: αν
+  // μετονομαζόταν στήλη, το αντίγραφο έμενε «σωστό» και το λάθος έβγαινε στην
+  // οθόνη. Τώρα κόβονται από το παραγόμενο σχήμα με `Pick`, οπότε το όνομα κάθε
+  // στήλης ελέγχεται μία φορά, στη μεταγλώττιση.
+  type StayRow = Pick<ClientStaysRow, 'property_id' | 'check_in' | 'check_out' | 'total' | 'nights' | 'nightly_rate' | 'gross_guest_paid' | 'platform_fee' | 'climate_levy' | 'amount_basis'>;
+  type BillRow = Pick<BillsRow, 'id' | 'name' | 'amount' | 'paid' | 'paid_at' | 'created_at' | 'due_date' | 'category' | 'recurring' | 'property_id'>;
+  type ExpRow = Pick<ExpensesRow, 'id' | 'bill_id' | 'amount' | 'date' | 'description' | 'category' | 'paid' | 'expense_group' | 'is_recurring' | 'store_vendor' | 'property_id'>;
+  type TenantRow = Pick<TenantsRow, 'property_id' | 'monthly_rent' | 'updated_at'>;
+  type ChkRow = Pick<ChecklistItemsRow, 'property_id' | 'status' | 'priority' | 'due_date'>;
+  type PropOwnerRow = Pick<UserPropertiesRow, 'id' | 'client_id'>;
+  type ClientRow = Pick<ClientsRow, 'id' | 'full_name'>;
 
   const [stays, setStays] = useState<StayRow[]>([]);
   const [bills, setBills] = useState<BillRow[]>([]);
@@ -101,8 +100,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [rentPays, setRentPays] = useState<RentPay[]>([]);
   const [chk, setChk] = useState<ChkRow[]>([]);
-  const [propOwners, setPropOwners] = useState<{ id: string; client_id: string | null }[]>([]);
-  const [clients, setClients] = useState<{ id: string; full_name: string }[]>([]);
+  const [propOwners, setPropOwners] = useState<PropOwnerRow[]>([]);
+  const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortKey>('net');
   const [asc, setAsc] = useState(false);
@@ -135,7 +134,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       // της μακροχρόνιας, ίδια πηγή με ReportBuilder/OwnerSplit/Λογιστική.
       supabase.from('rent_payments').select('property_id,amount,paid,period_month').eq('user_id', userId).eq('period_year', year),
     ]);
-    setStays((st || []) as StayRow[]); setBills((bl || []) as BillRow[]); setExp((ex || []) as ExpRow[]); setTenants((tn || []) as TenantRow[]); setChk((ci || []) as ChkRow[]); setPropOwners(po || []); setClients(cl || []); setRentPays((rp || []) as RentPay[]); setLoading(false);
+    setStays((st || []) as StayRow[]); setBills((bl || []) as BillRow[]); setExp((ex || []) as ExpRow[]); setTenants((tn || []) as TenantRow[]); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays((rp || []) as RentPay[]); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year]);
 
@@ -164,12 +163,17 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     // και τι είχε δεδουλευτεί ως σήμερα (οι δόσεις παράγονται για όλο το έτος).
     const payByProp = new Map<string, { collected: number; dueToDate: number; rows: number }>();
     rentPays.forEach(rp => {
-      const acc = payByProp.get(rp.property_id) || { collected: 0, dueToDate: 0, rows: 0 };
+      // Δόση χωρίς ακίνητο δεν ανήκει σε κανένα ακίνητο. Ο τύπος της στήλης το
+      // λέει (`property_id` μπορεί να είναι κενό)· πριν καθόταν σε κλειδί «null»
+      // που δεν το ζητούσε ποτέ κανείς, δηλαδή αθροιζόταν στο πουθενά.
+      const pid = rp.property_id;
+      if (!pid) return;
+      const acc = payByProp.get(pid) || { collected: 0, dueToDate: 0, rows: 0 };
       const amt = Number(rp.amount) || 0;
       acc.rows += 1;
       if (rp.paid) acc.collected += amt;
       if ((Number(rp.period_month) || 0) <= monthsElapsed) acc.dueToDate += amt;
-      payByProp.set(rp.property_id, acc);
+      payByProp.set(pid, acc);
     });
 
     return properties.map(p => {
@@ -230,9 +234,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       // δεν έχει δαπάνη πίσω του — γεννιέται στην πληρωμή. Άρα το καθαρό, η
       // ετησιοποίηση ΚΑΙ η απόδοση ολόκληρου του χαρτοφυλακίου έβγαιναν
       // αισιόδοξες: έδειχναν τι πλήρωσες, όχι τι σου κοστίζει το ακίνητο.
+      // Χωρίς `as never[]`: οι δύο λίστες ταιριάζουν πλέον στα LedgerBill/
+      // LedgerExpense από μόνες τους. Το παλιό cast έσβηνε κάθε έλεγχο — αν το
+      // ledger ζητούσε αύριο άλλο πεδίο, εδώ δεν θα φαινόταν τίποτα.
       const { entries } = mergeLedger(
-        bills.filter(b => b.property_id === p.id) as never[],
-        exp.filter(e => e.property_id === p.id) as never[],
+        bills.filter(b => b.property_id === p.id),
+        exp.filter(e => e.property_id === p.id),
       );
       const ofYear = entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
       const expenses = ledgerTotal(ofYear);
@@ -391,27 +398,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     downloadCsv(`katastasi_${stmt.name.replace(/\s+/g, '_')}_${year}`, head, lines);
   };
 
-  const printStatement = () => {
-    if (!stmt) return;
-    const bodyRows = stmt.rows.map(r =>
-      `<tr><td>${rEsc(r.name)}</td><td class="n">${rEsc(rEur(r.revenue) + (r.revenueEstimated ? ' (εκτίμηση)' : ''))}</td><td class="n">${rEsc(rEur(r.expenses))}</td><td class="n">${rEsc(rSigned(r.net))}</td></tr>`
-    ).join('');
-    const note = estimateNote(stmt.rows);
-    const totalRow = `<tr class="result"><td>Σύνολο</td><td class="n">${rEsc(rEur(stmt.revenue))}</td><td class="n">${rEsc(rEur(stmt.expenses))}</td><td class="n">${rEsc(rSigned(stmt.net))}</td></tr>`;
-    const html =
-      reportHead(`Κατάσταση ιδιοκτήτη · ${stmt.name}`)
-      + `<body><div class="page">`
-      + reportHeader(branding, 'Κατάσταση ιδιοκτήτη', { rightNote: `Περίοδος αναφοράς: ${year}` })
-      + `<h1>${rEsc(stmt.name)}</h1>`
-      + `<div class="sub">Έσοδα &amp; δαπάνες ${rEsc(String(year))} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</div>`
-      + reportSection('Ανάλυση ανά ακίνητο')
-      + `<table><thead><tr><th>Ακίνητο</th><th class="n">Έσοδα</th><th class="n">Δαπάνες</th><th class="n">Καθαρό</th></tr></thead><tbody>${bodyRows}${totalRow}</tbody></table>`
-      + (note ? `<div class="note">${rEsc(note)}</div>` : '')
-      + reportDisclaimer('Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.', branding)
-      + `</div></body></html>`;
-    openReport(html);
-  };
-
+  // Η ΚΑΤΑΣΤΑΣΗ ΙΔΙΟΚΤΗΤΗ ΧΤΙΖΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΜΕ ΔΥΟ ΚΟΥΜΠΙΑ ΔΙΠΛΑ-ΔΙΠΛΑ.
+  // Το «Εκτύπωση / PDF» έβγαζε HTML στο παράθυρο εκτύπωσης: ίδιος πίνακας, ίδιο
+  // σημείωμα εκτίμησης, ίδια δήλωση αποποίησης — αλλά χωρίς αριθμό εγγράφου και
+  // χωρίς QR, δηλαδή χαρτί που κανείς δεν μπορεί να επαληθεύσει. Ο ιδιοκτήτης
+  // διάλεγε ανάμεσα σε δύο κουμπιά για το ίδιο έγγραφο, με μόνη διαφορά ότι το
+  // ένα παρήγαγε κάτι λιγότερο. Έμεινε το επίσημο· τίποτα δεν χάθηκε.
   // Επίσημο true-PDF της κατάστασης ιδιοκτήτη: αληθινό vector PDF με αριθμό
   // εγγράφου και QR επαλήθευσης, καταχωρημένο στο μητρώο (/verify/<id>).
   const officialStatement = async () => {
@@ -694,7 +686,6 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-                  <Btn variant="secondary" onClick={printStatement}>Εκτύπωση / PDF</Btn>
                   <Btn variant="secondary" onClick={officialStatement} disabled={genOfficial}><ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}</Btn>
                   {/* Λεγόταν κι αυτό «Εξαγωγή CSV», όπως το κουμπί της κεφαλίδας
                       τριάντα εικονοστοιχεία πιο πάνω — δύο αρχεία με το ίδιο όνομα
@@ -711,22 +702,6 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     </div>
   );
 }
-
-const TASK_CATEGORIES = [
-  { id: 'maintenance', label: 'Συντήρηση' },
-  { id: 'legal', label: 'Νομικά / ΑΑΔΕ' },
-  { id: 'financial', label: 'Οικονομικά' },
-  { id: 'checkin', label: 'Παράδοση Ακινήτου' },
-  { id: 'checkout', label: 'Αποχώρηση Ενοικιαστή' },
-  { id: 'airbnb', label: 'Short-term / Airbnb' },
-  { id: 'other', label: 'Άλλο' },
-];
-const TASK_PRIORITIES = [
-  { value: 'normal', label: 'Κανονική' },
-  { value: 'high', label: 'Υψηλή' },
-  { value: 'critical', label: 'Κρίσιμο' },
-  { value: 'low', label: 'Χαμηλή' },
-];
 
 // Ήσυχο checkbox επιλογής (ίδιο ύφος με το TabChecklist)
 function SelectBox({ checked, indeterminate, onChange, label }: { checked: boolean; indeterminate?: boolean; onChange: () => void; label: string }) {

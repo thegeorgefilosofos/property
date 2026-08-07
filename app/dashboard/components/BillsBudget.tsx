@@ -292,7 +292,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [strPropCount, setStrPropCount] = useState(0);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
-  const [rtOk,         setRtOk]         = useState(false);
   const [hoverCat,     setHoverCat]     = useState<string | null>(null);
   const [delCatHover,  setDelCatHover]  = useState<string | null>(null);
   const [newCatName,   setNewCatName]   = useState('');
@@ -647,7 +646,13 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills_settings', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'expenses', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
-      .subscribe(s => { if (mounted) setRtOk(s === 'SUBSCRIBED'); });
+      // Η κατάσταση `rtOk` κατέγραφε αν το κανάλι πραγματικού χρόνου συνδέθηκε,
+      // αλλά καμία γραμμή σε ολόκληρο το repo δεν τη διάβαζε (0 αναγνώσεις σε
+      // 1.755 γραμμές). Πλήρωνε ένα setState — άρα μία περιττή απόδοση όλου του
+      // δέντρου του Προϋπολογισμού — σε κάθε αλλαγή κατάστασης του καναλιού, και
+      // το κανάλι αλλάζει κατάσταση σε κάθε επανασύνδεση δικτύου. Καμία ένδειξη
+      // στην οθόνη δεν άλλαζε. Διαγράφηκε αντί να κρυφτεί.
+      .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [propertyId, loadData]);
 
@@ -1025,11 +1030,19 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   };
 
   // Ενιαίος διακόπτης ρύθμισης (ίδιο idiom με τα toggles της εφαρμογής).
+  // ΤΙ ΕΣΠΑΣΕ. Η κάρτα είναι η ίδια <button> που γυρίζει τη ρύθμιση, αλλά ο
+  // βοηθός δεν είχε ΚΑΘΟΛΟΥ σημασιολογία διακόπτη: ούτε role="switch" ούτε
+  // aria-checked. Και οι δύο ρυθμίσεις («Ειδοποίηση σε υπέρβαση», «Μεταφορά
+  // υπολοίπου») ανακοινώνονταν ως απλά κουμπιά, δηλαδή ο αναγνώστης οθόνης δεν
+  // έλεγε ποτέ αν είναι ανοιχτές. Ο δείκτης βαφόταν με ωμό #fff και η σκιά με
+  // ωμό rgba — δύο παραβάσεις της παλέτας μέσα σε τρεις γραμμές. Δεν γίνεται
+  // κοινό `Toggle`: το `Toggle` είναι <button>, και <button> μέσα σε <button>
+  // είναι άκυρο HTML. Ευθυγραμμίστηκε αντ' αυτού με το `Toggle size="sm"`.
   const settingToggle = (settingKey: string, on: boolean, title: string, desc: string) => (
-    <button onClick={() => updateBudget(settingKey, on ? 'false' : 'true')}
+    <button type="button" role="switch" aria-checked={on} onClick={() => updateBudget(settingKey, on ? 'false' : 'true')}
       style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-elevated)', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
-      <span style={{ position: 'relative', width: 38, height: 22, borderRadius: 10, background: on ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.2s' }}>
-        <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}/>
+      <span style={{ position: 'relative', width: 36, height: 20, borderRadius: 20, background: on ? 'var(--accent)' : 'transparent', border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, flexShrink: 0, transition: 'background 0.2s, border-color 0.2s' }}>
+        <span style={{ display: 'block', width: on ? 16 : 12, height: on ? 16 : 12, borderRadius: '50%', background: on ? 'var(--accent-text)' : 'var(--text-secondary)', position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: on ? 'calc(100% - 16px - 2px)' : 2, transition: `all 0.2s ${T.ease.standard}`, boxShadow: 'var(--elev-1)' }}/>
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
@@ -1679,11 +1692,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: isEx && !partial ? 'line-through' : 'none', textDecorationColor: 'var(--border-default)' }}>{feAuto(full)}</span>
                         {partial && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>μετρά {feAuto(cnt)}</span>}
                       </span>
-                      {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε */}
+                      {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε.
+                          ΓΙΑΤΙ ΜΕΝΕΙ ΧΕΙΡΟΓΡΑΦΟΣ. Το κοινό `Toggle` δένει την
+                          aria-label με το ΟΡΑΤΟ κείμενο: `aria-label={label}` και
+                          `{label && <span>{label}</span>}` στο ίδιο prop. Εδώ ο
+                          διακόπτης επαναλαμβάνεται μία φορά ανά εγγραφή του μήνα
+                          (δεκάδες γραμμές), οπότε το κοινό component θα τύπωνε
+                          «Μετρά στον προϋπολογισμό» δίπλα σε ΚΑΘΕ γραμμή για να
+                          κρατήσει την ετικέτα προσβασιμότητας. Η γεωμετρία και τα
+                          χρώματα ευθυγραμμίστηκαν με το `Toggle size="sm"`
+                          (36×20, δείκτης 12/16, περίγραμμα 2) ώστε να είναι
+                          οπτικά ο ΙΔΙΟΣ διακόπτης· έφευγε πριν με ωμό #fff στον
+                          δείκτη και ωμό rgba στη σκιά. */}
                       <button type="button" role="switch" aria-checked={!isEx} aria-label="Μετρά στον προϋπολογισμό"
                         onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); notify(`Εξαιρέθηκε «${it.label}»`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __excluded: snap ?? '{}' }) } }); } }}
-                        style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: isEx ? 'var(--border-default)' : 'var(--accent)', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s' }}>
-                        <span style={{ position: 'absolute', top: 2, left: isEx ? 2 : 18, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }} />
+                        style={{ position: 'relative', width: 36, height: 20, borderRadius: 20, background: isEx ? 'transparent' : 'var(--accent)', border: `2px solid ${isEx ? 'var(--border-default)' : 'var(--accent)'}`, cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s, border-color 0.2s' }}>
+                        <span style={{ display: 'block', width: isEx ? 12 : 16, height: isEx ? 12 : 16, borderRadius: '50%', background: isEx ? 'var(--text-secondary)' : 'var(--accent-text)', position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: isEx ? 2 : 'calc(100% - 16px - 2px)', transition: `all 0.2s ${T.ease.standard}`, boxShadow: 'var(--elev-1)' }} />
                       </button>
                     </div>
                     {isEx && (

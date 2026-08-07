@@ -1,15 +1,176 @@
 'use client'
-import { useCallback, useRef, useState } from 'react'
-import { T } from '@/components/Theme'
+import { useRef, useState, type ReactNode } from 'react'
+import { T, TT, Spinner } from '@/components/Theme'
 import { rankLoans, type UserLoanNeeds, type BankInput } from '@/lib/loans/recommend'
 import { fmtEur, fmtPct, type SavedLoan } from './TabLoanData'
+import { MAX_SCAN_MB } from './scanDoc'
 import { athensToday } from '@/lib/core/time';
 
-// ── Σάρωση εγγράφου/φωτογραφίας δανειολήπτη → εξαγωγή πεδίων → πρόταση δανείου ──
-// Ανεβάζεις φωτογραφία ή αρχείο με τις επιθυμίες ενός υποψήφιου δανειολήπτη (ή
-// υπάρχον δάνειο)· το AI εξάγει τα στοιχεία, τρέχει τον πραγματικό recommender
-// και δίνει άμεση, τεκμηριωμένη πρόταση. Χωρίς διπλότυπα: ίδιο /api/anthropic
-// pattern με τη σάρωση εγγράφων, ίδιος engine με το tab.
+// ═══════════════════════════════════════════════════════════════════════════
+// ΚΟΙΝΗ ΜΗΧΑΝΗ ΣΑΡΩΣΗΣ ΤΗΣ ΣΥΜΒΟΥΛΕΥΤΙΚΗΣ ΔΑΝΕΙΟΥ
+//
+// ΤΙ ΕΣΠΑΣΕ. Στην ίδια ενότητα στέκονταν δύο κουμπιά ανεβάσματος με το ΙΔΙΟ
+// εικονίδιο φωτογραφικής και σχεδόν ίδιο κείμενο («Ανέβασε αρχείο» εδώ,
+// «Ανέβασε προσφορά» στο EsisScanPanel). Διαβάζουν όμως ΔΙΑΦΟΡΕΤΙΚΟ χαρτί και
+// βγάζουν διαφορετικό αποτέλεσμα, οπότε δεν ενώθηκαν: ξεχωρίστηκαν με τίτλο,
+// περιγραφή και εικονίδιο, και μοιράζονται από εδώ ό,τι ήταν κοινό.
+//
+// ΤΙ ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΔΥΟ ΦΟΡΕΣ: 34 σχεδόν πανομοιότυπες γραμμές ανά αρχείο
+// (FileReader, όριο 10 MB, κλήση /api/anthropic με claude-sonnet-5, ξεφλούδισμα
+// των ``` από το JSON, ο μετατροπέας αριθμού `num`, το κουτί σφάλματος). Τα δύο
+// αντίγραφα είχαν ΗΔΗ αποκλίνει και το ένα ήταν χαλασμένο: το LoanDocScan
+// έγραφε στο ίδιο state άλλοτε κωδικό («key», «service») και άλλοτε ολόκληρη
+// ελληνική πρόταση («Το αρχείο είναι πολύ μεγάλο…»), ενώ η απόδοση συνέκρινε
+// ΜΟΝΟ κωδικούς. Αποτέλεσμα: για αρχείο 12 MB ή για λάθος τύπο αρχείου ο
+// χρήστης έβλεπε «Δεν διαβάστηκε καθαρά το αρχείο» — δύο μηνύματα γραμμένα και
+// νεκρά. Εδώ ο κωδικός σφάλματος είναι ένας τύπος και το κείμενο ένα.
+//
+// ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΕ ΔΙΚΟ ΤΟΥ ΑΡΧΕΙΟ: η ανάθεση περιόριζε ρητά την αλλαγή σε
+// αυτά τα δύο components. Ο κώδικας ζει στο πάνω-πάνω τμήμα του αρχείου που
+// αποδίδεται πάντα, και το EsisScanPanel (μόνο σε λειτουργία επαγγελματία) τον
+// εισάγει — όχι το αντίστροφο, ώστε η βασική οθόνη να μη σέρνει το ESIS.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ΤΟ ΟΡΙΟ ΜΕΓΕΘΟΥΣ ΓΡΑΦΤΗΚΕ ΓΙΑ ΤΡΙΤΗ ΦΟΡΑ: `MAX_SCAN_MB = 10` υπάρχει ήδη στο
+// scanDoc.ts και το διαβάζουν τέσσερα σημεία (scanDocument, scanPhoto, scanFile,
+// TabDocuments). Ένας δεύτερος ορισμός εδώ σημαίνει ότι μια αλλαγή του ορίου
+// αφήνει σιωπηλά τη μία από τις δύο πλευρές στα 10 MB — και ο χρήστης βλέπει
+// «όριο 10 MB» στο Αρχείο και άλλο όριο στο Δάνειο. Έρχεται από εκεί· δεν
+// κοστίζει πακέτο, το scanDoc είναι ήδη στο ίδιο chunk (η page.tsx εισάγει
+// στατικά και το Αρχείο και το Δάνειο).
+
+/**
+ * Ο κωδικός σφάλματος της σάρωσης· το κενό σημαίνει «κανένα σφάλμα».
+ * Λέγεται DocScanError και όχι ScanError επειδή το scanDoc.ts εξάγει ΗΔΗ
+ * `ScanError` με ΑΛΛΑ μέλη ('key_missing' αντί 'key', χωρίς 'type'). Δύο
+ * ομώνυμοι τύποι στον ίδιο φάκελο διαλέγονται λάθος από το αυτόματο import και
+ * το λάθος φαίνεται μόνο όταν λείψει ένα κλειδί από πίνακα κειμένων.
+ */
+export type DocScanError = '' | 'key' | 'service' | 'unreadable' | 'type' | 'big'
+
+const SCAN_ERROR_TEXT: Record<Exclude<DocScanError, ''>, string> = {
+  key: 'Η υπηρεσία ανάλυσης δεν είναι διαθέσιμη αυτή τη στιγμή.',
+  service: 'Προσωρινό πρόβλημα στην υπηρεσία. Δοκίμασε ξανά.',
+  unreadable: 'Δεν διαβάστηκε καθαρά το αρχείο. Δοκίμασε πιο ευκρινή φωτογραφία ή αρχείο PDF.',
+  type: 'Δεκτά είναι μόνο αρχεία εικόνας ή αρχεία PDF.',
+  big: `Το αρχείο ξεπερνά το όριο των ${MAX_SCAN_MB} MB.`,
+}
+
+/**
+ * Ανθεκτική μετατροπή αριθμού από την απάντηση του μοντέλου: αφαιρεί σύμβολα,
+ * τελείες χιλιάδων και δέχεται το ελληνικό κόμμα ως υποδιαστολή.
+ */
+export const scanNum = (v: unknown): number | undefined => {
+  if (v == null) return undefined
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^\d.,-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'))
+  return isFinite(n) ? n : undefined
+}
+
+/** Το κουτί σφάλματος σάρωσης. Το `hint` λέει τι μπορεί να κάνει ο χρήστης αντ' αυτού. */
+export function ScanErrorNote({ error, hint }: { error: DocScanError; hint?: string }) {
+  if (!error) return null
+  return (
+    <div style={{ padding: '11px 14px', background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: 10 }}>
+      <p style={{ fontSize: 13, color: 'var(--negative)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+        {SCAN_ERROR_TEXT[error]}{hint ? ` ${hint}` : ''}
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Η γραμμή ανεβάσματος: τι διαβάζει το εργαλείο (περιγραφή), με ποιο εικονίδιο
+ * ξεχωρίζει και τι λέει το κουμπί. Το κρυφό πεδίο αρχείου ζει εδώ, ώστε καμία
+ * οθόνη να μη χειρίζεται δικό της ref.
+ */
+export function ScanUploadRow({ title, description, action, icon, scanning, onFile }: {
+  title?: string
+  description: string
+  action: string
+  icon: ReactNode
+  scanning: boolean
+  onFile: (f: File) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+      <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.currentTarget.value = '' }} />
+      <div style={{ flex: 1, minWidth: 240 }}>
+        {title && <p style={{ ...TT.h2, marginBottom: 4 }}>{title}</p>}
+        <p style={{ ...TT.bodySm, color: 'var(--text-tertiary)', lineHeight: 1.55 }}>{description}</p>
+      </div>
+      <button onClick={() => inputRef.current?.click()} disabled={scanning}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: T.h.lg, borderRadius: T.radius.inner, background: 'var(--accent)', border: '1px solid transparent', color: 'var(--accent-text)', fontSize: 13, fontFamily: T.font.sans, fontWeight: 600, cursor: scanning ? 'wait' : 'pointer', flexShrink: 0 }}>
+        {icon}
+        {scanning ? 'Ανάλυση…' : action}
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Η μία σάρωση: έλεγχος τύπου και μεγέθους, ανάγνωση αρχείου, κλήση του
+ * μοντέλου με το prompt της κάθε οθόνης, αποκωδικοποίηση JSON. Ο καλών παίρνει
+ * πίσω μόνο κατάσταση φόρτωσης, σφάλμα και τον χειριστή αρχείου.
+ */
+export function useDocScan<T>(opts: {
+  /** Το system prompt της οθόνης — τι έγγραφο περιμένει και τι πεδία βγάζει. */
+  system: string
+  /** Η οδηγία που συνοδεύει το αρχείο. */
+  ask: string
+  /** Καθάρισμα προηγούμενου αποτελέσματος, πριν ξεκινήσει η νέα σάρωση. */
+  onStart?: () => void
+  onResult: (parsed: T) => void
+}) {
+  const [scanning, setScanning] = useState(false)
+  const [error, setError] = useState<DocScanError>('')
+
+  // Ο χειριστής ΔΕΝ απομνημονεύεται και δεν κρατά ref με τις επιλογές: φτιάχνεται
+  // ξανά σε κάθε απόδοση, οπότε βλέπει πάντα τα τρέχοντα `system`/`onResult`
+  // χωρίς ο καλών να χρειάζεται σταθερές αναφορές συναρτήσεων. Δεν υπάρχει
+  // memo στη διαδρομή του, άρα δεν κοστίζει καμία επιπλέον απόδοση.
+  const scanFile = (file: File) => {
+    const mime = file.type
+    if (!mime.startsWith('image/') && mime !== 'application/pdf') { setError('type'); return }
+    if (file.size > MAX_SCAN_MB * 1024 * 1024) { setError('big'); return }
+    setError(''); setScanning(true); opts.onStart?.()
+    const reader = new FileReader()
+    reader.onerror = () => { setError('unreadable'); setScanning(false) }
+    reader.onload = async () => {
+      const base64 = String(reader.result || '').split(',')[1] || ''
+      const part = mime === 'application/pdf'
+        ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+        : { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } }
+      try {
+        const res = await fetch('/api/anthropic', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-5', max_tokens: 1200, system: opts.system,
+            messages: [{ role: 'user', content: [part, { type: 'text', text: opts.ask }] }],
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok || data?.error) { setError(String(data?.error || '').includes('API_KEY') ? 'key' : 'service'); return }
+        const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}'
+        opts.onResult(JSON.parse(text.replace(/```json?|```/g, '').trim()) as T)
+      } catch { setError('unreadable') }
+      finally { setScanning(false) }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  return { scanning, error, scanFile }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΠΡΟΦΙΛ ΔΑΝΕΙΟΛΗΠΤΗ ΑΠΟ ΕΓΓΡΑΦΟ → ΚΑΤΑΤΑΞΗ ΤΡΑΠΕΖΩΝ
+//
+// Δέχεται τις ΑΝΑΓΚΕΣ του υποψήφιου δανειολήπτη (ποσό, εισόδημα, ακίνητο,
+// οικογενειακή κατάσταση) ή ένα υπάρχον δάνειο, τρέχει τον recommender και
+// γράφει: στον Υπολογιστή (onApply) και στα αποθηκευμένα δάνεια (onSaveLoan).
+// Δεν διαβάζει προσφορά τράπεζας — αυτό το κάνει το EsisScanPanel.
+// ═══════════════════════════════════════════════════════════════════════════
 
 const PURPOSES = ['purchase','first_home','renovation','energy','investment','auction','construction','commercial','land','refinance'] as const
 type Purpose = typeof PURPOSES[number]
@@ -44,12 +205,6 @@ type Extracted = {
   property_sqm?: number; bank?: string; current_rate?: number; summary?: string; confidence?: number
 }
 
-const num = (v: unknown): number | undefined => {
-  if (v == null) return undefined
-  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^\d.,-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'))
-  return isFinite(n) ? n : undefined
-}
-
 export interface AppliedLoan { v: number; loanAmount?: number; propValue?: number; rate?: number; years?: number; rateType?: 'fixed'|'variable'|'mixed'; loanType?: string; income?: number; marital?: 'single'|'married'; children?: number }
 
 export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onApply, onSaveLoan, onOpenCalculator }: {
@@ -61,49 +216,24 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
   onSaveLoan?: (loan: Partial<SavedLoan>) => Promise<void> | void
   onOpenCalculator?: () => void
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [scanning, setScanning] = useState(false)
-  const [error, setError] = useState('')
   const [ex, setEx] = useState<Extracted | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const scan = async (base64: string, mime: string) => {
-    setScanning(true); setError(''); setEx(null)
-    const isPdf = mime === 'application/pdf'
-    const part = isPdf
-      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
-      : { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } }
-    try {
-      const res = await fetch('/api/anthropic', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-5', max_tokens: 1200, system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: [part, { type: 'text', text: 'Εξήγαγε τα στοιχεία δανείου με ακρίβεια και επίστρεψε μόνο το JSON.' }] }],
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok || data?.error) { setError(String(data?.error || '').includes('API_KEY') ? 'key' : 'service'); return }
-      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}'
-      const parsed = JSON.parse(text.replace(/```json?|```/g, '').trim()) as Extracted
+  const { scanning, error, scanFile } = useDocScan<Extracted>({
+    system: SYSTEM_PROMPT,
+    ask: 'Εξήγαγε τα στοιχεία δανείου με ακρίβεια και επίστρεψε μόνο το JSON.',
+    onStart: () => setEx(null),
+    onResult: parsed => {
       // Ντετερμινιστική εξομάλυνση αριθμών (το AI μπορεί να δώσει strings/σύμβολα).
       ;(['loan_amount','property_value','years','age','income_annual','children','property_year_built','property_sqm','current_rate','confidence'] as const)
         // Τα κλειδιά είναι όλα αριθμητικά πεδία του `Extracted`, οπότε η γραφή
         // είναι έγκυρη· ο μεταγλωττιστής όμως δεν συνδέει το κλειδί με τον τύπο
         // της τιμής σε δυναμική ανάθεση. Η μετατροπή περιορίζεται στα αριθμητικά
         // πεδία και δεν ανοίγει ολόκληρο το αντικείμενο, όπως έκανε το `any`.
-        .forEach(k => { if (parsed[k] != null) (parsed as Record<typeof k, number | undefined>)[k] = num(parsed[k]) })
+        .forEach(k => { if (parsed[k] != null) (parsed as Record<typeof k, number | undefined>)[k] = scanNum(parsed[k]) })
       setEx(parsed)
-    } catch { setError('unreadable') }
-    finally { setScanning(false) }
-  }
-
-  const loadFile = useCallback((f: File) => {
-    if (!f.type.startsWith('image/') && f.type !== 'application/pdf') { setError('Υποστηριζόμενα: JPG, PNG, PDF'); return }
-    if (f.size > 10 * 1024 * 1024) { setError('Το αρχείο είναι πολύ μεγάλο (όριο 10MB).'); return }
-    const reader = new FileReader()
-    reader.onload = e => { const dataUrl = e.target?.result as string; scan(dataUrl.split(',')[1], f.type || 'image/jpeg') }
-    reader.readAsDataURL(f)
-  }, [])
+    },
+  })
 
   // Χτίζει τις ανάγκες δανειολήπτη από τα εξαγόμενα, με ασφαλείς προεπιλογές.
   const needs: UserLoanNeeds | null = ex && (ex.loan_amount || ex.property_value) ? {
@@ -150,7 +280,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
         years: needs.years, rate_type: needs.ratePreference === 'variable' ? 'variable' : 'fixed',
         property_value: needs.propertyValue, loan_type: needs.purpose,
         start_date: athensToday(), status: 'active',
-        notes: `Από σάρωση εγγράφου${ex?.summary ? ` · ${ex.summary}` : ''}`,
+        notes: `Από σάρωση στοιχείων δανειολήπτη${ex?.summary ? ` · ${ex.summary}` : ''}`,
       })
     } finally { setSaving(false) }
   }
@@ -167,36 +297,21 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
     ex.bank ? { k: 'Τράπεζα', v: ex.bank } : null,
   ].filter(Boolean) as { k: string; v: string }[] : []
 
-  const font = "'Inter',sans-serif"
+  const font = T.font.sans
   return (
-    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '16px 20px', boxShadow: 'var(--shadow-sm)' }}>
-      <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) loadFile(f); e.currentTarget.value = '' }} />
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: ex || scanning ? 16 : 0 }}>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontFamily: font, letterSpacing: '-0.01em' }}>Ανάλυση από έγγραφο ή φωτογραφία</p>
-          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: font, lineHeight: 1.5 }}>Ανέβασε τις επιθυμίες ενός υποψήφιου δανειολήπτη ή ένα υπάρχον δάνειο· το εργαλείο εξάγει τα στοιχεία και προτείνει.</p>
-        </div>
-        <button onClick={() => inputRef.current?.click()} disabled={scanning} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontFamily: font, fontWeight: 600, cursor: scanning ? 'wait' : 'pointer', flexShrink: 0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
-          {scanning ? 'Ανάλυση…' : 'Ανέβασε αρχείο'}
-        </button>
-      </div>
+    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '16px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <ScanUploadRow
+        title="Εύρεση δανείου από τα στοιχεία του δανειολήπτη"
+        description="Ανέβασε έγγραφο ή φωτογραφία με τις ανάγκες ενός υποψήφιου δανειολήπτη (ποσό, εισόδημα, ακίνητο, οικογενειακή κατάσταση) ή ένα υπάρχον δάνειο. Το εργαλείο εξάγει τα στοιχεία και κατατάσσει τις τράπεζες."
+        action="Ανέβασε στοιχεία δανειολήπτη"
+        scanning={scanning}
+        onFile={scanFile}
+        icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>}
+      />
 
-      {error && (
-        <div style={{ padding: '11px 14px', background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: 10 }}>
-          <p style={{ fontSize: 13, color: 'var(--negative)', fontFamily: font, lineHeight: 1.5 }}>
-            {error === 'key' ? 'Η υπηρεσία ανάλυσης δεν είναι διαθέσιμη αυτή τη στιγμή.' : error === 'service' ? 'Προσωρινό πρόβλημα στην υπηρεσία. Δοκίμασε ξανά.' : 'Δεν διαβάστηκε καθαρά το αρχείο. Δοκίμασε πιο ευκρινή φωτογραφία ή PDF.'}
-          </p>
-        </div>
-      )}
+      <ScanErrorNote error={error} />
 
-      {scanning && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
-          <span style={{ width: 16, height: 16, border: '2px solid var(--border-default)', borderTopColor: 'var(--accent)', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: font }}>Ανάγνωση και ανάλυση εγγράφου…</span>
-          <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
-        </div>
-      )}
+      {scanning && <Spinner size={18} label="Ανάγνωση και ανάλυση εγγράφου…" />}
 
       {ex && !scanning && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -204,7 +319,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
 
           {chips.length > 0 && (
             <div>
-              <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: font, marginBottom: 8 }}>Στοιχεία που εντοπίστηκαν</p>
+              <p style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>Στοιχεία που εντοπίστηκαν</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {chips.map(c => (
                   <span key={c.k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, padding: '6px 11px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
@@ -220,7 +335,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
             <div style={{ padding: '16px 18px', background: 'var(--accent-dim)', border: '1px solid var(--border-accent)', borderRadius: 14 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, color: 'var(--accent)', fontFamily: font, marginBottom: 4 }}>Προτεινόμενο δάνειο</p>
+                  <p style={{ ...TT.label, color: 'var(--accent)', marginBottom: 4 }}>Προτεινόμενο δάνειο</p>
                   <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontFamily: font, letterSpacing: '-0.01em' }}>{best.bankName}{best.spitiMouApplied ? ' · Σπίτι μου ΙΙ' : ''}</p>
                   <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, fontFamily: font, lineHeight: 1.5 }}>{best.eligible ? best.why : best.blockers.join(' · ')}</p>
                 </div>

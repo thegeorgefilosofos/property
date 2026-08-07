@@ -1,5 +1,9 @@
 // Τεστ για την εκτίμηση ΕΝΦΙΑ (lib/billing/enfia.ts) — τιμές ΦΕΚ Α΄65/2022.
-import { estimateENFIA, estimateENFIAFromFacts, enfiaExtraPropertyTax, zoneKeyFromPricePerSqm, ENFIA_ZONE_TAX, enfiaInUse } from './enfia'
+import {
+  estimateENFIA, estimateENFIAFromFacts, enfiaExtraPropertyTax, zoneKeyFromPricePerSqm,
+  ENFIA_ZONE_TAX, enfiaInUse, enfiaAgeCoef, enfiaFloorCoef,
+  enfiaAgeKeyFromYears, enfiaAgeKeyFromYearBuilt, enfiaFloorKeyFromValue,
+} from './enfia'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -104,6 +108,108 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('auto: προσαύξηση όταν αξία >500k', big.supplementary > 0)
 }
 
+// ═══ ΕΤΟΣ ΚΑΤΑΣΚΕΥΗΣ ΚΑΙ ΟΡΟΦΟΣ — ΔΙΑΒΑΖΟΝΤΑΙ, ΔΕΝ ΜΑΝΤΕΥΟΝΤΑΙ ═════════════
+// Το σφάλμα: η αυτόματη εκτίμηση δεχόταν μόνο αξία και τ.μ. και έπεφτε στις
+// προεπιλογές «2ος όροφος» (1,01) και «10-20 ετών» (1,15) — 16,15% πάνω από την
+// ουδέτερη βάση, ΠΑΝΤΑ προς την ίδια κατεύθυνση. Τα δύο πεδία ήταν ήδη στη βάση.
+
+// ── Κλιμάκιο παλαιότητας από έτη ────────────────────────────────────────────
+{
+  ok('0 έτη → y0_4', enfiaAgeKeyFromYears(0) === 'y0_4')
+  ok('17 έτη → y15_19', enfiaAgeKeyFromYears(17) === 'y15_19')
+  ok('80 έτη → y26_plus', enfiaAgeKeyFromYears(80) === 'y26_plus')
+  // Τα σύνορα των κλιμακίων, όπου κρίνεται η διαφορά ενός ολόκληρου συντελεστή.
+  ok('σύνορο 4/5', enfiaAgeKeyFromYears(4) === 'y0_4' && enfiaAgeKeyFromYears(5) === 'y5_9')
+  ok('σύνορο 9/10', enfiaAgeKeyFromYears(9) === 'y5_9' && enfiaAgeKeyFromYears(10) === 'y10_14')
+  ok('σύνορο 14/15', enfiaAgeKeyFromYears(14) === 'y10_14' && enfiaAgeKeyFromYears(15) === 'y15_19')
+  ok('σύνορο 19/20', enfiaAgeKeyFromYears(19) === 'y15_19' && enfiaAgeKeyFromYears(20) === 'y20_25')
+  ok('σύνορο 25/26', enfiaAgeKeyFromYears(25) === 'y20_25' && enfiaAgeKeyFromYears(26) === 'y26_plus')
+}
+
+// ── Κλιμάκιο παλαιότητας από έτος κατασκευής ────────────────────────────────
+{
+  ok('2009 στο 2026 → 17 ετών → y15_19', enfiaAgeKeyFromYearBuilt(2009, 2026) === 'y15_19')
+  ok('2026 στο 2026 → νεόδμητο y0_4', enfiaAgeKeyFromYearBuilt(2026, 2026) === 'y0_4')
+  ok('1998 στο 2026 → y26_plus', enfiaAgeKeyFromYearBuilt(1998, 2026) === 'y26_plus')
+  ok('δέχεται κείμενο «2009»', enfiaAgeKeyFromYearBuilt('2009', 2026) === 'y15_19')
+  ok('χωρίς έτος → null', enfiaAgeKeyFromYearBuilt(null, 2026) === null)
+  ok('κενό κείμενο → null', enfiaAgeKeyFromYearBuilt('', 2026) === null)
+  ok('παράλογο έτος → null', enfiaAgeKeyFromYearBuilt(1200, 2026) === null)
+  // Το «2062» αντί «2006» δεν γίνεται νεόδμητο: θα φόρτωνε τον υψηλότερο συντελεστή (1,25).
+  ok('μελλοντικό έτος → null, όχι 1,25', enfiaAgeKeyFromYearBuilt(2062, 2026) === null)
+  ok('χωρίς έτος υπολογισμού πέφτει στο τρέχον', enfiaAgeKeyFromYearBuilt(1900) === 'y26_plus')
+}
+
+// ── Κλειδί ορόφου από ό,τι κρατά η καρτέλα ──────────────────────────────────
+{
+  ok('«Υπόγειο» → basement', enfiaFloorKeyFromValue('Υπόγειο') === 'basement')
+  ok('«Ημιυπόγειο» → basement', enfiaFloorKeyFromValue('Ημιυπόγειο') === 'basement')
+  ok('«Ισόγειο» → ground', enfiaFloorKeyFromValue('Ισόγειο') === 'ground')
+  ok('«Υπερυψωμένο ισόγειο» → ground', enfiaFloorKeyFromValue('Υπερυψωμένο ισόγειο') === 'ground')
+  ok('«Ημιώροφος» → ground', enfiaFloorKeyFromValue('Ημιώροφος') === 'ground')
+  ok('«1ος» → first', enfiaFloorKeyFromValue('1ος') === 'first')
+  ok('«2ος» → second', enfiaFloorKeyFromValue('2ος') === 'second')
+  ok('«3ος» → third', enfiaFloorKeyFromValue('3ος') === 'third')
+  ok('«7ος και άνω» → fifth_plus', enfiaFloorKeyFromValue('7ος και άνω') === 'fifth_plus')
+  ok('σκέτος αριθμός 2 → second', enfiaFloorKeyFromValue(2) === 'second')
+  ok('σκέτο 0 → ground', enfiaFloorKeyFromValue(0) === 'ground')
+  ok('ήδη κανονικό κλειδί μένει ίδιο', enfiaFloorKeyFromValue('fifth_plus') === 'fifth_plus')
+  // Ο νόμος βάζει 4ο ΚΑΙ 5ο στο 1,02· από τον 6ο και πάνω 1,03.
+  ok('4ος → 1,02', enfiaFloorCoef(enfiaFloorKeyFromValue('4ος')) === 1.02)
+  ok('5ος → 1,02, όχι 1,03', enfiaFloorCoef(enfiaFloorKeyFromValue('5ος')) === 1.02)
+  ok('6ος → 1,03', enfiaFloorCoef(enfiaFloorKeyFromValue('6ος')) === 1.03)
+  ok('«Δώμα / Ρετιρέ» ασαφές → null', enfiaFloorKeyFromValue('Δώμα / Ρετιρέ') === null)
+  ok('κενό ή απόν → null', enfiaFloorKeyFromValue('') === null && enfiaFloorKeyFromValue(null) === null)
+  ok('άγνωστο κείμενο → null', enfiaFloorKeyFromValue('κάτι άλλο') === null)
+  // Κλειδί αντικειμένου δεν είναι όροφος: αλλιώς ο συντελεστής γινόταν συνάρτηση και ο φόρος NaN.
+  ok('«constructor» δεν είναι όροφος', enfiaFloorKeyFromValue('constructor') === null)
+  ok('«toString» → συντελεστής 1,00', enfiaFloorCoef('toString') === 1.00)
+}
+
+// ── Ουδέτεροι συντελεστές όταν λείπουν τα στοιχεία ──────────────────────────
+{
+  ok('χωρίς όροφο → 1,00', enfiaFloorCoef(undefined) === 1.00 && enfiaFloorCoef(null) === 1.00)
+  ok('χωρίς παλαιότητα → 1,00', enfiaAgeCoef(undefined) === 1.00 && enfiaAgeCoef(null) === 1.00)
+  const bare = estimateENFIA({ sqm: 100, zone: '1501_2500' })!
+  ok('εκτίμηση χωρίς όροφο/παλαιότητα = τ.μ.×ΣΒΦ σκέτο', near(bare.basic, 100 * 3.70, 0.01))
+}
+
+// ── Η εκτίμηση από στοιχεία ακινήτου διαβάζει πλέον έτος και όροφο ──────────
+{
+  // 90 τ.μ., αξία 180.000 € → 2.000 €/τ.μ. → ζώνη 1501_2500 (ΣΒΦ 3,70), μείωση 20%.
+  const bare = estimateENFIAFromFacts({ value: 180000, sqm: 90 })!
+  ok('χωρίς στοιχεία: κανένας συντελεστής', near(bare.basic, 90 * 3.70, 0.01))
+  ok('χωρίς στοιχεία: ετήσιο 266,40 €', bare.annual === 266.40)
+
+  const real = estimateENFIAFromFacts({ value: 180000, sqm: 90, yearBuilt: 2009, floor: '2ος', taxYear: 2026 })!
+  ok('με στοιχεία: 17 ετών (1,10) × 2ος όροφος (1,01)', near(real.basic, 90 * 3.70 * 1.01 * 1.10, 0.01))
+
+  // Ακίνητο του οποίου οι ΠΡΑΓΜΑΤΙΚΟΙ συντελεστές είναι 1,00 και 1,00.
+  const neutral = estimateENFIAFromFacts({ value: 180000, sqm: 90, yearBuilt: 1990, floor: 'Ισόγειο', taxYear: 2026 })!
+  ok('ουδέτερο ακίνητο = εκτίμηση χωρίς στοιχεία', near(neutral.annual, bare.annual, 0.01))
+  ok('ΧΩΡΙΣ ΣΤΟΙΧΕΙΑ ΔΕΝ ΕΙΝΑΙ ΜΕΓΑΛΥΤΕΡΗ ΑΠΟ ΤΟ ΟΥΔΕΤΕΡΟ', bare.annual <= neutral.annual)
+
+  // Η παλιά προεπιλογή, ρητά: 2ος όροφος + 10-20 ετών, πάντα πάνω από την ουδέτερη.
+  const oldDefault = estimateENFIA({
+    sqm: 90, zone: '1501_2500', floor: 'second', age: '10_20',
+    totalValue: 180000, propertyValue: 180000,
+  })!
+  ok('η παλιά προεπιλογή ήταν 309,42 € αντί 266,40 €', oldDefault.annual === 309.42)
+  ok('μεροληψία +16,15% προς τα πάνω', near(oldDefault.annual / bare.annual, 1.1615, 0.0005))
+
+  // Τα στοιχεία δεν σπρώχνουν μόνο προς τα πάνω: το υπόγειο κατεβάζει (0,98).
+  const bsm = estimateENFIAFromFacts({ value: 180000, sqm: 90, yearBuilt: 1990, floor: 'Υπόγειο', taxYear: 2026 })!
+  ok('υπόγειο → χαμηλότερο από το ουδέτερο', bsm.annual < neutral.annual)
+  // Και το νεόδμητο ανεβάζει (1,25) — ο πραγματικός συντελεστής, όχι μαντεψιά.
+  const brandNew = estimateENFIAFromFacts({ value: 180000, sqm: 90, yearBuilt: 2024, floor: 'Ισόγειο', taxYear: 2026 })!
+  ok('νεόδμητο → υψηλότερο από το ουδέτερο', brandNew.annual > neutral.annual)
+
+  // Άχρηστα στοιχεία δεν φουσκώνουν την εκτίμηση — γυρίζουν στο ουδέτερο.
+  const junk = estimateENFIAFromFacts({ value: 180000, sqm: 90, yearBuilt: 0, floor: 'Δώμα / Ρετιρέ', taxYear: 2026 })!
+  ok('άκυρα στοιχεία → ουδέτερη εκτίμηση', near(junk.annual, bare.annual, 0.01))
+  ok('άκυρα στοιχεία δεν ανεβάζουν', junk.annual <= neutral.annual)
+}
+
 // ═══ ΠΟΙΟ ΝΟΥΜΕΡΟ ΙΣΧΥΕΙ — ΤΟ ΔΗΛΩΜΕΝΟ ΝΙΚΑ ΤΗΝ ΕΚΤΙΜΗΣΗ ══════════════════
 // Το σφάλμα: οι Υπηρεσίες προτιμούσαν την εκτίμηση και έσβηναν το ποσό που είχε
 // αντιγράψει ο ιδιοκτήτης από το εκκαθαριστικό· ο Προϋπολογισμός διάβαζε μόνο το
@@ -138,6 +244,13 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('εκτίμηση με μηδέν ετήσιο δεν επιλέγεται',
      enfiaInUse('', '', 0).source === 'none')
 }
+
+// ΑΔΥΝΑΤΗ ΠΑΛΑΙΟΤΗΤΑ → ΟΥΔΕΤΕΡΟ, ΟΧΙ ΑΚΡΙΒΟΤΕΡΟ.
+// Το -3 περνούσε το `y <= 4` και έπαιρνε το κλιμάκιο «Έως 4 έτη», δηλαδή τον
+// ΥΨΗΛΟΤΕΡΟ συντελεστή (1,25): ακίνητο με μελλοντικό έτος κατασκευής χρεωνόταν
+// σαν ολοκαίνουργιο. Η αρχή είναι μία — άγνωστο ή αδύνατο σημαίνει 1,00.
+ok('αρνητικά έτη → ουδέτερο, όχι νεόδμητο', enfiaAgeKeyFromYears(-3) === null)
+ok('μηδέν έτη → νεόδμητο (κανονική περίπτωση)', enfiaAgeKeyFromYears(0) === 'y0_4')
 
 console.log(`enfia.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
 if (failed > 0) { process.exit(1) }

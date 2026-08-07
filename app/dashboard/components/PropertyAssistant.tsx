@@ -677,7 +677,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       }
       setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα εγγραφή
       loadContext();
-      setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Ενημερώθηκαν: ${r.saved.join(', ')}.`, action: { type: 'go', tab: 'expenses' } }]);
+      // Ο ΚΩΔΙΚΟΣ ΗΤΑΝ 'expenses' — ΚΑΡΤΕΛΑ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ.
+      // Οι Δαπάνες συγχωνεύτηκαν στο 'finances' και το 'expenses' έπαψε να είναι
+      // προορισμός. Ο έλεγχος ορατότητας όμως έλεγε «ναι» σε κάθε άγνωστο
+      // κωδικό, οπότε το κουμπί περνούσε και ο χρήστης έπεφτε σε ΛΕΥΚΗ ΟΘΟΝΗ:
+      // κεφαλίδα, κουμπί «πίσω», και κανένα σώμα — καμία συνθήκη απόδοσης δεν
+      // ταιριάζει με ανύπαρκτο κωδικό. Δύο απαντήσεις της Νόα, κάθε φορά που
+      // κατέγραφε δαπάνη.
+      setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Ενημερώθηκαν: ${r.saved.join(', ')}.`, action: { type: 'go', tab: 'finances' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταχωρήσω τώρα. Δοκίμασε ξανά.' }]);
     } finally { setBusy(false); }
@@ -704,7 +711,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       }));
       setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα δαπάνη
       loadContext();
-      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'expenses' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'finances' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω τη δαπάνη τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Δαπάνες.' }]);
     }

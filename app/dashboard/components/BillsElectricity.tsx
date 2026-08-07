@@ -618,14 +618,30 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           {tariff.fixed_ebill != null && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Ηλεκτρονικός Λογαριασμός</div>
-              <button type="button" role="switch" aria-checked={useEbill}
-                onClick={() => { const v = !useEbill; setUseEbill(v); save({ useEbill: v }); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, height: T.h.lg, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-                <span style={{ width: 40, height: 26, borderRadius: 12, padding: 2, flexShrink: 0, background: useEbill ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: useEbill ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{useEbill ? 'Ενεργό, μειωμένο πάγιο' : 'Ανενεργό'}</span>
-              </button>
+              {/* ΤΡΙΤΗ ΓΕΩΜΕΤΡΙΑ ΓΙΑ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ. Εδώ ζούσε χειρόγραφος
+                  διακόπτης 40×26 με δείκτη 20, ενώ το κοινό `Toggle` υπήρχε ήδη
+                  — και ήταν ΗΔΗ εισαγμένο σε αυτό το αρχείο (γραμμή 5) χωρίς να
+                  χρησιμοποιείται πουθενά. Δηλαδή τρίτο μέγεθος διακόπτη στην
+                  εφαρμογή (36×20, 52×32, 40×26), ωμό #fff στον δείκτη, ωμό rgba
+                  στη σκιά και το ίδιο κείμενο κατάστασης στα 12 αντί για 14. Το
+                  κοινό component κρατά aria-checked και δίνει ρητή ελληνική
+                  aria-label, που πριν έλειπε τελείως. */}
+              {/* Το nowrap έμενε πίσω στη μεταφορά. Ο παλιός χειρόγραφος είχε
+                  whiteSpace: 'nowrap' στο κείμενο κατάστασης· το κοινό `Toggle`
+                  δεν το έχει, και το κείμενο μεγάλωσε από 12 σε 14 (η ετικέτα
+                  «Ενεργό, μειωμένο πάγιο» πάει από ~133px σε ~155px) μέσα σε
+                  στήλη `auto` ενός grid `1fr 1fr 1fr auto`. Σε στενό πλάτος θα
+                  έσπαγε σε δύο γραμμές μέσα σε κουτί σταθερού ύψους T.h.lg (40px)
+                  και θα ξεχείλιζε πάνω στη γραμμή. Το white-space κληρονομείται,
+                  οπότε μπαίνει εδώ αντί να αλλάξει το κοινό component. */}
+              <div style={{ display: 'flex', alignItems: 'center', height: T.h.lg, whiteSpace: 'nowrap' }}>
+                <Toggle
+                  on={useEbill}
+                  onChange={v => { setUseEbill(v); save({ useEbill: v }); }}
+                  label="Ενεργό, μειωμένο πάγιο"
+                  labelOff="Ανενεργό"
+                />
+              </div>
             </div>
           )}
         </div>

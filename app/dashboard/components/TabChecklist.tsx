@@ -35,6 +35,7 @@ import { scanDocument } from './scanDoc';
 import { normalizeScannedDoc, planDocSave, type ScannedDoc } from '@/lib/billing/documents';
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import SmartSuggestions from './SmartSuggestions';
+import { TASK_CATEGORIES, TASK_PRIORITIES, TASK_STATUSES } from '@/lib/checklist/taxonomy'
 
 const supabase = createSupabaseClient()
 
@@ -162,17 +163,11 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
 // σειρά με την επικεφαλίδα της, σε έναν ουδέτερο τόνο. Χρώμα κρατά μόνο ό,τι
 // σημαίνει «κάτι πρέπει να γίνει»: η εκπρόθεσμη ημερομηνία.
 const CATEGORY_DOT = 'var(--text-tertiary)'
-const CATEGORIES = [
-  { id: 'checkin',    label: 'Παράδοση ακινήτου',     color: CATEGORY_DOT },
-  { id: 'checkout',   label: 'Αποχώρηση ενοικιαστή',  color: CATEGORY_DOT },
-  { id: 'maintenance',label: 'Συντήρηση',             color: CATEGORY_DOT },
-  { id: 'legal',      label: 'Νομικά και ΑΑΔΕ',       color: CATEGORY_DOT },
-  { id: 'renovation', label: 'Ανακαίνιση',            color: CATEGORY_DOT },
-  { id: 'purchase',   label: 'Αγορά ακινήτου',        color: CATEGORY_DOT },
-  { id: 'airbnb',     label: 'Βραχυχρόνια μίσθωση',   color: CATEGORY_DOT },
-  { id: 'financial',  label: 'Οικονομικά',            color: CATEGORY_DOT },
-  { id: 'other',      label: 'Άλλο',                  color: CATEGORY_DOT },
-]
+// ΟΙ ΕΤΙΚΕΤΕΣ ΔΕΝ ΓΡΑΦΟΝΤΑΙ ΕΔΩ. Έρχονται από το lib/checklist/taxonomy.ts, τη
+// ΜΙΑ πηγή που μοιράζονται Εκκρεμότητες και Χαρτοφυλάκιο. Γραμμένες σε δύο
+// αρχεία, είχαν ήδη αποκλίνει: «Παράδοση Ακινήτου» εδώ, «Παράδοση ακινήτου»
+// εκεί, και «Short-term / Airbnb» στα αγγλικά. Δικό μας μένει ΜΟΝΟ το χρώμα.
+const CATEGORIES = TASK_CATEGORIES.map(c => ({ ...c, color: CATEGORY_DOT }))
 // ΤΕΣΣΕΡΑ ΧΡΩΜΑΤΑ ΓΙΑ ΤΕΣΣΕΡΙΣ ΠΡΟΤΕΡΑΙΟΤΗΤΕΣ, ΤΕΣΣΕΡΑ ΓΙΑ ΤΕΣΣΕΡΙΣ
 // ΚΑΤΑΣΤΑΣΕΙΣ: οκτώ αποχρώσεις σε μια οθόνη που ήδη έχει κατηγορίες,
 // ημερομηνίες και σήματα. Και τα φόντα ήταν καρφωμένα rgba του iOS, που δεν
@@ -183,18 +178,22 @@ const CATEGORIES = [
 // να πουν με απόχρωση. Η ολοκλήρωση παίρνει το χρώμα των ενεργειών, όχι του
 // επιτεύγματος: δεκαοκτώ πράσινα κουμπάκια σε μια λίστα γίνονται το πιο δυνατό
 // χρώμα της οθόνης, και το σήμα της εφαρμογής μένει για τα δευτερεύοντα.
-const PRIORITIES = [
-  { value: 'critical', label: 'Κρίσιμο',  color: 'var(--negative)',      bg: 'var(--negative-soft)' },
-  { value: 'high',     label: 'Υψηλή',    color: 'var(--warning)',       bg: 'var(--warning-soft)' },
-  { value: 'normal',   label: 'Κανονική', color: 'var(--text-secondary)', bg: 'var(--bg-elevated)' },
-  { value: 'low',      label: 'Χαμηλή',   color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
-]
-const STATUSES = [
-  { value: 'pending',     label: 'Εκκρεμεί',     color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
-  { value: 'in_progress', label: 'Σε εξέλιξη',   color: 'var(--text-secondary)', bg: 'var(--bg-elevated)' },
-  { value: 'done',        label: 'Ολοκληρώθηκε', color: 'var(--accent)',         bg: 'var(--accent-soft)' },
-  { value: 'skipped',     label: 'Παραλείφθηκε', color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
-]
+// Ίδια αρχή: η σειρά και τα ονόματα από την κοινή πηγή, το χρώμα από εδώ.
+const PRI_TONE: Record<string, { color: string; bg: string }> = {
+  critical: { color: 'var(--negative)',       bg: 'var(--negative-soft)' },
+  high:     { color: 'var(--warning)',        bg: 'var(--warning-soft)'  },
+  normal:   { color: 'var(--text-secondary)', bg: 'var(--bg-elevated)'   },
+  low:      { color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)'   },
+}
+const STATUS_TONE: Record<string, { color: string; bg: string }> = {
+  pending:     { color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
+  in_progress: { color: 'var(--text-secondary)', bg: 'var(--bg-elevated)' },
+  done:        { color: 'var(--accent)',         bg: 'var(--accent-soft)' },
+  skipped:     { color: 'var(--text-tertiary)',  bg: 'var(--bg-elevated)' },
+}
+const NEUTRAL_TONE = { color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)' }
+const PRIORITIES = TASK_PRIORITIES.map(p => ({ ...p, ...(PRI_TONE[p.value] ?? NEUTRAL_TONE) }))
+const STATUSES   = TASK_STATUSES.map(s => ({ ...s, ...(STATUS_TONE[s.value] ?? NEUTRAL_TONE) }))
 const RECURRING_OPTIONS = [
   { value: 'none',      label: 'Χωρίς επανάληψη' },
   { value: 'monthly',   label: 'Μηνιαία' },
@@ -321,9 +320,17 @@ function isOverdue(due: string | null, status: string) {
   return new Date(due) < new Date()
 }
 function daysUntil(d: string | null) { if (!d) return null; return athensDaysUntil(d) ?? 0 }
-function getCat(id: string) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1] }
-function getPri(v: string) { return PRIORITIES.find(p => p.value === v) || PRIORITIES[2] }
-function getStatusMeta(v: string) { return STATUSES.find(s => s.value === v) || STATUSES[0] }
+// ΟΙ ΠΡΟΕΠΙΛΟΓΕΣ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ, ΟΧΙ ΜΕ ΤΗ ΘΕΣΗ ΤΟΥΣ.
+// Ήταν `PRIORITIES[2]` και `STATUSES[0]`. Τώρα που η σειρά έρχεται από κοινό
+// αρχείο, μια αναδιάταξη εκεί θα άλλαζε σιωπηλά την προεπιλογή εδώ — άγνωστη
+// προτεραιότητα θα γινόταν «Κρίσιμο» αντί για «Κανονική», σε κάθε εγγραφή που
+// ήρθε από παλιά δεδομένα. Το όνομα δεν μετακινείται.
+const byValue = <T extends { value: string }>(list: readonly T[], v: string, fallback: string): T =>
+  list.find(x => x.value === v) ?? list.find(x => x.value === fallback) ?? list[0]
+
+function getCat(id: string) { return CATEGORIES.find(c => c.id === id) ?? CATEGORIES.find(c => c.id === 'other') ?? CATEGORIES[0] }
+function getPri(v: string) { return byValue(PRIORITIES, v, 'normal') }
+function getStatusMeta(v: string) { return byValue(STATUSES, v, 'pending') }
 // ── Ήρεμες οπτικές ενδείξεις (χαμηλός κορεσμός, όχι «σουπερμάρκετ») ──────────
 // Μόνο η κρίσιμη/υψηλή προτεραιότητα παίρνει χρώμα· οι υπόλοιπες μένουν ουδέτερες.
 // ΤΟ ΒΑΡΟΣ, ΟΧΙ Η ΑΠΟΧΡΩΣΗ. Ήταν κόκκινη τελεία για «κρίσιμο», πορτοκαλί για

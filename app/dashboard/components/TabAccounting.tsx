@@ -219,7 +219,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   type PortfolioRentRow = RentRow & Pick<RentPaymentsRow, 'property_id'>
   type StayRow     = TaxStay & Pick<ClientStaysRow, 'id'|'channel'|'declared_at'>
   type PortfolioStayRow = StayRow & Pick<ClientStaysRow, 'property_id'>
-  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'>
+  // Το `year_built` και το `floor` υπάρχουν στην καρτέλα του ακινήτου αλλά δεν
+  // ζητούνταν εδώ, οπότε η αυτόματη εκτίμηση ΕΝΦΙΑ έπεφτε στις προεπιλογές της
+  // (2ος όροφος, 10-20 ετών) και έβγαινε 16,15% ψηλότερα από την ουδέτερη βάση.
+  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'>
   type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'>
   type InventoryRow = Pick<InventoryItemsRow, 'purchase_value'|'category'|'purchase_date'>
 
@@ -241,7 +244,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         supabase.from('rent_payments').select('period_year,period_month,amount,paid,paid_date,due_date').eq('property_id',propertyId),
         supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('property_id',propertyId),
         supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId),
-        supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value').eq('id',propertyId).maybeSingle(),
+        supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value,year_built,floor').eq('id',propertyId).maybeSingle(),
         supabase.from('user_properties').select('id,name,rental_mode,status_detail,enfia,sqm').eq('user_id',userId),
         supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date').eq('user_id',userId),
         supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('user_id',userId),
@@ -264,12 +267,19 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // μηδέν πρόβλεψη — σε PDF με αριθμό εγγράφου και κωδικό QR επαλήθευσης.
   const regime:TaxRegime = readStatus(prop as StatusRow) === 'rent_short' ? 'individual_shortterm' : 'individual_longterm'
   const propCount = Math.max(1, allProps.length)
-  // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από αξία+τ.μ.
+  // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από
+  // αξία, τετραγωνικά, έτος κατασκευής και όροφο.
   const enfia = useMemo(()=>{
     const stored = resolveEnfia({ propertyEnfia: prop?.enfia }).annual
     if(stored>0) return stored
-    return estimateENFIAFromFacts({ value: prop?.value, sqm: prop?.sqm })?.annual ?? 0
-  },[prop])
+    // Έτος κατασκευής και όροφος περνούν όπως είναι αποθηκευμένα· η enfia.ts τα
+    // μεταφράζει σε κλιμάκιο και σε κλειδί ορόφου. Όποιο λείπει → ουδέτερο 1,00.
+    return estimateENFIAFromFacts({
+      value: prop?.value, sqm: prop?.sqm,
+      yearBuilt: prop?.year_built, floor: prop?.floor,
+      taxYear: year,
+    })?.annual ?? 0
+  },[prop,year])
   const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
 
   // Ενεργό δάνειο στη χρήση Y; (μεταξύ έτους έναρξης και λήξης).
@@ -802,7 +812,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 {businessMode
                   ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου και εξοπλισμού, καθώς και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9-44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους, με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
                   : (regime==='individual_longterm' ? `Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική ${bracketsLabelForYear(year)}. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).` : `Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την ${bracketsLabelForYear(year)}, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.`)}
-                {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από αξία και τετραγωνικά. Καταχώρησε το ακριβές στους Λογαριασμούς.`:''}
+                {/* Η πρόταση απαριθμούσε ΔΥΟ στοιχεία («αξία και τετραγωνικά»)
+                    ενώ η εκτίμηση διαβάζει πλέον ΤΕΣΣΕΡΑ. Ο ιδιοκτήτης που
+                    συμπλήρωσε έτος κατασκευής ή όροφο έβλεπε το νούμερο να
+                    αλλάζει χωρίς να λέει τίποτα η οθόνη από πού ήρθε. */}
+                {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από τα καταχωρημένα στοιχεία του ακινήτου: αξία, τετραγωνικά, έτος κατασκευής και όροφος. Καταχώρησε το ακριβές στους Λογαριασμούς.`:''}
               </InfoHint>
             </p>
           </div>

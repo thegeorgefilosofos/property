@@ -1274,12 +1274,19 @@ export default function Dashboard() {
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
       try {
         const cnt = (t: string) => supabase.from(t).select('id', { count: 'exact', head: true }).eq('user_id', user.id);
-        const [{ data: ob, error: obErr }, { count }, { count: docCount }, loanRes, contactRes, invRes] = await Promise.all([
+        // ΕΝΑ COUNT ΛΙΓΟΤΕΡΟ ΣΕ ΚΑΘΕ ΦΟΡΤΩΣΗ: ΕΦΥΓΕ ΤΟ cnt('contacts').
+        // Γέμιζε το σήμα `hasContacts`, που έθρεφε τον κανόνα αποκάλυψης
+        // 'contacts' — για καρτέλα που δεν υπάρχει ούτε στα NAV_GROUPS
+        // (δεκατρείς κωδικοί) ούτε στο NAV_ORDER (δεκαέξι). Τα τρία σημεία που
+        // διαβάζουν την αποκάλυψη διατρέχουν ΜΟΝΟ ids των NAV_GROUPS, άρα το
+        // 'contacts' δεν ρωτήθηκε ποτέ. Οι Επαφές αποδίδονται ως ενότητα μέσα
+        // στο Αρχείο, και ο μόνος δρόμος στο nav==='contacts' (ο βοηθός) κρίνεται
+        // από το tabDecision. Πέντε COUNT έγιναν τέσσερα, ίδια ακριβώς οθόνη.
+        const [{ data: ob, error: obErr }, { count }, { count: docCount }, loanRes, invRes] = await Promise.all([
           supabase.from('onboarding_progress').select('welcomed, revealed_tabs, nav_show_all').eq('user_id', user.id).maybeSingle(),
           cnt('user_properties'),
           cnt('property_documents'),
           cnt('loans'),
-          cnt('contacts'),
           cnt('inventory_items'),
         ]);
         if (!ob?.welcomed && (count || 0) === 0) setShowWelcome(true);
@@ -1305,7 +1312,6 @@ export default function Dashboard() {
         setNavSignals({
           hasLoan: (loanRes.count || 0) > 0,
           hasDocuments: (docCount || 0) > 0,
-          hasContacts: (contactRes.count || 0) > 0,
           hasInventory: (invRes.count || 0) > 0,
           daysSinceSignup: user.created_at
             ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000)
@@ -1913,7 +1919,14 @@ export default function Dashboard() {
               {/* Πάροχοι, τεχνικοί, τράπεζες: είναι στοιχεία ΤΟΥ ΑΚΙΝΗΤΟΥ, όπως
                   τα έγγραφά του. Δύο καρτέλες για «πού βρίσκω αυτό που χρειάζομαι
                   για το ακίνητο» ήταν μία παραπάνω. */}
-              {nav==='documents' && (
+              {/* ΤΟ «contacts» ΔΕΝ ΕΙΧΕ ΟΘΟΝΗ, ΚΑΙ Ο ΒΟΗΘΟΣ ΕΣΤΕΛΝΕ ΕΚΕΙ.
+                  Μετά την ενοποίηση, οι Επαφές ζουν ΜΕΣΑ στο Αρχείο. Κανένας
+                  κλάδος όμως δεν απέδιδε τίποτα για nav==='contacts': η Νόα
+                  έγραφε [[go:contacts]] σε τέσσερις απαντήσεις, ο χρήστης
+                  πατούσε, και έβλεπε ΜΟΝΟ το κουμπί «Πίσω» πάνω από κενή οθόνη.
+                  Ο κωδικός μένει ζωντανός —τον ξέρει το NAV_LABELS και τον
+                  στέλνει ο βοηθός— και οδηγεί εκεί που όντως είναι οι επαφές. */}
+              {(nav==='documents' || nav==='contacts') && (
                 <>
                   <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>
                   {/* Η επικεφαλίδα ζει ΜΕΣΑ στο component, μαζί με τις ενέργειές
