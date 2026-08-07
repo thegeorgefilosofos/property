@@ -841,8 +841,8 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
             {([['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά μέτρα`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή κλάση',prop.pea_class],['Θέσεις στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τετραγωνικά μέτρα`:null],['Αντικειμενική αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]] as [string,string|null][]).filter(([,v])=>v).map(([k,v]) => (
               <div key={k} title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου, από το έντυπο Ε9':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ο ετήσιος φόρος περιουσίας':undefined}
                 style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,padding:'8px 0',borderBottom:'1px solid var(--border-subtle)'}}>
-                <span style={{fontFamily:T.font.sans,color:'var(--text-secondary)',fontSize:12.5,letterSpacing:'0.25px',whiteSpace:'nowrap'}}>{k}</span>
-                <span style={{fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:12.5,letterSpacing:'0.25px',textAlign:'right',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
+                <span style={{fontFamily:T.font.sans,color:'var(--text-secondary)',fontSize:13,letterSpacing:'0.25px',whiteSpace:'nowrap'}}>{k}</span>
+                <span style={{fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:13,letterSpacing:'0.25px',textAlign:'right',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
               </div>
             ))}
           </div>
@@ -949,7 +949,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
             {/* Η απόδοση σε μία γραμμή αντί για δύο πλακίδια: είναι
                 συμφραζόμενο του αποτελέσματος, όχι ισότιμο μέγεθος μαζί του. Η
                 πλήρης ανάλυση ζει στις «Αποδόσεις», που είναι η καρτέλα της. */}
-            <div style={{marginTop:-4,marginBottom:16,fontFamily: T.font.sans,fontSize:11.5,color:'var(--text-secondary)',lineHeight:1.7}}>
+            <div style={{marginTop:-4,marginBottom:16,fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>
               {isLet(prop) && propValue>0 && (
                 <div>
                   <strong style={{color:'var(--text-primary)',fontWeight:600}}>Απόδοση.</strong>{' '}
@@ -1728,7 +1728,7 @@ export default function Dashboard() {
                                   συνειδητή και όχι μαντεψιά. */}
                               <span style={{flex:1,minWidth:0}}>
                                 <span style={{display:'block'}}>{v}</span>
-                                <span style={{display:'block',fontSize:11.5,color:'var(--text-tertiary)',fontWeight:400,marginTop:1,lineHeight:1.4}}>{hint}</span>
+                                <span style={{display:'block',fontSize:12,color:'var(--text-tertiary)',fontWeight:400,marginTop:1,lineHeight:1.4}}>{hint}</span>
                               </span>
                               {active && <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
                             </button>
@@ -1783,7 +1783,7 @@ export default function Dashboard() {
               <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 20px',maxWidth:400}}>
                 Τα δεδομένα σου είναι ασφαλή — απλώς δεν φορτώθηκαν τώρα. Συνήθως φταίει η σύνδεση.
               </p>
-              <button onClick={()=>{ if(user) fetchProperties(user.id); }} style={{padding:'0 20px',height:T.h.md,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13.5,fontWeight:600,fontFamily:T.font.sans,cursor:'pointer'}}>Δοκίμασε ξανά</button>
+              <button onClick={()=>{ if(user) fetchProperties(user.id); }} style={{padding:'0 20px',height:T.h.md,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:14,fontWeight:600,fontFamily:T.font.sans,cursor:'pointer'}}>Δοκίμασε ξανά</button>
             </div>
           </div>
         ) : !selected ? (
@@ -1940,7 +1940,7 @@ export default function Dashboard() {
                     <button onClick={()=>setNav('inventory')}
                       style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 16px',borderRadius:12,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:'inherit'}}>
                       <div style={{minWidth:0,flex:1}}>
-                        <p style={{fontSize:13.5,fontWeight:500,color:'var(--text-primary)',marginBottom:2}}>Άνοιγμα απογραφής</p>
+                        <p style={{fontSize:14,fontWeight:500,color:'var(--text-primary)',marginBottom:2}}>Άνοιγμα απογραφής</p>
                         <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.5}}>Ό,τι υπάρχει μέσα στο ακίνητο, με την αξία του, την εγγύησή του και το πρωτόκολλο παράδοσης.</p>
                       </div>
                       <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>

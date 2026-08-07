@@ -1,17 +1,14 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
-import { T } from '@/components/Theme'
+import { T, TT } from '@/components/Theme'
 import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 
 // Σαρωτής προσφοράς ESIS — ανεβάζεις το δελτίο της τράπεζας (ή πληκτρολογείς τα
 // νούμερα) και αποκαλύπτεται το πραγματικό κόστος: ΣΕΠΠΕ έναντι ονομαστικού,
 // έξοδα, ασφάλειες, κρυφές χρεώσεις. Ίδιο /api/anthropic pattern με τη σάρωση.
 const font = "'Inter',sans-serif"
-const labelStyle: React.CSSProperties = {
-  fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:700,fontFamily:font,
-}
+const labelStyle: React.CSSProperties = TT.label
 
 const SYSTEM_PROMPT = `Είσαι αναλυτής στεγαστικών δανείων στην Ελλάδα. Σου δίνεται προσφορά τράπεζας ή Τυποποιημένο Ευρωπαϊκό Δελτίο Πληροφοριών (ESIS/ΤΕΔΠ).
 Εξήγαγε ΜΟΝΟ ό,τι αναγράφεται. Επίστρεψε ΑΠΟΚΛΕΙΣΤΙΚΑ έγκυρο JSON, χωρίς κείμενο εκτός JSON, με σχήμα (παρέλειψε όποιο πεδίο δεν προκύπτει):

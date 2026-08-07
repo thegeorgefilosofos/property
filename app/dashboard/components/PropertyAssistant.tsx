@@ -1319,7 +1319,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                 )}
                 {msgs.map((m, i) => (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6 }}>
-                    <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, fontFamily: T.font.sans, fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-wrap',
+                    <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, fontFamily: T.font.sans, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap',
                       background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)', color: m.role === 'user' ? 'var(--accent-text)' : 'var(--text-primary)',
                       border: 'none', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
                     {/* Καμία υπόσχεση που δεν μπορεί να τηρηθεί: αν η καρτέλα δεν
@@ -1369,13 +1369,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
                     {reconcile.options.map(o => (
                       <button key={o.id} type="button" onClick={() => commitPendingDoc(o.id)}
-                        style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 12.5, cursor: 'pointer', minHeight: T.h.md }}>
+                        style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, cursor: 'pointer', minHeight: T.h.md }}>
                         <span style={{ fontWeight: 650 }}>{o.label}</span>
-                        {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 11.5 }}>{o.reasons.join(' · ')}</span>}
+                        {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{o.reasons.join(' · ')}</span>}
                       </button>
                     ))}
                     <button type="button" onClick={() => commitPendingDoc(null)}
-                      style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12.5, cursor: 'pointer', minHeight: T.h.md }}>
+                      style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, cursor: 'pointer', minHeight: T.h.md }}>
                       Κανέναν, κράτησέ το ως νέα εγγραφή
                     </button>
                   </div>

@@ -1,5 +1,5 @@
 'use client'
-import { T } from '@/components/Theme'
+import { T, TT } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
@@ -7,10 +7,7 @@ import type { BorrowerType } from './TabLoanData'
 
 // «Θα εγκριθώ;» — διαδραστική εκτίμηση πιθανότητας έγκρισης. Καθαρό, μονόχρωμο·
 // το χρώμα (γαλάζιο θετικό / κόκκινο κινδύνου) μόνο στην ετυμηγορία, όχι παντού.
-const labelStyle: React.CSSProperties = {
-  fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,
-}
+const labelStyle: React.CSSProperties = TT.label
 
 const EMPLOYMENT_OPTIONS:{value:EmploymentType;label:string}[] = [
   {value:'employee_permanent',label:'Μισθωτός αορίστου χρόνου'},

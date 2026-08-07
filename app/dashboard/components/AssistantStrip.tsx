@@ -69,7 +69,7 @@ export default function AssistantStrip({ ctx }: { ctx: OpenerContext | null }) {
 
       <div style={{ flex: 1, minWidth: 220 }}>
         <p style={{
-          fontFamily: T.font.sans, fontSize: 13.5, lineHeight: 1.55,
+          fontFamily: T.font.sans, fontSize: 14, lineHeight: 1.55,
           color: 'var(--text-secondary)', margin: 0,
         }}>{greeting(ASSISTANT_NAME, ctx, formal)}</p>
 
@@ -80,7 +80,7 @@ export default function AssistantStrip({ ctx }: { ctx: OpenerContext | null }) {
                 style={{
                   padding: '0 13px', height: T.h.sm, borderRadius: T.radius.pill,
                   border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 12.5,
+                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13,
                   cursor: 'pointer', textAlign: 'left', maxWidth: '100%',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>

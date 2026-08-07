@@ -148,7 +148,7 @@ export function EnfiaCalculator() {
         marginTop: 22, padding: '14px 16px', borderRadius: T.radius.inner,
         background: 'var(--warning-soft)', border: '1px solid var(--warning-border)',
       }}>
-        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
           <strong style={{ color: 'var(--text-primary)' }}>Τι δεν περιλαμβάνει.</strong>{' '}
           Η εκτίμηση αφορά <strong>ένα κτίσμα</strong> και υπολογίζει τη συνολική σου
           ακίνητη περιουσία <strong>ίση με αυτό</strong>. Αν έχεις κι άλλα ακίνητα, οικόπεδα
@@ -166,7 +166,7 @@ export function EnfiaCalculator() {
         display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
       }}>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <p style={{ margin: 0, fontSize: 14.5, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             Έχεις παραπάνω από ένα ακίνητο;
           </p>
           <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
@@ -177,7 +177,7 @@ export function EnfiaCalculator() {
         <Link href="/signup" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px',
           borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--on-tone)',
-          fontSize: 14.5, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
+          fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
         }}>
           Ξεκίνα δωρεάν →
         </Link>
@@ -189,7 +189,7 @@ export function EnfiaCalculator() {
 function Figure({ label, value, tone, big }: { label: string; value: string; tone?: 'negative'; big?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
         color: 'var(--text-tertiary)', marginBottom: 6 }}>{label}</div>
       <div style={{
         fontFamily: T.font.num, fontSize: big ? 'clamp(22px, 4.4vw, 30px)' : 'clamp(18px, 3.4vw, 22px)',
@@ -203,8 +203,8 @@ function Figure({ label, value, tone, big }: { label: string; value: string; ton
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-      <dt style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{k}</dt>
-      <dd style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)',
+      <dt style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k}</dt>
+      <dd style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
         fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</dd>
     </div>
   );

@@ -84,7 +84,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
                 </button>
               );
             })}
-            {filtered.length === 0 && <div style={{ padding: '12px 13px', fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα ακίνητο δεν ταιριάζει.</div>}
+            {filtered.length === 0 && <div style={{ padding: '12px 13px', fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα ακίνητο δεν ταιριάζει.</div>}
           </div>
         </div>
       )}

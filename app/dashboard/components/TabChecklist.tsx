@@ -1338,7 +1338,7 @@ function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pending, sma
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.title}</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}{t ? ` · ${t.items.length} εργασίες` : ''}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}{t ? ` · ${t.items.length} εργασίες` : ''}</div>
                       </div>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
                     </button>
@@ -1364,10 +1364,10 @@ function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pending, sma
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
                   {pending.length === 0 ? 'Οι υποχρεώσεις είναι όλες μέσα' : `Πρόσθεσε ${pending.length} ${pending.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}`}
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
                   {pending.length === 0
                     ? 'Τίποτα δεν λείπει από το φορολογικό ημερολόγιο για αυτό το ακίνητο.'
                     : firstDue ? `Πρώτη προθεσμία: ${firstDue.description}, ${fmtDate(firstDue.due_date)}` : 'Αλλαγές νομοθεσίας που αφορούν αυτό το ακίνητο'}
@@ -1482,17 +1482,17 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
             {item?._receipt ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(item._receipt.amount)}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
                   {item._receipt.provider ? `${item._receipt.provider} · ` : ''}{fmtDate(item._receipt.date)} · {item._receipt.name}
                 </span>
                 {onScan && <button type="button" onClick={onScan} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλαξέ το</button>}
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, flex: 1, minWidth: 180, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, flex: 1, minWidth: 180, lineHeight: 1.5 }}>
                   Μπαίνει μόνο από το τιμολόγιο ή την απόδειξη. Φωτογράφισέ το και καταχωρείται το ποσό, το αρχείο και η δαπάνη μαζί.
                 </p>
-                {onScan && <button type="button" onClick={onScan} style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>Φωτογράφισε το τιμολόγιο</button>}
+                {onScan && <button type="button" onClick={onScan} style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>Φωτογράφισε το τιμολόγιο</button>}
               </div>
             )}
           </div>
@@ -1511,7 +1511,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
           {/* Η ΕΠΙΣΗΜΗ ΠΗΓΗ ΤΗΣ ΥΠΟΧΡΕΩΣΗΣ, όταν δεν την έγραψε ο χρήστης. */}
           {item?._src && (
             <div style={{ padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
-              <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>
                 {item._who ? <strong style={{ color: 'var(--text-primary)' }}>{WHO_LABEL[item._who]}. </strong> : null}
                 <a href={item._src} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Επίσημη πηγή</a>
               </p>
@@ -1522,7 +1522,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
             {/* ΚΑΜΙΑ ΥΠΟΣΧΕΣΗ «ΕΚΚΡΕΜΗΣ ΔΑΠΑΝΗ». Η εκτίμηση δεν γράφεται πλέον στα
                 Δαπάνες: ο προϋπολογισμός και το σύνολο που πάει στο Ε2 δεν δέχονται
                 νούμερο χωρίς παραστατικό. */}
-            <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> με υπενθύμιση email. Η εκτίμηση μένει εδώ, <strong style={{ color: 'var(--text-primary)' }}>δεν γίνεται δαπάνη</strong> πριν υπάρξει παραστατικό.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> με υπενθύμιση email. Η εκτίμηση μένει εδώ, <strong style={{ color: 'var(--text-primary)' }}>δεν γίνεται δαπάνη</strong> πριν υπάρξει παραστατικό.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
           </div>
         </div>
         <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
@@ -1697,7 +1697,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
     <div role="dialog" aria-modal="true" aria-label="Νέα εργασία σε επιλεγμένα" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)' }}>
         <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>Φωτογράφισε το τιμολόγιο</h3>
-        <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 20px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 20px', lineHeight: 1.5 }}>
           {item.description}
         </p>
 
@@ -1706,8 +1706,8 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
             <button type="button" onClick={() => fileRef.current?.click()}
               style={{ width: '100%', padding: '22px 16px', borderRadius: T.radius.card, border: '1px dashed var(--border-default)', background: 'var(--bg-surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, fontFamily: T.font.sans }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="4"/></svg>
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>Φωτογραφία ή PDF</span>
-              <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>Διαβάζουμε ποσό, πάροχο και ημερομηνία. Τα ελέγχεις πριν αποθηκευτούν.</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Φωτογραφία ή PDF</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>Διαβάζουμε ποσό, πάροχο και ημερομηνία. Τα ελέγχεις πριν αποθηκευτούν.</span>
             </button>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: '12px 0 0', lineHeight: 1.5 }}>
               Το αρχείο μπαίνει στο Αρχείο του ακινήτου και η δαπάνη καταχωρείται πληρωμένη. Χωρίς αρχείο δεν γράφεται ποσό πουθενά.
@@ -1718,7 +1718,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
         {stage === 'reading' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '16px 0' }}>
             <Skeleton h={16} r={6} /><Skeleton h={16} r={6} /><Skeleton h={16} r={6} />
-            <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: 0 }}>Διαβάζω το έγγραφο…</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: 0 }}>Διαβάζω το έγγραφο…</p>
           </div>
         )}
 
@@ -1726,7 +1726,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-              <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file?.name}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file?.name}</span>
               {/* Η ΒΕΒΑΙΟΤΗΤΑ ΤΗΣ ΑΝΑΓΝΩΣΗΣ, ρητά. Χαμηλή βεβαιότητα σημαίνει
                   «κοίτα τα νούμερα», όχι «είναι λάθος». */}
               <span style={{ marginLeft: 'auto', fontSize: 11, color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>

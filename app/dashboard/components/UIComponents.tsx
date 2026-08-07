@@ -453,7 +453,7 @@ export function CustomSelect({
             <Fragment key={opt.value}>
             {opt.header && (
               <div style={{
-                padding: '10px 12px 5px', fontFamily: T.font.sans, fontSize: 10.5,
+                padding: '10px 12px 5px', fontFamily: T.font.sans, fontSize: 11,
                 fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)', userSelect: 'none', pointerEvents: 'none',
               }}>{opt.header}</div>

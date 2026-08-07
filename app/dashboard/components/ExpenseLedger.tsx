@@ -362,10 +362,10 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
                 <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/>
               </svg>
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontFamily: T.font.sans, fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span style={{ display: 'block', fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
                   Φωτογράφισε ή ανέβασε αρχείο
                 </span>
-                <span style={{ display: 'block', fontFamily: T.font.sans, fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                <span style={{ display: 'block', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                   Απόδειξη, λογαριασμός ή PDF — συμπληρώνεται μόνο του
                 </span>
               </span>
@@ -507,7 +507,7 @@ function Row({ e, busy, onPaid }: { e: LedgerEntry; busy: boolean; onPaid: () =>
             </Btn>
           </span>
         )}
-        <span style={{ fontSize: 14.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: e.paid ? 'var(--text-primary)' : 'var(--negative)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: e.paid ? 'var(--text-primary)' : 'var(--negative)', whiteSpace: 'nowrap' }}>
           {fe(e.amount)}
         </span>
       </span>
@@ -616,7 +616,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
     border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
     color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', width: '100%', boxSizing: 'border-box',
   };
-  const lab: React.CSSProperties = { display: 'block', fontSize: 11.5, color: 'var(--text-secondary)', marginBottom: 5 };
+  const lab: React.CSSProperties = { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 };
 
   return (
     <Card pad="sm" style={{ marginBottom: T.sp.md }}>
@@ -684,7 +684,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text-secondary)', cursor: 'pointer' }}>
           <input type="checkbox" checked={!paid} onChange={e => setPaid(!e.target.checked)} />
           Δεν το έχω πληρώσει ακόμη
         </label>

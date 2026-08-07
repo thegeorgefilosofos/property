@@ -131,7 +131,7 @@ export function ConfirmHost() {
         <div
           ref={bodyRef} id={msgId}
           style={{
-            fontFamily: T.font.sans, fontSize: 13.5, lineHeight: 1.6,
+            fontFamily: T.font.sans, fontSize: 14, lineHeight: 1.6,
             color: 'var(--text-secondary)',
             // pre-line: το native confirm σεβόταν τις αλλαγές γραμμής. Χωρίς
             // αυτό, το μήνυμα της διαγραφής ακινήτου —που χωρίζει σε παραγράφους

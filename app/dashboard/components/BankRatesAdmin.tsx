@@ -1,5 +1,5 @@
 'use client'
-import { T } from '@/components/Theme'
+import { T, TT } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -30,10 +30,7 @@ const RATE_FIELDS:{k:RateKey;label:string}[] = [
   {k:'fixed_15yr',label:'Σταθερό 15ετίας'},
   {k:'fixed_20yr',label:'Σταθερό 20ετίας'},
 ]
-const labelStyle:React.CSSProperties = {
-  fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:600,fontFamily: T.font.sans,
-}
+const labelStyle:React.CSSProperties = TT.label
 const today = () => athensToday()
 
 export default function BankRatesAdmin({ onSaved }:{
@@ -157,7 +154,7 @@ export default function BankRatesAdmin({ onSaved }:{
                           {saving?'Αποθήκευση…':'Αποθήκευση'}
                         </button>
                         <button onClick={()=>{setSelId(null);setEdit(null)}} style={{height:T.h.md,padding:'0 16px',borderRadius:100,cursor:'pointer',background:'transparent',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontSize:13,fontWeight:500,fontFamily: T.font.sans}}>Ακύρωση</button>
-                        <span style={{fontSize:10.5,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily: T.font.sans}}>Η επιβεβαίωση ορίζεται στο σήμερα</span>
+                        <span style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily: T.font.sans}}>Η επιβεβαίωση ορίζεται στο σήμερα</span>
                       </div>
                     </div>
                   )}

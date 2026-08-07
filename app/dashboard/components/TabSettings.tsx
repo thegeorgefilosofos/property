@@ -146,7 +146,7 @@ function MarketDataSharing({ userId }: { userId: string }) {
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           Συνεισφορά στα δεδομένα κοινότητας
           {loaded && !decided && (
-            <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.01em', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)', borderRadius: 100, padding: '2px 8px' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.01em', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)', borderRadius: 100, padding: '2px 8px' }}>
               Ανενεργό
             </span>
           )}

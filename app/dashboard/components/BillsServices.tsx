@@ -6,27 +6,12 @@ import { Calculator } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fp, Spinner, EmptyState } from '@/components/Theme';
+import { T, fe, fp, Spinner, EmptyState, histInputStyle } from '@/components/Theme';
 import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { navLabel } from '@/lib/nav/labels';
 
 
-// FIX: history input style with hover
-const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
-  width: '100%',
-  background: isCurrent ? 'var(--accent-soft)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
-  border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
-  borderRadius: T.radius.badge,
-  padding: '6px 4px',
-  color: 'var(--text-primary)',
-  fontSize: 11,
-  fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums',
-  outline: 'none',
-  textAlign: 'center',
-  boxSizing: 'border-box',
-  transition: 'all 0.15s',
-});
 
 const FREQ = [
   { value: 'weekly',   label: 'Εβδομαδιαίος'   },

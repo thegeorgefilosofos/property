@@ -119,7 +119,7 @@ export function ActionMenu({
                     {it.busy ? (it.busyLabel || 'Δημιουργία…') : it.label}
                   </span>
                   {it.description && (
-                    <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.35, marginTop: 1 }}>
+                    <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.35, marginTop: 1 }}>
                       {it.description}
                     </span>
                   )}

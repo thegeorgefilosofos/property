@@ -180,11 +180,11 @@ function Row({ r, checked, onToggle, interactive }: { r: Requirement; checked: b
         )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: T.font.sans, lineHeight: 1.35, color: checked ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{r.title}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, fontFamily: T.font.sans, lineHeight: 1.35, color: checked ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{r.title}</span>
           {r.blocking && !checked && <Badge>Απαραίτητο</Badge>}
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '3px 0 0', lineHeight: 1.5, fontFamily: T.font.sans }}>{r.why}</p>
-        {r.source && <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', margin: '3px 0 0', fontFamily: T.font.sans }}>Πού: {r.source}</p>}
+        {r.source && <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '3px 0 0', fontFamily: T.font.sans }}>Πού: {r.source}</p>}
       </div>
     </div>
   )
@@ -285,9 +285,9 @@ export default function AccountantDossier({
             if (c.total === 0) return null
             return (
               <div key={w}>
-                <p style={{ ...eyebrow, fontSize: 9.5 }}>{WHO_LABEL[w]}</p>
+                <p style={{ ...eyebrow, fontSize: 10 }}>{WHO_LABEL[w]}</p>
                 <p style={{ ...num, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '5px 0 0', lineHeight: 1 }}>
-                  {c.done}<span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-tertiary)' }}> / {c.total}</span>
+                  {c.done}<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}> / {c.total}</span>
                 </p>
               </div>
             )
@@ -301,7 +301,7 @@ export default function AccountantDossier({
         </p>
 
         {error && (
-          <p style={{ fontSize: 11.5, color: 'var(--negative)', margin: '12px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 12, color: 'var(--negative)', margin: '12px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
             Οι σημειώσεις δεν αποθηκεύτηκαν: {error}. Θα χαθούν αν κλείσεις τη σελίδα — έλεγξε ότι έχει εφαρμοστεί το migration accountant_dossier.
           </p>
         )}
@@ -343,7 +343,7 @@ export default function AccountantDossier({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 12, alignItems: 'start' }}>
             {warnings.map(t => (
               <div key={t.title} style={{ paddingLeft: 12, borderLeft: '2px solid var(--border-default)' }}>
-                <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{t.title}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{t.title}</p>
                 <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: T.font.sans, lineHeight: 1.55 }}>{t.trap}</p>
               </div>
             ))}
@@ -372,7 +372,7 @@ export default function AccountantDossier({
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {(Object.keys(LEGAL_FORM_LABEL) as LegalForm[]).map(f => (
                   <button key={f} onClick={() => setProfile({ form: f })}
-                    style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontFamily: T.font.sans, transition: 'all 0.15s',
+                    style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'all 0.15s',
                       fontWeight: profile.form === f ? 600 : 500,
                       border: `1px solid ${profile.form === f ? 'var(--accent)' : 'var(--border-subtle)'}`,
                       background: profile.form === f ? 'var(--accent)' : 'var(--bg-surface)',
@@ -388,14 +388,14 @@ export default function AccountantDossier({
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {(['single_entry', 'double_entry'] as BookKeeping[]).map(b => (
                     <button key={b} onClick={() => setProfile({ books: b })}
-                      style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontFamily: T.font.sans, transition: 'all 0.15s',
+                      style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'all 0.15s',
                         fontWeight: profile.books === b ? 600 : 500,
                         border: `1px solid ${profile.books === b ? 'var(--accent)' : 'var(--border-subtle)'}`,
                         background: profile.books === b ? 'var(--accent)' : 'var(--bg-surface)',
                         color: profile.books === b ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{BOOKS_LABEL[b]}</button>
                   ))}
                 </div>
-                <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', margin: '8px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '8px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                   Ο ισολογισμός και το προσάρτημα υπάρχουν μόνο στα διπλογραφικά. Οι ΟΕ/ΕΕ περνούν σε διπλογραφικά πάνω από όριο τζίρου.
                 </p>
               </div>
@@ -412,8 +412,8 @@ export default function AccountantDossier({
                   <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
                     <Mark checked={!!profile[key]} onChange={() => setProfile({ [key]: !profile[key] } as Partial<DossierProfile>)} label={label} />
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 12.5, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{label}</p>
-                      <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: T.font.sans, lineHeight: 1.45 }}>{hint}</p>
+                      <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{label}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: T.font.sans, lineHeight: 1.45 }}>{hint}</p>
                     </div>
                   </div>
                 ))}
@@ -425,13 +425,13 @@ export default function AccountantDossier({
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px', fontFamily: T.font.sans }}>Τα ακίνητά σου</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {properties.map((p, i) => (
-                    <div key={`${p.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, fontFamily: T.font.sans }}>
+                    <div key={`${p.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontFamily: T.font.sans }}>
                       <span style={{ flex: 1, minWidth: 0, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                       <span style={{ color: 'var(--text-tertiary)' }}>{statusForAccountant(p.status)}</span>
                     </div>
                   ))}
                 </div>
-                <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', margin: '8px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '8px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                   Η κατάσταση κάθε ακινήτου ορίζει τι ζητά ο λογιστής. Αλλάζει από την Επισκόπηση του ακινήτου.
                 </p>
               </div>

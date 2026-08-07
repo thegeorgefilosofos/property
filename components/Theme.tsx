@@ -21,7 +21,7 @@ import { ReactNode, CSSProperties, useState, useEffect, useRef } from 'react';
 // Τα tokens ζουν σε module ΧΩΡΙΣ React (components/tokens.ts) ώστε να μπορεί να
 // τα εισάγει και Server Component. Εδώ ξανα-εξάγονται αυτούσια, ώστε τα ~600
 // σημεία που γράφουν `from '@/components/Theme'` να μη χρειαστεί να αλλάξουν.
-export { T, TT, fe, feAuto, feRate, fp, feOr, fpOr, DASH, fn, fd, fdLong, ABSENT, ABSENT_DATE, ABSENT_SHORT } from './tokens';
+export { T, TT, fe, feAuto, feRate, fp, feOr, fpOr, DASH, fn, fd, fdLong, histInputStyle, ABSENT, ABSENT_DATE, ABSENT_SHORT } from './tokens';
 export type { Tone } from './tokens';
 import { T, TT, fe, isBlankMetric, type Tone } from './tokens';
 
@@ -457,7 +457,7 @@ export function ExportButton({ onClick, onExportData, label = 'Εξαγωγή Ex
       style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: T.font.sans }}
       onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</div>
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>
     </button>
   );
@@ -520,7 +520,7 @@ export function EmptyState({ title, hint, action, icon }: { title: string; hint?
         {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-tertiary)', flexShrink: 0 }}>{icon}</span>}
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
       </div>
-      {hint && <div style={{ fontSize: 11.5, lineHeight: 1.6, margin: '0 auto', textWrap: 'pretty' as const }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 12, lineHeight: 1.6, margin: '0 auto', textWrap: 'pretty' as const }}>{hint}</div>}
       {action && <div style={{ marginTop: 14 }}>{action}</div>}
     </div>
   );

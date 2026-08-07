@@ -983,7 +983,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                   {needs.filter(n => n.weight === 'required' || n.weight === 'important').map(n => (
                     <div key={n.need} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11, fontFamily: T.font.sans, lineHeight: 1.5 }}>
                       <span style={{
-                        flexShrink: 0, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.04em',
+                        flexShrink: 0, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
                         padding: '2px 7px', borderRadius: T.radius.pill,
                         color: n.weight === 'required' ? 'var(--accent-text)' : 'var(--text-secondary)',
                         background: n.weight === 'required' ? 'var(--accent)' : 'var(--bg-surface)',

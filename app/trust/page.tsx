@@ -51,14 +51,14 @@ const SUBPROCESSORS: { name: string; what: string; where: string; planned?: bool
 
 const SECTION: React.CSSProperties = { marginTop: 44, scrollMarginTop: 76 };
 const H2: React.CSSProperties = { fontSize: 20, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 10px', color: 'var(--text-primary)' };
-const P: React.CSSProperties = { fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 12px' };
+const P: React.CSSProperties = { fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 12px' };
 
 function Row({ label, value }: { label: string; value: string }) {
   const pending = value.startsWith('Θα δημοσιευθεί');
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{label}</span>
-      <span style={{ fontSize: 13.5, fontWeight: pending ? 400 : 600, fontStyle: pending ? 'italic' : 'normal', color: pending ? 'var(--text-tertiary)' : 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+      <span style={{ fontSize: 14, fontWeight: pending ? 400 : 600, fontStyle: pending ? 'italic' : 'normal', color: pending ? 'var(--text-tertiary)' : 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   );
 }
@@ -69,7 +69,7 @@ function Point({ title, children }: { title: string; children: React.ReactNode }
       <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }} aria-hidden><path d="M20 6 9 17l-5-5" /></svg>
       <div>
         <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', marginBottom: 3 }}>{title}</div>
-        <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
       </div>
     </div>
   );
@@ -79,7 +79,7 @@ function Never({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }} aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>
-      <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
+      <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
     </div>
   );
 }
@@ -234,8 +234,8 @@ export default function TrustPage() {
             {SUBPROCESSORS.map((s, i) => (
               <div key={s.name} style={{ display: 'grid', gridTemplateColumns: 'minmax(90px, 0.7fr) minmax(0, 1.6fr) minmax(110px, 0.9fr)', gap: 12, padding: '12px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
                 <span style={{ fontSize: 13, fontWeight: 650, color: s.planned ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{s.name}</span>
-                <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s.what}</span>
-                <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)', textAlign: 'right' }}>{s.where}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s.what}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'right' }}>{s.where}</span>
               </div>
             ))}
           </div>
@@ -252,7 +252,7 @@ export default function TrustPage() {
             <Row label="Προσωπικά δεδομένα" value={IDENTITY.privacyEmail} />
             <Row label="Αναφορά ευπάθειας ασφαλείας" value={IDENTITY.securityEmail} />
           </div>
-          <p style={{ ...P, marginTop: 14, fontSize: 13.5, color: 'var(--text-tertiary)' }}>
+          <p style={{ ...P, marginTop: 14, fontSize: 14, color: 'var(--text-tertiary)' }}>
             Βρήκες κενό ασφαλείας; Γράψε μας πριν το δημοσιοποιήσεις και θα το διορθώσουμε γρήγορα, με αναφορά
             σε εσένα αν το θέλεις. Δεσμευόμαστε να μη στραφούμε νομικά εναντίον ερευνητή που ενεργεί καλόπιστα
             και δεν αποκτά πρόσβαση σε δεδομένα τρίτων· οι πλήρεις όροι είναι δημοσιευμένοι στο{' '}

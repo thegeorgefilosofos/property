@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, fe, InfoBanner, Card, EmptyState, fp } from '@/components/Theme';
+import { T, fe, InfoBanner, Card, EmptyState, fp, histInputStyle } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -57,22 +57,6 @@ const COMMON_CATEGORIES: { key: string; label: string; payer: 'tenant' | 'owner'
   { key: 'reserve',     label: 'Αποθεματικό κτηρίου',     payer: 'owner'  },
 ];
 
-const histInputStyle = (isCurrent: boolean, isHovered: boolean): React.CSSProperties => ({
-  width: '100%',
-  background: isCurrent ? 'var(--accent-soft)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
-  border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
-  borderRadius: T.radius.badge,
-  padding: '6px 4px',
-  color: 'var(--text-primary)',
-  fontSize: 11,
-  fontFamily: T.font.mono,
-  fontVariantNumeric: 'tabular-nums',
-  outline: 'none',
-  textAlign: 'center',
-  boxSizing: 'border-box',
-  transition: 'all 0.15s',
-  cursor: 'pointer',
-});
 
 interface Props { propertyId: string; userId?: string; }
 

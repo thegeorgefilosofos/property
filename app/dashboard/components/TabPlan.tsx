@@ -230,7 +230,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         ].map(x => (
           <div key={x.k}>
             <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{x.k}</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginTop: 3 }}>{x.v}</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 3 }}>{x.v}</div>
           </div>
         ))}
       </div>
@@ -270,7 +270,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                 <button key={k.key} onClick={() => pickKind(k.key)} aria-pressed={on} title={k.hint}
                   style={{
                     appearance: 'none', cursor: 'pointer', height: T.h.md, padding: '0 16px',
-                    borderRadius: T.radius.pill, fontFamily: T.font.sans, fontSize: 12.5,
+                    borderRadius: T.radius.pill, fontFamily: T.font.sans, fontSize: 13,
                     fontWeight: on ? 700 : 500,
                     background: on ? 'var(--bg-surface)' : 'transparent',
                     border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
@@ -378,7 +378,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           {sale.lines.map(l => (
             <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 2px', borderTop: '1px solid var(--border-subtle)' }}>
               <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{l.label}</span>
-              <span style={{ ...TT.mono, fontSize: 12.5, color: 'var(--text-primary)' }}>−{feAuto(l.amount)}</span>
+              <span style={{ ...TT.mono, fontSize: 13, color: 'var(--text-primary)' }}>−{feAuto(l.amount)}</span>
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '12px 2px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 4 }}>
@@ -399,7 +399,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           {plan.funding.map((f, i) => (
             <div key={f.id} style={{ padding: '16px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: T.font.sans, fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)' }}>{f.title}</span>
+                <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{f.title}</span>
                 <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{FUNDING_KIND_LABEL[f.kind]}</span>
               </div>
               <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{f.what}</div>
@@ -450,7 +450,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         sub="Λίγα πράγματα, και όλα τους τα έχει πληρώσει κάποιος που δεν τα ήξερε.">
         {plan.rules.map((r, i) => (
           <div key={r.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</div>
             <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{r.body}</div>
           </div>
         ))}

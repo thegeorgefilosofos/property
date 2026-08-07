@@ -1,15 +1,16 @@
 'use client'
-import { T } from '@/components/Theme'
+import { T, TT } from '@/components/Theme'
 import { useState } from 'react'
 
 // ── Κοινά primitives του Δανείου (μία πηγή αλήθειας για TabLoan + TabLoanCalculator) ──
 // Πριν υπήρχαν διπλά αντίγραφα που είχαν αποκλίνει (διαφορετικές ακτίνες/μεγέθη).
 // Εδώ ενοποιούνται ώστε τα δύο αρχεία να μοιάζουν απόλυτα.
 
-export const labelStyle: React.CSSProperties = {
-  fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,
-}
+// Η ετικέτα πεδίου ΔΕΝ ξαναορίζεται: είναι το TT.label, λέξη προς λέξη. Ήταν
+// γραμμένη οκτώ φορές σε οκτώ αρχεία, με δύο τυπογραφίες (10/700 και 11/600)
+// για το ίδιο ακριβώς πράγμα — δηλαδή οι ίδιες ετικέτες άλλαζαν μέγεθος από
+// οθόνη σε οθόνη. Επανεξάγεται από εδώ ώστε να μη σπάσει καμία εισαγωγή.
+export const labelStyle: React.CSSProperties = TT.label
 // Οι ακτίνες/κενά έρχονται πλέον από τα tokens και όχι από literals: όταν αλλάξει η
 // ακτίνα κάρτας στο components/tokens.ts, το Δάνειο δεν μένει πίσω με το δικό του 14.
 export const cardStyle: React.CSSProperties = {

@@ -88,7 +88,7 @@ export function printAccountingReport(c: AccountingReportCtx): void {
 ${printFontFaces()}
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,Arial,sans-serif;color:#111;background:#fff;font-size:12.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:'Inter',system-ui,Arial,sans-serif;color:#111;background:#fff;font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .page{max-width:760px;margin:0 auto;padding:40px}
   @media print{.page{padding:16mm 15mm}@page{margin:0}}
   .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px}
@@ -105,18 +105,18 @@ ${printFontFaces()}
   .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
   .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
   table{width:100%;border-collapse:collapse;break-inside:avoid}
-  td,th{padding:8px 4px;text-align:left;font-size:12.5px}
+  td,th{padding:8px 4px;text-align:left;font-size:13px}
   td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:#111}
   tbody tr td{border-bottom:1px solid #eef0f2;color:#374151}
   tr.sub td{font-weight:700;color:#111;background:#fafafa}
   tr.result td{font-weight:700;color:#111;border-top:2px solid #111;border-bottom:none;padding-top:10px}
-  th{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:#8a8f98;font-weight:600;border-bottom:1px solid #d0d5dd}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8a8f98;font-weight:600;border-bottom:1px solid #d0d5dd}
   td.st{text-align:right;font-size:11px;font-weight:700;color:#374151;white-space:nowrap}
   td.empty{color:#8a8f98;font-size:12px;padding:12px 0}
   .recon-note{font-size:12px;color:#374151;margin-bottom:8px}
   .recon-note strong{color:#111;font-weight:700}
   .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
-  .colo{margin-top:10px;font-size:9.5px;letter-spacing:.02em;color:#9aa0a6}
+  .colo{margin-top:10px;font-size:10px;letter-spacing:.02em;color:#9aa0a6}
   .colo b{font-weight:700;color:#6b7280}
 </style></head>
 <body><div class="page">

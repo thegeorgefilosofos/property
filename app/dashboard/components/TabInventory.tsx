@@ -6,7 +6,7 @@ import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT } from '@/components/Theme'
 import { PackageOpen, SearchX, ClipboardCheck } from 'lucide-react'
 import { csvSafe } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
@@ -245,16 +245,7 @@ const cardStyle: React.CSSProperties = {
   borderRadius:T.radius.card,
   padding:16,
 }
-const labelStyle: React.CSSProperties = {
-  fontSize:11,
-  color:'var(--text-secondary)',
-  textTransform:'uppercase' as const,
-  letterSpacing:'0.06em',
-  fontWeight:600,
-  fontFamily:T.font.sans,
-  display:'block',
-  marginBottom:6,
-}
+const labelStyle: React.CSSProperties = { ...TT.label, display:'block', marginBottom:6 }
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <SecHdr label={label} right={right}/>
 )
@@ -291,7 +282,7 @@ function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon:React.
   return (
     <div style={{display:'inline-block'}}>
       <button ref={btnRef} onClick={()=>setOpen(v=>!v)}
-        style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer',border:`1px solid ${accent?'var(--accent-border)':'var(--border-subtle)'}`,background:accent?'var(--accent-soft)':'var(--bg-surface)',color:accent?'var(--accent)':'var(--text-secondary)'}}>
+        style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',borderRadius:T.radius.pill,fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer',border:`1px solid ${accent?'var(--accent-border)':'var(--border-subtle)'}`,background:accent?'var(--accent-soft)':'var(--bg-surface)',color:accent?'var(--accent)':'var(--text-secondary)'}}>
         <span style={{display:'flex'}}>{icon}</span>{label}
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
       </button>
@@ -300,7 +291,7 @@ function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon:React.
           {options.length===0
             ?<p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'8px 12px'}}>Καμία επιλογή</p>
             :options.map(o=>(
-              <div key={o} onClick={()=>{onPick(o);setOpen(false)}} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12.5,fontFamily:T.font.sans,color:'var(--text-primary)'}}
+              <div key={o} onClick={()=>{onPick(o);setOpen(false)}} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:13,fontFamily:T.font.sans,color:'var(--text-primary)'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{o}</div>
             ))}
         </div>,
@@ -462,7 +453,7 @@ function OverflowMenu({actions,align='right',dark}:{actions:OverflowAction[];ali
           style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
           {actions.map((a,i)=>(
             <button key={i} onClick={()=>{a.onClick();setOpen(false)}}
-              style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'8px 12px',borderRadius:8,fontSize:12.5,fontFamily:T.font.sans,fontWeight:500,color:a.danger?'var(--negative)':'var(--text-primary)',background:'transparent',border:'none',cursor:'pointer'}}
+              style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'8px 12px',borderRadius:8,fontSize:13,fontFamily:T.font.sans,fontWeight:500,color:a.danger?'var(--negative)':'var(--text-primary)',background:'transparent',border:'none',cursor:'pointer'}}
               onMouseEnter={e=>e.currentTarget.style.background=a.danger?'var(--negative-dim)':'var(--bg-hover)'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <span style={{display:'flex',width:15,color:a.danger?'var(--negative)':'var(--text-tertiary)',flexShrink:0}}>{a.icon}</span>
@@ -622,7 +613,7 @@ function Field({d,children}:{d?:FieldDecision;children:React.ReactNode}) {
     <div>
       <label style={labelStyle}>{d.label}{d.critical?' *':''}</label>
       {children}
-      <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>{d.why}</p>
+      <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>{d.why}</p>
     </div>
   )
 }
@@ -750,7 +741,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
                   <div key={i} onClick={()=>set('photo_url',url)} title={url===form.photo_url?'Κύρια φωτογραφία':'Ορισμός ως κύρια'} style={{position:'relative',height:84,borderRadius:10,overflow:'hidden',border:`2px solid ${url===form.photo_url?'var(--accent)':'var(--border-subtle)'}`,cursor:'pointer'}}>
                     <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
                     <button onClick={e=>{e.stopPropagation();removePhoto(url)}} aria-label="Αφαίρεση" style={{position:'absolute',top:5,right:5,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',border:'none',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-                    {url===form.photo_url&&<div style={{position:'absolute',inset:'auto 0 0 0',background:'var(--accent)',fontSize:8.5,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:T.font.sans,padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
+                    {url===form.photo_url&&<div style={{position:'absolute',inset:'auto 0 0 0',background:'var(--accent)',fontSize:9,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:T.font.sans,padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
                   </div>
                 ))}
                 <button onClick={()=>{if(!scanning&&!photoBusy)scanRef.current?.click()}} disabled={scanning||photoBusy} title="Προσθήκη φωτογραφίας" style={{height:84,borderRadius:10,border:'1.5px dashed var(--border-accent)',background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',cursor:(scanning||photoBusy)?'wait':'pointer',color:'var(--accent)'}}>
@@ -790,11 +781,11 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
               {form.receipt_doc_url
                 ?<div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                    <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
+                    <span style={{flex:1,minWidth:0,fontSize:13,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
                     <button onClick={()=>openInventoryDoc(form.receipt_doc_url)} style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}>Άνοιγμα</button>
                     <button onClick={async()=>{const old=form.receipt_doc_url;setForm(f2=>({...f2,receipt_doc_url:'',receipt_doc_name:''}));/* Διέγραψε αμέσως μόνο αν είναι αρχείο αυτής της συνεδρίας· το αρχικά αποθηκευμένο καθαρίζεται με το save. */ if(old&&old!==item?.receipt_doc_url&&!/^https?:\/\//.test(old))await supabase.storage.from(DOCS_BUCKET).remove([old])}} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                   </div>
-                :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans}}>
+                :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                     {docUp?'Ανέβασμα…':'Φωτογράφισε ή επισύναψε την απόδειξη'}
                     <input type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const fl=e.target.files?.[0];if(fl)uploadReceiptDoc(fl)}}/>
@@ -816,7 +807,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
                   </div>
                 ))}
               </div>
-              <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:8}}>{NOT_TAX_DEPRECIATION_NOTE}</p>
+              <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:8}}>{NOT_TAX_DEPRECIATION_NOTE}</p>
             </div>
           )}
 
@@ -865,7 +856,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
                       <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
                     </div>
                   ))}
-                  <p style={{gridColumn:'1/-1',fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
+                  <p style={{gridColumn:'1/-1',fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
                     {kwhPrice>0
                       ? `Στην τιμή ${feRate(kwhPrice)} ανά κιλοβατώρα, όπως προκύπτει από τον λογαριασμό ρεύματός σου.`
                       : 'Για να δεις κόστος σε ευρώ, σάρωσε έναν λογαριασμό ρεύματος ή δήλωσε την τιμή €/kWh στην Επισκόπηση. Δεν βάζουμε δική μας τιμή.'}
@@ -1052,11 +1043,11 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
                 αιτία που μόλις διαβάστηκε δίπλα, και δεν πρόσφερε τίποτα να κάνεις. */}
             {kind==='warr'
               ? <button onClick={()=>{onWarrantyReminder(item);setPushed(p=>new Set(p).add(item.id))}} disabled={pushed.has(item.id)}
-                  style={{flexShrink:0,padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:pushed.has(item.id)?'var(--text-tertiary)':'var(--text-secondary)',fontSize:11.5,fontFamily:T.font.sans,fontWeight:500,cursor:pushed.has(item.id)?'default':'pointer',whiteSpace:'nowrap'}}>
+                  style={{flexShrink:0,padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:pushed.has(item.id)?'var(--text-tertiary)':'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:pushed.has(item.id)?'default':'pointer',whiteSpace:'nowrap'}}>
                   {pushed.has(item.id)?'Στο ημερολόγιο':'Υπενθύμιση'}
                 </button>
               : <button onClick={()=>onEdit(item)}
-                  style={{flexShrink:0,padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:11.5,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>
+                  style={{flexShrink:0,padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>
                   Άνοιγμα
                 </button>}
           </div>
@@ -1092,8 +1083,8 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
       </div>
       {totalRepairs>0&&(
         <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
-          <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Επισκευές έως τώρα</span>
-          <span style={{fontSize:11.5,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fe(totalRepairs)}</span>
+          <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Επισκευές έως τώρα</span>
+          <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fe(totalRepairs)}</span>
         </div>
       )}
     </div>
@@ -1136,7 +1127,7 @@ function HandoverCard({handovers,onOpenHandover}:{handovers:InventoryHandover[];
     <div style={cardStyle}>
       <SectionLabel label="Παραδόσεις και παραλαβές" right={<button onClick={onOpenHandover} style={{padding:'0 12px',height:28,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'Νέο πρωτόκολλο'}</button>}/>
       {handovers.length===0
-        ?<p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή της κατάστασης του εξοπλισμού στην είσοδο και στην έξοδο του ενοικιαστή: η απόδειξη για την εγγύηση.</p>
+        ?<p style={{fontSize:13,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή της κατάστασης του εξοπλισμού στην είσοδο και στην έξοδο του ενοικιαστή: η απόδειξη για την εγγύηση.</p>
         :<div style={{display:'flex',flexDirection:'column',gap:6}}>
           {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
             const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
@@ -1144,8 +1135,8 @@ function HandoverCard({handovers,onOpenHandover}:{handovers:InventoryHandover[];
               <div key={h.id} onClick={onOpenHandover} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:'pointer'}}>
                 <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
                 <div style={{minWidth:0,flex:1}}>
-                  <p style={{fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
-                  <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)} · {snap.length} αντικείμενα</p>
+                  <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
+                  <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)} · {snap.length} αντικείμενα</p>
                 </div>
                 {bad>0&&<span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans,flexShrink:0}}>{bad} με φθορά</span>}
               </div>
@@ -1254,7 +1245,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
           <BulkPicker label="Δωμάτιο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M4 21V7l8-4v18M20 21V11l-8-4"/></svg>} options={ROOM_PRESETS} onPick={r=>{if(visIds.length){onBulkRoom(visIds,r);exitSelect()}}}/>
           <button onClick={async()=>{ /* Ρητό στιγμιότυπο ΠΡΙΝ την ερώτηση: ο διάλογος δεν παγώνει πια τη σελίδα, άρα φίλτρο και επιλογή μπορούν να αλλάξουν όσο περιμένουμε απάντηση. Διαγράφονται ακριβώς όσα ανακοίνωσε το μήνυμα. */
             const ids=visIds
-            if(ids.length && await confirmDialog(`Διαγραφή ${ids.length} αντικειμένων;`,{tone:'negative'})){ onBulkDelete(ids); exitSelect() } }} disabled={visIds.length===0} style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:visIds.length?'pointer':'not-allowed',border:'1px solid var(--negative-border)',background:visIds.length?'var(--negative-dim)':'var(--bg-elevated)',color:visIds.length?'var(--negative)':'var(--text-tertiary)'}}>
+            if(ids.length && await confirmDialog(`Διαγραφή ${ids.length} αντικειμένων;`,{tone:'negative'})){ onBulkDelete(ids); exitSelect() } }} disabled={visIds.length===0} style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',borderRadius:T.radius.pill,fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:visIds.length?'pointer':'not-allowed',border:'1px solid var(--negative-border)',background:visIds.length?'var(--negative-dim)':'var(--bg-elevated)',color:visIds.length?'var(--negative)':'var(--text-tertiary)'}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
             Διαγραφή
           </button>
@@ -1310,7 +1301,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                 <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,flex:1}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
                     <div style={{minWidth:0}}>
-                      <p style={{fontSize:13.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2,lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
+                      <p style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2,lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
                       <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
                     </div>
                     <div style={{textAlign:'right',flexShrink:0}}>
@@ -1514,7 +1505,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
       </div>
       <div>
         <SectionLabel label="Κατάσταση αντικειμένων" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{items.length} αντικείμενα</span>}/>
-        <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'-4px 0 10px',lineHeight:1.5}}>Πάτησε τη μικρογραφία για να τραβήξεις <strong style={{color:'var(--text-secondary)'}}>φωτογραφία της τρέχουσας κατάστασης</strong>, χρονοσφραγίζεται και μπαίνει στο εκτυπώσιμο πρωτόκολλο ως απόδειξη.</p>
+        <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'-4px 0 10px',lineHeight:1.5}}>Πάτησε τη μικρογραφία για να τραβήξεις <strong style={{color:'var(--text-secondary)'}}>φωτογραφία της τρέχουσας κατάστασης</strong>, χρονοσφραγίζεται και μπαίνει στο εκτυπώσιμο πρωτόκολλο ως απόδειξη.</p>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {items.map(item=>(
             <div key={item.id} style={{display:'grid',gridTemplateColumns:'44px minmax(0,1.4fr) 150px minmax(0,1.6fr)',gap:14,alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
@@ -1533,7 +1524,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
               )})()}
               <div style={{minWidth:0}}>
                 <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
-                <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
+                <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
               </div>
               <CustomSelect value={itemConds[item.id]?.condition||item.condition} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],condition:v}}))} options={CONDITIONS.map(c=>({value:c,label:c}))}/>
               <TextInput value={itemConds[item.id]?.notes||''} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],notes:v}}))} placeholder="Παράδειγμα: μικρή γρατζουνιά στην πόρτα"/>
@@ -1723,7 +1714,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
           </div>
           <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,padding:'9px 12px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            <p style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Με την αποθήκευση μπαίνει αυτόματα στο <strong style={{color:'var(--text-primary)'}}>ημερολόγιο</strong> (με υπενθύμιση email πριν λήξει){form.est_cost>0?<> και ως <strong style={{color:'var(--text-primary)'}}>εκκρεμής δαπάνη</strong> στον προϋπολογισμό «Συντήρηση»</>:''}.</p>
+            <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Με την αποθήκευση μπαίνει αυτόματα στο <strong style={{color:'var(--text-primary)'}}>ημερολόγιο</strong> (με υπενθύμιση email πριν λήξει){form.est_cost>0?<> και ως <strong style={{color:'var(--text-primary)'}}>εκκρεμής δαπάνη</strong> στον προϋπολογισμό «Συντήρηση»</>:''}.</p>
           </div>
           <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:12}}>
             <button onClick={()=>setAdding(false)} style={{padding:'0 16px',height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
@@ -1820,7 +1811,7 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
         <div class="row"><span>Αξία αγοράς</span><span>${esc(i.purchase_value?eur(i.purchase_value):fe(0))}</span></div>
         <div class="row val"><span>Κόστος αντικατάστασης</span><span>${insurableOf(i)>0?esc(eur(insurableOf(i))):'δεν δηλώθηκε'}</span></div>
         </div></div>`}
-    w.document.write(`<html><head><title>Έκθεση ασφάλισης περιεχομένου</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial,sans-serif;font-size:11px;color:#111;padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:16px}.mark{width:32px;height:32px;border-radius:7px;background:${accent};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}.bn{font-size:15px;font-weight:700;color:#111}h1{font-size:22px;font-weight:700;color:#111;margin-bottom:2px}.sub{color:#6b7280;margin-bottom:20px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:24px}.kpi{flex:1;background:#f8f9fa;border:1px solid #d1d5db;border-radius:10px;padding:14px}.kpi-v{font-size:19px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:700;margin-top:2px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.c{border:1px solid #d1d5db;border-radius:10px;overflow:hidden;display:flex;page-break-inside:avoid}.ph{width:120px;flex-shrink:0;background:#f8f9fa}.ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}.noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:10px}.cb{padding:10px 12px;flex:1;min-width:0}.nm{font-size:13px;font-weight:600;color:#111;margin-bottom:2px}.mt{font-size:10px;color:#6b7280;margin-bottom:6px}.sn{font-size:9px;color:#6b7280;font-family:'Roboto Mono',monospace;margin-bottom:6px}.row{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;border-top:1px solid #e5e7eb;color:#374151}.row span:last-child{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:#111}.row.val span{color:#111}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #d1d5db;font-size:9.5px;color:#6b7280;line-height:1.6}@media print{button{display:none}}</style></head><body>
+    w.document.write(`<html><head><title>Έκθεση ασφάλισης περιεχομένου</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial,sans-serif;font-size:11px;color:#111;padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:16px}.mark{width:32px;height:32px;border-radius:7px;background:${accent};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}.bn{font-size:15px;font-weight:700;color:#111}h1{font-size:22px;font-weight:700;color:#111;margin-bottom:2px}.sub{color:#6b7280;margin-bottom:20px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:24px}.kpi{flex:1;background:#f8f9fa;border:1px solid #d1d5db;border-radius:10px;padding:14px}.kpi-v{font-size:19px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:700;margin-top:2px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.c{border:1px solid #d1d5db;border-radius:10px;overflow:hidden;display:flex;page-break-inside:avoid}.ph{width:120px;flex-shrink:0;background:#f8f9fa}.ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}.noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:10px}.cb{padding:10px 12px;flex:1;min-width:0}.nm{font-size:13px;font-weight:600;color:#111;margin-bottom:2px}.mt{font-size:10px;color:#6b7280;margin-bottom:6px}.sn{font-size:9px;color:#6b7280;font-family:'Roboto Mono',monospace;margin-bottom:6px}.row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-top:1px solid #e5e7eb;color:#374151}.row span:last-child{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:#111}.row.val span{color:#111}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #d1d5db;font-size:10px;color:#6b7280;line-height:1.6}@media print{button{display:none}}</style></head><body>
     <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
     <div class="hd"><div class="mark">P</div><div class="bn">Property OS</div></div>
     <h1>Έκθεση ασφάλισης περιεχομένου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα · φωτογραφική τεκμηρίωση</div>
@@ -2120,7 +2111,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             {handoverSeed&&(
               <div style={{display:'flex',alignItems:'center',gap:10,textAlign:'left',maxWidth:520,margin:'0 auto 24px',padding:'12px 16px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <p style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Για το πρωτόκολλο παράδοσης{handoverSeed.tenantName?<> του <strong style={{color:'var(--text-primary)'}}>{handoverSeed.tenantName}</strong></>:''} πρόσθεσε πρώτα τον εξοπλισμό του ακινήτου, μετά θα καταγράφεις την κατάστασή του σε κάθε παράδοση/παραλαβή.</p>
+                <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Για το πρωτόκολλο παράδοσης{handoverSeed.tenantName?<> του <strong style={{color:'var(--text-primary)'}}>{handoverSeed.tenantName}</strong></>:''} πρόσθεσε πρώτα τον εξοπλισμό του ακινήτου, μετά θα καταγράφεις την κατάστασή του σε κάθε παράδοση/παραλαβή.</p>
               </div>
             )}
             <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px'}}>
@@ -2135,7 +2126,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
               <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
             </div>
             <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',alignItems:'center',marginBottom:28}}>
-              <button onClick={insertStarterPack} disabled={cloning} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 14px',borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,fontWeight:500,cursor:cloning?'wait':'pointer'}}>
+              <button onClick={insertStarterPack} disabled={cloning} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 14px',borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,fontWeight:500,cursor:cloning?'wait':'pointer'}}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
                 {cloning?'Δημιουργία…':`Πρότυπο επιπλωμένου (${STARTER_PACK.length})`}
               </button>
@@ -2150,7 +2141,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
                 <div key={i} style={{display:'flex',gap:11,padding:'13px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
                   <div style={{color:'var(--accent)',flexShrink:0,marginTop:1}}>{s.icon}</div>
                   <div>
-                    <p style={{fontSize:12.5,fontWeight:600,color:'var(--text-primary)',fontFamily:T.font.sans,marginBottom:2}}>{s.t}</p>
+                    <p style={{fontSize:13,fontWeight:600,color:'var(--text-primary)',fontFamily:T.font.sans,marginBottom:2}}>{s.t}</p>
                     <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>{s.d}</p>
                   </div>
                 </div>
@@ -2181,7 +2172,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
       {!loading && items.length>0 && page==='handover' && (
         <div style={{marginTop:8}}>
-          <button onClick={()=>setPage('main')} style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',marginBottom:16,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,cursor:'pointer'}}>
+          <button onClick={()=>setPage('main')} style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',marginBottom:16,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             Πίσω στα έπιπλα και τον εξοπλισμό
           </button>

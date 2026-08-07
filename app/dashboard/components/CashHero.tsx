@@ -43,7 +43,7 @@ function Side({ label, side, kind, onOpen, actionLabel }: {
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
     >
       <span style={{
-        fontFamily: T.font.sans, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em',
+        fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
         textTransform: 'uppercase', color: 'var(--text-tertiary)',
       }}>{label}</span>
       {/* Ο αριθμός κλιμακώνεται με το πλάτος του ΠΛΑΙΣΙΟΥ (container query), ώστε
@@ -54,7 +54,7 @@ function Side({ label, side, kind, onOpen, actionLabel }: {
         maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{fe(Math.round(side.total))}</span>
       <span style={{
-        fontFamily: T.font.sans, fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45,
+        fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45,
       }}>{note}</span>
     </button>
   );

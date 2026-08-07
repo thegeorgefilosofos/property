@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, fp, fd, ABSENT } from '@/components/Theme';
+import { T, fe, fn, fp, fd, ABSENT, TT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
 import { STATUSES, BY_KEY, readStatus, writeStatus, type PropertyStatus } from '@/lib/property/status';
@@ -120,9 +120,7 @@ const inputStyle: React.CSSProperties = {
 };
 const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' };
 const labelStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'flex-end', minHeight: 28, lineHeight: 1.3,
-  fontFamily: T.font.sans, fontSize: 10, fontWeight: 700,
-  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6,
+  ...TT.label, display: 'flex', alignItems: 'flex-end', minHeight: 28, lineHeight: 1.3, marginBottom: 6,
 };
 
 // Όροφοι (ελληνική ονοματολογία): κείμενο, όχι αριθμός.

@@ -554,7 +554,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: T.font.sans }}>
                         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: permsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><path d="M9 6l6 6-6 6" /></svg>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Δικαιώματα</span>
-                        <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
+                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                           {scoped ? `${m.property_scope!.length} ακίνητα` : 'Όλα τα ακίνητα'} · {m.can_view_financials ? 'με οικονομικά' : 'χωρίς οικονομικά'}
                         </span>
                       </button>
@@ -563,8 +563,8 @@ export default function OrgTeam({ userId }: { userId: string }) {
                         <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: 'var(--bg-base)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Οικονομικά στοιχεία</div>
-                              <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Ενοίκια, δαπάνες, λογαριασμοί, δάνεια και λογιστική.</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Οικονομικά στοιχεία</div>
+                              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Ενοίκια, δαπάνες, λογαριασμοί, δάνεια και λογιστική.</div>
                             </div>
                             <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>
                               <SegBtn active={m.can_view_financials} disabled={busy} onClick={() => { if (!m.can_view_financials) void setMemberScope(m.email, { can_view_financials: true }); }}>Ορατά</SegBtn>
@@ -575,8 +575,8 @@ export default function OrgTeam({ userId }: { userId: string }) {
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: scoped ? 10 : 0 }}>
                               <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ακίνητα</div>
-                                <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Σε ποια ακίνητα έχει πρόσβαση το μέλος.</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ακίνητα</div>
+                                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Σε ποια ακίνητα έχει πρόσβαση το μέλος.</div>
                               </div>
                               <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>
                                 <SegBtn active={!scoped} disabled={busy} onClick={() => { if (scoped) void setMemberScope(m.email, { property_scope: null }); }}>Όλα</SegBtn>

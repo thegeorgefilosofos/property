@@ -103,13 +103,13 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
               Ευχαριστούμε, σε ακούσαμε.
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
               {done
                 ? `Το κρατήσαμε και το κοιτάζει η ομάδα. Έχεις κι άλλη ιδέα; Πες μας την ξανά ${dayPhrase}.`
                 : `Έχουμε ήδη το μήνυμά σου αυτόν τον μήνα και το επεξεργαζόμαστε. Πες μας ξανά τη γνώμη σου ${dayPhrase}.`}
             </div>
             {pooled && (
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 8 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 8 }}>
                 Μπήκες και στην κλήρωση για μία δωρεάν ετήσια συνδρομή «Επαγγελματίας».
               </div>
             )}
@@ -151,13 +151,13 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
           }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           </span>
-          <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
             Κάνε το Property OS καλύτερο
           </span>
         </div>
 
         {/* Στόχος (πελατοκεντρικό μήνυμα) */}
-        <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, margin: '10px 0 0' }}>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, margin: '10px 0 0' }}>
           Στόχος μας είναι η διαχείριση των ακινήτων σου να γίνει απλή, γρήγορη και αποτελεσματική. Πες μας τι λειτουργεί καλά, τι σε δυσκολεύει και τι θα ήθελες από τα εργαλεία και από τη Νόα. Κάθε μήνυμα το διαβάζει άνθρωπος από την ομάδα, όχι κάποια μηχανή.
         </p>
 
@@ -182,14 +182,14 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
         />
 
         {/* Μετρητής λέξεων / ένδειξη ετοιμότητας */}
-        <div style={{ fontSize: 11.5, color: ready ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 7, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: ready ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 7, lineHeight: 1.5 }}>
           {ready
             ? 'Ωραία, το μήνυμά σου είναι έτοιμο.'
             : `Γράψε λίγες λέξεις ακόμη και βοήθησέ μας να βελτιωθούμε (${words}/${MIN_WORDS}).`}
         </div>
 
         {error && (
-          <div style={{ fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 6 }}>{error}</div>
+          <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 6 }}>{error}</div>
         )}
 
         {/* Κίνητρο κλήρωσης */}
@@ -197,7 +197,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
           <span aria-hidden style={{ color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}>
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v10H4V12" /><path d="M2 7h20v5H2z" /><path d="M12 22V7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
           </span>
-          <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
             Κάθε ουσιαστικό σχόλιο μπαίνει στην κλήρωση για μία <strong style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>δωρεάν ετήσια συνδρομή «Επαγγελματίας»</strong>.
           </span>
         </div>

@@ -63,7 +63,7 @@ export default class TabBoundary extends Component<Props, State> {
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
             Αυτή η ενότητα δεν φόρτωσε
           </div>
-          <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>
             Οι υπόλοιπες ενότητες λειτουργούν κανονικά και τα δεδομένα σου είναι ασφαλή.
             Δοκίμασε ξανά, ή συνέχισε από το μενού.
           </div>
@@ -76,7 +76,7 @@ export default class TabBoundary extends Component<Props, State> {
             style={{
               margin: '0 0 14px', padding: '10px 12px', cursor: 'copy',
               background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-              borderRadius: 10, fontSize: 11.5, lineHeight: 1.5, color: 'var(--text-tertiary)',
+              borderRadius: 10, fontSize: 12, lineHeight: 1.5, color: 'var(--text-tertiary)',
               whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 140, overflow: 'auto',
               fontFamily: T.font.mono,
             }}>

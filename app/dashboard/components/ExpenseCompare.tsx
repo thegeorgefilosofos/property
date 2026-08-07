@@ -109,7 +109,7 @@ function Drivers({ c }: { c: Comparison }) {
                 background: 'color-mix(in srgb, var(--text-primary) 30%, transparent)',
               }} />
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>
               <Eur value={d.diff} sign />
               {d.isNew && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>νέο</span>}
               {d.vanished && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>σταμάτησε</span>}
@@ -187,7 +187,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
           const m = Number(p.key.slice(5, 7)) - 1;
           return (
             <span key={p.key} style={{
-              width: 14, textAlign: 'center', fontSize: 9.5, fontFamily: T.font.sans,
+              width: 14, textAlign: 'center', fontSize: 10, fontFamily: T.font.sans,
               fontWeight: isSel ? 700 : 400,
               color: isSel ? 'var(--text-secondary)' : 'var(--text-tertiary)',
             }}>{M1[m]}</span>
@@ -252,7 +252,7 @@ export default function ExpenseCompare({ spends, today }: Props) {
               {c.caveats.map((t, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span aria-hidden style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 7 }} />
-                  <span style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{t}</span>
+                  <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{t}</span>
                 </div>
               ))}
             </div>

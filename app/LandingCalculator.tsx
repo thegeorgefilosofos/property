@@ -31,12 +31,12 @@ function Control({ label, hint, value, set, min, max, step, format }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-        <label style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</label>
+        <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</label>
         <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{format(value)}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => set(Number(e.target.value))}
         aria-label={label} style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />
-      <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{hint}</span>
+      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{hint}</span>
     </div>
   )
 }
@@ -44,7 +44,7 @@ function Control({ label, hint, value, set, min, max, step, format }: {
 function Stat({ label, value, big, tone }: { label: string; value: string; big?: boolean; tone?: 'accent' | 'positive' }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.02em' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.02em' }}>{label}</span>
       <span style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1, fontWeight: 700, fontSize: big ? 'clamp(30px, 5vw, 42px)' : 20, color: tone === 'positive' ? 'var(--positive)' : tone === 'accent' ? 'var(--accent)' : 'var(--text-primary)' }}>{value}</span>
     </div>
   )
@@ -83,7 +83,7 @@ export default function LandingCalculator() {
 
         {/* Πού πέφτεις στην κλίμακα ενοικίων 2026 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-tertiary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)' }}>
             <span>Κλίμακα ενοικίων 2026</span>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>φορολογητέο {eur(taxable)}</span>
           </div>
@@ -93,7 +93,7 @@ export default function LandingCalculator() {
             ))}
             <div className="calc-marker" style={{ left: `${markerPct}%` }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
             {BANDS.map((b, i) => <span key={i}>{b.rate}</span>)}
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function LandingCalculator() {
           <Stat label="Μέσος συντελεστής" value={pct(effRate)} />
         </div>
         <div style={{ flex: 1 }} />
-        <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
           Ενδεικτικός υπολογισμός με την κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση 5%. Δεν υποκαθιστά τον λογιστή σου.
         </p>
         <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>

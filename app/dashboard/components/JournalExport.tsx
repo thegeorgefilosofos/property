@@ -225,8 +225,8 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                 return (
                   <button key={f.key} onClick={() => setFormat(f.key)} style={{ textAlign: 'left', padding: '9px 12px', borderRadius: 10, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, transition: 'border-color 0.15s, background 0.15s' }}>
                     <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 12.5, fontWeight: 660, letterSpacing: '-0.01em', color: on ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.label}</span>
-                      <span style={{ display: 'block', fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.hint}</span>
+                      <span style={{ display: 'block', fontSize: 13, fontWeight: 660, letterSpacing: '-0.01em', color: on ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.label}</span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.hint}</span>
                     </span>
                     {on && <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5"/></svg>}
                   </button>
@@ -246,12 +246,12 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
               </button>
               {showBalance && (<>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
                   <span>ΛΟΓΑΡΙΑΣΜΟΣ</span><span style={{ textAlign: 'right' }}>ΧΡΕΩΣΗ</span><span style={{ textAlign: 'right' }}>ΠΙΣΤΩΣΗ</span>
                 </div>
                 {preview.map(r => (
-                  <div key={r.code} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 12.5 }}>
-                    <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ fontFamily: T.font.mono, fontSize: 11.5, color: 'var(--text-tertiary)', marginRight: 10 }}>{r.code}</span>{r.account}</span>
+                  <div key={r.code} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ fontFamily: T.font.mono, fontSize: 12, color: 'var(--text-tertiary)', marginRight: 10 }}>{r.code}</span>{r.account}</span>
                     <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.debit ? eur(r.debit) : ''}</span>
                     <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.credit ? eur(r.credit) : ''}</span>
                   </div>
@@ -284,7 +284,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                   <div style={{ marginTop: 18 }}>
                     {/* Ετυμηγορία — ήρεμη, σαν λογιστής */}
                     <div style={{ paddingLeft: 14, borderLeft: `2px solid ${toneVar}` }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.55 }}>{audit.summary}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.55 }}>{audit.summary}</div>
                     </div>
 
                     {/* Αναλυτικοί έλεγχοι — μαζεύουν από default */}
@@ -307,15 +307,15 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                             return (
                               <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'start', padding: '11px 2px', borderTop: i ? '1px solid var(--border-subtle)' : 'none' }}>
                                 <span style={{ minWidth: 0 }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 560, color: 'var(--text-primary)' }}>{c.label}</div>
-                                  <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{c.detail}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 560, color: 'var(--text-primary)' }}>{c.label}</div>
+                                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{c.detail}</div>
                                   {!isPass && c.fix && (
                                     <>
                                       <div style={{ marginTop: 9, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '9px 11px', borderRadius: 8, background: 'var(--bg-elevated)' }}>
                                         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2h6c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>
-                                        <span style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--text-secondary)' }}><b style={{ color: 'var(--text-primary)', fontWeight: 640 }}>Πρόταση:</b> {c.fix}</span>
+                                        <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)' }}><b style={{ color: 'var(--text-primary)', fontWeight: 640 }}>Πρόταση:</b> {c.fix}</span>
                                       </div>
-                                      <button onClick={() => askAboutCheck(c)} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, fontFamily: T.font.sans, fontSize: 11.5, fontWeight: 650, color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                      <button onClick={() => askAboutCheck(c)} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, fontFamily: T.font.sans, fontSize: 12, fontWeight: 650, color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/></svg>
                                         {askCta()}
                                       </button>
@@ -338,7 +338,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
             </div>
           )}
 
-          {err && <div style={{ fontSize: 12.5, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+          {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
       </>
     </Modal>
   );

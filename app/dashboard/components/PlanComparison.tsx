@@ -195,7 +195,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 </div>
 
                 {/* Ταγκλάιν πλάνου */}
-                <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 6, minHeight: 34 }}>{p.tagline}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 6, minHeight: 34 }}>{p.tagline}</div>
 
                 {/* Τιμή */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 12 }}>
@@ -205,7 +205,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
 
                 {!isFree && cycle === 'annual' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceAnnual)}/χρόνο</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceAnnual)}/χρόνο</span>
                     {monthsFree > 0 && (
                       <Chip tone="positive">περίπου {monthsFree} μήνες δωρεάν</Chip>
                     )}
@@ -215,7 +215,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 {/* Το κόστος ανά ακίνητο βγαίνει από τα PLANS: όποτε αλλάξει τιμή ή
                     όριο, η γραμμή ακολουθεί χωρίς να ξεχαστεί. */}
                 {!isFree && Number.isFinite(p.maxProperties) && p.maxProperties > 1 && (
-                  <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
                     {p.maxProperties} ακίνητα, {feAuto(Math.round((p.priceMonthly / p.maxProperties) * 100) / 100)} το καθένα τον μήνα.
                   </div>
                 )}
@@ -240,7 +240,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
               <div />
               {COMPARED.map(id => (
                 <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
                 </div>
               ))}
             </div>
@@ -254,7 +254,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                   const gain = isGain(row, id);
                   let content: ReactNode;
                   if (typeof v === 'string') {
-                    content = <span style={{ fontSize: 12.5, fontWeight: gain ? 700 : 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>;
+                    content = <span style={{ fontSize: 13, fontWeight: gain ? 700 : 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>;
                   } else if (v === true) {
                     content = <Check tone="muted" />;
                   } else {

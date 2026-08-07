@@ -68,6 +68,28 @@ export const TT = {
   mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
 } as const;
 
+// ── Κελί ιστορικού λογαριασμών ─────────────────────────────────────────────
+// Το πεδίο του δωδεκάμηνου ιστορικού (Ρεύμα, Κοινόχρηστα, Υπηρεσίες) ήταν
+// γραμμένο τρεις φορές, και το ένα αντίγραφο είχε ΧΑΣΕΙ το `cursor: 'pointer'`:
+// στην ίδια γραμμή πεδίων, τα δύο έδειχναν χεράκι και το τρίτο όχι, χωρίς
+// καμία διαφορά στη συμπεριφορά. Εδώ ζει μία φορά.
+export const histInputStyle = (isCurrent: boolean, isHovered = false) => ({
+  width: '100%',
+  background: isCurrent ? 'var(--accent-soft)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
+  border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
+  borderRadius: T.radius.badge,
+  padding: '6px 4px',
+  color: 'var(--text-primary)',
+  fontSize: 11,
+  fontFamily: T.font.mono,
+  fontVariantNumeric: 'tabular-nums' as const,
+  outline: 'none',
+  textAlign: 'center' as const,
+  boxSizing: 'border-box' as const,
+  transition: 'all 0.15s',
+  cursor: 'pointer' as const,
+});
+
 // ── ΑΡΙΘΜΟΙ ────────────────────────────────────────────────────────────────
 // Οι τύποι ζουν στο `lib/core/format.ts` και επανεξάγονται εδώ. Ο λόγος: τους
 // χρειάζεται και ο πυρήνας (insights, δάνεια, αποδόσεις παράγουν κείμενο για

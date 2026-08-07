@@ -871,7 +871,7 @@ export default function TabDocuments({
                       transition: `background .15s ${T.ease.standard}, border-color .15s ${T.ease.standard}`,
                     }}>
                     {o.value}
-                    <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10.5,
+                    <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 11,
                       opacity: o.selected ? 0.85 : 0.6 }}>{o.count}</span>
                   </button>
                 ))}
@@ -1164,7 +1164,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
           </svg>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file.name}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file.name}</div>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
             {STAGE_TEXT[d.status] || (d.kind === 'photo'
               ? `Φωτογραφία χώρου · ${d.category}`
@@ -1172,15 +1172,15 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
           </div>
         </div>
         {d.status === 'saved' && (d.saved || []).map(t => (
-          <span key={t} style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>{t}</span>
+          <span key={t} style={{ fontSize: 10, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>{t}</span>
         ))}
         {d.status === 'ready' && (v.blocking.length > 0 || v.invalid.length > 0) && (
-          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>
             {v.blocking.length ? 'Χρειάζεται συμπλήρωση' : 'Έλεγξε τα στοιχεία'}
           </span>
         )}
         {d.status === 'ready' && (
-          <button onClick={onToggle} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, color: 'var(--text-secondary)', fontSize: 10.5, fontWeight: 600, padding: '4px 9px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+          <button onClick={onToggle} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, padding: '4px 9px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
             {d.open ? 'Σύμπτυξη' : 'Διόρθωση'}
           </button>
         )}
@@ -1205,13 +1205,13 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
             {d.ask.options.map(o => (
               <button key={o.id} onClick={() => onCommit(o.id)}
                 style={{ textAlign: 'left', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
                 {o.reasons.length > 0 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{o.reasons.join(' · ')}</div>}
               </button>
             ))}
             <button onClick={() => onCommit(null)}
               style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
-              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν — νέα, ξεχωριστή εγγραφή</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν — νέα, ξεχωριστή εγγραφή</div>
             </button>
           </div>
         </div>
@@ -1263,7 +1263,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
                   <DatePicker label={mark('Περίοδος από', 'period_from')} value={doc.period_from || ''} onChange={t => onPatchDoc({ period_from: t, period: undefined })}/>
                   <DatePicker label={mark('Περίοδος έως', 'period_to')} value={doc.period_to || ''} onChange={t => onPatchDoc({ period_to: t, period: undefined })}/>
                 </div>
-                {doc.period && <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>Στο χαρτί: {doc.period}</div>}
+                {doc.period && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Στο χαρτί: {doc.period}</div>}
               </>
             )}
             {!hasMoney(doc.doc_type) && (

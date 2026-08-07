@@ -43,7 +43,7 @@ export default function Unsubscribe() {
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
   const card: React.CSSProperties = { width: '100%', maxWidth: 440, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '30px 28px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
-  const btn = (danger?: boolean): React.CSSProperties => ({ width: '100%', height: 42, borderRadius: 10, border: '1px solid ' + (danger ? 'var(--border-default)' : 'var(--accent)'), background: danger ? 'var(--bg-surface)' : 'var(--accent)', color: danger ? 'var(--text-primary)' : 'var(--accent-text)', fontSize: 13.5, fontWeight: 600, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 });
+  const btn = (danger?: boolean): React.CSSProperties => ({ width: '100%', height: 42, borderRadius: 10, border: '1px solid ' + (danger ? 'var(--border-default)' : 'var(--accent)'), background: danger ? 'var(--bg-surface)' : 'var(--accent)', color: danger ? 'var(--text-primary)' : 'var(--accent-text)', fontSize: 14, fontWeight: 600, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: busy ? 0.6 : 1 });
 
   return (
     <div style={wrap}>

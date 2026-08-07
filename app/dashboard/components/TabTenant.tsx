@@ -16,7 +16,7 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved, savedData } from '@/components/dbWrite';
@@ -40,7 +40,7 @@ import { athensToday, daysUntil } from '@/lib/core/time';
 import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
-const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
+const labelStyle = { ...TT.label, marginBottom:7 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
 
@@ -1126,7 +1126,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
 
         {staleUnpaid.length>0&&(
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const, background:'var(--warning-soft)', border:'1px solid var(--warning-border)', borderRadius:T.radius.inner, padding:'11px 16px', margin:'4px 0' }}>
-            <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.5 }}>
+            <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.5 }}>
               {fn(staleUnpaid.length)} εκκρεμείς δόσεις δεν αντιστοιχούν στο τρέχον ποσό ({fmt(targetAmt)}{svcCharge>0?`: ενοίκιο ${fmt(baseRent)} + υπηρεσίες ${fmt(svcCharge)}`:''}).
             </span>
             <button style={s.btnSm} onClick={syncUnpaidToTarget} disabled={busy}>{busy?'…':'Ενημέρωση εκκρεμών'}</button>
@@ -1171,7 +1171,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
                   <td style={{ ...s.td, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(p.amount)}
                     {p.services_charge&&p.services_charge>0?<span style={{ display:'block', fontSize:10, fontWeight:400, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>ενοίκιο {fmt(p.base_rent)} + υπηρεσίες {fmt(p.services_charge)}</span>:null}
                   </td>
-                  <td style={s.td}><StatusPill p={p}/>{p.tenant_declared&&!p.paid?<span style={{ display:'block', marginTop:4, fontSize:9.5, color:'var(--warning)', fontFamily:T.font.sans, fontWeight:600 }}>Δηλώθηκε από μισθωτή</span>:null}</td>
+                  <td style={s.td}><StatusPill p={p}/>{p.tenant_declared&&!p.paid?<span style={{ display:'block', marginTop:4, fontSize:10, color:'var(--warning)', fontFamily:T.font.sans, fontWeight:600 }}>Δηλώθηκε από μισθωτή</span>:null}</td>
                   <td style={s.tdM}>{p.method||ABSENT}</td>
                   <td style={s.tdM}>{fmtD(p.paid_date)}</td>
                   <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize:10, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{p.days_late} ημ.</span>:null}</td>
@@ -1783,7 +1783,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
                   )}
                   {doneFor===m.id&&(
                     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:14, marginBottom:10 }}>
-                      <div style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.55, marginBottom:10 }}>
+                      <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.55, marginBottom:10 }}>
                         Κόστος εργασίας; Αν το συμπληρώσεις, καταχωρείται αυτόματα στις δαπάνες του ακινήτου.
                       </div>
                       <div style={{ display:'flex', gap:8, alignItems:'flex-end', flexWrap:'wrap' as const }}>
@@ -1818,16 +1818,16 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
           <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:20, paddingTop:14 }}>
             <button onClick={()=>setHistOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' as const, fontFamily:T.font.sans }}>
               <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color:'var(--text-tertiary)', transform:histOpen?'rotate(90deg)':'none', transition:'transform 0.2s', flexShrink:0 }}><path d="M9 6l6 6-6 6"/></svg>
-              <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-secondary)' }}>Ιστορικό ακινήτου</span>
-              <span style={{ marginLeft:'auto', fontSize:11.5, color:'var(--text-tertiary)', fontWeight:600 }}>{others.length} {others.length===1?'αίτημα':'αιτήματα'}</span>
+              <span style={{ fontSize:13, fontWeight:600, color:'var(--text-secondary)' }}>Ιστορικό ακινήτου</span>
+              <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text-tertiary)', fontWeight:600 }}>{others.length} {others.length===1?'αίτημα':'αιτήματα'}</span>
             </button>
             {histOpen&&(
               <div style={{ marginTop:12, display:'flex', flexDirection:'column' as const, gap:6 }}>
                 {[...others].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).map(m=>(
                   <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:10, background:'var(--bg-base)' }}>
-                    <span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:T.font.sans, fontVariantNumeric:'tabular-nums' as const, width:74, flexShrink:0 }}>{gdt(m.created_at)}</span>
-                    <span style={{ flex:1, minWidth:0, fontSize:12.5, color:'var(--text-primary)', fontFamily:T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{m.title}</span>
-                    {m.assignee_name&&<span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{m.assignee_name}</span>}
+                    <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans, fontVariantNumeric:'tabular-nums' as const, width:74, flexShrink:0 }}>{gdt(m.created_at)}</span>
+                    <span style={{ flex:1, minWidth:0, fontSize:13, color:'var(--text-primary)', fontFamily:T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{m.title}</span>
+                    {m.assignee_name&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{m.assignee_name}</span>}
                     <span style={{ fontSize:11, fontWeight:600, color:m.status==='done'?'var(--text-tertiary)':'var(--text-secondary)', fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{m.status==='done'?'Ολοκληρώθηκε':m.status==='in_progress'?'Σε εξέλιξη':'Νέο'}</span>
                   </div>
                 ))}

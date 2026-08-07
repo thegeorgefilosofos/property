@@ -145,7 +145,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
           letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-secondary);
         }
         .agenda-count {
-          font-family: ${T.font.sans}; font-size: 11.5px; color: var(--text-tertiary);
+          font-family: ${T.font.sans}; font-size: 12px; color: var(--text-tertiary);
           font-variant-numeric: tabular-nums; white-space: nowrap;
         }
         .agenda-list { list-style: none; margin: 0; padding: 0; }
@@ -183,7 +183,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
         .agenda-word { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 0; }
         .agenda-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
         .agenda-item-title {
-          font-family: ${T.font.sans}; font-size: 13.5px; font-weight: 600;
+          font-family: ${T.font.sans}; font-size: 14px; font-weight: 600;
           line-height: 1.4; color: var(--text-primary);
         }
         .agenda-note {
@@ -195,7 +195,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
           height: 30px; padding: 0 14px; border-radius: 100px;
           border: 1px solid var(--border-default); background: var(--bg-elevated);
           color: var(--text-secondary);
-          font-family: ${T.font.sans}; font-size: 11.5px; font-weight: 700;
+          font-family: ${T.font.sans}; font-size: 12px; font-weight: 700;
           white-space: nowrap; cursor: pointer;
           transition: border-color .16s ${T.ease.standard}, color .16s ${T.ease.standard};
         }

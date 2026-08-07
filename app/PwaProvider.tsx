@@ -99,7 +99,7 @@ export default function PwaProvider() {
       <img src="/icons/icon-192.png" alt="" width={40} height={40} style={{ borderRadius: 10, flexShrink: 0 }} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>Βάλ’ το στην αρχική οθόνη</div>
-        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
           Ανοίγει σαν εφαρμογή, χωρίς μπάρα διεύθυνσης. Χρήσιμο όταν φωτογραφίζεις έναν λογαριασμό εν κινήσει.
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

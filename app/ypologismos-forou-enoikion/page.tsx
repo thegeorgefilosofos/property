@@ -118,7 +118,7 @@ export default function Page() {
             <BrandMark />
             <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Property OS</span>
           </Link>
-          <Link href="/signup" style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--accent)', textDecoration: 'none' }}>
+          <Link href="/signup" style={{ fontSize: 14, fontWeight: 650, color: 'var(--accent)', textDecoration: 'none' }}>
             Ξεκίνα δωρεάν
           </Link>
         </div>
@@ -151,11 +151,11 @@ export default function Page() {
                 borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)',
                 background: 'var(--bg-surface)', padding: '12px 16px',
               }}>
-                <summary style={{ cursor: 'pointer', fontSize: 14.5, fontWeight: 650,
+                <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 650,
                   color: 'var(--text-primary)', listStyle: 'revert' }}>
                   {f.q}
                 </summary>
-                <p style={{ margin: '10px 0 2px', fontSize: 13.5, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+                <p style={{ margin: '10px 0 2px', fontSize: 14, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
                   {f.a}
                 </p>
               </details>
@@ -178,7 +178,7 @@ export default function Page() {
               </li>
             ))}
           </ul>
-          <p style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-tertiary)', margin: '14px 0 0' }}>
+          <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text-tertiary)', margin: '14px 0 0' }}>
             Η κλίμακα είναι προοδευτική: κάθε κλιμάκιο φορολογείται με τον δικό του
             συντελεστή. Ένα εισόδημα 20.000 € δεν φορολογείται όλο με 25% — τα πρώτα
             12.000 € με 15% και μόνο τα υπόλοιπα με 25%.
@@ -186,7 +186,7 @@ export default function Page() {
         </section>
 
         <footer style={{ marginTop: 44, paddingTop: 20, borderTop: '1px solid var(--border-subtle)',
-          display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12.5 }}>
+          display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 13 }}>
           <Link href="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Αρχική</Link>
           <Link href="/trust" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Ποιοι είμαστε</Link>
           <Link href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Απόρρητο</Link>

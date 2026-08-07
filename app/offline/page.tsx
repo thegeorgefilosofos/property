@@ -18,7 +18,7 @@ export default function OfflinePage() {
           </svg>
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 10px' }}>Δεν υπάρχει σύνδεση</h1>
-        <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 22px' }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 22px' }}>
           Η συσκευή σου δεν βλέπει το δίκτυο αυτή τη στιγμή. Τα δεδομένα σου είναι ασφαλή —
           μόλις επανέλθει η σύνδεση, όλα εμφανίζονται κανονικά.
         </p>

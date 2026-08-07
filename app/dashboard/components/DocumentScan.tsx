@@ -534,16 +534,16 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                   {ask.options.map(o => (
                     <button key={o.id} onClick={() => save(o.id)} disabled={saving}
                       style={{ textAlign: 'left', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 14px', cursor: saving ? 'default' : 'pointer', fontFamily: T.font.sans }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
                       {o.reasons.length > 0 && (
-                        <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>{o.reasons.join(' · ')}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>{o.reasons.join(' · ')}</div>
                       )}
                     </button>
                   ))}
                   <button onClick={() => save(null)} disabled={saving}
                     style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, padding: '10px 14px', cursor: saving ? 'default' : 'pointer', fontFamily: T.font.sans }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν από αυτούς</div>
-                    <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 3 }}>Θα καταχωρηθεί ως νέα, ξεχωριστή πληρωμή</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν από αυτούς</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>Θα καταχωρηθεί ως νέα, ξεχωριστή πληρωμή</div>
                   </button>
                 </div>
               </div>

@@ -92,7 +92,7 @@ export default function ExpenseSwitchAlert({ propertyId, onOpen }: {
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             {onOpen && (
               <button type="button" onClick={() => onOpen(r.section)}
-                style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11.5, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>
+                style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>
                 Δες τη σύγκριση
               </button>
             )}

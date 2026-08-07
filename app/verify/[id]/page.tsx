@@ -43,7 +43,7 @@ export default function VerifyDocument() {
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
   const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '30px 30px 26px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
   const mark: React.CSSProperties = { width: 34, height: 34, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17 };
-  const label: React.CSSProperties = { fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 };
+  const label: React.CSSProperties = { fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 };
   const value: React.CSSProperties = { fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginTop: 3 };
 
   return (
@@ -76,7 +76,7 @@ export default function VerifyDocument() {
           <div style={{ paddingTop: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '11px 14px' }}>
               <span style={{ color: 'var(--positive)', fontSize: 18, fontWeight: 700 }}>✓</span>
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--positive)' }}>Γνήσιο έγγραφο, εκδόθηκε από το Property OS</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--positive)' }}>Γνήσιο έγγραφο, εκδόθηκε από το Property OS</span>
             </div>
 
             <div style={{ display: 'grid', gap: 16, marginTop: 22 }}>
@@ -88,7 +88,7 @@ export default function VerifyDocument() {
               <div><div style={label}>Αριθμός εγγράφου</div><div style={{ ...value, fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em' }}>{doc.id}</div></div>
             </div>
 
-            <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', lineHeight: 1.6, marginTop: 24, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, marginTop: 24, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
               Η σελίδα επιβεβαιώνει ότι το έγγραφο με τον παραπάνω κωδικό δημιουργήθηκε από την πλατφόρμα Property OS.
               Δεν εμφανίζονται ποσά ή ευαίσθητα στοιχεία. Το περιεχόμενο του εγγράφου παραμένει ευθύνη του εκδότη.
             </p>

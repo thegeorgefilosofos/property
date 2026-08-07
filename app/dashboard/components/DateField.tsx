@@ -78,11 +78,11 @@ export default function DateField({ value, onChange, style }: { value: string; o
         <div ref={popRef} style={{ position: 'fixed', top: pos.top, left: pos.left, width: POP_W, zIndex: 2000, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, boxShadow: 'var(--elev-3)', padding: 14, fontFamily: T.font.sans }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <button type="button" onClick={() => nav(-1)} aria-label="Προηγούμενος μήνας" style={navBtn} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>‹</button>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{MONTHS_NOM[m]} {y}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{MONTHS_NOM[m]} {y}</span>
             <button type="button" onClick={() => nav(1)} aria-label="Επόμενος μήνας" style={navBtn} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>›</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
-            {WD.map(w => <span key={w} style={{ textAlign: 'center', fontSize: 10.5, fontWeight: 700, color: 'var(--text-tertiary)', padding: '2px 0' }}>{w}</span>)}
+            {WD.map(w => <span key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', padding: '2px 0' }}>{w}</span>)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2 }}>
             {cells.map((d, i) => {
@@ -91,7 +91,7 @@ export default function DateField({ value, onChange, style }: { value: string; o
               const isSel = value === dIso, isToday = todayIso === dIso;
               return (
                 <button key={i} type="button" onClick={() => { onChange(dIso); setOpen(false); }}
-                  style={{ height: T.h.sm, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12.5, fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', background: isSel ? 'var(--accent)' : 'transparent', color: isSel ? 'var(--accent-text)' : 'var(--text-primary)', fontWeight: (isSel || isToday) ? 700 : 500, boxShadow: !isSel && isToday ? 'inset 0 0 0 1px var(--border-default)' : 'none', transition: 'background 0.12s' }}
+                  style={{ height: T.h.sm, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', background: isSel ? 'var(--accent)' : 'transparent', color: isSel ? 'var(--accent-text)' : 'var(--text-primary)', fontWeight: (isSel || isToday) ? 700 : 500, boxShadow: !isSel && isToday ? 'inset 0 0 0 1px var(--border-default)' : 'none', transition: 'background 0.12s' }}
                   onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}>{d}</button>
               );

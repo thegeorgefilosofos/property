@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fn, Skeleton } from '@/components/Theme';
+import { T, fe, fn, Skeleton, histInputStyle } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -25,13 +25,6 @@ const RAAYEY_URL  = 'https://energycost.gr/%CF%85%CF%80%CE%BF%CE%BB%CE%BF%CE%B3%
 // Ο υπολογισμός κόστους ζει σε ένα σημείο, με tests. Δείτε lib/energy/tariff.ts
 // για τον λόγο: εδώ υπήρχαν δύο διαφορετικοί τύποι για το ίδιο νούμερο.
 
-const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
-  width: '100%', background: isCurrent ? 'var(--accent-soft)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
-  border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
-  borderRadius: T.radius.badge, padding: '6px 4px', color: 'var(--text-primary)',
-  fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center',
-  boxSizing: 'border-box', transition: 'all 0.15s', cursor: 'pointer',
-});
 
 // ── CONTRACT DURATION OPTIONS ─────────────────────────────────────────────────
 const DURATION_OPTIONS = [
@@ -650,7 +643,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         {/* ΑΠΟ ΠΟΥ ΒΓΗΚΕ Ο ΑΡΙΘΜΟΣ. Χωρίς αυτό, ο χρήστης δεν έχει τρόπο να
             ξέρει αν η σύγκριση τρέχει πάνω στη ΔΙΚΗ ΤΟΥ κατανάλωση ή σε μια
             προεπιλογή. Πριν ήταν πάντα προεπιλογή, και δεν φαινόταν πουθενά. */}
-        <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 14 }}>
           {usageEst.source === 'history'
             ? `Υπολογισμός με ${usageEst.kwhMonthly} kWh τον μήνα, μέσος όρος από ${usageEst.months} ${usageEst.months === 1 ? 'μήνα' : 'μήνες'} του ιστορικού σου.`
             : usageEst.source === 'bills'

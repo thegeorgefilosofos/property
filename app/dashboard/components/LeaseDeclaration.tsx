@@ -157,9 +157,9 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         <span style={{ minWidth: 0 }}>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{f.label}</div>
           {f.value
-            ? <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, marginTop: 1 }}>{f.value}</div>
+            ? <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, marginTop: 1 }}>{f.value}</div>
             : <div style={{ fontSize: 13, color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>— λείπει</div>}
-          {f.hint && <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>
+          {f.hint && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>
             {f.hint}{f.fixIn && <> <span style={{ color: 'var(--accent)', fontWeight: 600 }}>→ καρτέλα {TAB_LABEL[f.fixIn]}</span></>}
           </div>}
         </span>
@@ -203,7 +203,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
                       background: decl.deadline.state === 'overdue' ? 'var(--negative-soft)' : 'var(--bg-elevated)' }}>
           {decl.deadline.state === 'overdue' ? <AlertTriangle size={15} style={{ color: 'var(--negative)', flexShrink: 0 }} />
                                              : <Clock size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />}
-          <span style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.deadline.label}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.deadline.label}</span>
         </div>
 
         {/* Πεδία στη σειρά της φόρμας */}
@@ -223,7 +223,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           {submitted ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', borderRadius: 11, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)' }}>
               <Check size={15} style={{ color: 'var(--positive)', flexShrink: 0 }} />
-              <span style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                 Καταγράφηκε στις {new Date(submitted.at).toLocaleDateString('el-GR')}
                 {submitted.ref && <> · αρ. δήλωσης <strong style={{ fontFamily: T.font.mono }}>{submitted.ref}</strong></>}
               </span>
@@ -231,7 +231,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           ) : (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <input value={refInput} onChange={e => setRefInput(e.target.value)} placeholder="Αριθμός δήλωσης (προαιρετικό)"
-                style={{ flex: 1, minWidth: 200, height: 40, padding: '0 13px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: T.font.sans, outline: 'none' }} />
+                style={{ flex: 1, minWidth: 200, height: 40, padding: '0 13px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none' }} />
               <Btn variant="secondary" onClick={markSubmitted} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Την υπέβαλα'}</Btn>
             </div>
           )}

@@ -308,7 +308,7 @@ export default function TabComparison({ properties, userId }: Props) {
   // ματιά, που έπαυε να ξεχωρίζει οτιδήποτε. Η ανάδειξη γίνεται με ΒΑΡΟΣ και
   // ένταση κειμένου, όπως σε κάθε άλλον πίνακα της εφαρμογής.
   const th: React.CSSProperties = { fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' };
-  const td: React.CSSProperties = { padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 12.5, whiteSpace: 'nowrap', textAlign: 'right' };
+  const td: React.CSSProperties = { padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, whiteSpace: 'nowrap', textAlign: 'right' };
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -326,7 +326,7 @@ export default function TabComparison({ properties, userId }: Props) {
             const on = g.key === group.key;
             return (
               <button key={g.key} type="button" onClick={() => setGroupKey(g.key)} aria-pressed={on}
-                style={{ height: 28, padding: '0 12px', borderRadius: 100, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 11.5, fontWeight: on ? 700 : 500,
+                style={{ height: 28, padding: '0 12px', borderRadius: 100, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
                   border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
                   background: on ? 'var(--bg-hover)' : 'transparent',
                   color: on ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
@@ -357,7 +357,7 @@ export default function TabComparison({ properties, userId }: Props) {
                 <th style={{ ...th, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
                 {rowsData.map(r => (
                   <th key={r.p.id} style={{ ...th, textAlign: 'right' }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>{r.p.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>{r.p.name}</div>
                     {/* Ταυτότητα, όχι μετρική: εμβαδόν, αξία και τιμή/τ.μ. λένε ποιο
                         ακίνητο κοιτάζεις. Δεν έχουν «καλύτερη τιμή», γι' αυτό δεν
                         είναι γραμμές του πίνακα. Ό,τι λείπει, απλώς λείπει —

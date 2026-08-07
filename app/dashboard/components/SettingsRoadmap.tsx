@@ -172,7 +172,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
             {/* Μέχρι να βγει η αυτόνομη εφαρμογή, το Property OS εγκαθίσταται ήδη
                 στην αρχική οθόνη. Το λέμε εδώ, δίπλα στην αναμονή, αντί να
                 αφήνουμε τον χρήστη να περιμένει κάτι που έχει ήδη σε άλλη μορφή. */}
-            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
               <strong style={{ color: 'var(--text-primary)' }}>Μέχρι τότε, βάλ’ το ήδη στην αρχική σου οθόνη.</strong>{' '}
               Ανοίγει σαν κανονική εφαρμογή, με δικό της εικονίδιο και χωρίς μπάρα διεύθυνσης.
               Σε <strong style={{ color: 'var(--text-primary)' }}>Android</strong> από το μενού «⋮» → «Εγκατάσταση εφαρμογής».
@@ -247,17 +247,17 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               </div>
 
               <span style={{
-                fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3,
+                fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3,
                 display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
               }}>{it.name}</span>
 
               <div style={{
-                fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 6,
+                fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 6,
                 ...(isOpen ? {} : { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }),
               }}>{it.line}</div>
 
               {isOpen && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border-subtle)' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border-subtle)' }}>
                   {it.detail}
                 </div>
               )}

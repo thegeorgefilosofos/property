@@ -48,7 +48,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             style={{
               textAlign: 'left', margin: '0 0 18px', padding: '10px 12px', cursor: 'copy',
               background: 'var(--bg-elevated, #f1f3f4)', border: '1px solid var(--border-subtle, #dadce0)',
-              borderRadius: 10, fontSize: 11.5, lineHeight: 1.5, color: 'var(--text-secondary, #5f6368)',
+              borderRadius: 10, fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary, #5f6368)',
               whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 160, overflow: 'auto',
               fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
             }}>

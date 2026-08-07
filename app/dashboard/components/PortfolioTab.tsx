@@ -556,7 +556,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                   <td style={{ padding: '13px 14px', textAlign: 'right' }} title={occupancyTitle(r)}>
                     {r.occupancy != null
                       ? <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, color: 'var(--text-primary)' }}>{fp(r.occupancy)}</span>
-                      : <span style={{ fontFamily: T.font.sans, fontSize: 11.5, color: 'var(--text-tertiary)' }}>{r.mode === 'short' ? ABSENT_SHORT : 'Δεν ισχύει'}</span>}
+                      : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>{r.mode === 'short' ? ABSENT_SHORT : 'Δεν ισχύει'}</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     {r.pending > 0
@@ -566,11 +566,11 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                         // διαφορά στο τι θα κάνει ο ιδιοκτήτης σήμερα το πρωί.
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}
                               title={r.owed > 0 ? `${r.pending} εκκρεμή, από τα οποία ${fe(r.owed, 0)} σε απλήρωτους λογαριασμούς` : `${r.pending} εκκρεμή`}>
-                          <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 11.5, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
-                          {r.owed > 0 && <span style={{ fontFamily: T.font.num, fontSize: 11.5, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fe(r.owed)}</span>}
+                          <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 12, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
+                          {r.owed > 0 && <span style={{ fontFamily: T.font.num, fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fe(r.owed)}</span>}
                         </span>
                       )
-                      : <span style={{ fontFamily: T.font.sans, fontSize: 11.5, color: 'var(--text-tertiary)' }}>Καμία</span>}
+                      : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>Καμία</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
