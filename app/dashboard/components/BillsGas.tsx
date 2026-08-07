@@ -428,7 +428,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
             <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const }}>
               <span title="Κιλοβατώρα — μονάδα μέτρησης κατανάλωσης ενέργειας" style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: 'var(--text-primary)' }}>{fk(tariffKwh(tariff))} / kWh</strong></span>
               <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Αρχικό πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
-              {tariff.dual_fuel_discount && (
+              {tariff.dual_fuel_discount != null && (
                 <span title="Κοινός πάροχος ρεύματος και αερίου με ενιαία έκπτωση" style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Dual Fuel:{'  '}<strong>−{fk(tariff.dual_fuel_discount)} / kWh</strong></span>
               )}
             </div>

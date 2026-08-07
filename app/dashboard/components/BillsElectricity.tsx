@@ -573,7 +573,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     Χρέωση νύχτας:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_night)} / kWh</strong>
                   </span>
                 )}
-                {tariff.kwh_tier2 && (
+                {tariff.kwh_tier2 != null && (
                   <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
                     Άνω των {tariff.tier2_threshold} kWh:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_tier2)} / kWh</strong>
                   </span>
@@ -657,7 +657,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         {secHdr('Κατανάλωση και εκτιμώμενο κόστος')}
         <div style={{ display: 'grid', gridTemplateColumns: tariff.kwh_night ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14, marginBottom: 14 }}>
           <NumberInput label="Μέση μηνιαία κατανάλωση" value={kwhMonthly} onChange={v => { setKwhMonthly(v); save({ kwhMonthly: v }); }} suffix="kWh" step={10}/>
-          {tariff.kwh_night && <NumberInput label="Νυχτερινή κατανάλωση" value={nightPct} onChange={v => { setNightPct(v); save({ nightPct: v }); }} suffix="%" step={5}/>}
+          {tariff.kwh_night != null && <NumberInput label="Νυχτερινή κατανάλωση" value={nightPct} onChange={v => { setNightPct(v); save({ nightPct: v }); }} suffix="%" step={5}/>}
           {tariff.type === 'dynamic' && <NumberInput label="Μηνιαίο Κόστος (€), Από Λογαριασμό" value={manualMonthly} onChange={v => { setManualMonthly(v); save({ manualMonthly: v }); }} suffix="€" step={1}/>}
         </div>
 

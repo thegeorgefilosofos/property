@@ -502,7 +502,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
-                  {day&&(
+                  {day!=null&&(
                     <>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
                         <span style={{ fontSize:13, fontFamily: T.font.sans, fontWeight:isToday||isSelected?700:400, color:isToday||isSelected?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>

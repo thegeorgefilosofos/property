@@ -292,7 +292,7 @@ function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:nu
         <line x1={padL} y1={H-padB} x2={W-padR} y2={H-padB} stroke="var(--border-default)" strokeWidth="1"/>
         <path d={rentLine} fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeDasharray="4 3" strokeLinejoin="round"/>
         <path d={buyLine} fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinejoin="round"/>
-        {breakEvenYear&&hi==null&&<line x1={X(breakEvenYear)} y1={padT} x2={X(breakEvenYear)} y2={H-padB} stroke="var(--border-accent)" strokeWidth="1" strokeDasharray="3 3"/>}
+        {breakEvenYear!=null&&hi==null&&<line x1={X(breakEvenYear)} y1={padT} x2={X(breakEvenYear)} y2={H-padB} stroke="var(--border-accent)" strokeWidth="1" strokeDasharray="3 3"/>}
         {hi!=null&&(<g>
           <line x1={X(hi)} y1={padT-4} x2={X(hi)} y2={H-padB} stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.5"/>
           <circle cx={X(hi)} cy={Yv(rent[hi])} r="3.5" fill="var(--text-tertiary)" stroke="var(--bg-surface)" strokeWidth="1.5"/>

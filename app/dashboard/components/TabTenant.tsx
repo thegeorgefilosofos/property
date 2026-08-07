@@ -2560,7 +2560,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               {DTABS.map(tb=>(
                 <button key={tb.id} onClick={()=>setDossierTab(tb.id)} style={{ ...s.tabBtn(dossierTab===tb.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                   {tb.label}
-                  {tb.badge&&tb.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'var(--text-inverse)', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
+                  {(tb.badge??0)>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'var(--text-inverse)', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
                 </button>
               ))}
             </div>
