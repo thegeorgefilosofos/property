@@ -11,6 +11,7 @@
 
 import { marginalRate, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax'
 import { REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026'
+import { fe } from '../core/format';
 
 const upd = (id: string) => REGULATORY_UPDATES_2026.find(u => u.id === id)
 
@@ -51,7 +52,11 @@ const REFER_LABEL: Record<ReferProfessional, string> = {
 }
 export const referLabel = (r?: ReferProfessional): string | undefined => (r ? REFER_LABEL[r] : undefined)
 
-const eur = (n: number) => Math.round(n).toLocaleString('el-GR') + ' €'
+// Ο ΜΟΡΦΟΠΟΙΗΤΗΣ ΕΥΡΩ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ. Αυτός εδώ στρογγυλοποιούσε στο ακέραιο
+// («1.200 €» αντί για «1.200,00 €»), δηλαδή παραβίαζε τον κανόνα των δύο
+// δεκαδικών σε κάθε πρόταση που παρήγαγε. Ο κανονικός ζει στο lib/core/format.ts
+// και δεν εξαρτάται από React, ακριβώς ώστε να τον βλέπουν και οι βιβλιοθήκες.
+const eur = fe;
 
 // Επίσημες πηγές (σταθερές, δημόσιες), για να ανοίγει ο χρήστης το επίσημο σημείο.
 // Επίσημες, επαληθευμένες πηγές (deep links). Ανοίγουν στον browser του χρήστη

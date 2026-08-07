@@ -12,6 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { annuityMonthly } from './recommend'
 import { maxMonthlyPayment, principalForPayment, DSTI_LIMIT } from './affordability'
+import { fe } from '../core/format';
 
 export type EmploymentType =
   | 'employee_permanent'   // μισθωτός αορίστου
@@ -62,7 +63,11 @@ export interface ApprovalResult {
 }
 
 function r0(n: number): number { return Number.isFinite(n) ? Math.round(n) : 0 }
-function eur(n: number): string { return `${r0(n).toLocaleString('el-GR')}€` }
+// Ο ΜΟΡΦΟΠΟΙΗΤΗΣ ΕΥΡΩ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ. Αυτός εδώ στρογγυλοποιούσε στο ακέραιο
+// («1.200 €» αντί για «1.200,00 €»), δηλαδή παραβίαζε τον κανόνα των δύο
+// δεκαδικών σε κάθε πρόταση που παρήγαγε. Ο κανονικός ζει στο lib/core/format.ts
+// και δεν εξαρτάται από React, ακριβώς ώστε να τον βλέπουν και οι βιβλιοθήκες.
+const eur = fe;
 
 const VERDICT_LABEL: Record<ApprovalVerdict, string> = {
   high: 'Υψηλή πιθανότητα έγκρισης',

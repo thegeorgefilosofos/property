@@ -29,6 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { E2Row } from './e2';
+import { fe } from '../core/format';
 
 /** Μία γραμμή του προσυμπληρωμένου, όπως τη διάβασε ο χρήστης ή η σάρωση. */
 export interface DeclaredRow {
@@ -114,7 +115,11 @@ export interface Reconciliation {
  */
 export const TOLERANCE = 1;
 
-const eur = (n: number) => `${Math.round(n).toLocaleString('el-GR')} €`;
+// Ο ΜΟΡΦΟΠΟΙΗΤΗΣ ΕΥΡΩ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ. Αυτός εδώ στρογγυλοποιούσε στο ακέραιο
+// («1.200 €» αντί για «1.200,00 €»), δηλαδή παραβίαζε τον κανόνα των δύο
+// δεκαδικών σε κάθε πρόταση που παρήγαγε. Ο κανονικός ζει στο lib/core/format.ts
+// και δεν εξαρτάται από React, ακριβώς ώστε να τον βλέπουν και οι βιβλιοθήκες.
+const eur = fe;
 const norm = (a: string | null | undefined) => String(a ?? '').replace(/\s/g, '').toUpperCase();
 
 /** Είναι το «λείπει ο Χ μήνας»: πόσο κάνει ένας μήνας, με βάση το δικό μας σύνολο. */

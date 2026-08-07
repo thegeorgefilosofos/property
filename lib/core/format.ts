@@ -35,9 +35,22 @@ const finite = (n: unknown): number => (typeof n === 'number' && Number.isFinite
 // σημείο που θα ξανάγραφε `fe(x, 0)`.
 const MONEY = { minimumFractionDigits: 2, maximumFractionDigits: 2 } as const;
 
-/** Ευρώ: `fe(1234.5)` → «1.234,50 €». Πάντα δύο δεκαδικά. */
+/**
+ * ΤΟ ΚΕΝΟ ΠΡΙΝ ΑΠΟ ΤΟ ΕΥΡΩ ΕΙΝΑΙ ΑΔΙΑΣΠΑΣΤΟ.
+ *
+ * Με απλό κενό, το «1.234,50» και το «€» χωρίζονται σε αλλαγή γραμμής: σε
+ * στενή στήλη ή σε κινητό, το σύμβολο πέφτει μόνο του στην επόμενη σειρά και το
+ * ποσό διαβάζεται σαν γυμνός αριθμός. Είναι από τις πρώτες λεπτομέρειες που
+ * ξεχωρίζουν ένα προσεγμένο από ένα βιαστικό προϊόν, και τέσσερις τοπικοί
+ * μορφοποιητές το είχαν ήδη σωστά — απλώς ο κανονικός όχι.
+ *
+ * Ο αναλυτής ποσών (lib/core/greek.ts) δέχεται και τα δύο κενά, οπότε ό,τι
+ * γράφεται εδώ ξαναδιαβάζεται σωστά από τη σάρωση και τις εισαγωγές.
+ *
+ * `fe(1234.5)` → «1.234,50 €». Πάντα δύο δεκαδικά.
+ */
 export const fe = (n: number, _d?: number) =>
-  `${finite(n).toLocaleString(LOCALE, MONEY)} €`;
+  `${finite(n).toLocaleString(LOCALE, MONEY)}\u00A0€`;
 
 /**
  * Ήταν τα «έξυπνα» δεκαδικά — ακέραιο χωρίς υποδιαστολή, αλλιώς δύο ψηφία.
@@ -64,7 +77,7 @@ export const fp = (n: number, _d?: number) =>
 // κανόνας αφορά ποσά, και αυτό δεν είναι ποσό.
 /** Μοναδιαία τιμή: `feRate(0.115)` → «0,115 €». Δύο έως τέσσερα δεκαδικά. */
 export const feRate = (n: number) =>
-  `${finite(n).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} €`;
+  `${finite(n).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}\u00A0€`;
 
 /** Αριθμός χωρίς μονάδα: `fn(1234.5, 1)` → «1.234,5». */
 export const fn = (n: number, d = 0) =>

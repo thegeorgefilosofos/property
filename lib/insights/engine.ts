@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { vocative } from '../greekName';
-import { fp } from '../core/format';
+import { fp, fe } from '../core/format';
 import { navLabel } from '../nav/labels';
 
 export type InsightKind = 'urgent' | 'attention' | 'opportunity' | 'positive';
@@ -57,7 +57,11 @@ export interface InsightInput {
 }
 
 const DAY = 86400000;
-const eur = (n: number) => `${Math.round(n).toLocaleString('el-GR')} €`;
+// Ο ΜΟΡΦΟΠΟΙΗΤΗΣ ΕΥΡΩ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ. Αυτός εδώ στρογγυλοποιούσε στο ακέραιο
+// («1.200 €» αντί για «1.200,00 €»), δηλαδή παραβίαζε τον κανόνα των δύο
+// δεκαδικών σε κάθε πρόταση που παρήγαγε. Ο κανονικός ζει στο lib/core/format.ts
+// και δεν εξαρτάται από React, ακριβώς ώστε να τον βλέπουν και οι βιβλιοθήκες.
+const eur = fe;
 const daysUntil = (d: string | null | undefined, now: number): number | null =>
   d ? Math.ceil((new Date(d + (d.length <= 10 ? 'T00:00:00' : '')).getTime() - now) / DAY) : null;
 
