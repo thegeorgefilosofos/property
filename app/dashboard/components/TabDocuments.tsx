@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, fn, KPIGrid, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
+import { showTool } from '@/lib/ui/thresholds';
 import { SearchX, FolderOpen, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
@@ -807,13 +808,20 @@ export default function TabDocuments({
           )}
         </div>
 
+        {/* ΙΔΙΟΣ ΚΑΝΟΝΑΣ ΜΕ ΤΙΣ ΕΠΑΦΕΣ ΤΗΣ ΙΔΙΑΣ ΟΘΟΝΗΣ (lib/ui/thresholds.ts):
+            η αναζήτηση και η εναλλαγή προβολής εμφανίζονται όταν έχουν τι να
+            κάνουν. Δύο τμήματα της ίδιας σελίδας με διαφορετικό κανόνα θα ήταν
+            τυποποίηση στα λόγια. */}
+        {showTool('search', items.length) && (
         <div style={{ position: 'relative', width: 240, maxWidth: '100%' }}>
           <svg {...S} width={15} height={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Αναζήτηση σε όλο το αρχείο…"
             style={{ width: '100%', height: T.h.md, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' }}/>
           {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
         </div>
+        )}
 
+        {showTool('view', items.length) && (
         <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, overflow: 'hidden' }}>
           {([['grid', 'Πλέγμα', <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>],
              ['list', 'Λίστα', <><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></>]] as const).map(([k, title, ic]) => (
@@ -823,6 +831,7 @@ export default function TabDocuments({
             </button>
           ))}
         </div>
+        )}
 
         {embedded && headerActions}
       </div>

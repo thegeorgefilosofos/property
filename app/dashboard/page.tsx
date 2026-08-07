@@ -35,7 +35,7 @@ import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, TierBadge, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
-import { Receipt, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
 import PropertyAssistant from './components/PropertyAssistant';
@@ -355,11 +355,8 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const branding = useReportBranding(userId);
   const { prefs } = useAppPreferences(prop.id);
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
-  const [selMonth, setSelMonth] = useState(now.getMonth()); // 0-indexed, επιλεγμένος μήνας στο γράφημα δαπανών
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [allExpenses, setAllExpenses] = useState<{ amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]>([]);
-  const [chartYear, setChartYear] = useState(now.getFullYear()); // έτος γραφήματος δαπανών (προηγ./επόμενο)
-  const [yearMenu, setYearMenu] = useState(false);
   const [bills, setBills] = useState<Bill[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -465,6 +462,15 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // Οι λογαριασμοί που ΔΕΝ έχουν ακόμη δαπάνη από πίσω τους (απλήρωτοι): είναι
   // πραγματικό κόστος του έτους και λείπουν από τον πίνακα `expenses`.
   const unbilledOfYear = ledgerTotal(entriesOfYear.filter(e => !e.expenseId));
+  // Οι πέντε μεγαλύτερες κατηγορίες του έτους, για την αναφορά PDF. Παράγονται
+  // από το ΙΔΙΟ ημερολόγιο με το ποσό που τυπώνεται δίπλα τους — πριν έβγαιναν
+  // από τον σκέτο πίνακα δαπανών, οπότε το άθροισμα των γραμμών δεν έβγαζε το
+  // σύνολο που έγραφε η ίδια η αναφορά από πάνω.
+  const catEntries = useMemo(() => {
+    const m: Record<string, number> = {};
+    entriesOfYear.forEach(e => { m[e.category] = (m[e.category] || 0) + e.amount; });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [entriesOfYear]);
   // ΤΑΣΗ ΔΑΠΑΝΩΝ: ΙΔΙΟ ΔΙΑΣΤΗΜΑ, ΟΧΙ ΟΛΟΚΛΗΡΟ ΤΟ ΠΡΟΗΓΟΥΜΕΝΟ ΕΤΟΣ.
   // Πριν, το YTD (π.χ. δύο μήνες) συγκρινόταν με τους δώδεκα μήνες της περσινής
   // χρονιάς, οπότε κάθε Φεβρουάριο ο χρήστης διάβαζε «−78% σε σχέση με πέρσι» —
@@ -490,9 +496,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const hostingYTD = hostStays.filter(s=>((s.check_in||s.check_out||'').slice(0,4))===String(year)).reduce((sum,s)=>sum+stayTotal(s),0);
   const hostingNights = hostStays.filter(s=>((s.check_in||s.check_out||'').slice(0,4))===String(year)).reduce((sum,s)=>sum+(s.nights ?? 0),0);
   const nextArrival = hostStays.map(s=>s.check_in).filter((d): d is string => !!d && d>=todayIso).sort()[0] || null;
-  const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-  const MONTHS_LONG = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
-  // Γράφημα: δαπάνες του ΕΠΙΛΕΓΜΕΝΟΥ έτους (chartYear). Οι μη επαναλαμβανόμενες
+  // Ο ΥΠΟΛΟΓΙΣΜΟΣ ΤΟΥ ΓΡΑΦΗΜΑΤΟΣ ΕΦΥΓΕ ΜΑΖΙ ΜΕ ΤΟ ΓΡΑΦΗΜΑ: δύο κατάλογοι μηνών,
+  // δώδεκα αθροίσματα, κατηγορίες επιλεγμένου μήνα και κατάλογος ετών — σαράντα
+  // γραμμές που τροφοδοτούσαν δύο κάρτες οι οποίες έλεγαν ό,τι λέει ήδη ο
+  // Προϋπολογισμός. Το `occMonths` μένει: το χρειάζεται η ετήσια προβολή πιο κάτω.
   // μετρούν στον μήνα της ημερομηνίας τους· οι επαναλαμβανόμενες (πάγιες, μόνο
   // εφόσον ο χρήστης τις έχει σημάνει) προβάλλονται από την έναρξή τους και μετά,
   // ανάλογα με τη συχνότητα. Καμία εφεύρεση, μόνο ό,τι έχει καταχωρήσει ο χρήστης.
@@ -505,36 +512,6 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     for (let m = 0; m < 12; m++) { const abs = (y - sy) * 12 + m - sm; if (abs >= 0 && abs % step === 0) out.push(m); }
     return out;
   };
-  const monthlyExp = Array(12).fill(0);
-  allExpenses.forEach(e => { occMonths(e, chartYear).forEach(m => { monthlyExp[m] += e.amount; }); });
-  // ΚΑΙ ΟΙ ΑΠΛΗΡΩΤΟΙ ΛΟΓΑΡΙΑΣΜΟΙ ΕΙΝΑΙ ΧΡΗΜΑΤΑ ΠΟΥ ΦΕΥΓΟΥΝ.
-  // Οι μπάρες μετρούσαν μόνο τον πίνακα `expenses`, ενώ το ίδιο ζεύγος
-  // γραφημάτων στον Προϋπολογισμό μετρά ολόκληρο το ημερολόγιο. Ίδια ερώτηση,
-  // δύο οθόνες, δύο απαντήσεις — ακριβώς το «τρεις οθόνες, τρία σύνολα» που
-  // περιγράφει το σχόλιο στην κορυφή του lib/expenses/ledger.ts. Προστίθενται
-  // εδώ ΜΟΝΟ όσοι δεν έχουν δαπάνη από πίσω τους, αλλιώς θα μετρούσαν διπλά.
-  ledger.entries
-    .filter(e => !e.expenseId && e.date.startsWith(`${chartYear}-`))
-    .forEach(e => { const m = new Date(e.date).getMonth(); if (m >= 0 && m < 12) monthlyExp[m] += e.amount; });
-  const maxExp = Math.max(...monthlyExp, 1);
-  // Κατηγορίες τρέχοντος έτους (για την αναφορά PDF)
-  const catMap: Record<string,number> = {};
-  expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + e.amount; });
-  const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  // Κατηγορίες για τον επιλεγμένο μήνα του chartYear (πίνακας δεξιά από το γράφημα)
-  const selCatMap: Record<string,number> = {};
-  allExpenses.forEach(e => { if (occMonths(e, chartYear).includes(selMonth)) selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
-  // Ίδιος λόγος με τις μπάρες: ο πίνακας δίπλα τους πρέπει να αθροίζει σε αυτές.
-  ledger.entries
-    .filter(e => !e.expenseId && e.date.startsWith(`${chartYear}-`) && new Date(e.date).getMonth() === selMonth)
-    .forEach(e => { selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
-  const selCatEntries = Object.entries(selCatMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const selMonthTotal = monthlyExp[selMonth] || 0;
-  // Έτη για το dropdown: όσα έχουν δαπάνες + προηγούμενο/τρέχον/επόμενο, φθίνουσα.
-  const chartYears = Array.from(new Set<number>([
-    ...allExpenses.map(e => new Date(e.date).getFullYear()),
-    now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1,
-  ])).sort((a,b) => b - a);
 
   // ── ΕΤΗΣΙΑ ΠΡΟΒΟΛΗ ΔΑΠΑΝΩΝ: ΧΩΡΙΣ ΕΤΗΣΙΟΠΟΙΗΣΗ ΤΩΝ ΕΦΑΠΑΞ ─────────────────
   // Πριν: `totalExpYTD / μήνας × 12`. Ο ΕΝΦΙΑ ή το συμβόλαιο που πληρώθηκε τον
@@ -814,77 +791,18 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
         <AgendaPanel items={agenda} total={agendaAll.length} onNavigate={onNavigate} />
       )}
 
-      <SecHdr label="Ανάλυση δαπανών" sub="Πού πάνε τα χρήματα, μήνα με μήνα" />
-      <div className="grid-main">
-        <div className="card">
-          <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-            <span><span className="section-dot"/> Δαπάνες {chartYear} ανά μήνα</span>
-            <div style={{position:'relative'}}>
-              <button type="button" onClick={()=>setYearMenu(m=>!m)} title="Άλλαξε έτος"
-                style={{display:'inline-flex',alignItems:'center',gap:5,height:26,padding:'0 8px 0 10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontFamily: T.font.mono,fontSize:12,fontWeight:700,cursor:'pointer'}}>
-                {chartYear}
-                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform:yearMenu?'rotate(180deg)':'none',transition:'transform 0.2s',opacity:0.8}}><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              {yearMenu && (
-                <>
-                  <div onClick={()=>setYearMenu(false)} style={{position:'fixed',inset:0,zIndex:40}}/>
-                  <div style={{position:'absolute',top:'calc(100% + 4px)',right:0,zIndex:50,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,boxShadow:'var(--elev-3)',padding:6,minWidth:120,maxHeight:220,overflowY:'auto'}}>
-                    {chartYears.map(y => {
-                      const sel = y===chartYear; const future = y>now.getFullYear();
-                      return (
-                        <button key={y} type="button" onClick={()=>{setChartYear(y);setYearMenu(false);}}
-                          style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,width:'100%',padding:'8px 10px',borderRadius:8,border:'none',background:sel?'var(--accent-dim)':'transparent',color:sel?'var(--accent)':'var(--text-primary)',fontFamily: T.font.mono,fontSize:13,fontWeight:sel?700:500,cursor:'pointer',textAlign:'left'}}
-                          onMouseEnter={e=>{if(!sel)e.currentTarget.style.background='var(--bg-hover)';}}
-                          onMouseLeave={e=>{if(!sel)e.currentTarget.style.background='transparent';}}>
-                          {y}
-                          {future && <span style={{fontFamily: T.font.sans,fontSize:9,fontWeight:600,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>μελλοντικό</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
-            {monthlyExp.map((v,i) => {
-              const active = i===selMonth;
-              return (
-              <button key={i} type="button" onClick={()=>setSelMonth(i)} title={`${MONTHS[i]}: ${fmtEur(v)}`} aria-pressed={active}
-                style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',background:'transparent',border:'none',padding:0,height:'100%',justifyContent:'flex-end'}}>
-                <div style={{width:'100%',height:`${maxExp>0?(v/maxExp)*100:0}%`,background:active?'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 76%, #6ea8ff) 100%)':'var(--bg-hover)',borderRadius:'6px 6px 2px 2px',minHeight:v>0?4:0,transition:'height 0.45s cubic-bezier(.2,0,0,1)',boxShadow:active?'0 4px 10px -4px rgba(26,115,232,.4)':'none'}}/>
-                <div style={{fontFamily: T.font.sans,fontSize:10,fontWeight:active?700:400,color:active?'var(--accent)':'var(--text-tertiary)'}}>{MONTHS[i]}</div>
-              </button>
-            );})}
-          </div>
-          {chartYear > now.getFullYear() && (
-            <div style={{fontFamily: T.font.sans,fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.5}}>
-              Προβολή βάσει των επαναλαμβανόμενων (πάγιων) δαπανών που έχεις καταχωρήσει. Πρόσθεσε ή σήμανε πάγιες δαπάνες στις «Δαπάνες».
-            </div>
-          )}
-        </div>
-        <div className="card">
-          <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-            <span><span className="section-dot"/> Κατηγορίες δαπανών · {MONTHS_LONG[selMonth]} {chartYear}</span>
-            {selMonthTotal>0 && <span style={{fontFamily: T.font.mono,fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
-          </div>
-          {selCatEntries.length===0
-            ? <EmptyState icon={<Receipt size={20}/>} title={`Δεν βρέθηκαν δαπάνες για ${MONTHS_LONG[selMonth]} ${chartYear}`} hint="Διάλεξε άλλον μήνα ή καταχώρησε δαπάνη στην καρτέλα «Δαπάνες»." />
-            : <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {/* Η κουκκίδα είναι ουδέτερη: ο πίνακας `catColors` ήταν πέντε
-                    πανομοιότυπες τιμές, δηλαδή πέντε φορές το ίδιο χρώμα με τη
-                    μορφή «παλέτας κατηγοριών» που δεν υπήρχε. */}
-                {selCatEntries.map(([cat,amt]) => (
-                  <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:8,height:8,borderRadius:3,background:'var(--border-subtle)',flexShrink:0}}/>
-                    <div style={{flex:1,fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
-                    <div style={{fontFamily: T.font.mono,fontSize:13,color:'var(--text-primary)',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtEur(amt)}</div>
-                  </div>
-                ))}
-              </div>
-          }
-        </div>
-      </div>
+      {/* ═══ ΤΟ ΖΕΥΓΟΣ ΓΡΑΦΗΜΑΤΩΝ ΕΦΥΓΕ ΑΠΟ ΕΔΩ ══════════════════════════
+          Οι ίδιες δύο εικόνες — δαπάνες ανά μήνα και κατανομή ανά κατηγορία —
+          υπάρχουν στις Δαπάνες, στον Προϋπολογισμό, όπου ζουν και οι ΣΤΟΧΟΙ.
+          Εκεί η μπάρα του μήνα έχει κάτι να συγκριθεί μαζί του· εδώ ήταν μια
+          ωραία εικόνα χωρίς ερώτηση από πίσω της.
+
+          ΓΙΑΤΙ ΕΦΥΓΕ ΑΥΤΟ ΚΑΙ ΟΧΙ ΤΟ ΑΛΛΟ. Η δουλειά αυτής της οθόνης είναι
+          «τι χρειάζεται τώρα»: το Ταμείο και η ατζέντα. Ένα γράφημα δώδεκα
+          μηνών απαντά σε άλλη ερώτηση — «πώς πήγε η χρονιά» — που είναι
+          ερώτηση των Δαπανών. Και η περίληψή της μένει εδώ, στο πλακίδιο
+          «Δαπάνες»: σύνολο έτους και ποσό ως σήμερα, μία γραμμή αντί για δύο
+          κάρτες. Το βάθος είναι ένα κλικ μακριά, στη σωστή καρτέλα. */}
 
       <SecHdr label="Το ακίνητο" sub="Στοιχεία και πάγια κόστη" />
       <div className="grid-main">
@@ -1093,27 +1011,10 @@ export default function Dashboard() {
   // στην Επισκόπηση, και δεν μπορούσε να στείλει σύνδεσμο ούτε σελιδοδείκτη.
   // Ίδια διεπαφή — κανένα από τα είκοσι `setNav` δεν άλλαξε.
   const [nav, setNav] = useNavHistory('overview');
-  // ═══ ΤΟ «ΠΙΣΩ» ΣΗΜΑΙΝΕΙ «ΕΚΕΙ ΠΟΥ ΗΜΟΥΝ», ΟΧΙ «ΣΤΗΝ ΑΡΧΙΚΗ» ═══════════════
-  // Ο σύνδεσμος επιστροφής έγραφε πάντα «Επισκόπηση», όποιος κι αν ήταν ο δρόμος.
-  // Από τότε που οι Εκκρεμότητες ανοίγουν από το Ημερολόγιο, αυτό είναι λάθος
-  // δύο φορές: λέει ψέματα για το πού θα σε πάει, και σε βγάζει δύο βήματα πίσω
-  // από εκεί που ήσουν. Κρατάμε την προηγούμενη καρτέλα και επιστρέφουμε ΕΚΕΙ.
-  //
-  // ΓΙΑΤΙ ΕΔΩ ΠΑΝΩ ΚΑΙ ΟΧΙ ΔΙΠΛΑ ΣΤΗ ΧΡΗΣΗ ΤΟΥ. Πιο κάτω, ανάμεσα σε αυτά τα
-  // τρία hooks και στην κορυφή του component, μεσολαβεί ένα `if (loading)
-  // return`. Όσο φόρτωνε η σελίδα, το component απέδιδε ΤΡΙΑ hooks λιγότερα·
-  // μόλις τελείωνε η φόρτωση εμφανίζονταν, και ο React σταματούσε ολόκληρη την
-  // εφαρμογή με «rendered more hooks than during the previous render». Δηλαδή
-  // δεν έσκαγε σε κάποια σπάνια διαδρομή: έσκαγε σε ΚΑΘΕ φόρτωση.
-  //
-  // Παρακολουθεί το `nav` και όχι το `navSafe`, που γεννιέται μετά: μια καρτέλα
-  // που έπαψε να ισχύει κόβεται ούτως ή άλλως από το `navVisible` παρακάτω.
-  const prevNavRef = useRef<string>('overview');
-  const [backTo, setBackTo] = useState<string>('overview');
-  useEffect(() => {
-    setBackTo(prevNavRef.current);
-    prevNavRef.current = nav;
-  }, [nav]);
+  // ΤΟ ΙΣΤΟΡΙΚΟ ΠΛΟΗΓΗΣΗΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Κρατούσε την προηγούμενη καρτέλα για
+  // να τη δείχνει ο σύνδεσμος επιστροφής — τρία hooks και μια κατάσταση που
+  // παρήγαγε κύκλους ανάμεσα σε καρτέλες που παραπέμπουν η μία στην άλλη.
+  // Ο κανόνας του «πίσω» είναι πλέον ένας και σταθερός· βλ. `backTab` πιο κάτω.
 
   // Deep-link καρτέλα ενοικιαστή → Απογραφή/Παράδοση με προ-συμπληρωμένα στοιχεία.
   const [handoverIntent, setHandoverIntent] = useState<{tenantName?:string;tenantPhone?:string;type?:'check_in'|'check_out'}|null>(null);
@@ -1555,11 +1456,19 @@ export default function Dashboard() {
   // την παλιά οθόνη.
   const navSafe = navVisible(nav) ? nav : 'overview';
 
-  // Αν η προηγούμενη καρτέλα δεν ισχύει πια (άλλαξε κατάσταση ακινήτου) ή είναι
-  // η ίδια, η Επισκόπηση είναι ο ασφαλής προορισμός. Το `backTo` κρατιέται πιο
-  // πάνω, μαζί με τα υπόλοιπα hooks· εδώ μένει μόνο η κρίση.
-  const backTab = backTo !== navSafe && navVisible(backTo) ? backTo : 'overview';
-  const backLabel = NAV_ITEMS.find(i => i.id === backTab)?.label ?? 'Επισκόπηση';
+  // ── ΤΟ «ΠΙΣΩ» ΔΕΙΧΝΕΙ ΠΑΝΩ, ΟΧΙ ΠΙΣΩ ────────────────────────────────────
+  //
+  // Έδειχνε την ΠΡΟΗΓΟΥΜΕΝΗ καρτέλα που είχε επισκεφθεί ο χρήστης, και αυτό
+  // παρήγαγε πινγκ-πονγκ: από το Αρχείο ανοίγεις τα Έπιπλα, γυρνάς στο Αρχείο,
+  // και το «πίσω» σου προτείνει ξανά τα Έπιπλα — δηλαδή εκεί που μόλις ήσουν και
+  // έφυγες. Δύο καρτέλες που παραπέμπουν η μία στην άλλη κλειδώνουν τον χρήστη
+  // σε κύκλο, χωρίς έξοδο προς τα πάνω.
+  //
+  // Το «πίσω» δεν είναι ιστορικό — αυτό το κάνει ήδη ο περιηγητής. Είναι ΕΞΟΔΟΣ
+  // προς το επίπεδο από πάνω, και το επίπεδο από πάνω είναι πάντα ένα: η
+  // Επισκόπηση. Ένας κανόνας, καμία κατάσταση να συντηρηθεί, κανένας κύκλος.
+  const backTab = 'overview';
+  const backLabel = navLabel('overview');
 
   // ── ΑΛΛΑΓΗ ΑΚΙΝΗΤΟΥ ΧΩΡΙΣ ΝΑ ΧΑΝΕΤΑΙ Η ΘΕΣΗ ────────────────────────────────
   //
@@ -1628,7 +1537,7 @@ export default function Dashboard() {
               <circle cx="12" cy="13" r="4"/>
             </svg>
           </span>
-          <span className="quick-add-label">Φωτογράφισε έγγραφο</span>
+          <span className="quick-add-label">Σάρωσε έγγραφο</span>
         </button>
 
         <div className="sidebar-section">
@@ -1941,7 +1850,7 @@ export default function Dashboard() {
                       δίπλα-δίπλα», και από κάτω η ίδια η σύγκριση απαντούσε
                       «δεν υπάρχουν δύο ακίνητα ίδιου τύπου». */}
                   {canCompare(properties) && (
-                    <div style={{marginTop:28}}>
+                    <div style={{marginTop:T.sp.section}}>
                       <SecHdr label="Σε σχέση με τα υπόλοιπα ακίνητά σου" sub={`${properties.length} ακίνητα δίπλα-δίπλα`}/>
                       {isTabAllowed(ent,'comparison')
                         ? <TabComparison properties={properties} userId={user.id}/>
@@ -1981,7 +1890,7 @@ export default function Dashboard() {
                       της. Εδώ γραφόταν δεύτερη φορά, και από κάτω το ίδιο το
                       component τύπωνε τίτλο σελίδας με υπότιτλο που έλεγε την
                       ίδια πρόταση με άλλες λέξεις. */}
-                  <div style={{marginTop:28}}>
+                  <div style={{marginTop:T.sp.section}}>
                     <TabContacts propertyId={selected.id} userId={user.id} embedded profileType={effProfileType} properties={properties}/>
                   </div>
                   {/* ΤΑ ΠΡΑΓΜΑΤΑ ΤΟΥ ΑΚΙΝΗΤΟΥ, ΜΑΖΙ ΜΕ ΤΑ ΧΑΡΤΙΑ ΚΑΙ ΤΟΥΣ
@@ -1996,7 +1905,7 @@ export default function Dashboard() {
                       το πάτημα τον γύριζε σιωπηλά στην Επισκόπηση. Πέντε από τις
                       επτά καταστάσεις. Ίδιος κανόνας με το μενού, ένα σημείο. */}
                   {navVisible('inventory') && (
-                  <div style={{marginTop:28}}>
+                  <div style={{marginTop:T.sp.section}}>
                     <SecHdr label={navLabel('inventory')} sub="Αξία, εγγυήσεις, συντήρηση και παράδοση"/>
                     <button onClick={()=>setNav('inventory')}
                       style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 16px',borderRadius:12,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:'inherit'}}>

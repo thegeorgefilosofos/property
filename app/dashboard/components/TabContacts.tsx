@@ -8,6 +8,8 @@ import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect } from './UIComponents'
 import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT } from '@/components/Theme'
+import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
+import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { saved } from '@/components/dbWrite'
 import { confirmDialog } from '@/components/confirmBus'
@@ -1495,6 +1497,17 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
   const alphaIndex = useMemo(() => buildAlphaIndex(scoped.map(c => c.full_name)), [scoped])
 
+  // ── ΠΟΣΑ ΕΙΔΗ ΥΠΑΡΧΟΥΝ ΠΡΑΓΜΑΤΙΚΑ ─────────────────────────────────────────
+  // Οι δύο αριθμοί που κρίνουν αν ένα φίλτρο έχει τι να φιλτράρει: πόσες ομάδες
+  // επαφών υπάρχουν όντως, και πόσα είδη εμβέλειας. Ένα φίλτρο με μία επιλογή
+  // δεν είναι φίλτρο — είναι ετικέτα με περίγραμμα κουμπιού.
+  const groupsPresent = useMemo(
+    () => GROUPS.filter(g => contacts.some(c => ROLE_META[c.role]?.groupId === g.id)),
+    [contacts])
+  const scopeKinds = useMemo(
+    () => new Set(contacts.map(c => (c._extra?.scope === 'portfolio' ? 'portfolio' : 'property'))).size,
+    [contacts])
+
   // Το γράμμα που δεν υπάρχει πια δεν επιτρέπεται να μείνει πατημένο: αν έσβηνες
   // την τελευταία επαφή στο «Π», η οθόνη θα έδειχνε κενό με ενεργό ένα γράμμα
   // που δεν φαίνεται πουθενά — αδιέξοδο χωρίς ορατή έξοδο.
@@ -1559,27 +1572,25 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           άλλο, με δύο υπότιτλους που έλεγαν την ίδια πρόταση με άλλες λέξεις.
           Οι ενέργειες είναι ΟΙ ΙΔΙΕΣ και στις δύο μορφές: γράφονται μία φορά. */}
       {(() => {
+      // ── ΤΡΙΑ ΚΟΥΜΠΙΑ ΕΓΙΝΑΝ ΔΥΟ ────────────────────────────────────────────
+      // Ήταν «Νέα επαφή», «Εξαγωγή ▾» και «Σάρωση κάρτας» σε μία σειρά: δύο από
+      // τα τρία οδηγούν στο ΙΔΙΟ αποτέλεσμα (μια νέα επαφή) με διαφορετική
+      // ταχύτητα, και το τρίτο είναι εξαγωγή — ενέργεια που δεν κάνει κανείς
+      // στην πρώτη του επίσκεψη και δεν αξίζει μόνιμη θέση δίπλα στη δημιουργία.
+      //
+      // Μένει ΜΙΑ κύρια ενέργεια, η γρήγορη: η φωτογραφία της κάρτας διαβάζει
+      // όνομα, τηλέφωνο, email και ΑΦΜ μόνη της. Η χειροκίνητη καταχώριση και οι
+      // τρεις εξαγωγές πάνε στο κοινό μενού «Περισσότερα» — το ίδιο που
+      // χρησιμοποιεί ήδη η Απογραφή, ώστε οι δύο οθόνες να διαβάζονται σαν μία.
       const actions = <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Btn variant="secondary" onClick={openAdd}>Νέα επαφή</Btn>
-          {contacts.length > 0 && <details className="po-menu" style={{ position: 'relative' }}>
-            <summary style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
-              Εξαγωγή
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" /></svg>
-            </summary>
-            <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 30, minWidth: 190, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.inner, boxShadow: 'var(--elev-2)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {([
-                { label: 'Excel', fn: () => exportContactsExcel(contacts) },
-                { label: 'PDF', fn: () => exportContactsPDF(contacts, branding) },
-                { label: 'vCard', fn: () => downloadVcf(contacts, 'epafes.vcf') },
-              ]).map(item => (
-                <button key={item.label} type="button" onClick={e => { item.fn(); (e.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open') }}
-                  style={{ appearance: 'none', textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer', padding: '8px 10px', borderRadius: 8, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </details>}
+          <ActionMenu label="Περισσότερα" items={[
+            { key: 'add', label: 'Νέα επαφή χειροκίνητα', description: 'Χωρίς κάρτα: συμπληρώνεις εσύ τα πεδία.', onClick: openAdd },
+            ...(contacts.length > 0 ? [
+              { key: 'xlsx', label: 'Κατάλογος σε Excel', description: 'Όλα τα πεδία, για υπολογιστικό φύλλο.', onClick: () => exportContactsExcel(contacts) },
+              { key: 'pdf', label: 'Κατάλογος σε PDF', description: 'Έτοιμος για εκτύπωση ή αποστολή.', onClick: () => exportContactsPDF(contacts, branding) },
+              { key: 'vcf', label: 'Επαφές στο κινητό', description: 'Αρχείο vCard για το τηλεφωνικό σου ευρετήριο.', onClick: () => downloadVcf(contacts, 'epafes.vcf') },
+            ] : []),
+          ]} />
           <Btn variant="primary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωση κάρτας'}</Btn>
         </div>;
       return embedded
@@ -1672,11 +1683,22 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       )}
 
       {!loading && contacts.length > 0 && (<>
+      {/* ── ΤΑ ΕΡΓΑΛΕΙΑ ΕΜΦΑΝΙΖΟΝΤΑΙ ΟΤΑΝ ΤΑ ΔΙΚΑΙΟΛΟΓΕΙ ΤΟ ΠΛΗΘΟΣ ───────
+          Με μία επαφή, αυτή η οθόνη έδειχνε δώδεκα χειριστήρια: αναζήτηση,
+          ετικέτες, ταξινόμηση, προβολή, αλφαβητικό ευρετήριο, τρία κουμπιά
+          εμβέλειας, chip ομάδας, πλήθος και μαζική επιλογή. Κανένα δεν είναι
+          λάθος — όλα είναι λάθος ΕΚΕΙ: η αναζήτηση δεν λύνει τίποτα σε μία
+          γραμμή, η ταξινόμηση δύο τιμών σε ένα στοιχείο δεν αλλάζει τίποτα,
+          ένα ευρετήριο για τρία γράμματα δεν είναι ευρετήριο.
+          Τα κατώφλια ζουν στο lib/ui/thresholds.ts, ένα για όλη την εφαρμογή. */}
+      {(showTool('search', contacts.length) || showTool('sort', contacts.length)) && (
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        {showTool('search', contacts.length) && (
         <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
           <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Όνομα, τηλέφωνο, email, ΑΦΜ ή IBAN" style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
         </div>
+        )}
         {allTags.length > 0 && (
           <div style={{ minWidth: 170 }}>
             <CustomSelect value={filterTag} onChange={setFilterTag} placeholder="Όλες οι ετικέτες"
@@ -1685,21 +1707,34 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         )}
         {/* Ταξινόμηση: δύο επιλογές, ορατές. Ένα αναδυόμενο μενού για δύο τιμές
             κρύβει τη μισή πληροφορία πίσω από ένα κλικ, χωρίς λόγο. */}
+        {showTool('sort', contacts.length) && (
         <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', background: 'var(--bg-elevated)', padding: 3, gap: 2 }}>
           {([['recent', 'Πρόσφατες'], ['alpha', 'Αλφαβητικά']] as const).map(([m, label]) => (
             <button key={m} type="button" onClick={() => setSortMode(m)} style={{ padding: '5px 15px', border: 'none', borderRadius: T.radius.pill, background: sortMode === m ? 'var(--bg-surface)' : 'transparent', color: sortMode === m ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: sortMode === m ? 700 : 500, fontFamily: T.font.sans, boxShadow: sortMode === m ? 'var(--elev-1)' : 'none', transition: 'all 0.15s' }}>{label}</button>
           ))}
         </div>
+        )}
+        {showTool('view', contacts.length) && (
         <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', background: 'var(--bg-elevated)', padding: 3, gap: 2 }}>
           {(['cards', 'compact'] as ViewMode[]).map(v => (
             <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '5px 15px', border: 'none', borderRadius: T.radius.pill, background: viewMode === v ? 'var(--bg-surface)' : 'transparent', color: viewMode === v ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 500, fontFamily: T.font.sans, boxShadow: viewMode === v ? 'var(--elev-1)' : 'none', transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
           ))}
         </div>
+        )}
       </div>
+      )}
 
-      <AlphaRail entries={alphaIndex} active={letter} onPick={setLetterFilter} />
+      {/* Ένα ευρετήριο έχει νόημα όταν τα γράμματα είναι λιγότερα από τις
+          γραμμές. Με πέντε επαφές είναι απλώς δεύτερη λίστα από πάνω. */}
+      {showTool('index', contacts.length) && (
+        <AlphaRail entries={alphaIndex} active={letter} onPick={setLetterFilter} />
+      )}
 
-      {isPro && (
+      {/* Η εμβέλεια είναι ερώτηση μόνο όταν υπάρχουν επαφές σε ΠΑΝΩ ΑΠΟ ΜΙΑ.
+          Με όλες στο ίδιο ακίνητο, τα τρία κουμπιά δίνουν τρεις φορές την ίδια
+          λίστα — και η ετικέτα «Εμβέλεια» δίπλα τους ονομάτιζε μια επιλογή που
+          δεν υπήρχε. */}
+      {isPro && scopeKinds > 1 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Εμβέλεια</span>
           {([
@@ -1714,8 +1749,11 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
+      {/* Ένα chip φίλτρου που επιλέγει τα πάντα δεν φιλτράρει τίποτα: με μία
+          μόνο ομάδα, η σειρά είναι ετικέτα μεταμφιεσμένη σε χειριστήριο. */}
+      {groupsPresent.length >= SHOW_FROM.filter && (
       <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
-        {GROUPS.filter(g => contacts.some(c => ROLE_META[c.role]?.groupId === g.id)).map(g => {
+        {groupsPresent.map(g => {
             const count = contacts.filter(c => ROLE_META[c.role]?.groupId === g.id).length; const active = filterGroup === g.id; const GroupIcon = g.Icon
             return (
               <button key={g.id} type="button" onClick={() => setFilterGroup(active ? 'all' : g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--border-default)' : 'var(--border-subtle)'), background: active ? 'var(--bg-elevated)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
@@ -1724,6 +1762,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             )
           })}
       </div>
+      )}
 
       {/* Η ΓΡΑΜΜΗ ΤΟΥ ΠΛΗΘΟΥΣ. Το δεύτερο κουμπί εξαγωγής που καθόταν εδώ έφυγε:
           η κεφαλίδα προσφέρει ήδη Excel, PDF και vCard — τρεις μορφές, ένα
@@ -1735,7 +1774,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             ? `${fn(contacts.length)} ${contacts.length === 1 ? 'επαφή' : 'επαφές'}`
             : `${fn(processed.length)} από ${fn(contacts.length)}`}
         </span>
-        {!bulkMode && processed.length > 0 && (
+        {!bulkMode && showTool('bulk', processed.length) && (
           <button type="button" onClick={() => { setBulkMode(true); setSelected(new Set()) }}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12,
               fontFamily: T.font.sans, color: 'var(--accent)' }}>

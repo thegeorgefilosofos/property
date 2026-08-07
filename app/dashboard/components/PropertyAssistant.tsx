@@ -1338,7 +1338,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                       const used = consumedActions.has(i);
                       return (
                       <button disabled={used} onClick={() => { if (used) return; setConsumedActions(s => new Set(s).add(i)); runAction(m.action); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${used ? 'var(--border-subtle)' : 'var(--accent)'}`, background: used ? 'var(--bg-elevated)' : 'var(--accent-dim)', color: used ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: used ? 'default' : 'pointer' }}>
-                        {m.action.type === 'scan' ? 'Φωτογράφισε έγγραφο'
+                        {m.action.type === 'scan' ? 'Σάρωσε έγγραφο'
                           : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}`
                           : m.action.type === 'client' ? `Καταχώρησε: ${m.action.name}`
                           : m.action.type === 'expense' ? `Κατέγραψε δαπάνη: ${eur(m.action.amount)}`
