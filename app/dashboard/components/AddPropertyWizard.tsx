@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn, fp, fd, ABSENT, TT } from '@/components/Theme';
+import { T, fe, fn, fp, fd, ABSENT, Modal, TT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
 import { STATUSES, BY_KEY, readStatus, writeStatus, type PropertyStatus } from '@/lib/property/status';
@@ -113,7 +113,9 @@ const num = (s: string) => { const v = parseFloat(s.replace(',', '.')); return i
 
 // ── Στυλ inputs (ίδιο look με το υπάρχον modal) ─────────────────────────────
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 16px', height: 40, borderRadius: 6,
+  // Ύψος από την κοινή κλίμακα: ήταν καρφωμένο 40 σε ~25 πεδία του οδηγού, άρα
+  // δεν ακολουθούσε το 44 που ζητά ο δείκτης-δάχτυλο (globals.css, pointer: coarse).
+  width: '100%', padding: '10px 16px', height: T.h.lg, borderRadius: 6,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans,
   letterSpacing: 0, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -127,6 +129,7 @@ const labelStyle: React.CSSProperties = {
 const FLOOR_OPTS = ['Υπόγειο', 'Ημιυπόγειο', 'Ισόγειο', 'Υπερυψωμένο ισόγειο', 'Ημιώροφος', '1ος', '2ος', '3ος', '4ος', '5ος', '6ος', '7ος και άνω', 'Δώμα / Ρετιρέ'];
 const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; };
 const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none'; };
+
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><label style={labelStyle}>{label}</label>{children}</div>;
@@ -361,414 +364,415 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16 };
   const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 16 };
 
+  // ── ΔΕΝ ΚΛΕΙΝΕΙ ΟΣΟ ΑΠΟΘΗΚΕΥΕΙ ────────────────────────────────────────────
+  // Το χειρόγραφο κέλυφος έκλεινε μόνο με κλικ στο φόντο ή στο «✕». Το Modal
+  // προσθέτει Escape, δηλαδή έναν δρόμο εξόδου που πατιέται κατά λάθος — και η
+  // `save()` είναι ΔΥΟ εγγραφές στη σειρά (user_properties, μετά
+  // property_settings). Αν το παράθυρο φύγει ανάμεσά τους, χάνεται και το
+  // `createdId`: η επόμενη προσπάθεια ΞΑΝΑΦΤΙΑΧΝΕΙ το ακίνητο αντί να το
+  // ενημερώσει — ακριβώς το διπλό insert που ο κώδικας της `save()` μπήκε στον
+  // κόπο να αποτρέψει. Και το μήνυμα «αποθηκεύτηκε το ακίνητο, όχι οι ρυθμίσεις»
+  // δεν προλαβαίνει να διαβαστεί. Όσο γράφει, το παράθυρο μένει.
+  const requestClose = () => { if (!saving) onClose(); };
+
   return (
-    <div role="dialog" aria-modal="true" aria-label="Προσθήκη ακινήτου"
-      style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-xl)', overflow: 'hidden' }}>
+    // ΠΟΛΥΒΗΜΑΤΙΚΟ, ΑΛΛΑ ΠΑΡΑΘΥΡΟ — ΟΧΙ ΟΛΟΣΕΛΙΔΗ ΕΜΠΕΙΡΙΑ.
+    // Κεντραρισμένο, 640 πλάτος, με τίτλο και ενέργειες: ό,τι ακριβώς είναι το
+    // Modal. Ο τίτλος μένει σταθερός και ο υπότιτλος αλλάζει ανά βήμα («Βήμα 2
+    // από 5 · Βασικά»), οπότε το βήμα λέγεται μία φορά, εκεί που το περιμένει ο
+    // χρήστης. Το χειρόγραφο κέλυφος δεν άκουγε Escape, δεν επέστρεφε την
+    // εστίαση και δεν κλείδωνε την κύλιση του φόντου· και το «✕» του ήταν
+    // 36×36 με radius 18, δηλαδή τέταρτο σχήμα κλεισίματος στην ίδια εφαρμογή.
+    <Modal open onClose={requestClose} width={640}
+      ariaLabel="Προσθήκη ακινήτου"
+      title={isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}
+      subtitle={`Βήμα ${step + 1} από ${STEPS.length} · ${STEPS[step]}`}
+      footer={<>
+        <button onClick={() => (step === 0 ? requestClose() : setStep(s => s - 1))} style={{ height: T.h.lg, padding: '0 20px', borderRadius: T.radius.pill, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+          {step === 0 ? 'Ακύρωση' : 'Πίσω'}
+        </button>
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 28px 0' }}>
+        {step < STEPS.length - 1 ? (
+          <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext} style={{
+            height: T.h.lg, padding: '0 24px', borderRadius: T.radius.pill, border: 'none',
+            background: canNext ? 'var(--accent)' : 'var(--bg-overlay)', color: canNext ? 'var(--accent-text)' : 'var(--text-tertiary)',
+            fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: canNext ? 'pointer' : 'not-allowed',
+          }}>Συνέχεια</button>
+        ) : (
+          <button onClick={save} disabled={saving || !name.trim()} style={{
+            height: T.h.lg, padding: '0 24px', borderRadius: T.radius.pill, border: 'none',
+            background: saving || !name.trim() ? 'var(--bg-overlay)' : 'var(--accent)', color: saving || !name.trim() ? 'var(--text-tertiary)' : 'var(--accent-text)',
+            fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
+          }}>{saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη Ακινήτου'}</button>
+        )}
+      </>}>
+
+      {/* Step progress */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+        {STEPS.map((label, i) => {
+          const done = i < step, active = i === step;
+          const on = done || active;
+          return (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : '0 0 auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: on ? 'var(--accent)' : 'var(--bg-overlay)', color: on ? 'var(--accent-text)' : 'var(--text-tertiary)',
+                  border: active ? '2px solid var(--accent)' : '2px solid transparent',
+                  boxShadow: active ? '0 0 0 4px var(--accent-soft)' : 'none',
+                  fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, transition: 'all 0.2s',
+                }}>{done ? '✓' : i + 1}</div>
+                <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
+              </div>
+              {i < STEPS.length - 1 && <div style={{ flex: 1, height: 2, background: i < step ? 'var(--accent)' : 'var(--border-subtle)', margin: '0 8px', marginBottom: 22, transition: 'background 0.2s' }} />}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* STEP 1, Τύπος & Κατάσταση */}
+      {step === 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.25 }}>{isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, letterSpacing: '0.25px' }}>Βήμα {step + 1} από {STEPS.length} · {STEPS[step]}</div>
+            <label style={labelStyle}>Τύπος Ακινήτου</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
+              {PROP_TYPES.map(t => {
+                const sel = propType === t;
+                return (
+                  <button key={t} onClick={() => setPropType(t)} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 8px',
+                    borderRadius: 12, cursor: 'pointer', transition: 'all 0.15s',
+                    border: sel ? '2px solid var(--accent)' : '1px solid var(--border-default)',
+                    background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
+                    color: sel ? 'var(--accent)' : 'var(--text-secondary)',
+                  }}
+                    onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-overlay)'; }}
+                    onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-surface)'; }}>
+                    <TypeIcon type={t} />
+                    <span style={{ fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: sel ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'center' }}>{PROP_TYPE_LABELS[t]}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: T.h.md, height: T.h.md, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
-        </div>
 
-        {/* Step progress */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '20px 28px 4px' }}>
-          {STEPS.map((label, i) => {
-            const done = i < step, active = i === step;
-            const on = done || active;
-            return (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : '0 0 auto' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: on ? 'var(--accent)' : 'var(--bg-overlay)', color: on ? 'var(--accent-text)' : 'var(--text-tertiary)',
-                    border: active ? '2px solid var(--accent)' : '2px solid transparent',
-                    boxShadow: active ? '0 0 0 4px var(--accent-soft)' : 'none',
-                    fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, transition: 'all 0.2s',
-                  }}>{done ? '✓' : i + 1}</div>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
-                </div>
-                {i < STEPS.length - 1 && <div style={{ flex: 1, height: 2, background: i < step ? 'var(--accent)' : 'var(--border-subtle)', margin: '0 8px', marginBottom: 22, transition: 'background 0.2s' }} />}
+          <div>
+            <label style={labelStyle}>Κατάσταση</label>
+            {/* ΕΠΤΑ ΕΠΙΛΟΓΕΣ, ΙΔΙΕΣ ΑΚΡΙΒΩΣ ΜΕ ΤΗΝ ΚΕΦΑΛΙΔΑ ΤΟΥ ΑΚΙΝΗΤΟΥ.
+                Η κάθε μία φέρει και την επεξήγησή της, όπως στο μενού: η
+                διαφορά μακροχρόνιας και βραχυχρόνιας δεν είναι προφανής από
+                τον τίτλο, και ήταν ο λόγος που υπήρχε χωριστός διακόπτης. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 8 }}>
+              {STATUSES.map(st => {
+                const sel = statusKey === st.key;
+                return (
+                  <button key={st.key} onClick={() => setStatusKey(st.key)} aria-pressed={sel} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
+                    padding: '10px 14px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left',
+                    transition: `border-color .15s ${T.ease.standard}, background .15s ${T.ease.standard}`,
+                    border: `1px solid ${sel ? 'var(--accent)' : 'var(--border-default)'}`,
+                    background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
+                    fontFamily: T.font.sans,
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: 'var(--text-primary)' }}>{st.label}</span>
+                    <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--text-tertiary)' }}>{st.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Ο ΔΙΑΚΟΠΤΗΣ «Βραχυχρόνια μίσθωση (Airbnb / Booking)» ΕΦΥΓΕ.
+              Έκανε ό,τι ακριβώς και το chip «Βραχυχρόνια μίσθωση» — έγραφε
+              την ίδια κατάσταση — και όσο ήταν αναμμένος ΝΕΚΡΩΝΕ ολόκληρη τη
+              σειρά των chips (opacity 0.5, pointerEvents none). Δύο
+              χειριστήρια για ένα πεδίο, με το ένα να απενεργοποιεί το άλλο:
+              ο χρήστης δεν μπορούσε να καταλάβει ποιο είναι το κανονικό.
+              Ο ΑΜΑ, που ήταν ο πραγματικός λόγος να ξεχωρίζει η βραχυχρόνια,
+              εμφανίζεται από μόνος του μόλις επιλεγεί εκείνη η κατάσταση. */}
+
+          {/* Ο ΑΜΑ ΕΜΦΑΝΙΖΕΤΑΙ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΤΟ ΑΚΙΝΗΤΟ ΓΙΝΕΤΑΙ ΒΡΑΧΥΧΡΟΝΙΟ.
+              Δεν υπάρχει ξεχωριστός διακόπτης και δεν κρύβεται σε accordion
+              άλλης καρτέλας: η κατάσταση του ακινήτου είναι η ερώτηση, ο ΑΜΑ
+              είναι η αμέσως επόμενη. Δεν είναι υποχρεωτικό πεδίο εδώ (ο
+              χρήστης μπορεί να μην τον έχει ακόμη) — αν λείψει, η μόνιμη
+              γραμμή στους «Επισκέπτες» και στην «Τιμολόγηση» τον ζητά ξανά. */}
+          {airbnb && (
+            <div style={{ marginTop: -8 }}>
+              <Field label="Αριθμός Μητρώου Ακινήτου (ΑΜΑ)">
+                <input style={inputStyle} value={ama} onChange={e => setAma(cleanAma(e.target.value))}
+                  inputMode="numeric" placeholder="Μόνο ψηφία, από το Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής (myAADE)"
+                  onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+              <div style={{ fontFamily: T.font.sans, fontSize: 12, color: amaLengthLooksUnusual(ama) ? 'var(--warning)' : 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
+                {amaLengthLooksUnusual(ama)
+                  ? `Ο αριθμός έχει ${ama.length} ψηφία, που είναι ασυνήθιστο. Έλεγξέ τον στο myAADE πριν συνεχίσεις.`
+                  : 'Ο ΑΜΑ πρέπει να αναγράφεται σε κάθε καταχώριση σε Airbnb και Booking. Το 2025 στάλθηκαν 12.145 καταχωρίσεις για απενεργοποίηση επειδή έλειπε ή ήταν άκυρος.'}
               </div>
-            );
-          })}
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1 }}>
-
-          {/* STEP 1, Τύπος & Κατάσταση */}
-          {step === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              <div>
-                <label style={labelStyle}>Τύπος Ακινήτου</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-                  {PROP_TYPES.map(t => {
-                    const sel = propType === t;
-                    return (
-                      <button key={t} onClick={() => setPropType(t)} style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 8px',
-                        borderRadius: 12, cursor: 'pointer', transition: 'all 0.15s',
-                        border: sel ? '2px solid var(--accent)' : '1px solid var(--border-default)',
-                        background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
-                        color: sel ? 'var(--accent)' : 'var(--text-secondary)',
-                      }}
-                        onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-overlay)'; }}
-                        onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-surface)'; }}>
-                        <TypeIcon type={t} />
-                        <span style={{ fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: sel ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'center' }}>{PROP_TYPE_LABELS[t]}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Κατάσταση</label>
-                {/* ΕΠΤΑ ΕΠΙΛΟΓΕΣ, ΙΔΙΕΣ ΑΚΡΙΒΩΣ ΜΕ ΤΗΝ ΚΕΦΑΛΙΔΑ ΤΟΥ ΑΚΙΝΗΤΟΥ.
-                    Η κάθε μία φέρει και την επεξήγησή της, όπως στο μενού: η
-                    διαφορά μακροχρόνιας και βραχυχρόνιας δεν είναι προφανής από
-                    τον τίτλο, και ήταν ο λόγος που υπήρχε χωριστός διακόπτης. */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 8 }}>
-                  {STATUSES.map(st => {
-                    const sel = statusKey === st.key;
-                    return (
-                      <button key={st.key} onClick={() => setStatusKey(st.key)} aria-pressed={sel} style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
-                        padding: '10px 14px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left',
-                        transition: `border-color .15s ${T.ease.standard}, background .15s ${T.ease.standard}`,
-                        border: `1px solid ${sel ? 'var(--accent)' : 'var(--border-default)'}`,
-                        background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
-                        fontFamily: T.font.sans,
-                      }}>
-                        <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: 'var(--text-primary)' }}>{st.label}</span>
-                        <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--text-tertiary)' }}>{st.hint}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Ο ΔΙΑΚΟΠΤΗΣ «Βραχυχρόνια μίσθωση (Airbnb / Booking)» ΕΦΥΓΕ.
-                  Έκανε ό,τι ακριβώς και το chip «Βραχυχρόνια μίσθωση» — έγραφε
-                  την ίδια κατάσταση — και όσο ήταν αναμμένος ΝΕΚΡΩΝΕ ολόκληρη τη
-                  σειρά των chips (opacity 0.5, pointerEvents none). Δύο
-                  χειριστήρια για ένα πεδίο, με το ένα να απενεργοποιεί το άλλο:
-                  ο χρήστης δεν μπορούσε να καταλάβει ποιο είναι το κανονικό.
-                  Ο ΑΜΑ, που ήταν ο πραγματικός λόγος να ξεχωρίζει η βραχυχρόνια,
-                  εμφανίζεται από μόνος του μόλις επιλεγεί εκείνη η κατάσταση. */}
-
-              {/* Ο ΑΜΑ ΕΜΦΑΝΙΖΕΤΑΙ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΤΟ ΑΚΙΝΗΤΟ ΓΙΝΕΤΑΙ ΒΡΑΧΥΧΡΟΝΙΟ.
-                  Δεν υπάρχει ξεχωριστός διακόπτης και δεν κρύβεται σε accordion
-                  άλλης καρτέλας: η κατάσταση του ακινήτου είναι η ερώτηση, ο ΑΜΑ
-                  είναι η αμέσως επόμενη. Δεν είναι υποχρεωτικό πεδίο εδώ (ο
-                  χρήστης μπορεί να μην τον έχει ακόμη) — αν λείψει, η μόνιμη
-                  γραμμή στους «Επισκέπτες» και στην «Τιμολόγηση» τον ζητά ξανά. */}
-              {airbnb && (
-                <div style={{ marginTop: -8 }}>
-                  <Field label="Αριθμός Μητρώου Ακινήτου (ΑΜΑ)">
-                    <input style={inputStyle} value={ama} onChange={e => setAma(cleanAma(e.target.value))}
-                      inputMode="numeric" placeholder="Μόνο ψηφία, από το Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής (myAADE)"
-                      onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: amaLengthLooksUnusual(ama) ? 'var(--warning)' : 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
-                    {amaLengthLooksUnusual(ama)
-                      ? `Ο αριθμός έχει ${ama.length} ψηφία, που είναι ασυνήθιστο. Έλεγξέ τον στο myAADE πριν συνεχίσεις.`
-                      : 'Ο ΑΜΑ πρέπει να αναγράφεται σε κάθε καταχώριση σε Airbnb και Booking. Το 2025 στάλθηκαν 12.145 καταχωρίσεις για απενεργοποίηση επειδή έλειπε ή ήταν άκυρος.'}
-                  </div>
-                </div>
-              )}
             </div>
           )}
+        </div>
+      )}
 
-          {/* STEP 2, Βασικά Στοιχεία */}
-          {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Ονομασία Ακινήτου *">
-                <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />
-              </Field>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-                <Field label="Διεύθυνση">
-                  <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                <Field label="Ταχ. Κώδικας">
-                  <input style={inputStyle} value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} inputMode="numeric" placeholder="16232" onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-              </div>
-              <Field label="ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)">
-                <input style={monoInputStyle} value={atak} onChange={e => setAtak(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 ψηφία, από το Ε9 ή το περιουσιολόγιο" onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-              {isLandLike ? (
+      {/* STEP 2, Βασικά Στοιχεία */}
+      {step === 1 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Field label="Ονομασία Ακινήτου *">
+            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />
+          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+            <Field label="Διεύθυνση">
+              <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Ταχ. Κώδικας">
+              <input style={inputStyle} value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} inputMode="numeric" placeholder="16232" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+          </div>
+          <Field label="ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)">
+            <input style={monoInputStyle} value={atak} onChange={e => setAtak(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 ψηφία, από το Ε9 ή το περιουσιολόγιο" onFocus={onFocus} onBlur={onBlur} />
+          </Field>
+          {isLandLike ? (
+            <Field label={sqmLabel}>
+              <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="250" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+          ) : (
+            <>
+              <div style={grid3}>
                 <Field label={sqmLabel}>
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="250" onFocus={onFocus} onBlur={onBlur} />
+                  <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="85" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
-              ) : (
-                <>
-                  <div style={grid3}>
-                    <Field label={sqmLabel}>
-                      <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="85" onFocus={onFocus} onBlur={onBlur} />
-                    </Field>
-                    <Field label="Όροφος">
-                      <CustomSelect value={floor} onChange={setFloor} placeholder="Επίλεξε"
-                        options={FLOOR_OPTS.map(f => ({ value: f, label: f }))} />
-                    </Field>
-                    <Field label="Έτος κατασκευής">
-                      <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
-                    </Field>
-                  </div>
-                  <div style={grid3}>
-                    <Field label="Ενεργειακή Κλάση (ΠΕΑ)">
-                      <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε"
-                        options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />
-                    </Field>
-                    <Field label="Τύπος θέρμανσης">
-                      <CustomSelect value={heating} onChange={setHeating} placeholder="Επίλεξε"
-                        options={HEATING_OPTS.map(([v, l]) => ({ value: v, label: l }))} />
-                    </Field>
-                    <Field label="Θέσεις στάθμευσης">
-                      <input style={monoInputStyle} type="number" value={parking} onChange={e => setParking(e.target.value)} placeholder="1" onFocus={onFocus} onBlur={onBlur} />
-                    </Field>
-                  </div>
-                  <div style={grid2}>
-                    <Field label="Υπνοδωμάτια">
-                      <input style={monoInputStyle} type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} placeholder="2" onFocus={onFocus} onBlur={onBlur} />
-                    </Field>
-                    <Field label="Αποθήκη (τ.μ.)">
-                      <input style={monoInputStyle} type="number" inputMode="decimal" value={storageSqm} onChange={e => setStorageSqm(e.target.value)} placeholder="8" onFocus={onFocus} onBlur={onBlur} />
-                    </Field>
-                  </div>
-                </>
-              )}
-            </div>
+                <Field label="Όροφος">
+                  <CustomSelect value={floor} onChange={setFloor} placeholder="Επίλεξε"
+                    options={FLOOR_OPTS.map(f => ({ value: f, label: f }))} />
+                </Field>
+                <Field label="Έτος κατασκευής">
+                  <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+              </div>
+              <div style={grid3}>
+                <Field label="Ενεργειακή Κλάση (ΠΕΑ)">
+                  <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε"
+                    options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />
+                </Field>
+                <Field label="Τύπος θέρμανσης">
+                  <CustomSelect value={heating} onChange={setHeating} placeholder="Επίλεξε"
+                    options={HEATING_OPTS.map(([v, l]) => ({ value: v, label: l }))} />
+                </Field>
+                <Field label="Θέσεις στάθμευσης">
+                  <input style={monoInputStyle} type="number" value={parking} onChange={e => setParking(e.target.value)} placeholder="1" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+              </div>
+              <div style={grid2}>
+                <Field label="Υπνοδωμάτια">
+                  <input style={monoInputStyle} type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} placeholder="2" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+                <Field label="Αποθήκη (τ.μ.)">
+                  <input style={monoInputStyle} type="number" inputMode="decimal" value={storageSqm} onChange={e => setStorageSqm(e.target.value)} placeholder="8" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+              </div>
+            </>
           )}
+        </div>
+      )}
 
-          {/* STEP 3, Οικονομικά */}
-          {step === 2 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={grid2}>
-                <Field label="Εμπορική Αξία (€)">
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} placeholder="145000" onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                <Field label="Αντικειμενική Αξία (€)">
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} placeholder="110000" onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-              </div>
-              <div style={grid2}>
-                <Field label="Τιμή Αγοράς (€)">
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                <Field label="Ημερομηνία αγοράς">
-                  <DatePicker value={purchaseDate} onChange={setPurchaseDate} />
-                </Field>
+      {/* STEP 3, Οικονομικά */}
+      {step === 2 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={grid2}>
+            <Field label="Εμπορική Αξία (€)">
+              <input style={monoInputStyle} type="number" inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} placeholder="145000" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Αντικειμενική Αξία (€)">
+              <input style={monoInputStyle} type="number" inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} placeholder="110000" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+          </div>
+          <div style={grid2}>
+            <Field label="Τιμή Αγοράς (€)">
+              <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Ημερομηνία αγοράς">
+              <DatePicker value={purchaseDate} onChange={setPurchaseDate} />
+            </Field>
 
-              </div>
-              <div style={grid2}>
-                <Field label="Εκτιμώμενος ΕΝΦΙΑ (€/έτος)">
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} placeholder="320" onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                <Field label={rentLabel}>
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-              </div>
-              <div style={grid2}>
-                <Field label="Ποσοστό Ιδιοκτησίας (%)">
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} placeholder="100" onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                {isShared && (
-                  <Field label="Αριθμός συνιδιοκτητών">
-                    <input style={monoInputStyle} type="number" inputMode="numeric" min={1} max={99} value={coOwners.length}
-                      onChange={e => setCoOwnerCount(parseInt(e.target.value, 10))} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                )}
-              </div>
-              {isShared && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
-                    {coOwners.length === 1 ? 'Συνιδιοκτήτης' : 'Συνιδιοκτήτες'}
-                  </div>
-                  <div style={grid2}>
-                    {coOwners.map((nm, i) => (
-                      <Field key={i} label={coOwners.length === 1 ? 'Όνομα συνιδιοκτήτη' : `Όνομα συνιδιοκτήτη ${i + 1}`}>
-                        <input style={inputStyle} type="text" value={nm} onChange={e => setCoOwnerAt(i, e.target.value)} placeholder="Ονοματεπώνυμο" onFocus={onFocus} onBlur={onBlur} />
-                      </Field>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {grossYield != null && (
-                <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
-                  <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield, 1)}</div>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
-                    {airbnb
-                      ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
-                      : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!, 0)}`}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* STEP 4, Ρυθμίσεις (property_settings) */}
-          {step === 3 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              {/* Ιδιοκτήτης */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={sectionLabelStyle}>Ιδιοκτήτης</div>
-                {/* Λέμε από πού ήρθαν τα στοιχεία. Προσυμπληρωμένο ΑΦΜ που δεν
-                    ελέγχθηκε είναι χειρότερο από κενό: φαίνεται επιβεβαιωμένο. */}
-                {!existing?.id && (settings.owner_name || settings.owner_afm) && (
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: -6 }}>
-                    Συμπληρώθηκαν από το προφίλ σου. Έλεγξέ τα και άλλαξε ό,τι χρειάζεται.
-                  </div>
-                )}
-                <Field label="Ονοματεπώνυμο">
-                  <input style={inputStyle} value={settings.owner_name} onChange={setSf('owner_name')} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                <div style={grid2}>
-                  <Field label="ΑΦΜ">
-                    <input style={monoInputStyle} value={settings.owner_afm} onChange={setSf('owner_afm')} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Τηλέφωνο">
-                    <input style={inputStyle} value={settings.owner_phone} onChange={setSf('owner_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                </div>
-                <Field label="Ηλεκτρονικό ταχυδρομείο">
-                  <input type="email" style={inputStyle} value={settings.owner_email} onChange={setSf('owner_email')} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-              </div>
-
-              {/* Πάροχοι */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* ΤΟ «ΠΡΟΓΡΑΜΜΑ» ΕΦΥΓΕ. Ζητούσε το εμπορικό όνομα του πακέτου
-                    internet — κάτι που ούτε ο ίδιος ο συνδρομητής θυμάται, δεν
-                    χρησιμοποιείται πουθενά στην εφαρμογή, και δεν αλλάζει καμία
-                    απόφαση. Μια φόρμα καταχώρισης δεν έχει δικαίωμα να ρωτά κάτι
-                    που δεν πρόκειται να χρησιμοποιήσει. */}
-                <div style={sectionLabelStyle}>Πάροχοι</div>
-                <div style={grid2}>
-                  <Field label="Ρεύμα">
-                    <input style={inputStyle} value={settings.electricity_provider} onChange={setSf('electricity_provider')} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Νερό">
-                    <input style={inputStyle} value={settings.water_provider} onChange={setSf('water_provider')} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Internet">
-                    <input style={inputStyle} value={settings.internet_provider} onChange={setSf('internet_provider')} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                </div>
-              </div>
-
-              {/* Διαχείριση & Ασφάλεια */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={sectionLabelStyle}>Διαχείριση & Ασφάλεια</div>
-                <div style={grid2}>
-                  <Field label="Διαχειριστής">
-                    <input style={inputStyle} value={settings.property_manager} onChange={setSf('property_manager')} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Τηλέφωνο διαχειριστή">
-                    <input style={inputStyle} value={settings.property_manager_phone} onChange={setSf('property_manager_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Ασφαλιστική">
-                    <input style={inputStyle} value={settings.insurance_company} onChange={setSf('insurance_company')} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Αριθμός ασφαλιστηρίου">
-                    <input style={inputStyle} value={settings.insurance_policy} onChange={setSf('insurance_policy')} onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                </div>
-                <Field label="Λήξη ασφάλισης">
-                  <DatePicker value={settings.insurance_expiry} onChange={v => setSettings(p => ({ ...p, insurance_expiry: v }))} />
-                </Field>
-              </div>
-
-              {/* Σημειώσεις */}
-              <Field label="Σημειώσεις">
-                <textarea value={settings.notes} onChange={setSf('notes')} rows={4}
-                  style={{ ...inputStyle, height: 'auto', resize: 'none' }} />
+          </div>
+          <div style={grid2}>
+            <Field label="Εκτιμώμενος ΕΝΦΙΑ (€/έτος)">
+              <input style={monoInputStyle} type="number" inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} placeholder="320" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label={rentLabel}>
+              <input style={monoInputStyle} type="number" inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+          </div>
+          <div style={grid2}>
+            <Field label="Ποσοστό Ιδιοκτησίας (%)">
+              <input style={monoInputStyle} type="number" inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} placeholder="100" onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            {isShared && (
+              <Field label="Αριθμός συνιδιοκτητών">
+                <input style={monoInputStyle} type="number" inputMode="numeric" min={1} max={99} value={coOwners.length}
+                  onChange={e => setCoOwnerCount(parseInt(e.target.value, 10))} onFocus={onFocus} onBlur={onBlur} />
               </Field>
-            </div>
-          )}
-
-          {/* STEP 5, Σύνοψη */}
-          {step === 4 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
-                <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || ABSENT}</div>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
-                </div>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: STATUS_COLORS[dbStatus.status_detail] }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[dbStatus.status_detail] }} />{BY_KEY[statusKey].label}
-                </span>
+            )}
+          </div>
+          {isShared && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
+                {coOwners.length === 1 ? 'Συνιδιοκτήτης' : 'Συνιδιοκτήτες'}
               </div>
-
-              <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 14, overflow: 'hidden' }}>
-                {([
-                  ['Τύπος', PROP_TYPE_LABELS[propType]],
-                  ['Κατάσταση', BY_KEY[statusKey].label],
-                  airbnb ? ['Βραχυχρόνια μίσθωση', 'Ναι (Airbnb / Booking)'] : null,
-                  ['Διεύθυνση', address.trim() || ABSENT],
-                  postalCode.trim() ? ['Ταχ. Κώδικας', postalCode.trim()] : null,
-                  atak.trim() ? ['ΑΤΑΚ', atak.trim()] : null,
-                  [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : `${fn(0)}τετραγωνικά`],
-                  isLandLike ? null : ['Όροφος', floor.trim() ? floor.trim() : '—'],
-                  isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() ? yearBuilt.trim() : '—'],
-                  isLandLike ? null : (peaClass ? ['Ενεργειακή Κλάση', peaClass] : null),
-                  isLandLike ? null : (heating ? ['Θέρμανση', HEATING_OPTS.find(h => h[0] === heating)?.[1] || heating] : null),
-                  isLandLike ? null : (parking.trim() ? ['Θέσεις Στάθμευσης', parking.trim()] : null),
-                  isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
-                  ['Εμπορική Αξία', valueN != null ? fe(valueN, 0) : fe(0)],
-                  num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
-                  num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
-                  ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : fe(0)],
-                  purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
-                  [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : fe(0)],
-                  ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
-                  ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield, 1)}` : fp(0)],
-                ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
-                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                    <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
-                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημερομηνία Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
-                  </div>
+              <div style={grid2}>
+                {coOwners.map((nm, i) => (
+                  <Field key={i} label={coOwners.length === 1 ? 'Όνομα συνιδιοκτήτη' : `Όνομα συνιδιοκτήτη ${i + 1}`}>
+                    <input style={inputStyle} type="text" value={nm} onChange={e => setCoOwnerAt(i, e.target.value)} placeholder="Ονοματεπώνυμο" onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
                 ))}
               </div>
+            </div>
+          )}
 
-              {error && (
-                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: T.font.sans, fontSize: 13, color: 'var(--negative)' }}>{error}</div>
-              )}
+          {grossYield != null && (
+            <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16 }}>
+              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
+              <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield, 1)}</div>
+              <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                {airbnb
+                  ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
+                  : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!, 0)}`}
+              </div>
             </div>
           )}
         </div>
+      )}
 
-        {/* Footer navigation */}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', padding: '16px 28px', borderTop: '1px solid var(--border-subtle)' }}>
-          <button onClick={() => (step === 0 ? onClose() : setStep(s => s - 1))} style={{ height: T.h.lg, padding: '0 20px', borderRadius: 100, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            {step === 0 ? 'Ακύρωση' : 'Πίσω'}
-          </button>
+      {/* STEP 4, Ρυθμίσεις (property_settings) */}
+      {step === 3 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Ιδιοκτήτης */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={sectionLabelStyle}>Ιδιοκτήτης</div>
+            {/* Λέμε από πού ήρθαν τα στοιχεία. Προσυμπληρωμένο ΑΦΜ που δεν
+                ελέγχθηκε είναι χειρότερο από κενό: φαίνεται επιβεβαιωμένο. */}
+            {!existing?.id && (settings.owner_name || settings.owner_afm) && (
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: -6 }}>
+                Συμπληρώθηκαν από το προφίλ σου. Έλεγξέ τα και άλλαξε ό,τι χρειάζεται.
+              </div>
+            )}
+            <Field label="Ονοματεπώνυμο">
+              <input style={inputStyle} value={settings.owner_name} onChange={setSf('owner_name')} onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <div style={grid2}>
+              <Field label="ΑΦΜ">
+                <input style={monoInputStyle} value={settings.owner_afm} onChange={setSf('owner_afm')} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+              <Field label="Τηλέφωνο">
+                <input style={inputStyle} value={settings.owner_phone} onChange={setSf('owner_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+            </div>
+            <Field label="Ηλεκτρονικό ταχυδρομείο">
+              <input type="email" style={inputStyle} value={settings.owner_email} onChange={setSf('owner_email')} onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+          </div>
 
-          {step < STEPS.length - 1 ? (
-            <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext} style={{
-              height: T.h.lg, padding: '0 24px', borderRadius: 100, border: 'none',
-              background: canNext ? 'var(--accent)' : 'var(--bg-overlay)', color: canNext ? 'var(--accent-text)' : 'var(--text-tertiary)',
-              fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: canNext ? 'pointer' : 'not-allowed',
-            }}>Συνέχεια</button>
-          ) : (
-            <button onClick={save} disabled={saving || !name.trim()} style={{
-              height: T.h.lg, padding: '0 24px', borderRadius: 100, border: 'none',
-              background: saving || !name.trim() ? 'var(--bg-overlay)' : 'var(--accent)', color: saving || !name.trim() ? 'var(--text-tertiary)' : 'var(--accent-text)',
-              fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
-            }}>{saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη Ακινήτου'}</button>
+          {/* Πάροχοι */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* ΤΟ «ΠΡΟΓΡΑΜΜΑ» ΕΦΥΓΕ. Ζητούσε το εμπορικό όνομα του πακέτου
+                internet — κάτι που ούτε ο ίδιος ο συνδρομητής θυμάται, δεν
+                χρησιμοποιείται πουθενά στην εφαρμογή, και δεν αλλάζει καμία
+                απόφαση. Μια φόρμα καταχώρισης δεν έχει δικαίωμα να ρωτά κάτι
+                που δεν πρόκειται να χρησιμοποιήσει. */}
+            <div style={sectionLabelStyle}>Πάροχοι</div>
+            <div style={grid2}>
+              <Field label="Ρεύμα">
+                <input style={inputStyle} value={settings.electricity_provider} onChange={setSf('electricity_provider')} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+              <Field label="Νερό">
+                <input style={inputStyle} value={settings.water_provider} onChange={setSf('water_provider')} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+              <Field label="Internet">
+                <input style={inputStyle} value={settings.internet_provider} onChange={setSf('internet_provider')} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+            </div>
+          </div>
+
+          {/* Διαχείριση & Ασφάλεια */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={sectionLabelStyle}>Διαχείριση & Ασφάλεια</div>
+            <div style={grid2}>
+              <Field label="Διαχειριστής">
+                <input style={inputStyle} value={settings.property_manager} onChange={setSf('property_manager')} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+              <Field label="Τηλέφωνο διαχειριστή">
+                <input style={inputStyle} value={settings.property_manager_phone} onChange={setSf('property_manager_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+              <Field label="Ασφαλιστική">
+                <input style={inputStyle} value={settings.insurance_company} onChange={setSf('insurance_company')} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+              <Field label="Αριθμός ασφαλιστηρίου">
+                <input style={inputStyle} value={settings.insurance_policy} onChange={setSf('insurance_policy')} onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+            </div>
+            <Field label="Λήξη ασφάλισης">
+              <DatePicker value={settings.insurance_expiry} onChange={v => setSettings(p => ({ ...p, insurance_expiry: v }))} />
+            </Field>
+          </div>
+
+          {/* Σημειώσεις */}
+          <Field label="Σημειώσεις">
+            <textarea value={settings.notes} onChange={setSf('notes')} rows={4}
+              style={{ ...inputStyle, height: 'auto', resize: 'none' }} />
+          </Field>
+        </div>
+      )}
+
+      {/* STEP 5, Σύνοψη */}
+      {step === 4 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
+            <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || ABSENT}</div>
+              <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
+            </div>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: STATUS_COLORS[dbStatus.status_detail] }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[dbStatus.status_detail] }} />{BY_KEY[statusKey].label}
+            </span>
+          </div>
+
+          <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 14, overflow: 'hidden' }}>
+            {([
+              ['Τύπος', PROP_TYPE_LABELS[propType]],
+              ['Κατάσταση', BY_KEY[statusKey].label],
+              airbnb ? ['Βραχυχρόνια μίσθωση', 'Ναι (Airbnb / Booking)'] : null,
+              ['Διεύθυνση', address.trim() || ABSENT],
+              postalCode.trim() ? ['Ταχ. Κώδικας', postalCode.trim()] : null,
+              atak.trim() ? ['ΑΤΑΚ', atak.trim()] : null,
+              [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : `${fn(0)}τετραγωνικά`],
+              isLandLike ? null : ['Όροφος', floor.trim() ? floor.trim() : '—'],
+              isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() ? yearBuilt.trim() : '—'],
+              isLandLike ? null : (peaClass ? ['Ενεργειακή Κλάση', peaClass] : null),
+              isLandLike ? null : (heating ? ['Θέρμανση', HEATING_OPTS.find(h => h[0] === heating)?.[1] || heating] : null),
+              isLandLike ? null : (parking.trim() ? ['Θέσεις Στάθμευσης', parking.trim()] : null),
+              isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
+              ['Εμπορική Αξία', valueN != null ? fe(valueN, 0) : fe(0)],
+              num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
+              num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
+              ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : fe(0)],
+              purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
+              [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : fe(0)],
+              ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
+              ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield, 1)}` : fp(0)],
+            ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
+                <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημερομηνία Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
+              </div>
+            ))}
+          </div>
+
+          {error && (
+            <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: T.font.sans, fontSize: 13, color: 'var(--negative)' }}>{error}</div>
           )}
         </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 }

@@ -20,7 +20,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
 import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, EnergyTariffsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
-import { T, TT, feAuto, fp } from '@/components/Theme';
+import { T, TT, Modal, feAuto, fp } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
@@ -179,7 +179,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // επίπεδο της εφαρμογής.
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setOpen(o => !o); return; }
-      if (e.key === 'Escape' && !listeningRef.current) setOpen(false);
+      if (e.key !== 'Escape' || listeningRef.current) return;
+      // ΤΟ ESCAPE ΚΛΕΙΝΕΙ ΕΝΑ ΕΠΙΠΕΔΟ, ΟΧΙ ΔΥΟ. Το παράθυρο της αξιολόγησης
+      // είναι πια <Modal> και ακούει μόνο του Escape (useOverlayShell). Χωρίς
+      // αυτόν τον φρουρό, ΕΝΑ πάτημα έφτανε και στα δύο: έκλεινε το παράθυρο
+      // ΚΑΙ το πάνελ από κάτω, δηλαδή έσβηνε μαζί και τις λέξεις που μόλις είχε
+      // γράψει ο χρήστης. Ο έλεγχος γίνεται στο DOM (ίδιος τρόπος με το
+      // `overlayOpen` παρακάτω) και πιάνει ΚΑΘΕ παράθυρο της εφαρμογής που
+      // τυχαίνει να είναι ανοιχτό πάνω από το πάνελ, όχι μόνο αυτό εδώ.
+      if (document.querySelector('[aria-modal="true"]')) return;
+      setOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => {
@@ -1256,7 +1265,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         <div className="pa-panel" style={panelFixed}>
           {/* Κεφαλίδα */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div aria-hidden style={{ width: 34, height: 34, borderRadius: T.radius.inner, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, fontSize: 15, letterSpacing: '-0.01em', flexShrink: 0 }}>{ASSISTANT_INITIAL}</div>
+            {/* Το 15 δεν υπάρχει στην κλίμακα (…13, 14, 16, 18…) — ήταν ένα από
+                τα δύο μεγέθη όλου του αρχείου εκτός κλίμακας. Στα 16 κρατά την
+                ίδια αναλογία μέσα στον δίσκο των 34 (0,44 → 0,47). */}
+            <div aria-hidden style={{ width: 34, height: 34, borderRadius: T.radius.inner, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em', flexShrink: 0 }}>{ASSISTANT_INITIAL}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ ...TT.h2, fontSize: 14 }}>{ASSISTANT_NAME}</div>
               <div style={{ ...TT.caption, marginTop: 1 }}>{tagline(prefs.formal)}</div>
@@ -1425,18 +1437,32 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         </div>
       )}
 
+      {/* ── ΤΟ ΠΑΡΑΘΥΡΟ ΑΞΙΟΛΟΓΗΣΗΣ ΕΓΙΝΕ <Modal> ─────────────────────────────
+          Ήταν 11 γραμμές χειρόγραφου κελύφους που μιλούσαν δικό τους λεξιλόγιο:
+          scrim `rgba(12,20,34,0.5)` αντί για το ένα T.scrim, radius γραμμένο ως
+          σκέτο 18 αντί για T.radius.modal, σκιά `0 20px 60px rgba(0,0,0,0.32)`
+          αντί για το --elev-3 του θέματος. Και του έλειπαν και τα τέσσερα που
+          δίνει το κοινό παράθυρο: Escape, εστίαση μέσα και επιστροφή μετά,
+          κλείδωμα κύλισης του φόντου, κουμπί «×». Ούτε όνομα είχε — role="dialog"
+          χωρίς aria-label, δηλαδή σκέτος «διάλογος» για τον αναγνώστη οθόνης.
+
+          ΤΟ ΠΕΡΙΤΥΛΙΓΜΑ ΜΕ z-index ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΣΗ. Το <Modal> έχει σταθερό
+          z-index 1000, ενώ το πάνελ της Νόας ζει στο 1200 και το πλωτό κουμπί
+          στο 1201 (βλ. .pa-panel/.pa-fab πιο κάτω). Χωρίς δικό του πλαίσιο
+          στοίβαξης, το παράθυρο θα άνοιγε ΠΙΣΩ από το πάνελ που το κάλεσε. Το
+          1400 είναι ακριβώς η τιμή που είχε το χειρόγραφο overlay, ώστε η σειρά
+          των επιπέδων να μείνει η ίδια (ίδιο μοτίβο με το ConfirmDialog).
+
+          Ο τίτλος ΔΕΝ επαναλαμβάνει την κεφαλίδα του Feedback («Κάνε το Property
+          OS καλύτερο»): κρατά το όνομα με το οποίο το ζητά ήδη η μηνιαία
+          παρότρυνση. Για τον ίδιο λόγο δεν μπαίνει εικονίδιο — το Feedback έχει
+          ήδη το δικό του δύο γραμμές πιο κάτω. Ούτε footer: τα κουμπιά
+          («Αποστολή», «Άλλη φορά», «Κλείσιμο») τα δίνει το ίδιο το Feedback. */}
       {feedbackOpen && (
-        <div
-          role="dialog" aria-modal="true"
-          onClick={() => setFeedbackOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(12,20,34,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width: 460, maxWidth: '100%', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, boxShadow: '0 20px 60px rgba(0,0,0,0.32)', padding: 20 }}
-          >
+        <div style={{ position: 'relative', zIndex: 1400 }}>
+          <Modal open onClose={() => setFeedbackOpen(false)} title="Η γνώμη σου" width={460}>
             <Feedback target="assistant" embedded onDone={() => setFeedbackOpen(false)} />
-          </div>
+          </Modal>
         </div>
       )}
 
@@ -1461,11 +1487,19 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         .pa-fab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
         /* Το σήμα: το αρχικό μέσα σε φωτεινό δίσκο. Καμία εικονογραφία, κανένα
            «σπινθήρισμα» — το όνομα είναι το σήμα. */
-        .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:17px;line-height:1;letter-spacing:-.01em;transition:background .18s ${T.ease.standard},color .18s ${T.ease.standard}}
+        /* 17px → 18: το 17 δεν υπάρχει στην κλίμακα μεγεθών (…16, 18, 20…). */
+        .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:18px;line-height:1;letter-spacing:-.01em;transition:background .18s ${T.ease.standard},color .18s ${T.ease.standard}}
         .pa-fab-cta{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
         .pa-fab-close{padding:0;width:var(--fab-h);justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
         .pa-fab-live{position:absolute;top:8px;left:34px;width:9px;height:9px;border-radius:50%;animation:pa-pulse 1.4s infinite}
-        .pa-panel{position:fixed;right:24px;bottom:92px;width:390px;max-width:calc(100vw - 32px);height:min(600px,calc(100vh - 130px));background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:18px;box-shadow:var(--highlight-inset),var(--elev-3);z-index:1200;display:flex;flex-direction:column;overflow:hidden}
+        /* ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ <Modal>. Δεν έχει scrim, δεν
+           μπλοκάρει την εφαρμογή και δεν κεντράρεται: αγκυρώνεται στο πλωτό
+           κουμπί (και το ακολουθεί όταν ο χρήστης το σύρει αλλού — panelFixed),
+           ώστε να μπορείς να ρωτήσεις τη Νόα ΚΟΙΤΑΖΟΝΤΑΣ την οθόνη για την
+           οποία ρωτάς. Ένα κεντραρισμένο παράθυρο με σκοτεινό φόντο θα έκρυβε
+           ακριβώς τα νούμερα που συζητάτε. Ευθυγραμμίζεται μόνο η ακτίνα με το
+           token (ήταν καρφωμένο 18px, δηλαδή η ίδια τιμή γραμμένη δεύτερη φορά). */
+        .pa-panel{position:fixed;right:24px;bottom:92px;width:390px;max-width:calc(100vw - 32px);height:min(600px,calc(100vh - 130px));background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:${T.radius.modal}px;box-shadow:var(--highlight-inset),var(--elev-3);z-index:1200;display:flex;flex-direction:column;overflow:hidden}
         /* ΤΟ ΟΡΙΟ ΕΙΝΑΙ 768, ΟΣΟ ΚΑΙ ΤΗΣ ΚΑΤΩ ΠΛΟΗΓΗΣΗΣ.
            Ήταν 600 ενώ η κάτω πλοήγηση εμφανίζεται στα 768: στο ενδιάμεσο —
            iPad mini όρθιο, Galaxy Fold ανοιχτό, τα περισσότερα tablet Android —

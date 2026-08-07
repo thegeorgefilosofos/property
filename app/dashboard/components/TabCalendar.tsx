@@ -19,7 +19,7 @@ type CalendarEventInsert =
   Pick<CalendarEventsRow, 'property_id'|'user_id'|'title'|'category'|'event_date'>
   & Partial<Omit<CalendarEventsRow, 'id'|'property_id'|'user_id'|'title'|'category'|'event_date'|'recurrence_exdates'>>
 import { savedData } from '@/components/dbWrite'
-import { T, Spinner, Skeleton, EmptyState, Chip, feAuto, fe } from '@/components/Theme'
+import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe } from '@/components/Theme'
 import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
@@ -830,8 +830,22 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   onSave:()=>void; onClose:()=>void; editing:boolean; saving:boolean; conflicts?:number
 }) {
   const [showDetails,setShowDetails]=useState(editing)
-  // Προσβασιμότητα: Escape κλείνει, Cmd/Ctrl+Enter αποθηκεύει.
-  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose(); if((e.metaKey||e.ctrlKey)&&e.key==='Enter'&&form.title.trim()&&form.event_date)onSave() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose,onSave,form.title,form.event_date])
+  // Προσβασιμότητα: Cmd/Ctrl+Enter αποθηκεύει. Το Escape έφυγε από εδώ επειδή
+  // το ίδιο το <Modal> το ακούει (useOverlayShell) — δύο listeners στο ίδιο
+  // πλήκτρο σήμαινε δύο κλήσεις onClose στο ίδιο πάτημα.
+  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter'&&form.title.trim()&&form.event_date)onSave() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onSave,form.title,form.event_date])
+  // ── Η ΕΣΤΙΑΣΗ ΣΤΟΝ ΤΙΤΛΟ, ΠΙΣΩ ────────────────────────────────────────────
+  // Το `autoFocus` του πεδίου όντως δεν έκανε τίποτα μέσα στο <Modal>: το
+  // πλαίσιο εστιάζει τον εαυτό του σε effect, που τρέχει ΜΕΤΑ το autoFocus.
+  // Το συμπέρασμα όμως ήταν λάθος — δεν έφταιγε η εστίαση στον τίτλο, έφταιγε
+  // ο ΤΡΟΠΟΣ. Χωρίς αυτήν, «Νέο γεγονός» ανοίγει με τον δρομέα πουθενά και ο
+  // χρήστης πρέπει να πατήσει στο πεδίο πριν γράψει — και η γρήγορη καταχώρηση
+  // (parseQuickAdd) στηρίζεται ακριβώς στο να αρχίσεις να πληκτρολογείς αμέσως.
+  // Ως effect του ΓΟΝΕΑ τρέχει μετά τα effects του παιδιού <Modal>, οπότε
+  // κερδίζει την εστίαση αντί να τη χάνει. Ο διάλογος έχει ούτως ή άλλως
+  // role="dialog" + aria-label, άρα ο αναγνώστης οθόνης ανακοινώνει και τα δύο.
+  const titleRef=useRef<HTMLInputElement>(null)
+  useEffect(()=>{ titleRef.current?.focus() },[])
   // Ενιαία, καθαρά πεδία — ίδιο ύψος/καμπύλη/χρώμα παντού (Google λογική).
   const fld: React.CSSProperties = { width:'100%', boxSizing:'border-box', height:T.h.lg, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:6, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, outline:'none', transition:'border-color 0.15s' }
   const focus=(e:React.FocusEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>e.currentTarget.style.borderColor='var(--accent)'
@@ -843,177 +857,161 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   const amt=parseFloat(form.amount)
   const canSave=!!form.title.trim()&&!!form.event_date
   return (
-    <div style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="cal-modal-title" onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:24, width:'100%', maxWidth:480, maxHeight:'92vh', border:'1px solid var(--border-subtle)', boxShadow:'0 24px 70px rgba(0,0,0,0.45)', display:'flex', flexDirection:'column' }}>
-        {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 22px 14px', borderBottom:'1px solid var(--border-subtle)', flexShrink:0 }}>
-          <h3 id="cal-modal-title" style={{ fontFamily: T.font.sans, fontSize:16, fontWeight:700, letterSpacing:'-0.01em', color:'var(--text-primary)', margin:0 }}>{editing?'Επεξεργασία':'Νέο γεγονός'}</h3>
-          <button aria-label="Κλείσιμο" onClick={onClose} style={{ width:T.h.sm, height:T.h.sm, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
+    <Modal open onClose={onClose} title={editing?'Επεξεργασία':'Νέο γεγονός'} width={480} footer={<>
+      <button onClick={onClose} style={{ height:T.h.lg, padding:'0 18px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:14, cursor:'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
+      <button onClick={onSave} disabled={saving||!canSave} style={{ height:T.h.lg, padding:'0 22px', borderRadius:T.radius.btn, border:'none', background:canSave&&!saving?'var(--accent)':'var(--bg-surface)', color:canSave&&!saving?'var(--accent-text)':'var(--text-tertiary)', fontSize:14, fontWeight:600, cursor:canSave&&!saving?'pointer':'not-allowed', fontFamily: T.font.sans }}>
+        {saving?'Αποθήκευση…':editing?'Αποθήκευση':'Προσθήκη'}
+      </button>
+    </>}>
+      {/* Τίτλος + έξυπνη ανάγνωση φυσικής γλώσσας (quick-add) */}
+      <div>
+        {/* Ήταν το μόνο πεδίο ΧΩΡΙΣ ετικέτα: το τι ζητούσε το έλεγε μόνο το
+            κείμενο-υπόδειγμα, που εξαφανίζεται με το πρώτο γράμμα. Και το
+            υπόδειγμα έγραφε «Service λέβητα Παρασκευή 10πμ»: μία αγγλική
+            λέξη και μία συντομογραφία ώρας, σε ελληνική εφαρμογή. */}
+        <label style={lbl}>Τίτλος</label>
+        {/* Η εστίαση με το άνοιγμα δίνεται από το effect του `titleRef` πιο πάνω,
+            όχι με `autoFocus` (το <Modal> την έπαιρνε πίσω). Το ύψος 48 έγινε
+            T.h.lg — ήταν το μοναδικό χειριστήριο του παραθύρου εκτός κλίμακας·
+            η έμφαση του τίτλου μένει στα 16/500, δηλαδή σε μέγεθος και βάρος. */}
+        <input ref={titleRef} value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} onFocus={focus} onBlur={blur} placeholder="Συντήρηση λέβητα, Παρασκευή 10:00" style={{...fld, fontSize:16, fontWeight:500}}/>
+        {(()=>{ if(editing)return null; const qa=parseQuickAdd(form.title, new Date()); const hasExtra=!!(qa.date||qa.time)&&(qa.date!==form.event_date||qa.time!==(form.event_time||null)||qa.title!==form.title); if(!hasExtra)return null
+          const dLbl=qa.date?new Date(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
+          return (
+            <button onClick={()=>setForm(f=>({...f,title:qa.title,event_date:qa.date||f.event_date,event_time:qa.time||f.event_time}))} style={{ display:'flex', alignItems:'center', gap:7, marginTop:8, padding:'7px 12px', borderRadius:10, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans, width:'100%', textAlign:'left' }}>
+              <Zap size={13}/>Ορισμός: {[dLbl,qa.time].filter(Boolean).join(' · ')}, «{qa.title}»
+            </button>
+          )
+        })()}
+      </div>
+
+      {/* Ημερομηνία + Ώρα */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 130px', gap:10 }}>
+        <div>
+          <label style={lbl}>Ημερομηνία</label>
+          <DatePicker value={form.event_date} onChange={v=>setForm(f=>({...f,event_date:v}))}/>
         </div>
-
-        {/* ═══ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΚΟΒΟΤΑΝ ΣΤΗ ΜΕΣΗ ══════════════════════════════
-            Το σώμα είχε `overflowY:'auto'` μέσα σε στήλη flex — και αυτό ΔΕΝ
-            αρκεί. Χωρίς `minHeight:0` ένα παιδί flex δεν επιτρέπεται να
-            συρρικνωθεί κάτω από το περιεχόμενό του, οπότε δεν κύλησε ποτέ:
-            μεγάλωσε πέρα από το `maxHeight` του διαλόγου και η ετικέτα
-            «Κατάσταση» έμεινε μισοκρυμμένη πίσω από τη γραμμή των κουμπιών.
-            Δεν φαίνεται σε άδεια φόρμα· φαίνεται μόλις ανοίξουν οι λεπτομέρειες. */}
-        <div style={{ padding:'18px 22px', overflowY:'auto', flex:'1 1 auto', minHeight:0, display:'flex', flexDirection:'column', gap:14 }}>
-          {/* Τίτλος + έξυπνη ανάγνωση φυσικής γλώσσας (quick-add) */}
-          <div>
-            {/* Ήταν το μόνο πεδίο ΧΩΡΙΣ ετικέτα: το τι ζητούσε το έλεγε μόνο το
-                κείμενο-υπόδειγμα, που εξαφανίζεται με το πρώτο γράμμα. Και το
-                υπόδειγμα έγραφε «Service λέβητα Παρασκευή 10πμ»: μία αγγλική
-                λέξη και μία συντομογραφία ώρας, σε ελληνική εφαρμογή. */}
-            <label style={lbl}>Τίτλος</label>
-            <input autoFocus value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} onFocus={focus} onBlur={blur} placeholder="Συντήρηση λέβητα, Παρασκευή 10:00" style={{...fld, height:48, fontSize:16, fontWeight:500}}/>
-            {(()=>{ if(editing)return null; const qa=parseQuickAdd(form.title, new Date()); const hasExtra=!!(qa.date||qa.time)&&(qa.date!==form.event_date||qa.time!==(form.event_time||null)||qa.title!==form.title); if(!hasExtra)return null
-              const dLbl=qa.date?new Date(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
-              return (
-                <button onClick={()=>setForm(f=>({...f,title:qa.title,event_date:qa.date||f.event_date,event_time:qa.time||f.event_time}))} style={{ display:'flex', alignItems:'center', gap:7, marginTop:8, padding:'7px 12px', borderRadius:10, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans, width:'100%', textAlign:'left' }}>
-                  <Zap size={13}/>Ορισμός: {[dLbl,qa.time].filter(Boolean).join(' · ')}, «{qa.title}»
-                </button>
-              )
-            })()}
-          </div>
-
-          {/* Ημερομηνία + Ώρα */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 130px', gap:10 }}>
-            <div>
-              <label style={lbl}>Ημερομηνία</label>
-              <DatePicker value={form.event_date} onChange={v=>setForm(f=>({...f,event_date:v}))}/>
-            </div>
-            <div>
-              <label style={lbl}>Ώρα</label>
-              <TimeField value={form.event_time} onChange={v=>setForm(f=>({...f,event_time:v}))}/>
-            </div>
-          </div>
-
-          {/* Έξυπνες ενδείξεις: αργία/ΣΚ + σύγκρουση */}
-          {form.event_date&&(holidayName(form.event_date)||isWeekend(form.event_date))&&(
-            <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--accent)', fontFamily: T.font.sans, marginTop:-4 }}>
-              <Info size={13}/>{holidayName(form.event_date)?`Αργία: ${holidayName(form.event_date)}`:'Σαββατοκύριακο'}
-            </div>
-          )}
-          {form.event_time&&!!conflicts&&conflicts>0&&(
-            <div style={{ display:'flex', alignItems:'center', gap:7, fontSize:13, color:'var(--warning)', background:'var(--warning-dim)', border:'1px solid var(--warning-border)', borderRadius:10, padding:'8px 12px', fontFamily: T.font.sans }}>
-              <AlertTriangle size={14}/>Έχεις ήδη {conflicts===1?'ένα γεγονός':`${conflicts} γεγονότα`} εκείνη την ώρα.
-            </div>
-          )}
-          {/* Λεπτομέρειες (progressive) */}
-          <button onClick={()=>setShowDetails(s=>!s)} style={{ display:'flex', alignItems:'center', gap:6, alignSelf:'flex-start', background:'none', border:'none', cursor:'pointer', color:'var(--text-secondary)', fontSize:13, fontWeight:500, fontFamily: T.font.sans, padding:'2px 0' }}>
-            <ChevronDown size={15} style={{ transform:showDetails?'rotate(180deg)':'none', transition:'transform 0.2s' }}/>{showDetails?'Λιγότερα':'Λεπτομέρειες'}
-          </button>
-
-          {showDetails&&(<>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <CustomSelect label="Κατηγορία" value={form.category} onChange={v=>setForm(f=>({...f,category:v as EventCategory}))}
-                options={Object.entries(CATEGORIES).map(([k,v])=>({ value:k, label:v.label }))}/>
-              <CustomSelect label="Προτεραιότητα" value={form.priority} onChange={v=>setForm(f=>({...f,priority:v as EventPriority}))}
-                options={Object.entries(PRIORITIES).map(([k,v])=>({ value:k, label:v.label }))}/>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <div>
-                <label style={lbl}>Ποσό σε ευρώ</label>
-                <input type="number" style={fld} placeholder="0,00" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} onFocus={focus} onBlur={blur}/>
-              </div>
-              {form.event_time&&(
-                <div>
-                  <label style={lbl}>Διάρκεια</label>
-                  <CustomSelect value={form.duration} onChange={v=>setForm(f=>({...f,duration:v}))} placeholder="Χωρίς διάρκεια"
-                    options={[{value:'',label:'Χωρίς διάρκεια'},{value:'30',label:'30 λεπτά'},{value:'60',label:'1 ώρα'},{value:'90',label:'1 ώρα 30 λεπτά'},{value:'120',label:'2 ώρες'},{value:'180',label:'3 ώρες'}]}/>
-                </div>
-              )}
-            </div>
-            {/* Κύκλωμα: κόστος → δαπάνη */}
-            {amt>0&&!editing&&(
-              <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', padding:'10px 12px', borderRadius:10, background:form.add_expense?'var(--accent-soft)':'var(--bg-surface)', border:'1px solid '+(form.add_expense?'var(--accent-border)':'var(--border-subtle)'), transition:'all 0.15s' }}>
-                <input type="checkbox" checked={form.add_expense} onChange={e=>setForm(f=>({...f,add_expense:e.target.checked}))} style={{ width:16, height:16, accentColor:'var(--accent)', cursor:'pointer' }}/>
-                <span style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> & τον <strong>Προϋπολογισμό</strong> ({fe(amt)})</span>
-              </label>
-            )}
-            {/* Επικοινωνία */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <div>
-                <label style={lbl}>Τηλέφωνο</label>
-                <input type="tel" style={fld} placeholder="6912345678" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} onFocus={focus} onBlur={blur}/>
-              </div>
-              <div>
-                <label style={lbl}>Ηλεκτρονική διεύθυνση</label>
-                <input type="email" style={fld} placeholder="onoma@etaireia.gr" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} onFocus={focus} onBlur={blur}/>
-              </div>
-            </div>
-            {/* Πρόσκληση συμμετέχοντα — στέλνει invite (.ics/mailto/WhatsApp/Viber) στην επαφή */}
-            {(()=>{ if(!form.title.trim()||!form.event_date)return null
-              const inv={title:form.title,date:form.event_date,time:form.event_time||undefined,durationMinutes:form.duration?+form.duration:undefined,details:form.notes||undefined,attendeeEmail:form.email||undefined,attendeePhone:form.phone||undefined}
-              const cap=canInvite(inv); if(!cap.email&&!cap.phone)return null
-              const btn:React.CSSProperties={ display:'inline-flex', alignItems:'center', gap:6, height:34, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans, textDecoration:'none' }
-              return (
-                <div>
-                  <label style={lbl}>Πρόσκληση</label>
-                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    {cap.email&&<a href={inviteMailto(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><FileText size={13}/>Με μήνυμα</a>}
-                    {cap.phone&&<a href={inviteWhatsApp(inv)} target="_blank" rel="noreferrer" style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>WhatsApp</a>}
-                    {cap.phone&&<a href={inviteViber(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>Viber</a>}
-                    <button type="button" onClick={()=>{ const blob=new Blob([buildInviteICS(inv)],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='invite.ics'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000) }} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarPlus size={13}/>Αρχείο ημερολογίου</button>
-                  </div>
-                </div>
-              )
-            })()}
-            <div>
-              <label style={lbl}>Σύνδεσμος τιμολογίου ή σύμβασης</label>
-              <input style={fld} placeholder="https://…" value={form.attachment_url} onChange={e=>setForm(f=>({...f,attachment_url:e.target.value}))} onFocus={focus} onBlur={blur}/>
-            </div>
-            {/* Κατάσταση */}
-            <div>
-              <label style={lbl}>Κατάσταση</label>
-              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                {/* Η επιλεγμένη κατάσταση βαφόταν με το ΣΗΜΑΣΙΟΛΟΓΙΚΟ χρώμα της:
-                    πορτοκαλί το «Εκκρεμεί», πράσινο το «Πληρώθηκε», κόκκινο το
-                    «Ακυρώθηκε». Δηλαδή η φόρμα έβγαζε ετυμηγορία για μια επιλογή
-                    που μόλις έκανε ο χρήστης, και το «Εκκρεμεί» —η προεπιλογή
-                    κάθε νέου γεγονότος— άνοιγε πάντα με προειδοποιητικό χρώμα.
-                    Η επιλογή δείχνει ΕΠΙΛΟΓΗ, με το χρώμα της επιλογής. */}
-                {Object.entries(STATUSES).map(([k,v])=>(
-                  <button key={k} onClick={()=>setForm(f=>({...f,status:k as EventStatus}))} style={{ height:T.h.sm, padding:'0 14px', borderRadius:18, cursor:'pointer', fontSize:13, fontFamily: T.font.sans, fontWeight:form.status===k?600:500, border:`1px solid ${form.status===k?'var(--accent-border)':'var(--border-subtle)'}`, background:form.status===k?'var(--accent-soft)':'transparent', color:form.status===k?'var(--accent)':'var(--text-secondary)', transition:'all 0.15s' }}>{v.label}</button>
-                ))}
-              </div>
-            </div>
-            {/* Επανάληψη */}
-            <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 14px' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <span style={{ fontFamily: T.font.sans, fontSize:14, fontWeight:500, color:'var(--text-primary)' }}>Επαναλαμβανόμενο</span>
-                <div onClick={()=>setForm(f=>({...f,recurring:!f.recurring}))} style={{ width:46, height:28, borderRadius:14, background:form.recurring?'var(--accent)':'var(--border-default)', position:'relative', transition:'all 0.2s', cursor:'pointer', flexShrink:0 }}>
-                  <span style={{ position:'absolute', top:2, left:form.recurring?'calc(100% - 26px)':2, width:24, height:24, borderRadius:'50%', background:'var(--bg-surface)', transition:'all 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}/>
-                </div>
-              </div>
-              {form.recurring&&(
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:12 }}>
-                  <CustomSelect value={form.recurring_interval} onChange={v=>setForm(f=>({...f,recurring_interval:v}))} options={RECURRING_OPTIONS.map(o=>({ value:o.value, label:o.label }))}/>
-                  <CustomSelect value={form.recurrence_end_mode} onChange={v=>setForm(f=>({...f,recurrence_end_mode:v as FormState['recurrence_end_mode']}))}
-                    options={[{value:'none',label:'Χωρίς λήξη'},{value:'until',label:'Μέχρι ημερομηνία'},{value:'count',label:'Για πλήθος φορών'}]}/>
-                  {form.recurrence_end_mode==='until'&&<div style={{ gridColumn:'1 / -1' }}><DatePicker value={form.recurrence_until} onChange={v=>setForm(f=>({...f,recurrence_until:v}))}/></div>}
-                  {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="Παράδειγμα: 12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}
-                </div>
-              )}
-            </div>
-            {/* Σημειώσεις */}
-            <div>
-              <label style={lbl}>Σημειώσεις</label>
-              <textarea style={{...fld, height:'auto', minHeight:60, padding:'10px 14px', resize:'vertical'}} placeholder="Οδηγίες, αριθμός λογαριασμού…" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} onFocus={focus} onBlur={blur}/>
-            </div>
-          </>)}
-        </div>
-
-        {/* Footer */}
-        <div style={{ display:'flex', gap:10, padding:'14px 22px', borderTop:'1px solid var(--border-subtle)', flexShrink:0 }}>
-          <button onClick={onClose} style={{ flex:1, height:44, borderRadius:12, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:14, cursor:'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
-          <button onClick={onSave} disabled={saving||!canSave} style={{ flex:2, height:44, borderRadius:12, border:'none', background:canSave&&!saving?'var(--accent)':'var(--bg-surface)', color:canSave&&!saving?'var(--accent-text)':'var(--text-tertiary)', fontSize:14, fontWeight:600, cursor:canSave&&!saving?'pointer':'not-allowed', fontFamily: T.font.sans }}>
-            {saving?'Αποθήκευση…':editing?'Αποθήκευση':'Προσθήκη'}
-          </button>
+        <div>
+          <label style={lbl}>Ώρα</label>
+          <TimeField value={form.event_time} onChange={v=>setForm(f=>({...f,event_time:v}))}/>
         </div>
       </div>
-    </div>
+
+      {/* Έξυπνες ενδείξεις: αργία/ΣΚ + σύγκρουση */}
+      {form.event_date&&(holidayName(form.event_date)||isWeekend(form.event_date))&&(
+        <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--accent)', fontFamily: T.font.sans, marginTop:-4 }}>
+          <Info size={13}/>{holidayName(form.event_date)?`Αργία: ${holidayName(form.event_date)}`:'Σαββατοκύριακο'}
+        </div>
+      )}
+      {form.event_time&&!!conflicts&&conflicts>0&&(
+        <div style={{ display:'flex', alignItems:'center', gap:7, fontSize:13, color:'var(--warning)', background:'var(--warning-dim)', border:'1px solid var(--warning-border)', borderRadius:10, padding:'8px 12px', fontFamily: T.font.sans }}>
+          <AlertTriangle size={14}/>Έχεις ήδη {conflicts===1?'ένα γεγονός':`${conflicts} γεγονότα`} εκείνη την ώρα.
+        </div>
+      )}
+      {/* Λεπτομέρειες (progressive) */}
+      <button onClick={()=>setShowDetails(s=>!s)} style={{ display:'flex', alignItems:'center', gap:6, alignSelf:'flex-start', background:'none', border:'none', cursor:'pointer', color:'var(--text-secondary)', fontSize:13, fontWeight:500, fontFamily: T.font.sans, padding:'2px 0' }}>
+        <ChevronDown size={15} style={{ transform:showDetails?'rotate(180deg)':'none', transition:'transform 0.2s' }}/>{showDetails?'Λιγότερα':'Λεπτομέρειες'}
+      </button>
+
+      {showDetails&&(<>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <CustomSelect label="Κατηγορία" value={form.category} onChange={v=>setForm(f=>({...f,category:v as EventCategory}))}
+            options={Object.entries(CATEGORIES).map(([k,v])=>({ value:k, label:v.label }))}/>
+          <CustomSelect label="Προτεραιότητα" value={form.priority} onChange={v=>setForm(f=>({...f,priority:v as EventPriority}))}
+            options={Object.entries(PRIORITIES).map(([k,v])=>({ value:k, label:v.label }))}/>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <div>
+            <label style={lbl}>Ποσό σε ευρώ</label>
+            <input type="number" style={fld} placeholder="0,00" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} onFocus={focus} onBlur={blur}/>
+          </div>
+          {form.event_time&&(
+            <div>
+              <label style={lbl}>Διάρκεια</label>
+              <CustomSelect value={form.duration} onChange={v=>setForm(f=>({...f,duration:v}))} placeholder="Χωρίς διάρκεια"
+                options={[{value:'',label:'Χωρίς διάρκεια'},{value:'30',label:'30 λεπτά'},{value:'60',label:'1 ώρα'},{value:'90',label:'1 ώρα 30 λεπτά'},{value:'120',label:'2 ώρες'},{value:'180',label:'3 ώρες'}]}/>
+            </div>
+          )}
+        </div>
+        {/* Κύκλωμα: κόστος → δαπάνη */}
+        {amt>0&&!editing&&(
+          <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', padding:'10px 12px', borderRadius:10, background:form.add_expense?'var(--accent-soft)':'var(--bg-surface)', border:'1px solid '+(form.add_expense?'var(--accent-border)':'var(--border-subtle)'), transition:'all 0.15s' }}>
+            <input type="checkbox" checked={form.add_expense} onChange={e=>setForm(f=>({...f,add_expense:e.target.checked}))} style={{ width:16, height:16, accentColor:'var(--accent)', cursor:'pointer' }}/>
+            <span style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> & τον <strong>Προϋπολογισμό</strong> ({fe(amt)})</span>
+          </label>
+        )}
+        {/* Επικοινωνία */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <div>
+            <label style={lbl}>Τηλέφωνο</label>
+            <input type="tel" style={fld} placeholder="6912345678" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} onFocus={focus} onBlur={blur}/>
+          </div>
+          <div>
+            <label style={lbl}>Ηλεκτρονική διεύθυνση</label>
+            <input type="email" style={fld} placeholder="onoma@etaireia.gr" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} onFocus={focus} onBlur={blur}/>
+          </div>
+        </div>
+        {/* Πρόσκληση συμμετέχοντα — στέλνει invite (.ics/mailto/WhatsApp/Viber) στην επαφή */}
+        {(()=>{ if(!form.title.trim()||!form.event_date)return null
+          const inv={title:form.title,date:form.event_date,time:form.event_time||undefined,durationMinutes:form.duration?+form.duration:undefined,details:form.notes||undefined,attendeeEmail:form.email||undefined,attendeePhone:form.phone||undefined}
+          const cap=canInvite(inv); if(!cap.email&&!cap.phone)return null
+          const btn:React.CSSProperties={ display:'inline-flex', alignItems:'center', gap:6, height:34, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans, textDecoration:'none' }
+          return (
+            <div>
+              <label style={lbl}>Πρόσκληση</label>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                {cap.email&&<a href={inviteMailto(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><FileText size={13}/>Με μήνυμα</a>}
+                {cap.phone&&<a href={inviteWhatsApp(inv)} target="_blank" rel="noreferrer" style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>WhatsApp</a>}
+                {cap.phone&&<a href={inviteViber(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>Viber</a>}
+                <button type="button" onClick={()=>{ const blob=new Blob([buildInviteICS(inv)],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='invite.ics'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000) }} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarPlus size={13}/>Αρχείο ημερολογίου</button>
+              </div>
+            </div>
+          )
+        })()}
+        <div>
+          <label style={lbl}>Σύνδεσμος τιμολογίου ή σύμβασης</label>
+          <input style={fld} placeholder="https://…" value={form.attachment_url} onChange={e=>setForm(f=>({...f,attachment_url:e.target.value}))} onFocus={focus} onBlur={blur}/>
+        </div>
+        {/* Κατάσταση */}
+        <div>
+          <label style={lbl}>Κατάσταση</label>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+            {/* Η επιλεγμένη κατάσταση βαφόταν με το ΣΗΜΑΣΙΟΛΟΓΙΚΟ χρώμα της:
+                πορτοκαλί το «Εκκρεμεί», πράσινο το «Πληρώθηκε», κόκκινο το
+                «Ακυρώθηκε». Δηλαδή η φόρμα έβγαζε ετυμηγορία για μια επιλογή
+                που μόλις έκανε ο χρήστης, και το «Εκκρεμεί» —η προεπιλογή
+                κάθε νέου γεγονότος— άνοιγε πάντα με προειδοποιητικό χρώμα.
+                Η επιλογή δείχνει ΕΠΙΛΟΓΗ, με το χρώμα της επιλογής. */}
+            {Object.entries(STATUSES).map(([k,v])=>(
+              <button key={k} onClick={()=>setForm(f=>({...f,status:k as EventStatus}))} style={{ height:T.h.sm, padding:'0 14px', borderRadius:18, cursor:'pointer', fontSize:13, fontFamily: T.font.sans, fontWeight:form.status===k?600:500, border:`1px solid ${form.status===k?'var(--accent-border)':'var(--border-subtle)'}`, background:form.status===k?'var(--accent-soft)':'transparent', color:form.status===k?'var(--accent)':'var(--text-secondary)', transition:'all 0.15s' }}>{v.label}</button>
+            ))}
+          </div>
+        </div>
+        {/* Επανάληψη */}
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 14px' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <span style={{ fontFamily: T.font.sans, fontSize:14, fontWeight:500, color:'var(--text-primary)' }}>Επαναλαμβανόμενο</span>
+            <div onClick={()=>setForm(f=>({...f,recurring:!f.recurring}))} style={{ width:46, height:28, borderRadius:14, background:form.recurring?'var(--accent)':'var(--border-default)', position:'relative', transition:'all 0.2s', cursor:'pointer', flexShrink:0 }}>
+              <span style={{ position:'absolute', top:2, left:form.recurring?'calc(100% - 26px)':2, width:24, height:24, borderRadius:'50%', background:'var(--bg-surface)', transition:'all 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}/>
+            </div>
+          </div>
+          {form.recurring&&(
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:12 }}>
+              <CustomSelect value={form.recurring_interval} onChange={v=>setForm(f=>({...f,recurring_interval:v}))} options={RECURRING_OPTIONS.map(o=>({ value:o.value, label:o.label }))}/>
+              <CustomSelect value={form.recurrence_end_mode} onChange={v=>setForm(f=>({...f,recurrence_end_mode:v as FormState['recurrence_end_mode']}))}
+                options={[{value:'none',label:'Χωρίς λήξη'},{value:'until',label:'Μέχρι ημερομηνία'},{value:'count',label:'Για πλήθος φορών'}]}/>
+              {form.recurrence_end_mode==='until'&&<div style={{ gridColumn:'1 / -1' }}><DatePicker value={form.recurrence_until} onChange={v=>setForm(f=>({...f,recurrence_until:v}))}/></div>}
+              {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="Παράδειγμα: 12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}
+            </div>
+          )}
+        </div>
+        {/* Σημειώσεις */}
+        <div>
+          <label style={lbl}>Σημειώσεις</label>
+          <textarea style={{...fld, height:'auto', minHeight:60, padding:'10px 14px', resize:'vertical'}} placeholder="Οδηγίες, αριθμός λογαριασμού…" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} onFocus={focus} onBlur={blur}/>
+        </div>
+      </>)}
+    </Modal>
   )
 }
 
@@ -1112,24 +1110,33 @@ function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=f
 }
 
 // Επιλογή εμβέλειας για επαναλαμβανόμενο (επεξεργασία ή διαγραφή).
+//
+// ΓΙΑΤΙ Modal ΚΑΙ ΟΧΙ confirmDialog: οι απαντήσεις είναι ΤΡΕΙΣ, όχι δύο —
+// «μόνο αυτό», «αυτό και τα επόμενα», «όλη τη σειρά». Το confirmDialog ξέρει
+// μόνο ναι/όχι· να το στριμώξουμε εδώ σημαίνει δύο διαδοχικές ερωτήσεις για
+// μία απόφαση.
+//
+// ΤΟ zIndex 1100 ΕΦΥΓΕ ΚΑΙ ΔΕΝ ΛΕΙΠΕΙ — αλλά ούτε και η στοίβαξη χρειάζεται:
+// τα δύο παράθυρα ΔΕΝ είναι πια ανοιχτά μαζί (δες τη συνθήκη `!scopePrompt`
+// στο σημείο που αποδίδεται το EventModal). Το παράθυρο εμβέλειας ρωτά μία
+// αυτοτελή ερώτηση για τις αλλαγές που μόλις έγιναν· η φόρμα από κάτω δεν
+// προσθέτει τίποτα και δύο <Modal> μαζί έσπαγαν δύο πράγματα ταυτόχρονα:
+// το Escape έκλεινε ΚΑΙ τα δύο (χαμένες αλλαγές) και το κλείδωμα κύλισης
+// του useOverlayShell δεν είναι μετρημένο — στο κοινό ξεμοντάρισμα η σειρά
+// επαναφοράς άφηνε `.app-content` και `body` κολλημένα σε overflow:hidden.
 function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hint?:string; danger?:boolean; onPick:(s:'this'|'following'|'all')=>void; onClose:()=>void }) {
   const opts:[('this'|'following'|'all'),string][]=[['this','Μόνο αυτό το γεγονός'],['following','Αυτό και τα επόμενα'],['all','Όλη τη σειρά']]
-  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose])
   return (
-    <div style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:20 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:18, width:'100%', maxWidth:400, border:'1px solid var(--border-subtle)', boxShadow:'0 24px 64px rgba(0,0,0,0.4)', padding:'22px 24px' }}>
-        <h3 style={{ fontFamily: T.font.sans, fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'0 0 4px' }}>{title}</h3>
-        {hint&&<p style={{ fontSize:13, color:'var(--text-secondary)', margin:'0 0 16px', fontFamily: T.font.sans }}>{hint}</p>}
-        <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:hint?0:14 }}>
-          {opts.map(([v,label])=>(
-            <button key={v} onClick={()=>onPick(v)} style={{ display:'flex', alignItems:'center', gap:10, height:44, padding:'0 16px', borderRadius:12, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', cursor:'pointer', fontSize:14, fontWeight:500, color:danger&&v==='all'?'var(--negative)':'var(--text-primary)', fontFamily: T.font.sans, textAlign:'left', transition:'all 0.15s' }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=danger&&v==='all'?'var(--negative)':'var(--accent)';e.currentTarget.style.background='var(--bg-elevated)'}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.background='var(--bg-surface)'}}>{label}</button>
-          ))}
-        </div>
-        <button onClick={onClose} style={{ marginTop:12, width:'100%', height:T.h.lg, borderRadius:12, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
+    <Modal open onClose={onClose} title={title} subtitle={hint} width={400}
+      footer={<button onClick={onClose} style={{ height:T.h.lg, padding:'0 18px', borderRadius:T.radius.btn, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>}>
+      <div style={{ display:'flex', flexDirection:'column', gap:T.sp.sm }}>
+        {opts.map(([v,label])=>(
+          <button key={v} onClick={()=>onPick(v)} style={{ display:'flex', alignItems:'center', gap:10, height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', cursor:'pointer', fontSize:14, fontWeight:500, color:danger&&v==='all'?'var(--negative)':'var(--text-primary)', fontFamily: T.font.sans, textAlign:'left', transition:'all 0.15s' }}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=danger&&v==='all'?'var(--negative)':'var(--accent)';e.currentTarget.style.background='var(--bg-elevated)'}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.background='var(--bg-surface)'}}>{label}</button>
+        ))}
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -1137,7 +1144,6 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
 function SubscribeModal({ token, propertyId, onClose }: { token:string|null; propertyId:string; onClose:()=>void }) {
   const [copied,setCopied]=useState(false)
   const [copiedBusy,setCopiedBusy]=useState(false)
-  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose])
   const base=(process.env.NEXT_PUBLIC_SUPABASE_URL||'').replace(/\/$/,'')
   const httpsUrl=token?`${base}/functions/v1/calendar-feed?token=${token}&property=${propertyId}`:''
   const busyUrl=token?`${base}/functions/v1/bookings-feed?token=${token}&property=${propertyId}`:''
@@ -1145,53 +1151,40 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
   const webcalUrl=httpsUrl.replace(/^https?:\/\//,'webcal://')
   const googleUrl=`https://calendar.google.com/calendar/r/settings/addbyurl?url=${encodeURIComponent(httpsUrl)}`
   const copy=async()=>{ try{ await navigator.clipboard.writeText(httpsUrl); setCopied(true); setTimeout(()=>setCopied(false),1800) }catch{} }
-  const linkBtn:React.CSSProperties={ display:'flex', alignItems:'center', justifyContent:'center', gap:8, height:44, borderRadius:12, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontWeight:500, textDecoration:'none', fontFamily: T.font.sans, cursor:'pointer' }
+  const linkBtn:React.CSSProperties={ display:'flex', alignItems:'center', justifyContent:'center', gap:8, height:T.h.lg, borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontWeight:500, textDecoration:'none', fontFamily: T.font.sans, cursor:'pointer' }
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(8,10,14,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', borderRadius:24, width:'100%', maxWidth:500, border:'1px solid var(--border-subtle)', boxShadow:'0 1px 0 rgba(255,255,255,0.05) inset, 0 40px 90px -30px rgba(0,0,0,0.7)', overflow:'hidden' }}>
-        <div style={{ position:'absolute', top:0, left:32, right:32, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)' }}/>
-        <div style={{ padding:'24px 28px 18px', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
-          <div style={{ display:'flex', gap:13 }}>
-            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius:12, flexShrink:0, background:'linear-gradient(135deg, var(--accent), var(--accent-hover))', color:'var(--accent-text)', boxShadow:'0 8px 20px -8px var(--accent)' }}><CalendarPlus size={19}/></span>
-            <div>
-              <h3 style={{ fontFamily: T.font.sans, fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Ζωντανή συνδρομή</h3>
-              <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.5, fontFamily: T.font.sans }}>Σύνδεσε μία φορά, το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.</p>
-            </div>
+    <Modal open onClose={onClose} width={500} icon={<CalendarPlus size={19}/>}
+      title="Ζωντανή συνδρομή"
+      subtitle="Σύνδεσε μία φορά, το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.">
+      {!token?(
+        <Spinner size={20} label="Δημιουργία συνδέσμου…" />
+      ):(<>
+        <div>
+          <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:7, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>Σύνδεσμος συνδρομής</label>
+          <div style={{ display:'flex', gap:8 }}>
+            <input readOnly value={httpsUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
+            <button onClick={copy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:copied?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
           </div>
-          <button aria-label="Κλείσιμο" onClick={onClose} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:10, width:T.h.sm, height:T.h.sm, cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
         </div>
-        <div style={{ padding:'8px 28px 26px', display:'flex', flexDirection:'column', gap:16 }}>
-          {!token?(
-            <Spinner size={20} label="Δημιουργία συνδέσμου…" />
-          ):(<>
-            <div>
-              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:7, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>Σύνδεσμος συνδρομής</label>
-              <div style={{ display:'flex', gap:8 }}>
-                <input readOnly value={httpsUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
-                <button onClick={copy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:10, border:'none', background:copied?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
-              </div>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <a href={googleUrl} target="_blank" rel="noreferrer" style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><Calendar size={16}/>Google Calendar</a>
-              <a href={webcalUrl} style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarDays size={16}/>Apple / Outlook</a>
-            </div>
-            <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:10 }}>
-              <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
-              <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός, μην τον μοιράζεσαι.</p>
-            </div>
-            {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
-            <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>
-              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>Μπλοκάρισμα σε Airbnb / Booking</label>
-              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily: T.font.sans }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού, κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
-              <div style={{ display:'flex', gap:8 }}>
-                <input readOnly value={busyUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
-                <button onClick={copyBusy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:10, border:'none', background:copiedBusy?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
-              </div>
-            </div>
-          </>)}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <a href={googleUrl} target="_blank" rel="noreferrer" style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><Calendar size={16}/>Google Calendar</a>
+          <a href={webcalUrl} style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarDays size={16}/>Apple / Outlook</a>
         </div>
-      </div>
-    </div>
+        <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:T.radius.inner }}>
+          <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός, μην τον μοιράζεσαι.</p>
+        </div>
+        {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
+        <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>
+          <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>Μπλοκάρισμα σε Airbnb / Booking</label>
+          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily: T.font.sans }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού, κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
+          <div style={{ display:'flex', gap:8 }}>
+            <input readOnly value={busyUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
+            <button onClick={copyBusy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:copiedBusy?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
+          </div>
+        </div>
+      </>)}
+    </Modal>
   )
 }
 
@@ -1861,7 +1854,10 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
       )}
 
       <input ref={importRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0]; if(f)importIcs(f); e.currentTarget.value=''}}/>
-      {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} conflicts={formConflicts}/>}
+      {/* Ένα παράθυρο κάθε φορά: όσο ρωτάμε εμβέλεια, η φόρμα παραμερίζεται
+          (τα δεδομένα της ζουν στο `form` εδώ, δεν χάνεται τίποτα — με
+          «Ακύρωση» στην εμβέλεια η φόρμα επιστρέφει συμπληρωμένη). */}
+      {showModal&&!scopePrompt&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} conflicts={formConflicts}/>}
       {showSubscribe&&<SubscribeModal token={feedToken} propertyId={propertyId} onClose={()=>setShowSubscribe(false)}/>}
       {scopePrompt&&<ScopeModal title="Επεξεργασία επαναλαμβανόμενου" hint="Σε ποιες εμφανίσεις να εφαρμοστούν οι αλλαγές;" onPick={applyEditScope} onClose={()=>setScopePrompt(false)}/>}
       {deleteScope&&<ScopeModal title="Διαγραφή επαναλαμβανόμενου" hint="Τι θέλεις να διαγράψεις;" danger onPick={applyDeleteScope} onClose={()=>setDeleteScope(null)}/>}

@@ -16,7 +16,7 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved, savedData } from '@/components/dbWrite';
@@ -1196,51 +1196,56 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
         )}
       </div>
 
-      {/* Mark-as-paid modal */}
+      {/* Σήμανση ως πληρωμένο — κοινό Modal.
+          Ήταν χειρόγραφο παράθυρο: δικό του scrim, radius card αντί για modal,
+          τίτλος 15/600 αντί για την κοινή κεφαλίδα, και κανένα Escape, καμία
+          επιστροφή εστίασης, κανένα κλείδωμα κύλισης του φόντου. */}
       {mark&&(
-        <div onClick={()=>setMark(null)} style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 420px)' }}>
-            <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>Σήμανση ως πληρωμένο</div>
-            <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:16 }}>{monthLabel(mark.p)} · {fmt(mark.p.amount)}</div>
-            <div style={{ marginBottom:14 }}>
-              <SelectField label="Τρόπος πληρωμής" value={mark.method} onChange={v=>setMark(m=>m?{...m,method:v as PayMethod}:m)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
-            </div>
-            <div style={{ marginBottom:18 }}>
-              <TextInput label="Σύνδεσμος Απόδειξης (προαιρετικό)" value={mark.receipt} onChange={v=>setMark(m=>m?{...m,receipt:v}:m)} placeholder="https://..."/>
-            </div>
-            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-              <button style={s.btnGhost} onClick={()=>setMark(null)}>Ακύρωση</button>
-              <button style={s.btnGold} onClick={async()=>{const mm=mark;setMark(null);await doMarkPaid(mm.p,mm.method,mm.receipt,todayISO());}}>Καταχώρηση</button>
-            </div>
-          </div>
-        </div>
+        <Modal open onClose={()=>setMark(null)} width={420}
+          title="Σήμανση ως πληρωμένο"
+          subtitle={`${monthLabel(mark.p)} · ${fmt(mark.p.amount)}`}
+          footer={<>
+            <button style={s.btnGhost} onClick={()=>setMark(null)}>Ακύρωση</button>
+            <button style={s.btnGold} onClick={async()=>{const mm=mark;setMark(null);await doMarkPaid(mm.p,mm.method,mm.receipt,todayISO());}}>Καταχώρηση</button>
+          </>}>
+          <SelectField label="Τρόπος πληρωμής" value={mark.method} onChange={v=>setMark(m=>m?{...m,method:v as PayMethod}:m)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+          <TextInput label="Σύνδεσμος Απόδειξης (προαιρετικό)" value={mark.receipt} onChange={v=>setMark(m=>m?{...m,receipt:v}:m)} placeholder="https://..."/>
+        </Modal>
       )}
 
-      {/* Αίτημα πληρωμής modal (IBAN / QR / κοινοποίηση) */}
+      {/* Αίτημα πληρωμής (IBAN / QR / κοινοποίηση) — κοινό Modal.
+          Το χειρόγραφο έστηνε μόνο του maxHeight:'90vh' + overflowY· το Modal
+          κυλά ΜΟΝΟ το σώμα και κρατά κεφαλίδα και ενέργειες πάντα ορατές. */}
       {req&&(
-        <div onClick={()=>setReq(null)} style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 460px)', maxHeight:'90vh', overflowY:'auto' }}>
-            <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>Αίτημα πληρωμής</div>
-            <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:16 }}>{monthLabel(req)} · {fmt(req.amount)}{req.services_charge&&req.services_charge>0?<span style={{ color:'var(--text-tertiary)' }}> (ενοίκιο {fmt(req.base_rent)} + υπηρεσίες {fmt(req.services_charge)})</span>:null}</div>
-
-            {tenant.rent_iban?(
-              <>
-                <div style={{ display:'flex', flexDirection:'column' as const, alignItems:'center', marginBottom:16 }}>
-                  <img src={qrSrc(epcPayload(tenant.rent_iban,landlordName,req.amount,reqRef(req)))} alt="QR πληρωμής" width={200} height={200} style={{ borderRadius:12, border:'1px solid var(--border-subtle)', background:'#fff', padding:8 }}/>
-                  <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:8, textAlign:'center' as const }}>Σάρωση από την τραπεζική εφαρμογή (SEPA/IRIS) για προσυμπλήρωση της μεταφοράς.</div>
-                </div>
+        <Modal open onClose={()=>setReq(null)} width={460}
+          title="Αίτημα πληρωμής"
+          ariaLabel="Αίτημα πληρωμής"
+          subtitle={<>{monthLabel(req)} · {fmt(req.amount)}{req.services_charge&&req.services_charge>0?<span style={{ color:'var(--text-tertiary)' }}> (ενοίκιο {fmt(req.base_rent)} + υπηρεσίες {fmt(req.services_charge)})</span>:null}</>}
+          footer={<>
+            <button style={{ ...s.btnGhost, fontSize:11 }} onClick={()=>{const rp=req;setReq(null);setMark({p:rp,method:'Τραπεζική κατάθεση',receipt:''});}}>Σήμανση εξόφλησης</button>
+            <button style={s.btnGold} onClick={()=>setReq(null)}>Κλείσιμο</button>
+          </>}>
+          {tenant.rent_iban?(
+            <>
+              <div style={{ display:'flex', flexDirection:'column' as const, alignItems:'center' }}>
+                <img src={qrSrc(epcPayload(tenant.rent_iban,landlordName,req.amount,reqRef(req)))} alt="QR πληρωμής" width={200} height={200} style={{ borderRadius:12, border:'1px solid var(--border-subtle)', background:'var(--qr-paper)', padding:8 }}/>
+                <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:8, textAlign:'center' as const }}>Σάρωση από την τραπεζική εφαρμογή (SEPA/IRIS) για προσυμπλήρωση της μεταφοράς.</div>
+              </div>
+              <div>
                 <div style={{ ...labelStyle, marginBottom:6 }}>IBAN πληρωμής</div>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ flex:1, fontFamily:T.font.mono, fontSize:13, color:'var(--text-primary)', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, padding:'10px 12px', wordBreak:'break-all' as const }}>{tenant.rent_iban}</div>
                   <button style={s.btnSm} onClick={()=>{ try{ navigator.clipboard.writeText(tenant.rent_iban||''); setCopied(true); }catch{} }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
                 </div>
-              </>
-            ):(
-              <InfoBanner tone="info">Πρόσθεσε IBAN πληρωμής στα στοιχεία του μισθωτή για δημιουργία QR και προσυμπλήρωση της μεταφοράς.</InfoBanner>
-            )}
+              </div>
+            </>
+          ):(
+            <InfoBanner tone="info">Πρόσθεσε IBAN πληρωμής στα στοιχεία του μισθωτή για δημιουργία QR και προσυμπλήρωση της μεταφοράς.</InfoBanner>
+          )}
 
-            <div style={{ ...labelStyle, marginBottom:8, marginTop:4 }}>Κοινοποίηση αιτήματος</div>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, marginBottom:18 }}>
+          <div>
+            <div style={{ ...labelStyle, marginBottom:8 }}>Κοινοποίηση αιτήματος</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
               {tenant.phone&&<a href={whatsappLink(msgDigits(tenant.phone),paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>WhatsApp</a>}
               {tenant.phone&&<a href={viberLink(paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>Viber</a>}
               {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Αίτημα πληρωμής ενοικίου '+monthLabel(req))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
@@ -1248,50 +1253,52 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
                   context), ο χρήστης νόμιζε ότι το κείμενο ήταν στο πρόχειρο και το επικολλούσε στο κενό. */}
               <button style={s.btnGhost} onClick={()=>{ try{ navigator.clipboard.writeText(paymentRequestText(req)); notifyOk('Το κείμενο αντιγράφηκε'); }catch{ notifyError('Δεν έγινε η αντιγραφή. Επίλεξε και αντίγραψε το κείμενο χειροκίνητα.'); } }}>Αντιγραφή κειμένου</button>
             </div>
-
-            <div style={{ display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', flexWrap:'wrap' as const }}>
-              <button style={{ ...s.btnGhost, fontSize:11 }} onClick={()=>{const rp=req;setReq(null);setMark({p:rp,method:'Τραπεζική κατάθεση',receipt:''});}}>Σήμανση εξόφλησης</button>
-              <button style={s.btnGold} onClick={()=>setReq(null)}>Κλείσιμο</button>
-            </div>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* Scan → match modal */}
+      {/* Σάρωση απόδειξης → αντιστοίχιση σε δόση — κοινό Modal.
+          ΟΣΟ ΤΡΕΧΕΙ Η ΑΝΑΛΥΣΗ ΤΟ ΠΑΡΑΘΥΡΟ ΔΕΝ ΚΛΕΙΝΕΙ. Ο χειρόγραφος κώδικας
+          φρουρούσε ΜΟΝΟ το κλικ στο φόντο (`scan.stage!=='scanning'`). Ο ίδιος
+          φρουρός μπαίνει τώρα στο onClose, οπότε καλύπτει και τις δύο εξόδους
+          που προσθέτει το Modal (Escape και «×») — αλλιώς η σάρωση θα μπορούσε
+          να κλείσει στη μέση και το αποτέλεσμα να χαθεί χωρίς μήνυμα. */}
       {scan&&(
-        <div onClick={()=>scan.stage!=='scanning'&&setScan(null)} style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 460px)' }}>
-            <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:12 }}>Σάρωση απόδειξης</div>
-            {scan.stage==='scanning'&&<div style={{ padding:'20px 0' }}><Spinner label="Ανάλυση εγγράφου…"/></div>}
-            {scan.stage==='error'&&<><InfoBanner tone="warning">{scan.msg}</InfoBanner><div style={{ display:'flex', justifyContent:'flex-end', marginTop:12 }}><button style={s.btnGhost} onClick={()=>setScan(null)}>Κλείσιμο</button></div></>}
-            {scan.stage==='match'&&scan.doc&&(
-              <>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, marginBottom:12 }}>
-                  <Badge tone={scan.doc.doc_type==='payment'?'positive':'warning'}>{scan.doc.doc_type==='payment'?'Απόδειξη πληρωμής':'Τύπος: '+scan.doc.doc_type}</Badge>
-                  {typeof scan.doc.amount==='number'&&<Badge tone="accent">{fmt(scan.doc.amount)}</Badge>}
-                  {(scan.doc.issue_date||scan.doc.due_date)&&<Badge tone="neutral">{scan.doc.issue_date||scan.doc.due_date}</Badge>}
-                </div>
-                {scan.doc.doc_type!=='payment'&&<InfoBanner tone="warning">Το έγγραφο δεν αναγνωρίστηκε ως απόδειξη πληρωμής. Επίλεξε δόση χειροκίνητα πριν τη σήμανση.</InfoBanner>}
-                {open.length===0?(
-                  <InfoBanner tone="info">Δεν υπάρχουν ανοιχτές δόσεις για αντιστοίχιση.</InfoBanner>
-                ):(
-                  <div style={{ marginBottom:16 }}>
-                    <div style={{ ...labelStyle, marginBottom:8 }}>Αντιστοίχιση σε δόση</div>
-                    <SelectField value={scan.periodId||''} onChange={v=>setScan(sc=>sc?{...sc,periodId:v}:sc)}
-                      options={open.map(p=>({ value:p.id, label:`${monthLabel(p)} · ${fmt(p.amount)}` }))}/>
-                    <div style={{ marginTop:12 }}>
-                      <SelectField label="Τρόπος πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
-                    </div>
-                  </div>
-                )}
-                <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-                  <button style={s.btnGhost} onClick={()=>setScan(null)}>Ακύρωση</button>
-                  <button style={s.btnGold} onClick={confirmScan} disabled={open.length===0||!scan.periodId}>Σήμανση ως πληρωμένο</button>
-                </div>
+        <Modal open onClose={()=>{ if(scan.stage!=='scanning') setScan(null); }} width={460}
+          title="Σάρωση απόδειξης"
+          footer={
+            scan.stage==='error' ? <button style={s.btnGhost} onClick={()=>setScan(null)}>Κλείσιμο</button>
+            : scan.stage==='match'&&scan.doc ? <>
+                <button style={s.btnGhost} onClick={()=>setScan(null)}>Ακύρωση</button>
+                <button style={s.btnGold} onClick={confirmScan} disabled={open.length===0||!scan.periodId}>Σήμανση ως πληρωμένο</button>
               </>
-            )}
-          </div>
-        </div>
+            : undefined
+          }>
+          {scan.stage==='scanning'&&<Spinner label="Ανάλυση εγγράφου…"/>}
+          {scan.stage==='error'&&<InfoBanner tone="warning">{scan.msg}</InfoBanner>}
+          {scan.stage==='match'&&scan.doc&&(
+            <>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
+                <Badge tone={scan.doc.doc_type==='payment'?'positive':'warning'}>{scan.doc.doc_type==='payment'?'Απόδειξη πληρωμής':'Τύπος: '+scan.doc.doc_type}</Badge>
+                {typeof scan.doc.amount==='number'&&<Badge tone="accent">{fmt(scan.doc.amount)}</Badge>}
+                {(scan.doc.issue_date||scan.doc.due_date)&&<Badge tone="neutral">{scan.doc.issue_date||scan.doc.due_date}</Badge>}
+              </div>
+              {scan.doc.doc_type!=='payment'&&<InfoBanner tone="warning">Το έγγραφο δεν αναγνωρίστηκε ως απόδειξη πληρωμής. Επίλεξε δόση χειροκίνητα πριν τη σήμανση.</InfoBanner>}
+              {open.length===0?(
+                <InfoBanner tone="info">Δεν υπάρχουν ανοιχτές δόσεις για αντιστοίχιση.</InfoBanner>
+              ):(
+                <div>
+                  <div style={{ ...labelStyle, marginBottom:8 }}>Αντιστοίχιση σε δόση</div>
+                  <SelectField value={scan.periodId||''} onChange={v=>setScan(sc=>sc?{...sc,periodId:v}:sc)}
+                    options={open.map(p=>({ value:p.id, label:`${monthLabel(p)} · ${fmt(p.amount)}` }))}/>
+                  <div style={{ marginTop:12 }}>
+                    <SelectField label="Τρόπος πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </Modal>
       )}
     </div>
   );
@@ -2109,17 +2116,52 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
   // ── Φόρμα ────────────────────────────────────────────────────────────────────
   const openAdd=()=>{ setForm(blank()); setEditId(null); setFormDocs([]); setMoreOpen(false); setError(null); setIsForm(true); };
-  // Κλείσιμο φόρμας με προστασία από ακούσια απώλεια δεδομένων (backdrop/Ακύρωση).
-  // Έγινε async γιατί ο κοινός διάλογος επιστρέφει Promise. Δένεται σε ΔΥΟ σημεία
-  // (κλικ στο backdrop του χειροποίητου modal με zIndex 950, και το κουμπί «Ακύρωση»)
-  // και κανένα από τα δύο δεν περιμένει σύγχρονη επιστροφή, οπότε η αλλαγή υπογραφής
-  // είναι ασφαλής. Ο ConfirmHost ζει στη ρίζα του layout με z-index 10000: δεν είναι
-  // απόγονος αυτού του backdrop, άρα κανένα κλικ του δεν ξαναπυροδοτεί το closeForm,
-  // και ο δίαυλος έτσι κι αλλιώς απορρίπτει δεύτερη ταυτόχρονη ερώτηση.
+  // Κλείσιμο φόρμας με προστασία από ακούσια απώλεια δεδομένων.
+  // Έγινε async γιατί ο κοινός διάλογος επιστρέφει Promise. Μετά τη μετατροπή σε
+  // κοινό Modal δένεται σε ΤΕΣΣΕΡΑ σημεία: κλικ στο φόντο, το «×» της κεφαλίδας,
+  // το Escape και το κουμπί «Ακύρωση» του υποσέλιδου. Κανένα δεν περιμένει
+  // σύγχρονη επιστροφή, οπότε η υπογραφή είναι ασφαλής. Ο ConfirmHost ζει στη
+  // ρίζα του layout με z-index 10000: δεν είναι απόγονος αυτού του φόντου, άρα
+  // κανένα κλικ του δεν ξαναπυροδοτεί το closeForm, και ο δίαυλος έτσι κι αλλιώς
+  // απορρίπτει δεύτερη ταυτόχρονη ερώτηση.
+  //
+  // ΜΗ ΚΛΕΙΣΕΙΣ ΟΣΟ ΑΠΟΘΗΚΕΥΕΙ. Το χειρόγραφο παράθυρο είχε μία μόνο έξοδο που
+  // δεν φρουρούνταν (κλικ στο φόντο). Το Modal πρόσθεσε δύο ακόμη — Escape και
+  // «×» — και το Escape είναι ακριβώς το πλήκτρο που πατάει κανείς όσο περιμένει.
+  // Η αποθήκευση κάνει ΤΡΕΙΣ διαδοχικές εγγραφές (ενοικιαστής, σύνδεση εγγράφων,
+  // συγχρονισμός ημερολογίου)· αν η φόρμα φύγει στη μέση, ο χρήστης δεν βλέπει
+  // ποτέ το μήνυμα σφάλματος αν κάποια αποτύχει και νομίζει ότι ακύρωσε.
   const closeForm=async()=>{
+    if(saving) return;
     const dirty = !!(form.full_name.trim()||form.afm||form.phone||form.email||form.monthly_rent);
     if(dirty && !(await confirmDialog('Κλείσιμο χωρίς αποθήκευση; Τα στοιχεία που συμπλήρωσες θα χαθούν.'))) return;
     setError(null); setIsForm(false);
+  };
+
+  // ── ΚΛΕΙΣΙΜΟ ΝΤΟΣΙΕ ──────────────────────────────────────────────────────────
+  // ΤΟ ΝΤΟΣΙΕ ΔΕΝ ΚΛΕΙΝΕΙ ΟΤΑΝ ΕΧΕΙ ΑΛΛΗ ΕΠΙΚΑΛΥΨΗ ΑΠΟ ΠΑΝΩ ΤΟΥ.
+  // Το χειρόγραφο πλαϊνό φύλλο ΔΕΝ άκουγε Escape, όπως δεν άκουγαν και τα
+  // παράθυρα που ανοίγουν μέσα του («Σήμανση ως πληρωμένο», «Αίτημα πληρωμής»,
+  // «Σάρωση απόδειξης» της PaymentsView, και η φόρμα ενοικιαστή). Τώρα ακούν
+  // ΟΛΑ, και ο listener του καθενός κρέμεται στο ίδιο `document`: ένα Escape
+  // πάνω στο «Σήμανση ως πληρωμένο» έκλεινε ΚΑΙ το παράθυρο ΚΑΙ ολόκληρο το
+  // ντοσιέ, πετώντας τον χρήστη πίσω στη λίστα ενοικιαστών.
+  //
+  // Ο listener του ντοσιέ στήνεται ΠΡΩΤΟΣ (προσαρτάται πρώτο), άρα τρέχει πριν
+  // από του παραθύρου — ένα stopPropagation από μέσα δεν θα προλάβαινε. Μετράμε
+  // λοιπόν πόσες επικαλύψεις είναι ανοιχτές τη στιγμή του συμβάντος: το ίδιο το
+  // SideSheet γράφει role="dialog", όπως και κάθε Modal, ενώ ο ConfirmHost
+  // γράφει role="alertdialog". Πάνω από μία σημαίνει ότι το Escape ανήκει στην
+  // επάνω επικάλυψη, όχι σε εμάς. Το React δεν έχει προλάβει να αποδώσει, οπότε
+  // η μέτρηση δείχνει ακόμη την πραγματική στοίβα.
+  //
+  // Καλύπτει και τις άλλες δύο εξόδους του SideSheet (κλικ στο φόντο, «×»):
+  // εκεί δεν αλλάζει τίποτα, γιατί μια ανοιχτή επικάλυψη τα σκεπάζει ούτως ή
+  // άλλως και το κλικ δεν φτάνει ποτέ σε αυτά.
+  const closeDossier=()=>{
+    if(isForm) return;
+    if(document.querySelectorAll('[role="dialog"],[role="alertdialog"]').length>1) return;
+    setOpenId(null);
   };
   const openEditForm=(t:Tenant)=>{
     const n=(v:number|null)=>v?.toString()||'';
@@ -2422,13 +2464,33 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
         </>
       )}
 
-      {/* ── Ντοσιέ (drawer) ─────────────────────────────────────────────────── */}
+      {/* ── Ντοσιέ — κοινό SideSheet ───────────────────────────────────────────
+          Ήταν χειρόγραφο πλαϊνό φύλλο: δικό του scrim, δικό του πλάτος 980, δικό
+          του «‹ Πίσω» πάνω αριστερά (τα άλλα δύο ντοσιέ της εφαρμογής είχαν «×»
+          πάνω δεξιά), και ούτε Escape ούτε κλείδωμα κύλισης του φόντου. Το
+          κουμπί επιστροφής ΔΕΝ χάθηκε — το «×» του SideSheet κάνει ακριβώς την
+          ίδια δουλειά (setOpenId(null)) στη θέση που το έχουν και τα υπόλοιπα.
+
+          ΟΙ ΚΑΡΤΕΛΕΣ ΜΕΝΟΥΝ ΣΤΗΝ ΚΕΦΑΛΙΔΑ. Στο χειρόγραφο ήταν τρίτη σταθερή
+          λωρίδα με flexShrink:0· το SideSheet έχει δύο σταθερές ζώνες (κεφαλίδα,
+          υποσέλιδο) και μία που κυλά. Μέσα στο `children` οι έξι καρτέλες θα
+          έφευγαν προς τα πάνω με την κύλιση — γι' αυτό μπαίνουν στο `header`.
+
+          zIndex: ήταν 900 ενώ η φόρμα 950. Τώρα και τα δύο είναι 1000 από τα
+          primitives, αλλά η φόρμα αποδίδεται ΜΕΤΑ σε αυτό το ίδιο επίπεδο, άρα
+          εξακολουθεί να ζωγραφίζεται από πάνω.
+
+          ΓΙΑΤΙ ΤΟ onClose ΕΙΝΑΙ ΦΡΟΥΡΗΜΕΝΟ: βλέπε `closeDossier` παραπάνω. Η
+          φόρμα ΔΕΝ είναι η μόνη επικάλυψη που ανοίγει πάνω στο ντοσιέ — τα τρία
+          παράθυρα της PaymentsView («Σήμανση ως πληρωμένο», «Αίτημα πληρωμής»,
+          «Σάρωση απόδειξης») ζουν κι αυτά μέσα του, και ένας φρουρός μόνο για
+          το `isForm` θα άφηνε ένα Escape πάνω τους να κλείσει ολόκληρο το
+          ντοσιέ. */}
       {dc&&(
-        <div onClick={()=>setOpenId(null)} style={{ position:'fixed', inset:0, background: T.scrim, zIndex:900, display:'flex', justifyContent:'flex-end' }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', borderLeft:'1px solid var(--border-subtle)', width:'min(980px, 100%)', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'var(--elev-3)' }}>
-            {/* Sticky header */}
-            <div style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'18px 24px', borderBottom:'1px solid var(--border-subtle)', flexShrink:0 }}>
-              <button onClick={()=>setOpenId(null)} title="Πίσω" style={{ background:'none', border:'1px solid var(--border-default)', borderRadius:10, width:38, height:38, cursor:'pointer', color:'var(--text-secondary)', fontSize:18, flexShrink:0 }}>‹</button>
+        <SideSheet open onClose={closeDossier} width={980}
+          ariaLabel={`Ντοσιέ ενοικιαστή: ${dc.full_name}`}
+          header={<>
+            <div style={{ display:'flex', alignItems:'flex-start', gap:14, flexWrap:'wrap' as const }}>
               <div style={{ minWidth:0, flex:1 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' as const }}>
                   <span style={{ fontSize:20, fontWeight:700, color:'var(--text-primary)' }}>{dc.full_name}</span>
@@ -2447,8 +2509,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               </div>
             </div>
 
-            {/* Section tabs */}
-            <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', padding:'0 16px', overflowX:'auto' as const, scrollbarWidth:'none' as const, flexShrink:0 }}>
+            {/* Καρτέλες ενότητας */}
+            <div style={{ display:'flex', marginTop:12, marginBottom:-18, overflowX:'auto' as const, scrollbarWidth:'none' as const }}>
               {DTABS.map(tb=>(
                 <button key={tb.id} onClick={()=>setDossierTab(tb.id)} style={{ ...s.tabBtn(dossierTab===tb.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                   {tb.label}
@@ -2456,94 +2518,104 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 </button>
               ))}
             </div>
-
-            {/* Body */}
-            <div style={{ flex:1, overflowY:'auto', padding:'20px 24px 32px' }}>
-              {dossierTab==='overview'&&(
-                <>
-                  {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?`: αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Το ντοσιέ διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
-                  <DashboardView tenant={dc} payments={dcPayments} propertyCount={propertyCount}/>
-                </>
-              )}
-              {dossierTab==='lease'&&(
-                <div style={{ display:'flex', flexDirection:'column' }}>
-                  <div>
-                    <InfoBanner tone="info">Περιμένεις το ενοίκιο κάθε μήνα την <strong>{fn(Math.min(Math.max(1,dc.rent_due_day||1),28))}η</strong> ημέρα. Οι μηνιαίες δόσεις δημιουργούνται αυτόματα από την έναρξη της μίσθωσης.</InfoBanner>
-                    <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_}/>
-                  </div>
-                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><DepositView tenant={dc} payments={dcPayments} damages={dcDamages} onReturned={fetch_}/></div>
-                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><RenewalView tenant={dc} userId={userId} comps={comps} sqm={propSqm}/></div>
-                </div>
-              )}
-              {dossierTab==='condition'&&(
-                <div style={{ display:'flex', flexDirection:'column' }}>
-                  <DamagesView tenant={dc} propertyId={propertyId} userId={userId} damages={dcDamages} onRefresh={fetch_}/>
-                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} others={dc?maint.filter(m=>m.tenant_id!==dc.id):maint} onRefresh={fetch_}/></div>
-                </div>
-              )}
-              {dossierTab==='legal'&&<LegalTaxView tenant={dc} propertyCount={propertyCount}/>}
-              {dossierTab==='comm'&&<CommView tenant={dc} propertyId={propertyId} userId={userId}/>}
-              {dossierTab==='docs'&&(
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16 }}>
-                  <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-                    <SectionTitle>Μισθωτήριο (PDF)</SectionTitle>
-                    {dc.lease_doc_name?(
-                      <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-accent)', borderRadius:T.radius.inner, padding:20 }}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, gap:10 }}>
-                          <div style={{ minWidth:0 }}>
-                            <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, overflow:'hidden', textOverflow:'ellipsis' }}>{dc.lease_doc_name}</div>
-                            <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ανεβασμένο συμβόλαιο</div>
-                          </div>
-                          <button style={s.btnDng} onClick={async()=>{if(!dc.lease_doc_name)return;await supabase.storage.from('lease-documents').remove([`${userId}/${dc.id}/${dc.lease_doc_name}`]);if(!await saved('Το συμβόλαιο δεν αποσυνδέθηκε',supabase.from('tenants').update({lease_doc_url:null,lease_doc_name:null}).eq('id',dc.id)))return;notify('PDF διαγράφηκε');fetch_();}}>Διαγραφή</button>
-                        </div>
-                        <button onClick={()=>openLeaseDoc(dc)} style={{ ...s.btnGold, display:'inline-block', marginBottom:10 }}>Άνοιγμα PDF</button>
-                        <div style={{ marginTop:10 }}>
-                          <label style={{ ...s.btnSm, cursor:'pointer', display:'inline-block' }}>
-                            {uploading?'Ανέβασμα…':'Αντικατάσταση PDF'}
-                            <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
-                          </label>
-                        </div>
-                      </div>
-                    ):(
-                      <div style={{ border:'2px dashed var(--border-default)', borderRadius:T.radius.inner, padding:'40px 28px', textAlign:'center' as const }}>
-                        <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:18 }}>Ανέβασε το μισθωτήριο σε μορφή PDF</div>
-                        <label style={{ ...s.btnGold, cursor:'pointer', display:'inline-block', padding:'11px 28px' }}>
-                          {uploading?'Ανέβασμα…':'Επιλογή PDF'}
-                          <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-                    <SectionTitle>Εξωτερικός Σύνδεσμος</SectionTitle>
-                    {dc.lease_doc_external_url?(
-                      <div>
-                        <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:14, wordBreak:'break-all' as const, lineHeight:1.6 }}>{dc.lease_doc_external_url}</div>
-                        <a href={dc.lease_doc_external_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none' }}>Άνοιγμα Συνδέσμου</a>
-                      </div>
-                    ):(
-                      <div style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.7 }}>Δεν έχει οριστεί εξωτερικός σύνδεσμος. Πρόσθεσέ τον από την «Επεξεργασία → Έγγραφα» (Google Drive, Dropbox κ.ά.).</div>
-                    )}
-                  </div>
-                </div>
-              )}
+          </>}>
+          {dossierTab==='overview'&&(
+            <>
+              {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?`: αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Το ντοσιέ διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
+              <DashboardView tenant={dc} payments={dcPayments} propertyCount={propertyCount}/>
+            </>
+          )}
+          {dossierTab==='lease'&&(
+            <div style={{ display:'flex', flexDirection:'column' }}>
+              <div>
+                <InfoBanner tone="info">Περιμένεις το ενοίκιο κάθε μήνα την <strong>{fn(Math.min(Math.max(1,dc.rent_due_day||1),28))}η</strong> ημέρα. Οι μηνιαίες δόσεις δημιουργούνται αυτόματα από την έναρξη της μίσθωσης.</InfoBanner>
+                <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_}/>
+              </div>
+              <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><DepositView tenant={dc} payments={dcPayments} damages={dcDamages} onReturned={fetch_}/></div>
+              <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><RenewalView tenant={dc} userId={userId} comps={comps} sqm={propSqm}/></div>
             </div>
-          </div>
-        </div>
+          )}
+          {dossierTab==='condition'&&(
+            <div style={{ display:'flex', flexDirection:'column' }}>
+              <DamagesView tenant={dc} propertyId={propertyId} userId={userId} damages={dcDamages} onRefresh={fetch_}/>
+              <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} others={dc?maint.filter(m=>m.tenant_id!==dc.id):maint} onRefresh={fetch_}/></div>
+            </div>
+          )}
+          {dossierTab==='legal'&&<LegalTaxView tenant={dc} propertyCount={propertyCount}/>}
+          {dossierTab==='comm'&&<CommView tenant={dc} propertyId={propertyId} userId={userId}/>}
+          {dossierTab==='docs'&&(
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16 }}>
+              <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
+                <SectionTitle>Μισθωτήριο (PDF)</SectionTitle>
+                {dc.lease_doc_name?(
+                  <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-accent)', borderRadius:T.radius.inner, padding:20 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, gap:10 }}>
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, overflow:'hidden', textOverflow:'ellipsis' }}>{dc.lease_doc_name}</div>
+                        <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ανεβασμένο συμβόλαιο</div>
+                      </div>
+                      <button style={s.btnDng} onClick={async()=>{if(!dc.lease_doc_name)return;await supabase.storage.from('lease-documents').remove([`${userId}/${dc.id}/${dc.lease_doc_name}`]);if(!await saved('Το συμβόλαιο δεν αποσυνδέθηκε',supabase.from('tenants').update({lease_doc_url:null,lease_doc_name:null}).eq('id',dc.id)))return;notify('PDF διαγράφηκε');fetch_();}}>Διαγραφή</button>
+                    </div>
+                    <button onClick={()=>openLeaseDoc(dc)} style={{ ...s.btnGold, display:'inline-block', marginBottom:10 }}>Άνοιγμα PDF</button>
+                    <div style={{ marginTop:10 }}>
+                      <label style={{ ...s.btnSm, cursor:'pointer', display:'inline-block' }}>
+                        {uploading?'Ανέβασμα…':'Αντικατάσταση PDF'}
+                        <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
+                      </label>
+                    </div>
+                  </div>
+                ):(
+                  <div style={{ border:'2px dashed var(--border-default)', borderRadius:T.radius.inner, padding:'40px 28px', textAlign:'center' as const }}>
+                    <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:18 }}>Ανέβασε το μισθωτήριο σε μορφή PDF</div>
+                    <label style={{ ...s.btnGold, cursor:'pointer', display:'inline-block', padding:'11px 28px' }}>
+                      {uploading?'Ανέβασμα…':'Επιλογή PDF'}
+                      <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)uploadPDF(dc,f);}} disabled={uploading}/>
+                    </label>
+                  </div>
+                )}
+              </div>
+              <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
+                <SectionTitle>Εξωτερικός Σύνδεσμος</SectionTitle>
+                {dc.lease_doc_external_url?(
+                  <div>
+                    <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:14, wordBreak:'break-all' as const, lineHeight:1.6 }}>{dc.lease_doc_external_url}</div>
+                    <a href={dc.lease_doc_external_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none' }}>Άνοιγμα Συνδέσμου</a>
+                  </div>
+                ):(
+                  <div style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.7 }}>Δεν έχει οριστεί εξωτερικός σύνδεσμος. Πρόσθεσέ τον από την «Επεξεργασία → Έγγραφα» (Google Drive, Dropbox κ.ά.).</div>
+                )}
+              </div>
+            </div>
+          )}
+        </SideSheet>
       )}
 
-      {/* ── Φόρμα (modal) ────────────────────────────────────────────────────── */}
+      {/* ── Φόρμα — κοινό Modal ───────────────────────────────────────────────
+          Ήταν χειρόγραφο: το ίδιο το φόντο κυλούσε (alignItems:'flex-start' +
+          overflowY στο overlay), οπότε ο τίτλος «Νέος Ενοικιαστής» και το κουμπί
+          αποθήκευσης έφευγαν από την οθόνη μόλις άνοιγες τα «Περισσότερα». Το
+          Modal κυλά ΜΟΝΟ το σώμα (maxHeight 92dvh): κεφαλίδα και ενέργειες
+          μένουν πάντα στη θέση τους.
+          Το «Ακύρωση» ΔΕΝ χάθηκε — μετακόμισε από την κεφαλίδα στο υποσέλιδο,
+          δίπλα στην αποθήκευση, όπου στέκουν οι δύο ενέργειες μαζί· η κεφαλίδα
+          έχει πλέον το «×» του Modal, που καλεί το ίδιο closeForm (άρα και την
+          ίδια προστασία από ακούσια απώλεια δεδομένων). */}
       {isForm&&(
-        <div onClick={closeForm} style={{ position:'fixed', inset:0, background: T.scrim, zIndex:950, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'24px 16px', overflowY:'auto' as const }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-accent)', borderRadius:T.radius.card, padding:28, width:'min(860px, 100%)', margin:'auto' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
-              <div>
-                <div style={{ fontSize:18, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>{editId?'Επεξεργασία Ενοικιαστή':'Νέος Ενοικιαστής'}</div>
-                <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Ζητάμε μόνο ό,τι έχει νόημα για αυτή τη μίσθωση. Κάθε πεδίο λέει γιατί.</div>
-              </div>
-              <button style={s.btnGhost} onClick={closeForm}>Ακύρωση</button>
-            </div>
-
+        <Modal open onClose={closeForm} width={860}
+          title={editId?'Επεξεργασία Ενοικιαστή':'Νέος Ενοικιαστής'}
+          subtitle="Ζητάμε μόνο ό,τι έχει νόημα για αυτή τη μίσθωση. Κάθε πεδίο λέει γιατί."
+          footer={<>
+            {/* Και τα δύο κουμπιά κλειδώνουν όσο γράφει: το «Ακύρωση» δεν
+                επιτρέπεται να εξαφανίσει τη φόρμα στη μέση της αποθήκευσης
+                (ίδιος φρουρός με το closeForm, ώστε να μη μοιάζει ενεργό). */}
+            <button style={s.btnGhost} onClick={closeForm} disabled={saving}>Ακύρωση</button>
+            <button style={s.btnGold} onClick={save} disabled={saving}>{saving?'Αποθήκευση…':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>
+          </>}>
+          {/* ΕΝΑ παιδί, όχι τριάντα. Το σώμα του Modal είναι flex column με
+              gap 20· η φόρμα έχει ~30 αδέλφια πρώτου επιπέδου με δικά τους,
+              ρυθμισμένα περιθώρια (6/12/16 και τα `s.divider`), οπότε το gap θα
+              πρόσθετε ~600px κενού και θα διέλυε τον ρυθμό των ενοτήτων. */}
+          <div>
             {/* ── ΤΙ ΛΕΙΠΕΙ ΓΙΑ ΤΗ ΔΗΛΩΣΗ ─────────────────────────────────── */}
             <MissingCriticalBar missing={formMissing}/>
 
@@ -2788,12 +2860,11 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             )}
             {/* ΜΙΑ φόρμα, χωρίς βήματα: όσα πεδία έμειναν χωρούν σε μία οθόνη, και
                 τα σπάνια είναι πίσω από το «Περισσότερα». Οι δύο καρτέλες υπήρχαν
-                επειδή τα 88 πεδία δεν χωρούσαν αλλιώς. */}
-            <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:12, marginTop:20, paddingTop:20, borderTop:'1px solid var(--border-subtle)', flexWrap:'wrap' as const }}>
-              <button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={save} disabled={saving}>{saving?'Αποθήκευση…':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>
-            </div>
+                επειδή τα 88 πεδία δεν χωρούσαν αλλιώς.
+                Οι δύο ενέργειες («Ακύρωση», αποθήκευση) ζουν πλέον στο υποσέλιδο
+                του Modal, που δεν κυλά μαζί με τα πεδία. */}
           </div>
-        </div>
+        </Modal>
       )}
 
       <LeaseDeclaration open={declOpen} onClose={()=>setDeclOpen(false)} propertyId={propertyId} userId={userId} supabase={supabase} />

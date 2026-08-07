@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd, fe, fn, KPIGrid, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE } from '@/components/Theme';
+import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
 import { SearchX, FolderOpen, FileText } from 'lucide-react';
@@ -917,18 +917,45 @@ export default function TabDocuments({
             action={<Btn variant="secondary" onClick={() => { setSel(clearAll()); setQuery(''); }}>Καθαρισμός φίλτρων</Btn>}/>}/>
       )}
 
-      {/* ── Lightbox (εικόνα ή προεπισκόπηση PDF) ───────────────────────── */}
+      {/* ── Lightbox (εικόνα ή προεπισκόπηση PDF) ─────────────────────────
+          ΔΕΝ ΕΙΝΑΙ Modal ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ. Το Modal είναι πλαίσιο με κεφαλίδα,
+          σώμα σε στήλη και υποσέλιδο ενεργειών, πάνω σε επιφάνεια
+          `--bg-surface` με maxHeight 92dvh. Εδώ δεν υπάρχει τίποτα από αυτά:
+          το περιεχόμενο είναι ΤΟ ΙΔΙΟ ΤΟ ΧΑΡΤΙ σε όσο χώρο πάρει (εικόνα έως
+          92%/82% ή iframe PDF 900×82%), χωρίς πλαίσιο και χωρίς κάρτα, γιατί
+          κάθε ορατό πλαίσιο γύρω του θα ανταγωνιζόταν το ίδιο το έγγραφο.
+          Δεν έχει ούτε ερώτηση ναι/όχι (confirmDialog) ούτε ντοσιέ (SideSheet).
+          Ευθυγραμμίστηκαν μόνο τα tokens: κενά από την κλίμακα T.sp, ο στόχος
+          του «×» από την κλίμακα ύψους T.h.md (36px στο ποντίκι, 44 στο δάχτυλο
+          — ήταν καρφωτό 38, δηλαδή κάτω από τον στόχο αφής σε κινητό).
+          ΤΟ ΜΕΛΑΝΙ ΕΙΝΑΙ `--on-media`, ΟΧΙ `--on-tone` ΚΑΙ ΟΧΙ ΚΑΡΦΩΤΟ #fff:
+          το `--on-tone` αλλάζει ανά θέμα (#ffffff στο ανοιχτό, #0c1116 στο
+          σκούρο), ενώ αυτό το φόντο είναι το T.scrim — σκούρο ΚΑΙ ΣΤΑ ΔΥΟ
+          θέματα. Με `--on-tone` ο τίτλος και το «×» θα γίνονταν σχεδόν μαύρα
+          πάνω σε μαύρο στο σκούρο θέμα. Το `--on-media` ορίζεται μία φορά
+          στη βάση (globals.css) και είναι λευκό και στα δύο θέματα: ίδια
+          εικόνα με το παλιό #fff, αλλά με όνομα και ρόλο. */}
       {lightbox && lightbox.url && (
         <div onClick={() => setLightbox(null)}
-          style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, flexDirection: 'column', gap: 12 }}>
-          <button onClick={() => setLightbox(null)} title="Κλείσιμο" style={{ position: 'absolute', top: 18, right: 18, width: 38, height: 38, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconX size={16}/></button>
+          style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: T.sp.xxl, flexDirection: 'column', gap: T.sp.md }}>
+          <button onClick={() => setLightbox(null)} title="Κλείσιμο" aria-label="Κλείσιμο" style={{ position: 'absolute', top: T.sp.lg, right: T.sp.lg, width: T.h.md, height: T.h.md, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: 'var(--on-media)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconX size={16}/></button>
+          {/* Η ΑΚΤΙΝΑ ΜΕΝΕΙ T.radius.inner (10), ΟΧΙ T.radius.modal (18). Είχε γίνει
+              «modal» στο πέρασμα των tokens, αλλά αυτό ακριβώς λέει το σχόλιο από
+              πάνω ότι ΔΕΝ είναι: δεν υπάρχει επιφάνεια παραθύρου εδώ. Η ακτίνα δεν
+              κόβει πλαίσιο — κόβει ΤΟ ΙΔΙΟ ΤΟ ΧΑΡΤΙ, γιατί με objectFit contain το
+              κουτί εφαρμόζει στην εικόνα: στα 18 τρώει ορατά τις γωνίες ενός
+              σαρωμένου εγγράφου. Και η παλιά τιμή ήταν ήδη token, άρα δεν υπήρχε
+              λόγος ευθυγράμμισης. Το λευκό του iframe είναι το χαρτί του PDF, όχι
+              χρώμα διεπαφής — δεν γίνεται token. */}
           {isPdfItem(lightbox)
             ? <iframe title={lightbox.title} src={lightbox.url} onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 900px)', height: '82%', border: 'none', borderRadius: T.radius.inner, background: '#fff' }}/>
             : <img src={lightbox.url} alt={lightbox.title} onClick={e => e.stopPropagation()} style={{ maxWidth: '92%', maxHeight: '82%', objectFit: 'contain', borderRadius: T.radius.inner }}/>}
-          <div style={{ color: '#fff', fontSize: 12, fontFamily: T.font.sans, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+          <div style={{ color: 'var(--on-media)', fontSize: 12, fontFamily: T.font.sans, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontWeight: 700 }}>{lightbox.title}</div>
             <div style={{ opacity: 0.7, marginTop: 2 }}>{[lightbox.category, lightbox.provider, lightbox.date ? fd(lightbox.date) : null].filter(Boolean).join(' · ')}</div>
-            <a href={lightbox.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11, fontWeight: 600, color: '#fff', textDecoration: 'none', padding: '7px 14px', borderRadius: T.radius.pill, background: 'rgba(255,255,255,0.14)' }}><IconDownload size={13}/>Άνοιγμα σε νέα καρτέλα</a>
+            {/* Ήταν padding 7/14, δηλαδή ~29px ύψος: κάτω από τον στόχο αφής. Με
+                T.h.sm γίνεται 32 στο ποντίκι και 40 στο δάχτυλο, χωρίς άλλη αλλαγή. */}
+            <a href={lightbox.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: T.sp.sm, height: T.h.sm, fontSize: 11, fontWeight: 600, color: 'var(--on-media)', textDecoration: 'none', padding: `0 ${T.sp.lg}px`, borderRadius: T.radius.pill, background: 'rgba(255,255,255,0.14)' }}><IconDownload size={13}/>Άνοιγμα σε νέα καρτέλα</a>
           </div>
         </div>
       )}
@@ -1003,7 +1030,7 @@ function FileInner({ items, a }: { items: Item[]; a: FileActions }) {
 // Στρογγυλό κουμπί ενέργειας πάνω από thumbnail (grid) — σκουρόχρωμο για αντίθεση.
 const OverlayBtn = ({ title, onClick, children }: { title: string; onClick: (e: React.MouseEvent) => void; children: React.ReactNode }) => (
   <button onClick={onClick} title={title}
-    style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: T.scrim, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>{children}</button>
+    style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: T.scrim, color: 'var(--on-media)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>{children}</button>
 );
 
 function FileCard({ i, a }: { i: Item; a: FileActions }) {
@@ -1024,7 +1051,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         {i.isImage && i.url
           ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <span style={{ color: 'var(--accent)' }}><svg {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
-        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 8, fontWeight: 800, letterSpacing: '0.05em', color: '#fff', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
+        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 8, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
         {selectable && (shown || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/></div>}
         {shown && i.raw && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
@@ -1279,30 +1306,28 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
   );
 }
 
-/* ── Modals (μετονομασία / διόρθωση αναγνώρισης) ─────────────────────────── */
-function ModalShell({ title, sub, children, onCancel, onConfirm, confirmLabel, confirmDisabled }: {
-  title: string; sub?: string; children: React.ReactNode; onCancel: () => void; onConfirm: () => void; confirmLabel: string; confirmDisabled?: boolean;
-}) {
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Στοιχεία εγγράφου" onClick={onCancel} style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} className="card" style={{ width: '100%', maxWidth: 440, margin: 0 }}>
-        <SecHdr label={title} sub={sub}/>
-        <div style={{ marginBottom: 18 }}>{children}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <Btn variant="ghost" onClick={onCancel}>Ακύρωση</Btn>
-          <Btn variant="primary" onClick={onConfirm} disabled={confirmDisabled}>{confirmLabel}</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ── Παράθυρα (μετονομασία / διόρθωση αναγνώρισης) ────────────────────────
+   ΤΙ ΕΣΠΑΣΕ ΤΟ ΧΕΙΡΟΓΡΑΦΟ ΚΕΛΥΦΟΣ. Ζούσε εδώ ένα `ModalShell` 15 γραμμών:
+   δικό του scrim με zIndex 1100 (ενώ κάθε άλλο παράθυρο της εφαρμογής έχει
+   1000), κάρτα 440 και δύο κουμπιά. Έλειπαν ΤΡΙΑ πράγματα που το Modal τα
+   δίνει: Escape δεν έκλεινε (η μετονομασία απαιτούσε κλικ στο φόντο ή στην
+   «Ακύρωση»), η εστίαση δεν έμπαινε μέσα ούτε γύριζε πίσω στο κουμπί που το
+   άνοιξε — ο χρήστης πληκτρολογίου έπεφτε στην κορυφή της σελίδας — και το
+   φόντο κυλούσε από κάτω, οπότε το κλείσιμο επέστρεφε σε άλλο σημείο της
+   λίστας. Επίσης το aria-label ήταν σταθερά «Στοιχεία εγγράφου» ΚΑΙ στα δύο
+   παράθυρα· τώρα ο αναγνώστης οθόνης ακούει τον πραγματικό τίτλο.
+   ─────────────────────────────────────────────────────────────────────────── */
 
 function RenameModal({ initial, onCancel, onSave }: { initial: string; onCancel: () => void; onSave: (v: string) => void }) {
   const [val, setVal] = useState(initial);
   return (
-    <ModalShell title="Μετονομασία" onCancel={onCancel} onConfirm={() => val.trim() && onSave(val)} confirmLabel="Αποθήκευση" confirmDisabled={!val.trim()}>
+    <Modal open onClose={onCancel} title="Μετονομασία" width={440}
+      footer={<>
+        <Btn variant="ghost" onClick={onCancel}>Ακύρωση</Btn>
+        <Btn variant="primary" onClick={() => val.trim() && onSave(val)} disabled={!val.trim()}>Αποθήκευση</Btn>
+      </>}>
       <TextInput label="Νέο όνομα" value={val} onChange={setVal} placeholder="Όνομα αρχείου"/>
-    </ModalShell>
+    </Modal>
   );
 }
 
@@ -1340,35 +1365,38 @@ function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => 
   };
 
   return (
-    <ModalShell title={items.length > 1 ? `Διόρθωση ${items.length} αρχείων` : 'Διόρθωση αναγνώρισης'}
-      sub={items.length > 1
+    <Modal open onClose={onCancel} width={440}
+      title={items.length > 1 ? `Διόρθωση ${items.length} αρχείων` : 'Διόρθωση αναγνώρισης'}
+      subtitle={items.length > 1
         ? 'Σε πολλά αρχεία μαζί αλλάζει μόνο η κατηγορία — ο φάκελος ενημερώνεται αυτόματα.'
         : 'Διόρθωσε ό,τι διάβασε λάθος η σάρωση. Ο φάκελος προκύπτει από την κατηγορία.'}
-      onCancel={onCancel} onConfirm={submit} confirmLabel="Αποθήκευση" confirmDisabled={afmBad}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <CustomSelect label="Κατηγορία" value={cat} onChange={setCat}
-          options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
-        {one && (<>
-          <div style={g2x}>
-            <TextInput label="Πάροχος ή εκδότης" value={supplier} onChange={setSupplier} placeholder="Όπως γράφεται στο παραστατικό"/>
-            <TextInput label="ΑΦΜ παρόχου" value={afm} onChange={setAfm} placeholder="9 ψηφία"/>
-          </div>
-          {afmBad && <div style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ. Διόρθωσέ το ή άφησέ το κενό.</div>}
-          <div style={g2x}>
-            <NumberInput label="Ποσό" suffix="€" value={amount} onChange={setAmount} placeholder="0,00"/>
-            <DatePicker label="Ημερομηνία έκδοσης" value={issue} onChange={setIssue}/>
-          </div>
-          <div style={g2x}>
-            <DatePicker label="Περίοδος από" value={from} onChange={setFrom}/>
-            <DatePicker label="Περίοδος έως" value={to} onChange={setTo}/>
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>
-            Ο πάροχος, το ΑΦΜ, το ποσό, η ημερομηνία και η περίοδος είναι τα πέντε πεδία
-            με τα οποία το app διαπιστώνει ότι ένας λογαριασμός πληρώθηκε.
-          </div>
-        </>)}
-      </div>
-    </ModalShell>
+      footer={<>
+        <Btn variant="ghost" onClick={onCancel}>Ακύρωση</Btn>
+        <Btn variant="primary" onClick={submit} disabled={afmBad}>Αποθήκευση</Btn>
+      </>}>
+      {/* Χωρίς δικό μας flex wrapper: το Modal βάζει ήδη τα παιδιά σε στήλη με κενό. */}
+      <CustomSelect label="Κατηγορία" value={cat} onChange={setCat}
+        options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
+      {one && (<>
+        <div style={g2x}>
+          <TextInput label="Πάροχος ή εκδότης" value={supplier} onChange={setSupplier} placeholder="Όπως γράφεται στο παραστατικό"/>
+          <TextInput label="ΑΦΜ παρόχου" value={afm} onChange={setAfm} placeholder="9 ψηφία"/>
+        </div>
+        {afmBad && <div style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ. Διόρθωσέ το ή άφησέ το κενό.</div>}
+        <div style={g2x}>
+          <NumberInput label="Ποσό" suffix="€" value={amount} onChange={setAmount} placeholder="0,00"/>
+          <DatePicker label="Ημερομηνία έκδοσης" value={issue} onChange={setIssue}/>
+        </div>
+        <div style={g2x}>
+          <DatePicker label="Περίοδος από" value={from} onChange={setFrom}/>
+          <DatePicker label="Περίοδος έως" value={to} onChange={setTo}/>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>
+          Ο πάροχος, το ΑΦΜ, το ποσό, η ημερομηνία και η περίοδος είναι τα πέντε πεδία
+          με τα οποία το app διαπιστώνει ότι ένας λογαριασμός πληρώθηκε.
+        </div>
+      </>)}
+    </Modal>
   );
 }
 

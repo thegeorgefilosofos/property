@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { downloadCsv, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
-import { T, TT, Badge, TierBadge, ExportButton, EmptyState, SkeletonKPIs, fn } from '@/components/Theme';
+import { T, TT, Badge, TierBadge, ExportButton, EmptyState, Modal, SkeletonKPIs, fn } from '@/components/Theme';
 import { UserPlus } from 'lucide-react';
 import {
   referralCode, referralLink, progress,
@@ -116,17 +116,11 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [copied, setCopied] = useState(false);
   const [msgCopied, setMsgCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const qrCloseRef = useRef<HTMLButtonElement>(null);
+  // Το Escape, η αρχική εστίαση και η επαναφορά της ήταν γραμμένα εδώ στο χέρι
+  // (ένα useEffect, ένας ref στο κουμπί «Έτοιμο») — δεύτερο αντίγραφο αυτού που
+  // ήδη κάνει το Modal, χωρίς όμως το κλείδωμα κύλισης του φόντου. Έφυγαν μαζί
+  // με το χειρόγραφο overlay: τα δίνει το primitive.
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
-  // QR modal: Escape για κλείσιμο, αρχική εστίαση, επαναφορά εστίασης.
-  useEffect(() => {
-    if (!qrOpen) return;
-    const prev = document.activeElement as HTMLElement | null;
-    qrCloseRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setQrOpen(false); };
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('keydown', onKey); prev?.focus?.(); };
-  }, [qrOpen]);
   const [stats, setStats] = useState<Overview | null>(null);
   const [social, setSocial] = useState(0);
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -298,20 +292,23 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
       {styleBlock}
 
-      {/* ── QR κωδικός συνδέσμου (για διά ζώσης πρόσκληση) ── */}
-      {qrOpen && (
-        <div onClick={() => setQrOpen(false)} role="dialog" aria-modal="true" aria-label="Κωδικός QR πρόσκλησης"
-          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,12,24,0.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-3)', padding: 24, maxWidth: 340, width: '100%', textAlign: 'center' }}>
-            <div style={{ ...TT.h2, marginBottom: 4 }}>Σάρωσε για να προσκαλέσεις</div>
-            <div style={{ ...TT.bodySm, marginBottom: 16 }}>Δείξε τον κωδικό ώστε να ανοίξει τον σύνδεσμό σου από το κινητό.</div>
-            <div style={{ background: '#fff', padding: 14, borderRadius: T.radius.inner, display: 'inline-block', boxShadow: 'var(--well-inset)' }}>
-              <canvas ref={qrCanvasRef} role="img" aria-label="Κωδικός QR πρόσκλησης" style={{ display: 'block' }} />
-            </div>
-            <button ref={qrCloseRef} onClick={() => setQrOpen(false)} className="ref-cta" style={{ marginTop: 18, height: T.h.lg, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
+      {/* ── QR κωδικός συνδέσμου (για διά ζώσης πρόσκληση) ──
+          Το παράθυρο ήταν χειρόγραφο, με ΔΙΚΟ ΤΟΥ scrim `rgba(6,12,24,0.55)`
+          (τιμή εκτός tokens, ενώ το T.scrim λέει `rgba(0,0,0,0.55)`) και δικό
+          του z-index 60 — δηλαδή κάτω από κάθε άλλο παράθυρο της εφαρμογής,
+          που ζει στο 1000. Τίτλος, μία πρόταση, περιεχόμενο και μία ενέργεια:
+          αυτό ακριβώς είναι το Modal. */}
+      <Modal open={qrOpen} onClose={() => setQrOpen(false)} width={340}
+        ariaLabel="Κωδικός QR πρόσκλησης"
+        title="Σάρωσε για να προσκαλέσεις"
+        subtitle="Δείξε τον κωδικό ώστε να ανοίξει τον σύνδεσμό σου από το κινητό."
+        footer={<button onClick={() => setQrOpen(false)} className="ref-cta" style={{ height: T.h.lg, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ background: 'var(--qr-paper)', padding: 14, borderRadius: T.radius.inner, display: 'inline-block', boxShadow: 'var(--well-inset)' }}>
+            <canvas ref={qrCanvasRef} role="img" aria-label="Κωδικός QR πρόσκλησης" style={{ display: 'block' }} />
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* ── Κεφαλίδα ── */}
       <div style={{ marginBottom: T.sp.xxl }}>
@@ -411,7 +408,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             [isPro ? 'Συνδρομητές τον μήνα' : 'Νέοι τον μήνα', isPro ? stats.m_paid : stats.m_indiv, false],
           ] as [string, number, boolean][]).map(([l, v, hi], i) => (
             <div key={i} style={{ minWidth: 88 }}>
-              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, fontSize: 26, color: hi ? undefined : 'var(--text-primary)' }}><Num value={Number(v)} /></div>
+              <div className={hi ? 'ref-kpi-hover' : undefined} /* 26 δεν υπάρχει στην τυπογραφική κλίμακα (…22, 24, 28…): ήταν ένα μέγεθος
+                     φτιαγμένο στο μάτι, μόνο γι' αυτά τα τρία πλακίδια. Το 24 είναι το
+                     αμέσως επόμενο σκαλί και το ίδιο που χρησιμοποιεί το TT.displaySm. */
+                  style={{ ...TT.kpi, fontSize: 24, color: hi ? undefined : 'var(--text-primary)' }}><Num value={Number(v)} /></div>
               <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
             </div>
           ))}

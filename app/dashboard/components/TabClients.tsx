@@ -45,7 +45,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Users, SearchX } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, fe, fd,
+  T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd,
 } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
@@ -823,8 +823,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const fGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 };
   // Επικεφαλίδα ενότητας φόρμας (καθαρή, με τελεία accent και λεπτή γραμμή). Απλή
   // συνάρτηση που επιστρέφει JSX (όχι component) ώστε να μη χάνουν focus τα πεδία.
-  const secHead = (t: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
+  //
+  // ΤΟ `top` ΥΠΑΡΧΕΙ ΓΙΑ ΕΝΑ ΣΗΜΕΙΟ: όταν η επικεφαλίδα είναι το ΠΡΩΤΟ στοιχείο
+  // στο σώμα ενός Modal, το κενό το δίνει ήδη το padding του primitive (24) και
+  // το περιθώριο 18 από πάνω γινόταν 42 εικονοστοιχεία λευκού πάνω από μια
+  // ετικέτα ύψους 10. Παντού αλλού μένει 18, γιατί εκεί χωρίζει δύο ενότητες.
+  const secHead = (t: string, top = 18) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: `${top}px 0 10px` }}>
       <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
       <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
     </div>
@@ -1019,10 +1024,18 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     {reportYear}
                     <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
                   </button>
+                  {/* ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ, ΑΡΑ ΔΕΝ ΓΙΝΕΤΑΙ Modal. Είναι popover
+                      αγκυρωμένο στο κουμπί του έτους: χωρίς τίτλο, χωρίς σώμα,
+                      χωρίς ενέργειες — μία στήλη με τέσσερα χρόνια. Το `fixed
+                      inset: 0` από κάτω είναι ΔΙΑΦΑΝΟ, μόνο για να πιάνει το
+                      κλικ έξω· δεν παίρνει T.scrim, γιατί ένα σκοτείνιασμα
+                      ολόκληρης της σελίδας για να διαλέξεις χρονιά θα διάβαζε
+                      σαν «σταμάτησαν όλα». Ευθυγραμμίστηκε μόνο η ακτίνα με το
+                      token (ίδια τιμή, μία πηγή). */}
                   {reportYearMenu && (
                     <>
                       <div onClick={() => setReportYearMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, boxShadow: 'var(--elev-3)', padding: 6, minWidth: 96, maxHeight: 220, overflowY: 'auto' }}>
+                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, boxShadow: 'var(--elev-3)', padding: 6, minWidth: 96, maxHeight: 220, overflowY: 'auto' }}>
                         {yearsAvail.map(y => (
                           <button key={y} type="button" onClick={() => { setReportYear(y); setReportYearMenu(false); }}
                             style={{ display: 'block', width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', background: y === reportYear ? 'var(--accent-dim)' : 'transparent', color: y === reportYear ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: y === reportYear ? 700 : 500, cursor: 'pointer', textAlign: 'left' }}>{y}</button>
@@ -1100,18 +1113,34 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         );
       })()}
 
-      {/* ── Ντοσιέ πελάτη (drawer) ───────────────────────────────────────────
-          ΤΕΣΣΕΡΑ ΠΑΡΑΘΥΡΑ ΧΩΡΙΣ ΝΑ ΤΟ ΛΕΝΕ. Κανένα δεν δήλωνε role=dialog ούτε
-          aria-modal: ο αναγνώστης οθόνης συνέχιζε να διαβάζει τη σελίδα από
-          κάτω σαν να μην είχε ανοίξει τίποτα. Και το πλωτό κουμπί του βοηθού
-          δεν είχε τρόπο να καταλάβει ότι κάθεται πάνω στο «Αποθήκευση». */}
+      {/* ── Ντοσιέ επισκέπτη ─────────────────────────────────────────────────
+          ΗΤΑΝ ΤΟ ΤΡΙΤΟ ΧΕΙΡΟΓΡΑΦΟ ΠΛΑΪΝΟ ΦΥΛΛΟ ΤΗΣ ΕΦΑΡΜΟΓΗΣ: δικό του scrim,
+          δικό του πλάτος 720, δικό του «×» — και τίποτα από όσα κάνουν ένα
+          παράθυρο παράθυρο. Το Escape δεν το έκλεινε. Η εστίαση δεν έμπαινε
+          μέσα, άρα ο χρήστης πληκτρολογίου συνέχιζε να διατρέχει τη λίστα από
+          κάτω, και όταν έκλεινε δεν γύριζε στην κάρτα από την οποία ήρθε. Και
+          το σύρσιμο πάνω στο σκοτεινό φόντο κυλούσε τη σελίδα από πίσω: έκλεινε
+          το ντοσιέ και έβρισκε άλλο σημείο της λίστας από αυτό που άφησε.
+          Το SideSheet τα φέρνει και τα τέσσερα, με το ίδιο πλάτος 720.
+          Το «×» το βάζει το ίδιο — εδώ μένει μόνο το περιεχόμενο της κεφαλίδας. */}
       {dc && dcStats && (
-        <div onClick={() => { setOpenId(null); setStayFormOpen(false); }} role="dialog" aria-modal="true" aria-label="Καρτέλα επισκέπτη"
-          style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 900, display: 'flex', justifyContent: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', width: 'min(720px, 100%)', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-            {/* Sticky header: avatar + όνομα + σήματα συμμόρφωσης + ενέργειες.
-                Καμία βαθμολογία, κανένα VIP, καμία «μαύρη λίστα». */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--bg-surface)' }}>
+        // ΦΡΟΥΡΑ ΣΤΟ ΚΛΕΙΣΙΜΟ: το «Επεξεργασία στοιχείων» ανοίγει το παράθυρο
+        // της φόρμας ΠΑΝΩ από αυτό το φύλλο, χωρίς να το κλείνει. Και τα δύο
+        // primitives ακούν Escape στο `document`, άρα ΕΝΑ Escape έφτανε και στα
+        // δύο: έκλεινε τη φόρμα ΚΑΙ το ντοσιέ από κάτω. Δύο συνέπειες, η
+        // δεύτερη σοβαρή:
+        //   • ο χρήστης έχανε το ντοσιέ ενώ ήθελε μόνο να ακυρώσει τη φόρμα·
+        //   • αποπροσαρτώνται στην ΙΔΙΑ φάση, με το φύλλο πρώτο στο δέντρο, άρα
+        //     πρώτα το φύλλο επαναφέρει το overflow σε «» και ΜΕΤΑ το παράθυρο
+        //     το ξαναγράφει «hidden» (αυτό βρήκε όταν άνοιξε). Η σελίδα έμενε
+        //     κλειδωμένη χωρίς καμία επικάλυψη ανοιχτή.
+        // Όσο η φόρμα είναι ανοιχτή, το φύλλο αγνοεί το κλείσιμο· το scrim του
+        // ούτως ή άλλως δεν είναι προσιτό, γιατί το παράθυρο το σκεπάζει.
+        <SideSheet open onClose={() => { if (modalOpen) return; setOpenId(null); setStayFormOpen(false); }} ariaLabel="Καρτέλα επισκέπτη" width={720}
+          header={
+            // Avatar + όνομα + σήματα συμμόρφωσης + ενέργεια.
+            // Καμία βαθμολογία, κανένα VIP, καμία «μαύρη λίστα».
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               {avatar(dc.full_name, 52)}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -1119,21 +1148,16 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {dcUndeclared > 0 && <Badge tone="negative">{dcUndeclared} αδήλωτη{dcUndeclared === 1 ? '' : 'ς'}</Badge>}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
-                <button onClick={() => setOpenId(null)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}>×</button>
-              </div>
+              <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
             </div>
-
-            {/* Σώμα με κύλιση */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px' }}>
+          }>
 
             {/* Επικοινωνία. ΜΟΝΟ τηλέφωνο και email: διεύθυνση, ΑΦΜ, αριθμός
                 ταυτότητας, εθνικότητα και «πηγή γνωριμίας» έφυγαν — δεδομένα
                 προσωπικού χαρακτήρα που δεν προκαλούσαν καμία ενέργεια. Ό,τι
                 χρειάζεται ο οικοδεσπότης μένει στην ιδιωτική σημείωση, χωρίς
                 ετικέτα κατηγορίας. */}
-            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 20, marginTop: 4 }}>
+            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 {([
                   ['Τηλέφωνο', dc.phone ? <a href={`tel:${dc.phone}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.phone}</a> : null],
@@ -1155,13 +1179,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             </div>
 
             {/* Συνδεδεμένα ακίνητα (ο έλεγχος σύνδεσης ζει εδώ, όχι στην κάρτα) */}
-            <div style={{ marginBottom: 20 }}>
+            <div>
               <div style={{ ...lbl, marginBottom: 8 }}>Συνδεδεμένα ακίνητα</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {(propsByClient.get(dc.id) || []).map(p => (
                   <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '6px 11px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                     <button onClick={() => onSelectProperty?.(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, padding: 0, fontFamily: T.font.sans }}>{p.name}</button>
-                    <button onClick={() => unlinkProperty(p.id)} title="Αποσύνδεση" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 15 }}>×</button>
+                    {/* 15 δεν υπάρχει στην κλίμακα (…13, 14, 16…) — το δίδυμό
+                        του στα αρχικά της κεφαλίδας διορθώθηκε, αυτό είχε μείνει. */}
+                    <button onClick={() => unlinkProperty(p.id)} title="Αποσύνδεση" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 14 }}>×</button>
                   </span>
                 ))}
                 {(propsByClient.get(dc.id) || []).length === 0 && unlinkedProps.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Κανένα ακίνητο</span>}
@@ -1180,7 +1206,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             </div>
 
             {/* Άφιξη επισκέπτη: σύνδεσμος για να συμπληρώσει τα στοιχεία του πριν φτάσει */}
-            <div style={{ marginBottom: 20 }}>
+            <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
                 <div style={lbl}>Στοιχεία άφιξης</div>
                 <Btn variant="secondary" onClick={copyCheckinLink}>{checkinCopied ? 'Ο σύνδεσμος αντιγράφηκε' : 'Αντιγραφή συνδέσμου'}</Btn>
@@ -1204,7 +1230,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {/* Αναλυτικά: μόνο όταν υπάρχουν διαμονές (αλλιώς περιττά μηδενικά).
                 Τα ποσά είναι διακριτά: ακαθάριστο ≠ payout ≠ τι πλήρωσε ο επισκέπτης. */}
             {dcStats.stayCount > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 116px), 1fr))', gap: 10, marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 116px), 1fr))', gap: 10 }}>
                 {statTile('Ακαθάριστα', fe(dcTotals.revenue, 0), { title: 'Δηλωτέο ακαθάριστο: τι πλήρωσε ο επισκέπτης μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται.' })}
                 {dcTotals.platformFees > 0 && statTile('Προμήθειες', fe(dcTotals.platformFees, 0), { title: 'Δαπάνη που εκπίπτει, όχι μείωση εσόδου' })}
                 {dcTotals.climateLevy > 0 && statTile('Τέλος ανθεκτικότητας', fe(dcTotals.climateLevy, 0), { title: 'Εισπράχθηκε για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
@@ -1220,7 +1246,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             )}
 
             {/* Διαμονές */}
-            <div style={{ marginBottom: 24 }}>
+            <div>
               <SecHdr label="Διαμονές" right={!stayFormOpen ? <Btn variant="secondary" onClick={openStayNew}>Νέα διαμονή</Btn> : undefined} />
               {stayFormOpen && (
                 <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: 'var(--well-inset)' }}>
@@ -1432,7 +1458,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 σε μία ενότητα, και το κείμενο κομμένο στις δύο γραμμές, ώστε ο
                 χρήστης να στέλνει κάτι που δεν έχει διαβάσει ολόκληρο.
                 Τώρα: διαλέγεις πρότυπο, το βλέπεις όλο, το στέλνεις. */}
-            <div style={{ marginBottom: 24 }}>
+            <div>
               <SecHdr label="Μηνύματα" sub="Έτοιμα πρότυπα για WhatsApp, Viber ή αντιγραφή" />
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                 {MSG_TEMPLATES.map(t => (
@@ -1459,7 +1485,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             </div>
 
             {/* Έγγραφα (ταυτότητα, συμβόλαιο, αποδείξεις) */}
-            <div style={{ marginBottom: 24 }}>
+            <div>
               <SecHdr label="Έγγραφα" sub="Ταυτότητα, συμβόλαιο, αποδείξεις, ασφαλής αποθήκευση" />
               <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ minWidth: 200, flex: '1 1 200px' }}>
@@ -1526,209 +1552,198 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               )}
             </div>
-            </div>
-          </div>
-        </div>
+        </SideSheet>
       )}
 
-      {/* ── Εισαγωγή κράτησης από email (AI) ──────────────────────────────── */}
-      {emailOpen && (
-        <div onClick={() => setEmailOpen(false)} role="dialog" aria-modal="true" aria-label="Εισαγωγή κράτησης από μήνυμα"
-          style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(600px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή από email</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Επικόλλησε το email κράτησης (Airbnb/Booking) και το AI βρίσκει όνομα, ημερομηνίες και ποσό</div>
-              </div>
-              <button onClick={() => setEmailOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 22px' }}>
-              {!emailDraft ? (
-                <>
-                  <Textarea label="Κείμενο email" value={emailText} onChange={setEmailText} rows={8} placeholder="Επικόλλησε εδώ το περιεχόμενο του email κράτησης…" />
-                  {emailErr && <div style={{ marginTop: 10, background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{emailErr}</div>}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-                    <Btn variant="ghost" onClick={() => setEmailOpen(false)}>Ακύρωση</Btn>
-                    <Btn variant="primary" onClick={parseEmail} disabled={emailBusy || emailText.trim().length < 20}>{emailBusy ? 'Ανάλυση…' : 'Ανάλυση'}</Btn>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>Έλεγξε και διόρθωσε αν χρειάζεται, μετά αποθήκευσε. Θα δημιουργηθεί ο επισκέπτης (αν δεν υπάρχει) και η διαμονή.</div>
-                  <div style={fGrid}>
-                    <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα επισκέπτη" value={emailDraft.name} onChange={v => setEmailDraft(d => d && { ...d, name: v })} /></div>
-                    <DatePicker label="Άφιξη" value={emailDraft.check_in} onChange={v => setEmailDraft(d => d && { ...d, check_in: v })} />
-                    <DatePicker label="Αναχώρηση" value={emailDraft.check_out} onChange={v => setEmailDraft(d => d && { ...d, check_out: v })} />
-                    {/* Το ένα, διφορούμενο «Ποσό (payout)» έγινε τρία ξεχωριστά.
-                        Εκεί γεννιόταν η αντίφαση: ό,τι μπαινε εδώ ως payout
-                        διαβαζόταν αλλού ως ακαθάριστο και φορολογούνταν. */}
-                    <NumberInput label="Πλήρωσε ο επισκέπτης" labelInfo="Το σύνολο που πλήρωσε ο επισκέπτης, πριν την προμήθεια." value={emailDraft.gross} onChange={v => setEmailDraft(d => d && { ...d, gross: v })} suffix="€" step={10} />
-                    <NumberInput label="Τέλος ανθεκτικότητας" labelInfo="Δεν είναι έσοδό σου — αφαιρείται από το δηλωτέο ακαθάριστο." value={emailDraft.levy} onChange={v => setEmailDraft(d => d && { ...d, levy: v })} suffix="€" step={2} />
-                    <NumberInput label="Προμήθεια πλατφόρμας" labelInfo="Δαπάνη που εκπίπτει — ΔΕΝ μειώνει το δηλωτέο ακαθάριστο." value={emailDraft.fee} onChange={v => setEmailDraft(d => d && { ...d, fee: v })} suffix="€" step={5} />
-                    <CustomSelect label="Κανάλι" value={emailDraft.channel} onChange={v => setEmailDraft(d => d && { ...d, channel: v })} options={channelOptions} />
-                  </div>
-                  {(parseFloat(emailDraft.gross) || 0) > 0 && (
-                    <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
-                      Δηλωτέο ακαθάριστο: <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(Math.max(0, (parseFloat(emailDraft.gross) || 0) - (parseFloat(emailDraft.levy) || 0)), 0)}</strong>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-                    <Btn variant="ghost" onClick={() => setEmailDraft(null)}>Πίσω</Btn>
-                    <Btn variant="primary" onClick={saveEmailStay} disabled={emailBusy || !emailDraft.name.trim()}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση διαμονής'}</Btn>
-                  </div>
-                </>
-              )}
-            </div>
+      {/* ── Εισαγωγή κράτησης από email (AI) ────────────────────────────────
+          Χειρόγραφο παράθυρο με δικό του radius 18 (το token λέει
+          T.radius.modal) και maxHeight '92vh' — που στο κινητό μετρά ΚΑΙ τη
+          γραμμή διευθύνσεων του περιηγητή, άρα τα κουμπιά «Ακύρωση/Ανάλυση»
+          κάθονταν κάτω από αυτήν. Το Modal μετρά σε 92dvh.
+          Οι δύο ενέργειες ήταν μέσα στην περιοχή κύλισης, δηλαδή έφευγαν από το
+          κάδρο όταν το επικολλημένο email ήταν μεγάλο· τώρα είναι υποσέλιδο. */}
+      <Modal open={emailOpen} onClose={() => setEmailOpen(false)} width={600}
+        title="Εισαγωγή από email" ariaLabel="Εισαγωγή κράτησης από μήνυμα"
+        subtitle="Επικόλλησε το email κράτησης (Airbnb/Booking) και το AI βρίσκει όνομα, ημερομηνίες και ποσό"
+        footer={!emailDraft ? (
+          <>
+            <Btn variant="ghost" onClick={() => setEmailOpen(false)}>Ακύρωση</Btn>
+            <Btn variant="primary" onClick={parseEmail} disabled={emailBusy || emailText.trim().length < 20}>{emailBusy ? 'Ανάλυση…' : 'Ανάλυση'}</Btn>
+          </>
+        ) : (
+          <>
+            <Btn variant="ghost" onClick={() => setEmailDraft(null)}>Πίσω</Btn>
+            <Btn variant="primary" onClick={saveEmailStay} disabled={emailBusy || !emailDraft.name.trim()}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση διαμονής'}</Btn>
+          </>
+        )}>
+      {!emailDraft ? (
+        <>
+          <Textarea label="Κείμενο email" value={emailText} onChange={setEmailText} rows={8} placeholder="Επικόλλησε εδώ το περιεχόμενο του email κράτησης…" />
+          {emailErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{emailErr}</div>}
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Έλεγξε και διόρθωσε αν χρειάζεται, μετά αποθήκευσε. Θα δημιουργηθεί ο επισκέπτης (αν δεν υπάρχει) και η διαμονή.</div>
+          <div style={fGrid}>
+            <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα επισκέπτη" value={emailDraft.name} onChange={v => setEmailDraft(d => d && { ...d, name: v })} /></div>
+            <DatePicker label="Άφιξη" value={emailDraft.check_in} onChange={v => setEmailDraft(d => d && { ...d, check_in: v })} />
+            <DatePicker label="Αναχώρηση" value={emailDraft.check_out} onChange={v => setEmailDraft(d => d && { ...d, check_out: v })} />
+            {/* Το ένα, διφορούμενο «Ποσό (payout)» έγινε τρία ξεχωριστά.
+                Εκεί γεννιόταν η αντίφαση: ό,τι μπαινε εδώ ως payout
+                διαβαζόταν αλλού ως ακαθάριστο και φορολογούνταν. */}
+            <NumberInput label="Πλήρωσε ο επισκέπτης" labelInfo="Το σύνολο που πλήρωσε ο επισκέπτης, πριν την προμήθεια." value={emailDraft.gross} onChange={v => setEmailDraft(d => d && { ...d, gross: v })} suffix="€" step={10} />
+            <NumberInput label="Τέλος ανθεκτικότητας" labelInfo="Δεν είναι έσοδό σου — αφαιρείται από το δηλωτέο ακαθάριστο." value={emailDraft.levy} onChange={v => setEmailDraft(d => d && { ...d, levy: v })} suffix="€" step={2} />
+            <NumberInput label="Προμήθεια πλατφόρμας" labelInfo="Δαπάνη που εκπίπτει — ΔΕΝ μειώνει το δηλωτέο ακαθάριστο." value={emailDraft.fee} onChange={v => setEmailDraft(d => d && { ...d, fee: v })} suffix="€" step={5} />
+            <CustomSelect label="Κανάλι" value={emailDraft.channel} onChange={v => setEmailDraft(d => d && { ...d, channel: v })} options={channelOptions} />
           </div>
-        </div>
-      )}
-
-      {/* ── Εισαγωγή iCal (Airbnb/Booking) ────────────────────────────────── */}
-      {icalOpen && (
-        <div onClick={() => setIcalOpen(false)} role="dialog" aria-modal="true" aria-label="Εισαγωγή iCal"
-          style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(680px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή iCal</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Συγχρονισμός κρατήσεων από Airbnb ή Booking</div>
-              </div>
-              <button onClick={() => setIcalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+          {(parseFloat(emailDraft.gross) || 0) > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Δηλωτέο ακαθάριστο: <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(Math.max(0, (parseFloat(emailDraft.gross) || 0) - (parseFloat(emailDraft.levy) || 0)), 0)}</strong>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px' }}>
-              {/* Ήταν τέσσερις γραμμές κειμένου πριν από το πρώτο πεδίο, και οι τρεις
-                  εξηγούσαν πράγματα που φαίνονται μόνα τους μόλις γίνει η εισαγωγή.
-                  Έμεινε το ένα που πρέπει να ξέρεις ΠΡΙΝ: τι δεν θα έρθει. */}
-              <InfoBanner tone="info">Το iCal φέρνει μόνο ημερομηνίες, χωρίς όνομα επισκέπτη ή ποσό.</InfoBanner>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14, margin: '16px 0' }}>
-                <CustomSelect label="Ακίνητο" value={icalPropertyId} onChange={setIcalPropertyId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επίλεξε ακίνητο" />
-                <CustomSelect label="Κανάλι" value={icalChannel} onChange={v => setIcalChannel(v as 'airbnb' | 'booking' | 'other')} options={[{ value: 'airbnb', label: 'Airbnb' }, { value: 'booking', label: 'Booking' }, { value: 'other', label: 'Άλλο' }]} />
-              </div>
+          )}
+        </>
+      )}
+      </Modal>
 
-              {/* Αυτόματος συγχρονισμός μέσω συνδέσμου (server-side, χωρίς CORS) */}
-              {secHead('Αυτόματος συγχρονισμός')}
-              <div style={{ marginBottom: 12 }}>
-                <TextInput label="Σύνδεσμος iCal" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
-              </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-                <Btn variant="secondary" onClick={fetchIcalFromUrl} disabled={icalBusy || !icalUrl.trim()}>{icalBusy ? 'Ανάκτηση…' : 'Ανάκτηση και προεπισκόπηση'}</Btn>
-                <Btn variant="primary" onClick={saveIcalFeed} disabled={icalBusy || !icalUrl.trim() || !icalPropertyId}>Αποθήκευση και αυτόματος συγχρονισμός</Btn>
-              </div>
+      {/* ── Εισαγωγή iCal (Airbnb/Booking) ──────────────────────────────────
+          Ίδια ιστορία με το παράθυρο του email: χειρόγραφο κέλυφος με radius 18
+          αντί για T.radius.modal και '92vh' αντί για '92dvh'. Το εικονίδιο του
+          ημερολογίου ζούσε σε δικό του κουτί 44×44 — το Modal το τοποθετεί μόνο
+          του, οπότε εδώ μένει σκέτο το SVG. */}
+      <Modal open={icalOpen} onClose={() => setIcalOpen(false)} width={680}
+        title="Εισαγωγή iCal" subtitle="Συγχρονισμός κρατήσεων από Airbnb ή Booking"
+        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}
+        footer={icalEvents ? (
+          <>
+            <Btn variant="ghost" onClick={() => setIcalOpen(false)}>Κλείσιμο</Btn>
+            <Btn variant="primary" onClick={importIcal} disabled={icalBusy || !icalPropertyId}>{icalBusy ? 'Εισαγωγή…' : 'Εισαγωγή κρατήσεων'}</Btn>
+          </>
+        ) : undefined}>
+      {/* Ήταν τέσσερις γραμμές κειμένου πριν από το πρώτο πεδίο, και οι τρεις
+          εξηγούσαν πράγματα που φαίνονται μόνα τους μόλις γίνει η εισαγωγή.
+          Έμεινε το ένα που πρέπει να ξέρεις ΠΡΙΝ: τι δεν θα έρθει. */}
+      <InfoBanner tone="info">Το iCal φέρνει μόνο ημερομηνίες, χωρίς όνομα επισκέπτη ή ποσό.</InfoBanner>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
+        <CustomSelect label="Ακίνητο" value={icalPropertyId} onChange={setIcalPropertyId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επίλεξε ακίνητο" />
+        <CustomSelect label="Κανάλι" value={icalChannel} onChange={v => setIcalChannel(v as 'airbnb' | 'booking' | 'other')} options={[{ value: 'airbnb', label: 'Airbnb' }, { value: 'booking', label: 'Booking' }, { value: 'other', label: 'Άλλο' }]} />
+      </div>
 
-              {/* Αποθηκευμένοι σύνδεσμοι (ανά επιλεγμένο ακίνητο) */}
-              {icalPropertyId && icalFeeds.filter(f => f.property_id === icalPropertyId).length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-                  {icalFeeds.filter(f => f.property_id === icalPropertyId).map(f => (
-                    <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                        <div style={{ minWidth: 0, flex: '1 1 220px' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{f.channel === 'airbnb' ? 'Airbnb' : f.channel === 'booking' ? 'Booking' : 'Άλλο'}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.url}</div>
-                          <div style={{ fontSize: 11, color: f.last_status?.startsWith('error') ? 'var(--negative)' : 'var(--text-secondary)', marginTop: 4 }}>
-                            {f.last_synced_at ? `Τελευταίος συγχρονισμός: ${fd(f.last_synced_at)}${f.last_status ? ` · ${f.last_status}` : ''}` : 'Δεν έχει συγχρονιστεί ακόμη'}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button onClick={() => syncIcalNow(f.property_id)} disabled={icalBusy} style={{ ...msgLink, cursor: 'pointer', fontFamily: T.font.sans }}>Συγχρονισμός τώρα</button>
-                          <button onClick={() => delIcalFeed(f)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, padding: 0 }}>Αφαίρεση</button>
-                        </div>
+      {/* Αυτόματος συγχρονισμός μέσω συνδέσμου (server-side, χωρίς CORS)
+          ΓΙΑΤΙ ΤΥΛΙΓΜΑ ΚΑΙ ΟΧΙ ΕΠΙΠΕΔΑ ΑΔΕΛΦΙΑ: το σώμα του Modal είναι flex
+          στήλη με gap 20. Μια επικεφαλίδα με δικό της περιθώριο 18 από πάνω
+          γινόταν 38 εικονοστοιχεία, και τα 10 από κάτω γίνονταν 30 — δηλαδή η
+          ετικέτα καθόταν πιο κοντά στην προηγούμενη ενότητα παρά στα δικά της
+          πεδία. Κάθε ενότητα είναι ΕΝΑ παιδί: το gap χωρίζει ενότητες, το
+          εσωτερικό gap 12 χωρίζει πεδία. */}
+      <div>
+        {secHead('Αυτόματος συγχρονισμός', 0)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <TextInput label="Σύνδεσμος iCal" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Btn variant="secondary" onClick={fetchIcalFromUrl} disabled={icalBusy || !icalUrl.trim()}>{icalBusy ? 'Ανάκτηση…' : 'Ανάκτηση και προεπισκόπηση'}</Btn>
+            <Btn variant="primary" onClick={saveIcalFeed} disabled={icalBusy || !icalUrl.trim() || !icalPropertyId}>Αποθήκευση και αυτόματος συγχρονισμός</Btn>
+          </div>
+
+          {/* Αποθηκευμένοι σύνδεσμοι (ανά επιλεγμένο ακίνητο) */}
+          {icalPropertyId && icalFeeds.filter(f => f.property_id === icalPropertyId).length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {icalFeeds.filter(f => f.property_id === icalPropertyId).map(f => (
+                <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div style={{ minWidth: 0, flex: '1 1 220px' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{f.channel === 'airbnb' ? 'Airbnb' : f.channel === 'booking' ? 'Booking' : 'Άλλο'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.url}</div>
+                      <div style={{ fontSize: 11, color: f.last_status?.startsWith('error') ? 'var(--negative)' : 'var(--text-secondary)', marginTop: 4 }}>
+                        {f.last_synced_at ? `Τελευταίος συγχρονισμός: ${fd(f.last_synced_at)}${f.last_status ? ` · ${f.last_status}` : ''}` : 'Δεν έχει συγχρονιστεί ακόμη'}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Χειροκίνητη εισαγωγή με επικόλληση */}
-              {secHead('Χειροκίνητη επικόλληση')}
-              <div style={{ marginBottom: 12 }}>
-                <Textarea label="Περιεχόμενο .ics" value={icalText} onChange={setIcalText} rows={5} placeholder="BEGIN:VCALENDAR ..." />
-              </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-                <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>Ανάλυση επικόλλησης</Btn>
-                {icalEvents && <Toggle on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} label="Και μπλοκαρίσματα ημερομηνιών" labelOff="Μόνο κρατήσεις" />}
-              </div>
-              {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>{icalMsg.text}</div>}
-              {icalEvents && (() => {
-                const drafts = icalToStayDrafts(icalEvents, { propertyId: icalPropertyId || 'x', channel: icalChannel });
-                const bookings = drafts.filter(d => !d.blocked);
-                const blocks = drafts.filter(d => d.blocked);
-                const toImport = icalIncludeBlocked ? drafts : bookings;
-                const nights = toImport.reduce((s, d) => s + d.nights, 0);
-                return (
-                  <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14, marginBottom: 4 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 12 }}>
-                      {statTile('Κρατήσεις', String(bookings.length))}
-                      {statTile('Μπλοκαρίσματα', String(blocks.length))}
-                      {statTile('Νύχτες προς εισαγωγή', String(nights))}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
-                      {toImport.slice(0, 40).map((d, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, color: 'var(--text-secondary)', padding: '6px 10px', background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 8 }}>
-                          <span>{fd(d.check_in)} έως {fd(d.check_out)}</span>
-                          <span style={{ color: 'var(--text-tertiary)' }}>{d.nights} νύχτες{d.blocked ? ' · μπλοκάρισμα' : ''}</span>
-                        </div>
-                      ))}
-                      {toImport.length > 40 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', padding: 4 }}>και άλλες {toImport.length - 40}…</div>}
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => syncIcalNow(f.property_id)} disabled={icalBusy} style={{ ...msgLink, cursor: 'pointer', fontFamily: T.font.sans }}>Συγχρονισμός τώρα</button>
+                      <button onClick={() => delIcalFeed(f)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, padding: 0 }}>Αφαίρεση</button>
                     </div>
                   </div>
-                );
-              })()}
+                </div>
+              ))}
             </div>
-            {icalEvents && (
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-                <Btn variant="ghost" onClick={() => setIcalOpen(false)}>Κλείσιμο</Btn>
-                <Btn variant="primary" onClick={importIcal} disabled={icalBusy || !icalPropertyId}>{icalBusy ? 'Εισαγωγή…' : 'Εισαγωγή κρατήσεων'}</Btn>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* ── Φόρμα νέου/επεξεργασίας πελάτη (premium, δομημένη σε ενότητες) ───── */}
-      {modalOpen && (
-        <div onClick={() => setModalOpen(false)} role="dialog" aria-modal="true" aria-label="Στοιχεία επισκέπτη"
-          style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(680px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-            {/* Sticky header με avatar αρχικών */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontWeight: 700, fontSize: 15, fontFamily: T.font.sans, flexShrink: 0, letterSpacing: '0.02em' }}>{initials}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{editing ? 'Επεξεργασία στοιχείων επισκέπτη' : 'Νέος επισκέπτης'}</div>
-              </div>
-              <button onClick={() => setModalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: T.h.md, height: T.h.md, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
-            </div>
-            {/* Σώμα με κύλιση, οργανωμένο σε ενότητες */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '2px 24px 22px' }}>
-              {/* Τέσσερα πεδία. Δεν ζητάμε ΑΦΜ, ταυτότητα, διεύθυνση, εθνικότητα
-                  ή «πηγή γνωριμίας» από κάποιον που θα μείνει τρεις νύχτες: είναι
-                  δεδομένα προσωπικού χαρακτήρα που δεν προκαλούσαν καμία ενέργεια. */}
-              {secHead('Στοιχεία επικοινωνίας')}
-              <div style={fGrid}>
-                <div style={{ gridColumn: '1 / -1' }}><TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} /></div>
-                <TextInput label="Τηλέφωνο" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
-                <TextInput label="Ηλεκτρονικό ταχυδρομείο" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" />
-              </div>
-
-              {/* Η «μαύρη λίστα» έγινε αυτό: ιδιωτική σημείωση, ΧΩΡΙΣ ετικέτα
-                  κατηγορίας. Ο διακόπτης `do_not_rent` κατηγοριοποιούσε πρόσωπο
-                  με νομικό βάρος (GDPR) και τύπωνε «Προσοχή» δίπλα σε όνομα. */}
-              <div style={{ marginTop: 18 }}>
-                <Textarea label="Ιδιωτική σημείωση" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} placeholder="Ό,τι θέλεις να θυμάσαι για αυτή τη φιλοξενία. Δική σου σημείωση, χωρίς κατηγοριοποίηση." />
-              </div>
-            </div>
-            {/* Sticky footer */}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--bg-surface)' }}>
-              <Btn variant="ghost" onClick={() => setModalOpen(false)}>Ακύρωση</Btn>
-              <Btn variant="primary" onClick={save} disabled={saving || !form.full_name.trim()}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
-            </div>
+      {/* Χειροκίνητη εισαγωγή με επικόλληση. Ίδια δομή ενότητας με την από
+          πάνω: η επικεφαλίδα δεν είναι αδελφός του gap του Modal. */}
+      <div>
+        {secHead('Χειροκίνητη επικόλληση', 0)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Textarea label="Περιεχόμενο .ics" value={icalText} onChange={setIcalText} rows={5} placeholder="BEGIN:VCALENDAR ..." />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>Ανάλυση επικόλλησης</Btn>
+            {icalEvents && <Toggle on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} label="Και μπλοκαρίσματα ημερομηνιών" labelOff="Μόνο κρατήσεις" />}
           </div>
+          {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--text-secondary)', lineHeight: 1.5 }}>{icalMsg.text}</div>}
+          {/* Η προεπισκόπηση υπολογίζεται ΜΟΝΟ με ανοιχτό το παράθυρο: το
+              `icalEvents` δεν καθαρίζεται στο κλείσιμο, οπότε χωρίς τον έλεγχο
+              `icalOpen` το `icalToStayDrafts` ξανάτρεχε σε κάθε απόδοση της
+              καρτέλας — το παράθυρο δεν αποπροσαρτάται πια, μόνο κρύβεται. */}
+          {icalOpen && icalEvents && (() => {
+            const drafts = icalToStayDrafts(icalEvents, { propertyId: icalPropertyId || 'x', channel: icalChannel });
+            const bookings = drafts.filter(d => !d.blocked);
+            const blocks = drafts.filter(d => d.blocked);
+            const toImport = icalIncludeBlocked ? drafts : bookings;
+            const nights = toImport.reduce((s, d) => s + d.nights, 0);
+            return (
+              <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 12 }}>
+                  {statTile('Κρατήσεις', String(bookings.length))}
+                  {statTile('Μπλοκαρίσματα', String(blocks.length))}
+                  {statTile('Νύχτες προς εισαγωγή', String(nights))}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                  {toImport.slice(0, 40).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, color: 'var(--text-secondary)', padding: '6px 10px', background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 8 }}>
+                      <span>{fd(d.check_in)} έως {fd(d.check_out)}</span>
+                      <span style={{ color: 'var(--text-tertiary)' }}>{d.nights} νύχτες{d.blocked ? ' · μπλοκάρισμα' : ''}</span>
+                    </div>
+                  ))}
+                  {toImport.length > 40 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', padding: 4 }}>και άλλες {toImport.length - 40}…</div>}
+                </div>
+              </div>
+            );
+          })()}
         </div>
-      )}
+      </div>
+      </Modal>
+
+      {/* ── Φόρμα νέου/επεξεργασίας πελάτη ───────────────────────────────────
+          Το τέταρτο χειρόγραφο κέλυφος, με μία ακόμη παράβαση: τα αρχικά του
+          ονόματος τυπώνονταν σε μέγεθος 15, που ΔΕΝ υπάρχει στην κλίμακα
+          (…13, 14, 16…). Το κουτί του εικονιδίου το δίνει τώρα το Modal και τα
+          αρχικά κάθονται στο 14. */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} width={680}
+        title={editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}
+        ariaLabel="Στοιχεία επισκέπτη"
+        subtitle={editing ? 'Επεξεργασία στοιχείων επισκέπτη' : 'Νέος επισκέπτης'}
+        icon={<span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.02em', fontFamily: T.font.sans }}>{initials}</span>}
+        footer={<>
+          <Btn variant="ghost" onClick={() => setModalOpen(false)}>Ακύρωση</Btn>
+          <Btn variant="primary" onClick={save} disabled={saving || !form.full_name.trim()}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
+        </>}>
+      {/* Τέσσερα πεδία. Δεν ζητάμε ΑΦΜ, ταυτότητα, διεύθυνση, εθνικότητα
+          ή «πηγή γνωριμίας» από κάποιον που θα μείνει τρεις νύχτες: είναι
+          δεδομένα προσωπικού χαρακτήρα που δεν προκαλούσαν καμία ενέργεια. */}
+      <div>
+        {secHead('Στοιχεία επικοινωνίας', 0)}
+        <div style={fGrid}>
+          <div style={{ gridColumn: '1 / -1' }}><TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} /></div>
+          <TextInput label="Τηλέφωνο" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
+          <TextInput label="Ηλεκτρονικό ταχυδρομείο" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" />
+        </div>
+      </div>
+
+      {/* Η «μαύρη λίστα» έγινε αυτό: ιδιωτική σημείωση, ΧΩΡΙΣ ετικέτα
+          κατηγορίας. Ο διακόπτης `do_not_rent` κατηγοριοποιούσε πρόσωπο
+          με νομικό βάρος (GDPR) και τύπωνε «Προσοχή» δίπλα σε όνομα. */}
+      <Textarea label="Ιδιωτική σημείωση" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} placeholder="Ό,τι θέλεις να θυμάσαι για αυτή τη φιλοξενία. Δική σου σημείωση, χωρίς κατηγοριοποίηση." />
+      </Modal>
     </div>
   );
 }

@@ -16,7 +16,7 @@
 // --negative, --bg-*, --text-*, --border-*).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { ReactNode, CSSProperties, useState, useEffect, useRef } from 'react';
+import { ReactNode, CSSProperties, useState, useEffect, useRef, useSyncExternalStore } from 'react';
 
 // Τα tokens ζουν σε module ΧΩΡΙΣ React (components/tokens.ts) ώστε να μπορεί να
 // τα εισάγει και Server Component. Εδώ ξανα-εξάγονται αυτούσια, ώστε τα ~600
@@ -100,29 +100,98 @@ export function Card({ children, style, className, pad = 'sm', gap = true, eleva
 // Escape, εστίαση μέσα και επιστροφή μετά, κλείδωμα κύλισης φόντου. Ήταν
 // γραμμένη στο Modal και ΘΑ ξαναγραφόταν στο SideSheet — δηλαδή θα φτιάχναμε
 // ακριβώς τη διπλοεγγραφή που ήρθαμε να σβήσουμε. Ζει εδώ, τη μοιράζονται.
+// ── Η ΣΤΟΙΒΑ ΤΩΝ ΑΝΟΙΧΤΩΝ ΕΠΙΚΑΛΥΨΕΩΝ ────────────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Κάθε επικάλυψη έδενε δικό της ακροατή Escape στο
+// `document`. Όταν ένα παράθυρο ανοίγει ΜΕΣΑ σε ντοσιέ —«Επεξεργασία» μέσα
+// στην καρτέλα επαφής, «Σάρωση απόδειξης» μέσα στην καρτέλα ενοικιαστή— και
+// τα δύο άκουγαν, και ένα Escape έκλεινε ΚΑΙ ΤΑ ΔΥΟ: ο χρήστης ήθελε να
+// κλείσει τη φόρμα και βρισκόταν πίσω στη λίστα, με το ντοσιέ χαμένο.
+// Οκτώ ζευγάρια σε πέντε οθόνες.
+//
+// Εδώ μένει ποια είναι ανοιχτή και με ποια σειρά. Στο Escape απαντά ΜΟΝΟ η
+// κορυφαία, και το z-index ανεβαίνει με το βάθος — αλλιώς Modal και SideSheet
+// είχαν ΤΟ ΙΔΙΟ 1000 και κέρδιζε όποιο έτυχε να γραφτεί τελευταίο στο DOM.
+// Η φόρμα επεξεργασίας ζωγραφιζόταν ΚΑΤΩ από το πέπλο του ντοσιέ: ο χρήστης
+// πατούσε «Επεξεργασία» και δεν έβλεπε τίποτα.
+const overlayStack: symbol[] = [];
+const overlayWatchers = new Set<() => void>();
+const notifyOverlays = () => overlayWatchers.forEach(fn => fn());
+export const OVERLAY_BASE_Z = 1000;
+
+/**
+ * Υπάρχει ανοιχτό παράθυρο ή ντοσιέ αυτή τη στιγμή;
+ *
+ * Το χρειάζεται όποια ΟΘΟΝΗ ακούει Escape για δικό της λόγο — οι Εκκρεμότητες
+ * το χρησιμοποιούν για να καθαρίσουν τη μαζική επιλογή. Χωρίς αυτό, ο χρήστης
+ * που διάλεξε δέκα εργασίες, πάτησε «Διαγραφή» και μετά μετάνιωσε με Escape
+ * ακύρωνε την ερώτηση ΚΑΙ έχανε τις δέκα επιλογές: πλήρωνε την ακύρωση
+ * ξαναδιαλέγοντας τα πάντα.
+ *
+ * Η εναλλακτική ήταν να απαριθμεί κάθε οθόνη τα δικά της παράθυρα με το χέρι
+ * (`showTemplates || showAddModal || !!receiptItem || …`) — κατάλογος που
+ * ξεμένει πίσω την επόμενη φορά που θα προστεθεί παράθυρο, σιωπηλά.
+ */
+export const isOverlayOpen = (): boolean => overlayStack.length > 0;
+
 function useOverlayShell(open: boolean, onClose: () => void) {
   const panelRef = useRef<HTMLDivElement>(null);
   // Πού γυρίζει η εστίαση όταν κλείσει. Χωρίς αυτό, ο χρήστης πληκτρολογίου
   // πέφτει στο <body> και ξαναρχίζει το Tab από την κορυφή της σελίδας.
   const returnTo = useRef<HTMLElement | null>(null);
+  // Σταθερή ταυτότητα ανά επικάλυψη, χωρίς ref: το `useState` με αρχικοποιητή
+  // τρέχει ΜΙΑ φορά και διαβάζεται ελεύθερα στην απόδοση — ένα ref δεν
+  // επιτρέπεται να διαβαστεί εκεί, και το Symbol πρέπει να είναι διαθέσιμο στην
+  // απόδοση για να βγει το βάθος από τη στοίβα.
+  const [id] = useState(() => Symbol('overlay'));
+
+  // Το βάθος ΔΙΑΒΑΖΕΤΑΙ από τη στοίβα, δεν αντιγράφεται σε state. Ένα
+  // `setDepth` μέσα σε effect θα προκαλούσε δεύτερη απόδοση όλου του
+  // παραθύρου σε κάθε άνοιγμα — και η στοίβα είναι εξωτερικό σύστημα, οπότε
+  // αυτό ακριβώς είναι η δουλειά του useSyncExternalStore.
+  const depth = useSyncExternalStore(
+    (cb) => { overlayWatchers.add(cb); return () => { overlayWatchers.delete(cb); }; },
+    () => Math.max(0, overlayStack.indexOf(id)),
+    () => 0,
+  );
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    overlayStack.push(id);
+    notifyOverlays();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // Μόνο η κορυφαία απαντά. Οι από κάτω αγνοούν.
+      if (overlayStack[overlayStack.length - 1] !== id) return;
+      onClose();
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      const i = overlayStack.lastIndexOf(id);
+      if (i !== -1) overlayStack.splice(i, 1);
+      notifyOverlays();
+    };
+  }, [open, onClose, id]);
 
   // ── ΕΣΤΙΑΣΗ ΜΕΣΑ, ΚΑΙ ΕΠΙΣΤΡΟΦΗ ΜΕΤΑ ───────────────────────────────────
   // Το ίδιο το πλαίσιο, όχι το πρώτο κουμπί: το πρώτο κουμπί κάθε παραθύρου
   // είναι το «×», και μια εστίαση που ξεκινά από το κλείσιμο διαβάζεται σαν
   // πρόταση να φύγεις. Με tabIndex -1 ο αναγνώστης οθόνης διαβάζει τον τίτλο
   // και το Tab συνεχίζει από εκεί, μέσα στο παράθυρο.
+  //
+  // ΤΟ `autoFocus` ΔΕΝ ΠΑΤΙΕΤΑΙ ΠΙΑ. Ο React το εφαρμόζει στη φάση commit, που
+  // τρέχει ΠΡΙΝ από αυτό το effect — οπότε το `panelRef.focus()` έπαιρνε πίσω
+  // την εστίαση και το πεδίο έμενε άδειο. Στο «Νέα εργασία σε επιλεγμένα» και
+  // στο «Νέα εκκρεμότητα» ο δρομέας δεν ήταν πουθενά: ο χρήστης άνοιγε παράθυρο
+  // για να γράψει και έπρεπε πρώτα να κλικάρει. Αν κάτι ΜΕΣΑ στο πλαίσιο έχει
+  // ήδη την εστίαση, δεν του την παίρνουμε.
   useEffect(() => {
     if (!open) return;
     returnTo.current = (document.activeElement as HTMLElement | null) ?? null;
-    panelRef.current?.focus();
-    const back = returnTo.current;
+    const panel = panelRef.current;
+    const inside = panel && returnTo.current && panel.contains(returnTo.current);
+    if (!inside) panel?.focus();
+    const back = inside ? null : returnTo.current;
     return () => { if (back?.isConnected) back.focus(); };
   }, [open]);
 
@@ -141,7 +210,7 @@ function useOverlayShell(open: boolean, onClose: () => void) {
     return () => { targets.forEach((el, i) => { el.style.overflow = prev[i]; }); };
   }, [open]);
 
-  return panelRef;
+  return { panelRef, z: OVERLAY_BASE_Z + depth * 10 };
 }
 
 // ═══ SideSheet, ΜΙΑ επιφάνεια για κάθε ντοσιέ ═════════════════════════════
@@ -168,11 +237,11 @@ export function SideSheet({ open, onClose, ariaLabel, width = 640, header, foote
   footer?: ReactNode;
   children: ReactNode;
 }) {
-  const panelRef = useOverlayShell(open, onClose);
+  const { panelRef, z } = useOverlayShell(open, onClose);
   if (!open) return null;
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel}
-      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', justifyContent: 'flex-end', zIndex: 1000, overscrollBehavior: 'contain' }}>
+      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', justifyContent: 'flex-end', zIndex: z, overscrollBehavior: 'contain' }}>
       <div ref={panelRef} tabIndex={-1} onClick={e => e.stopPropagation()}
         style={{ width: `min(${width}px, 100%)`, height: '100%', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', display: 'flex', flexDirection: 'column', overflow: 'hidden', outline: 'none', overscrollBehavior: 'contain', animation: 'sheetIn 0.22s cubic-bezier(0.2,0,0,1) both' }}>
         <style>{`@keyframes sheetIn{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
@@ -210,11 +279,11 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
   title: ReactNode; ariaLabel?: string; subtitle?: ReactNode; icon?: ReactNode;
   width?: number; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
 }) {
-  const panelRef = useOverlayShell(open, onClose);
+  const { panelRef, z } = useOverlayShell(open, onClose);
   if (!open) return null;
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel ?? (typeof title === 'string' ? title : undefined)}
-      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: T.sp.lg, overscrollBehavior: 'contain' }}>
+      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: z, padding: T.sp.lg, overscrollBehavior: 'contain' }}>
       <div ref={panelRef} tabIndex={-1} onClick={e => e.stopPropagation()}
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: `min(${width}px, 100%)`, maxHeight: '92dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)', outline: 'none', overscrollBehavior: 'contain' }}>
 

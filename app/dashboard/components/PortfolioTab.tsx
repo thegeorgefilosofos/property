@@ -7,10 +7,10 @@
 // Καμία εφεύρεση: μόνο πραγματικά δεδομένα που έχει καταχωρήσει ο χρήστης.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomSelect } from './UIComponents';
-import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
@@ -113,6 +113,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [bulkCat, setBulkCat] = useState('maintenance');
   const [bulkPriority, setBulkPriority] = useState('normal');
   const [bulkSaving, setBulkSaving] = useState(false);
+  // ── Η ΕΣΤΙΑΣΗ ΣΤΗΝ ΠΕΡΙΓΡΑΦΗ, ΠΙΣΩ ───────────────────────────────────────
+  // Το χειρόγραφο παράθυρο άνοιγε με τον δρομέα μέσα στο πεδίο («autoFocus»).
+  // Μέσα στο <Modal> το `autoFocus` δεν κάνει τίποτα: το πλαίσιο εστιάζει τον
+  // εαυτό του σε effect, που τρέχει ΜΕΤΑ το autoFocus του React, και την παίρνει
+  // πίσω. Έτσι το παράθυρο άνοιγε με τον δρομέα πουθενά και ο χρήστης έπρεπε να
+  // πατήσει στο πεδίο πριν γράψει. Ως effect του ΓΟΝΕΑ τρέχει μετά τα effects
+  // του παιδιού <Modal>, οπότε κερδίζει την εστίαση αντί να τη χάνει.
   // Καταστάσεις ιδιοκτήτη
   const [showStatements, setShowStatements] = useState(false);
   const [stmtOwner, setStmtOwner] = useState('');
@@ -611,92 +618,103 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       )}
 
       {/* Modal: νέα εργασία σε επιλεγμένα ακίνητα */}
-      {showBulk && (
-        <div role="dialog" aria-modal="true" aria-label="Νέα εργασία σε επιλεγμένα" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !bulkSaving && setShowBulk(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 460, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
-            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 4px', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', fontFamily: T.font.sans }}>Νέα εργασία σε επιλεγμένα</h3>
-            <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 20px', fontFamily: T.font.sans }}>Δημιουργείται μία ίδια εργασία σε {selected.size} {selected.size === 1 ? 'ακίνητο' : 'ακίνητα'}.</p>
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Περιγραφή</label>
-            <input autoFocus value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="Παράδειγμα: Έλεγχος κλιματιστικών" style={{ ...fieldStyle, marginBottom: 16 }} />
-            <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Κατηγορία</label>
-                <CustomSelect value={bulkCat} onChange={setBulkCat}
-                  options={TASK_CATEGORIES.map(c => ({ value: c.id, label: c.label }))} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Προτεραιότητα</label>
-                <CustomSelect value={bulkPriority} onChange={setBulkPriority}
-                  options={TASK_PRIORITIES.map(p => ({ value: p.value, label: p.label }))} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <Btn variant="secondary" onClick={() => setShowBulk(false)} disabled={bulkSaving}>Ακύρωση</Btn>
-              <Btn variant="primary" onClick={createBulkTask} disabled={bulkSaving || !bulkDesc.trim()}>{bulkSaving ? 'Δημιουργία…' : 'Δημιουργία'}</Btn>
-            </div>
+      {/* Ίδια ιστορία: ωμή σκιά, ακτίνα ως αριθμός, δικός του τίτλος σε <h3>
+          με μέγεθος και βάρος γραμμένα στο χέρι. Το Modal δίνει τα τρία. */}
+      <Modal open={showBulk} onClose={() => !bulkSaving && setShowBulk(false)} width={460}
+        title="Νέα εργασία σε επιλεγμένα"
+        subtitle={`Δημιουργείται μία ίδια εργασία σε ${selected.size} ${selected.size === 1 ? 'ακίνητο' : 'ακίνητα'}.`}
+        footer={<>
+          <Btn variant="secondary" onClick={() => setShowBulk(false)} disabled={bulkSaving}>Ακύρωση</Btn>
+          <Btn variant="primary" onClick={createBulkTask} disabled={bulkSaving || !bulkDesc.trim()}>{bulkSaving ? 'Δημιουργία…' : 'Δημιουργία'}</Btn>
+        </>}>
+        {/* Η ΕΤΙΚΕΤΑ ΜΑΖΙ ΜΕ ΤΟ ΠΕΔΙΟ ΤΗΣ, ΣΕ ΕΝΑ ΚΟΥΤΙ. Το σώμα του <Modal>
+            είναι flex column με gap 20: αφημένα χωριστά, η «Περιγραφή» και το
+            πεδίο της χώριζαν κατά 20 (+6 δικά τους) και η ετικέτα φαινόταν να
+            ανήκει στον υπότιτλο από πάνω, όχι στο πεδίο από κάτω. */}
+        <div>
+          <label style={{ ...TT.label, display: 'block', marginBottom: 6 }}>Περιγραφή</label>
+          <input autoFocus value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="Παράδειγμα: Έλεγχος κλιματιστικών" style={fieldStyle} />
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ ...TT.label, display: 'block', marginBottom: 6 }}>Κατηγορία</label>
+            <CustomSelect value={bulkCat} onChange={setBulkCat}
+              options={TASK_CATEGORIES.map(c => ({ value: c.id, label: c.label }))} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ ...TT.label, display: 'block', marginBottom: 6 }}>Προτεραιότητα</label>
+            <CustomSelect value={bulkPriority} onChange={setBulkPriority}
+              options={TASK_PRIORITIES.map(p => ({ value: p.value, label: p.label }))} />
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Modal: κατάσταση ιδιοκτήτη */}
-      {showStatements && (
-        <div role="dialog" aria-modal="true" aria-label="Κατάσταση ιδιοκτήτη" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowStatements(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 640, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
-            <SecHdr label="Καταστάσεις ιδιοκτήτη" sub={`Έσοδα, δαπάνες και καθαρό ανά ακίνητο · ${year}`}
-              right={<button type="button" aria-label="Κλείσιμο" onClick={() => setShowStatements(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1 }}>✕</button>} />
-            <div style={{ marginBottom: 18 }}>
-              <CustomSelect value={stmt?.id || ''} onChange={setStmtOwner}
-                options={owners.map(o => ({ value: o.id, label: `${o.name} · ${o.rows.length} ${o.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}` }))} />
-            </div>
+      {/* ΤΟ ΤΕΛΕΥΤΑΙΟ ΧΕΙΡΟΓΡΑΦΟ ΠΑΡΑΘΥΡΟ ΤΟΥ ΧΑΡΤΟΦΥΛΑΚΙΟΥ.
+          Είχε ωμή σκιά `0 24px 64px rgba(0,0,0,0.45)` αντί για token, ακτίνα 18
+          γραμμένη ως αριθμός, και δική του κεφαλίδα με δεύτερο «×» — τρίτο
+          σχέδιο κεφαλίδας στην ίδια εφαρμογή. Και δεν άκουγε Escape ούτε
+          κλείδωνε την κύλιση του φόντου: ο πίνακας από πίσω κυλούσε ενώ ο
+          χρήστης διάβαζε την κατάσταση.
 
-            {stmt && (
-              <>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 440 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                        <Th label="Ακίνητο" align="left" />
-                        <Th label="Έσοδα" align="right" />
-                        <Th label="Δαπάνες" align="right" />
-                        <Th label="Καθαρό" align="right" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stmt.rows.map(r => (
-                        <tr key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                          <td style={{ padding: '11px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</td>
-                          <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
-                          <Num v={eur(r.expenses)} muted />
-                          <Num v={eur(r.net)} bold />
-                        </tr>
-                      ))}
-                      <tr style={{ borderTop: '2px solid var(--border-subtle)' }}>
-                        <td style={{ padding: '13px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Σύνολο</td>
-                        <Num v={eur(stmt.revenue)} bold />
-                        <Num v={eur(stmt.expenses)} muted bold />
-                        <Num v={eur(stmt.net)} bold />
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                {/* Η προειδοποίηση ΠΡΙΝ το κουμπί, όχι μετά την αποστολή. */}
-                {estimateNote(stmt.rows) && (
-                  <div style={{ marginTop: 14 }}>
-                    <InfoBanner tone="warning">{estimateNote(stmt.rows)}</InfoBanner>
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-                  <Btn variant="secondary" onClick={officialStatement} disabled={genOfficial}><ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}</Btn>
-                  {/* Λεγόταν κι αυτό «Εξαγωγή CSV», όπως το κουμπί της κεφαλίδας
-                      τριάντα εικονοστοιχεία πιο πάνω — δύο αρχεία με το ίδιο όνομα
-                      και άλλο περιεχόμενο. Εδώ είναι η κατάσταση του ιδιοκτήτη. */}
-                  <ExportButton onClick={exportStatement} label="Κατάσταση σε CSV" />
-                </div>
-              </>
+          ΟΙ ΔΥΟ ΕΞΑΓΩΓΕΣ ΠΗΓΑΝ ΣΤΟ ΥΠΟΣΕΛΙΔΟ. Ήταν στο τέλος του σώματος, που
+          τώρα κυλά μέσα στο <Modal>: με δέκα ακίνητα ο πίνακας γεμίζει το ύψος
+          και τα δύο κουμπιά — ο ΛΟΓΟΣ που ανοίγει κανείς αυτό το παράθυρο —
+          έμεναν κάτω από το ορατό, χωρίς τίποτα να τα δείχνει. Το υποσέλιδο δεν
+          κυλά. Η προειδοποίηση της εκτίμησης μένει στο σώμα, δηλαδή ΠΑΝΩ από τα
+          κουμπιά όπως και πριν: διαβάζεται πριν φύγει το αρχείο. */}
+      <Modal open={showStatements} onClose={() => setShowStatements(false)} width={640}
+        title="Καταστάσεις ιδιοκτήτη" subtitle={`Έσοδα, δαπάνες και καθαρό ανά ακίνητο · ${year}`}
+        footer={stmt ? <>
+          <Btn variant="secondary" onClick={officialStatement} disabled={genOfficial}><ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}</Btn>
+          {/* Λεγόταν κι αυτό «Εξαγωγή CSV», όπως το κουμπί της κεφαλίδας
+              τριάντα εικονοστοιχεία πιο πάνω — δύο αρχεία με το ίδιο όνομα
+              και άλλο περιεχόμενο. Εδώ είναι η κατάσταση του ιδιοκτήτη. */}
+          <ExportButton onClick={exportStatement} label="Κατάσταση σε CSV" />
+        </> : undefined}>
+        {/* Τα κενά τα δίνει το σώμα του <Modal> (flex column, gap 20). Τα
+            χειρόγραφα marginBottom/marginTop που έμειναν από το παλιό κέλυφος
+            πρόσθεταν 18 και 14 ΠΑΝΩ σε αυτό. */}
+        <CustomSelect value={stmt?.id || ''} onChange={setStmtOwner}
+          options={owners.map(o => ({ value: o.id, label: `${o.name} · ${o.rows.length} ${o.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}` }))} />
+
+        {stmt && (
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 440 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <Th label="Ακίνητο" align="left" />
+                    <Th label="Έσοδα" align="right" />
+                    <Th label="Δαπάνες" align="right" />
+                    <Th label="Καθαρό" align="right" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {stmt.rows.map(r => (
+                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '11px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</td>
+                      <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
+                      <Num v={eur(r.expenses)} muted />
+                      <Num v={eur(r.net)} bold />
+                    </tr>
+                  ))}
+                  <tr style={{ borderTop: '2px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '13px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Σύνολο</td>
+                    <Num v={eur(stmt.revenue)} bold />
+                    <Num v={eur(stmt.expenses)} muted bold />
+                    <Num v={eur(stmt.net)} bold />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {/* Η προειδοποίηση ΠΡΙΝ το κουμπί, όχι μετά την αποστολή. */}
+            {estimateNote(stmt.rows) && (
+              <InfoBanner tone="warning">{estimateNote(stmt.rows)}</InfoBanner>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       <style>{`.portfolio-row:hover{background:var(--bg-hover)}`}</style>
     </div>

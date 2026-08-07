@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Spinner, EmptyState } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState, Modal } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { saved } from '@/components/dbWrite';
@@ -198,40 +198,93 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
     if (started) setListening(true);
   };
 
-  const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
+  // Ύψη από την κοινή κλίμακα, όχι literals. Το 40 του πεδίου ήταν η τιμή του
+  // T.h.lg στο ποντίκι — αλλά ΜΟΝΟ εκεί: με δάχτυλο η κλίμακα ανεβαίνει στα 44
+  // (globals.css, `@media (pointer: coarse)`) και το πεδίο έμενε στα 40. Το 34
+  // του segmented control δεν ήταν καμία από τις τρεις τιμές (sm 32 / md 36 /
+  // lg 40): το ΙΔΙΟ χειριστήριο ζει αυτούσιο και στο RentAdjustmentModal, όπου
+  // ήδη διαβάζει T.h.md — δύο αντίγραφα, δύο ύψη, 34 εδώ και 36 εκεί.
+  const field: React.CSSProperties = { height: T.h.lg, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
   const lbl = { ...TT.label, marginBottom: 6 } as React.CSSProperties;
   const onF = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onB = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
-  const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: 34, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'all 0.15s' });
+  const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'all 0.15s' });
   const money = (value: string, on: (v: string) => void, suffix: string) => (
     <div style={{ position: 'relative' }}>
       <input value={value} onChange={e => on(e.target.value)} onFocus={onF} onBlur={onB} inputMode="decimal" placeholder="0"
         style={{ ...field, paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
-      <span style={{ position: 'absolute', right: 13, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none' }}>{suffix}</span>
+      {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: αλλιώς το «€» δεν ακολουθεί
+          το πεδίο όταν η κλίμακα ανεβαίνει στα 44 για το δάχτυλο. */}
+      <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none' }}>{suffix}</span>
     </div>
   );
   const stat = (label: string, value: string, strong = false) => (
     <div>
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
-      <div style={{ fontSize: strong ? 16 : 13.5, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{value}</div>
+      {/* Ήταν 13.5 — μισό εικονοστοιχείο, εκτός της κλίμακας μεγεθών. */}
+      <div style={{ fontSize: strong ? 16 : 13, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{value}</div>
     </div>
   );
 
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Σύνταξη μισθωτηρίου" onClick={onClose} style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(760px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" /></svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2, display: 'flex', alignItems: 'center', gap: 7 }}>Μισθωτήριο<InfoHint>Συντάσσει ολοκληρωμένο ιδιωτικό συμφωνητικό μίσθωσης με τους τυποποιημένους όρους, το υπογράφουν ηλεκτρονικά και τα δύο μέρη, και παράγεται επαληθεύσιμο PDF με αριθμό εγγράφου και QR. Αρχειοθετείται στα έγγραφα του ακινήτου και ενημερώνει την καρτέλα ενοικιαστή.</InfoHint></div>
-            <div style={{ ...TT.bodySm, marginTop: 2 }}>Ιδιωτικό συμφωνητικό με υπογραφή και των δύο μερών</div>
-          </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
+  // ── ΤΟ ΠΑΡΑΘΥΡΟ ΕΓΙΝΕ <Modal> ────────────────────────────────────────────
+  // Ίδιο χειρόγραφο κέλυφος με το RentAdjustmentModal, γραμμένο δεύτερη φορά —
+  // και με τις ίδιες τρεις παραλείψεις: κανένα Escape, καμία εστίαση μέσα ή
+  // επιστροφή μετά, καμία κλειδωμένη κύλιση φόντου. Σε αυτό εδώ το παράθυρο η
+  // τελευταία μετράει διπλά: το σώμα έχει ΔΥΟ πίνακες υπογραφής (SignaturePad),
+  // όπου το σύρσιμο του δαχτύλου δίπλα από τον καμβά κυλούσε τη σελίδα από πίσω.
+  // Επίσης το «×» είχε padding 4 (στόχος ~21×30) και το maxHeight ήταν '92vh'.
+  //
+  // Το υποσέλιδο κρατά και τις δύο καταστάσεις: πριν τη δημιουργία «Ακύρωση» +
+  // «Υπογεγραμμένο μισθωτήριο»· μετά (`pending`) η ερώτηση αρχειοθέτησης στο
+  // footerInfo και τα τρία χειριστήρια απάντησης στο footer, όσο δεν έχει
+  // αρχειοθετηθεί.
+  //
+  // ── ΟΣΟ ΓΡΑΦΕΙ, ΤΟ ΠΑΡΑΘΥΡΟ ΔΕΝ ΚΛΕΙΝΕΙ ─────────────────────────────────
+  // Η μετατροπή ΠΡΟΣΘΕΤΕΙ έξοδο που δεν υπήρχε: το χειρόγραφο κέλυφος δεν
+  // άκουγε πλήκτρα, άρα το Escape δεν έκανε τίποτα. Εδώ η αρχειοθέτηση κάνει
+  // ΔΥΟ πράγματα — ανεβάζει το συμφωνητικό και γράφει την καρτέλα ενοικιαστή —
+  // και το `saved()` της δεύτερης μιλά μέσα από ΑΥΤΟ το παράθυρο. Ένα Escape
+  // στη μέση το κλείνει και το «Ο ενοικιαστής δεν ενημερώθηκε» δεν φτάνει
+  // πουθενά: μένει αρχειοθετημένο μισθωτήριο χωρίς ενοικιαστή, σιωπηλά.
+  // Πάνω στη δημιουργία, το ίδιο Escape σβήνει τη φόρμα ΜΑΖΙ ΜΕ ΤΙΣ ΔΥΟ
+  // ΥΠΟΓΡΑΦΕΣ. Ίδια φρουρά με το Modal του PortfolioTab.
+  const closeIfIdle = () => { if (busy || archiving) return; onClose(); };
 
-        <div style={{ padding: '18px 24px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 15 }}>
+  const footerInfo = pending ? (
+    <span style={{ display: 'inline-block', minWidth: 220 }}>
+      <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+        {archived ? 'Αποθηκεύτηκε και ενημερώθηκε ο ενοικιαστής.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
+      </span>
+      {!archived && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Αρχειοθετείται με ημερομηνία έναρξης {grDate(res.start)} και ενημερώνει την καρτέλα ενοικιαστή.</span>}
+    </span>
+  ) : undefined;
+
+  const footer = pending ? (
+    !archived && (
+      <>
+        {speechSupported() && <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
+          style={{ width: T.h.sm, height: T.h.sm, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
+        </button>}
+        <Btn variant="secondary" onClick={onClose} disabled={archiving}>Ίσως αργότερα</Btn>
+        <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
+      </>
+    )
+  ) : (
+    <>
+      <Btn variant="secondary" onClick={onClose} disabled={busy}>Ακύρωση</Btn>
+      <Btn variant="primary" onClick={generate} disabled={busy || !ready}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο μισθωτήριο'}</Btn>
+    </>
+  );
+
+  return (
+    <Modal open={open} onClose={closeIfIdle} width={760}
+      ariaLabel="Σύνταξη μισθωτηρίου"
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Μισθωτήριο<InfoHint>Συντάσσει ολοκληρωμένο ιδιωτικό συμφωνητικό μίσθωσης με τους τυποποιημένους όρους, το υπογράφουν ηλεκτρονικά και τα δύο μέρη, και παράγεται επαληθεύσιμο PDF με αριθμό εγγράφου και QR. Αρχειοθετείται στα έγγραφα του ακινήτου και ενημερώνει την καρτέλα ενοικιαστή.</InfoHint></span>}
+      subtitle="Ιδιωτικό συμφωνητικό με υπογραφή και των δύο μερών"
+      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" /></svg>}
+      footer={footer} footerInfo={footerInfo}>
+      <>
           {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε ακίνητο για να συντάξεις μισθωτήριο." /> : (
             <>
               <ScanButton label="Συμπλήρωσε από φωτογραφία" hint="Διαβάζει τα στοιχεία και γεμίζει τη φόρμα. Δεν καταχωρεί τίποτα μόνο του." onExtract={doc => {
@@ -311,34 +364,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
               {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
             </>
           )}
-        </div>
-
-        {pending ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                {archived ? 'Αποθηκεύτηκε και ενημερώθηκε ο ενοικιαστής.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
-              </div>
-              {!archived && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>Αρχειοθετείται με ημερομηνία έναρξης {grDate(res.start)} και ενημερώνει την καρτέλα ενοικιαστή.</div>}
-            </div>
-            {!archived && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {speechSupported() && <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
-                  style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
-                </button>}
-                <Btn variant="secondary" onClick={onClose}>Ίσως αργότερα</Btn>
-                <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
-            <Btn variant="primary" onClick={generate} disabled={busy || !ready}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο μισθωτήριο'}</Btn>
-          </div>
-        )}
-      </div>
-    </div>
+      </>
+    </Modal>
   );
 }

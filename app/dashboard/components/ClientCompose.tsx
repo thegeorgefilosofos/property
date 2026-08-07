@@ -13,7 +13,7 @@
 import { brandMarkHtml } from '@/components/BrandMark';
 import { useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Badge } from '@/components/Theme';
+import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import { escHtml as esc } from '@/lib/reportBranding';
 
 // Ελάχιστο σχήμα πελάτη που χρειάζεται η σύνθεση (το Client του TabClients το ικανοποιεί).
@@ -166,24 +166,51 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
     fontFamily: T.font.sans, whiteSpace: 'nowrap',
   });
 
+  // ── ΤΟ ΠΑΡΑΘΥΡΟ ΕΓΙΝΕ <Modal> ────────────────────────────────────────────
+  // Τέταρτο αντίγραφο του ίδιου χειρόγραφου κελύφους (scrim, radius 18,
+  // κεφαλίδα με «×», υποσέλιδο δύο στηλών) — και το τέταρτο χωρίς Escape, χωρίς
+  // εστίαση μέσα ή επιστροφή μετά, χωρίς κλείδωμα κύλισης του φόντου. Εδώ η
+  // κύλιση μετρούσε ιδιαίτερα: η λίστα παραληπτών κυλά μέσα σε δικό της κουτί
+  // 208px, οπότε μόλις έφτανε στο τέλος της συνέχιζε να κυλά η σελίδα από πίσω.
+  // Το «×» είχε padding 4 (στόχος ~21×30) και το maxHeight ήταν '92vh'.
+  //
+  // Το υποσέλιδο κρατά και τις δύο καταστάσεις: πριν την αποστολή «Ακύρωση» +
+  // «Αποστολή (ν)»· μετά (`results`) «Νέο μήνυμα» + «Κλείσιμο».
+  //
+  // ── ΟΣΟ ΣΤΕΛΝΕΙ, ΤΟ ΠΑΡΑΘΥΡΟ ΔΕΝ ΚΛΕΙΝΕΙ ────────────────────────────────
+  // Η μετατροπή ΠΡΟΣΘΕΤΕΙ έξοδο που δεν υπήρχε: το χειρόγραφο κέλυφος δεν
+  // άκουγε πλήκτρα, άρα το Escape δεν έκανε τίποτα. Εδώ κοστίζει περισσότερο
+  // απ' οπουδήποτε αλλού: τα email ΕΧΟΥΝ ΗΔΗ ΦΥΓΕΙ, και το μόνο σημείο σε όλη
+  // την εφαρμογή που δείχνει ποιος παραλήπτης απέτυχε είναι αυτή εδώ η λίστα
+  // αποτελεσμάτων. Ένα Escape πριν γυρίσει η αποστολή σβήνει το
+  // `results` πριν καν γραφτεί — η μαζική αποστολή έγινε και κανείς δεν μαθαίνει
+  // ποτέ ποια μηνύματα δεν παραδόθηκαν. Ίδια φρουρά με το Modal του PortfolioTab.
+  const closeIfIdle = () => { if (sending) return; onClose(); };
+
+  const footerInfo = results
+    ? 'Οι απαντήσεις των πελατών θα έρθουν στο email σου.'
+    : <>{selCount} παραλήπτ{selCount === 1 ? 'ης' : 'ες'} · reply-to το email σου</>;
+
+  const footer = results ? (
+    <>
+      <Btn variant="secondary" onClick={() => { reset(); setSubject(''); setBody(''); }}>Νέο μήνυμα</Btn>
+      <Btn variant="primary" onClick={onClose}>Κλείσιμο</Btn>
+    </>
+  ) : (
+    <>
+      <Btn variant="secondary" onClick={onClose} disabled={sending}>Ακύρωση</Btn>
+      <Btn variant="primary" onClick={send} disabled={sending || !subject.trim() || selCount === 0}>{sending ? 'Αποστολή…' : `Αποστολή${selCount ? ` (${selCount})` : ''}`}</Btn>
+    </>
+  );
+
   return (
-    <div role="dialog" aria-modal="true" aria-label="Σύνταξη μηνύματος" onClick={onClose} style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(760px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2 }}>Σύνταξη email</div>
-            <div style={{ ...TT.bodySm, marginTop: 1 }}>Μαζική, στοχευμένη επικοινωνία με τους πελάτες σου</div>
-          </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
-
-        {/* Body (scroll) */}
-        <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <Modal open={open} onClose={closeIfIdle} width={760}
+      ariaLabel="Σύνταξη μηνύματος"
+      title="Σύνταξη email"
+      subtitle="Μαζική, στοχευμένη επικοινωνία με τους πελάτες σου"
+      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>}
+      footer={footer} footerInfo={footerInfo}>
+      <>
           {results ? (
             // ── Αποτέλεσμα αποστολής ────────────────────────────────────────
             <div>
@@ -282,29 +309,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
               {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
             </>
           )}
-        </div>
-
-        {/* Footer */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
-          {results ? (
-            <>
-              <span style={{ ...TT.bodySm }}>Οι απαντήσεις των πελατών θα έρθουν στο email σου.</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Btn variant="secondary" onClick={() => { reset(); setSubject(''); setBody(''); }}>Νέο μήνυμα</Btn>
-                <Btn variant="primary" onClick={onClose}>Κλείσιμο</Btn>
-              </div>
-            </>
-          ) : (
-            <>
-              <span style={{ ...TT.bodySm }}>{selCount} παραλήπτ{selCount === 1 ? 'ης' : 'ες'} · reply-to το email σου</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
-                <Btn variant="primary" onClick={send} disabled={sending || !subject.trim() || selCount === 0}>{sending ? 'Αποστολή…' : `Αποστολή${selCount ? ` (${selCount})` : ''}`}</Btn>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+      </>
+    </Modal>
   );
 }

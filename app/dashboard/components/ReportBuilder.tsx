@@ -11,7 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Badge } from '@/components/Theme';
+import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
 import { CustomSelect as Select } from './UIComponents';
 import { num } from './docUtils';
@@ -236,8 +236,12 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   };
 
   // ── Στυλ (ίδια premium γλώσσα με το Λογιστικό ημερολόγιο) ────────────────────
+  // Το ύψος ήταν literal 38 δίπλα σε <Btn> με minHeight T.h.md (36): δύο
+  // χειριστήρια στην ίδια σειρά με 2px διαφορά, και κανένα από τα δύο δεν
+  // ανέβαινε στα 44 όταν ο δείκτης είναι δάχτυλο. Τώρα και τα δύο από την
+  // ίδια κλίμακα.
   const field: React.CSSProperties = {
-    height: 38, padding: '0 13px', borderRadius: 8, border: '1px solid var(--border-default)',
+    height: T.h.md, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)',
     background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
   };
   // Ουδέτερη επιλογή: η κάρτα μένει ήρεμη· μόνο το κουτάκι ελέγχου παίρνει accent.
@@ -248,22 +252,50 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     transition: 'border-color 0.15s, background 0.15s',
   });
 
+  // ── ΤΟ ΠΑΡΑΘΥΡΟ ΕΓΙΝΕ <Modal> ────────────────────────────────────────────
+  // Ήταν 30 γραμμές χειρόγραφου markup γύρω από το περιεχόμενο (scrim, πλαίσιο,
+  // κεφαλίδα, υποσέλιδο) που ξαναέγραφαν ό,τι δίνει ήδη το primitive — και το
+  // ξαναέγραφαν ΛΕΙΨΟ. Απ' όλες, έμειναν τρία props: title, subtitle, icon.
+  // Τι έλειπε, μετρημένα:
+  //   • Escape: δεν έκλεινε το παράθυρο (0 listener πλήκτρων εδώ).
+  //   • Εστίαση: δεν έμπαινε μέσα και δεν γύριζε πίσω· ο χρήστης πληκτρολογίου
+  //     έπεφτε στο <body> και ξανάρχιζε το Tab από την κορυφή της σελίδας.
+  //   • Το φόντο ΚΥΛΟΥΣΕ πίσω από το ανοιχτό παράθυρο (καμία `overflow: hidden`).
+  //   • Το «×» είχε padding 4, δηλαδή στόχο ~21×30 — κάτω από το μέγεθος αφής.
+  //   • maxHeight '92vh' αντί για '92dvh': σε κινητό με ορατή μπάρα διεύθυνσης
+  //     το υποσέλιδο με τα κουμπιά έβγαινε εκτός οθόνης.
+  //
+  // ── ΟΣΟ ΤΡΕΧΕΙ Η ΔΗΜΙΟΥΡΓΙΑ, ΤΟ ΠΑΡΑΘΥΡΟ ΔΕΝ ΚΛΕΙΝΕΙ ────────────────────
+  // Η μετατροπή ΠΡΟΣΘΕΤΕΙ μια έξοδο που δεν υπήρχε: το χειρόγραφο κέλυφος δεν
+  // άκουγε κανένα πλήκτρο, άρα το Escape δεν έκανε τίποτα. Τώρα κλείνει — και
+  // ένα Escape στη μέση της άντλησης δεδομένων αφήνει τη δημιουργία να τρέχει
+  // σε παράθυρο που έχει ήδη αποπροσαρτηθεί: το `setErr` μιας αποτυχίας δεν
+  // εμφανίζεται πουθενά και ο χρήστης δεν μαθαίνει ποτέ ότι η αναφορά δεν βγήκε.
+  // Η φρουρά είναι η ίδια που ήδη χρησιμοποιεί το PortfolioTab στο δικό του Modal.
+  const closeIfIdle = () => { if (busy || xlsxBusy) return; onClose(); };
+
+  const footerInfo = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: T.sp.sm, flexWrap: 'wrap' }}>
+      {selProps.length} {selProps.length === 1 ? 'ακίνητο' : 'ακίνητα'} · {periodLabel} <Badge tone="neutral">Επαληθεύσιμο PDF</Badge>
+    </span>
+  );
+  const footer = (
+    <>
+      <Btn variant="secondary" onClick={onClose} disabled={busy || xlsxBusy}>Ακύρωση</Btn>
+      {selProps.length > 1 && (
+        <Btn variant="secondary" onClick={generateComparison} disabled={busy || xlsxBusy}>{xlsxBusy ? 'Excel…' : 'Συγκριτικό Excel'}</Btn>
+      )}
+      <Btn variant="primary" onClick={generate} disabled={busy || xlsxBusy || !selProps.length || !sections.size}>{busy ? 'Δημιουργία…' : 'Δημιουργία PDF'}</Btn>
+    </>
+  );
+
   return (
-    <div role="dialog" aria-modal="true" aria-label="Δημιουργία αναφοράς" onClick={onClose} style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(720px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2 }}>Δημιουργία αναφοράς</div>
-            <div style={{ ...TT.bodySm, marginTop: 1 }}>Περίοδος, ακίνητα και ενότητες σε επίσημο, επαληθεύσιμο PDF</div>
-          </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
-
-        <div style={{ padding: '18px 24px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 15 }}>
+    <Modal open={open} onClose={closeIfIdle} width={720}
+      title="Δημιουργία αναφοράς"
+      subtitle="Περίοδος, ακίνητα και ενότητες σε επίσημο, επαληθεύσιμο PDF"
+      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>}
+      footer={footer} footerInfo={footerInfo}>
+      <>
           {presets.length > 0 && (
             <div>
               <div style={{ ...TT.label, marginBottom: 8 }}>ΑΠΟΘΗΚΕΥΜΕΝΑ ΠΡΟΦΙΛ</div>
@@ -271,7 +303,8 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
                 {presets.map(p => (
                   <span key={p.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 6px 4px 12px' }}>
                     <button onClick={() => applyPreset(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{p.name}</button>
-                    <button onClick={() => savePresets(presets.filter(x => x.name !== p.name))} title="Διαγραφή" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '0 2px' }}>×</button>
+                    {/* Ήταν fontSize 15, εκτός της κλίμακας (9…14,16,18,20,22,24,28,32). */}
+                    <button onClick={() => savePresets(presets.filter(x => x.name !== p.name))} title="Διαγραφή" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 2px' }}>×</button>
                   </span>
                 ))}
               </div>
@@ -328,19 +361,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           </div>
 
           {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
-          <span style={{ ...TT.bodySm, display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{selProps.length} {selProps.length === 1 ? 'ακίνητο' : 'ακίνητα'} · {periodLabel} <Badge tone="neutral">Επαληθεύσιμο PDF</Badge></span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
-            {selProps.length > 1 && (
-              <Btn variant="secondary" onClick={generateComparison} disabled={busy || xlsxBusy}>{xlsxBusy ? 'Excel…' : 'Συγκριτικό Excel'}</Btn>
-            )}
-            <Btn variant="primary" onClick={generate} disabled={busy || xlsxBusy || !selProps.length || !sections.size}>{busy ? 'Δημιουργία…' : 'Δημιουργία PDF'}</Btn>
-          </div>
-        </div>
-      </div>
-    </div>
+      </>
+    </Modal>
   );
 }

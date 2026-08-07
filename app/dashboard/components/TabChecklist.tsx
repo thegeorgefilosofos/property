@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE } from '@/components/Theme'
+import { T, fn, fe, fp, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen } from '@/components/Theme'
+import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
 import type { ChecklistItemsRow } from '@/lib/supabase/tables'
@@ -1316,110 +1317,104 @@ function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pending, sma
   const entries = Object.entries(TEMPLATES).filter(([key, t]) => (!t.when || t.when(ctx)) && !smartKeys.has(key))
   // Η πρώτη προθεσμία που λείπει, για να λέει η κάρτα κάτι αληθινό και όχι πλήθος.
   const firstDue = pending.filter(d => !!d.due_date).sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''))[0]
+  // ΤΟ ΚΕΛΥΦΟΣ ΕΦΥΓΕ ΣΤΟ <Modal>. Ήταν 12 γραμμές χειρόγραφου παραθύρου (scrim,
+  // radius 24, δικό του «×», δικό του maxHeight 85vh) που έλεγαν ό,τι λέει ήδη
+  // το primitive — και ΔΕΝ έλεγαν τίποτα για Escape, εστίαση ή κλείδωμα κύλισης
+  // φόντου: τα τρία που το χειρόγραφο παράθυρο ξεχνά πάντα. Έμεινε μόνο το
+  // περιεχόμενο, που είναι και το μόνο που ήταν δικό του.
   return (
-    <div role="dialog" aria-modal="true" aria-label="Επιλογή προτύπου" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 620, border: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Έτοιμα πρότυπα</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>Έτοιμες λίστες εργασιών, και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.</p>
-            </div>
-            <button type="button" onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <Modal open onClose={onClose} width={620}
+      title="Έτοιμα πρότυπα"
+      subtitle="Έτοιμες λίστες εργασιών, και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.">
+      {visibleSmart.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {visibleSmart.map(s => {
+              const t = TEMPLATES[s.templateKey]
+              return (
+                <button key={s.templateKey} type="button" onClick={() => { onSelect(s.templateKey); onClose() }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '13px 16px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.background = 'var(--bg-surface)' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}{t ? ` · ${t.items.length} εργασίες` : ''}</div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              )
+            })}
           </div>
         </div>
-        <div style={{ padding: '18px 28px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {visibleSmart.length > 0 && (
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {visibleSmart.map(s => {
-                  const t = TEMPLATES[s.templateKey]
-                  return (
-                    <button key={s.templateKey} type="button" onClick={() => { onSelect(s.templateKey); onClose() }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '13px 16px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.background = 'var(--bg-surface)' }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.title}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}{t ? ` · ${t.items.length} εργασίες` : ''}</div>
-                      </div>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Υποχρεώσεις &amp; νομοθεσία</div>
-            {/* ΟΧΙ «Ημερολόγιο ΑΑΔΕ 2026» με δέκα σταθερές ημερομηνίες 1ης του
-                μήνα. Οι υποχρεώσεις υπολογίζονται για ΑΥΤΟ το ακίνητο, από το ένα
-                φορολογικό ημερολόγιο και από τις αλλαγές νομοθεσίας που το
-                αφορούν. Ο αριθμός στην κάρτα είναι όσες ΛΕΙΠΟΥΝ, όχι ένα σταθερό
-                πλήθος: όταν δεν λείπει καμία, η κάρτα το λέει και δεν γράφει τίποτα. */}
-            <button type="button" onClick={() => { if (pending.length > 0) { onLoadObligations(); onClose() } }}
-              disabled={pending.length === 0}
-              title={pending.length === 0 ? 'Δεν λείπει καμία υποχρέωση αυτή τη στιγμή' : 'Προσθήκη των υποχρεώσεων που λείπουν'}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', borderRadius: T.radius.card, border: '1px solid ' + (pending.length === 0 ? 'var(--border-subtle)' : 'var(--accent-border)'), background: pending.length === 0 ? 'var(--bg-surface)' : 'var(--accent-soft)', cursor: pending.length === 0 ? 'default' : 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-              onMouseEnter={e => { if (pending.length > 0) e.currentTarget.style.borderColor = 'var(--accent)' }}
-              onMouseLeave={e => { if (pending.length > 0) e.currentTarget.style.borderColor = 'var(--accent-border)' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: pending.length === 0 ? 'var(--bg-elevated)' : 'var(--accent)', color: pending.length === 0 ? 'var(--text-tertiary)' : 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                  {pending.length === 0 ? 'Οι υποχρεώσεις είναι όλες μέσα' : `Πρόσθεσε ${pending.length} ${pending.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}`}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                  {pending.length === 0
-                    ? 'Τίποτα δεν λείπει από το φορολογικό ημερολόγιο για αυτό το ακίνητο.'
-                    : firstDue ? `Πρώτη προθεσμία: ${firstDue.description}, ${fmtDate(firstDue.due_date)}` : 'Αλλαγές νομοθεσίας που αφορούν αυτό το ακίνητο'}
-                </div>
-              </div>
-              {pending.length > 0 && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>}
-            </button>
+      )}
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Υποχρεώσεις &amp; νομοθεσία</div>
+        {/* ΟΧΙ «Ημερολόγιο ΑΑΔΕ 2026» με δέκα σταθερές ημερομηνίες 1ης του
+            μήνα. Οι υποχρεώσεις υπολογίζονται για ΑΥΤΟ το ακίνητο, από το ένα
+            φορολογικό ημερολόγιο και από τις αλλαγές νομοθεσίας που το
+            αφορούν. Ο αριθμός στην κάρτα είναι όσες ΛΕΙΠΟΥΝ, όχι ένα σταθερό
+            πλήθος: όταν δεν λείπει καμία, η κάρτα το λέει και δεν γράφει τίποτα. */}
+        <button type="button" onClick={() => { if (pending.length > 0) { onLoadObligations(); onClose() } }}
+          disabled={pending.length === 0}
+          title={pending.length === 0 ? 'Δεν λείπει καμία υποχρέωση αυτή τη στιγμή' : 'Προσθήκη των υποχρεώσεων που λείπουν'}
+          style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', borderRadius: T.radius.card, border: '1px solid ' + (pending.length === 0 ? 'var(--border-subtle)' : 'var(--accent-border)'), background: pending.length === 0 ? 'var(--bg-surface)' : 'var(--accent-soft)', cursor: pending.length === 0 ? 'default' : 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+          onMouseEnter={e => { if (pending.length > 0) e.currentTarget.style.borderColor = 'var(--accent)' }}
+          onMouseLeave={e => { if (pending.length > 0) e.currentTarget.style.borderColor = 'var(--accent-border)' }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: pending.length === 0 ? 'var(--bg-elevated)' : 'var(--accent)', color: pending.length === 0 ? 'var(--text-tertiary)' : 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
           </div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
-              {entries.map(([key, t]) => {
-                const icons: Record<string, string> = {
-                  checkin: 'M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3',
-                  checkout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9',
-                  maintenance: 'M14.7 6.3a4 4 0 00-5.6 5.6l-6 6L5 20l6-6a4 4 0 005.6-5.6l-2.3 2.3-2-2z',
-                  legal: 'M12 3v18 M5 7h14 M5 7l-2.5 6a4 4 0 008 0z M19 7l2.5 6a4 4 0 01-8 0z',
-                  renovation: 'M3 21h18 M5 21V8l7-5 7 5v13 M10 21v-6h4v6',
-                  airbnb: 'M2 8h16a2 2 0 012 2v9 M2 4v15 M2 16h20 M6 8V6a2 2 0 012-2h3',
-                  purchase: 'M6 6h15l-1.6 9H7.6z M6 6 5 3H2 M9 20h.01 M17 20h.01',
-                }
-                const path = icons[key] || 'M4 6h16 M4 12h16 M4 18h10'
-                return (
-                  <button key={key} type="button" onClick={() => { onSelect(key); onClose() }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{path.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</div>
-                      {/* ΚΑΝΕΝΑ «~1.850 €» ΕΔΩ. Το σύνολο ήταν άθροισμα 24 σταθερών
-                          χωρίς πηγή, έτος ή περιοχή. Στη θέση του μπαίνει ο λόγος
-                          που το πρότυπο εμφανίζεται σε αυτόν τον χρήστη. */}
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{t.items.length} εργασίες{t.why ? ` · ${t.why}` : ''}</div>
-                    </div>
-                  </button>
-                )
-              })}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+              {pending.length === 0 ? 'Οι υποχρεώσεις είναι όλες μέσα' : `Πρόσθεσε ${pending.length} ${pending.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}`}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+              {pending.length === 0
+                ? 'Τίποτα δεν λείπει από το φορολογικό ημερολόγιο για αυτό το ακίνητο.'
+                : firstDue ? `Πρώτη προθεσμία: ${firstDue.description}, ${fmtDate(firstDue.due_date)}` : 'Αλλαγές νομοθεσίας που αφορούν αυτό το ακίνητο'}
             </div>
           </div>
+          {pending.length > 0 && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>}
+        </button>
+      </div>
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
+          {entries.map(([key, t]) => {
+            const icons: Record<string, string> = {
+              checkin: 'M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3',
+              checkout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9',
+              maintenance: 'M14.7 6.3a4 4 0 00-5.6 5.6l-6 6L5 20l6-6a4 4 0 005.6-5.6l-2.3 2.3-2-2z',
+              legal: 'M12 3v18 M5 7h14 M5 7l-2.5 6a4 4 0 008 0z M19 7l2.5 6a4 4 0 01-8 0z',
+              renovation: 'M3 21h18 M5 21V8l7-5 7 5v13 M10 21v-6h4v6',
+              airbnb: 'M2 8h16a2 2 0 012 2v9 M2 4v15 M2 16h20 M6 8V6a2 2 0 012-2h3',
+              purchase: 'M6 6h15l-1.6 9H7.6z M6 6 5 3H2 M9 20h.01 M17 20h.01',
+            }
+            const path = icons[key] || 'M4 6h16 M4 12h16 M4 18h10'
+            return (
+              <button key={key} type="button" onClick={() => { onSelect(key); onClose() }}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{path.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</div>
+                  {/* ΚΑΝΕΝΑ «~1.850 €» ΕΔΩ. Το σύνολο ήταν άθροισμα 24 σταθερών
+                      χωρίς πηγή, έτος ή περιοχή. Στη θέση του μπαίνει ο λόγος
+                      που το πρότυπο εμφανίζεται σε αυτόν τον χρήστη. */}
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{t.items.length} εργασίες{t.why ? ` · ${t.why}` : ''}</div>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -1440,107 +1435,105 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
     comments: item._comments || [], depends_on: item.depends_on || '',
   } : mkEmpty())
   // Ένα καθαρό form — χωρίς tabs, χωρίς επαναλήψεις (Google λογική).
+  //
+  // ΤΟ ΤΙΤΛΟ-ΣΩΜΑ-ΕΝΕΡΓΕΙΕΣ ΤΟ ΔΙΝΕΙ ΤΟ <Modal>. Το χειρόγραφο κέλυφος έγραφε
+  // ΔΙΚΟ του radius (24 αντί για T.radius.modal=18) και ΔΙΚΟ του μέγεθος τίτλου
+  // (20 αντί για TT.h2=16): δύο τιμές που έκαναν αυτό το παράθυρο να μοιάζει
+  // μεγαλύτερο από κάθε άλλο της εφαρμογής, δίπλα-δίπλα στην ίδια οθόνη με το
+  // παράθυρο επιβεβαίωσης. Escape, επιστροφή εστίασης και κλείδωμα κύλισης
+  // φόντου ΔΕΝ υπήρχαν καθόλου — τώρα έρχονται μαζί με το primitive.
+  const canSave = !!form.description.trim()
   return (
-    <div role="dialog" aria-modal="true" aria-label="Στοιχεία εκκρεμότητας" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '22px 28px 16px', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
-          <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}</h3>
-          <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: T.h.sm, height: T.h.sm, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-        </div>
-        <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Παράδειγμα: Service καλοριφέρ" /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
-            <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
-            <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
-          </div>
-          {/* Η ΚΑΤΑΣΤΑΣΗ ΑΠΟΚΤΑ ΕΠΙΤΕΛΟΥΣ INPUT. Το «Σε εξέλιξη» μετριόταν στα KPI
-              και είχε δική του κολόνα στον Πίνακα, χωρίς κανέναν τρόπο να επιλεγεί. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
-            <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" /></div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <div><FL>Ανάθεση σε επαφή</FL>
-              <CustomSelect value={form.assigned_contact_id}
-                onChange={v => { const c = contacts.find(x => x.id === v); setForm(f => ({ ...f, assigned_contact_id: v, assigned_contact_name: c?.full_name || '' })) }}
-                placeholder="Χωρίς ανάθεση"
-                options={[{ value: '', label: 'Χωρίς ανάθεση' }, ...contacts.map(c => ({ value: c.id, label: c.full_name }))]} />
-            </div>
-          </div>
-          <div>
-            <FL>Ετικέτες</FL>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {ITEM_TAGS.map(t => (
-                <button key={t} type="button" title={t === 'DIY' ? 'Do It Yourself, εργασία που κάνεις μόνος σου' : undefined} onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
-                  style={{ padding: '7px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 600 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΚΟΣΤΟΣ ΔΕΝ ΠΛΗΚΤΡΟΛΟΓΕΙΤΑΙ. Εδώ φαίνεται τι λέει το χαρτί,
-              ή το κουμπί που το φέρνει. Χωρίς παραστατικό δεν υπάρχει νούμερο. */}
-          <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
-            <FL>Πραγματικό κόστος</FL>
-            {item?._receipt ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(item._receipt.amount)}</span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-                  {item._receipt.provider ? `${item._receipt.provider} · ` : ''}{fmtDate(item._receipt.date)} · {item._receipt.name}
-                </span>
-                {onScan && <button type="button" onClick={onScan} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλαξέ το</button>}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, flex: 1, minWidth: 180, lineHeight: 1.5 }}>
-                  Μπαίνει μόνο από το τιμολόγιο ή την απόδειξη. Φωτογράφισέ το και καταχωρείται το ποσό, το αρχείο και η δαπάνη μαζί.
-                </p>
-                {onScan && <button type="button" onClick={onScan} style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>Φωτογράφισε το τιμολόγιο</button>}
-              </div>
-            )}
-          </div>
-          {/* ΟΙ ΔΥΟ EDITORS ΠΟΥ ΟΡΙΖΟΝΤΑΝ ΚΑΙ ΔΕΝ ΑΠΟΔΙΔΟΝΤΑΝ ΠΟΥΘΕΝΑ. Τα βήματα
-              μετρούνταν στον Πίνακα («2/5 υπο-εργασίες») χωρίς κανέναν τρόπο να
-              δημιουργηθούν, και τα σχόλια δεν γράφονταν ποτέ. */}
-          <div><FL>Βήματα ({form.subtasks.filter(st => st.done).length}/{form.subtasks.length})</FL>
-            <SubTaskEditor subtasks={form.subtasks} onChange={sub => setForm(f => ({ ...f, subtasks: sub }))} />
-          </div>
-          <div><FL>Σημείωση</FL>
-            <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
-          </div>
-          <div><FL>Ιστορικό ({form.comments.length})</FL>
-            <CommentsEditor comments={form.comments} onChange={c => setForm(f => ({ ...f, comments: c }))} />
-          </div>
-          {/* Η ΕΠΙΣΗΜΗ ΠΗΓΗ ΤΗΣ ΥΠΟΧΡΕΩΣΗΣ, όταν δεν την έγραψε ο χρήστης. */}
-          {item?._src && (
-            <div style={{ padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>
-                {item._who ? <strong style={{ color: 'var(--text-primary)' }}>{WHO_LABEL[item._who]}. </strong> : null}
-                <a href={item._src} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Επίσημη πηγή</a>
-              </p>
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            {/* ΚΑΜΙΑ ΥΠΟΣΧΕΣΗ «ΕΚΚΡΕΜΗΣ ΔΑΠΑΝΗ». Η εκτίμηση δεν γράφεται πλέον στα
-                Δαπάνες: ο προϋπολογισμός και το σύνολο που πάει στο Ε2 δεν δέχονται
-                νούμερο χωρίς παραστατικό. */}
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> με υπενθύμιση email. Η εκτίμηση μένει εδώ, <strong style={{ color: 'var(--text-primary)' }}>δεν γίνεται δαπάνη</strong> πριν υπάρξει παραστατικό.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
-          </div>
-        </div>
-        <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
-          <button type="button" onClick={() => form.description.trim() && onSave(form)}
-            style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: form.description.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: form.description.trim() ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: form.description.trim() ? 'pointer' : 'not-allowed', fontSize: 14, transition: 'all 0.15s', fontFamily: T.font.sans }}>
-            {item ? 'Αποθήκευση' : 'Προσθήκη εκκρεμότητας'}
-          </button>
+    <Modal open onClose={onClose} width={560}
+      title={item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}
+      footer={<>
+        <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
+        <Btn variant="primary" disabled={!canSave} onClick={() => { if (canSave) onSave(form) }}>{item ? 'Αποθήκευση' : 'Προσθήκη εκκρεμότητας'}</Btn>
+      </>}>
+      <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Παράδειγμα: Service καλοριφέρ" /></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+        <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
+        <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+        <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
+        <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
+      </div>
+      {/* Η ΚΑΤΑΣΤΑΣΗ ΑΠΟΚΤΑ ΕΠΙΤΕΛΟΥΣ INPUT. Το «Σε εξέλιξη» μετριόταν στα KPI
+          και είχε δική του κολόνα στον Πίνακα, χωρίς κανέναν τρόπο να επιλεγεί. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+        <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
+        <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" /></div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+        <div><FL>Ανάθεση σε επαφή</FL>
+          <CustomSelect value={form.assigned_contact_id}
+            onChange={v => { const c = contacts.find(x => x.id === v); setForm(f => ({ ...f, assigned_contact_id: v, assigned_contact_name: c?.full_name || '' })) }}
+            placeholder="Χωρίς ανάθεση"
+            options={[{ value: '', label: 'Χωρίς ανάθεση' }, ...contacts.map(c => ({ value: c.id, label: c.full_name }))]} />
         </div>
       </div>
-    </div>
+      <div>
+        <FL>Ετικέτες</FL>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {ITEM_TAGS.map(t => (
+            <button key={t} type="button" title={t === 'DIY' ? 'Do It Yourself, εργασία που κάνεις μόνος σου' : undefined} onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
+              style={{ padding: '7px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 600 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΚΟΣΤΟΣ ΔΕΝ ΠΛΗΚΤΡΟΛΟΓΕΙΤΑΙ. Εδώ φαίνεται τι λέει το χαρτί,
+          ή το κουμπί που το φέρνει. Χωρίς παραστατικό δεν υπάρχει νούμερο. */}
+      <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+        <FL>Πραγματικό κόστος</FL>
+        {item?._receipt ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(item._receipt.amount)}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+              {item._receipt.provider ? `${item._receipt.provider} · ` : ''}{fmtDate(item._receipt.date)} · {item._receipt.name}
+            </span>
+            {onScan && <button type="button" onClick={onScan} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλαξέ το</button>}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, flex: 1, minWidth: 180, lineHeight: 1.5 }}>
+              Μπαίνει μόνο από το τιμολόγιο ή την απόδειξη. Φωτογράφισέ το και καταχωρείται το ποσό, το αρχείο και η δαπάνη μαζί.
+            </p>
+            {onScan && <button type="button" onClick={onScan} style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>Φωτογράφισε το τιμολόγιο</button>}
+          </div>
+        )}
+      </div>
+      {/* ΟΙ ΔΥΟ EDITORS ΠΟΥ ΟΡΙΖΟΝΤΑΝ ΚΑΙ ΔΕΝ ΑΠΟΔΙΔΟΝΤΑΝ ΠΟΥΘΕΝΑ. Τα βήματα
+          μετρούνταν στον Πίνακα («2/5 υπο-εργασίες») χωρίς κανέναν τρόπο να
+          δημιουργηθούν, και τα σχόλια δεν γράφονταν ποτέ. */}
+      <div><FL>Βήματα ({form.subtasks.filter(st => st.done).length}/{form.subtasks.length})</FL>
+        <SubTaskEditor subtasks={form.subtasks} onChange={sub => setForm(f => ({ ...f, subtasks: sub }))} />
+      </div>
+      <div><FL>Σημείωση</FL>
+        <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+      </div>
+      <div><FL>Ιστορικό ({form.comments.length})</FL>
+        <CommentsEditor comments={form.comments} onChange={c => setForm(f => ({ ...f, comments: c }))} />
+      </div>
+      {/* Η ΕΠΙΣΗΜΗ ΠΗΓΗ ΤΗΣ ΥΠΟΧΡΕΩΣΗΣ, όταν δεν την έγραψε ο χρήστης. */}
+      {item?._src && (
+        <div style={{ padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>
+            {item._who ? <strong style={{ color: 'var(--text-primary)' }}>{WHO_LABEL[item._who]}. </strong> : null}
+            <a href={item._src} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Επίσημη πηγή</a>
+          </p>
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
+        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        {/* ΚΑΜΙΑ ΥΠΟΣΧΕΣΗ «ΕΚΚΡΕΜΗΣ ΔΑΠΑΝΗ». Η εκτίμηση δεν γράφεται πλέον στα
+            Δαπάνες: ο προϋπολογισμός και το σύνολο που πάει στο Ε2 δεν δέχονται
+            νούμερο χωρίς παραστατικό. */}
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> με υπενθύμιση email. Η εκτίμηση μένει εδώ, <strong style={{ color: 'var(--text-primary)' }}>δεν γίνεται δαπάνη</strong> πριν υπάρξει παραστατικό.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
+      </div>
+    </Modal>
   )
 }
 
@@ -1700,73 +1693,79 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
   }
 
   const busy = stage === 'reading' || stage === 'saving'
+  // ΤΟ ΚΛΕΙΣΙΜΟ ΕΙΝΑΙ ΚΛΕΙΔΩΜΕΝΟ ΟΣΟ ΤΡΕΧΕΙ ΑΝΑΓΝΩΣΗ Ή ΚΑΤΑΧΩΡΗΣΗ. Ο φύλακας
+  // υπήρχε ήδη στο κουμπί «Ακύρωση» (`disabled={busy}`), αλλά το χειρόγραφο
+  // παράθυρο δεν είχε καθόλου Escape, οπότε δεν φαινόταν ότι έλειπε από αλλού.
+  // Το <Modal> προσθέτει Escape, «×» και κλικ στο φόντο· και οι τρεις δρόμοι
+  // περνούν από εδώ, ώστε να μη διακόπτεται μια σάρωση στη μέση.
+  const close = () => { if (!busy) onClose() }
+  // Η ΕΤΙΚΕΤΑ ΤΟΥ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ ΗΤΑΝ ΑΛΛΟΥ ΠΑΡΑΘΥΡΟΥ. Το χειρόγραφο κέλυφος
+  // έγραφε aria-label="Νέα εργασία σε επιλεγμένα" πάνω από τον ορατό τίτλο
+  // «Φωτογράφισε το τιμολόγιο»: ο τυφλός χρήστης άκουγε μαζική ενέργεια τη
+  // στιγμή που φωτογράφιζε παραστατικό. Το <Modal> παράγει την ετικέτα από τον
+  // ΟΡΑΤΟ τίτλο, οπότε τα δύο δεν μπορούν να ξαναχωρίσουν.
   return (
-    <div role="dialog" aria-modal="true" aria-label="Νέα εργασία σε επιλεγμένα" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', border: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)' }}>
-        <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>Φωτογράφισε το τιμολόγιο</h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 20px', lineHeight: 1.5 }}>
-          {item.description}
-        </p>
-
-        {stage === 'pick' && (
-          <>
-            <button type="button" onClick={() => fileRef.current?.click()}
-              style={{ width: '100%', padding: '22px 16px', borderRadius: T.radius.card, border: '1px dashed var(--border-default)', background: 'var(--bg-surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, fontFamily: T.font.sans }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="4"/></svg>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Φωτογραφία ή PDF</span>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>Διαβάζουμε ποσό, πάροχο και ημερομηνία. Τα ελέγχεις πριν αποθηκευτούν.</span>
-            </button>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: '12px 0 0', lineHeight: 1.5 }}>
-              Το αρχείο μπαίνει στο Αρχείο του ακινήτου και η δαπάνη καταχωρείται πληρωμένη. Χωρίς αρχείο δεν γράφεται ποσό πουθενά.
-            </p>
-          </>
+    <Modal open onClose={close} width={460}
+      title="Φωτογράφισε το τιμολόγιο" subtitle={item.description}
+      footer={<>
+        <Btn variant="secondary" disabled={busy} onClick={close}>Ακύρωση</Btn>
+        {(stage === 'confirm' || stage === 'saving') && (
+          <Btn variant="primary" disabled={!canSave || busy} onClick={save}>
+            {stage === 'saving' ? 'Καταχώρηση…' : 'Καταχώρησε με το παραστατικό'}
+          </Btn>
         )}
+      </>}>
+      {stage === 'pick' && (
+        <>
+          <button type="button" onClick={() => fileRef.current?.click()}
+            style={{ width: '100%', padding: '22px 16px', borderRadius: T.radius.card, border: '1px dashed var(--border-default)', background: 'var(--bg-surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, fontFamily: T.font.sans }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Φωτογραφία ή PDF</span>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>Διαβάζουμε ποσό, πάροχο και ημερομηνία. Τα ελέγχεις πριν αποθηκευτούν.</span>
+          </button>
+          {/* Το περιθώριο 12 έγινε 0: το σώμα του <Modal> έχει ήδη δικό του gap
+              ανάμεσα στα παιδιά, και τα δύο μαζί έδιναν διπλό κενό. */}
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
+            Το αρχείο μπαίνει στο Αρχείο του ακινήτου και η δαπάνη καταχωρείται πληρωμένη. Χωρίς αρχείο δεν γράφεται ποσό πουθενά.
+          </p>
+        </>
+      )}
 
-        {stage === 'reading' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '16px 0' }}>
-            <Skeleton h={16} r={6} /><Skeleton h={16} r={6} /><Skeleton h={16} r={6} />
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: 0 }}>Διαβάζω το έγγραφο…</p>
-          </div>
-        )}
-
-        {(stage === 'confirm' || stage === 'saving') && doc && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file?.name}</span>
-              {/* Η ΒΕΒΑΙΟΤΗΤΑ ΤΗΣ ΑΝΑΓΝΩΣΗΣ, ρητά. Χαμηλή βεβαιότητα σημαίνει
-                  «κοίτα τα νούμερα», όχι «είναι λάθος». */}
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
-                {doc.confidence >= 80 ? 'Διαβάστηκε καθαρά' : 'Έλεγξε τα πεδία'}
-              </span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
-              <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="0" type="number" /></div>
-              <div><FL>Ημερομηνία *</FL><DatePicker value={date} onChange={setDate} /></div>
-            </div>
-            <div><FL>Πάροχος</FL><Inp value={provider} onChange={setProvider} placeholder="Παράδειγμα: Υδραυλικές Εργασίες ΕΠΕ" /></div>
-            <div><FL>Περιγραφή δαπάνης</FL><Inp value={desc} onChange={setDesc} placeholder="Περιγραφή" /></div>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
-              Καταχωρείται ως <strong style={{ color: 'var(--text-secondary)' }}>{expenseCategoryFor(item.category).cat}</strong>, πληρωμένη, με το αρχείο συνημμένο στο Αρχείο.
-            </p>
-          </div>
-        )}
-
-        {err && <p style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, margin: '12px 0 0', lineHeight: 1.5 }}>{err}</p>}
-
-        <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          <button type="button" onClick={onClose} disabled={busy} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
-          {(stage === 'confirm' || stage === 'saving') && (
-            <button type="button" onClick={save} disabled={!canSave || busy}
-              style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: canSave && !busy ? 'var(--accent)' : 'var(--bg-surface)', color: canSave && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: canSave && !busy ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
-              {stage === 'saving' ? 'Καταχώρηση…' : 'Καταχώρησε με το παραστατικό'}
-            </button>
-          )}
+      {stage === 'reading' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '16px 0' }}>
+          <Skeleton h={16} r={6} /><Skeleton h={16} r={6} /><Skeleton h={16} r={6} />
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: 0 }}>Διαβάζω το έγγραφο…</p>
         </div>
-        <input ref={fileRef} type="file" accept="image/*,.pdf" capture="environment" style={{ display: 'none' }}
-          onChange={e => { const f = e.target.files?.[0]; if (f) read(f); e.currentTarget.value = '' }} />
-      </div>
-    </div>
+      )}
+
+      {(stage === 'confirm' || stage === 'saving') && doc && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file?.name}</span>
+            {/* Η ΒΕΒΑΙΟΤΗΤΑ ΤΗΣ ΑΝΑΓΝΩΣΗΣ, ρητά. Χαμηλή βεβαιότητα σημαίνει
+                «κοίτα τα νούμερα», όχι «είναι λάθος». */}
+            <span style={{ marginLeft: 'auto', fontSize: 11, color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+              {doc.confidence >= 80 ? 'Διαβάστηκε καθαρά' : 'Έλεγξε τα πεδία'}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
+            <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="0" type="number" /></div>
+            <div><FL>Ημερομηνία *</FL><DatePicker value={date} onChange={setDate} /></div>
+          </div>
+          <div><FL>Πάροχος</FL><Inp value={provider} onChange={setProvider} placeholder="Παράδειγμα: Υδραυλικές Εργασίες ΕΠΕ" /></div>
+          <div><FL>Περιγραφή δαπάνης</FL><Inp value={desc} onChange={setDesc} placeholder="Περιγραφή" /></div>
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
+            Καταχωρείται ως <strong style={{ color: 'var(--text-secondary)' }}>{expenseCategoryFor(item.category).cat}</strong>, πληρωμένη, με το αρχείο συνημμένο στο Αρχείο.
+          </p>
+        </div>
+      )}
+
+      {err && <p style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>{err}</p>}
+
+      <input ref={fileRef} type="file" accept="image/*,.pdf" capture="environment" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) read(f); e.currentTarget.value = '' }} />
+    </Modal>
   )
 }
 
@@ -1826,10 +1825,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const [editItem, setEditItem] = useState<ChecklistItem | null>(null)
   const [showTemplates, setShowTemplates] = useState(false)
   const [receiptItem, setReceiptItem] = useState<ChecklistItem | null>(null)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
+  // ΤΟ `deleteId` ΚΑΙ ΤΟ `bulkDeleteConfirm` ΣΒΗΣΤΗΚΑΝ ΜΑΖΙ ΜΕ ΤΑ ΠΑΡΑΘΥΡΑ ΤΟΥΣ.
+  // Ήταν δύο καταστάσεις που δεν κρατούσαν δεδομένα: κρατούσαν «ρώτησα;». Η
+  // ερώτηση ζει τώρα μέσα στο `await confirmDialog(...)`, δηλαδή στη ΓΡΑΜΜΗ που
+  // κάνει τη διαγραφή, οπότε δεν υπάρχει τρόπος να μείνει «μισοανοιχτή».
+  //
+  // ΤΟ ΜΟΝΟ ΠΟΥ ΧΡΕΙΑΖΕΤΑΙ ΑΚΟΜΗ ΝΑ ΞΕΡΕΙ Η ΟΘΟΝΗ ΕΙΝΑΙ «ΡΩΤΑΩ ΤΩΡΑ;», και το
+  // χρειάζεται για ΕΝΑ πράγμα: το Escape (βλ. τον ακροατή πληκτρολογίου πιο
+  // κάτω). Ο δίαυλος επιβεβαίωσης ζει έξω από το React, οπότε δεν υπάρχει άλλος
+  // τρόπος να το μάθει.
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
-  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
   const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([])
   const [tenantInfo, setTenantInfo] = useState<{full_name?: string; phone?: string; afm?: string; email?: string} | null>(null)
@@ -1940,8 +1946,18 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  // ── ΤΟ ESCAPE ΑΝΗΚΕΙ ΣΤΗΝ ΕΠΙΚΑΛΥΨΗ ΠΟΥ ΕΙΝΑΙ ΑΝΟΙΧΤΗ ─────────────────────
+  // Όσο τα παράθυρα αυτής της οθόνης ήταν χειρόγραφα, ΚΑΝΕΝΑ δεν άκουγε Escape:
+  // το πλήκτρο είχε εδώ μία μόνο δουλειά, να βγάζει από τη λειτουργία επιλογής.
+  // Από τη στιγμή που έγιναν <Modal> και confirmDialog, το ΙΔΙΟ πάτημα κάνει
+  // δύο πράγματα — και τα δύο ακούγονται στο `document`, με τον δικό μας
+  // ακροατή να τρέχει ΠΡΩΤΟΣ επειδή γράφτηκε πρώτος. Ο χρήστης που διάλεξε δέκα
+  // εργασίες, πάτησε «Διαγραφή» και μετά μετάνιωσε με Escape, έχανε την ερώτηση
+  // ΚΑΙ τις δέκα επιλογές: ακύρωνε μια διαγραφή και πλήρωνε ξαναδιαλέγοντας τα
+  // πάντα. Όσο υπάρχει ανοιχτή επικάλυψη, το Escape είναι δικό της και μόνο.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (isOverlayOpen()) return
       if (e.key === 'Escape' && (selected.size > 0 || selectMode)) { setSelected(new Set()); setSelectMode(false) }
     }
     document.addEventListener('keydown', handler); return () => document.removeEventListener('keydown', handler)
@@ -1949,6 +1965,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   // Έξοδος από τη λειτουργία επιλογής: καθαρίζει και την τρέχουσα επιλογή.
   const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()) }
+
 
   // ── ΤΟ ΠΛΑΙΣΙΟ ΤΟΥ ΧΡΗΣΤΗ, ΚΑΙ ΟΙ ΥΠΟΧΡΕΩΣΕΙΣ ΠΟΥ ΛΕΙΠΟΥΝ ────────────────
   // `taxProfileOf` και `readStatus` ζουν στη μία πηγή τους: καμία δεύτερη
@@ -2121,6 +2138,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   }
 
   const deleteItem = async (id: string) => {
+    // Η ΕΡΩΤΗΣΗ ΜΠΗΚΕ ΜΕΣΑ ΣΤΗ ΔΙΑΓΡΑΦΗ. Πριν, το κουμπί της σειράς άναβε ένα
+    // χειρόγραφο παράθυρο 14 γραμμών και ΕΚΕΙΝΟ καλούσε το `deleteItem` — μια
+    // `deleteItem` που, καλεσμένη από αλλού, θα έσβηνε ΧΩΡΙΣ να ρωτήσει. Τώρα η
+    // εγγύηση είναι της συνάρτησης, όχι της οθόνης.
+    if (!await confirmDialog({ title: 'Διαγραφή εργασίας;', message: 'Αυτή η ενέργεια δεν αναιρείται.', confirmLabel: 'Διαγραφή', tone: 'negative' })) return
     const it = items.find(i => i.id === id)
     if (it?.calendar_event_id) await saved('Η υπενθύμιση δεν αφαιρέθηκε από το ημερολόγιο', supabase.from('calendar_events').delete().eq('id', it.calendar_event_id))
     // Η ΔΑΠΑΝΗ ΜΕ ΠΑΡΑΣΤΑΤΙΚΟ ΕΠΙΖΕΙ ΤΗΣ ΕΚΚΡΕΜΟΤΗΤΑΣ. Εδώ διαγραφόταν η
@@ -2130,7 +2152,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Η διαγραφή που «πέτυχε» χωρίς να πετύχει είναι η χειρότερη: ο χρήστης
     // βλέπει «διαγράφηκε», η γραμμή επιστρέφει στην επόμενη ανανέωση.
     if (!await saved('Η εκκρεμότητα δεν διαγράφηκε', supabase.from('checklist_items').delete().eq('id', id))) return
-    setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); notify('Η εκκρεμότητα διαγράφηκε')
+    setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); notify('Η εκκρεμότητα διαγράφηκε')
   }
 
   const addToCalendar = async (item: ChecklistItem) => {
@@ -2261,6 +2283,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   }
   const bulkDelete = async () => {
     const count = selected.size; if (!count) return
+    // Ίδια ερώτηση, ίδιο primitive με τη μονή διαγραφή. Πριν, οι δύο διαγραφές
+    // της ΙΔΙΑΣ οθόνης ρωτούσαν με δύο χωριστά χειρόγραφα παράθυρα — ίδιο
+    // εικονίδιο, ίδια πρόταση, δύο αντίγραφα κώδικα που μπορούσαν να αποκλίνουν.
+    if (!await confirmDialog({ title: `Διαγραφή ${count} εργασιών;`, message: 'Αυτή η ενέργεια δεν αναιρείται.', confirmLabel: 'Διαγραφή', tone: 'negative' })) return
     const chosen = [...selected].map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it)
     const calIds = chosen.map(it => it.calendar_event_id).filter((c): c is string => !!c)
     if (calIds.length) await saved('Τα γεγονότα ημερολογίου δεν διαγράφηκαν',
@@ -2268,7 +2294,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Οι δαπάνες ΔΕΝ διαγράφονται μαζί: έχουν παραστατικό, δηλαδή συνέβησαν.
     if (!await saved('Οι εργασίες δεν διαγράφηκαν',
       supabase.from('checklist_items').delete().in('id', [...selected]))) return
-    setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); notify(`${count} εργασίες διαγράφηκαν`)
+    setSelected(new Set()); fetchAll(); notify(`${count} εργασίες διαγράφηκαν`)
   }
 
   const stats = useMemo(() => {
@@ -2315,9 +2341,16 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto', fontFamily: T.font.sans }}>
 
+      {/* ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ <Modal>. Δεν ρωτά τίποτα, δεν έχει
+          κουμπιά, δεν έχει «×» και δεν κλείνει ο χρήστης: φεύγει μόνο του σε 4
+          δευτερόλεπτα. Το `pointerEvents: 'none'` λέει ακριβώς αυτό — δεν
+          δέχεται ούτε ένα κλικ. Ένα Modal θα του φόρτωνε scrim, παγίδα εστίασης
+          και κλείδωμα κύλισης για μια γιορτή που δεν διακόπτει τίποτα. Έμεινε
+          όπως ήταν· ευθυγραμμίστηκε μόνο η ακτίνα με το token (18 → T.radius.modal,
+          ίδια τιμή, μία πηγή). */}
       {showCelebration && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9997, pointerEvents: 'none' }}>
-          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '32px 48px', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding: '32px 48px', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Όλα ολοκληρώθηκαν</div>
             <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Όλες οι εργασίες έχουν ολοκληρωθεί</div>
           </div>
@@ -2500,7 +2533,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                     <ItemRow key={item.id} item={item} allItems={items}
                       onToggle={() => toggleItem(item)}
                       onEdit={() => { setEditItem(item); setShowAddModal(true) }}
-                      onDelete={() => setDeleteId(item.id)}
+                      onDelete={() => deleteItem(item.id)}
                       onAddToCalendar={() => addToCalendar(item)}
                       onScanReceipt={() => setReceiptItem(item)}
                       onDuplicate={() => duplicateItem(item)}
@@ -2537,7 +2570,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
               // ίδιος άνθρωπος με τον ίδιο τρόπο. Η διαγραφή ζητά ούτως ή άλλως
               // επιβεβαίωση, και ΕΚΕΙ το κόκκινο έχει νόημα.
               { label: 'Ολοκλήρωση', fn: bulkComplete, color: 'var(--text-primary)', hoverBg: 'var(--bg-surface)' },
-              { label: 'Διαγραφή', fn: () => setBulkDeleteConfirm(true), color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
+              { label: 'Διαγραφή', fn: bulkDelete, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
             ].map((a, i, arr) => (
               <button key={i} type="button" onClick={a.fn}
                 style={{ flex: 1, padding: '12px 4px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a.color, fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}
@@ -2559,37 +2592,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         onScan={editItem ? () => { const it = editItem; setShowAddModal(false); setEditItem(null); setReceiptItem(it) } : undefined} />}
       {receiptItem && <ReceiptScanModal item={receiptItem} propertyId={propertyId} userId={userId} onClose={() => setReceiptItem(null)} onSaved={msg => { notifyOk(msg); fetchAll() }} />}
 
-      {deleteId && (
-        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-            </div>
-            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 8px', fontSize: 18, fontWeight: 700, fontFamily: T.font.sans }}>Διαγραφή εργασίας;</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 28px', lineHeight: 1.5 }}>Αυτή η ενέργεια δεν αναιρείται.</p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button type="button" onClick={() => setDeleteId(null)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
-              <button type="button" onClick={() => deleteItem(deleteId!)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>Διαγραφή</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {bulkDeleteConfirm && (
-        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση μαζικής διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-            </div>
-            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 8px', fontSize: 18, fontWeight: 700, fontFamily: T.font.sans }}>Διαγραφή {selected.size} εργασιών;</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 28px', lineHeight: 1.5 }}>Αυτή η ενέργεια δεν αναιρείται.</p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button type="button" onClick={() => setBulkDeleteConfirm(false)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
-              <button type="button" onClick={bulkDelete} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>Διαγραφή</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ΤΑ ΔΥΟ ΠΑΡΑΘΥΡΑ ΔΙΑΓΡΑΦΗΣ ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Ήταν 31 γραμμές markup που
+          έλεγαν δύο φορές το ίδιο πράγμα — ίδιο εικονίδιο κάδου, ίδια πρόταση
+          «Αυτή η ενέργεια δεν αναιρείται.», ίδια δύο κουμπιά — και δεν είχαν
+          ούτε Escape ούτε επιστροφή εστίασης. Η ερώτηση ζει τώρα στη γραμμή που
+          διαγράφει (`deleteItem`, `bulkDelete`) μέσω του confirmDialog. */}
     </div>
   )
 }

@@ -372,7 +372,13 @@ export function CustomSelect({
         if (open) { e.preventDefault(); setActiveIndex(options.length - 1); }
         break;
       case 'Escape':
-        if (open) { e.preventDefault(); close(); }
+        // ΤΟ stopPropagation ΔΕΝ ΕΙΝΑΙ ΠΡΟΦΥΛΑΞΗ, ΚΛΕΙΝΕΙ ΣΦΑΛΜΑ.
+        // Το Escape ανέβαινε μέχρι το `document`, όπου το ακούει κάθε ανοιχτό
+        // παράθυρο. Ο χρήστης άνοιγε τη λίστα «Όροφος» μέσα στον οδηγό
+        // προσθήκης ακινήτου, πατούσε Escape για να την κλείσει — και έχανε
+        // ΟΛΟΚΛΗΡΟ τον οδηγό με τα πέντε βήματα συμπληρωμένα. Ένα Escape
+        // κλείνει ΕΝΑ επίπεδο: πρώτα τη λίστα, μετά το παράθυρο.
+        if (open) { e.preventDefault(); e.stopPropagation(); close(); }
         break;
       case 'Tab':
         if (open) setOpen(false);
@@ -591,7 +597,9 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
         onKeyDown={e => {
           if (disabled) return;
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(v => !v); }
-          else if (e.key === 'Escape' && open) { e.preventDefault(); setOpen(false); }
+          // Ίδιος λόγος με το CustomSelect: το Escape πάνω σε ανοιχτό
+          // ημερολόγιο έκλεινε ΚΑΙ το παράθυρο που το φιλοξενεί.
+          else if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false); }
         }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}

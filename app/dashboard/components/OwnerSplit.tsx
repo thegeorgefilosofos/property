@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Badge, EmptyState, Spinner, ABSENT } from '@/components/Theme';
+import { T, TT, Btn, Badge, EmptyState, Modal, Spinner, ABSENT } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { CustomSelect as Select } from './UIComponents';
@@ -138,9 +138,18 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     finally { setBusy(false); }
   };
 
-  const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.14s' };
+  // Το ύψος ήταν καρφωμένο 40: κάτω από τα 44 που θέλει το δάχτυλο, σε επτά
+  // πεδία της ίδιας φόρμας. Η κοινή κλίμακα το ανεβάζει σε coarse pointer.
+  const field: React.CSSProperties = { height: T.h.lg, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.14s' };
   const onFieldFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
+  // ── ΔΕΝ ΚΛΕΙΝΕΙ ΟΣΟ ΕΚΔΙΔΕΙ ───────────────────────────────────────────────
+  // Το χειρόγραφο κέλυφος δεν άκουγε Escape· το Modal ακούει. Η `exportPdf`
+  // πρώτα ΚΑΤΑΧΩΡΕΙ έγγραφο στη βάση (issueDocument: αριθμός εγγράφου, σύνδεσμος
+  // επαλήθευσης) και ΜΕΤΑ φτιάχνει το PDF. Ένα Escape ανάμεσα στα δύο αφήνει
+  // εκδομένο έγγραφο χωρίς αρχείο στα χέρια του χρήστη, και το μήνυμα αποτυχίας
+  // δεν εμφανίζεται ποτέ. Όσο το κουμπί λέει «Δημιουργία…», το παράθυρο μένει.
+  const requestClose = () => { if (!busy) onClose(); };
   const miniStat = (label: string, value: string, strong = false): React.ReactNode => (
     <div>
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
@@ -149,131 +158,121 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   );
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Ποσοστά συνιδιοκτησίας" onClick={onClose} style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(760px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    // ΤΟ ΠΑΡΑΘΥΡΟ ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΣΤΟ ΧΕΡΙ (127 γραμμές markup): δικό του scrim,
+    // δικό του radius 18, δική του κεφαλίδα με «×» σε padding 4 (στόχος ~21×30,
+    // κάτω από το μέγεθος αφής) — και ΧΩΡΙΣ Escape, χωρίς επιστροφή εστίασης,
+    // χωρίς κλείδωμα κύλισης του φόντου. Το Modal τα δίνει και τα τέσσερα.
+    <Modal open onClose={requestClose} width={760}
+      ariaLabel="Ποσοστά συνιδιοκτησίας"
+      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Κατανομή σε ιδιοκτήτες<InfoHint>Μοιράζει τα καθαρά έσοδα της περιόδου στους συνιδιοκτήτες, ανάλογα με το ποσοστό του καθενός. Αφαιρεί πρώτα τα έξοδα και τη διαχειριστική αμοιβή και βγάζει επίσημη «Κατάσταση κατανομής» σε PDF, με αριθμό εγγράφου και QR επαλήθευσης, για τον κάθε ιδιοκτήτη.</InfoHint></span>}
+      subtitle="Το καθαρό κάθε συνιδιοκτήτη, μετά τα έξοδα και τη διαχειριστική αμοιβή"
+      footerInfo={`${prop?.name || ABSENT} · ${periodLabel}`}
+      footer={<>
+        <Btn variant="secondary" onClick={() => { saveLayout(); onClose(); }}>Αποθήκευση και κλείσιμο</Btn>
+        <Btn variant="primary" onClick={exportPdf} disabled={busy || !result.valid}>{busy ? 'Δημιουργία…' : 'Κατάσταση κατανομής (PDF)'}</Btn>
+      </>}>
+      {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε ακίνητο για να ορίσεις ποσοστά συνιδιοκτησίας." /> : (
+      <>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: '2 1 200px', minWidth: 0 }}>
+            <Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2, display: 'flex', alignItems: 'center', gap: 7 }}>Κατανομή σε ιδιοκτήτες<InfoHint>Μοιράζει τα καθαρά έσοδα της περιόδου στους συνιδιοκτήτες, ανάλογα με το ποσοστό του καθενός. Αφαιρεί πρώτα τα έξοδα και τη διαχειριστική αμοιβή και βγάζει επίσημη «Κατάσταση κατανομής» σε PDF, με αριθμό εγγράφου και QR επαλήθευσης, για τον κάθε ιδιοκτήτη.</InfoHint></div>
-            <div style={{ ...TT.bodySm, marginTop: 2 }}>Το καθαρό κάθε συνιδιοκτήτη, μετά τα έξοδα και τη διαχειριστική αμοιβή</div>
+          <div style={{ flex: '1 1 90px', minWidth: 0 }}>
+            <Select value={String(year)} onChange={v => setYear(Number(v))} options={Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => ({ value: String(y), label: String(y) }))} />
           </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
-
-        <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε ακίνητο για να ορίσεις ποσοστά συνιδιοκτησίας." /> : (
-            <>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ flex: '2 1 200px', minWidth: 0 }}>
-                  <Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} />
-                </div>
-                <div style={{ flex: '1 1 90px', minWidth: 0 }}>
-                  <Select value={String(year)} onChange={v => setYear(Number(v))} options={Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => ({ value: String(y), label: String(y) }))} />
-                </div>
-                <div style={{ flex: '1 1 130px', minWidth: 0 }}>
-                  <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS_NOM.map((m, i) => ({ value: String(i + 1), label: m }))]} />
-                </div>
-              </div>
-
-              {/* Ιδιοκτήτες */}
-              <div>
-                <div style={{ ...TT.label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Ιδιοκτήτες και ποσοστά<InfoHint>Πρόσθεσε κάθε συνιδιοκτήτη με το ποσοστό ιδιοκτησίας του. Τα ποσοστά πρέπει να αθροίζουν στο 100%. Το ΑΦΜ είναι προαιρετικό και εμφανίζεται στην επίσημη κατάσταση.</InfoHint></div>
-                <div style={{ marginBottom: 10 }}>
-                  <ScanButton label="Συμπλήρωσε από φωτογραφία" hint="Διαβάζει τα στοιχεία και γεμίζει τη φόρμα. Δεν καταχωρεί τίποτα μόνο του." onExtract={doc => {
-                    const ex = (doc.owners || []).filter(o => o?.name);
-                    if (ex.length) setRows(ex.map(o => ({ name: o.name || '', afm: o.afm || '', pct: o.pct != null ? String(o.pct) : '' })));
-                    else if (doc.landlord_name) setRows([{ name: doc.landlord_name, afm: doc.afm || '', pct: '' }]);
-                  }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {rows.map((r, i) => (
-                    // Η αφαίρεση εμφανίζεται μόνο όταν υπάρχουν πολλοί ιδιοκτήτες, και
-                    // μόνο όταν ο κέρσορας/δάχτυλο περνά πάνω από τη γραμμή (ήσυχο UI).
-                    <div key={i} onMouseEnter={() => setHoverRow(i)} onMouseLeave={() => setHoverRow(null)} onFocusCapture={() => setHoverRow(i)}
-                      style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
-                      <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
-                      <div style={{ position: 'relative', flex: '0 0 92px' }}>
-                        <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
-                        <span style={{ position: 'absolute', right: 13, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
-                      </div>
-                      <button onClick={() => delRow(i)} aria-label="Αφαίρεση ιδιοκτήτη" title="Αφαίρεση"
-                        style={{ width: 26, flexShrink: 0, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, visibility: rows.length > 1 && hoverRow === i ? 'visible' : 'hidden', transition: 'opacity 0.14s' }}
-                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--negative)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)'; }}>×</button>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={addRow} style={{ ...TT.caption, marginTop: 10, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700 }}>+ Προσθήκη ιδιοκτήτη</button>
-              </div>
-
-              {/* Αμοιβή διαχείρισης */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ flex: '1 1 160px' }}>
-                  <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
-                  <div style={{ position: 'relative' }}>
-                    <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
-                    <span style={{ position: 'absolute', right: 13, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>% εσόδων</span>
-                  </div>
-                </div>
-                <div style={{ flex: '2 1 200px' }}>
-                  <div style={{ ...TT.label, marginBottom: 6 }}>Διαχειριστής (προαιρετικό)</div>
-                  <input value={managerName} onChange={e => setManagerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Επωνυμία διαχειριστή" style={{ ...field, width: '100%' }} />
-                </div>
-              </div>
-
-              {/* Αποτέλεσμα */}
-              {figures && (
-                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '14px 16px', background: 'var(--bg-elevated)' }}>
-                    {miniStat('Εισπράχθηκαν', pEur(result.gross))}
-                    {miniStat('Έξοδα', pEur(result.expenses))}
-                    {miniStat('Αμοιβή', pEur(result.managementFee))}
-                    {miniStat('Προς διανομή', pEur(result.distributable), true)}
-                    <span style={{ marginLeft: 'auto' }}><Badge tone={result.valid ? 'positive' : 'warning'}>Ποσοστά {pPct(result.pctSum)}</Badge></span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '8px 16px', borderTop: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Παρακράτηση</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right', minWidth: 84 }}>Καθαρό</span>
-                  </div>
-                  {result.owners.map((o, i) => (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center' }}>
-                      <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{o.name}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(o.pct)}</span></span>
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{o.expenseShare + o.feeShare > 0 ? `−${pEur(o.expenseShare + o.feeShare)}` : pEur(0)}</span>
-                      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{pEur(o.net)}</span>
-                    </div>
-                  ))}
-                  {/* Το αδιάθετο υπόλοιπο, ονομαστικά.
-                      Όταν τα ποσοστά δεν αθροίζουν 100, ο πίνακας ΔΕΝ κλείνει πια στο
-                      «Προς διανομή» — και σωστά: ο υπολογισμός σταμάτησε να φορτώνει
-                      σιωπηλά τη διαφορά στον μεγαλύτερο ιδιοκτήτη. Αντί ο χρήστης να
-                      ψάχνει γιατί οι γραμμές δεν βγάζουν το σύνολο, το λείπον ποσό
-                      γράφεται εδώ σε ευρώ: δείχνει ακριβώς πόσα δεν έχουν ιδιοκτήτη. */}
-                  {unassigned !== null && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center', background: 'var(--warning-soft)' }}>
-                      <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{unassigned.label}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(unassigned.pct)}</span></span>
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{pEur(0)}</span>
-                      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>{pSigned(unassigned.amount)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
-            </>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
-          <span style={{ ...TT.bodySm }}>{prop?.name || ABSENT} · {periodLabel}</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Btn variant="secondary" onClick={() => { saveLayout(); onClose(); }}>Αποθήκευση και κλείσιμο</Btn>
-            <Btn variant="primary" onClick={exportPdf} disabled={busy || !result.valid}>{busy ? 'Δημιουργία…' : 'Κατάσταση κατανομής (PDF)'}</Btn>
+          <div style={{ flex: '1 1 130px', minWidth: 0 }}>
+            <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS_NOM.map((m, i) => ({ value: String(i + 1), label: m }))]} />
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* Ιδιοκτήτες */}
+        <div>
+          <div style={{ ...TT.label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Ιδιοκτήτες και ποσοστά<InfoHint>Πρόσθεσε κάθε συνιδιοκτήτη με το ποσοστό ιδιοκτησίας του. Τα ποσοστά πρέπει να αθροίζουν στο 100%. Το ΑΦΜ είναι προαιρετικό και εμφανίζεται στην επίσημη κατάσταση.</InfoHint></div>
+          <div style={{ marginBottom: 10 }}>
+            <ScanButton label="Συμπλήρωσε από φωτογραφία" hint="Διαβάζει τα στοιχεία και γεμίζει τη φόρμα. Δεν καταχωρεί τίποτα μόνο του." onExtract={doc => {
+              const ex = (doc.owners || []).filter(o => o?.name);
+              if (ex.length) setRows(ex.map(o => ({ name: o.name || '', afm: o.afm || '', pct: o.pct != null ? String(o.pct) : '' })));
+              else if (doc.landlord_name) setRows([{ name: doc.landlord_name, afm: doc.afm || '', pct: '' }]);
+            }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {rows.map((r, i) => (
+              // Η αφαίρεση εμφανίζεται μόνο όταν υπάρχουν πολλοί ιδιοκτήτες, και
+              // μόνο όταν ο κέρσορας/δάχτυλο περνά πάνω από τη γραμμή (ήσυχο UI).
+              <div key={i} onMouseEnter={() => setHoverRow(i)} onMouseLeave={() => setHoverRow(null)} onFocusCapture={() => setHoverRow(i)}
+                style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
+                <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
+                <div style={{ position: 'relative', flex: '0 0 92px' }}>
+                  <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                  <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
+                </div>
+                <button onClick={() => delRow(i)} aria-label="Αφαίρεση ιδιοκτήτη" title="Αφαίρεση"
+                  style={{ width: 26, flexShrink: 0, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, visibility: rows.length > 1 && hoverRow === i ? 'visible' : 'hidden', transition: 'opacity 0.14s' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--negative)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)'; }}>×</button>
+              </div>
+            ))}
+          </div>
+          <button onClick={addRow} style={{ ...TT.caption, marginTop: 10, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700 }}>+ Προσθήκη ιδιοκτήτη</button>
+        </div>
+
+        {/* Αμοιβή διαχείρισης */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 160px' }}>
+            <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
+            <div style={{ position: 'relative' }}>
+              <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+              <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>% εσόδων</span>
+            </div>
+          </div>
+          <div style={{ flex: '2 1 200px' }}>
+            <div style={{ ...TT.label, marginBottom: 6 }}>Διαχειριστής (προαιρετικό)</div>
+            <input value={managerName} onChange={e => setManagerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Επωνυμία διαχειριστή" style={{ ...field, width: '100%' }} />
+          </div>
+        </div>
+
+        {/* Αποτέλεσμα */}
+        {figures && (
+          <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '14px 16px', background: 'var(--bg-elevated)' }}>
+              {miniStat('Εισπράχθηκαν', pEur(result.gross))}
+              {miniStat('Έξοδα', pEur(result.expenses))}
+              {miniStat('Αμοιβή', pEur(result.managementFee))}
+              {miniStat('Προς διανομή', pEur(result.distributable), true)}
+              <span style={{ marginLeft: 'auto' }}><Badge tone={result.valid ? 'positive' : 'warning'}>Ποσοστά {pPct(result.pctSum)}</Badge></span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '8px 16px', borderTop: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Παρακράτηση</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right', minWidth: 84 }}>Καθαρό</span>
+            </div>
+            {result.owners.map((o, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{o.name}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(o.pct)}</span></span>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{o.expenseShare + o.feeShare > 0 ? `−${pEur(o.expenseShare + o.feeShare)}` : pEur(0)}</span>
+                <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{pEur(o.net)}</span>
+              </div>
+            ))}
+            {/* Το αδιάθετο υπόλοιπο, ονομαστικά.
+                Όταν τα ποσοστά δεν αθροίζουν 100, ο πίνακας ΔΕΝ κλείνει πια στο
+                «Προς διανομή» — και σωστά: ο υπολογισμός σταμάτησε να φορτώνει
+                σιωπηλά τη διαφορά στον μεγαλύτερο ιδιοκτήτη. Αντί ο χρήστης να
+                ψάχνει γιατί οι γραμμές δεν βγάζουν το σύνολο, το λείπον ποσό
+                γράφεται εδώ σε ευρώ: δείχνει ακριβώς πόσα δεν έχουν ιδιοκτήτη. */}
+            {unassigned !== null && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center', background: 'var(--warning-soft)' }}>
+                <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{unassigned.label}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(unassigned.pct)}</span></span>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{pEur(0)}</span>
+                <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>{pSigned(unassigned.amount)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+      </>
+      )}
+    </Modal>
   );
 }

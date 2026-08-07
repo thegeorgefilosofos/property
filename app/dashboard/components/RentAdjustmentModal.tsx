@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Spinner, EmptyState } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState, Modal } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import DateField from './DateField';
@@ -134,7 +134,9 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     if (started) setListening(true);
   };
 
-  const field: React.CSSProperties = { height: 40, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
+  // Το ύψος ήταν literal 40, δηλαδή η τιμή του T.h.lg στο ποντίκι — αλλά ΜΟΝΟ
+  // στο ποντίκι: με δάχτυλο η κλίμακα ανεβαίνει στα 44 και το πεδίο έμενε στα 40.
+  const field: React.CSSProperties = { height: T.h.lg, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
   const lbl = { ...TT.label, marginBottom: 6 } as React.CSSProperties;
   const onFieldFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
@@ -151,25 +153,72 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     <div style={{ position: 'relative' }}>
       <input value={value} onChange={e => on(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} inputMode="decimal" placeholder="0"
         style={{ ...field, paddingRight: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
-      <span style={{ position: 'absolute', right: 13, top: 0, height: 40, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none' }}>{suffix}</span>
+      {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: με literal 40 εδώ και πεδίο
+          που γίνεται 44 στο δάχτυλο, το «€» καθόταν 2px ψηλότερα από το ποσό. */}
+      <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none' }}>{suffix}</span>
     </div>
   );
 
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Δήλωση αναπροσαρμογής" onClick={onClose} style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(720px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ ...TT.h2, display: 'flex', alignItems: 'center', gap: 7 }}>Αναπροσαρμογή ενοικίου<InfoHint>Ετοιμάζει την επίσημη έγγραφη ειδοποίηση προς τον μισθωτή για το νέο μίσθωμα. Υπολογίζει το νέο ποσό, το υπογράφεις ηλεκτρονικά και βγαίνει υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης, έτοιμο να το κοινοποιήσεις.</InfoHint></div>
-            <div style={{ ...TT.bodySm, marginTop: 2 }}>Επίσημη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή και επαλήθευση</div>
-          </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>×</button>
-        </div>
+  // ── ΤΟ ΠΑΡΑΘΥΡΟ ΕΓΙΝΕ <Modal> ────────────────────────────────────────────
+  // Το κέλυφος ήταν γραμμένο στο χέρι (scrim, radius 18, κεφαλίδα με «×»,
+  // υποσέλιδο) και του έλειπαν και οι τρεις συμπεριφορές που δίνει το primitive:
+  // Escape δεν έκλεινε, η εστίαση δεν έμπαινε μέσα ούτε γύριζε πίσω, και το
+  // φόντο κυλούσε κάτω από ένα παράθυρο 720px με φόρμα ΚΑΙ πίνακα υπογραφής.
+  // Το «×» είχε padding 4 (στόχος ~21×30, κάτω από το μέγεθος αφής) και το
+  // maxHeight ήταν '92vh' αντί '92dvh', οπότε σε κινητό τα κουμπιά του
+  // υποσέλιδου έπεφταν κάτω από τη μπάρα διεύθυνσης.
+  //
+  // ── ΤΟ ΥΠΟΣΕΛΙΔΟ ΕΧΕΙ ΔΥΟ ΚΑΤΑΣΤΑΣΕΙΣ, ΚΑΙ ΟΙ ΔΥΟ ΜΕΝΟΥΝ ──────────────────
+  // Πριν τη δημιουργία: «Ακύρωση» + «Υπογεγραμμένο PDF».
+  // Μετά (`pending`): η ερώτηση αρχειοθέτησης στο footerInfo και, όσο δεν έχει
+  // αρχειοθετηθεί, τα τρία χειριστήρια της απάντησης (φωνή, «Ίσως αργότερα»,
+  // «Ναι, αποθήκευσε») στο footer. Όταν αρχειοθετηθεί μένει μόνο το μήνυμα.
+  //
+  // ── ΟΣΟ ΓΡΑΦΕΙ, ΤΟ ΠΑΡΑΘΥΡΟ ΔΕΝ ΚΛΕΙΝΕΙ ─────────────────────────────────
+  // Η μετατροπή ΠΡΟΣΘΕΤΕΙ έξοδο που δεν υπήρχε: το χειρόγραφο κέλυφος δεν
+  // άκουγε πλήκτρα, άρα το Escape δεν έκανε τίποτα. Τώρα κλείνει — και κλείνει
+  // και πάνω στην αρχειοθέτηση, που ανεβάζει αρχείο και γράφει εγγραφή. Αν
+  // αποτύχει, το «Η αρχειοθέτηση απέτυχε» δεν έχει πού να εμφανιστεί: ο χρήστης
+  // μένει να νομίζει ότι το έγγραφο μπήκε στον φάκελο του ακινήτου. Το ίδιο
+  // Escape πάνω στη δημιουργία εξαφανίζει τη φόρμα ΜΑΖΙ ΜΕ ΤΗΝ ΥΠΟΓΡΑΦΗ, που
+  // δεν ξαναγράφεται με ένα κλικ. Ίδια φρουρά με το Modal του PortfolioTab.
+  const closeIfIdle = () => { if (busy || archiving) return; onClose(); };
 
-        <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+  const footerInfo = pending ? (
+    <span style={{ display: 'inline-block', minWidth: 220 }}>
+      <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+        {archived ? 'Αποθηκεύτηκε στα έγγραφα του ακινήτου.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
+      </span>
+      {!archived && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Αρχειοθετείται με ημερομηνία ισχύος {grDate(effective)}, σε χρονολογική σειρά.</span>}
+    </span>
+  ) : undefined;
+
+  const footer = pending ? (
+    !archived && (
+      <>
+        {speechSupported() && <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
+          style={{ width: T.h.sm, height: T.h.sm, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
+        </button>}
+        <Btn variant="secondary" onClick={onClose} disabled={archiving}>Ίσως αργότερα</Btn>
+        <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
+      </>
+    )
+  ) : (
+    <>
+      <Btn variant="secondary" onClick={onClose} disabled={busy}>Ακύρωση</Btn>
+      <Btn variant="primary" onClick={generate} disabled={busy || !sig || num(currentRent) <= 0}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο PDF'}</Btn>
+    </>
+  );
+
+  return (
+    <Modal open={open} onClose={closeIfIdle} width={720}
+      ariaLabel="Δήλωση αναπροσαρμογής"
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Αναπροσαρμογή ενοικίου<InfoHint>Ετοιμάζει την επίσημη έγγραφη ειδοποίηση προς τον μισθωτή για το νέο μίσθωμα. Υπολογίζει το νέο ποσό, το υπογράφεις ηλεκτρονικά και βγαίνει υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης, έτοιμο να το κοινοποιήσεις.</InfoHint></span>}
+      subtitle="Επίσημη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή και επαλήθευση"
+      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>}
+      footer={footer} footerInfo={footerInfo}>
+      <>
           {/* Κοινά primitives αντί για δύο γυμνές γραμμές κειμένου: η ίδια «Φόρτωση…»
               και το ίδιο «δεν υπάρχουν ακίνητα» υπήρχαν αυτούσια σε LeaseModal και
               OwnerSplit, με διαφορετική στοίχιση σε κάθε παράθυρο. */}
@@ -208,7 +257,9 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
               <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', padding: '15px 18px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Τρέχον</div>
-                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{pEur(res.currentRent)}</div>
+                  {/* Ήταν 17, εκτός κλίμακας. Το 16 κρατά την ίδια ιεραρχία:
+                      το νέο μίσθωμα από δίπλα είναι 22 και παραμένει το βαρύ. */}
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{pEur(res.currentRent)}</div>
                 </div>
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 <div>
@@ -241,34 +292,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
               {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
             </>
           )}
-        </div>
-
-        {pending ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                {archived ? 'Αποθηκεύτηκε στα έγγραφα του ακινήτου.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
-              </div>
-              {!archived && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>Αρχειοθετείται με ημερομηνία ισχύος {grDate(effective)}, σε χρονολογική σειρά.</div>}
-            </div>
-            {!archived && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {speechSupported() && <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
-                  style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
-                </button>}
-                <Btn variant="secondary" onClick={onClose}>Ίσως αργότερα</Btn>
-                <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
-            <Btn variant="primary" onClick={generate} disabled={busy || !sig || num(currentRent) <= 0}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο PDF'}</Btn>
-          </div>
-        )}
-      </div>
-    </div>
+      </>
+    </Modal>
   );
 }

@@ -7,7 +7,7 @@ import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT } from '@/components/Theme'
+import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, Modal, SideSheet } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
@@ -431,19 +431,20 @@ function QRCodeModal({ contact, onClose }: { contact: Contact; onClose: () => vo
   // QR τοπικά: η κάρτα επαφής (όνομα, τηλέφωνο, email) δεν φεύγει από τη συσκευή.
   const qrUrl = qrDataUrl(vcard, { size: 240 })
   return (
-    <div role="dialog" aria-modal="true" aria-label="QR επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 320, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-        <QrCode size={28} color="var(--accent)" style={{ margin: '0 auto 12px' }} />
-        <h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>QR Επαφής</h3>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 22 }}>Σάρωσε για να αποθηκεύσεις τα στοιχεία</p>
-        <div style={{ padding: 12, background: '#ffffff', borderRadius: 14, border: '1px solid var(--border-subtle)', display: 'inline-block', marginBottom: 16 }}>
+    <Modal open onClose={onClose} title="QR Επαφής" subtitle="Σάρωσε για να αποθηκεύσεις τα στοιχεία"
+      icon={<QrCode size={17} />} width={380} footer={<Btn onClick={onClose}>Κλείσιμο</Btn>}>
+      <div style={{ textAlign: 'center' }}>
+        {/* ΤΟ ΜΟΝΟ ΚΥΡΙΟΛΕΚΤΙΚΟ ΛΕΥΚΟ ΤΟΥ ΑΡΧΕΙΟΥ, ΚΑΙ ΜΕ ΛΟΓΟ: ο κώδικας QR
+            διαβάζεται από τη ΔΙΑΦΟΡΑ φωτεινότητας. Με token επιφάνειας, στο
+            σκούρο θέμα το πλαίσιο γίνεται σκούρο και η κάμερα δεν βρίσκει τα
+            τρία τετράγωνα εντοπισμού — ο κώδικας παύει να σαρώνεται. */}
+        <div style={{ padding: T.sp.md, background: 'var(--qr-paper)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', display: 'inline-block' }}>
           <img src={qrUrl} alt="QR" style={{ width: 190, height: 190, borderRadius: 6, display: 'block' }} />
         </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{contact.full_name}</div>
-        {contact.phone && <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone}</div>}
-        <button type="button" onClick={onClose} style={{ marginTop: 20, padding: '10px 28px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 13, width: '100%' }}>Κλείσιμο</button>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginTop: T.sp.lg }}>{contact.full_name}</div>
+        {contact.phone && <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono, marginTop: 3 }}>{contact.phone}</div>}
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -499,53 +500,45 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
     ...notesLog.map(n => ({ date: n.ts.split('T')[0], title: n.text, sub: 'Σημείωση', color: 'var(--accent)' })),
   ].filter(x => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20)
   return (
-    <div role="dialog" aria-modal="true" aria-label="Ιστορικό επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 540, maxHeight: '85vh', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-        <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div><h3 style={{ fontFamily: T.font.sans, fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Ιστορικό Συνεργασίας</h3><p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '3px 0 0' }}>{contact.full_name}</p></div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
-        </div>
-        <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1 }}>
-          {loading ? (
-            <><SkeletonKPIs n={3} />{[0, 1, 2].map(i => <Skeleton key={i} h={48} r={10} style={{ marginBottom: 12 }} />)}</>
-          ) : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 24 }}>
-                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : fe(0), color: 'var(--text-primary)' },
-                  { label: 'Παραστατικά με το ΑΦΜ του', value: docs.length > 0 ? `${docs.length}${docsTotal > 0 ? ' · ' + fe(docsTotal) : ''}` : (afm.length === 9 ? '0' : '—'), color: 'var(--text-primary)' },
-                  { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
-                  <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+    <Modal open onClose={onClose} title="Ιστορικό συνεργασίας" subtitle={contact.full_name} icon={<History size={17} />} width={540}>
+      {loading ? (
+        <div><SkeletonKPIs n={3} />{[0, 1, 2].map(i => <Skeleton key={i} h={48} r={10} style={{ marginBottom: 12 }} />)}</div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
+            {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : fe(0), color: 'var(--text-primary)' },
+              { label: 'Παραστατικά με το ΑΦΜ του', value: docs.length > 0 ? `${docs.length}${docsTotal > 0 ? ' · ' + fe(docsTotal) : ''}` : (afm.length === 9 ? '0' : '—'), color: 'var(--text-primary)' },
+              { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
+              <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+          {afm.length !== 9 && (
+            <div style={{ padding: '11px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              Χωρίς ΑΦΜ, τα παραστατικά αυτού του παρόχου δεν συνδέονται με την επαφή: το ταίριασμα γίνεται με το όνομα και αστοχεί. Συμπλήρωσέ το μία φορά στην επεξεργασία της επαφής.
+            </div>
+          )}
+          {timeline.length === 0 ? <EmptyState icon={<History size={20} />} title="Καμία κίνηση ακόμη" hint="Δαπάνες, παραστατικά με το ΑΦΜ του και σημειώσεις εμφανίζονται εδώ χρονολογικά." /> : (
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 15, top: 0, bottom: 0, width: 1, background: 'var(--border-subtle)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {timeline.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'color-mix(in srgb, ' + item.color + ' 14%, transparent)', border: '1px solid color-mix(in srgb, ' + item.color + ' 34%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} /></div>
+                    <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '9px 13px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 2 }}>{item.title}</div>
+                      <div style={{ display: 'flex', gap: 10 }}><span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{fmtDate(item.date)}</span><span style={{ fontSize: 11, color: item.color, fontWeight: 600 }}>{item.sub}</span></div>
+                    </div>
                   </div>
                 ))}
               </div>
-              {afm.length !== 9 && (
-                <div style={{ marginBottom: 18, padding: '11px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                  Χωρίς ΑΦΜ, τα παραστατικά αυτού του παρόχου δεν συνδέονται με την επαφή: το ταίριασμα γίνεται με το όνομα και αστοχεί. Συμπλήρωσέ το μία φορά στην επεξεργασία της επαφής.
-                </div>
-              )}
-              {timeline.length === 0 ? <EmptyState icon={<History size={20} />} title="Καμία κίνηση ακόμη" hint="Δαπάνες, παραστατικά με το ΑΦΜ του και σημειώσεις εμφανίζονται εδώ χρονολογικά." /> : (
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 15, top: 0, bottom: 0, width: 1, background: 'var(--border-subtle)' }} />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {timeline.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'color-mix(in srgb, ' + item.color + ' 14%, transparent)', border: '1px solid color-mix(in srgb, ' + item.color + ' 34%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} /></div>
-                        <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '9px 13px', border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 2 }}>{item.title}</div>
-                          <div style={{ display: 'flex', gap: 10 }}><span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{fmtDate(item.date)}</span><span style={{ fontSize: 11, color: item.color, fontWeight: 600 }}>{item.sub}</span></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </Modal>
   )
 }
 
@@ -574,6 +567,10 @@ function printContactCard(contact: Contact, branding?: ReportBranding | null) {
 // ─── Quick Modals ─────────────────────────────────────────────────────────────
 function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { contact: Contact; propertyId: string; userId: string; onClose: () => void; onSaved: () => void }) {
   const [amount, setAmount] = useState(''); const [description, setDescription] = useState(contact.full_name); const [saving, setSaving] = useState(false)
+  // ΦΡΟΥΡΑ ΚΛΕΙΣΙΜΑΤΟΣ. Το χειρόγραφο παράθυρο ΔΕΝ έκλεινε ούτε με Escape ούτε
+  // με κλικ στο φόντο — το Modal δίνει και τα δύο. Χωρίς φρουρά, ένα Escape στη
+  // μέση της εγγραφής ξεφορτώνει τη φόρμα ενώ η καταχώρηση συνεχίζει.
+  const close = () => { if (!saving) onClose() }
   const save = async () => {
     if (!amount) return
     setSaving(true)
@@ -583,27 +580,22 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
     onSaved(); onClose()
   }
   return (
-    <div role="dialog" aria-modal="true" aria-label="Εκτύπωση καρτέλας" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Receipt size={18} color="var(--accent)" /></div>
-          <div><h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Νέα Δαπάνη</h3><p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{contact.full_name}</p></div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="Παράδειγμα: 150" type="number" /></div>
-          <div><FL>Περιγραφή</FL><Inp value={description} onChange={setDescription} placeholder="Περιγραφή εργασίας" /></div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση Δαπάνης'}</button>
-        </div>
-      </div>
-    </div>
+    <Modal open onClose={close} title="Νέα δαπάνη" subtitle={contact.full_name} icon={<Receipt size={17} />} width={440}
+      footer={<>
+        <Btn onClick={close} disabled={saving}>Ακύρωση</Btn>
+        <Btn variant="primary" onClick={save} disabled={saving || !amount}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση Δαπάνης'}</Btn>
+      </>}>
+      <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="Παράδειγμα: 150" type="number" /></div>
+      <div><FL>Περιγραφή</FL><Inp value={description} onChange={setDescription} placeholder="Περιγραφή εργασίας" /></div>
+    </Modal>
   )
 }
 function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: { contact: Contact; propertyId: string; userId: string; onClose: () => void; onSaved: (date: string) => void }) {
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
   const [title, setTitle] = useState('Ραντεβού με ' + contact.full_name); const [date, setDate] = useState(isoDate(tomorrow)); const [saving, setSaving] = useState(false)
+  // Ίδια φρουρά με τη «Νέα δαπάνη»: Escape και κλικ στο φόντο δεν κλείνουν όσο
+  // η καταχώρηση είναι στον αέρα.
+  const close = () => { if (!saving) onClose() }
   const save = async () => {
     if (!title || !date) return
     setSaving(true)
@@ -613,22 +605,14 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
     onSaved(date); onClose()
   }
   return (
-    <div role="dialog" aria-modal="true" aria-label="Κωδικός QR επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CalendarPlus size={18} color="var(--accent)" /></div>
-          <div><h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Νέο Ραντεβού</h3><p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{contact.full_name}</p></div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div><FL>Τίτλος</FL><Inp value={title} onChange={setTitle} placeholder="Τίτλος ραντεβού" /></div>
-          <div><FL>Ημερομηνία</FL><DatePicker value={date} onChange={v => setDate(v)} /></div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Προσθήκη στο Ημερολόγιο'}</button>
-        </div>
-      </div>
-    </div>
+    <Modal open onClose={close} title="Νέο ραντεβού" subtitle={contact.full_name} icon={<CalendarPlus size={17} />} width={440}
+      footer={<>
+        <Btn onClick={close} disabled={saving}>Ακύρωση</Btn>
+        <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Προσθήκη στο Ημερολόγιο'}</Btn>
+      </>}>
+      <div><FL>Τίτλος</FL><Inp value={title} onChange={setTitle} placeholder="Τίτλος ραντεβού" /></div>
+      <div><FL>Ημερομηνία</FL><DatePicker value={date} onChange={v => setDate(v)} /></div>
+    </Modal>
   )
 }
 
@@ -911,9 +895,9 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             <div role="menu" style={{ position: 'absolute', top: 38, right: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '6px', minWidth: 210, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
               {[
                 { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit, color: 'var(--text-secondary)' },
-                { Icon: Receipt, label: 'Νέα Δαπάνη', onClick: onQuickExpense, color: 'var(--text-secondary)' },
-                { Icon: CalendarPlus, label: 'Νέο Ραντεβού', onClick: onQuickCalendar, color: 'var(--text-secondary)' },
-                { Icon: History, label: 'Ιστορικό Συνεργασίας', onClick: onShowHistory, color: 'var(--text-secondary)' },
+                { Icon: Receipt, label: 'Νέα δαπάνη', onClick: onQuickExpense, color: 'var(--text-secondary)' },
+                { Icon: CalendarPlus, label: 'Νέο ραντεβού', onClick: onQuickCalendar, color: 'var(--text-secondary)' },
+                { Icon: History, label: 'Ιστορικό συνεργασίας', onClick: onShowHistory, color: 'var(--text-secondary)' },
                 { Icon: QrCode, label: 'QR Code', onClick: onShowQR, color: 'var(--accent)' },
                 { Icon: Printer, label: 'Εκτύπωση Κάρτας', onClick: () => printContactCard(contact, branding), color: 'var(--text-secondary)' },
               ].map((a, i) => (
@@ -1049,136 +1033,134 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
     })
     return () => { live = false }
   }, [contact.id, contact.full_name, propertyId, refreshKey, afm])
-  useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey) }, [onClose])
-
+  // Ο ΤΟΠΙΚΟΣ ΑΚΡΟΑΤΗΣ ESCAPE ΕΦΥΓΕ: το SideSheet τον έχει ήδη (useOverlayShell),
+  // μαζί με δύο πράγματα που ΕΛΕΙΠΑΝ εδώ — εστίαση μέσα στο πάνελ και επιστροφή
+  // της στο σημείο εκκίνησης, και κλείδωμα της κύλισης του φόντου (το σύρσιμο
+  // πάνω στο σκοτεινό φόντο κυλούσε τη λίστα από πίσω).
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Καρτέλα επαφής" onClick={onClose} style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 460px)', height: '100%', background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)', boxShadow: '-24px 0 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dossierIn .28s cubic-bezier(.2,0,0,1)' }}>
-        <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}} .dsr-act:hover{border-color:var(--accent-border);background:var(--accent-soft);color:var(--accent)} .dsr-del{border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-secondary)} .dsr-del:hover{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}`}</style>
-
-        <div style={{ position: 'relative', padding: '22px 22px 20px', background: 'linear-gradient(155deg, var(--accent-soft), transparent 66%)', borderBottom: '1px solid var(--border-subtle)' }}>
-          <button type="button" onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, width: T.h.sm, height: T.h.sm, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={16} /></button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-            {extra.avatar_url
-              ? <img src={extra.avatar_url} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--accent-border)', boxShadow: '0 6px 18px rgba(0,0,0,0.25)', flexShrink: 0 }} />
-              : <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--accent-soft)', border: '3px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, color: 'var(--accent)', boxShadow: '0 6px 18px rgba(0,0,0,0.22)', flexShrink: 0 }}>{initials || <GroupIcon size={26} />}</div>}
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{contact.full_name}</div>
-              <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}><GroupIcon size={13} />{meta.label || contact.role}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
-              </div>
+    <SideSheet open onClose={onClose} ariaLabel="Καρτέλα επαφής" width={460}
+      header={<>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+          {extra.avatar_url
+            ? <img src={extra.avatar_url} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--accent-border)', flexShrink: 0 }} />
+            : <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--accent-soft)', border: '3px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, color: 'var(--accent)', flexShrink: 0 }}>{initials || <GroupIcon size={26} />}</div>}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{contact.full_name}</div>
+            <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}><GroupIcon size={13} />{meta.label || contact.role}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
             </div>
           </div>
-          {extra.specialty && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.5 }}>{extra.specialty}</div>}
         </div>
+        {extra.specialty && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.5 }}>{extra.specialty}</div>}
+      </>}>
+      <style>{`.dsr-act:hover{border-color:var(--accent-border);background:var(--accent-soft);color:var(--accent)} .dsr-del{border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-secondary)} .dsr-del:hover{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}`}</style>
 
-        <div style={{ padding: '14px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(78px,1fr))', gap: 9, borderBottom: '1px solid var(--border-subtle)' }}>
-          {contact.phone && <CommButton label="Κλήση" Icon={Phone} href={'tel:' + contact.phone} accent />}
-          {contact.phone && <CommButton label="WhatsApp" Icon={MessageSquare} href={'https://wa.me/' + digits(contact.phone)} target="_blank" />}
-          {contact.phone && <CommButton label="Viber" Icon={Phone} href={'viber://chat?number=' + digits(contact.phone)} />}
-          {contact.email && <CommButton label="Ηλεκτρονικό ταχυδρομείο" Icon={Mail} href={'mailto:' + contact.email} />}
-          {site && <CommButton label="Ιστοσελίδα" Icon={Globe} href={site} target="_blank" />}
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {(exp.count > 0 || exp.docs > 0) && (
-            <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}{exp.docs > 0 ? ` · ${exp.docs} ${exp.docs === 1 ? 'παραστατικό' : 'παραστατικά'} με το ΑΦΜ του` : ''}</div>
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>Πλήρες ιστορικό ›</span>
-            </button>
-          )}
-
-          {(contact.phone || extra.phone2 || contact.email || extra.office_address) && (
-            <DossierSection title="Στοιχεία επικοινωνίας">
-              {contact.phone && <DossierRow icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></DossierRow>}
-              {extra.phone2 && <DossierRow icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></DossierRow>}
-              {contact.email && <DossierRow icon={Mail} onCopy={() => copy(contact.email!, 'Το email')}>{contact.email}</DossierRow>}
-              {extra.office_address && <DossierRow icon={MapPin}>{extra.office_address}</DossierRow>}
-            </DossierSection>
-          )}
-
-          {/* Ο χάρτης ΔΕΝ φορτώνεται μόνος του. Το iframe έστελνε τη διεύθυνση
-              γραφείου τρίτου προσώπου στην Google με το που άνοιγε το ντοσιέ, χωρίς
-              ο χρήστης να ζητήσει χάρτη. Τώρα ανοίγει με ρητό κλικ, σε νέα καρτέλα. */}
-          {mapLink && (
-            <a href={mapLink} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '13px 16px', color: 'var(--text-secondary)', fontSize: 13, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              <MapPin size={15} color="var(--accent)" style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1, minWidth: 0 }}>Άνοιγμα διεύθυνσης στον χάρτη</span>
-              <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>›</span>
-            </a>
-          )}
-
-          {(extra.afm || extra.iban) && (
-            <DossierSection title="Επαγγελματικά και πληρωμές">
-              {extra.afm && <DossierRow icon={FileText} onCopy={() => copy(extra.afm!, 'Το ΑΦΜ')}><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span> <span style={{ fontFamily: T.font.mono }}>{extra.afm}</span></DossierRow>}
-              {extra.iban && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</DossierRow>}
-            </DossierSection>
-          )}
-
-          {extra.next_appointment && (
-            <DossierSection title="Παρακολούθηση">
-              <DossierRow icon={CalendarPlus}><span style={{ color: overdue ? 'var(--negative)' : 'var(--text-secondary)' }}>Επόμενο ραντεβού: {fmtDate(extra.next_appointment)}{overdue ? ' (ληξιπρόθεσμο)' : ''}</span></DossierRow>
-            </DossierSection>
-          )}
-
-          {(extra.tags || []).length > 0 && (
-            <DossierSection title="Ετικέτες">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 11, padding: '3px 10px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{t}</span>)}
-              </div>
-            </DossierSection>
-          )}
-
-          {(contact._freeNotes || (extra.notes_log || []).length > 0) && (
-            <DossierSection title="Σημειώσεις">
-              {contact._freeNotes && <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{contact._freeNotes}</div>}
-              {(extra.notes_log || []).map(n => (
-                <div key={n.id} style={{ borderLeft: '2px solid var(--border-default)', paddingLeft: 12 }}>
-                  <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{n.text}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{fmtDate(n.ts)}</div>
-                </div>
-              ))}
-            </DossierSection>
-          )}
-
-          {(extra.files || []).length > 0 && (
-            <DossierSection title="Αρχεία">
-              {(extra.files || []).map((f, i) => (
-                <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 13 }}>
-                  <FileText size={14} color="var(--text-tertiary)" />{f.name}
-                </a>
-              ))}
-            </DossierSection>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, paddingTop: 16, marginTop: 2, borderTop: '1px solid var(--border-subtle)' }}>
-            {[
-              { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit },
-              { Icon: Receipt, label: 'Δαπάνη', onClick: onQuickExpense },
-              { Icon: CalendarPlus, label: 'Ραντεβού', onClick: onQuickCalendar },
-              { Icon: History, label: 'Ιστορικό', onClick: onShowHistory },
-              { Icon: QrCode, label: 'QR', onClick: onShowQR },
-              { Icon: FileText, label: 'vCard', onClick: onVcard },
-              { Icon: Printer, label: 'Εκτύπωση', onClick: () => printContactCard(contact, branding) },
-            ].map((a, i) => (
-              <button key={i} type="button" onClick={a.onClick} className="dsr-act" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 62, padding: '10px 4px', borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background .15s, border-color .15s, color .15s' }}>
-                <a.Icon size={17} /><span style={{ whiteSpace: 'nowrap' }}>{a.label}</span>
-              </button>
-            ))}
-            <button type="button" onClick={onDelete} className="dsr-del" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 62, padding: '10px 4px', borderRadius: 12, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background .15s, border-color .15s, color .15s' }}>
-              <Trash2 size={17} /><span style={{ whiteSpace: 'nowrap' }}>Διαγραφή</span>
-            </button>
-          </div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(78px,1fr))', gap: 9 }}>
+        {contact.phone && <CommButton label="Κλήση" Icon={Phone} href={'tel:' + contact.phone} accent />}
+        {contact.phone && <CommButton label="WhatsApp" Icon={MessageSquare} href={'https://wa.me/' + digits(contact.phone)} target="_blank" />}
+        {contact.phone && <CommButton label="Viber" Icon={Phone} href={'viber://chat?number=' + digits(contact.phone)} />}
+        {contact.email && <CommButton label="Ηλεκτρονικό ταχυδρομείο" Icon={Mail} href={'mailto:' + contact.email} />}
+        {site && <CommButton label="Ιστοσελίδα" Icon={Globe} href={site} target="_blank" />}
       </div>
-    </div>
+
+      {(exp.count > 0 || exp.docs > 0) && (
+        <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}{exp.docs > 0 ? ` · ${exp.docs} ${exp.docs === 1 ? 'παραστατικό' : 'παραστατικά'} με το ΑΦΜ του` : ''}</div>
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>Πλήρες ιστορικό ›</span>
+        </button>
+      )}
+
+      {(contact.phone || extra.phone2 || contact.email || extra.office_address) && (
+        <DossierSection title="Στοιχεία επικοινωνίας">
+          {contact.phone && <DossierRow icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></DossierRow>}
+          {extra.phone2 && <DossierRow icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></DossierRow>}
+          {contact.email && <DossierRow icon={Mail} onCopy={() => copy(contact.email!, 'Το email')}>{contact.email}</DossierRow>}
+          {extra.office_address && <DossierRow icon={MapPin}>{extra.office_address}</DossierRow>}
+        </DossierSection>
+      )}
+
+      {/* Ο χάρτης ΔΕΝ φορτώνεται μόνος του. Το iframe έστελνε τη διεύθυνση
+          γραφείου τρίτου προσώπου στην Google με το που άνοιγε το ντοσιέ, χωρίς
+          ο χρήστης να ζητήσει χάρτη. Τώρα ανοίγει με ρητό κλικ, σε νέα καρτέλα. */}
+      {mapLink && (
+        <a href={mapLink} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '13px 16px', color: 'var(--text-secondary)', fontSize: 13, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <MapPin size={15} color="var(--accent)" style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 0 }}>Άνοιγμα διεύθυνσης στον χάρτη</span>
+          <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>›</span>
+        </a>
+      )}
+
+      {(extra.afm || extra.iban) && (
+        <DossierSection title="Επαγγελματικά και πληρωμές">
+          {extra.afm && <DossierRow icon={FileText} onCopy={() => copy(extra.afm!, 'Το ΑΦΜ')}><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span> <span style={{ fontFamily: T.font.mono }}>{extra.afm}</span></DossierRow>}
+          {extra.iban && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</DossierRow>}
+        </DossierSection>
+      )}
+
+      {extra.next_appointment && (
+        <DossierSection title="Παρακολούθηση">
+          <DossierRow icon={CalendarPlus}><span style={{ color: overdue ? 'var(--negative)' : 'var(--text-secondary)' }}>Επόμενο ραντεβού: {fmtDate(extra.next_appointment)}{overdue ? ' (ληξιπρόθεσμο)' : ''}</span></DossierRow>
+        </DossierSection>
+      )}
+
+      {(extra.tags || []).length > 0 && (
+        <DossierSection title="Ετικέτες">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 11, padding: '3px 10px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{t}</span>)}
+          </div>
+        </DossierSection>
+      )}
+
+      {(contact._freeNotes || (extra.notes_log || []).length > 0) && (
+        <DossierSection title="Σημειώσεις">
+          {contact._freeNotes && <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{contact._freeNotes}</div>}
+          {(extra.notes_log || []).map(n => (
+            <div key={n.id} style={{ borderLeft: '2px solid var(--border-default)', paddingLeft: 12 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{n.text}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{fmtDate(n.ts)}</div>
+            </div>
+          ))}
+        </DossierSection>
+      )}
+
+      {(extra.files || []).length > 0 && (
+        <DossierSection title="Αρχεία">
+          {(extra.files || []).map((f, i) => (
+            <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 13 }}>
+              <FileText size={14} color="var(--text-tertiary)" />{f.name}
+            </a>
+          ))}
+        </DossierSection>
+      )}
+
+      {/* Το `marginTop: 2` έφυγε: το σώμα του SideSheet είναι ήδη flex column με
+          gap, οπότε πρόσθετε δεύτερο κενό πάνω από τη γραμμή διαχωρισμού. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+        {[
+          { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit },
+          { Icon: Receipt, label: 'Δαπάνη', onClick: onQuickExpense },
+          { Icon: CalendarPlus, label: 'Ραντεβού', onClick: onQuickCalendar },
+          { Icon: History, label: 'Ιστορικό', onClick: onShowHistory },
+          { Icon: QrCode, label: 'QR', onClick: onShowQR },
+          { Icon: FileText, label: 'vCard', onClick: onVcard },
+          { Icon: Printer, label: 'Εκτύπωση', onClick: () => printContactCard(contact, branding) },
+        ].map((a, i) => (
+          <button key={i} type="button" onClick={a.onClick} className="dsr-act" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 62, padding: '10px 4px', borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background .15s, border-color .15s, color .15s' }}>
+            <a.Icon size={17} /><span style={{ whiteSpace: 'nowrap' }}>{a.label}</span>
+          </button>
+        ))}
+        <button type="button" onClick={onDelete} className="dsr-del" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 62, padding: '10px 4px', borderRadius: 12, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background .15s, border-color .15s, color .15s' }}>
+          <Trash2 size={17} /><span style={{ whiteSpace: 'nowrap' }}>Διαγραφή</span>
+        </button>
+      </div>
+    </SideSheet>
   )
 }
 
@@ -1286,7 +1268,6 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [editContact, setEditContact] = useState<Contact | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } })
   const [saving, setSaving] = useState(false)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filterGroup, setFilterGroup] = useState('all')
   const [filterScope, setFilterScope] = useState<'all' | 'portfolio' | 'property'>('all')
@@ -1378,6 +1359,16 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
   const openEdit = (c: Contact) => { const known = !!ROLE_META[c.role]; setRoleOther(known ? '' : (c.role || '')); setEditContact(c); setForm({ full_name: c.full_name, role: known ? c.role : 'other', phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.iban || c._extra?.next_appointment)); setShowModal(true) }
   const closeModal = () => { setShowModal(false); setEditContact(null); setError(null) }
+  // ── ΦΡΟΥΡΑ «ΜΗΝ ΚΛΕΙΣΕΙΣ ΟΣΟ ΑΠΟΘΗΚΕΥΕΙ» ────────────────────────────────
+  // Το χειρόγραφο παράθυρο έκλεινε ΜΟΝΟ από το «×» και την «Ακύρωση». Το Modal
+  // προσθέτει Escape και κλικ στο φόντο, δηλαδή δύο νέους τρόπους να φύγεις στη
+  // μέση της αποθήκευσης. Αν φύγεις, η κλήση συνεχίζει· και αν αποτύχει, το
+  // `setError` γράφει σε παράθυρο που δεν υπάρχει πια — ο χρήστης χάνει ό,τι
+  // πληκτρολόγησε και δεν μαθαίνει ποτέ γιατί. Το `closeModal` μένει άθικτο για
+  // το `persist`, που κλείνει ΜΕΤΑ από επιτυχία (και δεν βλέπει ακόμη το
+  // setSaving(false) της ίδιας ριπής).
+  const requestCloseModal = () => { if (!saving) closeModal() }
+  const requestCloseDup = () => { if (!saving) setDup(null) }
   const setExtra = (key: keyof ContactExtra, value: unknown) => setForm(f => ({ ...f, extra: { ...f.extra, [key]: value } }))
 
   // ── Εντοπισμός διπλότυπου (ίδιο τηλέφωνο ≥8 ψηφία ή ίδιο ΑΦΜ) ──
@@ -1441,7 +1432,15 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const handleDelete = async (id: string) => {
     if (!await saved('Η επαφή δεν διαγράφηκε', supabase.from('contacts').delete().eq('id', id))) return
     await saved('Η υπενθύμιση της επαφής δεν καθαρίστηκε', supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`))
-    setDeleteId(null); fetchContacts(); notify('Επαφή διαγράφηκε')
+    fetchContacts(); notify('Επαφή διαγράφηκε')
+  }
+  // ΜΙΑ ΕΡΩΤΗΣΗ ΓΙΑ ΤΕΣΣΕΡΑ ΚΟΥΜΠΙΑ. Το «Διαγραφή» της κάρτας, της γραμμής
+  // λίστας, του μενού «···» και του ντοσιέ άναβαν όλα την ίδια κατάσταση
+  // `deleteId`, που υπήρχε αποκλειστικά για να εμφανίσει το χειρόγραφο παράθυρο.
+  // Η ερώτηση είναι πλέον εδώ, σε μία γραμμή, και η κατάσταση δεν χρειάζεται.
+  const askDelete = async (c: Contact) => {
+    if (!await confirmDialog({ title: 'Διαγραφή Επαφής;', message: 'Αυτή η ενέργεια δεν αναιρείται.', confirmLabel: 'Διαγραφή', tone: 'negative' })) return
+    await handleDelete(c.id)
   }
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   const bulkDelete = async () => {
@@ -1553,9 +1552,18 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
 
       <input ref={cardRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runCardScan(f); e.currentTarget.value = '' }} />
+      {/* ── ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ, ΕΙΝΑΙ ΠΡΟΟΔΟΣ: ΜΕΝΕΙ ΧΕΙΡΟΓΡΑΦΟ ──────────────
+          Δεν ρωτά τίποτα και δεν προσφέρει καμία ενέργεια — ούτε πρέπει. Το
+          Modal δίνει «×» και Escape, δηλαδή δύο τρόπους να το κλείσεις· όμως το
+          κλείσιμο ΔΕΝ ακυρώνει την κλήση προς το μοντέλο, οπότε ο χρήστης θα
+          έβλεπε τη φόρμα να ανοίγει μόνη της δευτερόλεπτα αφού «έφυγε» από τη
+          σάρωση. Ένα υπόσχεση-ακύρωσης που δεν ακυρώνει είναι χειρότερη από την
+          αναμονή. Ευθυγραμμίζονται μόνο scrim, ακτίνα και σκιά με τα tokens.
+          Ο role="status" αντικαθιστά το role="dialog": ο αναγνώστης οθόνης
+          ανακοινώνει την πρόοδο αντί να ψάχνει χειριστήρια που δεν υπάρχουν. */}
       {scanning && (
-        <div role="dialog" aria-modal="true" aria-label="Ανάλυση κάρτας" style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '26px 32px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+        <div role="status" aria-live="polite" aria-label="Ανάλυση κάρτας" style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding: '26px 32px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: 'var(--elev-3)' }}>
             <div style={{ width: 22, height: 22, border: '2.5px solid var(--border-default)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'contactsSpin 0.7s linear infinite' }} />
             <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Ανάλυση κάρτας…</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εξάγω τα στοιχεία επαφής</div></div>
           </div>
@@ -1817,12 +1825,12 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>ΑΦΜ</div>
           </div>
-          {processed.map(c => <CompactRow key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
+          {processed.map(c => <CompactRow key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => askDelete(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
         </div>
       ) : letter || sortMode === 'alpha' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
           {processed.map(c => (
-            <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
+            <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => askDelete(c)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
           ))}
         </div>
       ) : (
@@ -1832,7 +1840,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               <GroupDivider group={g} count={groupedFiltered[g.id].length} />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
                 {groupedFiltered[g.id].map(c => (
-                  <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
+                  <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => askDelete(c)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
                 ))}
               </div>
             </div>
@@ -1840,196 +1848,187 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
-      {/* MODAL */}
-      {showModal && (
-        <div role="dialog" aria-modal="true" aria-label="Στοιχεία επαφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 600, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '22px 28px 18px', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {ROLE_META[form.role] && (() => { const meta = ROLE_META[form.role]; const Icon = meta.GroupIcon || Users; return <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={17} color="var(--accent)" /></div> })()}
-                  <div>
-                    <h3 style={{ fontFamily: T.font.sans, fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{editContact ? 'Επεξεργασία επαφής' : 'Νέα επαφή'}</h3>
-                    {editContact && <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{editContact.full_name}</p>}
-                  </div>
-                </div>
-                <button type="button" onClick={closeModal} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
-              </div>
-            </div>
-
-            <div style={{ padding: '22px 28px', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-                {/* ── Στοιχεία ──
-                    Ποια πεδία υπάρχουν εδώ το ορίζει το CONTACT_FIELDS, και κάθε ένα
-                    δείχνει ΓΡΑΜΜΕΝΟ το γιατί το ζητάμε. Η φωτογραφία επαφής έφυγε:
-                    ένα πορτρέτο του υδραυλικού δεν κάνει τίποτα, και ήταν το πρώτο
-                    πράγμα που έβλεπε ο χρήστης ανοίγοντας τη φόρμα. */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <CField d={cf('contact.name')} required>
-                    <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος ή ΔΕΗ Α.Ε." />
-                  </CField>
-                  <CField d={cf('contact.role')}>
-                    <CustomSelect value={form.role} onChange={v => setForm(f => ({ ...f, role: v }))}
-                      options={ROLE_SELECT_OPTIONS.filter(o => !o.disabled).map(o => ({ value: o.value, label: o.label }))} />
-                    {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Γράψε ελεύθερα κατηγορία ή όνομα εταιρείας" /></div>}
-                  </CField>
-                  <CField d={cf('contact.phone')}>
-                    <Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="2101234567" />
-                  </CField>
-                  {/* ΤΟ ΑΦΜ ΕΙΝΑΙ CORE. Είναι το μόνο πεδίο που συνδέει την επαφή με τα
-                      παραστατικά της: χωρίς αυτό το ταίριασμα γίνεται με το όνομα και
-                      αστοχεί σε κάθε «Συντήρηση — Παπαδόπουλος». */}
-                  <CField d={cf('contact.afm')}>
-                    <Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v.replace(/\D/g, '').slice(0, 9))} placeholder="123456789" />
-                  </CField>
-                </div>
-
-                {/* ── Πτυσσόμενες λεπτομέρειες ── */}
-                <button type="button" onClick={() => setShowMore(m => !m)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
-                  {showMore ? 'Λιγότερες λεπτομέρειες' : 'Περισσότερες λεπτομέρειες'}
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showMore ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
-                </button>
-
-                {showMore && (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <SecHead>Επικοινωνία και πληρωμές</SecHead>
-                      <CField d={cf('contact.email')}>
-                        <Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" />
-                      </CField>
-                      <CField d={cf('contact.mobile')}>
-                        <Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="6941234567" />
-                      </CField>
-                      <CField d={cf('contact.messaging')}>
-                        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
-                        </div>
-                      </CField>
-                      <CField d={cf('contact.iban')}>
-                        <Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR16 0110 1250 0000 0001 2300 695" />
-                      </CField>
-                      <CField d={cf('contact.iris')}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                          <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Δέχεται πληρωμή με IRIS</span>
-                          <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} />
-                        </div>
-                      </CField>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <SecHead>Στοιχεία συνεργάτη</SecHead>
-                      <CField d={cf('contact.specialty')}>
-                        <Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: ειδικός σε κεντρική θέρμανση" />
-                      </CField>
-                      <CField d={cf('contact.website')}>
-                        <Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" />
-                      </CField>
-                      {/* ΑΠΛΟ ΠΕΔΙΟ ΚΕΙΜΕΝΟΥ. Ήταν autocomplete που έστελνε κάθε
-                          πληκτρολόγηση σε τρίτο εξυπηρετητή — διεύθυνση γραφείου
-                          τρίτου προσώπου, εκτός της υποδομής μας. */}
-                      <CField d={cf('contact.address')}>
-                        <Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Οδός, αριθμός, πόλη" />
-                      </CField>
-                      <CField d={cf('contact.next_appointment')}>
-                        <DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} />
-                      </CField>
-                      <CField d={cf('contact.scope')}>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {([{ v: 'property' as const, label: 'Συγκεκριμένο ακίνητο', Icon: Building2 }, { v: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe }]).map(o => {
-                            const active = (form.extra.scope || 'property') === o.v; const Ico = o.Icon; return (
-                              <button key={o.v} type="button" onClick={() => setExtra('scope', o.v)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent-border)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
-                                <Ico size={14} />{o.label}
-                              </button>
-                            )
-                          })}
-                        </div>
-                        {(form.extra.scope || 'property') !== 'portfolio' && properties.length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <CustomSelect value={form.extra.scope_property_id || propertyId} onChange={v => setExtra('scope_property_id', v)}
-                              options={properties.map(p => ({ value: p.id, label: p.name }))} />
-                          </div>
-                        )}
-                      </CField>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                        <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ανεβαίνει στη γρήγορη πρόσβαση, για να τη βρίσκεις αμέσως</div></div>
-                        <Tog value={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <SecHead>Σημειώσεις και αρχεία</SecHead>
-                      <CField d={cf('contact.tags')}>
-                        <TagEditor tags={form.extra.tags || []} onChange={v => setExtra('tags', v)} />
-                      </CField>
-                      <CField d={cf('contact.notes')}>
-                        <Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ιστορικό, τιμές, συμφωνίες…" rows={4} />
-                      </CField>
-                      <CField d={cf('contact.files')}>
-                        <FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} />
-                      </CField>
-                    </div>
-                  </>
-                )}
-              </div>
-              {error && <div style={{ marginTop: 14, background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '11px 16px', color: 'var(--negative)', fontSize: 13 }}>{error}</div>}
-            </div>
-
-            <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
-              <button type="button" onClick={closeModal} style={{ flex: 1, padding: '12px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-              <button type="button" onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: saving ? 'var(--border-default)' : 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
-                {saving ? 'Αποθήκευση…' : editContact ? 'Αποθήκευση Αλλαγών' : 'Προσθήκη Επαφής'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {deleteId && (
-        <div role="dialog" aria-modal="true" aria-label="Επιβεβαίωση διαγραφής" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-            </div>
-            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Διαγραφή Επαφής;</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 28px', lineHeight: 1.5 }}>Αυτή η ενέργεια δεν αναιρείται.</p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button type="button" onClick={() => setDeleteId(null)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-              <button type="button" onClick={() => handleDelete(deleteId!)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Διαγραφή</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {dup && (
-        <div role="dialog" aria-modal="true" aria-label="Υπάρχει ήδη παρόμοια επαφή" style={{ position: 'fixed', inset: 0, background: T.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: 20 }}>
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: 18, padding: 28, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-            <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Υπάρχει ήδη παρόμοια επαφή</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 16px', lineHeight: 1.55 }}>Βρέθηκε επαφή με το ίδιο τηλέφωνο ή ΑΦΜ. Θέλεις να τη συγχωνεύσεις (να συμπληρωθούν τα νέα στοιχεία) ή να δημιουργήσεις ξεχωριστή εγγραφή;</p>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{dup.full_name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {dup.phone && <span style={{ fontFamily: T.font.mono }}>{dup.phone}</span>}
-                {dup._extra?.afm && <span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ {dup._extra.afm}</span>}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setDup(null)} style={{ flex: 1, minWidth: 90, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }}>Ακύρωση</button>
-              <button type="button" onClick={() => persist('insert')} disabled={saving} style={{ flex: 1, minWidth: 120, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Ξεχωριστή</button>
-              <button type="button" onClick={() => persist('merge', dup)} disabled={saving} style={{ flex: 1.4, minWidth: 130, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Συγχώνευση…' : 'Συγχώνευση'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* ── Η ΣΕΙΡΑ ΤΟΥ DOM ΕΙΝΑΙ Η ΣΕΙΡΑ ΤΩΝ ΕΠΙΠΕΔΩΝ ────────────────────────
+          Το ντοσιέ ήταν γραμμένο ΜΕΤΑ τα παράθυρα, όταν κουβαλούσε δικό του
+          z-index 900 και τα παράθυρα 1000–1300: η αριθμητική το κρατούσε από
+          κάτω ό,τι σειρά κι αν είχε. Τα κοινά Modal και SideSheet έχουν ΤΟ ΙΔΙΟ
+          z-index (1000) — άρα κερδίζει όποιο έρχεται τελευταίο στο DOM, και το
+          ντοσιέ σκέπαζε τη φόρμα επεξεργασίας που άνοιγε το ίδιο του το κουμπί
+          «Επεξεργασία». Ανεβαίνει εδώ, πριν από όσα ανοίγουν ΠΑΝΩ του. */}
       {detail && <ContactDossier contact={detail} propertyId={propertyId} branding={branding} onVcard={() => downloadVcf([detail], (detail.full_name || 'epafi').replace(/[^\w.\-]+/g, '_') + '.vcf')} onClose={() => setDetailId(null)}
         onEdit={() => openEdit(detail)}
-        onDelete={() => setDeleteId(detail.id)}
+        onDelete={() => askDelete(detail)}
         onQuickExpense={() => setQuickExpense(detail)}
         onQuickCalendar={() => setQuickCalendar(detail)}
         onShowHistory={() => setHistoryContact(detail)}
         onShowQR={() => setQrContact(detail)} refreshKey={dossierRefresh} />}
+
+      {/* MODAL */}
+      {showModal && (() => {
+        // Το εικονίδιο της κατηγορίας μπαίνει στην υποδοχή `icon` του Modal, που
+        // ήδη δίνει το τετράγωνο accent-soft — το χειρόγραφο 36×36 πλαίσιο ήταν
+        // αντίγραφό του με άλλη ακτίνα.
+        const roleMeta = ROLE_META[form.role]
+        const RoleIcon = roleMeta?.GroupIcon || Users
+        return (
+        <Modal open onClose={requestCloseModal}
+          title={editContact ? 'Επεξεργασία επαφής' : 'Νέα επαφή'}
+          subtitle={editContact ? editContact.full_name : undefined}
+          icon={roleMeta ? <RoleIcon size={17} /> : undefined}
+          width={600}
+          footer={<>
+            <Btn onClick={requestCloseModal} disabled={saving}>Ακύρωση</Btn>
+            <Btn variant="primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Αποθήκευση…' : editContact ? 'Αποθήκευση Αλλαγών' : 'Προσθήκη Επαφής'}
+            </Btn>
+          </>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+            {/* ── Στοιχεία ──
+                Ποια πεδία υπάρχουν εδώ το ορίζει το CONTACT_FIELDS, και κάθε ένα
+                δείχνει ΓΡΑΜΜΕΝΟ το γιατί το ζητάμε. Η φωτογραφία επαφής έφυγε:
+                ένα πορτρέτο του υδραυλικού δεν κάνει τίποτα, και ήταν το πρώτο
+                πράγμα που έβλεπε ο χρήστης ανοίγοντας τη φόρμα. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <CField d={cf('contact.name')} required>
+                <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος ή ΔΕΗ Α.Ε." />
+              </CField>
+              <CField d={cf('contact.role')}>
+                <CustomSelect value={form.role} onChange={v => setForm(f => ({ ...f, role: v }))}
+                  options={ROLE_SELECT_OPTIONS.filter(o => !o.disabled).map(o => ({ value: o.value, label: o.label }))} />
+                {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Γράψε ελεύθερα κατηγορία ή όνομα εταιρείας" /></div>}
+              </CField>
+              <CField d={cf('contact.phone')}>
+                <Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="2101234567" />
+              </CField>
+              {/* ΤΟ ΑΦΜ ΕΙΝΑΙ CORE. Είναι το μόνο πεδίο που συνδέει την επαφή με τα
+                  παραστατικά της: χωρίς αυτό το ταίριασμα γίνεται με το όνομα και
+                  αστοχεί σε κάθε «Συντήρηση — Παπαδόπουλος». */}
+              <CField d={cf('contact.afm')}>
+                <Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v.replace(/\D/g, '').slice(0, 9))} placeholder="123456789" />
+              </CField>
+            </div>
+
+            {/* ── Πτυσσόμενες λεπτομέρειες ── */}
+            <button type="button" onClick={() => setShowMore(m => !m)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
+              {showMore ? 'Λιγότερες λεπτομέρειες' : 'Περισσότερες λεπτομέρειες'}
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showMore ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+
+            {showMore && (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <SecHead>Επικοινωνία και πληρωμές</SecHead>
+                  <CField d={cf('contact.email')}>
+                    <Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" />
+                  </CField>
+                  <CField d={cf('contact.mobile')}>
+                    <Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="6941234567" />
+                  </CField>
+                  <CField d={cf('contact.messaging')}>
+                    <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
+                    </div>
+                  </CField>
+                  <CField d={cf('contact.iban')}>
+                    <Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR16 0110 1250 0000 0001 2300 695" />
+                  </CField>
+                  <CField d={cf('contact.iris')}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Δέχεται πληρωμή με IRIS</span>
+                      <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} />
+                    </div>
+                  </CField>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <SecHead>Στοιχεία συνεργάτη</SecHead>
+                  <CField d={cf('contact.specialty')}>
+                    <Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: ειδικός σε κεντρική θέρμανση" />
+                  </CField>
+                  <CField d={cf('contact.website')}>
+                    <Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" />
+                  </CField>
+                  {/* ΑΠΛΟ ΠΕΔΙΟ ΚΕΙΜΕΝΟΥ. Ήταν autocomplete που έστελνε κάθε
+                      πληκτρολόγηση σε τρίτο εξυπηρετητή — διεύθυνση γραφείου
+                      τρίτου προσώπου, εκτός της υποδομής μας. */}
+                  <CField d={cf('contact.address')}>
+                    <Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Οδός, αριθμός, πόλη" />
+                  </CField>
+                  <CField d={cf('contact.next_appointment')}>
+                    <DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} />
+                  </CField>
+                  <CField d={cf('contact.scope')}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {([{ v: 'property' as const, label: 'Συγκεκριμένο ακίνητο', Icon: Building2 }, { v: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe }]).map(o => {
+                        const active = (form.extra.scope || 'property') === o.v; const Ico = o.Icon; return (
+                          <button key={o.v} type="button" onClick={() => setExtra('scope', o.v)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent-border)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
+                            <Ico size={14} />{o.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {(form.extra.scope || 'property') !== 'portfolio' && properties.length > 0 && (
+                      <div style={{ marginTop: 12 }}>
+                        <CustomSelect value={form.extra.scope_property_id || propertyId} onChange={v => setExtra('scope_property_id', v)}
+                          options={properties.map(p => ({ value: p.id, label: p.name }))} />
+                      </div>
+                    )}
+                  </CField>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                    <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ανεβαίνει στη γρήγορη πρόσβαση, για να τη βρίσκεις αμέσως</div></div>
+                    <Tog value={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <SecHead>Σημειώσεις και αρχεία</SecHead>
+                  <CField d={cf('contact.tags')}>
+                    <TagEditor tags={form.extra.tags || []} onChange={v => setExtra('tags', v)} />
+                  </CField>
+                  <CField d={cf('contact.notes')}>
+                    <Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ιστορικό, τιμές, συμφωνίες…" rows={4} />
+                  </CField>
+                  <CField d={cf('contact.files')}>
+                    <FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} />
+                  </CField>
+                </div>
+              </>
+            )}
+          </div>
+          {error && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '11px 16px', color: 'var(--negative)', fontSize: 13 }}>{error}</div>}
+        </Modal>
+        )
+      })()}
+
+      {/* ΤΟ ΠΑΡΑΘΥΡΟ ΔΙΑΓΡΑΦΗΣ ΕΦΥΓΕ ΜΑΖΙ ΜΕ ΤΗΝ ΚΑΤΑΣΤΑΣΗ ΤΟΥ. Ήταν εικονίδιο,
+          μία ερώτηση, μία πρόταση και δύο κουμπιά — ακριβώς ο ορισμός του
+          confirmDialog. Η κατάσταση `deleteId` υπήρχε ΜΟΝΟ για να το ανοίγει,
+          οπότε σβήστηκε και αυτή: η ερώτηση ζει τώρα μέσα στο `askDelete`. */}
+
+      {dup && (
+        <Modal open onClose={requestCloseDup} title="Υπάρχει ήδη παρόμοια επαφή" width={440}
+          footer={<>
+            <Btn onClick={requestCloseDup} disabled={saving}>Ακύρωση</Btn>
+            <Btn onClick={() => persist('insert')} disabled={saving}>Ξεχωριστή</Btn>
+            <Btn variant="primary" onClick={() => persist('merge', dup)} disabled={saving}>{saving ? 'Συγχώνευση…' : 'Συγχώνευση'}</Btn>
+          </>}>
+          {/* ΔΕΝ ΕΙΝΑΙ ΕΡΩΤΗΣΗ ΝΑΙ/ΟΧΙ, ΑΡΑ ΔΕΝ ΕΙΝΑΙ confirmDialog: οι απαντήσεις
+              είναι ΤΡΕΙΣ (ακύρωση, ξεχωριστή εγγραφή, συγχώνευση) και ανάμεσά
+              τους στέκει η καρτέλα της επαφής που βρέθηκε — χωρίς αυτήν ο
+              χρήστης δεν ξέρει ΜΕ ΠΟΙΑΝ θα συγχωνεύσει. */}
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>Βρέθηκε επαφή με το ίδιο τηλέφωνο ή ΑΦΜ. Θέλεις να τη συγχωνεύσεις (να συμπληρωθούν τα νέα στοιχεία) ή να δημιουργήσεις ξεχωριστή εγγραφή;</p>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{dup.full_name}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {dup.phone && <span style={{ fontFamily: T.font.mono }}>{dup.phone}</span>}
+              {dup._extra?.afm && <span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ {dup._extra.afm}</span>}
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => { notifyOk('Δαπάνη αποθηκεύτηκε'); setDossierRefresh(x => x + 1) }} />}
       {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={(date) => { linkAppointmentToContact(quickCalendar, date); notifyOk('Ραντεβού προστέθηκε, καταχωρήθηκε και στην επαφή') }} />}
       {historyContact && <HistoryModal contact={historyContact} propertyId={propertyId} onClose={() => setHistoryContact(null)} />}

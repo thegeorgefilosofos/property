@@ -34,7 +34,7 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, TierBadge, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
+import { T, Modal, SkeletonKPIs, Skeleton, Spinner, EmptyState, TierBadge, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
 import { FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
@@ -2033,20 +2033,25 @@ export default function Dashboard() {
 
       <CommandPalette open={cmdkOpen} onClose={()=>setCmdkOpen(false)} items={cmdItems} />
 
-      {quickAddOpen&&user&&selected&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
-          onClick={e=>{if(e.target===e.currentTarget)closeQuickAdd();}}>
-          <div style={{background:'var(--bg-surface)',borderRadius:14,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
-            <button onClick={()=>closeQuickAdd()} aria-label="Κλείσιμο"
-              style={{position:'absolute',top:16,right:16,width:34,height:34,borderRadius:'50%',border:'none',background:'var(--bg-hover)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-secondary)'}}
-              onMouseEnter={e=>e.currentTarget.style.background='var(--bg-elevated)'}
-              onMouseLeave={e=>e.currentTarget.style.background='var(--bg-hover)'}>
-              <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-            <DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>
-          </div>
-        </div>
-      )}
+      {/* Η ΣΑΡΩΣΗ ΗΤΑΝ ΤΟ ΤΕΛΕΥΤΑΙΟ ΧΕΙΡΟΓΡΑΦΟ ΠΑΡΑΘΥΡΟ ΤΗΣ ΣΕΛΙΔΑΣ.
+          Είχε ωμό `rgba(0,0,0,0.32)` για φόντο — πιο ανοιχτό από το T.scrim
+          (0,55) που φοράει κάθε άλλο παράθυρο, οπότε η ΠΙΟ κεντρική ενέργεια
+          της εφαρμογής σκοτείνιαζε λιγότερο από μια επιβεβαίωση διαγραφής.
+          Ακτίνα 14 αντί 18, δικό του «×» σε κύκλο 34 εικονοστοιχείων, καμία
+          αντίδραση στο Escape, καμία επιστροφή εστίασης και καμία κλειδαριά
+          κύλισης: το φόντο κυλούσε πίσω από τον σαρωτή. */}
+      {/* ΧΩΡΙΣ ΥΠΟΤΙΤΛΟ, ΓΙΑΤΙ ΤΟΝ ΕΧΕΙ ΗΔΗ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ. Το ίδιο το
+          DocumentScan ανοίγει με «Πρόσθεσε ένα έγγραφο» και από κάτω τη γραμμή
+          «Φωτογράφισε ή ανέβασε οτιδήποτε…». Ο υπότιτλος του παραθύρου έλεγε τα
+          ίδια με άλλες λέξεις, δηλαδή δύο τίτλοι και δύο υπότιτλοι στη σειρά —
+          και έμεναν και πάνω από την οθόνη επιτυχίας («Καταχωρήθηκε»), όπου δεν
+          σαρώνει πια τίποτα. Ο τίτλος μένει: είναι το όνομα του παραθύρου δίπλα
+          στο «×» και το μόνο που ακούει ο αναγνώστης οθόνης — το χειρόγραφο
+          παράθυρο δεν είχε κανένα. */}
+      <Modal open={!!(quickAddOpen&&user&&selected)} onClose={closeQuickAdd} width={820}
+        title="Σάρωση εγγράφου">
+        {user&&selected&&<DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>}
+      </Modal>
 
       {showWelcome&&user&&<WelcomeOnboarding userId={user.id}
         onAddProperty={()=>{ setShowWelcome(false); setShowAddModal(true); }}
