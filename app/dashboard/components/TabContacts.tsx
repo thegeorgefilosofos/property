@@ -13,13 +13,12 @@ import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { saved } from '@/components/dbWrite'
 import { confirmDialog } from '@/components/confirmBus'
-import { brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
+import { useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
-import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 import { athensToday, isoDate, daysUntil as athensDaysUntil } from '@/lib/core/time';
-import { INK, INK_FAINT, INK_MUTED, RULE } from '@/lib/print/ink';
+import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -543,26 +542,60 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
   )
 }
 
-// ─── Print Card ───────────────────────────────────────────────────────────────
+// ─── ΚΑΡΤΑ ΕΠΑΦΗΣ ΓΙΑ ΕΚΤΥΠΩΣΗ ───────────────────────────────────────────────
+//
+// ΗΤΑΝ ΤΟ ΕΝΑΤΟ ΧΕΙΡΟΓΡΑΦΟ ΕΓΓΡΑΦΟ, και τα μισά του χρώματα δεν έκαναν τίποτα:
+//
+//   • `.cat{color:${meta.groupColor}}` — το groupColor είναι `var(--accent)`,
+//     δηλαδή μεταβλητή CSS που ΔΕΝ ΥΠΑΡΧΕΙ σε αυτόνομο παράθυρο εκτύπωσης. Η
+//     γραμμή κατηγορίας έβγαινε άχρωμη. (Το `#888` ήταν μόνο η εφεδρεία για
+//     άγνωστο ρόλο — δηλαδή το μοναδικό χρώμα που δούλευε ήταν το λάθος.)
+//   • `.status` — κλάση ορισμένη και ΠΟΥΘΕΝΑ χρησιμοποιημένη.
+//   • `#333` για το κείμενο των γραμμών, δίπλα στο `INK` (#111): δύο «κύρια
+//     μελάνια» στο ίδιο χαρτί. Και `#bbb` για το υποσέλιδο, δίπλα στο INK_FAINT.
+//   • Τρία έγχρωμα σήματα (WhatsApp πράσινο, Viber μωβ, IRIS κεχριμπαρένιο) —
+//     σημασιολογικό χρώμα σε τυπωμένο χαρτί, που ούτως ή άλλως βγαίνει γκρι.
+//     Η πληροφορία λέγεται με τις ίδιες τρεις λέξεις, χωρίς χρώμα.
+//
+// Τυπογραφία και επικεφαλίδα έρχονται πλέον από το `reportPdf.ts`, όπως στα
+// άλλα οκτώ έγγραφα. Δικό της μένει μόνο το πλάτος — μια κάρτα επαφής είναι
+// στενή εξ ορισμού — και η διάταξη «ετικέτα δίπλα σε τιμή».
+const CONTACT_CARD_CSS = `
+  .page{max-width:460px}
+  .crow{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13px;color:${INK}}
+  .clabel{min-width:88px;color:${INK_FAINT};font-size:11px;text-transform:uppercase;padding-top:1px;flex-shrink:0}
+  .ctag{display:inline-block;padding:2px 9px;border-radius:20px;background:${PAPER_ALT};border:1px solid ${RULE};font-size:11px;color:${INK_MUTED};margin-right:4px}
+  .cbadge{font-size:10px;font-weight:700;color:${INK_MUTED};margin-left:6px;letter-spacing:.04em}
+`
+
 function printContactCard(contact: Contact, branding?: ReportBranding | null) {
-  const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: '#888', groupLabel: '' }
+  const meta = ROLE_META[contact.role] || { label: contact.role, groupLabel: '' }
   const extra = contact._extra || {}
-  const html = `<html><head><title>${esc(contact.full_name)}</title><style>body{font-family:Inter,sans-serif;padding:40px;max-width:420px;margin:0 auto;color:${INK}}h1{font-size:22px;margin:0 0 2px}p{margin:3px 0;font-size:13px;color:${INK_MUTED}}.cat{font-size:11px;color:${meta.groupColor};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}.role{font-size:13px;color:${INK_MUTED};margin-bottom:6px}.status{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:14px}.row{display:flex;gap:6px;align-items:flex-start;margin:5px 0;font-size:13px;color:#333}.label{min-width:80px;color:${INK_FAINT};font-size:11px;text-transform:uppercase;padding-top:1px}.tag{padding:2px 8px;border-radius:20px;background:#f3f4f6;font-size:11px}hr{border:none;border-top:1px solid ${RULE};margin:14px 0}.badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px}</style></head><body>
-    <div class="cat">${esc(meta.groupLabel)}</div>
-    <h1>${esc(contact.full_name)}</h1>
-    <div class="role">${esc(meta.label)}</div>
-    <hr>
-    ${contact.phone ? `<div class="row"><span class="label">Τηλέφωνο</span><span>${esc(contact.phone)}${extra.whatsapp ? '<span class="badge" style="background:#dcfce7;color:#166534">WA</span>' : ''}${extra.viber ? '<span class="badge" style="background:#ede9fe;color:#5b21b6">VB</span>' : ''}</span></div>` : ''}
-    ${extra.phone2 ? `<div class="row"><span class="label">2ο Τηλέφωνο</span><span>${esc(extra.phone2)}</span></div>` : ''}
-    ${contact.email ? `<div class="row"><span class="label">Ηλεκτρονικό ταχυδρομείο</span><span>${esc(contact.email)}</span></div>` : ''}
-    ${extra.website ? `<div class="row"><span class="label">Ιστοσελίδα</span><span>${esc(extra.website)}</span></div>` : ''}
-    ${extra.office_address ? `<div class="row"><span class="label">Διεύθυνση</span><span>${esc(extra.office_address)}</span></div>` : ''}
-    ${extra.afm ? `<div class="row"><span class="label">ΑΦΜ</span><span>${esc(extra.afm)}</span></div>` : ''}
-    ${extra.iban ? `<div class="row"><span class="label">IBAN</span><span style="font-family:monospace">${esc(extra.iban)}${extra.iris ? '<span class="badge" style="background:#fef3c7;color:#92400e">IRIS</span>' : ''}</span></div>` : ''}
-    ${(extra.tags || []).length > 0 ? `<div style="margin-top:12px">${(extra.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div>` : ''}
-    ${contact._freeNotes ? `<hr><p style="line-height:1.6">${esc(contact._freeNotes)}</p>` : ''}
-    <hr><p style="font-size:10px;color:#bbb">${branding?.companyName ? brandName(branding)+' · ' : 'Property OS · '}${esc(new Date().toLocaleDateString('el-GR'))}</p></body></html>`
-  const win = window.open('', '_blank'); if (win) { win.document.write(html); win.document.close(); win.print() }
+  const row = (label: string, value: string, mono = false) =>
+    `<div class="crow"><span class="clabel">${rEsc(label)}</span><span${mono ? ' style="font-family:\'Roboto Mono\',monospace"' : ''}>${value}</span></div>`
+  const badge = (text: string) => `<span class="cbadge">${rEsc(text)}</span>`
+
+  const html = reportHead(`Επαφή · ${contact.full_name}`, CONTACT_CARD_CSS)
+    + `<body><div class="page">`
+    + reportHeader(branding, meta.groupLabel || 'Επαφή')
+    + `
+    <h1>${rEsc(contact.full_name)}</h1>
+    <div class="sub">${rEsc(meta.label)}</div>
+
+    ${reportSection('Στοιχεία επικοινωνίας')}
+    ${contact.phone ? row('Τηλέφωνο', rEsc(contact.phone) + (extra.whatsapp ? badge('WhatsApp') : '') + (extra.viber ? badge('Viber') : '')) : ''}
+    ${extra.phone2 ? row('Δεύτερο τηλέφωνο', rEsc(extra.phone2)) : ''}
+    ${contact.email ? row('Ηλεκτρονικό ταχυδρομείο', rEsc(contact.email)) : ''}
+    ${extra.website ? row('Ιστοσελίδα', rEsc(extra.website)) : ''}
+    ${extra.office_address ? row('Διεύθυνση', rEsc(extra.office_address)) : ''}
+    ${extra.afm ? row('ΑΦΜ', rEsc(extra.afm), true) : ''}
+    ${extra.iban ? row('IBAN', rEsc(extra.iban) + (extra.iris ? badge('IRIS') : ''), true) : ''}
+    ${(extra.tags || []).length > 0 ? `<div style="margin-top:14px">${(extra.tags || []).map(t => `<span class="ctag">${rEsc(t)}</span>`).join('')}</div>` : ''}
+    ${contact._freeNotes ? reportSection('Σημειώσεις') + `<div class="note">${rEsc(contact._freeNotes)}</div>` : ''}
+
+    ${reportDisclaimer('Κάρτα επαφής από το μητρώο συνεργατών του ακινήτου.', branding)}
+    </div></body></html>`
+  openReport(html)
 }
 
 // ─── Quick Modals ─────────────────────────────────────────────────────────────

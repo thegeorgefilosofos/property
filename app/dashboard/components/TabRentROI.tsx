@@ -30,7 +30,7 @@ import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDi
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport';
 import { issueDocument } from '@/lib/documents/issue';
 import { notifyError } from '@/components/Toast';
-import { INK_FAINT } from '@/lib/print/ink';
+import { INK_FAINT, INK_MUTED } from '@/lib/print/ink';
 
 // Αντιστοίχιση περιοχής → πλησιέστερη αναφορά βραχυχρόνιας (τα δεδομένα ST είναι ανά
 // ευρύτερη ζώνη, όχι ανά προάστιο). Δίνει ρεαλιστικά defaults (πληρότητα/τιμή) ανά περιοχή.
@@ -875,7 +875,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       + reportSection(`Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`)
         + `<table><tbody>${compare.map(c => R(c.label, `${rEur(c.futureValue)} · ${rPct(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table>`
       + reportSection('Παραδοχές & μεθοδολογία')
-        + `<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:#4b5563;line-height:1.7">${asmpItems}</ul>`
+        + `<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:${INK_MUTED};line-height:1.7">${asmpItems}</ul>`
         + `<div class="note" style="font-size:10px;color:${INK_FAINT};margin-top:10px">Πηγές: ${MARKET_SOURCES.map(s => rEsc(s.label)).join(' · ')}</div>`
       + reportDisclaimer(disclaimer, branding)
       + `</div></body></html>`;

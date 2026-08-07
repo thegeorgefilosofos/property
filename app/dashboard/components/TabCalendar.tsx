@@ -1,5 +1,4 @@
 'use client'
-import { BRAND_MARK_BG, BRAND_MARK_INK } from '@/components/BrandMark';
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { isoDate } from '@/lib/core/time'
@@ -66,12 +65,12 @@ import {
 import { WHO_LABEL } from '@/lib/accounting/dossier'
 import { annuityMonthly } from '@/lib/loans/recommend'
 import { syncTenantSchedule } from './TabTenantHelpers'
-import { escHtml as esc } from '@/lib/reportBranding';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
 import { MONTHS_GEN, MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
-import { INK, INK_MUTED, PAPER, RULE } from '@/lib/print/ink';
+import { INK, INK_MUTED } from '@/lib/print/ink';
+import { reportHead, reportHeader, reportDisclaimer, openReport, rEsc, rEur } from './reportPdf';
 
 type EventCategory = 'tax' | 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -1560,24 +1559,47 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
     const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='property-os.ics'; a.click(); URL.revokeObjectURL(url)
   }
 
-  // Εκτύπωση: καθαρή, branded αναφορά επερχόμενων γεγονότων (όχι raw σελίδα).
+  // ΕΚΤΥΠΩΣΗ ΕΠΕΡΧΟΜΕΝΩΝ. Ήταν χειρόγραφο έγγραφο δίπλα σε επτά που περνούν από
+  // το `reportPdf.ts`: δική του επικεφαλίδα, δική του τυπογραφία, δικό του
+  // γαλάζιο περίγραμμα, δικά του γκρι. Και μια γραμμή που δεν δούλευε καθόλου:
+  //
+  //     const col = d<0 ? '#c5221f' : d<=7 ? '#e37400' : '${INK_MUTED}'
+  //
+  // Το τρίτο σκέλος ήταν μέσα σε ΜΟΝΑ εισαγωγικά, δηλαδή η κυριολεκτική
+  // συμβολοσειρά «${INK_MUTED}» και όχι η τιμή της: το CSS έβγαινε άκυρο και το
+  // χρώμα έπεφτε σιωπηλά στο κληρονομημένο. Δηλαδή δύο από τις τρεις καταστάσεις
+  // βάφονταν κόκκινη και πορτοκαλί, και η τρίτη δεν βαφόταν καθόλου.
+  //
+  // Η ΕΠΕΙΓΟΥΣΑ ΚΑΤΑΣΤΑΣΗ ΔΕΝ ΛΕΓΕΤΑΙ ΜΕ ΧΡΩΜΑ. Η στήλη γράφει ήδη «3 ημέρες
+  // πριν», «Σήμερα», «σε 5 ημέρες» — η πληροφορία είναι εκεί, σε λέξεις. Το
+  // ληξιπρόθεσμο παίρνει βάρος, όχι κόκκινο: σε ασπρόμαυρη εκτύπωση το κόκκινο
+  // γίνεται ούτως ή άλλως γκρι, και σε έγχρωμη είναι σήμα που δεν έχει μάθει
+  // κανείς. Καμία συντομογραφία: «ημ.» → «ημέρες».
   function printCalendar(){
     const up=[...filtered].filter(e=>e.status!=='paid').sort((a,b)=>a.event_date.localeCompare(b.event_date))
-    const fmtD=(s:string)=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,(m||1)-1,d||1).toLocaleDateString('el-GR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})}
-    const rows=up.length?up.map(e=>{const cat=CATEGORIES[e.category];const d=daysUntil(e.event_date);const tag=d<0?`${Math.abs(d)} ημ. πριν`:d===0?'Σήμερα':`σε ${d} ημ.`;const col=d<0?'#c5221f':d<=7?'#e37400':'${INK_MUTED}';return `<tr>
-      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:13px;white-space:nowrap">${esc(fmtD(e.event_date))}</td>
-      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:13px;font-weight:600">${esc(e.title)}${e.amount?` <span style="color:#1a73e8;font-family:monospace">${fe(e.amount)}</span>`:''}</td>
-      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:11px;color:${INK_MUTED}">${esc(cat?.label||'')}</td>
-      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:12px;font-weight:700;color:${col};white-space:nowrap;text-align:right">${tag}</td></tr>`}).join(''):'<tr><td colspan="4" style="padding:24px;text-align:center;color:#80868b">Καμία εκκρεμότητα.</td></tr>'
-    const html=`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Ημερολόγιο, Property OS</title>
-    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',system-ui,sans-serif;color:${INK};padding:40px;max-width:800px;margin:0 auto}@media print{body{padding:0}@page{margin:16mm}}table{width:100%;border-collapse:collapse}</style></head>
-    <body><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a73e8;padding-bottom:16px;margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:${BRAND_MARK_BG};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">P</div><div><div style="font-weight:700;font-size:15px">Property OS</div><div style="font-size:11px;color:${INK_MUTED}">Επερχόμενα Γεγονότα & Προθεσμίες</div></div></div>
-      <div style="text-align:right;font-size:12px;color:${INK_MUTED}">${esc(new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}))}</div></div>
-      <table><thead><tr><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Ημερομηνία</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Γεγονός</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Κατηγορία</th><th style="text-align:right;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Πότε</th></tr></thead><tbody>${rows}</tbody></table>
-      <div style="margin-top:30px;font-size:10px;color:#80868b;border-top:1px solid ${RULE};padding-top:12px">Δημιουργήθηκε αυτόματα από το Property OS.</div>
-      <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script></body></html>`
-    const w=window.open('','_blank'); if(!w){notifyError('Επίτρεψε τα αναδυόμενα παράθυρα.');return} w.document.write(html); w.document.close()
+    const fmtD=(s:string)=>localDay(s).toLocaleDateString('el-GR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})
+    const whenText=(d:number)=>d<0?`${Math.abs(d)} ${Math.abs(d)===1?'ημέρα':'ημέρες'} πριν`:d===0?'Σήμερα':`σε ${d} ${d===1?'ημέρα':'ημέρες'}`
+    const rows=up.length?up.map(e=>{
+      const cat=CATEGORIES[e.category]; const d=daysUntil(e.event_date)
+      // Ληξιπρόθεσμο και σημερινό: έντονα. Τα υπόλοιπα: κανονικό βάρος.
+      const weight=d<=0?700:400
+      return `<tr>
+      <td style="white-space:nowrap">${rEsc(fmtD(e.event_date))}</td>
+      <td style="font-weight:600;color:${INK}">${rEsc(e.title)}${e.amount?` <span class="tnum" style="color:${INK_MUTED}">${rEsc(rEur(e.amount))}</span>`:''}</td>
+      <td style="font-size:11px">${rEsc(cat?.label||'')}</td>
+      <td class="n" style="font-weight:${weight};font-size:12px;white-space:nowrap">${rEsc(whenText(d))}</td></tr>`}).join('')
+      :`<tr><td colspan="4" class="empty" style="text-align:center">Καμία εκκρεμότητα.</td></tr>`
+    const html=reportHead('Ημερολόγιο, Property OS')
+      + `<body><div class="page">`
+      + reportHeader(null, 'Επερχόμενα γεγονότα και προθεσμίες')
+      + `
+      <table style="margin-top:22px">
+        <thead><tr><th>Ημερομηνία</th><th>Γεγονός</th><th>Κατηγορία</th><th class="n">Πότε</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${reportDisclaimer('Κατάσταση επερχόμενων γεγονότων και προθεσμιών, όπως καταγράφονται στο ημερολόγιο του ακινήτου.')}
+      </div></body></html>`
+    openReport(html)
   }
 
   const prevPeriod=()=>setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth()-1,1))

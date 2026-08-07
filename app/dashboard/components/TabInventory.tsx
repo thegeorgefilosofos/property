@@ -1,6 +1,5 @@
 'use client'
 
-import { BRAND_MARK_INK } from '@/components/BrandMark';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
@@ -13,9 +12,7 @@ import { money as csvEur, percent as csvPct } from './xlsxStyle'
 import { depreciate, replacementSuggestion, portfolioSummary, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import { formFields, INVENTORY_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields'
 import { readStatus, statusLabel, type StatusRow } from '@/lib/property/status'
-import { reportAccent } from '@/lib/reportBranding'
-import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { escHtml as esc } from '@/lib/reportBranding';
+import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc, rDate } from './reportPdf'
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { notifyError, notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -24,7 +21,7 @@ import { ActionMenu } from '@/components/ActionMenu';
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress';
 import { navLabel } from '@/lib/nav/labels';
-import { INK, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
+import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 
 const supabase = createSupabaseClient()
 
@@ -499,11 +496,17 @@ function RoomInput({value,onChange}:{value:string;onChange:(v:string)=>void}) {
 function QRModal({item,onClose}:{item:InventoryItem;onClose:()=>void}) {
   // QR τοπικά: τα στοιχεία της απογραφής δεν φεύγουν σε εξωτερική υπηρεσία.
   const qr = qrDataUrl(JSON.stringify({n:item.name,b:item.brand,m:item.model,sn:item.serial_number,cat:item.category,cond:item.condition,w:item.warranty_expiry}), { size: 200 })
-  const print = () => {
-    const w=window.open('','_blank');if(!w)return
-    w.document.write(`<html><head><title>QR</title><style>body{font-family:'Inter',Roboto,sans-serif;padding:24px;text-align:center}@media print{button{display:none}}</style></head><body><h2>${esc(item.name)}</h2><img src="${esc(qr)}" width="180" height="180" style="margin:12px auto;display:block;border:1px solid ${RULE};padding:8px;border-radius:8px"/><button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
-    w.document.close()
-  }
+  // ΕΤΙΚΕΤΑ, ΟΧΙ ΑΝΑΦΟΡΑ: ένα αυτοκόλλητο που κολλάει πάνω στο αντικείμενο δεν
+  // παίρνει επικεφαλίδα εγγράφου, μετρικές και υποσημείωση. Παίρνει όμως την
+  // ίδια τυπογραφία και το ίδιο μελάνι με τα υπόλοιπα, και τυπώνεται ΜΟΝΟ του —
+  // πριν περίμενε κλικ σε κουμπί που το ίδιο του το CSS έκρυβε στην εκτύπωση.
+  const print = () => openReport(
+    `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Ετικέτα ${rEsc(item.name)}</title>`
+    + `<style>body{font-family:'Inter',system-ui,Arial,sans-serif;color:${INK};padding:24px;text-align:center}`
+    + `h2{font-size:16px;font-weight:700;margin-bottom:4px}</style></head><body>`
+    + `<h2>${rEsc(item.name)}</h2>`
+    + `<img src="${rEsc(qr)}" width="180" height="180" style="margin:12px auto;display:block;border:1px solid ${RULE};padding:8px;border-radius:8px"/>`
+    + `</body></html>`)
   // ΔΕΝ ΕΙΝΑΙ ΣΑΡΩΤΗΣ ΚΑΜΕΡΑΣ ΟΥΤΕ ΠΡΟΒΟΛΗ ΦΩΤΟΓΡΑΦΙΑΣ, παρότι είχε zIndex 1100:
   // είναι τίτλος + ένα παραγόμενο τοπικά QR + μία ενέργεια («Εκτύπωση Καρτέλας»),
   // δηλαδή κανονικό κεντραρισμένο παράθυρο. Το 1100 το κρατούσε πάνω από τη φόρμα
@@ -1372,6 +1375,36 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
 //   · η απόδειξη → στο μενού του κάθε αντικειμένου, δίπλα στην επεξεργασία·
 //   · «σε ισχύ» → δεν είναι εργασία, είναι κατάσταση, και τη λέει η κάρτα.
 
+// Πλέγμα με περιγράμματα και θέσεις υπογραφής: ένα πρωτόκολλο παράδοσης είναι
+// έντυπο που συμπληρώνεται και υπογράφεται, όχι λογιστική κατάσταση.
+const HANDOVER_CSS = `
+  table.grid{margin-top:18px}
+  table.grid th{background:${PAPER_ALT};padding:8px;border:1px solid ${RULE};font-size:9px}
+  table.grid td{padding:8px;border:1px solid ${RULE};color:${INK_MUTED};font-size:12px}
+  .shot{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid ${RULE}}
+  .shot-at{font-size:9px;color:${INK_FAINT}}
+  .sig{margin-top:48px;display:flex;gap:60px;break-inside:avoid}
+  .sig-box{flex:1;border-top:2px solid ${INK};padding-top:8px;font-size:11px;color:${INK_MUTED}}
+`
+
+// Πλέγμα καρτών με φωτογραφία: η έκθεση προς τον ασφαλιστή είναι φωτογραφική
+// τεκμηρίωση, όχι πίνακας. Οι τρεις μετρικές από πάνω χρησιμοποιούν το κοινό
+// `.kpis`/`.kpi`, οπότε δεν ξαναγράφονται εδώ.
+const INSURANCE_CSS = `
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px}
+  .c{border:1px solid ${RULE};border-radius:10px;overflow:hidden;display:flex;break-inside:avoid}
+  .ph{width:120px;flex-shrink:0;background:${PAPER_ALT}}
+  .ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}
+  .noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:${INK_FAINT};font-size:10px;text-align:center}
+  .cb{padding:10px 12px;flex:1;min-width:0}
+  .nm{font-size:13px;font-weight:600;color:${INK};margin-bottom:2px}
+  .mt{font-size:10px;color:${INK_MUTED};margin-bottom:6px}
+  .sn{font-size:9px;color:${INK_MUTED};font-family:'Roboto Mono',monospace;margin-bottom:6px}
+  .crow{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-top:1px solid ${RULE};color:${INK_MUTED}}
+  .crow span:last-child{font-variant-numeric:tabular-nums;font-weight:600;color:${INK}}
+`
+
 function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:InventoryItem[];handovers:InventoryHandover[];propertyId:string;userId:string;onSaved:()=>void;seed?:(HandoverIntent&{n:number})|null}) {
   const [mode,setMode] = useState<'list'|'new'|'compare'>('list')
   const [type,setType] = useState<'check_in'|'check_out'>('check_in')
@@ -1421,21 +1454,30 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     if(error){notifyError('Σφάλμα: '+error.message);setSaving(false);return}
     setMode('list');onSaved();setSaving(false)
   }
+  // ΤΟ ΠΡΩΤΟΚΟΛΛΟ ΕΙΝΑΙ ΕΝΤΥΠΟ ΠΟΥ ΥΠΟΓΡΑΦΕΤΑΙ, άρα κρατά πλέγμα με περιγράμματα
+  // αντί για το ύφος λογιστικής κατάστασης — αυτό είναι πραγματική διαφορά
+  // εγγράφου. Ό,τι ΔΕΝ ήταν διαφορά έφυγε: η χειρόγραφη επικεφαλίδα, η
+  // διακοσμητική έγχρωμη λωρίδα στην κορυφή, ένα ακόμη γκρι (#6b7280), και το
+  // κουμπί «Εκτύπωση» μέσα στη σελίδα — τα άλλα οκτώ έγγραφα τυπώνονται μόνα
+  // τους, αυτό περίμενε κλικ σε ένα κουμπί που το ίδιο του το CSS έκρυβε στην
+  // εκτύπωση.
   const printHandover = (h:InventoryHandover) => {
     const snap=h.items_snapshot||[]
-    const accent = reportAccent(null)
-    const w=window.open('','_blank');if(!w)return
-    w.document.write(`<html><head><title>Πρωτόκολλο</title><style>*{box-sizing:border-box}body{font-family:'Inter',Arial,sans-serif;font-size:12px;color:${INK};margin:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid ${INK};padding-bottom:14px;margin-bottom:16px}.mark{width:30px;height:30px;border-radius:7px;background:${accent};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}.bn{font-size:15px;font-weight:700;color:${INK}}h1{font-size:18px;font-weight:700;color:${INK};margin:0 0 4px}.sub{color:${INK_MUTED};font-size:11px}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:${PAPER_ALT};padding:8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:${INK_MUTED};font-weight:700;border:1px solid ${RULE}}td{padding:8px;border:1px solid ${RULE};color:${INK_MUTED}}.sig{margin-top:48px;display:flex;gap:60px}.sig-box{flex:1;border-top:2px solid ${INK};padding-top:8px;font-size:11px;color:${INK_MUTED}}@media print{button{display:none}}</style></head><body>
-    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
-    <div class="hd"><div class="mark">P</div><div class="bn">Property OS</div></div>
-    <h1>Πρωτόκολλο ${h.handover_type==='check_in'?'Παράδοσης':'Παραλαβής'}</h1>
-    <div class="sub"><strong>${esc(h.tenant_name)}</strong>${h.tenant_phone?` · ${esc(h.tenant_phone)}`:''} · ${esc(fmtDate(h.handover_date))}</div>
-    <table><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th><th>Φωτό κατάστασης</th></tr></thead><tbody>
-    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||ABSENT)}</td><td>${s.condition_photo?`<img src="${esc(s.condition_photo)}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid ${RULE}"/>${s.captured_at?`<br><span style="font-size:8px;color:#6b7280">${esc(fmtDate(s.captured_at))}</span>`:''}`:''}</td></tr>`).join('')}
+    const html = reportHead('Πρωτόκολλο παράδοσης και παραλαβής', HANDOVER_CSS)
+      + `<body><div class="page">`
+      + reportHeader(null, `Πρωτόκολλο ${h.handover_type==='check_in'?'παράδοσης':'παραλαβής'}`, {
+          rightLabel: 'Ημερομηνία', rightValue: rDate(h.handover_date),
+        })
+      + `
+    <h1>${rEsc(h.tenant_name)}</h1>
+    <div class="sub">${[h.tenant_phone, fmtDate(h.handover_date)].filter(Boolean).map(x=>rEsc(String(x))).join(' · ')}</div>
+    <table class="grid"><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th><th>Φωτογραφία κατάστασης</th></tr></thead><tbody>
+    ${snap.map(s=>`<tr><td>${rEsc(s.name)}</td><td>${rEsc(s.category)}</td><td>${rEsc(s.condition_at_handover)}</td><td>${rEsc(s.condition_notes||ABSENT)}</td><td>${s.condition_photo?`<img src="${rEsc(s.condition_photo)}" class="shot"/>${s.captured_at?`<br><span class="shot-at">${rEsc(fmtDate(s.captured_at))}</span>`:''}`:rEsc(ABSENT)}</td></tr>`).join('')}
     </tbody></table>
-    <div class="sig"><div class="sig-box">Υπογραφή Ιδιοκτήτη</div><div class="sig-box">Υπογραφή Ενοικιαστή</div><div class="sig-box">Ημερομηνία</div></div>
-    <button onclick="window.print()" style="margin-top:24px;padding:8px 16px;cursor:pointer">Εκτύπωση</button></body></html>`)
-    w.document.close()
+    <div class="sig"><div class="sig-box">Υπογραφή ιδιοκτήτη</div><div class="sig-box">Υπογραφή ενοικιαστή</div><div class="sig-box">Ημερομηνία</div></div>
+    ${reportDisclaimer('Πρωτόκολλο παράδοσης και παραλαβής εξοπλισμού. Ισχύει με τις υπογραφές και των δύο μερών.')}
+    </div></body></html>`
+    openReport(html)
   }
   if(mode==='compare') {
     const hA=handovers.find(h=>h.id===cmpA); const hB=handovers.find(h=>h.id===cmpB)
@@ -1798,28 +1840,32 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
   const insurableOf=(i:InventoryItem)=> (i.replacement_cost||0)>0?i.replacement_cost:0
   const totalInsurable=totalDeclaredRepl
   const exportInsurancePDF=()=>{
-    const accent = reportAccent(null)
-    const w=window.open('','_blank');if(!w)return
-    const eur=(n:number)=>`${(n||0).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`
     const card=(i:InventoryItem)=>{const ph=i.photo_url||((i.photos||[]).filter(Boolean)[0]||'')
       return `<div class="c">
-        <div class="ph">${ph?`<img src="${esc(ph)}"/>`:'<div class="noph">χωρίς φωτογραφία</div>'}</div>
-        <div class="cb"><div class="nm">${esc(i.name)}</div>
-        <div class="mt">${esc([i.brand,i.model].filter(Boolean).join(' ')||i.category)}${i.room?` · ${esc(i.room)}`:''}</div>
-        ${i.serial_number?`<div class="sn">Σειριακός ${esc(i.serial_number)}</div>`:''}
-        <div class="row"><span>Κατάσταση</span><span>${esc(i.condition)}</span></div>
-        <div class="row"><span>Αξία αγοράς</span><span>${esc(i.purchase_value?eur(i.purchase_value):fe(0))}</span></div>
-        <div class="row val"><span>Κόστος αντικατάστασης</span><span>${insurableOf(i)>0?esc(eur(insurableOf(i))):'δεν δηλώθηκε'}</span></div>
+        <div class="ph">${ph?`<img src="${rEsc(ph)}"/>`:'<div class="noph">Χωρίς φωτογραφία</div>'}</div>
+        <div class="cb"><div class="nm">${rEsc(i.name)}</div>
+        <div class="mt">${rEsc([i.brand,i.model].filter(Boolean).join(' ')||i.category)}${i.room?` · ${rEsc(i.room)}`:''}</div>
+        ${i.serial_number?`<div class="sn">Σειριακός ${rEsc(i.serial_number)}</div>`:''}
+        <div class="crow"><span>Κατάσταση</span><span>${rEsc(i.condition)}</span></div>
+        <div class="crow"><span>Αξία αγοράς</span><span>${rEsc(rEur(i.purchase_value||0))}</span></div>
+        <div class="crow val"><span>Κόστος αντικατάστασης</span><span>${insurableOf(i)>0?rEsc(rEur(insurableOf(i))):'Δεν δηλώθηκε'}</span></div>
         </div></div>`}
-    w.document.write(`<html><head><title>Έκθεση ασφάλισης περιεχομένου</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial,sans-serif;font-size:11px;color:${INK};padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid ${INK};padding-bottom:14px;margin-bottom:16px}.mark{width:32px;height:32px;border-radius:7px;background:${accent};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}.bn{font-size:15px;font-weight:700;color:${INK}}h1{font-size:22px;font-weight:700;color:${INK};margin-bottom:2px}.sub{color:${INK_MUTED};margin-bottom:20px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:24px}.kpi{flex:1;background:${PAPER_ALT};border:1px solid ${RULE};border-radius:10px;padding:14px}.kpi-v{font-size:19px;font-weight:700;color:${INK};font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:${INK_MUTED};font-weight:700;margin-top:2px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.c{border:1px solid ${RULE};border-radius:10px;overflow:hidden;display:flex;page-break-inside:avoid}.ph{width:120px;flex-shrink:0;background:${PAPER_ALT}}.ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}.noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:10px}.cb{padding:10px 12px;flex:1;min-width:0}.nm{font-size:13px;font-weight:600;color:${INK};margin-bottom:2px}.mt{font-size:10px;color:${INK_MUTED};margin-bottom:6px}.sn{font-size:9px;color:${INK_MUTED};font-family:'Roboto Mono',monospace;margin-bottom:6px}.row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-top:1px solid ${RULE};color:${INK_MUTED}}.row span:last-child{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:${INK}}.row.val span{color:${INK}}.footer{margin-top:26px;padding-top:12px;border-top:1px solid ${RULE};font-size:10px;color:${INK_MUTED};line-height:1.6}@media print{button{display:none}}</style></head><body>
-    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
-    <div class="hd"><div class="mark">P</div><div class="bn">Property OS</div></div>
-    <h1>Έκθεση ασφάλισης περιεχομένου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα · φωτογραφική τεκμηρίωση</div>
-    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(eur(totalInsurable))}</div><div class="kpi-l">Δηλωμένο κόστος αντικατάστασης</div></div><div class="kpi"><div class="kpi-v">${esc(eur(totalCurrent))}</div><div class="kpi-l">Εκτιμώμενη υπολειπόμενη αξία</div></div><div class="kpi"><div class="kpi-v">${esc(items.length)}</div><div class="kpi-l">Αντικείμενα${missingRepl>0?` (λείπει σε ${missingRepl})`:''}</div></div></div>
-    <div class="grid">${items.map(card).join('')}</div>
-    <div class="footer">Η ασφαλιστέα αξία εξοπλισμού είναι το κόστος ΑΝΤΙΚΑΤΑΣΤΑΣΗΣ ΜΕ ΚΑΙΝΟΥΡΓΙΟ, όχι η υπολειπόμενη αξία. Εδώ αθροίζονται μόνο τα ποσά που δήλωσε ο ιδιοκτήτης· ${missingRepl>0?`για ${missingRepl} από ${items.length} αντικείμενα δεν έχει δηλωθεί και ΔΕΝ έχουν υπολογιστεί — η κάλυψη πρέπει να συμπληρωθεί πριν την ασφάλιση.`:'έχει δηλωθεί για όλα τα αντικείμενα.'} Οι φωτογραφίες αποτελούν τεκμηρίωση του ιδιοκτήτη κατά την ημερομηνία έκδοσης. Property OS.</div>
-    <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
-    w.document.close()
+    const html = reportHead('Έκθεση ασφάλισης περιεχομένου', INSURANCE_CSS)
+      + `<body><div class="page">`
+      + reportHeader(null, 'Έκθεση ασφάλισης περιεχομένου', {
+          rightNote: `${items.length} ${items.length===1?'αντικείμενο':'αντικείμενα'} με φωτογραφική τεκμηρίωση`,
+        })
+      + `
+    <h1>Ασφαλιστέο περιεχόμενο</h1>
+    <div class="kpis" style="margin-top:20px">
+      ${reportKpi('Δηλωμένο κόστος αντικατάστασης', rEur(totalInsurable))}
+      ${reportKpi('Εκτιμώμενη υπολειπόμενη αξία', rEur(totalCurrent))}
+      ${reportKpi(missingRepl>0?`Αντικείμενα, λείπει σε ${missingRepl}`:'Αντικείμενα', String(items.length))}
+    </div>
+    <div class="cards">${items.map(card).join('')}</div>
+    ${reportDisclaimer(`Η ασφαλιστέα αξία εξοπλισμού είναι το κόστος ΑΝΤΙΚΑΤΑΣΤΑΣΗΣ ΜΕ ΚΑΙΝΟΥΡΓΙΟ, όχι η υπολειπόμενη αξία. Εδώ αθροίζονται μόνο τα ποσά που δήλωσε ο ιδιοκτήτης· ${missingRepl>0?`για ${missingRepl} από ${items.length} αντικείμενα δεν έχει δηλωθεί και ΔΕΝ έχουν υπολογιστεί — η κάλυψη πρέπει να συμπληρωθεί πριν την ασφάλιση.`:'έχει δηλωθεί για όλα τα αντικείμενα.'} Οι φωτογραφίες αποτελούν τεκμηρίωση του ιδιοκτήτη κατά την ημερομηνία έκδοσης.`)}
+    </div></body></html>`
+    openReport(html)
   }
   // ═══════════════════════════════════════════════════════════════════════════
   // ΤΡΕΙΣ ΕΞΑΓΩΓΕΣ, ΟΧΙ ΤΡΕΙΣ ΚΑΡΤΕΣ ΥΨΟΥΣ ΔΙΑΚΟΣΙΩΝ ΕΙΚΟΝΟΣΤΟΙΧΕΙΩΝ
