@@ -144,7 +144,6 @@ export default function SignupPage() {
                 <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Σύνδεση</Link>
               </p>
 
-              {/* Google-first */}
               <button type="button" onClick={signInWithGoogle} className="auth-hov"
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <GoogleG />Συνέχισε με Google

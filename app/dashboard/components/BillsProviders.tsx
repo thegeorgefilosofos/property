@@ -296,7 +296,6 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
         {/* FIX: compact result row, no big box, just a clean info strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
-          {/* Active % pill */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: s.dimotika ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${s.dimotika ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
             <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
               {s.dimotika ? `${s.dimotika}%` : '—'}
@@ -307,7 +306,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             </div>
           </div>
 
-          {/* Apply button, only when calc fields are filled */}
+          {/* Το κουμπί εφαρμογής εμφανίζεται μόνο όταν τα πεδία του υπολογισμού είναι συμπληρωμένα */}
           {s.dimotikaCalcCons && s.dimotikaCalcAmount && parseFloat(s.dimotikaCalcCons) > 0 && (
             <button
               onClick={() => upd({ dimotika: (parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1) })}
@@ -377,7 +376,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           </div>
         </div>
 
-        {/* Contract renewal alert */}
+        {/* Ειδοποίηση ανανέωσης συμβολαίου */}
         {s.internetContractEnd && (() => {
           const days = daysUntil(s.internetContractEnd) ?? 0;
           if (days > 90 || days < 0) return null;

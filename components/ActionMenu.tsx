@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionMenu — the canonical dropdown for toolbar actions across the app.
 //
-// One standardized, Google-clean menu: a pill trigger with a rotating chevron,
+// Ένα τυποποιημένο, καθαρό μενού: πλάκα-ενεργοποιητής με βέλος που περιστρέφεται,
 // and a downward-opening card of icon + label + one-line description rows. Closes
 // on outside-click or Esc, with a subtle fade/slide entrance. Uses the design
 // tokens and Inter, so every toolbar reads as one system instead of a row of ten

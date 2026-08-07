@@ -179,7 +179,6 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               Σε <strong style={{ color: 'var(--text-primary)' }}>iPhone</strong> από το κουμπί «Κοινή χρήση» → «Πρόσθεση στην αρχική οθόνη».
             </div>
 
-            {/* Platform chips */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <Chip tone="neutral">iOS</Chip>
               <Chip tone="neutral">Android</Chip>

@@ -1,6 +1,6 @@
 // src/hooks/useMarketData.ts
 // Fetches live market data from Supabase (which gets it from ECB + ΤτΕ daily)
-// Falls back to hardcoded values if DB unavailable
+// Πέφτει σε σταθερές τιμές όταν η βάση δεν απαντά
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -77,7 +77,6 @@ export interface LiveProgram {
   source_url: string
 }
 
-// Fallbacks
 const RATES_FALLBACK: LiveMarketRates = {
   euribor_3m: 2.18, euribor_1m: 2.05, euribor_6m: 2.30, euribor_12m: 2.45,
   ecb_rate: 2.40, ecb_dfl: 2.25, bog_housing_new: 3.43, bog_housing_stock: 3.50,
@@ -201,7 +200,7 @@ export function useLoanPrograms() {
   useEffect(() => {
     async function load() {
       try {
-        // Use the DB view that auto-filters expired programs
+        // Χρησιμοποιεί την όψη της βάσης, που φιλτράρει μόνη της τα ληγμένα προγράμματα
         const { data } = await supabase
           .from('active_loan_programs')
           .select('*')
@@ -211,7 +210,7 @@ export function useLoanPrograms() {
       setLoading(false)
     }
     load()
-    // Refresh every 30 minutes
+    // Ανανέωση κάθε τριάντα λεπτά
     const interval = setInterval(load, 30 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])

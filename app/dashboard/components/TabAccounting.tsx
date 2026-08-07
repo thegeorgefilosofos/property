@@ -628,7 +628,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-      {/* Header: title + mode toggle + year */}
+      {/* Κεφαλίδα: τίτλος, διακόπτης όψης και έτος */}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div style={{ minWidth:0 }}>
           <h2 style={{ fontFamily: T.font.sans, fontSize:20, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Λογιστική</h2>

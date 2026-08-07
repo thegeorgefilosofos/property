@@ -1016,7 +1016,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         })}
       </div>
 
-      {/* Actions */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         {[
           {label:saving?'Αποθήκευση…':'Αποθήκευση δανείου',fn:handleSave,disabled:saving,color:'var(--accent)',bg:'var(--accent-dim)',border:'var(--border-accent)'},
@@ -1031,8 +1030,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         ))}
       </div>
 
-      {/* History */}
-      {/* Scenarios */}
       {scenarios.length>0&&(
         <div style={cardStyle}>
           <SectionLabel label="Σύγκριση σεναρίων"/>
@@ -1499,7 +1496,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         </div>
       </Section>
 
-      {/* Full acquisition cost */}
       <div style={cardStyle}>
         <SectionLabel label="Πλήρης ανάλυση κόστους απόκτησης" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{propTypeLabel}{SQM>0?` · ${SQM}τ.μ.`:''} · {areaLabel}</span>}/>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8,marginBottom:14}}>

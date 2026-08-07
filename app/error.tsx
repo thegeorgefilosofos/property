@@ -1,6 +1,6 @@
 'use client';
 
-// Route-segment error boundary.
+// Δίχτυ σφαλμάτων για αυτό το τμήμα διαδρομής.
 //
 // ΓΙΑΤΙ ΔΕΝ ΑΡΚΕΙ ΤΟ reset():
 // Το reset() του React ξαναχτίζει το ΙΔΙΟ δέντρο από ΤΑ ΙΔΙΑ modules. Αν το

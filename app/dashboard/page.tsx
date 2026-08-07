@@ -264,7 +264,6 @@ const fmtEur = feOr;
 
 // MD3 form styles
 
-// Alert hooks
 // Επιστρέφει και το ΠΛΗΘΟΣ αντικειμένων, όχι μόνο τις ειδοποιήσεις: το ερώτημα
 // τα φέρνει ούτως ή άλλως, και χωρίς αυτό η καρτέλα «Έπιπλα και εξοπλισμός»
 // κρύβεται με τα δεδομένα μέσα (βλ. σχόλιο στο tabDecision).
@@ -319,7 +318,6 @@ function useChecklistAlerts(propertyId: string | null) {
 // κανένα αντικείμενο. Μία πράξη, δύο υλοποιήσεις, δύο διαφορετικές στιγμές
 // εμφάνισης. Έμεινε εκείνη που ζει δίπλα στα δεδομένα που αντιγράφει.
 
-// Overview Tab
 // Ο ΚΑΝΟΝΑΣ ΔΕΝ ΚΡΕΜΕΤΑΙ ΠΛΕΟΝ ΑΠΟ ΤΗ ΔΙΑΤΥΠΩΣΗ ΤΗΣ ΕΤΙΚΕΤΑΣ.
 // Ήταν `new Set(['Μηνιαίο Ενοίκιο', …])` και το φίλτρο έψαχνε το κείμενο που
 // βλέπει ο χρήστης. Μια αλλαγή κεφαλαίου —«Μηνιαίο ενοίκιο»— και τα πλακίδια
@@ -1042,7 +1040,6 @@ function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric
   );
 }
 
-// Main Dashboard
 export default function Dashboard() {
   const supabase = createClient();
   // Ο χρήστης έρχεται από `supabase.auth.getUser()` — έχει δικό του τύπο. Με
@@ -1585,7 +1582,6 @@ export default function Dashboard() {
     <div className="app-shell">
       {/* Σκίαση πίσω από το συρόμενο μενού (μόνο κινητό/tablet) */}
       <div className={`app-scrim ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
-      {/* Sidebar */}
       <aside className={`app-sidebar ${sidebarOpen?'open':''}`}>
         <div className="sidebar-logo" role="button" tabIndex={0}
           onClick={()=>{ setNav('overview'); setSidebarOpen(false); }}
@@ -1737,7 +1733,6 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Main */}
       <main className="app-main">
         <header className="app-topbar">
           <button className="nav-toggle" onClick={()=>setSidebarOpen(v=>!v)} aria-label="Μενού">

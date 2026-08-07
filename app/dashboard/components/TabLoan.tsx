@@ -1232,7 +1232,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   </div>
                 </div>
 
-                {/* Rate */}
                 <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                   <div style={{width:36,height:36,borderRadius:8,background:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -1253,7 +1252,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   </div>
                 </div>
 
-                {/* Total cost */}
                 <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                   <div style={{width:36,height:36,borderRadius:8,background:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -1290,7 +1288,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               </div>
             </MiniSection>
 
-            {/* Eligibility */}
             <MiniSection title="Επιλεξιμότητα κρατικών προγραμμάτων">
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 {[
@@ -1317,7 +1314,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               </div>
             </MiniSection>
 
-            {/* Improvements */}
             {issues.length>0&&(
               <MiniSection title="Τι μπορείς να βελτιώσεις">
                 <div style={{display:'flex',flexDirection:'column',gap:7}}>
@@ -1393,7 +1389,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           </MiniSection>
 
 
-          {/* Rejection reasons */}
           <MiniSection title="Γιατί απορρίπτεται μια αίτηση">
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
@@ -1409,7 +1404,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </div>
           </MiniSection>
 
-          {/* Special borrower categories — compact */}
+          {/* Ειδικές κατηγορίες δανειοληπτών, σε συμπτυγμένη μορφή */}
           <MiniSection title="Ειδικές κατηγορίες δανειοληπτών" defaultOpen={profile==='business'}>
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
@@ -1425,7 +1420,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </div>
           </MiniSection>
 
-          {/* Euribor chart */}
           <MiniSection defaultOpen={profile==='business'} title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:11,color:'var(--accent)',textDecoration:'none',fontFamily: T.font.sans,fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
             <EuriborArea data={EURIBOR_HISTORY}/>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:10,marginTop:14}}>
@@ -1511,7 +1505,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             )}
           </MiniSection>
 
-          {/* Links */}
           <MiniSection title="Επίσημες πηγές">
             {[
               {category:'Κρατικά προγράμματα',links:[

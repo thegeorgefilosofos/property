@@ -2,7 +2,7 @@
 // ΔΕΔΟΜΕΝΑ ΑΓΟΡΑΣ ΑΚΙΝΗΤΩΝ ΕΛΛΑΔΑΣ — πραγματικά, με πηγές (Ιούλιος 2026).
 // ---------------------------------------------------------------------------
 // Πηγές: Τράπεζα Ελλάδος (δείκτες τιμών κατοικιών), ΕΛΣΤΑΤ (ΔΤΚ/ενοίκια),
-// Global Property Guide, Spitogatos/market reports, AirDNA/AirROI/Airbtics
+// Πηγές: Global Property Guide, εκθέσεις Spitogatos, AirDNA/AirROI/Airbtics
 // (βραχυχρόνια), Eurostat, Trading Economics, ATHEX, World Gold Council.
 //
 // ΣΗΜΕΙΩΣΗ ΑΚΡΙΒΕΙΑΣ: οι ΑΠΟΔΟΣΕΙΣ (%) είναι διασταυρωμένες από πολλές πηγές και

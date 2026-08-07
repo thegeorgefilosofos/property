@@ -121,13 +121,12 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         const { data: chk } = await supabase.from('checklist_items')
           .select('status,due_date').eq('property_id', propertyId)
           .ilike('description', '%ΕΝΦΙΑ%').order('due_date').limit(1);
-        // Insurance data (earthquake discount)
+        // Στοιχεία ασφάλισης (έκπτωση σεισμού)
         const { data: ins } = await supabase.from('bills_settings')
           .select('data').eq('property_id', propertyId).eq('section', 'insurance').maybeSingle();
-        // Electricity dimotika %
+        // Ποσοστό δημοτικών τελών στον λογαριασμό ρεύματος
         const { data: elec } = await supabase.from('bills_settings')
           .select('data').eq('property_id', propertyId).eq('section', 'electricity').maybeSingle();
-        // Last expense
         const { data: exp } = await supabase.from('expenses')
           .select('amount,description,date').eq('property_id', propertyId)
           .order('date', { ascending: false }).limit(1);
@@ -326,7 +325,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
         </div>
 
-        {/* Deadline strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6, marginBottom: 20 }}>
           {ENFIA_DEADLINES.map((d, i) => {
             const isPast = new Date(d.date) < today;
@@ -347,7 +345,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           })}
         </div>
 
-        {/* Deadline alert */}
         {nextDeadline && daysToDeadline !== null && daysToDeadline <= 30 && (
           <div style={{ background: daysToDeadline <= 7 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${daysToDeadline <= 7 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: daysToDeadline <= 7 ? 'var(--negative)' : 'var(--warning)', flexShrink: 0 }}/>
@@ -359,10 +356,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
         )}
 
-        {/* Calculator */}
         {s.enfiaShowCalc && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 20 }}>
-            {/* Left: inputs */}
             <div>
               <div style={g2}>
                 <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"              value={s.enfiaSqm}      onChange={v => upd({ enfiaSqm: v })}      suffix="τετραγωνικά"/>
@@ -385,7 +380,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
                 {REDUCTIONS.map(r => {
                   const active = (s.enfiaReductions || []).includes(r.key);
-                  // Highlight insurance if cross-tab data says they qualify
+                  // Τονίζει την ασφάλιση όταν τα στοιχεία άλλων καρτελών δείχνουν ότι δικαιούται έκπτωση
                   const eligible = r.key === 'insurance' && (crossTabData.insuranceEq || crossTabData.insuranceFlood);
                   return (
                     <div key={r.key} onClick={() => toggleReduction(r.key)}
@@ -430,7 +425,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               )}
             </div>
 
-            {/* Right: results */}
             <div>
               {enfiaResult && enfiaResult.final > 0 ? (
                 <>
@@ -523,7 +517,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά Τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
           </div>
-          {/* Result: compact inline pill, same pattern as Providers + Electricity */}
+          {/* Το αποτέλεσμα ως συμπτυγμένη ενσωματωμένη πλάκα — ίδιο μοτίβο με Παρόχους και Ρεύμα */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>

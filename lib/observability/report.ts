@@ -1,13 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Env-gated error reporting — isomorphic (browser + Node server).
 //
-// Free and dependency-free: when a Sentry DSN is configured it posts a minimal
-// Sentry envelope over plain fetch (no @sentry/* SDK, no bundle cost). When no
-// DSN is set it is a pure no-op except for a console.error, so the app runs
-// identically with or without it. Sentry's free tier is enough for this stage;
-// the DSN is the only thing the owner flips on.
+// Δωρεάν και χωρίς εξαρτήσεις: όταν υπάρχει ρυθμισμένο DSN του Sentry, στέλνει
+// έναν ελάχιστο φάκελο με σκέτο fetch — κανένα @sentry/* SDK, μηδέν βάρος στο
+// πακέτο. Χωρίς DSN δεν κάνει τίποτα πέρα από ένα console.error, οπότε η
+// εφαρμογή τρέχει ΑΚΡΙΒΩΣ το ίδιο με ή χωρίς αυτό. Η δωρεάν βαθμίδα του Sentry
+// αρκεί για αυτό το στάδιο· το μόνο που ανοίγει ο ιδιοκτήτης είναι το DSN.
 //
-// Configure with NEXT_PUBLIC_SENTRY_DSN (client + server) or SENTRY_DSN (server).
+// Ρυθμίζεται με NEXT_PUBLIC_SENTRY_DSN (πελάτης και διακομιστής) ή SENTRY_DSN (μόνο διακομιστής).
 // PII discipline: `extra` is scrubbed of obvious sensitive keys before sending.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -50,7 +50,7 @@ function scrub(extra?: Extra): Extra | undefined {
   return out
 }
 
-// Report a caught error. Never throws. Fire-and-forget over the network.
+// Αναφέρει πιασμένο σφάλμα. Δεν πετάει ποτέ. Στέλνει και ξεχνά.
 export function captureError(err: unknown, extra?: Extra): void {
   try {
     if (err) console.error('[captureError]', err, extra ?? '')

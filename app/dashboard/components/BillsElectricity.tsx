@@ -354,7 +354,6 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   // μετά τα αντικαθιστούσε σιωπηλά — ο χρήστης προλάβαινε να διαβάσει λάθος κόστος.
   const [s, su, loading] = useBillsSettings(propertyId, userId || '', 'electricity', ELEC_DEFAULTS);
 
-  // State
   const [provider,         setProvider]         = useState('dei');
   const [tariffId,         setTariffId]         = useState('dei_enter');
   const [useEbill,         setUseEbill]          = useState(true);
@@ -371,7 +370,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   // προεπιλογή 250 κιλοβατώρες, δηλαδή πάνω σε κατανάλωση κάποιου άλλου.
   const [billsKwh,         setBillsKwh]         = useState<number[]>([]);
 
-  // Load from settings
+  // Φόρτωση από τις ρυθμίσεις
   useEffect(() => {
     if (!s) return;
     if (s.elecProvider)          setProvider(s.elecProvider as string);
@@ -410,7 +409,6 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
   const save = (patch: Record<string, unknown>) => su({ elecProvider: provider, elecTariff: tariffId, useEbill, kwhMonthly, nightPct, kwhHistory, contractStart, contractMonths, manualMonthly, ...patch });
 
-  // Derived
   const providerObj   = PROVIDERS.find(p => p.value === provider) || PROVIDERS[0];
   const tariffOptions = providerObj.tariffs.map(t => ({ value: t.id, label: t.name }));
   const tariff        = providerObj.tariffs.find(t => t.id === tariffId) || providerObj.tariffs[0];
@@ -439,7 +437,6 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   const currentCost = monthlyCost(tariff as Tariff, usage);
   const calcMonthly = currentCost.total;
 
-  // Contract countdown
   const contractExpiry = useMemo(() => {
     if (!contractStart || !contractMonths) return null;
     const start = new Date(contractStart);
@@ -531,7 +528,6 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             options={providerObj.tariffs.map(t => ({ value: t.id, label: t.name }))} />
         </div>
 
-        {/* Selected tariff card */}
         <div style={{ background: tariffBc.bg, border: `1px solid ${tariffBc.border}`, borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' as const }}>
@@ -607,7 +603,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           </a>
         </div>
 
-        {/* Contract dates + E-bill toggle */}
+        {/* Ημερομηνίες συμβολαίου και διακόπτης ηλεκτρονικού λογαριασμού */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 14, alignItems: 'center' }}>
           <DatePicker
             label="Έναρξη σύμβασης"
@@ -811,16 +807,16 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         </div>
       )}
 
-      {/* Smart live hints based on real user data */}
+      {/* Ζωντανές υποδείξεις από τα πραγματικά δεδομένα του χρήστη */}
       {(() => {
-        // Build personalized smart hints based on what user has entered
+        // Οι υποδείξεις χτίζονται από ό,τι έχει ήδη καταχωρήσει ο χρήστης
         const hints: { text: string; severity: 'info' | 'warning' | 'tip'; action?: string; tab?: string }[] = [];
         const kwhNum   = parseFloat(kwhMonthly) || 0;
         const costNum  = calcMonthly;
 
         // FIX: new, warn if the SELECTED flat-tier package's kWh limit is smaller than
         // the user's actual projected usage. Without this, someone could pick "Picasso
-        // Small" while consuming way more, with no indication they'll hit overage charges.
+        // μικρό πακέτο ενώ καταναλώνουν πολύ περισσότερο, χωρίς καμία ένδειξη ότι θα χρεωθούν υπέρβαση.
         if (tariff.type === 'fixed_monthly' && tariff.flat_annual_kwh && tariff.flat_overage_rate) {
           const projectedAnnual = kwhNum * 12;
           const allowance = tariff.flat_annual_kwh * 1.05;

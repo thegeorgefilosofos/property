@@ -99,7 +99,7 @@ interface FormState {
   notes: string; attachment_url: string; phone: string; email: string; add_expense: boolean
 }
 
-// Google-aligned category colors
+// Χρώματα κατηγοριών ευθυγραμμισμένα με το Google
 const CATEGORIES: Record<EventCategory, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
   tax:         { label: 'Φορολογικά',   color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <Landmark size={11}/> },
   financial:   { label: 'Οικονομικά',   color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <Euro size={11}/> },
@@ -437,7 +437,6 @@ function usePointerDrag(onMove:(id:string,date:string,time?:string|null)=>void):
   return { onDown, ghost }
 }
 
-// Month View
 function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[] }: {
   events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
 }) {
@@ -580,7 +579,6 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
 }
 
 
-// Auto-Pull Panel
 // Έξυπνος συγχρονισμός: αναγνωρίζει τον τύπο μίσθωσης του ακινήτου και τραβά ΜΟΝΟ
 // ό,τι έχει νόημα — μακροχρόνια → ενοίκιο & λήξεις μίσθωσης· βραχυχρόνια → κρατήσεις
 // με το όνομα του επισκέπτη. Δείχνει ζωντανά πλήθη ανά πηγή πριν τραβήξει.
@@ -847,7 +845,6 @@ function TimeField({ value, onChange }: { value:string; onChange:(v:string)=>voi
   )
 }
 
-// Event Modal
 function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts }: {
   form:FormState; setForm:React.Dispatch<React.SetStateAction<FormState>>
   onSave:()=>void; onClose:()=>void; editing:boolean; saving:boolean; conflicts?:number
@@ -1038,7 +1035,6 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   )
 }
 
-// Section
 // ═══════════════════════════════════════════════════════════════════════════
 // ΜΙΑ ΣΕΙΡΑ, ΜΙΑ ΓΡΑΜΜΗ
 // ─────────────────────────────────────────────────────────────────────────
@@ -1212,7 +1208,6 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
 }
 
 
-// Main Component
 export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenTasks }: {
   propertyId:string; userId:string;
   /** Πόσες εκκρεμότητες είναι ανοιχτές. Δείχνεται δίπλα στον σύνδεσμο, όχι ως σήμα. */
@@ -1588,7 +1583,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   const nextPeriod=()=>setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth()+1,1))
   const periodLabel=()=>`${MONTHS_NOM[currentDate.getMonth()]} ${currentDate.getFullYear()}`
 
-  // Google-style button base
+  // Βάση κουμπιού σε ύφος Google
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -1666,7 +1661,6 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
 
       {/* Toolbar — καθαρή, ένα πρωτεύον κουμπί· τα δευτερεύοντα σε ένα ήσυχο μενού */}
       <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-        {/* View switcher */}
         <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
           {([['month','Μήνας',Calendar],['agenda','Ατζέντα',List]] as [ViewMode,string,typeof Calendar][]).map(([v,label,Icon])=>(
             <button key={v} onClick={()=>setViewMode(v)} style={{ display:'flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontFamily: T.font.sans, fontWeight:viewMode===v?600:500, background:viewMode===v?'var(--accent)':'transparent', color:viewMode===v?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s', letterSpacing:'0.1px' }}>
@@ -1675,7 +1669,6 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
           ))}
         </div>
 
-        {/* Period nav */}
         {viewMode!=='agenda'&&(
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
             <button aria-label="Προηγούμενο" title="Προηγούμενο" onClick={prevPeriod} style={{ width:34, height:34, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronLeft size={18}/></button>
@@ -1758,7 +1751,6 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
         </div>
       </div>
 
-      {/* Bulk action bar */}
       {bulkMode&&selectedIds.size>0&&(
         <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--accent-dim)', border:'1px solid var(--border-accent)', borderRadius:8, padding:'10px 16px' }}>
           <span style={{ fontSize:14, fontFamily: T.font.sans, fontWeight:500, color:'var(--accent)' }}>{selectedIds.size} επιλεγμένα</span>

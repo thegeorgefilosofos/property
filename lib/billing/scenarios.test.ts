@@ -88,7 +88,7 @@ const tx = (desc: string, amount: number, date: string): ParsedTransaction => ({
   T('reconcile: twins → 2 διαφορετικοί', reconciled.length === 2 && new Set(reconciled).size === 2);
 }
 {
-  // Tolerance: 1% ok, 2% no
+  // Ανοχή: 1% δεκτό, 2% όχι
   const bills = [mk('x', 'water', 100, '2026-06-10')];
   T('reconcile: +1% ok', reconcile([tx('ΕΥΔΑΠ', 101, '2026-06-11')], bills).reconciled.length === 1);
   T('reconcile: +2% no', reconcile([tx('ΕΥΔΑΠ', 102, '2026-06-11')], bills).reconciled.length === 0);

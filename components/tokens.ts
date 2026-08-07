@@ -6,7 +6,7 @@
 // Το Theme.tsx είναι `'use client'`. Όταν ένα Server Component εισάγει κάτι από
 // module πελάτη, ο Next ΔΕΝ του δίνει την πραγματική τιμή — του δίνει αναφορά
 // πελάτη. Το `T` έφτανε στον server ως `undefined` και το `T.font.sans` έριχνε
-//     TypeError: Cannot read properties of undefined (reading 'sans')
+//     TypeError: Cannot read properties of undefined (reading 'sans')   ← το μήνυμα του περιηγητή
 // στο SSR. Ολόκληρη η δημόσια σελίδα (αρχική, «Ποιοι είμαστε», Απόρρητο, Όροι,
 // «χωρίς σύνδεση») έδειχνε το πλαίσιο σφάλματος αντί για περιεχόμενο.
 //

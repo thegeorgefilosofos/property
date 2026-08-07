@@ -241,8 +241,8 @@ type CloudEntry     = SubscriptionEntry;
 interface OtherSub       { name: string; price: string; renewalDate: string; }
 
 // ─── Ασφαλιστικό Comparison Engine ─────────────────────────────────────────────
-// Simulates real-time insurance quotes based on property data
-// When insurancemarket.gr API becomes available, replace computeQuotes() with real API call
+// Προσομοιώνει προσφορές ασφάλισης από τα στοιχεία του ακινήτου
+// Όταν ανοίξει το API του insurancemarket.gr, το computeQuotes() αντικαθίσταται με πραγματική κλήση
 /** Τα τέσσερα φίλτρα προσφορών, δηλωμένα μία φορά και ως τύπος. */
 const QUOTE_FILTERS = [
   { key: 'all',        label: 'Όλα'                 },
@@ -286,7 +286,7 @@ interface LiveQuote {
 function computeLiveQuotes(sqm: number, propValue: number, contentValue: number, floor: string, age: string): LiveQuote[] {
   if (!sqm || !propValue) return [];
 
-  // Pricing factors based on property characteristics
+  // Συντελεστές τιμολόγησης από τα χαρακτηριστικά του ακινήτου
   const sqmFactor    = Math.max(0.7, Math.min(1.5, sqm / 100));
   const valueFactor  = Math.max(0.8, Math.min(2.0, propValue / 150000));
   // ΣΗΜΕΙΟ ΑΝΑΦΟΡΑΣ, ΟΧΙ ΔΗΛΩΜΕΝΗ ΑΞΙΑ. Το 20.000 € είναι ο παρονομαστής της
@@ -484,7 +484,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     if (!propertyId) return;
     (async () => {
       try {
-        // Checklist
         const { data: chk } = await supabase.from('checklist_items').select('status,due_date').eq('property_id', propertyId).ilike('description', '%ασφαλιστήριο%').limit(1);
         if (chk?.[0]) setChecklistRenewal({ daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null });
 
@@ -574,7 +573,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 type InsuranceSettings = typeof ps;
 const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
 
-  // Auto-fill from cross-tab data if not manually set
+  // Αυτόματη συμπλήρωση από άλλες καρτέλες, όταν δεν το έχει ορίσει ο χρήστης
   const effectiveSqm    = insSqm    || crossProperty.sqm    || '';
   const effectiveFloor  = insFloor  || crossProperty.floor  || 'second';
   const effectiveAge    = insAge    || crossProperty.age    || 'y10_14';
@@ -629,7 +628,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const otherCost = (otherSubs || []).reduce((s, o) => s + (parseFloat(o.price) || 0), 0);
   const total     = insCost + streamingCost + cloudCost + otherCost;
 
-  // Renewal alerts
   const renewalAlerts: { name: string; daysLeft: number; type: 'danger'|'warning'|'info' }[] = [];
   const checkRenewal = (name: string, dateStr: string, days: number) => {
     if (!dateStr) return;
@@ -1015,7 +1013,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               </div>
             )}
 
-            {/* Top 3 deals */}
             {!quotesLoading && filteredQuotes.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8, marginBottom: showQuotes ? 12 : 0 }}>
                 {filteredQuotes.slice(0, 3).map((q, i) => {
@@ -1056,7 +1053,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               </div>
             )}
 
-            {/* Full table */}
             {showQuotes && !quotesLoading && filteredQuotes.length > 0 && (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 700 }}>
@@ -1126,7 +1122,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             )}
           </div>
 
-          {/* Covers display */}
           {insPlan && (
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>

@@ -18,8 +18,10 @@ export function useBillsSettings<T extends Record<string, any>>(
   const latest  = useRef<T>(defaults);
   const aborted = useRef(false);
 
-  // FIX A: track the property/section this hook instance is "bound" to,
-  // so a pending save timer never accidentally targets a different one.
+  // Ο χρονομετρητής αποθήκευσης θυμάται ΣΕ ΠΟΙΟ ακίνητο και ποια ενότητα ανήκει.
+  // Χωρίς αυτό, μια αποθήκευση προγραμματισμένη για το ένα ακίνητο εκτελούνταν
+  // αφού ο χρήστης είχε ήδη αλλάξει ακίνητο — και έγραφε τα δεδομένα του ενός
+  // πάνω στο άλλο.
   const boundKey = useRef(`${propertyId}::${section}`);
 
   // ── Load ─────────────────────────────────────────────────────────────────
@@ -27,8 +29,8 @@ export function useBillsSettings<T extends Record<string, any>>(
     boundKey.current = `${propertyId}::${section}`;
 
     if (!propertyId) {
-      // FIX B: reset to defaults instead of leaving stale data from a
-      // previously-loaded property when propertyId becomes empty.
+      // Επαναφορά στις προεπιλογές, αντί να μείνουν στην οθόνη τα δεδομένα του
+      // ΠΡΟΗΓΟΥΜΕΝΟΥ ακινήτου όταν αδειάσει το propertyId.
       setData(defaults);
       latest.current = defaults;
       setLoading(false);
@@ -65,13 +67,13 @@ export function useBillsSettings<T extends Record<string, any>>(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, section]);
 
-  // Timer cleanup on unmount, flushes any pending save instead of dropping it
+  // Καθαρισμός χρονομέτρου στην αποπροσάρτηση: ό,τι εκκρεμεί γράφεται, δεν πετιέται
   useEffect(() => {
     return () => {
       if (timer.current) {
         clearTimeout(timer.current);
-        // Best-effort flush so a save scheduled just before navigating away
-        // (e.g. switching tabs) isn't silently lost.
+        // Τελευταία προσπάθεια εγγραφής: μια αποθήκευση προγραμματισμένη λίγο πριν
+        // (π.χ. αλλαγή καρτέλας) να μη χάνεται σιωπηλά.
         doSaveRef.current?.(latest.current, boundKey.current);
       }
     };
@@ -95,7 +97,7 @@ export function useBillsSettings<T extends Record<string, any>>(
     }, { onConflict: 'property_id,section' }));
   }, [userId]);
 
-  // Keep a ref to the latest doSave so the unmount-flush effect (which only
+  // Κρατά αναφορά στην τελευταία doSave, ώστε το effect της αποπροσάρτησης (που
   // runs once) always calls the current version, not a stale closure.
   const doSaveRef = useRef(doSave);
   useEffect(() => { doSaveRef.current = doSave; }, [doSave]);

@@ -151,7 +151,7 @@ ok('busy empty day → []', busyIntervalsForDay([], 'd').length === 0);
   ok('freeSlots split includes just-before', slots.some(s => eqIv(s, { start: 660, end: 720 })));
   ok('freeSlots split includes just-after', slots.some(s => eqIv(s, { start: 780, end: 840 })));
 }
-// Back-to-back meetings block a contiguous span.
+// Οι συνεχόμενες συναντήσεις μπλοκάρουν ενιαίο διάστημα.
 {
   const slots = findFreeSlots(
     [
@@ -165,7 +165,7 @@ ok('busy empty day → []', busyIntervalsForDay([], 'd').length === 0);
   ok('freeSlots back-to-back count', slots.length === 2);
   ok('freeSlots back-to-back items', eqList(slots, [{ start: 540, end: 600 }, { start: 720, end: 780 }]));
 }
-// No space: full day busy.
+// Καθόλου κενό: η μέρα είναι γεμάτη.
 {
   const slots = findFreeSlots(
     [{ date: 'd', time: '09:00', durationMinutes: 720 }], // 540–1260 όλο το παράθυρο
@@ -180,7 +180,7 @@ ok('freeSlots window == duration → 1', (() => {
   const slots = findFreeSlots([], 'd', 60, 600, 660, 30);
   return slots.length === 1 && eqIv(slots[0], { start: 600, end: 660 });
 })());
-// Custom work window: morning only.
+// Προσαρμοσμένο ωράριο: μόνο πρωί.
 {
   const slots = findFreeSlots([], 'd', 60, 480, 600, 60); // 08:00–10:00, step 60 → 480–540, 540–600
   ok('freeSlots custom window count', eqList(slots, [{ start: 480, end: 540 }, { start: 540, end: 600 }]));
@@ -188,7 +188,7 @@ ok('freeSlots window == duration → 1', (() => {
 // Invalid duration → [].
 ok('freeSlots zero duration → []', findFreeSlots([], 'd', 0).length === 0);
 ok('freeSlots negative duration → []', findFreeSlots([], 'd', -60).length === 0);
-// All-day event does NOT block slot-finding.
+// Το ολοήμερο γεγονός ΔΕΝ μπλοκάρει την εύρεση κενού.
 {
   const slots = findFreeSlots([{ date: 'd' }], 'd', 120);
   ok('freeSlots all-day does not block', slots.length === 21);

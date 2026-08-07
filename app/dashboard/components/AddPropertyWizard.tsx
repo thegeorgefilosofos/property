@@ -407,7 +407,6 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         )}
       </>}>
 
-      {/* Step progress */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
         {STEPS.map((label, i) => {
           const done = i < step, active = i === step;

@@ -308,7 +308,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   useEffect(() => { load(); loadStays(); loadIcalFeeds(); }, [load, loadStays, loadIcalFeeds]);
 
-  // Real-time: clients / client_stays / client_notes
+  // Ζωντανή σύνδεση: πελάτες, διαμονές, σημειώσεις
   useEffect(() => {
     const ch = supabase.channel('clients-crm-' + userId)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clients', filter: `user_id=eq.${userId}` }, () => load())

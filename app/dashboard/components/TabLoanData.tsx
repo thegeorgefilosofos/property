@@ -1,4 +1,4 @@
-// TabLoanData.tsx, Shared constants, types, helpers
+// TabLoanData.tsx — κοινές σταθερές, τύποι και βοηθοί του Δανείου
 // Sources: vresdaneio.gr, greece20.gov.gr, ypen.gov.gr, ΑΑΔΕ, bankofgreece.gr, ECB
 
 import { rentalIncomeTax, RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax'

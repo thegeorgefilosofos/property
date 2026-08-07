@@ -39,7 +39,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Prevent flash of wrong theme, runs before React hydration.
+// Αποτρέπει το αναβόσβημα λάθος θέματος — τρέχει πριν την ενυδάτωση του React.
 // Πρέπει να διαβάζει ΑΚΡΙΒΩΣ τα ίδια κλειδιά και το ίδιο default με τον
 // ThemeProvider (pos_mode για dark/light, pos_theme για την παλέτα, default
 // 'dark'/'midnight'), αλλιώς το pre-paint διαφέρει από το post-hydration και
@@ -72,7 +72,7 @@ export default async function RootLayout({
         <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/inter-greek.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {/* Καμία εξωτερική γραμματοσειρά: όλα self-hosted (Inter/Roboto Mono) + inline SVG εικονίδια. */}
-        {/* Theme init, must run before paint to prevent flash */}
+        {/* Αρχικοποίηση θέματος: πρέπει να τρέξει πριν τη ζωγραφική, αλλιώς αναβοσβήνει */}
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>

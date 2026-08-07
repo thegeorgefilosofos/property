@@ -2436,7 +2436,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </div>
       )}
 
-      {/* Filters */}
       {items.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση εργασίας, ετικέτας, επαφής…" style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
@@ -2477,7 +2476,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         {hasFilters && <button type="button" onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Καθαρισμός φίλτρων</button>}
       </div>}
 
-      {/* Category pills */}
       {usedCats.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
           <button type="button" onClick={() => setFilterCat('all')} style={{ padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === 'all' ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === 'all' ? 'var(--accent-soft)' : 'transparent', color: filterCat === 'all' ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === 'all' ? 700 : 400 }}>Όλα ({items.length})</button>
@@ -2496,7 +2494,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </div>
       )}
 
-      {/* Content */}
       {loading ? (
         // Σκελετός αντί για spinner: το σχήμα της καρτέλας (KPIs + λίστα) είναι γνωστό,
         // οπότε ο χρήστης βλέπει πού θα εμφανιστεί τι και δεν «πηδά» η διάταξη.

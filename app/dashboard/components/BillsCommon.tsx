@@ -303,7 +303,6 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <NumberInput  label="Ημέρα χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
         </div>
 
-        {/* Info banner */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 16, border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans, flex: 1 }}>{mgmtInfo?.desc}</div>
           {mgmtInfo?.url && (
@@ -313,7 +312,6 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           )}
         </div>
 
-        {/* Comparison cards */}
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Σύγκριση Επιλογών</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8 }}>
           {MGMT_CARDS.map(opt => {
@@ -479,7 +477,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           />
         )}
 
-        {/* Bar chart, with hover highlight */}
+        {/* Ραβδόγραμμα, με τονισμό στο πέρασμα του δείκτη */}
         <div style={{ position: 'relative', display: 'flex', gap: 4, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed color-mix(in srgb, var(--accent) 40%, transparent)', pointerEvents: 'none' }}>
@@ -510,7 +508,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           })}
         </div>
 
-        {/* Month labels, clickable, highlight on hover */}
+        {/* Ετικέτες μηνών: πατιούνται, και τονίζονται στο πέρασμα του δείκτη */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}
@@ -522,7 +520,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           ))}
         </div>
 
-        {/* Input grid, hover + focus styles */}
+        {/* Πλέγμα πεδίων, με ύφος περάσματος δείκτη και εστίασης */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}>

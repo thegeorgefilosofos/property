@@ -34,7 +34,7 @@ eq('classify: government by keyword', classifyDocType(doc({ doc_type: 'other', t
 eq('classify: payment by keyword', classifyDocType(doc({ doc_type: 'other', title: 'Απόδειξη Πληρωμής', amount: 50 })), 'payment');
 eq('classify: respect valid AI type when no keywords', classifyDocType(doc({ doc_type: 'bill' })), 'bill');
 eq('classify: fallback other', classifyDocType(doc({ doc_type: 'other', title: 'κάτι ασαφές' })), 'other');
-// Priority: lease field beats a generic bill AI guess
+// Προτεραιότητα: το πεδίο του μισθωτηρίου υπερισχύει της γενικής εικασίας του μοντέλου
 eq('classify: lease field wins over ai=bill', classifyDocType(doc({ doc_type: 'bill', monthly_rent: 500 })), 'lease');
 
 // ── validateDoc ──────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ check('every DocType has a label', DOC_TYPES.every(t => !!DOC_TYPE_LABELS[t.id])
 eq('summary line prefers provider+amount', docSummaryLine(doc({ doc_type: 'bill', provider: 'ΔΕΗ', amount: 88.5 })), 'ΔΕΗ — 88,5 €');
 eq('summary line lease rent', docSummaryLine(doc({ doc_type: 'lease', tenant_name: 'Α', monthly_rent: 600 })), 'Α — 600 €/μήνα');
 
-// Coverage: every DocType classifies to itself under a strong signal (round-trip)
+// Κάλυψη: κάθε τύπος εγγράφου κατατάσσεται στον εαυτό του όταν το σήμα είναι ισχυρό (κύκλος)
 const strong: Record<DocType, Partial<ScannedDoc>> = {
   bill: { category: 'electricity', amount: 10 },
   payment: { title: 'Απόδειξη Πληρωμής', amount: 10 },

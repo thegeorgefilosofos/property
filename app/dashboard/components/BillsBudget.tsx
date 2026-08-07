@@ -1058,7 +1058,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -1244,7 +1243,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         );
       })()}
 
-      {/* Over-budget alerts */}
       {displayOver.length > 0 && (
         <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {displayOver.map(cat => {
@@ -1517,7 +1515,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         );
       })()}
 
-      {/* Category rows */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         {secHdr('Ανά Κατηγορία', 'cats', undefined,
           <InfoDot text="Κάθε κατηγορία δείχνει τι έχεις ξοδέψει έναντι του στόχου. Κάνε κλικ στον στόχο για να τον αλλάξεις επιτόπου, ή στο όνομα για μετονομασία. Οι στόχοι αποθηκεύονται αυτόματα." />)}

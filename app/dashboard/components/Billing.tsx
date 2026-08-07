@@ -98,7 +98,6 @@ export default function Billing({ userId }: { userId: string }) {
 
   return (
     <div>
-      {/* Invoice details */}
       <Card>
         <SecHdr label="Στοιχεία τιμολόγησης" />
         {prefilled && (

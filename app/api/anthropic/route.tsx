@@ -76,9 +76,10 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Durable, cross-instance cap (authoritative) ──────────────
-  // The in-memory maps above are per-instance on serverless; this atomic Supabase
-  // counter is the real cap that a user cannot bypass by hitting other instances.
-  // Fail-open only if the RPC itself errors (the in-memory guard still applies).
+  // Οι χάρτες στη μνήμη από πάνω ζουν ΑΝΑ ΣΤΙΓΜΙΟΤΥΠΟ: σε serverless, κάθε νέα
+  // εκτέλεση ξεκινά με άδειους. Ο ατομικός μετρητής στο Supabase είναι το
+  // πραγματικό φράγμα — αυτό που δεν παρακάμπτεται χτυπώντας άλλο στιγμιότυπο.
+  // Ανοίγει μόνο αν σφάλει η ΙΔΙΑ η κλήση (ο φρουρός της μνήμης μένει σε ισχύ).
   //
   // Τα όρια περνούν ως πίνακες [δωρεάν, ιδιοκτήτης, επαγγελματίας]. Η ΑΝΑΓΝΩΡΙΣΗ
   // του πλάνου γίνεται μέσα στη βάση (public.user_plan_rank), ώστε να μη χρειάζεται
