@@ -761,6 +761,21 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     return breakEvenOccupancy(ltGross, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse: isHouseType, highSeasonShare, propertyCount: 1, individual: individualPerson });
   }, [nRent, adrEff, stClean, stFee, pSqm, isHouseType, highSeasonShare, individualPerson]);
 
+  // ΤΟ ΑΝΕΦΙΚΤΟ ΔΕΝ ΓΡΑΦΕΤΑΙ «100%».
+  // Εδώ γραφόταν `Math.min(100, breakEvenOcc)`. Ένα ακίνητο με χαμηλή τιμή ανά
+  // νύχτα και υψηλό μακροχρόνιο ενοίκιο χρειάζεται π.χ. 334% πληρότητα για να
+  // ισοφαρίσει — δηλαδή ΔΕΝ ισοφαρίζει ποτέ. Η αναφορά όμως τύπωνε «100%», που
+  // διαβάζεται ως «βγαίνει, αν το γεμίζεις κάθε βράδυ». Ο ιδιοκτήτης έβγαζε τον
+  // ενοικιαστή του με βάση αυτόν τον αριθμό.
+  //
+  // Η στρογγυλοποίηση δεν είναι ίδια με το ψέμα: κάτω από 100 δείχνουμε το
+  // ποσοστό, πάνω από 100 λέμε ΓΙΑΤΙ δεν φτάνει.
+  const breakEvenText = (pct: (n: number) => string): string =>
+    breakEvenOcc === null ? ''
+      : !isFinite(breakEvenOcc) ? 'μη εφικτή με αυτά τα στοιχεία'
+      : breakEvenOcc > 100 ? `δεν επιτυγχάνεται ούτε με πλήρη πληρότητα (θα χρειαζόταν ${pct(breakEvenOcc)})`
+      : pct(breakEvenOcc);
+
   // Εξαγωγή επαγγελματικής αναφοράς PDF (μέσω παραθύρου εκτύπωσης· escape όλων των τιμών).
   const printReport = () => {
     const name = pName.trim() || 'Ακίνητο';
@@ -821,7 +836,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
     // Νεκρό σημείο πληρότητας (βραχυχρόνια).
     const beBlock = (term === 'short' && breakEvenOcc !== null) ? reportSection('Νεκρό σημείο πληρότητας')
-        + `<div class="note">Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: <strong>${isFinite(breakEvenOcc) ? rPct(Math.min(100, breakEvenOcc)) : 'μη εφικτή'}</strong>. Εκτιμώμενη πληρότητα εργαλείου: ${rPct(occEff)} · τιμή/νύχτα ${rEsc(rEur(adrEff))}.</div>` : '';
+        + `<div class="note">Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: <strong>${rEsc(breakEvenText(rPct))}</strong>. Εκτιμώμενη πληρότητα εργαλείου: ${rPct(occEff)} · τιμή/νύχτα ${rEsc(rEur(adrEff))}.</div>` : '';
 
     // Παραδοχές & μεθοδολογία.
     const asmpItems = [
@@ -960,7 +975,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
       if (term === 'short' && breakEvenOcc !== null) {
         sections.push({ type: 'note', title: 'Νεκρό σημείο πληρότητας',
-          text: `Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: ${isFinite(breakEvenOcc) ? pPct(Math.min(100, breakEvenOcc)) : 'μη εφικτή'}. Εκτιμώμενη πληρότητα εργαλείου: ${pPct(occEff)} · τιμή/νύχτα ${pEur(adrEff)}.` });
+          text: `Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: ${breakEvenText(pPct)}. Εκτιμώμενη πληρότητα εργαλείου: ${pPct(occEff)} · τιμή/νύχτα ${pEur(adrEff)}.` });
       }
 
       sections.push({ type: 'rows', title: `Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`,
