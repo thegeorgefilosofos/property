@@ -2,17 +2,26 @@
 // Τρέξε: npx tsx app/dashboard/components/assistantPersona.test.ts
 // Ελαφρύ shim του localStorage/window ΠΡΙΝ το import, ώστε να δοκιμαστεί η μόνιμη μνήμη.
 const _store = new Map<string, string>();
-(globalThis as any).window = globalThis;
-(globalThis as any).localStorage = {
+// Το shim δηλώνεται ΜΕ ΤΥΠΟ και όχι με `any`: αν αύριο ο κώδικας ζητήσει
+// `localStorage.key()` ή `.length`, θέλουμε να το μάθουμε από τον μεταγλωττιστή
+// εδώ, όχι από ένα τεστ που σκάει στην εκτέλεση με «undefined is not a function».
+// Το `window` του DOM lib είναι `Window & typeof globalThis` — δεν δέχεται το
+// γυμνό globalThis. Ο κώδικας υπό δοκιμή ελέγχει μόνο `typeof window`, οπότε
+// αρκεί να ΥΠΑΡΧΕΙ· το δηλώνουμε ως `unknown` και το γράφουμε μέσω του κλειδιού.
+const shim = globalThis as unknown as Record<string, unknown>;
+shim.window = globalThis;
+shim.localStorage = {
   getItem: (k: string) => (_store.has(k) ? _store.get(k)! : null),
   setItem: (k: string, v: string) => { _store.set(k, String(v)); },
   removeItem: (k: string) => { _store.delete(k); },
   clear: () => { _store.clear(); },
+  key: (i: number) => [..._store.keys()][i] ?? null,
+  get length() { return _store.size; },
 };
 
 import {
   parseAction, cleanForSpeech, buildSystemPrompt, buildSystemBlocks, NAV_MAP,
-  DEFAULT_PREFS, type AssistantPrefs,
+  DEFAULT_PREFS, type AssistantPrefs, type AssistantAction,
   loadMemories, addMemory, removeMemory, clearMemories,
   normalizeBookTime, resolveBookDate,
 } from './assistantPersona';
@@ -22,6 +31,20 @@ import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 let passed = 0, failed = 0;
 const fails: string[] = [];
 const ok = (name: string, cond: boolean) => { if (cond) passed++; else { failed++; if (fails.length < 60) fails.push(name); } };
+
+// ── ΤΟ ΣΤΕΝΕΜΑ ΤΗΣ ΕΝΕΡΓΕΙΑΣ, ΜΙΑ ΦΟΡΑ ──────────────────────────────────────
+// Το `AssistantAction` είναι διακριτή ένωση: το `.tab` υπάρχει μόνο στο `go`,
+// το `.amount` μόνο στο `expense`. Τα τεστ το παρέκαμπταν με `(r.action as any)`
+// σαράντα φορές — δηλαδή ένα τεστ που ΔΕΝ θα έπιανε αν αύριο το `go` έχανε το
+// `tab` ή αν το πεδίο μετονομαζόταν. Ο έλεγχος γινόταν στην εκτέλεση, ενώ ο
+// μεταγλωττιστής ήξερε ήδη την απάντηση.
+//
+// Εδώ ο τύπος στενεύει σωστά: `act(r.action, 'go')?.tab` είναι `string`, και το
+// `act(r.action, 'go')?.amount` δεν μεταγλωττίζεται καν.
+const act = <K extends AssistantAction['type']>(
+  a: AssistantAction | undefined, kind: K,
+): Extract<AssistantAction, { type: K }> | undefined =>
+  a && a.type === kind ? (a as Extract<AssistantAction, { type: K }>) : undefined;
 
 const NAV_IDS = NAV_MAP.map(n => n.id);
 const id = (o: Partial<AssistantPrefs> = {}): AssistantPrefs => ({ ...DEFAULT_PREFS, ...o });
@@ -40,7 +63,7 @@ for (const navId of NAV_IDS) {
     for (const cse of [navId, navId.toUpperCase(), navId[0].toUpperCase() + navId.slice(1)]) {
       const text = w(`[[go:${cse}]]`);
       const r = parseAction(text);
-      ok(`go ${navId} via ${cse}`, r.action?.type === 'go' && (r.action as any).tab === navId);
+      ok(`go ${navId} via ${cse}`, r.action?.type === 'go' && act(r.action, 'go')?.tab === navId);
       ok(`go ${navId} strip`, !/\[\[/.test(r.clean));
       ok(`go ${navId} clean non-empty when text existed`, r.clean.length >= 0);
     }
@@ -55,7 +78,9 @@ for (const w of WRAPPERS) {
 // invalid tab → no action, but stripped
 for (const bad of ['xxx', 'foobar', 'overviewz', '', 'go', '123']) {
   const r = parseAction(`Κείμενο [[go:${bad}]] τέλος`);
-  ok(`invalid ${bad} no action`, !r.action || r.action.type !== 'go' || NAV_IDS.includes((r.action as any).tab));
+  // Είτε δεν παρήχθη ενέργεια πλοήγησης, είτε παρήχθη με ΕΓΚΥΡΗ καρτέλα.
+  const go = act(r.action, 'go');
+  ok(`invalid ${bad} no action`, !go || NAV_IDS.includes(go.tab));
   ok(`invalid ${bad} stripped`, !/\[\[go:/.test(r.clean));
 }
 // no directive
@@ -68,14 +93,14 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
 {
   const r = parseAction('Το έκλεισα. [[book: Ραντεβού με Εθνική για χρηματοδότηση | 2026-07-15]]');
   ok('book action type', r.action?.type === 'book');
-  ok('book date parsed', (r.action as any)?.date === '2026-07-15');
-  ok('book title parsed', /Εθνική/.test((r.action as any)?.title || ''));
+  ok('book date parsed', act(r.action, 'book')?.date === '2026-07-15');
+  ok('book title parsed', /Εθνική/.test(act(r.action, 'book')?.title || ''));
   ok('book stripped', !/\[\[/.test(r.clean));
 }
 {
   // date-first order still works
   const r = parseAction('[[book: 2026-08-01 | Ραντεβού Alpha]]');
-  ok('book date-first', (r.action as any)?.date === '2026-08-01' && /Alpha/.test((r.action as any)?.title || ''));
+  ok('book date-first', act(r.action, 'book')?.date === '2026-08-01' && /Alpha/.test(act(r.action, 'book')?.title || ''));
 }
 {
   // no valid date → no book action, still stripped
@@ -87,38 +112,38 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   // book with time (τρίτο μέρος HH:MM)
   const r = parseAction('[[book: Ραντεβού με υδραυλικό | 2026-07-12 | 18:00]]');
   ok('book with time: type', r.action?.type === 'book');
-  ok('book with time: date', (r.action as any)?.date === '2026-07-12');
-  ok('book with time: time', (r.action as any)?.time === '18:00');
-  ok('book with time: title excludes time', !/18:00/.test((r.action as any)?.title || '') && /υδραυλικό/.test((r.action as any)?.title || ''));
+  ok('book with time: date', act(r.action, 'book')?.date === '2026-07-12');
+  ok('book with time: time', act(r.action, 'book')?.time === '18:00');
+  ok('book with time: title excludes time', !/18:00/.test(act(r.action, 'book')?.title || '') && /υδραυλικό/.test(act(r.action, 'book')?.title || ''));
 }
 {
   // single-digit hour normalised to HH:MM
   const r = parseAction('[[book: Έλεγχος | 2026-09-03 | 9:30]]');
-  ok('book time pads hour', (r.action as any)?.time === '09:30');
+  ok('book time pads hour', act(r.action, 'book')?.time === '09:30');
 }
 {
   // no time → time undefined (ολοήμερο)
   const r = parseAction('[[book: Ραντεβού Alpha | 2026-08-01]]');
-  ok('book no time → undefined', (r.action as any)?.time === undefined);
+  ok('book no time → undefined', act(r.action, 'book')?.time === undefined);
 }
 {
   // άκυρη ώρα αγνοείται
   const r = parseAction('[[book: X | 2026-08-01 | 45:99]]');
-  ok('book invalid time ignored', (r.action as any)?.time === undefined && (r.action as any)?.date === '2026-08-01');
+  ok('book invalid time ignored', act(r.action, 'book')?.time === undefined && act(r.action, 'book')?.date === '2026-08-01');
 }
 // client action: name | phone | afm | type
 {
   const r = parseAction('Εντάξει. [[client: Γιάννης Νικολάου | 6941234567 | 090000045 | πελάτης]]');
   ok('client action type', r.action?.type === 'client');
-  ok('client name', (r.action as any)?.name === 'Γιάννης Νικολάου');
-  ok('client phone', (r.action as any)?.phone === '6941234567');
-  ok('client afm', (r.action as any)?.afm === '090000045');
+  ok('client name', act(r.action, 'client')?.name === 'Γιάννης Νικολάου');
+  ok('client phone', act(r.action, 'client')?.phone === '6941234567');
+  ok('client afm', act(r.action, 'client')?.afm === '090000045');
   ok('client stripped', !/\[\[/.test(r.clean));
 }
 {
   // only a name is required
   const r = parseAction('[[client: Μαρία]]');
-  ok('client name-only', r.action?.type === 'client' && (r.action as any).name === 'Μαρία' && !(r.action as any).phone);
+  ok('client name-only', r.action?.type === 'client' && act(r.action, 'client')?.name === 'Μαρία' && !act(r.action, 'client')?.phone);
 }
 {
   // empty name → no action
@@ -131,18 +156,18 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
 {
   const r = parseAction('Το κατέγραψα. [[expense: Υδραυλικός | 80]]');
   ok('expense type', r.action?.type === 'expense');
-  ok('expense description', (r.action as any)?.description === 'Υδραυλικός');
-  ok('expense amount', (r.action as any)?.amount === 80);
+  ok('expense description', act(r.action, 'expense')?.description === 'Υδραυλικός');
+  ok('expense amount', act(r.action, 'expense')?.amount === 80);
   ok('expense stripped', !/\[\[/.test(r.clean));
 }
 {
   // δεκαδικά με κόμμα + χιλιάδες με τελεία, οποιαδήποτε σειρά
   const r = parseAction('[[expense: Ανακαίνιση μπάνιου | 1.200,50]]');
-  ok('expense thousands+decimal', (r.action as any)?.amount === 1200.5);
+  ok('expense thousands+decimal', act(r.action, 'expense')?.amount === 1200.5);
 }
 {
   const r = parseAction('[[expense: Λογαριασμός ρεύματος | 120 €]]');
-  ok('expense euro sign', (r.action as any)?.amount === 120 && (r.action as any)?.description === 'Λογαριασμός ρεύματος');
+  ok('expense euro sign', act(r.action, 'expense')?.amount === 120 && act(r.action, 'expense')?.description === 'Λογαριασμός ρεύματος');
 }
 {
   // χωρίς ποσό ή μηδέν → δεν εκτελείται
@@ -155,13 +180,13 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
 {
   const r = parseAction('Έγινε. [[vip: Γιώργος Παπαδόπουλος]]');
   ok('vip type', r.action?.type === 'vip');
-  ok('vip who', (r.action as any)?.who === 'Γιώργος Παπαδόπουλος');
+  ok('vip who', act(r.action, 'vip')?.who === 'Γιώργος Παπαδόπουλος');
   ok('vip stripped', !/\[\[/.test(r.clean));
 }
 {
   const r = parseAction('[[checkin: 6941234567]]');
   ok('checkin type', r.action?.type === 'checkin');
-  ok('checkin who', (r.action as any)?.who === '6941234567');
+  ok('checkin who', act(r.action, 'checkin')?.who === '6941234567');
 }
 {
   ok('vip empty → no action', parseAction('[[vip: ]]').action?.type !== 'vip');
@@ -178,20 +203,20 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
 {
   const r = parseAction('Την κράτησα. [[contact: Νίκος Υδραυλικός | 6941234567 | υδραυλικός]]');
   ok('contact type', r.action?.type === 'contact');
-  ok('contact name', (r.action as any)?.name === 'Νίκος Υδραυλικός');
-  ok('contact phone', (r.action as any)?.phone === '6941234567');
-  ok('contact role', (r.action as any)?.role === 'υδραυλικός');
+  ok('contact name', act(r.action, 'contact')?.name === 'Νίκος Υδραυλικός');
+  ok('contact phone', act(r.action, 'contact')?.phone === '6941234567');
+  ok('contact role', act(r.action, 'contact')?.role === 'υδραυλικός');
   ok('contact stripped', !/\[\[/.test(r.clean));
 }
 {
   const r = parseAction('[[contact: ΔΕΗ]]');
-  ok('contact name-only', r.action?.type === 'contact' && (r.action as any).name === 'ΔΕΗ' && !(r.action as any).phone);
+  ok('contact name-only', r.action?.type === 'contact' && act(r.action, 'contact')?.name === 'ΔΕΗ' && !act(r.action, 'contact')?.phone);
   ok('contact empty → no action', parseAction('[[contact: ]]').action?.type !== 'contact');
 }
 {
   const r = parseAction('Έγινε. [[task: Πληρωμή ΕΝΦΙΑ]]');
   ok('task type', r.action?.type === 'task');
-  ok('task description', (r.action as any)?.description === 'Πληρωμή ΕΝΦΙΑ');
+  ok('task description', act(r.action, 'task')?.description === 'Πληρωμή ΕΝΦΙΑ');
   ok('task empty → no action', parseAction('[[task:]]').action?.type !== 'task');
 }
 {
@@ -333,7 +358,7 @@ ok('compare when provided', buildSystemPrompt(id(), 'x', '1. Σπίτι Α: αξ
 {
   const r = parseAction('Πάμε. [[remember: υδραυλικός ο Νίκος]] [[go:contacts]]');
   ok('remember+go remember', r.remember === 'υδραυλικός ο Νίκος');
-  ok('remember+go action', r.action?.type === 'go' && (r.action as any).tab === 'contacts');
+  ok('remember+go action', r.action?.type === 'go' && act(r.action, 'go')?.tab === 'contacts');
   ok('remember+go clean', !/\[\[/.test(r.clean));
 }
 // κενό/άκυρο remember → undefined
@@ -426,16 +451,16 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
 // ── [[book:]] με σαφή ελληνική ώρα περνά· διφορούμενη ώρα δεν περνά ────────────
 {
   const r = parseAction('Το κλείνω. [[book: Service κλιματιστικού | 2026-07-15 | 6μμ]]');
-  ok('book: greek time date', r.action?.type === 'book' && (r.action as any).date === '2026-07-15');
-  ok('book: greek time → 18:00', (r.action as any).time === '18:00');
+  ok('book: greek time date', r.action?.type === 'book' && act(r.action, 'book')?.date === '2026-07-15');
+  ok('book: greek time → 18:00', act(r.action, 'book')?.time === '18:00');
 }
 {
   const r = parseAction('[[book: Ραντεβού υδραυλικού | 2026-07-15 | 5]]');
-  ok('book: διφορούμενη ώρα αγνοείται (χωρίς time)', r.action?.type === 'book' && (r.action as any).time === undefined);
+  ok('book: διφορούμενη ώρα αγνοείται (χωρίς time)', r.action?.type === 'book' && act(r.action, 'book')?.time === undefined);
 }
 {
   const r = parseAction('[[book: Έλεγχος λέβητα | 2026-08-01 | 17:00]]');
-  ok('book: 24ωρη περνά', (r.action as any).time === '17:00');
+  ok('book: 24ωρη περνά', act(r.action, 'book')?.time === '17:00');
 }
 
 // ── resolveBookDate: ISO ή ντετερμινιστικό fallback (Τετάρτη/αύριο) ───────────
@@ -499,12 +524,12 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
 // parseAction: οι deep-links που παράγει ο βοηθός για λογαριασμό/λογιστική
 {
   const r = parseAction('Το θέμα αλλάζει στην ενότητα «Εμφάνιση & Γλώσσα». [[go:settings]]');
-  ok('go settings action', r.action?.type === 'go' && (r.action as any).tab === 'settings');
+  ok('go settings action', r.action?.type === 'go' && act(r.action, 'go')?.tab === 'settings');
   ok('go settings stripped', !/\[\[/.test(r.clean));
 }
 {
   const r = parseAction('Για το Ε2 πάμε στη Λογιστική. [[go:accounting]]');
-  ok('go accounting action (Ε2)', r.action?.type === 'go' && (r.action as any).tab === 'accounting');
+  ok('go accounting action (Ε2)', r.action?.type === 'go' && act(r.action, 'go')?.tab === 'accounting');
 }
 
 // ── Συνδρομή & gating: ο βοηθός ξέρει τι ξεκλειδώνει κάθε πλάνο & upsellάρει με ΑΞΙΑ ──
@@ -589,7 +614,7 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
 // parseAction: το upsell δρομολογεί έγκυρα στη Συνδρομή/Λογαριασμό
 {
   const r = parseAction('Η «Σύγκριση ακινήτων» ανοίγει με το πλάνο Ιδιοκτήτης. [[go:settings]]');
-  ok('gating: go settings from upsell', r.action?.type === 'go' && (r.action as any).tab === 'settings');
+  ok('gating: go settings from upsell', r.action?.type === 'go' && act(r.action, 'go')?.tab === 'settings');
   ok('gating: upsell text stripped', !/\[\[/.test(r.clean));
 }
 

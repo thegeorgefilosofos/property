@@ -13,7 +13,7 @@ import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
 import { Gift } from 'lucide-react'
 import { downloadXlsx, type XlsxMode } from './exportXlsx'
-import TabLoanCalculator from './TabLoanCalculator'
+import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
 import {
   BANKS_NORM, PROGRAMS_NORM, normBank, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER,
@@ -232,11 +232,11 @@ function EuriborArea({data}:{data:{date:string;val:number}[]}) {
   )
 }
 
-interface CalcState {
-  loanType:LoanType;borrowerType:BorrowerType;loanAmount:number;years:number
-  rateType:RateType;effectiveRate:number;monthly:number;totalInterest:number;propertyValue:number
-  sqm?:number;incomeMonthly?:number;marital?:'single'|'married'|'single_parent';children?:number
-}
+// Ο τύπος ζει εκεί που παράγεται η τιμή (TabLoanCalculator). Εδώ υπήρχε δεύτερη
+// δήλωση του ίδιου σχήματος, με ένα πεδίο λιγότερο: ο υπολογιστής στέλνει και
+// `propType`/`area`, που αυτή η δήλωση δεν ήξερε — και επειδή η άλλη πλευρά ήταν
+// `any`, κανείς δεν το έμαθε ποτέ.
+type CalcState = LoanCalcState;
 
 // Το `propertyRent` έφυγε από τα props: περνούσε από το page.tsx και δεν
 // χρησιμοποιούνταν ποτέ — ένα νεκρό καλώδιο που έδινε την εντύπωση ότι ο

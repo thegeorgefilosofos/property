@@ -344,7 +344,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange, navShowAll = false, onNavShowAllChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void; navShowAll?: boolean; onNavShowAllChange?: (v: boolean) => void }) {
+export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void }) {
   const supabase = createClient();
 
   // Ταυτότητα λογαριασμού & χρέωσης
@@ -679,8 +679,16 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
         <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
           control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
-        <SettingRow title="Απλοποιημένο μενού" desc="Δείχνει πρώτα μόνο τις καρτέλες που χρειάζεσαι τώρα. Οι υπόλοιπες εμφανίζονται μόλις αποκτήσουν νόημα — π.χ. το «Δάνειο» μόλις καταχωρήσεις δάνειο. Καμία καρτέλα δεν χάνεται: όσες έχεις ανοίξει μένουν πάντα ορατές."
-          control={<Toggle on={!navShowAll} onChange={v => onNavShowAllChange?.(!v)} size="sm" />} />
+        {/* ── ΤΟ «ΑΠΛΟΠΟΙΗΜΕΝΟ ΜΕΝΟΥ» ΕΦΥΓΕ ΑΠΟ ΕΔΩ ────────────────────────
+            Η ίδια προτίμηση ρυθμιζόταν σε δύο σημεία, με δύο ονόματα και
+            ΑΝΤΙΣΤΡΟΦΗ πολικότητα: στην πλαϊνή μπάρα ως «Όλες οι καρτέλες» /
+            «Λιγότερες καρτέλες», κι εδώ ως διακόπτης που είναι ΑΝΟΙΧΤΟΣ όταν
+            το `navShowAll` είναι ψευδές. Ο χρήστης που πατούσε «Όλες οι
+            καρτέλες» στη μπάρα και ερχόταν εδώ, έβρισκε έναν διακόπτη που
+            είχε κλείσει μόνος του.
+            Μένει η μπάρα: εκεί γίνεται η ενέργεια και εκεί φαίνεται αμέσως
+            το αποτέλεσμά της. Μια ρύθμιση που τη βλέπεις να συμβαίνει δεν
+            χρειάζεται δεύτερο διακόπτη σε άλλη οθόνη. */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10, minHeight: 18 }}>
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
             Γλώσσα: Ελληνικά · Νόμισμα: ευρώ (€)

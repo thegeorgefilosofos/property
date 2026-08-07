@@ -10,26 +10,30 @@
 //   7 καταστάσεις × 2 νομικές μορφές × {1, 2, 3, 15} ακίνητα = 56 μενού.
 // Σε κανένα δεν επιτρέπεται να λείπουν τα βασικά ή να αδειάσει το μενού.
 //
-// Ο ΚΑΤΑΛΟΓΟΣ ΔΙΑΒΑΖΕΤΑΙ ΑΠΟ ΤΗΝ ΠΗΓΗ. Τα NAV_ITEMS ζουν μέσα στο page.tsx (ένα
-// React page component δεν εξάγει καταλόγους), οπότε τα διαβάζουμε από το ίδιο το
-// αρχείο. Μια αντιγραφή τους εδώ θα σήμαινε ότι ο έλεγχος περνά ενώ η εφαρμογή
-// έχει προχωρήσει — δηλαδή ένας έλεγχος που φυλάει τον εαυτό του.
+// Ο ΚΑΤΑΛΟΓΟΣ ΔΙΑΒΑΖΕΤΑΙ ΑΠΟ ΤΗΝ ΠΗΓΗ, ΤΩΡΑ ΜΕ import ΚΑΙ ΟΧΙ ΜΕ ΞΥΣΙΜΟ ΚΕΙΜΕΝΟ.
+// Πριν, τα ονόματα των καρτελών ζούσαν σε πίνακα μέσα στο page.tsx και ο έλεγχος
+// τα έβγαζε με κανονική έκφραση πάνω στο αρχείο. Ένας τέτοιος έλεγχος σπάει σε
+// κάθε αναδιατύπωση του πίνακα ακόμη κι όταν η συμπεριφορά είναι σωστή — και,
+// χειρότερα, θα περνούσε αν ο πίνακας μετακινούνταν αλλού. Τώρα η πηγή είναι
+// ενότητα (lib/nav/labels.ts) και εισάγεται κανονικά.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { visibleTabs, type OwnerContext, type PropertyLike, type LegalForm } from './visibility';
+import { NAV_LABELS } from '../nav/labels';
 import { STATUSES, writeStatus, type PropertyStatus } from './status';
 
 let pass = 0, fail = 0;
 function ok(name: string, cond: boolean) { if (cond) { pass++; } else { fail++; console.error(`✗ ${name}`); } }
 
-// ── Ο πραγματικός κατάλογος καρτελών, από το page.tsx ──────────────────────
-const PAGE = join(process.cwd(), 'app', 'dashboard', 'page.tsx');
-const src = readFileSync(PAGE, 'utf8');
-const block = src.match(/const NAV_ITEMS = \[([\s\S]*?)\n\];/);
-ok('βρέθηκε ο κατάλογος NAV_ITEMS στο page.tsx', !!block);
-const NAV_IDS = [...(block?.[1] ?? '').matchAll(/id:\s*'([a-z_]+)'/g)].map(m => m[1]);
+// ── Ο πραγματικός κατάλογος καρτελών ───────────────────────────────────────
+// Το `contacts` δεν είναι προορισμός του μενού: είναι ενότητα μέσα στο Αρχείο.
+// Υπάρχει στα ονόματα επειδή η Νόα παραπέμπει σε αυτό.
+const NAV_IDS = Object.keys(NAV_LABELS).filter(id => id !== 'contacts');
+// Η απόδοση των συγχωνευμένων καρτελών ελέγχεται ακόμη πάνω στην πηγή: δεν
+// υπάρχει άλλος τρόπος να βεβαιωθεί κανείς ότι ένα component όντως αποδίδεται.
+const src = readFileSync(join(process.cwd(), 'app', 'dashboard', 'page.tsx'), 'utf8');
 ok(`διαβάστηκαν οι καρτέλες (${NAV_IDS.length})`, NAV_IDS.length >= 13);
 
 // ── ΤΕΣΣΕΡΙΣ ΚΑΡΤΕΛΕΣ ΣΥΓΧΩΝΕΥΤΗΚΑΝ. ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥΣ ΔΕΝ ΧΑΘΗΚΕ. ───────

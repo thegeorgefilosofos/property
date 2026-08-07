@@ -18,7 +18,12 @@ interface AdminBank {
   variable_spread_min:number; variable_spread_max:number; fixed_min:number
   max_ltv:number; spiti_mou:boolean; source_url:string; verified_at:string
 }
-const RATE_FIELDS:{k:keyof AdminBank;label:string}[] = [
+// ΜΟΝΟ τα πεδία κειμένου. Ήταν `keyof AdminBank`, δηλαδή ο τύπος επέτρεπε και
+// το `max_ltv` (αριθμός) ή το `spiti_mou` (λογικό) σε πεδίο κειμένου — γι' αυτό
+// χρειαζόταν `as any` στην ανάθεση. Ο περιορισμός λέει την αλήθεια και η
+// μετατροπή περισσεύει.
+type RateKey = 'fixed_3yr' | 'fixed_5yr' | 'fixed_10yr' | 'fixed_15yr' | 'fixed_20yr';
+const RATE_FIELDS:{k:RateKey;label:string}[] = [
   {k:'fixed_3yr',label:'Σταθερό 3ετίας'},
   {k:'fixed_5yr',label:'Σταθερό 5ετίας'},
   {k:'fixed_10yr',label:'Σταθερό 10ετίας'},
@@ -133,19 +138,19 @@ export default function BankRatesAdmin({ onSaved }:{
                       <p style={{...labelStyle,marginTop:11}}>Σταθερά επιτόκια (κείμενο, π.χ. «2,90» ή «2,50-2,90»)</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10}}>
                         {RATE_FIELDS.map(f=>(
-                          <TextInput key={f.k} label={f.label} value={String(edit[f.k] ?? '')} onChange={v=>set(f.k, v as any)} placeholder="0,00"/>
+                          <TextInput key={f.k} label={f.label} value={String(edit[f.k] ?? '')} onChange={v=>set(f.k, v)} placeholder="0,00"/>
                         ))}
                       </div>
                       <p style={{...labelStyle}}>Παράμετροι</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10}}>
-                        <NumberInput label="Ελάχιστο σταθερό" value={String(edit.fixed_min ?? '')} onChange={v=>set('fixed_min', Number(v) as any)} suffix="%" step={0.05}/>
-                        <NumberInput label="Περιθώριο ελάχιστο" value={String(edit.variable_spread_min ?? '')} onChange={v=>set('variable_spread_min', Number(v) as any)} suffix="%" step={0.05}/>
-                        <NumberInput label="Περιθώριο μέγιστο" value={String(edit.variable_spread_max ?? '')} onChange={v=>set('variable_spread_max', Number(v) as any)} suffix="%" step={0.05}/>
-                        <NumberInput label="Μέγιστο δάνειο προς αξία" value={String(edit.max_ltv ?? '')} onChange={v=>set('max_ltv', Number(v) as any)} suffix="%"/>
+                        <NumberInput label="Ελάχιστο σταθερό" value={String(edit.fixed_min ?? '')} onChange={v=>set('fixed_min', Number(v))} suffix="%" step={0.05}/>
+                        <NumberInput label="Περιθώριο ελάχιστο" value={String(edit.variable_spread_min ?? '')} onChange={v=>set('variable_spread_min', Number(v))} suffix="%" step={0.05}/>
+                        <NumberInput label="Περιθώριο μέγιστο" value={String(edit.variable_spread_max ?? '')} onChange={v=>set('variable_spread_max', Number(v))} suffix="%" step={0.05}/>
+                        <NumberInput label="Μέγιστο δάνειο προς αξία" value={String(edit.max_ltv ?? '')} onChange={v=>set('max_ltv', Number(v))} suffix="%"/>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
-                        <Toggle on={!!edit.spiti_mou} onChange={v=>set('spiti_mou', v as any)} label="Συμμετέχει στο Σπίτι μου ΙΙ"/>
-                        <div style={{flex:1,minWidth:180}}><TextInput label="Επίσημη πηγή (σύνδεσμος)" value={edit.source_url ?? ''} onChange={v=>set('source_url', v as any)} placeholder="https://…"/></div>
+                        <Toggle on={!!edit.spiti_mou} onChange={v=>set('spiti_mou', v)} label="Συμμετέχει στο Σπίτι μου ΙΙ"/>
+                        <div style={{flex:1,minWidth:180}}><TextInput label="Επίσημη πηγή (σύνδεσμος)" value={edit.source_url ?? ''} onChange={v=>set('source_url', v)} placeholder="https://…"/></div>
                       </div>
                       <div style={{display:'flex',gap:8,alignItems:'center'}}>
                         <button onClick={save} disabled={saving} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 18px',borderRadius:100,cursor:saving?'wait':'pointer',background:'var(--accent)',border:'1px solid var(--accent)',color:'var(--accent-text)',fontSize:13,fontWeight:700,fontFamily: T.font.sans}}>

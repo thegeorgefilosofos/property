@@ -188,13 +188,25 @@ export default function TabBills({
       {/* ── Τα εργαλεία ανά κατηγορία ──────────────────────────────────
           Χωρίς πτυσσόμενο περιτύλιγμα: αυτά ΕΙΝΑΙ η οθόνη. */}
       <div ref={toolsRef}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: activeTool ? 16 : 0 }}>
+        {/* Ίδιο περίβλημα με τον διακόπτη του TabFinances από πάνω: βυθισμένη
+            επιφάνεια, μέσα της ανασηκώνεται το ενεργό. Μία γλώσσα, μία οθόνη. */}
+        <div style={{ display: 'inline-flex', padding: 3, gap: 2, flexWrap: 'wrap',
+                      background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+                      borderRadius: T.radius.pill, maxWidth: '100%',
+                      marginBottom: activeTool ? 16 : 0 }}>
           {TOOLS.map(t => {
             const on = tool === t.id;
             return (
               <button key={t.id} type="button" title={t.desc}
                 onClick={() => setTool(on ? null : t.id)} aria-pressed={on}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, cursor: 'pointer', fontSize: 11.5, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+                // ΤΟ ΕΝΕΡΓΟ ΔΕΝ ΕΙΝΑΙ ΜΠΛΕ. Ο κανόνας είναι γραμμένος ρητά στο
+                // TabFinances, είκοσι εικονοστοιχεία πιο πάνω στην ίδια οθόνη:
+                // «το μπλε μένει ΜΟΝΟ για την κύρια ενέργεια — δύο μπλε σημεία
+                // στην ίδια οθόνη είναι κανένα». Εδώ τα chips ήταν γεμάτα μπλε
+                // και ένα σκαλί κοντύτερα (sm αντί για md), οπότε οι δύο σειρές
+                // διακοπτών έμοιαζαν με δύο διαφορετικές εφαρμογές. Ίδιο ύψος,
+                // ίδιο σχήμα, ίδιος κανόνας ενεργού.
+                style={{ display: 'flex', alignItems: 'center', gap: 6, height: T.h.md, padding: '0 16px', borderRadius: T.radius.pill, border: `1px solid ${on ? 'var(--border-default)' : 'transparent'}`, cursor: 'pointer', fontSize: 13, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: on ? 'var(--bg-surface)' : 'transparent', color: on ? 'var(--text-primary)' : 'var(--text-secondary)', boxShadow: on ? 'var(--elev-1)' : 'none' }}>
                 <TabIcon name={t.icon} size={12}/>
                 {t.label}
               </button>

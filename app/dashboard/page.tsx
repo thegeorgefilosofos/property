@@ -20,6 +20,7 @@ import TabAccounting from './components/TabAccounting';
 import TabInventory from './components/TabInventory';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 import type { OpenerContext } from '@/lib/assistant/openers';
+import { NAV_LABELS, navLabel } from '@/lib/nav/labels';
 import { mergeLedger, ledgerTotal } from '@/lib/expenses/ledger';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
@@ -33,14 +34,13 @@ import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, Btn, TierBadge, KPIGrid, SecHdr, fp, fe, feOr, fd, type KPIItem } from '@/components/Theme';
-import { Building2, Receipt, FileText } from 'lucide-react';
+import { T, SkeletonKPIs, Skeleton, Spinner, EmptyState, TierBadge, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
+import { Receipt, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
 import PropertyAssistant from './components/PropertyAssistant';
 import MonthlyFeedbackNudge from './components/MonthlyFeedbackNudge';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
-import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import { useReportBranding } from '@/lib/reportBranding';
 import { computeInsights } from '@/lib/insights/engine';
@@ -119,8 +119,6 @@ const PROP_TYPE_LABELS: Record<string,string> = {
   warehouse:'Αποθήκη', land:'Οικόπεδο', parking:'Parking',
   storage:'Αποθήκη Κτιρίου', villa:'Βίλα', other:'Άλλο',
 };
-const PROP_TYPES = ['apartment','house','studio','maisonette','office','shop','warehouse','land','parking','storage','villa','other'];
-const FLOOR_OPTS = ['Υπόγειο','Ημιυπόγειο','Ισόγειο','Υπερυψωμένο ισόγειο','Ημιώροφος','1ος','2ος','3ος','4ος','5ος','6ος','7ος και άνω','Δώμα / Ρετιρέ'];
 
 const HEATING_LABELS: Record<string,string> = {
   central_gas:'Κεντρική (αέριο)', autonomous_gas:'Αυτόνομη (αέριο)', oil:'Πετρέλαιο',
@@ -128,25 +126,14 @@ const HEATING_LABELS: Record<string,string> = {
   ac_only:'Κλιματιστικά', none:'Χωρίς θέρμανση', other:'Άλλο',
 };
 
-const NAV_ITEMS = [
-  { id:'portfolio',  label:'Χαρτοφυλάκιο' },
-  { id:'overview',   label:'Επισκόπηση' },
-  { id:'calendar',   label:'Ημερολόγιο' },
-  { id:'finances',   label:'Δαπάνες' },
-  { id:'accounting', label:'Λογιστική' },
-  { id:'loan',       label:'Δάνειο' },
-  { id:'tenant',     label:'Ενοικιαστής' },
-  { id:'pricing',    label:'Βραχυχρόνια' },
-  { id:'clients',    label:'Πελάτης' },
-  { id:'inventory',  label:'Έπιπλα / Εξοπλισμός' },
-  { id:'documents',  label:'Αρχείο' },
-  { id:'checklist',  label:'Εκκρεμότητες' },
-  { id:'roi',        label:'Απόδοση' },
-  { id:'plan',       label:'Αξιοποίηση' },
-  { id:'referral',   label:'Πρόγραμμα Πρόσκλησης' },
-  { id:'settings',   label:'Λογαριασμός' },
-];
-const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
+// Η ΣΕΙΡΑ ΕΙΝΑΙ ΤΟΥ ΜΕΝΟΥ, ΤΑ ΟΝΟΜΑΤΑ ΟΧΙ. Τα ονόματα ζουν στο lib/nav/labels.ts
+// και τα διαβάζουν εξίσου ο βοηθός και η ατζέντα — αλλιώς η ίδια καρτέλα
+// λεγόταν «Απόδοση» εδώ, «Αποδόσεις» στη Νόα και «Αποδόσεις» στην ατζέντα.
+const NAV_ORDER = ['portfolio','overview','calendar','finances','accounting','loan',
+  'tenant','pricing','clients','inventory','documents','checklist','roi','plan',
+  'referral','settings'];
+const NAV_ITEMS = NAV_ORDER.map(id => ({ id, label: navLabel(id) }));
+const NAV_LABEL = NAV_LABELS;
 
 // Εικονίδια πλοήγησης, καθαρή, γρήγορη οπτική αναγνώριση (ακόμη κι από άπειρο μάτι).
 // Τέσσερα κλειδιά έφυγαν από εδώ: comparison, bills, expenses και contacts. Δεν
@@ -275,22 +262,6 @@ const BOTTOM_NAV = [
 const fmtEur = feOr;
 
 // MD3 form styles
-const mdInput: React.CSSProperties = {
-  width:'100%', padding:'10px 16px', height:T.h.lg, borderRadius:6,
-  border:'1px solid var(--border-default)', background:'var(--bg-surface)',
-  color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans,
-  letterSpacing:'0.25px', outline:'none', boxSizing:'border-box', transition:'border-color 0.15s',
-};
-const mdLabel: React.CSSProperties = {
-  display:'block', fontFamily: T.font.sans, fontSize:12, fontWeight:500,
-  letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:6,
-};
-const focusInput = (e: React.FocusEvent<HTMLInputElement|HTMLSelectElement>) => {
-  e.target.style.borderColor = 'var(--accent)'; e.target.style.borderWidth = '2px'; e.target.style.padding = '9px 15px';
-};
-const blurInput = (e: React.FocusEvent<HTMLInputElement|HTMLSelectElement>) => {
-  e.target.style.borderColor = 'var(--border-default)'; e.target.style.borderWidth = '1px'; e.target.style.padding = '10px 16px';
-};
 
 // Alert hooks
 function useInventoryAlerts(propertyId: string | null, userId: string | null) {
@@ -350,7 +321,6 @@ function useChecklistAlerts(propertyId: string | null) {
 // από ενοίκιο-στόχο που δεν εισπράχθηκε ποτέ. Κανένα τεστ δεν θα το έπιανε,
 // γιατί τίποτα δεν θα είχε «σπάσει». Τώρα η σήμανση είναι δεδομένο του
 // πλακιδίου (`incomeOnly`), όχι σύμπτωση κειμένου.
-type OverviewKPI = KPIItem & { incomeOnly?: boolean };
 // Οι καταστάσεις όπου το «Σχέδιο» είναι η ΚΥΡΙΑ δουλειά του ιδιοκτήτη — και οι
 // μόνες όπου εμφανίζεται. Σε μισθωμένο ακίνητο δεν υπάρχει σχέδιο να φτιαχτεί:
 // υπάρχει ενοίκιο να εισπραχθεί.
@@ -362,7 +332,7 @@ const PLAN_SUB: Record<string, string> = {
 };
 
 
-function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profileType, tabVisible }: { prop: Property;
+function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
    *  είναι προοδευτική στο σύνολο του φορολογούμενου, όχι ανά ακίνητο. */
   properties: Property[];
@@ -371,7 +341,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   // η οθόνη δεν το έδειχνε και δεν το άλλαζε. Το όνομα ζει στο
   // `property_settings.owner_name`, όπου το γράφει ο οδηγός προσθήκης ακινήτου
   // και το διαβάζουν τα επίσημα έγγραφα και η δήλωση μίσθωσης.
-  userId: string; onNavigate: (tab: string) => void; onCleanDemo?: () => void; profileType: 'individual'|'professional';
+  userId: string; onNavigate: (tab: string) => void; onCleanDemo?: () => void;
   /** Οδηγεί κάπου αυτό το βήμα; Βήμα που δείχνει σε καρτέλα η οποία δεν αφορά τον
    *  χρήστη είναι νεκρός σύνδεσμος: το πάτημα θα τον γύριζε στην Επισκόπηση. */
   tabVisible: (id: string) => boolean }) {
@@ -395,7 +365,6 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   // επιστρέφει το ερώτημα.
   const [loans, setLoans] = useState<LoanView[]>([]);
   const [hostStays, setHostStays] = useState<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }[]>([]);
-  const [docCount, setDocCount] = useState(0);           // πλήθος εγγράφων στο αρχείο
   // Το ΤΑΜΕΙΟ: περίοδοι ενοικίου και συντηρήσεις εξοπλισμού. Διαβάζονται ΕΔΩ και
   // όχι σε δικό τους panel, γιατί τροφοδοτούν την ΕΝΙΑΙΑ λίστα «τι χρειάζεται
   // τώρα» — αν κάθε κάρτα διάβαζε τα δικά της, θα ξαναγεννιόνταν τα διπλότυπα.
@@ -410,7 +379,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ count:dCount },{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
+    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
@@ -425,7 +394,6 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
       // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
       supabase.from('expenses').select('amount,date,category,is_recurring,recurring_frequency').eq('property_id',prop.id).eq('user_id',userId),
       // Μόνο πλήθη (head) για τα πλακίδια-σύνοψη Επαφές / Αρχείο.
-      supabase.from('property_documents').select('id',{count:'exact',head:true}).eq('property_id',prop.id),
       // ΟΛΟ το χαρτοφυλάκιο: ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ (Ε1),
       // οπότε δεν αρκούν τα δεδομένα του επιλεγμένου ακινήτου. Ίδια σειρά
       // προτεραιότητας με το resolveRent: μισθωτήριο → actual → target → ακίνητο.
@@ -439,7 +407,6 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses(allExp||[]);
-    setDocCount(dCount||0);
     const rcById = new Map((allRc||[]).map((r:any)=>[r.property_id, r]));
     const tenById = new Map<string,number>();
     (allTen||[]).forEach((t:any)=>{ const v = Number(t.monthly_rent)||0; if (v > (tenById.get(t.property_id)||0)) tenById.set(t.property_id, v); });
@@ -480,7 +447,19 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   // πιο πάνω. Το lib/expenses/ledger.ts γράφτηκε ακριβώς γι' αυτό, με το σχόλιο
   // «τρεις οθόνες, τρία διαφορετικά σύνολα» — και η Επισκόπηση δεν το κάλεσε ποτέ.
   const ledger = useMemo(() => mergeLedger(bills, expenses), [bills, expenses]);
-  const totalExpYTD = ledgerTotal(ledger.entries);
+  // ΤΟ ΕΤΟΣ ΚΟΒΕΤΑΙ ΕΔΩ, ΓΙΑΤΙ ΤΟ ΕΡΩΤΗΜΑ ΤΩΝ ΛΟΓΑΡΙΑΣΜΩΝ ΔΕΝ ΤΟ ΚΟΒΕΙ.
+  // Οι δαπάνες ζητούνται με `gte('date', 1η Ιανουαρίου)`· οι λογαριασμοί χωρίς
+  // κανένα φίλτρο. Άρα το «ως σήμερα» του 2026 περιείχε και απλήρωτο λογαριασμό
+  // του 2024. Το φίλτρο μπαίνει πάνω στο ημερολόγιο και όχι στο ερώτημα, ώστε να
+  // χρησιμοποιεί ΤΗΝ ΙΔΙΑ ημερομηνία που μετρά το ίδιο το ημερολόγιο — ο
+  // λογαριασμός χωρίς προθεσμία παίρνει την ημερομηνία δημιουργίας, κάτι που
+  // ένα `gte('due_date')` στον διακομιστή θα το πετούσε σιωπηλά έξω.
+  const entriesOfYear = useMemo(
+    () => ledger.entries.filter(e => e.date.startsWith(`${year}-`)), [ledger, year]);
+  const totalExpYTD = ledgerTotal(entriesOfYear);
+  // Οι λογαριασμοί που ΔΕΝ έχουν ακόμη δαπάνη από πίσω τους (απλήρωτοι): είναι
+  // πραγματικό κόστος του έτους και λείπουν από τον πίνακα `expenses`.
+  const unbilledOfYear = ledgerTotal(entriesOfYear.filter(e => !e.expenseId));
   // ΤΑΣΗ ΔΑΠΑΝΩΝ: ΙΔΙΟ ΔΙΑΣΤΗΜΑ, ΟΧΙ ΟΛΟΚΛΗΡΟ ΤΟ ΠΡΟΗΓΟΥΜΕΝΟ ΕΤΟΣ.
   // Πριν, το YTD (π.χ. δύο μήνες) συγκρινόταν με τους δώδεκα μήνες της περσινής
   // χρονιάς, οπότε κάθε Φεβρουάριο ο χρήστης διάβαζε «−78% σε σχέση με πέρσι» —
@@ -492,13 +471,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   const expDeltaPct = expPrevSame > 0 ? Math.round((expThisY - expPrevSame)/expPrevSame*100) : null;
   // Διαχωρισμός πληρωμένων/εκκρεμών: το σύνολο (accrual) οδηγεί την απόδοση, αλλά
   // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).
-  const paidExpYTD = ledgerTotal(ledger.entries.filter(e => e.paid));
-  const pendingExpYTD = totalExpYTD - paidExpYTD;
   // Single source of truth: ίδιος υπολογισμός ενοικίου/αξίας/απόδοσης παντού.
   const rent = resolveRent({ tenantRent: tenant?.monthly_rent, targetRent: prop.target_rent }).value;
   const propValue = resolveValue(prop.value, prop.obj_value).value;
   const { annualRent, grossYield, netYield } = computeYields(rent, propValue, totalExpYTD);
-  const daysToExpiry = tenant?.lease_end ? (athensDaysUntil(tenant.lease_end) ?? 0) : null;
   // Δάνεια: εκτιμώμενη μηνιαία δόση και δείκτης δανείου προς αξία (η Επισκόπηση «ξέρει» πλέον τα δάνεια).
   const monthlyDebt = loans.reduce((s,l)=>s+annuityMonthly(l.amount||0,l.rate||0,l.years||0),0);
   const totalDebt = loans.reduce((s,l)=>s+(l.amount||0),0);
@@ -550,7 +526,13 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   // Οι εφάπαξ μία φορά, οι πάγιες (όπως τις σήμανε ο χρήστης) όσες φορές
   // επαναλαμβάνονται. Ίδια συνάρτηση occMonths με το γράφημα, ώστε το πλακίδιο
   // και οι μπάρες να λένε το ίδιο πράγμα.
-  const projectedExpYear = allExpenses.reduce((s,e) => s + e.amount * occMonths(e, year).length, 0);
+  // ΤΟ ΠΛΑΚΙΔΙΟ ΕΛΕΓΕ ΔΥΟ ΝΟΥΜΕΡΑ ΑΠΟ ΔΥΟ ΠΗΓΕΣ.
+  // Η τιμή έβγαινε ΜΟΝΟ από τον πίνακα `expenses`, ενώ ο υπότιτλος «X ως
+  // σήμερα» από το ενιαίο ημερολόγιο (λογαριασμοί + δαπάνες). Αρκούσε ένας
+  // απλήρωτος λογαριασμός για να γράφει το πλακίδιο «Δαπάνες 1.200,00 € ·
+  // 1.800,00 € ως σήμερα»: το σύνολο του έτους μικρότερο από το μέχρι σήμερα.
+  // Δηλαδή στη συνηθισμένη περίπτωση. Τώρα και τα δύο πατούν στο ημερολόγιο.
+  const projectedExpYear = allExpenses.reduce((s,e) => s + e.amount * occMonths(e, year).length, 0) + unbilledOfYear;
   const recurringCount = allExpenses.filter(e => e.is_recurring && occMonths(e, year).length > 0).length;
 
   // ΜΕΣΟΣ ΟΡΟΣ ΑΝΑ ΤΥΠΟ ΛΟΓΑΡΙΑΣΜΟΥ, ΥΠΟΛΟΓΙΣΜΕΝΟΣ. Η κάρτα λεγόταν «Μέσοι
@@ -579,7 +561,6 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   const daysUntil = (d: string | null | undefined) => d ? athensDaysUntil(d) ?? 0 : null;
   const chkOverdue  = chk.filter(c => { const x = daysUntil(c.due_date); return x != null && x < 0; });
   const chkCritical = chk.filter(c => c.priority === 'critical' && c.status === 'pending');
-  const warrantySoon = inv.filter(i => { const x = daysUntil(i.warranty_expiry); return x != null && x >= 0 && x <= 90; });
   const openChk = chk.length;
   const chkAttention = new Set([...chkOverdue, ...chkCritical]).size;
 
@@ -650,7 +631,14 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   // και ενοίκιο δεν υπάρχει καμία απόδοση, κανένας φόρος και καμία σύγκριση —
   // γι' αυτό 10. Η απογραφή βελτιώνει τις αποσβέσεις και τίποτα άλλο — γι' αυτό 2.
   const setupSteps: SetupStep[] = ([
-    { key:'details', weight:10, label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
+    // ΤΟ ΒΗΜΑ ΜΕ ΤΗ ΜΕΓΑΛΥΤΕΡΗ ΒΑΡΥΤΗΤΑ ΟΔΗΓΟΥΣΕ ΣΕ ΛΑΘΟΣ ΟΘΟΝΗ.
+    // Έδειχνε στον «Λογαριασμό» (συνδρομή, ειδοποιήσεις, ασφάλεια), όπου δεν
+    // υπάρχει ούτε πεδίο αξίας ούτε πεδίο ενοικίου. Ο νέος χρήστης πατούσε το
+    // πρώτο πράγμα που του ζητά η εφαρμογή και προσγειωνόταν στη σελίδα
+    // συνδρομής, χωρίς κανέναν τρόπο να ολοκληρώσει το βήμα από εκεί.
+    // Τα πεδία ζουν στην «Επεξεργασία στοιχείων ακινήτου», που ως τώρα άνοιγε
+    // μόνο από ένα μενού της πάνω μπάρας.
+    { key:'details', weight:10, label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'edit' },
     { key:'tenant',  weight:8, label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
     { key:'expense', weight:6, label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
     { key:'bills',   weight:5, label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
@@ -693,9 +681,21 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
   const agendaAll = useMemo(
     () => buildAgenda({ insights, obligations: [...obligations, ...taskObligations],
                         setup: setupSteps, today: todayIso,
-                        horizonDays: prefs.agendaHorizonDays }),
+                        horizonDays: prefs.agendaHorizonDays })
+      // ── ΔΥΟ ΚΑΝΟΝΕΣ ΓΙΑ ΤΗΝ ΙΔΙΑ ΛΙΣΤΑ ────────────────────────────────
+      // Τα βήματα ρύθμισης φιλτράρονται ήδη με `tabVisible` πριν μπουν εδώ
+      // (βλ. setupSteps). Τα insights ΔΕΝ φιλτράρονταν καθόλου — και το
+      // `navSafe` της σελίδας ρίχνει σιωπηλά στην Επισκόπηση όποιον πατήσει
+      // κουμπί προς κρυφή καρτέλα. Δηλαδή ο χρήστης πατούσε «Απογραφή» και
+      // κατέληγε στην αρχική, χωρίς κανένα μήνυμα, χωρίς να καταλάβει γιατί.
+      //
+      // Το πιο χαρακτηριστικό: το «Το ακίνητο είναι κενό» έδινε κουμπί προς
+      // τις Αποδόσεις, που φαίνονται ΜΟΝΟ σε εκμισθωμένο ακίνητο. Οι δύο
+      // συνθήκες αποκλείονται, άρα το κουμπί ήταν νεκρό κάθε φορά που
+      // εμφανιζόταν. Ένας κανόνας, μία λίστα.
+      .map(it => (it.action && !tabVisible(it.action.tab) ? { ...it, action: null } : it)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [insights, obligations, taskObligations, setupSteps, todayIso, prefs.agendaHorizonDays],
+    [insights, obligations, taskObligations, setupSteps, todayIso, prefs.agendaHorizonDays, tabVisible],
   );
   // Πέντε στην αρχική. Η πλήρης λίστα ζει στις «Εκκρεμότητες» — και η οθόνη το λέει.
   const agenda = agendaAll.slice(0, 5);
@@ -779,7 +779,16 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
           μία γραμμή, όχι κάρτα: παρούσα, χωρίς να διεκδικεί τη θέση των ποσών. */}
       <AssistantStrip ctx={assistantCtx} />
 
-      <CashHero cash={cash} showIncome={isLet(prop)} onNavigate={onNavigate} />
+      {/* ΤΟ «ΜΟΥ ΧΡΩΣΤΑΝΕ» ΜΟΝΟ ΣΕ ΜΑΚΡΟΧΡΟΝΙΑ.
+          Το `isLet` περιλαμβάνει και τη βραχυχρόνια, όπου όμως: το ποσό
+          τροφοδοτείται από τις δόσεις ενοικίου (`rent_payments`) ενώ τα έσοδα
+          βραχυχρόνιας ζουν στα καταλύματα, άρα έδειχνε ΠΑΝΤΑ μηδέν· και το
+          κουμπί οδηγεί στον Ενοικιαστή, καρτέλα που φαίνεται μόνο σε
+          μακροχρόνια, άρα δεν πήγαινε πουθενά. Μισή κορυφή της πρώτης οθόνης,
+          για ένα μόνιμο μηδέν με νεκρό κουμπί. Στη βραχυχρόνια το «Χρωστάω»
+          παίρνει όλο το πλάτος, που είναι και η αλήθεια: η είσπραξη γίνεται
+          από την πλατφόρμα. */}
+      <CashHero cash={cash} showIncome={readStatus(prop) === 'rent_long'} onNavigate={onNavigate} />
 
       {/* Μία λίστα «τι χρειάζεται τώρα», στη θέση των τεσσάρων που έλεγαν εν
           μέρει τα ίδια πράγματα. Η συγχώνευση γίνεται στο lib/home/agenda.ts. */}
@@ -993,29 +1002,45 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, profil
         );
       })()}
 
-      {/* Διαχείριση & Εργαλεία, δευτερεύουσες ενέργειες, κάτω από την οικονομική
-          εικόνα. Ίδια κεφαλίδα ενότητας με τις υπόλοιπες — ήταν χειρόγραφη
-          γραμμή με τα ίδια περίπου styles και μισό pixel διαφορά. */}
-      <SecHdr label="Διαχείριση και εργαλεία" />
-      <PortalShare propertyId={prop.id} userId={userId} />
+      {/* ── ΤΙ ΕΦΥΓΕ ΑΠΟ ΑΥΤΗ ΤΗ ΖΩΝΗ ────────────────────────────────────────
+          «Είσπραξη και πληρωμές» (PaymentLinks): στατικός κατάλογος τριών
+          παρόχων και επτά τραπεζών με εξωτερικούς συνδέσμους. Δεν έπαιρνε
+          ΚΑΝΕΝΑ prop — δεν ήξερε καν ποιο ακίνητο βλέπεις — δεν έκανε τίποτα
+          που δεν κάνει ο σελιδοδείκτης του περιηγητή, και καταλάμβανε μόνιμη
+          θέση στην πιο ακριβή οθόνη της εφαρμογής. Ό,τι αξίζει από αυτό ζει
+          ήδη μέσα στην πύλη, ως «Σύνδεσμος πληρωμής» του ενοικιαστή.
+
+          Η ΠΥΛΗ ΕΝΟΙΚΙΑΣΤΗ αποδιδόταν χωρίς καμία συνθήκη. Ο ιδιοκτήτης που
+          μένει στο σπίτι του, ή το έχει κενό ή προς πώληση, έβλεπε μόνιμα
+          κάρτα «Κοινοποίησε σύνδεσμο και δες αιτήματα βλάβης» — την ίδια
+          στιγμή που η εφαρμογή του έκρυβε την καρτέλα «Ενοικιαστής» ως μη
+          σχετική. Η μηχανή ορατότητας έλεγε ένα και η Επισκόπηση έκανε άλλο.
+          Τώρα ακολουθεί τον ίδιο κανόνα με το διπλανό της πάνελ πληρότητας.
+
+          Και η κεφαλίδα ενότητας έφυγε μαζί: με ένα στοιχείο κάθε φορά, ένας
+          τίτλος «Διαχείριση και εργαλεία» ονομάτιζε ομάδα που δεν υπάρχει. */}
+      {readStatus(prop) === 'rent_long' && <PortalShare propertyId={prop.id} userId={userId} />}
       <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
-      <PaymentLinks />
 
       {/* Εργαλεία ακινήτου: ελαφριά πλακίδια-σύνοψη που ανοίγουν την εστιασμένη
           προβολή. Στο προφίλ «Ιδιώτης» ζουν ΕΔΩ (κάτω από Είσπραξη & Πληρωμές)·
           στο «Επαγγελματίας» ζουν στην πλαϊνή μπάρα (ομάδα «Εργαλεία»). Έτσι δεν
           υπάρχουν διπλότυπα — σε κάθε προφίλ εμφανίζονται σε ένα μόνο σημείο. */}
-      {profileType==='individual' && (
+      {/* ΤΟ «ΑΡΧΕΙΟ» ΕΛΕΓΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΤΡΙΑΝΤΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΜΑΚΡΙΑ.
+          Το σχόλιο εδώ υποσχόταν «σε κάθε προφίλ εμφανίζονται σε ένα μόνο
+          σημείο», αλλά το Αρχείο στέκει στην πλαϊνή μπάρα χωρίς κανένα φίλτρο
+          προφίλ: μόλις ο ιδιώτης ανέβαζε το πρώτο έγγραφο, άναβε και η γραμμή
+          του μενού. Δύο δρόμοι για την ίδια οθόνη, με τρίτο υπότιτλο που δεν
+          συμφωνούσε ούτε με τον τίτλο της ίδιας της οθόνης. Μένει η μπάρα.
+
+          ΟΙ ΕΚΚΡΕΜΟΤΗΤΕΣ ΗΤΑΝ ΤΟ ΑΝΤΙΘΕΤΟ ΠΡΟΒΛΗΜΑ. Το πλακίδιο έδειχνε μόνο
+          στον ιδιώτη, με το σκεπτικό ότι ο επαγγελματίας τις βρίσκει στην
+          ομάδα «Εργαλεία» της μπάρας — ομάδα που δεν υπάρχει (βλ. NAV_GROUPS).
+          Δηλαδή ο επαγγελματίας δεν είχε κανέναν δρόμο εκτός του Ημερολογίου.
+          Το πλακίδιο δείχνει τώρα και στα δύο προφίλ. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
-        <ToolTile title="Εκκρεμότητες" metric={openChk ? `${openChk} ανοιχτές` : 'Καμία εκκρεμότητα'} sub="Εργασίες, προθεσμίες, παραδόσεις" badge={chkAttention} onOpen={() => onNavigate('checklist')} />
-        <ToolTile title="Αρχείο" metric={docCount ? `${docCount} ${docCount === 1 ? 'έγγραφο' : 'έγγραφα'}` : 'Ανέβασε έγγραφα'} sub="Συμβόλαια, λογαριασμοί, φωτογραφίες" onOpen={() => onNavigate('documents')} />
-        {/* Το πλακίδιο «Απογραφή» έφυγε. Ήταν τρίτο όνομα για το ίδιο πράγμα
-            («Απογραφή» εδώ, «Έπιπλα / Εξοπλισμός» στη μπάρα, «Έπιπλα και
-            εξοπλισμός» στον τίτλο της) και δεύτερος δρόμος προς αυτό: ο
-            εξοπλισμός ζει τώρα μέσα στο Αρχείο, μαζί με τα χαρτιά και τις
-            επαφές του ακινήτου. Ένα όνομα, ένας δρόμος. */}
+        <ToolTile title={navLabel('checklist')} metric={openChk ? `${openChk} ανοιχτές` : 'Καμία εκκρεμότητα'} sub="Εργασίες, προθεσμίες, παραδόσεις" badge={chkAttention} onOpen={() => onNavigate('checklist')} />
       </div>
-      )}
     </div>
   );
 }
@@ -1495,7 +1520,16 @@ export default function Dashboard() {
   // ανασταίνει ό,τι δεν ισχύει καθόλου για αυτό το ακίνητο: ο Ενοικιαστής σε
   // βραχυχρόνια, οι Αποδόσεις σε ιδιοχρησία. Εκεί το αχνό κουμπί δεν είναι
   // δυνατότητα που δεν έχει ανοίξει, είναι λάθος στην οθόνη.
-  const navVisible = (id: string) => { const d = decide(id); return d.visible || (showAllTabsPref && d.applies); };
+  // ΨΕΥΔΟ-ΚΑΡΤΕΛΕΣ: δεν είναι οθόνες του μενού αλλά ΕΝΕΡΓΕΙΕΣ που ανοίγουν
+  // παράθυρο πάνω από την τρέχουσα οθόνη — η σάρωση και η επεξεργασία των
+  // στοιχείων του ακινήτου. Δεν περνούν από τη μηχανή ορατότητας γιατί δεν
+  // εξαρτώνται από την κατάσταση: ισχύουν πάντα. Χωρίς αυτή τη γραμμή, το
+  // φίλτρο της ατζέντας θα τις έκοβε ως «αόρατες καρτέλες».
+  const PSEUDO_TABS = new Set(['scan', 'edit']);
+  const navVisible = (id: string) => {
+    if (PSEUDO_TABS.has(id)) return true;
+    const d = decide(id); return d.visible || (showAllTabsPref && d.applies);
+  };
 
   // Αν ο χρήστης βρίσκεται σε καρτέλα που μόλις έπαψε να τον αφορά (άλλαξε την
   // κατάσταση, διέγραψε ακίνητο), δεν τον αφήνουμε σε οθόνη που δεν ισχύει.
@@ -1590,11 +1624,14 @@ export default function Dashboard() {
               <div className="prop-item-dot" title={statusLabelOf(p)} style={{background:STATUS_COLORS[readStatus(p)]}}/>
               <span className="sr-only">{statusLabelOf(p)}</span>
               <span className="prop-item-name">{p.name}</span>
-              <button className="prop-item-del" title="Διαγραφή ακινήτου και όλων των δεδομένων του" aria-label={`Διαγραφή ακινήτου ${p.name}`}
-                onClick={e=>{ e.stopPropagation(); deletePropertyById(p.id, p.name); }}
-                onKeyDown={e=>{ e.stopPropagation(); }}>
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
+              {/* ΤΟ «×» ΤΗΣ ΔΙΑΓΡΑΦΗΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ.
+                  Ήταν στόχος 14 εικονοστοιχείων, πάνω σε κάθε γραμμή ακινήτου,
+                  δίπλα ακριβώς στο σημείο που πατά κανείς για να αλλάξει
+                  ακίνητο — δηλαδή η πιο συχνή κίνηση της μπάρας και μια μη
+                  αναστρέψιμη διαγραφή δεκαοκτώ πινάκων, σε απόσταση λίγων
+                  εικονοστοιχείων. Και ήταν το ΔΕΥΤΕΡΟ σημείο: η ίδια ενέργεια
+                  ζει ήδη στο μενού κατάστασης, μαζί με τις υπόλοιπες ενέργειες
+                  του ακινήτου, όπου και ανήκει. */}
             </div>
           ))}
           <button onClick={()=>tryAddProperty()}
@@ -1611,7 +1648,6 @@ export default function Dashboard() {
             // Ιδιώτη μέσα στην Επισκόπηση, στον Επαγγελματία στην πλαϊνή μπάρα.
             // Οι Επαφές δεν αναφέρονται εδώ γιατί ΔΕΝ είναι εργαλείο του μενού:
             // αποδίδονται ως ενότητα μέσα στο Αρχείο, όπου και ανήκουν.
-            if (group.label==='Εργαλεία' && effProfileType!=='professional') return null;
             // ΤΡΙΑ ΦΙΛΤΡΑ, ΤΡΕΙΣ ΔΙΑΦΟΡΕΤΙΚΕΣ ΕΡΩΤΗΣΕΙΣ:
             //   1. Θα το φτάσει ποτέ με πλάνο του προφίλ του; (αλλιώς ούτε λουκέτο)
             //   2. Έχει ήδη νόημα να το δει τώρα; (σταδιακή αποκάλυψη, συν η ενεργή
@@ -1838,7 +1874,7 @@ export default function Dashboard() {
               {navSafe==='portfolio' && (isTabAllowed(ent,'portfolio')
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα του χαρτοφυλακίου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
-              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={effProfileType} tabVisible={navVisible}/>}
+              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} onCleanDemo={cleanupDemo} tabVisible={navVisible}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} profileType={effProfileType} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
@@ -1949,7 +1985,7 @@ export default function Dashboard() {
                 </>
               )}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
-              {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType} navShowAll={navShowAll} onNavShowAllChange={setNavShowAllPref}/>}
+              {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType}/>}
             </div>
             </TabBoundary>
           </>

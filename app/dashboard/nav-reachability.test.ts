@@ -42,7 +42,11 @@ function block(name: string): string {
     .replace(/\/\/[^\n]*/g, '')          // σχόλια // …
 }
 
-const navItemIds = [...block('NAV_ITEMS').matchAll(/id:\s*'([a-z]+)'/g)].map(m => m[1])
+// Η ΣΕΙΡΑ ΤΟΥ ΜΕΝΟΥ ΔΙΑΒΑΖΕΤΑΙ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ ΤΩΝ ΚΩΔΙΚΩΝ. Τα ονόματα έφυγαν
+// από το page.tsx (ζουν στο lib/nav/labels.ts, μία πηγή για μενού, βοηθό και
+// ατζέντα), οπότε εδώ έμεινε μόνο η σειρά — που είναι και το μόνο που αφορά
+// αυτόν τον έλεγχο: ποιες καρτέλες υπάρχουν στο μενού και με ποια σειρά.
+const navItemIds = [...block('NAV_ORDER').matchAll(/'([a-z]+)'/g)].map(m => m[1])
 const groupIds   = [...block('NAV_GROUPS').matchAll(/'([a-z]+)'/g)].map(m => m[1])
 
 // Καρτέλες με ΤΕΚΜΗΡΙΩΜΕΝΟ δρόμο εκτός του μενού. Κάθε εγγραφή εδώ είναι

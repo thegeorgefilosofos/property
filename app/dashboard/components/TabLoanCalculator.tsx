@@ -193,18 +193,24 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
 
 // ── Bespoke SVG: δύο σωρευτικές γραμμές, διαδραστικές (δείκτης ή άγγιγμα) ──
 // Περιηγήσου πάνω στο γράφημα με τον κέρσορα ή το δάχτυλο για να δεις κάθε έτος.
-function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(n:number)=>string}) {
+// Σημείο γραφήματος: ένα κλειδί άξονα και δύο αριθμητικές σειρές με ονόματα που
+// δίνει ο καλών. Ήταν `any[]`, δηλαδή ένα λάθος `keyA` δεν θα φαινόταν ποτέ.
+type SeriesPoint = Record<string, string | number>;
+function DualLine({data,keyA,keyB,fmt}:{data:SeriesPoint[];keyA:string;keyB:string;fmt:(n:number)=>string}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
   const W=620,H=200,padL=8,padR=56,padT=18,padB=28
   const n=data.length
   if(n<2) return null
-  const vals=data.flatMap(d=>[d[keyA],d[keyB]] as number[])
+  // Οι δύο σειρές είναι αριθμητικές· η ετικέτα του άξονα είναι κείμενο. Η
+  // ανάγνωση περνά από εδώ ώστε το συμβόλαιο να λέγεται μία φορά.
+  const v=(d:SeriesPoint,k:string)=>Number(d[k])||0
+  const vals=data.flatMap(d=>[v(d,keyA),v(d,keyB)])
   const maxV=Math.max(...vals,1)
   const X=(i:number)=> padL + (i/(n-1))*(W-padL-padR)
   const Y=(v:number)=> padT + (1 - v/maxV)*(H-padT-padB)
-  const path=(k:string)=> data.map((d,i)=>`${i===0?'M':'L'} ${X(i)} ${Y(d[k])}`).join(' ')
-  const areaA=`M ${X(0)} ${Y(0)} `+data.map((d,i)=>`L ${X(i)} ${Y(d[keyA])}`).join(' ')+` L ${X(n-1)} ${Y(0)} Z`
+  const path=(k:string)=> data.map((d,i)=>`${i===0?'M':'L'} ${X(i)} ${Y(v(d,k))}`).join(' ')
+  const areaA=`M ${X(0)} ${Y(0)} `+data.map((d,i)=>`L ${X(i)} ${Y(v(d,keyA))}`).join(' ')+` L ${X(n-1)} ${Y(0)} Z`
   const grid=[0,0.5,1].map(f=>({y:Y(maxV*f),label:fmt(maxV*f)}))
   const locate=(clientX:number)=>{
     const el=wrapRef.current; if(!el)return
@@ -232,11 +238,11 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
         {hi!=null&&(
           <g>
             <line x1={X(hi)} y1={padT-4} x2={X(hi)} y2={Y(0)} stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.5"/>
-            <circle cx={X(hi)} cy={Y(data[hi][keyB])} r="4" fill="var(--bg-surface)" stroke="var(--text-tertiary)" strokeWidth="2"/>
-            <circle cx={X(hi)} cy={Y(data[hi][keyA])} r="4.5" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
+            <circle cx={X(hi)} cy={Y(v(data[hi],keyB))} r="4" fill="var(--bg-surface)" stroke="var(--text-tertiary)" strokeWidth="2"/>
+            <circle cx={X(hi)} cy={Y(v(data[hi],keyA))} r="4.5" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
           </g>
         )}
-        {hi==null&&<circle cx={X(n-1)} cy={Y(data[n-1][keyA])} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>}
+        {hi==null&&<circle cx={X(n-1)} cy={Y(v(data[n-1],keyA))} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>}
         {data.map((d,i)=> (i===0||i===n-1||i===Math.floor(n/2)) ? (<text key={i} x={X(i)} y={H-8} textAnchor={i===0?'start':i===n-1?'end':'middle'} style={{fontSize:9,fontFamily: T.font.sans,fill:'var(--text-secondary)'}}>{d.year}</text>) : null)}
       </svg>
       {hi!=null&&(
@@ -246,12 +252,12 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
           <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
             <span style={{width:12,height:2.4,borderRadius:3,background:'var(--accent)',display:'inline-block'}}/>
             <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Σταθερό</span>
-            <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi][keyA])}</span>
+            <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(v(data[hi],keyA))}</span>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:7}}>
             <span style={{width:12,height:0,borderTop:'2px dashed var(--text-tertiary)',display:'inline-block'}}/>
             <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Κυμαινόμενο</span>
-            <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi][keyB])}</span>
+            <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(v(data[hi],keyB))}</span>
           </div>
         </div>
       )}
@@ -494,12 +500,24 @@ function areaGrossYield(area:string): { pct:number; label:string; note:string } 
 }
 
 
+// ── Η ΚΑΤΑΣΤΑΣΗ ΠΟΥ ΑΝΕΒΑΙΝΕΙ ΣΤΟΝ ΓΟΝΕΑ ─────────────────────────────────────
+// Ήταν `(s:any)=>void` εδώ, ενώ ο γονέας (TabLoan) είχε γράψει το ίδιο σχήμα
+// ξεχωριστά ως `CalcState`. Δύο δηλώσεις για ένα συμβόλαιο σημαίνει ότι όποια
+// από τις δύο αλλάξει, η άλλη μένει πίσω αθόρυβα — και το `any` της μιας πλευράς
+// φρόντιζε να μη φανεί ποτέ. Ο τύπος ανήκει σε αυτόν που παράγει την τιμή.
+export interface LoanCalcState {
+  loanType:LoanType; borrowerType:BorrowerType; loanAmount:number; years:number
+  rateType:RateType; effectiveRate:number; monthly:number; totalInterest:number; propertyValue:number
+  sqm?:number; propType?:string; area?:string
+  incomeMonthly?:number; marital?:'single'|'married'|'single_parent'; children?:number
+}
+
 interface Props {
   propertyId:string;userId:string;market:MarketRates
   onSaveLoan:(loan:Partial<SavedLoan>)=>Promise<void>
   onSaveToCalendar:(monthly:number,years:number,startDate:string,bankName:string)=>Promise<void>
   onSaveToExpenses:(monthly:number,bankName:string)=>Promise<void>
-  onStateChange?:(s:any)=>void
+  onStateChange?:(s:LoanCalcState)=>void
   // Προφίλ χρήστη: «ιδιώτης» ή «επιχείρηση». Καθορίζει ποιοι τύποι δανειολήπτη
   // είναι σχετικοί, ώστε να μην κουράζουμε τον χρήστη με άσχετες επιλογές.
   profile?:'individual'|'business'
@@ -561,7 +579,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     if(applied.rate!=null && applied.rate>0) setRate(String(applied.rate))
     if(applied.years!=null && applied.years>0) setYears(String(Math.round(applied.years)))
     if(applied.rateType) setRateType(applied.rateType)
-    if(applied.loanType && (LOAN_TYPES as any)[applied.loanType]) setLoanType(applied.loanType as LoanType)
+    if(applied.loanType && applied.loanType in LOAN_TYPES) setLoanType(applied.loanType as LoanType)
     if(applied.income!=null && applied.income>0) setIncome(String(Math.round(applied.income)))
     if(applied.marital) setMarital(applied.marital)
     if(applied.children!=null) setChildren(String(Math.round(applied.children)))
@@ -715,7 +733,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   // Γνήσια σύγκριση σταθερού/κυμαινόμενου: σε λειτουργία «κυμαινόμενου» το effRate
   // ΕΙΝΑΙ ήδη Euribor+περιθώριο, άρα ταυτίζεται με το variableRate και η σύγκριση
   // εκφυλίζεται· χρησιμοποιούμε αντιπροσωπευτικό σταθερό της αγοράς ως αναφορά.
-  const bankFixedMins = BANKS.map((b:any)=>Number(b.fixed_min)).filter((x:number)=>x>0)
+  const bankFixedMins = BANKS.map(b=>Number(b.fixed_min)).filter(x=>x>0)
   const fixedRefRate = rateType==='variable' && bankFixedMins.length ? Math.min(...bankFixedMins) : effRate
   const fixedRefMonthly = calcMonthly(LA,fixedRefRate,Y)
   const varShownRate = rateType==='variable' ? effRate : variableRate
@@ -753,7 +771,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
   function applyPreset(p:typeof PRESETS[0]){setLoanAmount(p.values.loanAmount);setPropValue(p.values.propValue);setSqm(p.values.sqm);setRate(p.values.rate);setYears(p.values.years);setRateType(p.values.rateType);setLoanType(p.values.loanType);setBorrower(p.values.borrower);setFixedPeriod(p.values.fixedPeriod);setPropType(p.values.propType);setArea(p.values.area);setActivePreset(p.id)}
   function addScen(){setScenarios(s=>[...s,{id:Date.now().toString(),label:`Σενάριο ${s.length+1}`,amount:LA,rate:effRate,years:Y,rateType}])}
-  function updScen(id:string,f:string,v:any){setScenarios(s=>s.map(x=>x.id===id?{...x,[f]:v}:x))}
+  function updScen<K extends keyof LoanScenario>(id:string,f:K,v:LoanScenario[K]){setScenarios(s=>s.map(x=>x.id===id?{...x,[f]:v}:x))}
   function delScen(id:string){setScenarios(s=>s.filter(x=>x.id!==id))}
   function applyScen(s:LoanScenario){setLoanAmount(String(s.amount));setRate(String(s.rateType==='variable'?s.rate-market.euribor_3m:s.rate));setYears(String(s.years));setRateType(s.rateType);setActivePreset(null)}
   // Επαναφορά όλων των βασικών πεδίων στις προεπιλογές (χωρίς reload σελίδας).
@@ -1032,7 +1050,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                   const m=calcMonthly(s.amount,s.rate,s.years),ti=m*s.years*12-s.amount,saved=totalInt-ti
                   const isBest=scenarios.length>1&&saved===Math.max(...scenarios.map(x=>{const mx=calcMonthly(x.amount,x.rate,x.years);return totalInt-(mx*x.years*12-x.amount)}))
                   const isEd=editingId===s.id
-                  const cell=(v:string,f:string,w:number)=><input value={v} onChange={e=>updScen(s.id,f,f==='label'?e.target.value:Number(e.target.value))} style={{background:'var(--bg-surface)',border:'1px solid var(--accent)',borderRadius:10,padding:'5px 8px',color:'var(--text-primary)',fontSize:12,letterSpacing:0,outline:'none',width:w,fontFamily:f==='label'?"'Inter',sans-serif":"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}} type={f==='label'?'text':'number'} step={f==='rate'?0.05:1}/>
+                  const cell=(v:string,f:'label'|'amount'|'rate'|'years',w:number)=><input value={v} onChange={e=>{ if(f==='label') updScen(s.id,'label',e.target.value); else updScen(s.id,f,Number(e.target.value)); }} style={{background:'var(--bg-surface)',border:'1px solid var(--accent)',borderRadius:10,padding:'5px 8px',color:'var(--text-primary)',fontSize:12,letterSpacing:0,outline:'none',width:w,fontFamily:f==='label'?"'Inter',sans-serif":"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}} type={f==='label'?'text':'number'} step={f==='rate'?0.05:1}/>
                   return(
                     <tr key={s.id} style={{borderBottom:'1px solid var(--border-subtle)',background:isBest?'var(--bg-surface)':'transparent'}}>
                       <td style={{padding:'9px 10px'}}>{isEd?cell(s.label,'label',120):<div style={{display:'flex',alignItems:'center',gap:7}}><span style={{color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500}}>{s.label}</span>{isBest&&<Badge tone="accent">Βέλτιστο</Badge>}</div>}</td>
@@ -1304,7 +1322,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:12,lineHeight:1.5,fontFamily: T.font.sans}}>{isNewBuilding?'Φόρος Προστιθέμενης Αξίας':isCommercial?'Φόρος Μεταβίβασης Ακινήτου και τέλη χαρτοσήμου μίσθωσης':'Φόρος Μεταβίβασης Ακινήτου'}</p>
             {!isNewBuilding&&(
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:12}}>
-                <CustomSelect label="Οικογενειακή κατάσταση" value={marital} onChange={v=>setMarital(v as any)} options={MARITAL_OPTIONS}/>
+                <CustomSelect label="Οικογενειακή κατάσταση" value={marital} onChange={v=>setMarital(v === 'married' ? 'married' : 'single')} options={MARITAL_OPTIONS}/>
                 <CustomSelect label="Εξαρτώμενα τέκνα" value={children} onChange={setChildren} options={CHILDREN_OPTIONS}/>
               </div>
             )}
@@ -1499,7 +1517,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             {label:'Λοιπά',value:fmtEur(totalCosts.other),sub:'Φόρος ενεγγύησης',hi:false},
             {label:'Σύνολο εξόδων αγοράς',value:fmtEur(totalCosts.total),sub:'Εκτός δόσεων',hi:true,primary:false},
             {label:'Απαιτούμενα ίδια κεφάλαια',value:fmtEur(totalCosts.totalCash),sub:'Προκαταβολή + έξοδα',hi:true,primary:true},
-          ].map((item:any,i:number)=>{
+          ].map((item:{label:string;value:string;sub:string;hi:boolean;primary?:boolean},i:number)=>{
             const on=hoverCost===i
             return (
             <div key={item.label}

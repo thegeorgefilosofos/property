@@ -151,9 +151,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             status: chk[0].status,
             daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null,
           } : undefined,
-          insuranceEq:    (ins?.data as any)?.insCustomEarthquake || false,
-          insuranceFlood: (ins?.data as any)?.insCustomFlood || false,
-          electricityDimotika: (elec?.data as any)?.dimotika || '',
+          // Οι ρυθμίσεις άλλων καρτελών ζουν σε στήλη JSON: το σχήμα δηλώνεται
+          // εδώ ρητά, αντί για `any` που θα δεχόταν και τυπογραφικό όνομα πεδίου.
+          insuranceEq:    (ins?.data as { insCustomEarthquake?: boolean } | null)?.insCustomEarthquake || false,
+          insuranceFlood: (ins?.data as { insCustomFlood?: boolean } | null)?.insCustomFlood || false,
+          electricityDimotika: (elec?.data as { dimotika?: string } | null)?.dimotika || '',
           lastExpense: exp?.[0] ? { amount: exp[0].amount, description: exp[0].description, date: exp[0].date } : undefined,
         });
       } catch (_) {}
@@ -182,7 +184,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const acM       = s.hasAC       ? toMonthly(s.acServiceCost, 'annual')               : 0;
   const elevM     = s.hasElevator ? (parseFloat(s.elevatorMonthly) || 0)               : 0;
   const pestM     = s.hasPest     ? toMonthly(s.pestCost, s.pestFreq)                  : 0;
-  const otherM    = (s.otherServices || []).reduce((sum: number, o: any) => sum + toMonthly(o.cost, o.freq), 0);
+  const otherM    = (s.otherServices || []).reduce((sum, o) => sum + toMonthly(o.cost, o.freq), 0);
   const totalServices = enfiaM + dimotikaAvg + cleaningM + gardenM + poolM + acM + elevM + pestM + otherM;
 
   const today        = new Date();
@@ -200,7 +202,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
     upd({ otherServices: [...(s.otherServices || []), { name: newName, contact: newContact, phone: newPhone, cost: newCost, freq: newFreq }] });
     setNewName(''); setNewContact(''); setNewPhone(''); setNewCost('');
   };
-  const delOther   = (i: number) => upd({ otherServices: (s.otherServices || []).filter((_: any, j: number) => j !== i) });
+  const delOther   = (i: number) => upd({ otherServices: (s.otherServices || []).filter((_, j) => j !== i) });
   const updHistory = (i: number, v: string) => { const n = [...(s.dimotikaHistory || [])]; n[i] = v; upd({ dimotikaHistory: n }); };
 
   if (loading) return <Spinner label="Φόρτωση…" />;
@@ -724,7 +726,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             </button>
           </div>
         </div>
-        {(s.otherServices || []).map((o: any, i: number) => (
+        {(s.otherServices || []).map((o, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
             <div>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{o.name}</span>

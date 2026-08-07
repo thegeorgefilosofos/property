@@ -244,6 +244,11 @@ interface MonthItem { id: string; kind: 'bill' | 'expense'; label: string; amoun
 // μερικό ποσό (amount). Χωρίς amount → εξαιρείται όλη η εγγραφή· με amount →
 // εξαιρείται μόνο αυτό το μέρος (π.χ. το κομμάτι που πλήρωσε κάποιος άλλος).
 interface ExclRule { payer?: string; note?: string; amount?: number }
+// Το σχήμα μιας προσαρμοσμένης κατηγορίας ΟΠΩΣ ΑΠΟΘΗΚΕΥΕΤΑΙ σε JSON κείμενο.
+// Τα πεδία είναι προαιρετικά και άγνωστου τύπου επίτηδες: έρχονται από
+// `JSON.parse` παλιάς εγγραφής, όχι από τη βάση, άρα δεν εγγυάται κανείς τίποτα.
+// Ήταν `any`, που σήμαινε ότι το `c.labl` (τυπογραφικό) θα περνούσε αθόρυβα.
+interface CustomCatRaw { key?: unknown; label?: unknown }
 
 interface Props { propertyId: string; userId?: string; profileType?: 'individual' | 'professional'; }
 
@@ -384,26 +389,31 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       setPropSqm(Number(propRes.data?.sqm) || null);
       // «Μονοκατοικία» κατά την έννοια του ΤΑΚΚ: ό,τι δεν είναι διαμέρισμα σε πολυκατοικία.
       setPropIsHouse(/house|maisonette|villa|μονοκατοικ|μεζονέτ|βίλα/i.test(String(propRes.data?.prop_type ?? '')));
-      const stayGross = (st: any) => Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0);
-      const staysAll  = (staysRes.data ?? []) as any[];
+      // Οι δύο σχήματα γραμμών, όπως ακριβώς τα ζητά το ερώτημα από πάνω. Ήταν
+      // `any`, οπότε ένα λάθος όνομα στήλης (`nightlyRate` αντί για
+      // `nightly_rate`) θα έδινε αθόρυβα μηδέν έσοδα αντί για σφάλμα.
+      type StayRow = { total: number | null; nights: number | null; nightly_rate: number | null; check_in: string | null };
+      const stayGross = (st: StayRow) => Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0);
+      const staysAll  = (staysRes.data ?? []) as StayRow[];
       const staysMonth = staysAll.filter(st => String(st.check_in ?? '') >= start);
       // Έσοδα μήνα: βραχυχρόνια → άθροισμα καταλυμάτων του μήνα· μακροχρόνια → ενεργό
       // ενοίκιο (ή στόχος). Ιδιοκατοίκηση/χωρίς mode → 0 (κανένα «φανταστικό» έσοδο).
       let inc = 0;
       if (rMode === 'short_term') {
-        inc = staysMonth.reduce((s: number, st: any) => s + stayGross(st), 0);
-        setStrNights(staysMonth.reduce((s: number, st: any) => s + (Number(st.nights) || 0), 0));
+        inc = staysMonth.reduce((s, st) => s + stayGross(st), 0);
+        setStrNights(staysMonth.reduce((s, st) => s + (Number(st.nights) || 0), 0));
       } else if (rMode === 'long_term') {
         // ΜΟΝΟ ενεργοί ενοικιαστές (όχι παλιοί/αποχωρήσαντες) — αλλιώς διπλασιάζεται το έσοδο.
-        const rentSum = (tenantsRes.data ?? [])
-          .filter((t: any) => t.status !== 'past' && !t.move_out_date)
-          .reduce((s: number, t: any) => s + (Number(t.monthly_rent) || 0), 0);
+        type TenantRow = { status: string | null; move_out_date: string | null; monthly_rent: number | null };
+        const rentSum = ((tenantsRes.data ?? []) as TenantRow[])
+          .filter(t => t.status !== 'past' && !t.move_out_date)
+          .reduce((s, t) => s + (Number(t.monthly_rent) || 0), 0);
         inc = rentSum > 0 ? rentSum : (Number(propRes.data?.target_rent) || 0);
       }
       setIncome(Math.round(inc));
       // Έσοδα από την αρχή του έτους: βραχυχρόνια → πραγματικά καταλύματα YTD· μακροχρόνια
       // → αναμενόμενο ενοίκιο × μήνες που πέρασαν (δεν καταγράφουμε εισπράξεις εδώ).
-      if (rMode === 'short_term') setIncomeYtd(Math.round(staysAll.reduce((s: number, st: any) => s + stayGross(st), 0)));
+      if (rMode === 'short_term') setIncomeYtd(Math.round(staysAll.reduce((s, st) => s + stayGross(st), 0)));
       else if (rMode === 'long_term') setIncomeYtd(Math.round(inc * (now.getMonth() + 1)));
       else setIncomeYtd(0);
       // Δόση δανείου: ζωντανός υπολογισμός από ενεργά δάνεια (όχι διπλομέτρηση).
@@ -421,7 +431,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const customKeys = new Set<string>();
       const catLabels: Record<string, string> = {};
       CATS.forEach(c => { catLabels[c.key] = c.label; });
-      try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) arr.forEach((c: any) => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
+      try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) (arr as CustomCatRaw[]).forEach(c => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
       // Μετονομασίες (override) βασικών/custom κατηγοριών — για σωστές ετικέτες στην ανάλυση.
       try { const o = JSON.parse(String((budgetRes.data?.data as { __labels?: string } | null)?.__labels ?? '{}')); if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v) catLabels[k] = String(v); }); } catch { /* ignore */ }
       // Προσαρμοσμένη κατηγορία του χρήστη μένει ως έχει· οτιδήποτε άλλο περνά
@@ -433,14 +443,14 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // (π.χ. πλήρωσε 50 € ο ενοικιαστής και 50 € εγώ → εξαιρώ 50 €, μετρούν 50 €).
       let excluded: Record<string, ExclRule> = {};
       try { const o = JSON.parse(String((budgetRes.data?.data as { __excluded?: string } | null)?.__excluded ?? '{}')); if (o && typeof o === 'object') excluded = o; } catch { /* ignore */ }
-      const exclAmt = (id: any, full: number): number => {
+      const exclAmt = (id: string | null | undefined, full: number): number => {
         const e = id != null ? excluded[String(id)] : undefined;
         if (!e) return 0;
         const a = e.amount;
         return typeof a === 'number' && isFinite(a) && a >= 0 ? Math.min(a, Math.max(0, full)) : Math.max(0, full);
       };
       // Το ποσό που ΟΝΤΩΣ μετρά στον προϋπολογισμό (ολικό μείον το εξαιρούμενο μέρος).
-      const counted = (id: any, full: number): number => Math.max(0, (full || 0) - exclAmt(id, full || 0));
+      const counted = (id: string | null | undefined, full: number): number => Math.max(0, (full || 0) - exclAmt(id, full || 0));
 
       // ── Η ΕΝΙΑΙΑ ΛΙΣΤΑ ────────────────────────────────────────────────────
       const { entries: ledger } = mergeLedger(
@@ -668,12 +678,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     return raw != null && raw.trim() !== '' && !isNaN(p) ? p : def;
   };
   // ── Προσαρμόσιμες κατηγορίες: ο χρήστης κρύβει όσες δεν χρειάζεται και προσθέτει δικές του.
-  const parseArr = (s?: string): any[] => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+  const parseArr = (s?: string): unknown[] => { try { const a: unknown = JSON.parse(s || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
   const hiddenKeys: string[] = parseArr(budgets.__hidden).map(String);
   // Μετονομασίες βασικών κατηγοριών (οι custom κρατούν το όνομά τους στο __custom).
   const labelOverrides: Record<string, string> = (() => { try { const o = JSON.parse(budgets.__labels || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
-  const customCats: { key: string; label: string; default: number }[] = parseArr(budgets.__custom)
-    .filter((c: any) => c && c.key && c.label).map((c: any) => ({ key: String(c.key), label: labelOverrides[String(c.key)] ?? String(c.label), default: 0 }));
+  const customCats: { key: string; label: string; default: number }[] = (parseArr(budgets.__custom) as CustomCatRaw[])
+    .filter(c => !!c && !!c.key && !!c.label).map(c => ({ key: String(c.key), label: labelOverrides[String(c.key)] ?? String(c.label), default: 0 }));
   const activeCats: { key: string; label: string; default: number }[] = [
     ...CATS.filter(c => !hiddenKeys.includes(c.key)).map(c => ({ key: c.key as string, label: labelOverrides[c.key] ?? (c.label as string), default: c.default as number })),
     ...customCats,
@@ -737,7 +747,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       ];
       const payload = samples.map(s => ({ property_id: propertyId, user_id: userId || null, amount: s.amount, date: day(s.d), description: s.desc, category: s.category, expense_group: s.grp, bill_id: null }));
       const { data, error } = await supabase.from('expenses').insert(payload).select('id');
-      if (!error && data) persistCats({ __demo: JSON.stringify(data.map((r: any) => String(r.id))) });
+      if (!error && data) persistCats({ __demo: JSON.stringify((data as { id: string }[]).map(r => String(r.id))) });
       await loadData();
     } finally { setDemoBusy(false); }
   };
@@ -965,7 +975,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         .select('id').eq('property_id', propertyId).eq('source', 'budget')
         .gte('event_date', mStart).lte('event_date', mEnd).order('event_date');
       if (cancelled) return;
-      const ids = (existing ?? []).map((e: any) => e.id as string).filter(Boolean);
+      const ids = ((existing ?? []) as { id: string }[]).map(e => e.id).filter(Boolean);
       if (notifyOn && overBudget.length > 0) {
         const total = overBudget.reduce((s, c) => s + ((actuals[c.key] || 0) - catBudget(c.key)), 0);
         const title = `Υπέρβαση προϋπολογισμού: ${overBudget.map(c => c.label).join(', ')}`;
