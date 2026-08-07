@@ -141,32 +141,20 @@ body {
   --info:          #2f58cc;   /* indigo-blue, στην οικογένεια του accent */
   --info-dim:      color-mix(in srgb, var(--info) 12%, transparent);
 
-  /* Σημασιολογικοί τόνοι — soft (φόντο) + border, παράγονται από τον ρόλο.
-     Ορίζονται μία φορά· το color-mix ξαναϋπολογίζεται ανά mode μέσω var(). */
-  --accent-soft:     color-mix(in srgb, var(--accent) 10%, transparent);
-  --accent-border:   color-mix(in srgb, var(--accent) 28%, transparent);
-  --info-soft:       color-mix(in srgb, var(--info) 9%, transparent);
-  --info-border:     color-mix(in srgb, var(--info) 24%, transparent);
-  --positive-soft:   color-mix(in srgb, var(--positive) 10%, transparent);
-  --positive-border: color-mix(in srgb, var(--positive) 26%, transparent);
-  --warning-soft:    color-mix(in srgb, var(--warning) 11%, transparent);
-  --warning-border:  color-mix(in srgb, var(--warning) 26%, transparent);
-  --negative-soft:   color-mix(in srgb, var(--negative) 10%, transparent);
-  --negative-border: color-mix(in srgb, var(--negative) 26%, transparent);
+  /* ΟΙ ΣΗΜΑΣΙΟΛΟΓΙΚΟΙ ΤΟΝΟΙ ΜΕΤΑΚΟΜΙΣΑΝ ΣΤΟ ΜΠΛΟΚ ΒΑΣΗΣ (πιο κάτω).
+     Ήταν ΕΔΩ, δηλαδή μόνο μέσα στο `:root[data-mode="light"]` — και το σκούρο
+     είναι η ΒΑΣΗ, όχι παραλλαγή. Άρα στο προεπιλεγμένο θέμα και οι δέκα ήταν
+     ανύπαρκτοι, σε τετρακόσιες χρήσεις: κάθε `background: var(--accent-soft)`
+     έπεφτε σε διάφανο, και κάθε `border: 1px solid var(--negative-border)`
+     γινόταν ΟΛΟΚΛΗΡΟ άκυρο, δηλαδή `border-style: none` — το περίγραμμα
+     εξαφανιζόταν. Το σχόλιό τους έλεγε ήδη τη σωστή πρόθεση («ορίζονται μία
+     φορά»)· απλώς κάθονταν στο λάθος μπλοκ. */
 
-  /* ── ΓΡΑΦΗΜΑΤΑ ─────────────────────────────────────────────────────────
-     ΤΟ ΠΡΑΣΙΝΟ ΚΑΙ ΤΟ ΚΟΚΚΙΝΟ ΒΓΗΚΑΝ ΑΠΟ ΤΑ ΓΡΑΦΗΜΑΤΑ. Ένα έξοδο δεν είναι
-     αποτυχία και ένα έσοδο δεν είναι επιτυχία· είναι δύο κατευθύνσεις της
-     ίδιας ροής, και ο ιδιοκτήτης το ξέρει πριν κοιτάξει. Το φανάρι έκανε
-     κάθε κάρτα με έξοδα να μοιάζει προειδοποίηση.
-
-     Μία οικογένεια, δύο εντάσεις: η εισροή στο γαλάζιο του σήματος, η εκροή
-     στο ίδιο γαλάζιο δεμένο με το φόντο. Στο φωτεινό θέμα ανοίγει, στο σκούρο
-     σκουραίνει — δηλαδή υποχωρεί και στα δύο, χωρίς δεύτερη απόφαση.
-     Το σημασιολογικό χρώμα μένει για τα σήματα, όπου κάτι πρέπει να γίνει. */
-  --series-in:    var(--accent);
-  --series-out:   color-mix(in srgb, var(--accent) 42%, var(--bg-elevated));
-  --series-axis:  var(--border-default);
+  /* ΤΑ ΧΡΩΜΑΤΑ ΓΡΑΦΗΜΑΤΩΝ ΜΕΤΑΚΟΜΙΣΑΝ ΚΙ ΑΥΤΑ ΣΤΟ ΜΠΛΟΚ ΒΑΣΗΣ, ΓΙΑ ΤΟΝ
+     ΙΔΙΟ ΛΟΓΟ με τους σημασιολογικούς τόνους: το σχόλιό τους έλεγε ήδη
+     «υποχωρεί και στα δύο, χωρίς δεύτερη δήλωση» — μόνο που η μία δήλωση
+     κάθονταν στο φωτεινό μπλοκ, οπότε στο σκούρο οι μπάρες έμεναν χωρίς
+     χρώμα και ο άξονας χωρίς γραμμή. */
 
   --text-primary:   #202124;   /* Google exact */
   --text-secondary: #5f6368;
@@ -236,6 +224,33 @@ body {
   --accent:        #8ab4f8;   /* γαλάζιο (dark) */
   --accent-dim:    color-mix(in srgb, var(--accent) 16%, transparent);
   --accent-hover:  #aecbfa;
+
+  /* Σημασιολογικοί τόνοι — soft (φόντο) + border, παράγονται από τον ρόλο.
+     Ορίζονται μία φορά· το color-mix ξαναϋπολογίζεται ανά mode μέσω var(). */
+  --accent-soft:     color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-border:   color-mix(in srgb, var(--accent) 28%, transparent);
+  --info-soft:       color-mix(in srgb, var(--info) 9%, transparent);
+  --info-border:     color-mix(in srgb, var(--info) 24%, transparent);
+  --positive-soft:   color-mix(in srgb, var(--positive) 10%, transparent);
+  --positive-border: color-mix(in srgb, var(--positive) 26%, transparent);
+  --warning-soft:    color-mix(in srgb, var(--warning) 11%, transparent);
+  --warning-border:  color-mix(in srgb, var(--warning) 26%, transparent);
+  --negative-soft:   color-mix(in srgb, var(--negative) 10%, transparent);
+  --negative-border: color-mix(in srgb, var(--negative) 26%, transparent);
+
+  /* ── ΓΡΑΦΗΜΑΤΑ ─────────────────────────────────────────────────────────
+     ΤΟ ΠΡΑΣΙΝΟ ΚΑΙ ΤΟ ΚΟΚΚΙΝΟ ΒΓΗΚΑΝ ΑΠΟ ΤΑ ΓΡΑΦΗΜΑΤΑ. Ένα έξοδο δεν είναι
+     αποτυχία και ένα έσοδο δεν είναι επιτυχία· είναι δύο κατευθύνσεις της
+     ίδιας ροής, και ο ιδιοκτήτης το ξέρει πριν κοιτάξει. Το φανάρι έκανε
+     κάθε κάρτα με έξοδα να μοιάζει προειδοποίηση.
+
+     Μία οικογένεια, δύο εντάσεις: η εισροή στο γαλάζιο του σήματος, η εκροή
+     στο ίδιο γαλάζιο δεμένο με το φόντο. Στο φωτεινό θέμα ανοίγει, στο σκούρο
+     σκουραίνει — δηλαδή υποχωρεί και στα δύο, χωρίς δεύτερη απόφαση.
+     Το σημασιολογικό χρώμα μένει για τα σήματα, όπου κάτι πρέπει να γίνει. */
+  --series-in:    var(--accent);
+  --series-out:   color-mix(in srgb, var(--accent) 42%, var(--bg-elevated));
+  --series-axis:  var(--border-default);
   /* Βλ. σχόλιο στο light: ένα μελάνι για κάθε κορεσμένο γέμισμα. */
   --on-tone:       #0c1116;
   --accent-text:   var(--on-tone);

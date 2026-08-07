@@ -17,6 +17,7 @@
     "greek-time": "node scripts/greek-time.mjs",
     "sql-types": "node scripts/guard-sql-types.mjs",
     "schema-drift": "node scripts/guard-schema-drift.mjs",
+    "theme-tokens": "node scripts/guard-theme-tokens.mjs",
     "db-types": "node scripts/gen-db-types.mjs",
     "tax-year": "node scripts/guard-tax-year.mjs",
     "pg-schema": "node scripts/pg-sandbox.mjs",
