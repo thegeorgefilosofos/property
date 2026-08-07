@@ -104,13 +104,15 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Αποτυχία σύνταξης.');
-      const raw = ((data.content || []).find((c: any) => c.type === 'text')?.text || '{}').replace(/```json?|```/g, '').trim();
+      const raw = ((data.content || []) as { type: string; text?: string }[]).find(c => c.type === 'text')?.text?.replace(/```json?|```/g, '').trim() || '{}';
       const p = JSON.parse(raw);
       if (p.subject) setSubject(String(p.subject));
       if (p.body) setBody(String(p.body));
       setAiOpen(false);
-    } catch (e: any) {
-      setAiErr(e?.message === 'Unexpected token' || e instanceof SyntaxError ? 'Η απάντηση δεν ήταν έγκυρη. Δοκίμασε ξανά.' : (e?.message || 'Αποτυχία σύνταξης.'));
+    } catch (e) {
+      // Το `catch` δίνει `unknown`, όχι `any`: ρωτάμε τι είναι πριν το διαβάσουμε.
+      const msg = e instanceof Error ? e.message : '';
+      setAiErr(msg === 'Unexpected token' || e instanceof SyntaxError ? 'Η απάντηση δεν ήταν έγκυρη. Δοκίμασε ξανά.' : (msg || 'Αποτυχία σύνταξης.'));
     } finally { setAiBusy(false); }
   };
 
@@ -126,7 +128,9 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
       });
       if (error) {
         let detail = '';
-        try { const d = await (error as any).context?.json?.(); detail = d?.detail || d?.error || ''; } catch { /* ignore */ }
+        // Το σφάλμα μιας συνάρτησης Supabase κουβαλά το σώμα της απάντησης στο
+        // `context`. Δεν είναι στον δημόσιο τύπο, γι' αυτό δηλώνεται εδώ ρητά.
+        try { const d = await (error as { context?: { json?: () => Promise<{ detail?: string; error?: string }> } }).context?.json?.(); detail = d?.detail || d?.error || ''; } catch { /* ignore */ }
         throw new Error(detail || 'Η αποστολή απέτυχε. Έλεγξε ότι έχει γίνει deploy η function send-client-email και ότι υπάρχει το RESEND_API_KEY.');
       }
       const campaignId = data?.campaignId as string | undefined;
@@ -139,8 +143,8 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
       } else {
         setResults(recips.map(r => ({ email: r.email, name: r.name, status: 'sent' })));
       }
-    } catch (e: any) {
-      setErr(e?.message || 'Η αποστολή απέτυχε.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Η αποστολή απέτυχε.');
     } finally { setSending(false); }
   };
 

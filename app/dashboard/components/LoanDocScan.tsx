@@ -1,8 +1,8 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
 import { T } from '@/components/Theme'
-import { rankLoans, type UserLoanNeeds } from '@/lib/loans/recommend'
-import { fmtEur, fmtPct } from './TabLoanData'
+import { rankLoans, type UserLoanNeeds, type BankInput } from '@/lib/loans/recommend'
+import { fmtEur, fmtPct, type SavedLoan } from './TabLoanData'
 import { athensToday } from '@/lib/core/time';
 
 // ── Σάρωση εγγράφου/φωτογραφίας δανειολήπτη → εξαγωγή πεδίων → πρόταση δανείου ──
@@ -53,9 +53,12 @@ const num = (v: unknown): number | undefined => {
 export interface AppliedLoan { v: number; loanAmount?: number; propValue?: number; rate?: number; years?: number; rateType?: 'fixed'|'variable'|'mixed'; loanType?: string; income?: number; marital?: 'single'|'married'; children?: number }
 
 export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onApply, onSaveLoan, onOpenCalculator }: {
-  banks: any[]; euribor: number; defaultPropertyValue?: number
+  // Οι τράπεζες περνούν αυτούσιες στο `rankLoans`, που έχει τον δικό του τύπο
+  // εισόδου: τον δηλώνουμε εδώ αντί για `any`, ώστε ένα λάθος σχήμα να πέσει
+  // στο σημείο που περνά — και όχι σιωπηλά μέσα στην κατάταξη.
+  banks: BankInput[]; euribor: number; defaultPropertyValue?: number
   onApply?: (a: AppliedLoan) => void
-  onSaveLoan?: (loan: any) => Promise<void> | void
+  onSaveLoan?: (loan: Partial<SavedLoan>) => Promise<void> | void
   onOpenCalculator?: () => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -84,7 +87,11 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
       const parsed = JSON.parse(text.replace(/```json?|```/g, '').trim()) as Extracted
       // Ντετερμινιστική εξομάλυνση αριθμών (το AI μπορεί να δώσει strings/σύμβολα).
       ;(['loan_amount','property_value','years','age','income_annual','children','property_year_built','property_sqm','current_rate','confidence'] as const)
-        .forEach(k => { if (parsed[k] != null) (parsed as any)[k] = num(parsed[k]) })
+        // Τα κλειδιά είναι όλα αριθμητικά πεδία του `Extracted`, οπότε η γραφή
+        // είναι έγκυρη· ο μεταγλωττιστής όμως δεν συνδέει το κλειδί με τον τύπο
+        // της τιμής σε δυναμική ανάθεση. Η μετατροπή περιορίζεται στα αριθμητικά
+        // πεδία και δεν ανοίγει ολόκληρο το αντικείμενο, όπως έκανε το `any`.
+        .forEach(k => { if (parsed[k] != null) (parsed as Record<typeof k, number | undefined>)[k] = num(parsed[k]) })
       setEx(parsed)
     } catch { setError('unreadable') }
     finally { setScanning(false) }
@@ -115,7 +122,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
     energyClass: ex.energy_class,
   } : null
 
-  const ranked = needs ? rankLoans(needs, banks as any, euribor) : []
+  const ranked = needs ? rankLoans(needs, banks, euribor) : []
   const best = ranked.find(r => r.eligible) || ranked[0]
 
   const applyToCalc = () => {

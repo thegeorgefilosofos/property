@@ -71,7 +71,11 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
         rentQ,
         supabase.from('expenses').select('amount,date').eq('property_id', propId).gte('date', from).lte('date', to),
       ]);
-      setFigures({ gross: (r || []).reduce((s: number, x: any) => s + num(x.amount), 0), expenses: (e || []).reduce((s: number, x: any) => s + num(x.amount), 0) });
+      // Και τα δύο ερωτήματα ζητούν `amount`: αυτό είναι ό,τι χρειάζεται εδώ, και
+      // αυτό δηλώνεται. Το `any` έκρυβε ότι ένα λάθος όνομα στήλης θα έδινε μηδέν.
+      const sumAmount = (rows: { amount: number | string | null }[] | null) =>
+        (rows || []).reduce((s, x) => s + num(x.amount), 0);
+      setFigures({ gross: sumAmount(r), expenses: sumAmount(e) });
     })();
   }, [open, propId, year, month, supabase]);
 
@@ -118,7 +122,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
       };
       await generateReportPdf(model, `Κατανομή_${prop.name}_${periodLabel}`.replace(/\s+/g, '_'));
       onClose();
-    } catch (e: any) { setErr(e?.message || 'Αποτυχία δημιουργίας.'); }
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας.'); }
     finally { setBusy(false); }
   };
 

@@ -70,12 +70,37 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const monthsElapsed = Number(today.slice(5, 7));
   const daysElapsed = Math.max(1, 1 - (daysUntil(`${year}-01-01`, now) ?? 0));
 
-  const [stays, setStays] = useState<any[]>([]);
-  const [bills, setBills] = useState<any[]>([]);
-  const [exp, setExp] = useState<any[]>([]);
-  const [tenants, setTenants] = useState<any[]>([]);
+  // ── ΤΑ ΣΧΗΜΑΤΑ ΤΩΝ ΓΡΑΜΜΩΝ, ΟΠΩΣ ΑΚΡΙΒΩΣ ΤΑ ΖΗΤΑ ΤΟ ΕΡΩΤΗΜΑ ────────────────
+  // Ήταν `any[]`, δηλαδή οι στήλες ήταν γραμμένες ΜΙΑ φορά στο `select(...)` και
+  // ο μεταγλωττιστής δεν τις έβλεπε πουθενά αλλού: ένα λάθος όνομα πεδίου
+  // παρακάτω («nightlyRate» αντί «nightly_rate») θα έδινε αθόρυβα `undefined`,
+  // δηλαδή μηδέν έσοδα σε ολόκληρο χαρτοφυλάκιο, χωρίς κανένα σφάλμα.
+  type StayRow = {
+    property_id: string | null; check_in: string | null; check_out: string | null;
+    total: number | null; nights: number | null; nightly_rate: number | null;
+    gross_guest_paid: number | null; platform_fee: number | null;
+    climate_levy: number | null; amount_basis: string | null;
+  };
+  type BillRow = {
+    id: string; name: string | null; amount: number | null; paid: boolean | null;
+    paid_at: string | null; created_at: string | null; due_date: string | null;
+    category: string | null; recurring: boolean | null; property_id: string | null;
+  };
+  type ExpRow = {
+    id: string; bill_id: string | null; amount: number | null; date: string;
+    description: string | null; category: string | null; paid: boolean | null;
+    expense_group: string | null; is_recurring: boolean | null;
+    store_vendor: string | null; property_id: string | null;
+  };
+  type TenantRow = { property_id: string | null; monthly_rent: number | null; updated_at: string | null };
+  type ChkRow = { property_id: string | null; status: string | null; priority: string | null; due_date: string | null };
+
+  const [stays, setStays] = useState<StayRow[]>([]);
+  const [bills, setBills] = useState<BillRow[]>([]);
+  const [exp, setExp] = useState<ExpRow[]>([]);
+  const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [rentPays, setRentPays] = useState<RentPay[]>([]);
-  const [chk, setChk] = useState<any[]>([]);
+  const [chk, setChk] = useState<ChkRow[]>([]);
   const [propOwners, setPropOwners] = useState<{ id: string; client_id: string | null }[]>([]);
   const [clients, setClients] = useState<{ id: string; full_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +135,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       // της μακροχρόνιας, ίδια πηγή με ReportBuilder/OwnerSplit/Λογιστική.
       supabase.from('rent_payments').select('property_id,amount,paid,period_month').eq('user_id', userId).eq('period_year', year),
     ]);
-    setStays(st || []); setBills(bl || []); setExp(ex || []); setTenants(tn || []); setChk(ci || []); setPropOwners(po || []); setClients(cl || []); setRentPays((rp || []) as RentPay[]); setLoading(false);
+    setStays((st || []) as StayRow[]); setBills((bl || []) as BillRow[]); setExp((ex || []) as ExpRow[]); setTenants((tn || []) as TenantRow[]); setChk((ci || []) as ChkRow[]); setPropOwners(po || []); setClients(cl || []); setRentPays((rp || []) as RentPay[]); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year]);
 
@@ -130,7 +155,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const rows: Row[] = useMemo(() => {
     // Πιο πρόσφατο ενοίκιο ανά ακίνητο (η λίστα tenants έρχεται φθίνουσα κατά updated_at).
     const rentByProp = new Map<string, number>();
-    tenants.forEach(t => { if (!rentByProp.has(t.property_id)) rentByProp.set(t.property_id, Number(t.monthly_rent) || 0); });
+    // Γραμμή χωρίς ακίνητο δεν ανήκει σε κανένα ακίνητο: αγνοείται αντί να
+    // προσγειωθεί σε κλειδί «null». Ο τύπος το έκανε ορατό — με `any` η γραμμή
+    // θα έμπαινε στον χάρτη και το ενοίκιό της θα χανόταν σιωπηλά.
+    tenants.forEach(t => { const id = t.property_id; if (id && !rentByProp.has(id)) rentByProp.set(id, Number(t.monthly_rent) || 0); });
 
     // Καταγεγραμμένες δόσεις της χρήσης ανά ακίνητο: τι εισπράχθηκε πραγματικά,
     // και τι είχε δεδουλευτεί ως σήμερα (οι δόσεις παράγονται για όλο το έτος).

@@ -106,7 +106,8 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
       supabase.from('expenses').select('property_id,date,amount,category,description').in('property_id', selIds).gte('date', from).lte('date', to),
       supabase.from('loans').select('property_id,loan_amount,rate_type,fixed_rate,euribor,spread,years,start_date').eq('user_id', userId),
     ]);
-    const incomes: IncomeRec[] = (rentData || []).map((r: any) => ({
+    type RentRow = { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid_date: string | null; due_date: string | null };
+    const incomes: IncomeRec[] = ((rentData || []) as RentRow[]).map(r => ({
       date: r.paid_date || r.due_date || `${r.period_year}-${String(r.period_month || 1).padStart(2, '0')}-01`,
       amount: Number(r.amount) || 0, property: r.property_id ? nameById.get(r.property_id) : undefined,
     }));
@@ -147,7 +148,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
       if (!lines.length) { setErr('Δεν υπάρχουν εγγραφές εσόδων/εξόδων για την περίοδο.'); setPreview(null); setTotals(null); setAudit(null); return; }
       applyChecks(lines);
     }
-    catch (e: any) { setErr(e?.message || 'Αποτυχία υπολογισμού.'); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία υπολογισμού.'); }
     finally { setBusy(false); }
   };
 
@@ -169,7 +170,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
         document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
       }
       applyChecks(lines);
-    } catch (e: any) { setErr(e?.message || 'Αποτυχία εξαγωγής.'); }
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία εξαγωγής.'); }
     finally { setBusy(false); }
   };
 

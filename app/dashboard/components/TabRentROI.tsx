@@ -504,7 +504,16 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           supabase.from('user_properties').select('id,target_rent,rental_mode').eq('user_id', userId),
           supabase.from('rent_config').select('property_id,actual_rent,target_rent').eq('user_id', userId),
         ]);
-        const p: any = pr.data || {}; const c: any = rc.data || {};
+        // ΤΑ ΔΥΟ ΣΧΗΜΑΤΑ, ΟΠΩΣ ΤΑ ΖΗΤΑ ΤΟ ΕΡΩΤΗΜΑ. Ήταν `any`, δηλαδή κάθε πεδίο
+        // παρακάτω («p.sqm», «p.postal_code») ήταν αδιαφανές: ένα λάθος όνομα θα
+        // έδινε undefined και η οθόνη θα υποχωρούσε αθόρυβα στις προεπιλογές.
+        type PropRow = {
+          value: number | null; target_rent: number | null; sqm: number | null;
+          prop_type: string | null; name: string | null; postal_code: string | null;
+          status_detail: string | null; rental_mode: string | null;
+        };
+        type RentCfgRow = { actual_rent: number | null; target_rent: number | null };
+        const p = (pr.data || {}) as Partial<PropRow>; const c = (rc.data || {}) as Partial<RentCfgRow>;
         const rcRows = (allRc.data || []) as { property_id: string; actual_rent: number | null; target_rent: number | null }[];
         const prRows = (allPr.data || []) as { id: string; target_rent: number | null; rental_mode: string | null }[];
         const rcMap = new Map(rcRows.map(r => [r.property_id, r]));
@@ -519,7 +528,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         if (activeLoan) setSavedLoan({ amount: activeLoan.amount, rate: activeLoan.rate, property_value: Number(activeLoan.property_value) || 0, loan_type: activeLoan.loan_type ?? '' });
         setValue(String(propertyValue || p.value || localStorage.getItem(K('value')) || ''));
         setRent(String(c.actual_rent || c.target_rent || p.target_rent || localStorage.getItem(K('rent')) || ''));
-        const expSum = (exp.data || []).reduce((s: number, e: any) => s + (e.amount || 0), 0);
+        const expSum = ((exp.data || []) as { amount: number | null }[]).reduce((s, e) => s + (e.amount || 0), 0);
         setOpex(String(Math.round(expSum) || localStorage.getItem(K('opex')) || ''));
         setPSqm(p.sqm && p.sqm > 0 ? p.sqm : null);
         setPType(p.prop_type || null);
@@ -535,7 +544,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         if (postal) {
           try {
             const { data: cs } = await supabase.rpc('community_market_stats');
-            const row = (cs || []).find((r: any) => String(r.postal_code || '').trim() === postal);
+            // Το αποτέλεσμα της συνάρτησης της βάσης: τα πέντε πεδία που διαβάζονται.
+            type CommRow = { postal_code: string | null; sample_count: number | null; median_gross_yield: number | null; p25_yield: number | null; p75_yield: number | null };
+            const row = ((cs || []) as CommRow[]).find(r => String(r.postal_code || '').trim() === postal);
             if (row && Number(row.sample_count) >= 5) {
               setCommStat({ postal, count: Number(row.sample_count), median: Number(row.median_gross_yield), p25: Number(row.p25_yield), p75: Number(row.p75_yield) });
             }
