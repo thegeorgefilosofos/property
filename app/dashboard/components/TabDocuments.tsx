@@ -12,6 +12,9 @@ import { downloadCsv } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { money } from './xlsxStyle';
 import { useAppPreferences } from './useAppPreferences';
+// Τα σχήματα των τριών πινάκων που διαβάζει το Αρχείο δίπλα στα δικά του αρχεία.
+// Και οι τρεις ερωτήσεις κάνουν `select('*')`, άρα η γραμμή επιστρέφεται ολόκληρη.
+import type { BillsRow, ExpensesRow, InventoryItemsRow } from '@/lib/supabase/tables';
 // Η ΜΙΑ μηχανή σάρωσης/καταχώρισης. Το Αρχείο δεν έχει δική του λογική OCR, δικό
 // του prompt, ούτε δική του απόφαση για το ράφι: όλα ζουν στο scanDoc.ts και στο
 // lib/billing (δοκιμασμένα). Ό,τι φαίνεται εδώ είναι μόνο οθόνη.
@@ -360,31 +363,41 @@ export default function TabDocuments({
     });
 
     // 2) expenses με επισυναπτόμενο αρχείο (πραγματικές αποδείξεις/τιμολόγια)
-    const exp = (expRes.data ?? []) as any[];
+    const exp: ExpensesRow[] = expRes.data ?? [];
     const hasAttachCol = exp.length === 0 || exp.some(e => 'attachment_url' in e);
     setColWarn(exp.length > 0 && !hasAttachCol);
     exp.forEach(e => {
-      const url = e.attachment_url as string | undefined;
+      const url = e.attachment_url;
       if (!url) return; // προτίμηση σε πραγματικά συνημμένα
       out.push({
         id: `exp:${e.id}`, source: 'expense',
         folder: folderForExpense(e.category),
         title: e.description || 'Απόδειξη', provider: e.store_vendor || null,
-        date: e.date || e.created_at || null, value: typeof e.amount === 'number' ? e.amount : (e.amount ? parseFloat(e.amount) : null),
+        // Το ίδιο `numOrNull` που χρησιμοποιούν και τα σαρωμένα παραστατικά. Με
+        // `any` ο κλάδος `parseFloat(e.amount)` ήταν αόρατα νεκρός: το `amount`
+        // είναι `numeric NOT NULL` και έρχεται πάντα ως αριθμός.
+        date: e.date || e.created_at || null, value: numOrNull(e.amount),
         url, isImage: /\.(png|jpe?g|webp|gif|heic)$/i.test(url), sizeBytes: null,
         note: e.notes || null, category: e.category || null,
       });
     });
 
     // 3) bills — εικονικές καρτέλες λογαριασμών (χωρίς αρχείο· ανά πάροχο/ημ/αξία)
-    const bills = (billsRes.data ?? []) as any[];
+    const bills: BillsRow[] = billsRes.data ?? [];
     bills.forEach(b => {
+      // Η ΣΤΗΛΗ `category` ΤΩΝ ΛΟΓΑΡΙΑΣΜΩΝ ΔΕΧΕΤΑΙ NULL. Με `any` τα δύο ευρετήρια
+      // παρακάτω δέχονταν σιωπηλά `null` ως κλειδί — στην JS αυτό γίνεται η
+      // συμβολοσειρά "null", που δεν υπάρχει σε κανέναν από τους δύο χάρτες. Ένας
+      // λογαριασμός χωρίς κατηγορία έπεφτε λοιπόν στον φάκελο «Λογαριασμοί» με
+      // πάροχο «Λοιποί λογαριασμοί» — σωστό αποτέλεσμα από λάθος δρόμο. Τώρα η
+      // απουσία δηλώνεται ρητά και ο μεταγλωττιστής βλέπει το κλειδί.
+      const cat = b.category ?? '';
       out.push({
         id: `bill:${b.id}`, source: 'bill',
-        folder: BILL_CAT_FOLDER[b.category] ?? 'bills',
-        title: b.name || 'Λογαριασμός', provider: BILL_PROVIDER_LABEL[b.category] || 'Λοιποί λογαριασμοί',
+        folder: BILL_CAT_FOLDER[cat] ?? 'bills',
+        title: b.name || 'Λογαριασμός', provider: BILL_PROVIDER_LABEL[cat] || 'Λοιποί λογαριασμοί',
         date: b.due_date || b.created_at || null,
-        value: typeof b.amount === 'number' ? b.amount : (b.amount ? parseFloat(b.amount) : null),
+        value: numOrNull(b.amount),
         url: null, isImage: false, sizeBytes: null,
         note: [b.period, b.paid ? 'Πληρωμένος' : 'Σε εκκρεμότητα'].filter(Boolean).join(' · ') || null,
         category: b.category || null,
@@ -392,7 +405,7 @@ export default function TabDocuments({
     });
 
     // 4) inventory_items — εγγυήσεις εξοπλισμού
-    const inv = (invRes.data ?? []) as any[];
+    const inv: InventoryItemsRow[] = invRes.data ?? [];
     inv.forEach(i => {
       if (!i.warranty_expiry && !i.photo_url) return;
       const photo = i.photo_url || (Array.isArray(i.photos) ? i.photos[0] : null) || null;

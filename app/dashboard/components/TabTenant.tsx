@@ -86,6 +86,23 @@ const isPastTenant = (t:{status?:string|null;move_out_date?:string|null}) => t.s
 // Τρόποι πληρωμής ενοικίου (ελληνικά, σταθερή σειρά).
 const PAY_METHODS = ['Μετρητά','Τραπεζική κατάθεση','Ηλεκτρονική πληρωμή','Κάρτα'] as const;
 type PayMethod = typeof PAY_METHODS[number];
+
+// ── Συχνότητα εξόφλησης: μία πηγή για τις επιλογές ΚΑΙ τις ετικέτες ─────────
+// Οι τρεις τιμές ήταν γραμμένες κατευθείαν μέσα στο JSX του SelectField, ο
+// οποίος επιστρέφει `string`. Το `v:any` του παλιού `sf` τις δεχόταν αδιάκριτα,
+// οπότε η ένωση `PaymentFreq` δεν προστάτευε τίποτα: μια αλλαγή στο value ενός
+// option (π.χ. 'bi-monthly') γραφόταν κανονικά στη στήλη `payment_frequency`
+// (είναι `text`) και ξαναδιαβαζόταν στο `Tenant.payment_frequency:PaymentFreq`,
+// δηλαδή ως τιμή της ένωσης που ΚΑΜΙΑ σύγκριση δεν πιάνει. Μία πηγή τώρα για
+// τις επιλογές και τις ετικέτες, ώστε να μην μπορούν να αποκλίνουν.
+const PAYMENT_FREQ_LABELS: Record<PaymentFreq,string> = {
+  monthly:'Μηνιαία', bimonthly:'Διμηνιαία', quarterly:'Τριμηνιαία',
+};
+const isPaymentFreq = (v:string):v is PaymentFreq =>
+  Object.prototype.hasOwnProperty.call(PAYMENT_FREQ_LABELS,v);
+// Ίδιος λόγος: ο SelectField των εγγράφων ταυτοποίησης έδινε `string` σε πεδίο
+// `IdDocType|''`. Το κενό είναι έγκυρη τιμή («καμία επιλογή»).
+const isIdDocType = (v:string):v is IdDocType|'' => v==='' || ID_DOCS.some(d=>d===v);
 const todayISO = () => athensToday();
 // Τελευταία ημέρα του ΕΠΟΜΕΝΟΥ μήνα από μια ημερομηνία (προθεσμία δήλωσης ΑΑΔΕ).
 const lastDayNextMonth = (iso:string) => {
@@ -650,8 +667,21 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({type:'call' as CommLog['type'],summary:'',date:athensToday(),outcome:''});
   const [saving,setSaving]=useState(false);
-  const TYPE_LABELS:Record<string,string>={call:'Τηλεφωνική Κλήση',email:'Ηλεκτρονικό Ταχυδρομείο',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
-  const TYPE_SHORT:Record<string,string>={call:'Κλήση',email:'Ηλεκτρονικό ταχυδρομείο',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
+  // Κλειδωμένα στην ένωση `CommLog['type']` αντί για `Record<string,string>`.
+  // Με ελεύθερο κλειδί οι δύο πίνακες μπορούσαν να αποκλίνουν από την ένωση και
+  // προς τις ΔΥΟ κατευθύνσεις: κλειδί που ΛΕΙΠΕΙ έβγαζε `undefined` ενώ ο τύπος
+  // υποσχόταν `string` (το `TYPE_SHORT[log.type]` τύπωνε «undefined»), και
+  // κλειδί ΠΑΡΑΠΑΝΩ γινόταν ορατή επιλογή που η βάση απορρίπτει — το
+  // `tenant_comm_log_type_check` (baseline.sql:2788) δέχεται ΜΟΝΟ
+  // call/email/sms/meeting/note, οπότε η καταχώρηση αποτύγχανε κάθε φορά.
+  // Με `Record<CommLog['type'],string>` καμία από τις δύο δεν είναι πια δυνατή.
+  const TYPE_LABELS:Record<CommLog['type'],string>={call:'Τηλεφωνική Κλήση',email:'Ηλεκτρονικό Ταχυδρομείο',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
+  const TYPE_SHORT:Record<CommLog['type'],string>={call:'Κλήση',email:'Ηλεκτρονικό ταχυδρομείο',sms:'Μήνυμα',meeting:'Συνάντηση',note:'Σημείωση'};
+  // Ο SelectField επιστρέφει `string`· το `v as any` έσβηνε τη στένωση σε ένωση.
+  // Εδώ ΔΕΝ κατέληγε αυθαίρετο κείμενο στη βάση — το CHECK της στήλης το κόβει
+  // και το `saved()` δείχνει σφάλμα. Ο φύλακας μεταφέρει την αποτυχία από τη
+  // διαδρομή προς τον διακομιστή στη μεταγλώττιση, όπου κοστίζει μηδέν.
+  const isCommType=(v:string):v is CommLog['type']=>Object.prototype.hasOwnProperty.call(TYPE_LABELS,v);
 
   useEffect(()=>{loadLogs();},[tenant.id]);
   const loadLogs=async()=>{
@@ -720,8 +750,8 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12, marginBottom:12 }}>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Τύπος Επικοινωνίας</div>
-                <SelectField value={form.type} onChange={v=>setForm(f=>({...f,type:v as any}))}
-                  options={Object.entries(TYPE_LABELS).map(([k,v])=>({ value:k, label:v }))}/>
+                <SelectField value={form.type} onChange={v=>{ if(isCommType(v)) setForm(f=>({...f,type:v})); }}
+                  options={(Object.keys(TYPE_LABELS) as CommLog['type'][]).map(k=>({ value:k, label:TYPE_LABELS[k] }))}/>
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Ημερομηνία</div>
@@ -828,14 +858,18 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   const [mark,setMark]=useState<{p:RentPayment;method:PayMethod;receipt:string}|null>(null);
   const [req,setReq]=useState<RentPayment|null>(null); // αίτημα πληρωμής (IBAN/QR/κοινοποίηση)
   const [copied,setCopied]=useState(false);
-  const [prop,setProp]=useState<Record<string,any>|null>(null);
+  // Ακριβώς οι δύο στήλες που διαβάζει το `propLabel()` — όχι όλη η γραμμή. Το
+  // `Record<string,any>` σήμαινε ότι ΚΑΘΕ όνομα πεδίου περνούσε τη μεταγλώττιση:
+  // ένα `prop?.adress` θα έδινε σιωπηλά κενή ετικέτα ακινήτου στη βεβαίωση
+  // ενοικίου, ακριβώς όπως το `properties` που έλειπε (σχόλιο από κάτω).
+  const [prop,setProp]=useState<{name:string;address:string|null}|null>(null);
   const [scan,setScan]=useState<{stage:'scanning'|'match'|'error';msg?:string;doc?:ScannedDoc;periodId?:string;method?:PayMethod;docId?:string|null}|null>(null);
   const fileRef=React.useRef<HTMLInputElement>(null);
 
   // Ο πίνακας λέγεται `user_properties`. Το `properties` δεν υπήρξε ΠΟΤΕ, οπότε
   // το `prop` έμενε πάντα null και το ακίνητο ΔΕΝ αναγραφόταν στη βεβαίωση
   // ενοικίου ούτε στα μηνύματα υπενθύμισης — χωρίς κανένα σφάλμα στην οθόνη.
-  useEffect(()=>{ supabase.from('user_properties').select('*').eq('id',propertyId).maybeSingle().then(({data})=>setProp(data||null)); },[propertyId]);
+  useEffect(()=>{ supabase.from('user_properties').select('name,address').eq('id',propertyId).maybeSingle().then(({data})=>setProp((data||null) as {name:string;address:string|null}|null)); },[propertyId]);
 
   const expected=useMemo(()=>expectedPeriods(tenant,rentDueDay),[tenant,rentDueDay]);
   const existingKeys=useMemo(()=>new Set(payments.map(p=>`${p.period_year}-${p.period_month}`)),[payments]);
@@ -932,7 +966,9 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
 
   // Το user_properties έχει `name` και `address` — όχι `title`/`label`, που ήταν
   // υποθέσεις πάνω σε πίνακα που δεν υπήρχε.
-  const propLabel=()=> (prop?.address||prop?.name||'') as string;
+  // Το `as string` ήταν το τίμημα του `Record<string,any>`: χωρίς σχήμα, η
+  // αλυσίδα `||` έβγαζε `any`. Με δηλωμένες τις δύο στήλες βγάζει ήδη `string`.
+  const propLabel=()=> prop?.address||prop?.name||'';
   const monthLabel=(p:RentPayment)=>`${MONTHS_NOM[p.period_month-1]} ${p.period_year}`;
 
   const printReceipt=(p:RentPayment)=>{
@@ -2014,7 +2050,12 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   const [isForm,setIsForm]=useState(false);
   const [editId,setEditId]=useState<string|null>(null);
   const [form,setForm]=useState(blank());
-  const sf=(k:string,v:any)=>setForm(f=>({...f,[k]:v}));
+  // ΤΙ ΕΚΡΥΒΕ ΤΟ `(k:string,v:any)`: ΚΑΙ τα δύο ορίσματα. Ένα `sf('lease_ends',…)`
+  // πρόσθετε σιωπηλά νέο κλειδί στη φόρμα αντί να γράψει το υπάρχον, και ένα
+  // `sf('custom_lease_days','365')` έβαζε κείμενο σε αριθμητικό πεδίο. Τώρα το
+  // κλειδί πρέπει να ανήκει στη φόρμα και η τιμή στον τύπο ΕΚΕΙΝΟΥ του πεδίου.
+  type TenantForm=ReturnType<typeof blank>;
+  const sf=<K extends keyof TenantForm>(k:K,v:TenantForm[K])=>setForm(f=>({...f,[k]:v}));
   // Έγγραφα που ανέβηκαν μέσα από τη φόρμα (property-files + property_documents).
   const [formDocs,setFormDocs]=useState<{id:string;file_name:string;tag:'id'|'lease'}[]>([]);
   const [docBusy,setDocBusy]=useState(false);
@@ -2774,14 +2815,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     )}
                     {more('tenant.payment_frequency')&&(
                       <div style={{ marginBottom:16 }}>
-                        <SelectField label="Συχνότητα εξόφλησης" value={form.payment_frequency} onChange={v=>sf('payment_frequency',v)} options={[{value:'monthly',label:'Μηνιαία'},{value:'bimonthly',label:'Διμηνιαία'},{value:'quarterly',label:'Τριμηνιαία'}]}/>
+                        <SelectField label="Συχνότητα εξόφλησης" value={form.payment_frequency} onChange={v=>{ if(isPaymentFreq(v)) sf('payment_frequency',v); }} options={(Object.keys(PAYMENT_FREQ_LABELS) as PaymentFreq[]).map(k=>({value:k,label:PAYMENT_FREQ_LABELS[k]}))}/>
                         <Why id="tenant.payment_frequency"/>
                       </div>
                     )}
                     {more('tenant.id_doc')&&(
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
-                          <SelectField label="Τύπος εγγράφου ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
+                          <SelectField label="Τύπος εγγράφου ταυτοποίησης" value={form.id_doc_type} onChange={v=>{ if(isIdDocType(v)) sf('id_doc_type',v); }} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
                           <TextInput label="Αριθμός εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
                         </div>
                         <Why id="tenant.id_doc"/>

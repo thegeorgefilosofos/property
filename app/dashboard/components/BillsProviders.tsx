@@ -193,6 +193,24 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
   const waterData    = WATER_PROVIDERS.find(p => p.value === s.waterProvider);
   const gasData      = GAS_PROVIDERS.find(p => p.value === s.gasProvider);
 
+  // ── ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΕΔΙΟΥ ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΚΑΙ ΕΛΕΓΧΕΤΑΙ ──────────────────
+  // Οι διακόπτες του σταθερού τηλεφώνου ενημερώνονταν με υπολογισμένο κλειδί,
+  // `upd({ [f.key]: !f.val })`. Εκεί ο TypeScript βλέπει σκέτο `string`, άρα το
+  // αντικείμενο δεν ταιριάζει στο `Partial` των ρυθμίσεων — και το `as any` το
+  // σιώπησε. Τίμημα: ένα ορθογραφικό λάθος στο κλειδί («phoneVoIP» αντί
+  // «phoneVoip») θα έγραφε ΝΕΟ πεδίο στο jsonb της βάσης, ο διακόπτης δεν θα
+  // άναβε ποτέ, και κανένα σφάλμα δεν θα εμφανιζόταν. Τώρα κάθε γραμμή κρατά τη
+  // δική της ενημέρωση με ρητό όνομα πεδίου, οπότε το λάθος σκάει στη μεταγλώττιση.
+  //
+  // Το `tip` υπάρχει μόνο σε μία γραμμή· δηλώνεται προαιρετικό στον τύπο, αντί
+  // να διαβάζεται με `(f as any).tip`.
+  const phoneFeatures: { key: string; label: string; val: boolean; toggle: () => void; tip?: string }[] = [
+    { key: 'phoneLocal',  label: 'Απεριόριστες κλήσεις εντός', val: s.phoneLocal,  toggle: () => upd({ phoneLocal:  !s.phoneLocal  }) },
+    { key: 'phoneMobile', label: 'Κλήσεις σε κινητά',          val: s.phoneMobile, toggle: () => upd({ phoneMobile: !s.phoneMobile }) },
+    { key: 'phoneIntl',   label: 'Διεθνείς κλήσεις',           val: s.phoneIntl,   toggle: () => upd({ phoneIntl:   !s.phoneIntl   }) },
+    { key: 'phoneVoip',   label: 'VoIP / App',                 val: s.phoneVoip,   toggle: () => upd({ phoneVoip:   !s.phoneVoip   }), tip: 'Κλήσεις μέσω διαδικτύου ή εφαρμογής (VoIP), π.χ. Viber, WhatsApp, Skype' },
+  ];
+
   const secHdr = (label: string, link?: { url: string; text: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, flex: 1 }}>{label}</span>
@@ -383,13 +401,8 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12, border: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Τι περιλαμβάνει το σταθερό τηλέφωνο</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 10 }}>
-              {[
-                { key: 'phoneLocal',  label: 'Απεριόριστες κλήσεις εντός', val: s.phoneLocal  },
-                { key: 'phoneMobile', label: 'Κλήσεις σε κινητά',          val: s.phoneMobile },
-                { key: 'phoneIntl',   label: 'Διεθνείς κλήσεις',           val: s.phoneIntl   },
-                { key: 'phoneVoip',   label: 'VoIP / App',                  val: s.phoneVoip, tip: 'Κλήσεις μέσω διαδικτύου ή εφαρμογής (VoIP), π.χ. Viber, WhatsApp, Skype' },
-              ].map(f => (
-                <div key={f.key} onClick={() => upd({ [f.key]: !f.val } as any)} title={(f as any).tip}
+              {phoneFeatures.map(f => (
+                <div key={f.key} onClick={f.toggle} title={f.tip}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
                   <span style={{ fontSize: 11, color: f.val ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>

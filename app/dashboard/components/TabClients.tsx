@@ -45,7 +45,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Users, SearchX } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd,
+  T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, ABSENT_DATE,
 } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
@@ -102,6 +102,17 @@ interface IcalFeed {
   id: string; user_id: string; property_id: string; channel: string; url: string;
   include_blocked: boolean; active: boolean; last_synced_at: string | null; last_status: string | null; created_at: string;
 }
+// Υποβολή προ-άφιξης του επισκέπτη (`guest_checkins`). Ακριβώς οι στήλες που
+// ζητά το select() και διαβάζει η κάρτα — τίποτα άλλο: με `any[]` το `select('*')`
+// κατέβαζε ΚΑΙ το `token` του δημόσιου συνδέσμου μαζί με τα στοιχεία ταυτότητας,
+// χωρίς κανείς να το χρειάζεται. Όλα τα προαιρετικά πεδία είναι nullable στη
+// βάση, όπως τα επιστρέφει το PostgREST.
+interface Checkin {
+  id: string; full_name: string; created_at: string | null;
+  id_number: string | null; nationality: string | null; birth_date: string | null;
+  phone: string | null; arrival_date: string | null;
+  guests_count: number | null; accepts_rules: boolean | null;
+}
 
 // Είδη εγγράφων πελάτη (ταυτότητα, συμβόλαιο, απόδειξη, άλλο).
 const DOC_KINDS = ['id', 'contract', 'receipt', 'other'] as const;
@@ -114,6 +125,10 @@ const fmtBytes = (n?: number | null) => {
 };
 
 const todayStr = () => athensToday();
+
+// Φύλακας για ό,τι έρχεται απ' έξω (απόκριση HTTP, JSON.parse): αντικείμενο με
+// άγνωστες τιμές. Τίποτα δεν διαβάζεται χωρίς να ελεγχθεί ο τύπος του πρώτα.
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
 // Deep-links μηνυμάτων. Το normalizePhone αφαιρεί +30/0030· για 10ψήφιο κινητό
 // προσθέτουμε ξανά τον κωδικό χώρας 30 ώστε τα wa.me/viber links να λειτουργούν.
@@ -198,7 +213,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [composeOpen, setComposeOpen] = useState(false);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportYearMenu, setReportYearMenu] = useState(false);
-  const [checkins, setCheckins] = useState<any[]>([]);   // υποβολές pre-check-in του ανοιχτού πελάτη
+  const [checkins, setCheckins] = useState<Checkin[]>([]);   // υποβολές pre-check-in του ανοιχτού πελάτη
   const [checkinCopied, setCheckinCopied] = useState(false);
   // Ποιο πρότυπο μηνύματος είναι επιλεγμένο. Πέντε πρότυπα επί τρία κουμπιά το
   // καθένα έκαναν δεκαπέντε κουμπιά σε μία ενότητα — και μόνο τρία από αυτά
@@ -435,7 +450,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   // Pre-check-in: φόρτωση υποβολών του ανοιχτού πελάτη + δημιουργία/αντιγραφή συνδέσμου
   useEffect(() => {
     if (!openId) { setCheckins([]); setCheckinCopied(false); return; }
-    supabase.from('guest_checkins').select('*').eq('client_id', openId).order('created_at', { ascending: false }).then(({ data }) => setCheckins(data || []));
+    supabase.from('guest_checkins').select('id,full_name,created_at,id_number,nationality,birth_date,phone,arrival_date,guests_count,accepts_rules').eq('client_id', openId).order('created_at', { ascending: false }).then(({ data }) => setCheckins((data || []) as Checkin[]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);
   const copyCheckinLink = async () => {
@@ -471,16 +486,31 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           messages: [{ role: 'user', content: [{ type: 'text', text: text.slice(0, 8000) }] }],
         }),
       });
-      const data = await res.json();
-      if (!res.ok) { setEmailErr(data.error || 'Σφάλμα ανάλυσης.'); setEmailBusy(false); return; }
-      const raw = ((data.content || []).find((c: any) => c.type === 'text')?.text || '{}').replace(/```json?|```/g, '').trim();
-      const p = JSON.parse(raw);
+      // ΤΙ ΕΚΡΥΒΕ ΤΟ `(c: any)`: το `res.json()` δίνει `any`, οπότε ΟΛΗ η αλυσίδα
+      // από κάτω ήταν ανέλεγκτη — και το `p` που έβγαινε από το `JSON.parse` μαζί.
+      // Το `p.guest_name` και τα τρία ποσά είναι κείμενο που έγραψε ΤΟ ΜΟΝΤΕΛΟ:
+      // κανένα δεν είναι εγγυημένο ούτε στον τύπο ούτε στην ύπαρξη. Αν το μοντέλο
+      // επέστρεφε π.χ. `{"gross_guest_paid": {"amount": 420}}`, το `String(...)`
+      // έγραφε «[object Object]» στο πεδίο ποσού και από εκεί σε `parseFloat` → 0,
+      // δηλαδή κράτηση με μηδενικό ακαθάριστο μέσα στη φορολογική βάση.
+      const data: unknown = await res.json();
+      if (!res.ok) {
+        const msg = isRecord(data) ? data.error : undefined;
+        setEmailErr(typeof msg === 'string' && msg ? msg : 'Σφάλμα ανάλυσης.'); setEmailBusy(false); return;
+      }
+      const content: unknown = isRecord(data) ? data.content : undefined;
+      const blocks: readonly unknown[] = Array.isArray(content) ? content : [];
+      const textBlock = blocks.find((c): c is { type: string; text?: string } => isRecord(c) && c.type === 'text');
+      const raw = (typeof textBlock?.text === 'string' ? textBlock.text : '{}').replace(/```json?|```/g, '').trim();
+      const parsed: unknown = JSON.parse(raw);
+      const p: Record<string, unknown> = isRecord(parsed) ? parsed : {};
+      // Κείμενο μόνο αν είναι όντως κείμενο· ποσό μόνο αν είναι αριθμός ή κείμενο.
+      const str = (k: string): string => { const v = p[k]; return typeof v === 'string' ? v : ''; };
+      const amt = (k: string): string => { const v = p[k]; return (typeof v === 'number' || typeof v === 'string') && v ? String(v) : ''; };
       setEmailDraft({
-        name: p.guest_name || '', check_in: p.check_in || '', check_out: p.check_out || '',
-        gross: p.gross_guest_paid ? String(p.gross_guest_paid) : '',
-        fee: p.platform_fee ? String(p.platform_fee) : '',
-        levy: p.climate_levy ? String(p.climate_levy) : '',
-        channel: p.channel || 'other',
+        name: str('guest_name'), check_in: str('check_in'), check_out: str('check_out'),
+        gross: amt('gross_guest_paid'), fee: amt('platform_fee'), levy: amt('climate_levy'),
+        channel: str('channel') || 'other',
       });
     } catch { setEmailErr('Δεν ήταν δυνατή η ανάλυση. Δοκίμασε ξανά ή καταχώρησε χειροκίνητα.'); }
     setEmailBusy(false);
@@ -1218,7 +1248,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div key={ci.id} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', marginTop: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{ci.full_name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{fd(ci.created_at)}</span>
+                    {/* ΤΟ `any[]` ΕΚΡΥΒΕ ΟΤΙ ΤΟ `created_at` ΕΙΝΑΙ NULLABLE — μόλις
+                        μπήκε ο τύπος `Checkin`, ο tsc το έσκασε (TS2345: το `fd`
+                        δέχεται `string|Date`). ΛΑΝΘΑΝΟΝ, ΟΧΙ ΠΑΡΑΤΗΡΗΜΕΝΟ: η στήλη
+                        έχει `DEFAULT now()` και η μόνη διαδρομή εγγραφής σήμερα
+                        (η RPC public_submit_checkin) δεν τη γράφει ρητά, άρα δεν
+                        βγαίνει null στην πράξη. Αν όμως έβγαινε, το `new Date(null)`
+                        δίνει την εποχή Unix: «01 Ιαν 1970» δίπλα στο όνομα του
+                        επισκέπτη. Το ABSENT_DATE είναι η καθιερωμένη ένδειξη. */}
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{ci.created_at ? fd(ci.created_at) : ABSENT_DATE}</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>
                     {[ci.id_number && `Ταυτότητα ${ci.id_number}`, ci.nationality, ci.birth_date && `γεν. ${fd(ci.birth_date)}`, ci.phone, ci.arrival_date && `άφιξη ${fd(ci.arrival_date)}`, ci.guests_count && `${ci.guests_count} άτομα`, ci.accepts_rules && 'αποδοχή κανόνων'].filter(Boolean).join(' · ')}

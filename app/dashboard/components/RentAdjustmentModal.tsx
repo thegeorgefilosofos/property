@@ -106,7 +106,10 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
       await generateReportPdf(model, fname);
       // Δεν κλείνουμε ακόμη: ρωτάμε αν θα αρχειοθετηθεί στα έγγραφα του ακινήτου.
       setPending({ model, fname });
-    } catch (e: any) { setErr(e?.message || 'Αποτυχία δημιουργίας.'); }
+    // Το `catch (e: any)` άφηνε το `e?.message` να γραφτεί σε ΟΤΙΔΗΠΟΤΕ, χωρίς
+    // εγγύηση ότι το πεδίο υπάρχει ή ότι είναι κείμενο. Το `e` είναι `unknown`
+    // εξ ορισμού: μόνο ο έλεγχος `instanceof Error` δικαιολογεί το `.message`.
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας.'); }
     finally { setBusy(false); }
   };
 

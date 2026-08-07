@@ -12,6 +12,7 @@ import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billin
 import { resolveValue } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, recurringMonthly } from '@/lib/expenses/ledger';
 import { athensToday } from '@/lib/core/time';
+import type { ExpensesRow, BillsRow, TenantsRow, BillsSettingsRow } from '@/lib/supabase/tables';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -39,6 +40,13 @@ interface Agg {
 // Μηνιαίος στόχος προϋπολογισμού από τις ρυθμίσεις: το ρητό «total», αλλιώς το άθροισμα
 // των στόχων ανά κατηγορία (αγνοώντας μεταδεδομένα/διακόπτες).
 const BUDGET_META = new Set(['total', 'notifyOverspend', 'rollover', 'participants', 'strPlatformPct', 'strMgmtPct', 'strTaxPct']);
+// Η στήλη `bills_settings.data` είναι jsonb: υπάρχει στη βάση, το ΣΧΗΜΑ της όχι
+// (γι' αυτό `Json = unknown` στο tables.ts). Άρα δεν αρκεί ο τύπος, χρειάζεται
+// φύλακας: ένας πίνακας ή ένα σκέτο string περνούσε ως «ρυθμίσεις» και το
+// `Object.entries` του έδινε δείκτες αντί για ονόματα κατηγοριών — δηλαδή
+// σιωπηλά λάθος μηνιαίος στόχος, χωρίς κανένα σφάλμα.
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
 const budgetTotalOf = (data: Record<string, unknown> | null | undefined): number => {
   if (!data) return 0;
   const t = parseFloat(String(data.total ?? ''));
@@ -96,7 +104,14 @@ export default function TabComparison({ properties, userId }: Props) {
       supabase.from('bills')
         .select('id,name,amount,paid,paid_at,due_date,created_at,category,recurring,property_id')
         .in('property_id', ids).eq('user_id', userId),
-      supabase.from('tenants').select('monthly_rent,property_id').in('property_id', ids).eq('user_id', userId),
+      // ΠΟΙΟΣ ΕΝΟΙΚΟΣ ΜΕΤΡΑ, ΟΤΑΝ ΕΙΝΑΙ ΠΕΡΙΣΣΟΤΕΡΟΙ ΑΠΟ ΕΝΑΣ.
+      // Ένα ακίνητο έχει συνήθως ιστορικό ενοίκων: παλιός, νέος, ενδιάμεσος.
+      // Χωρίς ταξινόμηση η PostgREST δεν εγγυάται σειρά, οπότε η οθόνη έπαιρνε
+      // ΟΠΟΙΑΔΗΠΟΤΕ γραμμή έτυχε να έρθει τελευταία — δηλαδή μπορούσε να δείξει
+      // το ενοίκιο ενοίκου που έφυγε πέρσι, και να το περάσει και στη φορολογική
+      // ενοποίηση. Ο πιο πρόσφατος μετρά, ίδιος κανόνας με το Χαρτοφυλάκιο.
+      supabase.from('tenants').select('monthly_rent,property_id,updated_at').in('property_id', ids).eq('user_id', userId)
+        .order('updated_at', { ascending: false }),
       supabase.from('bills_settings').select('property_id,data').in('property_id', ids).eq('section', 'budgets'),
     ]);
 
@@ -114,12 +129,23 @@ export default function TabComparison({ properties, userId }: Props) {
       (rows || []).forEach(r => { const k = r.property_id || ''; if (g[k]) g[k].push(r); });
       return g;
     };
-    const expByProp = byProp(exp as never[]);
-    const bilByProp = byProp(bil as never[]);
+    // ΤΑ ΣΧΗΜΑΤΑ ΕΙΝΑΙ ΑΚΡΙΒΩΣ ΟΙ ΣΤΗΛΕΣ ΤΩΝ SELECT ΠΑΡΑΠΑΝΩ.
+    // Ήταν `as never[]`, που δεν είναι τύπος αλλά σβήσιμο τύπου: το `never[]`
+    // πηγαίνει παντού, οπότε ο πυρήνας του ημερολογίου δεχόταν ό,τι κι αν του
+    // έδινε το ερώτημα. Ένα λάθος όνομα στήλης στο `select(...)` περνούσε ως
+    // `undefined` και έβγαινε ως μηδέν δαπάνες — δηλαδή «φθηνό» ακίνητο.
+    // Κομμένα με `Pick` από το παραγόμενο σχήμα: το όνομα κάθε στήλης ελέγχεται
+    // μία φορά, στη μεταγλώττιση.
+    const expRows: Pick<ExpensesRow, 'id' | 'bill_id' | 'amount' | 'date' | 'description' | 'category' | 'paid' | 'expense_group' | 'is_recurring' | 'store_vendor' | 'property_id'>[] = exp || [];
+    const bilRows: Pick<BillsRow, 'id' | 'name' | 'amount' | 'paid' | 'paid_at' | 'due_date' | 'created_at' | 'category' | 'recurring' | 'property_id'>[] = bil || [];
+    const tenRows: Pick<TenantsRow, 'monthly_rent' | 'property_id' | 'updated_at'>[] = ten || [];
+    const budRows: Pick<BillsSettingsRow, 'property_id' | 'data'>[] = bud || [];
+    const expByProp = byProp(expRows);
+    const bilByProp = byProp(bilRows);
 
     const m: Record<string, Agg> = {};
     ids.forEach(id => {
-      const { entries } = mergeLedger(bilByProp[id] as never[], expByProp[id] as never[]);
+      const { entries } = mergeLedger(bilByProp[id], expByProp[id]);
       const ofYear = entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
       m[id] = {
         expensesYTD: ledgerTotal(ofYear),
@@ -132,8 +158,26 @@ export default function TabComparison({ properties, userId }: Props) {
         budgetMonthly: 0,
       };
     });
-    (ten || []).forEach((t: any) => { if (m[t.property_id]) m[t.property_id].monthlyRent = t.monthly_rent || 0; });
-    (bud || []).forEach((r: any) => { if (m[r.property_id]) m[r.property_id].budgetMonthly = budgetTotalOf(r.data); });
+    // ΓΡΑΜΜΗ ΧΩΡΙΣ ΑΚΙΝΗΤΟ ΔΕΝ ΑΝΗΚΕΙ ΣΕ ΚΑΝΕΝΑ ΑΚΙΝΗΤΟ.
+    // Το `property_id` και στους δύο πίνακες μπορεί να είναι κενό — ο τύπος το
+    // λέει, το `any` το έκρυβε. Το παλιό `m[t.property_id]` έψαχνε τότε το κλειδί
+    // «null» και ο έλεγχος το προσπερνούσε κατά τύχη, όχι κατά πρόθεση. Τώρα ο
+    // έλεγχος είναι ρητός και τον απαιτεί ο μεταγλωττιστής.
+    //
+    // Η λίστα έρχεται φθίνουσα κατά `updated_at`, άρα ο ΠΡΩΤΟΣ ένοικος κάθε
+    // ακινήτου είναι ο πιο πρόσφατος και κρατά τη θέση του.
+    const rentSeen = new Set<string>();
+    tenRows.forEach(t => {
+      const id = t.property_id;
+      if (!id || !m[id] || rentSeen.has(id)) return;
+      rentSeen.add(id);
+      m[id].monthlyRent = Number(t.monthly_rent) || 0;
+    });
+    budRows.forEach(r => {
+      const id = r.property_id;
+      // Το `data` είναι jsonb: έρχεται απ' έξω, χωρίς σχήμα. Φύλακας πριν τη χρήση.
+      if (id && m[id]) m[id].budgetMonthly = budgetTotalOf(isRecord(r.data) ? r.data : null);
+    });
     setAgg(m);
     setLoading(false);
   }, [properties, userId]);

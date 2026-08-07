@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import {
   SPITI_MOU, spitiMouEligibility, spitiMouPayment, spitiMouIncomeLimit,
-  annuityMonthly, rankLoans, type UserLoanNeeds,
+  annuityMonthly, rankLoans, type UserLoanNeeds, type BankInput,
 } from '@/lib/loans/recommend'
 
 // ── «Σπίτι μου ΙΙ — για σένα» ────────────────────────────────────────────────
@@ -23,7 +23,12 @@ export default function SpitiMouPanel({
   /** Αριθμός εξαρτώμενων τέκνων για το εισοδηματικό όριο «Σπίτι μου ΙΙ».
    *  ΔΕΝ είναι React children — γι' αυτό δεν λέγεται `children`. */
   childCount?: number
-  sqm?: number; yearBuilt?: number; banks: any[]; euribor: number
+  // Ο πίνακας τραπεζών πηγαίνει αυτούσιος στον `rankLoans`, άρα ο τύπος του
+  // είναι αυτός που ζητά ο `rankLoans` — ούτε ένα πεδίο λιγότερο. Με `any[]`
+  // χρειαζόταν `as any` στην κλήση παρακάτω, δηλαδή μια τράπεζα χωρίς
+  // `fixed_min`/`max_ltv` περνούσε αθόρυβα και έβγαινε κατάταξη με μηδενικά
+  // επιτόκια. Ίδιος τύπος με το LoanDocScan, που δέχεται τον ίδιο πίνακα.
+  sqm?: number; yearBuilt?: number; banks: BankInput[]; euribor: number
   fmtEur: (n: number) => string; fmtPct: (n: number) => string; onOpenCalculator?: () => void
 }) {
   const [hi, setHi] = useState(false)
@@ -55,7 +60,7 @@ export default function SpitiMouPanel({
   const hardFail = crit.some(c => c.status === 'fail')
 
   // Συμμετέχουσες τράπεζες, κατά συνολικό κόστος.
-  const ranked = rankLoans(needs, banks as any, euribor).filter(r => r.spitiMouApplied && r.eligible).slice(0, 3)
+  const ranked = rankLoans(needs, banks, euribor).filter(r => r.spitiMouApplied && r.eligible).slice(0, 3)
 
   // Αντίστροφη μέτρηση ως τη λήξη σύναψης συμβολαίων (31/08/2026).
   const deadline = new Date(SPITI_MOU.contractDeadline + 'T23:59:59')

@@ -198,8 +198,11 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       };
       await generateReportPdf(model, `Αναφορά_${subject}_${periodLabel}`.replace(/\s+/g, '_'));
       onClose();
-    } catch (e: any) {
-      setErr(e?.message || 'Αποτυχία δημιουργίας αναφοράς.');
+    // Ίδιο catch με το `generateComparison` παρακάτω, που ήδη το είχε σωστά:
+    // `unknown` + `instanceof Error`. Το `e: any` εδώ άφηνε το `e?.message` να
+    // περάσει σε οτιδήποτε — ένα `throw` που δεν είναι Error έδινε `undefined`.
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας αναφοράς.');
     } finally { setBusy(false); }
   };
 

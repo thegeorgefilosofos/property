@@ -7,12 +7,29 @@ import { createClient } from '@/lib/supabase/client'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
-import type { BillsRow, CalendarEventsRow, ClientStaysRow } from '@/lib/supabase/tables'
+import type { BillsRow, CalendarEventsRow, ClientStaysRow, MaintenanceTasksRow } from '@/lib/supabase/tables'
 import type { TenantScheduleInput } from './TabTenantHelpers'
 
 // Ό,τι διαβάζει ο συγχρονισμός από κάθε πίνακα, γραμμένο εδώ και μόνο εδώ.
 type TenantScheduleRow = TenantScheduleInput & { rent_due_day?: number | null }
 type StayWithGuest = Pick<ClientStaysRow, 'id'|'check_in'|'check_out'|'total'|'nights'|'guests'|'channel'> & { clients?: { full_name?: string | null } | null }
+// Οι μπάρες διαμονής της προβολής Μήνα ζητούν ΛΙΓΟΤΕΡΕΣ στήλες από τον συγχρονισμό
+// κρατήσεων (χωρίς nights/guests). Δηλώνονται ξεχωριστά, ακριβώς όσες λέει το
+// select(), ώστε στήλη που δεν ζητήθηκε να μη διαβάζεται κατά λάθος ως υπαρκτή.
+//
+// ΤΟ `clients(full_name)` ΜΕΝΕΙ `unknown`, ΚΑΙ ΟΧΙ ΑΠΟ ΤΕΜΠΕΛΙΑ. Το σχήμα του
+// συνδεδεμένου πίνακα δεν είναι στήλη: το `client_stays.client_id` δείχνει σε ΕΝΑΝ
+// πελάτη, άρα το PostgREST επιστρέφει αντικείμενο — αλλά ο τύπος που συμπεραίνει το
+// postgrest-js χωρίς γεννημένους τύπους βάσης υποθέτει ΠΙΝΑΚΑ (`{full_name}[]`).
+// Οι δύο διαφωνούν και κανείς δεν μπορεί να αποδειχθεί εδώ, οπότε το διαβάζουμε με
+// φύλακα που δέχεται και τα δύο — αντί να δηλώσουμε τη μία εκδοχή και, αν είναι η
+// λάθος, το `?.full_name` να δίνει σιωπηλά undefined σε ΚΑΘΕ κράτηση.
+type StayBarRow = Pick<ClientStaysRow, 'id'|'check_in'|'check_out'|'total'|'channel'> & { clients?: unknown }
+const joinedFullName = (v: unknown): string | null => {
+  const one: unknown = Array.isArray(v) ? v[0] : v
+  if (!one || typeof one !== 'object' || !('full_name' in one)) return null
+  return typeof one.full_name === 'string' ? one.full_name : null
+}
 // Νέο γεγονός: υποχρεωτικά μόνο όσα δεν δέχονται κενό στη βάση· τα υπόλοιπα
 // συμπληρώνονται ή μένουν. Το `id` και το `recurrence_exdates` τα δίνει η βάση.
 type CalendarEventInsert =
@@ -579,13 +596,19 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
   // τον ίδιο κανόνα που χρησιμοποιεί και η Επισκόπηση.
   const taxProfile=(mode==='short_term'?'short_term':mode==='long_term'?'long_term':'owner')
 
-  const cnt=async(table:string,extra?:(q:any)=>any)=>{ let q=supabase.from(table).select('*',{count:'exact',head:true}).eq('property_id',propertyId); if(extra)q=extra(q); const{count}=await q; return count||0 }
+  // Ο τύπος του ερωτήματος καταμέτρησης δεν γράφεται με το χέρι — τον δίνει το ίδιο
+  // το Supabase. Με `(q:any)=>any` το `extra` μπορούσε να καλέσει οτιδήποτε πάνω στο
+  // ερώτημα (ακόμη και μέθοδο που δεν υπάρχει) ή να επιστρέψει κάτι που δεν είναι
+  // καν ερώτημα, και το `await q` παρακάτω θα έσκαγε μόνο στον browser.
+  const countQuery=(table:string)=>supabase.from(table).select('*',{count:'exact',head:true}).eq('property_id',propertyId)
+  type CountQuery=ReturnType<typeof countQuery>
+  const cnt=async(table:string,extra?:(q:CountQuery)=>CountQuery)=>{ let q=countQuery(table); if(extra)q=extra(q); const{count}=await q; return count||0 }
   useEffect(()=>{
     (async()=>{
       const[{data:prop},bills,maintenance,leases,bookings,loans]=await Promise.all([
         supabase.from('user_properties').select('status_detail,rental_mode').eq('id',propertyId).maybeSingle(),
         cnt('bills'), cnt('maintenance_tasks'),
-        cnt('tenants',(q:any)=>q.neq('status','past')), cnt('client_stays'), cnt('loans'),
+        cnt('tenants',q=>q.neq('status','past')), cnt('client_stays'), cnt('loans'),
       ])
       const prof=taxProfileOf(prop)
       const m=prof==='short_term'?'short_term':prof==='long_term'?'long_term':null
@@ -647,9 +670,9 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     }
     // ── Συντήρηση ──
     if(k==='maintenance'){
-      const tasks=await must(supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId))
+      const tasks:MaintenanceTasksRow[]=await must(supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId))??[]
       await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).in('source',['loan','maintenance']))
-      const rows=(tasks||[]).filter((t:any)=>t.due_date).map((t:any)=>({property_id:propertyId,user_id:userId,title:t.title||'Εργασία συντήρησης',category:'maintenance' as EventCategory,event_date:t.due_date,amount:null,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,recurring:false,notes:t.description||null,source:'maintenance'}))
+      const rows=tasks.filter(t=>t.due_date).map(t=>({property_id:propertyId,user_id:userId,title:t.title||'Εργασία συντήρησης',category:'maintenance' as EventCategory,event_date:t.due_date,amount:null,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,recurring:false,notes:t.description||null,source:'maintenance'}))
       if(rows.length)await must(supabase.from('calendar_events').insert(rows))
       return rows.length
     }
@@ -1334,7 +1357,15 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   // Κρατήσεις βραχυχρόνιας (client_stays) → μπάρες διαμονής στην προβολή Μήνα.
   async function loadStays() {
     const{data}=await supabase.from('client_stays').select('id,check_in,check_out,total,channel,clients(full_name)').eq('property_id',propertyId)
-    const spans=(data||[]).map((s:any)=>toStaySpan({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,channel:s.channel,guest_name:s.clients?.full_name??null})).filter(Boolean) as StaySpan[]
+    // ΤΟ check_in ΤΩΝ ΚΡΑΤΗΣΕΩΝ ΔΕΧΕΤΑΙ NULL. Το `(s:any)` το έκρυβε: η κράτηση χωρίς
+    // άφιξη έμπαινε ολόκληρη στο `toStaySpan`, όπου το `regex.test(null)` δοκίμαζε τη
+    // λέξη "null" και γύριζε null — σωστό αποτέλεσμα, αλλά κατά τύχη. Ο συγχρονισμός
+    // κρατήσεων παραπάνω κόβει ήδη ρητά τις ίδιες γραμμές· εδώ γίνεται το ίδιο.
+    const rows:StayBarRow[]=data??[]
+    const spans=rows
+      .filter((s):s is StayBarRow&{check_in:string}=>!!s.check_in)
+      .map(s=>toStaySpan({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,channel:s.channel,guest_name:joinedFullName(s.clients)}))
+      .filter((s):s is StaySpan=>s!==null)
     setStays(spans)
   }
 

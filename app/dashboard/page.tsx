@@ -3,6 +3,7 @@
 import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
 import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
@@ -414,7 +415,19 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses(allExp||[]);
-    const rcById = new Map((allRc||[]).map((r:any)=>[r.property_id, r]));
+    // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
+    // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν
+    // ελεγχόταν καν ως όνομα στήλης.
+    // Το `property_id` είναι nullable στο σχήμα (rent_config.property_id uuid,
+    // χωρίς NOT NULL — baseline.sql:2722 / RentConfigRow, tables.ts:1018), άρα ο
+    // χάρτης συμπεραινόταν ως `Map<string|null, …>`. Η ορφανή ρύθμιση με κλειδί
+    // `null` ΔΕΝ επιστρεφόταν ποτέ από το `get(p.id)` παρακάτω (το p.id είναι
+    // πάντα string) — ο κίνδυνος είναι ότι ο τύπος του κλειδιού ΕΠΕΤΡΕΠΕ να
+    // ρωτήσει κάποιος αργότερα με μια nullable τιμή και να πάρει τη ρύθμιση
+    // λάθος ακινήτου. Το κλειδί δηλώνεται `string` και οι ορφανές πετιούνται.
+    type RcRow = { property_id: string | null; actual_rent: number | null; target_rent: number | null };
+    const rcById = new Map<string, RcRow>();
+    ((allRc||[]) as RcRow[]).forEach(r => { if (r.property_id) rcById.set(r.property_id, r); });
     // Κρατάμε τον ΜΕΓΑΛΥΤΕΡΟ ενοικιαστή ανά ακίνητο, μαζί με τον τρόπο είσπραξής
     // ΤΟΥ: αλλιώς θα ζευγαρώναμε το ενοίκιο του ενός με τη δήλωση του άλλου.
     // `e_payment !== false` και όχι `=== true`: κενή στήλη σημαίνει «δεν το έχει
@@ -426,7 +439,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       if (v > (tenById.get(t.property_id)?.monthly ?? 0)) tenById.set(t.property_id, { monthly: v, viaBank: t.e_payment !== false });
     });
     setPortfolioRents(properties.map(p => {
-      const rc:any = rcById.get(p.id);
+      const rc = rcById.get(p.id);
       const fromTenant = tenById.get(p.id);
       const monthly = fromTenant?.monthly || Number(rc?.actual_rent) || Number(rc?.target_rent) || Number(p.target_rent) || 0;
       // Χωρίς ενοικιαστή δεν υπάρχει δηλωμένος τρόπος είσπραξης: το ενοίκιο
@@ -1032,7 +1045,10 @@ function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric
 // Main Dashboard
 export default function Dashboard() {
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
+  // Ο χρήστης έρχεται από `supabase.auth.getUser()` — έχει δικό του τύπο. Με
+  // `any` κανένα από τα ~30 σημεία που διαβάζουν `user.id`/`user.email`/
+  // `user.created_at` δεν ελεγχόταν, ούτε το `user_metadata`.
+  const [user, setUser] = useState<User | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selected, setSelected] = useState<Property | null>(null);
   // Η ΚΑΡΤΕΛΑ ΕΙΝΑΙ ΤΟΠΟΘΕΣΙΑ. Ήταν `useState`, οπότε η διεύθυνση έμενε
@@ -1440,7 +1456,21 @@ export default function Dashboard() {
   // Ο χειροποίητος κύκλος είχε ΔΙΚΟ ΤΟΥ inline <style> με @keyframes spin — ακριβές
   // διπλότυπο του globals.css. Δύο ορισμοί της ίδιας κίνησης σημαίνει ότι μια αλλαγή
   // ταχύτητας στο ένα σημείο άφηνε το άλλο πίσω.
-  if (loading) return (
+  // ΤΟ `!user` ΔΕΝ ΕΙΝΑΙ ΑΜΥΝΤΙΚΟ — ΤΟ ΑΠΟΚΑΛΥΨΕ Ο ΤΥΠΟΣ.
+  // Με `useState<any>` περνούσαν αμέτρητα `user.id` στις καρτέλες παρακάτω
+  // χωρίς κανέναν έλεγχο· ο σωστός τύπος έβγαλε 20 σφάλματα «possibly null».
+  // Ο έλεγχος μπαίνει ΕΔΩ και όχι σε κάθε χρήση, γιατί εδώ είναι η αλήθεια:
+  // το `init()` κάνει `setUser` ΠΡΙΝ το `fetchProperties`, και όταν ο χρήστης
+  // λείπει κάνει redirect στο /login ΧΩΡΙΣ `setLoading(false)` — άρα το
+  // `loading===false` συνεπάγεται ήδη `user !== null` (μοναδικό
+  // `setLoading(false)` αυτού του component: γραμμή 1340, στο τέλος του init·
+  // το άλλο, στη γραμμή 449, ανήκει στο τοπικό `loading` του OverviewTab).
+  // ΓΙ' ΑΥΤΟ ΤΟ `!user` ΔΕΝ ΑΛΛΑΖΕΙ ΣΥΜΠΕΡΙΦΟΡΑ: στο μονοπάτι του redirect το
+  // `loading` μένει true και ο δείκτης φόρτωσης έδειχνε ήδη. Γράφεται εδώ,
+  // στο υπάρχον gate, για να ΚΩΔΙΚΟΠΟΙΗΣΕΙ την αναλλοίωτη μία φορά και να
+  // στενέψει τον τύπο για ΟΛΗ την απόδοση — αντί για 20 `!` ή cast στα σημεία
+  // χρήσης, που θα σιώπαγαν τον έλεγχο αντί να τον ικανοποιήσουν.
+  if (loading || !user) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg-base)'}}>
       <Spinner size={48} label="Φόρτωση…" />
     </div>
