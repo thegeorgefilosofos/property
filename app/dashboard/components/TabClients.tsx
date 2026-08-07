@@ -66,7 +66,7 @@ import { revenueByChannel, revenueByMonth, yearOccupancy, totals } from '@/lib/c
 import { navLabel } from '@/lib/nav/labels';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
-import { athensToday } from '@/lib/core/time';
+import { athensToday, isoYear } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -1032,7 +1032,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           «Ποιότητα φιλοξενίας». Ο χρήστης δεν ρωτάει «πόσα έβγαλα» — ρωτάει
           «πόσα δηλώνω και από πού ήρθαν». Αυτό δεν είναι υπομενού. */}
       {allStays.length > 0 && (() => {
-        const yearOf = (s: Stay) => { const d = s.check_in || s.check_out; return d ? new Date(d).getFullYear() : null; };
+        // Κείμενο, όχι ρολόι: το `new Date(d).getFullYear()` έριχνε τη διαμονή
+        // της Πρωτοχρονιάς στην προηγούμενη χρονιά σε κάθε αρνητική ζώνη ώρας.
+        const yearOf = (s: Stay) => isoYear(s.check_in || s.check_out);
         const yearsAvail = Array.from(new Set(allStays.map(yearOf).filter((y): y is number => y != null)));
         if (!yearsAvail.includes(reportYear)) yearsAvail.push(reportYear);
         yearsAvail.sort((a, b) => b - a);

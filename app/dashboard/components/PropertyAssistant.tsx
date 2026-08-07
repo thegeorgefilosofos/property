@@ -83,7 +83,7 @@ type ContactLite = { name: string; role: string; phone: string; email: string };
 import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from '@/lib/assistant/openers';
 import { scanFile, commitScannedDoc, type ReconcileQuestion } from './scanDoc';
 import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
-import { athensToday, athensNowLabel, daysUntil } from '@/lib/core/time';
+import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
 const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
@@ -705,7 +705,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Έγκυρη ISO ημερομηνία (καθορίζει τον ΜΗΝΑ στον προϋπολογισμό)· αλλιώς σήμερα.
     const useDate = date && !isNaN(new Date(date).getTime()) ? date : today;
     const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
-    const monthLbl = useDate !== today ? ` (${MON_GR[new Date(useDate).getMonth()]})` : '';
+    // Ο μήνας από το κείμενο της ημερομηνίας. Με `new Date(...).getMonth()` η
+    // δαπάνη της 1ης Ιανουαρίου ονομαζόταν «Δεκεμβρίου» σε αρνητική ζώνη ώρας.
+    const monthLbl = useDate !== today ? ` (${MON_GR[(isoMonth(useDate) ?? 1) - 1]})` : '';
     try {
       await must(supabase.from('expenses').insert({
         property_id: propertyId, user_id: userId,

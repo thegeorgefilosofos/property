@@ -56,14 +56,32 @@ export function revenueByChannel(stays: ReportStay[]): ChannelRow[] {
 }
 
 /** Ακαθάριστα ανά μήνα (0..11) για συγκεκριμένο έτος, με βάση την ημερομηνία άφιξης. */
+/**
+ * Έσοδα ανά μήνα άφιξης.
+ *
+ * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΘΗΚΕ, ΚΑΙ ΓΙΑΤΙ ΔΕΝ ΤΟ ΕΙΔΕ ΚΑΝΕΙΣ. Εδώ γραφόταν
+ * `new Date(d)` και μετά `dt.getFullYear()` / `dt.getMonth()` — δηλαδή η
+ * ημερομηνία διαβαζόταν σε UTC και ρωτιόταν σε ΤΟΠΙΚΗ ώρα. Το «2026-01-01»
+ * είναι μεσάνυχτα UTC· σε ζώνη με ΑΡΝΗΤΙΚΗ απόκλιση (Νέα Υόρκη, UTC−5) γίνεται
+ * 31 Δεκεμβρίου 2025 στα τοπικά. Η διαμονή της Πρωτοχρονιάς δεν έμπαινε στον
+ * Δεκέμβριο — έπεφτε έξω από τη ΧΡΟΝΙΑ και εξαφανιζόταν εντελώς από το γράφημα.
+ *
+ * Στην Ελλάδα (UTC+2/+3) η απόκλιση είναι θετική, οπότε ΔΕΝ φαινόταν ποτέ. Και
+ * ο κώδικας τρέχει στον περιηγητή του ΧΡΗΣΤΗ, όχι στον διακομιστή: ένας
+ * ιδιοκτήτης που άνοιγε την εφαρμογή από την Αμερική έβλεπε άλλα νούμερα.
+ *
+ * Η λύση δεν είναι μετατροπή ζώνης: η στήλη είναι `date`, δηλαδή ΗΜΕΡΟΛΟΓΙΑΚΗ
+ * ημέρα χωρίς ώρα. Διαβάζεται ως κείμενο, όπως ακριβώς γράφτηκε.
+ */
 export function revenueByMonth(stays: ReportStay[], year: number): number[] {
   const out = new Array(12).fill(0);
   for (const s of stays) {
     const d = s.check_in || s.check_out;
-    if (!d) continue;
-    const dt = new Date(d);
-    if (isNaN(dt.getTime()) || dt.getFullYear() !== year) continue;
-    out[dt.getMonth()] += declarableGrossOrTotal(s);
+    const m = /^(\d{4})-(\d{2})-\d{2}/.exec(d || '');
+    if (!m || Number(m[1]) !== year) continue;
+    const idx = Number(m[2]) - 1;
+    if (idx < 0 || idx > 11) continue;
+    out[idx] += declarableGrossOrTotal(s);
   }
   return out;
 }

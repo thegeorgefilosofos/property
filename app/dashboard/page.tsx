@@ -67,7 +67,7 @@ import { taxProfileOf } from '@/lib/tax/greekTaxCalendar';
 import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
 import BillingNudge from './components/BillingNudge';
-import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
+import { athensToday, daysUntil as athensDaysUntil, isoYear, isoMonth } from '@/lib/core/time';
 import { saved, savedData } from '@/components/dbWrite';
 
 interface Property {
@@ -503,9 +503,12 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // χρονιάς, οπότε κάθε Φεβρουάριο ο χρήστης διάβαζε «−78% σε σχέση με πέρσι» —
   // αριθμός που δεν έλεγε τίποτα για τη συμπεριφορά του, μόνο ότι ο χρόνος μόλις
   // ξεκίνησε. Τώρα συγκρίνονται Ιαν–τρέχων μήνας με Ιαν–ίδιο μήνα πέρσι.
-  const monthOf = (d: string) => new Date(d).getMonth() + 1;
-  const expThisY = allExpenses.filter(e => new Date(e.date).getFullYear() === year).reduce((s,e)=>s+e.amount,0);
-  const expPrevSame = allExpenses.filter(e => new Date(e.date).getFullYear() === year-1 && monthOf(e.date) <= month).reduce((s,e)=>s+e.amount,0);
+  // Η ΧΡΟΝΙΑ ΚΑΙ Ο ΜΗΝΑΣ ΔΙΑΒΑΖΟΝΤΑΙ ΩΣ ΚΕΙΜΕΝΟ. Εδώ γραφόταν
+  // `new Date(e.date).getFullYear()`: ανάγνωση σε UTC, ερώτηση σε τοπική ώρα.
+  // Η δαπάνη της 1ης Ιανουαρίου έφευγε από τη χρονιά της για κάθε χρήστη σε
+  // ζώνη με αρνητική απόκλιση — και ο κώδικας τρέχει στον περιηγητή ΤΟΥ.
+  const expThisY = allExpenses.filter(e => isoYear(e.date) === year).reduce((s,e)=>s+e.amount,0);
+  const expPrevSame = allExpenses.filter(e => isoYear(e.date) === year-1 && (isoMonth(e.date) ?? 13) <= month).reduce((s,e)=>s+e.amount,0);
   const expDeltaPct = expPrevSame > 0 ? Math.round((expThisY - expPrevSame)/expPrevSame*100) : null;
   // Διαχωρισμός πληρωμένων/εκκρεμών: το σύνολο (accrual) οδηγεί την απόδοση, αλλά
   // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
-import { athensToday } from '@/lib/core/time';
+import { athensToday, isoYear, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
@@ -523,8 +523,15 @@ interface DatePickerProps {
 export function DatePicker({ label, value, onChange, disabled, placeholder = 'Επιλογή ημερομηνίας' }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [month, setMonth] = useState(() => value ? new Date(value).getMonth() : new Date().getMonth());
-  const [year, setYear] = useState(() => value ? new Date(value).getFullYear() : new Date().getFullYear());
+  // ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΑΝΟΙΓΕ ΣΕ ΛΑΘΟΣ ΜΗΝΑ. Εδώ γραφόταν `new Date(value).getMonth()`:
+  // η αποθηκευμένη τιμή «2026-01-15» διαβάζεται σε UTC και ρωτιέται σε τοπική
+  // ώρα. Για τιμή της 1ης του μήνα, σε ζώνη με αρνητική απόκλιση, ο επιλογέας
+  // άνοιγε στον ΠΡΟΗΓΟΥΜΕΝΟ μήνα — δηλαδή δεν έδειχνε την ημερομηνία που ήδη
+  // είχε ο χρήστης, και έπρεπε να πατήσει «επόμενος» για να τη δει.
+  // Το `new Date()` χωρίς όρισμα μένει: εκεί κατασκευή και ανάγνωση είναι και
+  // οι δύο τοπικές, άρα συμφωνούν.
+  const [month, setMonth] = useState(() => (isoMonth(value) ?? new Date().getMonth() + 1) - 1);
+  const [year, setYear] = useState(() => isoYear(value) ?? new Date().getFullYear());
   const ref = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   // Το ημερολόγιο ζωγραφίζεται μέσω portal στο body ώστε να μην «κόβεται» από modal

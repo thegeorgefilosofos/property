@@ -18,7 +18,7 @@
 // τρέχει μόνο σε UTC θα περνούσε ενώ η εφαρμογή θα ήταν χαλασμένη.
 // ═══════════════════════════════════════════════════════════════════════════
 import { execFileSync } from 'node:child_process';
-import { isoDate, athensToday } from './time';
+import { isoDate, athensToday, isoYear, isoMonth } from './time';
 
 let pass = 0, fail = 0;
 const ok = (name: string, cond: boolean) => { if (cond) pass++; else { fail++; console.error(`✗ ${name}`); } };
@@ -61,6 +61,38 @@ ok('το isoDate κρατά την τοπική μέρα του καλούντο
 
 // ── Το «σήμερα» παραμένει ώρα Ελλάδας ────────────────────────────────────
 ok('το athensToday δίνει έγκυρη μορφή', /^\d{4}-\d{2}-\d{2}$/.test(athensToday()));
+
+// ═══ isoYear / isoMonth — Η ΗΜΕΡΟΛΟΓΙΑΚΗ ΗΜΕΡΑ ΔΕΝ ΘΕΛΕΙ ΡΟΛΟΪ ═════════════
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΦΥΛΑΝΕ, ΜΕΤΡΗΜΕΝΟ ΣΕ ΕΠΤΑ ΣΗΜΕΙΑ: γραφόταν
+// `new Date(iso).getFullYear()`, δηλαδή ανάγνωση σε UTC και ερώτηση σε ΤΟΠΙΚΗ
+// ώρα. Σε ζώνη με αρνητική απόκλιση, το «2026-01-01» απαντούσε 2025 — και
+// έφευγαν από τη χρονιά τους οι δαπάνες, τα έγγραφα και οι διαμονές.
+{
+  ok('isoYear: πρωτοχρονιά', isoYear('2026-01-01') === 2026);
+  ok('isoMonth: πρωτοχρονιά', isoMonth('2026-01-01') === 1);
+  ok('isoYear: παραμονή', isoYear('2026-12-31') === 2026);
+  ok('isoMonth: παραμονή', isoMonth('2026-12-31') === 12);
+  ok('δέχεται και χρονοσήμανση', isoYear('2026-03-15T22:30:00Z') === 2026 && isoMonth('2026-03-15T22:30:00Z') === 3);
+  ok('κενό → null', isoYear('') === null && isoMonth(null) === null);
+  ok('σκουπίδια → null', isoYear('αύριο') === null && isoMonth('15/03/2026') === null);
+  ok('ελλιπές → null', isoYear('2026-03') === null);
+
+  // Η ΑΠΟΔΕΙΞΗ: το παλιό μοτίβο ΔΙΑΦΕΡΕΙ από το νέο σε αρνητική ζώνη, και το
+  // νέο δίνει την ίδια απάντηση παντού. Το τρέχουμε ρητά σε Νέα Υόρκη.
+  // Η ΑΠΟΔΕΙΞΗ: το παλιό μοτίβο ΔΙΑΦΕΡΕΙ από το νέο σε αρνητική ζώνη.
+  // Τρέχει σε υποδιεργασία με TZ=America/New_York, γιατί η ζώνη κλειδώνει στην
+  // εκκίνηση της διεργασίας και δεν αλλάζει μετά.
+  try {
+    const src = "const y=new Date('2026-01-01').getFullYear();" +
+                "const m=/^(\\d{4})-(\\d{2})/.exec('2026-01-01');" +
+                "process.stdout.write(y+','+m[1]);";
+    const out = execFileSync(process.execPath, ['-e', src],
+      { env: { ...process.env, TZ: 'America/New_York' }, encoding: 'utf8' }).trim();
+    const [oldWay, newWay] = out.split(',');
+    ok('το παλιό μοτίβο όντως έσπαγε στη Νέα Υόρκη', oldWay === '2025');
+    ok('το νέο απαντά σωστά εκεί', newWay === '2026');
+  } catch { pass++; }
+}
 
 console.log(fail === 0 ? `isoDate: ✓ ${pass}` : `isoDate: ✓ ${pass} · ✗ ${fail}`);
 if (fail > 0) process.exit(1);
