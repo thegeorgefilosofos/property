@@ -13,6 +13,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, type ReportBranding } from '@/lib/reportBranding';
 import { localDay } from '@/lib/core/time';
+import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE, RULE_SOFT } from '@/lib/print/ink';
+import { BRAND_MARK_INK } from '@/components/BrandMark';
 
 // ── ΜΟΡΦΟΠΟΙΗΣΗ — ΙΔΙΑ ΜΕ ΤΗΝ ΟΘΟΝΗ ΚΑΙ ΜΕ ΤΙΣ ΕΚΤΥΠΩΣΕΙΣ ────────────────────
 // Ήταν τρίτο αντίγραφο των ίδιων τεσσάρων μορφοποιητών, με τις ίδιες τρεις
@@ -63,13 +65,30 @@ export interface PdfReportModel {
   disclaimer?: string;
 }
 
-// ── Παλέτα (ασπρόμαυρο· accent μόνο στο σήμα) ─────────────────────────────────
-const INK = '#111111';
-const MUTE = '#6b7280';
-const FAINT = '#9aa0a6';
-const HAIR = '#eef0f2';
-const RULE = '#111111';
-const HEADRULE = '#d0d5dd';
+// ── ΠΑΛΕΤΑ: Η ΙΔΙΑ ΜΕ ΤΙΣ ΕΚΤΥΠΩΣΕΙΣ, ΟΧΙ ΠΑΡΑΛΛΗΛΗ ────────────────────────
+//
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Εδώ ζούσε ιδιωτική παλέτα, και κάθε ρόλος της είχε ΑΛΛΗ
+// τιμή από το `lib/print/ink.ts` — συν οκτώ ακόμη ωμές αποχρώσεις σκορπισμένες
+// μέσα στο αρχείο:
+//
+//     ρόλος          ink.ts     εδώ          και ωμά μέσα στο αρχείο
+//     δευτερεύον     #5f6368    #6b7280      #374151 (τρεις φορές)
+//     τριτεύον       #8a8f98    #9aa0a6      #b6bcc4
+//     γραμμή         #dadce0    #d0d5dd      #e5e7eb (πέντε φορές)
+//     φόντο          #f8f9fa    —            #fafafa (δύο), #f3f4f6
+//     σήμα           #ffffff    '#fff'
+//
+// Το αρχείο δεν σαρωνόταν ποτέ: η καστάνια χρώματος κοίταζε μόνο `app/` και
+// `components/`. Άρα ο λογιστής έπαιρνε την εκτυπώσιμη και την ΕΠΙΣΗΜΗ εκδοχή
+// των ίδιων αριθμών — αυτή με τον αριθμό εγγράφου και τον κωδικό QR
+// επαλήθευσης — με διαφορετικά γκρι σε κάθε ετικέτα και κάθε γραμμή πίνακα.
+//
+// Η ΒΑΡΙΑ ΓΡΑΜΜΗ ΕΙΝΑΙ ΜΕΛΑΝΙ, ΟΧΙ ΓΡΑΜΜΗ. Το παλιό τοπικό «RULE» εδώ ήταν #111111,
+// δηλαδή το κύριο μελάνι: είναι η μαύρη γραμμή πάνω από το αποτέλεσμα μιας
+// λογιστικής κατάστασης, όχι διαχωριστικό. Ονομάζεται πλέον έτσι.
+
+/** Η βαριά γραμμή του αποτελέσματος: κύριο μελάνι, όχι διαχωριστικό. */
+const HEAVY_RULE = INK;
 
 const brandDisplayName = (b?: ReportBranding | null) => (b?.companyName?.trim() || 'Property OS');
 
@@ -80,7 +99,7 @@ type Node = any;
 function sectionTitle(title: string): Node[] {
   return [
     { text: title.toUpperCase(), bold: true, fontSize: 9, characterSpacing: 0.6, color: INK, margin: [0, 18, 0, 0] },
-    { canvas: [{ type: 'line', x1: 0, y1: 3, x2: 515, y2: 3, lineWidth: 1, lineColor: RULE }], margin: [0, 3, 0, 8] },
+    { canvas: [{ type: 'line', x1: 0, y1: 3, x2: 515, y2: 3, lineWidth: 1, lineColor: HEAVY_RULE }], margin: [0, 3, 0, 8] },
   ];
 }
 
@@ -89,16 +108,16 @@ function rowsTable(rows: PdfRow[]): Node {
   const body = rows.map(r => {
     const isSub = r.kind === 'sub', isRes = r.kind === 'result';
     const labelCell: Node = {
-      text: r.note ? [{ text: r.label }, { text: '  ' + r.note, color: FAINT, fontSize: 9 }] : r.label,
-      bold: isSub || isRes, color: isRes || isSub ? INK : '#374151', border: [false, false, false, true],
-      borderColor: [HAIR, HAIR, HAIR, isRes ? RULE : HAIR], margin: [0, 4, 0, 4],
-      fillColor: isSub ? '#fafafa' : undefined,
+      text: r.note ? [{ text: r.label }, { text: '  ' + r.note, color: INK_FAINT, fontSize: 9 }] : r.label,
+      bold: isSub || isRes, color: isRes || isSub ? INK : INK_MUTED, border: [false, false, false, true],
+      borderColor: [RULE_SOFT, RULE_SOFT, RULE_SOFT, isRes ? HEAVY_RULE : RULE_SOFT], margin: [0, 4, 0, 4],
+      fillColor: isSub ? PAPER_ALT : undefined,
     };
     const valueCell: Node = {
       text: r.value, alignment: 'right', bold: isSub || isRes || r.kind !== 'muted',
-      color: r.kind === 'muted' ? FAINT : INK, border: [false, false, false, true],
-      borderColor: [HAIR, HAIR, HAIR, isRes ? RULE : HAIR], margin: [0, 4, 0, 4],
-      fillColor: isSub ? '#fafafa' : undefined,
+      color: r.kind === 'muted' ? INK_FAINT : INK, border: [false, false, false, true],
+      borderColor: [RULE_SOFT, RULE_SOFT, RULE_SOFT, isRes ? HEAVY_RULE : RULE_SOFT], margin: [0, 4, 0, 4],
+      fillColor: isSub ? PAPER_ALT : undefined,
     };
     return [labelCell, valueCell];
   });
@@ -110,7 +129,7 @@ function rowsTable(rows: PdfRow[]): Node {
         // έντονη μαύρη γραμμή πάνω από «result»
         return 0.7;
       },
-      hLineColor: () => HAIR,
+      hLineColor: () => RULE_SOFT,
       paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0,
     },
     margin: [0, 0, 0, 0],
@@ -121,7 +140,7 @@ function rowsTable(rows: PdfRow[]): Node {
 function kpisRow(items: { label: string; value: string }[]): Node {
   const cells = items.map(it => ({
     stack: [
-      { text: it.label.toUpperCase(), fontSize: 7.5, characterSpacing: 0.4, color: FAINT, bold: true, lineHeight: 1.15 },
+      { text: it.label.toUpperCase(), fontSize: 7.5, characterSpacing: 0.4, color: INK_FAINT, bold: true, lineHeight: 1.15 },
       { text: it.value, fontSize: 14, bold: true, color: INK, margin: [0, 6, 0, 0] },
     ],
     margin: [10, 9, 10, 9],
@@ -129,7 +148,7 @@ function kpisRow(items: { label: string; value: string }[]): Node {
   return {
     table: { widths: items.map(() => '*'), body: [cells] },
     layout: {
-      hLineWidth: () => 0.8, vLineWidth: () => 0.8, hLineColor: () => '#e5e7eb', vLineColor: () => '#e5e7eb',
+      hLineWidth: () => 0.8, vLineWidth: () => 0.8, hLineColor: () => RULE, vLineColor: () => RULE,
       paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0,
     },
     margin: [0, 2, 0, 0],
@@ -140,23 +159,23 @@ function kpisRow(items: { label: string; value: string }[]): Node {
 function headedTable(head: string[], rows: string[][], align?: ('l' | 'r')[], result?: string[]): Node {
   const al = (i: number) => (align?.[i] === 'r' ? 'right' : 'left');
   const headRow = head.map((h, i) => ({
-    text: h.toUpperCase(), fontSize: 8, bold: true, color: FAINT, alignment: al(i),
-    border: [false, false, false, true], borderColor: [HEADRULE, HEADRULE, HEADRULE, HEADRULE], margin: [0, 0, 0, 6],
+    text: h.toUpperCase(), fontSize: 8, bold: true, color: INK_FAINT, alignment: al(i),
+    border: [false, false, false, true], borderColor: [HEAVY_RULE, HEAVY_RULE, HEAVY_RULE, HEAVY_RULE], margin: [0, 0, 0, 6],
   }));
   const bodyRows = rows.map(r => r.map((c, i) => ({
-    text: c, fontSize: 10.5, alignment: al(i), color: al(i) === 'right' ? INK : '#374151', bold: al(i) === 'right',
-    border: [false, false, false, true], borderColor: [HAIR, HAIR, HAIR, HAIR], margin: [0, 4, 0, 4],
+    text: c, fontSize: 10.5, alignment: al(i), color: al(i) === 'right' ? INK : INK_MUTED, bold: al(i) === 'right',
+    border: [false, false, false, true], borderColor: [RULE_SOFT, RULE_SOFT, RULE_SOFT, RULE_SOFT], margin: [0, 4, 0, 4],
   })));
   const body = [headRow, ...bodyRows];
   if (result) {
     body.push(result.map((c, i) => ({
       text: c, fontSize: 10.5, alignment: al(i), color: INK, bold: true,
-      border: [false, true, false, false], borderColor: [RULE, RULE, RULE, RULE], margin: [0, 7, 0, 2],
+      border: [false, true, false, false], borderColor: [HEAVY_RULE, HEAVY_RULE, HEAVY_RULE, HEAVY_RULE], margin: [0, 7, 0, 2],
     })));
   }
   return {
     table: { widths: head.map((_, i) => (i === 0 ? '*' : 'auto')), body },
-    layout: { defaultBorder: false, hLineWidth: () => 0.7, hLineColor: () => HAIR, paddingLeft: () => 0, paddingRight: (i: number) => (i === head.length - 1 ? 0 : 14), paddingTop: () => 0, paddingBottom: () => 0 },
+    layout: { defaultBorder: false, hLineWidth: () => 0.7, hLineColor: () => RULE_SOFT, paddingLeft: () => 0, paddingRight: (i: number) => (i === head.length - 1 ? 0 : 14), paddingTop: () => 0, paddingBottom: () => 0 },
   };
 }
 
@@ -182,12 +201,12 @@ function barsChart(data: PdfChartPoint[], unit?: 'eur' | 'pct' | 'num'): Node {
     return {
       width: colW,
       stack: [
-        { text: chartLabel(d.value || 0, unit), fontSize: 6.5, alignment: 'center', color: MUTE, margin: [0, 0, 0, 3] },
+        { text: chartLabel(d.value || 0, unit), fontSize: 6.5, alignment: 'center', color: INK_MUTED, margin: [0, 0, 0, 3] },
         { canvas: [
-          { type: 'rect', x: barX, y: 0, w: barW, h: H, color: '#f3f4f6' },
+          { type: 'rect', x: barX, y: 0, w: barW, h: H, color: PAPER_ALT },
           { type: 'rect', x: barX, y: H - bh, w: barW, h: bh, color: INK },
         ] },
-        { text: d.label, fontSize: 6.5, alignment: 'center', color: FAINT, margin: [0, 4, 0, 0] },
+        { text: d.label, fontSize: 6.5, alignment: 'center', color: INK_FAINT, margin: [0, 4, 0, 0] },
       ],
     };
   });
@@ -206,13 +225,13 @@ function lineChart(data: PdfChartPoint[], unit?: 'eur' | 'pct' | 'num'): Node {
   return {
     stack: [
       { canvas: [
-        { type: 'line', x1: 0, y1: H, x2: W, y2: H, lineColor: '#e5e7eb', lineWidth: 0.5 },
+        { type: 'line', x1: 0, y1: H, x2: W, y2: H, lineColor: RULE, lineWidth: 0.5 },
         { type: 'polyline', lineColor: INK, lineWidth: 1.2, closePath: false, points: pts },
         ...pts.map(p => ({ type: 'ellipse', x: p.x, y: p.y, r1: 1.5, r2: 1.5, color: INK })),
       ] },
       { columns: [
-        { text: `${data[0].label} · ${chartLabel(min, unit)}`, fontSize: 6.5, color: FAINT },
-        { text: `${data[n - 1].label} · ${chartLabel(max, unit)}`, fontSize: 6.5, color: FAINT, alignment: 'right' },
+        { text: `${data[0].label} · ${chartLabel(min, unit)}`, fontSize: 6.5, color: INK_FAINT },
+        { text: `${data[n - 1].label} · ${chartLabel(max, unit)}`, fontSize: 6.5, color: INK_FAINT, alignment: 'right' },
       ], margin: [0, 4, 0, 0] },
     ],
     margin: [0, 4, 0, 2],
@@ -225,13 +244,13 @@ function signNode(signers: { role: string; name?: string; image?: string; place?
   const cells = signers.map(s => ({
     width: '*',
     stack: [
-      { text: s.role.toUpperCase(), fontSize: 8, bold: true, color: FAINT, characterSpacing: 0.5, margin: [0, 0, 0, 6] },
+      { text: s.role.toUpperCase(), fontSize: 8, bold: true, color: INK_FAINT, characterSpacing: 0.5, margin: [0, 0, 0, 6] },
       (s.image && /^data:image\//.test(s.image))
         ? { image: s.image, fit: [150, 52], margin: [0, 0, 0, 2] }
         : { text: ' ', margin: [0, 0, 0, 42] },
-      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 165, y2: 0, lineWidth: 0.7, lineColor: RULE }] },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 165, y2: 0, lineWidth: 0.7, lineColor: HEAVY_RULE }] },
       { text: s.name || '', fontSize: 10, bold: true, color: INK, margin: [0, 4, 0, 0] },
-      ...((s.place || s.date) ? [{ text: [s.place, s.date].filter(Boolean).join(', '), fontSize: 8.5, color: MUTE, margin: [0, 1, 0, 0] }] : []),
+      ...((s.place || s.date) ? [{ text: [s.place, s.date].filter(Boolean).join(', '), fontSize: 8.5, color: INK_MUTED, margin: [0, 1, 0, 0] }] : []),
     ],
     margin: [0, 8, 22, 0],
   }));
@@ -250,7 +269,7 @@ export function buildDocDefinition(model: PdfReportModel): Node {
   const logo = model.branding?.logoUrl && /^data:image\//.test(model.branding.logoUrl) ? model.branding.logoUrl : '';
   const mark: Node = logo
     ? { image: logo, fit: [34, 34], width: 34 }
-    : { table: { widths: [34], heights: [26], body: [[{ text: 'P', color: '#fff', bold: true, fontSize: 17, alignment: 'center', fillColor: accent, margin: [0, 4, 0, 0] }]] }, layout: 'noBorders' };
+    : { table: { widths: [34], heights: [26], body: [[{ text: 'P', color: BRAND_MARK_INK, bold: true, fontSize: 17, alignment: 'center', fillColor: accent, margin: [0, 4, 0, 0] }]] }, layout: 'noBorders' };
 
   const brandBlock: Node = {
     columns: [
@@ -258,8 +277,8 @@ export function buildDocDefinition(model: PdfReportModel): Node {
       {
         width: '*', margin: [11, 0, 0, 0], stack: [
           { text: name, bold: true, fontSize: 13, color: INK },
-          { text: model.docType, color: MUTE, fontSize: 10, margin: [0, 1, 0, 0] },
-          ...(contact ? [{ text: contact, color: MUTE, fontSize: 9, margin: [0, 1, 0, 0] }] : []),
+          { text: model.docType, color: INK_MUTED, fontSize: 10, margin: [0, 1, 0, 0] },
+          ...(contact ? [{ text: contact, color: INK_MUTED, fontSize: 9, margin: [0, 1, 0, 0] }] : []),
         ],
       },
     ],
@@ -267,10 +286,10 @@ export function buildDocDefinition(model: PdfReportModel): Node {
 
   const metaBlock: Node = {
     width: 'auto', alignment: 'right', stack: [
-      { text: asOfLabel.toUpperCase(), fontSize: 7.5, characterSpacing: 0.5, color: FAINT, bold: true },
+      { text: asOfLabel.toUpperCase(), fontSize: 7.5, characterSpacing: 0.5, color: INK_FAINT, bold: true },
       { text: asOfValue, fontSize: 12, bold: true, color: INK, margin: [0, 2, 0, 0] },
-      { text: 'Αρ. εγγράφου ' + model.meta.id, fontSize: 8.5, color: MUTE, margin: [0, 3, 0, 0] },
-      ...(model.meta.note ? [{ text: model.meta.note, fontSize: 9, color: MUTE, margin: [0, 2, 0, 0] }] : []),
+      { text: 'Αρ. εγγράφου ' + model.meta.id, fontSize: 8.5, color: INK_MUTED, margin: [0, 3, 0, 0] },
+      ...(model.meta.note ? [{ text: model.meta.note, fontSize: 9, color: INK_MUTED, margin: [0, 2, 0, 0] }] : []),
     ],
   };
 
@@ -280,15 +299,15 @@ export function buildDocDefinition(model: PdfReportModel): Node {
   const qrBlock: Node = model.meta.verifyUrl ? {
     width: 58, alignment: 'right', stack: [
       { qr: model.meta.verifyUrl, fit: 52, foreground: INK, eccLevel: 'M' },
-      { text: 'Επαλήθευση', fontSize: 6.5, color: FAINT, alignment: 'center', margin: [0, 3, 0, 0] },
+      { text: 'Επαλήθευση', fontSize: 6.5, color: INK_FAINT, alignment: 'center', margin: [0, 3, 0, 0] },
     ],
   } : { width: 0, text: '' };
 
   const header: Node[] = [
     { columns: [brandBlock, metaBlock, qrBlock], columnGap: 16 },
-    { canvas: [{ type: 'line', x1: 0, y1: 6, x2: 515, y2: 6, lineWidth: 2, lineColor: RULE }], margin: [0, 8, 0, 0] },
+    { canvas: [{ type: 'line', x1: 0, y1: 6, x2: 515, y2: 6, lineWidth: 2, lineColor: HEAVY_RULE }], margin: [0, 8, 0, 0] },
     { text: model.title, fontSize: 20, bold: true, color: INK, margin: [0, 16, 0, 2] },
-    ...(model.subtitle ? [{ text: model.subtitle, color: MUTE, fontSize: 11, margin: [0, 0, 0, 2] }] : []),
+    ...(model.subtitle ? [{ text: model.subtitle, color: INK_MUTED, fontSize: 11, margin: [0, 0, 0, 2] }] : []),
   ];
 
   const content: Node[] = [...header];
@@ -299,12 +318,12 @@ export function buildDocDefinition(model: PdfReportModel): Node {
     else if (s.type === 'table') content.push(headedTable(s.head, s.rows, s.align, s.result));
     else if (s.type === 'chart') content.push(s.chart === 'line' ? lineChart(s.data, s.unit) : barsChart(s.data, s.unit));
     else if (s.type === 'sign') content.push(signNode(s.signers));
-    else if (s.type === 'note') content.push({ text: s.text, fontSize: 10.5, color: '#374151', lineHeight: 1.35, margin: [0, 2, 0, 0] });
+    else if (s.type === 'note') content.push({ text: s.text, fontSize: 10.5, color: INK_MUTED, lineHeight: 1.35, margin: [0, 2, 0, 0] });
   }
 
   if (model.disclaimer) {
-    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.7, lineColor: '#e5e7eb' }], margin: [0, 22, 0, 8] });
-    content.push({ text: (model.branding?.companyName ? name + ' · ' : '') + model.disclaimer, fontSize: 8.5, color: FAINT, lineHeight: 1.45 });
+    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.7, lineColor: RULE }], margin: [0, 22, 0, 8] });
+    content.push({ text: (model.branding?.companyName ? name + ' · ' : '') + model.disclaimer, fontSize: 8.5, color: INK_FAINT, lineHeight: 1.45 });
   }
   // Το brand & η γνησιότητα μπαίνουν στο per-page footer — καμία επανάληψη colophon εδώ (πιο λιτό).
 
@@ -318,15 +337,15 @@ export function buildDocDefinition(model: PdfReportModel): Node {
     footer: (currentPage: number, pageCount: number): Node => ({
       margin: [40, 8, 40, 0],
       stack: [
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#e5e7eb' }] },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: RULE }] },
         {
           columns: [
-            { text: `Property OS · Αρ. εγγράφου ${model.meta.id} · Εκδόθηκε ${issuedStr}`, fontSize: 7.5, color: FAINT },
-            { text: `Σελίδα ${currentPage} / ${pageCount}`, alignment: 'right', fontSize: 7.5, color: FAINT },
+            { text: `Property OS · Αρ. εγγράφου ${model.meta.id} · Εκδόθηκε ${issuedStr}`, fontSize: 7.5, color: INK_FAINT },
+            { text: `Σελίδα ${currentPage} / ${pageCount}`, alignment: 'right', fontSize: 7.5, color: INK_FAINT },
           ], margin: [0, 6, 0, 0],
         },
         ...(model.meta.verifyUrl
-          ? [{ text: `Γνήσιο και επαληθεύσιμο έγγραφο: ${model.meta.verifyUrl}`, fontSize: 7, color: '#b6bcc4', margin: [0, 2, 0, 0] }]
+          ? [{ text: `Γνήσιο και επαληθεύσιμο έγγραφο: ${model.meta.verifyUrl}`, fontSize: 7, color: INK_FAINT, margin: [0, 2, 0, 0] }]
           : []),
       ],
     }),
