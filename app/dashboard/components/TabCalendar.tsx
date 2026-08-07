@@ -71,6 +71,7 @@ import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
 import { MONTHS_GEN, MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
+import { INK, INK_MUTED, RULE } from '@/lib/print/ink';
 
 type EventCategory = 'tax' | 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -1564,17 +1565,17 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
     const up=[...filtered].filter(e=>e.status!=='paid').sort((a,b)=>a.event_date.localeCompare(b.event_date))
     const fmtD=(s:string)=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,(m||1)-1,d||1).toLocaleDateString('el-GR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})}
     const rows=up.length?up.map(e=>{const cat=CATEGORIES[e.category];const d=daysUntil(e.event_date);const tag=d<0?`${Math.abs(d)} ημ. πριν`:d===0?'Σήμερα':`σε ${d} ημ.`;const col=d<0?'#c5221f':d<=7?'#e37400':'#5f6368';return `<tr>
-      <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;white-space:nowrap">${esc(fmtD(e.event_date))}</td>
-      <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;font-weight:600">${esc(e.title)}${e.amount?` <span style="color:#1a73e8;font-family:monospace">${fe(e.amount)}</span>`:''}</td>
-      <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:11px;color:#5f6368">${esc(cat?.label||'')}</td>
-      <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:12px;font-weight:700;color:${col};white-space:nowrap;text-align:right">${tag}</td></tr>`}).join(''):'<tr><td colspan="4" style="padding:24px;text-align:center;color:#80868b">Καμία εκκρεμότητα.</td></tr>'
+      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:13px;white-space:nowrap">${esc(fmtD(e.event_date))}</td>
+      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:13px;font-weight:600">${esc(e.title)}${e.amount?` <span style="color:#1a73e8;font-family:monospace">${fe(e.amount)}</span>`:''}</td>
+      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:11px;color:${INK_MUTED}">${esc(cat?.label||'')}</td>
+      <td style="padding:11px 8px;border-bottom:1px solid ${RULE};font-size:12px;font-weight:700;color:${col};white-space:nowrap;text-align:right">${tag}</td></tr>`}).join(''):'<tr><td colspan="4" style="padding:24px;text-align:center;color:#80868b">Καμία εκκρεμότητα.</td></tr>'
     const html=`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Ημερολόγιο, Property OS</title>
-    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',system-ui,sans-serif;color:#202124;padding:40px;max-width:800px;margin:0 auto}@media print{body{padding:0}@page{margin:16mm}}table{width:100%;border-collapse:collapse}</style></head>
+    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',system-ui,sans-serif;color:${INK};padding:40px;max-width:800px;margin:0 auto}@media print{body{padding:0}@page{margin:16mm}}table{width:100%;border-collapse:collapse}</style></head>
     <body><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a73e8;padding-bottom:16px;margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:${BRAND_MARK_BG};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">P</div><div><div style="font-weight:700;font-size:15px">Property OS</div><div style="font-size:11px;color:#5f6368">Επερχόμενα Γεγονότα & Προθεσμίες</div></div></div>
-      <div style="text-align:right;font-size:12px;color:#5f6368">${esc(new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}))}</div></div>
-      <table><thead><tr><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Ημερομηνία</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Γεγονός</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Κατηγορία</th><th style="text-align:right;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;border-bottom:2px solid #e8eaed">Πότε</th></tr></thead><tbody>${rows}</tbody></table>
-      <div style="margin-top:30px;font-size:10px;color:#80868b;border-top:1px solid #eee;padding-top:12px">Δημιουργήθηκε αυτόματα από το Property OS.</div>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:${BRAND_MARK_BG};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">P</div><div><div style="font-weight:700;font-size:15px">Property OS</div><div style="font-size:11px;color:${INK_MUTED}">Επερχόμενα Γεγονότα & Προθεσμίες</div></div></div>
+      <div style="text-align:right;font-size:12px;color:${INK_MUTED}">${esc(new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}))}</div></div>
+      <table><thead><tr><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Ημερομηνία</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Γεγονός</th><th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Κατηγορία</th><th style="text-align:right;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};border-bottom:2px solid ${RULE}">Πότε</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="margin-top:30px;font-size:10px;color:#80868b;border-top:1px solid ${RULE};padding-top:12px">Δημιουργήθηκε αυτόματα από το Property OS.</div>
       <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script></body></html>`
     const w=window.open('','_blank'); if(!w){notifyError('Επίτρεψε τα αναδυόμενα παράθυρα.');return} w.document.write(html); w.document.close()
   }

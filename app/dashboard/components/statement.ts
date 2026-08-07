@@ -13,6 +13,7 @@ import { incomeStatement } from '@/lib/accounting/statement';
 import { rentalBracketsForYear } from '@/lib/billing/greekTax';
 import { printFontFaces } from '@/lib/print/fonts';
 import { notifyError } from '@/components/toastBus';
+import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 
 export interface StatementCtx {
   propName: string;
@@ -111,42 +112,42 @@ export function printPropertyStatement(c: StatementCtx): void {
 ${printFontFaces()}
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,Arial,sans-serif;color:#111;background:#fff;font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:'Inter',system-ui,Arial,sans-serif;color:${INK};background:${PAPER};font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .page{max-width:760px;margin:0 auto;padding:40px}
   @media print{.page{padding:16mm 15mm}@page{margin:0}}
-  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid ${INK};padding-bottom:16px}
   .brand{display:flex;align-items:center;gap:11px}
   .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
-  .bname{font-size:15px;font-weight:700;color:#111}
-  .muted{color:#6b7280}
-  .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8f98;font-weight:600}
+  .bname{font-size:15px;font-weight:700;color:${INK}}
+  .muted{color:${INK_MUTED}}
+  .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:${INK_FAINT};font-weight:600}
   h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:22px 0 3px}
-  .sub{color:#6b7280;font-size:12px;margin-bottom:6px}
-  .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#111;margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid #111;break-after:avoid}
+  .sub{color:${INK_MUTED};font-size:12px;margin-bottom:6px}
+  .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${INK};margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid ${INK};break-after:avoid}
   table{width:100%;border-collapse:collapse;break-inside:avoid}
   .idt{table-layout:fixed}
-  .idt td{padding:7px 14px 7px 0;font-size:12px;border-bottom:1px solid #f1f3f4;vertical-align:top}
-  .idt .k{color:#6b7280;font-size:12px;width:20%;padding-right:12px}
-  .idt .v{color:#111;font-weight:600;width:30%}
+  .idt td{padding:7px 14px 7px 0;font-size:12px;border-bottom:1px solid ${PAPER_ALT};vertical-align:top}
+  .idt .k{color:${INK_MUTED};font-size:12px;width:20%;padding-right:12px}
+  .idt .v{color:${INK};font-weight:600;width:30%}
   .idt .vlast{padding-right:0}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
-  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
-  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
-  td{padding:8px 4px;text-align:left;font-size:13px;color:#374151}
+  .kpi{border:1px solid ${RULE};border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
+  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:${INK_FAINT};font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
+  .kv{font-size:18px;font-weight:700;color:${INK};font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
+  td{padding:8px 4px;text-align:left;font-size:13px;color:${INK_MUTED}}
   tbody tr td{border-bottom:1px solid #eef0f2}
-  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:#111}
-  td.np{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:#8a8f98;font-size:12px;padding-left:18px;width:80px}
-  tr.sub td{font-weight:700;color:#111;background:#fafafa}
-  tr.result td{font-weight:700;color:#111;border-top:2px solid #111;border-bottom:none;padding-top:10px}
-  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8a8f98;font-weight:600;border-bottom:1px solid #d0d5dd;text-align:left;padding:0 4px 6px}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:${INK}}
+  td.np{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:${INK_FAINT};font-size:12px;padding-left:18px;width:80px}
+  tr.sub td{font-weight:700;color:${INK};background:${PAPER_ALT}}
+  tr.result td{font-weight:700;color:${INK};border-top:2px solid ${INK};border-bottom:none;padding-top:10px}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:${INK_FAINT};font-weight:600;border-bottom:1px solid #d0d5dd;text-align:left;padding:0 4px 6px}
   th.n{text-align:right}th.np{text-align:right;padding-left:18px}
-  td.empty{color:#8a8f98;font-size:12px;padding:12px 0}
-  .note{margin-top:9px;font-size:12px;color:#374151;line-height:1.55}
+  td.empty{color:${INK_FAINT};font-size:12px;padding:12px 0}
+  .note{margin-top:9px;font-size:12px;color:${INK_MUTED};line-height:1.55}
   .tnum{font-variant-numeric:tabular-nums}
-  .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
-  .colo{margin-top:10px;font-size:10px;letter-spacing:.02em;color:#9aa0a6}
-  .colo b{font-weight:700;color:#6b7280}
+  .disc{margin-top:32px;padding-top:12px;border-top:1px solid ${RULE};color:${INK_FAINT};font-size:10px;line-height:1.6}
+  .colo{margin-top:10px;font-size:10px;letter-spacing:.02em;color:${INK_FAINT}}
+  .colo b{font-weight:700;color:${INK_MUTED}}
 </style></head>
 <body><div class="page">
   <div class="top">

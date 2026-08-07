@@ -37,6 +37,7 @@ import { normalizeScannedDoc, planDocSave, type ScannedDoc } from '@/lib/billing
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import SmartSuggestions from './SmartSuggestions';
 import { TASK_CATEGORIES, TASK_PRIORITIES, TASK_STATUSES } from '@/lib/checklist/taxonomy'
+import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 
 const supabase = createSupabaseClient()
 
@@ -673,17 +674,17 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
       const od = isOverdue(item.due_date, item.status)
       const isDone = item.status === 'done'
       const contact = item.assigned_contact_name
-        ? `<div style="font-size:10px;color:#8a8f98;margin-top:2px">${rEsc(item.assigned_contact_name)}</div>` : ''
+        ? `<div style="font-size:10px;color:${INK_FAINT};margin-top:2px">${rEsc(item.assigned_contact_name)}</div>` : ''
       const tags = (item._tags || []).length > 0
         ? `<div style="margin-top:3px">${(item._tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border:1px solid #e5e7eb;border-radius:3px;font-size:9px;color:#6b7280;margin-right:3px">${rEsc(t)}</span>`).join('')}</div>` : ''
       return `<tr>
         <td>
-          <div style="font-size:12px;${isDone ? 'text-decoration:line-through;color:#8a8f98' : 'color:#111'}">${rEsc(item.description)}</div>
+          <div style="font-size:12px;${isDone ? 'text-decoration:line-through;color:${INK_FAINT}' : 'color:${INK}'}">${rEsc(item.description)}</div>
           ${contact}${tags}
         </td>
         <td>${rEsc(pri.label)}</td>
         <td>${rEsc(sm.label)}</td>
-        <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : '—'}${od ? '<div style="font-size:9px;color:#8a8f98">Εκπρόθεσμο</div>' : ''}</td>
+        <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : '—'}${od ? '<div style="font-size:9px;color:${INK_FAINT}">Εκπρόθεσμο</div>' : ''}</td>
         <td class="n">${item.estimated_cost > 0 ? rEsc(rEur(item.estimated_cost)) : '—'}</td>
         <td class="n">${item.actual_cost > 0 ? rEsc(rEur(item.actual_cost)) : '—'}${item._receipt ? `<div style="font-size:9px;color:#8a8f98">${rEsc(item._receipt.name)}</div>` : ''}</td>
       </tr>`
@@ -753,7 +754,7 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 
   const checkRow = (label: string, done = false) =>
     `<div class="check-row">
-      <div class="cb ${done ? 'cb-done' : ''}">${done ? '<svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}</div>
+      <div class="cb ${done ? 'cb-done' : ''}">${done ? '<svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}</div>
       <div class="check-label">${esc(label)}</div>
     </div>`
 
@@ -767,7 +768,7 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 
   const taskRows = relevant.map(item => `
     <div class="task-row ${item.status === 'done' ? 'done' : ''}">
-      <div class="task-cb ${item.status === 'done' ? 'task-cb-done' : ''}">${item.status === 'done' ? '<svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}</div>
+      <div class="task-cb ${item.status === 'done' ? 'task-cb-done' : ''}">${item.status === 'done' ? '<svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}</div>
       <div class="task-label">${esc(item.description)}</div>
       ${item.assigned_contact_name ? `<div class="task-contact">${esc(item.assigned_contact_name)}</div>` : ''}
     </div>`).join('')
@@ -778,104 +779,104 @@ ${printFontFaces()}
 <style>
 ${brandRootVars(branding)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:11px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{max-width:900px;margin:0 auto;padding:28px 36px}
 
 /* Header */
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:2px solid #111}
-.logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:#111}.logo span{color:#111}
-.logo-sub{font-size:10px;color:#5f6368;margin-top:2px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:2px solid ${INK}}
+.logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:${INK}}.logo span{color:${INK}}
+.logo-sub{font-size:10px;color:${INK_MUTED};margin-top:2px}
 .hdr-right{text-align:right}
-.hdr-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:500;color:#202124}
-.hdr-meta{font-size:10px;color:#5f6368;margin-top:4px}
-.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:'Inter',sans-serif;margin-top:6px;background:#f8f9fa;border:1px solid #d1d5db;color:#111}
+.hdr-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:500;color:${INK}}
+.hdr-meta{font-size:10px;color:${INK_MUTED};margin-top:4px}
+.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:'Inter',sans-serif;margin-top:6px;background:${PAPER_ALT};border:1px solid ${RULE};color:${INK}}
 
 /* Sections */
-.sec{margin-bottom:20px;border:1px solid #e8eaed;border-radius:10px;overflow:hidden;break-inside:avoid}
-.sec-hdr{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#f8f9fa;border-bottom:1px solid #e5e7eb;border-left:3px solid #111}
-.sec-num{width:26px;height:26px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;flex-shrink:0;letter-spacing:0}
-.sec-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#202124}
+.sec{margin-bottom:20px;border:1px solid ${RULE};border-radius:10px;overflow:hidden;break-inside:avoid}
+.sec-hdr{display:flex;align-items:center;gap:12px;padding:11px 16px;background:${PAPER_ALT};border-bottom:1px solid ${RULE};border-left:3px solid ${INK}}
+.sec-num{width:26px;height:26px;border-radius:50%;background:${INK};color:${PAPER};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;flex-shrink:0;letter-spacing:0}
+.sec-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:${INK}}
 .sec-body{padding:14px 16px}
 
 /* Field rows */
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .field-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .field-row{display:flex;flex-direction:column;gap:4px}
-.field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;font-family:'Inter',sans-serif}
-.field-val{min-height:30px;border-bottom:2px solid #dadce0;padding:4px 0 3px;font-size:12px;color:#202124;font-family:'Inter', sans-serif;letter-spacing:0.02em}
-.field-val.prefilled{color:#111;font-weight:600;border-bottom-color:#111}
-.field-area{min-height:56px;border:1px solid #e8eaed;border-radius:6px;padding:8px;margin-top:4px;background:#fafafa}
+.field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};font-family:'Inter',sans-serif}
+.field-val{min-height:30px;border-bottom:2px solid ${RULE};padding:4px 0 3px;font-size:12px;color:${INK};font-family:'Inter', sans-serif;letter-spacing:0.02em}
+.field-val.prefilled{color:${INK};font-weight:600;border-bottom-color:${INK}}
+.field-area{min-height:56px;border:1px solid ${RULE};border-radius:6px;padding:8px;margin-top:4px;background:${PAPER_ALT}}
 
 /* Checkbox rows */
-.check-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid #f1f3f4}
+.check-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid ${PAPER_ALT}}
 .check-row:last-child{border-bottom:none}
-.cb{width:16px;height:16px;border:2px solid #dadce0;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
-.cb-done{background:#111;border-color:#111}
+.cb{width:16px;height:16px;border:2px solid ${RULE};border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.cb-done{background:${INK};border-color:${INK}}
 .check-label{font-size:12px;color:#3c4043;flex:1;line-height:1.4}
 
 /* Room table */
 .room-table{width:100%;border-collapse:collapse;font-size:11px}
-.room-table th{background:#f8f9fa;padding:7px 10px;border:1px solid #e8eaed;text-align:left;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368}
-.room-table td{padding:7px 10px;border:1px solid #e8eaed;vertical-align:middle}
-.room-name{font-weight:500;color:#202124;width:140px}
+.room-table th{background:${PAPER_ALT};padding:7px 10px;border:1px solid ${RULE};text-align:left;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED}}
+.room-table td{padding:7px 10px;border:1px solid ${RULE};vertical-align:middle}
+.room-name{font-weight:500;color:${INK};width:140px}
 .room-cell{min-width:220px}
 .room-notes{min-height:28px;min-width:160px}
 .rating-row{display:flex;gap:10px}
-.rating-opt{font-size:10px;color:#5f6368;cursor:default}
+.rating-opt{font-size:10px;color:${INK_MUTED};cursor:default}
 
 /* Meter grid */
 .meter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.meter-card{border:1px solid #e8eaed;border-radius:8px;padding:12px;background:#fafafa}
-.meter-title{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;margin-bottom:8px}
-.meter-val{font-size:22px;font-weight:700;color:#111;border-bottom:3px solid #111;padding-bottom:6px;margin-bottom:6px;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:36px;letter-spacing:-0.5px}
-.meter-unit{font-size:9px;color:#9aa0a6;font-family:'Inter',sans-serif}
-.meter-serial{font-size:10px;color:#5f6368;margin-top:8px;border-top:1px solid #e8eaed;padding-top:6px}
+.meter-card{border:1px solid ${RULE};border-radius:8px;padding:12px;background:${PAPER_ALT}}
+.meter-title{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px}
+.meter-val{font-size:22px;font-weight:700;color:${INK};border-bottom:3px solid ${INK};padding-bottom:6px;margin-bottom:6px;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:36px;letter-spacing:-0.5px}
+.meter-unit{font-size:9px;color:${INK_FAINT};font-family:'Inter',sans-serif}
+.meter-serial{font-size:10px;color:${INK_MUTED};margin-top:8px;border-top:1px solid ${RULE};padding-top:6px}
 
 /* Key tracking */
 .key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.key-card{border:1px solid #e8eaed;border-radius:8px;padding:10px;text-align:center}
-.key-num{font-size:26px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:38px;border-bottom:2px solid #111;margin-bottom:8px;letter-spacing:-1px}
-.key-label{font-size:10px;color:#5f6368;font-family:'Inter',sans-serif}
+.key-card{border:1px solid ${RULE};border-radius:8px;padding:10px;text-align:center}
+.key-num{font-size:26px;font-weight:700;color:${INK};font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:38px;border-bottom:2px solid ${INK};margin-bottom:8px;letter-spacing:-1px}
+.key-label{font-size:10px;color:${INK_MUTED};font-family:'Inter',sans-serif}
 
 /* Appliance table */
 .app-table{width:100%;border-collapse:collapse;font-size:11px}
-.app-table th{background:#f8f9fa;padding:6px 10px;border:1px solid #e8eaed;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;text-align:left}
-.app-table td{padding:6px 10px;border:1px solid #e8eaed}
-.app-cb{width:14px;height:14px;border:1.5px solid #dadce0;border-radius:2px;display:inline-block}
+.app-table th{background:${PAPER_ALT};padding:6px 10px;border:1px solid ${RULE};font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};text-align:left}
+.app-table td{padding:6px 10px;border:1px solid ${RULE}}
+.app-cb{width:14px;height:14px;border:1.5px solid ${RULE};border-radius:2px;display:inline-block}
 .app-include{text-align:center}
 
 /* Tasks */
-.task-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid #f1f3f4}
+.task-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid ${PAPER_ALT}}
 .task-row:last-child{border-bottom:none}
-.task-row.done .task-label{text-decoration:line-through;color:#9aa0a6}
-.task-cb{width:16px;height:16px;border:1.5px solid #dadce0;border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center}
-.task-cb-done{background:#111;border-color:#111}
+.task-row.done .task-label{text-decoration:line-through;color:${INK_FAINT}}
+.task-cb{width:16px;height:16px;border:1.5px solid ${RULE};border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center}
+.task-cb-done{background:${INK};border-color:${INK}}
 .task-label{flex:1;font-size:12px;color:#3c4043}
-.task-contact{font-size:10px;color:#5f6368;background:#f1f3f4;padding:1px 7px;border-radius:20px;white-space:nowrap}
+.task-contact{font-size:10px;color:${INK_MUTED};background:${PAPER_ALT};padding:1px 7px;border-radius:20px;white-space:nowrap}
 
 /* Damage */
-.damage-box{border:1px solid #e8eaed;border-radius:8px;min-height:100px;padding:12px;background:#fafafa}
+.damage-box{border:1px solid ${RULE};border-radius:8px;min-height:100px;padding:12px;background:${PAPER_ALT}}
 .photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
-.photo-box{border:1px dashed #dadce0;border-radius:6px;height:80px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#9aa0a6;background:#f8f9fa}
+.photo-box{border:1px dashed ${RULE};border-radius:6px;height:80px;display:flex;align-items:center;justify-content:center;font-size:10px;color:${INK_FAINT};background:${PAPER_ALT}}
 
 /* Signatures */
 .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:12px}
-.sig-block{border-top:2px solid #202124;padding-top:10px}
-.sig-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#374151;font-family:'Inter',sans-serif;margin-bottom:18px}
-.sig-line{border-bottom:2px solid #202124;margin-bottom:10px;height:48px}
-.sig-detail{font-size:10px;color:#5f6368;margin-bottom:4px}
+.sig-block{border-top:2px solid ${INK};padding-top:10px}
+.sig-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${INK_MUTED};font-family:'Inter',sans-serif;margin-bottom:18px}
+.sig-line{border-bottom:2px solid ${INK};margin-bottom:10px;height:48px}
+.sig-detail{font-size:10px;color:${INK_MUTED};margin-bottom:4px}
 
 /* Commons */
 .commons-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.commons-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f3f4}
+.commons-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid ${PAPER_ALT}}
 .commons-row:last-child{border-bottom:none}
-.commons-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0}
+.commons-dot{width:8px;height:8px;border-radius:50%;background:${INK_MUTED};flex-shrink:0}
 .commons-label{font-size:12px;color:#3c4043;flex:1}
-.commons-val{font-size:11px;border-bottom:1px solid #dadce0;min-width:80px;padding-bottom:2px;font-family:'Inter', sans-serif}
+.commons-val{font-size:11px;border-bottom:1px solid ${RULE};min-width:80px;padding-bottom:2px;font-family:'Inter', sans-serif}
 
 /* Footer */
-.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aa0a6}
-.notice{background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 16px;font-size:10px;color:#374151;margin-bottom:20px;display:flex;align-items:flex-start;gap:8px}
+.footer{margin-top:28px;padding-top:10px;border-top:1px solid ${RULE};display:flex;justify-content:space-between;align-items:center;font-size:9px;color:${INK_FAINT}}
+.notice{background:${PAPER_ALT};border:1px solid ${RULE};border-radius:8px;padding:10px 16px;font-size:10px;color:${INK_MUTED};margin-bottom:20px;display:flex;align-items:flex-start;gap:8px}
 
 @media print{.sec{break-inside:avoid}.page{padding:18px 24px}}
 </style></head><body>
@@ -894,7 +895,7 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
   </div>
 </div>
 
-<div class="notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Αυτό το πρωτόκολλο αποτελεί νομικά δεσμευτικό αποδεικτικό παράδοσης/παραλαβής ακινήτου. Κρατήστε αντίγραφο και οι δύο πλευρές. Εκτυπώστε σε 2 αντίτυπα.</span></div>
+<div class="notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Αυτό το πρωτόκολλο αποτελεί νομικά δεσμευτικό αποδεικτικό παράδοσης/παραλαβής ακινήτου. Κρατήστε αντίγραφο και οι δύο πλευρές. Εκτυπώστε σε 2 αντίτυπα.</span></div>
 
 ${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων', `
   <div class="field-grid">
@@ -1033,7 +1034,7 @@ ${sectionHtml(8, 'Κοινόχρηστοι Χώροι & Εγκαταστάσει
 `)}
 
 ${sectionHtml(9, 'Λίστα Ελέγχου Εκκρεμοτήτων', `
-  ${taskRows || `<div style="text-align:center;padding:20px;color:#9aa0a6;font-size:12px">Δεν υπάρχουν tasks στην κατηγορία ${type === 'checkin' ? 'παράδοσης' : 'αποχώρησης'}</div>`}
+  ${taskRows || `<div style="text-align:center;padding:20px;color:${INK_FAINT};font-size:12px">Δεν υπάρχουν tasks στην κατηγορία ${type === 'checkin' ? 'παράδοσης' : 'αποχώρησης'}</div>`}
 `)}
 
 ${sectionHtml(10, 'Καταγεγραμμένες Ζημιές & Αποκλίσεις', `

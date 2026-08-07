@@ -13,6 +13,7 @@ import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection,
 import type { createClient } from '@/lib/supabase/client'
 import { printFontFaces } from '@/lib/print/fonts';
 import { notifyError } from '@/components/toastBus';
+import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 
 export interface ReconLite { label: string; paid: number; expected: number; statusLabel: string; statusColor: string }
 
@@ -88,36 +89,36 @@ export function printAccountingReport(c: AccountingReportCtx): void {
 ${printFontFaces()}
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,Arial,sans-serif;color:#111;background:#fff;font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:'Inter',system-ui,Arial,sans-serif;color:${INK};background:${PAPER};font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .page{max-width:760px;margin:0 auto;padding:40px}
   @media print{.page{padding:16mm 15mm}@page{margin:0}}
-  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid ${INK};padding-bottom:16px}
   .brand{display:flex;align-items:center;gap:11px}
-  .mark{width:34px;height:34px;border-radius:8px;background:#111;color:#3a3a3a;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
-  .bname{font-size:15px;font-weight:700;color:#111}
-  .muted{color:#6b7280}
-  .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8f98;font-weight:600}
+  .mark{width:34px;height:34px;border-radius:8px;background:${INK};color:#3a3a3a;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
+  .bname{font-size:15px;font-weight:700;color:${INK}}
+  .muted{color:${INK_MUTED}}
+  .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:${INK_FAINT};font-weight:600}
   h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:22px 0 3px}
-  .sub{color:#6b7280;font-size:12px;margin-bottom:22px}
-  .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#111;margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid #111;break-after:avoid}
+  .sub{color:${INK_MUTED};font-size:12px;margin-bottom:22px}
+  .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${INK};margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid ${INK};break-after:avoid}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px}
-  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
-  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a8f98;font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
-  .kv{font-size:18px;font-weight:700;color:#111;font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
+  .kpi{border:1px solid ${RULE};border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
+  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:${INK_FAINT};font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
+  .kv{font-size:18px;font-weight:700;color:${INK};font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
   table{width:100%;border-collapse:collapse;break-inside:avoid}
   td,th{padding:8px 4px;text-align:left;font-size:13px}
-  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:#111}
-  tbody tr td{border-bottom:1px solid #eef0f2;color:#374151}
-  tr.sub td{font-weight:700;color:#111;background:#fafafa}
-  tr.result td{font-weight:700;color:#111;border-top:2px solid #111;border-bottom:none;padding-top:10px}
-  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8a8f98;font-weight:600;border-bottom:1px solid #d0d5dd}
-  td.st{text-align:right;font-size:11px;font-weight:700;color:#374151;white-space:nowrap}
-  td.empty{color:#8a8f98;font-size:12px;padding:12px 0}
-  .recon-note{font-size:12px;color:#374151;margin-bottom:8px}
-  .recon-note strong{color:#111;font-weight:700}
-  .disc{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;color:#8a8f98;font-size:10px;line-height:1.6}
-  .colo{margin-top:10px;font-size:10px;letter-spacing:.02em;color:#9aa0a6}
-  .colo b{font-weight:700;color:#6b7280}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:${INK}}
+  tbody tr td{border-bottom:1px solid #eef0f2;color:${INK_MUTED}}
+  tr.sub td{font-weight:700;color:${INK};background:${PAPER_ALT}}
+  tr.result td{font-weight:700;color:${INK};border-top:2px solid ${INK};border-bottom:none;padding-top:10px}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:${INK_FAINT};font-weight:600;border-bottom:1px solid #d0d5dd}
+  td.st{text-align:right;font-size:11px;font-weight:700;color:${INK_MUTED};white-space:nowrap}
+  td.empty{color:${INK_FAINT};font-size:12px;padding:12px 0}
+  .recon-note{font-size:12px;color:${INK_MUTED};margin-bottom:8px}
+  .recon-note strong{color:${INK};font-weight:700}
+  .disc{margin-top:32px;padding-top:12px;border-top:1px solid ${RULE};color:${INK_FAINT};font-size:10px;line-height:1.6}
+  .colo{margin-top:10px;font-size:10px;letter-spacing:.02em;color:${INK_FAINT}}
+  .colo b{font-weight:700;color:${INK_MUTED}}
 </style></head>
 <body><div class="page">
   <div class="top">

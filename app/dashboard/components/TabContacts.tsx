@@ -19,6 +19,7 @@ import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 import { athensToday, isoDate, daysUntil as athensDaysUntil } from '@/lib/core/time';
+import { INK, INK_FAINT, INK_MUTED, RULE } from '@/lib/print/ink';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -546,7 +547,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
 function printContactCard(contact: Contact, branding?: ReportBranding | null) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: '#888', groupLabel: '' }
   const extra = contact._extra || {}
-  const html = `<html><head><title>${esc(contact.full_name)}</title><style>body{font-family:Inter,sans-serif;padding:40px;max-width:420px;margin:0 auto;color:#111}h1{font-size:22px;margin:0 0 2px}p{margin:3px 0;font-size:13px;color:#555}.cat{font-size:11px;color:${meta.groupColor};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}.role{font-size:13px;color:#444;margin-bottom:6px}.status{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:14px}.row{display:flex;gap:6px;align-items:flex-start;margin:5px 0;font-size:13px;color:#333}.label{min-width:80px;color:#888;font-size:11px;text-transform:uppercase;padding-top:1px}.tag{padding:2px 8px;border-radius:20px;background:#f3f4f6;font-size:11px}hr{border:none;border-top:1px solid #eee;margin:14px 0}.badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px}</style></head><body>
+  const html = `<html><head><title>${esc(contact.full_name)}</title><style>body{font-family:Inter,sans-serif;padding:40px;max-width:420px;margin:0 auto;color:${INK}}h1{font-size:22px;margin:0 0 2px}p{margin:3px 0;font-size:13px;color:${INK_MUTED}}.cat{font-size:11px;color:${meta.groupColor};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}.role{font-size:13px;color:${INK_MUTED};margin-bottom:6px}.status{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:14px}.row{display:flex;gap:6px;align-items:flex-start;margin:5px 0;font-size:13px;color:#333}.label{min-width:80px;color:${INK_FAINT};font-size:11px;text-transform:uppercase;padding-top:1px}.tag{padding:2px 8px;border-radius:20px;background:#f3f4f6;font-size:11px}hr{border:none;border-top:1px solid ${RULE};margin:14px 0}.badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px}</style></head><body>
     <div class="cat">${esc(meta.groupLabel)}</div>
     <h1>${esc(contact.full_name)}</h1>
     <div class="role">${esc(meta.label)}</div>
@@ -767,7 +768,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
       + preferred.map(c => {
           const role = ROLE_META[c.role]?.label || c.role
           return `<tr>`
-            + `<td><div style="font-weight:600;color:#111">${rEsc(c.full_name)}</div>`
+            + `<td><div style="font-weight:600;color:${INK}">${rEsc(c.full_name)}</div>`
             +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
             + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}</td>`
             + `<td>${rEsc(c.email || ABSENT)}</td>`
@@ -782,7 +783,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
       const role = ROLE_META[c.role]?.label || c.role
       const iban = ex.iban ? `···${rEsc(ex.iban.slice(-4))}${mark(ex.iris, 'IRIS')}` : '—'
       return `<tr>`
-        + `<td><div style="font-weight:600;color:#111">${rEsc(c.full_name)}</div>`
+        + `<td><div style="font-weight:600;color:${INK}">${rEsc(c.full_name)}</div>`
         +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
         + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}${mark(ex.whatsapp, 'WA')}${mark(ex.viber, 'VB')}</td>`
         + `<td>${rEsc(c.email || ABSENT)}</td>`

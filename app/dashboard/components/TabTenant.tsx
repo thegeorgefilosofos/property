@@ -38,6 +38,7 @@ import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
 import { escHtml as esc } from '@/lib/reportBranding';
 import { athensToday, daysUntil } from '@/lib/core/time';
 import { MONTHS_NOM, MONTHS_SHORT, monthNom } from '@/lib/core/months';
+import { INK, INK_MUTED, RULE } from '@/lib/print/ink';
 import {
   instalmentPeriods, monthsPerInstalment, periodLabel,
   PAYMENT_FREQ_LABELS, isPaymentFreq, type InstalmentPeriod,
@@ -491,8 +492,8 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
       + `<div class="note">Η αναπροσαρμογή ισχύει από την επόμενη μισθωτική περίοδο μετά την κοινοποίηση της παρούσας ειδοποίησης.</div>`
       + (hasCustom?'':`<div class="note">Πηγή ποσοστού: ${rEsc(cpiConfirmedLabel())}.</div>`)
       + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:64px">`
-        + `<div style="border-top:1px solid #d1d5db;padding-top:10px;font-size:11px;color:#6b7280"><div style="font-weight:600;margin-bottom:4px;color:#111">Ο εκμισθωτής</div><div style="height:40px"></div><div>Υπογραφή / Σφραγίδα</div></div>`
-        + `<div style="border-top:1px solid #d1d5db;padding-top:10px;font-size:11px;color:#6b7280"><div style="font-weight:600;margin-bottom:4px;color:#111">Ο μισθωτής</div><div style="margin-bottom:2px;color:#111">${rEsc(tenant.full_name)}</div>${tenant.afm?`<div>ΑΦΜ: ${rEsc(tenant.afm)}</div>`:''}</div>`
+        + `<div style="border-top:1px solid ${RULE};padding-top:10px;font-size:11px;color:${INK_MUTED}"><div style="font-weight:600;margin-bottom:4px;color:${INK}">Ο εκμισθωτής</div><div style="height:40px"></div><div>Υπογραφή / Σφραγίδα</div></div>`
+        + `<div style="border-top:1px solid ${RULE};padding-top:10px;font-size:11px;color:${INK_MUTED}"><div style="font-weight:600;margin-bottom:4px;color:${INK}">Ο μισθωτής</div><div style="margin-bottom:2px;color:${INK}">${rEsc(tenant.full_name)}</div>${tenant.afm?`<div>ΑΦΜ: ${rEsc(tenant.afm)}</div>`:''}</div>`
       + `</div>`
       + reportDisclaimer(hasCustom
         ? 'Το ποσοστό αναπροσαρμογής δηλώθηκε από τον εκμισθωτή και δεν αποτελεί επίσημο στατιστικό στοιχείο. Το παρόν έχει ενημερωτικό χαρακτήρα· για νομικές υποθέσεις συμβουλευτείτε δικηγόρο.'
@@ -997,8 +998,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
       + `</tbody></table>`
       + `<div class="note">Η παρούσα βεβαιώνει την είσπραξη του ανωτέρω ποσού για το μηνιαίο μίσθωμα της αναφερόμενης περιόδου.</div>`
       + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:56px">`
-        + `<div style="border-top:1px solid #d1d5db;padding-top:10px;font-size:11px;color:#6b7280"><div style="font-weight:600;margin-bottom:4px;color:#111">Ο εκμισθωτής</div><div style="height:36px"></div><div>Υπογραφή</div></div>`
-        + `<div style="border-top:1px solid #d1d5db;padding-top:10px;font-size:11px;color:#6b7280"><div style="font-weight:600;margin-bottom:4px;color:#111">Ο μισθωτής</div><div style="margin-bottom:2px;color:#111">${rEsc(tenant.full_name)}</div></div>`
+        + `<div style="border-top:1px solid ${RULE};padding-top:10px;font-size:11px;color:${INK_MUTED}"><div style="font-weight:600;margin-bottom:4px;color:${INK}">Ο εκμισθωτής</div><div style="height:36px"></div><div>Υπογραφή</div></div>`
+        + `<div style="border-top:1px solid ${RULE};padding-top:10px;font-size:11px;color:${INK_MUTED}"><div style="font-weight:600;margin-bottom:4px;color:${INK}">Ο μισθωτής</div><div style="margin-bottom:2px;color:${INK}">${rEsc(tenant.full_name)}</div></div>`
       + `</div>`
       + reportDisclaimer('Η παρούσα απόδειξη εκδόθηκε ηλεκτρονικά και βεβαιώνει την είσπραξη του μηνιαίου μισθώματος για την αναφερόμενη περίοδο.', branding)
       + `</div></body></html>`;
