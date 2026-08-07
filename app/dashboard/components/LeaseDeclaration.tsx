@@ -21,6 +21,7 @@ import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide
 import { notifyError } from '@/components/Toast';
 import { must } from '@/lib/supabase/must';
 import { saved } from '@/components/dbWrite';
+import { INK } from '@/lib/print/ink';
 import {
   buildLeaseDeclaration, declarationSheet, RULES,
   type LeaseDeclarationInput, type DeclField,
@@ -127,7 +128,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
     const w = window.open('', '_blank');
     if (!w) { notifyError('Επίτρεψε τα αναδυόμενα παράθυρα.'); return; }
     const esc = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c));
-    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Δήλωση Μίσθωσης</title><style>body{font-family:'Inter',system-ui,sans-serif;padding:40px;max-width:760px;margin:0 auto;color:#202124}pre{font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.9;white-space:pre-wrap}@media print{body{padding:0}@page{margin:16mm}}</style></head><body><pre>${esc(declarationSheet(decl))}</pre><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`);
+    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Δήλωση Μίσθωσης</title><style>body{font-family:'Inter',system-ui,sans-serif;padding:40px;max-width:760px;margin:0 auto;color:${INK}}pre{font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.9;white-space:pre-wrap}@media print{body{padding:0}@page{margin:16mm}}</style></head><body><pre>${esc(declarationSheet(decl))}</pre><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`);
     w.document.close();
   };
 

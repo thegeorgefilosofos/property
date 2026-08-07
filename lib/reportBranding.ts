@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { PAPER } from '@/lib/print/ink';
 
 export interface ReportBranding {
   enabled: boolean;
@@ -47,7 +48,7 @@ export function reportAccent(b?: ReportBranding | null): string {
 
 /** :root μεταβλητές που ορίζουν το --accent (αρκετές αναφορές το χρησιμοποιούν ήδη). */
 export function brandRootVars(b?: ReportBranding | null): string {
-  return `:root{--accent:${reportAccent(b)};--accent-text:#fff}`;
+  return `:root{--accent:${reportAccent(b)};--accent-text:${PAPER}}`;
 }
 
 /** <img> του λογοτύπου (αν υπάρχει έγκυρο), αλλιώς κενό string. */

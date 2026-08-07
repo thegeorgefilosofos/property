@@ -1431,7 +1431,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     <h1>Πρωτόκολλο ${h.handover_type==='check_in'?'Παράδοσης':'Παραλαβής'}</h1>
     <div class="sub"><strong>${esc(h.tenant_name)}</strong>${h.tenant_phone?` · ${esc(h.tenant_phone)}`:''} · ${esc(fmtDate(h.handover_date))}</div>
     <table><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th><th>Φωτό κατάστασης</th></tr></thead><tbody>
-    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||ABSENT)}</td><td>${s.condition_photo?`<img src="${esc(s.condition_photo)}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #d1d5db"/>${s.captured_at?`<br><span style="font-size:8px;color:#6b7280">${esc(fmtDate(s.captured_at))}</span>`:''}`:''}</td></tr>`).join('')}
+    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||ABSENT)}</td><td>${s.condition_photo?`<img src="${esc(s.condition_photo)}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid ${RULE}"/>${s.captured_at?`<br><span style="font-size:8px;color:#6b7280">${esc(fmtDate(s.captured_at))}</span>`:''}`:''}</td></tr>`).join('')}
     </tbody></table>
     <div class="sig"><div class="sig-box">Υπογραφή Ιδιοκτήτη</div><div class="sig-box">Υπογραφή Ενοικιαστή</div><div class="sig-box">Ημερομηνία</div></div>
     <button onclick="window.print()" style="margin-top:24px;padding:8px 16px;cursor:pointer">Εκτύπωση</button></body></html>`)

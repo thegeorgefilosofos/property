@@ -676,7 +676,7 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
       const contact = item.assigned_contact_name
         ? `<div style="font-size:10px;color:${INK_FAINT};margin-top:2px">${rEsc(item.assigned_contact_name)}</div>` : ''
       const tags = (item._tags || []).length > 0
-        ? `<div style="margin-top:3px">${(item._tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border:1px solid #e5e7eb;border-radius:3px;font-size:9px;color:#6b7280;margin-right:3px">${rEsc(t)}</span>`).join('')}</div>` : ''
+        ? `<div style="margin-top:3px">${(item._tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border:1px solid ${RULE};border-radius:3px;font-size:9px;color:${INK_MUTED};margin-right:3px">${rEsc(t)}</span>`).join('')}</div>` : ''
       return `<tr>
         <td>
           <div style="font-size:12px;${isDone ? 'text-decoration:line-through;color:${INK_FAINT}' : 'color:${INK}'}">${rEsc(item.description)}</div>
@@ -686,7 +686,7 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
         <td>${rEsc(sm.label)}</td>
         <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : '—'}${od ? '<div style="font-size:9px;color:${INK_FAINT}">Εκπρόθεσμο</div>' : ''}</td>
         <td class="n">${item.estimated_cost > 0 ? rEsc(rEur(item.estimated_cost)) : '—'}</td>
-        <td class="n">${item.actual_cost > 0 ? rEsc(rEur(item.actual_cost)) : '—'}${item._receipt ? `<div style="font-size:9px;color:#8a8f98">${rEsc(item._receipt.name)}</div>` : ''}</td>
+        <td class="n">${item.actual_cost > 0 ? rEsc(rEur(item.actual_cost)) : '—'}${item._receipt ? `<div style="font-size:9px;color:${INK_FAINT}">${rEsc(item._receipt.name)}</div>` : ''}</td>
       </tr>`
     }).join('')
     return reportSection(cat.label)
@@ -812,7 +812,7 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 .check-row:last-child{border-bottom:none}
 .cb{width:16px;height:16px;border:2px solid ${RULE};border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
 .cb-done{background:${INK};border-color:${INK}}
-.check-label{font-size:12px;color:#3c4043;flex:1;line-height:1.4}
+.check-label{font-size:12px;color:${INK_MUTED};flex:1;line-height:1.4}
 
 /* Room table */
 .room-table{width:100%;border-collapse:collapse;font-size:11px}
@@ -851,7 +851,7 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 .task-row.done .task-label{text-decoration:line-through;color:${INK_FAINT}}
 .task-cb{width:16px;height:16px;border:1.5px solid ${RULE};border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center}
 .task-cb-done{background:${INK};border-color:${INK}}
-.task-label{flex:1;font-size:12px;color:#3c4043}
+.task-label{flex:1;font-size:12px;color:${INK_MUTED}}
 .task-contact{font-size:10px;color:${INK_MUTED};background:${PAPER_ALT};padding:1px 7px;border-radius:20px;white-space:nowrap}
 
 /* Damage */
@@ -871,7 +871,7 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 .commons-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid ${PAPER_ALT}}
 .commons-row:last-child{border-bottom:none}
 .commons-dot{width:8px;height:8px;border-radius:50%;background:${INK_MUTED};flex-shrink:0}
-.commons-label{font-size:12px;color:#3c4043;flex:1}
+.commons-label{font-size:12px;color:${INK_MUTED};flex:1}
 .commons-val{font-size:11px;border-bottom:1px solid ${RULE};min-width:80px;padding-bottom:2px;font-family:'Inter', sans-serif}
 
 /* Footer */
@@ -905,16 +905,16 @@ ${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων
     ${fieldRow('Ημερομηνία Συναλλαγής', esc(today))}
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
-    <div style="background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:12px">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#374151;margin-bottom:8px">Ιδιοκτήτης</div>
+    <div style="background:${PAPER_ALT};border:1px solid ${RULE};border-radius:8px;padding:12px">
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px">Ιδιοκτήτης</div>
       <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', '')}</div>
       <div class="field-grid">
         ${fieldRow('ΑΦΜ', '')}
         ${fieldRow('Τηλέφωνο', '')}
       </div>
     </div>
-    <div style="background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:12px">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#374151;margin-bottom:8px">Ενοικιαστής</div>
+    <div style="background:${PAPER_ALT};border:1px solid ${RULE};border-radius:8px;padding:12px">
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px">Ενοικιαστής</div>
       <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', `<span class="${tenantName !== '______________________________' ? 'prefilled' : ''}">${esc(tenantName)}</span>`)}</div>
       <div class="field-grid">
         ${fieldRow('ΑΦΜ', `<span class="${tenantAfm !== '______________________________' ? 'prefilled' : ''}">${esc(tenantAfm)}</span>`)}
@@ -1038,7 +1038,7 @@ ${sectionHtml(9, 'Λίστα Ελέγχου Εκκρεμοτήτων', `
 `)}
 
 ${sectionHtml(10, 'Καταγεγραμμένες Ζημιές & Αποκλίσεις', `
-  <div style="font-size:12px;color:#5f6368;margin-bottom:10px">Καταγράψτε κάθε ζημιά, φθορά ή απόκλιση από την αρχική κατάσταση. Συνημμένα: φωτογραφίες με ημερομηνία.</div>
+  <div style="font-size:12px;color:${INK_MUTED};margin-bottom:10px">Καταγράψτε κάθε ζημιά, φθορά ή απόκλιση από την αρχική κατάσταση. Συνημμένα: φωτογραφίες με ημερομηνία.</div>
   <div class="damage-box"></div>
   <div class="photo-grid">
     ${Array(8).fill(0).map(() => `<div class="photo-box">Φωτογραφία</div>`).join('')}
@@ -1054,7 +1054,7 @@ ${sectionHtml(11, 'Λοιπές Συμφωνίες & Σημειώσεις', `
 `)}
 
 ${sectionHtml(12, 'Δηλώσεις & Υπογραφές', `
-  <div style="padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e8eaed;font-size:11px;color:#3c4043;line-height:1.6;margin-bottom:16px">
+  <div style="padding:12px;background:${PAPER_ALT};border-radius:8px;border:1px solid ${RULE};font-size:11px;color:${INK_MUTED};line-height:1.6;margin-bottom:16px">
     Οι υπογράφοντες βεβαιώνουν ότι έχουν λάβει γνώση και αποδέχονται το σύνολο των παραπάνω καταγεγραμμένων στοιχείων. Η παρούσα αποτελεί αναπόσπαστο παράρτημα της μισθωτικής σύμβασης.
   </div>
   <div class="sig-grid">

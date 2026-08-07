@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import { escHtml as esc } from '@/lib/reportBranding';
+import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 
 // Ελάχιστο σχήμα πελάτη που χρειάζεται η σύνθεση (το Client του TabClients το ικανοποιεί).
 export interface ComposeClient {
@@ -30,16 +31,16 @@ const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 // emails). Τα {{name}} / {{email}} μένουν ανέπαφα για personalization από τη function.
 function wrapEmailHtml(bodyText: string): string {
   const paras = esc(bodyText).trim().split(/\n{2,}/)
-    .map(p => `<p style="margin:0 0 14px;font-size:14px;color:#3c4043;line-height:1.7;">${p.replace(/\n/g, '<br>')}</p>`)
+    .map(p => `<p style="margin:0 0 14px;font-size:14px;color:${INK_MUTED};line-height:1.7;">${p.replace(/\n/g, '<br>')}</p>`)
     .join('');
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',Arial,sans-serif;">
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:${PAPER_ALT};font-family:-apple-system,'Inter',Arial,sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:22px;">
       ${brandMarkHtml(34)}
-      <span style="font-size:16px;font-weight:700;color:#111;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">Property OS</span>
     </div>
-    <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:26px 24px;">${paras || '<p style="margin:0;color:#9aa0a6;">—</p>'}</div>
-    <p style="text-align:center;font-size:11px;color:#9aa0a6;margin:18px 0 4px;line-height:1.6;">Στάλθηκε μέσω Property OS</p>
+    <div style="background:${PAPER};border:1px solid ${RULE};border-radius:14px;padding:26px 24px;">${paras || '<p style="margin:0;color:${INK_FAINT};">—</p>'}</div>
+    <p style="text-align:center;font-size:11px;color:${INK_FAINT};margin:18px 0 4px;line-height:1.6;">Στάλθηκε μέσω Property OS</p>
   </div></body></html>`;
 }
 

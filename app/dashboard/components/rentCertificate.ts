@@ -13,6 +13,7 @@ import type { ReportBranding } from '@/lib/reportBranding'
 import { issueDocument } from '@/lib/documents/issue'
 import { generateReportPdf, pEur, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport'
 import type { createClient } from '@/lib/supabase/client'
+import { INK_FAINT } from '@/lib/print/ink';
 
 export interface RentCertMonth { label: string; amount: number }
 export interface RentCertificateCtx {
@@ -50,8 +51,8 @@ export function printRentCertificate(c: RentCertificateCtx): void {
     + reportSection('Ανάλυση καταβληθέντων μισθωμάτων')
     + `<table><tbody>${monthRows}${totalRow}</tbody></table>`
     + `<div style="display:flex;justify-content:space-between;margin-top:56px;gap:40px">`
-    +   `<div style="flex:1;text-align:center"><div class="muted" style="border-top:1px solid #9aa0a6;padding-top:8px;font-size:12px">Ο εκμισθωτής</div></div>`
-    +   `<div style="flex:1;text-align:center"><div class="muted" style="border-top:1px solid #9aa0a6;padding-top:8px;font-size:12px">Ο μισθωτής</div></div>`
+    +   `<div style="flex:1;text-align:center"><div class="muted" style="border-top:1px solid ${INK_FAINT};padding-top:8px;font-size:12px">Ο εκμισθωτής</div></div>`
+    +   `<div style="flex:1;text-align:center"><div class="muted" style="border-top:1px solid ${INK_FAINT};padding-top:8px;font-size:12px">Ο μισθωτής</div></div>`
     + `</div>`
     + reportDisclaimer('Η βεβαίωση συντάχθηκε με βάση τα καταχωρημένα, εισπραγμένα μισθώματα. Για τη χρήση της σε δηλώσεις/δικαστικές διαδικασίες, επιβεβαίωσε τα στοιχεία με τον λογιστή ή τον δικηγόρο σου.', c.branding)
     + `</div></body></html>`
