@@ -995,13 +995,20 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <h2 style={{ fontFamily: SANS, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Αποδόσεις</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: SANS }}>{regimeLabel} · πραγματική απόδοση του ακινήτου και σύγκριση με την αγορά.</p>
         </div>
+        {/* ΔΥΟ ΚΟΥΜΠΙΑ, ΙΔΙΟ ΣΧΗΜΑ, ΙΔΙΟ ΜΕΓΕΘΟΣ, ΚΑΙ Η ΔΙΑΦΟΡΑ ΜΟΝΟ ΣΕ TOOLTIP.
+            Έλεγαν «Αναφορά PDF» και «Επίσημο PDF» — δηλαδή ο χρήστης έπρεπε να
+            μαντέψει ποιο θέλει, και σε κινητό δεν υπήρχε καν tooltip να τον
+            βοηθήσει. Είναι όντως δύο διαφορετικά παραδοτέα: το ένα το τυπώνεις
+            για σένα, το άλλο φέρει αριθμό εγγράφου που μπορεί να επαληθεύσει
+            τρίτος. Τα κουμπιά το λένε πια αυτό, αντί για τη μορφή του αρχείου —
+            που δεν είναι ερώτηση που κάνει κανείς. */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {!empty && (<>
             <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ArrowUpRight size={14} /> Αναφορά PDF
+              <ArrowUpRight size={14} /> Για μένα
             </button>
             <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}
+              <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Για τράπεζα ή λογιστή'}
             </button>
           </>)}
         </div>

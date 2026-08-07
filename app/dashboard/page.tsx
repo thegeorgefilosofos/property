@@ -264,8 +264,12 @@ const fmtEur = feOr;
 // MD3 form styles
 
 // Alert hooks
+// Επιστρέφει και το ΠΛΗΘΟΣ αντικειμένων, όχι μόνο τις ειδοποιήσεις: το ερώτημα
+// τα φέρνει ούτως ή άλλως, και χωρίς αυτό η καρτέλα «Έπιπλα και εξοπλισμός»
+// κρύβεται με τα δεδομένα μέσα (βλ. σχόλιο στο tabDecision).
 function useInventoryAlerts(propertyId: string | null, userId: string | null) {
   const [alertCount, setAlertCount] = useState(0);
+  const [itemCount, setItemCount] = useState(0);
   const supabase = createClient();
   useEffect(() => {
     if (!propertyId || !userId) return;
@@ -273,6 +277,7 @@ function useInventoryAlerts(propertyId: string | null, userId: string | null) {
       const { data: items } = await supabase.from('inventory_items').select('warranty_expiry, condition, purchase_date').eq('property_id', propertyId);
       const { data: schedules } = await supabase.from('inventory_maintenance').select('next_due').eq('property_id', propertyId);
       if (!items) return;
+      setItemCount(items.length);
       let count = 0; const now = Date.now();
       items.forEach(item => {
         if (item.condition === 'Κακή' || item.condition === 'Εκτός Λειτουργίας') count++;
@@ -284,7 +289,7 @@ function useInventoryAlerts(propertyId: string | null, userId: string | null) {
     };
     check();
   }, [propertyId]);
-  return alertCount;
+  return { alertCount, itemCount };
 }
 
 function useChecklistAlerts(propertyId: string | null) {
@@ -502,6 +507,15 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   };
   const monthlyExp = Array(12).fill(0);
   allExpenses.forEach(e => { occMonths(e, chartYear).forEach(m => { monthlyExp[m] += e.amount; }); });
+  // ΚΑΙ ΟΙ ΑΠΛΗΡΩΤΟΙ ΛΟΓΑΡΙΑΣΜΟΙ ΕΙΝΑΙ ΧΡΗΜΑΤΑ ΠΟΥ ΦΕΥΓΟΥΝ.
+  // Οι μπάρες μετρούσαν μόνο τον πίνακα `expenses`, ενώ το ίδιο ζεύγος
+  // γραφημάτων στον Προϋπολογισμό μετρά ολόκληρο το ημερολόγιο. Ίδια ερώτηση,
+  // δύο οθόνες, δύο απαντήσεις — ακριβώς το «τρεις οθόνες, τρία σύνολα» που
+  // περιγράφει το σχόλιο στην κορυφή του lib/expenses/ledger.ts. Προστίθενται
+  // εδώ ΜΟΝΟ όσοι δεν έχουν δαπάνη από πίσω τους, αλλιώς θα μετρούσαν διπλά.
+  ledger.entries
+    .filter(e => !e.expenseId && e.date.startsWith(`${chartYear}-`))
+    .forEach(e => { const m = new Date(e.date).getMonth(); if (m >= 0 && m < 12) monthlyExp[m] += e.amount; });
   const maxExp = Math.max(...monthlyExp, 1);
   // Κατηγορίες τρέχοντος έτους (για την αναφορά PDF)
   const catMap: Record<string,number> = {};
@@ -510,6 +524,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // Κατηγορίες για τον επιλεγμένο μήνα του chartYear (πίνακας δεξιά από το γράφημα)
   const selCatMap: Record<string,number> = {};
   allExpenses.forEach(e => { if (occMonths(e, chartYear).includes(selMonth)) selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
+  // Ίδιος λόγος με τις μπάρες: ο πίνακας δίπλα τους πρέπει να αθροίζει σε αυτές.
+  ledger.entries
+    .filter(e => !e.expenseId && e.date.startsWith(`${chartYear}-`) && new Date(e.date).getMonth() === selMonth)
+    .forEach(e => { selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
   const selCatEntries = Object.entries(selCatMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const selMonthTotal = monthlyExp[selMonth] || 0;
   // Έτη για το dropdown: όσα έχουν δαπάνες + προηγούμενο/τρέχον/επόμενο, φθίνουσα.
@@ -1196,7 +1214,7 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const inventoryAlerts = useInventoryAlerts(selected?.id||null, user?.id||null);
+  const { alertCount: inventoryAlerts, itemCount: inventoryItems } = useInventoryAlerts(selected?.id||null, user?.id||null);
   const checklistAlerts = useChecklistAlerts(selected?.id||null);
 
   // Δικαιώματα συνδρομής: το «ενεργό» πλάνο ορίζει τι βλέπεις (βασικό πλάνο,
@@ -1512,7 +1530,7 @@ export default function Dashboard() {
   //
   // ΔΕΝ ΔΙΑΓΡΑΦΕΤΑΙ ΤΙΠΟΤΑ. Οι καρτέλες φεύγουν από την πλοήγηση, τα δεδομένα
   // μένουν ακέραια, και επιστρέφουν τη στιγμή που το ακίνητο αλλάζει κατάσταση.
-  const decide = (id: string) => tabDecision(id, ownerCtx, selected);
+  const decide = (id: string) => tabDecision(id, ownerCtx, selected, { hasInventory: inventoryItems > 0 });
 
   // Ορατή στην πλοήγηση: ό,τι αφορά τον χρήστη — και, αν ζήτησε «δείξε τα όλα»,
   // και τα υπόλοιπα, αχνά και με τον λόγο ως tooltip.
@@ -1971,8 +1989,15 @@ export default function Dashboard() {
                       μπάρα, δίπλα στο Αρχείο, κάτω από ένα όνομα ομάδας που δεν
                       έλεγε τίποτα για κανένα από τα δύο. Εδώ είναι μία γραμμή
                       που οδηγεί στην πλήρη σελίδα, όχι δεύτερο αντίγραφό της. */}
+                  {/* Ο ΣΥΝΔΕΣΜΟΣ ΕΜΦΑΝΙΖΟΤΑΝ ΧΩΡΙΣ ΚΑΜΙΑ ΣΥΝΘΗΚΗ.
+                      Η καρτέλα του όμως φαίνεται μόνο σε μίσθωση: σε ιδιοχρησία,
+                      κενό, ανακαίνιση, προς πώληση ή αμφισβητούμενο, ο χρήστης
+                      διάβαζε τίτλο ενότητας και κάρτα «Άνοιγμα απογραφής», και
+                      το πάτημα τον γύριζε σιωπηλά στην Επισκόπηση. Πέντε από τις
+                      επτά καταστάσεις. Ίδιος κανόνας με το μενού, ένα σημείο. */}
+                  {navVisible('inventory') && (
                   <div style={{marginTop:28}}>
-                    <SecHdr label="Έπιπλα και εξοπλισμός" sub="Αξία, εγγυήσεις, συντήρηση και παράδοση"/>
+                    <SecHdr label={navLabel('inventory')} sub="Αξία, εγγυήσεις, συντήρηση και παράδοση"/>
                     <button onClick={()=>setNav('inventory')}
                       style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'14px 16px',borderRadius:12,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:'inherit'}}>
                       <div style={{minWidth:0,flex:1}}>
@@ -1982,6 +2007,7 @@ export default function Dashboard() {
                       <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
                     </button>
                   </div>
+                  )}
                 </>
               )}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
