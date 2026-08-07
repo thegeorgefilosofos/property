@@ -34,10 +34,13 @@ const EXT = /\.(tsx|ts)$/
 const ALLOW = [
   // Παραγωγή PDF/HTML για εκτύπωση και email: ο παραλήπτης δεν έχει το
   // stylesheet μας, άρα το var(--x) θα έφτανε ως κενό και θα έβγαινε άχρωμο.
-  { re: /reportPdf\.ts$/,        why: 'HTML εκτύπωσης — χωρίς stylesheet του app' },
-  { re: /accountingReport\.ts$/, why: 'HTML εκτύπωσης — χωρίς stylesheet του app' },
-  { re: /rentCertificate\.ts$/,  why: 'HTML εκτύπωσης — χωρίς stylesheet του app' },
-  { re: /statement\.ts$/,        why: 'HTML εκτύπωσης — χωρίς stylesheet του app' },
+  // ΤΕΣΣΕΡΑ ΑΡΧΕΙΑ ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Τα reportPdf.ts, statement.ts,
+  // accountingReport.ts και rentCertificate.ts είχαν άδεια για ωμό hex επειδή
+  // το χαρτί δεν έχει CSS variables — και τη χρησιμοποίησαν για να γράψουν
+  // δεκαπέντε αποχρώσεις σε τέσσερις ρόλους, τρεις φορές η καθεμία. Το
+  // `lib/print/ink.ts` δίνει πλέον ονομασμένες σταθερές που ΕΙΝΑΙ κυριολεκτικές
+  // τιμές: η άδεια δεν χρειάζεται, άρα δεν δίνεται. Μηδέν ωμό hex και στα
+  // τέσσερα, και κάθε νέο είναι σφάλμα αντί για ανεκτό χρέος.
   { re: /xlsxStyle\.ts$/,        why: 'χρώματα Excel — η μορφή θέλει ARGB, όχι CSS' },
   { re: /portfolioXlsx\.ts$/,    why: 'χρώματα Excel — η μορφή θέλει ARGB, όχι CSS' },
   { re: /journalXlsx\.ts$/,      why: 'χρώματα Excel — η μορφή θέλει ARGB, όχι CSS' },
@@ -46,6 +49,9 @@ const ALLOW = [
 ]
 
 const HEX = /#[0-9a-fA-F]{3,8}\b/g
+
+/** Οι γραμμές σχολίου βγαίνουν: ένα χρώμα σε σχόλιο δεν βάφει τίποτα. */
+const stripComments = src => src.split('\n').filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
 
 function walk(dir, acc = []) {
   for (const name of readdirSync(dir)) {
@@ -74,7 +80,11 @@ for (const dir of SCAN) {
     const allowed = ALLOW.find(a => a.re.test(rel))
     if (allowed) continue
     const src = readFileSync(f, 'utf8')
-    const hits = src.match(HEX)
+    // Τα σχόλια που ΕΞΗΓΟΥΝ το σφάλμα δεν είναι το σφάλμα — ο ίδιος κανόνας που
+    // εφαρμόζεται πιο κάτω στο ωμό γαλάζιο. Χωρίς αυτό, το να καταγράψεις σε
+    // σχόλιο ποιες αποχρώσεις αντικατέστησες μετριέται σαν να τις πρόσθεσες.
+    const code = stripComments(src)
+    const hits = code.match(HEX)
     if (!hits) continue
     total += hits.length
     offenders.push({ file: rel, count: hits.length })

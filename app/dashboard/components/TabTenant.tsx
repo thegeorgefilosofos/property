@@ -977,7 +977,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   const monthLabel=(p:RentPayment)=>periodLabel(p.period_year,p.period_month,periodMonths,monthNom);
 
   const printReceipt=(p:RentPayment)=>{
-    const paidDate=p.paid_date?rDate(p.paid_date+'T00:00:00'):ABSENT_DATE;
+    const paidDate=p.paid_date?rDate(p.paid_date):ABSENT_DATE;
     const landlord=branding?.companyName?brandName(branding):'Property OS';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     const tenantLine=`${p.tenant_id?(tenant.full_name||''):''}${tenant.afm?` · ΑΦΜ ${tenant.afm}`:''}`;
@@ -1045,7 +1045,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
       + `<table><tbody>`
         + reportRow('Μισθωτής', tenantLine)
         + (propLabel()?reportRow('Ακίνητο', propLabel()):'')
-        + (p.due_date?reportRow('Ημερομηνία λήξης', rDate(p.due_date+'T00:00:00')):'')
+        + (p.due_date?reportRow('Ημερομηνία λήξης', rDate(p.due_date)):'')
       + `</tbody></table>`
       + reportSection('Τι περιλαμβάνει / τι χρεώνεται')
       + `<table><tbody>`

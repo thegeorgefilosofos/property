@@ -12,16 +12,20 @@
 // στον browser και κατεβάζει το αρχείο.
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, type ReportBranding } from '@/lib/reportBranding';
+import { localDay } from '@/lib/core/time';
 
-// ── Μορφοποίηση (ελληνικό κόμμα, 2 δεκαδικά, σφιχτό «−») ──────────────────────
-export const pEur = (n: number | null | undefined): string =>
-  `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-export const pSigned = (n: number | null | undefined): string =>
-  ((n ?? 0) < 0 ? `−${pEur(Math.abs(n ?? 0))}` : pEur(n ?? 0));
-export const pPct = (n: number | null | undefined): string =>
-  `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+// ── ΜΟΡΦΟΠΟΙΗΣΗ — ΙΔΙΑ ΜΕ ΤΗΝ ΟΘΟΝΗ ΚΑΙ ΜΕ ΤΙΣ ΕΚΤΥΠΩΣΕΙΣ ────────────────────
+// Ήταν τρίτο αντίγραφο των ίδιων τεσσάρων μορφοποιητών, με τις ίδιες τρεις
+// αποκλίσεις από την οθόνη: θραυστό κενό πριν το «€», κενό πριν το «%», και
+// καμία φρουρά για NaN/άπειρο. Εδώ το κόστος ήταν το μεγαλύτερο, γιατί αυτό
+// είναι το ΕΠΙΣΗΜΟ έγγραφο — με αριθμό εγγράφου και QR επαλήθευσης.
+// Επιβεβαιώθηκε ότι η ενσωματωμένη Roboto έχει γλυφή για το άθραυστο κενό
+// (U+00A0 → glyph 660), για το «€» και για το τυπογραφικό μείον.
+// Η συμπεριφορά ζει μία φορά, στο `lib/core/format.ts`.
+export { fe as pEur, fp as pPct, feSigned as pSigned } from '@/lib/core/format';
+
 export const pDate = (d?: string | Date | null): string => {
-  const t = d ? new Date(d) : new Date();
+  const t = d ? localDay(d) : new Date();
   return isNaN(t.getTime()) ? '' : t.toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
 };
 export const pDateTime = (d?: string | Date | null): string => {

@@ -11,15 +11,67 @@ import { BRAND_MARK_INK } from '@/components/BrandMark';
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
 import { notifyError } from '@/components/toastBus';
-import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
+import { localDay } from '@/lib/core/time';
+import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE, RULE_SOFT } from '@/lib/print/ink';
 
 export const rEsc = (v: unknown): string => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
-export const rEur = (n: number | null | undefined): string => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-export const rSigned = (n: number | null | undefined): string => ((n ?? 0) < 0 ? `−${rEur(Math.abs(n ?? 0))}` : rEur(n ?? 0));
-export const rPct = (n: number | null | undefined): string => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
-export const rDate = (d?: string | Date | null): string => { const t = d ? new Date(d) : new Date(); return isNaN(t.getTime()) ? '' : t.toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }); };
 
-// Ενιαίο CSS — ίδιο για κάθε αναφορά.
+// ── ΤΑ ΝΟΥΜΕΡΑ ΤΟΥ ΧΑΡΤΙΟΥ ΕΙΝΑΙ ΤΑ ΝΟΥΜΕΡΑ ΤΗΣ ΟΘΟΝΗΣ ────────────────────
+//
+// ΗΤΑΝ ΤΡΕΙΣ ΔΙΑΦΟΡΕΤΙΚΟΙ ΜΟΡΦΟΠΟΙΗΤΕΣ ΓΙΑ ΤΟ ΙΔΙΟ ΝΟΥΜΕΡΟ — `fe`/`fp` για την
+// οθόνη, `rEur`/`rPct` εδώ για τις εκτυπώσεις, `pEur`/`pPct` στο `lib/pdf` για
+// τα επίσημα PDF. Μετρημένα, οι δύο του χαρτιού διέφεραν από της οθόνης σε τρία
+// πράγματα, και στα τρία ήταν οι ΛΑΘΟΣ:
+//
+//   ποσό      οθόνη «1.250,00 €» (άθραυστο κενό)  ·  χαρτί «1.250,00 €» (σπάει)
+//   ποσοστό   οθόνη «12,50%»                       ·  χαρτί «12,50 %»
+//   χαλασμένο οθόνη «0,00 €»                       ·  χαρτί «NaN €», «∞ €»
+//
+// Το άθραυστο κενό είναι ο λόγος που υπάρχει το `fe`: με κανονικό κενό, σε στενή
+// στήλη πίνακα το «€» πέφτει μόνο του στην επόμενη γραμμή. Μια στήλη ποσών σε
+// λογιστική κατάσταση είναι ΑΚΡΙΒΩΣ στενή στήλη πίνακα.
+//
+// Και το «NaN €» δεν τυπωνόταν σε πρόχειρη οθόνη: τυπωνόταν σε έγγραφο με
+// αριθμό εγγράφου και κωδικό QR επαλήθευσης, που πάει σε λογιστή ή σε τράπεζα.
+//
+// Τα ονόματα μένουν (283 σημεία κλήσης, και «rEur» διαβάζεται σωστά μέσα σε
+// συμβολοσειρά HTML) — η ΣΥΜΠΕΡΙΦΟΡΑ όμως ζει πλέον μία φορά, στο
+// `lib/core/format.ts`, μαζί με τους ελέγχους της.
+export { fe as rEur, fp as rPct, feSigned as rSigned } from '@/lib/core/format';
+
+/**
+ * Ημερομηνία εγγράφου, ολογράφως ο μήνας: «05 Ιουνίου 2026».
+ *
+ * Το `localDay` κρατά την ημερολογιακή ημέρα ΑΚΡΙΒΩΣ όπως γράφτηκε. Πριν, το
+ * σκέτο `new Date('2026-01-01')` τυπωνόταν «31 Δεκεμβρίου 2025» σε κάθε ζώνη με
+ * αρνητική απόκλιση — και ένα σημείο κλήσης είχε ήδη τη χειροκίνητη παράκαμψη
+ * `rDate(p.paid_date + 'T00:00:00')`, που τώρα δεν χρειάζεται.
+ */
+export const rDate = (d?: string | Date | null): string => {
+  const t = d ? localDay(d) : new Date();
+  return isNaN(t.getTime()) ? '' : t.toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+// ── ΕΝΙΑΙΟ CSS — ΙΔΙΟ ΓΙΑ ΚΑΘΕ ΑΝΑΦΟΡΑ ────────────────────────────────────
+//
+// ΔΕΝ ΗΤΑΝ ΕΝΙΑΙΟ. Οκτώ έγγραφα περνούν από εδώ, αλλά τα δύο βαρύτερα — η
+// «Αναφορά ακινήτου» (statement.ts) και η «Λογιστική αναφορά»
+// (accountingReport.ts), αυτή που πάει στον λογιστή — είχαν αντιγράψει το φύλλο
+// με το χέρι, δίπλα-δίπλα σε αυτό το αρχείο. Τρία αντίγραφα, και είχαν ήδη
+// αποκλίνει σε πράγματα που φαίνονται στο χαρτί:
+//
+//   • Το σήμα της λογιστικής αναφοράς τυπωνόταν με ΣΚΟΥΡΟ ΓΚΡΙ ΓΡΑΜΜΑ ΠΑΝΩ ΣΕ
+//     ΣΧΕΔΟΝ ΜΑΥΡΟ ΠΛΑΚΙΔΙΟ (`background:#111;color:#3a3a3a`), ενώ κάθε άλλο
+//     έγγραφο το τυπώνει λευκό πάνω στο χρώμα του brand. Το «P» ήταν αόρατο.
+//   • Οι κεφαλίδες πινάκων της δεν είχαν το `padding:0 4px 6px` — κάθονταν
+//     αλλιώς πάνω από τη γραμμή απ' ό,τι σε κάθε άλλη αναφορά.
+//   • Το κολοφώνιο έγραφε σκέτο «Property OS» αντί για τη φράση των υπολοίπων.
+//   • Η στήλη ποσοστού είχε `width:80px` στη μία και τίποτα στην άλλη.
+//   • Τρεις αποχρώσεις γραμμής (#eef0f2, #d0d5dd, RULE) για δύο ρόλους.
+//
+// Ένας λογιστής που παίρνει τρία έγγραφα από την ΙΔΙΑ εφαρμογή τα διαβάζει ως
+// τρία έγγραφα από τρεις εφαρμογές. Τώρα το φύλλο ζει μία φορά· ό,τι ανήκει
+// πραγματικά σε ένα έγγραφο περνά ως `extraCss` στο `reportHead`.
 export const REPORT_CSS = `
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Inter',system-ui,Arial,sans-serif;color:${INK};background:${PAPER};font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -40,12 +92,12 @@ export const REPORT_CSS = `
   .kv{font-size:18px;font-weight:700;color:${INK};font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
   table{width:100%;border-collapse:collapse;break-inside:avoid}
   td{padding:8px 4px;text-align:left;font-size:13px;color:${INK_MUTED}}
-  tbody tr td{border-bottom:1px solid #eef0f2}
+  tbody tr td{border-bottom:1px solid ${RULE_SOFT}}
   td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:${INK}}
-  td.np{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:${INK_FAINT};font-size:12px;padding-left:18px}
+  td.np{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:${INK_FAINT};font-size:12px;padding-left:18px;width:80px}
   tr.sub td{font-weight:700;color:${INK};background:${PAPER_ALT}}
   tr.result td{font-weight:700;color:${INK};border-top:2px solid ${INK};border-bottom:none;padding-top:10px}
-  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:${INK_FAINT};font-weight:600;border-bottom:1px solid #d0d5dd;text-align:left;padding:0 4px 6px}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:${INK_FAINT};font-weight:600;border-bottom:1px solid ${RULE};text-align:left;padding:0 4px 6px}
   th.n{text-align:right}th.np{text-align:right;padding-left:18px}
   td.empty{color:${INK_FAINT};font-size:12px;padding:12px 0}
   .note{margin-top:9px;font-size:12px;color:${INK_MUTED};line-height:1.55}
@@ -55,11 +107,20 @@ export const REPORT_CSS = `
   .colo b{font-weight:700;color:${INK_MUTED}}
 `;
 
-/** <head> με γραμματοσειρά Inter + κοινό CSS. Το title μπαίνει ξεσκαρταρισμένο. */
-export function reportHead(title: string): string {
+/**
+ * `<head>` με γραμματοσειρά Inter + κοινό CSS. Το title μπαίνει ξεσκαρταρισμένο.
+ *
+ * ΤΟ `extraCss` ΥΠΑΡΧΕΙ ΓΙΑ ΝΑ ΜΗΝ ΞΑΝΑΓΡΑΦΤΕΙ ΤΟ ΦΥΛΛΟ. Η «Αναφορά ακινήτου»
+ * και η «Λογιστική αναφορά» είχαν αντιγράψει ολόκληρο το `REPORT_CSS` με το
+ * χέρι — τριάντα γραμμές η καθεμία — επειδή η καθεμία χρειαζόταν τρεις δικές
+ * της κλάσεις. Τα τρία αντίγραφα απέκλιναν σιωπηλά (βλ. τη σημείωση στο
+ * `REPORT_CSS`). Ό,τι είναι πραγματικά ενός εγγράφου μπαίνει εδώ, ΜΕΤΑ το κοινό
+ * φύλλο· ό,τι το χρειάζονται δύο, ανεβαίνει στο κοινό.
+ */
+export function reportHead(title: string, extraCss = ''): string {
   return `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>${rEsc(title)}</title>`
     + printFontFaces()
-    + `<style>${REPORT_CSS}</style></head>`;
+    + `<style>${REPORT_CSS}${extraCss}</style></head>`;
 }
 
 /** Επικεφαλίδα εγγράφου: σήμα brand (μόνο αυτό έγχρωμο) + δεξιά ημ. έκδοσης. */

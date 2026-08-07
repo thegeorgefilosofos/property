@@ -3,17 +3,24 @@
 //
 // Σχεδίαση: ΑΣΠΡΟΜΑΥΡΟ, λιτό, σαν επίσημο λογιστικό έγγραφο — καμία διακοσμητική
 // χρωματική νότα. Χρήματα πάντα με δύο δεκαδικά και σύμβολο («1.234,56 €»),
-// αρνητικά με σφιχτό πρόσημο («−751,00 €»), ποσοστά «18,00%». Ενιαία
-// τυπογραφία/κενά/στοίχιση με την «Αναφορά απόδοσης». XSS-ασφαλές (esc).
+// αρνητικά με σφιχτό πρόσημο («−751,00 €»), ποσοστά «18,00%». XSS-ασφαλές (rEsc).
+//
+// ΤΥΠΟΓΡΑΦΙΑ, ΚΕΝΑ ΚΑΙ ΣΤΟΙΧΙΣΗ ΕΡΧΟΝΤΑΙ ΑΠΟ ΤΟ `reportPdf.ts`. Το αρχείο αυτό
+// κρατούσε δικό του αντίγραφο του φύλλου στυλ, και είχε αποκλίνει: το σήμα
+// τυπωνόταν σκούρο γκρι πάνω σε σχεδόν μαύρο πλακίδιο — αόρατο — ενώ κάθε άλλο
+// έγγραφο το τυπώνει λευκό πάνω στο χρώμα του brand. Εδώ μένει μόνο ό,τι είναι
+// πραγματικά ΑΥΤΗΣ της αναφοράς: η στήλη κατάστασης της συμφωνίας ενοικίων.
 // ═══════════════════════════════════════════════════════════════════════════
-import { brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding'
+import { type ReportBranding } from '@/lib/reportBranding'
 import type { IncomeStatement, TaxProvision } from '@/lib/accounting/statement'
 import { issueDocument } from '@/lib/documents/issue'
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport'
 import type { createClient } from '@/lib/supabase/client'
-import { printFontFaces } from '@/lib/print/fonts';
-import { notifyError } from '@/components/toastBus';
-import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
+import { INK, INK_MUTED } from '@/lib/print/ink';
+import {
+  reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer,
+  openReport, rEsc, rEur, rSigned, rDate,
+} from './reportPdf';
 
 export interface ReconLite { label: string; paid: number; expected: number; statusLabel: string; statusColor: string }
 
@@ -42,11 +49,16 @@ export interface AccountingReportCtx {
   branding?: ReportBranding | null
 }
 
-// Χρήματα: δύο δεκαδικά + «€» (ελληνικό κόμμα). Αρνητικά με σφιχτό «−» (χωρίς κενό).
-const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
-const signed = (n: number) => (n < 0 ? `−${eur(Math.abs(n))}` : eur(n))
-const pct = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`
-const esc = (str: string) => String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] || ch))
+// Η στήλη κατάστασης της συμφωνίας ενοικίων και το κενό κάτω από τον υπότιτλο:
+// τα μόνα δύο πράγματα αυτού του εγγράφου που δεν τα έχει κανένα άλλο. Το κενό
+// υπάρχει επειδή εδώ ο υπότιτλος ακολουθείται κατευθείαν από τα πλακίδια, χωρίς
+// ενδιάμεση επικεφαλίδα ενότητας που να το δίνει μόνη της.
+const RECON_CSS = `
+  .kpis{margin-top:24px}
+  td.st,th.st{text-align:right;font-size:11px;font-weight:700;color:${INK_MUTED};white-space:nowrap}
+  .recon-note{font-size:12px;color:${INK_MUTED};margin-bottom:8px}
+  .recon-note strong{color:${INK};font-weight:700}
+`
 
 // Κοινό, λιτό disclaimer (ίδιο σε print & επίσημο PDF) — νομικά επαρκές, χωρίς φλυαρία.
 const DISCLAIMER = 'Ενημερωτικό έγγραφο, όχι επίσημη φορολογική δήλωση. Τα ποσά είναι ενδεικτικά· επιβεβαίωσέ τα με τον λογιστή σου ή στο myAADE.'
@@ -57,100 +69,43 @@ const disclaimerOf = (c: AccountingReportCtx): string => c.enfiaEstimated
   : DISCLAIMER
 
 export function printAccountingReport(c: AccountingReportCtx): void {
-  const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
-
   // Γραμμή κατάστασης αποτελεσμάτων: κανονική / υποσύνολο (έντονο) / αποτέλεσμα
   // (λογιστική γραμμή με μαύρη άνω γραμμή). Αρνητικά με σφιχτό «−».
   const stRow = (label: string, amount: number, kind: string, negative?: boolean) => {
     const isSub = kind === 'subtotal', isRes = kind === 'result'
-    const display = negative ? `−${eur(Math.abs(amount))}` : signed(amount)
+    const display = negative ? `−${rEur(Math.abs(amount))}` : rSigned(amount)
     const cls = isRes ? 'result' : isSub ? 'sub' : ''
-    return `<tr class="${cls}"><td>${esc(label)}</td><td class="n">${esc(display)}</td></tr>`
+    return `<tr class="${cls}"><td>${rEsc(label)}</td><td class="n">${rEsc(display)}</td></tr>`
   }
-
-  const kpi = (label: string, value: string) =>
-    `<div class="kpi"><div class="kl">${esc(label)}</div><div class="kv">${esc(value)}</div></div>`
 
   const reconRows = c.reconciliation.length
     ? c.reconciliation.map(r => `<tr>
-        <td>${esc(r.label)}</td>
-        <td class="n">${esc(eur(r.paid))} / ${esc(eur(r.expected))}</td>
-        <td class="st">${esc(r.statusLabel)}</td>
+        <td>${rEsc(r.label)}</td>
+        <td class="n">${rEsc(rEur(r.paid))} / ${rEsc(rEur(r.expected))}</td>
+        <td class="st">${rEsc(r.statusLabel)}</td>
       </tr>`).join('')
-    : `<tr><td colspan="3" class="empty">Δεν υπάρχουν καταχωρημένα ενοίκια για το ${esc(String(c.year))}.</td></tr>`
+    : `<tr><td colspan="3" class="empty">Δεν υπάρχουν καταχωρημένα ενοίκια για το ${rEsc(String(c.year))}.</td></tr>`
 
-  const brandMark = brandLogoImg(c.branding, 34) || `<div class="mark">P</div>`
-  const contact = brandContactLine(c.branding)
-
-  const disclaimer = disclaimerOf(c)
-
-  const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
-<title>Λογιστική αναφορά · ${esc(c.propName)} ${esc(String(c.year))}</title>
-${printFontFaces()}
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,Arial,sans-serif;color:${INK};background:${PAPER};font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .page{max-width:760px;margin:0 auto;padding:40px}
-  @media print{.page{padding:16mm 15mm}@page{margin:0}}
-  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid ${INK};padding-bottom:16px}
-  .brand{display:flex;align-items:center;gap:11px}
-  .mark{width:34px;height:34px;border-radius:8px;background:${INK};color:#3a3a3a;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
-  .bname{font-size:15px;font-weight:700;color:${INK}}
-  .muted{color:${INK_MUTED}}
-  .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:${INK_FAINT};font-weight:600}
-  h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:22px 0 3px}
-  .sub{color:${INK_MUTED};font-size:12px;margin-bottom:22px}
-  .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${INK};margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid ${INK};break-after:avoid}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px}
-  .kpi{border:1px solid ${RULE};border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
-  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:${INK_FAINT};font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
-  .kv{font-size:18px;font-weight:700;color:${INK};font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
-  table{width:100%;border-collapse:collapse;break-inside:avoid}
-  td,th{padding:8px 4px;text-align:left;font-size:13px}
-  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:${INK}}
-  tbody tr td{border-bottom:1px solid #eef0f2;color:${INK_MUTED}}
-  tr.sub td{font-weight:700;color:${INK};background:${PAPER_ALT}}
-  tr.result td{font-weight:700;color:${INK};border-top:2px solid ${INK};border-bottom:none;padding-top:10px}
-  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:${INK_FAINT};font-weight:600;border-bottom:1px solid #d0d5dd}
-  td.st{text-align:right;font-size:11px;font-weight:700;color:${INK_MUTED};white-space:nowrap}
-  td.empty{color:${INK_FAINT};font-size:12px;padding:12px 0}
-  .recon-note{font-size:12px;color:${INK_MUTED};margin-bottom:8px}
-  .recon-note strong{color:${INK};font-weight:700}
-  .disc{margin-top:32px;padding-top:12px;border-top:1px solid ${RULE};color:${INK_FAINT};font-size:10px;line-height:1.6}
-  .colo{margin-top:10px;font-size:10px;letter-spacing:.02em;color:${INK_FAINT}}
-  .colo b{font-weight:700;color:${INK_MUTED}}
-</style></head>
-<body><div class="page">
-  <div class="top">
-    <div class="brand">
-      ${brandMark}
-      <div>
-        <div class="bname">${brandName(c.branding)}</div>
-        <div class="muted" style="font-size:11px">Λογιστική αναφορά</div>
-        ${contact ? `<div class="muted" style="font-size:10px;margin-top:2px">${contact}</div>` : ''}
-      </div>
-    </div>
-    <div style="text-align:right">
-      <div class="asof-l">Ημερομηνία έκδοσης</div>
-      <div style="font-size:13px;font-weight:600;margin-top:2px">${esc(today)}</div>
-      <div class="muted" style="font-size:10px;margin-top:3px">Χρήση ${esc(String(c.year))}</div>
-    </div>
-  </div>
-
-  <h1>${esc(c.propName)}</h1>
-  <div class="sub">${[c.regimeLabel, `Χρήση ${c.year}`, c.address].filter(Boolean).map(x => esc(String(x))).join(' · ')}</div>
+  const html = reportHead(`Λογιστική αναφορά · ${c.propName} ${c.year}`, RECON_CSS)
+    + `<body><div class="page">`
+    + reportHeader(c.branding, 'Λογιστική αναφορά', {
+        rightValue: rDate(), rightNote: `Χρήση ${c.year}`,
+      })
+    + `
+  <h1>${rEsc(c.propName)}</h1>
+  <div class="sub">${[c.regimeLabel, `Χρήση ${c.year}`, c.address].filter(Boolean).map(x => rEsc(String(x))).join(' · ')}</div>
 
   <div class="kpis">
-    ${kpi('Μεικτά έσοδα', eur(c.statement.grossIncome))}
-    ${kpi('Φόρος εισοδήματος', eur(c.statement.incomeTax))}
-    ${kpi('Καθαρό αποτέλεσμα', signed(c.statement.netProfit))}
-    ${kpi('Πρόβλεψη φόρου / μήνα', eur(c.provision.monthly))}
+    ${reportKpi('Μεικτά έσοδα', rEur(c.statement.grossIncome))}
+    ${reportKpi('Φόρος εισοδήματος', rEur(c.statement.incomeTax))}
+    ${reportKpi('Καθαρό αποτέλεσμα', rSigned(c.statement.netProfit))}
+    ${reportKpi('Πρόβλεψη φόρου / μήνα', rEur(c.provision.monthly))}
   </div>
 
-  <div class="sec">Κατάσταση αποτελεσμάτων ${esc(String(c.year))}</div>
+  ${reportSection(`Κατάσταση αποτελεσμάτων ${c.year}`)}
   <table><tbody>${c.statement.lines.map(l => stRow(l.label, l.amount, l.kind, l.negative)).join('')}</tbody></table>
 
-  <div class="sec">Πρόβλεψη φόρου</div>
+  ${reportSection('Πρόβλεψη φόρου')}
   <table><tbody>
     ${stRow('Φόρος εισοδήματος (έτους)', c.provision.incomeTax, 'row')}
     ${c.provision.propertyTaxes > 0 ? stRow('Φόροι και τέλη ακινήτου (έτους)', c.provision.propertyTaxes, 'row') : ''}
@@ -159,21 +114,17 @@ ${printFontFaces()}
     ${stRow('Για να προλάβεις έως το τέλος του έτους (ανά μήνα)', c.provision.perRemainingMonth, 'result')}
   </tbody></table>
 
-  <div class="sec">Συμφωνία ενοικίων ${esc(String(c.year))}</div>
-  <div class="recon-note">Εισπράχθηκαν <strong>${esc(eur(c.collectedTotal))}</strong> από ${esc(eur(c.expectedTotal))}${c.outstanding > 0 ? `. Ανείσπρακτα <strong>${esc(eur(c.outstanding))}</strong>` : ''}.</div>
+  ${reportSection(`Συμφωνία ενοικίων ${c.year}`)}
+  <div class="recon-note">Εισπράχθηκαν <strong>${rEsc(rEur(c.collectedTotal))}</strong> από ${rEsc(rEur(c.expectedTotal))}${c.outstanding > 0 ? `. Ανείσπρακτα <strong>${rEsc(rEur(c.outstanding))}</strong>` : ''}.</div>
   <table>
     <thead><tr><th>Περίοδος</th><th class="n">Εισπράχθηκε / Αναμενόμενο</th><th class="st">Κατάσταση</th></tr></thead>
     <tbody>${reconRows}</tbody>
   </table>
 
-  <div class="disc">${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}${disclaimer}<div class="colo"><b>Property OS</b></div></div>
-  <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
+  ${reportDisclaimer(disclaimerOf(c), c.branding)}
 </div></body></html>`
 
-  const w = window.open('', '_blank')
-  if (!w) { notifyError('Επίτρεψε τα αναδυόμενα παράθυρα για να δημιουργηθεί η αναφορά.'); return }
-  w.document.write(html)
-  w.document.close()
+  openReport(html)
 }
 
 type SB = ReturnType<typeof createClient>
@@ -207,11 +158,11 @@ export async function downloadOfficialAccountingReport(c: AccountingReportCtx, o
       { label: 'Για να προλάβεις έως το τέλος του έτους (ανά μήνα)', value: pEur(p.perRemainingMonth), kind: 'result' as const },
     ] },
     { type: 'note', title: `Συμφωνία ενοικίων ${c.year}`,
-      text: `Εισπράχθηκαν ${eur(c.collectedTotal)} από ${eur(c.expectedTotal)}${c.outstanding > 0 ? `. Ανείσπρακτα ${eur(c.outstanding)}` : ''}.` },
+      text: `Εισπράχθηκαν ${rEur(c.collectedTotal)} από ${rEur(c.expectedTotal)}${c.outstanding > 0 ? `. Ανείσπρακτα ${rEur(c.outstanding)}` : ''}.` },
   ]
   if (c.reconciliation.length) {
     sections.push({ type: 'table', head: ['Περίοδος', 'Εισπράχθηκε / Αναμενόμενο', 'Κατάσταση'], align: ['l', 'r', 'r'],
-      rows: c.reconciliation.map(r => [r.label, `${eur(r.paid)} / ${eur(r.expected)}`, r.statusLabel]) })
+      rows: c.reconciliation.map(r => [r.label, `${rEur(r.paid)} / ${rEur(r.expected)}`, r.statusLabel]) })
   }
 
   const issued = await issueDocument(o.supabase, {
