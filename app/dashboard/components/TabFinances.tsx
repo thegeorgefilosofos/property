@@ -30,11 +30,11 @@ import BillsBudget from './BillsBudget';
 
 interface Props {
   propertyId: string; userId: string;
-  propertyName?: string; propertyAddress?: string;
   profileType?: 'individual' | 'professional';
-  /** Το ενεργό πλάνο, όπως το υπολογίζει το entitlements. Ορίζει τι εργαλεία
-   *  βλέπει ο χρήστης μέσα στις Δαπάνες, όχι μόνο ποιες καρτέλες. */
-  plan?: string;
+  // ΤΟ `plan` ΕΦΥΓΕ. Δηλωνόταν ως «ορίζει τι εργαλεία βλέπει ο χρήστης μέσα στις
+  // Δαπάνες» και δεν διαβαζόταν πουθενά μέσα στο σώμα: ένα prop που ταξίδευε από
+  // το page.tsx ως εδώ για να μη χρησιμοποιηθεί ποτέ. Ο περιορισμός ανά πλάνο
+  // ζει στο entitlements, όχι σε παράμετρο που κανείς δεν κοιτάζει.
   /** Ανοίγει το παράθυρο σάρωσης της εφαρμογής. */
   onScan?: () => void;
 }
@@ -42,8 +42,8 @@ interface Props {
 type View = 'expenses' | 'budget';
 
 export default function TabFinances({
-  propertyId, userId, propertyName = '', propertyAddress = '',
-  profileType = 'individual', plan = 'free', onScan,
+  propertyId, userId,
+  profileType = 'individual', onScan,
 }: Props) {
   const [view, setView] = useState<View>('expenses');
   const [contracts, setContracts] = useState(false);
@@ -100,7 +100,7 @@ export default function TabFinances({
       </div>
 
       {contracts
-        ? <TabBills propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />
+        ? <TabBills propertyId={propertyId} userId={userId} />
         : view === 'expenses'
           ? <ExpenseLedger propertyId={propertyId} userId={userId} onScan={onScan} />
           : <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}

@@ -39,6 +39,7 @@ import {
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
+import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
 import { athensToday, athensMonth } from '@/lib/core/time';
 
 interface Props {
@@ -208,7 +209,6 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   const markPaid = async (e: LedgerEntry) => {
     setBusy(e.key);
     try {
-      const today = athensToday();
       if (e.billId) {
         // ΜΙΑ ΑΠΟΦΑΣΗ, ΚΟΙΝΗ ΜΕ ΤΗΝ ΟΘΟΝΗ ΛΟΓΑΡΙΑΣΜΩΝ (lib/expenses/pay.ts).
         // Εδώ η δαπάνη γραφόταν ΧΩΡΙΣ expense_group — και το isGroupDeductible
@@ -525,6 +525,13 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
   const [touched, setTouched] = useState(false);
   const [paid, setPaid] = useState(true);
   const [due, setDue] = useState('');
+  // ── ΠΟΙΟΣ ΠΛΗΡΩΝΕΙ ────────────────────────────────────────────────────────
+  // Το μοντέλο διαμοιρασμού (lib/expenses/sharing.ts) διαβάζεται σε όλη την
+  // εφαρμογή — προϋπολογισμός, εξόφληση λογαριασμού, λογιστική — αλλά ΓΡΑΦΟΤΑΝ
+  // μόνο από τη φόρμα των «Συμβολαίων», δηλαδή από τη δεύτερη φόρμα δαπάνης που
+  // δεν έπρεπε να υπάρχει. Ζει τώρα εδώ, στη μία φόρμα.
+  const [paidBy, setPaidBy] = useState('owner');
+  const [sharePct, setSharePct] = useState('');
   const [saving, setSaving] = useState(false);
   const first = useRef<HTMLInputElement>(null);
 
@@ -549,6 +556,13 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
       // Παραβίαση RLS, περιορισμός στήλης ή πεσμένο δίκτυο έδιναν όλα το ίδιο:
       // ψεύτικη επιβεβαίωση.
       const cat = slug ? BY_SLUG[slug] : null;
+      // Το ποσοστό έχει νόημα μόνο στις μοιρασμένες περιπτώσεις· αλλιώς μένει
+      // κενό, ώστε να μη γραφτεί «50%» σε δαπάνη που πληρώνει ολόκληρη ο ίδιος.
+      const pct = SHARED_SCOPES.has(paidBy) ? parseInt(sharePct, 10) : NaN;
+      const sharing = {
+        paid_by: paidBy,
+        share_percent: Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : null,
+      };
 
       if (!paid) {
         // ΤΟ ΑΠΛΗΡΩΤΟ ΕΙΝΑΙ ΥΠΟΧΡΕΩΣΗ, ΟΧΙ ΔΑΠΑΝΗ ΠΟΥ ΕΓΙΝΕ.
@@ -570,6 +584,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
           due_date: due || date,
           paid: false,
           recurring: false,
+          ...sharing,
         });
         if (error) throw error;
       } else {
@@ -586,7 +601,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
           // μετρούσε. Παράγεται τώρα από την κατηγορία, με έλεγχο συνέπειας.
           expense_group: groupForCategory(cat),
           paid: true,
-          paid_by: 'owner',
+          ...sharing,
         });
         if (error) throw error;
       }
@@ -643,6 +658,28 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
             );
           })}
         </div>
+      </div>
+
+      {/* ── ΠΟΙΟΣ ΠΛΗΡΩΝΕΙ ────────────────────────────────────────────────
+          Δεν είναι πάντα ο ιδιοκτήτης: κοινόχρηστα που βαραίνουν τον ενοικιαστή
+          δεν είναι δικό του κόστος, και ένα διαμέρισμα με συνιδιοκτήτη μοιράζει
+          κάθε λογαριασμό. Η επιλογή είναι ΜΙΑ γραμμή και μένει στο «Μόνο εγώ»
+          όσο δεν την αγγίξει κανείς — το ποσοστό εμφανίζεται μόνο όταν αποκτά
+          νόημα, δηλαδή όταν όντως μοιράζεται. */}
+      <div style={{ display: 'grid', gridTemplateColumns: SHARED_SCOPES.has(paidBy) ? 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))' : '1fr', gap: 12, marginTop: 14 }}>
+        <label style={{ minWidth: 0 }}>
+          <span style={lab}>Ποιος πληρώνει</span>
+          <select value={paidBy} onChange={e => setPaidBy(e.target.value)} style={field}>
+            {PAID_BY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </label>
+        {SHARED_SCOPES.has(paidBy) && (
+          <label style={{ minWidth: 0 }}>
+            <span style={lab}>Το δικό μου μερίδιο</span>
+            <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
+              style={field} placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
+          </label>
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>

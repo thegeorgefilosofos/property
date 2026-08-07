@@ -1,18 +1,32 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ΜΙΑ ΟΘΟΝΗ ΓΙΑ ΤΟΥΣ ΛΟΓΑΡΙΑΣΜΟΥΣ.
+// ΣΥΜΒΟΛΑΙΑ ΚΑΙ ΠΑΡΟΧΟΙ — και ΜΟΝΟ αυτά.
 //
-// ΤΙ ΥΠΗΡΧΕ: επτά καρτέλες (Επισκόπηση, Ρεύμα, Αέριο, Κοινόχρηστα, Πάροχοι,
-// Ασφάλεια, Υπηρεσίες). Ο ιδιοκτήτης που ήθελε να δει τη ΔΕΗ του έπρεπε πρώτα να
-// μαντέψει σε ποια από τις επτά μένει — και η σωστή απάντηση ήταν «στην
-// Επισκόπηση», γιατί εκεί ζει η λίστα των λογαριασμών. Οι υπόλοιπες έξι δεν
-// είναι λογαριασμοί: είναι ΕΡΓΑΛΕΙΑ πάνω σε μια κατηγορία (σύγκριση τιμολογίων,
-// ρυθμίσεις παρόχου, τιμές αγοράς).
+// ΤΙ ΥΠΗΡΧΕ ΕΔΩ ΚΑΙ ΕΦΥΓΕ. Μια δεύτερη ολόκληρη οθόνη δαπανών
+// (BillsDashboard): δική της φόρμα καταχώρησης λογαριασμού, δική της λίστα με
+// σήμανση πληρωμής και διαγραφή, δικά της τρία γραφήματα, δικός της «Ετήσιος
+// Απολογισμός». Καθένα από αυτά υπήρχε ήδη αλλού:
+//   · η φόρμα και η λίστα, στις «Δαπάνες» (ExpenseLedger)
+//   · τα γραφήματα και η πρόβλεψη έτους, στον «Προϋπολογισμό» (BillsBudget)
+// Δηλαδή ο ιδιοκτήτης είχε ΔΥΟ φόρμες με διαφορετικά πεδία για το ίδιο ευρώ,
+// δύο λίστες που έδειχναν τα ίδια νούμερα αλλιώς, και τρία σημεία να ρωτήσει
+// «πόσο ξόδεψα φέτος» με τρεις πιθανές απαντήσεις.
 //
-// ΤΙ ΙΣΧΥΕΙ ΤΩΡΑ: μία λίστα λογαριασμών με φίλτρο κατηγορίας, μπροστά. Τα έξι
-// εργαλεία πίσω από ένα «Περισσότερα». Καμία λειτουργία δεν αφαιρέθηκε — άλλαξε
-// μόνο ποιο πράγμα βλέπεις πρώτο.
+// Η αρχή ήταν ήδη γραμμένη στο TabFinances και απλώς δεν είχε εφαρμοστεί ως το
+// τέλος: «ο λογαριασμός δεν είναι άλλο πράγμα από τη δαπάνη — είναι δαπάνη που
+// δεν την έχεις πληρώσει ακόμη», και «τα έξι εργαλεία έπαψαν να είναι σημείο
+// καταχώρησης και έγιναν αυτό που πάντα ήταν, δηλαδή συμβόλαια και συγκρίσεις».
+//
+// ΤΙ ΜΕΝΕΙ: πόσο τρέχουν τα πάγια τον μήνα (το νούμερο πάνω στο οποίο πατά κάθε
+// σύγκριση), η ειδοποίηση όταν πληρώνεις παραπάνω από ό,τι χρειάζεται, και τα
+// έξι εργαλεία ανά κατηγορία. Χωρίς πτυσσόμενο «Περισσότερα»: όταν δεν υπάρχει
+// τίποτα μπροστά του, ένα «Περισσότερα» είναι απλώς ένα κλικ πριν το μοναδικό
+// περιεχόμενο της οθόνης.
+//
+// ΠΟΥ ΠΗΓΕ Ο ΔΙΑΜΟΙΡΑΣΜΟΣ. Το «Ποιος πληρώνει / μερίδιό μου» ήταν το μόνο
+// γνήσια μοναδικό της παλιάς φόρμας — και το διάβαζε όλη η εφαρμογή ενώ το
+// έγραφε μόνο εκείνη. Ζει τώρα στη φόρμα των «Δαπανών», με τα υπόλοιπα πεδία.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -21,7 +35,6 @@ import { T, fe, Skeleton } from '@/components/Theme';
 import { mergeLedger, recurringMonthly } from '@/lib/expenses/ledger';
 
 // ── Static imports, all components must be static for Next.js App Router ────
-import BillsDashboard    from './BillsDashboard';
 import BillsElectricity  from './BillsElectricity';
 import BillsGas          from './BillsGas';
 import BillsCommon       from './BillsCommon';
@@ -34,8 +47,6 @@ import ExpenseSwitchAlert from './ExpenseSwitchAlert';
 interface Props {
   propertyId:       string;
   userId:           string;
-  propertyName?:    string;
-  propertyAddress?: string;
 }
 
 /** Τα εργαλεία που ζουν πίσω από το «Περισσότερα». */
@@ -53,12 +64,12 @@ interface StripData {
    * πρόγραμμα. Δώδεκα λογαριασμοί ΔΕΗ των 100 € έδειχναν «1.200 € / μήνα».
    */
   recurringPerMonth: number | null;
-  overdueCount: number;
-  tenantName:   string;
-  /** Ώρα τελευταίας ανάγνωσης, ήδη μορφοποιημένη. Το «πριν 3 λεπτά» απαιτούσε
-   *  `Date.now()` μέσα στην απόδοση: ακάθαρτο, και μπαγιάτικο μόλις σταματήσει
-   *  να ξαναποδίδεται. Η ώρα δεν παλιώνει. */
-  updatedAt:    string;
+  // ΤΑ ΑΛΛΑ ΤΡΙΑ ΕΦΥΓΑΝ ΜΑΖΙ ΜΕ ΤΗ ΛΙΣΤΑ. Ο μετρητής ληξιπρόθεσμων έδειχνε προς
+  // μια λίστα που δεν υπάρχει πια σε αυτή την οθόνη — ένα σήμα που δεν οδηγεί
+  // πουθενά είναι χειρότερο από κανένα σήμα. Το όνομα ενοικιαστή δεν είχε ποτέ
+  // σχέση με τα συμβόλαια παρόχων, και η ώρα τελευταίας ανάγνωσης απαντούσε σε
+  // ερώτηση που δεν έκανε κανείς. Μένει το ΕΝΑ νούμερο πάνω στο οποίο πατά κάθε
+  // σύγκριση τιμολογίου: πόσο τρέχουν τα πάγια τον μήνα.
 }
 
 // ─── SVG icons ────────────────────────────────────────────────────────────────
@@ -90,15 +101,14 @@ const TOOLS: ToolDef[] = [
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function TabBills({
-  propertyId, userId, propertyName = 'Ακίνητό μου', propertyAddress = '',
+  propertyId, userId,
 }: Props) {
   const supabase   = createClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const toolsRef   = useRef<HTMLDivElement | null>(null);
 
-  const [openTools,  setOpenTools]  = useState(false);
   const [tool,       setTool]       = useState<ToolId | null>(null);
-  const [strip,      setStrip]      = useState<StripData>({ recurringPerMonth: null, overdueCount: 0, tenantName: '', updatedAt: '' });
+  const [strip,      setStrip]      = useState<StripData>({ recurringPerMonth: null });
   // Το `strip` ξεκινά με μηδενικά, οπότε η κεφαλίδα δεν έδειχνε κανένα chip και
   // μετά τα chips εμφανίζονταν μονομιάς και έσπρωχναν τη γραμμή. Δύο σκελετοί
   // κρατούν τη θέση τους όσο τρέχουν τα παράλληλα ερωτήματα.
@@ -107,23 +117,15 @@ export default function TabBills({
   const loadStrip = useCallback(async () => {
     if (!propertyId) return;
     try {
-      const now = new Date();
       // Οι δαπάνες χρειάζονται για να μη μετρηθεί δύο φορές ο πληρωμένος πάγιος:
       // ο λογαριασμός είναι το πρόγραμμα, η δαπάνη το γεγονός, δεμένα με bill_id.
-      const [{ data: bills }, { data: expenses }, { data: contacts }] = await Promise.all([
+      const [{ data: bills }, { data: expenses }] = await Promise.all([
         supabase.from('bills').select('id,name,amount,paid,paid_at,due_date,created_at,category,recurring').eq('property_id', propertyId),
         supabase.from('expenses').select('id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor').eq('property_id', propertyId),
-        supabase.from('contacts').select('full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
       ]);
 
       const { entries } = mergeLedger((bills ?? []) as never[], (expenses ?? []) as never[]);
-      const recurringPerMonth = recurringMonthly(entries).perMonth;
-      const overdueCount = (bills ?? []).filter(b => !b.paid && b.due_date && new Date(b.due_date) < now).length;
-
-      setStrip({
-        recurringPerMonth, overdueCount, tenantName: contacts?.[0]?.full_name ?? '',
-        updatedAt: now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
-      });
+      setStrip({ recurringPerMonth: recurringMonthly(entries).perMonth });
     } catch (_) {} finally { setStripLoading(false); }
   }, [propertyId]);
 
@@ -141,7 +143,6 @@ export default function TabBills({
 
   // Άνοιγμα εργαλείου από αλλού (π.χ. από την ειδοποίηση «πληρώνεις παραπάνω»).
   const openTool = useCallback((id: ToolId) => {
-    setOpenTools(true);
     setTool(id);
     // Το requestAnimationFrame περιμένει να αποδοθεί το πάνελ πριν κυλήσει σε αυτό.
     requestAnimationFrame(() => toolsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -164,7 +165,7 @@ export default function TabBills({
             Λογαριασμοί & πάγιες δαπάνες
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-            Όλοι οι λογαριασμοί του ακινήτου σε μία λίστα, με φίλτρο κατηγορίας.
+            Τι πληρώνεις κάθε μήνα, και αν υπάρχει φθηνότερο. Οι καταχωρήσεις γίνονται στις Δαπάνες.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -173,69 +174,46 @@ export default function TabBills({
               σημασιολογικό πράσινο, μόνιμα στην κορυφή της οθόνης. Ό,τι έχει να
               πει μια χαμένη σύνδεση το λέει η ίδια η οθόνη όταν τα νούμερα δεν
               ανανεώνονται — και τότε αρκεί η ανανέωση της σελίδας. */}
-          {showSkeleton ? (
-            <>
-              <Skeleton w={90} h={24} r={T.radius.pill} />
-              <Skeleton w={110} h={24} r={T.radius.pill} />
-            </>
-          ) : (
-            <>
-              {strip.tenantName && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{strip.tenantName}</span>}
-              {strip.recurringPerMonth !== null && strip.recurringPerMonth > 0 && <span title="Ο μέσος μήνας σε πάγια, μετρημένος από τους λογαριασμούς που έχεις καταχωρήσει (σύνολο παγίων ÷ οι μήνες που καλύπτουν). Εμφανίζεται μόλις υπάρχουν δύο περίοδοι — με μία δεν υπάρχει μέσος όρος." style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.recurringPerMonth, 0)} / μήνα</span>}
-              {strip.overdueCount > 0 && (
-                <span style={{ padding: '4px 12px', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.sans }}>
-                  {strip.overdueCount} ληξιπρόθεσμα
-                </span>
-              )}
-            </>
-          )}
+          {showSkeleton
+            ? <Skeleton w={110} h={24} r={T.radius.pill} />
+            : strip.recurringPerMonth !== null && strip.recurringPerMonth > 0 && (
+              <span title="Ο μέσος μήνας σε πάγια, μετρημένος από τους λογαριασμούς που έχεις καταχωρήσει (σύνολο παγίων ÷ οι μήνες που καλύπτουν). Εμφανίζεται μόλις υπάρχουν δύο περίοδοι — με μία δεν υπάρχει μέσος όρος." style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.recurringPerMonth, 0)} / μήνα</span>
+            )}
         </div>
       </div>
 
       {/* ── «Πληρώνεις παραπάνω» — μόνο όταν υπάρχει πραγματική διαφορά ── */}
       <ExpenseSwitchAlert propertyId={propertyId} onOpen={openTool} />
 
-      {/* ── Η οθόνη: μία λίστα λογαριασμών ─────────────────────────────── */}
-      <BillsDashboard propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress}/>
-
-      {/* ── Περισσότερα: τα εργαλεία ανά κατηγορία ─────────────────────── */}
+      {/* ── Τα εργαλεία ανά κατηγορία ──────────────────────────────────
+          Χωρίς πτυσσόμενο περιτύλιγμα: αυτά ΕΙΝΑΙ η οθόνη. */}
       <div ref={toolsRef}>
-        <button type="button" onClick={() => setOpenTools(v => !v)} aria-expanded={openTools}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 16px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, cursor: 'pointer', fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Περισσότερα</span>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ρυθμίσεις παρόχων, συγκρίσεις τιμολογίων, κοινόχρηστα</span>
-          <span style={{ flex: 1 }} />
-          <span aria-hidden style={{ display: 'flex', color: 'var(--text-tertiary)' }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openTools ? 'none' : 'rotate(-90deg)', transition: 'transform 0.18s' }}><polyline points="6 9 12 15 18 9"/></svg>
-          </span>
-        </button>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: activeTool ? 16 : 0 }}>
+          {TOOLS.map(t => {
+            const on = tool === t.id;
+            return (
+              <button key={t.id} type="button" title={t.desc}
+                onClick={() => setTool(on ? null : t.id)} aria-pressed={on}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, cursor: 'pointer', fontSize: 11.5, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+                <TabIcon name={t.icon} size={12}/>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
 
-        {openTools && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: activeTool ? 16 : 0 }}>
-              {TOOLS.map(t => {
-                const on = tool === t.id;
-                return (
-                  <button key={t.id} type="button" title={t.desc}
-                    onClick={() => setTool(on ? null : t.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, cursor: 'pointer', fontSize: 11.5, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
-                    <TabIcon name={t.icon} size={12}/>
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {activeTool && (
-              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                {tool === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId}/>}
-                {tool === 'gas'         && <BillsGas         propertyId={propertyId} userId={userId}/>}
-                {tool === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
-                {tool === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId}/>}
-                {tool === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}
-                {tool === 'services'    && <BillsServices    propertyId={propertyId} userId={userId}/>}
-              </div>
-            )}
+        {activeTool ? (
+          <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+            {tool === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId}/>}
+            {tool === 'gas'         && <BillsGas         propertyId={propertyId} userId={userId}/>}
+            {tool === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
+            {tool === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId}/>}
+            {tool === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}
+            {tool === 'services'    && <BillsServices    propertyId={propertyId} userId={userId}/>}
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6, marginTop: 14 }}>
+            Διάλεξε κατηγορία για να δεις το συμβόλαιό σου και τι προσφέρει η αγορά.
           </div>
         )}
       </div>
