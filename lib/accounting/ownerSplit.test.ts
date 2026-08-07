@@ -25,6 +25,17 @@ const bad = computeSplit({ grossIncome: 500, expenses: 0, owners: [{ name: 'Α',
 ok('invalid pct → not valid', !bad.valid)
 ok('invalid pct → warning present', !!bad.warning && bad.warning.includes('80'))
 
+// ΤΟ ΑΚΡΙΒΕΣ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΘΗΚΕ: με τυπογραφικό στα ποσοστά (50 + 30 αντί
+// 50 + 50), η «διόρθωση στρογγυλοποίησης» δεν μετέφερε λεπτά αλλά ΟΛΟ το
+// αδιάθετο 20%. Ο Α έπαιρνε 700,00 € αντί 500,00 € — και το άθροισμα έβγαινε
+// ακριβώς 1.000,00 €, οπότε κανένας έλεγχος «κλείνει;» δεν το έπιανε.
+const typo = computeSplit({ grossIncome: 1000, expenses: 0, owners: [{ name: 'Α', pct: 50 }, { name: 'Β', pct: 30 }] })
+ok('άκυρα ποσοστά → κανένα φούσκωμα του μεγαλύτερου', typo.owners[0].net === 500 && typo.owners[1].net === 300)
+ok('άκυρα ποσοστά → το αδιάθετο ΔΕΝ κρύβεται στο άθροισμα', r2(typo.owners.reduce((s, o) => s + o.net, 0)) === 800)
+// Και προς την άλλη κατεύθυνση: υπέρβαση 100% δεν αφαιρείται από τον μεγαλύτερο.
+const over = computeSplit({ grossIncome: 1000, expenses: 0, owners: [{ name: 'Α', pct: 70 }, { name: 'Β', pct: 50 }] })
+ok('υπέρβαση ποσοστών → κάθε μερίδιο μένει αναλογικό', over.owners[0].net === 700 && over.owners[1].net === 500)
+
 // Χωρίς ιδιοκτήτες → warning.
 const none = computeSplit({ grossIncome: 500, expenses: 100, owners: [] })
 ok('no owners → not valid', !none.valid && !!none.warning)

@@ -73,6 +73,12 @@ const IMPORT_RE = /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g;
 
 const problems = [];
 for (const file of walk(join(ROOT, 'app'))) {
+  // Ένα τεστ ΔΕΝ είναι Server Component. Τρέχει στο Node μέσω tsx, όπου το
+  // 'use client' δεν σημαίνει τίποτα και η εισαγωγή δίνει την πραγματική τιμή —
+  // γι' αυτό ακριβώς μπορεί ένα τεστ να ελέγξει συνάρτηση από module πελάτη.
+  // Χωρίς αυτή την εξαίρεση ο φύλακας κοκκίνιζε για το e2Export.test.ts, που
+  // εισάγει το `runE2Export`: αληθινό τεστ, ανύπαρκτο πρόβλημα.
+  if (/\.test\.[jt]sx?$/.test(file)) continue;
   if (isClientModule(file)) continue;
   const src = readFileSync(file, 'utf8');
   for (const m of src.matchAll(IMPORT_RE)) {

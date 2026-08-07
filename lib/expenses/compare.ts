@@ -28,7 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { categoryLabel, resolveCategory } from './taxonomy';
-import { MONTHS_ACC } from '../core/months';
+import { monthAcc, monthNom } from '../core/months';
 
 /** Το ελάχιστο που χρειάζεται η σύγκριση από μια κίνηση. */
 export interface Spend {
@@ -96,8 +96,17 @@ export const sameMonthLastYear = (key: string): string =>
 /** «τον Ιούλιο» ή «τον Ιούλιο 2025», όταν η χρονιά διαφέρει από την τρέχουσα. */
 export function monthPhrase(key: string, refYear?: number): string {
   const y = Number(key.slice(0, 4)), i = Number(key.slice(5, 7)) - 1;
-  const name = MONTHS_ACC[i] ?? key;
+  const name = monthAcc(i) || key;
   return refYear !== undefined && y !== refYear ? `${name} ${y}` : name;
+}
+
+/**
+ * «Ο Ιούλιος», ονομαστική — όταν ο μήνας είναι ΥΠΟΚΕΙΜΕΝΟ και όχι αντικείμενο.
+ * Χωρίς αυτό, η πρόταση για τον μισοτελειωμένο μήνα έβγαινε «Ο Ιούλιο δεν έχει
+ * τελειώσει»: η αιτιατική του `monthPhrase` σε θέση υποκειμένου.
+ */
+function monthSubject(key: string): string {
+  return monthNom(Number(key.slice(5, 7)) - 1) || key;
 }
 
 /** Πόσες μέρες έχει ο μήνας. */
@@ -160,7 +169,7 @@ export function compareMonth(
   const nowKey = monthKey(opts.today);
   const partial = currentKey === nowKey && opts.today.getDate() < daysInMonth(currentKey);
   if (partial) {
-    caveats.push(`Ο ${monthPhrase(currentKey)} δεν έχει τελειώσει: μετράνε ${opts.today.getDate()} από ${daysInMonth(currentKey)} ημέρες.`);
+    caveats.push(`Ο ${monthSubject(currentKey)} δεν έχει τελειώσει: μετράνε ${opts.today.getDate()} από ${daysInMonth(currentKey)} ημέρες.`);
   }
 
   // ── ΛΕΙΠΕΙ Η ΒΑΣΗ ────────────────────────────────────────────────────────
@@ -289,7 +298,10 @@ export function history(spends: readonly Spend[], today: Date, months = 12): Mon
     const last = totals.get(sameMonthLastYear(key));
     out.push({
       key,
-      label: `${MONTHS_ACC[d.getMonth()]} ${d.getFullYear()}`,
+      // Ονομαστική: η ετικέτα στέκεται ΜΟΝΗ της (τίτλος επιλεγμένης στήλης,
+      // tooltip «Ιούλιος 2026: 142,50 €»), δεν ακολουθεί πρόθεση. Με την
+      // αιτιατική έγραφε «Ιούλιο 2026», που δεν είναι πρόταση.
+      label: `${monthNom(d.getMonth())} ${d.getFullYear()}`,
       total,
       // `null` όταν δεν υπάρχει περσινή μέτρηση. Το μηδέν θα ήταν ψέμα: δεν
       // ξέρουμε ότι πέρυσι ξόδεψε μηδέν, ξέρουμε ότι δεν έχουμε στοιχεία.

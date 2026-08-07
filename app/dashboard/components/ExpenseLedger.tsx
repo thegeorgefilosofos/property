@@ -40,6 +40,7 @@ import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib
 import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
+import { CustomSelect } from './UIComponents';
 import { athensToday, athensMonth } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 
@@ -666,12 +667,13 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
           όσο δεν την αγγίξει κανείς — το ποσοστό εμφανίζεται μόνο όταν αποκτά
           νόημα, δηλαδή όταν όντως μοιράζεται. */}
       <div style={{ display: 'grid', gridTemplateColumns: SHARED_SCOPES.has(paidBy) ? 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))' : '1fr', gap: 12, marginTop: 14 }}>
-        <label style={{ minWidth: 0 }}>
+        {/* Η ετικέτα μένει η τοπική `lab`, όχι αυτή του CustomSelect: όλη η φόρμα
+            χρησιμοποιεί την ίδια, και η ενσωματωμένη έχει minHeight 32 — θα
+            ξεχώριζε η μία γραμμή από τις άλλες πέντε ακριβώς δίπλα της. */}
+        <div style={{ minWidth: 0 }}>
           <span style={lab}>Ποιος πληρώνει</span>
-          <select value={paidBy} onChange={e => setPaidBy(e.target.value)} style={field}>
-            {PAID_BY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </label>
+          <CustomSelect value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
+        </div>
         {SHARED_SCOPES.has(paidBy) && (
           <label style={{ minWidth: 0 }}>
             <span style={lab}>Το δικό μου μερίδιο</span>

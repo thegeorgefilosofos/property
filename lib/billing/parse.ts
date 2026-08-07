@@ -500,36 +500,6 @@ export function matchBillToPayment<T extends MatchCandidate>(
   return r.verdict === 'confident' && r.best ? r.best.bill : null;
 }
 
-// ── Ταξινόμηση αρχειοθετημένων λογαριασμών ─────────────────────────────────
-export type BillSort =
-  | 'received_desc' | 'received_asc'   // ημερομηνία λήψης (created_at)
-  | 'issue_desc' | 'issue_asc'         // ημερομηνία έκδοσης/λήξης (due_date)
-  | 'amount_desc' | 'amount_asc'       // αξία
-  | 'provider';                        // πάροχος (όνομα)
-
-export const BILL_SORT_LABELS: Record<BillSort, string> = {
-  received_desc: 'Ημ. λήψης (νεότερα)', received_asc: 'Ημ. λήψης (παλαιότερα)',
-  issue_desc: 'Ημ. έκδοσης (νεότερα)', issue_asc: 'Ημ. έκδοσης (παλαιότερα)',
-  amount_desc: 'Αξία (φθίνουσα)', amount_asc: 'Αξία (αύξουσα)',
-  provider: 'Πάροχος (Α–Ω)',
-};
-
-export interface SortableBill { amount: number; due_date?: string | null; created_at?: string | null; name?: string | null; }
-export function sortBills<T extends SortableBill>(list: T[], key: BillSort): T[] {
-  const t = (s?: string | null) => (s ? new Date(s).getTime() : 0);
-  const arr = [...list];
-  switch (key) {
-    case 'received_desc': return arr.sort((a, b) => t(b.created_at) - t(a.created_at));
-    case 'received_asc':  return arr.sort((a, b) => t(a.created_at) - t(b.created_at));
-    case 'issue_desc':    return arr.sort((a, b) => t(b.due_date) - t(a.due_date));
-    case 'issue_asc':     return arr.sort((a, b) => t(a.due_date) - t(b.due_date));
-    case 'amount_desc':   return arr.sort((a, b) => b.amount - a.amount);
-    case 'amount_asc':    return arr.sort((a, b) => a.amount - b.amount);
-    case 'provider':      return arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'el'));
-    default:              return arr;
-  }
-}
-
 // ── Έλεγχος πληρότητας εξαγωγής (για να μη σώζουμε παραπλανητικά δεδομένα) ──
 export interface ExtractedLike {
   provider?: string; category?: string; amount?: number; due_date?: string;

@@ -19,11 +19,6 @@ export const PAID_BY_OPTIONS = [
   { value: 'company',  label: 'Εταιρεία'          },
 ];
 
-// Ετικέτα από τιμή paid_by.
-export function paidByLabel(v: string | null | undefined): string {
-  return PAID_BY_OPTIONS.find(p => p.value === v)?.label || v || '';
-}
-
 // Τιμές του `paid_by` που σημαίνουν διαμοιρασμό (εμφανίζουν ποσοστό + σημείωση).
 export const SHARED_SCOPES = new Set(['co_owner', 'family', 'parents', 'split']);
 

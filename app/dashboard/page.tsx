@@ -372,10 +372,15 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // τώρα» — αν κάθε κάρτα διάβαζε τα δικά της, θα ξαναγεννιόνταν τα διπλότυπα.
   const [rentPeriods, setRentPeriods] = useState<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }[]>([]);
   const [maint, setMaint] = useState<OblMaint[]>([]);
-  const [tenantFull, setTenantFull] = useState<{ id?:string; lease_start:string|null; lease_end:string|null } | null>(null);
+  const [tenantFull, setTenantFull] = useState<{ id?:string; lease_start:string|null; lease_end:string|null; e_payment?:boolean|null } | null>(null);
   // Ενοίκια ΟΛΩΝ των ακινήτων (μισθωτήρια + ρυθμίσεις ενοικίου), για τον
   // προοδευτικό φόρο σε επίπεδο φορολογούμενου.
-  const [portfolioRents, setPortfolioRents] = useState<{ property_id:string; monthly:number }[]>([]);
+  // Ο ΤΡΟΠΟΣ ΕΙΣΠΡΑΞΗΣ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΟ ΕΝΟΙΚΙΟ.
+  // Από 1/1/2026 (ν.5246/2025) η τεκμαρτή έκπτωση 5% προϋποθέτει είσπραξη μέσω
+  // τραπέζης· με μετρητά ο φόρος υπολογίζεται στο 100% του ενοικίου. Ο χρήστης
+  // το δηλώνει ήδη στην καρτέλα Ενοικιαστή (`tenants.e_payment`), αλλά η
+  // Επισκόπηση δεν το ρωτούσε καν — έδινε πάντα την έκπτωση.
+  const [portfolioRents, setPortfolioRents] = useState<{ property_id:string; monthly:number; viaBank:boolean }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
@@ -387,7 +392,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
       // ατζέντα, που τις ταξινομεί μαζί με όλα τα υπόλοιπα κατά προθεσμία.
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(60),
-      supabase.from('tenants').select('id,monthly_rent,lease_start,lease_end').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
+      supabase.from('tenants').select('id,monthly_rent,lease_start,lease_end,e_payment').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',prop.id).eq('user_id',userId),
@@ -399,7 +404,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       // ΟΛΟ το χαρτοφυλάκιο: ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ (Ε1),
       // οπότε δεν αρκούν τα δεδομένα του επιλεγμένου ακινήτου. Ίδια σειρά
       // προτεραιότητας με το resolveRent: μισθωτήριο → actual → target → ακίνητο.
-      supabase.from('tenants').select('monthly_rent,property_id').in('property_id',propIds).eq('user_id',userId),
+      supabase.from('tenants').select('monthly_rent,property_id,e_payment').in('property_id',propIds).eq('user_id',userId),
       supabase.from('rent_config').select('property_id,actual_rent,target_rent').in('property_id',propIds).eq('user_id',userId),
       // ΤΟ ΤΑΜΕΙΟ. Μόνο οι ΑΠΛΗΡΩΤΕΣ περίοδοι — οι πληρωμένες είναι ιστορικό και
       // ζουν στον Ενοικιαστή. Ό,τι δεν εμφανίζεται, δεν κατεβαίνει.
@@ -410,12 +415,23 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses(allExp||[]);
     const rcById = new Map((allRc||[]).map((r:any)=>[r.property_id, r]));
-    const tenById = new Map<string,number>();
-    (allTen||[]).forEach((t:any)=>{ const v = Number(t.monthly_rent)||0; if (v > (tenById.get(t.property_id)||0)) tenById.set(t.property_id, v); });
+    // Κρατάμε τον ΜΕΓΑΛΥΤΕΡΟ ενοικιαστή ανά ακίνητο, μαζί με τον τρόπο είσπραξής
+    // ΤΟΥ: αλλιώς θα ζευγαρώναμε το ενοίκιο του ενός με τη δήλωση του άλλου.
+    // `e_payment !== false` και όχι `=== true`: κενή στήλη σημαίνει «δεν το έχει
+    // δηλώσει», και η προεπιλογή της ίδιας της φόρμας είναι τραπεζική είσπραξη.
+    type TenRow = { property_id: string; monthly_rent: number | null; e_payment: boolean | null };
+    const tenById = new Map<string,{ monthly:number; viaBank:boolean }>();
+    ((allTen||[]) as TenRow[]).forEach(t=>{
+      const v = Number(t.monthly_rent)||0;
+      if (v > (tenById.get(t.property_id)?.monthly ?? 0)) tenById.set(t.property_id, { monthly: v, viaBank: t.e_payment !== false });
+    });
     setPortfolioRents(properties.map(p => {
       const rc:any = rcById.get(p.id);
-      const monthly = tenById.get(p.id) || Number(rc?.actual_rent) || Number(rc?.target_rent) || Number(p.target_rent) || 0;
-      return { property_id: p.id, monthly };
+      const fromTenant = tenById.get(p.id);
+      const monthly = fromTenant?.monthly || Number(rc?.actual_rent) || Number(rc?.target_rent) || Number(p.target_rent) || 0;
+      // Χωρίς ενοικιαστή δεν υπάρχει δηλωμένος τρόπος είσπραξης: το ενοίκιο
+      // είναι στόχος, όχι πραγματική είσπραξη, και η προεπιλογή είναι τράπεζα.
+      return { property_id: p.id, monthly, viaBank: fromTenant?.viaBank ?? true };
     }));
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -569,12 +585,19 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // ο φόρος να πατά πάνω στον ίδιο αριθμό που δείχνει το πλακίδιο.
   const portfolioTax = useMemo(() => consolidateRentTax(
     properties.map(p => {
-      const monthly = p.id === prop.id ? rent : (portfolioRents.find(r => r.property_id === p.id)?.monthly ?? 0);
-      return { id: p.id, annualRent: monthly * 12, shortTerm: isShortTerm(p) };
+      const row = portfolioRents.find(r => r.property_id === p.id);
+      const monthly = p.id === prop.id ? rent : (row?.monthly ?? 0);
+      // Για το ΤΡΕΧΟΝ ακίνητο η πηγή είναι ο φορτωμένος ενοικιαστής, που είναι
+      // πιο πρόσφατος από τη λίστα χαρτοφυλακίου· για τα υπόλοιπα, η λίστα.
+      const viaBank = p.id === prop.id ? (tenantFull?.e_payment !== false) : (row?.viaBank ?? true);
+      return { id: p.id, annualRent: monthly * 12, shortTerm: isShortTerm(p), rentsPaidViaBank: viaBank };
     }),
-  ), [properties, portfolioRents, prop.id, rent]);
+  ), [properties, portfolioRents, prop.id, rent, tenantFull]);
   const estTax = Math.round(taxShareOf(portfolioTax, prop.id));
   const taxNote = consolidationSummary(portfolioTax, fmtEur);
+  // Εισπράττεται το ενοίκιο ΑΥΤΟΥ του ακινήτου μέσω τραπέζης; Κρίνει το κείμενο
+  // δίπλα στον φόρο, όπως ο ίδιος έλεγχος κρίνει και το ποσό.
+  const rentViaBank = tenantFull?.e_payment !== false;
 
   // ── ΤΟ ΤΑΜΕΙΟ ─────────────────────────────────────────────────────────────
   // Τι μου χρωστάνε (ληξιπρόθεσμες περίοδοι ενοικίου) και τι χρωστάω (απλήρωτοι
@@ -877,7 +900,14 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
           { label:'Μερίδιο φόρου ενοικίου', value:fmtEur(estTax),
             title:portfolioTax.count>1
               ? `${CONSOLIDATION_NOTE} Συνολικός φόρος χαρτοφυλακίου ${fmtEur(Math.round(portfolioTax.totalTax))} σε ενοίκια ${fmtEur(Math.round(portfolioTax.totalAnnualRent))}.`
-              : `Προοδευτική κλίμακα ενοικίων ${year} με την τεκμαρτή έκπτωση 5%. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου.` },
+              // ΤΟ ΚΕΙΜΕΝΟ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΥΠΟΣΧΕΤΑΙ ΕΚΠΤΩΣΗ ΠΟΥ ΔΕΝ ΙΣΧΥΕΙ.
+              // Έλεγε «με την τεκμαρτή έκπτωση 5%» χωρίς όρο, ενώ από 1/1/2026 η
+              // έκπτωση χάνεται όταν το ενοίκιο εισπράττεται με μετρητά. Με το
+              // νούμερο διορθωμένο και το κείμενο να ψεύδεται, ο χρήστης θα
+              // νόμιζε ότι ο φόρος του ανέβηκε χωρίς λόγο.
+              : rentViaBank
+                ? `Προοδευτική κλίμακα ενοικίων ${year} με την τεκμαρτή έκπτωση 5%. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου.`
+                : `Προοδευτική κλίμακα ενοικίων ${year} ΧΩΡΙΣ την τεκμαρτή έκπτωση 5%: το ενοίκιο εισπράττεται με μετρητά, και από 1/1/2026 η έκπτωση προϋποθέτει τραπεζική είσπραξη. Ο φόρος υπολογίζεται στο 100% του ενοικίου.` },
           // ΧΩΡΙΣ ΧΡΩΜΑΤΙΚΗ ΕΤΥΜΗΓΟΡΙΑ. Το πρόσημο το λέει ήδη το ίδιο το ποσό·
           // το πράσινο/κόκκινο απλώς το ξαναέλεγε, και σε μια χρονιά με ΕΝΦΙΑ
           // έβαφε κόκκινο ένα ακίνητο που δουλεύει κανονικά.

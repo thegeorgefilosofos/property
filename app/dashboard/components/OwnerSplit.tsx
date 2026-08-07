@@ -81,6 +81,18 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
 
   const owners: OwnerShare[] = useMemo(() => rows.filter(r => r.name.trim()).map(r => ({ name: r.name.trim(), pct: num(r.pct), afm: r.afm.trim() || undefined })), [rows]);
   const result = useMemo(() => computeSplit({ grossIncome: figures?.gross || 0, expenses: figures?.expenses || 0, owners, managementFeePct: num(feePct), managerName }), [figures, owners, feePct, managerName]);
+  // Το ποσό που δεν έχει ιδιοκτήτη (ή που δόθηκε δύο φορές), σε ευρώ και σε ποσοστό.
+  // `null` όταν τα ποσοστά κλείνουν στα 100 — τότε δεν υπάρχει τίποτα να ειπωθεί.
+  const unassigned = useMemo(() => {
+    if (result.valid || !result.owners.length) return null;
+    const netSum = result.owners.reduce((s, o) => s + o.net, 0);
+    return {
+      label: result.pctSum > 100 ? 'Δόθηκε δύο φορές' : 'Χωρίς ιδιοκτήτη',
+      pct: Math.round((100 - result.pctSum) * 100) / 100,
+      amount: Math.round((result.distributable - netSum) * 100) / 100,
+    };
+  }, [result]);
+
   const prop = props.find(p => p.id === propId);
   const periodLabel = month === 0 ? `Έτος ${year}` : `${MONTHS_NOM[month - 1]} ${year}`;
 
@@ -219,7 +231,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                     {miniStat('Έξοδα', pEur(result.expenses))}
                     {miniStat('Αμοιβή', pEur(result.managementFee))}
                     {miniStat('Προς διανομή', pEur(result.distributable), true)}
-                    <span style={{ marginLeft: 'auto' }}><Badge tone={result.valid ? 'positive' : 'warning'}>{result.valid ? `Ποσοστά ${result.pctSum}% ✓` : `Ποσοστά ${result.pctSum}%`}</Badge></span>
+                    <span style={{ marginLeft: 'auto' }}><Badge tone={result.valid ? 'positive' : 'warning'}>Ποσοστά {pPct(result.pctSum)}</Badge></span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '8px 16px', borderTop: '1px solid var(--border-subtle)' }}>
                     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
@@ -229,10 +241,23 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                   {result.owners.map((o, i) => (
                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center' }}>
                       <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{o.name}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(o.pct)}</span></span>
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{o.expenseShare + o.feeShare > 0 ? `−${pEur(o.expenseShare + o.feeShare)}` : '—'}</span>
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{o.expenseShare + o.feeShare > 0 ? `−${pEur(o.expenseShare + o.feeShare)}` : pEur(0)}</span>
                       <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{pEur(o.net)}</span>
                     </div>
                   ))}
+                  {/* Το αδιάθετο υπόλοιπο, ονομαστικά.
+                      Όταν τα ποσοστά δεν αθροίζουν 100, ο πίνακας ΔΕΝ κλείνει πια στο
+                      «Προς διανομή» — και σωστά: ο υπολογισμός σταμάτησε να φορτώνει
+                      σιωπηλά τη διαφορά στον μεγαλύτερο ιδιοκτήτη. Αντί ο χρήστης να
+                      ψάχνει γιατί οι γραμμές δεν βγάζουν το σύνολο, το λείπον ποσό
+                      γράφεται εδώ σε ευρώ: δείχνει ακριβώς πόσα δεν έχουν ιδιοκτήτη. */}
+                  {unassigned !== null && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center', background: 'var(--warning-soft)' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{unassigned.label}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(unassigned.pct)}</span></span>
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{pEur(0)}</span>
+                      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>{pSigned(unassigned.amount)}</span>
+                    </div>
+                  )}
                 </div>
               )}
 

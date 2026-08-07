@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // 100+ σενάρια πραγματικού κόσμου (end-to-end λογική): parse → categorize →
-// reconcile → sort → completeness. Τρέξε: npx tsx lib/billing/scenarios.test.ts
+// reconcile → completeness. Τρέξε: npx tsx lib/billing/scenarios.test.ts
 // ═══════════════════════════════════════════════════════════════════════════
 import {
-  parseCSV, categorizeTransaction, matchBillToPayment, sortBills, assessCompleteness,
-  type PendingBill, type ParsedTransaction, type BillSort,
+  parseCSV, categorizeTransaction, matchBillToPayment, assessCompleteness,
+  type PendingBill, type ParsedTransaction,
 } from './parse';
 
 let n = 0, pass = 0, fail = 0; const fails: string[] = [];
@@ -111,27 +111,6 @@ const tx = (desc: string, amount: number, date: string): ParsedTransaction => ({
   const rentTx: ParsedTransaction = { ...tx('ΕΝΟΙΚΙΟ', 800, '2026-06-02'), debit: false };
   T('reconcile: credit αγνοείται', reconcile([rentTx], bills).reconciled.length === 0);
 }
-
-// ── D. SORTING (αρχειοθέτηση) ────────────────────────────────────────────────
-const sortSet = [
-  { name: 'ΔΕΗ', amount: 142.5, due_date: '2026-06-15', created_at: '2026-06-20' },
-  { name: 'ΕΥΔΑΠ', amount: 38.0, due_date: '2026-06-10', created_at: '2026-06-25' },
-  { name: 'COSMOTE', amount: 29.9, due_date: '2026-06-20', created_at: '2026-06-18' },
-  { name: 'Ασφάλεια', amount: 1234.56, due_date: '2026-05-30', created_at: '2026-06-22' },
-];
-const first = (k: BillSort) => sortBills(sortSet, k)[0].name;
-const last = (k: BillSort) => sortBills(sortSet, k)[sortSet.length - 1].name;
-T('sort: αξία φθίνουσα → Ασφάλεια πρώτη', first('amount_desc') === 'Ασφάλεια');
-T('sort: αξία αύξουσα → COSMOTE πρώτη', first('amount_asc') === 'COSMOTE');
-T('sort: αξία αύξουσα → Ασφάλεια τελευταία', last('amount_asc') === 'Ασφάλεια');
-T('sort: ημ. λήψης νεότερα → ΕΥΔΑΠ πρώτη', first('received_desc') === 'ΕΥΔΑΠ');
-T('sort: ημ. λήψης παλαιότερα → COSMOTE πρώτη', first('received_asc') === 'COSMOTE');
-T('sort: ημ. έκδοσης νεότερα → COSMOTE πρώτη', first('issue_desc') === 'COSMOTE');
-T('sort: ημ. έκδοσης παλαιότερα → Ασφάλεια πρώτη', first('issue_asc') === 'Ασφάλεια');
-T('sort: πάροχος Α-Ω → Ασφάλεια πρώτη', first('provider') === 'Ασφάλεια');
-T('sort: δεν αλλοιώνει πλήθος', sortBills(sortSet, 'amount_desc').length === 4);
-T('sort: δεν μεταλλάσσει το αρχικό', (sortBills(sortSet, 'amount_asc'), sortSet[0].name === 'ΔΕΗ'));
-T('sort: κενή λίστα', sortBills([], 'amount_desc').length === 0);
 
 // ── E. COMPLETENESS (πληρότητα εξαγωγής) ────────────────────────────────────
 T('complete: πλήρες ρεύμα', assessCompleteness({ provider: 'ΔΕΗ', amount: 50, category: 'electricity', kwh: 300 }).blocking.length === 0);
