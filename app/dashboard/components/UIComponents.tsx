@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { T } from '@/components/Theme';
+import { T, localDay } from '@/components/Theme';
 import { athensToday, isoYear, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -575,7 +575,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
 
   const fmtDisplay = (d: string) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return localDay(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
@@ -674,7 +674,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
                 <button
                   key={day}
                   onClick={() => pick(day)}
-                  aria-label={new Date(iso).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  aria-label={localDay(iso).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })}
                   aria-current={isToday ? 'date' : undefined}
                   aria-pressed={isSelected}
                   style={{

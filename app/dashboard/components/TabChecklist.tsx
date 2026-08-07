@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, fn, fe, fp, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen } from '@/components/Theme'
+import { T, fn, fe, fp, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, localDay } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
@@ -315,7 +315,7 @@ const TEMPLATES: Record<string, Template> = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(d: string | null) {
   if (!d) return ''
-  try { return new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
+  try { return localDay(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
 }
 function isOverdue(due: string | null, status: string) {
   if (!due || status === 'done' || status === 'skipped') return false
@@ -741,7 +741,7 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
   const tenantName = tenant?.full_name || '______________________________'
   const tenantPhone = tenant?.phone || '______________________________'
   const tenantAfm = tenant?.afm || '______________________________'
-  const leaseEnd = tenant?.lease_end ? new Date(tenant.lease_end).toLocaleDateString('el-GR') : '______________________________'
+  const leaseEnd = tenant?.lease_end ? localDay(tenant.lease_end).toLocaleDateString('el-GR') : '______________________________'
 
   const sectionHtml = (num: number, title: string, content: string) => `
     <div class="sec">

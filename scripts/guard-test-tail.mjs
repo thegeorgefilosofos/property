@@ -16,23 +16,10 @@
 // Δεν είναι λάθος προσοχής που διορθώνεται με προσοχή: είναι σχήμα αρχείου που
 // τιμωρεί την πιο φυσική κίνηση (πρόσθεσε στο τέλος). Ο φύλακας το πιάνει.
 // ═══════════════════════════════════════════════════════════════════════════
-import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { findTests } from './lib/find-tests.mjs'
 
-const ROOTS = ['lib', 'app', 'components', 'supabase']
-
-function walk(dir, out) {
-  if (!existsSync(dir)) return
-  for (const e of readdirSync(dir)) {
-    if (e === 'node_modules' || e === '.next') continue
-    const full = join(dir, e)
-    if (statSync(full).isDirectory()) walk(full, out)
-    else if (e.endsWith('.test.ts')) out.push(full)
-  }
-}
-
-const files = []
-for (const r of ROOTS) walk(r, files)
+const files = findTests()
 
 // Οι συναρτήσεις ισχυρισμού που χρησιμοποιούν οι σουίτες του έργου.
 const ASSERT = /^\s*(ok|eq|near|is|assert|expect)\s*\(/

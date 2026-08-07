@@ -97,12 +97,44 @@ export const histInputStyle = (isCurrent: boolean, isHovered = false) => ({
 // Οι οθόνες συνεχίζουν να γράφουν `import { fe } from '@/components/Theme'`.
 export { fe, feAuto, feRate, fp, fn, feOr, fpOr, DASH, isBlankMetric, ABSENT, ABSENT_DATE, ABSENT_SHORT } from '@/lib/core/format';
 
+// ── ΜΙΑ ΗΜΕΡΟΛΟΓΙΑΚΗ ΗΜΕΡΑ ΔΕΝ ΕΙΝΑΙ ΣΤΙΓΜΗ ──────────────────────────────
+//
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Εδώ γραφόταν σκέτο `new Date(d)`. Για συμβολοσειρά
+// «2026-01-01» αυτό είναι μεσάνυχτα UTC, ενώ το `toLocaleDateString`
+// μορφοποιεί σε ΤΟΠΙΚΗ ώρα. Σε ζώνη με αρνητική απόκλιση το αποτέλεσμα είναι
+// η ΠΡΟΗΓΟΥΜΕΝΗ ημέρα:
+//
+//     Αθήνα     →  1 Ιανουαρίου
+//     Νέα Υόρκη →  31 Δεκεμβρίου
+//
+// Οι δύο αυτές συναρτήσεις τυπώνουν κάθε ημερομηνία της εφαρμογής — λήξη
+// μισθωτηρίου, ημέρα άφιξης στο μήνυμα προς τον επισκέπτη, ημερομηνία
+// απόδειξης. Ο κώδικας τρέχει στον περιηγητή ΤΟΥ ΧΡΗΣΤΗ, όχι στον διακομιστή.
+//
+// Η ΛΥΣΗ ΕΙΝΑΙ ΤΟ `T00:00:00`: κάνει την κατασκευή ΤΟΠΙΚΗ, οπότε συμφωνεί με
+// τον τοπικό μορφοποιητή και η ημέρα μένει αυτή που γράφτηκε. Ένα αντικείμενο
+// `Date` περνά αυτούσιο — εκεί ο καλών έχει ήδη αποφασίσει τι στιγμή εννοεί.
+/**
+ * Μια «YYYY-MM-DD» ως ΤΟΠΙΚΗ μέρα, ώστε ο τοπικός μορφοποιητής να μη γυρίσει
+ * την ημερομηνία μία μέρα πίσω. Εξάγεται γιατί δεν την χρειάζονται μόνο οι δύο
+ * μορφοποιητές από κάτω: κάθε οθόνη που τυπώνει ημερολογιακή ημέρα με δικές της
+ * επιλογές (μέρα εβδομάδας, σύντομος μήνας) έχει το ΙΔΙΟ πρόβλημα.
+ *
+ * ΤΟ ΟΡΙΟ ΕΙΝΑΙ ΣΑΦΕΣ: ημερολογιακή ΗΜΕΡΑ περνά από εδώ· χρονική ΣΤΙΓΜΗ
+ * (`created_at`, `paid_at`, τελευταία σύνδεση) ΟΧΙ — εκεί η τοπική ώρα είναι
+ * ακριβώς το ζητούμενο.
+ */
+export const localDay = (d: string | Date): Date =>
+  typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())
+    ? new Date(`${d.trim()}T00:00:00`)
+    : new Date(d);
+
 export const fd = (d: string | Date) =>
-  new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
+  localDay(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 // Πλήρης μορφή χωρίς συντομογραφία μήνα («30 Ιουνίου 2026»).
 export const fdLong = (d: string | Date) =>
-  new Date(d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' });
+  localDay(d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 // ── Σημασιολογικοί τόνοι, ρόλοι, όχι αυθαίρετα χρώματα ─────────────────────
 export type Tone = 'accent' | 'info' | 'positive' | 'warning' | 'negative' | 'neutral';

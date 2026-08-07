@@ -36,7 +36,7 @@ type CalendarEventInsert =
   Pick<CalendarEventsRow, 'property_id'|'user_id'|'title'|'category'|'event_date'>
   & Partial<Omit<CalendarEventsRow, 'id'|'property_id'|'user_id'|'title'|'category'|'event_date'|'recurrence_exdates'>>
 import { savedData } from '@/components/dbWrite'
-import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe } from '@/components/Theme'
+import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, localDay } from '@/components/Theme'
 import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
@@ -897,7 +897,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
             η έμφαση του τίτλου μένει στα 16/500, δηλαδή σε μέγεθος και βάρος. */}
         <input ref={titleRef} value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} onFocus={focus} onBlur={blur} placeholder="Συντήρηση λέβητα, Παρασκευή 10:00" style={{...fld, fontSize:16, fontWeight:500}}/>
         {(()=>{ if(editing)return null; const qa=parseQuickAdd(form.title, new Date()); const hasExtra=!!(qa.date||qa.time)&&(qa.date!==form.event_date||qa.time!==(form.event_time||null)||qa.title!==form.title); if(!hasExtra)return null
-          const dLbl=qa.date?new Date(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
+          const dLbl=qa.date?localDay(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
           return (
             <button onClick={()=>setForm(f=>({...f,title:qa.title,event_date:qa.date||f.event_date,event_time:qa.time||f.event_time}))} style={{ display:'flex', alignItems:'center', gap:7, marginTop:8, padding:'7px 12px', borderRadius:10, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans, width:'100%', textAlign:'left' }}>
               <Zap size={13}/>Ορισμός: {[dLbl,qa.time].filter(Boolean).join(' · ')}, «{qa.title}»

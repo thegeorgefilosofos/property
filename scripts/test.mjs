@@ -12,10 +12,9 @@
 // where the runner executes (CI or a local machine in any timezone).
 
 import { spawnSync } from 'node:child_process'
-import { readdirSync, statSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync } from 'node:fs'
+import { findTests } from './lib/find-tests.mjs'
 
-const ROOTS = ['lib', 'app', 'supabase']
 // Domain verifiers that aren't named *.test.ts but are part of the suite.
 const EXTRA = [
   'supabase/functions/_shared/verify-policy.ts',
@@ -23,19 +22,10 @@ const EXTRA = [
   'supabase/functions/_shared/verify-gender.ts',
 ]
 
-function walk(dir, out) {
-  if (!existsSync(dir)) return
-  for (const entry of readdirSync(dir)) {
-    if (entry === 'node_modules' || entry === '.next' || entry === '.git') continue
-    const full = join(dir, entry)
-    const st = statSync(full)
-    if (st.isDirectory()) walk(full, out)
-    else if (entry.endsWith('.test.ts')) out.push(full)
-  }
-}
-
-const files = []
-for (const r of ROOTS) walk(r, files)
+// Η ανακάλυψη ζει στο scripts/lib/find-tests.mjs, μαζί με τον φύλακα της ουράς:
+// όσο η λίστα φακέλων ήταν γραμμένη δύο φορές, οι δύο εκδοχές απέκλιναν και το
+// components/confirmBus.test.ts δεν έτρεχε ποτέ.
+const files = findTests()
 for (const e of EXTRA) if (existsSync(e)) files.push(e)
 files.sort()
 

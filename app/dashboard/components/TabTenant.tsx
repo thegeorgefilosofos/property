@@ -16,7 +16,7 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT, localDay } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved, savedData } from '@/components/dbWrite';
@@ -770,7 +770,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
                 <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{TYPE_SHORT[log.type]}</span>
-                <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{new Date(log.date).toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})}</span>
+                <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{localDay(log.date).toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})}</span>
                 {log.outcome&&<StatusBadge label={log.outcome} color="var(--accent)" bg="var(--accent-dim)"/>}
               </div>
               <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6 }}>{log.summary}</div>
@@ -1753,7 +1753,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
     setBusy(false); onRefresh(); notifyOk('Καταγράφηκε στις φθορές');
   };
   const del=async(m:MaintenanceReq)=>{ if(!(await confirmDialog('Διαγραφή αιτήματος;',{tone:'negative'}))) return; if(await saved('Το αίτημα δεν διαγράφηκε',supabase.from('maintenance_requests').delete().eq('id',m.id))) onRefresh(); };
-  const gdt=(d:string|null)=>d?new Date(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):ABSENT_DATE;
+  const gdt=(d:string|null)=>d?localDay(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):ABSENT_DATE;
   const openAssign=(m:MaintenanceReq)=>{ setAssignFor(m.id); setAf({name:m.assignee_name||'',contact:m.assignee_contact||''}); };
   const saveAssign=async(m:MaintenanceReq)=>{
     setBusy(true);

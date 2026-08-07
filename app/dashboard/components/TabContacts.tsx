@@ -7,7 +7,7 @@ import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, Modal, SideSheet } from '@/components/Theme'
+import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, Modal, SideSheet, localDay } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
@@ -281,7 +281,7 @@ const EMPTY_FORM = { full_name: '', role: 'other', phone: '', email: '', freeNot
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(d: string) {
   if (!d) return ''
-  try { return new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
+  try { return localDay(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
 }
 function daysUntil(d: string) { if (!d) return null; return athensDaysUntil(d) ?? 0 }
 function isOverdue(d: string) { const n = daysUntil(d); return n !== null && n < 0 }

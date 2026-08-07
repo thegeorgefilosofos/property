@@ -28,11 +28,16 @@ export interface MsgTemplate {
 }
 
 const firstName = (name?: string | null) => (name || '').trim().split(/\s+/)[0] || '';
+// Η ΗΜΕΡΑ ΑΦΙΞΗΣ ΠΟΥ ΔΙΑΒΑΖΕΙ Ο ΕΠΙΣΚΕΠΤΗΣ.
+// Εδώ γραφόταν `new Date(d)` — μεσάνυχτα UTC — και μορφοποιούνταν σε ΤΟΠΙΚΗ
+// ώρα. Σε ζώνη με αρνητική απόκλιση, η άφιξη «2026-01-01» έφτανε στο μήνυμα ως
+// «31 Δεκεμβρίου». Δεν είναι εσωτερικός αριθμός: είναι το κείμενο που στέλνει ο
+// ιδιοκτήτης στον πελάτη του, με το όνομά του από πάνω.
 const fmtDate = (d?: string | null) => {
-  if (!d) return '';
-  const t = new Date(d).getTime();
-  if (isNaN(t)) return '';
-  return new Date(d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
+  const iso = (d || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}/.test(iso)) return '';
+  const dt = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  return isNaN(dt.getTime()) ? '' : dt.toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
 };
 // ═══ «ΣΤΟ ΤΟ ΚΑΤΑΛΥΜΑ» ═══════════════════════════════════════════════════════
 // Το `propRef` επέστρεφε «το κατάλυμα» ΜΕ το άρθρο, και κάθε πρότυπο έγραφε από

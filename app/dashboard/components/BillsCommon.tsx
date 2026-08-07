@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, fe, InfoBanner, Card, EmptyState, fp, histInputStyle } from '@/components/Theme';
+import { T, fe, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -434,7 +434,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', opacity: e.transferredToExpenses ? 0.5 : 1 }}>
             <div>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{e.reason}</span>
-              {e.date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{new Date(e.date).toLocaleDateString('el-GR')}</span>}
+              {e.date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{localDay(e.date).toLocaleDateString('el-GR')}</span>}
               {e.transferredToExpenses && (
                 <span style={{ fontSize: 9, color: 'var(--text-tertiary)', marginLeft: 12, background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
                   Στις Δαπάνες ✓
