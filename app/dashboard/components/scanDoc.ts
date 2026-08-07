@@ -95,7 +95,16 @@ export const PHOTO_SYSTEM_PROMPT = `Είσαι σύστημα ταξινόμησ
 
 export const MAX_SCAN_MB = 10;
 
-const NUM_KEYS = ['amount', 'monthly_rent', 'deposit', 'premium', 'coverage', 'purchase_price', 'obj_value', 'year_built', 'sqm', 'tax_year', 'kwh', 'cubic_meters', 'millesimi', 'vat_rate'];
+// ΤΑ ΚΛΕΙΔΙΑ ΔΕΝ ΕΙΝΑΙ ΠΙΑ ΣΚΕΤΑ ΚΕΙΜΕΝΑ. Ήταν `string[]`, και η εξομάλυνση
+// έγραφε με `doc as unknown as Record<string, unknown>` — δηλαδή ένα κλειδί με
+// τυπογραφικό («amout») δεν θα σκάλωνε πουθενά: ο αριθμός θα έμενε κείμενο, το
+// ποσό θα έμπαινε στη βάση ως «1.200,50» και η πρόσθεση θα έδινε NaN. Με τον
+// τύπο δεμένο στο ίδιο το ScannedDoc, ένα λάθος όνομα σκάει στη μεταγλώττιση.
+type NumKey = Extract<{
+  [K in keyof ScannedDoc]-?: NonNullable<ScannedDoc[K]> extends number ? K : never
+}[keyof ScannedDoc], string>;
+
+const NUM_KEYS: readonly NumKey[] = ['amount', 'monthly_rent', 'deposit', 'premium', 'coverage', 'purchase_price', 'obj_value', 'year_built', 'sqm', 'tax_year', 'kwh', 'cubic_meters', 'millesimi', 'vat_rate'];
 
 // Ανθεκτική μετατροπή αριθμού (χειρίζεται «1.200,50», «1,234.56», «€», κενά).
 const numify = (v: unknown): number | undefined => {
@@ -174,8 +183,16 @@ export async function scanDocument(file: File): Promise<{ doc?: ScannedDoc; erro
 
   const doc = r.doc;
   // Ντετερμινιστική εξομάλυνση: το AI μπορεί να δώσει αριθμούς ως strings.
-  const dref = doc as unknown as Record<string, unknown>;
-  NUM_KEYS.forEach(k => { if (dref[k] != null) dref[k] = numify(dref[k]); });
+  // Ο τύπος ανάγκασε να ειπωθεί κάτι που έμενε υπονοούμενο: όταν το κείμενο ΔΕΝ
+  // είναι αριθμός («περίπου 300»), το πεδίο ΦΕΥΓΕΙ. Πριν του ανατίθετο
+  // `undefined` — ίδιο αποτέλεσμα στην εκτέλεση, αλλά γραμμένο σαν να ήταν
+  // αριθμός. Ένα αριθμητικό πεδίο που κρατά ακατέργαστο κείμενο είναι χειρότερο
+  // από ένα που λείπει: το πρώτο μπαίνει στη βάση και δίνει NaN στην πρόσθεση.
+  NUM_KEYS.forEach(k => {
+    if (doc[k] == null) return;
+    const n = numify(doc[k]);
+    if (n === undefined) delete doc[k]; else doc[k] = n;
+  });
   if (Array.isArray(doc.owners)) {
     doc.owners = doc.owners.map(o => ({
       name: o?.name || undefined,

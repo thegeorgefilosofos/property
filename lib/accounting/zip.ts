@@ -63,7 +63,13 @@ class Buf {
   push(b: Uint8Array): void { this.parts.push(b); this.len += b.length; }
   u16(n: number): void { this.push(new Uint8Array([n & 0xff, (n >>> 8) & 0xff])); }
   u32(n: number): void { this.push(new Uint8Array([n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff])); }
-  merge(): Uint8Array {
+  // ΤΟ `<ArrayBuffer>` ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΣΗ. Ο σκέτος `Uint8Array` σημαίνει
+  // `Uint8Array<ArrayBufferLike>`, δηλαδή «ίσως και SharedArrayBuffer» — και ο
+  // κατασκευαστής του `Blob` δεν δέχεται μοιραζόμενη μνήμη. Ο καλών το έλυνε με
+  // `as unknown as BlobPart`, δηλαδή έσβηνε τον έλεγχο αντί να τον ικανοποιήσει.
+  // Εδώ η μνήμη ΕΙΝΑΙ πάντα απλή: το `new Uint8Array(n)` δεσμεύει `ArrayBuffer`.
+  // Ο τύπος το λέει, και το cast στον καλούντα φεύγει.
+  merge(): Uint8Array<ArrayBuffer> {
     const out = new Uint8Array(this.len);
     let at = 0;
     for (const p of this.parts) { out.set(p, at); at += p.length; }
@@ -79,7 +85,7 @@ class Buf {
  * extractors δείχνουν με αυτή τη σειρά και η αρίθμηση 01..05 πρέπει να διαβαστεί
  * από πάνω προς τα κάτω.
  */
-export function buildZip(files: readonly ZipFile[], now: Date = new Date()): Uint8Array {
+export function buildZip(files: readonly ZipFile[], now: Date = new Date()): Uint8Array<ArrayBuffer> {
   const { time, date } = dosStamp(now);
 
   type Entry = { name: Uint8Array; body: Uint8Array; crc: number; offset: number; dir: boolean };

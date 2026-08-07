@@ -1413,6 +1413,13 @@ export default function Dashboard() {
 
   // Κλείσιμο σάρωσης: αν ήταν προσχέδιο από scan-to-create και δεν αποθηκεύτηκε
   // τίποτα (κανένα έγγραφο), σβήσε το κενό ακίνητο ώστε να μη μένουν σκουπίδια.
+  // ΟΣΟ ΔΙΑΒΑΖΕΤΑΙ ΤΟ ΕΓΓΡΑΦΟ, ΤΟ ΠΑΡΑΘΥΡΟ ΔΕΝ ΚΛΕΙΝΕΙ.
+  // Το `closeQuickAdd` παρακάτω ΔΙΑΓΡΑΦΕΙ το κενό προσχέδιο ακινήτου. Όταν το
+  // παράθυρο απέκτησε Escape και κλικ-στο-φόντο, απέκτησε και δύο τρόπους να
+  // πατηθεί κατά λάθος στη μέση της αναγνώρισης — και να σβήσει το ακίνητο που
+  // μόλις δημιουργήθηκε από τη «Σάρωσε…».
+  const [scanBusy, setScanBusy] = useState(false);
+
   const closeQuickAdd = async () => {
     setQuickAddOpen(false);
     const draft = scanDraftId; setScanDraftId(null);
@@ -2078,9 +2085,10 @@ export default function Dashboard() {
           σαρώνει πια τίποτα. Ο τίτλος μένει: είναι το όνομα του παραθύρου δίπλα
           στο «×» και το μόνο που ακούει ο αναγνώστης οθόνης — το χειρόγραφο
           παράθυρο δεν είχε κανένα. */}
-      <Modal open={!!(quickAddOpen&&user&&selected)} onClose={closeQuickAdd} width={820}
+      <Modal open={!!(quickAddOpen&&user&&selected)} onClose={()=>{ if(!scanBusy) closeQuickAdd(); }} width={820}
         title="Σάρωση εγγράφου">
-        {user&&selected&&<DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>}
+        {user&&selected&&<DocumentScan propertyId={selected.id} userId={user.id} onBusyChange={setScanBusy}
+          onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>}
       </Modal>
 
       {showWelcome&&user&&<WelcomeOnboarding userId={user.id}

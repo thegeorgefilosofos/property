@@ -37,7 +37,11 @@ import { SYSTEM_PROMPT } from './DocumentScan';
 import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
 import { escHtml as esc } from '@/lib/reportBranding';
 import { athensToday, daysUntil } from '@/lib/core/time';
-import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
+import { MONTHS_NOM, MONTHS_SHORT, monthNom } from '@/lib/core/months';
+import {
+  instalmentPeriods, monthsPerInstalment, periodLabel,
+  PAYMENT_FREQ_LABELS, isPaymentFreq, type InstalmentPeriod,
+} from '@/lib/rent/frequency';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { ...TT.label, marginBottom:7 };
@@ -95,11 +99,7 @@ type PayMethod = typeof PAY_METHODS[number];
 // (είναι `text`) και ξαναδιαβαζόταν στο `Tenant.payment_frequency:PaymentFreq`,
 // δηλαδή ως τιμή της ένωσης που ΚΑΜΙΑ σύγκριση δεν πιάνει. Μία πηγή τώρα για
 // τις επιλογές και τις ετικέτες, ώστε να μην μπορούν να αποκλίνουν.
-const PAYMENT_FREQ_LABELS: Record<PaymentFreq,string> = {
-  monthly:'Μηνιαία', bimonthly:'Διμηνιαία', quarterly:'Τριμηνιαία',
-};
-const isPaymentFreq = (v:string):v is PaymentFreq =>
-  Object.prototype.hasOwnProperty.call(PAYMENT_FREQ_LABELS,v);
+
 // Ίδιος λόγος: ο SelectField των εγγράφων ταυτοποίησης έδινε `string` σε πεδίο
 // `IdDocType|''`. Το κενό είναι έγκυρη τιμή («καμία επιλογή»).
 const isIdDocType = (v:string):v is IdDocType|'' => v==='' || ID_DOCS.some(d=>d===v);
@@ -797,28 +797,33 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
 }
 
 // ─── Rent Ledger helpers ──────────────────────────────────────────────────────
-// Αναμενόμενες μηνιαίες δόσεις από lease_start έως min(αποχώρηση, λήξη, τρέχων μήνας).
+// Αναμενόμενες δόσεις από lease_start έως min(αποχώρηση, λήξη, τρέχων μήνας).
 // Ο ενοικιαστής που έχει αποχωρήσει ΔΕΝ συσσωρεύει νέες δόσεις μετά την αποχώρηση.
-function expectedPeriods(tenant:Tenant, rentDueDay:number):{year:number;month:number;due_date:string}[] {
+//
+// ΤΟ ΒΗΜΑ ΕΡΧΕΤΑΙ ΑΠΟ ΤΗ ΣΥΧΝΟΤΗΤΑ, ΟΧΙ ΑΠΟ ΥΠΟΘΕΣΗ. Εδώ έγραφε `m++`, δηλαδή
+// πάντα μηνιαία, ενώ η καρτέλα ρωτούσε τον ιδιοκτήτη «Συχνότητα εξόφλησης» και
+// ο οδηγός πεδίων του υποσχόταν «με αυτόν τον ρυθμό δημιουργούνται οι δόσεις».
+// Όποιος επέλεγε «Τριμηνιαία» για εμπορικό μισθωτήριο έπαιρνε δώδεκα μηνιαίες
+// δόσεις, και ο ενοικιαστής έβγαινε ληξιπρόθεσμος δύο στους τρεις μήνες.
+// Η μηχανή ζει στο lib/rent/frequency.ts, με τεστ που φυλάει την αναλλοίωτη:
+// όποια κι αν είναι η συχνότητα, ο χρόνος κλείνει με δώδεκα μισθώματα.
+// Δύο δεκαδικά, ΠΑΝΤΑ: ο πολλαπλασιασμός επί τρεις μήνες πάνω σε ενοίκιο με
+// λεπτά (π.χ. 416,67) βγάζει 1250,0100000000002 σε κινητή υποδιαστολή.
+const r2=(n:number)=>Math.round(n*100)/100;
+
+function expectedPeriods(tenant:Tenant, rentDueDay:number):InstalmentPeriod[] {
   if(!tenant.lease_start||!tenant.monthly_rent||tenant.monthly_rent<=0) return [];
-  const start=new Date(tenant.lease_start+'T00:00:00');
-  if(isNaN(start.getTime())) return [];
   const now=new Date(); now.setHours(0,0,0,0);
   // Όριο δημιουργίας: το νωρίτερο από αποχώρηση, λήξη μίσθωσης, ή τρέχων μήνας.
   const caps=[now];
   if(tenant.move_out_date){ const d=new Date(tenant.move_out_date+'T00:00:00'); if(!isNaN(d.getTime())) caps.push(d); }
   if(tenant.lease_end){ const d=new Date(tenant.lease_end+'T00:00:00'); if(!isNaN(d.getTime())) caps.push(d); }
   const last=caps.reduce((a,b)=>b<a?b:a);
-  const out:{year:number;month:number;due_date:string}[]=[];
-  let y=start.getFullYear(), m=start.getMonth();
-  const lastKey=last.getFullYear()*12+last.getMonth();
-  const dueDay=Math.min(Math.max(1,rentDueDay||1),28);
-  let guard=0;
-  while(y*12+m<=lastKey && guard++<600){
-    out.push({year:y,month:m+1,due_date:`${y}-${String(m+1).padStart(2,'0')}-${String(dueDay).padStart(2,'0')}`});
-    m++; if(m>11){m=0;y++;}
-  }
-  return out;
+  return instalmentPeriods({
+    startISO: tenant.lease_start,
+    lastYear: last.getFullYear(), lastMonth: last.getMonth()+1,
+    freq: tenant.payment_frequency, dueDay: rentDueDay,
+  });
 }
 
 type PayStatus='paid'|'overdue'|'pending';
@@ -871,18 +876,23 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   // ενοικίου ούτε στα μηνύματα υπενθύμισης — χωρίς κανένα σφάλμα στην οθόνη.
   useEffect(()=>{ supabase.from('user_properties').select('name,address').eq('id',propertyId).maybeSingle().then(({data})=>setProp((data||null) as {name:string;address:string|null}|null)); },[propertyId]);
 
+  const periodMonths=monthsPerInstalment(tenant.payment_frequency);
   const expected=useMemo(()=>expectedPeriods(tenant,rentDueDay),[tenant,rentDueDay]);
   const existingKeys=useMemo(()=>new Set(payments.map(p=>`${p.period_year}-${p.period_month}`)),[payments]);
   const missing=useMemo(()=>expected.filter(e=>!existingKeys.has(`${e.year}-${e.month}`)),[expected,existingKeys]);
 
-  const genForRows=useCallback(async(rows:{year:number;month:number;due_date:string}[])=>{
+  const genForRows=useCallback(async(rows:InstalmentPeriod[])=>{
     if(!rows.length) return;
     // Ανάλυση δόσης: βασικό ενοίκιο + χρέωση υπηρεσιών (streaming/καθαρισμός/στάθμευση,
     // σύμφωνα με τον τύπο επίπλωσης). Το «amount» είναι το συνολικό μηνιαίο ποσό.
+    // ΤΟ ΠΟΣΟ ΑΚΟΛΟΥΘΕΙ ΤΗ ΣΥΧΝΟΤΗΤΑ. Μια τριμηνιαία δόση ΕΙΝΑΙ τρία μηνιαία
+    // μισθώματα. Αν άλλαζε μόνο το βήμα των ημερομηνιών, ο ιδιοκτήτης θα
+    // εισέπραττε το ένα τρίτο του ετήσιου ενοικίου — και το ίδιο θα δήλωνε
+    // στο Ε2. Ο πολλαπλασιαστής και το βήμα βγαίνουν από την ΙΔΙΑ συνάρτηση,
+    // ώστε να μην μπορούν να αποκλίνουν.
     const base=tenantBaseRent(tenant);
     const services=tenantServicesCharge(tenant);
-    const amt=base+services;
-    const payload=rows.map(r=>({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_year:r.year,period_month:r.month,amount:amt,base_rent:base,services_charge:services,paid:false,due_date:r.due_date}));
+    const payload=rows.map(r=>({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_year:r.year,period_month:r.month,amount:r2(( base+services)*r.months),base_rent:r2(base*r.months),services_charge:r2(services*r.months),paid:false,due_date:r.due_date}));
     // UNIQUE(tenant_id,period_year,period_month) προστατεύει· αγνόησε διπλότυπα.
     const{error}=await supabase.from('rent_payments').upsert(payload,{onConflict:'tenant_id,period_year,period_month',ignoreDuplicates:true});
     // ΤΟ /* swallow */ ΕΚΡΥΒΕ ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΑΔΕΙΑΖΕ ΤΟ ΛΟΓΙΣΤΗΡΙΟ.
@@ -915,14 +925,18 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   // Εξαγωγή πληρωμών ενοικίου σε .xlsx — «Μορφοποιημένο» (default) ή «Επεξεργάσιμο» (data).
   const exportPaymentsXlsx = (mode?: XlsxMode) => {
     const headers = ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημερομηνία Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'];
-    const rows = sorted.map(p=>[`${MONTHS_NOM[p.period_month-1]} ${p.period_year}`,p.amount,payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')]);
+    const rows = sorted.map(p=>[periodLabel(p.period_year,p.period_month,periodMonths,monthNom),p.amount,payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')]);
     downloadCsv(`enoikio_${todayISO()}`, headers, rows, { mode });
   };
 
   // Τρέχουσα ανάλυση δόσης βάσει προφίλ μισθωτή (ενοίκιο + υπηρεσίες).
-  const baseRent=tenantBaseRent(tenant);
-  const svcCharge=tenantServicesCharge(tenant);
-  const targetAmt=baseRent+svcCharge;
+  // Η σύγκριση «ξεπερασμένης» δόσης γίνεται με το ποσό ΤΗΣ ΔΟΣΗΣ, όχι του μήνα.
+  // Αλλιώς, με τριμηνιαία εξόφληση ΚΑΘΕ εκκρεμής δόση θα φαινόταν ξεπερασμένη
+  // (τριπλάσια από το μηνιαίο) και η οθόνη θα πρότεινε αενάως «συγχρονισμό» που
+  // θα την υποτριπλασίαζε.
+  const baseRent=r2(tenantBaseRent(tenant)*periodMonths);
+  const svcCharge=r2(tenantServicesCharge(tenant)*periodMonths);
+  const targetAmt=r2(baseRent+svcCharge);
   // Εκκρεμείς δόσεις με ποσό διαφορετικό από το τρέχον (π.χ. άλλαξε ενοίκιο ή υπηρεσίες).
   // Εξαιρούνται όσες δήλωσε ο μισθωτής — έχει δεσμευτεί σε εκείνο το ποσό.
   const staleUnpaid=useMemo(()=>open.filter(p=>!p.tenant_declared && Math.round((p.amount||0)*100)!==Math.round(targetAmt*100)),[open,targetAmt]);
@@ -969,7 +983,11 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   // Το `as string` ήταν το τίμημα του `Record<string,any>`: χωρίς σχήμα, η
   // αλυσίδα `||` έβγαζε `any`. Με δηλωμένες τις δύο στήλες βγάζει ήδη `string`.
   const propLabel=()=> prop?.address||prop?.name||'';
-  const monthLabel=(p:RentPayment)=>`${MONTHS_NOM[p.period_month-1]} ${p.period_year}`;
+  // Η ΕΤΙΚΕΤΑ ΛΕΕΙ ΤΟ ΕΥΡΟΣ, ΟΧΙ ΤΟΝ ΠΡΩΤΟ ΜΗΝΑ. Με τριμηνιαία εξόφληση, το
+  // «Ιανουάριος 2026» δίπλα σε ποσό τριών μισθωμάτων διαβάζεται ως τριπλάσιο
+  // μηνιαίο ενοίκιο — από τον ίδιο τον ιδιοκτήτη, από τον ενοικιαστή στην
+  // απόδειξη, και από τον λογιστή στην εξαγωγή.
+  const monthLabel=(p:RentPayment)=>periodLabel(p.period_year,p.period_month,periodMonths,monthNom);
 
   const printReceipt=(p:RentPayment)=>{
     const paidDate=p.paid_date?rDate(p.paid_date+'T00:00:00'):ABSENT_DATE;
@@ -2103,7 +2121,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     if(syncedRef.current||loading) return;
     syncedRef.current=true;
     tenants.filter(t=>!isPastTenant(t)&&t.id).forEach(t=>{
-      syncTenantSchedule(supabase,t as unknown as TenantScheduleInput,propertyId,userId,'open',{rentDueDay:t.rent_due_day??1});
+      syncTenantSchedule(supabase,t,propertyId,userId,'open',{rentDueDay:t.rent_due_day??1});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[loading]);

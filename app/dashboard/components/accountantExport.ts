@@ -308,7 +308,7 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     { path: '05_ΤΙ_ΛΕΙΠΕΙ.txt', data: whatsMissing },
   ];
 
-  const blob = new Blob([buildZip(files) as unknown as BlobPart], { type: 'application/zip' });
+  const blob = new Blob([buildZip(files)], { type: 'application/zip' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

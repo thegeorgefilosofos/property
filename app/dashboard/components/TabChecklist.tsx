@@ -381,9 +381,23 @@ interface NotePayload {
 // Η βάση δέχεται κενό σε στήλες που η οθόνη θεωρεί δεδομένες (ακίνητο, χρήστης,
 // κατάσταση). Τα κενά κλείνουν ΕΔΩ, μία φορά, αντί να ταξιδεύουν μέσα στην
 // καρτέλα ως `null` που κανείς δεν περιμένει.
+// ΤΟ `as unknown as ChecklistItem` ΕΛΕΓΕ ΨΕΜΑΤΑ ΣΤΟ ΙΔΙΟ ΤΟΥ ΤΟ ΣΧΟΛΙΟ.
+// «Τα κενά κλείνουν ΕΔΩ», έγραφε — και έκλεινε επτά. Δύο ΔΕΝ έκλειναν, και το
+// cast τα άφηνε να περάσουν: το `priority` και το `status` είναι γυμνό `text`
+// στη βάση, χωρίς CHECK, ενώ η οθόνη τα δηλώνει ως ενώσεις τεσσάρων τιμών. Μια
+// γραμμή με `priority: null` (ή με τιμή από παλιά έκδοση) έφτανε στην απόδοση
+// ως τιμή που ΚΑΜΙΑ σύγκριση δεν πιάνει: η εργασία δεν έμπαινε σε κανένα
+// φίλτρο, δεν έπαιρνε χρώμα και δεν εμφανιζόταν στη μαζική επιλογή.
+const asPriority = (v: string | null): Priority =>
+  v === 'critical' || v === 'high' || v === 'low' ? v : 'normal'
+const asStatus = (v: string | null): Status =>
+  v === 'in_progress' || v === 'done' || v === 'skipped' ? v : 'pending'
+const asRecurring = (v: string | null): Recurring =>
+  v === 'monthly' || v === 'quarterly' || v === 'yearly' ? v : 'none'
+
 function parseItem(row: ChecklistItemsRow): ChecklistItem {
   const item: ChecklistItem = {
-    ...(row as unknown as ChecklistItem),
+    ...row,
     property_id: row.property_id ?? '',
     user_id: row.user_id ?? '',
     note: row.note ?? null,
@@ -391,6 +405,10 @@ function parseItem(row: ChecklistItemsRow): ChecklistItem {
     created_at: row.created_at ?? '',
     estimated_cost: row.estimated_cost ?? 0,
     actual_cost: row.actual_cost ?? 0,
+    priority: asPriority(row.priority),
+    status: asStatus(row.status),
+    recurring: asRecurring(row.recurring),
+    sort_order: row.sort_order ?? 0,
   }
   try {
     const p = JSON.parse(item.note || '{}')

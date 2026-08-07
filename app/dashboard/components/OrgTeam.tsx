@@ -152,19 +152,28 @@ export default function OrgTeam({ userId }: { userId: string }) {
       .then(({ data }) => setOrgProps((data ?? []) as { id: string; name: string }[]));
   }, [userId, supabase]);
 
+  // ΤΟ ΣΧΗΜΑ ΤΩΝ ΔΥΟ ΕΡΩΤΗΜΑΤΩΝ, ΓΡΑΜΜΕΝΟ ΜΙΑ ΦΟΡΑ.
+  // Το δεύτερο ερώτημα ζητά ΛΙΓΟΤΕΡΕΣ στήλες, οπότε ο τύπος του διαφέρει — και
+  // το `as unknown as { data: typeof data }` έσβηνε τη διαφορά αντί να τη
+  // δηλώσει. Δηλαδή αν κάποιος πρόσθετε στήλη στο πρώτο ερώτημα και ξεχνούσε το
+  // δεύτερο, η εφεδρική διαδρομή θα γύριζε αντικείμενα χωρίς αυτή τη στήλη και
+  // η οθόνη θα διάβαζε `undefined` χωρίς κανένα ίχνος.
+  type MemberRow = Pick<Member, 'email'|'role'|'status'|'joined_at'|'user_id'|'can_edit'|'edit_requested_at'>
+    & Partial<Pick<Member, 'property_scope'|'can_view_financials'>>;
+
   const loadMembers = async (orgId: string) => {
     const cols = 'email, role, status, joined_at, user_id, can_edit, edit_requested_at';
-    const first = await supabase
-      .from('organization_members')
-      .select(`${cols}, property_scope, can_view_financials`)
-      .eq('org_id', orgId).order('invited_at');
-    let data = first.data;
-    const error = first.error;
+    const q = (sel: string) =>
+      supabase.from('organization_members').select(sel).eq('org_id', orgId).order('invited_at');
+    const first = await q(`${cols}, property_scope, can_view_financials`);
     // Βάση χωρίς τις νέες στήλες: γύρνα στο βασικό σχήμα αντί να μείνει κενή η λίστα.
-    if (error) ({ data } = await supabase.from('organization_members').select(cols).eq('org_id', orgId).order('invited_at') as unknown as { data: typeof data });
-    setMembers(((data ?? []) as Partial<Member>[]).map(m => ({
-      ...(m as Member),
-      property_scope: (m.property_scope as string[] | null) ?? null,
+    const rows = (first.error ? (await q(cols)).data : first.data) as MemberRow[] | null;
+    setMembers((rows ?? []).map(m => ({
+      ...m,
+      // Οι δύο στήλες ΛΕΙΠΟΥΝ στην εφεδρική διαδρομή. Οι προεπιλογές λένε
+      // «όλα τα ακίνητα» και «βλέπει οικονομικά», δηλαδή ό,τι ίσχυε πριν
+      // υπάρξουν οι στήλες — καμία σιωπηλή αφαίρεση δικαιώματος.
+      property_scope: m.property_scope ?? null,
       can_view_financials: m.can_view_financials !== false,
     })));
   };

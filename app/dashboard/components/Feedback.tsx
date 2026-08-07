@@ -142,7 +142,14 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
       )}
 
       <div style={{ position: 'relative' }}>
-        {/* Κεφαλίδα */}
+        {/* ΜΕΣΑ ΣΕ ΠΑΡΑΘΥΡΟ, ΤΗΝ ΚΕΦΑΛΙΔΑ ΤΗ ΔΙΝΕΙ ΤΟ ΚΕΛΥΦΟΣ.
+            Το παράθυρο του βοηθού γράφει ήδη τίτλο «Η γνώμη σου», και από κάτω
+            ξεκινούσε αμέσως δεύτερη κεφαλίδα με δικό της εικονίδιο και δικό της
+            τίτλο, «Κάνε το Property OS καλύτερο». Δύο επικεφαλίδες στη σειρά,
+            που λένε το ίδιο πράγμα με άλλα λόγια, πριν ο χρήστης δει έστω ένα
+            πεδίο. Εκτός παραθύρου (κάρτα στην Επισκόπηση) η κεφαλίδα μένει:
+            εκεί δεν υπάρχει τίποτα άλλο να ονομάσει την ενότητα. */}
+        {!embedded && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span aria-hidden style={{
             width: 30, height: 30, flexShrink: 0, borderRadius: 10,
@@ -155,6 +162,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             Κάνε το Property OS καλύτερο
           </span>
         </div>
+        )}
 
         {/* Στόχος (πελατοκεντρικό μήνυμα) */}
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, margin: '10px 0 0' }}>

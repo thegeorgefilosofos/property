@@ -8,7 +8,7 @@
 // πίνακες. Ο χρήστης μπορεί να διορθώσει τύπο/πεδία και να προσθέσει δικά του.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
 import { CustomSelect } from './UIComponents';
@@ -27,7 +27,22 @@ import { inferRole } from '@/lib/contacts/roles';
 // ιστορικά από εδώ — η αλλαγή διαδρομής θα ήταν άσκοπη ρήξη.
 export const SYSTEM_PROMPT = SCAN_SYSTEM_PROMPT;
 
-interface Props { propertyId: string; userId?: string; onSaved?: () => void; }
+interface Props {
+  propertyId: string; userId?: string; onSaved?: () => void;
+  /**
+   * Λέει προς τα έξω αν η σάρωση ή η αποθήκευση τρέχει ΤΩΡΑ.
+   *
+   * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ. Το παράθυρο που φιλοξενεί τη σάρωση ακούει πλέον
+   * Escape (πριν δεν άκουγε τίποτα). Το κλείσιμό του καλεί `closeQuickAdd`,
+   * που ΔΙΑΓΡΑΦΕΙ το κενό προσχέδιο ακινήτου. Δηλαδή ένα άστοχο Escape στη
+   * μέση της αναγνώρισης έσβηνε το ακίνητο που μόλις δημιουργήθηκε — και ο
+   * χρήστης δεν είχε κανέναν τρόπο να καταλάβει τι έγινε.
+   *
+   * Το component δεν μπορεί να το λύσει μόνο του: η απόφαση «τι σημαίνει
+   * κλείσιμο» ανήκει σε αυτόν που το φιλοξενεί. Του λέμε μόνο αν δουλεύει.
+   */
+  onBusyChange?: (busy: boolean) => void;
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο', internet: 'Internet',
@@ -134,7 +149,7 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false, bad = f
 
 const NUM_KEYS = new Set<keyof ScannedDoc>(['amount', 'monthly_rent', 'deposit', 'premium', 'coverage', 'purchase_price', 'obj_value', 'year_built', 'sqm', 'tax_year', 'kwh', 'cubic_meters', 'millesimi', 'vat_rate']);
 
-export default function DocumentScan({ propertyId, userId = '', onSaved }: Props) {
+export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyChange }: Props) {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -148,6 +163,14 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   const [error, setError] = useState('');
   const [savedInfo, setSavedInfo] = useState<string[]>([]);
   const [newField, setNewField] = useState({ label: '', value: '' });
+
+  // Μία γραμμή, δύο καταστάσεις: όσο διαβάζεται το έγγραφο ή όσο γράφεται στη
+  // βάση, το παράθυρο από πάνω δεν επιτρέπεται να κλείσει και να σβήσει το
+  // προσχέδιο. Το effect τρέχει ΜΕΤΑ την απόδοση, οπότε ο γονέας μαθαίνει την
+  // αλλαγή χωρίς να γράφει state μέσα σε render.
+  const busy = scanning || saving;
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
+  useEffect(() => () => { onBusyChange?.(false); }, [onBusyChange]);
   // Ερώτηση συμφωνίας: όταν η βεβαιότητα ταιριάσματος με εκκρεμή λογαριασμό είναι
   // χαμηλή, ΔΕΝ εξοφλούμε σιωπηλά — ρωτάμε ποιον (ή κανέναν).
   const [ask, setAsk] = useState<ReconcileQuestion | null>(null);
@@ -354,12 +377,17 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 4 }}>Πρόσθεσε ένα έγγραφο</div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+      {/* ΤΟΝ ΤΙΤΛΟ ΤΟΝ ΔΙΝΕΙ ΤΟ ΠΑΡΑΘΥΡΟ. Εδώ γραφόταν δεύτερος, «Πρόσθεσε ένα
+          έγγραφο», κάτω από το «Σάρωση εγγράφου» του κελύφους — και έμενε
+          ορατός ΚΑΙ πάνω από την οθόνη επιτυχίας «Καταχωρήθηκε», όπου δεν
+          σαρώνει πια τίποτα. Η εξήγηση για το τι δέχεται μένει: είναι
+          πληροφορία, όχι επικεφαλίδα, και είναι χρήσιμη ακριβώς πριν το
+          πρώτο άγγιγμα. */}
+      {step === 'upload' && (
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 20 }}>
           Φωτογράφισε ή ανέβασε <strong>οτιδήποτε</strong>, λογαριασμό, απόδειξη, μισθωτήριο, τίτλο, ασφάλεια, <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span>, κρατικό έγγραφο. Το αναγνωρίζουμε και το καταχωρούμε στο σωστό σημείο.
         </div>
-      </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: step === 'review' && image ? 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))' : '1fr', gap: 20 }}>
         {/* Αριστερά: upload ή προεπισκόπηση */}
