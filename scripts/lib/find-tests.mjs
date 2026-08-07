@@ -39,14 +39,25 @@ export function findTests(root = '.') {
   return out
 }
 
-function walk(dir, out) {
+/**
+ * Κάθε πηγαίο `.ts`/`.tsx` του αποθετηρίου — για φύλακες που σαρώνουν κώδικα,
+ * όχι σουίτες. Ίδια σάρωση, ίδιες εξαιρέσεις, ένα σημείο.
+ */
+export function findSources(root = '.') {
+  const out = []
+  walk(root, out, e => /\.tsx?$/.test(e) && !e.endsWith('.d.ts'))
+  out.sort()
+  return out
+}
+
+function walk(dir, out, keep = e => e.endsWith('.test.ts')) {
   if (!existsSync(dir)) return
   for (const entry of readdirSync(dir)) {
     if (SKIP.has(entry)) continue
     const full = join(dir, entry)
     let st
     try { st = statSync(full) } catch { continue }   // σύνδεσμος που δείχνει στο πουθενά
-    if (st.isDirectory()) walk(full, out)
-    else if (entry.endsWith('.test.ts')) out.push(full.replace(/^\.\//, ''))
+    if (st.isDirectory()) walk(full, out, keep)
+    else if (keep(entry)) out.push(full.replace(/^\.\//, ''))
   }
 }

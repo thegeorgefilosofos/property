@@ -13,7 +13,7 @@
 import { brandMarkHtml } from '@/components/BrandMark';
 import { useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
+import { T, TT, Btn, Badge, Modal, ABSENT } from '@/components/Theme';
 import { escHtml as esc } from '@/lib/reportBranding';
 import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 
@@ -39,7 +39,7 @@ function wrapEmailHtml(bodyText: string): string {
       ${brandMarkHtml(34)}
       <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">Property OS</span>
     </div>
-    <div style="background:${PAPER};border:1px solid ${RULE};border-radius:14px;padding:26px 24px;">${paras || '<p style="margin:0;color:${INK_FAINT};">—</p>'}</div>
+    <div style="background:${PAPER};border:1px solid ${RULE};border-radius:14px;padding:26px 24px;">${paras || `<p style="margin:0;color:${INK_FAINT};">${ABSENT}</p>`}</div>
     <p style="text-align:center;font-size:11px;color:${INK_FAINT};margin:18px 0 4px;line-height:1.6;">Στάλθηκε μέσω Property OS</p>
   </div></body></html>`;
 }

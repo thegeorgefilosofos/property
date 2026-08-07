@@ -679,14 +679,14 @@ function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | 
         ? `<div style="margin-top:3px">${(item._tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border:1px solid ${RULE};border-radius:3px;font-size:9px;color:${INK_MUTED};margin-right:3px">${rEsc(t)}</span>`).join('')}</div>` : ''
       return `<tr>
         <td>
-          <div style="font-size:12px;${isDone ? 'text-decoration:line-through;color:${INK_FAINT}' : 'color:${INK}'}">${rEsc(item.description)}</div>
+          <div style="font-size:12px;${isDone ? `text-decoration:line-through;color:${INK_FAINT}` : `color:${INK}`}">${rEsc(item.description)}</div>
           ${contact}${tags}
         </td>
         <td>${rEsc(pri.label)}</td>
         <td>${rEsc(sm.label)}</td>
-        <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : '—'}${od ? '<div style="font-size:9px;color:${INK_FAINT}">Εκπρόθεσμο</div>' : ''}</td>
-        <td class="n">${item.estimated_cost > 0 ? rEsc(rEur(item.estimated_cost)) : '—'}</td>
-        <td class="n">${item.actual_cost > 0 ? rEsc(rEur(item.actual_cost)) : '—'}${item._receipt ? `<div style="font-size:9px;color:${INK_FAINT}">${rEsc(item._receipt.name)}</div>` : ''}</td>
+        <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : rEsc(ABSENT_DATE)}${od ? `<div style="font-size:9px;color:${INK_FAINT}">Εκπρόθεσμο</div>` : ''}</td>
+        <td class="n">${rEsc(rEur(item.estimated_cost))}</td>
+        <td class="n">${rEsc(rEur(item.actual_cost))}${item._receipt ? `<div style="font-size:9px;color:${INK_FAINT}">${rEsc(item._receipt.name)}</div>` : ''}</td>
       </tr>`
     }).join('')
     return reportSection(cat.label)
@@ -754,7 +754,7 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 
   const checkRow = (label: string, done = false) =>
     `<div class="check-row">
-      <div class="cb ${done ? 'cb-done' : ''}">${done ? '<svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}</div>
+      <div class="cb ${done ? 'cb-done' : ''}">${done ? `<svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}</div>
       <div class="check-label">${esc(label)}</div>
     </div>`
 
@@ -768,7 +768,7 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 
   const taskRows = relevant.map(item => `
     <div class="task-row ${item.status === 'done' ? 'done' : ''}">
-      <div class="task-cb ${item.status === 'done' ? 'task-cb-done' : ''}">${item.status === 'done' ? '<svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}</div>
+      <div class="task-cb ${item.status === 'done' ? 'task-cb-done' : ''}">${item.status === 'done' ? `<svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round"/></svg>` : ''}</div>
       <div class="task-label">${esc(item.description)}</div>
       ${item.assigned_contact_name ? `<div class="task-contact">${esc(item.assigned_contact_name)}</div>` : ''}
     </div>`).join('')

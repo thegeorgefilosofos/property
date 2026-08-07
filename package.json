@@ -29,7 +29,10 @@
     "dashes": "node scripts/guard-dashes.mjs",
     "empty-states": "node scripts/guard-empty-states.mjs",
     "native-fields": "node scripts/guard-native-fields.mjs",
-    "dead-exports": "node scripts/guard-dead-exports.mjs"
+    "dead-exports": "node scripts/guard-dead-exports.mjs",
+    "dead-interpolation": "node scripts/guard-dead-interpolation.mjs",
+    "test-tail": "node scripts/guard-test-tail.mjs",
+    "ci-coverage": "node scripts/guard-ci-coverage.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

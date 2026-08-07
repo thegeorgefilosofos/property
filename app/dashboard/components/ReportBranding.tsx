@@ -138,16 +138,16 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
 
       <Card>
         <SecHdr label="Προεπισκόπηση κεφαλίδας" />
-        <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', background: '${PAPER}' }}>
+        <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', background: PAPER }}>
           <div style={{ height: 4, background: sanitizeAccent(accent) }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: `2px solid ${sanitizeAccent(accent)}` }}>
             {logoUrl
               ? <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 34, width: 'auto', maxWidth: 150, objectFit: 'contain' }} />
-              : <div style={{ width: 34, height: 34, borderRadius: 8, background: sanitizeAccent(accent), color: '${PAPER}', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
+              : <div style={{ width: 34, height: 34, borderRadius: 8, background: sanitizeAccent(accent), color: PAPER, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '${INK}', fontFamily: T.font.sans }}>{previewName}</div>
-              <div style={{ fontSize: 11, color: '${INK_MUTED}', fontFamily: T.font.sans }}>Αναφορά Ακινήτου</div>
-              {contact && <div style={{ fontSize: 10, color: '${INK_MUTED}', fontFamily: T.font.sans, marginTop: 2 }}>{contact}</div>}
+              <div style={{ fontSize: 16, fontWeight: 700, color: INK, fontFamily: T.font.sans }}>{previewName}</div>
+              <div style={{ fontSize: 11, color: INK_MUTED, fontFamily: T.font.sans }}>Αναφορά Ακινήτου</div>
+              {contact && <div style={{ fontSize: 10, color: INK_MUTED, fontFamily: T.font.sans, marginTop: 2 }}>{contact}</div>}
             </div>
           </div>
         </div>
