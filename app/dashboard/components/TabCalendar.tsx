@@ -2,6 +2,7 @@
 import { BRAND_MARK_BG, BRAND_MARK_INK } from '@/components/BrandMark';
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
+import { isoDate } from '@/lib/core/time'
 import { createClient } from '@/lib/supabase/client'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
@@ -710,7 +711,8 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
         // 751,43 € αποθηκευόταν ως 751 και το ημερολόγιο διαφωνούσε με την
         // τράπεζα κατά 43 λεπτά τον μήνα, δηλαδή πάνω από πέντε ευρώ τον χρόνο.
         const monthlyExact=Math.round(monthly*100)/100
-        for(let i=0;i<cnt2;i++){ const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate()); rows.push({property_id:propertyId,user_id:userId,title:loanEventTitle(bank),category:'financial',event_date:ev.toISOString().split('T')[0],amount:monthlyExact,priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:`${fe(monthlyExact)} ανά μήνα`,source:src}) }
+        // Τοπικά μεσάνυχτα σε UTC = χθες: οι δόσεις έμπαιναν μία μέρα νωρίτερα.
+        for(let i=0;i<cnt2;i++){ const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate()); rows.push({property_id:propertyId,user_id:userId,title:loanEventTitle(bank),category:'financial',event_date:isoDate(ev),amount:monthlyExact,priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:`${fe(monthlyExact)} ανά μήνα`,source:src}) }
         await must(supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src))
         for(let i=0;i<rows.length;i+=20)await must(supabase.from('calendar_events').insert(rows.slice(i,i+20)))
         n+=rows.length

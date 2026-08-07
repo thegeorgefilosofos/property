@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
+import { isoDate } from '@/lib/core/time';
 import { saved } from '@/components/dbWrite';
 import { must } from '@/lib/supabase/must';
 import { defaultBookkeeping, type LegalForm, type BookKeeping } from '@/lib/accounting/dossier';
@@ -110,7 +111,9 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
       const clientId = cl?.id as string | undefined;
 
       if (clientId) {
-        const iso = (dt: Date) => dt.toISOString().slice(0, 10);
+        // Τοπική ημερομηνία, όχι UTC: το δείγμα διαμονών έμπαινε μία μέρα πίσω
+        // για δύο ως τρεις ώρες κάθε νύχτα.
+        const iso = (dt: Date) => isoDate(dt);
         const mk = (offsetDays: number, nights: number, rate: number, channel: string) => {
           const ci = new Date(); ci.setDate(ci.getDate() + offsetDays);
           const co = new Date(ci); co.setDate(co.getDate() + nights);

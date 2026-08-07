@@ -18,7 +18,7 @@ import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, o
 import { escHtml as esc } from '@/lib/reportBranding';
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
-import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
+import { athensToday, isoDate, daysUntil as athensDaysUntil } from '@/lib/core/time';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -603,7 +603,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
 }
 function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: { contact: Contact; propertyId: string; userId: string; onClose: () => void; onSaved: (date: string) => void }) {
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
-  const [title, setTitle] = useState('Ραντεβού με ' + contact.full_name); const [date, setDate] = useState(tomorrow.toISOString().split('T')[0]); const [saving, setSaving] = useState(false)
+  const [title, setTitle] = useState('Ραντεβού με ' + contact.full_name); const [date, setDate] = useState(isoDate(tomorrow)); const [saving, setSaving] = useState(false)
   const save = async () => {
     if (!title || !date) return
     setSaving(true)
@@ -1473,7 +1473,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     const src = `contact:${c.id}:reminder`
     await saved('Η παλιά υπενθύμιση δεν καθαρίστηκε', supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', src))
     const remind = new Date(date + 'T00:00:00'); remind.setDate(remind.getDate() - 1)
-    await saved('Η υπενθύμιση ραντεβού δεν δημιουργήθηκε', supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: `Υπενθύμιση ραντεβού: ${c.full_name}`, category: 'reminder', event_date: remind.toISOString().split('T')[0], priority: 'medium', status: 'pending', recurring: false, source: src }))
+    await saved('Η υπενθύμιση ραντεβού δεν δημιουργήθηκε', supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: `Υπενθύμιση ραντεβού: ${c.full_name}`, category: 'reminder', event_date: isoDate(remind), priority: 'medium', status: 'pending', recurring: false, source: src }))
     fetchContacts()
   }
 

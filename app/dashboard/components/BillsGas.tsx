@@ -273,10 +273,12 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     if (!propertyId || !s.gasContractStart || !s.gasContractMonths || calendarSynced) return;
     const months = parseInt(s.gasContractMonths) || 0;
     if (months <= 0) return;
-    const start = new Date(s.gasContractStart);
-    const expiry = new Date(start);
-    expiry.setMonth(expiry.getMonth() + months);
-    const expiryStr = expiry.toISOString().split('T')[0];
+    // Ίδιο σφάλμα θερινής ώρας: η λήξη του συμβολαίου αερίου έπεφτε μία μέρα
+    // νωρίτερα όταν το διάστημα περνούσε από χειμερινή σε θερινή ώρα.
+    const expiry = new Date(`${s.gasContractStart}T00:00:00Z`);
+    if (Number.isNaN(expiry.getTime())) return;
+    expiry.setUTCMonth(expiry.getUTCMonth() + months);
+    const expiryStr = expiry.toISOString().slice(0, 10);
 
     (async () => {
       const { data: existing } = await supabase

@@ -234,7 +234,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const now = new Date();
     const year = now.getFullYear();
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const todayStr = now.toISOString().split('T')[0];
+    // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
+    // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
+    const todayStr = athensToday(now);
     const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
       supabase.from('expenses').select('id,bill_id,amount,category,date,description,paid,expense_group,is_recurring,store_vendor,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),

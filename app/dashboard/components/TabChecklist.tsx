@@ -345,12 +345,17 @@ function PriorityCue({ priority }: { priority: string }) {
     </span>
   )
 }
+// Ίδιο σφάλμα θερινής ώρας με τη λήξη μίσθωσης: τα `setMonth`/`setFullYear`
+// είναι ΤΟΠΙΚΑ πάνω σε ημερομηνία που γεννήθηκε σε UTC. Μια μηνιαία εργασία με
+// προθεσμία 20 Μαρτίου έπαιρνε επόμενη προθεσμία 19 Απριλίου, και κάθε επόμενη
+// έχανε άλλη μία μέρα — η απόκλιση συσσωρευόταν χρόνο με τον χρόνο.
 function nextDueDate(due: string, recurring: Recurring): string {
-  const d = new Date(due)
-  if (recurring === 'monthly') d.setMonth(d.getMonth() + 1)
-  else if (recurring === 'quarterly') d.setMonth(d.getMonth() + 3)
-  else if (recurring === 'yearly') d.setFullYear(d.getFullYear() + 1)
-  return d.toISOString().split('T')[0]
+  const d = new Date(`${due}T00:00:00Z`)
+  if (Number.isNaN(d.getTime())) return due
+  if (recurring === 'monthly') d.setUTCMonth(d.getUTCMonth() + 1)
+  else if (recurring === 'quarterly') d.setUTCMonth(d.getUTCMonth() + 3)
+  else if (recurring === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + 1)
+  return d.toISOString().slice(0, 10)
 }
 // ── Η σημείωση ως φάκελος ──────────────────────────────────────────────────
 // Η στήλη `note` κρατά JSON (__cv:2) με τη σημείωση, τις υπο-εργασίες, τα σχόλια

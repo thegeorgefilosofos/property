@@ -134,12 +134,20 @@ export const leaseSt = (d: number | null) => {
   if (d <= 90) return { label:`${d} ημ.`, color:'var(--accent)',   bg:'var(--accent-dim)'   };
   return                { label:'Ενεργό',  color:'var(--positive)', bg:'var(--positive-dim)' };
 };
+// Η ΛΗΞΗ ΤΗΣ ΜΙΣΘΩΣΗΣ ΕΧΑΝΕ ΜΙΑ ΜΕΡΑ ΣΤΗ ΘΕΡΙΝΗ ΩΡΑ.
+// Το `new Date('2026-02-15')` είναι μεσάνυχτα UTC, αλλά τα `setMonth`/`setDate`
+// δουλεύουν σε ΤΟΠΙΚΗ ώρα. Όταν το διάστημα περνά από χειμερινή σε θερινή, η
+// τοπική ώρα κερδίζει μία ώρα και το αποτέλεσμα πέφτει στις 23:00 της
+// προηγούμενης ημέρας σε UTC: μίσθωση 15 Φεβρουαρίου + 6 μήνες έληγε 14
+// Αυγούστου αντί για 15. Σε σύμβαση με νομικές συνέπειες, μία μέρα μετράει.
+// Όλα σε UTC, από την αρχή ως το τέλος.
 export const calcEnd = (start: string, type: LeaseType, days: number): string => {
   if (!start) return '';
-  const d = new Date(start);
-  if (type === 'custom') { d.setDate(d.getDate() + days); }
-  else { d.setMonth(d.getMonth() + (LEASE_MONTHS[type] || 1)); }
-  return d.toISOString().split('T')[0];
+  const d = new Date(`${start}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return '';
+  if (type === 'custom') { d.setUTCDate(d.getUTCDate() + days); }
+  else { d.setUTCMonth(d.getUTCMonth() + (LEASE_MONTHS[type] || 1)); }
+  return d.toISOString().slice(0, 10);
 };
 
 // ─── Shared styles ────────────────────────────────────────────────────────────

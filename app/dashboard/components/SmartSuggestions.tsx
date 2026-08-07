@@ -19,6 +19,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
+import { isoDate } from '@/lib/core/time';
 import { T, TT, fe, EmptyState } from '@/components/Theme';
 import { saved } from '@/components/dbWrite';
 import { ASSISTANT_INITIAL, suggestionsTitle, suggestionsSub } from '@/lib/assistant/identity';
@@ -128,7 +129,11 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   async function addSuggestion(s: Suggestion, idx: number) {
     setAddingId(idx);
     const today = new Date();
-    const eventDate = new Date(today.getFullYear(), today.getMonth() + 1, 1).toISOString().split('T')[0];
+    // ΠΑΝΤΑ ΜΙΑ ΜΕΡΑ ΠΙΣΩ. Το `new Date(έτος, μήνας, 1)` φτιάχνει ΤΟΠΙΚΑ
+    // μεσάνυχτα· το `toISOString()` γυρίζει UTC, που στην Ελλάδα είναι η
+    // προηγούμενη μέρα. Δηλαδή η «1η του επόμενου μήνα» γινόταν η ΤΕΛΕΥΤΑΙΑ
+    // του τρέχοντος, και η πρόταση έμπαινε στο ημερολόγιο σε λάθος μήνα.
+    const eventDate = isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 1));
     const ok = await saved('Η πρόταση δεν μπήκε στο ημερολόγιο', supabase.from('calendar_events').insert({
       property_id: propertyId, user_id: userId,
       title: s.title, category: s.category,

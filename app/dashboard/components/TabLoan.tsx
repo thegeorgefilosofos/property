@@ -32,7 +32,7 @@ import EsisScanPanel from './EsisScanPanel'
 import BankRatesAdmin from './BankRatesAdmin'
 import { InfoDot } from './UIComponents'
 import { KPI, LensBar, labelStyle } from './LoanShared'
-import { athensToday } from '@/lib/core/time';
+import { athensToday, isoDate } from '@/lib/core/time';
 
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
@@ -357,8 +357,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     // Οι σημειώσεις κρατούν ποιο δάνειο και τι ποσό, για συμψηφισμό/αναγνώριση.
     const note=`Δόση ${fmtEur(monthly)} τον μήνα${loanAmount?` · Δάνειο ${fmtEur(loanAmount)}`:''}${bankName?` · ${bankName}`:''}`
     for(let i=0;i<n;i++){
+      // Ίδιο σφάλμα με τις προτάσεις: τοπικά μεσάνυχτα σε UTC = χθες. Οι δόσεις
+      // έμπαιναν στο ημερολόγιο μία μέρα ΝΩΡΙΤΕΡΑ από την πραγματική τους.
       const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate())
-      events.push({property_id:propertyId,user_id:userId,title,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:note,source:src})
+      events.push({property_id:propertyId,user_id:userId,title,category:'financial',event_date:isoDate(ev),amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:note,source:src})
     }
     if(!await saved('Οι παλιές δόσεις δεν καθαρίστηκαν',supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src))) return
     // Οι δόσεις γράφονται σε παρτίδες. Αν σπάσει μία, οι υπόλοιπες δεν έχουν
