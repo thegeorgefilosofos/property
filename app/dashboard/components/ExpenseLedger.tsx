@@ -326,7 +326,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           φωτογραφία, αρχείο ή πληκτρολόγιο — αντί να διαλέγεις από τη γραμμή
           εργαλείων πριν καν ξέρεις τι θέλεις. */}
       <div style={{ display: 'flex', gap: T.sp.sm, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.lg }}>
-        <Btn variant="primary" onClick={() => setAdding(v => !v)}>{adding ? 'Άκυρο' : '+  Νέα δαπάνη'}</Btn>
+        <Btn variant="primary" onClick={() => setAdding(v => !v)}>{adding ? 'Ακύρωση' : '+  Νέα δαπάνη'}</Btn>
         <div style={{ flex: 1 }} />
         {/* Ίδιο ύψος και ίδιο σχήμα με τα κουμπιά δίπλα του. Πριν ήταν ψηλότερο
             και πιο στρογγυλό, και η σειρά έμοιαζε στοιχισμένη κατά λάθος. */}

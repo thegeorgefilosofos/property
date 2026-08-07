@@ -131,7 +131,12 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
         // Το σφάλμα μιας συνάρτησης Supabase κουβαλά το σώμα της απάντησης στο
         // `context`. Δεν είναι στον δημόσιο τύπο, γι' αυτό δηλώνεται εδώ ρητά.
         try { const d = await (error as { context?: { json?: () => Promise<{ detail?: string; error?: string }> } }).context?.json?.(); detail = d?.detail || d?.error || ''; } catch { /* ignore */ }
-        throw new Error(detail || 'Η αποστολή απέτυχε. Έλεγξε ότι έχει γίνει deploy η function send-client-email και ότι υπάρχει το RESEND_API_KEY.');
+        // ΟΧΙ ΟΝΟΜΑΤΑ FUNCTIONS ΚΑΙ ΜΕΤΑΒΛΗΤΩΝ ΠΕΡΙΒΑΛΛΟΝΤΟΣ ΣΤΗΝ ΟΘΟΝΗ.
+        // Το παλιό μήνυμα ζητούσε από τον ιδιοκτήτη ακινήτου να ελέγξει αν
+        // «έχει γίνει deploy η function send-client-email» και αν «υπάρχει το
+        // RESEND_API_KEY» — δύο πράγματα που ούτε μπορεί ούτε πρέπει να δει.
+        // Και ονομάτιζε δημόσια ένα μυστικό της υποδομής.
+        throw new Error(detail || 'Η αποστολή δεν έγινε. Δοκίμασε ξανά σε λίγο, και αν επιμείνει γράψε μας.');
       }
       const campaignId = data?.campaignId as string | undefined;
       setSummary({ sent: Number(data?.sent) || 0, failed: Number(data?.failed) || 0 });
@@ -293,7 +298,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
             <>
               <span style={{ ...TT.bodySm }}>{selCount} παραλήπτ{selCount === 1 ? 'ης' : 'ες'} · reply-to το email σου</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
+                <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
                 <Btn variant="primary" onClick={send} disabled={sending || !subject.trim() || selCount === 0}>{sending ? 'Αποστολή…' : `Αποστολή${selCount ? ` (${selCount})` : ''}`}</Btn>
               </div>
             </>

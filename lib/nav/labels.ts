@@ -32,7 +32,7 @@ export const NAV_LABELS: Record<string, string> = {
   loan:       'Δάνειο',
   tenant:     'Ενοικιαστής',
   pricing:    'Βραχυχρόνια',
-  clients:    'Πελάτης',
+  clients:    'Επισκέπτες',
   inventory:  'Έπιπλα και εξοπλισμός',
   documents:  'Αρχείο',
   contacts:   'Επαφές',

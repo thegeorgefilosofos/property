@@ -4,7 +4,16 @@ import { T } from '@/components/tokens';
 
 // Κοινό «κέλυφος» για νομικές σελίδες (Πολιτική Απορρήτου, Όροι), theme-aware.
 // Κάθε ενότητα: παράγραφοι (p), προαιρετική λίστα (list) και προαιρετική σημείωση (note).
-export interface LegalSection { h: string; p?: string[]; list?: string[]; note?: string }
+export interface LegalSection {
+  h: string; p?: string[]; list?: string[]; note?: string;
+  /**
+   * Σταθερό αναγνωριστικό για σύνδεσμο απ' έξω. Χωρίς αυτό, το άγκιστρο είναι
+   * η ΘΕΣΗ της ενότητας («#s5»): αρκεί να προστεθεί μία παράγραφος παραπάνω
+   * και κάθε παλιός σύνδεσμος δείχνει σε λάθος κείμενο, χωρίς 404 που να το
+   * προδώσει. Όποια ενότητα τη δείχνει κουμπί μέσα στην εφαρμογή, παίρνει `id`.
+   */
+  id?: string;
+}
 
 export function LegalShell({ title, updated, intro, sections, disclaimer }: {
   title: string; updated: string; intro: string; sections: LegalSection[]; disclaimer?: string;
@@ -31,14 +40,14 @@ export function LegalShell({ title, updated, intro, sections, disclaimer }: {
           <ol style={{ margin: 0, paddingLeft: 18, columns: 2, columnGap: 28 }}>
             {sections.map((s, i) => (
               <li key={i} style={{ fontSize: 13, lineHeight: 1.9, breakInside: 'avoid' }}>
-                <a href={`#s${i + 1}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{s.h}</a>
+                <a href={`#${s.id || `s${i + 1}`}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{s.h}</a>
               </li>
             ))}
           </ol>
         </nav>
 
         {sections.map((s, i) => (
-          <section key={i} id={`s${i + 1}`} style={{ marginTop: 30, scrollMarginTop: 76 }}>
+          <section key={i} id={s.id || `s${i + 1}`} style={{ marginTop: 30, scrollMarginTop: 76 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', margin: '0 0 10px', color: 'var(--text-primary)' }}>{i + 1}. {s.h}</h2>
             {(s.p || []).map((para, j) => (
               <p key={j} style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 10px' }}>{para}</p>

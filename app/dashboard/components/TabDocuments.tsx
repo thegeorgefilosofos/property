@@ -21,6 +21,7 @@ import {
   PHOTO_CATEGORIES, MAX_SCAN_MB, type ScanError, type ReconcileQuestion,
 } from './scanDoc';
 import { isValidAfm } from '@/lib/billing/parse';
+import { navLabel } from '@/lib/nav/labels';
 import {
   applyFilters, facetOptions, toggleValue, clearAll, groupByMonth, sumValues,
   activeFacetCount, isSelectionEmpty, FACET_KEYS, FACET_LABEL,
@@ -144,7 +145,10 @@ interface Item {
   sourceLabel: string;
   afm: string | null;
 }
-const ORIGIN_LABEL: Record<Source, string | null> = { document: null, expense: 'Έξοδα', bill: 'Λογαριασμοί', inventory: 'Απογραφή' };
+// Τα ονόματα προέλευσης ΔΕΝ ξαναγράφονται εδώ: είναι τα ίδια ονόματα καρτελών
+// που βλέπει ο χρήστης στο μενού. Γραμμένα με το χέρι, έλεγαν «Έξοδα» ενώ το
+// μενού λέει «Δαπάνες», και «Απογραφή» ενώ το μενού λέει «Έπιπλα και εξοπλισμός».
+const ORIGIN_LABEL: Record<Source, string | null> = { document: null, expense: navLabel('finances'), bill: 'Λογαριασμοί', inventory: navLabel('inventory') };
 
 // Οι τέσσερις πηγές χτίζουν το κοινό σχήμα ΧΩΡΙΣ τα πεδία των όψεων· τα
 // συμπληρώνει το enrich παρακάτω, μία φορά για όλες.
@@ -887,7 +891,7 @@ export default function TabDocuments({
             <BulkBtn icon={<IconMoveFolder/>} label="Διόρθωση αναγνώρισης" onClick={() => selDocs.length && setFixItems(selDocs)} disabled={!selDocs.length}/>
             <BulkBtn icon={<IconTrash/>} label="Διαγραφή" onClick={bulkDelete} disabled={!selRaw.length} danger/>
           </div>
-          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: T.radius.btn, border: 'none', background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><IconX/>Άκυρο</button>
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: T.radius.btn, border: 'none', background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><IconX/>Ακύρωση</button>
         </div>
       )}
 
@@ -1285,7 +1289,7 @@ function ModalShell({ title, sub, children, onCancel, onConfirm, confirmLabel, c
         <SecHdr label={title} sub={sub}/>
         <div style={{ marginBottom: 18 }}>{children}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <Btn variant="ghost" onClick={onCancel}>Άκυρο</Btn>
+          <Btn variant="ghost" onClick={onCancel}>Ακύρωση</Btn>
           <Btn variant="primary" onClick={onConfirm} disabled={confirmDisabled}>{confirmLabel}</Btn>
         </div>
       </div>

@@ -50,7 +50,20 @@ import { upcomingHolidays, holidayName, isWeekend } from '@/lib/calendar/greekHo
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
-interface Props { propertyId: string; userId: string; propContext: PropContext; allProperties?: PropSummary[]; onNavigate: (tab: string) => void; onScan: () => void; }
+interface Props {
+  propertyId: string; userId: string; propContext: PropContext; allProperties?: PropSummary[];
+  onNavigate: (tab: string) => void; onScan: () => void;
+  /**
+   * Αν η καρτέλα είναι ΟΝΤΩΣ προσβάσιμη για αυτό το ακίνητο.
+   *
+   * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ: το `onNavigate` του γονέα αγνοεί σιωπηλά όσες
+   * καρτέλες κρύβει η ορατότητα. Το κουμπί «Πήγαινε: …» γκρίζαρε σαν να
+   * χρησιμοποιήθηκε — και η οθόνη έμενε ίδια. Ο χρήστης πατούσε ξανά, το κουμπί
+   * ήταν ήδη «χρησιμοποιημένο», και δεν είχε κανέναν τρόπο να καταλάβει γιατί.
+   * Τώρα η υπόσχεση δεν γράφεται καν όταν δεν μπορεί να τηρηθεί.
+   */
+  canNavigate?: (tab: string) => boolean;
+}
 type Action = AssistantAction;
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
 // Σύστημα αναγνώρισης αντικειμένου από φωτο (συσκευασία/ετικέτα/booklet/απόδειξη).
@@ -63,7 +76,7 @@ const IMG_ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης �
 {"name":"","brand":"","model":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό"}
 Το name περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Άφησε κενά όσα δεν διακρίνονται. Χωρίς κείμενο εκτός JSON.`
 // Ελαφρύ ευρετήριο πελατών, ώστε να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ.
-type ClientLite = { id: string; name: string; phone: string; afm: string; vip: boolean };
+type ClientLite = { id: string; name: string; phone: string; afm: string };
 // Ελαφρύ ευρετήριο επαφών (τεχνικοί/πάροχοι) για επικοινωνία (WhatsApp/Viber/email/κλήση).
 type ContactLite = { name: string; role: string; phone: string; email: string };
 
@@ -89,7 +102,7 @@ const reachLabel = (ch: 'whatsapp' | 'viber' | 'email' | 'call', name: string) =
 const CH_HUMAN: Record<'whatsapp' | 'viber' | 'email' | 'call', string> = { whatsapp: 'WhatsApp', viber: 'Viber', email: 'email', call: 'κλήση' };
 
 
-export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan }: Props) {
+export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan, canNavigate }: Props) {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
@@ -128,7 +141,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
-  const clientsRef = useRef<ClientLite[]>([]);   // ευρετήριο πελατών για εκτέλεση ενεργειών (VIP, check-in)
+  const clientsRef = useRef<ClientLite[]>([]);   // ευρετήριο πελατών για εκτέλεση ενεργειών (σύνδεσμος check-in)
   const contactsRef = useRef<ContactLite[]>([]); // ευρετήριο επαφών για επικοινωνία (WhatsApp/Viber/email/κλήση)
   // Ανοιχτά στοιχεία προς πληρωμή, για τη σήμανση «πληρωμένο» ([[paid:…]]).
   const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
@@ -251,7 +264,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId),
-      supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,vip,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
+      supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
       supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
       supabase.from('checklist_items').select('description,category,priority,due_date,status,estimated_cost,assigned_contact_name').eq('property_id', propertyId).eq('user_id', userId).neq('status', 'done').neq('status', 'skipped').order('due_date', { ascending: true, nullsFirst: false }).limit(60),
@@ -321,7 +334,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const propStays = stays.filter(s => s.property_id === propertyId);
     const propHostRevenue = propStays.reduce((sum, s) => sum + stayTotal(s), 0);
     const hostingLine = propStays.length
-      ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: Πελατολόγιο).`
+      ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: ${navLabel('clients')}).`
       : '';
 
     // ── Λογιστική εικόνα (ΙΔΙΑ μηχανή με την καρτέλα Λογιστική) ώστε Νόα να
@@ -484,7 +497,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
     const clientRoster = (clientRows || []) as ClientsRow[];
-    clientsRef.current = clientRoster.map(c => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || ''), vip: !!c.vip }));
+    clientsRef.current = clientRoster.map(c => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || '') }));
     if (clientRoster.length) {
       const staysByClient = new Map<string, ClientStaysRow[]>();
       stays.forEach(s => { const a = staysByClient.get(s.client_id) || []; a.push(s); staysByClient.set(s.client_id, a); });
@@ -515,7 +528,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         if (lastNote) bits.push(`σημείωση τελευταίας διαμονής: «${String(lastNote).slice(0, 160)}»`);
         return `• ${bits.filter(Boolean).join(' · ')}`;
       });
-      const extra = clientRoster.length > 50 ? `\n(και ${clientRoster.length - 50} ακόμη, δες την καρτέλα Πελατολόγιο)` : '';
+      const extra = clientRoster.length > 50 ? `\n(και ${clientRoster.length - 50} ακόμη, δες την καρτέλα ${navLabel('clients')})` : '';
       setClientsStr(`Σύνολο πελατών: ${clientRoster.length}\n${cLines.join('\n')}${extra}`);
     } else setClientsStr('');
 
@@ -542,7 +555,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'book') { bookAppointment(a.title, a.date, a.time); return; } // κρατά ανοιχτό το πάνελ για την επιβεβαίωση
     else if (a.type === 'client') { registerClient(a); return; }
     else if (a.type === 'expense') { registerExpense(a.description, a.amount, a.date); return; }
-    else if (a.type === 'vip') { toggleVip(a.who); return; }
     else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
     else if (a.type === 'contact') { registerContact(a.name, a.phone, a.role); return; }
     else if (a.type === 'reach') { reachContact(a); return; }
@@ -743,24 +755,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     }
   };
 
-  // Εναλλαγή VIP σε υπάρχοντα πελάτη.
-  const toggleVip = async (who: string) => {
-    const c = findClient(who);
-    if (!c) { setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα ξεκάθαρα ποιον πελάτη εννοείς με «${who}». Πες μου το ακριβές όνομα ή το τηλέφωνο, ή δες το πελατολόγιο.`, action: { type: 'go', tab: 'clients' } }]); return; }
-    const next = !c.vip;
-    try {
-      await must(supabase.from('clients').update({ vip: next }).eq('id', c.id).eq('user_id', userId));
-      c.vip = next; setClientsStr(''); loadContext();
-      setMsgs(m => [...m, { role: 'assistant', text: next ? `Έγινε. Σήμανα τον/την «${c.name}» ως VIP. Θα εμφανίζεται στο φίλτρο VIP του πελατολογίου.` : `Έγινε. Αφαίρεσα το VIP από τον/την «${c.name}».`, action: { type: 'go', tab: 'clients' } }]);
-    } catch {
-      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το αλλάξω τώρα. Δοκίμασε από το πελατολόγιο.', action: { type: 'go', tab: 'clients' } }]);
-    }
-  };
 
   // Δημιουργία/αντιγραφή συνδέσμου pre-check-in για πελάτη.
   const makeCheckinLink = async (who: string) => {
     const c = findClient(who);
-    if (!c) { setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα ξεκάθαρα τον πελάτη «${who}». Πες μου ακριβές όνομα ή τηλέφωνο, ή άνοιξε το πελατολόγιο.`, action: { type: 'go', tab: 'clients' } }]); return; }
+    if (!c) { setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα ξεκάθαρα τον πελάτη «${who}». Πες μου ακριβές όνομα ή τηλέφωνο, ή άνοιξε τους ${navLabel('clients')}.`, action: { type: 'go', tab: 'clients' } }]); return; }
     try {
       const data = await must(supabase.from('checkin_links').upsert({ user_id: userId, client_id: c.id, property_id: propertyId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle());
       if (data?.token) {
@@ -769,7 +768,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         setMsgs(m => [...m, { role: 'assistant', text: `Έτοιμο. Αντέγραψα τον σύνδεσμο check-in για τον/την «${c.name}». Στείλ' τον στον επισκέπτη σε WhatsApp ή Viber:\n${url}`, action: { type: 'go', tab: 'clients' } }]);
       } else throw new Error('no token');
     } catch {
-      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να φτιάξω τον σύνδεσμο τώρα. Δοκίμασε από την καρτέλα του πελάτη στο πελατολόγιο.', action: { type: 'go', tab: 'clients' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Δεν μπόρεσα να φτιάξω τον σύνδεσμο τώρα. Δοκίμασε από την καρτέλα του πελάτη στους ${navLabel('clients')}.`, action: { type: 'go', tab: 'clients' } }]);
     }
   };
 
@@ -797,9 +796,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         brand: a.brand || null, model: a.model || null, room: a.room || null,
         purchase_value: a.value || 0, condition: 'Καλή',
       }));
-      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα στην Απογραφή: «${a.name}»${a.value ? ` (αξία ${a.value}€)` : ''}. Θέλεις να ανοίξω την Απογραφή για να προσθέσεις φωτογραφία, εγγύηση ή άλλες λεπτομέρειες;`, action: { type: 'go', tab: 'inventory' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα στα «${navLabel('inventory')}»: «${a.name}»${a.value ? ` (αξία ${eur(a.value)})` : ''}. Θέλεις να ανοίξω την καρτέλα για να προσθέσεις φωτογραφία, εγγύηση ή άλλες λεπτομέρειες;`, action: { type: 'go', tab: 'inventory' } }]);
     } catch {
-      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταγράψω τώρα. Δοκίμασε από την καρτέλα Απογραφή.' }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Δεν μπόρεσα να το καταγράψω τώρα. Δοκίμασε από την καρτέλα «${navLabel('inventory')}».` }]);
     }
   };
 
@@ -859,9 +858,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       }));
       setClientsStr('');
       loadContext();
-      setMsgs(m => [...m, { role: 'assistant', text: `Τον καταχώρησα. Πρόσθεσα τον/την «${a.name}»${a.phone ? ` (${a.phone})` : ''} στο Πελατολόγιο ως ${CLIENT_TYPE_LABELS[ctype]}. Θέλεις να ανοίξω την καρτέλα για να συμπληρώσεις κι άλλα στοιχεία;`, action: { type: 'go', tab: 'clients' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Τον καταχώρησα. Πρόσθεσα τον/την «${a.name}»${a.phone ? ` (${a.phone})` : ''} στους ${navLabel('clients')} ως ${CLIENT_TYPE_LABELS[ctype]}. Θέλεις να ανοίξω την καρτέλα για να συμπληρώσεις κι άλλα στοιχεία;`, action: { type: 'go', tab: 'clients' } }]);
     } catch {
-      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω τον πελάτη τώρα. Δοκίμασε ξανά ή πρόσθεσέ τον από την καρτέλα Πελατολόγιο.' }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Δεν μπόρεσα να αποθηκεύσω τον πελάτη τώρα. Δοκίμασε ξανά ή πρόσθεσέ τον από την καρτέλα ${navLabel('clients')}.` }]);
     }
   };
 
@@ -1107,7 +1106,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const category = d.category && CATS.includes(d.category) ? d.category : undefined;
       const action = { type: 'inventory' as const, name, category, value: val > 0 ? val : undefined, brand: d.brand || undefined, model: d.model || undefined };
       const bits = [d.brand, d.model && `μοντ. ${d.model}`, val > 0 && `~${val}€`, category].filter(Boolean).join(' · ');
-      setMsgs(m => [...m, { role: 'assistant', text: `Διάβασα: ${name}${bits ? ` (${bits})` : ''}. Να το καταγράψω στην Απογραφή;`, action }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Διάβασα: ${name}${bits ? ` (${bits})` : ''}. Να το καταγράψω στα «${navLabel('inventory')}»;`, action }]);
     } catch { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να διαβάσω τη φωτογραφία τώρα. Δοκίμασε ξανά.' }]); }
     finally { setBusy(false); }
   };
@@ -1323,7 +1322,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, fontFamily: T.font.sans, fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-wrap',
                       background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)', color: m.role === 'user' ? 'var(--accent-text)' : 'var(--text-primary)',
                       border: 'none', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
-                    {m.action && (m.action.type === 'reach' ? (() => {
+                    {/* Καμία υπόσχεση που δεν μπορεί να τηρηθεί: αν η καρτέλα δεν
+                        είναι προσβάσιμη για αυτό το ακίνητο, το κουμπί «Πήγαινε»
+                        δεν γράφεται καθόλου — αντί να γκριζάρει χωρίς να πάει. */}
+                    {m.action && !(m.action.type === 'go' && canNavigate && !canNavigate(m.action.tab)) && (m.action.type === 'reach' ? (() => {
                       // Κουμπί/σύνδεσμος επικοινωνίας: ανοίγει το μέσο ΜΟΝΟ με το άγγιγμα
                       // του χρήστη (ποτέ αυτόματα). Για tel:/mailto: ρεαλιστικό <a>, για
                       // WhatsApp/Viber άνοιγμα σε νέα καρτέλα.
@@ -1344,7 +1346,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}`
                           : m.action.type === 'client' ? `Καταχώρησε: ${m.action.name}`
                           : m.action.type === 'expense' ? `Κατέγραψε δαπάνη: ${eur(m.action.amount)}`
-                          : m.action.type === 'vip' ? `Σήμανε VIP: ${m.action.who}`
                           : m.action.type === 'checkin' ? `Σύνδεσμος check-in: ${m.action.who}`
                           : m.action.type === 'contact' ? `Πρόσθεσε επαφή: ${m.action.name}`
                           : m.action.type === 'paid' ? `Σήμανση πληρωμένο: ${m.action.description}`
@@ -1394,7 +1395,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
               {/* Είσοδος */}
               <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--border-subtle)', alignItems: 'center' }}>
                 <input ref={imgRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) askImage(f); e.currentTarget.value = ''; }} />
-                <button onClick={() => { if (!busy) imgRef.current?.click(); }} disabled={busy} aria-label="Φωτογραφία απόδειξης, λογαριασμού ή αντικειμένου" title="Φωτογράφισε απόδειξη/λογαριασμό (→ προϋπολογισμός) ή αντικείμενο (→ Απογραφή)"
+                <button onClick={() => { if (!busy) imgRef.current?.click(); }} disabled={busy} aria-label="Φωτογραφία απόδειξης, λογαριασμού ή αντικειμένου" title={`Φωτογράφισε απόδειξη ή λογαριασμό (→ προϋπολογισμός), ή αντικείμενο (→ ${navLabel('inventory')})`}
                   style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3.2" /></svg>
                 </button>
@@ -1568,7 +1569,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-        <button onClick={onCancel} style={{ flex: '0 0 auto', height: T.h.lg, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Άκυρο</button>
+        <button onClick={onCancel} style={{ flex: '0 0 auto', height: T.h.lg, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Ακύρωση</button>
         <button onClick={() => onSave({ memory, compare, formal })} style={{ flex: 1, height: T.h.lg, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
       </div>
     </div>

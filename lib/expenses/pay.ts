@@ -25,6 +25,7 @@
 import { EXPENSE_MAP } from '../billing/parse';
 import { BY_SLUG, resolveCategory } from './taxonomy';
 import { groupForCategory } from './groups';
+import { athensToday } from '../core/time';
 
 /** Ό,τι χρειάζεται από τον λογαριασμό για να αποφασιστεί η πληρωμή. */
 export interface BillToPay {
@@ -125,7 +126,12 @@ export function planBillPayment(
       bill_id: bill.id,
       amount: Number(bill.amount) || 0,
       description: (bill.name || '').trim() || cat,
-      date: ctx.nowIso.slice(0, 10),
+      // ΗΜΕΡΟΛΟΓΙΑΚΗ ΗΜΕΡΑ ΑΘΗΝΑΣ, ΟΧΙ UTC.
+      // Το `ctx.nowIso.slice(0, 10)` έκοβε τη στιγμή σε UTC. Ο ιδιοκτήτης που
+      // πατούσε «Πληρώθηκε» στη 01:30 της 1ης Ιουλίου (θερινή ώρα, UTC+3)
+      // έγραφε δαπάνη με ημερομηνία 30/06 — δηλαδή σε ΑΛΛΟ φορολογικό μήνα, και
+      // στις 31 Δεκεμβρίου σε άλλο φορολογικό ΕΤΟΣ.
+      date: athensToday(new Date(ctx.nowIso)),
       category: cat,
       expense_group: group,
       paid: true,

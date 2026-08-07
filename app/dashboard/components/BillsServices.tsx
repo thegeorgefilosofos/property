@@ -9,12 +9,13 @@ import { useBillsSettings } from './BillsSettings';
 import { T, fe, fp, Spinner, EmptyState } from '@/components/Theme';
 import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
+import { navLabel } from '@/lib/nav/labels';
 
 
 // FIX: history input style with hover
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
   width: '100%',
-  background: isCurrent ? 'rgba(26,115,232,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
+  background: isCurrent ? 'var(--accent-soft)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge,
   padding: '6px 4px',
@@ -216,7 +217,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       </div>
       {link?.url && (
         <a href={link.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
+          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
           {link.text}
         </a>
       )}
@@ -261,7 +262,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
 
       {/* ── Cross-tab: Dimotika from Electricity tab ─────────────────────── */}
       {crossTabData.electricityDimotika && parseFloat(crossTabData.electricityDimotika) > 0 && (
-        <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
             <span style={{ fontWeight: 600, color: 'var(--accent)' }}>Δημοτικά τέλη {crossTabData.electricityDimotika}% </span>
            , από tab Ρεύμα · χρησιμοποιείται στον υπολογισμό λογαριασμού
@@ -301,7 +302,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, border: '1px solid var(--border-subtle)', textTransform: 'uppercase' as const }}>Εκτίμηση</span>
             {/* FIX: direct taxheaven ΕΝΦΙΑ link */}
             <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'rgba(26,115,232,0.06)', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.18)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'var(--accent-soft)', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)' }}>
               taxheaven ΕΝΦΙΑ →
             </a>
             <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
@@ -316,22 +317,22 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
         </div>
 
-        {/* Cross-tab Checklist badge */}
+        {/* Σήμα από τις Εκκρεμότητες — το όνομα έρχεται από τη μία πηγή, όχι από εδώ. */}
         {crossTabData.enfiaChecklist && (
-          <div style={{ background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '9px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
+          <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '9px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
             <span style={{ flex: 1, color: 'var(--text-secondary)' }}>
               {crossTabData.enfiaChecklist.status === 'done'
-                ? 'ΕΝΦΙΑ καταγεγραμμένο ως ολοκληρωμένο στο Checklist'
+                ? `ΕΝΦΙΑ καταγεγραμμένο ως ολοκληρωμένο στις «${navLabel('checklist')}»`
                 : crossTabData.enfiaChecklist.daysLeft !== null && crossTabData.enfiaChecklist.daysLeft <= 30
-                  ? `ΕΝΦΙΑ στο Checklist, σε ${crossTabData.enfiaChecklist.daysLeft} ημέρες`
-                  : 'ΕΝΦΙΑ εκκρεμεί στο Checklist'}
+                  ? `ΕΝΦΙΑ στις «${navLabel('checklist')}», σε ${crossTabData.enfiaChecklist.daysLeft} ημέρες`
+                  : `ΕΝΦΙΑ εκκρεμεί στις «${navLabel('checklist')}»`}
             </span>
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill }}>Checklist</span>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill }}>{navLabel('checklist')}</span>
           </div>
         )}
 
         {/* 2026 banner */}
-        <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.12)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}/>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
             <span style={{ fontWeight: 700, color: 'var(--accent)' }}>Νέο 2026: </span>
@@ -347,7 +348,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             const isNext = d === nextDeadline;
             const dLeft  = daysUntil(d.date) ?? 0;
             return (
-              <div key={i} style={{ background: isNext ? 'rgba(26,115,232,0.1)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
+              <div key={i} style={{ background: isNext ? 'var(--accent-soft)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
                 <div style={{ fontSize: 8, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>
                   {isPast ? 'ΠΛΗΡΩΜΕΝΗ' : isNext ? 'ΕΠΟΜΕΝΗ' : ''}
                 </div>
@@ -403,7 +404,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   const eligible = r.key === 'insurance' && (crossTabData.insuranceEq || crossTabData.insuranceFlood);
                   return (
                     <div key={r.key} onClick={() => toggleReduction(r.key)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', background: active ? 'rgba(26,115,232,0.07)' : eligible ? 'rgba(26,115,232,0.04)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'rgba(26,115,232,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', background: active ? 'var(--accent-soft)' : eligible ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
                       <div style={{ width: 16, height: 16, borderRadius: 6, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                       </div>
@@ -485,7 +486,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                       const isPast = new Date(d.date) < today;
                       const isNext = d === nextDeadline;
                       return (
-                        <div key={i} style={{ background: isNext ? 'rgba(26,115,232,0.1)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
+                        <div key={i} style={{ background: isNext ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
                           <div style={{ fontSize: 9, fontWeight: 600, fontFamily: T.font.sans, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'var(--text-tertiary)' }}>{d.label}{isPast ? ' ✓' : ''}</div>
                           <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment, 0)}</div>
                           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>{d.month}</div>
@@ -539,7 +540,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
           {/* Result: compact inline pill, same pattern as Providers + Electricity */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {dimotikaPct > 0 ? `${fp(dimotikaPct, 1)}` : fp(0)}
               </span>
@@ -567,7 +568,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <div style={{ fontSize: 7, color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end' }}>
                   {val > 0 ? Math.round(val) : ''}
                 </div>
-                <div style={{ width: '100%', height: `${Math.max(pct * 42, 2)}px`, background: isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'rgba(26,115,232,0.7)' : 'rgba(26,115,232,0.45)', borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
+                <div style={{ width: '100%', height: `${Math.max(pct * 42, 2)}px`, background: isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'color-mix(in srgb, var(--accent) 45%, transparent)', borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
               </div>
             );
           })}

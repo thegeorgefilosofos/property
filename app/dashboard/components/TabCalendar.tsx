@@ -843,7 +843,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   const amt=parseFloat(form.amount)
   const canSave=!!form.title.trim()&&!!form.event_date
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
+    <div style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="cal-modal-title" onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:24, width:'100%', maxWidth:480, maxHeight:'92vh', border:'1px solid var(--border-subtle)', boxShadow:'0 24px 70px rgba(0,0,0,0.45)', display:'flex', flexDirection:'column' }}>
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 22px 14px', borderBottom:'1px solid var(--border-subtle)', flexShrink:0 }}>
@@ -1116,7 +1116,7 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
   const opts:[('this'|'following'|'all'),string][]=[['this','Μόνο αυτό το γεγονός'],['following','Αυτό και τα επόμενα'],['all','Όλη τη σειρά']]
   useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose])
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:20 }} onClick={onClose}>
+    <div style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:20 }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:18, width:'100%', maxWidth:400, border:'1px solid var(--border-subtle)', boxShadow:'0 24px 64px rgba(0,0,0,0.4)', padding:'22px 24px' }}>
         <h3 style={{ fontFamily: T.font.sans, fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'0 0 4px' }}>{title}</h3>
         {hint&&<p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'0 0 16px', fontFamily: T.font.sans }}>{hint}</p>}
@@ -1127,7 +1127,7 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
               onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.background='var(--bg-surface)'}}>{label}</button>
           ))}
         </div>
-        <button onClick={onClose} style={{ marginTop:12, width:'100%', height:T.h.lg, borderRadius:12, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily: T.font.sans }}>Άκυρο</button>
+        <button onClick={onClose} style={{ marginTop:12, width:'100%', height:T.h.lg, borderRadius:12, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
       </div>
     </div>
   )

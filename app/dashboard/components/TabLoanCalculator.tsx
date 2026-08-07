@@ -594,7 +594,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [activePreset,setActivePreset]= useState<string|null>(null)
   // Ομοιόμορφοι αριθμοί: όλα λευκά, γαλάζιο μόνο όταν περνά ο κέρσορας/δάχτυλο.
   const [hoverKpi,  setHoverKpi]  = useState<number|null>(null)
-  const [hoverAct,  setHoverAct]  = useState<number|null>(null)
   const [hoverCap,  setHoverCap]  = useState<number|null>(null)
   const [hoverRow,  setHoverRow]  = useState<number|null>(null)
   const [hoverCost, setHoverCost] = useState<number|null>(null)

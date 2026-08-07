@@ -176,20 +176,18 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   ok('expense stripped anyway', !/\[\[/.test(parseAction('[[expense: Κάτι]]').clean));
 }
 
-// ── parseAction: [[vip: ...]] & [[checkin: ...]] ─────────────────────────────
-{
-  const r = parseAction('Έγινε. [[vip: Γιώργος Παπαδόπουλος]]');
-  ok('vip type', r.action?.type === 'vip');
-  ok('vip who', act(r.action, 'vip')?.who === 'Γιώργος Παπαδόπουλος');
-  ok('vip stripped', !/\[\[/.test(r.clean));
-}
+// ── parseAction: [[checkin: ...]] ───────────────────────────────────────────
+// Το [[vip: …]] ΔΕΝ ελέγχεται πια, επειδή δεν υπάρχει: το σήμα VIP δεν
+// εμφανιζόταν σε καμία οθόνη —η καρτέλα πελάτη το είχε αφαιρέσει επίτηδες—
+// οπότε η Νόα έγραφε ένα πεδίο που κανείς δεν διάβαζε, και υποσχόταν «φίλτρο
+// VIP» που είχε διαγραφεί. Η ενέργεια αφαιρέθηκε ολόκληρη αντί να διορθωθεί
+// το κείμενο: μια λειτουργία που δεν φαίνεται πουθενά δεν είναι λειτουργία.
 {
   const r = parseAction('[[checkin: 6941234567]]');
   ok('checkin type', r.action?.type === 'checkin');
   ok('checkin who', act(r.action, 'checkin')?.who === '6941234567');
 }
 {
-  ok('vip empty → no action', parseAction('[[vip: ]]').action?.type !== 'vip');
   ok('checkin empty → no action', parseAction('[[checkin:]]').action?.type !== 'checkin');
 }
 {

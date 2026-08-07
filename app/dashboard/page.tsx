@@ -936,7 +936,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
         if (hostStays.length > 0) extra.push({
           label:`Έσοδα φιλοξενίας ${year}`, value:fmtEur(Math.round(hostingYTD)),
           sub: [hostingNights>0?`${hostingNights} διανυκτερεύσεις`:null, nextArrival?`επόμενη άφιξη ${fd(nextArrival)}`:null].filter(Boolean).join(' · ') || undefined,
-          title:'Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα «Επισκέπτες».' });
+          title:`Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα «${navLabel('clients')}».` });
         // ΟΙ «ΕΚΚΡΕΜΕΙΣ ΔΑΠΑΝΕΣ» ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Είναι ακριβώς το «Χρωστάω» του
         // Ταμείου, στην κορυφή της ίδιας οθόνης — το ίδιο ποσό δύο φορές, με
         // διαφορετικό όνομα και σε απόσταση ενός scroll.
@@ -1903,7 +1903,7 @@ export default function Dashboard() {
                   <AmaStrip userId={user.id} propertyId={selected.id}/>
                   {isTabAllowed(ent,'clients')
                     ? <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
-                    : <FeatureLock title="Πελατολόγιο και υποψήφιοι (CRM)" benefit="Οργάνωσε πελάτες, ιστορικό διαμονών και υποψήφιους σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />}
+                    : <FeatureLock title={`${navLabel('clients')} και υποψήφιοι`} benefit="Οργάνωσε επισκέπτες, ιστορικό διαμονών και υποψήφιους σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />}
                   {/* Η δυναμική τιμή ανά νύχτα αφορά ΜΟΝΟ βραχυχρόνια — δηλαδή
                       ακριβώς τους επισκέπτες αυτής της καρτέλας. Ως χωριστή
                       καρτέλα ήταν ένας προορισμός που κανείς δεν σκεφτόταν να
@@ -1982,8 +1982,13 @@ export default function Dashboard() {
         </nav>
       )}
 
-      {/* Ήπια μηνιαία παρότρυνση για feedback (πρώτες μέρες του μήνα) */}
-      {user&&<MonthlyFeedbackNudge/>}
+      {/* Ήπια μηνιαία παρότρυνση για feedback (πρώτες μέρες του μήνα).
+          ΓΙΑΤΙ ΖΗΤΑΕΙ ΚΑΙ `selected`: το κουμπί «Πες τη γνώμη σου» στέλνει το
+          συμβάν `pos:open-feedback`, και το ακούει ΜΟΝΟ ο βοηθός — ο οποίος
+          αποδίδεται μόνο όταν υπάρχει επιλεγμένο ακίνητο. Χωρίς ακίνητο, ο
+          χρήστης έβλεπε παρότρυνση, πατούσε το κύριο κουμπί της, και δεν
+          συνέβαινε απολύτως τίποτα. */}
+      {user&&selected&&<MonthlyFeedbackNudge/>}
 
       {/* Βοηθός ακινήτου, ορατός σε ΚΑΘΕ καρτέλα, πλωτό κουμπί κάτω δεξιά */}
       {selected&&user&&(
@@ -2008,6 +2013,7 @@ export default function Dashboard() {
           // ακινήτου στην «Τιμολόγηση», δηλαδή σε οθόνη που η ίδια η εφαρμογή
           // έχει κρίνει ότι δεν τον αφορά.
           onNavigate={(tab)=>{ if (navVisible(tab)) setNav(tab); }}
+          canNavigate={navVisible}
           onScan={()=>setQuickAddOpen(true)}
         />
       )}

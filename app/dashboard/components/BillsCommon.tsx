@@ -59,7 +59,7 @@ const COMMON_CATEGORIES: { key: string; label: string; payer: 'tenant' | 'owner'
 
 const histInputStyle = (isCurrent: boolean, isHovered: boolean): React.CSSProperties => ({
   width: '100%',
-  background: isCurrent ? 'rgba(26,115,232,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
+  background: isCurrent ? 'var(--accent-soft)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge,
   padding: '6px 4px',
@@ -219,7 +219,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <style>{`
         .mgmt-card { transition: all 0.15s; }
         .mgmt-card:hover { border-color: var(--border-default) !important; background: var(--bg-surface) !important; }
-        .mgmt-card.active:hover { border-color: var(--accent) !important; background: rgba(26,115,232,0.1) !important; }
+        .mgmt-card.active:hover { border-color: var(--accent) !important; background: var(--accent-soft) !important; }
         .hist-bar { transition: opacity 0.15s; }
         .hist-bar:hover { opacity: 0.85; }
       `}</style>
@@ -342,7 +342,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 onMouseEnter={() => setHoveredCard(opt.key)}
                 onMouseLeave={() => setHoveredCard(null)}
                 style={{
-                  background: isCur ? 'rgba(26,115,232,0.07)' : isHov ? 'var(--bg-surface)' : 'var(--bg-elevated)',
+                  background: isCur ? 'var(--accent-soft)' : isHov ? 'var(--bg-surface)' : 'var(--bg-elevated)',
                   border: `1px solid ${isCur ? 'var(--accent)' : isHov ? 'var(--border-default)' : 'var(--border-subtle)'}`,
                   borderRadius: T.radius.inner, padding: '12px 14px',
                   cursor: 'pointer', position: 'relative',
@@ -463,7 +463,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(e.amount))}</span>
               {!e.transferredToExpenses && (
                 <button onClick={() => transferToExpenses(i)} disabled={transferring === i}
-                  style={{ fontSize: 10, color: 'var(--accent)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  style={{ fontSize: 10, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
                   {transferring === i ? 'Μεταφορά…' : 'Μεταφορά στις Δαπάνες →'}
                 </button>
               )}
@@ -498,7 +498,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {/* Bar chart, with hover highlight */}
         <div style={{ position: 'relative', display: 'flex', gap: 4, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed rgba(26,115,232,0.4)', pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed color-mix(in srgb, var(--accent) 40%, transparent)', pointerEvents: 'none' }}>
               <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 8, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>
                 μέσος όρος {monthlyAvg.toFixed(0)}
               </span>
@@ -510,7 +510,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             const isCur  = i === currentMonth;
             const isHov  = hoveredMonth === i;
             const isHigh = monthlyAvg > 0 && val > monthlyAvg * 1.2;
-            const barBg  = isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'rgba(26,115,232,0.7)' : 'rgba(26,115,232,0.45)';
+            const barBg  = isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'color-mix(in srgb, var(--accent) 45%, transparent)';
             return (
               <div key={i}
                 className="hist-bar"

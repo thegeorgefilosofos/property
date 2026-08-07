@@ -264,7 +264,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
+            <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
             <Btn variant="primary" onClick={generate} disabled={busy || !sig || num(currentRent) <= 0}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο PDF'}</Btn>
           </div>
         )}

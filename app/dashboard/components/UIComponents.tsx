@@ -753,8 +753,14 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
           boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         }}/>
       </button>
+      {/* ΤΟ ΑΝΟΙΧΤΟ ΔΕΝ ΕΙΝΑΙ ΠΡΑΣΙΝΟ. Το ίδιο το primitive έβαφε το «Ναι» με το
+          σημασιολογικό πράσινο — μέσα στο κοινό component, δηλαδή σε κάθε
+          διακόπτη της εφαρμογής. Το «εισπράττεται μέσω τραπέζης» δεν είναι
+          επιτυχία και το «όχι, μετρητά» δεν είναι αποτυχία· είναι δύο νόμιμες
+          επιλογές. Η κατάσταση φαίνεται ήδη από τη ΘΕΣΗ του δείκτη· η ένταση
+          του κειμένου αρκεί για να ξεχωρίσει το ενεργό. */}
       {(label || labelOff) && (
-        <span style={{ fontFamily: T.font.sans, fontSize: 14, color: on ? 'var(--positive)' : 'var(--text-secondary)', letterSpacing: '0.25px', transition: 'color 0.15s' }}>
+        <span style={{ fontFamily: T.font.sans, fontSize: 14, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: on ? 600 : 400, letterSpacing: '0.25px', transition: 'color 0.15s' }}>
           {text}
         </span>
       )}

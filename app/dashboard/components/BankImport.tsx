@@ -71,7 +71,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
   }
 
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'6vh 16px', overflowY:'auto' }}>
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000, background: T.scrim, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'6vh 16px', overflowY:'auto' }}>
       <div onClick={e=>e.stopPropagation()} style={{ width:'min(100%, 560px)', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:18, boxShadow:'var(--elev-3)', overflow:'hidden' }}>
         <div style={{ display:'flex', alignItems:'center', gap:14, padding:'18px 24px', borderBottom:'1px solid var(--border-subtle)' }}>
           <div style={{ width:40, height:40, borderRadius:10, background:'var(--accent-soft)', border:'1px solid var(--accent-border)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Landmark size={19}/></div>

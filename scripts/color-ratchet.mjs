@@ -83,6 +83,38 @@ for (const dir of SCAN) {
 
 offenders.sort((a, b) => b.count - a.count)
 
+// ── ΑΠΟΛΥΤΟΣ ΚΑΝΟΝΑΣ, ΟΧΙ ΚΑΣΤΑΝΙΑ: ΤΟ ΓΑΛΑΖΙΟ ΓΡΑΜΜΕΝΟ ΣΕ RGBA ────────────
+// Το `rgba(26,115,232,…)` ΔΕΝ είναι το --accent: είναι το γαλάζιο του ΦΩΤΕΙΝΟΥ
+// θέματος, καρφωμένο. Στο σκούρο —που είναι η βάση— το --accent είναι άλλο
+// (#8ab4f8), οπότε σαράντα πλακίδια κρατούσαν το χρώμα του λάθους θέματος και
+// έμοιαζαν ξένα δίπλα σε αυτά που άλλαζαν σωστά. Το ωμό hex μετριέται με
+// καστάνια γιατί μειώνεται σταδιακά· αυτό εδώ μηδενίστηκε, άρα δεν επιστρέφει.
+const RAW_ACCENT = /rgba\(\s*26\s*,\s*115\s*,\s*232/g
+const rawAccent = []
+for (const dir of SCAN) {
+  let files = []
+  try { files = walk(join(ROOT, dir)) } catch { continue }
+  for (const f of files) {
+    const rel = relative(ROOT, f)
+    const src = readFileSync(f, 'utf8')
+    // Τα σχόλια που ΕΞΗΓΟΥΝ το σφάλμα δεν είναι το σφάλμα.
+    const code = src.split('\n').filter(l => !/^\s*(\/\/|\*)/.test(l)).join('\n')
+    const hits = code.match(RAW_ACCENT)
+    if (hits) rawAccent.push({ file: rel, count: hits.length })
+  }
+}
+if (rawAccent.length) {
+  const n = rawAccent.reduce((s, r) => s + r.count, 0)
+  console.error(`🔴 Το γαλάζιο γραμμένο ως rgba(26,115,232,…) — ${n === 1 ? 'μία φορά' : `${n} φορές`}.`)
+  console.error('   Αυτό είναι το --accent του ΦΩΤΕΙΝΟΥ θέματος, καρφωμένο: στο σκούρο')
+  console.error('   μένει ίδιο ενώ όλα γύρω του αλλάζουν, και ξεχωρίζει ως ξένο.')
+  console.error('   ΑΝΤΙΚΑΤΑΣΤΑΣΗ:  α ≤ 0,11 → var(--accent-soft)')
+  console.error('                    α ≤ 0,30 → var(--accent-border)')
+  console.error('                    μεγαλύτερο → color-mix(in srgb, var(--accent) Ν%, transparent)')
+  for (const o of rawAccent) console.error(`     ${String(o.count).padStart(4)}  ${o.file}`)
+  process.exit(1)
+}
+
 if (total > cap) {
   console.error(`🔴 Καστάνια χρώματος ΑΠΕΤΥΧΕ — ${total} ωμά hex > όριο ${cap} (+${total - cap}).`)
   console.error('   Προστέθηκε νέο καρφωμένο χρώμα. Χρησιμοποίησε σημασιολογικό token:')

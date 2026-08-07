@@ -1827,7 +1827,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([])
   const [tenantInfo, setTenantInfo] = useState<{full_name?: string; phone?: string; afm?: string; email?: string} | null>(null)
   const [loanPayment, setLoanPayment] = useState(0)
-  const [enfiaPaid, setEnfiaPaid] = useState(false)
   // ── ΤΙ ΕΧΕΙ ΕΠΙΛΕΞΕΙ Ο ΧΡΗΣΤΗΣ, ΚΑΙ ΤΙ ΒΛΕΠΕΙ ΓΙ' ΑΥΤΟ ────────────────────
   // Η κατάσταση του ακινήτου, η νομική μορφή, τα βιβλία και το πλήθος ακινήτων.
   // Κρίνουν ΠΟΙΑ πρότυπα εμφανίζονται και ΠΟΙΕΣ υποχρεώσεις προτείνονται: ο
@@ -1921,7 +1920,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         .or('name.ilike.%ΕΝΦΙΑ%,name.ilike.%enfia%,notes.ilike.%ΕΝΦΙΑ%')
         .limit(1)
       const isPaid = enfiaBillData?.[0]?.paid === true
-      setEnfiaPaid(isPaid)
       if (isPaid && itemData) {
         const enfiaTask = rows.find(i => i.description?.toLowerCase().includes('ενφια') && i.status !== 'done')
         if (enfiaTask) {

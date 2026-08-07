@@ -26,7 +26,7 @@ const RAAYEY_URL  = 'https://energycost.gr/%CF%85%CF%80%CE%BF%CE%BB%CE%BF%CE%B3%
 // για τον λόγο: εδώ υπήρχαν δύο διαφορετικοί τύποι για το ίδιο νούμερο.
 
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
-  width: '100%', background: isCurrent ? 'rgba(26,115,232,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
+  width: '100%', background: isCurrent ? 'var(--accent-soft)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge, padding: '6px 4px', color: 'var(--text-primary)',
   fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center',
@@ -496,7 +496,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Τιμολόγια {LAST_UPDATED}, Πηγή: bestenergydeals.gr / ΡΑΑΕΥ</div>
         </div>
         <a href={RAAYEY_URL} target="_blank" rel="noopener noreferrer" title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων"
-          style={{ fontSize: 11, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
+          style={{ fontSize: 11, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
           Σύγκριση ΡΑΑΕΥ →
         </a>
       </div>
@@ -740,7 +740,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   const isBest  = i === 0;
                   const isCur   = t.isCurrent;
                   return (
-                    <tr key={t.id} style={{ background: isCur ? 'rgba(26,115,232,0.04)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
+                    <tr key={t.id} style={{ background: isCur ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                         {isCur && <span style={{ fontSize: 7, color: 'var(--accent)', marginRight: 6, fontWeight: 800, textTransform: 'uppercase' as const }}>▶ ΤΡΕΧΟΝ</span>}
                         {!isCur && isBest && <span style={{ fontSize: 7, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}
@@ -815,7 +815,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         // ── Insurance gap, only if VNM/solar is relevant (cross-tab context) ──
         if (insData && kwhNum > 200) {
           if (!insData.eq) {
-            hints.push({ text: 'Η ασφάλειά σου δεν καλύπτει σεισμό. Ελέγξτε τις καλύψεις σας.', severity: 'warning', action: 'Ασφάλεια & Συνδρομές', tab: 'insurance' });
+            hints.push({ text: 'Η ασφάλειά σου δεν καλύπτει σεισμό. Δες τις καλύψεις σου.', severity: 'warning', action: 'Ασφάλεια & συνδρομές', tab: 'insurance' });
           }
         }
 
@@ -823,7 +823,9 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         if (kwhNum > 400) {
           const vnmTariff = allTariffs.find(t => t.id === 'heron_ena');
           if (vnmTariff && vnmTariff.monthly < costNum - 5) {
-            hints.push({ text: `Με ${kwhNum} kWh/μήνα το VNM (Εικονική Καθαρή Μέτρηση) μπορεί να σου εξοικονομήσει ${fe(((costNum - vnmTariff.monthly)), 0)}/μήνα.`, severity: 'tip', action: 'Πάρε Προσφορά', tab: 'electricity' });
+            // Το κουμπί «Πάρε Προσφορά» έστελνε στην καρτέλα «Ρεύμα» — δηλαδή σε
+            // αυτήν ΠΟΥ ΗΔΗ ΒΛΕΠΕΙ ο χρήστης. Η υπόδειξη μένει, το κουμπί φεύγει.
+            hints.push({ text: `Με ${kwhNum} kWh/μήνα το VNM (Εικονική Καθαρή Μέτρηση) μπορεί να σου εξοικονομήσει ${fe(costNum - vnmTariff.monthly)} τον μήνα.`, severity: 'tip' });
           } else {
             hints.push({ text: `Κατανάλωση ${kwhNum} kWh/μήνα, αξίζει σύγκριση με φωτοβολταϊκό ή κοινοτικό VNM.`, severity: 'tip' });
           }

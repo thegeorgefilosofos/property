@@ -333,7 +333,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
           <span style={{ ...TT.bodySm, display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{selProps.length} {selProps.length === 1 ? 'ακίνητο' : 'ακίνητα'} · {periodLabel} <Badge tone="neutral">Επαληθεύσιμο PDF</Badge></span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
+            <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
             {selProps.length > 1 && (
               <Btn variant="secondary" onClick={generateComparison} disabled={busy || xlsxBusy}>{xlsxBusy ? 'Excel…' : 'Συγκριτικό Excel'}</Btn>
             )}

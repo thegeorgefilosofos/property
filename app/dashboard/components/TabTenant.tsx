@@ -1198,7 +1198,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
 
       {/* Mark-as-paid modal */}
       {mark&&(
-        <div onClick={()=>setMark(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+        <div onClick={()=>setMark(null)} style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 420px)' }}>
             <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>Σήμανση ως πληρωμένο</div>
             <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:16 }}>{monthLabel(mark.p)} · {fmt(mark.p.amount)}</div>
@@ -1218,7 +1218,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
 
       {/* Αίτημα πληρωμής modal (IBAN / QR / κοινοποίηση) */}
       {req&&(
-        <div onClick={()=>setReq(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+        <div onClick={()=>setReq(null)} style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 460px)', maxHeight:'90vh', overflowY:'auto' }}>
             <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>Αίτημα πληρωμής</div>
             <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:16 }}>{monthLabel(req)} · {fmt(req.amount)}{req.services_charge&&req.services_charge>0?<span style={{ color:'var(--text-tertiary)' }}> (ενοίκιο {fmt(req.base_rent)} + υπηρεσίες {fmt(req.services_charge)})</span>:null}</div>
@@ -1259,7 +1259,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
 
       {/* Scan → match modal */}
       {scan&&(
-        <div onClick={()=>scan.stage!=='scanning'&&setScan(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+        <div onClick={()=>scan.stage!=='scanning'&&setScan(null)} style={{ position:'fixed', inset:0, background: T.scrim, display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 460px)' }}>
             <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:12 }}>Σάρωση απόδειξης</div>
             {scan.stage==='scanning'&&<div style={{ padding:'20px 0' }}><Spinner label="Ανάλυση εγγράφου…"/></div>}
@@ -2424,7 +2424,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
       {/* ── Ντοσιέ (drawer) ─────────────────────────────────────────────────── */}
       {dc&&(
-        <div onClick={()=>setOpenId(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:900, display:'flex', justifyContent:'flex-end' }}>
+        <div onClick={()=>setOpenId(null)} style={{ position:'fixed', inset:0, background: T.scrim, zIndex:900, display:'flex', justifyContent:'flex-end' }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', borderLeft:'1px solid var(--border-subtle)', width:'min(980px, 100%)', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'var(--elev-3)' }}>
             {/* Sticky header */}
             <div style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'18px 24px', borderBottom:'1px solid var(--border-subtle)', flexShrink:0 }}>
@@ -2534,7 +2534,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
       {/* ── Φόρμα (modal) ────────────────────────────────────────────────────── */}
       {isForm&&(
-        <div onClick={closeForm} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:950, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'24px 16px', overflowY:'auto' as const }}>
+        <div onClick={closeForm} style={{ position:'fixed', inset:0, background: T.scrim, zIndex:950, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'24px 16px', overflowY:'auto' as const }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-accent)', borderRadius:T.radius.card, padding:28, width:'min(860px, 100%)', margin:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
               <div>

@@ -334,7 +334,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <Btn variant="secondary" onClick={onClose}>Άκυρο</Btn>
+            <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
             <Btn variant="primary" onClick={generate} disabled={busy || !ready}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο μισθωτήριο'}</Btn>
           </div>
         )}

@@ -63,6 +63,7 @@ import {
 } from '@/lib/clients/stayAmounts';
 import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink } from '@/lib/clients/messages';
 import { revenueByChannel, revenueByMonth, yearOccupancy, totals } from '@/lib/clients/reports';
+import { navLabel } from '@/lib/nav/labels';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
 import { athensToday } from '@/lib/core/time';
@@ -863,7 +864,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           δεμένη στο επιλεγμένο ακίνητο. Εδώ υπήρχε δεύτερο αντίγραφο χωρίς
           `propertyId`: ο χρήστης έβλεπε την ίδια προειδοποίηση δύο φορές, τη μία
           για όλα τα ακίνητα μαζί. Δύο φορές το ίδιο δεν είναι έμφαση. */}
-      <PageTitle title="Επισκέπτες" sub="Κρατήσεις, δηλωτέα ποσά και εκκρεμείς δηλώσεις διαμονής"
+      <PageTitle title={navLabel('clients')} sub="Κρατήσεις, δηλωτέα ποσά και εκκρεμείς δηλώσεις διαμονής"
         right={(clients.length > 0 || props.length > 0) ? (
           // ΜΙΑ ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ, ΚΑΙ ΟΙ ΥΠΟΛΟΙΠΕΣ ΜΕ ΤΟ ΙΔΙΟ ΒΑΡΟΣ.
           // Τρεις σύνδεσμοι χωρίς περίγραμμα δίπλα σε ένα κουμπί με περίγραμμα
@@ -1336,7 +1337,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       <>
                         <CustomSelect label="Ποιο αντικείμενο"
                           value={stayForm.damage_item_id} onChange={v => setStayForm(f => ({ ...f, damage_item_id: v }))}
-                          placeholder={invForStay.length ? 'Επίλεξε από την Απογραφή' : 'Καμία καταχώρηση στην Απογραφή'}
+                          placeholder={invForStay.length ? `Επίλεξε από «${navLabel('inventory')}»` : `Καμία καταχώρηση σε «${navLabel('inventory')}»`}
                           options={invForStay.map(i => ({ value: i.id, label: i.current_value != null ? `${i.name} · ${fe(i.current_value)}` : i.name }))} />
                         <NumberInput label="Κόστος φθοράς" value={stayForm.damage_cost} onChange={v => setStayForm(f => ({ ...f, damage_cost: v }))} suffix="€" />
                       </>

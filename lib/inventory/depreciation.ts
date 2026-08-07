@@ -11,6 +11,8 @@
 // κατηγορία, για να απαντηθούν δύο πρακτικές ερωτήσεις — «πόσο αξίζει σήμερα ο
 // εξοπλισμός που παραδίδω» και «τι θα χρειαστεί αντικατάσταση φέτος».
 
+import { daysUntil } from '../core/time'
+
 const MS_PER_YEAR = 1000 * 60 * 60 * 24 * 365
 
 // ── Τυπική διάρκεια ζωής ανά κατηγορία (χρόνια) ────────────────────────────
@@ -71,13 +73,6 @@ export function yearsSince(dateStr?: string | null, now: number = Date.now()): n
   return Math.max(0, (now - t) / MS_PER_YEAR)
 }
 
-// Ημέρες μέχρι μια ημερομηνία (θετικό = μέλλον, αρνητικό = παρελθόν). null/κενό → null.
-export function daysUntil(dateStr?: string | null, now: number = Date.now()): number | null {
-  if (!dateStr) return null
-  const t = new Date(dateStr).getTime()
-  if (Number.isNaN(t)) return null
-  return Math.ceil((t - now) / (1000 * 60 * 60 * 24))
-}
 
 // ── Κεντρικός υπολογισμός υπολειπόμενης αξίας (γραμμικός) ─────────────────
 export function depreciate(item: DepreciableItem, now: number = Date.now()): Depreciation {
@@ -125,7 +120,12 @@ export function replacementSuggestion(item: DepreciableItem, now: number = Date.
   if (item.condition === 'Εκτός Λειτουργίας') { reasons.push('Εκτός λειτουργίας'); due = true }
   else if (item.condition === 'Κακή') { reasons.push('Κακή κατάσταση'); due = true }
 
-  const wDays = daysUntil(item.warranty_expiry, now)
+  // ΜΙΑ μηχανή για τις ημέρες. Η τοπική που ζούσε εδώ μετρούσε
+  // `Math.ceil((t - now) / 86400000)`, δηλαδή σε ΩΡΕΣ: η ίδια εγγύηση έβγαζε
+  // άλλον αριθμό ημερών το πρωί και άλλον το βράδυ, και διαφορετικό από αυτόν
+  // που έδειχνε η οθόνη της Απογραφής δίπλα — η οποία χρησιμοποιεί ήδη την
+  // κοινή, που συγκρίνει ΗΜΕΡΟΛΟΓΙΑΚΕΣ ημέρες Αθήνας.
+  const wDays = item.warranty_expiry ? daysUntil(item.warranty_expiry, new Date(now)) : null
   if (wDays !== null && wDays < -730 && dep.hasData && dep.depreciatedPct >= 60) {
     reasons.push('Εγγύηση έληξε εδώ και καιρό')
     due = true

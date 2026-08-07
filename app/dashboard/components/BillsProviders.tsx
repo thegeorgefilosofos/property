@@ -198,7 +198,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, flex: 1 }}>{label}</span>
       {link?.url && (
         <a href={link.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
+          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
           {link.text}
         </a>
       )}
@@ -279,7 +279,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {/* FIX: compact result row, no big box, just a clean info strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
           {/* Active % pill */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: s.dimotika ? 'rgba(26,115,232,0.07)' : 'var(--bg-base)', border: `1px solid ${s.dimotika ? 'rgba(26,115,232,0.2)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: s.dimotika ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${s.dimotika ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
             <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
               {s.dimotika ? `${s.dimotika}%` : '—'}
             </span>
@@ -390,7 +390,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                 { key: 'phoneVoip',   label: 'VoIP / App',                  val: s.phoneVoip, tip: 'Κλήσεις μέσω διαδικτύου ή εφαρμογής (VoIP), π.χ. Viber, WhatsApp, Skype' },
               ].map(f => (
                 <div key={f.key} onClick={() => upd({ [f.key]: !f.val } as any)} title={(f as any).tip}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
                   <span style={{ fontSize: 11, color: f.val ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>
                 </div>
@@ -416,7 +416,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                     return (
                       <tr key={plan.id}
                         onClick={() => upd({ internetPlanId: plan.id, internetPlan: plan.name, internetSpeed: plan.speed, internetPrice: String(plan.price), internetPhone: plan.hasPhone })}
-                        style={{ cursor: 'pointer', background: isCur ? 'rgba(26,115,232,0.08)' : 'transparent', transition: 'background 0.15s' }}>
+                        style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
                         <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{plan.speed}</td>
                         <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? '✓' : '—'}</td>

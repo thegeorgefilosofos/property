@@ -234,8 +234,8 @@ export default async function Landing() {
              (background-attachment: fixed), οπότε καθώς κυλάς νιώθεις ότι
              ταξιδεύεις μέσα σε έναν χώρο, όχι ότι σκρολάρεις μια σελίδα. */
           background:
-            radial-gradient(1100px 760px at 50% -2%, rgba(26,115,232,.13), transparent 60%),
-            radial-gradient(900px 720px at 92% 20%, rgba(26,115,232,.07), transparent 55%),
+            radial-gradient(1100px 760px at 50% -2%, var(--accent-border), transparent 60%),
+            radial-gradient(900px 720px at 92% 20%, var(--accent-soft), transparent 55%),
             radial-gradient(820px 640px at 6% 74%, rgba(138,180,248,.06), transparent 60%),
             linear-gradient(180deg, #080d16 0%, #0a1120 52%, #070b12 100%);
           background-attachment: fixed;

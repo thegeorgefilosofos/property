@@ -68,7 +68,7 @@ export default function LandingShowcase() {
         }
         /* Μέσα στο σκοτεινό hero, το mockup φωτίζεται σαν έκθεμα: απαλή γαλάζια
            λάμψη πίσω του, ώστε το προϊόν να είναι το φωτεινότερο σημείο της σκηνής. */
-        .lp-hero .ls-mockup { box-shadow: 0 1px 2px rgba(2,6,18,.5), 0 24px 48px -12px rgba(2,6,18,.6), 0 0 140px -16px rgba(26,115,232,.45) !important; border-color: rgba(255,255,255,.14); }
+        .lp-hero .ls-mockup { box-shadow: 0 1px 2px rgba(2,6,18,.5), 0 24px 48px -12px rgba(2,6,18,.6), 0 0 140px -16px color-mix(in srgb, var(--accent) 45%, transparent) !important; border-color: rgba(255,255,255,.14); }
       `}</style>
       <div ref={tiltRef} onMouseMove={onTilt} onMouseLeave={resetTilt} style={{ transition: 'transform 0.35s cubic-bezier(0.2, 0, 0, 1)', willChange: 'transform' }}>
         <div className="ls-mockup" style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 14, overflow: 'hidden' }}>

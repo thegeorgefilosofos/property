@@ -19,15 +19,6 @@ export { UIDatePicker as DateField };
 export { UIServiceBySelect as ServiceBySelect };
 export { SegmentControl };
 
-// ─── Colors (shared) ─────────────────────────────────────────────────────────
-export const C = {
-  bg:'var(--bg-base)', card:'var(--bg-surface)', card2:'var(--bg-elevated)',
-  border:'var(--border-subtle)', border2:'var(--border-default)',
-  gold:'var(--accent)', goldBg:'var(--accent-dim)',
-  green:'var(--positive)', red:'var(--negative)', amber:'var(--warning)',
-  text:'var(--text-primary)', muted:'var(--text-secondary)', dim:'var(--text-tertiary)',
-};
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type ServiceBy = 'owner' | 'tenant' | 'split';
 export type LeaseType = 'monthly' | 'biannual' | 'annual' | '18months' | '24months' | '36months' | 'custom';

@@ -216,8 +216,13 @@ export default function TabBills({
 
         {activeTool ? (
           <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-            {tool === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId}/>}
-            {tool === 'gas'         && <BillsGas         propertyId={propertyId} userId={userId}/>}
+            {/* Το `onNavigateTab` υπήρχε ως prop και ΔΕΝ το περνούσε κανείς: η
+                υπόδειξη «Η ασφάλειά σου δεν καλύπτει σεισμό» είχε κουμπί που δεν
+                έκανε τίποτα. Ο στόχος του είναι εργαλείο ΑΥΤΗΣ της οθόνης, όχι
+                καρτέλα της εφαρμογής — οπότε το `openTool` είναι ο σωστός δέκτης,
+                και κυλά κιόλας στο πάνελ που άνοιξε. */}
+            {tool === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ToolId)}/>}
+            {tool === 'gas'         && <BillsGas         propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ToolId)}/>}
             {tool === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
             {tool === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId}/>}
             {tool === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}

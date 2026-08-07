@@ -23,6 +23,7 @@ import { confirmDialog } from '@/components/confirmBus';
 import { ActionMenu } from '@/components/ActionMenu';
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress';
+import { navLabel } from '@/lib/nav/labels';
 
 const supabase = createSupabaseClient()
 
@@ -512,7 +513,7 @@ function QRModal({item,onClose}:{item:InventoryItem;onClose:()=>void}) {
     w.document.close()
   }
   return (
-    <div style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+    <div style={{position:'fixed',inset:0,zIndex:1100,background: T.scrim,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:28,maxWidth:320,width:'100%',display:'flex',flexDirection:'column',gap:16,alignItems:'center',boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',width:'100%'}}>
           <p title="Κωδικός QR: γρήγορη σάρωση στοιχείων αντικειμένου με κινητό" style={{fontSize:16,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>QR Αντικειμένου</p>
@@ -560,7 +561,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
     onImported();onClose()
   }
   return (
-    <div style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+    <div style={{position:'fixed',inset:0,zIndex:1100,background: T.scrim,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:28,width:'100%',maxWidth:600,maxHeight:'85vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Μαζική Εισαγωγή <span title="CSV: αρχείο τιμών χωρισμένων με κόμμα· ανοίγει σε Excel/λογιστικά φύλλα">CSV</span></p>
@@ -658,7 +659,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
     // αντικατάσταση θα έσκαγε με σφάλμα δικαιωμάτων. Ούτως ή άλλως η διαδρομή
     // περιέχει χρόνο και τυχαίο, άρα δεν υπάρχει τίποτα να αντικατασταθεί.
     const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:false})
-    if(error){notifyError('Σφάλμα upload: '+error.message);setDocUp(false);return}
+    if(error){notifyError('Η μεταφόρτωση δεν ολοκληρώθηκε. Δοκίμασε ξανά.');setDocUp(false);return}
     const prev=form.receipt_doc_url
     setForm(f=>({...f,receipt_doc_url:path,receipt_doc_name:file.name}))
     // Καθάρισε τυχόν προηγούμενο ΑΝΕΒΑΣΜΑ αυτής της συνεδρίας (όχι το αρχικά αποθηκευμένο).
@@ -708,14 +709,14 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
     setPhotoBusy(true)
     const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
     if(!error){ const {data:u}=supabase.storage.from('inventory-photos').getPublicUrl(path); setForm(f=>{const photos=[...(f.photos||[]),u.publicUrl]; return {...f,photos,photo_url:f.photo_url||u.publicUrl}}) }
-    else notifyError('Σφάλμα μεταφόρτωσης: '+error.message)
+    else notifyError('Η μεταφόρτωση δεν ολοκληρώθηκε. Δοκίμασε ξανά.')
     setPhotoBusy(false)
   }
   const removePhoto = (url:string) => { const p=(form.photos||[]).filter(x=>x!==url); set('photos',p); if(form.photo_url===url) set('photo_url',p[0]||'') }
   const pickPhoto = async(file:File) => { await addPhotoFile(file); runScan(file) }
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:'8px 16px'}}>
+    <div style={{position:'fixed',inset:0,zIndex:1000,background: T.scrim,display:'flex',alignItems:'center',justifyContent:'center',padding:'8px 16px'}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,width:'100%',maxWidth:680,height:'calc(100vh - 32px)',maxHeight:820,overflow:'hidden',padding:0,display:'flex',flexDirection:'column',boxShadow:'var(--shadow-xl)'}}>
         <div style={{padding:'22px 28px 0',flexShrink:0}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
@@ -904,7 +905,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
     setSaving(true)
     await onAdd(form)
     if(pushExpenses&&form.cost>0){
-      const {error}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||athensToday(),paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από Απογραφή, ${item.name}`})
+      const {error}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||athensToday(),paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από ${navLabel('inventory')}, ${item.name}`})
       // Ο διακόπτης υπόσχεται ρητά ότι η επισκευή περνά στις δαπάνες. Αν δεν
       // περάσει, ο χρήστης πρέπει να το μάθει ΤΩΡΑ, όχι στη φορολογική δήλωση.
       if(error) notifyError('Η επισκευή καταχωρήθηκε, αλλά η δαπάνη δεν πέρασε στα έξοδα: '+error.message)
@@ -913,7 +914,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
     setSaving(false)
   }
   return (
-    <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+    <div style={{position:'fixed',inset:0,zIndex:1000,background: T.scrim,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,width:'100%',maxWidth:520,maxHeight:'85vh',overflowY:'auto',padding:28,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
@@ -1237,7 +1238,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         </button>}
         <button onClick={()=>selectMode?exitSelect():setSelectMode(true)} title="Επιλογή πολλών αντικειμένων" style={{padding:'0 12px',height:T.h.md,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${selectMode?'var(--accent-border)':'var(--border-subtle)'}`,background:selectMode?'var(--accent-soft)':'var(--bg-elevated)',color:selectMode?'var(--accent)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-          {selectMode?'Άκυρο':'Επιλογή'}
+          {selectMode?'Ακύρωση':'Επιλογή'}
         </button>
         <div style={{display:'flex',border:'1px solid var(--border-subtle)',borderRadius:T.radius.pill,overflow:'hidden',padding:2,background:'var(--bg-elevated)'}}>
           {(['grid','list'] as const).map(m=>(
@@ -1267,7 +1268,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         <EmptyState
           icon={items.length===0?<PackageOpen size={20}/>:<SearchX size={20}/>}
           title={items.length===0?'Δεν έχεις καταχωρίσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}
-          hint={items.length===0?'Πρόσθεσε το πρώτο αντικείμενο για να ξεκινήσεις την απογραφή.':'Δοκίμασε διαφορετικά φίλτρα ή αναζήτηση.'}
+          hint={items.length===0?'Πρόσθεσε το πρώτο αντικείμενο για να ξεκινήσεις.':'Δοκίμασε διαφορετικά φίλτρα ή αναζήτηση.'}
           action={items.length===0?<Btn variant="primary" onClick={onAdd}>Νέο αντικείμενο</Btn>:undefined}
         />
       ):viewMode==='grid'?(
@@ -1393,7 +1394,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const uploadCondPhoto = async(itemId:string,file:File) => {
     setUploadingId(itemId)
     const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`handover/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
-    if(error){notifyError('Σφάλμα upload: '+error.message);setUploadingId(null);return}
+    if(error){notifyError('Η μεταφόρτωση δεν ολοκληρώθηκε. Δοκίμασε ξανά.');setUploadingId(null);return}
     const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
     setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))
     setUploadingId(null)
@@ -1785,10 +1786,10 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
     const byCat=[...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
     const catRows=byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>reportRow(`${cat} (${count})`,rEur(val))).join('')
     const detailRows=items.map(i=>`<tr><td><strong>${rEsc(i.name)}</strong>${i.brand?`<br><small class="muted">${rEsc(i.brand)} ${rEsc(i.model||'')}</small>`:''}</td><td>${rEsc(i.energy_class||ABSENT)}</td><td>${rEsc(i.condition)}</td><td class="n">${rEsc(rEur(i.purchase_value||0))}</td><td class="n">${rEsc(rEur(calcCurrentValue(i)))}</td><td class="n">${rEsc(rPct(Math.max(0,100-calcDepreciationPct(i))))}</td><td class="n">${rEsc(rEur(i.replacement_cost||0))}</td><td class="n">${rEsc(calcMonthlyKwh(i)+' kWh')}</td><td>${rEsc(i.warranty_expiry?fmtDate(i.warranty_expiry):ABSENT_DATE)}</td></tr>`).join('')
-    const html = reportHead('Απογραφή ακινήτου')
+    const html = reportHead('Κατάσταση εξοπλισμού')
       + `<body><div class="page">`
-      + reportHeader(null, 'Απογραφή ακινήτου')
-      + `<h1>Απογραφή ακινήτου</h1>`
+      + reportHeader(null, 'Κατάσταση εξοπλισμού')
+      + `<h1>Κατάσταση εξοπλισμού</h1>`
       + `<div class="sub">${rEsc(String(items.length))} αντικείμενα</div>`
       + reportSection('Σύνοψη')
       + `<div class="kpis">${reportKpi('Εκτιμώμενη υπολειπόμενη αξία', rEur(totalCurrent))}${reportKpi('Δηλωμένο κόστος αντικατάστασης', rEur(totalDeclaredRepl))}${reportKpi('Επισκευές', rEur(totalRepairs))}${electricItems.length>0&&kwhPrice>0?reportKpi('Ρεύμα/Μήνα', rEur(totalMonthlyCost)):''}</div>`
@@ -1796,7 +1797,7 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
       + `<table><tbody>${catRows}</tbody></table>`
       + reportSection('Αναλυτικός κατάλογος')
       + `<table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th class="n">Αξία αγοράς</th><th class="n">Εκτιμώμενη υπολειπόμενη</th><th class="n">Ποσοστό που μένει</th><th class="n">Κόστος αντικατάστασης</th><th class="n">kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>${detailRows}</tbody></table>`
-      + reportDisclaimer(`Η παρούσα απογραφή έχει ενημερωτικό χαρακτήρα. Οι υπολειπόμενες αξίες προκύπτουν από γραμμική μείωση πάνω σε τυπική διάρκεια ζωής ανά κατηγορία και δεν αποτελούν επίσημη εκτίμηση. ${NOT_TAX_DEPRECIATION_NOTE} Το κόστος αντικατάστασης είναι όσο έχει δηλώσει ο ιδιοκτήτης· όπου λείπει, δεν συμπληρώνεται από εμάς.${missingRepl>0?` Λείπει σε ${missingRepl} από ${items.length} αντικείμενα.`:''}`)
+      + reportDisclaimer(`Η παρούσα κατάσταση έχει ενημερωτικό χαρακτήρα. Οι υπολειπόμενες αξίες προκύπτουν από γραμμική μείωση πάνω σε τυπική διάρκεια ζωής ανά κατηγορία και δεν αποτελούν επίσημη εκτίμηση. ${NOT_TAX_DEPRECIATION_NOTE} Το κόστος αντικατάστασης είναι όσο έχει δηλώσει ο ιδιοκτήτης· όπου λείπει, δεν συμπληρώνεται από εμάς.${missingRepl>0?` Λείπει σε ${missingRepl} από ${items.length} αντικείμενα.`:''}`)
       + `</div></body></html>`
     openReport(html)
   }
@@ -1845,7 +1846,7 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
   // αφορά τον ασφαλιστή. Το ίδιο κείμενο υπήρχε και ως χωριστό πλαίσιο από κάτω.
   // ═══════════════════════════════════════════════════════════════════════════
   return [
-    {key:'pdf',   label:'Απογραφή σε PDF',           description:'Αξίες, ενεργειακές κλάσεις, ηλικία και εγγυήσεις, έτοιμη για εκτύπωση.', onClick:exportPDF},
+    {key:'pdf',   label:'Κατάσταση εξοπλισμού σε PDF',           description:'Αξίες, ενεργειακές κλάσεις, ηλικία και εγγυήσεις, έτοιμη για εκτύπωση.', onClick:exportPDF},
     {key:'insur', label:'Έκθεση για τον ασφαλιστή',  description:missingRepl>0
       ? `Φωτογραφία και κόστος αντικατάστασης ανά αντικείμενο. Λείπει από ${missingRepl} στα ${items.length} και γράφεται ρητά: ελλιπές άθροισμα σημαίνει υπασφάλιση που φαίνεται μόνο μετά τη ζημιά.`
       : 'Φωτογραφία και κόστος αντικατάστασης ανά αντικείμενο, για όλα.', onClick:exportInsurancePDF},
@@ -2125,7 +2126,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px'}}>
               <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M10 12h4"/></svg>
             </div>
-            <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την Απογραφή'}</p>
+            <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την καταγραφή'}</p>
             <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:440,margin:'0 auto 22px',lineHeight:1.6}}>Κατέγραψε έπιπλα, συσκευές και εξοπλισμό: αξία, εγγυήσεις και κατανάλωση, όλα οργανωμένα και εύκολα.</p>
             <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:14}}>
               {/* Η σάρωση είναι το ΚΥΡΙΟ μονοπάτι: ανοίγει η φόρμα με τη φωτογραφία

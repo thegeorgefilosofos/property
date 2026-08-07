@@ -52,7 +52,7 @@ export default function MonthlyFeedbackNudge() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
         <button onClick={give} style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 0, borderRadius: 100, padding: '8px 16px', fontSize: 12.5, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>
         <button onClick={close} style={{ background: 'none', border: 0, color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλη φορά</button>
-        <a href="/terms/klirosi" target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Όροι</a>
+        <a href="/terms#klirosi" target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Όροι</a>
       </div>
     </div>
   );

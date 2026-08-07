@@ -1,7 +1,7 @@
 // Τεστ για lib/inventory/depreciation.ts — τρέξε με: npx tsx lib/inventory/depreciation.test.ts
 import {
   usefulLifeYears, depreciate, replacementSuggestion, portfolioSummary,
-  yearsSince, daysUntil, DEFAULT_USEFUL_LIFE, NOT_TAX_DEPRECIATION_NOTE,
+  yearsSince, DEFAULT_USEFUL_LIFE, NOT_TAX_DEPRECIATION_NOTE,
   type DepreciableItem,
 } from './depreciation'
 
@@ -24,8 +24,8 @@ ok('undefined → default', usefulLifeYears(undefined) === DEFAULT_USEFUL_LIFE)
 // ── helpers ──
 ok('yearsSince null on empty', yearsSince('', NOW) === null)
 ok('yearsSince ~2y', Math.round(yearsSince(yearsAgo(2), NOW)!) === 2)
-ok('daysUntil future positive', daysUntil(new Date(NOW + 10 * 864e5).toISOString(), NOW)! > 0)
-ok('daysUntil past negative', daysUntil(new Date(NOW - 10 * 864e5).toISOString(), NOW)! < 0)
+// Η `daysUntil` δεν ελέγχεται πια εδώ: ζει στο lib/core/time και έχει δικά της
+// τεστ, που τη δοκιμάζουν σε τέσσερις ζώνες ώρας.
 
 // ── depreciate: no date → graceful, no depreciation ──
 const noDate = depreciate({ category: 'Ηλεκτρονικά', purchase_value: 1000 }, NOW)
