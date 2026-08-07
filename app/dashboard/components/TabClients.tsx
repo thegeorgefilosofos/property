@@ -66,6 +66,8 @@ import { revenueByChannel, revenueByMonth, yearOccupancy, totals } from '@/lib/c
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
 import { athensToday } from '@/lib/core/time';
+import { MONTHS_NOM } from '@/lib/core/months';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
 // Τα πεδία CRM (rating/tags/do_not_rent/vip/address/id_number/nationality/source)
@@ -1006,8 +1008,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         const maxMonth = Math.max(1, ...months);
         const occ = yearOccupancy(yStays, reportYear);
         const monthInitials = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
-        const monthNames = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
-        const monthShort = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
         return (
           <div style={{ marginTop: 26 }}>
             <SecHdr label={`Ακαθάριστα ${reportYear}`} sub="Δηλωτέο ακαθάριστο ανά κανάλι και ανά μήνα — χωρίς το τέλος ανθεκτικότητας, χωρίς αφαίρεση προμήθειας"
@@ -1048,12 +1048,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {statTile(
                 'Πληρότητα',
                 occ.availableDays > 0 ? `${occ.pct}%` : 'Χωρίς κρατήσεις',
-                { title: occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${monthShort[occ.openFromMonth]}–${monthShort[occ.openToMonth!]} ${reportYear}) — όχι σε 365` : 'Χωρίς κρατήσεις' },
+                { title: occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]} ${reportYear}) — όχι σε 365` : 'Χωρίς κρατήσεις' },
               )}
               {occ.peak && statTile(
                 'Πληρότητα υψηλής περιόδου',
                 `${occ.peak.pct}%`,
-                { title: `${monthShort[occ.peak.fromMonth]}–${monthShort[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από ΤΑ ΔΙΚΑ ΣΟΥ δεδομένα, δεν την αποφασίσαμε εμείς.` },
+                { title: `${MONTHS_SHORT[occ.peak.fromMonth]}–${MONTHS_SHORT[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από ΤΑ ΔΙΚΑ ΣΟΥ δεδομένα, δεν την αποφασίσαμε εμείς.` },
               )}
             </div>
 
@@ -1081,7 +1081,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
                     {months.map((v, i) => (
-                      <div key={i} title={`${monthNames[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                      <div key={i} title={`${MONTHS_NOM[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
                         <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--series-in)', borderRadius: '3px 3px 0 0' }} />
                       </div>
                     ))}

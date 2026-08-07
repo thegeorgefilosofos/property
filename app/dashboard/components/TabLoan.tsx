@@ -33,6 +33,7 @@ import BankRatesAdmin from './BankRatesAdmin'
 import { InfoDot } from './UIComponents'
 import { KPI, LensBar, labelStyle } from './LoanShared'
 import { athensToday, isoDate } from '@/lib/core/time';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
@@ -169,8 +170,7 @@ function LinkCard({href,label,sub}:{href:string;label:string;sub?:string}) {
 
 // Bespoke minimal γράφημα Euribor — καθαρή περιοχή/γραμμή, σημεία υψηλού/χαμηλού
 // και τρέχοντος, χωρίς βιβλιοθήκη. Επαγγελματικό, ήσυχο, χωρίς θόρυβο.
-const EU_MONTHS=['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ']
-const euFmtDate=(d:string)=>{ const [y,m]=d.split('-'); return `${EU_MONTHS[(Number(m)||1)-1]} ${y}` }
+const euFmtDate=(d:string)=>{ const [y,m]=d.split('-'); return `${MONTHS_SHORT[(Number(m)||1)-1]} ${y}` }
 function EuriborArea({data}:{data:{date:string;val:number}[]}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)

@@ -10,6 +10,7 @@ import { T, feAuto, Btn } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import { rentDueOccurrence, applyExdate } from '@/lib/calendar/rentDue';
 import { saved } from '@/components/dbWrite';
+import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 
 // ─── Re-exports for TabTenant ─────────────────────────────────────────────────
 export { Toggle, NumberInput, TextInput, Textarea, FREQ_OPTIONS };
@@ -81,8 +82,6 @@ export const COMMERCIAL_STAMP_DUTY = 0.036;
 export const ID_DOCS: IdDocType[] = [
   'Αστυνομική Ταυτότητα', 'Διαβατήριο', 'Στρατιωτική Ταυτότητα', 'Φοιτητικό Πάσο', 'Άλλο',
 ];
-export const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
-export const MONTHS_S = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 // ═══════════════════════════════════════════════════════════════════════════
 // ΔΕΙΚΤΗΣ ΤΙΜΩΝ ΚΑΤΑΝΑΛΩΤΗ (ΔΤΚ) — ΔΕΔΟΜΕΝΟ ΜΕ ΠΗΓΗ, ΟΧΙ ΣΤΑΘΕΡΑ ΣΕ .tsx
 //

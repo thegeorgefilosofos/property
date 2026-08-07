@@ -53,6 +53,7 @@ import { escHtml as esc } from '@/lib/reportBranding';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
+import { MONTHS_GEN, MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 
 type EventCategory = 'tax' | 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -139,11 +140,8 @@ const RECURRING_OPTIONS = [
   { value: 'annual',    label: 'Κάθε χρόνο' },
 ]
 
-const MONTH_NAMES_GR  = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
-const MONTH_SHORT_GR  = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ']
 // «Γεγονότα Αύγουστος» δεν είναι ελληνικά. Ο μήνας μετά από ουσιαστικό μπαίνει
 // σε γενική, και η γενική δεν βγαίνει με κανόνα από την ονομαστική.
-const MONTH_GENITIVE_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου']
 
 // ═══ ΤΟ ΓΕΜΙΣΜΑ ΠΟΥ ΕΓΙΝΕ ΔΕΔΟΜΕΝΟ ═══════════════════════════════════════
 // Ο υπολογιστής δανείου αποθήκευε `bank: bankName || 'Μη καθορισμένη'`. Η φράση
@@ -171,7 +169,7 @@ const EMPTY_FORM: FormState = {
 }
 
 function fmt(date: string) { if (!date) return ''; const [y,m,d]=date.split('-'); return `${d}/${m}/${y}` }
-function fmtShort(date: string) { if (!date) return ''; const [y,m,d]=date.split('-'); return `${d} ${MONTH_SHORT_GR[parseInt(m)-1]}` }
+function fmtShort(date: string) { if (!date) return ''; const [y,m,d]=date.split('-'); return `${d} ${MONTHS_SHORT[parseInt(m)-1]}` }
 // Τρέχουσα στιγμή σε ώρα Ελλάδας (Europe/Athens), ανεξάρτητα από τη ζώνη της
 // συσκευής — ώστε «σήμερα», η γραμμή «τώρα» και οι υπενθυμίσεις να είναι σωστές.
 function athensNow(): Date { return new Date(new Date().toLocaleString('en-US',{ timeZone:'Europe/Athens' })) }
@@ -464,7 +462,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
 
                 Και «1 γεγονότα». Ο πληθυντικός ήταν σταθερός. */}
             <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length===1?'1 γεγονός':`${events.length} γεγονότα`}</span>
-            {monthPendingAmt>0&&<span title={`Άθροισμα των εκκρεμών ποσών ${MONTH_GENITIVE_GR[month]} ${year}, μόνο αυτού του μήνα`} style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{fe(monthPendingAmt)} εκκρεμή</span>}
+            {monthPendingAmt>0&&<span title={`Άθροισμα των εκκρεμών ποσών ${MONTHS_GEN[month]} ${year}, μόνο αυτού του μήνα`} style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{fe(monthPendingAmt)} εκκρεμή</span>}
             <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{monthPaid.length===1?'1 πληρωμένο':`${monthPaid.length} πληρωμένα`}</span>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--border-subtle)' }}>
@@ -1564,7 +1562,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
 
   const prevPeriod=()=>setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth()-1,1))
   const nextPeriod=()=>setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth()+1,1))
-  const periodLabel=()=>`${MONTH_NAMES_GR[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+  const periodLabel=()=>`${MONTHS_NOM[currentDate.getMonth()]} ${currentDate.getFullYear()}`
 
   // Google-style button base
 
@@ -1690,7 +1688,6 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
                   // Καθαρός, φιλτραρίσιμος πίνακας: κάθε πεδίο σε δικό του κελί, αριθμοί
                   // ως αριθμοί (2 δεκαδικά), στήλες Έτος/Μήνας/Προθεσμία για φιλτράρισμα,
                   // και ξεχωριστά φύλλα «Εκπρόθεσμα»/«Επερχόμενα».
-                  const MON=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
                   const prothesmia=(e:CalEvent)=> (e.status==='paid'||e.status==='cancelled')?'Ολοκληρωμένο':isOverdue(e)?'Εκπρόθεσμο':'Εντός προθεσμίας'
                   const cols:XlsxCol[]=[
                     {header:'Ημερομηνία',kind:'date',width:13},
@@ -1704,7 +1701,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
                     {header:'Προθεσμία',width:16},
                   ]
                   const WD=['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο']
-                  const toRow=(e:CalEvent)=>{ const d=new Date(e.event_date+'T00:00:00'); return [d,WD[d.getDay()],MON[d.getMonth()],d.getFullYear(),CATEGORIES[e.category]?.label||e.category,e.title,(e.amount||null),STATUSES[e.status]?.label||e.status,prothesmia(e)] }
+                  const toRow=(e:CalEvent)=>{ const d=new Date(e.event_date+'T00:00:00'); return [d,WD[d.getDay()],MONTHS_NOM[d.getMonth()],d.getFullYear(),CATEGORIES[e.category]?.label||e.category,e.title,(e.amount||null),STATUSES[e.status]?.label||e.status,prothesmia(e)] }
                   // Ταξινόμηση: χρονολογικά (κύριο) και δευτερευόντως με τη λογική σειρά
                   // κατηγοριών της εφαρμογής — καθαρή, προβλέψιμη ακολουθία.
                   const CAT_ORDER=Object.keys(CATEGORIES)
@@ -1838,7 +1835,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
           <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'))}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_GENITIVE_GR[currentDate.getMonth()]}</p>
+              <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTHS_GEN[currentDate.getMonth()]}</p>
               {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode}/>))}
             </div>
           )}

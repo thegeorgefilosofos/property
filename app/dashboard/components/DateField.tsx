@@ -11,9 +11,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
+import { MONTHS_GEN, MONTHS_NOM } from '@/lib/core/months';
 
-const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
-const MONTHS_GEN = ['Ιανουαρίου', 'Φεβρουαρίου', 'Μαρτίου', 'Απριλίου', 'Μαΐου', 'Ιουνίου', 'Ιουλίου', 'Αυγούστου', 'Σεπτεμβρίου', 'Οκτωβρίου', 'Νοεμβρίου', 'Δεκεμβρίου'];
 const WD = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σά', 'Κυ'];
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -79,7 +78,7 @@ export default function DateField({ value, onChange, style }: { value: string; o
         <div ref={popRef} style={{ position: 'fixed', top: pos.top, left: pos.left, width: POP_W, zIndex: 2000, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, boxShadow: 'var(--elev-3)', padding: 14, fontFamily: T.font.sans }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <button type="button" onClick={() => nav(-1)} aria-label="Προηγούμενος μήνας" style={navBtn} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>‹</button>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{MONTHS[m]} {y}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{MONTHS_NOM[m]} {y}</span>
             <button type="button" onClick={() => nav(1)} aria-label="Επόμενος μήνας" style={navBtn} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>›</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>

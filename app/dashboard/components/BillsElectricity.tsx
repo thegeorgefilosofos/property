@@ -6,8 +6,8 @@ import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fn, Skeleton } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
-const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const fk = (n: number) => `${fe(n, 4)}`;
 // Η ημερομηνία τελευταίου ελέγχου των τιμών.
 //
@@ -683,7 +683,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό Κατανάλωσης, <span title="κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ηλεκτρικής ενέργειας">kWh</span> ανά μήνα</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
-            {MONTHS_GR.map((m, i) => (
+            {MONTHS_SHORT.map((m, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 9, color: i === currentMonth ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 4, fontWeight: i === currentMonth ? 700 : 400, fontFamily: T.font.sans }}>{m}</div>
                 <input type="number" value={kwhHistory[i] || ''} placeholder="0"

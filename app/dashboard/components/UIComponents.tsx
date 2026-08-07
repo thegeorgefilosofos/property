@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardE
 import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
 import { athensToday } from '@/lib/core/time';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
 // Γωνία 10, 1px border + accent focus-ring (χωρίς μετατόπιση layout — δεν
@@ -503,7 +504,6 @@ export function CustomSelect({
 }
 
 // ─── Date Picker ─────────────────────────────────────────────────────────────
-const MONTHS_GR = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 const DAYS_GR = ['Δε','Τρ','Τε','Πε','Πα','Σά','Κυ'];
 
 interface DatePickerProps {
@@ -635,7 +635,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
             </button>
             <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
-              {MONTHS_GR[month]} {year}
+              {MONTHS_SHORT[month]} {year}
             </span>
             <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: T.h.sm, height: T.h.sm, borderRadius: 14, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}

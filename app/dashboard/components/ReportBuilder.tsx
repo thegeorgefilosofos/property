@@ -19,12 +19,12 @@ import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport';
 import { downloadPortfolioComparison, type PortfolioRow } from './portfolioXlsx';
 import type { ReportBranding } from '@/lib/reportBranding';
+import { MONTHS_NOM } from '@/lib/core/months';
 
 interface Prop { id: string; name: string; address: string | null }
 interface RentRow { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid: boolean | null }
 interface ExpRow { property_id: string | null; date: string | null; amount: number | null; category: string | null }
 
-const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const SECTIONS = [
   { key: 'summary', label: 'Σύνοψη (δείκτες)', hint: 'Έσοδα, εισπράξεις, δαπάνες, καθαρό' },
   { key: 'byProperty', label: 'Ανά ακίνητο', hint: 'Εισπράξεις / δαπάνες / καθαρό ανά ακίνητο' },
@@ -88,7 +88,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
 
   if (!open) return null;
 
-  const periodLabel = month === 0 ? `Έτος ${year}` : `${MONTHS[month - 1]} ${year}`;
+  const periodLabel = month === 0 ? `Έτος ${year}` : `${MONTHS_NOM[month - 1]} ${year}`;
 
   const generate = async () => {
     setErr('');
@@ -133,7 +133,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
         // Εισπράξεις ανά μήνα (μόνο σε πλήρες έτος) — ασπρόμαυρες ράβδοι.
         if (month === 0) {
           const monthly = Array.from({ length: 12 }, (_, m) => ({
-            label: MONTHS[m].slice(0, 3),
+            label: MONTHS_NOM[m].slice(0, 3),
             value: rents.filter(r => r.period_month === m + 1).reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0),
           }));
           if (monthly.some(d => d.value > 0)) built.push({ type: 'chart', title: 'Εισπράξεις ανά μήνα', chart: 'bars', data: monthly, unit: 'eur' });
@@ -167,7 +167,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           const exp = mr.reduce((s, r) => s + num(r.amount), 0);
           const col = mr.reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0);
           const status = exp === 0 ? '—' : col >= exp ? 'Πλήρης' : col > 0 ? 'Μερική' : 'Εκκρεμεί';
-          return [MONTHS[m - 1], `${pEur(col)} / ${pEur(exp)}`, status];
+          return [MONTHS_NOM[m - 1], `${pEur(col)} / ${pEur(exp)}`, status];
         }).filter(r => r[1] !== `${pEur(0)} / ${pEur(0)}`);
         built.push({ type: 'table', title: 'Συμφωνία ενοικίων', head: ['Περίοδος', 'Εισπράχθηκε / Αναμενόμενο', 'Κατάσταση'], align: ['l', 'r', 'r'],
           rows: rows.length ? rows : [['—', `${pEur(0)} / ${pEur(0)}`, '—']],
@@ -286,7 +286,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
                 <Select value={String(year)} onChange={v => setYear(Number(v))} options={yearsAvail.map(y => ({ value: String(y), label: String(y) }))} />
               </div>
               <div style={{ flex: '0 1 170px', minWidth: 150 }}>
-                <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))]} />
+                <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS_NOM.map((m, i) => ({ value: String(i + 1), label: m }))]} />
               </div>
             </div>
           </div>

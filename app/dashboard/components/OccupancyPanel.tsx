@@ -37,8 +37,8 @@ import { readStatus, type StatusRow } from '@/lib/property/status';
 import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 import { rentalIncomeTax, rentalBracketsForYear } from '@/lib/billing/greekTax';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
-const MONTHS = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
 
 interface StayRow extends ReportStay { declared_at?: string | null }
 interface PropInfo extends StatusRow { prop_type?: string | null; sqm?: number | null }
@@ -150,7 +150,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
                 </span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 6, marginBottom: 18 }}>
-                {MONTHS.map((m, i) => {
+                {MONTHS_SHORT.map((m, i) => {
                   const n = occ.nightsByMonth[i];
                   const inWindow = occ.openFromMonth != null && i >= occ.openFromMonth && i <= (occ.openToMonth ?? 11);
                   return (
@@ -169,9 +169,9 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 148px), 1fr))', gap: 10, marginBottom: 14 }}>
                 {kpi('Πληρότητα', `${occ.pct}%`, 'var(--accent)',
-                  occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS[occ.openFromMonth]}–${MONTHS[occ.openToMonth!]}). Όχι σε 365: το ακίνητο δεν ήταν στην αγορά όλο τον χρόνο.` : undefined)}
+                  occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]}). Όχι σε 365: το ακίνητο δεν ήταν στην αγορά όλο τον χρόνο.` : undefined)}
                 {occ.peak && kpi('Υψηλή περίοδος', `${occ.peak.pct}%`, 'var(--text-primary)',
-                  `${MONTHS[occ.peak.fromMonth]}–${MONTHS[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από τα δικά σου δεδομένα.`)}
+                  `${MONTHS_SHORT[occ.peak.fromMonth]}–${MONTHS_SHORT[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από τα δικά σου δεδομένα.`)}
                 {kpi('Νύχτες / έτος', String(occ.bookedNights))}
                 {kpi('Δηλωτέα ακαθάριστα', fe(tot.revenue), 'var(--text-primary)', 'Τι πλήρωσαν οι επισκέπτες μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται — είναι δαπάνη.')}
                 {/* ΤΟ ΤΕΛΟΣ ΠΟΥ ΟΦΕΙΛΕΤΑΙ ΕΜΦΑΝΙΖΕΤΑΙ ΠΑΝΤΑ, ΚΙ ΑΣ ΜΗΝ ΕΙΣΠΡΑΧΘΗΚΕ.

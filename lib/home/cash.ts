@@ -17,6 +17,8 @@
 // προγραμματιστεί. Ό,τι λέει, μπορεί ο χρήστης να το δείξει με τον δάχτυλο.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { MONTHS_NOM } from '../core/months';
+
 /** Περίοδος ενοικίου από το `rent_payments`. Το `paid` είναι η πηγή αλήθειας. */
 export interface RentPeriod {
   amount: number | null;
@@ -64,7 +66,6 @@ const num = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const MONTHS = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
 /** Ημέρες από σήμερα (ISO «YYYY-MM-DD»). Αρνητικό = πέρασε. */
 export function daysFromToday(iso: string | null, today: string): number | null {
@@ -128,7 +129,7 @@ export function cashPosition(input: {
     if (daysLeft == null || daysLeft >= 0) continue;
     const my = r.period_month;
     const label = my && my >= 1 && my <= 12
-      ? `Ενοίκιο ${MONTHS[my - 1]}${r.period_year ? ` ${r.period_year}` : ''}`
+      ? `Ενοίκιο ${MONTHS_NOM[my - 1]}${r.period_year ? ` ${r.period_year}` : ''}`
       : 'Ενοίκιο';
     rentLines.push({ label, amount, due: r.due_date, daysLeft });
   }

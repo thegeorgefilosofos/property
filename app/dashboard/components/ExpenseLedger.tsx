@@ -41,6 +41,7 @@ import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
 import { athensToday, athensMonth } from '@/lib/core/time';
+import { MONTHS_NOM } from '@/lib/core/months';
 
 interface Props {
   propertyId: string;
@@ -50,16 +51,14 @@ interface Props {
   onScan?: () => void;
 }
 
-const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος',
-  'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 
 const monthLabel = (m: string): string => {
   const [y, mm] = m.split('-');
   const i = parseInt(mm, 10) - 1;
-  if (!MONTHS[i]) return m;
+  if (!MONTHS_NOM[i]) return m;
   const now = new Date();
   const sameYear = String(now.getFullYear()) === y;
-  return sameYear ? MONTHS[i] : `${MONTHS[i]} ${y}`;
+  return sameYear ? MONTHS_NOM[i] : `${MONTHS_NOM[i]} ${y}`;
 };
 
 /** «24/07» για φέτος, «24/07/25» για παλιότερα. Η χρονιά μπαίνει μόνο όταν μετρά. */

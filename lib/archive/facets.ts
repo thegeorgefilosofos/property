@@ -32,6 +32,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Οι όψεις. Προσθήκη νέας: ένα κλειδί εδώ και μία γραμμή στο FACET_OF. */
+import { MONTHS_NOM } from '../core/months';
+
 export type FacetKey = 'category' | 'provider' | 'year' | 'source'
 
 /** Ό,τι χρειάζεται μια γραμμή αρχείου για να φιλτραριστεί. Δομικός τύπος: το
@@ -182,10 +184,6 @@ export const clearAll = (): Selection => ({})
    είναι ο μόνος άξονας που ο ιδιοκτήτης έχει πάντα στο μυαλό του: ξέρει περίπου
    πότε ήρθε ένα χαρτί, ακόμη κι όταν δεν θυμάται πώς το είχε πει.               */
 
-const GREEK_MONTHS = [
-  'Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος',
-  'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος',
-]
 
 export interface TimeGroup<T> { key: string; label: string; items: T[] }
 
@@ -215,7 +213,7 @@ export function groupByMonth<T extends FacetableItem>(items: readonly T[], now: 
       const [y, m] = key.split('-')
       const label = key === thisMonth ? 'Αυτόν τον μήνα'
         : key === lastMonth ? 'Τον προηγούμενο μήνα'
-        : `${GREEK_MONTHS[Number(m) - 1]} ${y}`
+        : `${MONTHS_NOM[Number(m) - 1]} ${y}`
       return {
         key, label,
         items: arr.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')),

@@ -71,6 +71,7 @@ import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from 
 import { scanFile, commitScannedDoc, type ReconcileQuestion } from './scanDoc';
 import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import { athensToday, athensNowLabel, daysUntil } from '@/lib/core/time';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
 const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
 // Η ερώτηση συμφωνίας σε μία πρόταση. Οι ίδιοι λόγοι που δείχνει και η οθόνη
@@ -400,8 +401,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const priceBase = (pset?.base != null ? Number(pset.base) : 0) || suggestBase(propStays);
     if (priceBase > 0) {
       const adrVal = realizedAdr(propStays);
-      const MON = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
-      const table = indicativeMonthly(priceBase, wkndPrem).map(r => `${MON[r.month]} ${r.weekday}/${r.weekend}`).join(', ');
+      const table = indicativeMonthly(priceBase, wkndPrem).map(r => `${MONTHS_SHORT[r.month]} ${r.weekday}/${r.weekend}`).join(', ');
       setPricingStr([
         `Βάση: ${eur(priceBase)}/νύχτα${adrVal > 0 ? ` (μέση πραγματική ADR ${eur(Math.round(adrVal))} από ${propStays.length} διαμονές)` : ' (εκτίμηση, χωρίς επαρκές ιστορικό)'}.`,
         `Ενδεικτικές τιμές ανά μήνα (καθημερινή/Σαββατοκύριακο): ${table}.`,

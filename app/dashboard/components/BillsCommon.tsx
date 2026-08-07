@@ -8,8 +8,8 @@ import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
 import { athensToday } from '@/lib/core/time';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
-const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
 const MGMT_TYPES = [
   { value: 'traditional', label: 'Παραδοσιακός Διαχειριστής' },
@@ -504,7 +504,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               </span>
             </div>
           )}
-          {MONTHS_GR.map((m, i) => {
+          {MONTHS_SHORT.map((m, i) => {
             const val    = parseFloat(history[i]) || 0;
             const pct    = val / maxH;
             const isCur  = i === currentMonth;
@@ -528,7 +528,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         {/* Month labels, clickable, highlight on hover */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
-          {MONTHS_GR.map((m, i) => (
+          {MONTHS_SHORT.map((m, i) => (
             <div key={i}
               style={{ flex: 1, fontSize: 8, textAlign: 'center', fontFamily: T.font.sans, cursor: 'pointer', padding: '2px 0', borderRadius: 3, transition: 'all 0.15s', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, background: hoveredMonth === i && i !== currentMonth ? 'var(--bg-elevated)' : 'transparent' }}
               onMouseEnter={() => setHoveredMonth(i)}
@@ -540,7 +540,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         {/* Input grid, hover + focus styles */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
-          {MONTHS_GR.map((m, i) => (
+          {MONTHS_SHORT.map((m, i) => (
             <div key={i}>
               {/* Η ΕΤΙΚΕΤΑ ΠΕΡΙΤΥΛΙΓΕΙ ΤΟ ΠΕΔΙΟ, ΔΕΝ ΚΑΘΕΤΑΙ ΑΠΛΩΣ ΑΠΟ ΠΑΝΩ.
                   Χωρίς σύνδεση, ο αναγνώστης οθόνης έλεγε δώδεκα φορές «πεδίο

@@ -51,9 +51,8 @@ import RentAdjustmentModal from './RentAdjustmentModal'
 import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
 import { Printer, ShieldCheck } from 'lucide-react'
 import { notifyError } from '@/components/Toast';
+import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 
-const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ']
-const MONTHS_GR_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
 const eur = (n:number)=>fe(n,0)
 const eur2 = (n:number)=>fe(n)
 const pct = (n:number)=>`${(n*100).toLocaleString('el-GR',{maximumFractionDigits:1})}%`
@@ -373,7 +372,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Ενοποιημένο καθολικό & ταμειακές ροές (όπως πριν, αλλά με τη νέα μηχανή για φόρο)
   const entries = useMemo<LedgerInput[]>(()=>{
     const out:LedgerInput[]=[]
-    for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_GR[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
+    for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
     for(const s of stays){ if((s.total||0)>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:s.total||0, source:'stay' }) } }
     for(const e of expenses){ if((e.amount||0)>0&&e.date){ out.push({ date:e.date, type:'expense', category:e.category||'Δαπάνες', description:e.description||'Δαπάνη', amount:e.amount, source:'expense' }) } }
     return out
@@ -388,7 +387,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // διαχωρισμένες σε τόκους (65) και χρεολύσιο (45). Κάθε άρθρο ισοσκελισμένο.
   const journalLines = useMemo(()=>{
     const incomes:IncomeRec[] = []
-    for(const p of rent){ if(p.paid&&(p.amount||0)>0&&p.period_year===year){ incomes.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount, description:`Ενοίκιο ${MONTHS_GR[(p.period_month||1)-1]} ${p.period_year}` }) } }
+    for(const p of rent){ if(p.paid&&(p.amount||0)>0&&p.period_year===year){ incomes.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount, description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}` }) } }
     for(const s of stays){ if((s.total||0)>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:s.total||0, description:`Κράτηση ${s.channel||''}`.trim() }) } }
     const exp:ExpenseRec[] = []
     for(const e of expenses){ if((e.amount||0)>0&&e.date&&String(e.date).slice(0,4)===String(year)){ exp.push({ date:e.date, amount:e.amount, category:e.category, description:e.description }) } }
@@ -401,7 +400,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   const recon = useMemo(()=>{
     const yr = rent.filter(p=>p.period_year===year)
-    const expected:Expected[] = yr.map(p=>({ id:`${p.period_year}-${p.period_month}`, date:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount||0, label:`${MONTHS_GR[(p.period_month||1)-1]} ${p.period_year}` }))
+    const expected:Expected[] = yr.map(p=>({ id:`${p.period_year}-${p.period_month}`, date:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount||0, label:`${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}` }))
     const actual:Actual[] = yr.filter(p=>p.paid).map(p=>({ refId:`${p.period_year}-${p.period_month}`, date:p.paid_date||'', amount:p.amount||0, paid:true }))
     return reconcile(expected, actual, todayAthens())
   },[rent,year])
@@ -473,7 +472,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Ετήσια βεβαίωση ενοικίου: μόνο εισπραγμένα μισθώματα του έτους, ανά μήνα.
   function printCertificate(){
     const paid = rent.filter(p=>p.paid&&p.period_year===year).sort((a,b)=>(a.period_month||0)-(b.period_month||0))
-    const months = paid.map(p=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
+    const months = paid.map(p=>({ label:`${MONTHS_NOM[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
     const total = months.reduce((s,m)=>s+m.amount,0)
     printRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address??undefined, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding })
   }
@@ -482,7 +481,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   async function officialRentCertificate(){
     if(genOfficialCert) return
     const paid = rent.filter(p=>p.paid&&p.period_year===year).sort((a,b)=>(a.period_month||0)-(b.period_month||0))
-    const months = paid.map(p=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
+    const months = paid.map(p=>({ label:`${MONTHS_NOM[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
     const total = months.reduce((s,m)=>s+m.amount,0)
     setGenOfficialCert(true)
     try {
@@ -1165,7 +1164,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <div style={{ display:'flex', flexDirection:'column' }}>
             {cash.map((c,i)=>{ const net=c.income-c.expense; const empty=!c.income&&!c.expense; return (
               <div key={i} style={{ display:'flex', alignItems:'center', gap:14, height:26 }}>
-                <span style={{ width:104, flexShrink:0, fontSize:12, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontFamily: T.font.sans }}>{MONTHS_GR_FULL[i]}</span>
+                <span style={{ width:104, flexShrink:0, fontSize:12, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontFamily: T.font.sans }}>{MONTHS_NOM[i]}</span>
                 <div style={{ flex:1, display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
                   <div style={{ flex:1, display:'flex', justifyContent:'flex-end', minWidth:0 }}>
                     {c.expense>0&&<div title={`Έξοδα ${eur(c.expense)}`} style={{ height:11, borderRadius:'3px 1px 1px 3px', width:`${Math.max(1.5, c.expense/maxCash*100)}%`, background:'var(--series-out)' }}/>}

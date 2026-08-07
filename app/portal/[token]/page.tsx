@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { T, feAuto, fdLong, ABSENT_DATE } from '@/components/Theme';
+import { MONTHS_NOM } from '@/lib/core/months';
 
 interface DueItem { id: string; year: number; month: number; amount: number; due_date: string | null; declared: boolean }
 
@@ -24,8 +25,7 @@ interface PortalData {
 
 const eur = (n: number | null) => (n == null ? '—' : feAuto(n));
 const gdate = (d: string | null) => (d ? fdLong(d) : ABSENT_DATE);
-const GR_MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
-const monthLabel = (month: number, year: number) => `${GR_MONTHS[month - 1] ?? ''} ${year}`.trim();
+const monthLabel = (month: number, year: number) => `${MONTHS_NOM[month - 1] ?? ''} ${year}`.trim();
 
 export default function TenantPortal() {
   const params = useParams();

@@ -20,6 +20,7 @@ import { downloadJournalWorkbook } from './journalXlsx';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { askCta } from '@/lib/assistant/identity';
 import { askAssistant } from './AssistantStrip';
+import { MONTHS_NOM } from '@/lib/core/months';
 
 // Δόση δανείου (από περιγραφή/κατηγορία εξόδου) — ελληνικά & αγγλικά.
 const LOAN_RE = /δάνει|δόσ\w*\s*δάν|τοκοχρε|χρεολ|loan|installment|mortgage|στεγαστ/i;
@@ -42,7 +43,6 @@ function loanInterestForPayment(l: LoanRow, isoDate: string, payment: number): n
 
 type ExportFormat = JournalFormat | 'excel';
 interface Prop { id: string; name: string }
-const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const FORMATS: { key: ExportFormat; label: string; hint: string; ext: string }[] = [
   { key: 'excel', label: 'Excel', hint: 'Πλήρες βιβλίο', ext: 'xlsx' },
   { key: 'generic', label: 'SoftOne / Epsilon', hint: 'Ημερολόγιο άρθρων', ext: 'csv' },
@@ -91,7 +91,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
 
   useEffect(() => { setPreview(null); setTotals(null); setAudit(null); setShowChecks(false); }, [year, month, propIds]);
 
-  const periodLabel = month === 0 ? `${year}` : `${MONTHS[month - 1]} ${year}`;
+  const periodLabel = month === 0 ? `${year}` : `${MONTHS_NOM[month - 1]} ${year}`;
 
   // Άντληση + χτίσιμο ημερολογίου (κοινό για preview & download).
   const gather = async () => {
@@ -207,7 +207,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
               </div>
               <div style={{ minWidth: 160 }}>
                 <CustomSelect value={String(month)} onChange={v => setMonth(Number(v))}
-                  options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))]} />
+                  options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS_NOM.map((m, i) => ({ value: String(i + 1), label: m }))]} />
               </div>
             </div>
           </div>

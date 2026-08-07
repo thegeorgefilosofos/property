@@ -8,7 +8,6 @@ import {
   ServicesEditor, serviceLinesFrom, servicesTenantCharge, servicesOwnerCost,
   CPI_BY_YEAR, CPI_SOURCE_URL, CPI_LATEST_YEAR, cpiFor, cpiConfirmedLabel,
   LEASE_LABELS, LEASE_CATEGORY_LABELS, COMMERCIAL_STAMP_DUTY, ID_DOCS,
-  MONTHS_FULL, MONTHS_S,
   syncTenantSchedule, setRentDueOccurrencePaid, type TenantScheduleInput,
 } from './TabTenantHelpers';
 import {
@@ -38,6 +37,7 @@ import { SYSTEM_PROMPT } from './DocumentScan';
 import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
 import { escHtml as esc } from '@/lib/reportBranding';
 import { athensToday, daysUntil } from '@/lib/core/time';
+import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
@@ -96,7 +96,6 @@ const lastDayNextMonth = (iso:string) => {
 interface CommLog { id:string; tenant_id:string; type:'call'|'email'|'sms'|'meeting'|'note'; summary:string; date:string; outcome:string|null; }
 interface TabTenantProps { propertyId:string; userId:string; onStartHandover?:(tenantName:string,tenantPhone:string,type:'check_in'|'check_out')=>void; }
 
-const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
 // ─── Τύπος επίπλωσης ───────────────────────────────────────────────────────────
 // Είναι η ΜΙΑ είσοδος που κρίνει αν υπάρχουν καθόλου παρεχόμενες υπηρεσίες. Το
@@ -298,7 +297,7 @@ function PaymentBars({ payments }:{payments:RentPayment[]}) {
           const color=!p.paid?'var(--negative)':late>14?'var(--warning)':late>0?'var(--info)':'var(--positive)';
           return (
             <div key={p.id} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center' }}
-              title={`${MONTHS_GR[p.period_month-1]} ${p.period_year}: ${p.paid?'Εξοφλήθη':'Εκκρεμεί'}${late>0?` (${late} ημ. καθυστέρηση)`:''}`}>
+              title={`${MONTHS_SHORT[p.period_month-1]} ${p.period_year}: ${p.paid?'Εξοφλήθη':'Εκκρεμεί'}${late>0?` (${late} ημ. καθυστέρηση)`:''}`}>
               <div style={{ width:'100%', height:p.paid?72:36, background:color, borderRadius:'3px 3px 0 0', opacity:0.8, transition:'height 0.4s ease' }}/>
             </div>
           );
@@ -307,7 +306,7 @@ function PaymentBars({ payments }:{payments:RentPayment[]}) {
       <div style={{ display:'flex', gap:5 }}>
         {last12.map((p,i)=>(
           <div key={i} style={{ flex:1, fontSize:7, color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
-            {MONTHS_GR[p.period_month-1]}
+            {MONTHS_SHORT[p.period_month-1]}
           </div>
         ))}
       </div>
@@ -882,7 +881,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   // Εξαγωγή πληρωμών ενοικίου σε .xlsx — «Μορφοποιημένο» (default) ή «Επεξεργάσιμο» (data).
   const exportPaymentsXlsx = (mode?: XlsxMode) => {
     const headers = ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημερομηνία Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'];
-    const rows = sorted.map(p=>[`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`,p.amount,payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')]);
+    const rows = sorted.map(p=>[`${MONTHS_NOM[p.period_month-1]} ${p.period_year}`,p.amount,payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')]);
     downloadCsv(`enoikio_${todayISO()}`, headers, rows, { mode });
   };
 
@@ -934,7 +933,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   // Το user_properties έχει `name` και `address` — όχι `title`/`label`, που ήταν
   // υποθέσεις πάνω σε πίνακα που δεν υπήρχε.
   const propLabel=()=> (prop?.address||prop?.name||'') as string;
-  const monthLabel=(p:RentPayment)=>`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`;
+  const monthLabel=(p:RentPayment)=>`${MONTHS_NOM[p.period_month-1]} ${p.period_year}`;
 
   const printReceipt=(p:RentPayment)=>{
     const paidDate=p.paid_date?rDate(p.paid_date+'T00:00:00'):ABSENT_DATE;
@@ -1137,7 +1136,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
         {addOpen&&(
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, margin:'12px 0 4px' }}>
             <div style={{ ...s.g4, marginBottom:14 }}>
-              <SelectField label="Μήνας" value={String(payF.period_month)} onChange={v=>setPayF(f=>({...f,period_month:+v}))} options={MONTHS_FULL.map((m,i)=>({value:String(i+1),label:m}))}/>
+              <SelectField label="Μήνας" value={String(payF.period_month)} onChange={v=>setPayF(f=>({...f,period_month:+v}))} options={MONTHS_NOM.map((m,i)=>({value:String(i+1),label:m}))}/>
               <NumberInput label="Έτος" value={String(payF.period_year)} onChange={v=>setPayF(f=>({...f,period_year:+v}))} min={2000}/>
               <NumberInput label="Ποσό" value={payF.amount} onChange={v=>setPayF(f=>({...f,amount:v}))} suffix="€" placeholder={tenant.monthly_rent?.toString()}/>
               <SelectField label="Τρόπος πληρωμής" value={payF.method} onChange={v=>setPayF(f=>({...f,method:v as PayMethod}))} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
@@ -1168,7 +1167,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
             <tbody>
               {sorted.map(p=>(
                 <tr key={p.id}>
-                  <td style={s.td}><strong style={{ fontFamily:T.font.sans }}>{MONTHS_S[p.period_month-1]}</strong> <span style={{ color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{p.period_year}</span></td>
+                  <td style={s.td}><strong style={{ fontFamily:T.font.sans }}>{MONTHS_SHORT[p.period_month-1]}</strong> <span style={{ color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{p.period_year}</span></td>
                   <td style={{ ...s.td, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(p.amount)}
                     {p.services_charge&&p.services_charge>0?<span style={{ display:'block', fontSize:10, fontWeight:400, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>ενοίκιο {fmt(p.base_rent)} + υπηρεσίες {fmt(p.services_charge)}</span>:null}
                   </td>

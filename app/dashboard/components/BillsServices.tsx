@@ -8,8 +8,8 @@ import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UICo
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fp, Spinner, EmptyState } from '@/components/Theme';
 import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
+import { MONTHS_SHORT } from '@/lib/core/months';
 
-const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
 // FIX: history input style with hover
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
@@ -555,7 +555,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           Ιστορικό Δημοτικών Τελών / μήνα, Μέσος Όρος: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
         </div>
         <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
-          {MONTHS_GR.map((m, i) => {
+          {MONTHS_SHORT.map((m, i) => {
             const val   = parseFloat((s.dimotikaHistory || [])[i]) || 0;
             const pct   = val / maxH;
             const isCur = i === currentMonth;
@@ -573,13 +573,13 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           })}
         </div>
         <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
-          {MONTHS_GR.map((m, i) => (
+          {MONTHS_SHORT.map((m, i) => (
             <div key={i} style={{ flex: 1, fontSize: 8, color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, fontFamily: T.font.sans, cursor: 'pointer', transition: 'color 0.15s' }}
               onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}>{m}</div>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
-          {MONTHS_GR.map((m, i) => (
+          {MONTHS_SHORT.map((m, i) => (
             <div key={i}>
               {/* Ίδιος λόγος με το BillsCommon: η ετικέτα περιτυλίγει το πεδίο
                   ώστε να ακούγεται ο μήνας, και μεγαλώνει από 8 σε 10. */}

@@ -46,6 +46,7 @@ import {
 import { guestPriceBreakdown } from '@/lib/tax/shortTermTax';
 import { platformFeeRate, type StayAmountLike } from '@/lib/clients/stayAmounts';
 import { athensToday } from '@/lib/core/time';
+import { MONTHS_NOM } from '@/lib/core/months';
 
 interface Props {
   propertyId: string; userId: string; propertyName?: string; propertySqm?: number;
@@ -58,7 +59,6 @@ interface Props {
 type PriceStay = PricingStay & StayAmountLike;
 
 const WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
-const MONTH_NAMES = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const todayIso = () => athensToday();
 const addDaysIso = (d: string, n: number) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
@@ -601,7 +601,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                 const daysInMonth = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
                 return (
                   <div key={key} style={{ flex: '1 1 300px', minWidth: 280, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{MONTH_NAMES[mm - 1]} {yy}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{MONTHS_NOM[mm - 1]} {yy}</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
                       {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', paddingBottom: 4 }}>{w}</div>)}
                       {Array.from({ length: lead }).map((_, i) => <div key={'b' + i} />)}

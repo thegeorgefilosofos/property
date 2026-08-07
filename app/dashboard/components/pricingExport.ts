@@ -11,12 +11,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { XLSX, FMT, S, setCell, money, percent, intGr, type Cell } from './xlsxStyle';
 import { SEASON_LABELS, type Season } from '@/lib/pricing/dynamicPricing';
+import { MONTHS_NOM } from '@/lib/core/months';
 
 // Κείμενο βάσει μορφής: ποσό «€», ποσοστό «%», ακέραιος — πάντα με ελληνικό κόμμα.
 const fmtZ = (v: number, z?: string): string => (z === FMT.pct ? percent(v) : z === FMT.int ? intGr(v) : money(v));
 
 const WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
-const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const toDate = (d: string): Date | string => { const t = new Date(d + 'T00:00:00'); return isNaN(t.getTime()) ? d : t; };
 // dow: 0=Κυρ … 6=Σαβ (όπως το engine) → ελληνική συντομογραφία Δε…Κυ.
 const wd = (dow: number) => WEEKDAYS[(dow + 6) % 7] || '';
@@ -154,7 +154,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
       const prices = avail.map(r => r.price);
       const avg = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
       return {
-        name: MONTHS[m], days: rs.length, available: avail.length, booked: rs.length - avail.length,
+        name: MONTHS_NOM[m], days: rs.length, available: avail.length, booked: rs.length - avail.length,
         avg, min: prices.length ? Math.min(...prices) : 0, max: prices.length ? Math.max(...prices) : 0,
       };
     });

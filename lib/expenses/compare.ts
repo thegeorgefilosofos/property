@@ -28,6 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { categoryLabel, resolveCategory } from './taxonomy';
+import { MONTHS_ACC } from '../core/months';
 
 /** Το ελάχιστο που χρειάζεται η σύγκριση από μια κίνηση. */
 export interface Spend {
@@ -91,13 +92,11 @@ export function prevMonth(key: string): string {
 export const sameMonthLastYear = (key: string): string =>
   `${Number(key.slice(0, 4)) - 1}-${key.slice(5, 7)}`;
 
-const MONTHS = ['Ιανουάριο', 'Φεβρουάριο', 'Μάρτιο', 'Απρίλιο', 'Μάιο', 'Ιούνιο',
-  'Ιούλιο', 'Αύγουστο', 'Σεπτέμβριο', 'Οκτώβριο', 'Νοέμβριο', 'Δεκέμβριο'];
 
 /** «τον Ιούλιο» ή «τον Ιούλιο 2025», όταν η χρονιά διαφέρει από την τρέχουσα. */
 export function monthPhrase(key: string, refYear?: number): string {
   const y = Number(key.slice(0, 4)), i = Number(key.slice(5, 7)) - 1;
-  const name = MONTHS[i] ?? key;
+  const name = MONTHS_ACC[i] ?? key;
   return refYear !== undefined && y !== refYear ? `${name} ${y}` : name;
 }
 
@@ -290,7 +289,7 @@ export function history(spends: readonly Spend[], today: Date, months = 12): Mon
     const last = totals.get(sameMonthLastYear(key));
     out.push({
       key,
-      label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`,
+      label: `${MONTHS_ACC[d.getMonth()]} ${d.getFullYear()}`,
       total,
       // `null` όταν δεν υπάρχει περσινή μέτρηση. Το μηδέν θα ήταν ψέμα: δεν
       // ξέρουμε ότι πέρυσι ξόδεψε μηδέν, ξέρουμε ότι δεν έχουμε στοιχεία.

@@ -18,9 +18,9 @@ import { computeSplit, type OwnerShare } from '@/lib/accounting/ownerSplit';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
+import { MONTHS_NOM } from '@/lib/core/months';
 
 interface Prop { id: string; name: string; address: string | null }
-const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const LS = (pid: string) => `po_owner_split_${pid}`;
 
 interface Row { name: string; pct: string; afm: string }
@@ -82,7 +82,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   const owners: OwnerShare[] = useMemo(() => rows.filter(r => r.name.trim()).map(r => ({ name: r.name.trim(), pct: num(r.pct), afm: r.afm.trim() || undefined })), [rows]);
   const result = useMemo(() => computeSplit({ grossIncome: figures?.gross || 0, expenses: figures?.expenses || 0, owners, managementFeePct: num(feePct), managerName }), [figures, owners, feePct, managerName]);
   const prop = props.find(p => p.id === propId);
-  const periodLabel = month === 0 ? `Έτος ${year}` : `${MONTHS[month - 1]} ${year}`;
+  const periodLabel = month === 0 ? `Έτος ${year}` : `${MONTHS_NOM[month - 1]} ${year}`;
 
   const saveLayout = () => { try { localStorage.setItem(LS(propId), JSON.stringify({ rows, feePct, managerName })); } catch { /* ignore */ } };
 
@@ -161,7 +161,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                   <Select value={String(year)} onChange={v => setYear(Number(v))} options={Array.from({ length: 7 }, (_, i) => nowYear - i).map(y => ({ value: String(y), label: String(y) }))} />
                 </div>
                 <div style={{ flex: '1 1 130px', minWidth: 0 }}>
-                  <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))]} />
+                  <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS_NOM.map((m, i) => ({ value: String(i + 1), label: m }))]} />
                 </div>
               </div>
 

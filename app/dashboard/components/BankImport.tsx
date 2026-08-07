@@ -5,8 +5,8 @@ import { Check, ArrowRight, Landmark, SearchX } from 'lucide-react'
 import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
 import { feAuto, T, EmptyState, Spinner } from '@/components/Theme'
 import { athensToday } from '@/lib/core/time';
+import { MONTHS_NOM } from '@/lib/core/months';
 
-const MONTHS = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
 const hashOf = (t:BankTxn)=>`${t.date}|${t.amount}|${t.description}`.slice(0,200)
 
 // Εισαγωγή τραπεζικής κίνησης (CSV) και αντιστοίχιση σε ενοίκια/έξοδα. Καθαρό,
@@ -32,7 +32,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     setSkipped(txns.length - fresh.length)
     // Αναμενόμενα ενοίκια (ανεξόφλητα) του έτους.
     const { data: rp } = await supabase.from('rent_payments').select('id,period_year,period_month,amount,due_date,paid').eq('property_id',propertyId).eq('user_id',userId).eq('period_year',year)
-    const expected:ExpectedRent[] = (rp||[]).filter((p:any)=>!p.paid).map((p:any)=>({ id:p.id, label:`${MONTHS[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0, dueDate:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01` }))
+    const expected:ExpectedRent[] = (rp||[]).filter((p:any)=>!p.paid).map((p:any)=>({ id:p.id, label:`${MONTHS_NOM[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0, dueDate:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01` }))
     const res = matchTransactions(fresh, expected)
     const labelById = new Map(expected.map(e=>[e.id,e.label]))
     setRentMatches(res.rentMatches.map(m=>({ ...m, label:labelById.get(m.rentId)||'Ενοίκιο', confirm:true })))
