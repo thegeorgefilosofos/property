@@ -11,7 +11,7 @@ import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
 import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
-import { downloadCsv } from './exportCsv';
+import { downloadTableXlsx } from './exportCsv';
 import Billing from './Billing';
 import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
@@ -472,7 +472,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
   const exportSettingsCsv = () => {
     const rows = Object.entries(s as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]);
-    downloadCsv(`rythmiseis_akinitou_${athensToday()}`, ['Πεδίο', 'Τιμή'], rows);
+    downloadTableXlsx(`Ρυθμίσεις ακινήτου ${athensToday()}`, {
+      title: 'Ρυθμίσεις ακινήτου', headers: ['Πεδίο', 'Τιμή'], rows,
+    });
   };
 
   const exportAll = async () => {

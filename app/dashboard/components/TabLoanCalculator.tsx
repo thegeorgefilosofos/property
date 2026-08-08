@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, InfoDot } from './UIComponents'
 import { KPI, LensBar, cardStyle } from './LoanShared'
-import { downloadCsv } from './exportCsv'
+import { downloadTableXlsx } from './exportCsv'
 import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './xlsxStyle'
 import DocChecklist from './DocChecklist'
@@ -792,25 +792,32 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     const d=new Date(base.getFullYear(),base.getMonth()+i,base.getDate())
     return d
   }
-  const amortFileBase = ()=>`toxoxreolysio_${bankName?bankName.toLowerCase().replace(/\s+/g,'_').slice(0,24)+'_':''}${Math.round(LA/1000)}k_${Y}et`
+  const amortFileBase = ()=>`Τοκοχρεολύσιο ${bankName?bankName.slice(0,24)+' ':''}${Math.round(LA/1000)} χιλιάδες ${Y} έτη`
 
   // ── Εξαγωγή πλήρους πίνακα τοκοχρεολυσίου σε CSV (ανοίγει σε Excel) ───────────
   function exportAmortCsv(){
     if(!amort.length){notify('Δεν υπάρχουν δόσεις προς εξαγωγή',{tone:'warning'});return}
-    downloadCsv(
-      amortFileBase(),
-      ['Δόση','Ημερομηνία','Έτος','Ποσό δόσης (€)','Κεφάλαιο (€)','Τόκος (€)','Υπόλοιπο (€)','Σωρευτικοί τόκοι (€)'],
-      amort.map(r=>{
+    // ΤΑ ΠΟΣΑ ΩΣ ΑΡΙΘΜΟΙ. Περνούσαν από τη `csvEur()`, που παράγει κείμενο:
+    // ολόκληρος ο πίνακας χρεολυσίων έφτανε ως συμβολοσειρές και η γραμμή
+    // ΣΥΝΟΛΟ έβγαζε «0,00 €» κάτω από τριακόσιες εξήντα δόσεις.
+    //
+    // Το υπόλοιπο και οι σωρευτικοί τόκοι ΔΕΝ αθροίζονται — είναι μεγέθη
+    // αποθέματος, όχι ροής. Γι' αυτό η επικεφαλίδα τους δεν ξεκινά με λέξη
+    // ποσού και μένουν έξω από το σύνολο: άθροισμα υπολοίπων δεν σημαίνει τίποτα.
+    downloadTableXlsx(amortFileBase(), {
+      title: 'Πίνακας τοκοχρεολυσίου',
+      subject: `${bankName || 'Χωρίς τράπεζα'} · ${Y} έτη`,
+      headers: ['Δόση','Ημερομηνία','Έτος','Ποσό δόσης (€)','Κεφάλαιο (€)','Τόκος (€)','Υπόλοιπο κεφαλαίου (€)','Τόκοι σωρευτικά (€)'],
+      rows: amort.map(r=>{
         const dt=installmentDate(r.month)
         return [
           r.month,
           dt.toLocaleDateString('el-GR',{month:'2-digit',year:'numeric'}),
           Math.ceil(r.month/12),
-          csvEur(r.payment), csvEur(r.principal), csvEur(r.interest),
-          csvEur(r.balance), csvEur(r.totalInterestPaid),
+          r.payment, r.principal, r.interest, r.balance, r.totalInterestPaid,
         ]
-      })
-    )
+      }),
+    })
     notifyOk('Ο πίνακας τοκοχρεολυσίου εξήχθη')
   }
 

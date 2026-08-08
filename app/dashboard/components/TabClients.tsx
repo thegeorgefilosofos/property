@@ -49,9 +49,9 @@ import {
 } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
-import { downloadCsv } from './exportCsv';
+import { downloadTableXlsx } from './exportCsv';
 import { saved, savedData } from '@/components/dbWrite';
-import { money, intGr } from './xlsxStyle';
+import { money } from './xlsxStyle';
 import ClientCompose from './ClientCompose';
 import {
   stayNights, stayTotal, clientStats, normalizePhone,
@@ -822,25 +822,33 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         return [
           byId.get(s.client_id)?.full_name || '', propName(s.property_id),
           s.check_in || '', s.check_out || '',
-          intGr(s.nights ?? stayNights(s.check_in, s.check_out)),
+          s.nights ?? stayNights(s.check_in, s.check_out),
           s.channel ? (STAY_CHANNEL_LABELS[s.channel as keyof typeof STAY_CHANNEL_LABELS] || s.channel) : '',
-          s.gross_guest_paid != null ? money(s.gross_guest_paid) : '',
-          s.climate_levy != null ? money(s.climate_levy) : '',
-          s.platform_fee != null ? money(s.platform_fee) : '',
-          g != null ? money(g) : money(stayTotal(s)),
-          g != null ? '' : 'ΑΠΡΟΣΔΙΟΡΙΣΤΟ — χρειάζεται επιβεβαίωση',
-          pay != null ? money(pay) : '',
+          s.gross_guest_paid ?? '',
+          s.climate_levy ?? '',
+          s.platform_fee ?? '',
+          g ?? stayTotal(s),
+          g != null ? '' : 'ΑΠΡΟΣΔΙΟΡΙΣΤΟ, χρειάζεται επιβεβαίωση',
+          pay ?? '',
           isDeclared(s) ? (s.declared_at || '').slice(0, 10) : 'ΑΔΗΛΩΤΗ',
-          s.damages ? money(s.damage_cost || 0) : '',
+          s.damages ? (s.damage_cost || 0) : '',
           it?.name || s.damage_note || '',
         ];
       });
-    downloadCsv(`diamones_${todayStr()}`, [
-      'Επισκέπτης', 'Ακίνητο', 'Άφιξη', 'Αναχώρηση', 'Νύχτες', 'Κανάλι',
-      'Πλήρωσε ο επισκέπτης', 'Τέλος ανθεκτικότητας', 'Προμήθεια πλατφόρμας',
-      'ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ', 'Σημείωση ποσού', 'Καθαρή είσπραξη',
-      'Δήλωση βραχυχρόνιας διαμονής', 'Κόστος φθοράς', 'Αντικείμενο / σημείωση φθοράς',
-    ], rows);
+    downloadTableXlsx(`Διαμονές ${todayStr()}`, {
+      title: 'Διαμονές επισκεπτών',
+      // Οι επικεφαλίδες φέρουν το «(€)» ώστε ο κοινός exporter να δώσει στη
+      // στήλη μορφή νομίσματος και ζωντανό άθροισμα. Πριν, τα ποσά γράφονταν ως
+      // κείμενο «1.234,56 €» και το φύλλο των βραχυχρόνιων διαμονών — αυτό
+      // ακριβώς που πάει στον λογιστή για τη δήλωση — δεν αθροιζόταν πουθενά.
+      headers: [
+        'Επισκέπτης', 'Ακίνητο', 'Άφιξη', 'Αναχώρηση', 'Νύχτες', 'Κανάλι',
+        'Πληρωμή επισκέπτη (€)', 'Τέλος ανθεκτικότητας (€)', 'Προμήθεια πλατφόρμας (€)',
+        'Δηλωτέο ακαθάριστο (€)', 'Σημείωση ποσού', 'Καθαρή είσπραξη (€)',
+        'Δήλωση βραχυχρόνιας διαμονής', 'Κόστος φθοράς (€)', 'Αντικείμενο ή σημείωση φθοράς',
+      ],
+      rows,
+    });
   };
 
   // ── Κοινά inline styles ────────────────────────────────────────────────────

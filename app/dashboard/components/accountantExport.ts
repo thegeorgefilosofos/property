@@ -15,7 +15,7 @@
 // Πραγματικά κελιά, ημερομηνίες ως ημερομηνίες, ποσά ως νόμισμα (2 δεκαδικά),
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, money, moneySigned, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell } from './xlsxStyle';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
 import { downloadFile } from '@/lib/core/download';
@@ -148,11 +148,9 @@ function buildWorkbook(inp: AccountantBundleInput) {
   return wb;
 }
 
-const safeName = (s: string) => (s || 'akinito').replace(/\s+/g, '_');
-
 /** Κατεβάζει το λογιστικό Excel του έτους (κατάσταση αποτελεσμάτων + κινήσεις). */
 export function exportAccountantBundle(inp: AccountantBundleInput): void {
-  XLSX.writeFile(buildWorkbook(inp), `logistiki_${safeName(inp.propName)}_${inp.year}.xlsx`);
+  downloadWorkbook(buildWorkbook(inp), `Λογιστική κατάσταση ${inp.propName || 'ακίνητο'} ${inp.year}`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -310,5 +308,5 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
   ];
 
   downloadFile(new Blob([buildZip(files)], { type: 'application/zip' }),
-    `fakelos_logisti_${safeName(propName)}_${year}.zip`);
+    `Φάκελος λογιστή ${propName || 'ακίνητο'} ${year}.zip`);
 }

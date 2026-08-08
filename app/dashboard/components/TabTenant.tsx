@@ -24,7 +24,7 @@ import { confirmDialog } from '@/components/ConfirmDialog';
 import LeaseModal from './LeaseModal';
 import LeaseDeclaration from './LeaseDeclaration';
 import { roleLabel } from '@/lib/contacts/roles';
-import { downloadCsv, csvDate, type XlsxMode } from './exportCsv';
+import { downloadTableXlsx, csvDate } from './exportCsv';
 import { money as csvEur } from './xlsxStyle';
 import { brandName, useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf';
@@ -916,11 +916,12 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   const arrearsTotal=overdue.reduce((a,p)=>a+p.amount,0);
   const received=payments.filter(p=>p.paid).reduce((a,p)=>a+p.amount,0);
 
-  // Εξαγωγή πληρωμών ενοικίου σε .xlsx — «Μορφοποιημένο» (default) ή «Επεξεργάσιμο» (data).
-  const exportPaymentsXlsx = (mode?: XlsxMode) => {
-    const headers = ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημερομηνία Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'];
+  const exportPaymentsXlsx = () => {
+    const headers = ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημερομηνία πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'];
     const rows = sorted.map(p=>[periodLabel(p.period_year,p.period_month,periodMonths,monthNom),p.amount,payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')]);
-    downloadCsv(`enoikio_${todayISO()}`, headers, rows, { mode });
+    downloadTableXlsx(`Εισπράξεις ενοικίου ${todayISO()}`, {
+      title: 'Εισπράξεις ενοικίου', subject: tenant.full_name || undefined, headers, rows,
+    });
   };
 
   // Τρέχουσα ανάλυση δόσης βάσει προφίλ μισθωτή (ενοίκιο + υπηρεσίες).
@@ -1143,7 +1144,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
             <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σάρωσε απόδειξη</button>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.target.value='';}}/>
             <button style={s.btnSm} onClick={generateNow} disabled={busy}>{busy?'…':'Δημιουργία δόσεων'}</button>
-            <ExportButton disabled={payments.length===0} onClick={()=>exportPaymentsXlsx()} onExportData={()=>exportPaymentsXlsx('data')}/>
+            <ExportButton disabled={payments.length===0} onClick={exportPaymentsXlsx}/>
             <button style={s.btnSm} onClick={()=>setAddOpen(v=>!v)}>{addOpen?'Κλείσιμο':'+ Καταχώρηση'}</button>
           </div>
         </div>
@@ -2336,16 +2337,19 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     window.open(data.signedUrl,'_blank','noopener,noreferrer');
   };
 
-  // ── Εξαγωγή CSV μητρώου ──────────────────────────────────────────────────────
+  // ── Εξαγωγή μητρώου μισθωτών ────────────────────────────────────────────────
+  // Το ενοίκιο και η εγγύηση περνούσαν από τη `csvEur()` και έφταναν ως κείμενο:
+  // το μητρώο δεν αθροιζόταν σε καμία στήλη.
   const exportRoster=()=>{
-    downloadCsv(`enoikiastes_${todayISO()}`,
-      ['Ονοματεπώνυμο','Κατάσταση','ΑΦΜ','Τηλέφωνο','Ηλεκτρονικό ταχυδρομείο','Είδος μίσθωσης','Έναρξη','Λήξη','Αποχώρηση','Ημέρα πληρωμής','Μηνιαίο ενοίκιο (€)','Εγγύηση (€)','Τρόπος εγγύησης','Ημερομηνία καταβολής εγγύησης','Επεστράφη'],
-      [...tenants].map(t=>[
+    downloadTableXlsx(`Μητρώο μισθωτών ${todayISO()}`, {
+      title: 'Μητρώο μισθωτών',
+      headers: ['Ονοματεπώνυμο','Κατάσταση','ΑΦΜ','Τηλέφωνο','Ηλεκτρονικό ταχυδρομείο','Είδος μίσθωσης','Έναρξη','Λήξη','Αποχώρηση','Ημέρα πληρωμής','Μηνιαίο ενοίκιο (€)','Εγγύηση (€)','Τρόπος εγγύησης','Ημερομηνία καταβολής εγγύησης','Επεστράφη'],
+      rows: [...tenants].map(t=>[
         t.full_name, isPastTenant(t)?'Προηγούμενος':'Τρέχων', t.afm||'', t.phone||'', t.email||'',
         t.lease_category?LEASE_CATEGORY_LABELS[t.lease_category]:'', csvDate(t.lease_start), csvDate(t.lease_end), csvDate(t.move_out_date),
-        t.rent_due_day||'', csvEur(t.monthly_rent), csvEur(t.deposit_amount), t.deposit_method||'', csvDate(t.deposit_paid_on), t.deposit_returned?'ΝΑΙ':'',
+        t.rent_due_day||'', t.monthly_rent ?? '', t.deposit_amount ?? '', t.deposit_method||'', csvDate(t.deposit_paid_on), t.deposit_returned?'ΝΑΙ':'',
       ]),
-    );
+    });
   };
 
   // Σκελετός αντί για spinner: η οθόνη έχει γνωστό σχήμα (σειρά KPIs + πλέγμα καρτών

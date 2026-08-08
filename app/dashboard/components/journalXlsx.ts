@@ -7,7 +7,7 @@
 // του app (xlsxStyle). Τρία φύλλα: Ημερολόγιο (διπλογραφικό, με σύνολα & έλεγχο
 // ισοζυγίου ως φόρμουλα), Ισοζύγιο (ΕΓΛΣ trial balance), Έλεγχος (audit).
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
 import {
   trialBalance, journalTotals, auditJournal,
   type JournalLine,
@@ -158,12 +158,18 @@ export function downloadJournalWorkbook(opts: {
     audit.checks.forEach((c, i) => {
       const r = HR + 1 + i; ws['!rows']![r] = { hpt: c.fix ? 30 : 18 };
       setCell(ws, r, 0, { s: S.txt });
-      setCell(ws, r, 1, { s: { ...S.strongTxt, alignment: { horizontal: 'center', vertical: 'center' }, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: c.status === 'pass' ? '027A48' : c.status === 'warn' ? 'B54708' : 'B42318' } } } });
+      // ΚΑΜΙΑ ΣΗΜΑΣΙΑ ΣΕ ΠΡΑΣΙΝΟ ΚΑΙ ΚΟΚΚΙΝΟ, ΟΥΤΕ ΣΤΟ EXCEL. Το φύλλο ελέγχου
+      // έβαφε «πέρασε» πράσινο και «απέτυχε» κόκκινο — τα δύο χρώματα που ο
+      // έγχρωμα τυφλός αναγνώστης δεν ξεχωρίζει, πάνω σε πληροφορία που κρίνει
+      // αν η δήλωση είναι σωστή. Η ιεραρχία βγαίνει από το ΒΑΡΟΣ: ό,τι χρειάζεται
+      // προσοχή είναι έντονο και σκούρο, ό,τι πέρασε είναι απαλό.
+      setCell(ws, r, 1, { s: { ...S.strongTxt, alignment: { horizontal: 'center', vertical: 'center' }, font: { name: 'Calibri', bold: c.status !== 'pass', sz: 10, color: { rgb: c.status === 'pass' ? '6B7280' : '111111' } } } });
       setCell(ws, r, 2, { s: S.txtWrap });
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Έλεγχος');
   }
 
-  const name = (opts.fileName || `Logistiko_hmerologio_${periodLabel}`).replace(/\s+/g, '_').replace(/[^\w\-.]/g, '');
-  XLSX.writeFile(wb, `${name}.xlsx`);
+  // Το `[^\\w\\-.]` ήταν ASCII και έσβηνε ΚΑΘΕ ελληνικό χαρακτήρα του ονόματος.
+  // Ο καθαρισμός γίνεται πια στο `lib/core/download.ts`, που κρατά τα ελληνικά.
+  downloadWorkbook(wb, opts.fileName || `Λογιστικό ημερολόγιο ${periodLabel}`);
 }

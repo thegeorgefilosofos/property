@@ -9,7 +9,7 @@
 // Ίδιο «λογιστικό» στυλ με τις άλλες εξαγωγές (xlsxStyle): ασπρόμαυρο, στοιχισμένο,
 // δύο δεκαδικά, ημερομηνίες ως ημερομηνίες, ζωντανά σύνολα όπου έχει νόημα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, money, percent, intGr, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, downloadWorkbook, money, percent, intGr, type Cell } from './xlsxStyle';
 import { SEASON_LABELS, type Season } from '@/lib/pricing/dynamicPricing';
 import { MONTHS_NOM } from '@/lib/core/months';
 
@@ -187,5 +187,5 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     XLSX.utils.book_append_sheet(wb, ws, 'Ανά μήνα');
   }
 
-  XLSX.writeFile(wb, `dynamiki-timologisi_${(propName || 'akinito').replace(/\s+/g, '_')}_${year}.xlsx`);
+  downloadWorkbook(wb, `Δυναμική τιμολόγηση ${propName || 'ακίνητο'} ${year}`);
 }

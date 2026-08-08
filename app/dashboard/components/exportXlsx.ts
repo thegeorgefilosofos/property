@@ -4,15 +4,39 @@
 // για τις συναρτήσεις. Μπαίνει ούτως ή άλλως στο πακέτο του πελάτη, αφού μόνο
 // client components το εισάγουν.
 // ═══════════════════════════════════════════════════════════════════════════
-// exportXlsx — κοινή, «λογιστικού επιπέδου» εξαγωγή .xlsx (στημένη πάνω στο
-// κοινό στυλ xlsxStyle, ίδιο με φάκελο λογιστή/Ε2/τιμολόγηση).
+// Η ΕΞΑΓΩΓΗ ΣΕ EXCEL — ΕΝΑ ΑΡΧΕΙΟ, ΟΧΙ ΔΥΟ ΠΑΡΑΛΛΑΓΕΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Υπήρχαν δύο τρόποι εξαγωγής, με κουμπί που ζητούσε από
+// τον χρήστη να διαλέξει:
+//
+//   «Μορφοποιημένο»          τα ποσά γράφονταν ως ΚΕΙΜΕΝΟ, «1.234,56 €»
+//   «Επεξεργάσιμο (δεδομένα)» τα ποσά ως αριθμοί, με γραμμή ΣΥΝΟΛΟ
+//
+// Το πρώτο παρήγαγε φύλλο που ΔΕΝ αθροίζεται. Ο λογιστής επιλέγει τη στήλη και
+// το Excel δείχνει «Άθροισμα: 0» — κάθε κελί είναι συμβολοσειρά, με το πράσινο
+// τριγωνάκι «αριθμός αποθηκευμένος ως κείμενο» σε κάθε γραμμή. Ήταν η ΠΡΟΕΠΙΛΟΓΗ,
+// άρα ό,τι πάρει ο λογιστής, αν δεν ανοίξει το βοηθητικό μενού, δεν αθροίζεται.
+//
+// ΚΑΙ ΤΟ ΔΕΥΤΕΡΟ ΔΕΝ ΔΟΥΛΕΥΕ ΠΑΝΤΟΥ. Οι καλούντες που περνούσαν τα ποσά από τον
+// βοηθό `csvEur()` έστελναν ήδη ΣΥΜΒΟΛΟΣΕΙΡΑ. Ο έλεγχος εδώ είναι
+// `typeof raw === 'number'`, οπότε η αριθμητική διαδρομή δεν εκτελούνταν ποτέ —
+// και η γραμμή ΣΥΝΟΛΟ, που αθροίζει μόνο αριθμούς, έβγαζε «0,00 €» κάτω από
+// στήλη γεμάτη ποσά. Πίνακας χρεολυσίων, κατάλογος μισθωτών, απογραφή: και τα
+// τρία εξήγαν σύνολο μηδέν.
+//
+// Η ΑΠΟΦΑΣΗ. Ένα αρχείο, με ΑΡΙΘΜΟΥΣ. Η ελληνική εμφάνιση («1.234,56 €») έρχεται
+// από τη μορφή κελιού `[$-408]`, όχι από συμβολοσειρά — δηλαδή το κελί ΚΑΙ
+// φαίνεται σωστά ΚΑΙ αθροίζεται, ταξινομείται, μπαίνει σε συγκεντρωτικό πίνακα.
+// Αυτό κάνει κάθε επαγγελματικό λογιστικό πρόγραμμα. Το κουμπί επιλογής έφυγε:
+// δεν είναι επιλογή του χρήστη το αν το αρχείο του είναι σωστό.
 //
 // Κάθε φύλλο: τίτλος + υπότιτλος, έντονες αναδιπλωμένες επικεφαλίδες σε γκρι
-// φόντο, πλαίσια, στοίχιση ανά τύπο (ημερομηνίες κεντραρισμένες, ποσά δεξιά),
-// ελληνική μορφή νομίσματος/αριθμών («1.234,56 €»), προαιρετική γραμμή ΣΥΝΟΛΟ
-// με ζωντανό SUM, και AutoFilter. Πραγματικά κελιά — ποτέ «όλα στη στήλη A».
+// φόντο, πλαίσια, στοίχιση ανά τύπο, γραμμή ΣΥΝΟΛΟ με ζωντανό SUM, AutoFilter,
+// περιθώρια εκτύπωσης και επανάληψη επικεφαλίδων σε κάθε σελίδα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, boxAll, money, percent, intGr, type Cell } from './xlsxStyle';
+import {
+  XLSX, FMT, S, setCell, sheetName, downloadWorkbook, printTitles, MARGINS, type Cell,
+} from './xlsxStyle';
 
 export type XlsxKind = 'text' | 'date' | 'eur' | 'int' | 'year' | 'pct' | 'num';
 export type XlsxCol = { header: string; width?: number; kind?: XlsxKind };
@@ -25,6 +49,16 @@ export type XlsxSheet = {
   subtitle?: string;
   /** Δείκτες αριθμητικών στηλών που αθροίζονται σε γραμμή ΣΥΝΟΛΟ (π.χ. Ποσό). */
   totalCols?: number[];
+  /**
+   * Επιφυλάξεις που ταξιδεύουν ΜΑΖΙ με τα νούμερα, κάτω από τον πίνακα.
+   *
+   * ΓΙΑΤΙ ΞΕΧΩΡΙΣΤΑ ΚΑΙ ΟΧΙ ΩΣ ΓΡΑΜΜΕΣ. Το `TabComparison` έσπρωχνε τις
+   * προειδοποιήσεις μέσα στα δεδομένα, σαν γραμμές με ένα κελί. Έμπαιναν στο
+   * εύρος του φίλτρου, μετριόνταν ως εγγραφές, και ταξινομώντας τη στήλη
+   * «Ακίνητο» η προειδοποίηση προσγειωνόταν στη μέση του πίνακα. Εδώ κάθονται
+   * κάτω από το σύνολο, ενωμένες σε πλάτος σελίδας, όπου διαβάζονται.
+   */
+  notes?: string[];
 };
 
 const RIGHT = new Set<XlsxKind>(['eur', 'int', 'num', 'pct']);
@@ -34,21 +68,37 @@ const txtLeft = S.txt;
 const txtCenter = { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } };
 const totLeft = S.totTxt, totRight = S.totNum;
 
-export type XlsxMode = 'presentation' | 'data';
+/** Η μορφή κελιού ανά τύπο στήλης. Ελληνική εμφάνιση, αριθμητική ουσία. */
+const FORMAT: Record<XlsxKind, string | undefined> = {
+  eur: FMT.eur, num: FMT.dec2, pct: FMT.pct, int: FMT.int,
+  date: FMT.date, year: undefined, text: undefined,
+};
+
+// ── ΠΛΑΤΟΣ ΣΤΗΛΗΣ ΑΠΟ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ, ΟΧΙ ΜΟΝΟ ΑΠΟ ΤΗΝ ΕΠΙΚΕΦΑΛΙΔΑ ────────
+// Πριν, το πλάτος έβγαινε από το μήκος της επικεφαλίδας. Η στήλη «Ακίνητο»
+// έπαιρνε δέκα χαρακτήρες και το «Διαμέρισμα Κολωνάκι, 3ος όροφος» κοβόταν στην
+// οθόνη — ο παραλήπτης βλέπει «####» ή μισό όνομα και νομίζει ότι λείπουν
+// δεδομένα. Το ταβάνι υπάρχει για να μη γίνει μια στήλη σημειώσεων ολόκληρη
+// σελίδα.
+const WIDTH_MIN = 10, WIDTH_MAX = 46;
+function columnWidth(col: XlsxCol, values: XlsxCell[]): number {
+  if (col.width) return col.width;
+  let widest = col.header.length;
+  for (const v of values) {
+    if (v == null) continue;
+    const len = v instanceof Date ? 10 : typeof v === 'number' ? Math.max(9, String(Math.trunc(v)).length + 6) : String(v).length;
+    if (len > widest) widest = len;
+  }
+  return Math.min(WIDTH_MAX, Math.max(WIDTH_MIN, widest + 3));
+}
 
 /**
- * Κατεβάζει ένα προσεγμένο .xlsx.
- * - mode 'presentation' (προεπιλογή): ποσά/ποσοστά ως ΚΕΙΜΕΝΟ με εγγυημένο
- *   ελληνικό κόμμα («1.234,56 €») — ίδια εμφάνιση σε κάθε Excel, αλλά μη
- *   επεξεργάσιμα/αθροίσιμα.
- * - mode 'data': ΖΩΝΤΑΝΑ αριθμητικά κελιά με number-format + γραμμή ΣΥΝΟΛΟ με
- *   τύπο SUM — ο λογιστής μπορεί να επεξεργαστεί, να κάνει pivot και να ξανα-
- *   αθροίσει (το κόμμα/σύμβολο ακολουθεί τη γλώσσα του Excel του αναγνώστη).
+ * Κατεβάζει ένα προσεγμένο .xlsx με ΖΩΝΤΑΝΑ αριθμητικά κελιά: ο παραλήπτης
+ * αθροίζει, ταξινομεί και φτιάχνει συγκεντρωτικούς πίνακες χωρίς μετατροπές.
  */
-export function downloadXlsx(filename: string, sheets: XlsxSheet[], opts: { mode?: XlsxMode } = {}): void {
+export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
   const wb = XLSX.utils.book_new();
   const used = new Set<string>();
-  const data = opts.mode === 'data';
 
   for (const sh of sheets) {
     const NC = sh.columns.length;
@@ -59,7 +109,7 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[], opts: { mode
     if (hasHead) { aoa.push([sh.title!], [sh.subtitle || ''], []); }
     aoa.push(header, ...sh.rows);
 
-    const totals = (sh.totalCols || []).length > 0;
+    const totals = (sh.totalCols || []).length > 0 && sh.rows.length > 0;
     const lastData = HR + sh.rows.length;     // τελευταία γραμμή δεδομένων (0-based)
     const totalR = lastData + 1;
     if (totals) {
@@ -69,8 +119,9 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[], opts: { mode
     }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
-    ws['!cols'] = sh.columns.map(c => ({ wch: c.width ?? Math.max(10, c.header.length + 3) }));
+    ws['!cols'] = sh.columns.map((c, i) => ({ wch: columnWidth(c, sh.rows.map(r => r[i])) }));
     ws['!rows'] = [];
+    ws['!margins'] = { ...MARGINS };
     const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
 
     // Τίτλος / υπότιτλος (merged) + ύψη.
@@ -88,8 +139,7 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[], opts: { mode
     ws['!rows'][HR] = { hpt: 28 };
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
 
-    // Δεδομένα — στυλ + μορφή ανά τύπο. Τα ποσά/ποσοστά γράφονται ως ΚΕΙΜΕΝΟ με
-    // ελληνικό κόμμα («751,00 €», «18,00%»), ώστε να φαίνονται ίδια σε κάθε Excel.
+    // Δεδομένα — αριθμοί ως αριθμοί, με ελληνική μορφή κελιού.
     for (let R = HR + 1; R <= lastData; R++) {
       ws['!rows'][R] = { hpt: 16 };
       for (let c = 0; c < NC; c++) {
@@ -97,31 +147,28 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[], opts: { mode
         const cell = ws[enc(R, c)] as Cell | undefined;
         const raw = cell?.v;
         if (kind === 'date' && raw instanceof Date) setCell(ws, R, c, { s: txtCenter, t: 'd', z: FMT.date });
-        else if ((kind === 'eur' || kind === 'num') && typeof raw === 'number') setCell(ws, R, c, data ? { t: 'n', z: FMT.eur, s: S.num } : { v: money(raw), t: 's', s: S.num });
-        else if (kind === 'pct' && typeof raw === 'number') setCell(ws, R, c, data ? { t: 'n', z: FMT.pct, s: S.num } : { v: percent(raw), t: 's', s: S.num });
-        else if (kind === 'int' && typeof raw === 'number') setCell(ws, R, c, data ? { t: 'n', z: FMT.int, s: S.num } : { v: intGr(raw), t: 's', s: S.num });
+        else if (typeof raw === 'number' && FORMAT[kind] && kind !== 'date') setCell(ws, R, c, { t: 'n', z: FORMAT[kind], s: S.num });
         else if (kind === 'year') setCell(ws, R, c, { v: String(raw ?? ''), t: 's', s: txtCenter });
         else setCell(ws, R, c, { s: RIGHT.has(kind) ? S.num : CENTER.has(kind) ? txtCenter : txtLeft });
       }
     }
 
-    // Γραμμή ΣΥΝΟΛΟ — άθροισμα (κείμενο «€» με κόμμα, ίδιο σε κάθε Excel).
+    // Γραμμή ΣΥΝΟΛΟ — ζωντανός τύπος SUM, με cached τιμή για προβολείς που δεν
+    // επανυπολογίζουν.
     if (totals) {
       const totSet = new Set(sh.totalCols);
       const firstDataRow1 = HR + 2;        // 1-based: πρώτη γραμμή δεδομένων
       const lastDataRow1 = lastData + 1;   // 1-based: τελευταία γραμμή δεδομένων
       for (let c = 0; c < NC; c++) {
-        if (totSet.has(c) && sh.rows.length) {
+        if (totSet.has(c)) {
           const sum = sh.rows.reduce((acc, row) => acc + (typeof row[c] === 'number' ? (row[c] as number) : 0), 0);
-          if (data) {
-            const k = (sh.columns[c]?.kind || 'eur') as XlsxKind;
-            const tz = k === 'pct' ? FMT.pct : k === 'int' ? FMT.int : FMT.eur;
-            const col = XLSX.utils.encode_col(c);
-            // Ζωντανός τύπος SUM + cached τιμή (για viewers χωρίς recalc).
-            setCell(ws, totalR, c, { t: 'n', v: sum, f: `SUM(${col}${firstDataRow1}:${col}${lastDataRow1})`, z: tz, s: totRight });
-          } else {
-            setCell(ws, totalR, c, { v: money(sum), t: 's', s: totRight });
-          }
+          const k = (sh.columns[c]?.kind || 'eur') as XlsxKind;
+          const col = XLSX.utils.encode_col(c);
+          setCell(ws, totalR, c, {
+            t: 'n', v: Math.round(sum * 100) / 100,
+            f: `SUM(${col}${firstDataRow1}:${col}${lastDataRow1})`,
+            z: FORMAT[k] || FMT.eur, s: totRight,
+          });
         } else {
           setCell(ws, totalR, c, { s: totLeft });
         }
@@ -131,16 +178,26 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[], opts: { mode
 
     // AutoFilter στον πίνακα (από επικεφαλίδες έως τελευταία γραμμή δεδομένων).
     if (sh.rows.length) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
-    void boxAll;
 
-    // Μοναδικό, έγκυρο όνομα φύλλου (≤31 χαρ., όχι διπλότυπα).
-    let name = (sh.name || 'Φύλλο').replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim() || 'Φύλλο';
-    let i = 2; const base = name;
-    while (used.has(name)) name = `${base.slice(0, 28)} ${i++}`;
-    used.add(name);
+    // Επιφυλάξεις, κάτω από τον πίνακα και έξω από το εύρος του.
+    const notes = (sh.notes || []).filter(n => n && n.trim());
+    if (notes.length) {
+      let R = (totals ? totalR : lastData) + 2;
+      ws['!merges'] = ws['!merges'] || [];
+      for (const note of notes) {
+        setCell(ws, R, 0, { v: note, t: 's', s: S.sub });
+        ws['!merges'].push({ s: { r: R, c: 0 }, e: { r: R, c: NC - 1 } });
+        ws['!rows'][R] = { hpt: 14 };
+        R++;
+      }
+      ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: R - 1, c: NC - 1 } });
+    }
+
+    const name = sheetName(sh.name, used);
     XLSX.utils.book_append_sheet(wb, ws, name);
+    // Η γραμμή επικεφαλίδων επαναλαμβάνεται σε κάθε τυπωμένη σελίδα.
+    printTitles(wb, wb.SheetNames.length - 1, name, HR + 1);
   }
 
-  const out = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
-  XLSX.writeFile(wb, out);
+  downloadWorkbook(wb, filename);
 }

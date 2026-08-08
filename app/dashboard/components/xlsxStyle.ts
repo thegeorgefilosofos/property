@@ -6,6 +6,7 @@
 // δεκαδικά, ημερομηνίες. Ασπρόμαυρο (γκρι/μαύρο) — χωρίς χρώμα/θόρυβο.
 // ═══════════════════════════════════════════════════════════════════════════
 import XLSX from 'xlsx-js-style';
+import { downloadFile, safeFilename } from '@/lib/core/download';
 export { XLSX };
 
 // Το πρόθεμα [$-408] (ελληνική τοπική ρύθμιση) ΕΠΙΒΑΛΛΕΙ ελληνική μορφή σε κάθε
@@ -65,4 +66,47 @@ export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial
   const addr = XLSX.utils.encode_cell({ r, c });
   const cur = (ws[addr] as Cell) || { v: '', t: 's' };
   ws[addr] = { ...cur, ...patch, s: { ...((cur.s as object) || {}), ...(patch.s || {}) } };
+}
+
+// ═══ ΤΟ ΦΥΛΛΟ ΠΟΥ ΤΥΠΩΝΕΤΑΙ ══════════════════════════════════════════════
+// Ο λογιστής ΤΥΠΩΝΕΙ. Χωρίς περιθώρια και χωρίς επανάληψη επικεφαλίδων, η
+// δεύτερη σελίδα είναι στήλες αριθμών χωρίς ονόματα — άχρηστη.
+//
+// ΤΙ ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ. Το «πάγωμα» της γραμμής επικεφαλίδων
+// (`ws['!freeze']`) ΔΕΝ υποστηρίζεται από την κοινοτική έκδοση της βιβλιοθήκης:
+// η ιδιότητα δέχεται τιμή, δεν γράφεται όμως ποτέ στο αρχείο. Ήταν γραμμένη στο
+// `portfolioXlsx.ts` και δεν έκανε τίποτα — νεκρός κώδικας που έμοιαζε με
+// λειτουργία. Η επανάληψη επικεφαλίδων στην εκτύπωση, από κάτω, ΔΟΥΛΕΥΕΙ και
+// λύνει το ίδιο πρόβλημα εκεί που πονάει.
+export const MARGINS = { left: 0.4, right: 0.4, top: 0.55, bottom: 0.55, header: 0.3, footer: 0.3 } as const;
+
+/** Οι γραμμές που επαναλαμβάνονται σε κάθε τυπωμένη σελίδα, ανά φύλλο. */
+export function printTitles(wb: XLSX.WorkBook, sheetIndex: number, sheetName: string, row1: number) {
+  const names = (wb.Workbook ||= {}).Names ||= [];
+  names.push({ Name: '_xlnm.Print_Titles', Sheet: sheetIndex, Ref: `'${sheetName.replace(/'/g, "''")}'!$${row1}:$${row1}` });
+}
+
+/**
+ * Έγκυρο, μοναδικό όνομα φύλλου. Το Excel απορρίπτει το αρχείο ολόκληρο αν το
+ * όνομα ξεπερνά τους 31 χαρακτήρες ή περιέχει \ / ? * [ ] :
+ */
+export function sheetName(raw: string, used: Set<string>): string {
+  let name = (raw || 'Φύλλο').replace(/[\\/?*[\]:]/g, ' ').replace(/\s+/g, ' ').slice(0, 31).trim() || 'Φύλλο';
+  const base = name;
+  for (let i = 2; used.has(name); i++) name = `${base.slice(0, 28)} ${i}`;
+  used.add(name);
+  return name;
+}
+
+// ═══ ΤΟ ΚΑΤΕΒΑΣΜΑ ΠΕΡΝΑ ΑΠΟ ΤΟ ΕΝΑ ΣΗΜΕΙΟ ════════════════════════════════
+// Η `XLSX.writeFile` έχει δικό της μονοπάτι λήψης και ΔΕΝ καθαρίζει το όνομα.
+// Ένα ακίνητο ονομασμένο «Αθήνα / Κολωνάκι» παρήγαγε όνομα με κάθετο μέσα του.
+// Εδώ το αρχείο γράφεται σε μνήμη και κατεβαίνει από το `lib/core/download.ts`,
+// που είναι η ΜΙΑ υλοποίηση λήψης της εφαρμογής.
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+export function downloadWorkbook(wb: XLSX.WorkBook, filename: string): boolean {
+  const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
+  const name = filename.replace(/\.xlsx$/i, '');
+  return downloadFile(new Blob([bytes], { type: XLSX_MIME }), `${safeFilename(name)}.xlsx`, XLSX_MIME);
 }

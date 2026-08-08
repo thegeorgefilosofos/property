@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } from 'react'
+import { downloadWorkbook } from './xlsxStyle'
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
@@ -770,7 +771,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   ws3['!cols'] = [{ wch: 26 }, { wch: 24 }, { wch: 16 }, { wch: 28 }, { wch: 12 }, { wch: 10 }, { wch: 6 }]
   XLSX.utils.book_append_sheet(wb, ws3, 'Κατάλογος')
 
-  XLSX.writeFile(wb, `επαφες_${athensToday()}.xlsx`)
+  downloadWorkbook(wb, `Επαφές ${athensToday()}`)
 }
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────

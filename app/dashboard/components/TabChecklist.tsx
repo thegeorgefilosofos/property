@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { downloadWorkbook } from './xlsxStyle'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker, CustomSelect } from './UIComponents'
@@ -635,7 +636,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
   ws3['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 42 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 20 }, { wch: 16 }]
   XLSX.utils.book_append_sheet(wb, ws3, 'Εκκρεμείς Ενέργειες')
 
-  XLSX.writeFile(wb, `checklist_ακινητου_${athensToday()}.xlsx`)
+  downloadWorkbook(wb, `Εκκρεμότητες ακινήτου ${athensToday()}`)
 }
 
 function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | null) {

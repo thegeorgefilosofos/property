@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { downloadCsv, csvDate } from './exportCsv';
+import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
 import { T, TT, Badge, TierBadge, ExportButton, EmptyState, Modal, SkeletonKPIs, fn } from '@/components/Theme';
@@ -185,7 +185,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     const rows: (string | number | null)[][] = [];
     list.forEach(rf => rows.push(['Πρόσκληση', csvDate(rf.created_at), rf.activated_at ? 'Ενεργοποιήθηκε' : 'Εκκρεμεί ενεργοποίηση', rf.activated_at ? csvDate(rf.activated_at) : '']));
     rewards.forEach(r => rows.push(['Ανταμοιβή', csvDate(r.created_at), r.status === 'granted' ? 'Ενεργό' : 'Σε εκκρεμότητα', `${r.months} μήνες · ${r.reason}`]));
-    downloadCsv(`propertyos-referral-${code}`, ['Κατηγορία', 'Ημερομηνία', 'Κατάσταση', 'Λεπτομέρεια'], rows);
+    downloadTableXlsx(`Προσκλήσεις ${code}`, {
+      title: 'Προσκλήσεις και ανταμοιβές',
+      headers: ['Κατηγορία', 'Ημερομηνία', 'Κατάσταση', 'Λεπτομέρεια'], rows,
+    });
   };
   const nativeShare = async () => { try { await (navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }).share?.({ text: invite }); } catch { /* ignore */ } };
   const doClaim = async (kind: string) => {

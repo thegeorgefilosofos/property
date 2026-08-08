@@ -7,10 +7,12 @@
 // χαρακτηριστικό που πουλιέται με συνδρομή δεν επιτρέπεται να στηρίζεται στο ότι
 // «ο κώδικας φαίνεται σωστός».
 //
-// Εδώ καλείται η ΠΡΑΓΜΑΤΙΚΗ συνάρτηση με πλαστό πελάτη Supabase. Το
-// `XLSX.writeFile` σε Node γράφει στον δίσκο αντί να κατεβάσει, οπότε το βιβλίο
-// ξανα-ανοίγεται και ελέγχεται κελί-κελί. Αδοκίμαστος μένει μόνο ο διάλογος
-// αποθήκευσης του περιηγητή — δηλαδή κώδικας της βιβλιοθήκης, όχι δικός μας.
+// Εδώ καλείται η ΠΡΑΓΜΑΤΙΚΗ συνάρτηση με πλαστό πελάτη Supabase, ΚΑΙ με πλαστό
+// έγγραφο: η εξαγωγή περνά πια από το `lib/core/download.ts`, τη μία υλοποίηση
+// λήψης της εφαρμογής, αντί να γράφει μόνη της στον δίσκο. Το πλαστό έγγραφο
+// πιάνει τα ίδια τα byte του αρχείου, οπότε ελέγχεται ό,τι θα κατέβαινε στον
+// χρήστη — και επιπλέον ότι το κατέβασμα ΟΝΤΩΣ ενεργοποιήθηκε και με ποιο όνομα.
+// Αδοκίμαστος μένει μόνο ο διάλογος αποθήκευσης του περιηγητή.
 //
 // ΤΙ ΕΠΙΑΣΕ ΗΔΗ: με `status_detail: 'rent_long'` το ακαθάριστο έβγαινε κενό και η
 // γραμμή ΣΥΝΟΛΟ μηδενική. Το «rent_long» είναι ΠΑΡΑΓΟΜΕΝΗ κατάσταση
@@ -20,14 +22,32 @@
 // με τις διαμονές του να μη μετριούνται καθόλου.
 import { runE2Export } from './e2Export'
 import { XLSX } from './xlsxStyle'
-import { unlinkSync, existsSync } from 'node:fs'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
 
 const YEAR = 2025
 const PID = '11111111-1111-1111-1111-111111111111'
-const FILE = `E2_${YEAR}_property-os.xlsx`
+
+// ── Πλαστό έγγραφο: κρατά τα byte και το όνομα του αρχείου που «κατέβηκε» ──
+const caught: { name: string; bytes: Uint8Array }[] = []
+{
+  let pending: Uint8Array | null = null
+  const g = globalThis as Record<string, unknown>
+  g.URL = {
+    createObjectURL: (b: { __bytes: Uint8Array }) => { pending = b.__bytes; return 'blob:test' },
+    revokeObjectURL: () => {},
+  }
+  g.Blob = class { __bytes: Uint8Array; constructor(parts: ArrayBuffer[]) { this.__bytes = new Uint8Array(parts[0]) } }
+  const el = { href: '', download: '', style: {} as Record<string, string>, click() { caught.push({ name: this.download, bytes: pending! }) }, remove() {} }
+  g.document = { createElement: () => el, body: { appendChild: () => {} } }
+  // Ο χρονοδιακόπτης της ανάκλησης δεν πρέπει να κρατά ζωντανή τη διεργασία.
+  const realTimeout = globalThis.setTimeout
+  g.setTimeout = ((fn: () => void, ms: number) => realTimeout(fn, ms).unref?.() ?? realTimeout(fn, ms)) as typeof setTimeout
+}
+
+/** Το τελευταίο αρχείο που κατέβηκε, ανοιγμένο ως βιβλίο. */
+const lastWorkbook = () => XLSX.read(caught[caught.length - 1].bytes, { type: 'array' })
 
 /** Πλαστός πελάτης: κάθε φίλτρο επιστρέφει τον εαυτό του, το await δίνει τα δεδομένα. */
 function clientWith(data: Record<string, unknown[]>) {
@@ -58,13 +78,14 @@ const LONG_TERM = {
 }
 
 async function main() {
-  if (existsSync(FILE)) unlinkSync(FILE)
-
   const n = await runE2Export(clientWith(LONG_TERM), 'user-1', YEAR)
   ok('επιστρέφει το πλήθος των ακινήτων', n === 1)
-  ok('ΤΟ ΑΡΧΕΙΟ ΥΠΑΡΧΕΙ', existsSync(FILE))
+  ok('ΤΟ ΑΡΧΕΙΟ ΚΑΤΕΒΗΚΕ', caught.length === 1 && caught[0].bytes.length > 0)
+  // Το όνομα ήταν «E2_2025_property-os.xlsx»: λατινικά και το όνομα του
+  // προμηθευτή, σε αρχείο που ο χρήστης ψάχνει στις λήψεις του ως «Ε2».
+  ok('το όνομα είναι ελληνικό και λέει τι είναι', caught[0].name === `Έντυπο Ε2 ${YEAR}.xlsx`)
 
-  const wb = XLSX.readFile(FILE)
+  const wb = lastWorkbook()
   ok('έχει το κύριο φύλλο του έτους', wb.SheetNames.includes(`Ε2 ${YEAR}`))
   ok('έχει οδηγίες συμπλήρωσης', wb.SheetNames.some(s => s.includes('Οδηγίες')))
   ok('έχει σύνοψη Ε1', wb.SheetNames.some(s => s.includes('Ε1')))
@@ -90,14 +111,12 @@ async function main() {
   // Πριν, το `rental_mode` αγνοούνταν: κωδικός 1 αντί 60 σε στήλη του εντύπου.
   const short = JSON.parse(JSON.stringify(LONG_TERM))
   short.user_properties[0].rental_mode = 'short_term'
-  if (existsSync(FILE)) unlinkSync(FILE)
   await runE2Export(clientWith(short), 'user-1', YEAR)
-  const aoa2 = XLSX.utils.sheet_to_json(XLSX.readFile(FILE).Sheets[`Ε2 ${YEAR}`], { header: 1, defval: '' }) as unknown[][]
+  const aoa2 = XLSX.utils.sheet_to_json(lastWorkbook().Sheets[`Ε2 ${YEAR}`], { header: 1, defval: '' }) as unknown[][]
   const flat2 = aoa2.flat().map(String)
   ok('βραχυχρόνια → κωδικός «60 · Βραχυχρόνια μίσθωση»', flat2.some(c => c.startsWith('60 ·')))
   ok('ΔΕΝ γράφεται πια «1 · Εκμίσθωση» σε βραχυχρόνιο', !flat2.some(c => c.startsWith('1 · Εκμίσθωση')))
 
-  if (existsSync(FILE)) unlinkSync(FILE)
   console.log(fail === 0 ? `✓ e2Export: ${pass} έλεγχοι πέρασαν` : `✗ e2Export: ${fail} απέτυχαν από ${pass + fail}`)
   if (fail > 0) process.exit(1)
 }

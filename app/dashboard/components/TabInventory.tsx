@@ -7,7 +7,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT } from '@/components/Theme'
 import { PackageOpen, SearchX, ClipboardCheck } from 'lucide-react'
-import { csvSafe } from './exportCsv'
+import { downloadTableXlsx } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
 import { depreciate, replacementSuggestion, portfolioSummary, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import { formFields, INVENTORY_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields'
@@ -1810,11 +1810,25 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
   const declaredRepl=items.filter(i=>(i.replacement_cost||0)>0)
   const totalDeclaredRepl=declaredRepl.reduce((s,i)=>s+(i.replacement_cost||0),0)
   const missingRepl=items.length-declaredRepl.length
+  // ΔΥΟ ΛΑΘΗ ΣΕ ΜΙΑ ΕΞΑΓΩΓΗ, ΚΑΙ ΤΑ ΔΥΟ ΑΘΟΡΥΒΑ:
+  //
+  //   1. Ήταν χειροποίητο .csv, ενώ οι άλλες δεκαεπτά εξαγωγές της εφαρμογής
+  //      παράγουν προσεγμένο .xlsx. Ο παραλήπτης έπαιρνε άλλο πράγμα από την
+  //      απογραφή και άλλο από όλα τα υπόλοιπα.
+  //   2. Η προστασία από ένεση τύπου γινόταν με τη `csvSafe()`, που επέστρεφε
+  //      το κείμενο ΑΥΤΟΥΣΙΟ — ένα αντικείμενο ονομασμένο «=1+1» έφευγε ως
+  //      ζωντανός τύπος του Excel. Το σχόλιο δίπλα της έλεγε ότι εξουδετερώνει
+  //      «=,+,-,@». Δεν εξουδετέρωνε τίποτα, και το όνομα την έκανε να μοιάζει
+  //      με άμυνα που υπάρχει.
+  //
+  // Το .xlsx γράφει συμβολοσειρές ως συμβολοσειρές — δεν υπάρχει ένεση τύπου
+  // εξαρχής — και τα ποσά φεύγουν ως αριθμοί, οπότε η απογραφή αθροίζεται.
   const exportCSV=()=>{
-    const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία Αγοράς','Εκτιμώμενη Υπολειπόμενη Αξία','Ποσοστό Υπολειπόμενης Αξίας','Κόστος Αντικατάστασης','Ενεργειακή Κλάση','Watt','Ώρες ανά ημέρα','kWh/μήνα','Κόστος Ρεύματος ανά μήνα','Ηλικία','Ημερομηνία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
-    const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,i.purchase_value?csvEur(i.purchase_value):'',csvEur(calcCurrentValue(i)),csvPct(Math.max(0,100-calcDepreciationPct(i))),i.replacement_cost?csvEur(i.replacement_cost):'',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?csvEur(calcMonthlyCost(i,kwhPrice)):'',calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
-    const csv=[headers,...rows].map(row=>row.map(cell=>{const s=csvSafe(String(cell??''));return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n')
-    downloadCsv(csv, 'απογραφή.csv')
+    downloadTableXlsx('Απογραφή ακινήτου', {
+      title: 'Απογραφή ακινήτου',
+      headers:['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία αγοράς (€)','Εκτιμώμενη υπολειπόμενη αξία (€)','Ποσοστό υπολειπόμενης αξίας','Κόστος αντικατάστασης (€)','Ενεργειακή κλάση','Watt','Ώρες ανά ημέρα','kWh ανά μήνα','Κόστος ρεύματος ανά μήνα (€)','Ηλικία','Ημερομηνία αγοράς','Λήξη εγγύησης','Σημειώσεις'],
+      rows: items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,i.purchase_value||'',calcCurrentValue(i),Math.max(0,100-calcDepreciationPct(i)),i.replacement_cost||'',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?calcMonthlyCost(i,kwhPrice):'',calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes]),
+    })
   }
   const exportPDF=()=>{
     const byCat=[...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)

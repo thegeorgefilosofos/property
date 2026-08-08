@@ -1,6 +1,6 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { XLSX, FMT, S, setCell, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
 import {
   E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary,
   type E2Stay,
@@ -249,6 +249,6 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
     XLSX.utils.book_append_sheet(wb, e1ws, 'Σύνοψη Ε1');
   }
 
-  XLSX.writeFile(wb, `E2_${year}_property-os.xlsx`);
+  downloadWorkbook(wb, `Έντυπο Ε2 ${year}`);
   return properties.length;
 }

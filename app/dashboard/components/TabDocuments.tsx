@@ -8,7 +8,7 @@ import { showTool } from '@/lib/ui/thresholds';
 import { SearchX, FolderOpen, FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
-import { downloadCsv } from './exportCsv';
+import { downloadTableXlsx } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { money } from './xlsxStyle';
 import { useAppPreferences } from './useAppPreferences';
@@ -660,13 +660,17 @@ export default function TabDocuments({
   const docCount = items.length - photoCount;
   const activeCategories = FOLDERS.filter(f => counts.count[f.key]).length;
 
-  const exportCsv = () => downloadCsv('archeio.csv',
-    ['Όνομα', 'Φάκελος', 'Πάροχος', 'ΑΦΜ παρόχου', 'Ημερομηνία', 'Περίοδος από', 'Περίοδος έως', 'Αξία (€)', 'Πηγή'],
-    items.slice().sort(byDateDesc).map(i => [
+  // Η αξία φεύγει ως ΑΡΙΘΜΟΣ: το φύλλο αθροίζεται στα χέρια του λογιστή. Ως
+  // κείμενο «1.234,56 €» έδειχνε σωστά και έβγαζε άθροισμα μηδέν.
+  const exportCsv = () => downloadTableXlsx('Αρχείο εγγράφων', {
+    title: 'Αρχείο εγγράφων',
+    headers: ['Όνομα', 'Φάκελος', 'Πάροχος', 'ΑΦΜ παρόχου', 'Ημερομηνία', 'Περίοδος από', 'Περίοδος έως', 'Αξία (€)', 'Πηγή'],
+    rows: items.slice().sort(byDateDesc).map(i => [
       i.title, FOLDER_LABEL[i.folder], i.provider || '', i.raw?.provider_afm || '',
       i.date ? fd(i.date) : '', i.raw?.period_from || '', i.raw?.period_to || '',
-      i.value != null ? money(i.value) : '', ORIGIN_LABEL[i.source] || 'Αρχείο',
-    ]));
+      i.value ?? '', ORIGIN_LABEL[i.source] || 'Αρχείο',
+    ]),
+  });
 
   // Ενιαίο σημείο ανεβάσματος — ζει στο PageTitle (ή στη γραμμή εργαλείων όταν embedded).
   const uploadBtn = (

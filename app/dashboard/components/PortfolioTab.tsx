@@ -18,7 +18,7 @@ import { yearOccupancy } from '@/lib/clients/reports';
 import { athensToday, daysUntil } from '@/lib/core/time';
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
 import { portfolioReturns } from '@/lib/market/portfolio';
-import { downloadCsv } from './exportCsv';
+import { downloadTableXlsx } from './exportCsv';
 import { useReportBranding } from '@/lib/reportBranding';
 // Ο κατάλογος κατηγοριών/προτεραιοτήτων ζει σε ΜΙΑ πηγή. Εδώ ήταν γραμμένος
 // δεύτερη φορά με άλλες ετικέτες («Short-term / Airbnb» στα αγγλικά, «Νομικά /
@@ -399,10 +399,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const exportStatement = () => {
     if (!stmt) return;
     const head = ['Ακίνητο', 'Έσοδα έτους', 'Βάση εσόδων', 'Δαπάνες έτους', 'Καθαρό'];
+    // Η γραμμή ΣΥΝΟΛΟ δεν γράφεται εδώ — ο κοινός exporter τη βάζει ως ζωντανό
+    // SUM. Γραμμένη και στα δύο σημεία, θα μετριόταν δύο φορές.
     const lines: (string | number)[][] = stmt.rows.map(r => [r.name, r.revenue, revenueBasis(r), r.expenses, r.net]);
-    lines.push(['ΣΥΝΟΛΟ', stmt.revenue, '', stmt.expenses, stmt.net]);
-    // Ασφαλής εξαγωγή (csvSafe: εξουδετερώνει =,+,-,@ ώστε να μη γίνει CSV/formula injection στο Excel).
-    downloadCsv(`katastasi_${stmt.name.replace(/\s+/g, '_')}_${year}`, head, lines);
+    downloadTableXlsx(`Κατάσταση ${stmt.name} ${year}`, {
+      title: 'Κατάσταση ιδιοκτήτη', subject: `${stmt.name} · ${year}`, headers: head, rows: lines,
+    });
   };
 
   // Η ΚΑΤΑΣΤΑΣΗ ΙΔΙΟΚΤΗΤΗ ΧΤΙΖΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΜΕ ΔΥΟ ΚΟΥΜΠΙΑ ΔΙΠΛΑ-ΔΙΠΛΑ.
@@ -456,7 +458,9 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const exportCsv = () => {
     const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Βάση εσόδων', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Διαθέσιμες ημέρες', 'Νύχτες', 'Εκκρεμότητες', 'Οφειλές (€)'];
     const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, r.statusLabel, r.revenue, revenueBasis(r), r.expenses, r.net, r.occupancy ?? '', r.occupancy != null ? r.availableDays : '', r.nights, r.pending, r.owed]);
-    downloadCsv(`xartofylakio_${year}`, head, lines);
+    downloadTableXlsx(`Χαρτοφυλάκιο ${year}`, {
+      title: 'Χαρτοφυλάκιο', subject: String(year), headers: head, rows: lines,
+    });
   };
 
   if (loading) return (

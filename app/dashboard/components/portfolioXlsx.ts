@@ -5,7 +5,7 @@
 // & εισπραγμένα ενοίκια, ανείσπρακτα, δαπάνες, καθαρό και ποσοστό είσπραξης — με
 // ζωντανά σύνολα (SUM), μορφή €/%, φίλτρα και το ενιαίο λογιστικό στυλ (xlsxStyle).
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, downloadWorkbook, printTitles, MARGINS, type Cell } from './xlsxStyle';
 
 export interface PortfolioRow {
   name: string;
@@ -38,7 +38,11 @@ export function downloadPortfolioComparison(opts: {
       const outstanding = Math.max(0, r.expected - r.collected);
       const net = r.collected - r.expenses;
       const rate = r.expected > 0 ? Math.round((r.collected / r.expected) * 10000) / 100 : 0;
-      return [r.name, r.expected || '', r.collected || '', outstanding || '', r.expenses || '', net, rate];
+      // ΤΟ ΜΗΔΕΝ ΓΡΑΦΕΤΑΙ ΜΗΔΕΝ. Πριν, το `r.expected || ''` έκανε κάθε
+      // πραγματικό μηδέν κενό κελί: ένα ακίνητο χωρίς εισπράξεις έδειχνε λευκή
+      // στήλη, που διαβάζεται ως «δεν ξέρουμε» αντί για «τίποτα δεν μπήκε» —
+      // και άφηνε τη στήλη μεικτού τύπου, κείμενο και αριθμοί μαζί.
+      return [r.name, r.expected, r.collected, outstanding, r.expenses, net, rate];
     }),
     ['ΣΥΝΟΛΑ', '', '', '', '', '', ''],
   ];
@@ -83,9 +87,18 @@ export function downloadPortfolioComparison(opts: {
   });
 
   ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
-  ws['!freeze'] = { xSplit: 0, ySplit: HR + 1, topLeftCell: A1(HR + 1, 0), activePane: 'bottomLeft', state: 'frozen' };
+  ws['!margins'] = { ...MARGINS };
+  // ΤΟ `ws['!freeze']` ΕΦΥΓΕ: η κοινοτική έκδοση της βιβλιοθήκης δέχεται την
+  // ιδιότητα και ΔΕΝ τη γράφει ποτέ στο αρχείο. Ήταν έξι μήνες γραμμένη εδώ,
+  // έμοιαζε με λειτουργία, και καμία γραμμή δεν πάγωσε ποτέ. Την ίδια ανάγκη —
+  // να ξέρεις σε ποια στήλη κοιτάς — την καλύπτει η επανάληψη επικεφαλίδων στην
+  // εκτύπωση, που ΔΟΥΛΕΥΕΙ.
   XLSX.utils.book_append_sheet(wb, ws, 'Σύγκριση');
+  printTitles(wb, 0, 'Σύγκριση', HR + 1);
 
-  const name = (opts.fileName || `Sygkritiko_hartofylakio_${periodLabel}`).replace(/\s+/g, '_').replace(/[^\w\-.]/g, '');
-  XLSX.writeFile(wb, `${name}.xlsx`);
+  // ΤΟ ΟΝΟΜΑ ΕΣΒΗΝΕ ΤΑ ΕΛΛΗΝΙΚΑ. Το `[^\\w\\-.]` είναι ASCII: κάθε ελληνικός
+  // χαρακτήρας αφαιρούνταν, οπότε «Συγκριτικό Ιανουάριος 2026» κατέβαινε ως
+  // «__2026.xlsx». Ο καθαρισμός γίνεται πια στο `lib/core/download.ts`, που
+  // κρατά τα ελληνικά και βγάζει μόνο ό,τι απαγορεύουν τα συστήματα αρχείων.
+  downloadWorkbook(wb, opts.fileName || `Συγκριτικό χαρτοφυλακίου ${periodLabel}`);
 }

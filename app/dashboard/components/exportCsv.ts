@@ -1,24 +1,24 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// exportCsv — ΜΙΑ κοινή εξαγωγή δεδομένων για ΟΛΑ τα tabs.
+// ΜΙΑ ΚΟΙΝΗ ΕΞΑΓΩΓΗ ΠΙΝΑΚΑ ΣΕ EXCEL, ΓΙΑ ΟΛΕΣ ΤΙΣ ΚΑΡΤΕΛΕΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΟΝΟΜΑ ΗΤΑΝ ΨΕΜΑ, ΚΑΙ ΤΟ ΨΕΜΑ ΕΙΧΕ ΔΙΠΛΟΤΥΠΟ. Η συνάρτηση λεγόταν
+// `downloadCsv` και παρήγαγε .xlsx. Την ίδια στιγμή υπήρχε ΚΑΙ αληθινή
+// `downloadCsv` στο `lib/core/download.ts`, που παράγει πραγματικό .csv. Οι δύο
+// χρησιμοποιούνταν παράλληλα:
 //
-// Παλαιότερα παρήγαγε .csv· πλέον παράγει προσεγμένο, «λογιστικού επιπέδου» .xlsx
-// (μέσω του κοινού exportXlsx/xlsxStyle): πραγματικά κελιά, έντονες γκρι
-// επικεφαλίδες με πλαίσια, στοίχιση ανά τύπο, ελληνικοί αριθμοί («751,00 €»,
-// «18,00%»), φίλτρα — ίδια εμφάνιση σε κάθε Excel, χωρίς το πρόβλημα «όλα στη
-// στήλη A». Η υπογραφή παραμένει ίδια (filename, headers, rows), οπότε όλα τα
-// tabs αναβαθμίζονται αυτόματα. Οι βοηθοί csvEur/csvDec/csvDate μένουν για τη
-// μορφοποίηση κελιών από τους callers.
+//     TabComparison.tsx   import { downloadCsv } from './exportCsv'        → .xlsx
+//     TabInventory.tsx    import { downloadCsv } from '@/lib/core/download' → .csv
+//
+// Ίδια κλήση, ίδιο όνομα, άλλο αρχείο — και μόνο η γραμμή εισαγωγής το έλεγε.
+// Εδώ λέγεται πια `downloadTableXlsx`: ό,τι κάνει.
+//
+// ΚΑΙ Η ΤΑΥΤΟΤΗΤΑ ΤΟΥ ΑΡΧΕΙΟΥ. Κάθε εξαγωγή είχε τίτλο «Property OS» και φύλλο
+// «Δεδομένα» — και οι δεκαοκτώ. Ο λογιστής άνοιγε το αρχείο και διάβαζε το όνομα
+// του ΠΡΟΜΗΘΕΥΤΗ, όχι τι κρατά στα χέρια του. Τώρα ο τίτλος λέει τι ΕΙΝΑΙ, ο
+// υπότιτλος για ποιο ακίνητο και ποια περίοδο, και η σφραγίδα του εργαλείου
+// μπαίνει στο τέλος του υπότιτλου, όπου ανήκει.
 // ═══════════════════════════════════════════════════════════════════════════
-import { downloadXlsx, type XlsxCol, type XlsxKind, type XlsxMode } from './exportXlsx';
-export type { XlsxMode };
-
-/** Ποσό € — δύο δεκαδικά, ελληνικό κόμμα («751,00»). Το σύμβολο «€» το δίνει η στήλη. */
-export const csvEur = (n: number | null | undefined): string =>
-  n == null ? '' : n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/** Δεκαδικός με κόμμα (ελληνικό Excel), π.χ. 5.2 → "5,2". */
-export const csvDec = (n: number | null | undefined, d = 2): string =>
-  n == null ? '' : n.toFixed(d).replace('.', ',');
+import { downloadXlsx, type XlsxCol, type XlsxKind } from './exportXlsx';
 
 /** Ημερομηνία ΗΗ/ΜΜ/ΕΕΕΕ. */
 export const csvDate = (d: string | Date | null | undefined): string => {
@@ -26,9 +26,6 @@ export const csvDate = (d: string | Date | null | undefined): string => {
   const dt = new Date(d);
   return isNaN(dt.getTime()) ? '' : dt.toLocaleDateString('el-GR');
 };
-
-// Διατηρείται για συμβατότητα (τα .xlsx string-κελιά είναι ήδη ασφαλή — όχι τύποι).
-export const csvSafe = (s: string): string => s;
 
 // Τύπος στήλης από την επικεφαλίδα (για στοίχιση/μορφή). Συντηρητικό: «€» ή
 // επικεφαλίδα που ΞΕΚΙΝΑ με λέξη ποσού → eur· «%»/«ποσοστ» → pct· «ημερομ» → date.
@@ -41,26 +38,38 @@ const kindFromHeader = (h: string): XlsxKind => {
   return 'text';
 };
 
-/**
- * Κατεβάζει προσεγμένο .xlsx (ίδια υπογραφή με την παλιά CSV εξαγωγή).
- * @param filename όνομα αρχείου (με ή χωρίς κατάληξη)
- * @param headers  γραμμή επικεφαλίδων
- * @param rows     πίνακας γραμμών (κάθε γραμμή = πίνακας κελιών)
- */
-export function downloadCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][], opts: { mode?: XlsxMode } = {}): void {
-  const columns: XlsxCol[] = headers.map(h => ({ header: h, kind: kindFromHeader(h) }));
-  const cleanRows = rows.map(r => headers.map((_, i) => { const v = r[i]; return v == null ? '' : v; }));
-  // Στη λειτουργία «δεδομένα» προσθέτουμε γραμμή ΣΥΝΟΛΟ (ζωντανό SUM) στις στήλες
-  // ποσών, ώστε ο λογιστής να έχει έτοιμο, επεξεργάσιμο άθροισμα.
-  const totalCols = opts.mode === 'data'
-    ? columns.map((c, i) => (c.kind === 'eur' ? i : -1)).filter(i => i >= 0)
-    : undefined;
-  const base = filename.replace(/\.(csv|xlsx)$/i, '');
-  const name = opts.mode === 'data' ? `${base} (δεδομένα)` : base;
-  // Επώνυμη «σφραγίδα»: κάθε εξαγωγή φέρει το Property OS και την ημερομηνία έκδοσης.
+export interface TableExport {
+  /** Τι είναι το αρχείο, στη γλώσσα του χρήστη: «Εισπράξεις ενοικίου». */
+  title: string;
+  /** Ακίνητο και περίοδος, ό,τι προσδιορίζει ΑΥΤΗ την εξαγωγή. Προαιρετικό. */
+  subject?: string;
+  headers: string[];
+  rows: (string | number | Date | null | undefined)[][];
+  /** Επιφυλάξεις που πρέπει να φτάσουν στον παραλήπτη μαζί με τα νούμερα. */
+  notes?: string[];
+}
+
+/** Η σφραγίδα: ημερομηνία έκδοσης και το εργαλείο, διακριτικά, στο τέλος. */
+function stamp(subject?: string): string {
   const issued = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  downloadXlsx(name, [{
-    name: 'Δεδομένα', title: 'Property OS', subtitle: `Εξαγωγή δεδομένων · Ημερομηνία έκδοσης: ${issued}`,
-    columns, rows: cleanRows, totalCols,
-  }], { mode: opts.mode });
+  return [subject, `Έκδοση ${issued}`, 'Property OS'].filter(Boolean).join(' · ');
+}
+
+/**
+ * Κατεβάζει προσεγμένο .xlsx με ζωντανά αριθμητικά κελιά και γραμμή ΣΥΝΟΛΟ στις
+ * στήλες ποσών. Το `filename` δίνεται ΧΩΡΙΣ κατάληξη.
+ */
+export function downloadTableXlsx(filename: string, t: TableExport): void {
+  const columns: XlsxCol[] = t.headers.map(h => ({ header: h, kind: kindFromHeader(h) }));
+  const rows = t.rows.map(r => t.headers.map((_, i) => { const v = r[i]; return v == null ? '' : v; }));
+  // Άθροισμα μόνο εκεί που η στήλη ΕΧΕΙ αριθμούς: μια στήλη ποσών γεμάτη κείμενο
+  // θα έβγαζε «0,00 €» κάτω από ορατά νούμερα, που είναι χειρότερο από κανένα σύνολο.
+  const totalCols = columns
+    .map((c, i) => (c.kind === 'eur' && rows.some(r => typeof r[i] === 'number') ? i : -1))
+    .filter(i => i >= 0);
+
+  downloadXlsx(filename.replace(/\.(csv|xlsx)$/i, ''), [{
+    name: t.title, title: t.title, subtitle: stamp(t.subject),
+    columns, rows, totalCols, notes: t.notes,
+  }]);
 }

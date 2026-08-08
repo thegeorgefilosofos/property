@@ -13,7 +13,7 @@ import { loanEventTitle, UNSET_BANK } from './TabCalendar'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
 import { Gift } from 'lucide-react'
-import { downloadXlsx, type XlsxMode } from './exportXlsx'
+import { downloadXlsx } from './exportXlsx'
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
 import {
@@ -437,11 +437,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   // περισσότερα» (κάτω από τις επίσημες πηγές), όχι ως ξεχωριστός φακός.
   // Εξαγωγή αποθηκευμένων δανείων — «λογιστικού επιπέδου» .xlsx: τίτλος/υπότιτλος,
   // ωμοί αριθμοί (σωστή στοίχιση/μορφή), σωστά πλάτη στηλών, ζωντανά σύνολα SUM.
-  const exportSavedLoans = (mode?: XlsxMode) => {
-    downloadXlsx(`Αποθηκευμένα_δάνεια_${athensToday()}`, [{
+  const exportSavedLoans = () => {
+    downloadXlsx(`Αποθηκευμένα δάνεια ${athensToday()}`, [{
       name: 'Δάνεια',
       title: 'Αποθηκευμένα δάνεια',
-      subtitle: `Property OS · ${savedLoans.length} ${savedLoans.length===1?'δάνειο':'δάνεια'} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`,
+      subtitle: `${savedLoans.length} ${savedLoans.length===1?'δάνειο':'δάνεια'} · Έκδοση ${new Date().toLocaleDateString('el-GR')} · Property OS`,
       columns: [
         { header:'Τράπεζα', kind:'text', width:20 },
         { header:'Τύπος δανείου', kind:'text', width:22 },
@@ -469,14 +469,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         ]
       }),
       totalCols: [2, 6, 7],
-    }], { mode })
+    }])
   }
 
   const savedContent = (
     <div style={{display:'flex',flexDirection:'column',gap:12}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
         <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{savedLoans.length} δάνεια</span>
-        <ExportButton disabled={savedLoans.length===0} onClick={()=>exportSavedLoans()} onExportData={()=>exportSavedLoans('data')}/>
+        <ExportButton disabled={savedLoans.length===0} onClick={exportSavedLoans}/>
       </div>
 
       {/* ── Ενιαίο δάνειο: όλα τα δάνεια του δανειολήπτη σε μία εικόνα ── */}

@@ -6,7 +6,7 @@ import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
-import { downloadCsv } from './exportCsv';
+import { downloadTableXlsx } from './exportCsv';
 import { money, dec2, percent } from './xlsxStyle';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import { resolveValue } from '@/lib/billing/propertyFacts';
@@ -324,26 +324,35 @@ export default function TabComparison({ properties, userId }: Props) {
     const cols = ['Ακίνητο', 'Κατάσταση', 'Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Πάγια ανά μήνα (€)', 'Δαπάνες Έτους (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Μερίδιο Φόρου Ενοικίου (€)'];
     // Στο CSV το κενό μένει ΚΕΝΟ, όχι μηδέν: ένα υπολογιστικό φύλλο που δείχνει 0
     // εκεί που δεν ξέρουμε, παράγει λάθος μέσους όρους στα χέρια του λογιστή.
-    const c = (n: number | null) => (n == null ? '' : money(n));
-    const rows = rowsData.map(r => [
+    //
+    // ΤΑ ΠΟΣΑ ΦΕΥΓΟΥΝ ΩΣ ΑΡΙΘΜΟΙ. Πριν περνούσαν από τη `money()`, που παράγει
+    // κείμενο «1.234,56 €»: το φύλλο φαινόταν σωστό και δεν αθροιζόταν σε καμία
+    // στήλη — ο λογιστής επέλεγε τη στήλη «Αξία» και το Excel έδειχνε μηδέν. Το
+    // «€» το δίνει πια η μορφή του κελιού, όχι το περιεχόμενο, γι' αυτό δεν
+    // γράφεται και δεύτερη φορά δίπλα στον αριθμό.
+    const c = (n: number | null) => (n == null ? '' : n);
+    const rows: (string | number)[][] = rowsData.map(r => [
       r.p.name, statusLabel(r.p as StatusRow) || r.p.prop_type || '',
-      c(r.value), r.sqm > 0 ? dec2(r.sqm) : '', c(r.perSqm), c(r.rent), c(r.rent == null ? null : r.rent * 12),
-      r.grossYield == null ? '' : percent(r.grossYield), money(r.recurringMonthly), money(r.expensesYTD),
-      c(r.netMonthly), c(r.netMonthly == null ? null : r.netMonthly * 12), money(r.taxShare),
+      c(r.value), r.sqm > 0 ? r.sqm : '', c(r.perSqm), c(r.rent), c(r.rent == null ? null : r.rent * 12),
+      r.grossYield ?? '', r.recurringMonthly, r.expensesYTD,
+      c(r.netMonthly), c(r.netMonthly == null ? null : r.netMonthly * 12), r.taxShare,
     ]);
-    // Γραμμή συνόλων της ομάδας (όχι όλου του χαρτοφυλακίου: εξάγεται ό,τι φαίνεται).
-    const sum = (f: (r: typeof rowsData[number]) => number | null) => rowsData.reduce((s, r) => s + (f(r) ?? 0), 0);
-    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), dec2(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(sum(r => (r.rent ?? 0) * 12)), '', money(sum(r => r.recurringMonthly)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => (r.netMonthly ?? 0) * 12)), money(sum(r => r.taxShare))]);
+    // Η γραμμή ΣΥΝΟΛΟ δεν γράφεται εδώ: την προσθέτει ο κοινός exporter ως
+    // ζωντανό SUM. Γραμμένη και στα δύο σημεία, θα μετριόταν δύο φορές.
+    //
     // Η προειδοποίηση ταξιδεύει ΜΑΖΙ με τα νούμερα. Ένα αρχείο που φτάνει στον
     // λογιστή χωρίς αυτή είναι ακριβώς η παραπλανητική σύγκριση που θέλαμε να
     // αποφύγουμε — μόνο που τώρα δεν υπάρχει οθόνη να την εξηγήσει.
-    rows.push([`${CONSOLIDATION_NOTE} Συνολικά ${portfolioTax.count} ακίνητα με εισόδημα, ενοίκια ${money(portfolioTax.totalAnnualRent)} €, φόρος ${money(portfolioTax.totalTax)} €.`]);
-    if (rowsData.length < portfolioTax.count) {
-      rows.push([`Προσοχή: το αρχείο περιέχει ${rowsData.length} από τα ${portfolioTax.count} ακίνητα με εισόδημα (εξάγεται η ομάδα που εμφανίζεται στην οθόνη). Το άθροισμα της στήλης φόρου είναι μέρος του συνολικού φόρου, όχι ο συνολικός φόρος.`]);
-    }
-    if (group.warning) rows.push([group.warning]);
-    // Κοινός, θωρακισμένος exporter (BOM, «;», escaping + εξουδετέρωση formula-injection).
-    downloadCsv(`sygkrisi_akiniton_${athensToday()}`, cols, rows);
+    const notes = [
+      `${CONSOLIDATION_NOTE} Συνολικά ${portfolioTax.count} ακίνητα με εισόδημα, ενοίκια ${money(portfolioTax.totalAnnualRent)}, φόρος ${money(portfolioTax.totalTax)}.`,
+      rowsData.length < portfolioTax.count
+        ? `Προσοχή: το αρχείο περιέχει ${rowsData.length} από τα ${portfolioTax.count} ακίνητα με εισόδημα (εξάγεται η ομάδα που εμφανίζεται στην οθόνη). Το άθροισμα της στήλης φόρου είναι μέρος του συνολικού φόρου, όχι ο συνολικός φόρος.`
+        : '',
+      group.warning || '',
+    ];
+    downloadTableXlsx(`Σύγκριση ακινήτων ${athensToday()}`, {
+      title: 'Σύγκριση ακινήτων', headers: cols, rows, notes,
+    });
   };
 
   // ── ΕΝΑ ΚΕΛΙ, ΕΝΑΣ ΚΑΝΟΝΑΣ ────────────────────────────────────────────────
