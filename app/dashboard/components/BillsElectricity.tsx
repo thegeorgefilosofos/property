@@ -33,6 +33,23 @@ const LAST_UPDATED = 'Ιούλιος 2026';
 
 
 // ── CONTRACT DURATION OPTIONS ─────────────────────────────────────────────────
+/**
+ * Ένα «γεγονός» της κάρτας τιμολογίου: ετικέτα και νούμερο.
+ *
+ * Η ΕΤΙΚΕΤΑ ΗΤΑΝ ΣΕ MONOSPACE, ΟΧΙ ΜΟΝΟ Ο ΑΡΙΘΜΟΣ. Έξι γραμμές έγραφαν
+ * «Χρέωση ημέρας» και «Μηνιαίο πάγιο» με γραμματοσειρά σταθερού πλάτους, και η
+ * στοίχιση γινόταν με ΔΥΟ κυριολεκτικά κενά ανάμεσα. Το αποτέλεσμα διαβαζόταν
+ * σαν έξοδος τερματικού μέσα σε premium οθόνη. Το monospace υπάρχει για να
+ * στοιχίζονται τα ΨΗΦΙΑ σε στήλη — όχι για να στοιχίζονται οι λέξεις.
+ *
+ * Εδώ: ετικέτα στη γραμματοσειρά της εφαρμογής, νούμερο με tabular ψηφία, και
+ * το κενό από `gap` αντί από χαρακτήρες.
+ */
+const FACT: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'baseline', gap: 6,
+  fontSize: 11, fontFamily: T.font.sans, color: 'var(--text-secondary)',
+};
+
 const DURATION_OPTIONS = [
   { value: '',    label: 'Χωρίς δέσμευση' },
   { value: '12',  label: '12 μήνες'        },
@@ -388,33 +405,33 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             )}
             {tariff.type !== 'dynamic' && tariff.type !== 'fixed_monthly' && (
               <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                  Χρέωση ημέρας:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_day)} / kWh</strong>
+                <span style={FACT}>
+                  Χρέωση ημέρας:{' '}<strong style={{ color: tariffBc.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fk(tariff.kwh_day)} / kWh</strong>
                 </span>
                 {tariff.kwh_night != null && (
-                  <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                    Χρέωση νύχτας:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_night)} / kWh</strong>
+                  <span style={FACT}>
+                    Χρέωση νύχτας:{' '}<strong style={{ color: tariffBc.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fk(tariff.kwh_night)} / kWh</strong>
                   </span>
                 )}
                 {tariff.kwh_tier2 != null && (
-                  <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                    Άνω των {tariff.tier2_threshold} kWh:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_tier2)} / kWh</strong>
+                  <span style={FACT}>
+                    Άνω των {tariff.tier2_threshold} kWh:{' '}<strong style={{ color: tariffBc.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fk(tariff.kwh_tier2)} / kWh</strong>
                   </span>
                 )}
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                  Μηνιαίο πάγιο:{'  '}<strong>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed), 2)} / μήνα`}</strong>
+                <span style={FACT}>
+                  Μηνιαίο πάγιο:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed), 2)} / μήνα`}</strong>
                 </span>
               </div>
             )}
             {/* FIX: new, fixed_monthly tariffs previously showed nothing here at all (the block above explicitly excludes them) */}
             {tariff.type === 'fixed_monthly' && (
               <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                  Σταθερό μηνιαίο κόστος:{'  '}<strong style={{ color: tariffBc.color }}>{fe(tariff.flat_monthly || 0)} / μήνα</strong>
+                <span style={FACT}>
+                  Σταθερό μηνιαίο κόστος:{' '}<strong style={{ color: tariffBc.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(tariff.flat_monthly || 0)} / μήνα</strong>
                 </span>
                 {tariff.flat_annual_kwh != null && (
-                  <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
-                    Όριο κατανάλωσης:{'  '}<strong>{tariff.flat_annual_kwh.toLocaleString('el-GR')} kWh / έτος</strong>
+                  <span style={FACT}>
+                    Όριο κατανάλωσης:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{tariff.flat_annual_kwh.toLocaleString('el-GR')} kWh / έτος</strong>
                   </span>
                 )}
               </div>
@@ -509,12 +526,16 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         {tariff.type !== 'dynamic' && kwh > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 14 }}>
             {[
-              { label: 'Εκτιμώμενο / μήνα', value: fe(calcMonthly),       color: 'var(--accent)' },
-              { label: 'Ετήσιο Κόστος',      value: fe(calcMonthly * 12), color: 'var(--text-primary)' },
-              { label: 'Κόστος / kWh net',   value: kwh > 0 ? fk(calcMonthly / kwh) : '—', color: 'var(--text-secondary)' },
+              // ΤΕΣΣΕΡΑ ΠΛΑΚΙΔΙΑ, ΤΕΣΣΕΡΙΣ ΓΛΩΣΣΕΣ. «kWh net» και «vs» είναι
+              // αγγλικά μέσα σε ελληνική διεπαφή· το «Ετήσιο Κόστος» με κεφαλαίο
+              // Κ ενώ τα διπλανά του με πεζό· και το «—» ήταν παύλα σε θέση
+              // τιμής, ακριβώς ό,τι απαγορεύει ο κανόνας του έργου.
+              { label: 'Εκτιμώμενο τον μήνα', value: fe(calcMonthly),       color: 'var(--accent)' },
+              { label: 'Ετήσιο κόστος',       value: fe(calcMonthly * 12), color: 'var(--text-primary)' },
+              { label: 'Κόστος ανά κιλοβατώρα', value: kwh > 0 ? fk(calcMonthly / kwh) : ABSENT_SHORT, color: 'var(--text-secondary)' },
               // ΧΩΡΙΣ ΣΗΜΑΣΙΟΛΟΓΙΚΟ ΠΡΑΣΙΝΟ. Η εξοικονόμηση δεν είναι «καλή» ή
               // «κακή»· είναι μέτρηση. Η έμφαση βγαίνει από βάρος και θέση.
-              { label: 'Εξοικονόμηση vs καλύτερο', value: canRank ? (savings > 0.5 ? `+${fe(savings)}` : fn(0)) : ABSENT_SHORT, color: 'var(--text-primary)' },
+              { label: 'Διαφορά από το καλύτερο', value: canRank ? (savings > 0.5 ? `+${fe(savings)}` : fn(0)) : ABSENT_SHORT, color: 'var(--text-primary)' },
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
@@ -573,7 +594,11 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-                Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
+                {/* Αριθμός ΜΕΣΑ σε πρόταση: το `tokens.ts` το ορίζει ρητά — «μεγάλοι αριθμοί
+                    με σφιχτή sans και tabular ψηφία, χωρίς τα πλατιά κενά του
+                    monospace γύρω από κόμμα και τελεία· το mono μένει για πυκνούς
+                    πίνακες». Εδώ ήταν mono, μέσα σε τρέχον κείμενο. */}
+                Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
               </span>
             </div>
           )}
