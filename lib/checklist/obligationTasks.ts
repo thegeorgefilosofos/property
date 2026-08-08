@@ -85,6 +85,9 @@ const TAX_CATEGORY: Record<TaxObligationKind, string> = {
   'enfia-last': 'financial',
   e9: 'legal',
   'income-decl': 'legal',
+  // Ο έλεγχος του προσυμπληρωμένου δεν είναι πληρωμή· είναι δήλωση που πρέπει
+  // να κοιταχτεί πριν οριστικοποιηθεί μόνη της.
+  'income-autofile': 'legal',
   'str-registry': 'legal',
   'str-climate-fee': 'financial',
 }
