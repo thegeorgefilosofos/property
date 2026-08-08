@@ -32,7 +32,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, Skeleton } from '@/components/Theme';
-import { mergeLedger, recurringMonthly } from '@/lib/expenses/ledger';
+import { mergeLedger, type LedgerEntry } from '@/lib/expenses/ledger';
+import { contractOverview, totalMonthly, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
 
 // ── Static imports, all components must be static for Next.js App Router ────
 import BillsElectricity  from './BillsElectricity';
@@ -54,6 +55,18 @@ type ToolId = 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'se
 
 interface ToolDef { id: ToolId; label: string; icon: string; desc: string }
 
+/**
+ * Ποιο εργαλείο ανοίγει κάθε κάρτα.
+ *
+ * Οι κατηγορίες συμβολαίου είναι επτά και τα εργαλεία έξι: το νερό και το
+ * internet ζουν και τα δύο στους «Παρόχους», οι συνδρομές μαζί με την ασφάλεια.
+ * Ο χάρτης γράφεται μία φορά εδώ αντί να μαντεύεται στην απόδοση.
+ */
+const TOOL_OF: Record<ContractKind, ToolId> = {
+  electricity: 'electricity', gas: 'gas', water: 'providers', internet: 'providers',
+  insurance: 'insurance', subscriptions: 'insurance', common: 'common',
+};
+
 interface StripData {
   /**
    * Ο μέσος μήνας σε πάγια, ΜΕΤΡΗΜΕΝΟΣ. `null` όταν το ιστορικό δεν φτάνει.
@@ -64,6 +77,8 @@ interface StripData {
    * πρόγραμμα. Δώδεκα λογαριασμοί ΔΕΗ των 100 € έδειχναν «1.200 € / μήνα».
    */
   recurringPerMonth: number | null;
+  /** Οι κάρτες συμβολαίων, υπολογισμένες από το ίδιο ιστορικό. */
+  cards: ContractCard[];
   // ΤΑ ΑΛΛΑ ΤΡΙΑ ΕΦΥΓΑΝ ΜΑΖΙ ΜΕ ΤΗ ΛΙΣΤΑ. Ο μετρητής ληξιπρόθεσμων έδειχνε προς
   // μια λίστα που δεν υπάρχει πια σε αυτή την οθόνη — ένα σήμα που δεν οδηγεί
   // πουθενά είναι χειρότερο από κανένα σήμα. Το όνομα ενοικιαστή δεν είχε ποτέ
@@ -99,6 +114,62 @@ const TOOLS: ToolDef[] = [
   { id: 'services',    label: 'Υπηρεσίες',            icon: 'wrench',   desc: 'ΕΝΦΙΑ, δημοτικά τέλη, καθαρισμός, κηπουρός' },
 ];
 
+
+// ─── Η κάρτα ενός συμβολαίου ──────────────────────────────────────────────────
+/**
+ * ΕΝΑ ΣΧΗΜΑ, ΕΠΤΑ ΠΕΡΙΠΤΩΣΕΙΣ. Η γνωστή και η άγνωστη κατηγορία έχουν το ΙΔΙΟ
+ * περίγραμμα και το ίδιο ύψος: αλλιώς το πλέγμα «χοροπηδά» ανάλογα με το τι
+ * έχει καταχωρήσει ο χρήστης, και η οθόνη μοιάζει διαφορετική σε κάθε ακίνητο.
+ *
+ * ΤΟ ΑΓΝΩΣΤΟ ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΗΔΕΝ. Ένα «0,00 €» στο αέριο σημαίνει «δεν πληρώνω
+ * αέριο», ενώ η αλήθεια είναι «δεν ξέρω ακόμη». Η κενή κάρτα λέει τι λείπει και
+ * πώς μπαίνει — με τον δρόμο που δεν απαιτεί πληκτρολόγηση.
+ */
+function ContractTile({ card, active, onOpen }: { card: ContractCard; active: boolean; onOpen: () => void }) {
+  const [hover, setHover] = useState(false);
+  const raised = hover || active;
+  const period = card.everyMonths === 2 ? 'ανά δίμηνο' : '';
+  const meta = card.known
+    ? [card.provider, period, `${card.occurrences} ${card.occurrences === 1 ? 'περίοδος' : 'περίοδοι'}`].filter(Boolean).join(' · ')
+    : 'Ανέβασε τον τελευταίο λογαριασμό και συμπληρώνεται μόνο του';
+
+  return (
+    <button type="button" onClick={onOpen}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      aria-pressed={active}
+      style={{
+        textAlign: 'left', width: '100%', cursor: 'pointer', display: 'flex',
+        flexDirection: 'column', justifyContent: 'space-between', gap: 12, minHeight: 104,
+        padding: '14px 16px', borderRadius: T.radius.card, fontFamily: T.font.sans,
+        background: raised ? 'var(--bg-surface)' : 'var(--bg-elevated)',
+        border: `1px solid ${active ? 'var(--border-default)' : 'var(--border-subtle)'}`,
+        boxShadow: raised ? 'var(--elev-1)' : 'none',
+        transition: `background .15s ${T.ease.standard}, border-color .15s, box-shadow .15s, transform .15s`,
+        transform: hover && !active ? 'translateY(-1px)' : 'none',
+      }}>
+      <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+          {card.label}
+        </span>
+        {/* Η ΙΕΡΑΡΧΙΑ ΒΓΑΙΝΕΙ ΑΠΟ ΜΕΓΕΘΟΣ ΚΑΙ ΒΑΡΟΣ, ΟΧΙ ΑΠΟ ΧΡΩΜΑ. Το ποσό
+            είναι το μόνο μεγάλο νούμερο της κάρτας· ό,τι δεν γνωρίζουμε μένει
+            στο μέγεθος του κειμένου, όχι σε κόκκινο. */}
+        {card.monthly !== null && (
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+            {fe(card.monthly)}
+          </span>
+        )}
+      </span>
+      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+        {meta}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: card.known ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+        {card.known ? 'Σύγκριση και λεπτομέρειες →' : 'Άνοιγμα →'}
+      </span>
+    </button>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function TabBills({
   propertyId, userId,
@@ -108,7 +179,7 @@ export default function TabBills({
   const toolsRef   = useRef<HTMLDivElement | null>(null);
 
   const [tool,       setTool]       = useState<ToolId | null>(null);
-  const [strip,      setStrip]      = useState<StripData>({ recurringPerMonth: null });
+  const [strip,      setStrip]      = useState<StripData>({ recurringPerMonth: null, cards: [] });
   // Το `strip` ξεκινά με μηδενικά, οπότε η κεφαλίδα δεν έδειχνε κανένα chip και
   // μετά τα chips εμφανίζονταν μονομιάς και έσπρωχναν τη γραμμή. Δύο σκελετοί
   // κρατούν τη θέση τους όσο τρέχουν τα παράλληλα ερωτήματα.
@@ -125,7 +196,12 @@ export default function TabBills({
       ]);
 
       const { entries } = mergeLedger((bills ?? []) as never[], (expenses ?? []) as never[]);
-      setStrip({ recurringPerMonth: recurringMonthly(entries).perMonth });
+      const cards = contractOverview(entries as LedgerEntry[], new Date());
+      // Το σύνολο βγαίνει από τις ΙΔΙΕΣ κάρτες που βλέπει ο χρήστης. Πριν, το
+      // νούμερο της κεφαλίδας ερχόταν από άλλη συνάρτηση (`recurringMonthly`)
+      // και μπορούσε να μη συμφωνεί με το άθροισμα των γραμμών από κάτω — δύο
+      // απαντήσεις στην ίδια ερώτηση, στην ίδια οθόνη.
+      setStrip({ recurringPerMonth: totalMonthly(cards) || null, cards });
     } catch (_) {} finally { setStripLoading(false); }
   }, [propertyId]);
 
@@ -165,7 +241,7 @@ export default function TabBills({
             Λογαριασμοί & πάγιες δαπάνες
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-            Τι πληρώνεις κάθε μήνα, και αν υπάρχει φθηνότερο. Οι καταχωρήσεις γίνονται στις Δαπάνες.
+            Τι έχεις, τι πληρώνεις. Οι καταχωρήσεις γίνονται στις Δαπάνες.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -177,7 +253,7 @@ export default function TabBills({
           {showSkeleton
             ? <Skeleton w={110} h={24} r={T.radius.pill} />
             : strip.recurringPerMonth !== null && strip.recurringPerMonth > 0 && (
-              <span title="Ο μέσος μήνας σε πάγια, μετρημένος από τους λογαριασμούς που έχεις καταχωρήσει (σύνολο παγίων ÷ οι μήνες που καλύπτουν). Εμφανίζεται μόλις υπάρχουν δύο περίοδοι — με μία δεν υπάρχει μέσος όρος." style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.recurringPerMonth, 0)} / μήνα</span>
+              <span title="Το άθροισμα των καρτών από κάτω. Κάθε κατηγορία μετριέται από το ιστορικό της με διάμεσο, και ο διμηνιαίος λογαριασμός μοιράζεται στους μήνες του. Κατηγορία χωρίς αρκετό ιστορικό δεν μπαίνει στο άθροισμα." style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.recurringPerMonth)} τον μήνα</span>
             )}
         </div>
       </div>
@@ -185,42 +261,41 @@ export default function TabBills({
       {/* ── «Πληρώνεις παραπάνω» — μόνο όταν υπάρχει πραγματική διαφορά ── */}
       <ExpenseSwitchAlert propertyId={propertyId} onOpen={openTool} />
 
-      {/* ── Τα εργαλεία ανά κατηγορία ──────────────────────────────────
-          Χωρίς πτυσσόμενο περιτύλιγμα: αυτά ΕΙΝΑΙ η οθόνη. */}
-      <div ref={toolsRef}>
-        {/* Ίδιο περίβλημα με τον διακόπτη του TabFinances από πάνω: βυθισμένη
-            επιφάνεια, μέσα της ανασηκώνεται το ενεργό. Μία γλώσσα, μία οθόνη. */}
-        <div style={{ display: 'inline-flex', padding: 3, gap: 2, flexWrap: 'wrap',
-                      background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                      borderRadius: T.radius.pill, maxWidth: '100%',
-                      marginBottom: activeTool ? 16 : 0 }}>
-          {TOOLS.map(t => {
-            const on = tool === t.id;
-            return (
-              <button key={t.id} type="button" title={t.desc}
-                onClick={() => setTool(on ? null : t.id)} aria-pressed={on}
-                // ΤΟ ΕΝΕΡΓΟ ΔΕΝ ΕΙΝΑΙ ΜΠΛΕ. Ο κανόνας είναι γραμμένος ρητά στο
-                // TabFinances, είκοσι εικονοστοιχεία πιο πάνω στην ίδια οθόνη:
-                // «το μπλε μένει ΜΟΝΟ για την κύρια ενέργεια — δύο μπλε σημεία
-                // στην ίδια οθόνη είναι κανένα». Εδώ τα chips ήταν γεμάτα μπλε
-                // και ένα σκαλί κοντύτερα (sm αντί για md), οπότε οι δύο σειρές
-                // διακοπτών έμοιαζαν με δύο διαφορετικές εφαρμογές. Ίδιο ύψος,
-                // ίδιο σχήμα, ίδιος κανόνας ενεργού.
-                style={{ display: 'flex', alignItems: 'center', gap: 6, height: T.h.md, padding: '0 16px', borderRadius: T.radius.pill, border: `1px solid ${on ? 'var(--border-default)' : 'transparent'}`, cursor: 'pointer', fontSize: 13, fontWeight: on ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: on ? 'var(--bg-surface)' : 'transparent', color: on ? 'var(--text-primary)' : 'var(--text-secondary)', boxShadow: on ? 'var(--elev-1)' : 'none' }}>
-                <TabIcon name={t.icon} size={12}/>
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+      {/* ── ΟΙ ΚΑΡΤΕΣ: Η ΑΠΑΝΤΗΣΗ ΠΡΙΝ ΤΗΝ ΕΡΩΤΗΣΗ ────────────────────────
+          ΠΡΙΝ: έξι κλειστά chips και η γραμμή «Διάλεξε κατηγορία για να δεις το
+          συμβόλαιό σου». Τρία κλικ και άδεια οθόνη πριν ο ιδιοκτήτης δει
+          οτιδήποτε δικό του — και πίσω από κάθε chip ένα πάνελ εκατοντάδων
+          γραμμών με καταλόγους της αγοράς.
 
-        {activeTool ? (
+          Η ιεραρχία ήταν ανάποδη. Κανείς δεν ανοίγει τα Συμβόλαια για να
+          μελετήσει την αγορά· τα ανοίγει για να θυμηθεί τι έχει και πόσο του
+          κοστίζει. Η αγορά είναι η ΔΕΥΤΕΡΗ ερώτηση, και μόνο για όποιον τη
+          ρωτήσει: ζει ακέραιη ένα κλικ πιο μέσα. */}
+      <div ref={toolsRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
+        {showSkeleton
+          ? [0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} h={104} r={T.radius.card} />)
+          : strip.cards.map(c => (
+            <ContractTile key={c.kind} card={c} active={tool === TOOL_OF[c.kind]}
+              onOpen={() => openTool(TOOL_OF[c.kind])} />
+          ))}
+      </div>
+
+      {activeTool && (
+        <div style={{ marginTop: 16 }}>
+          {/* Η κεφαλίδα του πάνελ λέει ΠΟΥ βρίσκεσαι και πώς βγαίνεις. Πριν, το
+              πάνελ άνοιγε χωρίς τίτλο κάτω από μια σειρά chips, και ο μόνος
+              τρόπος να κλείσει ήταν να ξαναπατήσεις το ίδιο chip. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+              <span style={{ color: 'var(--text-tertiary)', display: 'flex' }}><TabIcon name={activeTool.icon} size={15}/></span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{activeTool.label}</span>
+            </div>
+            <button type="button" onClick={() => setTool(null)}
+              style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, flexShrink: 0 }}>
+              Κλείσιμο
+            </button>
+          </div>
           <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-            {/* Το `onNavigateTab` υπήρχε ως prop και ΔΕΝ το περνούσε κανείς: η
-                υπόδειξη «Η ασφάλειά σου δεν καλύπτει σεισμό» είχε κουμπί που δεν
-                έκανε τίποτα. Ο στόχος του είναι εργαλείο ΑΥΤΗΣ της οθόνης, όχι
-                καρτέλα της εφαρμογής — οπότε το `openTool` είναι ο σωστός δέκτης,
-                και κυλά κιόλας στο πάνελ που άνοιξε. */}
             {tool === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ToolId)}/>}
             {tool === 'gas'         && <BillsGas         propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ToolId)}/>}
             {tool === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
@@ -228,12 +303,8 @@ export default function TabBills({
             {tool === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}
             {tool === 'services'    && <BillsServices    propertyId={propertyId} userId={userId}/>}
           </div>
-        ) : (
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6, marginTop: 14 }}>
-            Διάλεξε κατηγορία για να δεις το συμβόλαιό σου και τι προσφέρει η αγορά.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
