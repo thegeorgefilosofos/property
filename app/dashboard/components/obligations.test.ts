@@ -25,6 +25,7 @@ import {
 } from '@/lib/tax/greekTaxCalendar'
 import { declarationDeadline } from '@/lib/tax/leaseDeclaration'
 import { WHO_LABEL } from '@/lib/accounting/dossier'
+import { AADE_DESTINATIONS, destinationForKind } from '@/lib/tax/aade'
 
 let passed = 0, failed = 0
 const fails: string[] = []
@@ -111,7 +112,12 @@ ok('η μακροχρόνια ΔΕΝ βλέπει βραχυχρόνιες', !ob
 // ── 6. Ποιος το κάνει, και πόσο σίγουρη είναι η ημερομηνία ────────────────
 ok('κάθε υποχρέωση λέει ποιον αφορά', obls.every(o => !!WHO_LABEL[o.who]))
 ok('οι θεσμικές φέρουν confidence', taxObls.every(o => o.confidence === 'statutory' || o.confidence === 'announced'))
-ok('οι θεσμικές φέρουν επίσημη πηγή', taxObls.every(o => (o.officialUrl || '').includes('aade.gr')))
+// Όχι «περιέχει aade.gr» — αυτό ελέγχει τομέα, όχι προορισμό, και έσπασε μόλις
+// η πύλη διορθώθηκε σε myaade.gov.gr. Ο προορισμός βγαίνει από το ΕΙΔΟΣ.
+ok('κάθε θεσμική δείχνει στον προορισμό του είδους της', taxObls.every(o => {
+  const kind = taxKindOfEventSource(o.source)
+  return !!kind && o.officialUrl === AADE_DESTINATIONS[destinationForKind(kind)].url
+}))
 ok('το confidence φαίνεται στο κείμενο', taxObls.every(o => o.note.includes(CONFIDENCE_HINT[o.confidence!])))
 ok('η ΕΝΦΙΑ 1η δόση είναι «announced»', enfiaFirst!.confidence === 'announced')
 ok('η δήλωση διαμονής είναι «statutory»', shortTax.find(o => taxKindOfEventSource(o.source) === 'str-registry')!.confidence === 'statutory')

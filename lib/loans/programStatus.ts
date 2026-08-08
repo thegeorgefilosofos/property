@@ -1,0 +1,172 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΚΑΤΑΣΤΑΣΗ ΤΟΥ ΠΡΟΓΡΑΜΜΑΤΟΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΗΜΕΡΟΛΟΓΙΟ, ΟΧΙ ΑΠΟ ΤΟ ΧΕΡΙ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ, ΣΤΙΣ 8 ΑΥΓΟΥΣΤΟΥ 2026:
+//
+//   «Σπίτι μου ΙΙ»   status: 'active'  ·  deadline_urgent: true
+//                    application_deadline: 31/05/2026   ← πέρασε προ δέκα εβδομάδων
+//
+// Η οθόνη έγραφε «Ενεργό» και «Λήγει σύντομα» για πρόγραμμα που ΔΕΝ δέχεται πια
+// αιτήσεις. Ο ιδιοκτήτης διάβαζε «προθεσμία 31/08» και καταλάβαινε ότι προλαβαίνει.
+// Δεν προλαβαίνει: η 31η Αυγούστου είναι η προθεσμία ΥΠΟΓΡΑΦΗΣ για όσους έχουν
+// ΗΔΗ έγκριση. Οι δύο ημερομηνίες σημαίνουν διαφορετικά πράγματα και η οθόνη
+// έδειχνε μόνο τη δεύτερη.
+//
+// Και το «Εξοικονομώ 2025» έγραφε `status: 'active'` ενώ η ΔΙΚΗ ΤΟΥ περιγραφή,
+// στο ίδιο αντικείμενο, έλεγε «η αρχική προθεσμία παρήλθε». Δύο πεδία της ίδιας
+// εγγραφής σε αντίφαση.
+//
+// ΓΙΑΤΙ ΣΥΜΒΑΙΝΕΙ, ΚΑΙ ΓΙΑΤΙ ΘΑ ΞΑΝΑΣΥΜΒΕΙ. Το `status` και το `deadline_urgent`
+// είναι χειρόγραφες σημαίες δίπλα σε χειρόγραφες ημερομηνίες. Την ημέρα που
+// γράφτηκαν συμφωνούσαν. Ο χρόνος περνά μόνος του· η σημαία όχι. Καμία
+// επιμέλεια δεν λύνει αυτό — μόνο το να ΠΑΨΕΙ να είναι χειρόγραφη.
+//
+// Η ΑΡΧΗ: μία ημερομηνία που πέρασε δεν είναι «επείγουσα», είναι ΚΛΕΙΣΤΗ. Και
+// ένα εργαλείο που στέλνει τον χρήστη να κάνει αίτηση σε κλειστό πρόγραμμα
+// κοστίζει χρόνο, ελπίδα και εμπιστοσύνη — με αυτή τη σειρά.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Πού βρίσκεται το πρόγραμμα σήμερα.
+ *
+ * Το `applications-closed` υπάρχει επειδή τα ελληνικά στεγαστικά προγράμματα
+ * έχουν ΔΥΟ προθεσμίες: μία για την αίτηση και μία, αργότερα, για την υπογραφή
+ * της σύμβασης. Ανάμεσά τους το πρόγραμμα δεν είναι ούτε ανοιχτό ούτε κλειστό:
+ * είναι κλειστό για ΣΕΝΑ αν δεν έχεις ήδη κάνει αίτηση. Χωρίς αυτή τη διάκριση
+ * η οθόνη πρέπει να πει ψέμα προς τη μία ή την άλλη κατεύθυνση.
+ */
+export type ProgramState =
+  | 'open'                 // δέχεται αιτήσεις
+  | 'closing'              // δέχεται αιτήσεις, λιγότερο από τον μήνα
+  | 'applications-closed'  // οι αιτήσεις έκλεισαν, οι συμβάσεις τρέχουν ακόμη
+  | 'closed'               // πέρασαν όλα
+  | 'upcoming'             // δεν άνοιξε ακόμη
+  | 'open-ended';          // χωρίς ανακοινωμένη προθεσμία
+
+export interface ProgramDates {
+  /** Καταληκτική ημερομηνία ΑΙΤΗΣΗΣ, «31/05/2026» ή «2026-05-31». */
+  applicationDeadline?: string | null;
+  /** Καταληκτική ημερομηνία ΥΠΟΓΡΑΦΗΣ ή, όπου δεν υπάρχουν δύο, η μοναδική. */
+  deadline?: string | null;
+  /** Χειρόγραφη κατάσταση από τα δεδομένα. Χρησιμεύει ΜΟΝΟ για το «upcoming». */
+  status?: string | null;
+}
+
+export interface ProgramStatus {
+  state: ProgramState;
+  /** Η ετικέτα του σήματος. Δύο λέξεις, γιατί κάθεται δίπλα σε άλλες. */
+  badge: string;
+  /** Η πρόταση που εξηγεί τι σημαίνει για τον χρήστη ΣΗΜΕΡΑ. Κενή όταν δεν χρειάζεται. */
+  note: string;
+  /** Δέχεται αίτηση σήμερα; Ο μόνος έλεγχος που χρειάζεται μια οθόνη για να κρύψει κουμπί. */
+  acceptsApplications: boolean;
+  /** Ημέρες ως την επόμενη ημερομηνία που μετράει. Αρνητικές όταν πέρασε. */
+  daysLeft: number | null;
+}
+
+/** Λιγότερο από αυτό, και η αίτηση θέλει κίνηση σήμερα, όχι «κάποια στιγμή». */
+const CLOSING_SOON_DAYS = 30;
+
+const DAY_MS = 86400000;
+
+/**
+ * «31/05/2026» ή «2026-05-31» → ημερολογιακή ημέρα σε τοπική ώρα.
+ *
+ * Το `T00:00:00` ΔΕΝ είναι διακοσμητικό: χωρίς αυτό το `new Date('2026-05-31')`
+ * είναι μεσάνυχτα UTC, και σε ζώνη με αρνητική απόκλιση η σύγκριση με το
+ * σήμερα βγάζει μία μέρα λάθος — δηλαδή ένα πρόγραμμα φαίνεται κλειστό μία
+ * μέρα νωρίτερα, ή ανοιχτό μία μέρα παραπάνω.
+ */
+export function parseProgramDate(raw?: string | null): Date | null {
+  const s = (raw || '').trim();
+  if (!s) return null;
+  let iso: string | null = null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s;
+  else {
+    const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) iso = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  }
+  if (!iso) return null;
+  const d = new Date(`${iso}T00:00:00`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+const daysBetween = (from: Date, to: Date): number =>
+  Math.round((to.getTime() - from.getTime()) / DAY_MS);
+
+/** «31/05/2026» για την οθόνη, από οποιαδήποτε από τις δύο γραφές. */
+export function programDateLabel(raw?: string | null): string {
+  const d = parseProgramDate(raw);
+  if (!d) return (raw || '').trim();
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+/**
+ * Η κατάσταση του προγράμματος σήμερα.
+ *
+ * Το `today` περνιέται ως όρισμα, δεν διαβάζεται από το ρολόι: αλλιώς η
+ * συνάρτηση δεν δοκιμάζεται, και μια συνάρτηση που κρίνει προθεσμίες και δεν
+ * δοκιμάζεται είναι ακριβώς αυτή που έβγαλε το σφάλμα από πάνω.
+ */
+export function programStatus(p: ProgramDates, today: Date): ProgramStatus {
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const apply = parseProgramDate(p.applicationDeadline);
+  const sign = parseProgramDate(p.deadline);
+
+  // Το «upcoming» είναι η ΜΟΝΗ περίπτωση όπου η χειρόγραφη σημαία ξέρει κάτι
+  // που δεν ξέρει το ημερολόγιο: ότι δεν έχει ανοίξει ακόμη.
+  if (p.status === 'upcoming') {
+    return { state: 'upcoming', badge: 'Επερχόμενο', acceptsApplications: false, daysLeft: null,
+      note: 'Δεν έχει ανοίξει ακόμη. Οι όροι ανακοινώνονται πριν την έναρξη.' };
+  }
+
+  // Η προθεσμία αίτησης είναι αυτή που κρίνει αν ο χρήστης μπορεί να κάνει κάτι.
+  // Όπου δεν δηλώνεται ξεχωριστά, η μοναδική προθεσμία παίζει και τους δύο ρόλους.
+  const applyBy = apply ?? sign;
+  if (!applyBy) {
+    return { state: 'open-ended', badge: 'Ενεργό', acceptsApplications: true, daysLeft: null, note: '' };
+  }
+
+  const daysToApply = daysBetween(t, applyBy);
+  if (daysToApply >= 0) {
+    const closing = daysToApply <= CLOSING_SOON_DAYS;
+    return {
+      state: closing ? 'closing' : 'open',
+      badge: closing ? 'Λήγει σύντομα' : 'Ενεργό',
+      acceptsApplications: true,
+      daysLeft: daysToApply,
+      note: closing
+        ? `Οι αιτήσεις κλείνουν ${programDateLabel(p.applicationDeadline ?? p.deadline)}, σε ${daysToApply === 0 ? 'λιγότερο από μία μέρα' : daysToApply === 1 ? 'μία μέρα' : `${daysToApply} μέρες`}.`
+        : '',
+    };
+  }
+
+  // Οι αιτήσεις έκλεισαν. Αν υπάρχει ΔΕΥΤΕΡΗ, μεταγενέστερη ημερομηνία, το
+  // πρόγραμμα τρέχει ακόμη για όσους έχουν έγκριση — και αυτό πρέπει να ειπωθεί
+  // ρητά, αλλιώς η μεταγενέστερη ημερομηνία διαβάζεται ως προθεσμία αίτησης.
+  if (sign && apply && sign.getTime() > apply.getTime()) {
+    const daysToSign = daysBetween(t, sign);
+    if (daysToSign >= 0) {
+      return {
+        state: 'applications-closed', badge: 'Έκλεισαν οι αιτήσεις',
+        acceptsApplications: false, daysLeft: daysToSign,
+        note: `Οι αιτήσεις έκλεισαν ${programDateLabel(p.applicationDeadline)}. Όσοι έχουν ήδη έγκριση υπογράφουν έως ${programDateLabel(p.deadline)}.`,
+      };
+    }
+  }
+
+  return {
+    state: 'closed', badge: 'Έκλεισε', acceptsApplications: false, daysLeft: daysToApply,
+    note: `Έκλεισε ${programDateLabel(p.applicationDeadline ?? p.deadline)}. Τυχόν νέος κύκλος ανακοινώνεται από τον φορέα.`,
+  };
+}
+
+/**
+ * Σειρά εμφάνισης: πρώτα ό,τι μπορεί να κάνει ο χρήστης σήμερα.
+ *
+ * Πριν, η ταξινόμηση ξεκινούσε από το χειρόγραφο `deadline_urgent`, οπότε ένα
+ * κλειστό πρόγραμμα με ξεχασμένη σημαία καθόταν στην κορυφή της λίστας.
+ */
+export const PROGRAM_ORDER: Record<ProgramState, number> = {
+  closing: 0, open: 1, 'open-ended': 2, upcoming: 3, 'applications-closed': 4, closed: 5,
+};

@@ -37,6 +37,7 @@ import {
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
+import { missingThisMonth } from '@/lib/expenses/expected';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
@@ -199,6 +200,14 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   const unpaid = useMemo(() => entries.filter(e => !e.paid), [entries]);
   const unpaidTotal = useMemo(() => ledgerTotal(unpaid), [unpaid]);
 
+  // ── ΤΙ ΣΥΝΗΘΩΣ ΘΑ ΕΙΧΕ ΕΡΘΕΙ ΚΑΙ ΛΕΙΠΕΙ ──────────────────────────────────
+  // Ο πυρήνας το έγραφε ρητά: «καμία αυτόματη ανανέωση δεν υπάρχει». Ο
+  // ιδιοκτήτης δήλωνε τη ΔΕΗ πάγιο και μετά την ξαναέγραφε μόνος του κάθε μήνα,
+  // ενώ η εφαρμογή ήξερε από το ιστορικό ότι έρχεται. Εδώ της επιτρέπεται να το
+  // πει — χωρίς να γράψει τίποτα: μια εγγραφή με ποσό που μαντεύτηκε μολύνει τα
+  // ίδια τα νούμερα που πάνε στον λογιστή.
+  const missing = useMemo(() => missingThisMonth(entries, new Date()), [entries]);
+
   // «Θέλουν ματιά»: διπλές γραμμές και όσες δεν έχουν αναγνωρίσιμη κατηγορία.
   // Δεν είναι σφάλμα του χρήστη και δεν παρουσιάζεται ως τέτοιο: είναι δουλειά
   // πέντε δευτερολέπτων που κάνει τα υπόλοιπα νούμερα να στέκουν.
@@ -309,6 +318,30 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           tone={unpaid.length ? 'warn' : undefined} />
         <Figure label="φέτος" value={loading ? null : fe(ledgerTotal(entries.filter(e => e.date.startsWith(String(new Date().getFullYear())))))} />
       </div>
+
+      {/* ── ΤΙ ΛΕΙΠΕΙ ────────────────────────────────────────────────────────
+          Μία γραμμή, όχι πίνακας. Δεν είναι σφάλμα και δεν παρουσιάζεται ως
+          τέτοιο: είναι παρατήρηση από το ιστορικό, με το τυπικό ποσό δίπλα ώστε
+          ο χρήστης να ξέρει τι ψάχνει. Χωρίς χρώμα προειδοποίησης — ένας
+          λογαριασμός που άργησε τρεις μέρες δεν είναι πρόβλημα. */}
+      {!loading && missing.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: T.sp.lg,
+          padding: '11px 14px', borderRadius: T.radius.inner,
+          background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+        }}>
+          <span style={{ flexShrink: 0, width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', marginTop: 8 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600 }}>
+              {missing.length === 1 ? 'Δεν έχει καταχωρηθεί ακόμη αυτόν τον μήνα' : `Δεν έχουν καταχωρηθεί ακόμη ${missing.length} πάγια αυτόν τον μήνα`}
+            </div>
+            <div style={{ ...TT.caption, marginTop: 3, lineHeight: 1.6 }}>
+              {missing.slice(0, 4).map(m => `${m.title}, συνήθως ${fe(m.typicalAmount)} γύρω στις ${m.typicalDay}`).join(' · ')}
+              {missing.length > 4 ? ` · και άλλα ${missing.length - 4}` : ''}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── ΜΙΑ ΕΝΕΡΓΕΙΑ, ΣΤΗΝ ΚΟΡΥΦΗ ────────────────────────────────────────
           Ήταν τρία κουμπιά σε σειρά, ΚΑΤΩ από τα νούμερα: «Φωτογραφία» (μπλε),

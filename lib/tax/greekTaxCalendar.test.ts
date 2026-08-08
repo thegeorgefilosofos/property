@@ -7,6 +7,7 @@ import {
   type TaxObligation,
 } from './greekTaxCalendar'
 import { isNonWorkingDay } from '../calendar/greekHolidays'
+import { AADE_DESTINATIONS, destinationForKind } from './aade'
 import { requirementsFor, WHO_LABEL, type Who } from '../accounting/dossier'
 
 let passed = 0, failed = 0
@@ -36,7 +37,12 @@ ok('owner ΔΕΝ έχει βραχυχρόνια', !ids.some(i => i.startsWith('
 ok('owner ταξινομημένα κατά ημερομηνία', owner.every((o, i) => i === 0 || owner[i - 1].date <= o.date))
 ok('όλες οι ημερομηνίες εργάσιμες', owner.every(o => !isNonWorkingDay(o.date)))
 ok('όλα category tax', owner.every(o => o.category === 'tax'))
-ok('όλα έχουν official_url', owner.every(o => /aade\.gr/.test(o.official_url)))
+// Ο έλεγχος έψαχνε τη συμβολοσειρά «aade.gr» — δηλαδή έλεγχε ΤΟΝ ΤΟΜΕΑ, όχι
+// τον προορισμό, και έσπασε τη στιγμή που η πύλη διορθώθηκε σε myaade.gov.gr.
+// Το πραγματικό αμετάβλητο είναι ότι κάθε υποχρέωση δείχνει εκεί που ορίζει το
+// μητρώο για το ΕΙΔΟΣ της.
+ok('κάθε υποχρέωση δείχνει στον προορισμό του είδους της',
+  owner.every(o => o.official_url === AADE_DESTINATIONS[destinationForKind(o.kind)].url))
 ok('notes παραπέμπουν σε επιβεβαίωση', owner.every(o => /myAADE|taxheaven/i.test(o.notes)))
 
 // ΕΝΦΙΑ τελευταία δόση → Φεβρουάριος ΕΠΟΜΕΝΟΥ έτους

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { must } from '@/lib/supabase/must'
 import { saved } from '@/components/dbWrite'
@@ -8,6 +8,7 @@ import { fp, fe } from '@/lib/core/format'
 import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
 import { AADE_HOME } from '@/lib/tax/aade'
+import { programStatus, programDateLabel, PROGRAM_ORDER } from '@/lib/loans/programStatus'
 import { T, ExportButton, EmptyState } from '@/components/Theme'
 import { loanEventTitle, UNSET_BANK } from './TabCalendar'
 import { notifyOk, notifyError } from '@/components/Toast'
@@ -413,25 +414,32 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const Y  = calcState.years || 25
   // Ταξινόμηση προγραμμάτων: πρώτα όσα λήγουν σύντομα, μετά κατά ημερομηνία
   // λήξης (πλησιέστερη πρώτη), και τέλος κατά σημαντικότητα (Σπίτι μου ΙΙ ψηλά).
-  const progDeadlineTs = (d?:string):number => {
-    if(!d) return Number.POSITIVE_INFINITY
-    let iso: string|null = null
-    if(/^\d{4}-\d{2}-\d{2}$/.test(d)) iso = d
-    else { const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/); if(m) iso = `${m[3]}-${m[2]}-${m[1]}` }
-    if(!iso) return Number.POSITIVE_INFINITY
-    const t = new Date(iso).getTime()
-    return isNaN(t) ? Number.POSITIVE_INFINITY : t
-  }
   // Μόνο το «Σπίτι μου ΙΙ» θεωρείται κορυφαίας σημασίας — όχι το «Αναβαθμίζω το
   // Σπίτι μου», που περιέχει επίσης τη φράση. Γι' αυτό αγκυρώνουμε στην αρχή.
   const isSpitiMou2 = (name?:string) => /^\s*σπίτι μου/i.test(name||'')
-  const progRank = (p:ComparisonProgram):number => isSpitiMou2(p.name) ? 0 : p.status==='active' ? 1 : 2
-  const activePrograms = [...PROGRAMS].sort((a,b)=>{
-    if(a.deadlineUrgent !== b.deadlineUrgent) return a.deadlineUrgent ? -1 : 1
-    const da=progDeadlineTs(a.deadline), db=progDeadlineTs(b.deadline)
+
+  // ── Η ΣΕΙΡΑ ΚΑΙ Η ΚΑΤΑΣΤΑΣΗ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟ ΗΜΕΡΟΛΟΓΙΟ ──────────────────
+  // Πριν, η ταξινόμηση ξεκινούσε από το χειρόγραφο `deadline_urgent`: ένα
+  // πρόγραμμα με ξεχασμένη σημαία καθόταν πρώτο στη λίστα αφότου είχε κλείσει.
+  // Τώρα ό,τι δέχεται αίτηση ΣΗΜΕΡΑ ανεβαίνει, και ό,τι έκλεισε πέφτει.
+  const today = useMemo(()=>new Date(),[])
+  const progStatus = useMemo(()=>{
+    const m = new Map<string, ReturnType<typeof programStatus>>()
+    for(const p of PROGRAMS) m.set(p.id, programStatus(
+      { applicationDeadline: p.applicationDeadline, deadline: p.deadline, status: p.status }, today))
+    return m
+  },[PROGRAMS, today])
+  const stateOf = (p:ComparisonProgram) => progStatus.get(p.id) ?? programStatus({ status: p.status }, today)
+  const activePrograms = useMemo<ComparisonProgram[]>(()=>[...PROGRAMS].sort((a,b)=>{
+    const sa = stateOf(a), sb = stateOf(b)
+    const oa = PROGRAM_ORDER[sa.state], ob = PROGRAM_ORDER[sb.state]
+    if(oa!==ob) return oa-ob
+    const da = sa.daysLeft ?? Number.POSITIVE_INFINITY, db = sb.daysLeft ?? Number.POSITIVE_INFINITY
     if(da!==db) return da-db
-    return progRank(a)-progRank(b)
-  })
+    return isSpitiMou2(a.name) ? -1 : isSpitiMou2(b.name) ? 1 : 0
+  // Η `stateOf` διαβάζει μόνο από τα `progStatus`/`today`, που είναι στις εξαρτήσεις.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }),[PROGRAMS, progStatus])
 
   // Περιεχόμενο «Αποθηκευμένα δάνεια» — εμφανίζεται στο τέλος του «Μάθε
   // περισσότερα» (κάτω από τις επίσημες πηγές), όχι ως ξεχωριστός φακός.
@@ -877,15 +885,23 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           </div>
 
           {activePrograms.map(prog=>{
-            const deadStr = prog.deadline ? (prog.deadline.match(/^\d{4}-\d{2}-\d{2}$/)?prog.deadline.split('-').reverse().join('/'):prog.deadline) : null
+            const st = stateOf(prog)
+            // Η ημερομηνία που δείχνεται είναι αυτή που ΜΕΤΡΑΕΙ για τον χρήστη:
+            // όσο δέχεται αιτήσεις, η προθεσμία αίτησης· αφού κλείσουν, η
+            // προθεσμία υπογραφής, με το κείμενο να λέει ρητά ποιανού είναι.
+            const deadStr = programDateLabel(
+              st.acceptsApplications ? (prog.applicationDeadline || prog.deadline) : prog.deadline) || null
+            const closed = !st.acceptsApplications
             return (
-            <MiniSection key={prog.id} title={prog.name} defaultOpen={isSpitiMou2(prog.name)}
+            <MiniSection key={prog.id} title={prog.name} defaultOpen={isSpitiMou2(prog.name) && st.acceptsApplications}
               badges={<>
-                <span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:prog.status==='active'?'var(--text-primary)':'var(--text-tertiary)',fontWeight:500,fontFamily: T.font.sans}}>{prog.status==='active'?'Ενεργό':'Επερχόμενο'}</span>
-                {prog.deadlineUrgent&&<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>Λήγει σύντομα</span>}
+                <span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:closed?'var(--text-tertiary)':'var(--text-primary)',fontWeight:closed?500:600,fontFamily: T.font.sans}}>{st.badge}</span>
               </>}
-              meta={deadStr?<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>Προθεσμία {deadStr}</span>:undefined}
+              meta={deadStr?<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>{st.acceptsApplications?'Αιτήσεις έως':'Υπογραφές έως'} {deadStr}</span>:undefined}
             >
+              {/* Η ΠΡΟΤΑΣΗ ΠΟΥ ΕΛΕΙΠΕ. Χωρίς αυτήν, δύο ημερομηνίες κάθονταν
+                  δίπλα-δίπλα και ο χρήστης μάντευε ποια τον αφορά. */}
+              {st.note&&<p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily: T.font.sans,marginBottom:12,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>{st.note}</p>}
               <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:10,fontWeight:600,fontFamily: T.font.sans,textTransform:'uppercase' as const,letterSpacing:'0.05em'}}>{prog.type}</p>
               <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,fontFamily: T.font.sans,marginBottom:16}}>{prog.desc}</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:14,marginBottom:12}}>
