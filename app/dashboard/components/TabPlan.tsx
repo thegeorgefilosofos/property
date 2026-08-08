@@ -25,6 +25,7 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { T, TT, Card, SecHdr, Badge, Btn, settingsField, feAuto } from '@/components/Theme';
+import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
   planFor, groupSteps, vacancyCost, renovationLoan, saleEstimate,
@@ -53,12 +54,18 @@ const ASSUMED_YEARS = 7;
 
 // ── Μικρά δομικά στοιχεία της οθόνης ──────────────────────────────────────
 
-/** Ετικέτα ενότητας πάνω από τυπογραφικό περιεχόμενο, χωρίς πλαίσιο. */
-function Section({ label, sub, right, children }: {
-  label: string; sub?: string; right?: ReactNode; children: ReactNode;
+/**
+ * Ετικέτα ενότητας πάνω από τυπογραφικό περιεχόμενο, χωρίς πλαίσιο.
+ *
+ * Το `tight` μηδενίζει το πάνω περιθώριο, για τις ενότητες που ζουν μέσα σε
+ * πλέγμα με δικό του gap: αλλιώς η δεύτερη στήλη ξεκινά τριάντα δύο
+ * εικονοστοιχεία πιο κάτω από την πρώτη, χωρίς λόγο.
+ */
+function Section({ label, sub, right, tight, children }: {
+  label: string; sub?: string; right?: ReactNode; tight?: boolean; children: ReactNode;
 }) {
   return (
-    <section style={{ marginTop: T.sp.section }}>
+    <section style={{ marginTop: tight ? 0 : T.sp.section }}>
       <SecHdr label={label} sub={sub} right={right} />
       {children}
     </section>
@@ -220,18 +227,30 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
     <div key={o.id} style={{ padding: '16px 2px', borderTop: first ? 'none' : '1px solid var(--border-subtle)' }}>
       <div style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>{o.title}</div>
       <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{o.payoff}</div>
-      {/* Οι τρεις άξονες σε τυπογραφικό πλέγμα: ίδια θέση σε κάθε επιλογή, ώστε
-          το μάτι να συγκρίνει κατακόρυφα χωρίς να ξαναδιαβάζει. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, margin: '12px 0 2px' }}>
+      {/* ── Η ΣΥΓΚΡΙΣΗ ΠΟΥ ΔΕΝ ΜΠΟΡΟΥΣΕ ΝΑ ΓΙΝΕΙ ────────────────────────────
+          Οι τρεις άξονες ήταν πλέγμα τριών στηλών ύψους σαράντα εικονοστοιχείων,
+          με την ετικέτα πάνω και την τιμή από κάτω. Σε επτά επιλογές, η μία κάτω
+          από την άλλη, το «Ρίσκο» της τρίτης απείχε πάνω από τετρακόσια
+          εικονοστοιχεία από το «Ρίσκο» της δεύτερης. Δηλαδή μια οθόνη σύγκρισης
+          όπου η σύγκριση απαιτούσε να θυμάσαι τρεις λέξεις ενώ κυλάς.
+
+          Τώρα οι τρεις άξονες είναι ΜΙΑ γραμμή, στην ίδια θέση σε κάθε επιλογή,
+          αμέσως κάτω από το όφελος. Το ίδιο σχήμα με τη γραμμή γεγονότων της
+          κατάταξης τιμολογίων ρεύματος: μία γλώσσα για «τα μικρά στοιχεία που
+          στοιχίζονται κατακόρυφα», σε όλη την εφαρμογή. */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 14px',
+        margin: '10px 0 2px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-primary)',
+      }}>
         {[
           { k: 'Κόπος', v: EFFORT_LABEL[o.effort] },
           { k: 'Ρίσκο', v: RISK_LABEL[o.risk] },
-          { k: 'Πόσο γρήγορα', v: o.speed },
+          { k: 'Χρόνος', v: o.speed },
         ].map(x => (
-          <div key={x.k}>
-            <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{x.k}</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 3 }}>{x.v}</div>
-          </div>
+          <span key={x.k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{x.k}</span>
+            <span style={{ fontWeight: 600 }}>{x.v}</span>
+          </span>
         ))}
       </div>
       <Meta label="Ταιριάζει αν">{o.fits}</Meta>
@@ -242,7 +261,12 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   const numField = (label: string, field: keyof VacancyCostInput, hint: string) => (
     <label style={{ display: 'block' }}>
       <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
-      <input type="number" min={0} inputMode="decimal" className="po-field" placeholder="0"
+      {/* ΤΟ placeholder ΗΤΑΝ «0» ΚΑΙ ΤΑ ΤΕΣΣΕΡΑ ΠΕΔΙΑ ΔΙΑΒΑΖΟΝΤΑΝ ΩΣ ΜΗΔΕΝΙΚΑ.
+          Ακριβώς το ίδιο σφάλμα είχε ήδη βρεθεί και διορθωθεί στο ιστορικό
+          κατανάλωσης του ρεύματος: κενή φόρμα που δηλώνει «ΕΝΦΙΑ μηδέν,
+          κοινόχρηστα μηδέν» δεν είναι κενή, είναι λάθος απάντηση. Το άγνωστο δεν
+          γράφεται μηδέν — και η υπόδειξη από κάτω λέει ήδη τι μπαίνει εδώ. */}
+      <input type="number" min={0} inputMode="decimal" className="po-field" placeholder=""
         value={costs[field] ?? ''}
         onChange={e => setCost(field, e.target.value === '' ? undefined : Number(e.target.value))}
         style={{ ...settingsField, height: T.h.md, fontSize: 13, marginTop: 5 }} />
@@ -258,6 +282,28 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
       </div>
       <h1 style={{ ...TT.display, margin: 0 }}>{plan.headline}</h1>
       <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0' }}>{plan.lede}</p>
+
+      {/* ── Η ΠΡΟΟΔΟΣ ΥΠΗΡΧΕ ΩΣ ΑΡΙΘΜΟΣ ΚΑΙ ΔΕΝ ΤΗΝ ΕΒΛΕΠΕ ΚΑΝΕΙΣ ──────────
+          Το `plan.progress.pct` υπολογιζόταν στο `lib/property/plan` και δεν το
+          διάβαζε ΚΑΜΙΑ γραμμή της εφαρμογής· το μόνο ίχνος προόδου ήταν μια
+          λεζάντα δέκα εικονοστοιχείων μέσα στην κάρτα, δεξιά, εκεί που δεν
+          κοιτά κανείς. Σε οθόνη που υπάρχει για να τελειώσει μια σειρά, το «πού
+          είμαι» είναι δομή, όχι υποσημείωση.
+
+          ΧΩΡΙΣ ΧΡΩΜΑ ΕΠΙΤΕΥΓΜΑΤΟΣ. Η μπάρα γεμίζει με το χρώμα του κειμένου
+          πάνω στη γραμμή του περιγράμματος: η πρόοδος είναι μέτρηση, δεν είναι
+          «καλά νέα». Το μπλε μένει αποκλειστικά στην κύρια ενέργεια. */}
+      <div style={{ marginTop: T.sp.xl, maxWidth: 380 }}>
+        <div style={{ height: 3, borderRadius: 2, background: 'var(--border-subtle)', overflow: 'hidden' }}>
+          <div style={{
+            width: `${plan.progress.pct}%`, height: '100%',
+            background: 'var(--text-primary)', transition: `width .3s ${T.ease.standard}`,
+          }} />
+        </div>
+        <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>
+          {plan.progress.done} από {plan.progress.total} βήματα ολοκληρωμένα
+        </div>
+      </div>
 
       {/* ── ΤΙ ΕΙΔΟΥΣ ΕΚΚΡΕΜΟΤΗΤΑ: αλλάζει ΟΛΗ τη σειρά, άρα ρωτιέται πρώτο ── */}
       {isDispute && (
@@ -291,12 +337,9 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
 
       {/* ── ΤΟ ΕΝΑ ΕΠΟΜΕΝΟ ΒΗΜΑ: η μόνη επιφάνεια με περίγραμμα στην οθόνη ── */}
       <Card pad="lg" style={{ marginTop: T.sp.xxl, marginBottom: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ ...TT.label, color: 'var(--text-secondary)' }}>Το επόμενο βήμα</div>
-          <div style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
-            {plan.progress.done} από {plan.progress.total} ολοκληρωμένα
-          </div>
-        </div>
+        {/* Η μέτρηση προόδου έφυγε από εδώ: λέγεται πλέον μία φορά, στην
+            κεφαλίδα, όπου και φαίνεται. */}
+        <div style={{ ...TT.label, color: 'var(--text-secondary)' }}>Το επόμενο βήμα</div>
 
         {plan.next ? (
           <>
@@ -378,7 +421,11 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           {sale.lines.map(l => (
             <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 2px', borderTop: '1px solid var(--border-subtle)' }}>
               <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{l.label}</span>
-              <span style={{ ...TT.mono, fontSize: 13, color: 'var(--text-primary)' }}>−{feAuto(l.amount)}</span>
+              {/* Το λογιστικό μείον γραφόταν με το χέρι, δίπλα σε `feAuto`, ενώ το
+                  `feSigned` υπάρχει στο `lib/core/format` ακριβώς γι' αυτό, με δικό
+                  του test — και δεν το καλούσε ΚΑΝΕΝΑ σημείο της εφαρμογής. Μια
+                  συνάρτηση που κανείς δεν χρησιμοποιεί δεν φυλάει τίποτα. */}
+              <span style={{ ...TT.mono, fontSize: 13, color: 'var(--text-primary)' }}>{feSigned(-l.amount)}</span>
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '12px 2px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 4 }}>
@@ -407,9 +454,20 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                 <Badge tone="warning">Προς επιβεβαίωση</Badge>
                 <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1 }}>{f.confirm}</span>
               </div>
+              {/* ΔΥΟ ΜΠΛΕ ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ, ΚΑΙ ΤΟ ΕΝΑ ΕΙΧΕ ΔΗΛΩΣΕΙ ΑΠΟΚΛΕΙΣΤΙΚΟΤΗΤΑ.
+                  Το σχόλιο στην κορυφή αυτού του αρχείου γράφει: «το μπλε εμφανίζεται
+                  ΜΟΝΟ στην κύρια ενέργεια, ώστε το μάτι να ξέρει πάντα πού να πάει».
+                  Και τέσσερις γραμμές πιο κάτω, ο σύνδεσμος του προγράμματος ήταν
+                  `var(--info)` — άλλο μπλε, ίδια ένταση, σε ενότητα που δεν είναι
+                  ενέργεια. Ο κανόνας του αρχείου παραβιαζόταν από το ίδιο το αρχείο.
+                  Εδώ γίνεται αυτό που είναι: ήσυχος σύνδεσμος κειμένου. */}
               {f.href && (
                 <a href={f.href} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-block', marginTop: 10, fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--info)', textDecoration: 'none' }}>
+                  style={{
+                    display: 'inline-block', marginTop: 10, fontFamily: T.font.sans,
+                    fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
+                    textDecoration: 'none', borderBottom: '1px solid var(--border-default)',
+                  }}>
                   Επίσημη σελίδα προγράμματος
                 </a>
               )}
@@ -445,30 +503,49 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         </Section>
       )}
 
-      {/* ── ΟΙ ΚΑΝΟΝΕΣ ΠΟΥ ΚΟΣΤΙΖΟΥΝ ΧΡΗΜΑΤΑ ────────────────────────────── */}
-      <Section label="Οι κανόνες που κοστίζουν χρήματα"
-        sub="Λίγα πράγματα, και όλα τους τα έχει πληρώσει κάποιος που δεν τα ήξερε.">
-        {plan.rules.map((r, i) => (
-          <div key={r.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</div>
-            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{r.body}</div>
-          </div>
-        ))}
-      </Section>
+      {/* ═══ ΑΝΑΦΟΡΑ ══════════════════════════════════════════════════════
+          ΠΕΝΤΕ ΕΝΟΤΗΤΕΣ ΜΕ ΤΟ ΙΔΙΟ ΑΚΡΙΒΩΣ ΥΦΟΣ, Η ΜΙΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΛΛΗ.
+          «Η σειρά», «Η σύγκριση», «Ποιος πληρώνει τι», «Οι κανόνες», «Προς
+          επιβεβαίωση»: ίδια ετικέτα, ίδια λεπτή γραμμή, ίδιες σειρές κειμένου.
+          Όταν όλα μοιάζουν εξίσου σημαντικά, τίποτα δεν είναι — και ο χρήστης
+          κάνει το μόνο λογικό: κυλά μέχρι κάτω χωρίς να διαβάσει.
 
-      {/* ── ΠΡΟΣ ΕΠΙΒΕΒΑΙΩΣΗ ────────────────────────────────────────────── */}
-      <Section
-        label="Προς επιβεβαίωση"
-        sub="Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού."
-        right={<Badge tone="warning">{plan.verify.length}</Badge>}>
-        {plan.verify.map((v, i) => (
-          <div key={v.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-            <div style={{ ...TT.body, color: 'var(--text-primary)' }}>{v.what}</div>
-            <Meta label="Πού">{v.where}</Meta>
-            <Meta label="Γιατί αλλάζει">{v.why}</Meta>
-          </div>
-        ))}
-      </Section>
+          Οι δύο τελευταίες ΔΕΝ ζητούν καμία ενέργεια. Είναι υλικό αναφοράς, και
+          το λένε τώρα και οπτικά: μία γραμμή που δηλώνει πού τελειώνει η δουλειά
+          και πού αρχίζει η γνώση, και δύο στήλες αντί για δύο ακόμη σκαλοπάτια
+          κάθετης κύλισης. Τίποτα δεν κρύφτηκε — ό,τι κρύβεται δεν διαβάζεται
+          ποτέ. Απλώς έπαψε να διεκδικεί την ίδια προσοχή. */}
+      <div style={{ marginTop: T.sp.section, paddingTop: T.sp.xxl, borderTop: '1px solid var(--border-default)' }}>
+        <div style={{ ...TT.label, color: 'var(--text-secondary)' }}>Αναφορά</div>
+        <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 4, marginBottom: T.sp.xxl, maxWidth: 560 }}>
+          Από εδώ και κάτω δεν υπάρχει κάτι να κάνεις. Είναι όσα καλό είναι να ξέρεις πριν αποφασίσεις.
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 330px), 1fr))', gap: T.sp.section }}>
+          <Section tight label="Οι κανόνες που κοστίζουν χρήματα"
+            sub="Λίγα πράγματα, και όλα τους τα έχει πληρώσει κάποιος που δεν τα ήξερε.">
+            {plan.rules.map((r, i) => (
+              <div key={r.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
+                <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</div>
+                <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{r.body}</div>
+              </div>
+            ))}
+          </Section>
+
+          <Section tight
+            label="Προς επιβεβαίωση"
+            sub="Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού."
+            right={<Badge tone="warning">{plan.verify.length}</Badge>}>
+            {plan.verify.map((v, i) => (
+              <div key={v.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
+                <div style={{ ...TT.body, color: 'var(--text-primary)' }}>{v.what}</div>
+                <Meta label="Πού">{v.where}</Meta>
+                <Meta label="Γιατί αλλάζει">{v.why}</Meta>
+              </div>
+            ))}
+          </Section>
+        </div>
+      </div>
 
       <p style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: T.sp.section, paddingTop: T.sp.lg, borderTop: '1px solid var(--border-subtle)' }}>
         {PLAN_DISCLAIMER}
