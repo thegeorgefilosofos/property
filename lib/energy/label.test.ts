@@ -24,7 +24,7 @@ function ok(name: string, cond: boolean) {
 const sources = JSON.parse(readFileSync('data/price-sources.json', 'utf8')) as {
   electricity: { label: string; checkedAt: string; maxAgeDays: number; sources: { name: string; url: string }[] };
   gas: { label: string; checkedAt: string };
-  insurance: { label: string; checkedAt: string; registryVerifiedAt: string | null };
+  insurance: { label: string; checkedAt: string; maxAgeDays: number; registryVerifiedAt: string | null };
 };
 
 const component = readFileSync('app/dashboard/components/BillsElectricity.tsx', 'utf8');
@@ -55,7 +55,7 @@ const ins = readFileSync('app/dashboard/components/BillsInsurance.tsx', 'utf8');
 const iv = /const INSURANCE_VERIFIED = '([^']+)'/.exec(ins);
 const im = /const INSURANCE_MAX_AGE_DAYS = (\d+)/.exec(ins);
 eq('η ημερομηνία της ασφάλειας συμφωνεί με το checkedAt', iv?.[1], sources.insurance.checkedAt);
-eq('και το κατώφλι της με το maxAgeDays', Number(im?.[1]), (sources.insurance as { maxAgeDays: number }).maxAgeDays);
+eq('και το κατώφλι της με το maxAgeDays', Number(im?.[1]), sources.insurance.maxAgeDays);
 
 // Η ημερομηνία ελέγχου πρέπει να είναι πραγματική ημερομηνία, όχι κείμενο.
 for (const key of ['electricity', 'gas', 'insurance'] as const) {
