@@ -519,7 +519,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             <><NumberInput label="Kg / έτος"     value={s.heatingKgPellet}    onChange={v => upd({ heatingKgPellet: v })}    suffix="kg" step={50}/><NumberInput label="Τιμή ανά κιλό" value={s.heatingPelletPrice} onChange={v => upd({ heatingPelletPrice: v })} suffix="€" step={0.01}/></>
           )}
           {['central_oil','central_gas'].includes(s.heatingType) && (
-            <NumberInput label="Μερίδιο ιδιοκτησίας (%)" value={s.heatingCentralShare} onChange={v => upd({ heatingCentralShare: v })} suffix="%" step={1}/>
+            <NumberInput label="Μερίδιο ιδιοκτησίας" value={s.heatingCentralShare} onChange={v => upd({ heatingCentralShare: v })} suffix="%" step={1}/>
           )}
         </div>
         {heatingM > 0 && (
