@@ -19,7 +19,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
-import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, EnergyTariffsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
+import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
 import { T, TT, Modal, feAuto, fp } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
@@ -260,7 +260,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
+    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
       supabase.from('expenses').select('id,bill_id,amount,category,date,description,paid,expense_group,is_recurring,store_vendor,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
@@ -271,7 +271,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('user_properties').select('insurance_company,insurance_expiry,insurance_amount').eq('id', propertyId).maybeSingle(),
       supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', athensToday()).order('event_date').limit(10),
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
@@ -497,8 +496,17 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const mLines: string[] = [];
     if (rates?.euribor_3m != null) mLines.push(`Euribor 3 μηνών: ${fp(Number(rates.euribor_3m), 2)} (ο δείκτης πάνω στον οποίο πατούν τα κυμαινόμενα επιτόκια στεγαστικών).`);
     if (rates?.bog_housing_new != null) mLines.push(`Μέσο επιτόκιο νέου στεγαστικού δανείου (στοιχεία Τράπεζας της Ελλάδος): περίπου ${fp(Number(rates.bog_housing_new), 2)}.`);
-    const kwh = ((tar || []) as EnergyTariffsRow[]).map(r => Number(r.kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
-    if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
+    // ΤΟ ΕΥΡΟΣ ΤΙΜΩΝ ΡΕΥΜΑΤΟΣ ΕΦΥΓΕ, ΚΑΙ ΕΙΝΑΙ ΚΕΡΔΟΣ.
+    //
+    // Διαβαζόταν από τον πίνακα `energy_tariffs`, που γέμιζε από χειρόγραφη
+    // λίστα σφραγισμένη με τον ΤΡΕΧΟΝΤΑ μήνα — δηλαδή τιμές Ιουνίου
+    // ανακοινώνονταν ως αυγουστιάτικες. Και συγκρινόταν ΜΟΝΟ η τιμή μονάδας:
+    // χωρίς πάγιο, χωρίς κλιμάκια, χωρίς ρήτρα αναπροσαρμογής, χωρίς δέσμευση.
+    // Το φθηνότερο kWh του καταλόγου ανήκε σε τιμολόγιο χωρίς πάγιο αλλά με
+    // ρήτρα — δηλαδή ακριβώς εκείνο που ΔΕΝ είναι φθηνότερο στον λογαριασμό.
+    //
+    // Ο βοηθός δεν σιωπά: η οδηγία του λέει να στείλει στη ΡΑΑΕΥ, με την
+    // πραγματική κατανάλωση του χρήστη στο χέρι.
     mLines.push(RENTAL_TAX_SUMMARY_2026);
     mLines.push(CLIMATE_LEVY_SUMMARY_2025);
     mLines.push(MUNICIPAL_ACCOM_SUMMARY);

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, Spinner } from '@/components/Theme';
+import { RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { athensToday } from '@/lib/core/time';
@@ -568,7 +569,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Τα κίτρινα/κυμαινόμενα τιμολόγια ακολουθούν τον δείκτη TTF (ευρωπαϊκή χονδρεμπορική αγορά). Οι τιμές ανεβαίνουν συνήθως τον χειμώνα λόγω ζήτησης θέρμανσης, αν θες σιγουριά, κλείδωσε σταθερό πριν την ψυχρή περίοδο.
           </div>
-          <a href="https://www.gov.gr/upourgeia/oloi-foreis/ruthmistike-arkhe-apobleton-energeias-kai-udaton/sugkrise-timon-elektrikes-energeias-kai-phusikou-aeriou" target="_blank" rel="noopener noreferrer"
+          <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer"
             style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
             Επίσημη σύγκριση τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> (gov.gr) →
           </a>

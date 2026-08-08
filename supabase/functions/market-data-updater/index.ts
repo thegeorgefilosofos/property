@@ -1,6 +1,6 @@
 // supabase/functions/market-data-updater/index.ts
 // Τρέχει κάθε πρωί 07:00 UTC (cron) ή on-demand
-// Ενημερώνει: ECB Euribor + ΤτΕ rates (market_rates) + energy_tariffs
+// Ενημερώνει: ECB Euribor + ΤτΕ rates (market_rates)
 // Deploy: supabase functions deploy market-data-updater --project-ref aromvduuxtcrzmwwvnej
 
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
@@ -11,7 +11,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
-// Authorization gate: this function writes market_rates / energy_tariffs and can
+// Authorization gate: this function writes market_rates and can
 // push calendar events to every loan owner — it must never be publicly callable.
 // Accepts the service-role bearer, an optional env secret, or the shared cron
 // secret stored in public.cron_secrets (the zero-config path pg_cron uses).
@@ -53,57 +53,33 @@ const SERIES = {
   bog_housing_stock: 'MIR/M.GR.B.A2C.I.R.A.2250.EUR.N',
 }
 
-// ── Real Greek energy tariffs June 2026 ──────────────────────────────────────
-// Source: bestenergydeals.gr + official provider sites (3/6/2026)
-// Ενημερώνεται κάθε 1η του μήνα όταν ανακοινώνουν τα πράσινα/κίτρινα τιμολόγια
-const ENERGY_TARIFFS = [
-  // ΔΕΗ ─────────────────────────────────────────────────────────────────────
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_enter',      name:'myHome Enter',            badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1450, kwh_night:null,   flat_monthly:null, fixed:5.00, fixed_ebill:3.50, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_entertwo',   name:'myHome EnterTwo',         badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1450, kwh_night:0.0950, flat_monthly:null, fixed:5.00, fixed_ebill:3.50, contract_months:24, no_fixed:false, dynamic:false },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_online',     name:'myHome Online',           badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1420, kwh_night:null,   flat_monthly:null, fixed:5.00, fixed_ebill:3.50, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_maxima',     name:'myHome Maxima',           badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1320, kwh_night:null,   flat_monthly:null, fixed:5.00, fixed_ebill:3.50, contract_months:12, no_fixed:false, dynamic:false, kwh_tier2:0.1220, tier2_threshold:600 },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_plan',       name:'myHome Plan',             badge:'ΜΠΛΕ',    type:'flat',     kwh_day:0,      kwh_night:null,   flat_monthly:60.00,fixed:0,    fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_4all',       name:'myHome 4All',             badge:'ΚΙΤΡΙΝΟ', type:'variable', kwh_day:0.1370, kwh_night:null,   flat_monthly:null, fixed:5.00, fixed_ebill:3.50, contract_months:0,  no_fixed:false, dynamic:false, kwh_tier2:0.1870, tier2_threshold:500 },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_4students',  name:'myHome 4Students',        badge:'ΚΙΤΡΙΝΟ', type:'variable', kwh_day:0.1290, kwh_night:null,   flat_monthly:null, fixed:3.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false, kwh_tier2:0.1850, tier2_threshold:150 },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_prasino',    name:'Γ1 Πράσινο Ειδικό',      badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1440, kwh_night:null,   flat_monthly:null, fixed:5.00, fixed_ebill:3.50, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_prasino_n',  name:'Γ1Ν Πράσινο Νυχτερινό',  badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1440, kwh_night:0.1160, flat_monthly:null, fixed:5.00, fixed_ebill:3.50, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'dei', provider_label:'ΔΕΗ', tariff_id:'dei_dynamic',    name:'myHome Dynamic',          badge:'ΔΥΝΑΜΙΚΟ',type:'dynamic',  kwh_day:0,      kwh_night:null,   flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:true  },
-  // Ήρων ────────────────────────────────────────────────────────────────────
-  { provider:'heron', provider_label:'Ήρων', tariff_id:'heron_basic',      name:'Basic Home',             badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1642, kwh_night:null, flat_monthly:null, fixed:7.00,  fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'heron', provider_label:'Ήρων', tariff_id:'heron_blue_smart', name:'Blue Smart',             badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1550, kwh_night:null, flat_monthly:null, fixed:7.95,  fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'heron', provider_label:'Ήρων', tariff_id:'heron_blue_max',   name:'Blue Generous Max',      badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1650, kwh_night:null, flat_monthly:null, fixed:13.90, fixed_ebill:null, contract_months:18, no_fixed:false, dynamic:false },
-  { provider:'heron', provider_label:'Ήρων', tariff_id:'heron_stable',     name:'Ήρων Σταθερό Οικιακό',  badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1480, kwh_night:null, flat_monthly:null, fixed:7.20,  fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'heron', provider_label:'Ήρων', tariff_id:'heron_ena',        name:'Ε.ΝΑ (Virtual Net Metering)', badge:'VNM', type:'vnm',  kwh_day:0.1290, kwh_night:null, flat_monthly:null, fixed:7.00,  fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  // Protergia ───────────────────────────────────────────────────────────────
-  { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_flow',     name:'Value Flow',          badge:'ΚΙΤΡΙΝΟ', type:'variable', kwh_day:0.13767, kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_sure_18',  name:'Value Sure 18M 2.0',  badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1450,  kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:18, no_fixed:false, dynamic:false },
-  { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_sure_12',  name:'Value Sure 12M',      badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1520,  kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_standard', name:'Value Standard',      badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1590,  kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_lite2',    name:'Value Lite 2.0',      badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.16267, kwh_night:null, flat_monthly:null, fixed:0,    fixed_ebill:null, contract_months:0,  no_fixed:true,  dynamic:false },
-  { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_dynamic',  name:'Dynamic One Home',    badge:'ΔΥΝΑΜΙΚΟ',type:'dynamic',  kwh_day:0,       kwh_night:null, flat_monthly:null, fixed:0,    fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:true  },
-  // (Volterra: καταργήθηκε — ο πάροχος δεν λειτουργεί πλέον στη λιανική.)
-  // ΣΗΜΕΙΩΣΗ: αυτός ο πίνακας είναι υποσύνολο/παλαιότερος του πλήρους καταλόγου
-  // στο app (BillsElectricity.tsx — 11 πάροχοι, οικιακά+επαγγελματικά). Πριν
-  // ενεργοποιηθεί το DB-first διάβασμα, πρέπει να συγχρονιστεί με εκείνο τον κατάλογο.
-  // NRG ─────────────────────────────────────────────────────────────────────
-  { provider:'nrg', provider_label:'NRG', tariff_id:'nrg_now',    name:'NRG Now Οικιακό', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1595, kwh_night:null, flat_monthly:null, fixed:6.90, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'nrg', provider_label:'NRG', tariff_id:'nrg_adjust', name:'NRG adjust 1.0',  badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1580, kwh_night:null, flat_monthly:null, fixed:9.90, fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
-  // Zenith ──────────────────────────────────────────────────────────────────
-  { provider:'zenith', provider_label:'Zenith', tariff_id:'zen_start', name:'Power Home Start', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1595, kwh_night:null, flat_monthly:null, fixed:6.80, fixed_ebill:null, contract_months:0, no_fixed:false, dynamic:false },
-  // Elin ────────────────────────────────────────────────────────────────────
-  { provider:'elin', provider_label:'Elin', tariff_id:'elin_green', name:'Home Green', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1598, kwh_night:null, flat_monthly:null, fixed:7.10, fixed_ebill:null, contract_months:0, no_fixed:false, dynamic:false },
-  // enerwave (πρώην Elpedison — μετονομασία Νοε 2025, HelleniQ Energy) ─────────
-  { provider:'enerwave', provider_label:'enerwave (πρώην Elpedison)', tariff_id:'elp_bright', name:'enerwave Bright',   badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1690, kwh_night:null, flat_monthly:null, fixed:3.00, fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'enerwave', provider_label:'enerwave (πρώην Elpedison)', tariff_id:'elp_one',    name:'enerwave One Home', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1706, kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  // Volton ──────────────────────────────────────────────────────────────────
-  { provider:'volton', provider_label:'Volton', tariff_id:'volton_green', name:'Volton Easy',      badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1442, kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'volton', provider_label:'Volton', tariff_id:'volton_blue',  name:'Volton Blue Flat', badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1590, kwh_night:null, flat_monthly:null, fixed:9.90, fixed_ebill:null, contract_months:18, no_fixed:false, dynamic:false },
-  // Enerwave ────────────────────────────────────────────────────────────────
-  { provider:'enerwave', provider_label:'Enerwave', tariff_id:'enrw_saver',  name:'Reward Saver',  badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1490, kwh_night:null, flat_monthly:null, fixed:0,    fixed_ebill:null, contract_months:0,  no_fixed:true,  dynamic:false },
-  { provider:'enerwave', provider_label:'Enerwave', tariff_id:'enrw_stable', name:'Reward Stable', badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1690, kwh_night:null, flat_monthly:null, fixed:12.90,fixed_ebill:null, contract_months:18, no_fixed:false, dynamic:false },
-  // Φυσικό Αέριο Ελλάδος ────────────────────────────────────────────────────
-  { provider:'fysiko_aerio', provider_label:'Φυσικό Αέριο Ελλάδος', tariff_id:'fa_oikia', name:'Oikia Green', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.14265, kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0, no_fixed:false, dynamic:false },
-]
+// ── ΓΙΑΤΙ ΔΕΝ ΥΠΑΡΧΕΙ ΠΙΑ ΠΙΝΑΚΑΣ ΤΙΜΟΛΟΓΙΩΝ ΕΔΩ ─────────────────────────────
+// Εδώ ζούσε χειρόγραφος πίνακας 32 τιμολογίων ρεύματος, με σχόλιο «Source:
+// bestenergydeals.gr + official provider sites (3/6/2026)». Δεν ήταν ενημέρωση:
+// ήταν αντίγραφο στατικής λίστας που γραφόταν στη βάση κάθε μήνα.
+//
+// ΤΡΙΑ ΜΕΤΡΗΜΕΝΑ ΠΡΟΒΛΗΜΑΤΑ:
+//
+//  1. ΚΑΤΑΣΚΕΥΑΖΕ ΨΕΥΤΙΚΗ ΦΡΕΣΚΑΔΑ. Κάθε γραμμή σφραγιζόταν με `valid_month` τον
+//     ΤΡΕΧΟΝΤΑ μήνα, ενώ οι τιμές ήταν του Ιουνίου. Τον Αύγουστο η βάση δήλωνε
+//     ότι οι τιμές του Ιουνίου ισχύουν τον Αύγουστο.
+//
+//  2. ΔΙΑΦΩΝΟΥΣΕ ΜΕ ΤΗΝ ΟΘΟΝΗ. Ο κατάλογος του `BillsElectricity.tsx` έχει 100
+//     τιμολόγια, αυτός εδώ είχε 32. Από τα 27 κοινά, τα ΟΚΤΩ είχαν άλλη τιμή ή
+//     άλλο πάγιο — π.χ. myHome Enter πάγιο 5,00 εδώ και 7,50 στην οθόνη,
+//     Blue Smart 0,155 εδώ και 0,138 στην οθόνη. Δύο αντίγραφα του ίδιου
+//     καταλόγου, συντηρημένα από το ίδιο χέρι, είχαν ήδη αποκλίνει.
+//
+//  3. ΕΦΤΑΝΕ ΣΤΟΝ ΧΡΗΣΤΗ ΑΠΟ ΤΗΝ ΠΙΟ ΕΓΚΥΡΗ ΦΩΝΗ. Ο βοηθός διάβαζε ΜΟΝΟ τη
+//     στήλη `kwh_day`, ταξινομημένη, και ανακοίνωνε εύρος τιμών «αυτόν τον
+//     μήνα» — αγνοώντας πάγια, κλιμάκια, ρήτρες αναπροσαρμογής και δεσμεύσεις.
+//
+// Τα τιμολόγια ρεύματος αλλάζουν την 1η κάθε μήνα με ανακοίνωση του παρόχου.
+// Κατάλογος συντηρημένος με το χέρι ΔΕΝ μπορεί να είναι σωστός, και μια λάθος
+// «καλύτερη επιλογή» κοστίζει στον χρήστη δέσμευση δώδεκα μηνών. Η επίσημη
+// σύγκριση γίνεται στο εργαλείο της ΡΑΑΕΥ, που έχει νομική υποχρέωση
+// δημοσίευσης· εμείς δίνουμε αυτό που ΜΟΝΟ εμείς έχουμε — το πραγματικό
+// ιστορικό κατανάλωσης του χρήστη.
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
@@ -172,23 +148,6 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── 5. Upsert energy tariffs ────────────────────────────────────────────────
-  const tariffRows = ENERGY_TARIFFS.map(t => ({
-    ...t,
-    valid_month: month,
-    source: 'bestenergydeals.gr + official-sites',
-    updated_at: now.toISOString(),
-  }))
-
-  const { error: tariffErr } = await supabase
-    .from('energy_tariffs')
-    .upsert(tariffRows, { onConflict: 'tariff_id,valid_month' })
-
-  if (tariffErr) {
-    console.error('energy_tariffs upsert error:', tariffErr)
-  } else {
-    console.log(`✓ energy_tariffs: ${tariffRows.length} τιμολόγια για ${month}`)
-  }
-
   // ── 6. Manage program deadlines ─────────────────────────────────────────────
   const programResults = await manageProgramDeadlines()
 
@@ -205,7 +164,7 @@ Deno.serve(async (req: Request) => {
 
   // ── Response ────────────────────────────────────────────────────────────────
   const response = {
-    success: !rateErr && !tariffErr,
+    success: !rateErr,
     timestamp: now.toISOString(),
     month,
     rates: {
@@ -217,11 +176,6 @@ Deno.serve(async (req: Request) => {
     sources: {
       euribor: newRates.source_euribor,
       bog:     newRates.source_bog,
-    },
-    energy_tariffs: {
-      count: tariffRows.length,
-      month,
-      error: tariffErr?.message ?? null,
     },
     significantChange: newRates.rate_changed,
     programs: programResults,

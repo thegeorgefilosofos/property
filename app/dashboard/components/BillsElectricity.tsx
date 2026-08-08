@@ -6,6 +6,7 @@ import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fn, Skeleton, histInputStyle } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
+import { canRecommend, freshness } from '@/lib/energy/freshness';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
 const fk = (n: number) => `${fe(n, 4)}`;
@@ -34,6 +35,20 @@ const DURATION_OPTIONS = [
   { value: '24',  label: '24 μήνες'        },
   { value: '36',  label: '36 μήνες'        },
 ];
+
+/**
+ * ΠΟΤΕ ΕΠΑΛΗΘΕΥΤΗΚΑΝ ΟΙ ΤΙΜΕΣ ΤΟΥ ΚΑΤΑΛΟΓΟΥ.
+ *
+ * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ: ο κατάλογος αερίου (`BillsGas.tsx`) είχε ΚΑΙ
+ * ημερομηνία επαλήθευσης ΚΑΙ σήμανση ανά τιμή («επιβεβαιωμένη / ενδεικτική /
+ * τύπος»). Ο κατάλογος ρεύματος, με 100 τιμολόγια από έντεκα παρόχους, δεν
+ * είχε ούτε το ένα ούτε το άλλο — και πάνω του έτρεχε αυτόκλητη ειδοποίηση
+ * «άλλαξε πάροχο και κέρδισε». Δύο οθόνες, δύο πρότυπα ειλικρίνειας.
+ *
+ * Τα τιμολόγια ανακοινώνονται την 1η κάθε μήνα. Μετά το κατώφλι παλαιότητας η
+ * σύγκριση ΠΑΥΕΙ να ονομάζει νικητή — δεν σβήνει, σταματά να αποφαίνεται.
+ */
+export const TARIFFS_VERIFIED = '2026-07-08';
 
 // ── REAL TARIFFS, SOURCE: bestenergydeals.gr / pricefox.gr / Selectra (June–July 2026) ──
 // Τα πεδία που χρειάζεται ο ΥΠΟΛΟΓΙΣΜΟΣ ζουν στο lib/energy/tariff.ts. Εδώ
@@ -330,6 +345,11 @@ export function electricitySwitchFinding(
   if (!best || best.isCurrent) return null;
   const savings = current - best.cost.total;
   if (!(savings >= SWITCH_NOISE)) return null;
+
+  // ΔΥΟ ΠΡΟΫΠΟΘΕΣΕΙΣ ΓΙΑ ΝΑ ΠΟΥΜΕ «ΑΛΛΑΞΕ»: αξιόπιστη κατανάλωση (ίσχυε ήδη,
+  // πιο πάνω) ΚΑΙ φρέσκος κατάλογος (έλειπε). Η ειδοποίηση είναι αυτόκλητη και
+  // οδηγεί σε δέσμευση δώδεκα μηνών· σε τιμές περασμένου μήνα δεν εκδίδεται.
+  if (!canRecommend(freshness(TARIFFS_VERIFIED, new Date()), usageEst.reliable)) return null;
 
   return {
     current, best: best.cost.total, savingsMonthly: savings,
