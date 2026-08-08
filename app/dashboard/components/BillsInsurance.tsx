@@ -7,6 +7,7 @@ import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UICo
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, InfoBanner, Skeleton, SkeletonKPIs, localDay } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
+import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
 import { normalizeEnfiaAgeKey } from '@/lib/billing/enfia';
 
@@ -467,6 +468,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   // ── Cross-tab: checklist renewal ─────────────────────────────────────────
   const [checklistRenewal, setChecklistRenewal] = useState<{ daysLeft: number | null } | null>(null);
   // ── Cross-tab: property data from other tabs ─────────────────────────────
+  const [scanned, setScanned] = useState<PropertyInsurance | null>(null);
   const [crossProperty, setCrossProperty] = useState<{
     sqm?: string; zone?: string; floor?: string; age?: string;
     propValue?: string; contentValue?: string; city?: string;
@@ -513,7 +515,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         // διεύθυνση, και το «επιπλωμένο» από τη μίσθωση, όπου όντως ζει.
         const [{ data: prop }, { data: loans }, { data: tenants }] = await Promise.all([
           supabase.from('user_properties')
-            .select('address,sqm,prop_type,status_detail,year_built,rental_mode,target_rent')
+            .select('address,sqm,prop_type,status_detail,year_built,rental_mode,target_rent,insurance_company,insurance_expiry,insurance_amount')
             .eq('id', propertyId).maybeSingle(),
           supabase.from('loans').select('status').eq('property_id', propertyId),
           supabase.from('tenants').select('monthly_rent,status,move_out_date,furnishing').eq('property_id', propertyId),
@@ -530,7 +532,19 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         const p = (prop ?? {}) as {
           address?: string; sqm?: number; prop_type?: string; status_detail?: string;
           year_built?: number; rental_mode?: string; target_rent?: number;
+          insurance_company?: string | null; insurance_expiry?: string | null; insurance_amount?: number | null;
         };
+        // ΤΟ ΣΑΡΩΜΕΝΟ ΑΣΦΑΛΙΣΤΗΡΙΟ ΦΤΑΝΕΙ ΕΠΙΤΕΛΟΥΣ ΕΔΩ. Η σάρωση διάβαζε
+        // ασφαλιστική, ασφάλιστρο και λήξη από τη φωτογραφία και τα έγραφε στο
+        // ακίνητο· η οθόνη διάβαζε άλλο αποθετήριο και ζητούσε τα ίδια στοιχεία
+        // ξανά, με το χέρι. Οι κανόνες ζουν στο `lib/insurance/seed.ts` με tests:
+        // ό,τι έχει πειράξει ο ιδιοκτήτης μένει ανέπαφο, ό,τι είναι ακόμη στην
+        // προεπιλογή συμπληρώνεται από το συμβόλαιό του.
+        setScanned({
+          insurance_company: p.insurance_company ?? null,
+          insurance_expiry: p.insurance_expiry ?? null,
+          insurance_amount: p.insurance_amount ?? null,
+        });
         if (svc?.data || prop) {
           // Τα διασταυρούμενα στοιχεία έρχονται από τις ρυθμίσεις ΕΝΦΙΑ, όπου το `data`
         // είναι ελεύθερο jsonb. Δηλώνονται όσα πεδία διαβάζονται, και μόνο αυτά.
@@ -582,6 +596,20 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 // όνομα πεδίου γίνεται σφάλμα μεταγλώττισης αντί για ρύθμιση που δεν ισχύει ποτέ.
 type InsuranceSettings = typeof ps;
 const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
+
+  // ── Η ΣΥΜΠΛΗΡΩΣΗ ΑΠΟ ΤΟ ΣΑΡΩΜΕΝΟ ΣΥΜΒΟΛΑΙΟ ────────────────────────────────
+  // Τρέχει ΜΙΑ φορά, όταν φτάσουν και τα δύο (ρυθμίσεις και ακίνητο), και μόνο
+  // αν έχει κάτι να γράψει. Η `seedInsurance` επιστρέφει κενό αντικείμενο όταν
+  // δεν αλλάζει τίποτα — μια περιττή εγγραφή σε κάθε φόρτωση δεν είναι αθώα:
+  // γεννά συμβάν realtime που ξαναφορτώνει την ίδια οθόνη, σε βρόχο.
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (loading || !scanned || seededRef.current) return;
+    const patch = seedInsurance(ps, scanned, { insProvider: 'hellas_direct' },
+      INSURANCE_COMPANIES.map(c => ({ value: c.value, label: c.label })));
+    seededRef.current = true;
+    if (Object.keys(patch).length) updPs(patch);
+  }, [loading, scanned, ps, updPs]);
 
   // Αυτόματη συμπλήρωση από άλλες καρτέλες, όταν δεν το έχει ορίσει ο χρήστης
   const effectiveSqm    = insSqm    || crossProperty.sqm    || '';
