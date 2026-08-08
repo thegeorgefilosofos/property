@@ -617,6 +617,9 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   }, [loading, scanned, ps, updPs]);
 
   // Αυτόματη συμπλήρωση από άλλες καρτέλες, όταν δεν το έχει ορίσει ο χρήστης
+  // Καθαρή αναζήτηση σε σταθερό πίνακα. Δηλωνόταν ΜΕΤΑ το effect που τη
+  // διαβάζει, και δούλευε μόνο επειδή η ανάγνωση γινόταν μέσα σε setTimeout.
+  const insCompany = INSURANCE_COMPANIES.find(c => c.value === insProvider);
   const effectiveSqm    = insSqm    || crossProperty.sqm    || '';
   const effectiveFloor  = insFloor  || crossProperty.floor  || 'second';
   const effectiveAge    = insAge    || crossProperty.age    || 'y10_14';
@@ -645,9 +648,13 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     }, 250);
 
     return () => { if (quotesTimer.current) clearTimeout(quotesTimer.current); };
-  }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId]);
+  // ΤΟ `insProvider` ΕΛΕΙΠΕ, ΚΑΙ ΗΤΑΝ ΠΡΑΓΜΑΤΙΚΟ ΣΦΑΛΜΑ. Το `currentMonthly`
+  // διαβάζεται από `insCompany?.plans`, δηλαδή από την ΕΤΑΙΡΕΙΑ. Με αλλαγή
+  // εταιρείας και ίδιο αναγνωριστικό προγράμματος, ο υπολογισμός έμενε στην
+  // παλιά — και η στήλη «εξοικονόμηση» έβγαινε από λάθος ασφάλιστρο, δηλαδή
+  // λάθος νούμερο σε οθόνη που ζητά απόφαση αλλαγής παρόχου.
+  }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId, insCompany?.plans]);
 
-  const insCompany = INSURANCE_COMPANIES.find(c => c.value === insProvider);
   const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId);
   const insCost    = parseFloat(insCustomPrice) || insPlan?.monthly || 0;
   /** Ξέρουμε ασφάλιστρο; Χωρίς αυτό, το «0,00 €» θα σήμαινε «δεν πληρώνω». */

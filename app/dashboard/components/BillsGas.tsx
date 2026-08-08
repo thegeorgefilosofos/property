@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -220,12 +220,18 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
   const kwh    = parseFloat(s.gasKwhMonthly) || 0;
   const ttf    = (parseFloat(s.ttfPrice) || DEFAULT_TTF_EUR_MWH) / 1000; // €/MWh → €/kWh
 
-  // Ενιαίος, διαφανής υπολογισμός χρέωσης kWh ανά τιμολόγιο
-  const tariffKwh = (t: GasTariff): number => {
+  // Ενιαίος, διαφανής υπολογισμός χρέωσης kWh ανά τιμολόγιο.
+  //
+  // ΣΕ useCallback ΓΙΑ ΝΑ ΕΙΝΑΙ Η ΕΞΑΡΤΗΣΗ ΑΠΟΔΕΙΞΙΜΗ. Η συνάρτηση κλείνει πάνω
+  // στο `ttf` (τιμή χονδρικής αερίου). Ως απλή συνάρτηση σώματος, ο έλεγχος
+  // εξαρτήσεων δεν μπορούσε να το δει και ζητούσε το `tariffKwh` στα useMemo —
+  // εκεί το `ttf` υπήρχε ήδη, οπότε το αποτέλεσμα ήταν σωστό ΚΑΤΑ ΤΥΧΗ. Την
+  // ημέρα που η συνάρτηση διαβάσει και δεύτερη τιμή, η τύχη τελειώνει σιωπηλά.
+  const tariffKwh = useCallback((t: GasTariff): number => {
     if (t.priceStatus === 'formula' && t.ttfMultiplier !== undefined && t.ttfMargin !== undefined)
       return t.ttfMultiplier * ttf + t.ttfMargin;
     return t.kwh ?? 0;
-  };
+  }, [ttf]);
 
   const provider    = GAS_PROVIDERS.find(p => p.value === s.gasProvider);
   const tariff      = provider?.tariffs.find(t => t.id === s.gasTariffId) || provider?.tariffs[0];
@@ -316,7 +322,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
         const rate = tariffKwh(t);
         return { ...t, providerLabel: p.label, providerUrl: p.url, rate, monthly: kwh * rate + t.fixed, isCurrent: t.id === s.gasTariffId };
       })).sort((a, b) => a.monthly - b.monthly);
-  }, [kwh, ttf, s.gasTariffId, segmentFilter]);
+  }, [kwh, tariffKwh, s.gasTariffId, segmentFilter]);
 
   const bestMonthly = allTariffs[0]?.monthly || 0;
   // ═══ ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ ΔΕΝ ΕΙΝΑΙ ΤΟΥ ΙΔΙΟΥ ΕΙΔΟΥΣ ══════════════════════════

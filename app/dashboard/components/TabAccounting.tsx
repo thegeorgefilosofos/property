@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { T, Skeleton, SkeletonKPIs, fe } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
@@ -283,7 +283,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
 
   // Ενεργό δάνειο στη χρήση Y; (μεταξύ έτους έναρξης και λήξης).
-  const loanActiveInYear = (l:LoanView)=>{ const yrs=Number(l.years)||0; if(yrs<=0)return false; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; return year>=startY && year<startY+yrs }
+  // ΣΕ useCallback ΓΙΑ ΤΟΝ ΙΔΙΟ ΛΟΓΟ ΜΕ ΤΟ tariffKwh: κλείνει πάνω στο `year`,
+  // και τέσσερα useMemo το καλούσαν χωρίς να μπορεί ο έλεγχος να το δει. Το
+  // `year` ήταν ήδη στις εξαρτήσεις τους, άρα το αποτέλεσμα έβγαινε σωστό —
+  // αλλά από σύμπτωση, όχι από κανόνα. Εδώ γίνεται κανόνας.
+  const loanActiveInYear = useCallback((l:LoanView)=>{ const yrs=Number(l.years)||0; if(yrs<=0)return false; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; return year>=startY && year<startY+yrs }, [year])
 
   // Ετήσια στοιχεία τρέχοντος ακινήτου. Φόρος επί ΔΕΔΟΥΛΕΥΜΕΝΟΥ (accrued) ενοικίου
   //, φορολογείται ό,τι οφείλεται, ανεξάρτητα είσπραξης· τα ανείσπρακτα μειώνουν
@@ -296,7 +300,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
   const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)&&e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
   // Δόσεις δανείων ΜΟΝΟ όσο το δάνειο είναι ενεργό στη χρήση (όχι φαντάσματα).
-  const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ if(!loanActiveInYear(l))return s; const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans,year])
+  const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ if(!loanActiveInYear(l))return s; const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans,year,loanActiveInYear])
   const inventoryDepr = useMemo(()=>inventory.reduce((s,it)=>{ const val=Number(it.purchase_value)||0; if(val<=0||!it.purchase_date)return s; const py=Number(String(it.purchase_date).slice(0,4)); if(!py||py>year)return s; const life=usefulLifeYears(it.category); if(year-py>=life)return s; return s+val/life },0),[inventory,year])
   const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
 
@@ -359,7 +363,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     grossIncome, taxableIncome: statement.taxableIncome,
     rentalMode: prop?.rental_mode, propertyCount: propCount,
     hasLoan: loans.some(l=>loanActiveInYear(l)), loanInterestYear,
-  }),[businessMode,regime,elpForm,age,grossIncome,statement,prop,propCount,loans,year,loanInterestYear])
+  }),[businessMode,regime,elpForm,age,grossIncome,statement,prop,propCount,loans,year,loanInterestYear,loanActiveInYear])
 
   // «Τι άλλαξε»: επίκαιροι κανόνες 2026 σχετικοί με το προφίλ (καθεστώς + δάνειο).
   const relevantChanges = useMemo(()=>{
@@ -369,7 +373,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     else aud.add('long_term')
     if(loans.some(l=>loanActiveInYear(l))) aud.add('borrower')
     return REGULATORY_UPDATES_2026.filter(u=>u.audiences.some(a=>aud.has(a)))
-  },[businessMode,regime,loans,year])
+  },[businessMode,regime,loans,year,loanActiveInYear])
 
   // Κόστος μεταβίβασης: προεπιλογή τιμήματος η αξία του ακινήτου (αν υπάρχει).
   const xferEffectivePrice = xferPrice!=='' ? Number(xferPrice) : (Number(prop?.value)||0)
@@ -404,7 +408,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const loanPayments:LoanPaymentRec[] = []
     for(const l of loans){ if(!loanActiveInYear(l))continue; const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; const annual=Math.round(annuityMonthly(amount,rate,yrs)*12); const interest=Math.round(interestForYear(amount,rate,yrs,idx)); if(annual>0) loanPayments.push({ date:`${year}-06-30`, amount:annual, interest, description:`Δόσεις δανείου${l.bank?` · ${l.bank}`:''}` }) }
     return buildJournal({ incomes, expenses:exp, loanPayments })
-  },[rent,stays,expenses,loans,year])
+  },[rent,stays,expenses,loans,year,loanActiveInYear])
   const trial = useMemo(()=>trialBalance(journalLines),[journalLines])
   const jTotals = useMemo(()=>journalTotals(journalLines),[journalLines])
 
