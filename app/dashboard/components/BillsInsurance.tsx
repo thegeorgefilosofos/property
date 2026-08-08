@@ -5,7 +5,7 @@ import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, InfoBanner, Skeleton, SkeletonKPIs, localDay } from '@/components/Theme';
+import { T, fe, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -571,7 +571,12 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   }, [propertyId]);
 
   const [ps, updPs, loading] = useBillsSettings(propertyId, userId, 'insurance', {
-    insProvider: 'hellas_direct', insPlanId: 'hd_full',
+    // ΚΑΜΙΑ ΠΡΟΕΠΙΛΕΓΜΕΝΗ ΑΣΦΑΛΙΣΤΙΚΗ. Ήταν 'hellas_direct'/'hd_full': ένας
+    // ιδιοκτήτης που δεν είχε ασφαλίσει ποτέ το ακίνητό του έβλεπε συγκεκριμένη
+    // εταιρεία ήδη επιλεγμένη ως «τρέχον πρόγραμμα», με το ασφάλιστρο ΕΚΕΙΝΗΣ
+    // να μετράει στα σύνολα της οθόνης. Το άγνωστο εμφανιζόταν ως γεγονός, και
+    // μάλιστα ως εμπορική επιλογή που κανείς δεν έκανε.
+    insProvider: '', insPlanId: '',
     insCustomPrice: '', insCustomPlanName: '',
     insAgentName: '', insAgentPhone: '', insRenewalDate: '',
     insPropValue: '', insContentValue: '',
@@ -645,6 +650,8 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const insCompany = INSURANCE_COMPANIES.find(c => c.value === insProvider);
   const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId);
   const insCost    = parseFloat(insCustomPrice) || insPlan?.monthly || 0;
+  /** Ξέρουμε ασφάλιστρο; Χωρίς αυτό, το «0,00 €» θα σήμαινε «δεν πληρώνω». */
+  const hasPolicy  = insCost > 0;
 
   const effectiveCovers     = insEditCovers && insCustomCovers ? insCustomCovers.split(',').map(s => s.trim()).filter(Boolean) : (insPlan?.covers || []);
   const effectiveEarthquake = insEditCovers ? insCustomEarthquake : (insPlan?.earthquake || false);
@@ -745,11 +752,21 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     if (insSignature === loadedSignature.current) return; // τίποτα δεν άλλαξε
     if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current);
     propertySyncTimer.current = setTimeout(async () => {
-      const { error } = await supabase.from('user_properties').update({
-        insurance_company: insCompany?.label ?? null,
-        insurance_amount:  insCost > 0 ? insCost : null,
-        insurance_expiry:  insRenewalDate || null,
-      }).eq('id', propertyId);
+      // ΓΡΑΦΟΥΜΕ ΜΟΝΟ Ο,ΤΙ ΞΕΡΟΥΜΕ, ΠΟΤΕ null ΠΑΝΩ ΑΠΟ ΥΠΑΡΧΟΥΣΑ ΤΙΜΗ.
+      //
+      // Ο ΚΙΝΔΥΝΟΣ, ΣΥΓΚΕΚΡΙΜΕΝΑ: όταν το σαρωμένο ασφαλιστήριο ανήκει σε
+      // εταιρεία ΕΚΤΟΣ καταλόγου, η αυτόματη συμπλήρωση κρατά το όνομα από το
+      // χαρτί αλλά δεν επιλέγει `insProvider` — άρα το `insCompany` μένει κενό.
+      // Ταυτόχρονα συμπληρώνει ασφάλιστρο και ημερομηνία, οπότε η υπογραφή
+      // αλλάζει και ο συγχρονισμός ενεργοποιείται. Με σταθερό `?? null` θα
+      // έγραφε κενή ασφαλιστική ΠΑΝΩ από το όνομα που μόλις διάβασε η σάρωση:
+      // η εφαρμογή θα έσβηνε μόνη της αυτό που μόλις έμαθε.
+      const patch: Record<string, string | number> = {};
+      if (insCompany?.label) patch.insurance_company = insCompany.label;
+      if (insCost > 0) patch.insurance_amount = insCost;
+      if (insRenewalDate) patch.insurance_expiry = insRenewalDate;
+      if (!Object.keys(patch).length) return;
+      const { error } = await supabase.from('user_properties').update(patch).eq('id', propertyId);
       setSyncError(!!error);
     }, 1200); // debounce, αποφυγή write σε κάθε keystroke
     return () => { if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current); };
@@ -938,7 +955,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
-          { label: 'Ασφάλεια Κατοικίας', value: fe(insCost)       },
+          { label: 'Ασφάλεια Κατοικίας', value: hasPolicy ? fe(insCost) : ABSENT_SHORT },
           { label: 'Streaming & Media',   value: fe(streamingCost) },
           { label: 'Cloud & Λογισμικό',   value: fe(cloudCost)     },
           { label: 'Σύνολο / μήνα',       value: fe(total)         },
