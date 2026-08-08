@@ -292,6 +292,13 @@ jobs:
       - name: Το θέμα της βιτρίνας δηλωμένο, όχι δανεικό — blocking
         run: node scripts/guard-landing-theme.mjs
 
+      # Οκτώ πίνακες έχουν RLS χωρίς πολιτικές και μηδέν δικαιώματα για
+      # anon/authenticated: τους αγγίζει μόνο ο service_role ή SECURITY DEFINER.
+      # Ένα `supabase.from('referrals')` σε component δεν σκάει — γυρίζει άδειο,
+      # και η οθόνη λέει «δεν έχεις προσκλήσεις» σε κάποιον που έχει.
+      - name: Κανένας πίνακας μόνο-υπηρεσίας στον πελάτη — blocking
+        run: node scripts/guard-service-only-tables.mjs
+
       # Και ο φύλακας που φυλάει τους φύλακες: κάθε εντολή του package.json που
       # δείχνει σε scripts/ οφείλει να καλείται από workflow. Οι τρεις από πάνω
       # έλειπαν ακριβώς επειδή το να προσθέσεις εντολή είναι μία γραμμή, ενώ το
