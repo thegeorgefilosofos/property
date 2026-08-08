@@ -33,6 +33,16 @@ const m = /const LAST_UPDATED = '([^']+)'/.exec(component);
 ok('η ετικέτα υπάρχει στο component', m !== null);
 eq('η ετικέτα συμφωνεί με το data/price-sources.json', m?.[1], sources.electricity.label);
 
+// ── Η ΔΕΥΤΕΡΗ ΗΜΕΡΟΜΗΝΙΑ, ΠΟΥ ΔΕΝ ΤΗΝ ΦΥΛΑΓΕ ΤΙΠΟΤΑ ──────────────────────
+// Το `TARIFFS_VERIFIED` προστέθηκε στο component για την πύλη φρεσκάδας και
+// μπήκε ως '2026-07-08' ενώ το `checkedAt` έλεγε '2026-07-29': απόκλιση είκοσι
+// μιας ημερών, σιωπηλή, γιατί ο έλεγχος εδώ κοίταζε ΜΟΝΟ την ετικέτα. Δύο
+// ημερομηνίες για το ίδιο γεγονός, και η μία κρίνει αν η οθόνη ανακηρύσσει
+// νικητή τιμολογίου.
+const v = /const TARIFFS_VERIFIED = '([^']+)'/.exec(component);
+ok('η ημερομηνία επαλήθευσης υπάρχει στο component', v !== null);
+eq('και συμφωνεί με το checkedAt του data/price-sources.json', v?.[1], sources.electricity.checkedAt);
+
 // Η ημερομηνία ελέγχου πρέπει να είναι πραγματική ημερομηνία, όχι κείμενο.
 for (const key of ['electricity', 'gas', 'insurance'] as const) {
   const iso = sources[key].checkedAt;
