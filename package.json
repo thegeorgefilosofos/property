@@ -41,7 +41,8 @@
     "official-links": "node scripts/guard-official-links.mjs",
     "filenames": "node scripts/guard-filenames.mjs",
     "stale-flags": "node scripts/guard-stale-flags.mjs",
-    "number-font": "node scripts/guard-number-font.mjs"
+    "number-font": "node scripts/guard-number-font.mjs",
+    "landing-theme": "node scripts/guard-landing-theme.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

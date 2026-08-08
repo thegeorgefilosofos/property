@@ -205,30 +205,27 @@ export default async function Landing() {
     <div className="lp-root" style={{ color: TEXT, minHeight: '100vh', fontFamily: T.font.sans, overflowX: 'clip', position: 'relative' }}>
 
       <style>{`
-        /* Η landing είναι πάντα σκοτεινή, ανεξάρτητα από το θέμα της εφαρμογής:
-           μία κινηματογραφική, ενιαία παλέτα από βαθύ ναυτικό μπλε. Ξαναγράφουμε
-           τα design tokens μόνο σε αυτό το υποδέντρο, ώστε κάθε ενότητα, κάρτα και
-           πάνελ να ακολουθεί χωρίς να αγγίξουμε το καθένα χωριστά. Τα διαδραστικά
-           χρώματα (accent, θετικό, κείμενο πάνω σε accent) κρατούν τις τιμές του
-           σκοτεινού θέματος της εφαρμογής, για απόλυτη συνέπεια με το προϊόν. */
+        /* Η ΒΙΤΡΙΝΑ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΟ ΘΕΜΑ, ΚΑΙ ΠΛΕΟΝ ΤΟ ΛΕΕΙ.
+           Εδώ δεν ορίζεται κανένα χρώμα: γίνεται ΑΝΤΙΣΤΟΙΧΙΣΗ των tokens της
+           εφαρμογής στην παλέτα --mkt-*, που ζει δηλωμένη στο app/globals.css
+           δίπλα στα θέματα του προϊόντος. Πριν, αυτό το μπλοκ ξανάγραφε τα ίδια
+           ονόματα με ΑΛΛΕΣ τιμές — δύο χρωματικά συστήματα με την ίδια ταμπέλα,
+           αόρατα σε κάθε φύλακα ακριβώς επειδή τα ονόματα ταίριαζαν.
+           Το scripts/guard-landing-theme.mjs απαγορεύει ωμό χρώμα εδώ. */
         .lp-root {
-          --bg-base: #070b12;
-          --bg-surface: #0e1622;
-          --bg-elevated: #16202f;
-          --text-primary: #eef2f7;
-          --text-secondary: #a7b2c2;
-          --text-tertiary: #7c899b;
-          --border-subtle: rgba(255,255,255,.07);
-          --border-default: rgba(255,255,255,.12);
-          --border-strong: rgba(255,255,255,.24);
-          /* Το κείμενο του hero θέλει δική του βαθμίδα: πιο φωτεινό από το
-             δευτερεύον της εφαρμογής, γιατί κάθεται πάνω σε πολύ πιο σκούρο
-             φόντο και σε μεγαλύτερο μέγεθος. Ονομάζεται μία φορά εδώ. */
-          --text-hero: rgba(255,255,255,.74);
-          --accent: #8ab4f8;
-          --accent-text: #0a2647;
-          --positive: #52c79e;
-          --negative: #e58c84;
+          --bg-base: var(--mkt-bg-base);
+          --bg-surface: var(--mkt-bg-surface);
+          --bg-elevated: var(--mkt-bg-elevated);
+          --text-primary: var(--mkt-text-primary);
+          --text-secondary: var(--mkt-text-secondary);
+          --text-tertiary: var(--mkt-text-tertiary);
+          --border-subtle: var(--mkt-border-subtle);
+          --border-default: var(--mkt-border-default);
+          --border-strong: var(--mkt-border-strong);
+          --accent: var(--mkt-accent);
+          --accent-text: var(--mkt-accent-text);
+          --positive: var(--mkt-positive);
+          --negative: var(--mkt-negative);
           /* Ένα συνεχόμενο, κινηματογραφικό μπλε-μαύρο «διάστημα» από πάνω μέχρι
              κάτω. Οι απαλές γαλάζιες κηλίδες μένουν καρφωμένες στην οθόνη
              (background-attachment: fixed), οπότε καθώς κυλάς νιώθεις ότι
@@ -236,8 +233,8 @@ export default async function Landing() {
           background:
             radial-gradient(1100px 760px at 50% -2%, var(--accent-border), transparent 60%),
             radial-gradient(900px 720px at 92% 20%, var(--accent-soft), transparent 55%),
-            radial-gradient(820px 640px at 6% 74%, rgba(138,180,248,.06), transparent 60%),
-            linear-gradient(180deg, #080d16 0%, #0a1120 52%, #070b12 100%);
+            radial-gradient(820px 640px at 6% 74%, color-mix(in srgb, var(--mkt-accent) 6%, transparent), transparent 60%),
+            linear-gradient(180deg, var(--mkt-space-top) 0%, var(--mkt-space-mid) 52%, var(--mkt-space-bottom) 100%);
           background-attachment: fixed;
           background-repeat: no-repeat;
         }
