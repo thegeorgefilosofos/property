@@ -51,11 +51,16 @@ export default function ResetPasswordPage() {
     if (error) setError(trans(error.message)); else setMode('sent')
   }
 
-  const pwOk = checkPassword(password).ok
+  const [leakedPw, setLeakedPw] = useState<string | null>(null)
+  // ΤΟ ΕΥΡΗΜΑ ΔΙΑΡΡΟΗΣ ΦΤΑΝΕΙ ΩΣ ΤΗΝ ΥΠΟΒΟΛΗ. Πριν, ζούσε μόνο μέσα στο
+  // PasswordStrength: η οθόνη προειδοποιούσε και μετά δεχόταν τον κωδικό.
+  // Κρατιέται ο ΙΔΙΟΣ ο κωδικός, όχι σημαία, ώστε η φραγή να παύει μόνη της
+  // μόλις ο χρήστης αλλάξει έστω έναν χαρακτήρα.
+  const pwOk = checkPassword(password).ok && !(leakedPw !== null && leakedPw === password)
 
   async function updatePassword(e: React.FormEvent) {
     e.preventDefault(); setError('')
-    if (!pwOk) { setError('Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.'); return }
+    if (!pwOk) { setError(leakedPw === password ? 'Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.' : 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.'); return }
     if (password !== confirm) { setError('Οι κωδικοί δεν ταιριάζουν.'); return }
     setLoading(true)
     const supabase = createClient()
@@ -159,7 +164,7 @@ export default function ResetPasswordPage() {
                       onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                     {eye}
                   </div>
-                  {password && <PasswordStrength password={password} id="rp-pw-req" />}
+                  {password && <PasswordStrength password={password} id="rp-pw-req" onLeaked={setLeakedPw} />}
                 </div>
                 <div>
                   <label htmlFor="rp-confirm" style={label}>Επιβεβαίωση</label>

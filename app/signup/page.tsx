@@ -29,6 +29,12 @@ export default function SignupPage() {
   const [show, setShow] = useState(false)
   const [pwTouched, setPwTouched] = useState(false)
   const [resent, setResent] = useState(false)
+  const [leakedPw, setLeakedPw] = useState<string | null>(null)
+  // ΤΟ ΕΥΡΗΜΑ ΔΙΑΡΡΟΗΣ ΦΤΑΝΕΙ ΩΣ ΤΗΝ ΥΠΟΒΟΛΗ. Πριν, ζούσε μόνο μέσα στο
+  // PasswordStrength: η οθόνη προειδοποιούσε και μετά δεχόταν τον κωδικό.
+  // Κρατιέται ο ΙΔΙΟΣ ο κωδικός, όχι σημαία, ώστε η φραγή να παύει μόνη της
+  // μόλις ο χρήστης αλλάξει έστω έναν χαρακτήρα.
+  const leaked = leakedPw !== null && leakedPw === password
   const pw = checkPassword(password)
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
@@ -67,6 +73,11 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (leaked) {
+      setPwTouched(true)
+      setError('Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.')
+      return
+    }
     if (!pw.ok) {
       setPwTouched(true)
       setError(pw.common
@@ -177,7 +188,7 @@ export default function SignupPage() {
 
                   {/* Μετρητής ισχύος + λίστα προϋποθέσεων (κοινό component) —
                       εμφανίζεται μόλις ο χρήστης αρχίσει να πληκτρολογεί. */}
-                  {(password || pwTouched) && <PasswordStrength password={password} id="su-pw-req" />}
+                  {(password || pwTouched) && <PasswordStrength password={password} id="su-pw-req" onLeaked={setLeakedPw} />}
                 </div>
 
                 {error && (
@@ -197,7 +208,7 @@ export default function SignupPage() {
                   </span>
                 </div>
 
-                <button type="submit" disabled={loading || !consent || !pw.ok} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
+                <button type="submit" disabled={loading || !consent || !pw.ok || leaked} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok || leaked) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok || leaked) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
                   {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν'}
                 </button>
               </form>

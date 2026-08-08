@@ -34,6 +34,12 @@ export default function SecuritySettings() {
 
   // Κωδικός πρόσβασης
   const [newPass, setNewPass] = useState('');
+  const [leakedPw, setLeakedPw] = useState<string | null>(null);
+  // ΤΟ ΕΥΡΗΜΑ ΔΙΑΡΡΟΗΣ ΦΤΑΝΕΙ ΩΣ ΤΗΝ ΥΠΟΒΟΛΗ. Πριν, ζούσε μόνο μέσα στο
+  // PasswordStrength: η οθόνη προειδοποιούσε και μετά δεχόταν τον κωδικό.
+  // Κρατιέται ο ΙΔΙΟΣ ο κωδικός, όχι σημαία, ώστε η φραγή να παύει μόνη της
+  // μόλις ο χρήστης αλλάξει έστω έναν χαρακτήρα.
+  const leaked = leakedPw !== null && leakedPw === newPass;
   const [confirm, setConfirm] = useState('');
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -189,6 +195,10 @@ export default function SecuritySettings() {
   }
 
   async function savePassword() {
+    if (leaked) {
+      setPwMsg({ ok: false, text: 'Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.' });
+      return;
+    }
     if (!checkPassword(newPass).ok) {
       setPwMsg({ ok: false, text: 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.' });
       return;
@@ -246,9 +256,9 @@ export default function SecuritySettings() {
             />
           </div>
         </div>
-        {newPass && <PasswordStrength password={newPass} id="sec-pw-req" />}
+        {newPass && <PasswordStrength password={newPass} id="sec-pw-req" onLeaked={setLeakedPw} />}
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          <Btn variant="primary" onClick={savePassword} disabled={pwBusy || !checkPassword(newPass).ok}>
+          <Btn variant="primary" onClick={savePassword} disabled={pwBusy || !checkPassword(newPass).ok || leaked}>
             {pwBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}
           </Btn>
         </div>
