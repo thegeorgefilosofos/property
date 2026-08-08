@@ -3,7 +3,7 @@
 // ΤΟ ΤΑΞΙΔΙ ΠΟΥ ΔΙΟΡΘΩΝΕΤΑΙ. Η οθόνη «Συμβόλαια» άνοιγε με έξι κλειστά chips και
 // τη γραμμή «Διάλεξε κατηγορία για να δεις το συμβόλαιό σου»: τρία κλικ και μια
 // άδεια οθόνη πριν ο ιδιοκτήτης δει οτιδήποτε δικό του.
-import { contractOverview, contractKindOf, totalMonthly, CONTRACT_KINDS } from './overview'
+import { contractOverview, contractKindOf, totalMonthly, CONTRACT_KINDS, CONTRACT_EMPTY_HINT } from './overview'
 import type { LedgerEntry } from '../expenses/ledger'
 
 let pass = 0, fail = 0
@@ -47,6 +47,20 @@ const CUR = ['2026-04', '2026-05', '2026-06', '2026-07']
   ok('το ρεύμα είναι γνωστό', cards[0].known)
   ok('τα υπόλοιπα όχι', cards.slice(1).every(c => !c.known))
   ok('και τα άγνωστα δεν εφευρίσκουν ποσό', cards.slice(1).every(c => c.monthly === null))
+}
+
+// ═══ Η ΚΑΘΕ ΚΕΝΗ ΚΑΡΤΑ ΛΕΕΙ ΤΟ ΔΙΚΟ ΤΗΣ ═══════════════════════════════
+// Και οι επτά έγραφαν την ίδια πρόταση. Επτά φορές το ίδιο κείμενο δεν είναι
+// οδηγία, είναι ταπετσαρία — και ήταν λάθος σε τρεις: η ασφάλεια δεν έχει
+// «λογαριασμό» αλλά συμβόλαιο, τα κοινόχρηστα έρχονται από τον διαχειριστή, οι
+// συνδρομές δεν στέλνουν χαρτί καθόλου.
+{
+  const hints = CONTRACT_KINDS.map(k => CONTRACT_EMPTY_HINT[k])
+  eq('καμία κατηγορία χωρίς οδηγία', hints.filter(h => !h || !h.trim()).length, 0)
+  eq('καμία δύο φορές η ίδια', new Set(hints).size, CONTRACT_KINDS.length)
+  ok('η ασφάλεια ζητά συμβόλαιο, όχι λογαριασμό',
+    /ασφαλιστήριο/.test(CONTRACT_EMPTY_HINT.insurance) && !/λογαριασμ/.test(CONTRACT_EMPTY_HINT.insurance))
+  ok('οι συνδρομές δεν ζητούν λογαριασμό', !/λογαριασμ/.test(CONTRACT_EMPTY_HINT.subscriptions))
 }
 
 // ═══ ΤΟ ΠΟΣΟ ΕΙΝΑΙ ΑΝΑ ΜΗΝΑ, ΟΧΙ ΑΝΑ ΛΟΓΑΡΙΑΣΜΟ ════════════════════════

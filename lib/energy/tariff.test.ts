@@ -1,5 +1,5 @@
 // npx tsx lib/energy/tariff.test.ts
-import { ALL_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from './catalogue';
+import { ALL_TARIFFS, COMPARABLE_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from './catalogue';
 import {
   monthlyCost, compareTariffs, estimateUsage, ERT, ETMEAR, type Tariff, type Usage,
 } from './tariff';
@@ -246,6 +246,20 @@ const simple: Tariff = {
   // Το «χωρίς πάγιο» πρέπει να συμφωνεί με το ποσό, αλλιώς η στήλη λέει άλλα.
   eq('το «χωρίς πάγιο» σημαίνει πάγιο μηδέν',
     all.filter(t => t.no_fixed && t.fixed > 0).map(t => t.id), []);
+
+  // ── ΤΙΜΟΛΟΓΙΟ ΜΕ ΠΕΡΙΟΡΙΣΜΟ ΔΙΚΑΙΩΜΑΤΟΣ ΔΕΝ ΠΡΟΤΕΙΝΕΤΑΙ ────────────────
+  // Τέσσερα φοιτητικά έμπαιναν στη σύγκριση όλων και δύο έβγαιναν ΠΡΩΤΑ, με
+  // τιμή που ο ιδιοκτήτης δεν δικαιούται: θα άλλαζε πάροχο και θα απορριπτόταν.
+  // Το πεδίο υπήρχε, κανείς δεν το διάβαζε, και διαγράφηκε ως «νεκρό» — το ότι
+  // δεν το διάβαζε κανείς ΗΤΑΝ το σφάλμα.
+  const restricted = all.filter(t => t.studentOnly).map(t => t.id);
+  ok('ο κατάλογος σημαδεύει τα φοιτητικά', restricted.length >= 4);
+  eq('και κανένα δεν μπαίνει στη σύγκριση',
+    COMPARABLE_TARIFFS().filter(t => t.studentOnly).map(t => t.id), []);
+  // Κάθε τιμολόγιο με «φοιτητ» στο όνομα ή στην περιγραφή ΠΡΕΠΕΙ να είναι
+  // σημαδεμένο — αλλιώς το επόμενο που θα προστεθεί θα ξαναγλιστρήσει.
+  eq('κανένα φοιτητικό δεν ξέφυγε από τη σήμανση',
+    all.filter(t => /student|φοιτητ/i.test(`${t.name} ${t.desc}`) && !t.studentOnly).map(t => t.id), []);
 }
 
 console.log(fail === 0 ? `✓ tariff: ${pass} έλεγχοι πέρασαν` : `✗ tariff: ${fail} απέτυχαν από ${pass + fail}`);

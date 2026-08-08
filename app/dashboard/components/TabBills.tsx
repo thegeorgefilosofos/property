@@ -33,7 +33,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, Skeleton } from '@/components/Theme';
 import { mergeLedger, type LedgerEntry } from '@/lib/expenses/ledger';
-import { contractOverview, totalMonthly, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
+import { contractOverview, totalMonthly, CONTRACT_EMPTY_HINT, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
 
 // ── Static imports, all components must be static for Next.js App Router ────
 import BillsElectricity  from './BillsElectricity';
@@ -131,7 +131,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
   const period = card.everyMonths === 2 ? 'ανά δίμηνο' : '';
   const meta = card.known
     ? [card.provider, period, `${card.occurrences} ${card.occurrences === 1 ? 'περίοδος' : 'περίοδοι'}`].filter(Boolean).join(' · ')
-    : 'Ανέβασε τον τελευταίο λογαριασμό και συμπληρώνεται μόνο του';
+    : CONTRACT_EMPTY_HINT[card.kind];
 
   return (
     <button type="button" onClick={onOpen}

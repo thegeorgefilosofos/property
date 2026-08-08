@@ -6,7 +6,7 @@ import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fn, Skeleton, histInputStyle, ABSENT_SHORT } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
-import { PROVIDERS, ALL_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from '@/lib/energy/catalogue';
+import { PROVIDERS, COMPARABLE_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from '@/lib/energy/catalogue';
 import { canRecommend, freshness, RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -132,7 +132,7 @@ export function electricitySwitchFinding(
   const current = monthlyCost(tariff as Tariff, usage).total;
 
   const ranked = compareTariffs(
-    ALL_TARIFFS(),
+    COMPARABLE_TARIFFS(),
     usage, tariff.id, current,
   ).filter(r => r.tariff.segment === tariff.segment);
 
@@ -267,7 +267,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   // μικροδευτερόλεπτα, ενώ ένας πίνακας εξαρτήσεων που ξεχνιέται κοστίζει λάθος
   // τιμή στην οθόνη. Η ταχύτητα εδώ δεν ήταν ποτέ το πρόβλημα.
   const allTariffs = compareTariffs(
-    ALL_TARIFFS(),
+    COMPARABLE_TARIFFS(),
     usage, tariffId, calcMonthly,
   )
     // Το κουμπί Οικιακό/Επιχειρηματικό υπήρχε και δεν φιλτράριζε τίποτα.
@@ -493,7 +493,13 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             : usageEst.source === 'bills'
               ? `Υπολογισμός με ${usageEst.kwhMonthly} kWh τον μήνα, μέσος όρος από ${usageEst.months} ${usageEst.months === 1 ? 'λογαριασμό' : 'λογαριασμούς'} που έχεις καταχωρήσει.`
               : usageEst.source === 'manual'
-                ? `Υπολογισμός με ${usageEst.kwhMonthly} kWh τον μήνα, όπως τα δήλωσες.`
+                ? (kwhMonthly === ELEC_DEFAULTS.kwhMonthly
+                    // ΤΟ «ΟΠΩΣ ΤΑ ΔΗΛΩΣΕΣ» ΕΛΕΓΕ ΨΕΜΑΤΑ ΣΤΗΝ ΠΡΟΕΠΙΛΟΓΗ. Το πεδίο
+                    // ξεκινά στα 250 kWh· ένας χρήστης που δεν το άγγιξε ποτέ
+                    // διάβαζε ότι δήλωσε νούμερο που δεν έγραψε, και πάνω του
+                    // στηνόταν ολόκληρη η σύγκριση τιμολογίων.
+                    ? `Υπολογισμός με ${fn(usageEst.kwhMonthly)} kWh τον μήνα, ενδεικτική τιμή εκκίνησης. Ανέβασε έναν λογαριασμό ή συμπλήρωσε το ιστορικό για δικό σου νούμερο.`
+                    : `Υπολογισμός με ${fn(usageEst.kwhMonthly)} kWh τον μήνα, όπως το έγραψες.`)
                 : 'Δεν ξέρουμε ακόμη πόσο ρεύμα καίει το ακίνητο. Γράψε τη μέση μηνιαία κατανάλωση ή συμπλήρωσε το ιστορικό πιο κάτω, και η σύγκριση θα τρέξει στα δικά σου νούμερα.'}
           {usageEst.source !== 'unknown' && !usageEst.reliable && (
             <> Με {usageEst.months} {usageEst.months === 1 ? 'μήνα' : 'μήνες'} δεδομένων η εικόνα είναι πρόχειρη: ο Ιούλιος με κλιματιστικό και ο Απρίλιος δεν μοιάζουν.</>
@@ -525,7 +531,12 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             {MONTHS_SHORT.map((m, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 9, color: i === currentMonth ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 4, fontWeight: i === currentMonth ? 700 : 400, fontFamily: T.font.sans }}>{m}</div>
-                <input type="number" value={kwhHistory[i] || ''} placeholder="0"
+                {/* ΤΟ placeholder ΗΤΑΝ «0» ΚΑΙ ΤΑ ΔΩΔΕΚΑ ΚΟΥΤΙΑ ΔΙΑΒΑΖΟΝΤΑΝ ΩΣ
+                    ΜΗΔΕΝΙΚΑ. Ένα άδειο ιστορικό έδειχνε «μηδέν κιλοβατώρες κάθε
+                    μήνα», δηλαδή ακίνητο που δεν καίει ρεύμα — αντί για «δεν
+                    έχει συμπληρωθεί». Η ίδια αρχή με τα ποσά: το άγνωστο δεν
+                    γράφεται μηδέν. */}
+                <input type="number" value={kwhHistory[i] || ''} placeholder=""
                   style={histInputStyle(i === currentMonth, hoveredMonth === i)}
                   onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}
                   onChange={e => {
@@ -562,7 +573,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-                Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
+                Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
               </span>
             </div>
           )}
