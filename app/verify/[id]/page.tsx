@@ -6,6 +6,7 @@
 // έγγραφο εκδόθηκε πραγματικά από το Property OS: τύπος, αντικείμενο, περίοδος,
 // ημ. έκδοσης, εκδότης. Καμία ευαίσθητη πληροφορία/ποσά.
 // ═══════════════════════════════════════════════════════════════════════════
+import { TriangleAlert, CircleCheckBig } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import { ABSENT } from '@/components/tokens';
 import { useEffect, useState } from 'react';
@@ -42,7 +43,6 @@ export default function VerifyDocument() {
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
   const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '30px 30px 26px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
-  const mark: React.CSSProperties = { width: 34, height: 34, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17 };
   const label: React.CSSProperties = { fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 };
   const value: React.CSSProperties = { fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginTop: 3 };
 
@@ -61,12 +61,33 @@ export default function VerifyDocument() {
           <div style={{ padding: '34px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>Έλεγχος εγγράφου…</div>
         )}
 
+        {/* ΟΙ ΔΥΟ ΑΠΑΝΤΗΣΕΙΣ ΜΙΛΟΥΣΑΝ ΔΙΑΦΟΡΕΤΙΚΗ ΓΛΩΣΣΑ. Το «γνήσιο» ήταν
+            πλακίδιο με περίγραμμα, φόντο και σύμβολο 18 εικονοστοιχείων· το «δεν
+            βρέθηκε» ήταν ένα emoji ⚠️ σαράντα εικονοστοιχείων, ασύνδετο, πάνω
+            από τον τίτλο.
+
+            Δύο πράγματα ταυτόχρονα, και τα δύο μετράνε σε ΑΥΤΗ τη σελίδα:
+
+            • Ο κανόνας του έργου λέει «χωρίς emoji — ένα εργαλείο που
+              διαχειρίζεται τη φορολογία σου δεν κλείνει το μάτι». Η σελίδα όπου
+              κάποιος ελέγχει αν ένα έγγραφο είναι γνήσιο είναι το χειρότερο
+              σημείο για να το σπάσει: υπονομεύει ακριβώς την αξιοπιστία που
+              υπάρχει για να στήσει. Και το emoji αποδίδεται από το ΛΕΙΤΟΥΡΓΙΚΟ
+              του θεατή — άλλο σχήμα σε Windows, άλλο σε iPhone, άλλο σε Android.
+            • Δύο καταστάσεις της ίδιας ερώτησης πρέπει να έχουν την ίδια
+              γεωμετρία. Αλλιώς ο αναγνώστης δεν συγκρίνει· ξαναμαθαίνει.
+
+            Ίδιο πλακίδιο, άλλος τόνος. Το «δεν βρέθηκε» ΔΕΝ είναι κόκκινο: δεν
+            σημαίνει πλαστό, σημαίνει ότι δεν βρέθηκε — μπορεί να σαρώθηκε λάθος
+            ο κωδικός. Η διάκριση την κάνουν οι λέξεις, όχι ο συναγερμός. */}
         {state === 'notfound' && (
-          <div style={{ paddingTop: 24 }}>
-            <div style={{ fontSize: 40, lineHeight: 1 }}>⚠️</div>
-            <div style={{ fontSize: 18, fontWeight: 700, marginTop: 12 }}>Δεν βρέθηκε έγγραφο</div>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 8 }}>
-              Ο κωδικός <strong style={{ color: 'var(--text-primary)' }}>{id || ABSENT}</strong> δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το Property OS.
+          <div style={{ paddingTop: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: 10, padding: '11px 14px' }}>
+              <TriangleAlert size={18} strokeWidth={2.5} style={{ color: 'var(--warning)', flexShrink: 0 }} aria-hidden="true" />
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--warning)' }}>Δεν βρέθηκε έγγραφο με αυτόν τον κωδικό</span>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 16 }}>
+              Ο κωδικός <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em' }}>{id || ABSENT}</strong> δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το Property OS.
               Ελέγξτε ότι σαρώσατε σωστά το QR ή ζητήστε νέο αντίγραφο από τον εκδότη.
             </p>
           </div>
@@ -75,7 +96,10 @@ export default function VerifyDocument() {
         {state === 'ok' && doc && (
           <div style={{ paddingTop: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '11px 14px' }}>
-              <span style={{ color: 'var(--positive)', fontSize: 18, fontWeight: 700 }}>✓</span>
+              {/* Ίδιο μέγεθος, ίδιο πάχος γραμμής, ίδια θέση με το πλακίδιο από
+                  πάνω. Ένα «✓» ως χαρακτήρας κειμένου δίπλα σε ένα εικονίδιο
+                  γραμμής δεν κάθεται στο ίδιο οπτικό ύψος και έχει άλλο βάρος. */}
+              <CircleCheckBig size={18} strokeWidth={2.5} style={{ color: 'var(--positive)', flexShrink: 0 }} aria-hidden="true" />
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--positive)' }}>Γνήσιο έγγραφο, εκδόθηκε από το Property OS</span>
             </div>
 

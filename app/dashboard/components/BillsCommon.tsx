@@ -481,7 +481,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ position: 'relative', display: 'flex', gap: 4, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed color-mix(in srgb, var(--accent) 40%, transparent)', pointerEvents: 'none' }}>
-              <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 8, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>
+              <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 9, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>
                 μέσος όρος {monthlyAvg.toFixed(0)}
               </span>
             </div>
@@ -499,7 +499,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 1, cursor: 'pointer' }}
                 onMouseEnter={() => setHoveredMonth(i)}
                 onMouseLeave={() => setHoveredMonth(null)}>
-                <div style={{ fontSize: 7, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end', color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
+                <div style={{ fontSize: 9, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end', color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
                   {val > 0 ? Math.round(val) : ''}
                 </div>
                 <div style={{ width: '100%', height: `${Math.max(pct * 48, 2)}px`, background: barBg, borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
@@ -512,7 +512,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}
-              style={{ flex: 1, fontSize: 8, textAlign: 'center', fontFamily: T.font.sans, cursor: 'pointer', padding: '2px 0', borderRadius: 3, transition: 'all 0.15s', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, background: hoveredMonth === i && i !== currentMonth ? 'var(--bg-elevated)' : 'transparent' }}
+              style={{ flex: 1, fontSize: 9, textAlign: 'center', fontFamily: T.font.sans, cursor: 'pointer', padding: '2px 0', borderRadius: 3, transition: 'all 0.15s', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, background: hoveredMonth === i && i !== currentMonth ? 'var(--bg-elevated)' : 'transparent' }}
               onMouseEnter={() => setHoveredMonth(i)}
               onMouseLeave={() => setHoveredMonth(null)}>
               {m}

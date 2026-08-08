@@ -323,7 +323,7 @@ function PaymentBars({ payments }:{payments:RentPayment[]}) {
       </div>
       <div style={{ display:'flex', gap:5 }}>
         {last12.map((p,i)=>(
-          <div key={i} style={{ flex:1, fontSize:7, color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
+          <div key={i} style={{ flex:1, fontSize:9, color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
             {MONTHS_SHORT[p.period_month-1]}
           </div>
         ))}
@@ -575,7 +575,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
                 <div key={year} onClick={()=>{setYr(year);setUseCustom(false);}}
                   style={{ background:active?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`, borderRadius:T.radius.badge, padding:'7px 4px', textAlign:'center' as const, cursor:'pointer', transition:'all 0.15s' }}>
                   <div style={{ fontSize:10, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{fp(rate, 1)}</div>
-                  <div style={{ fontSize:8, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{year}</div>
+                  <div style={{ fontSize:9, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{year}</div>
                 </div>
               );
             })}
