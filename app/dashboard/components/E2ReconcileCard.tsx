@@ -199,8 +199,8 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
                     Το έντυπο λέει
                   </label>
                   <input
-                    id={`e2-${i}`} type="number" inputMode="decimal" style={inp}
-                    placeholder="0,00" disabled={!r.atak}
+                    id={`e2-${i}`} type="number" min={0} inputMode="decimal" style={inp}
+                    placeholder="" disabled={!r.atak}
                     value={declared[r.atak] ?? ''}
                     onChange={e => setDeclared(d => ({ ...d, [r.atak]: e.target.value }))}
                   />

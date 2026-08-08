@@ -205,7 +205,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                 <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
                 <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
                 <div style={{ position: 'relative', flex: '0 0 92px' }}>
-                  <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                  <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
                   <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
                 </div>
                 <button onClick={() => delRow(i)} aria-label="Αφαίρεση ιδιοκτήτη" title="Αφαίρεση"
@@ -222,7 +222,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           <div style={{ flex: '1 1 160px' }}>
             <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
             <div style={{ position: 'relative' }}>
-              <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="0" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+              <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
               <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>% εσόδων</span>
             </div>
           </div>

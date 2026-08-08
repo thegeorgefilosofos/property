@@ -135,7 +135,7 @@ export default function BankRatesAdmin({ onSaved }:{
                       <p style={{...labelStyle,marginTop:11}}>Σταθερά επιτόκια (κείμενο, π.χ. «2,90» ή «2,50-2,90»)</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10}}>
                         {RATE_FIELDS.map(f=>(
-                          <TextInput key={f.k} label={f.label} value={String(edit[f.k] ?? '')} onChange={v=>set(f.k, v)} placeholder="0,00"/>
+                          <TextInput key={f.k} label={f.label} value={String(edit[f.k] ?? '')} onChange={v=>set(f.k, v)} placeholder=""/>
                         ))}
                       </div>
                       <p style={{...labelStyle}}>Παράμετροι</p>

@@ -693,7 +693,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
         </label>
         <label>
           <span style={lab}>Πόσο;</span>
-          <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" style={field} placeholder="0,00" />
+          <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" style={field} placeholder="" />
         </label>
         <label>
           <span style={lab}>{paid ? 'Πότε;' : 'Λήγει;'}</span>

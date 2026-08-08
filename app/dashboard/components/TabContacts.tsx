@@ -289,8 +289,10 @@ function isOverdue(d: string) { const n = daysUntil(d); return n !== null && n <
 // HTML-escape any dynamic value interpolated into printable/PDF HTML written via document.write.
 
 // ─── Input primitives ─────────────────────────────────────────────────────────
-function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
-  return <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
+// Το `min` περνά μέχρι το πεδίο: ποσό αμοιβής συνεργείου μείον πενήντα ευρώ
+// δεν υπάρχει, και το πεδίο δεν έχει λόγο να το δέχεται.
+function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number }) {
+  return <input type={type} min={min} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
 }
 function Txt({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} style={{ ...iStyle, height: 'auto', resize: 'vertical', lineHeight: 1.6 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
@@ -621,7 +623,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
         <Btn onClick={close} disabled={saving}>Ακύρωση</Btn>
         <Btn variant="primary" onClick={save} disabled={saving || !amount}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση Δαπάνης'}</Btn>
       </>}>
-      <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="Παράδειγμα: 150" type="number" /></div>
+      <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="Παράδειγμα: 150" type="number" min={0} /></div>
       <div><FL>Περιγραφή</FL><Inp value={description} onChange={setDescription} placeholder="Περιγραφή εργασίας" /></div>
     </Modal>
   )

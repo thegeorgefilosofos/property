@@ -89,8 +89,10 @@ const iStyle: React.CSSProperties = {
 function FL({ children }: { children: React.ReactNode }) {
   return <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
 }
-function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
-  return <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+// Το `min` περνά μέχρι το πεδίο: χωρίς αυτό, τα ποσά και οι εκτιμήσεις κόστους
+// δέχονταν αρνητικούς αριθμούς — δαπάνη μείον διακοσίων ευρώ δεν υπάρχει.
+function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number }) {
+  return <input type={type} min={min} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
 }
 // Ένα σημείο για όλα τα πεδία επιλογής της οθόνης. Ήταν ντόπιο <select>, δηλαδή
 // το λειτουργικό ζωγράφιζε τη λίστα με δικά του χρώματα μέσα σε μια οθόνη που
@@ -1483,7 +1485,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose, onScan }: {
           και είχε δική του κολόνα στον Πίνακα, χωρίς κανέναν τρόπο να επιλεγεί. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
         <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
-        <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" /></div>
+        <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" min={0} /></div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
         <div><FL>Ανάθεση σε επαφή</FL>
@@ -1770,7 +1772,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
-            <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="0" type="number" /></div>
+            <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="" type="number" min={0} /></div>
             <div><FL>Ημερομηνία *</FL><DatePicker value={date} onChange={setDate} /></div>
           </div>
           <div><FL>Πάροχος</FL><Inp value={provider} onChange={setProvider} placeholder="Παράδειγμα: Υδραυλικές Εργασίες ΕΠΕ" /></div>

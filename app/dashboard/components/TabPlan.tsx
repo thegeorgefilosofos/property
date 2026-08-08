@@ -481,7 +481,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
               <label style={{ display: 'block', width: 190 }}>
                 <span style={{ ...TT.caption, color: 'var(--text-tertiary)' }}>Ποσό ανακαίνισης</span>
-                <input type="number" min={0} inputMode="decimal" className="po-field" placeholder="0"
+                <input type="number" min={0} inputMode="decimal" className="po-field" placeholder=""
                   value={loanAmount ?? ''}
                   onChange={e => setLoanAmount(e.target.value === '' ? null : Number(e.target.value))}
                   style={{ ...settingsField, height: T.h.md, fontSize: 13, marginTop: 5 }} />

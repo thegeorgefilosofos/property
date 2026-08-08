@@ -942,7 +942,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <div>
             <label style={lbl}>Ποσό σε ευρώ</label>
-            <input type="number" style={fld} placeholder="0,00" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} onFocus={focus} onBlur={blur}/>
+            <input type="number" min={0} style={fld} placeholder="" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} onFocus={focus} onBlur={blur}/>
           </div>
           {form.event_time&&(
             <div>

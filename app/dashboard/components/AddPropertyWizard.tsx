@@ -532,20 +532,20 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
           </Field>
           {isLandLike ? (
             <Field label={sqmLabel}>
-              <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="250" onFocus={onFocus} onBlur={onBlur} />
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
           ) : (
             <>
               <div style={grid3}>
                 <Field label={sqmLabel}>
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="85" onFocus={onFocus} onBlur={onBlur} />
+                  <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
                 <Field label="Όροφος">
                   <CustomSelect value={floor} onChange={setFloor} placeholder="Επίλεξε"
                     options={FLOOR_OPTS.map(f => ({ value: f, label: f }))} />
                 </Field>
                 <Field label="Έτος κατασκευής">
-                  <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
+                  <input style={monoInputStyle} type="number" min={0} value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
               </div>
               <div style={grid3}>
@@ -558,15 +558,15 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     options={HEATING_OPTS.map(([v, l]) => ({ value: v, label: l }))} />
                 </Field>
                 <Field label="Θέσεις στάθμευσης">
-                  <input style={monoInputStyle} type="number" value={parking} onChange={e => setParking(e.target.value)} placeholder="1" onFocus={onFocus} onBlur={onBlur} />
+                  <input style={monoInputStyle} type="number" min={0} value={parking} onChange={e => setParking(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
               </div>
               <div style={grid2}>
                 <Field label="Υπνοδωμάτια">
-                  <input style={monoInputStyle} type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} placeholder="2" onFocus={onFocus} onBlur={onBlur} />
+                  <input style={monoInputStyle} type="number" min={0} value={bedrooms} onChange={e => setBedrooms(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
                 <Field label="Αποθήκη (τ.μ.)">
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={storageSqm} onChange={e => setStorageSqm(e.target.value)} placeholder="8" onFocus={onFocus} onBlur={onBlur} />
+                  <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={storageSqm} onChange={e => setStorageSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
               </div>
             </>
@@ -579,15 +579,15 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={grid2}>
             <Field label="Εμπορική Αξία (€)">
-              <input style={monoInputStyle} type="number" inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} placeholder="145000" onFocus={onFocus} onBlur={onBlur} />
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
             <Field label="Αντικειμενική Αξία (€)">
-              <input style={monoInputStyle} type="number" inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} placeholder="110000" onFocus={onFocus} onBlur={onBlur} />
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
           </div>
           <div style={grid2}>
             <Field label="Τιμή Αγοράς (€)">
-              <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
             <Field label="Ημερομηνία αγοράς">
               <DatePicker value={purchaseDate} onChange={setPurchaseDate} />
@@ -596,15 +596,15 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
           </div>
           <div style={grid2}>
             <Field label="Εκτιμώμενος ΕΝΦΙΑ (€/έτος)">
-              <input style={monoInputStyle} type="number" inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} placeholder="320" onFocus={onFocus} onBlur={onBlur} />
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
             <Field label={rentLabel}>
-              <input style={monoInputStyle} type="number" inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />
             </Field>
           </div>
           <div style={grid2}>
             <Field label="Ποσοστό Ιδιοκτησίας (%)">
-              <input style={monoInputStyle} type="number" inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} placeholder="100" onFocus={onFocus} onBlur={onBlur} />
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} max={100} onFocus={onFocus} onBlur={onBlur} />
             </Field>
             {isShared && (
               <Field label="Αριθμός συνιδιοκτητών">

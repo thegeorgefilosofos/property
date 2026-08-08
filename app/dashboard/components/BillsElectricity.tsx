@@ -614,7 +614,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     μήνα», δηλαδή ακίνητο που δεν καίει ρεύμα — αντί για «δεν
                     έχει συμπληρωθεί». Η ίδια αρχή με τα ποσά: το άγνωστο δεν
                     γράφεται μηδέν. */}
-                <input type="number" value={kwhHistory[i] || ''} placeholder=""
+                <input type="number" min={0} value={kwhHistory[i] || ''} placeholder=""
                   style={histInputStyle(i === currentMonth, hoveredMonth === i)}
                   onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}
                   onChange={e => {

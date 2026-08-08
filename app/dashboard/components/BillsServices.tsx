@@ -553,7 +553,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   ώστε να ακούγεται ο μήνας, και μεγαλώνει από 8 σε 10. */}
               <label style={{ fontSize: 10, color: i === currentMonth ? 'var(--accent)' : 'var(--text-secondary)', display: 'block', marginBottom: 4, textAlign: 'center' as const, fontFamily: T.font.sans, transition: 'color 0.15s' }}>
                 <span style={{ display: 'block', marginBottom: 4 }}>{m}</span>
-                <input aria-label={`${m}, ποσό σε ευρώ`} type="number" value={(s.dimotikaHistory || [])[i] || ''} onChange={e => updHistory(i, e.target.value)} placeholder="€"
+                <input aria-label={`${m}, ποσό σε ευρώ`} type="number" min={0} value={(s.dimotikaHistory || [])[i] || ''} onChange={e => updHistory(i, e.target.value)} placeholder="€"
                   onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}
                   onFocus={() => setHoveredMonth(i)} onBlur={() => setHoveredMonth(null)}
                   style={histInputStyle(i === currentMonth, hoveredMonth === i)}/>

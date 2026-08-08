@@ -256,7 +256,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 88px', gap: 10, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 500 }}>{r.label}</div>
             <input
-              type="number" inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)} placeholder="0"
+              type="number" min={0} inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)} placeholder=""
               style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
             <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : fe(0)}</div>
             <div style={{ textAlign: 'center' }}>
@@ -533,7 +533,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 <span style={{ display: 'block', marginBottom: 3 }}>{m}</span>
               <input
                 aria-label={`${m}, ποσό σε ευρώ`}
-                type="number"
+                type="number" min={0}
                 value={history[i]}
                 onChange={e => sHist(i, e.target.value)}
                 placeholder="€"

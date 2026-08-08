@@ -213,7 +213,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'all 0.15s' });
   const money = (value: string, on: (v: string) => void, suffix: string) => (
     <div style={{ position: 'relative' }}>
-      <input value={value} onChange={e => on(e.target.value)} onFocus={onF} onBlur={onB} inputMode="decimal" placeholder="0"
+      <input value={value} onChange={e => on(e.target.value)} onFocus={onF} onBlur={onB} inputMode="decimal" placeholder=""
         style={{ ...field, paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
       {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: αλλιώς το «€» δεν ακολουθεί
           το πεδίο όταν η κλίμακα ανεβαίνει στα 44 για το δάχτυλο. */}

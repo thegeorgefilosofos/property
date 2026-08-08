@@ -2115,7 +2115,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const kwhControl=(
     <div title="kWh = κιλοβατώρα· τιμή ρεύματος σε € ανά kWh, για τον υπολογισμό κόστους" style={{display:'inline-flex',alignItems:'center',height:28,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.pill,overflow:'hidden'}}>
       <span style={{padding:'0 8px',fontSize:9,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:T.font.sans}}>€/kWh</span>
-      <input type="text" inputMode="decimal" value={kwInput} placeholder="0,00" aria-label="Τιμή ρεύματος σε ευρώ ανά kWh, από τον λογαριασμό σου"
+      <input type="text" inputMode="decimal" value={kwInput} placeholder="" aria-label="Τιμή ρεύματος σε ευρώ ανά kWh, από τον λογαριασμό σου"
         onChange={e=>{const raw=e.target.value.replace(',','.');setKwInput(raw);if(/^\d*\.?\d*$/.test(raw)&&raw!=='')setKwhPrice(parseFloat(raw)||0)}}
         onFocus={e=>{e.target.select()}}
         onBlur={()=>{const n=parseFloat(kwInput);if(isNaN(n)||n<=0){setKwInput('');setKwhPrice(0)}else{setKwInput(String(n));setKwhPrice(n);saveKwh(n)}}}

@@ -989,7 +989,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               )}
             </div>
             <div>
-              <NumberInput label="Έκτακτη μηνιαία πληρωμή" value={extraPay} onChange={setExtraPay} suffix="€" placeholder="0"/>
+              <NumberInput label="Έκτακτη μηνιαία πληρωμή" value={extraPay} onChange={setExtraPay} suffix="€" placeholder=""/>
               {extraSav&&EP>0&&(
                 <div style={{marginTop:6,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
                   <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Εξοικονομείς {Math.round(extraSav.savedMonths/12)} χρόνια και {fmtEur(extraSav.savedInt)} τόκους</p>

@@ -156,7 +156,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   // Πεδίο ποσού με διακριτικό σύμβολο (€ ή %) στη δεξιά άκρη, αριθμοί δεξιά.
   const money = (value: string, on: (v: string) => void, suffix: string) => (
     <div style={{ position: 'relative' }}>
-      <input value={value} onChange={e => on(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} inputMode="decimal" placeholder="0"
+      <input value={value} onChange={e => on(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} inputMode="decimal" placeholder=""
         style={{ ...field, paddingRight: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
       {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: με literal 40 εδώ και πεδίο
           που γίνεται 44 στο δάχτυλο, το «€» καθόταν 2px ψηλότερα από το ποσό. */}
