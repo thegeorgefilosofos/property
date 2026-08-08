@@ -4,13 +4,28 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fn, Skeleton, histInputStyle, ABSENT_SHORT } from '@/components/Theme';
+import { T, fe, fn, feRate, Skeleton, histInputStyle, ABSENT_SHORT } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
 import { PROVIDERS, COMPARABLE_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from '@/lib/energy/catalogue';
 import { canRecommend, freshness, RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
-const fk = (n: number) => `${fe(n, 4)}`;
+/**
+ * Η ΤΙΜΗ ΤΗΣ ΚΙΛΟΒΑΤΩΡΑΣ ΣΤΡΟΓΓΥΛΟΠΟΙΟΥΝΤΑΝ ΣΕ ΔΥΟ ΔΕΚΑΔΙΚΑ, ΚΑΙ ΕΞΑΦΑΝΙΖΕ ΤΗ
+ * ΔΙΑΦΟΡΑ ΠΟΥ ΕΠΡΕΠΕ ΝΑ ΔΕΙΞΕΙ.
+ *
+ * Ήταν γραμμένο `fe(n, 4)` — που διαβάζεται σαν «τέσσερα δεκαδικά», αλλά το
+ * δεύτερο όρισμα του `fe` ΑΓΝΟΕΙΤΑΙ ρητά και τεκμηριωμένα στο
+ * `lib/core/format.ts`: τα ποσά έχουν πάντα δύο δεκαδικά, ώστε να στοιχίζονται
+ * οι στήλες. Έτσι το 0,1450 και το 0,1489 γράφονταν και τα δύο «0,15 €» — σε
+ * μια στήλη που υπάρχει ακριβώς για να ξεχωρίζει τα τιμολόγια μεταξύ τους.
+ * Δώδεκα τιμολόγια της ΔΕΗ έδειχναν την ίδια τιμή κιλοβατώρας.
+ *
+ * Ο σωστός μορφοποιητής υπήρχε ήδη, με το δικό του σχόλιο για τον λόγο ύπαρξής
+ * του: η τιμή μονάδας δεν κάθεται σε στήλη ποσών, γράφεται μέσα σε πρόταση και
+ * πολλαπλασιάζεται με κατανάλωση. Δύο έως τέσσερα δεκαδικά.
+ */
+const fk = feRate;
 // Η ημερομηνία τελευταίου ελέγχου των τιμών.
 //
 // ΓΙΑΤΙ ΓΡΑΜΜΕΝΗ ΕΔΩ ΚΑΙ ΟΧΙ ΜΕ import ΤΟΥ JSON: ένα `import ... from '.json'`
@@ -90,6 +105,31 @@ export const TARIFFS_MAX_AGE_DAYS = 40;
 // διαβάζεται ως κανόνας. Η σήμανση έχει ΕΝΑ ουδέτερο ύφος, όπως κάθε ετικέτα
 // της εφαρμογής, και ο τύπος του τιμολογίου λέγεται με λέξεις.
 const bc = () => ({ bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' });
+
+/**
+ * ΤΙ ΣΗΜΑΙΝΕΙ ΤΟ ΧΡΩΜΑ. Η ΡΑΑΕΥ κατατάσσει τα τιμολόγια σε χρώματα και όλοι οι
+ * πάροχοι τα γράφουν έτσι — είναι το λεξιλόγιο της αγοράς και μένει. Αυτό που
+ * έλειπε ήταν η μετάφρασή του: ο ιδιοκτήτης έβλεπε «ΚΙΤΡΙΝΟ» σε πλακίδιο και
+ * καμία γραμμή της οθόνης δεν του έλεγε ότι σημαίνει τιμή που αλλάζει μέσα στη
+ * σύμβαση. Δηλαδή η πιο κρίσιμη πληροφορία για το αν θα πληρώσει το ίδιο τον
+ * Ιανουάριο ήταν γραμμένη σε κώδικα που έπρεπε να ξέρει από πριν.
+ *
+ * ΓΙΑΤΙ ΣΕ title ΚΑΙ ΟΧΙ ΣΕ ΔΕΥΤΕΡΗ ΓΡΑΜΜΗ: ο τύπος του τιμολογίου («σταθερό»,
+ * «κυμαινόμενο») ΕΙΝΑΙ το χρώμα — τα δεδομένα δείχνουν ένα προς ένα αντιστοιχία
+ * ανάμεσα σε `badge` και `type`. Γραμμένα και τα δύο, θα ήταν το ίδιο πράγμα
+ * δύο φορές στην ίδια γραμμή.
+ */
+const BADGE_MEANING: Record<string, string> = {
+  'ΜΠΛΕ':     'Σταθερή τιμή για όλη τη διάρκεια της σύμβασης',
+  'ΠΡΑΣΙΝΟ':  'Ειδικό τιμολόγιο. Η τιμή ανακοινώνεται την πρώτη κάθε μήνα',
+  'ΚΙΤΡΙΝΟ':  'Κυμαινόμενη τιμή. Αλλάζει κατά τη διάρκεια της σύμβασης',
+  'FLAT':     'Σταθερό ποσό κάθε μήνα, με ετήσιο όριο κιλοβατωρών',
+  'VNM':      'Εικονική καθαρή μέτρηση, με φωτοβολταϊκό',
+  'ΔΥΝΑΜΙΚΟ': 'Ωριαία τιμή χρηματιστηρίου ενέργειας',
+};
+
+/** Πόσα τιμολόγια δείχνει η κατάταξη πριν ζητηθούν τα υπόλοιπα. */
+const RANK_VISIBLE = 12;
 
 const ELEC_DEFAULTS = {
   elecProvider: 'dei', elecTariff: 'dei_enter', useEbill: true,
@@ -197,6 +237,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   const [manualMonthly,    setManualMonthly]    = useState('');
   const [insData,          setInsData]          = useState<{ eq: boolean; fl: boolean } | null>(null);
   const [segmentFilter,    setSegmentFilter]    = useState<'residential' | 'business'>('residential');
+  const [showAllTariffs,   setShowAllTariffs]   = useState(false);
   // Κιλοβατώρες από τους ΠΡΑΓΜΑΤΙΚΟΥΣ λογαριασμούς του χρήστη. Η στήλη bills.kwh
   // υπήρχε από την αρχή και δεν τη ρωτούσε κανείς: η σύγκριση έτρεχε πάνω σε
   // προεπιλογή 250 κιλοβατώρες, δηλαδή πάνω σε κατανάλωση κάποιου άλλου.
@@ -293,6 +334,22 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
   const bestMonthly  = allTariffs[0]?.monthly || 0;
   const savings      = calcMonthly - bestMonthly;
+
+  // ── ΤΙ ΔΕΙΧΝΕΤΑΙ ΑΠΟ ΤΗΝ ΚΑΤΑΤΑΞΗ ────────────────────────────────────────
+  // Η κεφαλίδα έγραφε «Σύγκριση Όλων των Παρόχων» και από κάτω κόβονταν είκοσι
+  // γραμμές με `.slice(0, 20)`, χωρίς λέξη για τις υπόλοιπες ογδόντα. Ο τίτλος
+  // έλεγε «όλων», το σώμα έδειχνε ένα πέμπτο, και τίποτα δεν γεφύρωνε τα δύο.
+  //
+  // ΚΑΙ ΤΟ ΧΕΙΡΟΤΕΡΟ: αν το τιμολόγιο του ίδιου του χρήστη ήταν 30ό στη σειρά,
+  // ΔΕΝ ΕΜΦΑΝΙΖΟΤΑΝ ΚΑΘΟΛΟΥ. Η οθόνη τού έλεγε πόσο θα κέρδιζε αλλάζοντας, και
+  // ταυτόχρονα έκρυβε από πού ξεκινά. Εδώ η δική του σειρά μπαίνει πάντα, με τη
+  // σωστή θέση κατάταξης, ακόμη κι όταν είναι έξω από τις πρώτες.
+  const ranked = allTariffs.map((t, i) => ({ t, rank: i + 1 }));
+  const shownTariffs = showAllTariffs ? ranked : (() => {
+    const head = ranked.slice(0, RANK_VISIBLE);
+    const mine = ranked.find(r => r.t.isCurrent);
+    return mine && mine.rank > RANK_VISIBLE ? [...head, mine] : head;
+  })();
 
   // ── Η ΠΥΛΗ ΦΡΕΣΚΑΔΑΣ ΙΣΧΥΕ ΜΟΝΟ ΣΤΗΝ ΑΥΤΟΚΛΗΤΗ ΕΙΔΟΠΟΙΗΣΗ ────────────────
   // Δηλαδή η εφαρμογή σιωπούσε σωστά όταν δεν ρωτούσε κανείς, και ανακήρυσσε
@@ -574,7 +631,11 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       {kwh > 0 && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, flexWrap: 'wrap' as const, gap: 10 }}>
-            {secHdr('Σύγκριση Όλων των Παρόχων', `Βάσει ${kwh} kWh/μήνα, ${LAST_UPDATED}`)}
+            {/* Ο τίτλος έλεγε «Όλων των Παρόχων» και από κάτω δείχνονταν είκοσι
+                γραμμές από τις εκατό. Τώρα ο υπότιτλος λέει τον πραγματικό
+                αριθμό, και η κατάταξη έχει κουμπί για τα υπόλοιπα. */}
+            {secHdr('Κατάταξη Τιμολογίων',
+              `${allTariffs.length} τιμολόγια για ${kwh} κιλοβατώρες τον μήνα, τιμές ${LAST_UPDATED}`)}
             <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
@@ -602,63 +663,138 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               </span>
             </div>
           )}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-              <thead>
-                <tr>{['Πάροχος','Πρόγραμμα','Τύπος','kWh','Πάγιο','Διάρκεια','Μήνας','Έτος','Διαφορά'].map((h,i) => (
-                  <th key={i} style={{ fontSize: 9, color: 'var(--text-secondary)', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, background: 'var(--bg-elevated)' }}>{h}</th>
-                ))}</tr>
-              </thead>
-              <tbody>
-                {allTariffs.slice(0, 20).map((t, i) => {
-                  const rowBc   = bc();
-                  const isBest  = i === 0;
-                  const isCur   = t.isCurrent;
-                  return (
-                    <tr key={t.id} style={{ background: isCur ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
-                      <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-                        {isCur && <span style={{ fontSize: 9, color: 'var(--accent)', marginRight: 6, fontWeight: 800, textTransform: 'uppercase' as const }}>▶ ΤΡΕΧΟΝ</span>}
-                        {canRank && !isCur && isBest && <span style={{ fontSize: 10, color: 'var(--text-primary)', marginRight: 6, fontWeight: 800 }}>ΚΑΛΥΤΕΡΟ</span>}
-                        {t.providerLabel}
-                      </td>
-                      <td style={{ padding: '8px 10px', color: 'var(--text-primary)', fontFamily: T.font.sans }}>{t.name}</td>
-                      <td style={{ padding: '8px 10px' }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: rowBc.color, background: rowBc.border, padding: '2px 8px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>{t.badge}</span>
-                      </td>
-                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
-                        {t.type === 'fixed_monthly' ? 'all-in' : t.type === 'vnm' ? <span title="Εικονική Καθαρή Μέτρηση (Virtual Net Metering)">VNM</span> : `${fk(t.kwh_day)}`}
-                      </td>
-                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
-                        {/* ΔΥΟ ΣΤΗΛΕΣ ΤΗΣ ΙΔΙΑΣ ΓΡΑΜΜΗΣ ΥΠΑΚΟΥΑΝ ΣΕ ΔΙΑΦΟΡΕΤΙΚΟ ΚΑΝΟΝΑ.
-                            Εδώ γραφόταν πάντα η τιμή με e-bill (`fixed_ebill ?? fixed`),
-                            ΑΓΝΟΩΝΤΑΣ τον διακόπτη του χρήστη — ενώ η στήλη «Μήνας», δύο
-                            κελιά δεξιά, τον τηρούσε μέσω του `monthlyCost`. Όποιος είχε
-                            κλειστό το e-bill έβλεπε χαμηλότερο πάγιο και υψηλότερο μήνα,
-                            χωρίς τρόπο να καταλάβει γιατί δεν βγαίνουν. Ο κανόνας ζει στο
-                            `lib/energy/tariff.ts`· εδώ απλώς τηρείται.
-                            Το «—» των πακέτων flat έμεινε: εκεί ΔΕΝ υπάρχει πάγιο, και το
-                            «0 €» θα διαβαζόταν ως «δωρεάν πάγιο», που είναι άλλο πράγμα. */}
-                        {t.type === 'fixed_monthly' ? ABSENT_SHORT : t.no_fixed ? fe(0) : fe(useEbill && t.fixed_ebill != null ? t.fixed_ebill : t.fixed)}
-                      </td>
-                      <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-                        {t.contract_months ? `${t.contract_months} μήνες` : 'Χωρίς δέσμευση'}
-                      </td>
-                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontWeight: canRank && isBest ? 800 : 700, whiteSpace: 'nowrap' as const }}>
-                        {t.type === 'dynamic' ? 'Ωριαίο' : fe(t.monthly)}
-                      </td>
-                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' as const }}>
-                        {t.type === 'dynamic' ? '—' : fe(t.monthly * 12)}
-                      </td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const,
-                        color: isCur ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}>
-                        {isCur ? '—' : t.diff === 0 ? '—' : `${t.diff < 0 ? '' : '+'}${fe(t.diff)}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* ═══ Η ΚΑΤΑΤΑΞΗ ═══════════════════════════════════════════════════
+              ΗΤΑΝ ΠΙΝΑΚΑΣ ΕΝΝΕΑ ΣΤΗΛΩΝ ΣΤΑ ΕΝΤΕΚΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ, ΜΕ ΟΡΙΖΟΝΤΙΑ
+              ΚΥΛΙΣΗ. Πάροχος, Πρόγραμμα, Τύπος, kWh, Πάγιο, Διάρκεια, Μήνας,
+              Έτος, Διαφορά. Σε κινητό ο ιδιοκτήτης έβλεπε τρεις στήλες και
+              έσερνε δεξιά για να βρει το ποσό — δηλαδή έσερνε για να δει την
+              ΑΠΑΝΤΗΣΗ, ενώ οι πρώτες στήλες ήταν οι ερωτήσεις.
+
+              ΤΙ ΕΦΥΓΕ, ΚΑΙ ΓΙΑΤΙ ΔΕΝ ΧΑΘΗΚΕ ΤΙΠΟΤΑ
+                · «Έτος»: ήταν ο «Μήνας» επί δώδεκα, γραμμένος δίπλα του. Η
+                  ετήσια εικόνα λέγεται ήδη δύο φορές πιο πάνω, στο πλακίδιο
+                  «Ετήσιο κόστος» και στη γραμμή εξοικονόμησης.
+                · «Τύπος»: το χρώμα της ΡΑΑΕΥ και ο τύπος του τιμολογίου είναι
+                  το ΙΔΙΟ πεδίο δύο φορές — στα εκατό τιμολόγια η αντιστοιχία
+                  `badge`↔`type` είναι ένα προς ένα. Μένει το χρώμα, που είναι
+                  και το λεξιλόγιο της αγοράς, με τη σημασία του σε `title`.
+                · Οι κλάδοι για δυναμικά τιμολόγια σε τρία κελιά: το
+                  `compareTariffs` τα φιλτράρει ΠΡΙΝ την κατάταξη, οπότε ήταν
+                  κώδικας που δεν εκτελέστηκε ποτέ. Ό,τι περισσεύει διαγράφεται.
+
+              ΤΙ ΗΡΘΕ ΣΤΗ ΘΕΣΗ ΤΟΥΣ: μία γραμμή ανά τιμολόγιο, με το ΠΟΣΟ δεξιά
+              και μεγάλο — η μία ερώτηση που φέρνει τον ιδιοκτήτη εδώ — και από
+              κάτω, μικρά, τα γιατί. Στο κινητό οι δύο στήλες στοιβάζονται και
+              καμία πληροφορία δεν κρύβεται πίσω από κύλιση.
+          ═══════════════════════════════════════════════════════════════════ */}
+          <div>
+            {shownTariffs.map(({ t, rank }, i) => {
+              const isCur  = t.isCurrent;
+              const isBest = rank === 1;
+              // Το πάγιο ακολουθεί τον διακόπτη e-bill του χρήστη, όπως και ο
+              // υπολογισμός του μήνα. Πριν, οι δύο στήλες υπάκουαν σε
+              // διαφορετικό κανόνα και δεν έβγαιναν μεταξύ τους.
+              const fixedNow = useEbill && t.fixed_ebill != null ? t.fixed_ebill : t.fixed;
+
+              const facts: string[] = [];
+              if (t.type === 'fixed_monthly') {
+                facts.push(t.flat_annual_kwh
+                  ? `${fn(t.flat_annual_kwh)} κιλοβατώρες τον χρόνο`
+                  : 'Χωρίς δημοσιευμένο όριο κιλοβατωρών');
+              } else if (t.type === 'vnm') {
+                facts.push('Συμψηφισμός με φωτοβολταϊκό');
+              } else {
+                facts.push(`${fk(t.kwh_day)} ανά κιλοβατώρα`);
+                facts.push(t.no_fixed ? 'Χωρίς πάγιο' : `Πάγιο ${fe(fixedNow)}`);
+              }
+              facts.push(t.contract_months ? `Δέσμευση ${t.contract_months} μήνες` : 'Χωρίς δέσμευση');
+
+              // Η ΔΙΑΦΟΡΑ ΓΡΑΜΜΕΝΗ ΜΕ ΛΕΞΕΙΣ, ΟΧΙ ΜΕ ΠΡΟΣΗΜΟ. Το «+2,10 €» δίπλα
+              // σε «−3,40 €» απαιτεί από τον αναγνώστη να θυμάται ως προς τι
+              // μετριέται. Και τα τρία «—» της παλιάς στήλης (τρέχον, μηδενική
+              // διαφορά, δυναμικό) έλεγαν τρία διαφορετικά πράγματα με το ίδιο
+              // σύμβολο, που είναι ακριβώς ο λόγος που η παύλα δεν είναι τιμή.
+              const relative = isCur ? 'Το τιμολόγιό σου'
+                : t.diff === 0 ? 'Ίδιο με το τρέχον'
+                : t.diff < 0 ? `${fe(-t.diff)} λιγότερα τον μήνα`
+                : `${fe(t.diff)} περισσότερα τον μήνα`;
+
+              // Όταν η δική του σειρά έρχεται μετά από κενό, το κενό λέγεται.
+              const gap = !showAllTariffs && isCur && rank > RANK_VISIBLE;
+
+              return (
+                <div key={t.id}>
+                  {gap && (
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, padding: '10px 14px 6px' }}>
+                      Ακολουθεί το δικό σου τιμολόγιο, στη {rank}η θέση
+                    </div>
+                  )}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                    gap: 14, alignItems: 'baseline', padding: '11px 14px',
+                    borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)',
+                    background: isCur ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent',
+                    borderRadius: isCur || isBest ? T.radius.inner : 0,
+                  }}>
+                    <div style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)', minWidth: 18, textAlign: 'right' as const }}>
+                      {rank}
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                        {/* Ο πάροχος γίνεται σύνδεσμος στη σελίδα του: η τελευταία
+                            γραμμή της οθόνης ζητά επιβεβαίωση της τιμής πριν την
+                            υπογραφή, και τώρα υπάρχει από πού. */}
+                        <a href={t.providerUrl} target="_blank" rel="noopener noreferrer"
+                          title={`Οι τιμές του παρόχου ${t.providerLabel}, στη σελίδα του`}
+                          style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px solid var(--border-default)' }}>
+                          {t.providerLabel}
+                        </a>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{' '}{t.name}</span>
+                        {isCur && (
+                          <span style={{ fontSize: 9, color: 'var(--accent)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΤΡΕΧΟΝ</span>
+                        )}
+                        {canRank && !isCur && isBest && (
+                          <span style={{ fontSize: 9, color: 'var(--text-primary)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΚΑΛΥΤΕΡΟ</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+                        <span title={BADGE_MEANING[t.badge]} style={{ color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>{t.badge}</span>
+                        {' · '}{facts.join(' · ')}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' as const }}>
+                      <div style={{
+                        fontSize: 15, fontWeight: canRank && isBest ? 800 : 700,
+                        fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+                        color: isCur ? 'var(--accent)' : 'var(--text-primary)', lineHeight: 1.2,
+                      }}>
+                        {fe(t.monthly)}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>
+                        {relative}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          {allTariffs.length > RANK_VISIBLE && (
+            <button onClick={() => setShowAllTariffs(v => !v)}
+              style={{
+                marginTop: 12, width: '100%', padding: '10px 16px', cursor: 'pointer',
+                background: 'transparent', border: '1px solid var(--border-default)',
+                borderRadius: T.radius.inner, fontFamily: T.font.sans, fontSize: 11,
+                fontWeight: 600, color: 'var(--text-secondary)',
+              }}>
+              {showAllTariffs
+                ? `Δείξε μόνο τα ${RANK_VISIBLE} φθηνότερα`
+                : `Δείξε και τα υπόλοιπα ${allTariffs.length - RANK_VISIBLE} τιμολόγια`}
+            </button>
+          )}
 
           {/* ΤΙ ΑΚΡΙΒΩΣ ΣΥΓΚΡΙΝΕΤΑΙ ΚΑΙ ΑΠΟ ΠΟΥ. Χωρίς αυτή τη γραμμή, ο χρήστης
               βλέπει ένα ποσό και δεν ξέρει ούτε πότε ισχύει ούτε τι δεν

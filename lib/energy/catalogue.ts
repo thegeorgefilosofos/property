@@ -55,9 +55,17 @@ export const FLAT_WITHOUT_ALLOWANCE = new Set([
   'zen_zenergy_l',
 ]);
 
-/** Κάθε τιμολόγιο του καταλόγου, ισοπεδωμένο. Για ΕΛΕΓΧΟ του καταλόγου. */
-export const ALL_TARIFFS = (): (LocalTariff & { providerLabel: string })[] =>
-  PROVIDERS.flatMap(p => p.tariffs.map(t => ({ ...t, providerLabel: p.label })));
+/**
+ * Κάθε τιμολόγιο του καταλόγου, ισοπεδωμένο. Για ΕΛΕΓΧΟ του καταλόγου.
+ *
+ * Μαζί με την ετικέτα του παρόχου έρχεται και η σελίδα του. Ο λόγος είναι η
+ * τελευταία γραμμή της σύγκρισης, που ζητά από τον χρήστη να επιβεβαιώσει την
+ * τιμή στον πάροχο πριν υπογράψει: μια οδηγία χωρίς σύνδεσμο είναι οδηγία που
+ * δεν εκτελείται. Η διεύθυνση υπήρχε ήδη στο `ProviderGroup`, απλώς σταματούσε
+ * εδώ και δεν έφτανε ποτέ στη γραμμή του τιμολογίου.
+ */
+export const ALL_TARIFFS = (): (LocalTariff & { providerLabel: string; providerUrl: string })[] =>
+  PROVIDERS.flatMap(p => p.tariffs.map(t => ({ ...t, providerLabel: p.label, providerUrl: p.url })));
 
 /**
  * Όσα μπορεί πράγματι να επιλέξει ο ιδιοκτήτης. ΑΥΤΑ συγκρίνονται.
@@ -67,7 +75,7 @@ export const ALL_TARIFFS = (): (LocalTariff & { providerLabel: string })[] =>
  * ποτέ ως «καλύτερη επιλογή»: μια σύσταση που θα απορριφθεί στην αίτηση δεν
  * είναι σύσταση, είναι χαμένος χρόνος και χαμένη εμπιστοσύνη.
  */
-export const COMPARABLE_TARIFFS = (): (LocalTariff & { providerLabel: string })[] =>
+export const COMPARABLE_TARIFFS = (): (LocalTariff & { providerLabel: string; providerUrl: string })[] =>
   ALL_TARIFFS().filter(t => !t.studentOnly);
 
 // ── REAL TARIFFS, SOURCE: bestenergydeals.gr / pricefox.gr / Selectra (June–July 2026) ──
