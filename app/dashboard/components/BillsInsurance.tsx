@@ -5,7 +5,7 @@ import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT } from '@/components/Theme';
+import { T, fe, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -1131,7 +1131,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
 
             {/* Προτεινόμενο πρόγραμμα βάσει ακινήτου */}
             {!quotesLoading && recommended && (
-              <div onClick={() => u({ insProvider: recommended.q.company, insPlanId: recommended.q.plan, insEditCovers: false })}
+              <div {...pressable(() => u({ insProvider: recommended.q.company, insPlanId: recommended.q.plan, insEditCovers: false }))}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10, cursor: 'pointer' }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', padding: '3px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.04em' }}>ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1242,7 +1242,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             return (
               <div key={svc.value} style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 14, transition: 'all 0.15s', minHeight: 68, display: 'flex', flexDirection: 'column' as const }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: active ? 10 : 0 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}/>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value), `${active ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}: ${svc.label}`)}/>
                   <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}>{svc.label}</span>
                   {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--text-tertiary)', textDecoration: 'none', padding: '2px 4px' }}>↗</a>}
                   {active ? (
@@ -1251,13 +1251,13 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     <span style={{ fontSize: 9, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: T.font.sans }} onClick={() => toggleStreaming(svc.value)}>+ Προσθήκη</span>
                   )}
                 </div>
-                {!active && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 15, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}>από {fe(svc.plans[0].price)} / μήνα</div>}
+                {!active && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 15, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value))}>από {fe(svc.plans[0].price)} / μήνα</div>}
                 {active && (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
                     <CustomSelect value={active.planId} onChange={v => updateS(svc.value, 'planId', v)}
                       options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
-                      <div onClick={() => updateS(svc.value, 'splitActive', !active.splitActive)}
+                      <div {...pressable(() => updateS(svc.value, 'splitActive', !active.splitActive))}
                         style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
                         <div style={{ position: 'absolute', top: 2.5, left: active.splitActive ? 14 : 2.5, width: 12, height: 12, borderRadius: '50%', background: active.splitActive ? 'var(--accent-text)' : '#fff', transition: 'left 0.2s' }}/>
                       </div>
@@ -1306,7 +1306,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             const cost    = parseFloat(active?.customPrice || '') || plan?.price || 0;
             const myShare = active?.splitActive && (active?.splitPeople || 2) > 1 ? cost / (active.splitPeople || 2) : cost;
             return (
-              <div key={svc.value} onClick={() => toggleCloud(svc.value)}
+              <div key={svc.value} {...pressable(() => toggleCloud(svc.value))}
                 style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 10, cursor: 'pointer', transition: 'all 0.2s', minHeight: 56, display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>

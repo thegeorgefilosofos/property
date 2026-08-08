@@ -32,7 +32,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, Skeleton, Btn } from '@/components/Theme';
+import { T, fe, Skeleton, Btn, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
@@ -111,7 +111,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setOpen(o => !o))}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}><span title="Ποσοστό κρατημένων νυχτών προς τις διαθέσιμες (occupancy)">Πληρότητα</span> & Βραχυχρόνια</div>

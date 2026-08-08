@@ -44,7 +44,8 @@
     "number-font": "node scripts/guard-number-font.mjs",
     "landing-theme": "node scripts/guard-landing-theme.mjs",
     "service-tables": "node scripts/guard-service-only-tables.mjs",
-    "http-bridge": "node scripts/guard-http-bridge.mjs"
+    "http-bridge": "node scripts/guard-http-bridge.mjs",
+    "keyboard": "node scripts/guard-keyboard.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

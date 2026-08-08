@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { daysUntil } from '@/lib/core/time';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fp, Spinner } from '@/components/Theme';
+import { T, fe, fp, Spinner, pressable } from '@/components/Theme';
 
 const INTERNET_PROVIDERS = [
   { value: 'cosmote',   label: 'Cosmote',   url: 'https://www.cosmote.gr',    color: '#009fe3' },
@@ -401,7 +401,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Τι περιλαμβάνει το σταθερό τηλέφωνο</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 10 }}>
               {phoneFeatures.map(f => (
-                <div key={f.key} onClick={f.toggle} title={f.tip}
+                <div key={f.key} {...pressable(f.toggle)} title={f.tip}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
                   <span style={{ fontSize: 11, color: f.val ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>

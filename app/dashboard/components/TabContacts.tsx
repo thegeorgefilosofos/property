@@ -8,7 +8,7 @@ import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, Modal, SideSheet, localDay } from '@/components/Theme'
+import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, Modal, SideSheet, localDay, pressable } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
@@ -956,7 +956,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
         </div>
       )}
       <div style={{ paddingLeft: 10, pointerEvents: bulkMode ? 'none' : undefined }}>
-        <div onClick={() => onOpen && !bulkMode && onOpen()} style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12, paddingRight: (hov || showActions) ? 100 : 0, transition: 'padding-right 0.15s', cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
+        <div {...pressable(() => onOpen && !bulkMode && onOpen())} style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12, paddingRight: (hov || showActions) ? 100 : 0, transition: 'padding-right 0.15s', cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
           {extra.avatar_url ? <img src={extra.avatar_url} alt="" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-border)', flexShrink: 0 }} />
             : <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--accent-soft)', border: '2px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{initials || <GroupIcon size={20} />}</div>}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1213,7 +1213,7 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
       {/* Η κουκκίδα σημαίνει ΕΝΑ πράγμα: ληξιπρόθεσμο ραντεβού. Πριν έδειχνε
           «κατάσταση σχέσης» — τέσσερα χρώματα για μια επιλογή χωρίς συνέπεια. */}
       <div title={overdue ? 'Ληξιπρόθεσμο ραντεβού' : undefined} style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : 'var(--border-default)', flexShrink: 0 }} />
-      <div onClick={() => onOpen && !bulkMode && onOpen()} style={{ width: 200, minWidth: 0, cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
+      <div {...pressable(() => onOpen && !bulkMode && onOpen())} style={{ width: 200, minWidth: 0, cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.full_name}</div>
         <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>{meta.label}{scopePortfolio && <span title="Όλο το χαρτοφυλάκιο" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent)' }}><Globe size={10} /></span>}</div>
       </div>
@@ -1707,7 +1707,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               const overdue = c._extra?.next_appointment && isOverdue(c._extra.next_appointment)
               const GroupIcon = meta.GroupIcon || Users
               return (
-                <div key={c.id} onClick={() => openEdit(c)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--accent-border)'), cursor: 'pointer', position: 'relative' }}>
+                <div key={c.id} {...pressable(() => openEdit(c))} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--accent-border)'), cursor: 'pointer', position: 'relative' }}>
                   {overdue && <span style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--negative)', border: '2px solid var(--bg-elevated)' }} />}
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent)', overflow: 'hidden', flexShrink: 0 }}>
                     {c._extra?.avatar_url ? <img src={c._extra.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} /> : initialsOf(c.full_name) || <GroupIcon size={14} />}

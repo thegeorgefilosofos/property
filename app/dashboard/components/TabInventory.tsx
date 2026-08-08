@@ -5,7 +5,7 @@ import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
-import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT } from '@/components/Theme'
+import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable } from '@/components/Theme'
 import { PackageOpen, SearchX, ClipboardCheck } from 'lucide-react'
 import { downloadTableXlsx } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
@@ -290,7 +290,7 @@ function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon:React.
           {options.length===0
             ?<p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'8px 12px'}}>Καμία επιλογή</p>
             :options.map(o=>(
-              <div key={o} onClick={()=>{onPick(o);setOpen(false)}} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:13,fontFamily:T.font.sans,color:'var(--text-primary)'}}
+              <div key={o} {...pressable(()=>{onPick(o);setOpen(false)})} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:13,fontFamily:T.font.sans,color:'var(--text-primary)'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{o}</div>
             ))}
         </div>,
@@ -395,7 +395,7 @@ function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:st
         <div ref={menuRef} onClick={e=>e.stopPropagation()}
           style={{position:'fixed',top:rect.top,left:rect.left,transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:6,zIndex:9000,minWidth:Math.max(160,rect.width),boxShadow:'var(--shadow-xl)'}}>
           {CONDITIONS.map(c=>(
-            <div key={c} onClick={()=>{onUpdate(item.id,c);setOpen(false)}}
+            <div key={c} {...pressable(()=>{onUpdate(item.id,c);setOpen(false)})}
               style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12,fontFamily:T.font.sans,color:CONDITION_COLOR[c],background:item.condition===c?CONDITION_COLOR[c]+'15':'transparent',fontWeight:item.condition===c?600:400,transition:'background 0.1s'}}
               onMouseEnter={e=>(e.currentTarget.style.background=CONDITION_COLOR[c]+'10')}
               onMouseLeave={e=>(e.currentTarget.style.background=item.condition===c?CONDITION_COLOR[c]+'15':'transparent')}
@@ -534,6 +534,8 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const [errors,setErrors] = useState<string[]>([])
   const [importing,setImporting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Δες DocumentScan: το ref διαβάζεται σε useCallback, όχι στην απόδοση.
+  const openFilePicker = useCallback(() => fileRef.current?.click(), [])
   const TEMPLATE = `Ονομασία,Κατηγορία,Δωμάτιο,Μάρκα,Μοντέλο,Σειριακός,Κατάσταση,Αξία Αγοράς,Ημερομηνία Αγοράς,Λήξη Εγγύησης,Ενεργειακή Κλάση,Ισχύς (W),Ώρες ανά Ημέρα,Κόστος Αντικατάστασης\nΠλυντήριο,Ηλεκτρικές Συσκευές,Κουζίνα,Bosch,WAU28,SN123,Καλή,650,2021-03-15,2026-03-15,A+,2100,1,700`
   const downloadTemplate = () => {
     downloadCsv(TEMPLATE, 'υπόδειγμα απογραφής.csv')
@@ -577,7 +579,9 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
       {step==='upload'&&(
         <>
           <button onClick={downloadTemplate} style={{padding:'10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-elevated)',color:'var(--text-primary)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>Κατέβασμα προτύπου</button>
-          <div onClick={()=>fileRef.current?.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile(f)}} style={{border:'2px dashed var(--border-accent)',borderRadius:T.radius.card,padding:'40px 20px',textAlign:'center',cursor:'pointer',background:'var(--accent-dim)'}}>
+          {/* Ρητά, όχι με spread: δες DocumentScan — το spread κρύβει τις ιδιότητες
+              από τον μεταγλωττιστή και ξυπνά τα σφάλματα των διπλανών χειριστών. */}
+          <div role="button" tabIndex={0} onClick={openFilePicker} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openFilePicker()}}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile(f)}} style={{border:'2px dashed var(--border-accent)',borderRadius:T.radius.card,padding:'40px 20px',textAlign:'center',cursor:'pointer',background:'var(--accent-dim)'}}>
             <p style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>Σύρτε ή κλικ για ανέβασμα CSV</p>
             <p title="UTF-8: κωδικοποίηση κειμένου που υποστηρίζει ελληνικούς χαρακτήρες" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Μορφή: UTF-8 CSV</p>
           </div>
@@ -753,7 +757,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
         <div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(84px,1fr))',gap:8}}>
             {(form.photos||[]).map((url,i)=>(
-              <div key={i} onClick={()=>set('photo_url',url)} title={url===form.photo_url?'Κύρια φωτογραφία':'Ορισμός ως κύρια'} style={{position:'relative',height:84,borderRadius:10,overflow:'hidden',border:`2px solid ${url===form.photo_url?'var(--accent)':'var(--border-subtle)'}`,cursor:'pointer'}}>
+              <div key={i} {...pressable(()=>set('photo_url',url), url===form.photo_url?'Κύρια φωτογραφία':'Ορισμός ως κύρια φωτογραφία')} title={url===form.photo_url?'Κύρια φωτογραφία':'Ορισμός ως κύρια'} style={{position:'relative',height:84,borderRadius:10,overflow:'hidden',border:`2px solid ${url===form.photo_url?'var(--accent)':'var(--border-subtle)'}`,cursor:'pointer'}}>
                 <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
                 <button onClick={e=>{e.stopPropagation();removePhoto(url)}} aria-label="Αφαίρεση" style={{position:'absolute',top:5,right:5,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',border:'none',color:'var(--on-media)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
                 {url===form.photo_url&&<div style={{position:'absolute',inset:'auto 0 0 0',background:'var(--accent)',fontSize:9,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:T.font.sans,padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
@@ -960,7 +964,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
                   <div style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:'var(--bg-surface)',border:'1px solid var(--border-accent)',borderRadius:T.radius.card,padding:8,zIndex:700,minWidth:200,maxHeight:200,overflowY:'auto',boxShadow:'var(--shadow-lg)'}}>
                     <div style={{fontSize:10,color:'var(--text-secondary)',padding:'4px 8px 8px',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans,borderBottom:'1px solid var(--border-subtle)',marginBottom:4}}>Επιλογή Επαφής</div>
                     {contacts.map(c=>(
-                      <div key={c.id} onClick={()=>{setForm(f=>({...f,technician:c.full_name}));setShowContactPicker(false)}} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:13,fontFamily:T.font.sans,color:'var(--text-primary)'}} onMouseEnter={e=>(e.currentTarget.style.background='var(--bg-elevated)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>{c.full_name}</div>
+                      <div key={c.id} {...pressable(()=>{setForm(f=>({...f,technician:c.full_name}));setShowContactPicker(false)})} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:13,fontFamily:T.font.sans,color:'var(--text-primary)'}} onMouseEnter={e=>(e.currentTarget.style.background='var(--bg-elevated)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>{c.full_name}</div>
                     ))}
                   </div>
                 )}
@@ -1136,7 +1140,7 @@ function HandoverCard({handovers,onOpenHandover}:{handovers:InventoryHandover[];
           {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
             const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
             return (
-              <div key={h.id} onClick={onOpenHandover} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:'pointer'}}>
+              <div key={h.id} {...pressable(onOpenHandover)} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:'pointer'}}>
                 <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
                 <div style={{minWidth:0,flex:1}}>
                   <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
@@ -1276,7 +1280,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
             const repl=replacementSuggestion(item)
             const sel=selected.has(item.id)
             return (
-              <div key={item.id} onClick={()=>selectMode?toggleSel(item.id):onEdit(item)} style={{background:'var(--bg-surface)',border:`1px solid ${sel?'var(--accent)':'var(--border-subtle)'}`,boxShadow:sel?'0 0 0 1px var(--accent)':'none',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition:'all 0.2s',cursor:'pointer'}}
+              <div key={item.id} {...pressable(()=>selectMode?toggleSel(item.id):onEdit(item))} style={{background:'var(--bg-surface)',border:`1px solid ${sel?'var(--accent)':'var(--border-subtle)'}`,boxShadow:sel?'0 0 0 1px var(--accent)':'none',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition:'all 0.2s',cursor:'pointer'}}
                 onMouseEnter={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='var(--shadow-md)';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-default)'}}
                 onMouseLeave={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='none';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-subtle)'}}
               >
@@ -1288,7 +1292,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     </div>
                   }
                   {selectMode
-                    ?<div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,0.35)',borderRadius:8,padding:3,backdropFilter:'blur(4px)'}} onClick={e=>{e.stopPropagation();toggleSel(item.id)}}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)} size={20}/></div>
+                    ?<div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,0.35)',borderRadius:8,padding:3,backdropFilter:'blur(4px)'}} onClick={e=>e.stopPropagation()}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)} size={20}/></div>
                     :<>
                       <div style={{position:'absolute',top:8,left:8}} onClick={e=>e.stopPropagation()}>
                         <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>
@@ -1338,11 +1342,11 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
             const sel=selected.has(item.id)
             return (
-              <div key={item.id} onClick={()=>selectMode?toggleSel(item.id):onEdit(item)} style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'11px 16px',background:sel?'var(--accent-soft)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s',cursor:'pointer'}}
+              <div key={item.id} {...pressable(()=>selectMode?toggleSel(item.id):onEdit(item))} style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'11px 16px',background:sel?'var(--accent-soft)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s',cursor:'pointer'}}
                 onMouseEnter={e=>{if(!sel)(e.currentTarget as HTMLDivElement).style.background='var(--bg-elevated)'}}
                 onMouseLeave={e=>{if(!sel)(e.currentTarget as HTMLDivElement).style.background='var(--bg-surface)'}}
               >
-                {selectMode&&<div onClick={e=>{e.stopPropagation();toggleSel(item.id)}}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)}/></div>}
+                {selectMode&&<div onClick={e=>e.stopPropagation()}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)}/></div>}
                 <div style={{minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>

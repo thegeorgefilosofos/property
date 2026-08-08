@@ -10,7 +10,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe } from '@/components/Theme';
+import { T, fe, pressable } from '@/components/Theme';
 import { CustomSelect } from './UIComponents';
 import {
   validateDoc, docSummaryLine,
@@ -153,6 +153,13 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  // Το ref διαβάζεται ΜΕΣΑ σε useCallback, όχι στην απόδοση. Ο κανόνας
+  // `react-hooks/refs` δεν μπορεί να ξέρει ότι το `pressable` απλώς αποθηκεύει
+  // τη συνάρτηση — και έχει δίκιο να μην το υποθέτει. Αυτή είναι η καθιερωμένη
+  // μορφή, και διαβάζεται καλύτερα: δύο ονομασμένες ενέργειες αντί για δύο
+  // ανώνυμα βέλη μέσα στο JSX.
+  const openCamera = useCallback(() => cameraRef.current?.click(), []);
+  const openFilePicker = useCallback(() => fileRef.current?.click(), []);
 
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState('');
@@ -394,7 +401,14 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
         <div>
           {step === 'upload' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
-              <div onClick={() => cameraRef.current?.click()}
+              {/* ΓΡΑΜΜΕΝΟ ΡΗΤΑ, ΟΧΙ ΜΕ ΤΟΝ ΒΟΗΘΟ `pressable`, ΚΑΙ ΕΧΕΙ ΛΟΓΟ.
+                  Το JSX spread κρύβει τις ιδιότητες από τη στατική ανάλυση: με
+                  `{...pressable(…)}` ο μεταγλωττιστής του React παύει να βλέπει τι
+                  δέχεται το στοιχείο και αρχίζει να αναφέρει τις μεταλλάξεις
+                  `currentTarget.style` των διπλανών χειριστών. Δοκιμάστηκε και
+                  μετρήθηκε: με spread +2 σφάλματα, χωρίς 0. Δύο ιδιότητες
+                  παραπάνω είναι φθηνότερες από έναν φύλακα που χαλαρώνει. */}
+              <div role="button" tabIndex={0} onClick={openCamera} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openCamera()}}}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 172, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
@@ -404,7 +418,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
               </div>
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && loadFile(e.target.files[0])} />
 
-              <div onClick={() => fileRef.current?.click()}
+              <div role="button" tabIndex={0} onClick={openFilePicker} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openFilePicker()}}}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 172, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>

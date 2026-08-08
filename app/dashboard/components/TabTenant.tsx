@@ -16,7 +16,7 @@ import {
   DatePicker as DateField,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT, localDay } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT, localDay, pressable } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved, savedData } from '@/components/dbWrite';
@@ -573,7 +573,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
             {Object.entries(TDE).sort(([a],[b])=>parseInt(b)-parseInt(a)).map(([year,rate])=>{
               const active=parseInt(year)===parseInt(yr);
               return (
-                <div key={year} onClick={()=>{setYr(year);setUseCustom(false);}}
+                <div key={year} {...pressable(()=>{setYr(year);setUseCustom(false);})}
                   style={{ background:active?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`, borderRadius:T.radius.badge, padding:'7px 4px', textAlign:'center' as const, cursor:'pointer', transition:'all 0.15s' }}>
                   <div style={{ fontSize:10, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{fp(rate, 1)}</div>
                   <div style={{ fontSize:9, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{year}</div>

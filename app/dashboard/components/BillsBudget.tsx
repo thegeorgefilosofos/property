@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput } from './UIComponents';
-import { T, fe, feAuto, fn, Skeleton, SkeletonKPIs } from '@/components/Theme';
+import { T, fe, feAuto, fn, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { notify } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
@@ -1541,7 +1541,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div key={cat.key} className="po-fig-card" tabIndex={0}
                 onMouseEnter={() => setHoverCat(cat.key)} onMouseLeave={() => setHoverCat(null)}
                 style={{ borderRadius: T.radius.inner, padding: '6px 8px', margin: '0 -8px', background: hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
-                <div onClick={hasBd ? toggleCat : undefined} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5, cursor: hasBd ? 'pointer' : 'default' }}>
+                {/* Πατιέται ΜΟΝΟ όταν υπάρχει ανάλυση από κάτω. Χωρίς τη συνθήκη, η
+                    γραμμή θα έμπαινε στη σειρά του Tab και θα ανακοινωνόταν ως κουμπί
+                    ακόμη κι όταν το πάτημα δεν κάνει τίποτα — κενή υπόσχεση, που για
+                    τον χρήστη πληκτρολογίου κοστίζει περισσότερο απ' ό,τι για τον
+                    χρήστη ποντικιού: εκείνος τουλάχιστον βλέπει ότι δεν άνοιξε κάτι. */}
+                <div {...(hasBd ? pressable(toggleCat) : {})} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5, cursor: hasBd ? 'pointer' : 'default' }}>
                   <div style={{ width: 3, height: 26, borderRadius: 3, background: hov ? 'var(--accent)' : col, flexShrink: 0, transition: 'background 0.15s' }}/>
                   <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex' }}><InlineText value={cat.label} onCommit={v => renameCategory(cat.key, v)} ariaLabel={`Μετονομασία «${cat.label}»`} /></span>
                   {<span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}

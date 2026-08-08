@@ -5,7 +5,7 @@ import { downloadWorkbook } from './xlsxStyle'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, fn, fe, fp, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, localDay } from '@/components/Theme'
+import { T, fn, fe, fp, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, localDay, pressable } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
@@ -1279,7 +1279,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
           return (
             <div key={item.id} style={{ marginBottom: 14, position: 'relative' }}>
               <div style={{ position: 'absolute', left: -26, top: 8, width: 14, height: 14, borderRadius: '50%', background: done ? 'var(--accent)' : overdue ? 'var(--negative)' : 'var(--text-tertiary)', border: '2px solid var(--bg-base)', zIndex: 1 }} />
-              <div onClick={() => onEdit(item)} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.inner, padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+              <div {...pressable(() => onEdit(item))} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.inner, padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.borderColor = overdue ? 'var(--negative-border)' : 'var(--border-subtle)')}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
@@ -1307,7 +1307,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
           {noDates.map(item => {
             const cat = getCat(item.category)
             return (
-              <div key={item.id} onClick={() => onEdit(item)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 6, cursor: 'pointer' }}>
+              <div key={item.id} {...pressable(() => onEdit(item))} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 6, cursor: 'pointer' }}>
                 <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, fontFamily: T.font.sans }}>{item.description}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
               </div>

@@ -29,7 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable } from '@/components/Theme';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 import { shortTermCashflow } from '@/lib/tax/shortTermCashflow';
 import { mergeLedger, type LedgerBill, type LedgerExpense } from '@/lib/expenses/ledger';
@@ -433,7 +433,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         const setComp = (i: number, v: string) => setComps(prev => { const n = [...prev]; n[i] = v; return n; });
         return (
           <div className="card" style={{ marginBottom: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} onClick={() => setCompsOpen(o => !o)}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setCompsOpen(o => !o))}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Βαθμονόμηση από τον ανταγωνισμό</div>
                 <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>

@@ -1058,8 +1058,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           <div style={{ marginTop: 26 }}>
             <SecHdr label={`Ακαθάριστα ${reportYear}`} sub="Δηλωτέο ακαθάριστο ανά κανάλι και ανά μήνα — χωρίς το τέλος ανθεκτικότητας, χωρίς αφαίρεση προμήθειας"
               right={
-                <div style={{ position: 'relative' }}>
+                /* Το Escape κλείνει το popover, και ο χρήστης πληκτρολογίου δεν
+                   μένει παγιδευμένος μέσα σε τέσσερις χρονιές. Ο ακροατής κάθεται
+                   στο περίβλημα και όχι στο `document`: το `useOverlayShell` του
+                   Theme κρατά στοίβα για τα ΠΑΡΑΘΥΡΑ, και ένα popover που θα
+                   άκουγε καθολικά θα έκλεινε μαζί και το ντοσιέ από πίσω. */
+                <div style={{ position: 'relative' }}
+                  onKeyDown={e => { if (e.key === 'Escape' && reportYearMenu) { e.stopPropagation(); setReportYearMenu(false); } }}>
                   <button type="button" onClick={() => setReportYearMenu(m => !m)}
+                    aria-haspopup="listbox" aria-expanded={reportYearMenu}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                     {reportYear}
                     <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
@@ -1074,7 +1081,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       token (ίδια τιμή, μία πηγή). */}
                   {reportYearMenu && (
                     <>
-                      <div onClick={() => setReportYearMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                      {/* ΠΕΠΛΟ ΚΛΕΙΣΙΜΑΤΟΣ, ΟΧΙ ΚΟΥΜΠΙ. Πιάνει το κλικ έξω από το μενού
+                          και δεν έχει καμία δική του σημασία. Ένα `role="button"` εδώ θα
+                          ανακοίνωνε στον αναγνώστη οθόνης ένα κουμπί χωρίς όνομα και θα
+                          έβαζε έναν επιπλέον σταθμό στο Tab, για το τίποτα: το πρότυπο
+                          ζητά να είναι διάφανο, και το κλείσιμο με πληκτρολόγιο να γίνεται
+                          με Escape. Το `aria-hidden` το λέει ρητά. */}
+                      <div aria-hidden onClick={() => setReportYearMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                       <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, boxShadow: 'var(--elev-3)', padding: 6, minWidth: 96, maxHeight: 220, overflowY: 'auto' }}>
                         {yearsAvail.map(y => (
                           <button key={y} type="button" onClick={() => { setReportYear(y); setReportYearMenu(false); }}

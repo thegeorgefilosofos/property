@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE } from '@/components/Theme';
+import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE, pressable } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
 import { SearchX, FolderOpen, FileText } from 'lucide-react';
@@ -963,7 +963,7 @@ export default function TabDocuments({
           στη βάση (globals.css) και είναι λευκό και στα δύο θέματα: ίδια
           εικόνα με το παλιό #fff, αλλά με όνομα και ρόλο. */}
       {lightbox && lightbox.url && (
-        <div onClick={() => setLightbox(null)}
+        <div {...pressable(() => setLightbox(null))}
           style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: T.sp.xxl, flexDirection: 'column', gap: T.sp.md }}>
           <button onClick={() => setLightbox(null)} title="Κλείσιμο" aria-label="Κλείσιμο" style={{ position: 'absolute', top: T.sp.lg, right: T.sp.lg, width: T.h.md, height: T.h.md, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: 'var(--on-media)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconX size={16}/></button>
           {/* Η ΑΚΤΙΝΑ ΜΕΝΕΙ T.radius.inner (10), ΟΧΙ T.radius.modal (18). Είχε γίνει
@@ -1120,7 +1120,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
       <div style={{ width: 18, display: 'flex', flexShrink: 0 }}>{selectable && (shown || sel) && <SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/>}</div>
       {i.isImage && i.url
         ? <img src={i.url} alt="" onClick={() => a.onOpenLightbox(i)} style={{ width: 40, height: 40, borderRadius: T.radius.badge, objectFit: 'cover', flexShrink: 0, cursor: 'pointer', border: '1px solid var(--border-subtle)' }}/>
-        : <div onClick={() => { if (canPreview(i)) a.onOpenLightbox(i); }} style={{ width: 40, height: 40, borderRadius: T.radius.badge, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)', cursor: canPreview(i) ? 'pointer' : 'default' }}>
+        : <div {...pressable(() => { if (canPreview(i)) a.onOpenLightbox(i); })} style={{ width: 40, height: 40, borderRadius: T.radius.badge, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)', cursor: canPreview(i) ? 'pointer' : 'default' }}>
             <svg {...S} width={17} height={17}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </div>}
       <div style={{ flex: 1, minWidth: 0 }}>

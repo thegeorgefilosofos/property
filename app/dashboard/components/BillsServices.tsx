@@ -6,7 +6,7 @@ import { Calculator } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fp, Spinner, EmptyState, histInputStyle } from '@/components/Theme';
+import { T, fe, fp, Spinner, EmptyState, histInputStyle, pressable } from '@/components/Theme';
 import { AadePill } from '@/components/AadeLink';
 import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
@@ -378,7 +378,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   // Τονίζει την ασφάλιση όταν τα στοιχεία άλλων καρτελών δείχνουν ότι δικαιούται έκπτωση
                   const eligible = r.key === 'insurance' && (crossTabData.insuranceEq || crossTabData.insuranceFlood);
                   return (
-                    <div key={r.key} onClick={() => toggleReduction(r.key)}
+                    <div key={r.key} {...pressable(() => toggleReduction(r.key))}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', background: active ? 'var(--accent-soft)' : eligible ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
                       <div style={{ width: 16, height: 16, borderRadius: 6, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
