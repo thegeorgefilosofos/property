@@ -28,7 +28,14 @@ function buildCsp(nonce: string): string {
     // ΠΑΡΑΓΩΓΗ (η CSP μπαίνει μόνο εκεί), ο έλεγχος αποτυγχάνει ανοιχτά όπως
     // σχεδιάστηκε, και το χαρακτηριστικό δεν δουλεύει ποτέ χωρίς να το πει
     // κανείς — ενώ τοπικά δουλεύει μια χαρά.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.pwnedpasswords.com",
+    //
+    // Sentry: η αναφορά σφαλμάτων (lib/observability/report.ts) στέλνει με σκέτο
+    // fetch στο `*.ingest.sentry.io`. ΧΩΡΙΣ αυτή τη γραμμή, η αναφορά
+    // μπλοκάρεται ΜΟΝΟ στην παραγωγή — δηλαδή ακριβώς εκεί που τη χρειάζεσαι —
+    // και ο ίδιος ο reporter καταπίνει το σφάλμα («ο reporter δεν επιτρέπεται να
+    // σπάσει τον καλούντα»). Θα φαινόταν ρυθμισμένος και δεν θα έφτανε ποτέ ούτε
+    // ένα σφάλμα. Ίδια οικογένεια σιωπηλής αποτυχίας με το pwnedpasswords.
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io",
     // Επιτρέπει τον ενσωματωμένο χάρτη Google (keyless embed) στο ντοσιέ επαφής
     // και την προεπισκόπηση PDF (Supabase storage) στο Αρχείο.
     "frame-src 'self' https://www.google.com https://maps.google.com https://*.supabase.co",
