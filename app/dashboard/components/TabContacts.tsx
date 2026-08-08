@@ -1114,8 +1114,8 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
 
       {(contact.phone || extra.phone2 || contact.email || extra.office_address) && (
         <DossierSection title="Στοιχεία επικοινωνίας">
-          {contact.phone && <DossierRow icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></DossierRow>}
-          {extra.phone2 && <DossierRow icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></DossierRow>}
+          {contact.phone && <DossierRow icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.num }}>{contact.phone}</span></DossierRow>}
+          {extra.phone2 && <DossierRow icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.num }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></DossierRow>}
           {contact.email && <DossierRow icon={Mail} onCopy={() => copy(contact.email!, 'Το email')}>{contact.email}</DossierRow>}
           {extra.office_address && <DossierRow icon={MapPin}>{extra.office_address}</DossierRow>}
         </DossierSection>

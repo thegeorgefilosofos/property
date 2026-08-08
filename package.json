@@ -40,7 +40,8 @@
     "type-scale": "node scripts/guard-type-scale.mjs",
     "official-links": "node scripts/guard-official-links.mjs",
     "filenames": "node scripts/guard-filenames.mjs",
-    "stale-flags": "node scripts/guard-stale-flags.mjs"
+    "stale-flags": "node scripts/guard-stale-flags.mjs",
+    "number-font": "node scripts/guard-number-font.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

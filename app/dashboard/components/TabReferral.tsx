@@ -382,7 +382,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <button onClick={nativeShare} className="ref-chip" style={{ ...CHIP, cursor: 'pointer', fontFamily: T.font.sans }}>
             <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} c="var(--text-tertiary)" />Κοινοποίηση
           </button>
-          <span style={{ ...TT.caption, marginLeft: 'auto' }}>Κωδικός <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono, letterSpacing: '0.04em' }}>{code}</strong></span>
+          <span style={{ ...TT.caption, marginLeft: 'auto' }}>Κωδικός <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num, letterSpacing: '0.04em' }}>{code}</strong></span>
         </div>
       </div>
 

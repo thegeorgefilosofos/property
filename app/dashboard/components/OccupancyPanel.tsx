@@ -146,7 +146,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Νύχτες με κράτηση ανά μήνα ({year})</span>
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                  Σύνολο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{occ.bookedNights}</strong> / {occ.availableDays} διαθέσιμες ημέρες
+                  Σύνολο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{occ.bookedNights}</strong> / {occ.availableDays} διαθέσιμες ημέρες
                 </span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 6, marginBottom: 18 }}>

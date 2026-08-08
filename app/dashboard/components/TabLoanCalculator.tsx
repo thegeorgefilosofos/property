@@ -1095,7 +1095,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                       <div style={{width:`${w}%`,height:'100%',borderRadius:8,transition:'width 0.4s ease',
                         background:best?'linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 82%, transparent))':'color-mix(in srgb, var(--text-tertiary) 34%, transparent)'}}/>
                     </div>
-                    <span style={{width:88,flexShrink:0,textAlign:'right' as const,fontSize:13,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:best?'var(--accent)':'var(--text-primary)',fontWeight:600}}>{fmtEur(s.Τόκοι)}</span>
+                    <span style={{width:88,flexShrink:0,textAlign:'right' as const,fontSize:13,fontFamily: T.font.num,fontVariantNumeric:'tabular-nums',color:best?'var(--accent)':'var(--text-primary)',fontWeight:600}}>{fmtEur(s.Τόκοι)}</span>
                   </div>
                 )
               })}

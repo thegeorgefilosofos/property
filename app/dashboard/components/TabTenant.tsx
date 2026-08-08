@@ -392,11 +392,11 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
           </div>
         ):(
           <div style={{ fontSize:14, color:'var(--text-primary)', fontFamily:T.font.sans, lineHeight:1.8 }}>
-            <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fn(paidPay.length)}/{fn(payments.length)}</strong> δόσεις πληρωμένες
+            <strong style={{ fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fn(paidPay.length)}/{fn(payments.length)}</strong> δόσεις πληρωμένες
             {late.length>0
-              ? <> · <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fn(late.length)}</strong> με καθυστέρηση, μέση καθυστέρηση <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{avgLate.toFixed(0)}</strong> ημέρες</>
+              ? <> · <strong style={{ fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fn(late.length)}</strong> με καθυστέρηση, μέση καθυστέρηση <strong style={{ fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{avgLate.toFixed(0)}</strong> ημέρες</>
               : <> · καμία καθυστέρηση</>}
-            {unpaidAmt>0&&<> · εκκρεμεί <strong style={{ color:'var(--negative)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(unpaidAmt)}</strong></>}
+            {unpaidAmt>0&&<> · εκκρεμεί <strong style={{ color:'var(--negative)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fmt(unpaidAmt)}</strong></>}
           </div>
         )}
       </div>

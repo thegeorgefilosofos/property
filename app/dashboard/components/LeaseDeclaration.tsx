@@ -234,7 +234,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
               <Check size={15} style={{ color: 'var(--positive)', flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                 Καταγράφηκε στις {new Date(submitted.at).toLocaleDateString('el-GR')}
-                {submitted.ref && <> · αρ. δήλωσης <strong style={{ fontFamily: T.font.mono }}>{submitted.ref}</strong></>}
+                {submitted.ref && <> · αρ. δήλωσης <strong style={{ fontFamily: T.font.num }}>{submitted.ref}</strong></>}
               </span>
             </div>
           ) : (
