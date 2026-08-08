@@ -23,7 +23,7 @@
 
 import { isValidAfm } from '../core/greek';
 import { athensToday } from '../core/time'
-import { MYAADE } from './aade';
+import { MYAADE, aadePath } from './aade';
 
 // ── Κανόνες που αλλάζουν με τον νόμο — ΜΙΑ θέση για ενημέρωση ───────────────
 // Αν αλλάξει η νομοθεσία, αλλάζει ΜΟΝΟ αυτό το μπλοκ.
@@ -238,7 +238,12 @@ export function declarationSheet(d: LeaseDeclaration, title = 'Δήλωση Πλ
   const lines = d.fields
     .filter(f => f.value)
     .map(f => `${f.label.padEnd(w, ' ')}  ${f.value}`);
+  // Η ΔΙΑΔΡΟΜΗ ΜΠΑΙΝΕΙ ΣΤΟ ΧΑΡΤΙ. Το φύλλο τυπώνεται για να το έχει ο χρήστης
+  // δίπλα στο πληκτρολόγιο την ώρα της υποβολής — και μέχρι τώρα του έλεγε ΤΙ να
+  // συμπληρώσει, χωρίς να του λέει ΠΟΥ. Έφτανε στο myAADE και έψαχνε μενού.
   return [title, '─'.repeat(title.length), ...lines,
-    '', d.deadline.due ? `Προθεσμία: ${fmtDate(d.deadline.due)}` : '', `Πηγή: ${RULES.source}`]
+    '', d.deadline.due ? `Προθεσμία: ${fmtDate(d.deadline.due)}` : '',
+    `Πού: ${aadePath('lease')}`,
+    `Πηγή: ${RULES.source}`]
     .filter(Boolean).join('\n');
 }

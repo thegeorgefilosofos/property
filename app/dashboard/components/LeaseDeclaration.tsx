@@ -22,6 +22,7 @@ import { notifyError } from '@/components/Toast';
 import { must } from '@/lib/supabase/must';
 import { saved } from '@/components/dbWrite';
 import { INK } from '@/lib/print/ink';
+import { aadePath } from '@/lib/tax/aade';
 import {
   buildLeaseDeclaration, declarationSheet, RULES,
   type LeaseDeclarationInput, type DeclField,
@@ -159,7 +160,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{f.label}</div>
           {f.value
             ? <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, marginTop: 1 }}>{f.value}</div>
-            : <div style={{ fontSize: 13, color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>— λείπει</div>}
+            : <div style={{ fontSize: 13, color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>Λείπει</div>}
           {f.hint && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>
             {f.hint}{f.fixIn && <> <span style={{ color: 'var(--accent)', fontWeight: 600 }}>→ καρτέλα {TAB_LABEL[f.fixIn]}</span></>}
           </div>}
@@ -212,6 +213,13 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           <div style={{ ...TT.label, marginBottom: 8 }}>ΣΤΟΙΧΕΙΑ ΔΗΛΩΣΗΣ</div>
           <div style={{ ...TT.caption, marginBottom: 10, lineHeight: 1.5 }}>
             Με τη σειρά που τα ζητά η φόρμα. Πάτα το εικονίδιο για αντιγραφή και επικόλλησέ τα ένα-ένα.
+          </div>
+          {/* ΠΟΥ ΠΑΕΙ ΤΟ ΚΟΥΜΠΙ. Το «Άνοιξε το myAADE» άνοιγε την αρχική της
+              πύλης και ο χρήστης έψαχνε μόνος του το μενού — με έτοιμα όλα τα
+              πεδία στο χέρι. Η διαδρομή γράφεται σε λέξεις γιατί οι διευθύνσεις
+              της ΑΑΔΕ αλλάζουν, τα ονόματα των υπηρεσιών της όχι. */}
+          <div style={{ ...TT.caption, marginBottom: 10, lineHeight: 1.5, padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
+            Μέσα στην πύλη: {aadePath('lease')}
           </div>
           <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 11, overflow: 'hidden' }}>
             {decl.fields.map(row)}
