@@ -47,7 +47,8 @@
     "http-bridge": "node scripts/guard-http-bridge.mjs",
     "keyboard": "node scripts/guard-keyboard.mjs",
     "password-leak": "node scripts/guard-password-leak.mjs",
-    "number-fields": "node scripts/guard-number-fields.mjs"
+    "number-fields": "node scripts/guard-number-fields.mjs",
+    "greek-case": "node scripts/guard-greek-case.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

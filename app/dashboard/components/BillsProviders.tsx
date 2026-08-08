@@ -287,7 +287,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             suffix="€" step={1}
           />
           <NumberInput
-            label="Δημοτικά Τέλη στον λογαριασμό"
+            label="Δημοτικά τέλη στον λογαριασμό"
             value={s.dimotikaCalcAmount}
             onChange={v => upd({ dimotikaCalcAmount: v })}
             suffix="€" step={0.5}
@@ -356,7 +356,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
         <div style={g3}>
           <DatePicker  label="Λήξη συμβολαίου"                      value={s.internetContractEnd || ''} onChange={v => upd({ internetContractEnd: v })}/>
-          <NumberInput label="Πραγματική Ταχύτητα Download (Mbps)"   value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
+          <NumberInput label="Πραγματική ταχύτητα λήψης (Mbps)"   value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
           <div style={{ display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', paddingBottom: 2 }}>
             {s.internetSpeedReal && s.internetSpeed && (() => {
               const pct = parseFloat(s.internetSpeed) > 0 ? Math.round((parseFloat(s.internetSpeedReal) / parseFloat(s.internetSpeed)) * 100) : 0;
@@ -393,7 +393,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         })()}
 
         <div style={{ marginBottom: 12 }}>
-          <Toggle on={s.internetPhone} onChange={v => upd({ internetPhone: v })} label="Περιλαμβάνει σταθερό τηλέφωνο" labelOff="Χωρίς Σταθερό Τηλέφωνο"/>
+          <Toggle on={s.internetPhone} onChange={v => upd({ internetPhone: v })} label="Περιλαμβάνει σταθερό τηλέφωνο" labelOff="Χωρίς σταθερό τηλέφωνο"/>
         </div>
 
         {s.internetPhone && (
@@ -519,7 +519,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             <><NumberInput label="Kg / έτος"     value={s.heatingKgPellet}    onChange={v => upd({ heatingKgPellet: v })}    suffix="kg" step={50}/><NumberInput label="Τιμή ανά κιλό" value={s.heatingPelletPrice} onChange={v => upd({ heatingPelletPrice: v })} suffix="€" step={0.01}/></>
           )}
           {['central_oil','central_gas'].includes(s.heatingType) && (
-            <NumberInput label="Μερίδιο Ιδιοκτησίας %" value={s.heatingCentralShare} onChange={v => upd({ heatingCentralShare: v })} suffix="%" step={1}/>
+            <NumberInput label="Μερίδιο ιδιοκτησίας (%)" value={s.heatingCentralShare} onChange={v => upd({ heatingCentralShare: v })} suffix="%" step={1}/>
           )}
         </div>
         {heatingM > 0 && (

@@ -359,14 +359,14 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <NumberInput label="Ποσοστό ιδιοκτησίας"     value={s.enfiaOwnership} onChange={v => upd({ enfiaOwnership: v })} suffix="%" max={100}/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <CustomSelect label="Τιμή Ζώνης (€ ανά τετραγωνικό)" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
+                <CustomSelect label="Τιμή ζώνης (€ ανά τετραγωνικό)" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
               </div>
               <div style={g2}>
                 <CustomSelect label="Όροφος"    value={s.enfiaFloor} onChange={v => upd({ enfiaFloor: v })} options={FLOOR_OPTIONS}/>
                 <CustomSelect label="Παλαιότητα" value={s.enfiaAge}  onChange={v => upd({ enfiaAge: v })}  options={AGE_OPTIONS}/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Συνολική Αξία Ακινήτων (€), για Προσαύξηση >500.000€" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
+                <NumberInput label="Συνολική αξία ακινήτων (€), για προσαύξηση άνω των 500.000 €" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
               </div>
               <div style={{ marginBottom: 14 }}>
                 <NumberInput label="Αντικειμενική Αξία αυτού του ακινήτου (€), για πρόσθετο φόρο >400.000€" value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"/>
@@ -503,7 +503,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {/* FIX: 2 inputs + result, all in same grid, aligned at bottom, no marginBottom on result box */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 10 }}>
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
-            <NumberInput label="Δημοτικά Τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
+            <NumberInput label="Δημοτικά τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
           </div>
           {/* Το αποτέλεσμα ως συμπτυγμένη ενσωματωμένη πλάκα — ίδιο μοτίβο με Παρόχους και Ρεύμα */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
