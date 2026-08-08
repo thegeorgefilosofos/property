@@ -39,7 +39,8 @@
     "download": "node scripts/guard-download.mjs",
     "type-scale": "node scripts/guard-type-scale.mjs",
     "official-links": "node scripts/guard-official-links.mjs",
-    "filenames": "node scripts/guard-filenames.mjs"
+    "filenames": "node scripts/guard-filenames.mjs",
+    "stale-flags": "node scripts/guard-stale-flags.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

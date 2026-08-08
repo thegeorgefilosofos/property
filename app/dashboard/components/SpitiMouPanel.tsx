@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { programStatus } from '@/lib/loans/programStatus'
 import {
   SPITI_MOU, spitiMouEligibility, spitiMouPayment, spitiMouIncomeLimit,
   annuityMonthly, rankLoans, type UserLoanNeeds, type BankInput,
@@ -62,7 +63,16 @@ export default function SpitiMouPanel({
   // Συμμετέχουσες τράπεζες, κατά συνολικό κόστος.
   const ranked = rankLoans(needs, banks, euribor).filter(r => r.spitiMouApplied && r.eligible).slice(0, 3)
 
-  // Αντίστροφη μέτρηση ως τη λήξη σύναψης συμβολαίων (31/08/2026).
+  // ── ΤΟ ΠΡΟΓΡΑΜΜΑ ΔΕΧΕΤΑΙ ΑΚΟΜΗ ΑΙΤΗΣΗ; ─────────────────────────────────────
+  // ΤΟ ΣΦΑΛΜΑ: η αντίστροφη μέτρηση ήταν ως τη λήξη ΣΥΝΑΨΗΣ ΣΥΜΒΟΛΑΙΩΝ, και το
+  // `applicationDeadline` καθόταν αχρησιμοποίητο δύο γραμμές πιο πάνω. Στις 8
+  // Αυγούστου 2026 η κάρτα έγραφε «23 ημέρες ως τη λήξη» με σήμα «Πιθανώς
+  // επιλέξιμο» — σε χρήστη που ΔΕΝ έχει κάνει αίτηση και δεν μπορεί πια: οι
+  // αιτήσεις είχαν κλείσει στις 31/05. Οι 23 μέρες αφορούν μόνο όσους έχουν ήδη
+  // έγκριση. Η κρίση έρχεται τώρα από το ΕΝΑ σημείο που την ξέρει.
+  const status = programStatus(
+    { applicationDeadline: SPITI_MOU.applicationDeadline, deadline: SPITI_MOU.contractDeadline },
+    new Date())
   const deadline = new Date(SPITI_MOU.contractDeadline + 'T23:59:59')
   const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / 86400000)
   const deadlineStr = deadline.toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -77,7 +87,9 @@ export default function SpitiMouPanel({
         style={{ position: 'relative', background: 'var(--bg-surface)', border: `1px solid ${hi ? 'var(--border-default)' : 'var(--border-subtle)'}`, borderLeft: '3px solid var(--accent)', borderRadius: 14, padding: '18px 20px', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: hi ? 'var(--elev-2)' : 'var(--elev-1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 100, background: hardFail ? 'var(--bg-elevated)' : 'var(--accent)', color: hardFail ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
+            {/* Όσο δεν δέχεται αιτήσεις, το «Πιθανώς επιλέξιμο» είναι υπόσχεση
+                που δεν μπορεί να τηρηθεί, όσο σωστά κι αν βγαίνουν τα κριτήρια. */}
+            <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 100, background: (hardFail || !status.acceptsApplications) ? 'var(--bg-elevated)' : 'var(--accent)', color: (hardFail || !status.acceptsApplications) ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{!status.acceptsApplications ? status.badge : hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT }}>
               Το 50% του δανείου είναι <strong style={{ color: 'var(--text-primary)' }}>άτοκο</strong> (Ταμείο Ανάκαμψης) και το 50% με το επιτόκιο της τράπεζας{elig.rateSubsidyShare > 0 ? ', με επιπλέον 50% επιδότηση επιτοκίου για πολύτεκνους' : ''}.
             </p>
@@ -159,15 +171,17 @@ export default function SpitiMouPanel({
 
       {/* Προθεσμία + προειδοποίηση μίας τράπεζας */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 15px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${daysLeft > 0 && daysLeft <= 60 ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius: 10, flexWrap: 'wrap' }}>
-        {daysLeft > 0 ? (
+        {/* Ο αριθμός των ημερών μπαίνει ΜΟΝΟ όταν αφορά τον αναγνώστη. Μεγάλο
+            νούμερο δίπλα σε κλειστό πρόγραμμα διαβάζεται ως «προλαβαίνεις». */}
+        {status.acceptsApplications && daysLeft > 0 ? (
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 22, fontWeight: 700, color: daysLeft <= 60 ? 'var(--accent)' : 'var(--text-primary)', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{daysLeft}</span>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: FONT }}>ημέρες ως τη λήξη σύναψης συμβολαίων</span>
           </span>
         ) : (
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: FONT, fontWeight: 500 }}>Η προθεσμία σύναψης συμβολαίων έχει παρέλθει</span>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: FONT, fontWeight: 500, lineHeight: 1.55 }}>{status.note || 'Η προθεσμία σύναψης συμβολαίων έχει παρέλθει'}</span>
         )}
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: FONT, marginLeft: 'auto' }}>Προθεσμία {deadlineStr}</span>
+        {status.acceptsApplications && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: FONT, marginLeft: 'auto' }}>Προθεσμία {deadlineStr}</span>}
       </div>
       <p style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: FONT }}>
         Επιτρέπεται αίτηση σε <strong style={{ color: 'var(--text-secondary)' }}>μία μόνο τράπεζα</strong>, οπότε επίλεξε προσεκτικά με βάση το συνολικό κόστος. Ενδεικτικά στοιχεία, επιβεβαίωσε την επιλεξιμότητα στην{' '}
