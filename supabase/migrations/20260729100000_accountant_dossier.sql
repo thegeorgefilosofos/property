@@ -52,16 +52,16 @@ alter table public.accountant_dossier enable row level security;
 do $$
 begin
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'accountant_dossier' and policyname = 'own dossier select') then
-    create policy "own dossier select" on public.accountant_dossier for select using (auth.uid() = user_id);
+    create policy "own dossier select" on public.accountant_dossier for select using ((select auth.uid()) = user_id);
   end if;
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'accountant_dossier' and policyname = 'own dossier insert') then
-    create policy "own dossier insert" on public.accountant_dossier for insert with check (auth.uid() = user_id);
+    create policy "own dossier insert" on public.accountant_dossier for insert with check ((select auth.uid()) = user_id);
   end if;
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'accountant_dossier' and policyname = 'own dossier update') then
-    create policy "own dossier update" on public.accountant_dossier for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+    create policy "own dossier update" on public.accountant_dossier for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
   end if;
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'accountant_dossier' and policyname = 'own dossier delete') then
-    create policy "own dossier delete" on public.accountant_dossier for delete using (auth.uid() = user_id);
+    create policy "own dossier delete" on public.accountant_dossier for delete using ((select auth.uid()) = user_id);
   end if;
 end $$;
 

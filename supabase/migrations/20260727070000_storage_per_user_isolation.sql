@@ -19,18 +19,18 @@
 drop policy if exists "avatars_auth_insert" on storage.objects;
 create policy "avatars_auth_insert" on storage.objects
   for insert to authenticated
-  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = ((select auth.uid()))::text);
 
 drop policy if exists "avatars_auth_update" on storage.objects;
 create policy "avatars_auth_update" on storage.objects
   for update to authenticated
-  using       (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text)
-  with check  (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);
+  using       (bucket_id = 'avatars' and (storage.foldername(name))[1] = ((select auth.uid()))::text)
+  with check  (bucket_id = 'avatars' and (storage.foldername(name))[1] = ((select auth.uid()))::text);
 
 drop policy if exists "avatars_auth_delete" on storage.objects;
 create policy "avatars_auth_delete" on storage.objects
   for delete to authenticated
-  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = ((select auth.uid()))::text);
 
 -- ── inventory-photos ───────────────────────────────────────────────────────
 -- Αντικαθιστούν τις παλιές πολιτικές που ήταν μόνο ανά bucket.
@@ -40,13 +40,13 @@ drop policy if exists "inventory_photos_auth_update" on storage.objects;
 
 create policy "inventory_photos_insert_own" on storage.objects
   for insert to authenticated
-  with check (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = (auth.uid())::text);
+  with check (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text);
 
 create policy "inventory_photos_update_own" on storage.objects
   for update to authenticated
-  using       (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = (auth.uid())::text)
-  with check  (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = (auth.uid())::text);
+  using       (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text)
+  with check  (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text);
 
 create policy "inventory_photos_delete_own" on storage.objects
   for delete to authenticated
-  using (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = (auth.uid())::text);
+  using (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text);

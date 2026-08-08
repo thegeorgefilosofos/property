@@ -25,8 +25,8 @@ on conflict (id) do update set public = excluded.public;
 -- ── property-files / lease-documents: owner-only, folder = user id ───────────
 drop policy if exists "own_files_all" on storage.objects;
 create policy "own_files_all" on storage.objects for all
-  using      ( bucket_id in ('property-files','lease-documents') and (storage.foldername(name))[1] = auth.uid()::text )
-  with check ( bucket_id in ('property-files','lease-documents') and (storage.foldername(name))[1] = auth.uid()::text );
+  using      ( bucket_id in ('property-files','lease-documents') and (storage.foldername(name))[1] = (select auth.uid())::text )
+  with check ( bucket_id in ('property-files','lease-documents') and (storage.foldername(name))[1] = (select auth.uid())::text );
 
 -- ── inventory-docs: private, scoped per property (receipts/<property_id>/…) ──
 drop policy if exists "inv_docs_insert" on storage.objects;
@@ -34,7 +34,7 @@ create policy "inv_docs_insert" on storage.objects for insert to authenticated
   with check (
     bucket_id = 'inventory-docs' and exists (
       select 1 from public.user_properties p
-      where p.id::text = (storage.foldername(name))[2] and p.user_id = auth.uid()
+      where p.id::text = (storage.foldername(name))[2] and p.user_id = (select auth.uid())
     )
   );
 drop policy if exists "inv_docs_select" on storage.objects;
@@ -42,7 +42,7 @@ create policy "inv_docs_select" on storage.objects for select to authenticated
   using (
     bucket_id = 'inventory-docs' and exists (
       select 1 from public.user_properties p
-      where p.id::text = (storage.foldername(name))[2] and p.user_id = auth.uid()
+      where p.id::text = (storage.foldername(name))[2] and p.user_id = (select auth.uid())
     )
   );
 drop policy if exists "inv_docs_delete" on storage.objects;
@@ -50,7 +50,7 @@ create policy "inv_docs_delete" on storage.objects for delete to authenticated
   using (
     bucket_id = 'inventory-docs' and exists (
       select 1 from public.user_properties p
-      where p.id::text = (storage.foldername(name))[2] and p.user_id = auth.uid()
+      where p.id::text = (storage.foldername(name))[2] and p.user_id = (select auth.uid())
     )
   );
 
@@ -72,5 +72,5 @@ create policy "maint_photos_delete_owner" on storage.objects for delete to authe
 -- own folder (folder = user id). ─────────────────────────────────────────────
 drop policy if exists "public_assets_write" on storage.objects;
 create policy "public_assets_write" on storage.objects for all to authenticated
-  using      ( bucket_id in ('avatars','organizations','inventory-photos') and (storage.foldername(name))[1] = auth.uid()::text )
-  with check ( bucket_id in ('avatars','organizations','inventory-photos') and (storage.foldername(name))[1] = auth.uid()::text );
+  using      ( bucket_id in ('avatars','organizations','inventory-photos') and (storage.foldername(name))[1] = (select auth.uid())::text )
+  with check ( bucket_id in ('avatars','organizations','inventory-photos') and (storage.foldername(name))[1] = (select auth.uid())::text );

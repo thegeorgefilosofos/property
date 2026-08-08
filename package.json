@@ -33,7 +33,8 @@
     "dead-interpolation": "node scripts/guard-dead-interpolation.mjs",
     "test-tail": "node scripts/guard-test-tail.mjs",
     "ci-coverage": "node scripts/guard-ci-coverage.mjs",
-    "rendered-zero": "node scripts/guard-rendered-zero.mjs"
+    "rendered-zero": "node scripts/guard-rendered-zero.mjs",
+    "rls-initplan": "node scripts/guard-rls-initplan.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

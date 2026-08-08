@@ -21,7 +21,14 @@ function buildCsp(nonce: string): string {
     "font-src 'self' data:",
     "img-src 'self' data: blob: https:",
     // Nominatim (OpenStreetMap): πρόταση διευθύνσεων χωρίς κλειδί στη φόρμα επαφής.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org",
+    //
+    // pwnedpasswords: έλεγχος διαρρευσάντων κωδικών με k-anonymity. Φεύγουν
+    // ΜΟΝΟ πέντε δεκαεξαδικά ψηφία του SHA-1 — ποτέ ο κωδικός, ποτέ ο πλήρης
+    // κατακερματισμός. ΧΩΡΙΣ αυτή τη γραμμή η κλήση μπλοκάρεται μόνο στην
+    // ΠΑΡΑΓΩΓΗ (η CSP μπαίνει μόνο εκεί), ο έλεγχος αποτυγχάνει ανοιχτά όπως
+    // σχεδιάστηκε, και το χαρακτηριστικό δεν δουλεύει ποτέ χωρίς να το πει
+    // κανείς — ενώ τοπικά δουλεύει μια χαρά.
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.pwnedpasswords.com",
     // Επιτρέπει τον ενσωματωμένο χάρτη Google (keyless embed) στο ντοσιέ επαφής
     // και την προεπισκόπηση PDF (Supabase storage) στο Αρχείο.
     "frame-src 'self' https://www.google.com https://maps.google.com https://*.supabase.co",
