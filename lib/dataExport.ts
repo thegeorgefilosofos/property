@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { athensToday } from './core/time';
+import { downloadFile } from '@/lib/core/download';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΦΟΡΗΤΟΤΗΤΑ ΔΕΔΟΜΕΝΩΝ (GDPR, άρθρο 20) — ΜΙΑ ΔΙΑΔΡΟΜΗ
@@ -57,22 +58,14 @@ export async function exportAllData(): Promise<ExportResult> {
     const rows = Object.values(tablesObj).reduce<number>(
       (sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
 
-    download(JSON.stringify(data, null, 2), `propertyos-data-${athensToday()}.json`);
+    downloadFile(JSON.stringify(data, null, 2), `propertyos-data-${athensToday()}.json`, 'application/json');
     return { ok: true, tables, rows };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Η εξαγωγή απέτυχε.' };
   }
 }
 
-/** Λήψη αρχείου στον περιηγητή. Ένα σημείο, ώστε να μη γράφεται σε κάθε καλούντα. */
-function download(text: string, filename: string): void {
-  const blob = new Blob([text], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+// Η λήψη ζει στο lib/core/download.ts. Αυτό το αντίγραφο ήταν το ΠΙΟ σωστό από
+// τα επτά — είχε appendChild — αλλά ανακαλούσε τη διεύθυνση ΑΜΕΣΩΣ μετά το
+// κλικ, δηλαδή έπασχε από τη μία από τις δύο αστοχίες. Η εξαγωγή δεδομένων
+// είναι δικαίωμα του ΓΚΠΔ: δεν επιτρέπεται να αποτυγχάνει σιωπηλά.

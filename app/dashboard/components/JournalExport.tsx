@@ -21,6 +21,7 @@ import { annuityMonthly } from '@/lib/loans/recommend';
 import { askCta } from '@/lib/assistant/identity';
 import { askAssistant } from './AssistantStrip';
 import { MONTHS_NOM } from '@/lib/core/months';
+import { downloadCsv } from '@/lib/core/download';
 
 // Δόση δανείου (από περιγραφή/κατηγορία εξόδου) — ελληνικά & αγγλικά.
 const LOAN_RE = /δάνει|δόσ\w*\s*δάν|τοκοχρε|χρεολ|loan|installment|mortgage|στεγαστ/i;
@@ -162,12 +163,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
         downloadJournalWorkbook({ lines, periodLabel, entityName: 'Property OS', year, month });
       } else {
         const csv = journalToCsv(lines, format, `Property OS — Ημερολόγιο ${periodLabel}`);
-        // BOM ώστε το Excel να ανοίγει σωστά τα ελληνικά (UTF-8).
-        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `Ημερολόγιο_${format}_${periodLabel}.csv`.replace(/\s+/g, '_');
-        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        downloadCsv(csv, `Ημερολόγιο_${format}_${periodLabel}.csv`);
       }
       applyChecks(lines);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία εξαγωγής.'); }

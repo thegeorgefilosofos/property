@@ -18,6 +18,7 @@
 import { XLSX, FMT, S, setCell, money, moneySigned, type Cell } from './xlsxStyle';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
+import { downloadFile } from '@/lib/core/download';
 
 export interface AccountantStatementLine { label: string; amount: number; kind: string; negative?: boolean }
 export interface AccountantMovement { date: string; type: 'income' | 'expense'; category: string; description: string; amount: number }
@@ -308,11 +309,6 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     { path: '05_ΤΙ_ΛΕΙΠΕΙ.txt', data: whatsMissing },
   ];
 
-  const blob = new Blob([buildZip(files)], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `fakelos_logisti_${safeName(propName)}_${year}.zip`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadFile(new Blob([buildZip(files)], { type: 'application/zip' }),
+    `fakelos_logisti_${safeName(propName)}_${year}.zip`);
 }

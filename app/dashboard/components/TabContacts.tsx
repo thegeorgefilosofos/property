@@ -19,6 +19,7 @@ import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 import { athensToday, isoDate, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
+import { downloadFile } from '@/lib/core/download';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -1387,8 +1388,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   // ── Εξαγωγή vCard ──
   const vcardFor = (c: Contact) => ['BEGIN:VCARD', 'VERSION:3.0', `FN:${c.full_name}`, c._extra?.specialty ? `TITLE:${c._extra.specialty}` : '', c.phone ? `TEL:${c.phone}` : '', c._extra?.phone2 ? `TEL:${c._extra.phone2}` : '', c.email ? `EMAIL:${c.email}` : '', c._extra?.website ? `URL:${c._extra.website}` : '', c._extra?.office_address ? `ADR:;;${c._extra.office_address};;;;` : '', 'END:VCARD'].filter(Boolean).join('\n')
   const downloadVcf = (list: Contact[], name: string) => {
-    const blob = new Blob([list.map(vcardFor).join('\n')], { type: 'text/vcard' }); const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url)
+    downloadFile(list.map(vcardFor).join('\n'), name, 'text/vcard;charset=utf-8')
   }
 
   const openEdit = (c: Contact) => { const known = !!ROLE_META[c.role]; setRoleOther(known ? '' : (c.role || '')); setEditContact(c); setForm({ full_name: c.full_name, role: known ? c.role : 'other', phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.iban || c._extra?.next_appointment)); setShowModal(true) }

@@ -35,7 +35,8 @@
     "ci-coverage": "node scripts/guard-ci-coverage.mjs",
     "rendered-zero": "node scripts/guard-rendered-zero.mjs",
     "rls-initplan": "node scripts/guard-rls-initplan.mjs",
-    "csp-connect": "node scripts/guard-csp-connect.mjs"
+    "csp-connect": "node scripts/guard-csp-connect.mjs",
+    "download": "node scripts/guard-download.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

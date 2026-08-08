@@ -22,6 +22,7 @@ import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress';
 import { navLabel } from '@/lib/nav/labels';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
+import { downloadCsv } from '@/lib/core/download';
 
 const supabase = createSupabaseClient()
 
@@ -535,7 +536,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const fileRef = useRef<HTMLInputElement>(null)
   const TEMPLATE = `Ονομασία,Κατηγορία,Δωμάτιο,Μάρκα,Μοντέλο,Σειριακός,Κατάσταση,Αξία Αγοράς,Ημερομηνία Αγοράς,Λήξη Εγγύησης,Ενεργειακή Κλάση,Ισχύς (W),Ώρες ανά Ημέρα,Κόστος Αντικατάστασης\nΠλυντήριο,Ηλεκτρικές Συσκευές,Κουζίνα,Bosch,WAU28,SN123,Καλή,650,2021-03-15,2026-03-15,A+,2100,1,700`
   const downloadTemplate = () => {
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+TEMPLATE],{type:'text/csv;charset=utf-8;'}));a.download='template.csv';a.click()
+    downloadCsv(TEMPLATE, 'υπόδειγμα απογραφής.csv')
   }
   const parseCSV = (text:string) => {
     const lines=text.trim().split('\n').filter(l=>l.trim())
@@ -1813,7 +1814,7 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
     const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία Αγοράς','Εκτιμώμενη Υπολειπόμενη Αξία','Ποσοστό Υπολειπόμενης Αξίας','Κόστος Αντικατάστασης','Ενεργειακή Κλάση','Watt','Ώρες ανά ημέρα','kWh/μήνα','Κόστος Ρεύματος ανά μήνα','Ηλικία','Ημερομηνία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
     const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,i.purchase_value?csvEur(i.purchase_value):'',csvEur(calcCurrentValue(i)),csvPct(Math.max(0,100-calcDepreciationPct(i))),i.replacement_cost?csvEur(i.replacement_cost):'',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?csvEur(calcMonthlyCost(i,kwhPrice)):'',calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
     const csv=[headers,...rows].map(row=>row.map(cell=>{const s=csvSafe(String(cell??''));return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n')
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='απογραφη.csv';a.click()
+    downloadCsv(csv, 'απογραφή.csv')
   }
   const exportPDF=()=>{
     const byCat=[...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)

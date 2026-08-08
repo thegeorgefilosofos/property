@@ -71,6 +71,7 @@ import { confirmDialog } from '@/components/confirmBus';
 import { MONTHS_GEN, MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 import { INK, INK_MUTED } from '@/lib/print/ink';
 import { reportHead, reportHeader, reportDisclaimer, openReport, rEsc, rEur } from './reportPdf';
+import { downloadFile } from '@/lib/core/download'
 
 type EventCategory = 'tax' | 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -235,9 +236,7 @@ function toCalInput(e: CalEvent) {
   return { title: (cat?`${cat}: `:'')+e.title, date: e.event_date, time: e.event_time||undefined, durationMinutes: e.duration_minutes||undefined, details }
 }
 function downloadEventIcs(e: CalEvent) {
-  const blob = new Blob([buildICS(toCalInput(e))], { type:'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob); const a = document.createElement('a')
-  a.href = url; a.download = `${e.title.replace(/[^\p{L}\p{N}]+/gu,'-').slice(0,40)||'event'}.ics`; a.click(); URL.revokeObjectURL(url)
+  downloadFile(buildICS(toCalInput(e)), `${e.title.slice(0,40)||'γεγονός'}.ics`, 'text/calendar;charset=utf-8')
 }
 
 // «Πρόσθεσε σε ημερολόγιο» + «Κοινοποίηση» — ένα διακριτικό μενού, portal ώστε να
@@ -983,7 +982,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
                 {cap.email&&<a href={inviteMailto(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><FileText size={13}/>Με μήνυμα</a>}
                 {cap.phone&&<a href={inviteWhatsApp(inv)} target="_blank" rel="noreferrer" style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>WhatsApp</a>}
                 {cap.phone&&<a href={inviteViber(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>Viber</a>}
-                <button type="button" onClick={()=>{ const blob=new Blob([buildInviteICS(inv)],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='invite.ics'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000) }} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarPlus size={13}/>Αρχείο ημερολογίου</button>
+                <button type="button" onClick={()=>downloadFile(buildInviteICS(inv), 'πρόσκληση.ics', 'text/calendar;charset=utf-8')} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarPlus size={13}/>Αρχείο ημερολογίου</button>
               </div>
             </div>
           )
@@ -1555,8 +1554,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
         'END:VEVENT')
     })
     lines.push('END:VCALENDAR')
-    const blob=new Blob([lines.filter(Boolean).join('\r\n')],{type:'text/calendar;charset=utf-8'})
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='property-os.ics'; a.click(); URL.revokeObjectURL(url)
+    downloadFile(lines.filter(Boolean).join('\r\n'), 'property-os.ics', 'text/calendar;charset=utf-8')
   }
 
   // ΕΚΤΥΠΩΣΗ ΕΠΕΡΧΟΜΕΝΩΝ. Ήταν χειρόγραφο έγγραφο δίπλα σε επτά που περνούν από

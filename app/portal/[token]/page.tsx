@@ -123,6 +123,9 @@ export default function TenantPortal() {
         if (next.length >= MAX_PHOTOS) { note = `Μπορείς να προσθέσεις έως ${MAX_PHOTOS} φωτογραφίες.`; break; }
         if (!f.type.startsWith('image/')) { note = 'Επιτρέπονται μόνο εικόνες.'; continue; }
         if (f.size > MAX_BYTES) { note = 'Κάποιες εικόνες ξεπερνούν τα 8 MB και παραλείφθηκαν.'; continue; }
+        // προεπισκόπηση-blob: δεν κατεβάζει τίποτα, δείχνει την εικόνα που
+        // διάλεξε ο ενοικιαστής πριν την ανεβάσει. Η διεύθυνση ανακαλείται
+        // όταν αφαιρεθεί η φωτογραφία ή φύγει η οθόνη.
         next.push({ file: f, url: URL.createObjectURL(f) });
       }
       return next;
