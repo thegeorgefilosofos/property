@@ -9,6 +9,7 @@ import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 import { T, Badge, ABSENT, TT } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
+import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
 import { useReportBranding } from '@/lib/reportBranding'
 import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport'
@@ -1532,11 +1533,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           ))}
         </div>
         <div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10,marginBottom:10}}>
-          <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Ασφάλεια κατοικίας 100-300€ τον χρόνο (υποχρεωτική) · Ασφάλεια ζωής ~{fmtEur(LA*0.001)} τον χρόνο</p>
+          <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Ασφάλεια κατοικίας 100–300 € τον χρόνο (υποχρεωτική) · Ασφάλεια ζωής ~{fmtEur(LA*0.001)} τον χρόνο</p>
         </div>
         <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
           Εκτιμήσεις βάσει δεδομένων χρήστη. →{' '}
-          <a href="https://www.aade.gr" target="_blank" rel="noreferrer" title="ΑΑΔΕ: Ανεξάρτητη Αρχή Δημοσίων Εσόδων" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>ΑΑΔΕ</a>
+          <a href={AADE_HOME} target="_blank" rel="noreferrer" title="ΑΑΔΕ: Ανεξάρτητη Αρχή Δημοσίων Εσόδων" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>ΑΑΔΕ</a>
         </p>
       </div>
       </>)}

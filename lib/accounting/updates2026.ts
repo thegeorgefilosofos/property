@@ -6,6 +6,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { Who } from './dossier'
+import { MYAADE, GOV_SHORT_TERM } from '@/lib/tax/aade';
+
 
 export type UpdateArea =
   | 'rental_income' | 'short_term' | 'transfer' | 'loans_programs'
@@ -32,8 +34,8 @@ export interface RegulatoryUpdate {
 
 // Επίσημα deep links (επαληθευμένα, ανοίγουν σε νέα καρτέλα).
 const SRC = {
-  aadeRentals: 'https://www.aade.gr/polites/eisodima/misthotiria-akiniton',
-  shortTerm: 'https://www.gov.gr/arxes/anexartete-arkhe-demosion-esodon-aade/anexartete-arkhe-demosion-esodon-aade/brakhukhronia-misthose-akineton',
+  aadeRentals: MYAADE,
+  shortTerm: GOV_SHORT_TERM,
   anakainizo: 'https://www.gov.gr/ipiresies/periousia-kai-phorologia/epidoteseis-politon/anakainizo-noikiazo',
   spitiMou: 'https://stegasi.gov.gr/programs/spiti-mou-ii/',
   tte: 'https://www.bankofgreece.gr/kyria-themata/epopteia/makroprolithiki-politiki',

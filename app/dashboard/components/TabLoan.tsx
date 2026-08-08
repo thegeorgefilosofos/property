@@ -7,6 +7,7 @@ import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
 import { fp, fe } from '@/lib/core/format'
 import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
+import { AADE_HOME } from '@/lib/tax/aade'
 import { T, ExportButton, EmptyState } from '@/components/Theme'
 import { loanEventTitle, UNSET_BANK } from './TabCalendar'
 import { notifyOk, notifyError } from '@/components/Toast'
@@ -1396,7 +1397,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 {title:'Χαμηλό εισόδημα ή υψηλός δείκτης δόσης',desc:'Όρια ΤτΕ: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους.',url:null},
                 {title:'Αυθαίρετα στο ακίνητο',desc:'Αλλαγές χωρίς άδεια (βεράντα, πατάρι, αλλαγή χρήσης) μπλοκάρουν τη μεταβίβαση ή μειώνουν την εκτίμηση.',url:'https://www.ktimatologio.gr'},
                 {title:'Προβλήματα τίτλων',desc:'Ακαθόριστοι τίτλοι, αδήλωτα σε Ε9, εκκρεμείς κληρονομιές. Ο νομικός έλεγχος διαρκεί εβδομάδες.',url:null},
-                {title:'Χρέη σε ΔΟΥ ή ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου.',url:'https://www.aade.gr'},
+                {title:'Χρέη σε ΔΟΥ ή ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου.',url:AADE_HOME},
                 {title:'Δείκτης δανείου προς αξία πάνω από 80–90%',desc:'Συνήθως έως 80% (κανονικό) ή 90% (Σπίτι μου ΙΙ). Χρειάζεσαι ίδια κεφάλαια για τη διαφορά και τα έξοδα.',url:null},
               ].sort((a,b)=>a.title.localeCompare(b.title,'el')).map((item,i,a)=>(
                 <CatRow key={item.title} title={item.title} desc={item.desc} url={item.url} linkLabel="έλεγχος" last={i===a.length-1}/>
@@ -1411,7 +1412,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη.',url:'https://www.tap.gr'},
                 {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55–70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
                 {title:'Νέοι 25–50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο. Εισόδημα άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
-                {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65–70% της αξίας. Συνέπεια στις δηλώσεις.',url:'https://www.aade.gr'},
+                {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65–70% της αξίας. Συνέπεια στις δηλώσεις.',url:AADE_HOME},
                 {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000€ (2 παιδιά) ή 50.000€ (3+).',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},
               ].sort((a,b)=>a.title.localeCompare(b.title,'el')).map((cat,i,a)=>(
@@ -1521,7 +1522,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 {label:'Τειρεσίας · έλεγχος πιστοληπτικής',sub:'Έλεγξε αν έχεις εγγραφές πριν αιτηθείς',url:'https://www.tiresias.gr'},
               ]},
               {category:'Φορολογικά και τίτλοι',links:[
-                {label:'ΑΑΔΕ · φορολογικά ακινήτων',sub:'Φόρος μεταβίβασης, ΕΝΦΙΑ, εισοδήματα ενοικίων',url:'https://www.aade.gr/polites/foroi-akiniton'},
+                {label:'ΑΑΔΕ · φορολογικά ακινήτων',sub:'Φόρος μεταβίβασης, ΕΝΦΙΑ, εισοδήματα ενοικίων',url:AADE_HOME},
                 {label:'Κτηματολόγιο · έλεγχος τίτλων',sub:'Ηλεκτρονικός έλεγχος εγγράφων',url:'https://www.ktimatologio.gr'},
                 {label:'Επιλεξιμότητα Σπίτι μου ΙΙ · gov.gr',sub:'Ηλεκτρονικός έλεγχος με κωδικούς Taxisnet',url:'https://www.gov.gr/ipiresies/periousia-kai-phorologia/akinhta/elegkhos-epile3imotetas-programmatos-spiti-mou-ii'},
               ]},

@@ -23,6 +23,7 @@
 
 import { isValidAfm } from '../core/greek';
 import { athensToday } from '../core/time'
+import { MYAADE } from './aade';
 
 // ── Κανόνες που αλλάζουν με τον νόμο — ΜΙΑ θέση για ενημέρωση ───────────────
 // Αν αλλάξει η νομοθεσία, αλλάζει ΜΟΝΟ αυτό το μπλοκ.
@@ -32,7 +33,7 @@ export const RULES = {
   /** Πόσες ημέρες πριν τη λήξη προειδοποιούμε. */
   warnDaysBefore: 10,
   /** Επίσημη σελίδα υποβολής. */
-  portalUrl: 'https://www.aade.gr/polites/misthoseis-akiniton',
+  portalUrl: MYAADE,   // η υποβολή γίνεται στην εφαρμογή, όχι σε σελίδα κειμένου
   /** Πηγή για επαλήθευση — δείχνεται στον χρήστη, δεν το «λέμε» εμείς. */
   source: 'ΑΑΔΕ — Μισθώσεις ακινήτων (myAADE)',
 } as const;

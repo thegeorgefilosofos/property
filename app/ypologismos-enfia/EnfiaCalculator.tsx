@@ -1,5 +1,6 @@
 'use client';
 import { CustomSelect } from '@/app/dashboard/components/UIComponents';
+import { GSIS_OBJECTIVE_VALUES } from '@/lib/tax/aade';
 // ═══════════════════════════════════════════════════════════════════════════
 // ΔΩΡΕΑΝ ΥΠΟΛΟΓΙΣΤΗΣ ΕΝΦΙΑ — ο διαδραστικός πυρήνας
 // ─────────────────────────────────────────────────────────────────────────
@@ -108,9 +109,8 @@ export function EnfiaCalculator() {
 
       <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
         Την τιμή ζώνης τη βρίσκεις στο συμβόλαιο, στο Ε9 ή στον{' '}
-        <a href="https://www.gsis.gr/polites-epiheiriseis/periousia-kai-diaveveoseis/antikeimenikes-aksies-akiniton"
-          target="_blank" rel="noopener noreferrer"
-          style={{ color: 'var(--accent)' }}>χάρτη αντικειμενικών αξιών της ΑΑΔΕ</a>.
+        <a href={GSIS_OBJECTIVE_VALUES} target="_blank" rel="noopener noreferrer"
+          style={{ color: 'var(--accent)' }}>χάρτη αντικειμενικών αξιών</a>.
       </p>
 
       {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}

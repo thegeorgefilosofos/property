@@ -39,6 +39,7 @@ import { escHtml as esc } from '@/lib/reportBranding';
 import { athensToday, daysUntil } from '@/lib/core/time';
 import { MONTHS_NOM, MONTHS_SHORT, monthNom } from '@/lib/core/months';
 import { INK, INK_MUTED, RULE } from '@/lib/print/ink';
+import { AadeLinks } from '@/components/AadeLink';
 import {
   instalmentPeriods, monthsPerInstalment, periodLabel,
   PAYMENT_FREQ_LABELS, isPaymentFreq, type InstalmentPeriod,
@@ -627,20 +628,26 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
 
           <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:18 }}>
             <SectionTitle>Υποχρεώσεις και Σύνδεσμοι</SectionTitle>
-            {[
-              {label:'Καταχώρηση Μισθωτηρίου στην ΑΑΑΔΕ',desc:'Εντός 30 ημερών από υπογραφή',url:'https://www.aade.gr/polites/foroi/misthotiria',urgent:true},
-              {label:'Ε2, Δήλωση Εισοδήματος Ακινήτων',desc:'Έως 30 Ιουνίου κάθε έτους',url:'https://www.aade.gr/polites/eisodima/misthotiria-akiniton',urgent:false},
-              {label:'Πρότυπο Σύμβασης Μίσθωσης',desc:'Επίσημο πρότυπο ΑΑΑΔΕ',url:'https://www.aade.gr/polites/foroi/misthotiria',urgent:false},
-            ].map((link,i)=>(
-              <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', marginBottom:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none' }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:2 }}>{link.label}</div>
-                  <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{link.desc}</div>
-                </div>
-                <span style={{ fontSize:14, color:'var(--accent)' }}>→</span>
-              </a>
-            ))}
+            {/* ΤΕΣΣΕΡΑ ΛΑΘΗ ΣΕ ΤΡΕΙΣ ΓΡΑΜΜΕΣ, ΚΑΙ ΤΑ ΤΕΣΣΕΡΑ ΟΡΑΤΑ ΣΤΗΝ ΟΘΟΝΗ:
+
+                  1. «ΑΑΑΔΕ» με τρία άλφα. Δύο φορές.
+                  2. «Έως 30 Ιουνίου κάθε έτους» για το Ε2 — ΛΑΘΟΣ, και τρίτη
+                     ημερομηνία δίπλα στις δύο του `greekTaxCalendar.ts` (15
+                     Απριλίου αυτόματη οριστικοποίηση, 15 Ιουλίου καταληκτική).
+                     Καρφωμένη προθεσμία δίπλα σε σύνδεσμο είναι ακριβώς το
+                     αντίγραφο που το ημερολόγιο γράφτηκε για να εξαλείψει.
+                  3. Ο σύνδεσμος του Ε2 έδειχνε σε σελίδα ΜΙΣΘΩΤΗΡΙΩΝ.
+                  4. Δύο διαφορετικά πράγματα («Καταχώρηση Μισθωτηρίου» και
+                     «Πρότυπο Σύμβασης») μοιράζονταν την ίδια διεύθυνση — άρα το
+                     ένα από τα δύο ήταν σίγουρα λάθος.
+
+                  Οι προορισμοί έρχονται πλέον από το `lib/tax/aade.ts`, όπου
+                  ζουν μία φορά, και μαζί τους η ΔΙΑΔΡΟΜΗ ΣΕ ΛΕΞΕΙΣ — που είναι
+                  το πραγματικά χρήσιμο: η ΑΑΔΕ αλλάζει διευθύνσεις, τα ονόματα
+                  των υπηρεσιών της όχι. Το «Πρότυπο Σύμβασης» έφυγε: η
+                  εφαρμογή παράγει ήδη μισθωτήριο, δεν στέλνει τον χρήστη αλλού
+                  για να κατεβάσει άλλο. */}
+            <AadeLinks actions={['lease','income']}/>
           </div>
         </div>
       </div>
@@ -1378,15 +1385,6 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
     { label:'Καθαρό μετά Φόρο & Τέλη', value:fe(net), tone:'positive' },
   ];
 
-  const linkCard=(label:string,desc:string,url:string,urgent=false)=>(
-    <a href={url} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', marginBottom:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:`3px solid ${urgent?'var(--warning)':'var(--border-default)'}`, borderRadius:T.radius.inner, textDecoration:'none' }}>
-      <div style={{ flex:1 }}>
-        <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:2 }}>{label}</div>
-        <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{desc}</div>
-      </div>
-      <span style={{ fontSize:14, color:'var(--accent)' }}>→</span>
-    </a>
-  );
 
 
   return (
@@ -1456,8 +1454,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
               :'Μίσθωση κατοικίας: δεν επιβάλλεται τέλος χαρτοσήμου / Ψηφιακό Τέλος Συναλλαγής.'}
           </InfoBlock>
           <div style={{ marginTop:16 }}>
-            {linkCard('ΑΑΔΕ, Δηλώσεις Μίσθωσης Ακινήτων','Ηλεκτρονική υποβολή & πληροφορίες','https://www.aade.gr/polites/misthoseis-akiniton-dilosi-plirophoriakon-stoicheion',true)}
-            {linkCard('ΑΑΔΕ, Φορολογία Εισοδήματος Ακινήτων','Ε2 & κλίμακα φόρου ενοικίων','https://www.aade.gr/polites/eisodima/misthotiria-akiniton')}
+            <AadeLinks actions={['lease','income']}/>
           </div>
         </div>
       </div>

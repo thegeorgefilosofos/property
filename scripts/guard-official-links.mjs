@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+// ═══════════════════════════════════════════════════════════════════════════
+// ΚΑΜΙΑ ΔΙΕΥΘΥΝΣΗ ΤΗΣ ΑΑΔΕ ΓΡΑΜΜΕΝΗ ΣΤΟ ΧΕΡΙ, ΕΞΩ ΑΠΟ ΤΟ ΜΗΤΡΩΟ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Δεκατρείς διευθύνσεις ΑΑΔΕ σε δεκατρία αρχεία, και
+// ΠΕΝΤΕ διαφορετικές για το ίδιο πράγμα — τα μισθωτήρια:
+//
+//     /polites/eisodima/misthotiria-akiniton                        4 σημεία
+//     /misthoseis-akiniton                                          2 σημεία
+//     /polites/foroi/misthotiria                                    2 σημεία
+//     /polites/misthoseis-akiniton                                  1 σημείο
+//     /polites/misthoseis-akiniton-dilosi-plirophoriakon-stoicheion 1 σημείο
+//
+// Το πολύ ΜΙΑ μπορεί να είναι σωστή. Στο `TabTenant.tsx` δύο από αυτές ήταν
+// γραμμένες η μία κάτω από την άλλη, σε διπλανές γραμμές. Και δίπλα τους μια
+// τρίτη προθεσμία, καρφωμένη και λάθος.
+//
+// ΓΙΑΤΙ ΦΥΛΑΚΑΣ ΚΑΙ ΟΧΙ ΑΠΛΩΣ ΔΙΟΡΘΩΣΗ. Οι δεκατρείς δεν γράφτηκαν την ίδια
+// μέρα· μαζεύτηκαν. Κάθε φορά που κάποιος χρειάστηκε σύνδεσμο, τον έψαξε και
+// τον επικόλλησε — κίνηση απολύτως φυσική, που ΞΑΝΑΓΙΝΕΤΑΙ. Η διόρθωση χωρίς
+// φύλακα αντέχει μέχρι το επόμενο «θέλω κι εδώ έναν σύνδεσμο».
+//
+// ΤΙ ΕΠΙΤΡΕΠΕΤΑΙ. Το `lib/tax/aade.ts` κρατά τις ρίζες και τη διαδρομή σε
+// λέξεις. Ό,τι χρειάζεται σύνδεσμο τον ΕΙΣΑΓΕΙ από εκεί. Οι δοκιμές και τα
+// σχόλια μένουν έξω από τον έλεγχο: εκεί η διεύθυνση είναι τεκμήριο, όχι
+// προορισμός — γι' αυτό ακριβώς είναι γραμμένες οι πέντε παραπάνω μέσα σε αυτό
+// το σχόλιο, χωρίς ο φύλακας να χτυπά τον εαυτό του.
+// ═══════════════════════════════════════════════════════════════════════════
+import { readFileSync } from 'node:fs'
+import { findSources } from './lib/find-tests.mjs'
+
+/** Οι αρχές των οποίων οι διευθύνσεις ζουν ΜΟΝΟ στο μητρώο. */
+const HOSTS = /https?:\/\/(?:[\w-]+\.)*(aade|gsis)\.gr[^\s'"`)]*/g
+
+/** Το μητρώο το ίδιο, και οι δοκιμές του. */
+const ALLOWED = new Set(['lib/tax/aade.ts'])
+
+const findings = []
+for (const file of findSources()) {
+  if (ALLOWED.has(file) || file.endsWith('.test.ts') || file.endsWith('.test.tsx')) continue
+  const src = readFileSync(file, 'utf8')
+  src.split('\n').forEach((line, i) => {
+    // Σχόλια: εκεί η διεύθυνση τεκμηριώνει, δεν στέλνει κανέναν πουθενά.
+    const t = line.trim()
+    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return
+    for (const m of line.matchAll(HOSTS)) findings.push({ file, line: i + 1, url: m[0] })
+  })
+}
+
+if (findings.length) {
+  console.error('✗ Διευθύνσεις ΑΑΔΕ/ΓΓΠΣ γραμμένες στο χέρι, εκτός μητρώου:\n')
+  for (const f of findings) console.error(`  ${f.file}:${f.line}\n    ${f.url}`)
+  console.error(`\n${findings.length} ευρήματα. Εισάγετε τον προορισμό από lib/tax/aade.ts`)
+  console.error('(AADE_HOME, MYAADE, AADE_CALENDAR, GSIS_OBJECTIVE_VALUES, AADE_DESTINATIONS)')
+  console.error('ή, στην οθόνη, χρησιμοποιήστε <AadeLink> / <AadePill> από components/AadeLink.tsx.')
+  process.exit(1)
+}
+console.log('✓ κάθε διεύθυνση ΑΑΔΕ/ΓΓΠΣ έρχεται από το μητρώο')

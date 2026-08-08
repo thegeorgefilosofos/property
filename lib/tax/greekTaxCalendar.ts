@@ -20,6 +20,7 @@
 import { isNonWorkingDay } from '../calendar/greekHolidays'
 import { readStatus, type StatusRow } from '../property/status'
 import { WHO_LABEL, type Who } from '../accounting/dossier'
+import { AADE_CALENDAR, AADE_DESTINATIONS, aadePath, destinationForKind } from './aade'
 
 export type PropertyTaxProfile = 'owner' | 'long_term' | 'short_term'
 
@@ -48,9 +49,13 @@ export interface TaxObligation {
   dossier?: string
 }
 
-export const AADE_CALENDAR_URL = 'https://www.aade.gr/eforologiko-imerologio'
+/** Η υποχρέωση ΠΡΙΝ μπει ο προορισμός. Το `official_url` δεν γράφεται στο χέρι
+ *  σε καμία από τις οκτώ: προκύπτει από το είδος, στο ένα σημείο πιο κάτω. */
+type Draft = Omit<TaxObligation, 'official_url'>
+
+export { AADE_CALENDAR as AADE_CALENDAR_URL } from './aade'
 export const TAXHEAVEN_CALENDAR_URL = 'https://www.taxheaven.gr/calendar'
-const CONFIRM = `Επιβεβαίωσε την ακριβή ημερομηνία στο myAADE (${AADE_CALENDAR_URL}) και στο ${TAXHEAVEN_CALENDAR_URL}.`
+const CONFIRM = `Επιβεβαίωσε την ακριβή ημερομηνία στο myAADE (${AADE_CALENDAR}) και στο ${TAXHEAVEN_CALENDAR_URL}.`
 
 // ── Το κλειδί ταυτότητας του γεγονότος ──────────────────────────────────────
 // ΚΑΘΕ σημείο της εφαρμογής που γράφει φορολογική προθεσμία στο `calendar_events`
@@ -134,8 +139,8 @@ export function lastWorkingDayOfMonth(y: number, mIndex0: number): string {
 }
 
 // Οι υποχρεώσεις που ισχύουν για ΟΛΟΥΣ τους ιδιοκτήτες ακινήτων, ανά έτος.
-function ownerObligations(year: number): TaxObligation[] {
-  const out: TaxObligation[] = []
+function ownerObligations(year: number): Draft[] {
+  const out: Draft[] = []
 
   // ── ΕΝΦΙΑ: ετήσιος φόρος κατοχής ακινήτων. Εκκαθαριστικό εκδίδεται συνήθως
   // Απρίλιο/Μάιο, πληρωμή σε μηνιαίες δόσεις (τελευταία εργάσιμη κάθε μήνα) έως
@@ -145,21 +150,21 @@ function ownerObligations(year: number): TaxObligation[] {
     kind: 'enfia-issue', id: `enfia-issue-${year}`, date: nextWorkingDay(iso(year, 2, 15)), // ~μέσα Μαρτίου (2026: 15/3)
     title: 'ΕΝΦΙΑ, έκδοση εκκαθαριστικού (αναμένεται)',
     notes: `Ο ΕΝΦΙΑ (Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων) εκκαθαρίζεται πλέον νωρίτερα (τα τελευταία έτη ~μέσα Μαρτίου) και πληρώνεται εφάπαξ ή σε 12 μηνιαίες δόσεις έως τον Φεβρουάριο του επόμενου έτους. ${CONFIRM}`,
-    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    category: 'tax', confidence: 'announced', profiles: ['owner', 'long_term', 'short_term'],
     who: 'owner', dossier: 'enfia',
   })
   out.push({
     kind: 'enfia-first', id: `enfia-first-${year}`, date: lastWorkingDayOfMonth(year, 2), // τέλος Μαρτίου
     title: 'ΕΝΦΙΑ, 1η δόση',
     notes: `Καταληκτική 1ης δόσης ΕΝΦΙΑ (τα τελευταία έτη τέλος Μαρτίου). Ακολουθούν έως 12 μηνιαίες δόσεις έως τον Φεβρουάριο του επόμενου έτους. ${CONFIRM}`,
-    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    category: 'tax', confidence: 'announced', profiles: ['owner', 'long_term', 'short_term'],
     who: 'owner', dossier: 'enfia',
   })
   out.push({
     kind: 'enfia-last', id: `enfia-last-${year}`, date: lastWorkingDayOfMonth(year + 1, 1), // τέλος Φεβρουαρίου επόμενου έτους
     title: 'ΕΝΦΙΑ, τελευταία δόση',
     notes: `Καταληκτική τελευταίας δόσης ΕΝΦΙΑ (τυπικά τελευταία εργάσιμη Φεβρουαρίου του επόμενου έτους, 12η δόση). ${CONFIRM}`,
-    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    category: 'tax', confidence: 'announced', profiles: ['owner', 'long_term', 'short_term'],
     who: 'owner', dossier: 'enfia',
   })
 
@@ -173,7 +178,7 @@ function ownerObligations(year: number): TaxObligation[] {
     kind: 'e9', id: `e9-${year}`, date: lastWorkingDayOfMonth(year, 1),
     title: 'Ε9, έλεγχος/δήλωση μεταβολών ακινήτων',
     notes: `Έλεγξε ότι έχεις δηλώσει στο Ε9 κάθε μεταβολή ακινήτου (αγορά, πώληση, μεταβίβαση, κληρονομιά). Η νόμιμη προθεσμία είναι 30 ημέρες από την ίδια τη μεταβολή — τακτοποίησε το πριν την έκδοση του ΕΝΦΙΑ. Αν δεν είχες μεταβολή, δεν απαιτείται. ${CONFIRM}`,
-    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    category: 'tax', confidence: 'announced', profiles: ['owner', 'long_term', 'short_term'],
     who: 'accountant', dossier: 'e9',
   })
 
@@ -206,7 +211,7 @@ function ownerObligations(year: number): TaxObligation[] {
     kind: 'income-autofile', id: `income-autofile-${year}`, date: iso(year, 3, 15),
     title: 'Έλεγχος προσυμπληρωμένης δήλωσης, πριν οριστικοποιηθεί μόνη της',
     notes: `Τελευταία μέρα για διόρθωση με ΑΡΧΙΚΗ δήλωση. Όσες δηλώσεις είναι προσυμπληρωμένες και δεν πειραχτούν, οριστικοποιούνται ΑΥΤΟΜΑΤΑ από την ΑΑΔΕ την επόμενη μέρα (16 Απριλίου). Αφορά κυρίως όσους έχουν μόνο προσυμπληρωμένα εισοδήματα, δηλαδή μισθωτούς και συνταξιούχους — αν έχεις έντυπο Ε2 συνήθως δεν είσαι σε αυτή την ομάδα, αλλά το Ε2 προσυμπληρώνεται πλέον από τις δηλώσεις μίσθωσης και τις πλατφόρμες, οπότε άξιζει ο έλεγχος. Μετά την οριστικοποίηση η διόρθωση γίνεται με τροποποιητική δήλωση, χωρίς κυρώσεις, από 17 Απριλίου έως 15 Ιουλίου. ${CONFIRM}`,
-    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    category: 'tax', confidence: 'announced', profiles: ['owner', 'long_term', 'short_term'],
     who: 'owner',
   })
 
@@ -220,7 +225,7 @@ function ownerObligations(year: number): TaxObligation[] {
     kind: 'income-decl', id: `income-decl-${year}`, date: nextWorkingDay(iso(year, 6, 15)),
     title: 'Δήλωση εισοδήματος (Ε1/Ε2 ακινήτων)',
     notes: `Καταληκτική υποβολής δήλωσης φορολογίας εισοδήματος (Ε1). Το εισόδημα από εκμίσθωση/ιδιοχρησιμοποίηση ακινήτων δηλώνεται στο έντυπο Ε2. Τα τελευταία έτη η προθεσμία είναι 15 Ιουλίου, με έκπτωση φόρου για εμπρόθεσμη υποβολή/εφάπαξ εξόφληση και δυνατότητα καταβολής σε έως 8 δόσεις. ${CONFIRM}`,
-    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    category: 'tax', confidence: 'announced', profiles: ['owner', 'long_term', 'short_term'],
     who: 'accountant',
   })
 
@@ -228,8 +233,8 @@ function ownerObligations(year: number): TaxObligation[] {
 }
 
 // Επιπλέον υποχρεώσεις για ΒΡΑΧΥΧΡΟΝΙΑ μίσθωση (Airbnb/Booking).
-function shortTermObligations(year: number): TaxObligation[] {
-  const out: TaxObligation[] = []
+function shortTermObligations(year: number): Draft[] {
+  const out: Draft[] = []
   for (let m = 0; m < 12; m++) {
     // Δήλωση Βραχυχρόνιας Διαμονής στο «Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής»
     // της ΑΑΔΕ: υποβάλλεται έως την 20ή του επόμενου μήνα από την αναχώρηση.
@@ -237,7 +242,7 @@ function shortTermObligations(year: number): TaxObligation[] {
       kind: 'str-registry', id: `str-registry-${year}-${m + 1}`, date: nextWorkingDay(iso(year, m, 20)),
       title: 'Δήλωση βραχυχρόνιας διαμονής (Μητρώο ΑΑΔΕ)',
       notes: `Υποβολή Δήλωσης Βραχυχρόνιας Διαμονής για τις αναχωρήσεις του προηγούμενου μήνα, έως την 20ή. ${CONFIRM}`,
-      category: 'tax', confidence: 'statutory', official_url: AADE_CALENDAR_URL, profiles: ['short_term'],
+      category: 'tax', confidence: 'statutory', profiles: ['short_term'],
       who: 'owner', dossier: 'short_stays',
     })
     // Τέλος ανθεκτικότητας στην κλιματική κρίση (πρώην φόρος διαμονής): μηνιαία
@@ -246,7 +251,7 @@ function shortTermObligations(year: number): TaxObligation[] {
       kind: 'str-climate-fee', id: `str-climate-fee-${year}-${m + 1}`, date: lastWorkingDayOfMonth(year, m),
       title: 'Τέλος ανθεκτικότητας κλιματικής κρίσης, απόδοση',
       notes: `Μηνιαία απόδοση του τέλους ανθεκτικότητας στην κλιματική κρίση (τέλος διαμονής) που εισπράχθηκε από τους επισκέπτες, έως το τέλος του επόμενου μήνα. ${CONFIRM}`,
-      category: 'tax', confidence: 'statutory', official_url: AADE_CALENDAR_URL, profiles: ['short_term'],
+      category: 'tax', confidence: 'statutory', profiles: ['short_term'],
       who: 'owner', dossier: 'climate_levy',
     })
   }
@@ -254,11 +259,21 @@ function shortTermObligations(year: number): TaxObligation[] {
 }
 
 // Δημόσιο API: όλες οι φορολογικές υποχρεώσεις ακινήτου για το έτος & τον τύπο.
+//
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ ΕΔΩ Η ΤΕΛΕΥΤΑΙΑ ΓΡΑΜΜΗ. Κάθε υποχρέωση γραφόταν με
+// `official_url: AADE_CALENDAR_URL` — και οι οκτώ, η ίδια γενική σελίδα. Ο
+// χρήστης πατούσε «Επίσημη πηγή» πάνω στη δόση του ΕΝΦΙΑ και έβρισκε το
+// ημερολόγιο ΟΛΩΝ των φόρων της χώρας, όπου έπρεπε να ψάξει από την αρχή. Η
+// σελίδα δεν ήταν λάθος· ήταν άχρηστη, που είναι χειρότερο, γιατί μοιάζει σωστή.
+//
+// Ο προορισμός δεν γράφεται πια στο χέρι: προκύπτει από το ΕΙΔΟΣ, μέσα από το
+// `lib/tax/aade.ts`, όπου κάθε ενέργεια έχει έναν και μόνο προορισμό.
 export function greekPropertyTaxObligations(year: number, profile: PropertyTaxProfile): TaxObligation[] {
   const all = [...ownerObligations(year), ...(profile === 'short_term' ? shortTermObligations(year) : [])]
   return all
     .filter((o) => o.profiles.includes(profile))
     .sort((a, b) => a.date.localeCompare(b.date))
+    .map((o) => ({ ...o, official_url: AADE_DESTINATIONS[destinationForKind(o.kind)].url }))
 }
 
 /**
@@ -328,5 +343,12 @@ export function taxObligationNotes(o: TaxObligation): string {
   // Η ΣΗΜΕΙΩΣΗ ΠΑΙΡΝΕΙ ΤΗΝ ΠΛΗΡΗ ΕΞΗΓΗΣΗ, ΟΧΙ ΤΗΝ ΕΤΙΚΕΤΑ. Η ετικέτα είναι δύο
   // λέξεις γιατί κάθεται μέσα σε chip δίπλα σε άλλες· η σημείωση διαβάζεται σαν
   // πρόταση και έχει τον χώρο να πει και το τι κάνεις γι' αυτό.
+  //
+  // ΚΑΙ ΤΟ ΠΟΥ. Ό,τι κι αν κάνει το ημερολόγιο, κάποια στιγμή ο χρήστης πρέπει
+  // να ΠΑΕΙ κάπου — και μέχρι τώρα δεν του το έλεγε κανείς. Η διαδρομή γράφεται
+  // σε λέξεις («myAADE → Εφαρμογές → …») γιατί οι διευθύνσεις της ΑΑΔΕ αλλάζουν,
+  // τα ονόματα των υπηρεσιών της όχι· και ταξιδεύει με τη σημείωση παντού, στην
+  // εκτύπωση, στο .ics και στο Excel, όχι μόνο στην οθόνη.
   return `${o.notes} Ποιος το κάνει: ${WHO_LABEL[o.who]}. ${CONFIDENCE_HINT[o.confidence]}`
+    + ` Πού γίνεται: ${aadePath(destinationForKind(o.kind))}.`
 }

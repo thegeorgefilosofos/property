@@ -25,6 +25,8 @@ import { computeLease, leasePreamble, leaseTerms, type LeaseUse } from '@/lib/do
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, reportPdfBlob, pEur, type PdfReportModel } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
+import { MYAADE } from '@/lib/tax/aade';
+import { aadeTitle } from '@/components/AadeLink';
 
 interface Prop { id: string; name: string; address: string | null; sqm?: number | null; atak?: string | null }
 
@@ -357,7 +359,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
-                  Μετά την υπογραφή, υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης</strong> στο <a href="https://www.aade.gr/misthoseis-akiniton" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>, έως {grDate(res.declarationDeadline)}.
+                  Μετά την υπογραφή, υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης</strong> στο <a href={MYAADE} target="_blank" rel="noreferrer" title={aadeTitle('lease')} style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>, έως {grDate(res.declarationDeadline)}.
                 </div>
               </div>
 

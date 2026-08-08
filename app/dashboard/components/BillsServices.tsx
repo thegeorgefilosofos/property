@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fp, Spinner, EmptyState, histInputStyle } from '@/components/Theme';
+import { AadePill } from '@/components/AadeLink';
 import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { navLabel } from '@/lib/nav/labels';
@@ -279,21 +280,16 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div>
               <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>ΕΝΦΙΑ 2026, Υπολογιστής</div>
-              <div title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων), μέσω myAADE" style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9, επαλήθευσε στο myAADE.gr</div>
+              <div title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων), μέσω myAADE" style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9, επαλήθευσε στο myAADE</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, border: '1px solid var(--border-subtle)', textTransform: 'uppercase' as const }}>Εκτίμηση</span>
-            {/* FIX: direct taxheaven ΕΝΦΙΑ link */}
-            <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'var(--accent-soft)', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)' }}>
-              taxheaven ΕΝΦΙΑ →
-            </a>
-            <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
-              title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-              Ε9 / ΕΝΦΙΑ (myAADE) →
-            </a>
+            {/* ΔΥΟ ΚΟΥΜΠΙΑ ΓΙΑ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ, ΤΟ ΕΝΑ ΣΕ ΑΡΘΡΟ ΕΙΔΗΣΕΩΝ. Το πρώτο
+                έδειχνε σε δημοσίευμα με καρφωμένο αριθμό άρθρου (/news/73091/…) —
+                μέσα σε φορολογικό εργαλείο αυτό σαπίζει και δεν είναι καν επίσημη
+                πηγή. Μένει ο προορισμός της ΑΑΔΕ, μία φορά. */}
+            <AadePill action="enfia" label="Ε9 και ΕΝΦΙΑ"/>
             <button onClick={() => upd({ enfiaShowCalc: !s.enfiaShowCalc })}
               style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 10px', cursor: 'pointer', fontFamily: T.font.sans }}>
               {s.enfiaShowCalc ? '▲ Σύμπτυξη' : '▼ Ανάπτυξη'}
@@ -320,8 +316,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}/>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
             <span style={{ fontWeight: 700, color: 'var(--accent)' }}>Νέο 2026: </span>
-            Αύξηση ~8% στους συντελεστές. Μείωση 10-20% αν ασφαλίζεται για φυσικές καταστροφές (Α.1005/2026).{' '}
-            <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Ανάλυση ΕΝΦΙΑ 2026 →</a>
+            Αύξηση περίπου 8% στους συντελεστές. Μείωση 10–20% αν το ακίνητο ασφαλίζεται για φυσικές καταστροφές (Α.1005/2026).
           </div>
         </div>
 
@@ -486,18 +481,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <EmptyState
                   icon={<Calculator size={20} />}
                   title="Συμπλήρωσε εμβαδόν και τιμή ζώνης"
-                  hint="Η τιμή ζώνης βρίσκεται στο myAADE → Εφαρμογές → Δήλωση Ε9/ΕΝΦΙΑ"
+                  hint="Η τιμή ζώνης δημοσιεύεται από τη ΓΓΠΣ, το εμβαδόν το βρίσκεις στο Ε9 σου"
                   action={
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
-                      <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
-                        title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                        Δήλωση Ε9/ΕΝΦΙΑ (myAADE) →
-                      </a>
-                      <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                        ΕΝΦΙΑ 2026 →
-                      </a>
+                      <AadePill action="objective-values" label="Τιμή ζώνης"/>
+                      <AadePill action="e9" label="Το Ε9 μου"/>
                     </div>
                   }
                 />

@@ -12,6 +12,7 @@
 import { marginalRate, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax'
 import { REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026'
 import { fe } from '../core/format';
+import { MYAADE } from '@/lib/tax/aade';
 
 const upd = (id: string) => REGULATORY_UPDATES_2026.find(u => u.id === id)
 
@@ -62,8 +63,8 @@ const eur = fe;
 // Επίσημες, επαληθευμένες πηγές (deep links). Ανοίγουν στον browser του χρήστη
 // σε νέα καρτέλα. Ελέγχθηκαν ώστε να οδηγούν στην ακριβή σελίδα, όχι σε αρχική.
 const SRC = {
-  aadeRentals: 'https://www.aade.gr/polites/eisodima/misthotiria-akiniton',
-  aadeIncome: 'https://www.aade.gr/polites/eisodima/dilosi-forologias-eisodimatos-fp-e1-e2-e3',
+  aadeRentals: MYAADE,
+  aadeIncome: MYAADE,
   spitiMou: 'https://stegasi.gov.gr/programs/spiti-mou-ii/',
   anakainizo: 'https://www.gov.gr/ipiresies/periousia-kai-phorologia/epidoteseis-politon/anakainizo-noikiazo',
   exoikonomo: 'https://www.gov.gr/ipiresies/periousia-kai-phorologia/diakheirise-akinetes-periousias/exoikonomo-2025',

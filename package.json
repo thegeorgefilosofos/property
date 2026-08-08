@@ -37,7 +37,8 @@
     "rls-initplan": "node scripts/guard-rls-initplan.mjs",
     "csp-connect": "node scripts/guard-csp-connect.mjs",
     "download": "node scripts/guard-download.mjs",
-    "type-scale": "node scripts/guard-type-scale.mjs"
+    "type-scale": "node scripts/guard-type-scale.mjs",
+    "official-links": "node scripts/guard-official-links.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
