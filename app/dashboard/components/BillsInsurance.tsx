@@ -971,6 +971,80 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       <div style={card}>
         {secHdr('Ασφάλεια κατοικίας')}
 
+        {/* ── ΤΟ ΔΙΚΟ ΣΟΥ ΑΣΦΑΛΙΣΤΗΡΙΟ, ΠΡΩΤΑ ────────────────────────────────
+            ΗΤΑΝ ΤΕΛΕΥΤΑΙΟ, ΜΕΤΑ ΑΠΟ ~150 ΓΡΑΜΜΕΣ ΚΑΤΑΛΟΓΟΥ ΑΓΟΡΑΣ: στοιχεία
+            ακινήτου, φίλτρα, «τι χρειάζεται αυτό το ακίνητο», προτεινόμενο,
+            τρεις κάρτες προσφορών και πλήρης πίνακας — και μετά, στο τέλος, το
+            συμβόλαιο που ΕΧΕΙ ο ιδιοκτήτης.
+
+            Η ίδια ανάποδη ιεραρχία που διορθώθηκε ένα επίπεδο πιο πάνω, στα
+            Συμβόλαια: κανείς δεν ανοίγει την Ασφάλεια για να μελετήσει την
+            αγορά, την ανοίγει για να δει τι έχει και πότε λήγει. Η αγορά είναι
+            η ΔΕΥΤΕΡΗ ερώτηση, και μένει ακέραιη από κάτω. */}
+        {/* ── Current plan selection ────────────────────────────────────── */}
+        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον πρόγραμμα</div>
+          <div style={g3}>
+            <CustomSelect label="Ασφαλιστική εταιρεία" value={insProvider}
+              onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
+              options={insOptions}/>
+            <CustomSelect label="Πρόγραμμα ασφάλισης" value={insPlanId}
+              onChange={v => u({ insPlanId: v, insEditCovers: false })}
+              options={insPlanOptions}/>
+            <NumberInput label="Πραγματικό κόστος τον μήνα" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
+          </div>
+          <div style={g4}>
+            <TextInput   label={insCompany?.agent_label || 'Ασφαλιστής'} value={insAgentName}    onChange={v => u({ insAgentName: v })}    placeholder="Ονοματεπώνυμο"/>
+            <TextInput   label="Τηλέφωνο ασφαλιστή"                      value={insAgentPhone}   onChange={v => u({ insAgentPhone: v })}   placeholder="69xxxxxxxx"/>
+            <DatePicker  label="Ημερομηνία ανανέωσης"                     value={insRenewalDate}  onChange={v => u({ insRenewalDate: v })}/>
+            {insCompany?.url && (
+              <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+                <a href={insCompany.url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '9px 14px', fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+                  Επίσημη σελίδα →
+                </a>
+              </div>
+            )}
+          </div>
+
+          {insPlan && (
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις Προγράμματος</div>
+                <button onClick={() => { u({ insEditCovers: !insEditCovers }); if (!insEditCovers) { u({ insCustomCovers: effectiveCovers.join(', '), insCustomEarthquake: effectiveEarthquake, insCustomFlood: effectiveFloodState, insCustomNatural: effectiveNatural }); } }}
+                  style={{ fontSize: 10, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
+                  {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
+                </button>
+              </div>
+              {/* Δυναμικός πίνακας καλύψεων, ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
+                {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? '✓' : '—'}</span>
+                    <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
+                  </div>
+                ))}
+              </div>
+              {insEditCovers && (
+                <div>
+                  <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός…"
+                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς Σεισμό"/>
+                    <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς Πλημμύρα"/>
+                    <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές" labelOff="Χωρίς"/>
+                  </div>
+                </div>
+              )}
+              {effectiveEarthquake && effectiveFloodState && (
+                <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
+                  Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* ── Property details for live quotes ──────────────────────────── */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
@@ -1154,69 +1228,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
           <InfoBanner tone="info">Συμπλήρωσε εμβαδόν και αξία κτηρίου για συγκριτική εκτίμηση ασφαλίστρων.</InfoBanner>
         )}
 
-        {/* ── Current plan selection ────────────────────────────────────── */}
-        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 4 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον πρόγραμμα</div>
-          <div style={g3}>
-            <CustomSelect label="Ασφαλιστική εταιρεία" value={insProvider}
-              onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
-              options={insOptions}/>
-            <CustomSelect label="Πρόγραμμα ασφάλισης" value={insPlanId}
-              onChange={v => u({ insPlanId: v, insEditCovers: false })}
-              options={insPlanOptions}/>
-            <NumberInput label="Πραγματικό κόστος τον μήνα" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
-          </div>
-          <div style={g4}>
-            <TextInput   label={insCompany?.agent_label || 'Ασφαλιστής'} value={insAgentName}    onChange={v => u({ insAgentName: v })}    placeholder="Ονοματεπώνυμο"/>
-            <TextInput   label="Τηλέφωνο ασφαλιστή"                      value={insAgentPhone}   onChange={v => u({ insAgentPhone: v })}   placeholder="69xxxxxxxx"/>
-            <DatePicker  label="Ημερομηνία ανανέωσης"                     value={insRenewalDate}  onChange={v => u({ insRenewalDate: v })}/>
-            {insCompany?.url && (
-              <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
-                <a href={insCompany.url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '9px 14px', fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                  Επίσημη σελίδα →
-                </a>
-              </div>
-            )}
-          </div>
-
-          {insPlan && (
-            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις Προγράμματος</div>
-                <button onClick={() => { u({ insEditCovers: !insEditCovers }); if (!insEditCovers) { u({ insCustomCovers: effectiveCovers.join(', '), insCustomEarthquake: effectiveEarthquake, insCustomFlood: effectiveFloodState, insCustomNatural: effectiveNatural }); } }}
-                  style={{ fontSize: 10, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
-                  {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
-                </button>
-              </div>
-              {/* Δυναμικός πίνακας καλύψεων, ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
-                {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? '✓' : '—'}</span>
-                    <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
-                  </div>
-                ))}
-              </div>
-              {insEditCovers && (
-                <div>
-                  <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός…"
-                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς Σεισμό"/>
-                    <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς Πλημμύρα"/>
-                    <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές" labelOff="Χωρίς"/>
-                  </div>
-                </div>
-              )}
-              {effectiveEarthquake && effectiveFloodState && (
-                <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
-                  Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ── Streaming & Ψυχαγωγία ────────────────────────────────────────── */}
