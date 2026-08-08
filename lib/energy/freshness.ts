@@ -37,12 +37,16 @@ export const RAAEY_COMPARE =
   'https://www.gov.gr/upourgeia/oloi-foreis/ruthmistike-arkhe-apobleton-energeias-kai-udaton/sugkrise-timon-elektrikes-energeias-kai-phusikou-aeriou';
 
 /**
- * Πόσες μέρες μετά την επαλήθευση σταματά η σύγκριση να ονομάζει νικητή.
+ * Προεπιλεγμένο κατώφλι παλαιότητας, όταν ο καλών δεν ορίζει δικό του.
  *
- * Σαράντα πέντε, όχι τριάντα: τα κυμαινόμενα ανακοινώνονται την 1η του μήνα,
- * οπότε ένας κατάλογος επαληθευμένος στα μέσα του μήνα πρέπει να αντέξει ως τα
- * μέσα του επόμενου. Το ίδιο κατώφλι με τα επιτόκια τραπεζών (TabLoan) — μία
- * έννοια παλαιότητας σε όλη την εφαρμογή, όχι δύο.
+ * ΤΟ ΚΑΤΩΦΛΙ ΔΕΝ ΕΙΝΑΙ ΕΝΑ ΓΙΑ ΟΛΑ, ΚΑΙ ΤΟ ΕΡΓΟ ΤΟ ΗΞΕΡΕ ΠΡΙΝ ΑΠΟ ΜΕΝΑ. Το
+ * `data/price-sources.json` ορίζει `maxAgeDays` ΑΝΑ κατηγορία, με γραμμένη
+ * αιτιολογία: 40 για το ρεύμα («κάθε προμηθευτής δημοσιεύει το τιμολόγιο του
+ * επόμενου μήνα μέχρι τις 20 του τρέχοντος»), 120 για την ασφάλεια («τα
+ * προγράμματα κατοικίας δεν αλλάζουν μηνιαία»). Η πρώτη εκδοχή αυτού του αρχείου
+ * κάρφωνε 45 για όλα — τρίτη πηγή αλήθειας για την ίδια έννοια, και λάθος και
+ * στις δύο κατευθύνσεις: αυστηρότερη από όσο χρειάζεται στην ασφάλεια,
+ * χαλαρότερη από όσο πρέπει στο ρεύμα.
  */
 export const STALE_AFTER_DAYS = 45;
 
@@ -73,7 +77,7 @@ function parseDay(iso: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-export function freshness(verifiedAt: string, today: Date): Freshness {
+export function freshness(verifiedAt: string, today: Date, maxAgeDays = STALE_AFTER_DAYS): Freshness {
   const v = parseDay(verifiedAt);
   if (!v) {
     // Χωρίς ημερομηνία επαλήθευσης δεν υπάρχει «φρέσκο». Η άγνωστη ηλικία
@@ -84,11 +88,11 @@ export function freshness(verifiedAt: string, today: Date): Freshness {
   }
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const ageDays = Math.floor((t.getTime() - v.getTime()) / DAY_MS);
-  const stale = ageDays > STALE_AFTER_DAYS;
+  const stale = ageDays > maxAgeDays;
   return {
     ageDays, stale, canRank: !stale,
     note: stale
-      ? `Οι τιμές επαληθεύτηκαν πριν από ${ageDays} ημέρες και τα τιμολόγια αλλάζουν την 1η κάθε μήνα. Δεν προτείνουμε καλύτερη επιλογή σε παλιά στοιχεία, γιατί η επιλογή δεσμεύει.`
+      ? `Οι τιμές επαληθεύτηκαν πριν από ${ageDays} ημέρες. Δεν προτείνουμε καλύτερη επιλογή σε παλιά στοιχεία, γιατί η επιλογή δεσμεύει.`
       : '',
   };
 }

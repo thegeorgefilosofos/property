@@ -60,6 +60,8 @@ const DURATION_OPTIONS = [
  * πλέον από το ίδιο test — αλλιώς η επόμενη απόκλιση θα ήταν εξίσου αθόρυβη.
  */
 export const TARIFFS_VERIFIED = '2026-07-29';
+/** Το κατώφλι του ρεύματος, από το `maxAgeDays` του data/price-sources.json. */
+export const TARIFFS_MAX_AGE_DAYS = 40;
 
 // ── REAL TARIFFS, SOURCE: bestenergydeals.gr / pricefox.gr / Selectra (June–July 2026) ──
 // Τα πεδία που χρειάζεται ο ΥΠΟΛΟΓΙΣΜΟΣ ζουν στο lib/energy/tariff.ts. Εδώ
@@ -355,7 +357,7 @@ export function electricitySwitchFinding(
   // ΔΥΟ ΠΡΟΫΠΟΘΕΣΕΙΣ ΓΙΑ ΝΑ ΠΟΥΜΕ «ΑΛΛΑΞΕ»: αξιόπιστη κατανάλωση (ίσχυε ήδη,
   // πιο πάνω) ΚΑΙ φρέσκος κατάλογος (έλειπε). Η ειδοποίηση είναι αυτόκλητη και
   // οδηγεί σε δέσμευση δώδεκα μηνών· σε τιμές περασμένου μήνα δεν εκδίδεται.
-  if (!canRecommend(freshness(TARIFFS_VERIFIED, new Date()), usageEst.reliable)) return null;
+  if (!canRecommend(freshness(TARIFFS_VERIFIED, new Date(), TARIFFS_MAX_AGE_DAYS), usageEst.reliable)) return null;
 
   return {
     current, best: best.cost.total, savingsMonthly: savings,
@@ -494,7 +496,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   // «Μπορείς να εξοικονομήσεις», και πλακίδιο «Εξοικονόμηση vs καλύτερο» — όλα
   // πάνω σε τιμές που μπορεί να είναι περασμένου μήνα. Η πιο ήσυχη διαδρομή
   // ήταν αυστηρότερη από την πιο ορατή.
-  const fresh = freshness(TARIFFS_VERIFIED, new Date());
+  const fresh = freshness(TARIFFS_VERIFIED, new Date(), TARIFFS_MAX_AGE_DAYS);
   const canRank = canRecommend(fresh, usageEst.reliable);
 
   const secHdr = (label: string, sub?: string) => (

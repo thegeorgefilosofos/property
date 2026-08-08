@@ -43,6 +43,20 @@ const v = /const TARIFFS_VERIFIED = '([^']+)'/.exec(component);
 ok('η ημερομηνία επαλήθευσης υπάρχει στο component', v !== null);
 eq('και συμφωνεί με το checkedAt του data/price-sources.json', v?.[1], sources.electricity.checkedAt);
 
+// Και το ΚΑΤΩΦΛΙ: το JSON το ορίζει ανά κατηγορία με γραμμένη αιτιολογία, οπότε
+// ένας αριθμός καρφωμένος στο component που δεν συμφωνεί ακυρώνει την αιτιολογία.
+const ma = /const TARIFFS_MAX_AGE_DAYS = (\d+)/.exec(component);
+eq('το κατώφλι παλαιότητας συμφωνεί με το maxAgeDays', Number(ma?.[1]), sources.electricity.maxAgeDays);
+
+// ── ΤΟ ΙΔΙΟ ΓΙΑ ΤΗΝ ΑΣΦΑΛΕΙΑ ────────────────────────────────────────────
+// Σαράντα οκτώ ασφάλιστρα παρουσιάζονταν χωρίς καμία ημερομηνία, ενώ η οθόνη
+// ανακήρυσσε «ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ». Τρεις κατάλογοι, τρία πρότυπα.
+const ins = readFileSync('app/dashboard/components/BillsInsurance.tsx', 'utf8');
+const iv = /const INSURANCE_VERIFIED = '([^']+)'/.exec(ins);
+const im = /const INSURANCE_MAX_AGE_DAYS = (\d+)/.exec(ins);
+eq('η ημερομηνία της ασφάλειας συμφωνεί με το checkedAt', iv?.[1], sources.insurance.checkedAt);
+eq('και το κατώφλι της με το maxAgeDays', Number(im?.[1]), (sources.insurance as { maxAgeDays: number }).maxAgeDays);
+
 // Η ημερομηνία ελέγχου πρέπει να είναι πραγματική ημερομηνία, όχι κείμενο.
 for (const key of ['electricity', 'gas', 'insurance'] as const) {
   const iso = sources[key].checkedAt;

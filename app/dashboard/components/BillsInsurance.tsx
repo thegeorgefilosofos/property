@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, InfoBanner, Skeleton, SkeletonKPIs, localDay } from '@/components/Theme';
+import { freshness } from '@/lib/energy/freshness';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
 import { normalizeEnfiaAgeKey } from '@/lib/billing/enfia';
 
@@ -19,12 +20,26 @@ import { normalizeEnfiaAgeKey } from '@/lib/billing/enfia';
 //
 // Το κλειδί περνά τώρα από την ίδια μετάφραση με τον ΕΝΦΙΑ, οπότε δουλεύει και
 // με τα παλιά ονόματα που κάθονται ήδη στις ρυθμίσεις των χρηστών.
+/**
+ * ΠΟΤΕ ΕΠΑΛΗΘΕΥΤΗΚΑΝ ΤΑ ΑΣΦΑΛΙΣΤΡΑ ΤΟΥ ΚΑΤΑΛΟΓΟΥ.
+ *
+ * ΤΟ ΚΕΝΟ: σαράντα οκτώ ασφάλιστρα και είκοσι οκτώ τιμές συνδρομών
+ * παρουσιάζονταν χωρίς καμία ημερομηνία ή πηγή ανά εγγραφή — ενώ η οθόνη
+ * ανακήρυσσε «ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ». Το `BillsGas.tsx` έχει σήμανση ανά τιμή
+ * (επιβεβαιωμένη / ενδεικτική / τύπος) και το `BillsElectricity.tsx` έχει
+ * ημερομηνία και πύλη φρεσκάδας. Τρεις κατάλογοι, τρία πρότυπα ειλικρίνειας.
+ *
+ * Οι τιμές έρχονται από το `data/price-sources.json`, που φυλάσσεται από test.
+ * Το κατώφλι είναι 120 ημέρες και όχι 40 όπως στο ρεύμα, με τη δική του
+ * αιτιολογία γραμμένη εκεί: τα προγράμματα κατοικίας δεν αλλάζουν μηνιαία.
+ */
+export const INSURANCE_VERIFIED = '2026-07-29';
+export const INSURANCE_MAX_AGE_DAYS = 120;
+
 const AGE_RISK: Record<string, number> = {
   y0_4: 0.90, y5_9: 0.95, y10_14: 1.00, y15_19: 1.05, y20_25: 1.10, y26_plus: 1.20,
 };
 
-const INSURANCEMARKET_URL = 'https://www.insurancemarket.gr/asfaleia-katoikias';
-const PRICEFOX_URL = 'https://www.pricefox.gr/asfalia-katoikias/';
 
 /**
  * Μάρκες που ανήκουν στην ίδια ασφαλιστική επιχείρηση.
@@ -227,11 +242,6 @@ const CLOUD = [
   { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography, 12,29 €', price: 12.29 }] },
 ];
 
-const miniSelectStyle: React.CSSProperties = {
-  width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
-  borderRadius: T.radius.badge, padding: '7px 10px', color: 'var(--text-primary)',
-  fontSize: 11, outline: 'none', fontFamily: T.font.sans, cursor: 'pointer',
-};
 
 // Οι δύο εγγραφές συνδρομής ήταν λέξη προς λέξη ίδιες. Η μία περιγραφή αρκεί:
 // αν αύριο προστεθεί πεδίο στη μία, δεν υπάρχει δεύτερη να ξεχαστεί.
@@ -561,7 +571,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   });
 
   const {
-    insProvider, insPlanId, insCustomPrice, insCustomPlanName, insAgentName, insAgentPhone,
+    insProvider, insPlanId, insCustomPrice, insAgentName, insAgentPhone,
     insRenewalDate, insPropValue, insContentValue, insCustomCovers, insEditCovers,
     insCustomEarthquake, insCustomFlood, insCustomNatural,
     insSqm, insFloor, insAge, insCity,
@@ -793,7 +803,10 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
 
   // Η πρόταση, με τον λόγο της γραμμένο. Ο χρήστης αποφασίζει, αλλά οφείλει να
   // έχει τα στοιχεία για να διαφωνήσει τεκμηριωμένα.
-  const recommended: { q: LiveQuote; reason: string } | null =
+  // Η ΠΡΟΤΑΣΗ ΔΕΣΜΕΥΕΙ ΓΙΑ ΕΝΑΝ ΧΡΟΝΟ. Σε ασφάλιστρα καταλόγου που έχουν
+  // παλιώσει, το «ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ» είναι υπόσχεση που δεν στέκει.
+  const insFresh = freshness(INSURANCE_VERIFIED, new Date(), INSURANCE_MAX_AGE_DAYS);
+  const recommended: { q: LiveQuote; reason: string } | null = !insFresh.canRank ? null :
     ranked.length ? { q: quoteOf(ranked[0].plan.id), reason: explain(ranked[0], ranked, needs) } : null;
 
   const toggleStreaming = (svc: string) => {
