@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fn, Skeleton, histInputStyle } from '@/components/Theme';
+import { T, fe, fn, Skeleton, histInputStyle, ABSENT_SHORT } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
-import { canRecommend, freshness } from '@/lib/energy/freshness';
+import { canRecommend, freshness, RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
 const fk = (n: number) => `${fe(n, 4)}`;
@@ -483,6 +483,15 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   const bestMonthly  = allTariffs[0]?.monthly || 0;
   const savings      = calcMonthly - bestMonthly;
 
+  // ── Η ΠΥΛΗ ΦΡΕΣΚΑΔΑΣ ΙΣΧΥΕ ΜΟΝΟ ΣΤΗΝ ΑΥΤΟΚΛΗΤΗ ΕΙΔΟΠΟΙΗΣΗ ────────────────
+  // Δηλαδή η εφαρμογή σιωπούσε σωστά όταν δεν ρωτούσε κανείς, και ανακήρυσσε
+  // νικητή με βεβαιότητα μόλις ο χρήστης άνοιγε την οθόνη: «★ ΚΑΛΥΤΕΡΟ»,
+  // «Μπορείς να εξοικονομήσεις», και πλακίδιο «Εξοικονόμηση vs καλύτερο» — όλα
+  // πάνω σε τιμές που μπορεί να είναι περασμένου μήνα. Η πιο ήσυχη διαδρομή
+  // ήταν αυστηρότερη από την πιο ορατή.
+  const fresh = freshness(TARIFFS_VERIFIED, new Date());
+  const canRank = canRecommend(fresh, usageEst.reliable);
+
   const secHdr = (label: string, sub?: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div>
@@ -703,7 +712,9 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               { label: 'Εκτιμώμενο / μήνα', value: fe(calcMonthly),       color: 'var(--accent)' },
               { label: 'Ετήσιο Κόστος',      value: fe(calcMonthly * 12), color: 'var(--text-primary)' },
               { label: 'Κόστος / kWh net',   value: kwh > 0 ? fk(calcMonthly / kwh) : '—', color: 'var(--text-secondary)' },
-              { label: 'Εξοικονόμηση vs καλύτερο', value: savings > 0.5 ? `+${fe(savings)}` : fn(0), color: savings > 0.5 ? 'var(--positive)' : 'var(--text-tertiary)' },
+              // ΧΩΡΙΣ ΣΗΜΑΣΙΟΛΟΓΙΚΟ ΠΡΑΣΙΝΟ. Η εξοικονόμηση δεν είναι «καλή» ή
+              // «κακή»· είναι μέτρηση. Η έμφαση βγαίνει από βάρος και θέση.
+              { label: 'Εξοικονόμηση vs καλύτερο', value: canRank ? (savings > 0.5 ? `+${fe(savings)}` : fn(0)) : ABSENT_SHORT, color: 'var(--text-primary)' },
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
@@ -753,7 +764,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               ))}
             </div>
           </div>
-          {savings > 1 && (
+          {canRank && savings > 1 && (
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -777,7 +788,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     <tr key={t.id} style={{ background: isCur ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                         {isCur && <span style={{ fontSize: 9, color: 'var(--accent)', marginRight: 6, fontWeight: 800, textTransform: 'uppercase' as const }}>▶ ΤΡΕΧΟΝ</span>}
-                        {!isCur && isBest && <span style={{ fontSize: 9, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}
+                        {canRank && !isCur && isBest && <span style={{ fontSize: 10, color: 'var(--text-primary)', marginRight: 6, fontWeight: 800 }}>ΚΑΛΥΤΕΡΟ</span>}
                         {t.providerLabel}
                       </td>
                       <td style={{ padding: '8px 10px', color: 'var(--text-primary)', fontFamily: T.font.sans }}>{t.name}</td>
@@ -788,13 +799,21 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                         {t.type === 'fixed_monthly' ? 'all-in' : t.type === 'vnm' ? <span title="Εικονική Καθαρή Μέτρηση (Virtual Net Metering)">VNM</span> : `${fk(t.kwh_day)}`}
                       </td>
                       <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
-                        {/* FIX: fixed_monthly tariffs showed a misleading "0.00 €" pagio (implying free, like no_fixed), now shows, instead */}
-                        {t.type === 'fixed_monthly' ? '—' : t.no_fixed ? '0 €' : `${fe((t.fixed_ebill != null ? t.fixed_ebill : t.fixed), 2)}`}
+                        {/* ΔΥΟ ΣΤΗΛΕΣ ΤΗΣ ΙΔΙΑΣ ΓΡΑΜΜΗΣ ΥΠΑΚΟΥΑΝ ΣΕ ΔΙΑΦΟΡΕΤΙΚΟ ΚΑΝΟΝΑ.
+                            Εδώ γραφόταν πάντα η τιμή με e-bill (`fixed_ebill ?? fixed`),
+                            ΑΓΝΟΩΝΤΑΣ τον διακόπτη του χρήστη — ενώ η στήλη «Μήνας», δύο
+                            κελιά δεξιά, τον τηρούσε μέσω του `monthlyCost`. Όποιος είχε
+                            κλειστό το e-bill έβλεπε χαμηλότερο πάγιο και υψηλότερο μήνα,
+                            χωρίς τρόπο να καταλάβει γιατί δεν βγαίνουν. Ο κανόνας ζει στο
+                            `lib/energy/tariff.ts`· εδώ απλώς τηρείται.
+                            Το «—» των πακέτων flat έμεινε: εκεί ΔΕΝ υπάρχει πάγιο, και το
+                            «0 €» θα διαβαζόταν ως «δωρεάν πάγιο», που είναι άλλο πράγμα. */}
+                        {t.type === 'fixed_monthly' ? ABSENT_SHORT : t.no_fixed ? fe(0) : fe(useEbill && t.fixed_ebill != null ? t.fixed_ebill : t.fixed)}
                       </td>
                       <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                         {t.contract_months ? `${t.contract_months} μήνες` : 'Χωρίς δέσμευση'}
                       </td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isBest ? 'var(--positive)' : isCur ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap' as const }}>
+                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontWeight: canRank && isBest ? 800 : 700, whiteSpace: 'nowrap' as const }}>
                         {t.type === 'dynamic' ? 'Ωριαίο' : fe(t.monthly)}
                       </td>
                       <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' as const }}>
@@ -831,7 +850,13 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       {(() => {
         // Οι υποδείξεις χτίζονται από ό,τι έχει ήδη καταχωρήσει ο χρήστης
         const hints: { text: string; severity: 'info' | 'warning' | 'tip'; action?: string; tab?: string }[] = [];
-        const kwhNum   = parseFloat(kwhMonthly) || 0;
+        // Η ΥΠΟΔΕΙΞΗ ΜΕΤΡΟΥΣΕ ΑΛΛΗ ΚΑΤΑΝΑΛΩΣΗ ΑΠΟ ΤΟ ΚΟΣΤΟΣ ΑΠΟ ΠΑΝΩ.
+        // Εδώ διαβαζόταν το ωμό πεδίο `kwhMonthly` (η χειροκίνητη εκτίμηση),
+        // ενώ κάθε ευρώ της οθόνης υπολογίζεται από το `usageEst.kwhMonthly`,
+        // που προτιμά το ιστορικό και τους πραγματικούς λογαριασμούς. Έτσι η
+        // προειδοποίηση υπέρβασης έλεγε «με 250 kWh τον μήνα» ενώ το κόστος από
+        // πάνω ήταν υπολογισμένο σε 410. Μία κατανάλωση ανά οθόνη.
+        const kwhNum   = usageEst.kwhMonthly || 0;
         const costNum  = calcMonthly;
 
         // FIX: new, warn if the SELECTED flat-tier package's kWh limit is smaller than

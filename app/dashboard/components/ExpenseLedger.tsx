@@ -38,6 +38,7 @@ import {
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
 import { missingThisMonth } from '@/lib/expenses/expected';
+import { priceChanges } from '@/lib/expenses/priceChange';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
@@ -208,6 +209,15 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   // ίδια τα νούμερα που πάνε στον λογιστή.
   const missing = useMemo(() => missingThisMonth(entries, new Date()), [entries]);
 
+  // ── ΤΙ ΑΚΡΙΒΥΝΕ ──────────────────────────────────────────────────────────
+  // Ζητήθηκε «μία φορά τον μήνα να ελέγχουμε Netflix, Spotify, Disney+ για
+  // αλλαγές τιμών». Κατάλογος τιμών της αγοράς θα ήταν το ίδιο λάθος με τα
+  // τιμολόγια ρεύματος: τιμές τρίτων που παλιώνουν σιωπηλά, και απάντηση σε
+  // λάθος ερώτηση. Ο ιδιοκτήτης δεν ρωτά πόσο κάνει το Netflix — ρωτά γιατί
+  // χρεώθηκε τρία ευρώ παραπάνω. Αυτό το ξέρουμε από τα ΔΙΚΑ ΤΟΥ δεδομένα, και
+  // είναι γεγονός, όχι εκτίμηση.
+  const changed = useMemo(() => priceChanges(entries, new Date()), [entries]);
+
   // «Θέλουν ματιά»: διπλές γραμμές και όσες δεν έχουν αναγνωρίσιμη κατηγορία.
   // Δεν είναι σφάλμα του χρήστη και δεν παρουσιάζεται ως τέτοιο: είναι δουλειά
   // πέντε δευτερολέπτων που κάνει τα υπόλοιπα νούμερα να στέκουν.
@@ -338,6 +348,28 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
             <div style={{ ...TT.caption, marginTop: 3, lineHeight: 1.6 }}>
               {missing.slice(0, 4).map(m => `${m.title}, συνήθως ${fe(m.typicalAmount)} γύρω στις ${m.typicalDay}`).join(' · ')}
               {missing.length > 4 ? ` · και άλλα ${missing.length - 4}` : ''}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ΤΙ ΑΛΛΑΞΕ ΤΙΜΗ ─────────────────────────────────────────────────
+          Ίδιο σχήμα με τη γραμμή «τι λείπει» από πάνω: μία παρατήρηση, χωρίς
+          χρώμα προειδοποίησης. Μια αύξηση δεν είναι σφάλμα του χρήστη. */}
+      {!loading && changed.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: T.sp.lg,
+          padding: '11px 14px', borderRadius: T.radius.inner,
+          background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+        }}>
+          <span style={{ flexShrink: 0, width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', marginTop: 8 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600 }}>
+              {changed.length === 1 ? 'Μία χρέωση άλλαξε ποσό' : `${changed.length} χρεώσεις άλλαξαν ποσό`}
+            </div>
+            <div style={{ ...TT.caption, marginTop: 3, lineHeight: 1.6 }}>
+              {changed.slice(0, 3).map(c => c.message).join(' ')}
+              {changed.length > 3 ? ` Και άλλες ${changed.length - 3}.` : ''}
             </div>
           </div>
         </div>
