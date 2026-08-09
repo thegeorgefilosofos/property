@@ -1,16 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { daysUntil } from '@/lib/core/time';
-import { Calculator } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useMemo } from 'react';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fp, Spinner, EmptyState, histInputStyle, pressable } from '@/components/Theme';
-import { AadePill } from '@/components/AadeLink';
-import { estimateENFIA, ENFIA_REDUCTIONS, enfiaInUse, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
+import { T, fe, fp, Spinner, histInputStyle } from '@/components/Theme';
+import { estimateENFIA, enfiaInUse, enfiaLastYearAnnual } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
-import { navLabel } from '@/lib/nav/labels';
 
 
 
@@ -27,35 +22,6 @@ const toMonthly = (cost: string, freq: string) => {
   return c * (m[freq] || 1);
 };
 
-const ENFIA_DEADLINES = [
-  { date: '2026-05-31', label: '1η Δόση', month: 'Μαΐ 2026'  },
-  { date: '2026-06-30', label: '2η Δόση', month: 'Ιουν 2026' },
-  { date: '2026-07-31', label: '3η Δόση', month: 'Ιουλ 2026' },
-  { date: '2026-08-31', label: '4η Δόση', month: 'Αυγ 2026'  },
-  { date: '2026-09-30', label: '5η Δόση', month: 'Σεπ 2026'  },
-  { date: '2026-10-30', label: '6η Δόση', month: 'Οκτ 2026'  },
-];
-const ZONE_OPTIONS = [
-  { value: '0_750',      label: 'Έως 750 € ανά τετραγωνικό'         },
-  { value: '751_1500',   label: '751 – 1.500 € ανά τετραγωνικό'    },
-  { value: '1501_2500',  label: '1.501 – 2.500 € ανά τετραγωνικό'  },
-  { value: '2501_3000',  label: '2.501 – 3.000 € ανά τετραγωνικό'  },
-  { value: '3001_3500',  label: '3.001 – 3.500 € ανά τετραγωνικό'  },
-  { value: '3501_4000',  label: '3.501 – 4.000 € ανά τετραγωνικό'  },
-  { value: '4001_4500',  label: '4.001 – 4.500 € ανά τετραγωνικό'  },
-  { value: '4501_5000',  label: '4.501 – 5.000 € ανά τετραγωνικό'  },
-  { value: 'over_5000',  label: 'Άνω των 5.000 € ανά τετραγωνικό'  },
-];
-const FLOOR_OPTIONS = [
-  { value: 'basement',   label: 'Υπόγειο'     },{ value: 'ground', label: 'Ισόγειο' },
-  { value: 'first',      label: '1ος Όροφος'  },{ value: 'second', label: '2ος Όροφος' },
-  { value: 'third',      label: '3ος Όροφος'  },{ value: 'fourth', label: '4ος Όροφος' },
-  { value: 'fifth_plus', label: '5ος+ Όροφος' },
-];
-const AGE_OPTIONS = [
-  ...ENFIA_AGE_BANDS.map(b => ({ value: b.key, label: b.label })),
-];
-const REDUCTIONS = ENFIA_REDUCTIONS;
 
 // Ο υπολογισμός ζει πλέον στο lib/billing/enfia (μία πηγή αλήθειας). Thin wrapper
 // με τα ίδια ονόματα πεδίων για συμβατότητα του υπάρχοντος UI.
@@ -68,8 +34,9 @@ function calcENFIA(sqm: number, zone: string, floor: string, age: string, owners
 }
 
 const DEFAULTS = {
-  enfiaAnnual: '', enfiaMonthly: '', enfiaSqm: '', enfiaZone: '', enfiaFloor: 'second',
-  enfiaAge: 'y10_14', enfiaOwnership: '100', enfiaTotalVal: '', enfiaPropVal: '', enfiaReductions: [] as string[],
+  enfiaAnnual: '', enfiaMonthly: '',
+  enfiaLastAnnual: '', enfiaLastInstalment: '', enfiaLastCount: '12', enfiaSqm: '', enfiaZone: '', enfiaFloor: '',
+  enfiaAge: '', enfiaOwnership: '100', enfiaTotalVal: '', enfiaPropVal: '', enfiaReductions: [] as string[],
   enfiaShowCalc: true,
   dimotikaHistory: Array(12).fill('') as string[],
   lastBillTotal: '', lastBillDimotika: '',
@@ -91,12 +58,10 @@ const DEFAULTS = {
 interface Props { propertyId: string; userId?: string; }
 
 export default function BillsServices({ propertyId, userId = '' }: Props) {
-  const supabase = createClient();
   const [s, upd, loading] = useBillsSettings(propertyId, userId, 'services', DEFAULTS);
 
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
   const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
-  const g3: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 };
   const g4: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };
 
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
@@ -106,47 +71,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const [newCost, setNewCost]       = useState('');
   const [newFreq, setNewFreq]       = useState('monthly');
 
-  // ── Cross-tab: live data from other tabs ─────────────────────────────────
-  const [crossTabData, setCrossTabData] = useState<{
-    enfiaChecklist?: { status: string; daysLeft: number | null };
-    insuranceEq?: boolean; insuranceFlood?: boolean;
-    electricityDimotika?: string;
-    lastExpense?: { amount: number; description: string; date: string };
-  }>({});
-
-  useEffect(() => {
-    if (!propertyId) return;
-    (async () => {
-      try {
-        // ΕΝΦΙΑ from Checklist
-        const { data: chk } = await supabase.from('checklist_items')
-          .select('status,due_date').eq('property_id', propertyId)
-          .ilike('description', '%ΕΝΦΙΑ%').order('due_date').limit(1);
-        // Στοιχεία ασφάλισης (έκπτωση σεισμού)
-        const { data: ins } = await supabase.from('bills_settings')
-          .select('data').eq('property_id', propertyId).eq('section', 'insurance').maybeSingle();
-        // Ποσοστό δημοτικών τελών στον λογαριασμό ρεύματος
-        const { data: elec } = await supabase.from('bills_settings')
-          .select('data').eq('property_id', propertyId).eq('section', 'electricity').maybeSingle();
-        const { data: exp } = await supabase.from('expenses')
-          .select('amount,description,date').eq('property_id', propertyId)
-          .order('date', { ascending: false }).limit(1);
-
-        setCrossTabData({
-          enfiaChecklist: chk?.[0] ? {
-            status: chk[0].status,
-            daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null,
-          } : undefined,
-          // Οι ρυθμίσεις άλλων καρτελών ζουν σε στήλη JSON: το σχήμα δηλώνεται
-          // εδώ ρητά, αντί για `any` που θα δεχόταν και τυπογραφικό όνομα πεδίου.
-          insuranceEq:    (ins?.data as { insCustomEarthquake?: boolean } | null)?.insCustomEarthquake || false,
-          insuranceFlood: (ins?.data as { insCustomFlood?: boolean } | null)?.insCustomFlood || false,
-          electricityDimotika: (elec?.data as { dimotika?: string } | null)?.dimotika || '',
-          lastExpense: exp?.[0] ? { amount: exp[0].amount, description: exp[0].description, date: exp[0].date } : undefined,
-        });
-      } catch (_) {}
-    })();
-  }, [propertyId]);
+  // ΤΟ ΔΙΑΣΤΑΥΡΟΥΜΕΝΟ ΕΡΩΤΗΜΑ ΕΦΥΓΕ ΜΑΖΙ ΜΕ ΤΟΝ ΥΠΟΛΟΓΙΣΜΟ ΕΝΦΙΑ.
+  // Τέσσερα ερωτήματα στη βάση σε κάθε άνοιγμα της οθόνης, για τρία πλαίσια που
+  // αφορούσαν όλα τον ΕΝΦΙΑ — και το ένα από τα τέσσερα διάβαζε πεδίο που δεν
+  // γράφει κανείς, οπότε το πλαίσιό του δεν εμφανίστηκε ποτέ. Ό,τι αφορά τον
+  // φόρο ζει τώρα στη Λογιστική, μαζί με τα δεδομένα του.
 
   const enfiaResult = useMemo(() => calcENFIA(
     parseFloat(s.enfiaSqm) || 0, s.enfiaZone, s.enfiaFloor, s.enfiaAge,
@@ -157,7 +86,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   // ΤΟ ΔΗΛΩΜΕΝΟ ΠΟΣΟ ΝΙΚΑ ΤΗΝ ΕΚΤΙΜΗΣΗ. Η απόφαση ζει στο lib/billing/enfia.ts,
   // γιατί τη χρειάζεται και ο Προϋπολογισμός — και εκεί διάβαζε ΜΟΝΟ το δηλωμένο,
   // δείχνοντας 0 € για ακίνητο που εδώ έδειχνε δεκάδες ευρώ τον μήνα.
-  const enfia = enfiaInUse(s.enfiaAnnual, s.enfiaMonthly, enfiaResult?.final);
+  const enfia = enfiaInUse(s.enfiaAnnual, s.enfiaMonthly, enfiaResult?.final,
+    enfiaLastYearAnnual({ annual: s.enfiaLastAnnual, instalment: s.enfiaLastInstalment, instalments: s.enfiaLastCount }));
   const enfiaM = enfia.monthly;
   const dimotikaAvg = (s.dimotikaHistory || []).filter((v: string) => v).length > 0
     ? (s.dimotikaHistory || []).reduce((sum: number, v: string) => sum + (parseFloat(v) || 0), 0) / (s.dimotikaHistory || []).filter((v: string) => v).length : 0;
@@ -176,13 +106,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const today        = new Date();
   const currentMonth = today.getMonth();
   const maxH         = Math.max(...(s.dimotikaHistory || []).map((v: string) => parseFloat(v) || 0), 1);
-  const nextDeadline = ENFIA_DEADLINES.find(d => new Date(d.date) >= today);
-  const daysToDeadline = nextDeadline ? daysUntil(nextDeadline.date) ?? 0 : null;
 
-  const toggleReduction = (key: string) => {
-    const cur = s.enfiaReductions || [];
-    upd({ enfiaReductions: cur.includes(key) ? cur.filter((r: string) => r !== key) : [...cur, key] });
-  };
   const addOther = () => {
     if (!newName || !newCost) return;
     upd({ otherServices: [...(s.otherServices || []), { name: newName, contact: newContact, phone: newPhone, cost: newCost, freq: newFreq }] });
@@ -230,31 +154,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
-      {/* ── Cross-tab: Insurance earthquake ΕΝΦΙΑ discount ───────────────── */}
-      {(crossTabData.insuranceEq || crossTabData.insuranceFlood) && !(s.enfiaReductions || []).includes('insurance') && (
-        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans }}>
-            <span style={{ fontWeight: 700, color: 'var(--accent)' }}>Έκπτωση <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span> 10-20% διαθέσιμη! </span>
-            <span style={{ color: 'var(--text-secondary)' }}>Η ασφάλειά σου καλύπτει φυσικές καταστροφές. Πρόσθεσέ την στις μειώσεις ΕΝΦΙΑ.</span>
-          </div>
-          <button onClick={() => { const cur = s.enfiaReductions || []; upd({ enfiaReductions: [...cur, 'insurance'] }); }}
-            style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '6px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-            Εφαρμογή →
-          </button>
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>Ασφάλεια</span>
-        </div>
-      )}
 
-      {/* ── Cross-tab: Dimotika from Electricity tab ─────────────────────── */}
-      {crossTabData.electricityDimotika && parseFloat(crossTabData.electricityDimotika) > 0 && (
-        <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
-            <span style={{ fontWeight: 600, color: 'var(--accent)' }}>Δημοτικά τέλη {crossTabData.electricityDimotika}% </span>
-           , από tab Ρεύμα · χρησιμοποιείται στον υπολογισμό λογαριασμού
-          </div>
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>Ρεύμα</span>
-        </div>
-      )}
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
@@ -274,226 +174,22 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         ))}
       </div>
 
-      {/* ── ΕΝΦΙΑ 2026 ───────────────────────────────────────────────────── */}
-      <div style={{ ...card, borderTop: '2px solid var(--accent)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div>
-              <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>ΕΝΦΙΑ 2026, Υπολογιστής</div>
-              <div title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων), μέσω myAADE" style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9, επαλήθευσε στο myAADE</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, border: '1px solid var(--border-subtle)', textTransform: 'uppercase' as const }}>Εκτίμηση</span>
-            {/* ΔΥΟ ΚΟΥΜΠΙΑ ΓΙΑ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ, ΤΟ ΕΝΑ ΣΕ ΑΡΘΡΟ ΕΙΔΗΣΕΩΝ. Το πρώτο
-                έδειχνε σε δημοσίευμα με καρφωμένο αριθμό άρθρου (/news/73091/…) —
-                μέσα σε φορολογικό εργαλείο αυτό σαπίζει και δεν είναι καν επίσημη
-                πηγή. Μένει ο προορισμός της ΑΑΔΕ, μία φορά. */}
-            <AadePill action="enfia" label="Ε9 και ΕΝΦΙΑ"/>
-            <button onClick={() => upd({ enfiaShowCalc: !s.enfiaShowCalc })}
-              style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 10px', cursor: 'pointer', fontFamily: T.font.sans }}>
-              {s.enfiaShowCalc ? '▲ Σύμπτυξη' : '▼ Ανάπτυξη'}
-            </button>
-          </div>
-        </div>
+      {/* Ο ΥΠΟΛΟΓΙΣΜΟΣ ΕΝΦΙΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΜΕ ΑΥΤΟΝ ΤΡΙΑ ΣΦΑΛΜΑΤΑ.
 
-        {/* Σήμα από τις Εκκρεμότητες — το όνομα έρχεται από τη μία πηγή, όχι από εδώ. */}
-        {crossTabData.enfiaChecklist && (
-          <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '9px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
-            <span style={{ flex: 1, color: 'var(--text-secondary)' }}>
-              {crossTabData.enfiaChecklist.status === 'done'
-                ? `ΕΝΦΙΑ καταγεγραμμένο ως ολοκληρωμένο στις «${navLabel('checklist')}»`
-                : crossTabData.enfiaChecklist.daysLeft !== null && crossTabData.enfiaChecklist.daysLeft <= 30
-                  ? `ΕΝΦΙΑ στις «${navLabel('checklist')}», σε ${crossTabData.enfiaChecklist.daysLeft} ημέρες`
-                  : `ΕΝΦΙΑ εκκρεμεί στις «${navLabel('checklist')}»`}
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill }}>{navLabel('checklist')}</span>
-          </div>
-        )}
+          Ζούσε 220 γραμμές μέσα σε πάνελ «Υπηρεσίες», διπλωμένος πίσω από
+          κουμπί «Ανάπτυξη». Ο φόρος του ακινήτου δεν είναι υπηρεσία δίπλα στον
+          κηπουρό και την απεντόμωση: είναι φόρος, και ζει στη Λογιστική.
 
-        {/* 2026 banner */}
-        <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}/>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
-            <span style={{ fontWeight: 700, color: 'var(--accent)' }}>Νέο 2026: </span>
-            Αύξηση περίπου 8% στους συντελεστές. Μείωση 10–20% αν το ακίνητο ασφαλίζεται για φυσικές καταστροφές (Α.1005/2026).
-          </div>
-        </div>
+          Τα σφάλματα που έφυγαν μαζί του: η δόση τυπωνόταν ετήσιο διά δώδεκα
+          κάτω από πίνακα έξι δόσεων· η φόρμα είχε προεπιλεγμένα «2ος όροφος»
+          και «10-14 έτη», ξαναφέρνοντας τη μεροληψία +16,15% που η μηχανή είχε
+          ρητά αφαιρέσει· και ένα πλαίσιο ανακοίνωνε «αύξηση περίπου 8%» που ο
+          υπολογισμός δεν εφάρμοζε πουθενά.
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6, marginBottom: 20 }}>
-          {ENFIA_DEADLINES.map((d, i) => {
-            const isPast = new Date(d.date) < today;
-            const isNext = d === nextDeadline;
-            const dLeft  = daysUntil(d.date) ?? 0;
-            return (
-              <div key={i} style={{ background: isNext ? 'var(--accent-soft)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>
-                  {isPast ? 'ΠΛΗΡΩΜΕΝΗ' : isNext ? 'ΕΠΟΜΕΝΗ' : ''}
-                </div>
-                <div style={{ fontSize: 11, fontWeight: isNext ? 700 : 500, color: isNext ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{d.label}</div>
-                <div style={{ fontSize: 10, color: isNext ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{d.month}</div>
-                {isNext && dLeft >= 0 && dLeft <= 90 && (
-                  <div style={{ fontSize: 9, color: 'var(--accent)', fontFamily: T.font.sans, marginTop: 3, fontWeight: 700 }}>{dLeft} ημέρες</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+          Τα ΠΟΣΑ μένουν εδώ: το μηνιαίο ΕΝΦΙΑ μετράει κανονικά στο σύνολο των
+          υπηρεσιών, διαβασμένο από τις ίδιες ρυθμίσεις. Άλλαξε το πού
+          συμπληρώνεται, όχι το πού μετράει. */}
 
-        {nextDeadline && daysToDeadline !== null && daysToDeadline <= 30 && (
-          <div style={{ background: daysToDeadline <= 7 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${daysToDeadline <= 7 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: daysToDeadline <= 7 ? 'var(--negative)' : 'var(--warning)', flexShrink: 0 }}/>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-              {nextDeadline.label} ΕΝΦΙΑ 2026{' '}
-              <span style={{ color: daysToDeadline <= 7 ? 'var(--negative)' : 'var(--warning)', fontWeight: 700 }}>σε {daysToDeadline} ημέρες</span>
-              {enfiaResult && `, Ποσό δόσης: ${fe(enfiaResult.installment)}`}
-            </span>
-          </div>
-        )}
-
-        {s.enfiaShowCalc && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 20 }}>
-            <div>
-              <div style={g2}>
-                <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"              value={s.enfiaSqm}      onChange={v => upd({ enfiaSqm: v })}      suffix="τετραγωνικά"/>
-                <NumberInput label="Ποσοστό ιδιοκτησίας"     value={s.enfiaOwnership} onChange={v => upd({ enfiaOwnership: v })} suffix="%" max={100}/>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <CustomSelect label="Τιμή ζώνης (€ ανά τετραγωνικό)" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
-              </div>
-              <div style={g2}>
-                <CustomSelect label="Όροφος"    value={s.enfiaFloor} onChange={v => upd({ enfiaFloor: v })} options={FLOOR_OPTIONS}/>
-                <CustomSelect label="Παλαιότητα" value={s.enfiaAge}  onChange={v => upd({ enfiaAge: v })}  options={AGE_OPTIONS}/>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Συνολική αξία όλων των ακινήτων" labelInfo="Η συμπληρωματική προσαύξηση του ΕΝΦΙΑ ξεκινά πάνω από τις 500.000 € συνολικής αξίας." value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Αντικειμενική αξία αυτού του ακινήτου" labelInfo="Πρόσθετος φόρος επιβάλλεται όταν η αξία του ενός ακινήτου ξεπερνά τις 400.000 €." value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"/>
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Μειώσεις</div>
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
-                {REDUCTIONS.map(r => {
-                  const active = (s.enfiaReductions || []).includes(r.key);
-                  // Τονίζει την ασφάλιση όταν τα στοιχεία άλλων καρτελών δείχνουν ότι δικαιούται έκπτωση
-                  const eligible = r.key === 'insurance' && (crossTabData.insuranceEq || crossTabData.insuranceFlood);
-                  return (
-                    <div key={r.key} {...pressable(() => toggleReduction(r.key))}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', background: active ? 'var(--accent-soft)' : eligible ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
-                      <div style={{ width: 16, height: 16, borderRadius: 6, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: active ? 600 : 400 }}>
-                          {r.label}
-                          {eligible && !active && <span style={{ fontSize: 9, color: 'var(--accent)', marginLeft: 8, fontFamily: T.font.sans }}>✓ Δικαιούσαι</span>}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{r.note}</div>
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>-{r.pct}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* ΤΟ ΠΕΔΙΟ ΤΟΥ ΠΡΑΓΜΑΤΙΚΟΥ ΠΟΣΟΥ ΜΕΝΕΙ ΠΑΝΤΑ ΟΡΑΤΟ.
-                  Ήταν τυλιγμένο σε `{!s.enfiaZone && …}`: μόλις ο χρήστης διάλεγε
-                  ζώνη για να δει τις εκπτώσεις, το πεδίο ΕΞΑΦΑΝΙΖΟΤΑΝ και το ποσό
-                  που είχε αντιγράψει από το εκκαθαριστικό έπαυε να χρησιμοποιείται,
-                  χωρίς να το πει κανείς. Τώρα το δηλωμένο πάντα υπερισχύει, οπότε
-                  πρέπει και να μπορεί να γραφτεί ή να διορθωθεί ανά πάσα στιγμή. */}
-              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                <NumberInput label="ΕΝΦΙΑ/έτος από το εκκαθαριστικό" value={s.enfiaAnnual}
-                  onChange={v => upd({ enfiaAnnual: v, enfiaMonthly: v ? String(((parseFloat(v) || 0) / 12).toFixed(2)) : '' })}
-                  suffix="€" step={50}/>
-                <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μηνιαία αναγωγή</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : fe(0)}</div>
-                </div>
-              </div>
-              {/* Ποιο από τα δύο νούμερα μετράει, γραμμένο εκεί που φαίνονται και τα δύο. */}
-              {enfia.source !== 'none' && (
-                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                  {enfia.source === 'declared'
-                    ? 'Χρησιμοποιείται το ποσό του εκκαθαριστικού. Ο υπολογιστής δίπλα μένει για σύγκριση· δεν το αντικαθιστά.'
-                    : 'Χρησιμοποιείται η εκτίμηση του υπολογιστή. Μόλις γράψεις το ποσό του εκκαθαριστικού, υπερισχύει αυτό.'}
-                </div>
-              )}
-            </div>
-
-            <div>
-              {enfiaResult && enfiaResult.final > 0 ? (
-                <>
-                  <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 18, marginBottom: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 14 }}>
-                      <div>
-                        {/* Έλεγε «Τελικός ΕΝΦΙΑ» — δηλαδή η λέξη «τελικός» πάνω σε
-                            νούμερο που παράγει μοντέλο από ζώνη, όροφο και παλαιότητα.
-                            Το πραγματικά τελικό ποσό το ορίζει μόνο η ΑΑΔΕ. */}
-                        <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων· υπολογισμός με βάση τα στοιχεία που έδωσες, όχι το εκκαθαριστικό της ΑΑΔΕ" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Εκτίμηση ΕΝΦΙΑ</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final)}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Δόση (~6 δόσεις)</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment)}</div>
-                      </div>
-                    </div>
-                    {[
-                      { label: 'Βασικός Φόρος',         val: enfiaResult.basic,  pos: false },
-                      ...(enfiaResult.extra > 0 ? [{ label: 'Πρόσθετος φόρος (αξία >400k)', val: enfiaResult.extra, pos: false }] : []),
-                      { label: 'Προσαύξηση (αξία >500k)',  val: enfiaResult.suppl,  pos: false },
-                      ...(enfiaResult.redAmt > 0 ? [{ label: `Μειώσεις ${enfiaResult.maxPct}%`, val: -enfiaResult.redAmt, pos: true }] : []),
-                    ].map((row, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{row.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: row.pos ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                          {row.val > 0 ? '+' : ''}{fe(row.val)}
-                        </span>
-                      </div>
-                    ))}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνολο ΕΝΦΙΑ</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(enfiaResult.final)}</span>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 6, marginBottom: 14 }}>
-                    {ENFIA_DEADLINES.map((d, i) => {
-                      const isPast = new Date(d.date) < today;
-                      const isNext = d === nextDeadline;
-                      return (
-                        <div key={i} style={{ background: isNext ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
-                          <div style={{ fontSize: 9, fontWeight: 600, fontFamily: T.font.sans, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'var(--text-tertiary)' }}>{d.label}{isPast ? ' ✓' : ''}</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment)}</div>
-                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>{d.month}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {!(s.enfiaReductions || []).includes('insurance') && (
-                    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                      Ασφάλεια με κάλυψη φυσικών καταστροφών → μείωση 10-20% ΕΝΦΙΑ (Α.1005/2026)
-                    </div>
-                  )}
-                </>
-              ) : (
-                // Τα δύο rgba(26,115,232,…) ήταν κλειδωμένα στο γαλάζιο του light theme:
-                // στο dark η πλακέτα έβγαινε σκούρο μπλε πίσω από ανοιχτόχρωμο κείμενο.
-                // Τα tokens accent-soft/accent-border ακολουθούν το θέμα.
-                <EmptyState
-                  icon={<Calculator size={20} />}
-                  title="Συμπλήρωσε εμβαδόν και τιμή ζώνης"
-                  hint="Η τιμή ζώνης δημοσιεύεται από τη ΓΓΠΣ, το εμβαδόν το βρίσκεις στο Ε9 σου"
-                  action={
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
-                      <AadePill action="objective-values" label="Τιμή ζώνης"/>
-                      <AadePill action="e9" label="Το Ε9 μου"/>
-                    </div>
-                  }
-                />
-              )}
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* ── Δημοτικά Τέλη ────────────────────────────────────────────────── */}
       <div style={card}>

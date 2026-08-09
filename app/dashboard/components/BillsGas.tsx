@@ -585,7 +585,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           </div>
           <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer"
             style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
-            Επίσημη σύγκριση τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> (gov.gr) →
+            Επίσημη σύγκριση τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> στο gov.gr
           </a>
         </div>
       </div>

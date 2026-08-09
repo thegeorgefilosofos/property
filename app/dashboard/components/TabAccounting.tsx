@@ -39,6 +39,7 @@ import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
 import { exportAccountantBundle } from './accountantExport'
+import EnfiaPanel from './EnfiaPanel';
 import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
 import { defaultBookkeeping, type LegalForm } from '@/lib/accounting/dossier'
 import { readStatus, type PropertyStatus, type StatusRow } from '@/lib/property/status'
@@ -687,6 +688,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           από κάθε άλλη — «τι πρέπει να πάω στον λογιστή και τι μου λείπει;» —
           και μέχρι τώρα ήταν η μόνη που δεν απαντούσε αυτή η καρτέλα. */}
       <AccountantDossier state={dossier} year={year} properties={dossierProps} exportSource={dossierExport} />
+
+      {/* Ο ΕΝΦΙΑ ΕΙΝΑΙ ΦΟΡΟΣ, ΚΑΙ ΟΙ ΦΟΡΟΙ ΖΟΥΝ ΕΔΩ. Ο υπολογισμός του ζούσε
+          τρίτο σκαλοπάτι μέσα στα Συμβόλαια, σε πάνελ «Υπηρεσίες», διπλωμένος
+          πίσω από κουμπί «Ανάπτυξη» — δηλαδή το εργαλείο που απαντά στη
+          μοναδική φορολογική ερώτηση που κάνει κάθε ιδιοκτήτης κάθε χρόνο ήταν
+          κλειστό, τρία κλικ μακριά, σε οθόνη που μέχρι πρόσφατα δεν άνοιγε καν
+          από πουθενά. Ένα σημείο, και είναι αυτό. */}
+      <EnfiaPanel propertyId={propertyId} userId={userId} />
 
       {/* Παράμετροι επιχείρησης, τυποποιημένα πεδία με σύντομη εξήγηση */}
       {businessMode&&(

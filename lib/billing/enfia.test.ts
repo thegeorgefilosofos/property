@@ -1,5 +1,5 @@
 // Τεστ για την εκτίμηση ΕΝΦΙΑ (lib/billing/enfia.ts) — τιμές ΦΕΚ Α΄65/2022.
-import {
+import { enfiaLastYearAnnual,
   estimateENFIA, estimateENFIAFromFacts, enfiaExtraPropertyTax, zoneKeyFromPricePerSqm,
   ENFIA_ZONE_TAX, enfiaInUse, enfiaAgeCoef, enfiaFloorCoef,
   enfiaAgeKeyFromYears, enfiaAgeKeyFromYearBuilt, enfiaFloorKeyFromValue,
@@ -251,6 +251,29 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
 // σαν ολοκαίνουργιο. Η αρχή είναι μία — άγνωστο ή αδύνατο σημαίνει 1,00.
 ok('αρνητικά έτη → ουδέτερο, όχι νεόδμητο', enfiaAgeKeyFromYears(-3) === null)
 ok('μηδέν έτη → νεόδμητο (κανονική περίπτωση)', enfiaAgeKeyFromYears(0) === 'y0_4')
+
+// ═══ ΤΟ ΠΕΡΣΙΝΟ ΠΟΣΟ ═══════════════════════════════════════════════════════
+// Ο ΕΝΦΙΑ ενός ακινήτου δεν αλλάζει από χρονιά σε χρονιά παρά μόνο αν αλλάξει
+// το ακίνητο ή ο νόμος. Άρα το περσινό εκκαθαριστικό είναι ασύγκριτα
+// ακριβέστερο από κάθε μοντελοποίηση, και προηγείται της εκτίμησης.
+{
+  ok('περσινό ετήσιο, όπως δόθηκε', enfiaLastYearAnnual({ annual: '480' }) === 480)
+  ok('περσινό από δόσεις', enfiaLastYearAnnual({ instalment: '40', instalments: '12' }) === 480)
+  ok('το ετήσιο νικά τις δόσεις', enfiaLastYearAnnual({ annual: '500', instalment: '40', instalments: '12' }) === 500)
+  ok('δόση χωρίς πλήθος δεν αρκεί', enfiaLastYearAnnual({ instalment: '40' }) === 0)
+  ok('πλήθος χωρίς δόση δεν αρκεί', enfiaLastYearAnnual({ instalments: '12' }) === 0)
+  ok('δεκαδικό κόμμα στη δόση', enfiaLastYearAnnual({ instalment: '40,50', instalments: '10' }) === 405)
+  ok('κενό δίνει μηδέν', enfiaLastYearAnnual({}) === 0)
+
+  const est = estimateENFIA({ sqm: 100, zone: '1501_2500', floor: 'second', age: 'y10_14' })!
+  ok('το περσινό νικά την εκτίμηση', enfiaInUse('', '', est.annual, 480).source === 'lastYear')
+  ok('το περσινό δίνει το ποσό του', enfiaInUse('', '', est.annual, 480).annual === 480)
+  ok('το φετινό νικά το περσινό', enfiaInUse('520', '', est.annual, 480).source === 'declared')
+  ok('χωρίς περσινό, ισχύει η εκτίμηση', enfiaInUse('', '', est.annual, 0).source === 'estimate')
+  ok('περσινό μηδέν δεν μετρά', enfiaInUse('', '', est.annual, 0).annual === est.annual)
+  ok('μόνο περσινό, χωρίς εκτίμηση', enfiaInUse('', '', null, 480).source === 'lastYear')
+  ok('μηνιαία αναγωγή περσινού', enfiaInUse('', '', null, 480).monthly === 40)
+}
 
 console.log(`enfia.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
 if (failed > 0) { process.exit(1) }

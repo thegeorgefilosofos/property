@@ -380,7 +380,39 @@ export function estimateENFIAFromFacts(facts: {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Από πού προήλθε το ποσό που δείχνουμε. Το `none` σημαίνει «δεν ξέρουμε ακόμη». */
-export type EnfiaSource = 'declared' | 'estimate' | 'none'
+/**
+ * ΑΠΟ ΠΟΥ ΞΕΡΟΥΜΕ ΤΟΝ ΕΝΦΙΑ, ΚΑΤΑ ΣΕΙΡΑ ΑΞΙΟΠΙΣΤΙΑΣ.
+ *
+ *   declared  Το φετινό εκκαθαριστικό. Δεν είναι εκτίμηση· είναι το ποσό.
+ *   lastYear  Το περσινό εκκαθαριστικό, ή οι περσινές δόσεις. Ο ΕΝΦΙΑ ενός
+ *             ακινήτου δεν αλλάζει από χρονιά σε χρονιά παρά μόνο αν αλλάξει
+ *             το ίδιο το ακίνητο ή ο νόμος. Άρα το περσινό ποσό είναι
+ *             ασύγκριτα ακριβέστερο από οποιαδήποτε μοντελοποίηση — και το
+ *             ξέρει ήδη ο ιδιοκτήτης, γιατί το πλήρωσε.
+ *   estimate  Ο υπολογισμός από ζώνη, εμβαδόν, όροφο και παλαιότητα. Έσχατη
+ *             λύση, και λέγεται πάντα «εκτίμηση».
+ *   none      Δεν ξέρουμε. Δεν γράφεται μηδέν.
+ */
+export type EnfiaSource = 'declared' | 'lastYear' | 'estimate' | 'none'
+
+/**
+ * Το περσινό ετήσιο ποσό, από όποιο από τα δύο έχει ο χρήστης μπροστά του.
+ *
+ * Το εκκαθαριστικό δεν το κρατούν όλοι. Τις δόσεις όμως τις βλέπει ο καθένας
+ * στην τράπεζα ή στο myAADE, και είναι το ΙΔΙΟ νούμερο: δόση επί πλήθος δόσεων.
+ * Χωρίς αυτή τη δεύτερη πόρτα, το ακριβέστερο στοιχείο της οθόνης θα ζητούσε
+ * ένα χαρτί που ο μισός κόσμος έχει πετάξει.
+ */
+export function enfiaLastYearAnnual(input: {
+  annual?: unknown; instalment?: unknown; instalments?: unknown;
+}): number {
+  const direct = numOr0(input.annual)
+  if (direct > 0) return round2(direct)
+  const per = numOr0(input.instalment)
+  const n = numOr0(input.instalments)
+  if (per > 0 && n > 0) return round2(per * n)
+  return 0
+}
 
 export interface EnfiaInUse {
   annual: number
@@ -409,9 +441,13 @@ export function enfiaInUse(
   declaredAnnual: unknown,
   declaredMonthly: unknown,
   estimateAnnual: number | null | undefined,
+  lastYearAnnual?: number | null,
 ): EnfiaInUse {
   const annual = numOr0(declaredAnnual) || numOr0(declaredMonthly) * 12
   if (annual > 0) return { annual: round2(annual), monthly: round2(annual / 12), source: 'declared' }
+  // Το περσινό προηγείται της εκτίμησης: είναι μετρημένο ποσό, όχι μοντέλο.
+  const last = numOr0(lastYearAnnual)
+  if (last > 0) return { annual: round2(last), monthly: round2(last / 12), source: 'lastYear' }
   const est = numOr0(estimateAnnual)
   if (est > 0) return { annual: round2(est), monthly: round2(est / 12), source: 'estimate' }
   return { annual: 0, monthly: 0, source: 'none' }

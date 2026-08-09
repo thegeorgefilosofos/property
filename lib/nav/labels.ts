@@ -34,7 +34,7 @@ export const NAV_LABELS: Record<string, string> = {
   pricing:    'Βραχυχρόνια',
   clients:    'Επισκέπτες',
   inventory:  'Έπιπλα και εξοπλισμός',
-  documents:  'Φάκελος ακινήτου',
+  documents:  'Φάκελος Ακινήτου',
   contacts:   'Επαφές',
   checklist:  'Εκκρεμότητες',
   roi:        'Απόδοση',

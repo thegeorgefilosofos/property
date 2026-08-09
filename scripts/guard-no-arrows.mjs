@@ -44,11 +44,20 @@ const ARROWS = /[→←↑↓↔↗↘↙↖⟶⟵⇒⇐➜➔➤]/
 // μας ενδιαφέρει είναι το κείμενο ΓΥΡΩ από τη μεταβλητή, όχι η μεταβλητή.
 const TEXT = /(?:"([^"\n]{1,300})"|'([^'\n]{1,300})'|`([^`\n]{1,300})`|>([^<>\n]{1,300})<)/g
 
+// ΤΟ ΚΕΙΜΕΝΟ JSX ΔΕΝ ΧΩΡΑΕΙ ΠΑΝΤΑ ΣΕ ΜΙΑ ΓΡΑΜΜΗ. Ο έλεγχος διάβαζε γραμμή προς
+// γραμμή, οπότε ένα «>» στο τέλος της μιας και το κείμενο στην επόμενη δεν
+// ταίριαζαν ποτέ. Έτσι επέζησε το «Εφαρμογή →» ενός κουμπιού και το βέλος
+// μέσα σε παράγραφο των Συμβολαίων. Ενώνουμε κάθε γραμμή με την επόμενη πριν
+// τον έλεγχο: το εύρημα αναφέρεται στη γραμμή όπου αρχίζει.
 const findings = []
 for (const f of findSources()) {
   if (f.includes('.test.') || f.includes('/verify-')) continue
-  readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
-    const t = line.trim()
+  // Το σχόλιο στο τέλος της γραμμής κόβεται πριν την ένωση: αλλιώς ένα «// →»
+  // σχολίου κολλάει στο κείμενο της επόμενης γραμμής και μοιάζει με εύρημα.
+  const src = readFileSync(f, 'utf8').split('\n')
+  const bare = src.map(l => l.replace(/\s\/\/[^'"`]*$/, ''))
+  bare.map((l, i) => l + ' ' + (bare[i + 1] ?? '')).forEach((line, i) => {
+    const t = src[i].trim()
     if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return
     if (/console\.(log|warn|error|info)/.test(line)) return
     for (const m of line.matchAll(TEXT)) {
