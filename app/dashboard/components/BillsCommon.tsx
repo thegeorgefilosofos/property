@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, fe, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay } from '@/components/Theme';
+import { T, TT, fe, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -11,37 +11,27 @@ import { athensToday } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
 
+// Τα ελληνικά δεν έχουν Title Case: «Παραδοσιακός Διαχειριστής» είναι αγγλική
+// συνήθεια. Το κλειδί «billys» μένει ως έχει — είναι αποθηκευμένη τιμή σε
+// ρυθμίσεις χρηστών και μια μετονομασία θα έσβηνε την επιλογή τους.
 const MGMT_TYPES = [
-  { value: 'traditional', label: 'Παραδοσιακός Διαχειριστής' },
-  { value: 'office',      label: 'Γραφείο Διαχείρισης'       },
-  { value: 'billys',      label: 'Ψηφιακή Πλατφόρμα'         },
-  { value: 'none',        label: 'Χωρίς Διαχειριστή'         },
+  { value: 'traditional', label: 'Παραδοσιακός διαχειριστής' },
+  { value: 'office',      label: 'Γραφείο διαχείρισης'       },
+  { value: 'billys',      label: 'Ψηφιακή πλατφόρμα'         },
+  { value: 'none',        label: 'Χωρίς διαχειριστή'         },
 ];
 
-const MGMT_INFO: Record<string, { monthly: number; desc: string; url: string }> = {
-  traditional: { monthly: 0, desc: 'Παραδοσιακός διαχειριστής, εθελοντής ή αμειβόμενος ένοικος/ιδιοκτήτης.', url: '' },
-  office:      { monthly: 0, desc: 'Γραφείο Διαχείρισης, επαγγελματική εταιρεία, συνήθως 20–50 € / μήνα.',   url: '' },
-  billys:      { monthly: 0, desc: 'Ψηφιακή πλατφόρμα κοινοχρήστων, online έκδοση, ειδοποιήσεις, πληρωμές. Δες τη σύγκριση παρόχων παρακάτω.', url: 'https://billys.gr' },
-  none:        { monthly: 0, desc: 'Αυτοδιαχείριση, μηδενικό κόστος, απαιτεί χρόνο από τον ιδιοκτήτη.',     url: '' },
+// Μόνο η εξήγηση. Το `monthly` ήταν μηδέν και στα τέσσερα, δηλαδή εφεδρική τιμή
+// που δεν πρόσθετε ποτέ τίποτα, και το `url` έδειχνε σε ιστότοπο τρίτου από
+// σύνδεσμο που δεν υπάρχει πια.
+const MGMT_INFO: Record<string, string> = {
+  traditional: 'Παραδοσιακός διαχειριστής, εθελοντής ή αμειβόμενος ένοικος ή ιδιοκτήτης.',
+  office:      'Επαγγελματική εταιρεία διαχείρισης, συνήθως 20 έως 50 € τον μήνα.',
+  billys:      'Ψηφιακή πλατφόρμα κοινοχρήστων: online έκδοση, ειδοποιήσεις, πληρωμές.',
+  none:        'Αυτοδιαχείριση, χωρίς κόστος, απαιτεί χρόνο από τον ιδιοκτήτη.',
 };
 
-const MGMT_CARDS = [
-  { key: 'traditional', costLabel: 'Εθελοντής',   nameLabel: 'Παραδοσιακός Διαχειριστής', url: '' },
-  { key: 'office',      costLabel: '20–50 €/μήνα', nameLabel: 'Γραφείο Διαχείρισης',       url: '' },
-  { key: 'billys',      costLabel: 'από 0 €',      nameLabel: 'Ψηφιακή Πλατφόρμα',         url: '' },
-  { key: 'none',        costLabel: 'Δωρεάν',        nameLabel: 'Χωρίς Διαχειριστή',        url: '' },
-] as const;
 
-// Ελληνικές πλατφόρμες έκδοσης/διαχείρισης κοινοχρήστων, τιμές ενδεικτικές (2026).
-// Οι περισσότερες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας.
-const KOIN_PLATFORMS: { name: string; price: string; note: string; url: string }[] = [
-  { name: 'Billys',            price: 'Δωρεάν – 29 €/μήνα', note: 'Δωρεάν έκδοση. Smart: τραπεζικός λογ. πολυκατοικίας, ψηφοφορίες, ειδοποιήσεις οφειλών. Safe: αστική ευθύνη διαχειριστή.', url: 'https://billys.gr' },
-  { name: 'Proper',            price: 'Δωρεάν',             note: 'Δωρεάν έκδοση κοινοχρήστων + υπηρεσίες διαχείρισης στην Αττική.', url: 'https://proper.gr' },
-  { name: 'Outgo',             price: 'Δωρεάν – ~86 €/έτος', note: '1 δωρεάν έκδοση/μήνα. Συνδρομή ανάλογα με τα διαμερίσματα.', url: 'https://outgo.gr' },
-  { name: 'Κοινόχρηστα24',     price: 'Οικονομικό',         note: '35+ χρόνια στον χώρο. Online υπολογισμός και έκδοση.', url: 'https://www.koinoxrista24.gr' },
-  { name: 'e-apps Κοινόχρηστα', price: 'από 19,90 €/έτος',   note: 'Χαμηλό ετήσιο κόστος, online συνδρομή.', url: 'https://e-apps.gr/app-review/koino' },
-  { name: 'Κοινόχρηστα.online', price: 'Δωρεάν',            note: 'Δωρεάν online υπολογισμός και εκτύπωση, χωρίς εγγραφή.', url: 'https://koinoxrista.online' },
-];
 
 // Ανάλυση κοινοχρήστων ανά κατηγορία, λογική κατανομής με χιλιοστά (Billys-style).
 // payer: ποιος επιβαρύνεται κατά τον νόμο/έθιμο (ενοικιαστής=λειτουργικά, ιδιοκτήτης=κεφαλαιουχικά).
@@ -80,7 +70,6 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const [catData,      setCatData]      = useState<Record<string, string>>({});
   const [transferring, setTransferring] = useState<number | null>(null);
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
-  const [hoveredCard,  setHoveredCard]  = useState<string | null>(null);
 
   useEffect(() => {
     if (!propertyId) return;
@@ -169,7 +158,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   };
 
   const mgmtInfo    = MGMT_INFO[mgmtType];
-  const mgmtMonthly = parseFloat(mgmtCost) || mgmtInfo?.monthly || 0;
+  const mgmtMonthly = parseFloat(mgmtCost) || 0;
   const monthlyAvg  = history.filter(v => v).length > 0
     ? history.reduce((s, v) => s + (parseFloat(v) || 0), 0) / history.filter(v => v).length : 0;
   const totalCommon  = mgmtMonthly + (parseFloat(fundMonthly) || 0) + monthlyAvg;
@@ -245,30 +234,39 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           </div>
         </div>
 
-        {/* Επικεφαλίδα πίνακα */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 88px', gap: 10, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4 }}>
-          {['Κατηγορία', 'Σύνολο κτηρίου', 'Μερίδιό μου', 'Βαρύνει'].map((h, i) => (
-            <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, textAlign: i === 0 ? 'left' : i === 3 ? 'center' : 'right' }}>{h}</div>
-          ))}
+        {/* ═══ Η ΣΤΗΛΗ «ΒΑΡΥΝΕΙ» ΕΛΕΓΕ ΤΟ ΙΔΙΟ ΕΝΝΙΑ ΦΟΡΕΣ ══════════════════
+            Κάθε γραμμή κουβαλούσε ένα σήμα «Ενοικιαστής» ή «Ιδιοκτήτης»: επτά
+            πανομοιότυπα μπλε σήματα στη σειρά και δύο γκρίζα από κάτω. Οι
+            γραμμές ήταν ήδη ταξινομημένες ακριβώς έτσι, οπότε το σήμα δεν
+            πρόσθετε πληροφορία — πρόσθετε θόρυβο, μια στήλη πλάτους και ένα
+            χρώμα που τραβούσε το μάτι εννιά φορές χωρίς λόγο.
+
+            Η ίδια πληροφορία λέγεται τώρα ΔΥΟ φορές, ως επικεφαλίδα της ομάδας
+            της, εκεί που τη διαβάζει κανείς μία φορά και την ξέρει για όλες τις
+            γραμμές από κάτω. */}
+        {(['tenant', 'owner'] as const).map(payer => {
+          const rows = catRows.filter(r => r.payer === payer);
+          if (!rows.length) return null;
+          return (
+        <div key={payer} style={{ marginTop: payer === 'owner' ? 20 : 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: 10, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4, alignItems: 'baseline' }}>
+          <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)' }}>{payer === 'tenant' ? 'Βαρύνουν τον ενοικιαστή' : 'Βαρύνουν εσένα'}</div>
+          <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Σύνολο κτηρίου</div>
+          <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Μερίδιό μου</div>
         </div>
 
-        {catRows.map(r => (
-          <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 88px', gap: 10, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
+        {rows.map(r => (
+          <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: 10, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 500 }}>{r.label}</div>
             <input
               type="number" min={0} inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)} placeholder=""
               style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
             <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : fe(0)}</div>
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, padding: '3px 8px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const,
-                background: r.payer === 'tenant' ? 'var(--accent-soft)' : 'var(--bg-elevated)',
-                border: `1px solid ${r.payer === 'tenant' ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
-                color: r.payer === 'tenant' ? 'var(--accent)' : 'var(--text-secondary)' }}>
-                {r.payer === 'tenant' ? 'Ενοικιαστής' : 'Ιδιοκτήτης'}
-              </span>
-            </div>
           </div>
         ))}
+        </div>
+          );
+        })}
 
         {hasCatData && millRatio > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginTop: 16 }}>
@@ -298,79 +296,30 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         {/* FIX: 3 cols so DatePicker has enough room, was 4 cols causing overflow */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <CustomSelect label="Τύπος διαχείρισης"  value={mgmtType}   onChange={sMgmt}  options={MGMT_TYPES}/>
+          <CustomSelect label="Τύπος διαχείρισης" labelInfo={mgmtInfo} value={mgmtType} onChange={sMgmt} options={MGMT_TYPES}/>
           <NumberInput  label="Μηνιαίο κόστος" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
           <NumberInput  label="Ημέρα χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
         </div>
 
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 16, border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans, flex: 1 }}>{mgmtInfo?.desc}</div>
-          {mgmtInfo?.url && (
-            <a href={mgmtInfo.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
-              Επίσκεψη
-            </a>
-          )}
-        </div>
+        {/* ═══ ΤΡΙΑ ΤΜΗΜΑΤΑ ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ ═══════════════════════════════════
 
-        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Σύγκριση επιλογών</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8 }}>
-          {MGMT_CARDS.map(opt => {
-            const isCur    = mgmtType === opt.key;
-            const isHov    = hoveredCard === opt.key && !isCur;
-            return (
-              <div key={opt.key}
-                className={`mgmt-card${isCur ? ' active' : ''}`}
-                onClick={() => sMgmt(opt.key)}
-                onMouseEnter={() => setHoveredCard(opt.key)}
-                onMouseLeave={() => setHoveredCard(null)}
-                style={{
-                  background: isCur ? 'var(--accent-soft)' : isHov ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-                  border: `1px solid ${isCur ? 'var(--accent)' : isHov ? 'var(--border-default)' : 'var(--border-subtle)'}`,
-                  borderRadius: T.radius.inner, padding: '12px 14px',
-                  cursor: 'pointer', position: 'relative',
-                }}>
-                {isCur && <div style={{ position: 'absolute', top: 8, right: 10, width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>}
-                <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isCur ? 'var(--accent)' : isHov ? 'var(--text-primary)' : 'var(--text-primary)', marginBottom: 4 }}>
-                  {opt.costLabel}
-                </div>
-                <div style={{ fontSize: 11, fontFamily: T.font.sans, color: isCur ? 'var(--text-primary)' : 'var(--text-secondary)', lineHeight: 1.3 }}>
-                  {opt.nameLabel}
-                </div>
-                {opt.url && isCur && (
-                  <a href={opt.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                    style={{ fontSize: 9, color: 'var(--accent)', textDecoration: 'none', fontFamily: T.font.sans, marginTop: 5, display: 'block', fontWeight: 600 }}>
-                    Επίσκεψη
-                  </a>
-                )}
-              </div>
-            );
-          })}
-        </div>
+            ΕΝΑΣ ΚΑΤΑΛΟΓΟΣ ΕΞΙ ΞΕΝΩΝ ΠΛΑΤΦΟΡΜΩΝ, με τιμές, περιγραφές και έξι
+            συνδέσμους «Επίσκεψη» που έβγαζαν τον χρήστη έξω από την εφαρμογή.
+            Δεν είναι δουλειά μιας εφαρμογής διαχείρισης ακινήτων να διαφημίζει
+            έξι ανταγωνιστές μέσα στην οθόνη των κοινοχρήστων, ούτε να συντηρεί
+            τιμοκαταλόγους τρίτων που σαπίζουν σιωπηλά. Και οι «τιμές» τους δεν
+            ήταν καν τιμές: «Οικονομικό», «~86 €/έτος», «Δωρεάν – 29 €/μήνα»,
+            τυπωμένες σε γραμματοσειρά πίνακα σαν να ήταν ποσά.
 
-        {/* Οδηγός ελληνικών πλατφορμών κοινοχρήστων, εμφανίζεται στην «Ψηφιακή Πλατφόρμα» */}
-        {mgmtType === 'billys' && (
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ελληνικές πλατφόρμες κοινοχρήστων</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
-              {KOIN_PLATFORMS.map(p => (
-                <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'block', textDecoration: 'none', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', transition: 'border-color 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{p.price}</span>
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{p.note}</div>
-                  <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, fontFamily: T.font.sans, marginTop: 6, display: 'inline-block' }}>Επίσκεψη</span>
-                </a>
-              ))}
-            </div>
-            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 10, fontFamily: T.font.sans, lineHeight: 1.5 }}>
-              Ενδεικτικές τιμές (2026). Οι περισσότερες πλατφόρμες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας, δες τον εκάστοτε ιστότοπο για ακριβή τιμολόγηση.
-            </div>
-          </div>
-        )}
+            ΤΕΣΣΕΡΙΣ ΚΑΡΤΕΣ «ΣΥΓΚΡΙΣΗ ΕΠΙΛΟΓΩΝ» που ρωτούσαν ΑΚΡΙΒΩΣ ό,τι ο
+            επιλογέας «Τύπος διαχείρισης» δύο γραμμές πιο πάνω, με τις ίδιες
+            τέσσερις επιλογές. Δύο χειριστήρια για μία απόφαση, το ένα κάτω από
+            το άλλο.
+
+            ΕΝΑ ΠΛΑΙΣΙΟ ΠΕΡΙΓΡΑΦΗΣ που εξηγούσε την επιλεγμένη επιλογή. Η
+            εξήγηση δεν χάθηκε: ζει πίσω από την κουκκίδα του επιλογέα, εκεί
+            όπου ζουν όλες οι εξηγήσεις της εφαρμογής. */}
+
       </Card>
 
       {/* ── Ταμείο Κτηρίου ───────────────────────────────────────────────── */}

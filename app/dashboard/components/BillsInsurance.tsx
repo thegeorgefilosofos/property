@@ -5,7 +5,7 @@ import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -223,7 +223,7 @@ const INSURANCE_COMPANIES: InsuranceCompany[] = [
     plans: [{ id: 'other_custom', name: 'Προσαρμοσμένο', monthly: 0, annual: 0, covers: [], earthquake: false, flood: false, natural: false }] },
 ];
 
-const STREAMING = [
+export const STREAMING = [
   { value: 'netflix',    label: 'Netflix',            color: '#e50914', url: 'https://www.netflix.com/gr',             plans: [{ id: 'n_basic', name: 'Βασικό, 8,99 €', price: 8.99 },{ id: 'n_standard', name: 'Standard, 12,49 €', price: 12.49 },{ id: 'n_premium', name: 'Premium 4K, 15,99 €', price: 15.99 }] },
   { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard, 8,99 €', price: 8.99 },{ id: 'd_premium', name: 'Premium, 13,99 €', price: 13.99 }] },
   { value: 'apple_tv',   label: 'Apple TV+',          color: '#555555', url: 'https://www.apple.com/gr/apple-tv-plus', plans: [{ id: 'a_std', name: 'Apple TV+, 9,99 €', price: 9.99 }] },
@@ -235,7 +235,7 @@ const STREAMING = [
   { value: 'cosmote_tv', label: 'Cosmote TV',         color: '#00adef', url: 'https://www.cosmote.gr',                 plans: [{ id: 'cos_start', name: 'Start, 6,00 €', price: 6.00 },{ id: 'cos_full', name: 'Full, 30,00 €', price: 30.00 }] },
 ];
 
-const CLOUD = [
+export const CLOUD = [
   { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',          plans: [{ id: 'ic_50', name: '50 GB, 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB, 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB, 9,99 €', price: 9.99 }] },
   { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',          plans: [{ id: 'g_100', name: '100 GB, 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB, 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB, 9,99 €', price: 9.99 }] },
   { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal, 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family, 9,99 €', price: 9.99 }] },
@@ -458,6 +458,131 @@ function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, 
   ];
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΕΝΑΣ ΕΠΙΛΟΓΕΑΣ ΣΥΝΔΡΟΜΩΝ, ΓΙΑ ΟΛΕΣ ΤΙΣ ΣΥΝΔΡΟΜΕΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΕΚΑΝΕ Η ΟΘΟΝΗ ΑΦΟΡΗΤΗ. Η φόρμα επεξεργασίας ζούσε ΜΕΣΑ στο κελί του
+// επιλογέα. Σε πλέγμα, όλα τα κελιά μιας σειράς παίρνουν το ύψος του ψηλότερου:
+// μόλις ο χρήστης άνοιγε μία συνδρομή, το κελί της φούσκωνε στα εξακόσια
+// εικονοστοιχεία και οι τέσσερις διπλανές γίνονταν γιγάντια ΑΔΕΙΑ γκρίζα
+// κουτιά. Μία επιλογή, μισή οθόνη κενό.
+//
+// Και μέσα σε κάθε κελί στριμώχνονταν: κουκκίδα-διακόπτης, όνομα, σύνδεσμος
+// «Επίσημη σελίδα», κουμπί «✕», ετικέτα «+ Προσθήκη», επιλογέας πακέτου με
+// κομμένο κείμενο («Βασικό, 8,…»), διακόπτης διαμοιρασμού, πεδίο αριθμού
+// ατόμων, τιμή, ημερομηνία, και ξανά το ποσό. Δώδεκα χειριστήρια σε πλάτος
+// 150 εικονοστοιχείων, εννέα φορές στη σειρά.
+//
+// Η ΔΟΜΗ ΠΟΥ ΤΟ ΛΥΝΕΙ ΕΙΝΑΙ Η ΠΡΟΦΑΝΗΣ: ο επιλογέας διαλέγει, ο επεξεργαστής
+// επεξεργάζεται, και είναι δύο διαφορετικά πράγματα σε δύο διαφορετικά σημεία.
+//
+//   επάνω   πλακίδια ίδιου ύψους, ένα κλικ ανάβει ή σβήνει. Τίποτα άλλο.
+//   κάτω    μία γραμμή ΑΝΑ ΕΝΕΡΓΗ συνδρομή, όλες στοιχισμένες στο ίδιο πλέγμα.
+//
+// ΤΙ ΣΒΗΣΤΗΚΕ. Το «+ Προσθήκη» σε κάθε ανενεργό πλακίδιο (το πλακίδιο ΕΙΝΑΙ το
+// κουμπί), το «✕» σε κάθε ενεργό (το ίδιο πλακίδιο σβήνει), ο σύνδεσμος
+// «Επίσημη σελίδα» σε κάθε κάρτα (κανείς δεν μπαίνει στη διαχείριση δαπανών
+// για να επισκεφθεί το Netflix), και η ετικέτα «Μηνιαίο κόστος» που
+// επαναλαμβανόταν σε κάθε ανοιχτή κάρτα ενώ η στήλη έχει ήδη επικεφαλίδα.
+//
+// Ο διαμοιρασμός ήταν ΔΥΟ χειριστήρια, διακόπτης και αριθμός ατόμων. Έγινε
+// ένας επιλογέας που λέει την απάντηση με λέξεις: «Μόνος μου», «2 άτομα».
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface SubService { value: string; label: string; url: string; plans: { id: string; name: string; price: number }[] }
+
+const SPLIT_OPTIONS = [
+  { value: '1', label: 'Μόνος μου' },
+  ...[2, 3, 4, 5, 6].map(n => ({ value: String(n), label: `${n} άτομα` })),
+];
+
+/**
+ * Το όνομα του πακέτου ΧΩΡΙΣ την τιμή του.
+ *
+ * Τα πακέτα λέγονται «Βασικό, 8,99 €», «Individual, 13,99 €». Μέσα σε επιλογέα
+ * πλάτους 150 εικονοστοιχείων αυτό γίνεται «Βασικό, 8,9…» και «Individual, …»:
+ * το κείμενο που κόβεται είναι ακριβώς η τιμή, δηλαδή η πληροφορία που η ίδια
+ * γραμμή γράφει ήδη με μεγάλα γράμματα δεξιά. Τα ονόματα των βαθμίδων είναι
+ * μοναδικά από μόνα τους σε κάθε υπηρεσία, και έτσι διαλέγει ο κόσμος:
+ * «βασικό ή premium», όχι «8,99 ή 15,99».
+ */
+const planLabel = (name: string) => name.replace(/,\s*[\d.,]+\s*€\s*$/, '').trim();
+
+/** Το ποσό που βαρύνει τον χρήστη: πακέτο ή δική του τιμή, διά τα άτομα. */
+function subShare(svc: SubService | undefined, a: SubscriptionEntry): number {
+  const plan = svc?.plans.find(p => p.id === a.planId);
+  const base = parseFloat(a.customPrice) || plan?.price || 0;
+  const n = a.splitActive && a.splitPeople > 1 ? a.splitPeople : 1;
+  return base / n;
+}
+
+export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate, total }: {
+  label: string;
+  catalog: readonly SubService[];
+  active: SubscriptionEntry[];
+  onToggle: (svc: string) => void;
+  onUpdate: <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) => void;
+  total: number;
+}) {
+  const isOn = (v: string) => active.some(a => a.service === v);
+  return (
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+      <SecHdr label={label} sub={active.length === 0 ? 'Πάτησε ό,τι έχεις. Τα υπόλοιπα μένουν σβηστά.' : undefined}
+        right={total > 0 ? <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(total)}</span> : undefined}/>
+
+      {/* Ο ΕΠΙΛΟΓΕΑΣ: ίδιο ύψος παντού, ένα κλικ, τίποτα άλλο μέσα. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 168px), 1fr))', gap: 8, alignItems: 'start' }}>
+        {catalog.map(svc => {
+          const on = isOn(svc.value);
+          return (
+            <button key={svc.value} type="button" onClick={() => onToggle(svc.value)} aria-pressed={on}
+              style={{
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8,
+                width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
+                background: on ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                border: `1px solid ${on ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                transition: 'background-color .15s, border-color .15s',
+              }}>
+              <span style={{ ...TT.bodySm, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{svc.label}</span>
+              {!on && <span style={{ ...TT.caption, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fe(svc.plans[0].price)}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Ο ΕΠΕΞΕΡΓΑΣΤΗΣ: μία γραμμή ανά ενεργή, όλες στο ίδιο πλέγμα. */}
+      {active.length > 0 && (
+        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {active.map(a => {
+            const svc = catalog.find(x => x.value === a.service);
+            if (!svc) return null;
+            return (
+              <div key={a.service} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, alignItems: 'end', paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                  <span style={{ ...TT.h2, fontSize: 15 }}>{svc.label}</span>
+                  <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(subShare(svc, a))}</span>
+                </div>
+                <CustomSelect label="Πακέτο" value={a.planId} onChange={v => onUpdate(a.service, 'planId', v)}
+                  options={svc.plans.map(p => ({ value: p.id, label: planLabel(p.name) }))}/>
+                <CustomSelect label="Μοιράζεται" value={String(a.splitActive && a.splitPeople > 1 ? a.splitPeople : 1)}
+                  onChange={v => { const n = parseInt(v) || 1; onUpdate(a.service, 'splitPeople', n); onUpdate(a.service, 'splitActive', n > 1); }}
+                  options={SPLIT_OPTIONS}/>
+                <NumberInput label="Τιμή αν διαφέρει" value={a.customPrice} onChange={v => onUpdate(a.service, 'customPrice', v)} suffix="€" step={0.5}/>
+                {/* Το προεπιλεγμένο «Επιλογή ημερομηνίας» τσάκιζε σε δύο γραμμές και
+                    έσπαγε τη στοίχιση της σειράς. Η ετικέτα λέει ήδη «Ανανέωση»·
+                    το κενό λέει ότι είναι προαιρετικό. */}
+                <DatePicker label="Ανανέωση" placeholder="Προαιρετικό" value={a.renewalDate} onChange={v => onUpdate(a.service, 'renewalDate', v)}/>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Η ασφάλεια κατοικίας και οι συνδρομές streaming δεν είναι ίδιο πράγμα, και
  * δεν τα ανοίγει κανείς μαζί. Το `only` δηλώνει ποια κάρτα πατήθηκε.
@@ -665,7 +790,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId);
   const insCost    = parseFloat(insCustomPrice) || insPlan?.monthly || 0;
   /** Ξέρουμε ασφάλιστρο; Χωρίς αυτό, το «0,00 €» θα σήμαινε «δεν πληρώνω». */
-  const hasPolicy  = insCost > 0;
 
   const effectiveCovers     = insEditCovers && insCustomCovers ? insCustomCovers.split(',').map(s => s.trim()).filter(Boolean) : (insPlan?.covers || []);
   const effectiveEarthquake = insEditCovers ? insCustomEarthquake : (insPlan?.earthquake || false);
@@ -1242,103 +1366,12 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       </>)}
 
       {show('subscriptions') && (<>
-        {/* ── Streaming & Ψυχαγωγία ────────────────────────────────────────── */}
-        <div style={card}>
-          {secHdr('Streaming και ψυχαγωγία')}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
-            {STREAMING.map(svc => {
-              const active  = (activeStreaming || []).find(a => a.service === svc.value);
-              const plan    = svc.plans.find(p => p.id === active?.planId);
-              const cost    = parseFloat(active?.customPrice || '') || plan?.price || 0;
-              const myShare = active?.splitActive && (active?.splitPeople || 2) > 1 ? cost / (active.splitPeople || 2) : cost;
-              return (
-                <div key={svc.value} style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 14, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', minHeight: 68, display: 'flex', flexDirection: 'column' as const }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: active ? 10 : 0 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value), `${active ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}: ${svc.label}`)}/>
-                    <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}>{svc.label}</span>
-                    {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--text-tertiary)', textDecoration: 'none', padding: '2px 4px' }}>Επίσημη σελίδα</a>}
-                    {active ? (
-                      <button onClick={() => toggleStreaming(svc.value)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0, padding: 0 }}>✕</button>
-                    ) : (
-                      <span style={{ fontSize: 9, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: T.font.sans }} onClick={() => toggleStreaming(svc.value)}>+ Προσθήκη</span>
-                    )}
-                  </div>
-                  {!active && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 15, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value))}>από {fe(svc.plans[0].price)} / μήνα</div>}
-                  {active && (
-                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
-                      <CustomSelect value={active.planId} onChange={v => updateS(svc.value, 'planId', v)}
-                        options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
-                        <div {...pressable(() => updateS(svc.value, 'splitActive', !active.splitActive))}
-                          style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
-                          <div style={{ position: 'absolute', top: 2.5, left: active.splitActive ? 14 : 2.5, width: 12, height: 12, borderRadius: '50%', background: active.splitActive ? 'var(--accent-text)' : '#fff', transition: 'left 0.2s' }}/>
-                        </div>
-                        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Διαμοιρασμός κόστους</span>
-                        {active.splitActive && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <input type="number" min="2" max="10" value={active.splitPeople || 2} onChange={e => updateS(svc.value, 'splitPeople', Math.max(2, parseInt(e.target.value) || 2))}
-                              style={{ width: 44, background: 'var(--bg-elevated)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center' }}/>
-                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>άτομα</span>
-                          </div>
-                        )}
-                      </div>
-                      <NumberInput label="Τιμή αν διαφέρει" value={active.customPrice} onChange={v => updateS(svc.value, 'customPrice', v)} suffix="€" step={0.5}/>
-                      <DatePicker label="Ημερομηνία ανανέωσης" value={active.renewalDate} onChange={v => updateS(svc.value, 'renewalDate', v)}/>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{active.splitActive && (active.splitPeople || 2) > 1 ? `Μερίδιό σου (÷${active.splitPeople})` : 'Μηνιαίο κόστος'}</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {(activeStreaming || []).length > 0 && (
-            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>{(activeStreaming || []).length} υπηρεσίες ενεργές</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{(activeStreaming || []).map(a => STREAMING.find(s => s.value === a.service)?.label).join(' · ')}</div>
-              </div>
-              <div style={{ textAlign: 'right' as const }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(streamingCost)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>ανά μήνα</div>
-              </div>
-            </div>
-          )}
-        </div>
+        <SubscriptionSection label="Streaming και ψυχαγωγία" catalog={STREAMING}
+          active={activeStreaming || []} onToggle={toggleStreaming} onUpdate={updateS} total={streamingCost}/>
 
-        {/* ── Cloud & Λογισμικό ────────────────────────────────────────────── */}
-        <div style={card}>
-          {secHdr('Cloud και λογισμικό')}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: 8, marginBottom: 14 }}>
-            {CLOUD.map(svc => {
-              const active  = (activeCloud || []).find(a => a.service === svc.value);
-              const plan    = svc.plans.find(p => p.id === active?.planId);
-              const cost    = parseFloat(active?.customPrice || '') || plan?.price || 0;
-              const myShare = active?.splitActive && (active?.splitPeople || 2) > 1 ? cost / (active.splitPeople || 2) : cost;
-              return (
-                <div key={svc.value} {...pressable(() => toggleCloud(svc.value))}
-                  style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 10, cursor: 'pointer', transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s', minHeight: 56, display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>{svc.label}</span>
-                    {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, color: 'var(--text-tertiary)', textDecoration: 'none' }}>Επίσημη σελίδα</a>}
-                  </div>
-                  {active ? (
-                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>
-                      <CustomSelect value={active.planId} onChange={v => updateC(svc.value, 'planId', v)}
-                        options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</div>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>από {fe(svc.plans[0].price)}</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <SubscriptionSection label="Cloud και λογισμικό" catalog={CLOUD}
+          active={activeCloud || []} onToggle={toggleCloud} onUpdate={updateC} total={cloudCost}/>
+
 
         {/* ── Άλλες Πάγιες Συνδρομές ───────────────────────────────────────── */}
         <div style={card}>
@@ -1375,7 +1408,11 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
           {total > 0 && (
             <div style={{ marginTop: 16, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο, ασφάλεια + streaming + cloud + άλλα</div>
+                {/* Η ετικέτα απαριθμούσε «ασφάλεια + streaming + cloud + άλλα»
+                    ακόμη κι όταν υπήρχαν μόνο δύο από τα τέσσερα, ενώ η γραμμή
+                    από κάτω έγραφε ήδη ποια ακριβώς αθροίζονται. Δύο απαντήσεις
+                    στην ίδια ερώτηση, και η μία λάθος. */}
+                <div style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>Σύνολο ανά μήνα</div>
                 <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
                   {[insCost > 0 && `Ασφάλεια ${fe(insCost)}`, streamingCost > 0 && `Streaming ${fe(streamingCost)}`, cloudCost > 0 && `Cloud ${fe(cloudCost)}`, otherCost > 0 && `Άλλα ${fe(otherCost)}`].filter(Boolean).join(' + ')}
                 </div>
