@@ -503,7 +503,7 @@ function CommentsEditor({ comments, onChange }: { comments: Comment[]; onChange:
 
 // ─── Export functions ─────────────────────────────────────────────────────────
 async function exportChecklistExcel(items: ChecklistItem[]) {
-  const XLSX = await import('xlsx')
+  const XLSX = (await import('xlsx-js-style')).default
   const today = new Date().toLocaleDateString('el-GR')
   const wb = XLSX.utils.book_new()
   const done = items.filter(i => i.status === 'done').length

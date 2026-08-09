@@ -59,7 +59,8 @@
     "em-dash": "node scripts/guard-em-dash.mjs",
     "form-grid": "node scripts/guard-form-grid.mjs",
     "decimal-comma": "node scripts/guard-decimal-comma.mjs",
-    "data-layer": "node scripts/guard-data-layer.mjs"
+    "data-layer": "node scripts/guard-data-layer.mjs",
+    "rls-coverage": "node scripts/guard-rls-coverage.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -71,7 +72,6 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
-    "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {

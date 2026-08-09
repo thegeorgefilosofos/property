@@ -659,7 +659,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
 
 // ─── Excel Export (SheetJS, ίδιο μοτίβο με τα υπόλοιπα φύλλα) ───────────────
 async function exportContactsExcel(contacts: Contact[]) {
-  const XLSX = await import('xlsx')
+  const XLSX = (await import('xlsx-js-style')).default
   const today = new Date().toLocaleDateString('el-GR')
   const wb = XLSX.utils.book_new()
 

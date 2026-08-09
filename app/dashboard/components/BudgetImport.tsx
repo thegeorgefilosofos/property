@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { readSheetAsCsv, SheetError } from '@/lib/core/readSheet';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import { T, feAuto } from '@/components/Theme';
@@ -45,18 +46,12 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
   const handleFile = async (file: File) => {
     setErr(''); setBusy(true); setFileName(file.name);
     try {
-      let text: string;
+      // ΤΟ ΞΕΝΟ ΦΥΛΛΟ ΔΙΑΒΑΖΕΤΑΙ ΣΕ ΑΛΛΟ ΔΩΜΑΤΙΟ. Εδώ ο αναλυτής έτρεχε στο
+      // κύριο νήμα, πάνω σε αρχείο που έστειλε τράπεζα, λογιστής ή
+      // διαχειριστής — με βιβλιοθήκη που έχει δημοσιευμένη αδυναμία μόλυνσης
+      // πρωτοτύπου και καμία διορθωμένη έκδοση. Βλ. lib/core/readSheet.ts.
       const isExcel = /\.(xlsx|xls)$/i.test(file.name);
-      if (isExcel) {
-        const XLSX = await import('xlsx');
-        const buf = await file.arrayBuffer();
-        // cellDates: οι ημερομηνίες του Excel να διαβαστούν ως ημερομηνίες (όχι σειριακοί αριθμοί).
-        const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        text = XLSX.utils.sheet_to_csv(sheet, { dateNF: 'yyyy-mm-dd' });
-      } else {
-        text = await file.text();
-      }
+      const text = isExcel ? await readSheetAsCsv(file) : await file.text();
       const parsed = parseCSV(text).filter(t => t.debit);   // μόνο έξοδα (όχι πιστώσεις/έσοδα)
       const mapped: Row[] = parsed.map(t => {
         const budgetKey = PARSE_TO_BUDGET[t.category] ?? 'other';
@@ -64,8 +59,10 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
       });
       if (!mapped.length) setErr('Δεν βρέθηκαν έγκυρες δαπάνες στο αρχείο. Έλεγξε ότι υπάρχουν στήλες ημερομηνίας, ποσού και περιγραφής.');
       setRows(mapped);
-    } catch {
-      setErr('Δεν ήταν δυνατή η ανάγνωση του αρχείου. Δοκίμασε CSV ή Excel (.xlsx).');
+    } catch (e) {
+      // Το μήνυμα του αναγνώστη είναι ΣΥΓΚΕΚΡΙΜΕΝΟ (πολύ μεγάλο, άργησε, χωρίς
+      // φύλλα): λέει στον χρήστη τι να κάνει. Το γενικό μένει για τα υπόλοιπα.
+      setErr(e instanceof SheetError ? e.message : 'Δεν ήταν δυνατή η ανάγνωση του αρχείου. Δοκίμασε CSV ή Excel (.xlsx).');
     } finally { setBusy(false); }
   };
 
