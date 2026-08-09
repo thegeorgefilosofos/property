@@ -116,7 +116,7 @@ export default function PasswordStrength({ password, id, onLeaked }: {
             <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center' }}>
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </span>
-            Πολύ κοινός κωδικός — διάλεξε κάτι πιο μοναδικό
+            Πολύ κοινός κωδικός: διάλεξε κάτι πιο μοναδικό
           </li>
         )}
         {leaked && (

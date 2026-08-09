@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fn, feRate, Skeleton, histInputStyle, ABSENT_SHORT } from '@/components/Theme';
+import { T, fe, fn, feRate, Skeleton, histInputStyle, ABSENT_SHORT, formGrid } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
 import { PROVIDERS, COMPARABLE_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from '@/lib/energy/catalogue';
 import { canRecommend, freshness, RAAEY_COMPARE } from '@/lib/energy/freshness';
@@ -413,7 +413,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       {/* ── Provider + Tariff + Contract ── */}
       <div style={card}>
         {secHdr('Πάροχος και τιμολόγιο')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+        <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Πάροχος" value={provider} onChange={p => {
             setProvider(p);
             const prov = PROVIDERS.find(x => x.value === p);

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
-import { T, TT, fp, fn } from '@/components/Theme'
+import { T, TT, fp, fn, formGrid } from '@/components/Theme'
 import { useDocScan, scanNum, ScanUploadRow, ScanErrorNote } from './LoanDocScan'
 import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 
@@ -133,7 +133,7 @@ export default function EsisScanPanel({
       )}
 
       {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση (θαμπώνουν όσο τρέχει η ανάλυση AI) */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10,opacity:scanning?0.5:1,pointerEvents:scanning?'none':'auto',transition:'opacity 0.2s'}} aria-busy={scanning}>
+      <div style={{...formGrid(160, 220),gap:10,opacity:scanning?0.5:1,pointerEvents:scanning?'none':'auto',transition:'opacity 0.2s'}} aria-busy={scanning}>
         <NumberInput label="Ποσό δανείου" value={amount} onChange={setAmount} suffix="€"/>
         <NumberInput label="Διάρκεια" value={years} onChange={setYears} suffix="έτη"/>
         <NumberInput label="Ονομαστικό επιτόκιο" value={nominal} onChange={setNominal} suffix="%" step={0.1}/>

@@ -14,10 +14,10 @@ import {
 import {
   Toggle, NumberInput, TextInput, Textarea,
   CustomSelect as SelectField,
-  DatePicker as DateField,
+  DatePicker,
 } from './UIComponents';
 import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT, localDay, pressable } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT, localDay, pressable, formGrid } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved, savedData } from '@/components/dbWrite';
@@ -553,7 +553,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
           {/* Έτος χωρίς δείκτη: το λέμε, δεν το μπαλώνουμε */}
           {official===null&&(
             <div style={{ background:'var(--warning-dim)', border:'1px solid color-mix(in srgb, var(--warning) 26%, transparent)', borderLeft:'3px solid var(--warning)', borderRadius:T.radius.inner, padding:'11px 14px', marginBottom:16, fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
-              Για το {yr} δεν έχουμε επιβεβαιωμένη μέση ετήσια μεταβολή ΔΤΚ. Ο τελευταίος δείκτης που έχουμε είναι του {CPI_LATEST_YEAR}. Δώσε το ποσοστό που προβλέπει η σύμβασή σου — θα γραφτεί στο έγγραφο ως ποσοστό που όρισες εσύ, όχι ως στοιχείο της ΕΛΣΤΑΤ.
+              Για το {yr} δεν έχουμε επιβεβαιωμένη μέση ετήσια μεταβολή ΔΤΚ. Ο τελευταίος δείκτης που έχουμε είναι του {CPI_LATEST_YEAR}. Δώσε το ποσοστό που προβλέπει η σύμβασή σου. Θα γραφτεί στο έγγραφο ως ποσοστό που όρισες εσύ, όχι ως στοιχείο της ΕΛΣΤΑΤ.
             </div>
           )}
 
@@ -623,7 +623,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
                 Εκτύπωση Ειδοποίησης Αναπροσαρμογής
               </button>
               <div style={{ marginTop:10, fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
-                Η ειδοποίηση φεύγει σε άλλον άνθρωπο και μένει στα χαρτιά του. Δεν την εκτυπώνουμε με νούμερο που δεν έχει προέλευση — συμπλήρωσε το ποσοστό της σύμβασης ή επίλεξε έτος με επιβεβαιωμένο δείκτη.
+                Η ειδοποίηση φεύγει σε άλλον άνθρωπο και μένει στα χαρτιά του. Δεν την εκτυπώνουμε με νούμερο που δεν έχει προέλευση. Συμπλήρωσε το ποσοστό της σύμβασης ή επίλεξε έτος με επιβεβαιωμένο δείκτη.
               </div>
             </div>
           )}
@@ -743,7 +743,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
 
         {showAdd&&(
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12, marginBottom:12 }}>
+            <div style={{ ...formGrid(150, 210), gap:12, marginBottom:12 }}>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Τύπος επικοινωνίας</div>
                 <SelectField value={form.type} onChange={v=>{ if(isCommType(v)) setForm(f=>({...f,type:v})); }}
@@ -751,7 +751,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Ημερομηνία</div>
-                <DateField value={form.date} onChange={v=>setForm(f=>({...f,date:v}))}/>
+                <DatePicker value={form.date} onChange={v=>setForm(f=>({...f,date:v}))}/>
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
@@ -1199,7 +1199,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Εξοφλήθη</div><Toggle on={payF.paid} onChange={v=>setPayF(f=>({...f,paid:v}))} ariaLabel="Ναι ή όχι"/></div>
-              {payF.paid&&<DateField label="Ημερομηνία πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
+              {payF.paid&&<DatePicker label="Ημερομηνία πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
               <TextInput label="Σημείωση" value={payF.notes} onChange={v=>setPayF(f=>({...f,notes:v}))} placeholder="προαιρετικό"/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -1621,7 +1621,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
         {addOpen&&(
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
             <div style={{ ...s.g3, marginBottom:14 }}>
-              <DateField label="Ημερομηνία" value={f.occurred_on} onChange={v=>setF(x=>({...x,occurred_on:v}))}/>
+              <DatePicker label="Ημερομηνία" value={f.occurred_on} onChange={v=>setF(x=>({...x,occurred_on:v}))}/>
               <NumberInput label="Κόστος" value={f.cost} onChange={v=>setF(x=>({...x,cost:v}))} suffix="€"/>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρέωση στον ενοικιαστή</div><Toggle on={f.charged_to_tenant} onChange={v=>setF(x=>({...x,charged_to_tenant:v}))} ariaLabel="Ναι ή όχι"/></div>
             </div>
@@ -1630,7 +1630,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} ariaLabel="Ναι ή όχι"/></div>
-              {f.repaired&&<DateField label="Ημερομηνία επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
+              {f.repaired&&<DatePicker label="Ημερομηνία επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
               <TextInput label="Σημείωση" value={f.notes} onChange={v=>setF(x=>({...x,notes:v}))} placeholder="προαιρετικό"/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -2720,8 +2720,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               </>
             )}
             <div style={{ ...s.g3, marginBottom:6 }}>
-              {show('tenant.lease_start')&&<DateField label="Έναρξη μίσθωσης" value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
-              {show('tenant.lease_end')&&<DateField label="Λήξη μίσθωσης" value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
+              {show('tenant.lease_start')&&<DatePicker label="Έναρξη μίσθωσης" value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
+              {show('tenant.lease_end')&&<DatePicker label="Λήξη μίσθωσης" value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
               {form.lease_type==='custom'&&<NumberInput label="Ημέρες" value={String(form.custom_lease_days)} onChange={v=>sf('custom_lease_days',parseInt(v)||0)} suffix="ημ."/>}
             </div>
             <Why id="tenant.lease_start"/>
@@ -2878,7 +2878,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
                           {more('tenant.deposit_method')&&<SelectField label="Τρόπος καταβολής εγγύησης" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>}
-                          {more('tenant.deposit_paid_on')&&<DateField label="Ημερομηνία καταβολής εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
+                          {more('tenant.deposit_paid_on')&&<DatePicker label="Ημερομηνία καταβολής εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
                         </div>
                         <Why id="tenant.deposit_method"/>
                       </div>
@@ -2887,7 +2887,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
                           <div><div style={{ ...labelStyle, marginBottom:8 }}>Επεστράφη η εγγύηση</div><Toggle on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)} ariaLabel="Ναι ή όχι"/></div>
-                          {form.deposit_returned&&<DateField label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
+                          {form.deposit_returned&&<DatePicker label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
                         </div>
                         <Why id="tenant.deposit_returned"/>
                       </div>

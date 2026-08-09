@@ -1,5 +1,5 @@
 'use client'
-import { T, TT } from '@/components/Theme'
+import { T, TT, formGrid } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -133,13 +133,13 @@ export default function BankRatesAdmin({ onSaved }:{
                   {on && edit && (
                     <div style={{padding:'2px 12px 13px',display:'flex',flexDirection:'column',gap:11,borderTop:'1px solid var(--border-subtle)'}}>
                       <p style={{...labelStyle,marginTop:11}}>Σταθερά επιτόκια (κείμενο, π.χ. «2,90» ή «2,50-2,90»)</p>
-                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10}}>
+                      <div style={{...formGrid(150, 210),gap:10}}>
                         {RATE_FIELDS.map(f=>(
                           <TextInput key={f.k} label={f.label} value={String(edit[f.k] ?? '')} onChange={v=>set(f.k, v)} placeholder=""/>
                         ))}
                       </div>
                       <p style={{...labelStyle}}>Παράμετροι</p>
-                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10}}>
+                      <div style={{...formGrid(150, 210),gap:10}}>
                         <NumberInput label="Ελάχιστο σταθερό" value={String(edit.fixed_min ?? '')} onChange={v=>set('fixed_min', Number(v))} suffix="%" step={0.05}/>
                         <NumberInput label="Περιθώριο ελάχιστο" value={String(edit.variable_spread_min ?? '')} onChange={v=>set('variable_spread_min', Number(v))} suffix="%" step={0.05}/>
                         <NumberInput label="Περιθώριο μέγιστο" value={String(edit.variable_spread_max ?? '')} onChange={v=>set('variable_spread_max', Number(v))} suffix="%" step={0.05}/>

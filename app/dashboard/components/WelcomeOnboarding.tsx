@@ -262,7 +262,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
                   ))}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.45 }}>
-                  Δεν είσαι σίγουρος; Άσε την πρόταση όπως είναι — αλλάζει από τις Ρυθμίσεις όποτε θέλεις.
+                  Δεν είσαι σίγουρος; Άσε την πρόταση όπως είναι· αλλάζει από τις Ρυθμίσεις όποτε θέλεις.
                 </div>
               </>
             )}

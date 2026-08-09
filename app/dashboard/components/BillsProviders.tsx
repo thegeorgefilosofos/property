@@ -348,7 +348,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                 <span style={{ color: 'var(--text-secondary)' }}>
                   Λήξη συμβολαίου Internet σε{' '}
                   <strong style={{ color: days <= 14 ? 'var(--negative)' : 'var(--warning)' }}>{days} ημέρες</strong>
-                  {' '}— Σύγκρινε στο ΕΕΤΤ 360° για καλύτερη τιμή.
+                  {'. '}Σύγκρινε στο ΕΕΤΤ 360° για καλύτερη τιμή.
                 </span>
               </div>
             );
@@ -416,7 +416,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             {s.hasTV && (
               <>
                 {/* FIX: 3 cols + separate toggle row, avoids Sports Package label truncation */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
+                <div style={{ ...formGrid(150, 210), gap: 14, marginBottom: 12 }}>
                   <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
                     options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
                   <TextInput   label="Πρόγραμμα ή πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
@@ -435,7 +435,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
         <div style={card}>
           {secHdr('Νερό')}
           {/* FIX: 2+2 layout, prevents label overflow on narrow screens */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+          <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
             <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
             <CustomSelect
               label="Συχνότητα χρέωσης"
@@ -453,7 +453,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2)).toFixed(2)) : '' })}
               suffix="€" step={5}/>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+          <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
             <NumberInput  label="Μηνιαία αναγωγή"   value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€"      step={2}/>
             <NumberInput  label="Άτομα στο ακίνητο"      value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα"  step={1}/>
           </div>

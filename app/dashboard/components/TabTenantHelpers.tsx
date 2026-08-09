@@ -15,7 +15,7 @@ import { saved } from '@/components/dbWrite';
 // ─── Re-exports for TabTenant ─────────────────────────────────────────────────
 export { Toggle, NumberInput, TextInput, Textarea, FREQ_OPTIONS };
 export { CustomSelect as SelectField };
-export { UIDatePicker as DateField };
+export { UIDatePicker as DatePicker };
 export { UIServiceBySelect as ServiceBySelect };
 export { SegmentControl };
 

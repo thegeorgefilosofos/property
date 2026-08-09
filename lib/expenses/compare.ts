@@ -28,6 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { categoryLabel, resolveCategory } from './taxonomy';
+import { fe } from '../core/format';
 import { monthAcc, monthNom } from '../core/months';
 
 /** Το ελάχιστο που χρειάζεται η σύγκριση από μια κίνηση. */
@@ -73,6 +74,15 @@ export interface Comparison {
   caveats: string[];
   /** Η σύγκριση σε μία φράση, στα ελληνικά. Ποτέ κενή. */
   sentence: string;
+  /**
+   * Η ΙΔΙΑ φράση ΧΩΡΙΣ την απαρίθμηση των κατηγοριών.
+   *
+   * Η κάρτα δείχνει τις κατηγορίες από κάτω, με ράβδους και ποσά: γράφοντάς τες
+   * και μέσα στην πρόταση, ο ίδιος αριθμός εμφανιζόταν δύο φορές σε δύο γραμμές
+   * απόσταση, τη μία στρογγυλεμένος και την άλλη με λεπτά. Η ειδοποίηση όμως
+   * ΔΕΝ έχει ράβδους, γι' αυτό κρατά την πλήρη `sentence`.
+   */
+  headline: string;
   /** Υπάρχουν αρκετά δεδομένα για να ειπωθεί κάτι; */
   meaningful: boolean;
 }
@@ -175,13 +185,15 @@ export function compareMonth(
   // ── ΛΕΙΠΕΙ Η ΒΑΣΗ ────────────────────────────────────────────────────────
   if (bas.total === 0) {
     const yearRef = Number(currentKey.slice(0, 4));
+    const none = cur.total === 0
+      ? 'Δεν υπάρχουν καταχωρημένες δαπάνες για σύγκριση.'
+      : `Δεν υπάρχουν δαπάνες τον ${monthPhrase(baseKey, yearRef)} για να γίνει σύγκριση.`;
     return {
       basis, currentKey, baseKey, current: cur.total, base: 0, diff: cur.total, pct: null,
       drivers: [], caveats,
       meaningful: false,
-      sentence: cur.total === 0
-        ? 'Δεν υπάρχουν καταχωρημένες δαπάνες για σύγκριση.'
-        : `Δεν υπάρχουν δαπάνες τον ${monthPhrase(baseKey, yearRef)} για να γίνει σύγκριση.`,
+      sentence: none,
+      headline: none,
     };
   }
 
@@ -221,11 +233,19 @@ export function compareMonth(
     caveats,
     meaningful: true,
     sentence: buildSentence(diff, drivers, baseKey, yearRef, basis, partial),
+    headline: buildSentence(diff, [], baseKey, yearRef, basis, partial),
   };
 }
 
-const eur0 = (n: number): string =>
-  `${new Intl.NumberFormat('el-GR').format(Math.round(Math.abs(n)))} €`;
+/**
+ * ΤΟ ΠΟΣΟ ΤΗΣ ΦΡΑΣΗΣ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΠΟΣΟ ΜΕ ΤΟΥ ΤΙΤΛΟΥ.
+ *
+ * Εδώ ζούσε δικός του μορφοποιητής που στρογγύλευε στο ακέραιο ευρώ: η κάρτα
+ * έγραφε «−751,00 €» με νούμερα ύψους 28 και δύο γραμμές πιο κάτω «751 €
+ * λιγότερα». Δύο μορφές του ίδιου ποσού στο ίδιο πλαίσιο — και ο αναγνώστης δεν
+ * ξέρει ποια από τις δύο να πιστέψει.
+ */
+const eur = (n: number): string => fe(Math.abs(n));
 
 /**
  * Η σύγκριση σε μία φράση.
@@ -249,19 +269,22 @@ function buildSentence(
   }
 
   const dir = diff > 0 ? 'περισσότερα' : 'λιγότερα';
-  const head = `Ξόδεψες ${eur0(diff)} ${dir} ${when}`;
+  const head = `Ξόδεψες ${eur(diff)} ${dir} ${when}`;
 
   // Οι αιτίες που δείχνουν προς ΤΗΝ ΙΔΙΑ κατεύθυνση με τη συνολική διαφορά.
   // Μια κατηγορία που έπεσε ενώ το σύνολο ανέβηκε δεν «εξηγεί» την αύξηση.
   const same = drivers.filter(d => (diff > 0 ? d.diff > 0 : d.diff < 0)).slice(0, 2);
   if (same.length === 0) return `${head}.${partial ? ' Ο μήνας δεν έχει τελειώσει.' : ''}`;
 
+  // «Κυρίως Άλλο 751 €» ΔΕΝ ΕΙΝΑΙ ΕΛΛΗΝΙΚΑ. Το όνομα της κατηγορίας μπαίνει σε
+  // εισαγωγικά και προηγείται πρόθεση, ώστε η πρόταση να στέκει με ΟΠΟΙΟ όνομα
+  // κι αν έχει η κατηγορία — και το «Άλλο» είναι υπαρκτή κατηγορία.
   const parts = same.map(d => {
-    if (d.isNew) return `${d.label} ${eur0(d.current)} που δεν υπήρχε`;
-    return `${d.label} ${eur0(d.diff)}`;
+    if (d.isNew) return `«${d.label}» ${eur(d.current)}, που δεν υπήρχε`;
+    return `«${d.label}» ${eur(d.diff)}`;
   });
   const tail = parts.length === 1 ? parts[0] : `${parts[0]} και ${parts[1]}`;
-  return `${head}. Κυρίως ${tail}.${partial ? ' Ο μήνας δεν έχει τελειώσει.' : ''}`;
+  return `${head}. Κυρίως από ${tail}.${partial ? ' Ο μήνας δεν έχει τελειώσει.' : ''}`;
 }
 
 // ── ΤΟ ΙΣΤΟΡΙΚΟ ────────────────────────────────────────────────────────────

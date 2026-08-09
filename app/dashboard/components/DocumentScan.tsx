@@ -10,7 +10,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe } from '@/components/Theme';
+import { T, fe, formGrid } from '@/components/Theme';
 import { CustomSelect } from './UIComponents';
 import {
   validateDoc, docSummaryLine,
@@ -497,7 +497,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
               <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                   Διάβασα <strong>{v.invalid.map(label).join(', ')}</strong> αλλά δεν είναι έγκυρο{v.invalid.length > 1 ? 'α' : ''}
-                  {v.invalid.includes('provider_afm') || v.invalid.includes('afm') ? ' (το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ)' : ''}. Διόρθωσέ το ή άφησέ το κενό — δεν το αποθηκεύω για σωστό.
+                  {v.invalid.includes('provider_afm') || v.invalid.includes('afm') ? ' (το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ)' : ''}. Διόρθωσέ το ή άφησέ το κενό: δεν το αποθηκεύω για σωστό.
                 </div>
               </div>
             )}
@@ -512,7 +512,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
             )}
 
             {/* Πεδία ανά τύπο */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 10 }}>
+            <div style={{ ...formGrid(190, 257), gap: 10 }}>
               {(edited.doc_type === 'bill' || edited.doc_type === 'payment') && (
                 <CustomSelect label="Κατηγορία" value={edited.category || 'other'}
                   onChange={v => setEdited(p => p ? { ...p, category: v } : p)}

@@ -17,6 +17,7 @@
 
 import { useMemo, useState } from 'react';
 import { T, Card, fe, fn } from '@/components/Theme';
+import { MONTHS_SHORT } from '@/lib/core/months';
 import {
   compareMonth, history, monthKey, monthPhrase,
   type Basis, type Comparison, type MonthPoint, type Spend,
@@ -127,7 +128,15 @@ function Drivers({ c }: { c: Comparison }) {
 // Ράβδοι με ΚΛΕΙΔΩΜΕΝΟ πλάτος και ελαστικό κενό: σε μεγάλη οθόνη οι ράβδοι δεν
 // γίνονται μπλοκ, σε μικρή δεν στριμώχνονται μεταξύ τους. Η ανάγνωση του ποσού
 // γίνεται σε σταθερή θέση πάνω από το γράφημα — τίποτα δεν αναπηδά στο hover.
-const M1 = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
+// ΕΝΑ ΓΡΑΜΜΑ ΔΕΝ ΕΙΝΑΙ ΜΗΝΑΣ. Η σειρά έγραφε «Σ Ο Ν Δ Ι Φ Μ Α Μ Ι Ι Α»: τρία
+// «Μ», δύο «Ι», δύο «Α» — δώδεκα ετικέτες από τις οποίες οι επτά δεν ξεχωρίζουν
+// μεταξύ τους. Ο χρήστης δεν μπορούσε να πει σε ποιον μήνα δείχνει η ψηλή
+// ράβδος. Οι συντομογραφίες των τριών γραμμάτων ζουν ήδη στο lib/core/months.
+//
+// Χωρούσαν πάντα: οι ράβδοι είναι δεκατέσσερα εικονοστοιχεία η καθεμιά, αλλά
+// μοιράζονται ολόκληρο το πλάτος της κάρτας. Το πρόβλημα δεν ήταν ο χώρος·
+// ήταν ότι η ετικέτα είχε καρφωμένο πλάτος ίσο με της ράβδου, σε ΞΕΧΩΡΙΣΤΗ
+// σειρά. Ράβδος και ετικέτα είναι πλέον μία στήλη, άρα και στοιχισμένες.
 
 function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey: string }) {
   const [hover, setHover] = useState<string | null>(null);
@@ -156,43 +165,34 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
         )}
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-        height: 116, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 0,
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${points.length}, 1fr)`, alignItems: 'end' }}>
         {points.map(p => {
           const isCur = p.key === currentKey;
           const isSel = p.key === sel.key;
           const h = p.total > 0 ? Math.max((p.total / max) * 100, 3) : 0;
+          const m = Number(p.key.slice(5, 7)) - 1;
           return (
             <div key={p.key}
               onMouseEnter={() => setHover(p.key)} onMouseLeave={() => setHover(null)}
               onFocus={() => setHover(p.key)} onBlur={() => setHover(null)}
               tabIndex={0} title={`${p.label}: ${fe(p.total)}`}
-              style={{ width: 14, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', outline: 'none', cursor: 'default' }}>
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', outline: 'none', cursor: 'default' }}>
+              <span style={{ display: 'flex', alignItems: 'flex-end', height: 116, width: '100%', justifyContent: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
+                <span style={{
+                  display: 'block', width: 14, height: `${h}%`, minHeight: p.total > 0 ? 3 : 0,
+                  borderRadius: '3px 3px 0 0',
+                  background: isCur ? 'var(--accent)'
+                    : isSel ? 'color-mix(in srgb, var(--text-primary) 42%, transparent)'
+                    : 'color-mix(in srgb, var(--text-primary) 22%, transparent)',
+                  transition: 'height 0.35s cubic-bezier(0.2,0,0,1), background 0.15s',
+                }} />
+              </span>
               <span style={{
-                display: 'block', width: 14, height: `${h}%`, minHeight: p.total > 0 ? 3 : 0,
-                borderRadius: '3px 3px 0 0',
-                background: isCur ? 'var(--accent)'
-                  : isSel ? 'color-mix(in srgb, var(--text-primary) 42%, transparent)'
-                  : 'color-mix(in srgb, var(--text-primary) 22%, transparent)',
-                transition: 'height 0.35s cubic-bezier(0.2,0,0,1), background 0.15s',
-              }} />
+                marginTop: 6, textAlign: 'center', fontSize: 10, fontFamily: T.font.sans,
+                fontWeight: isSel ? 700 : 400,
+                color: isSel ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+              }}>{MONTHS_SHORT[m]}</span>
             </div>
-          );
-        })}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-        {points.map(p => {
-          const isSel = p.key === sel.key;
-          const m = Number(p.key.slice(5, 7)) - 1;
-          return (
-            <span key={p.key} style={{
-              width: 14, textAlign: 'center', fontSize: 10, fontFamily: T.font.sans,
-              fontWeight: isSel ? 700 : 400,
-              color: isSel ? 'var(--text-secondary)' : 'var(--text-tertiary)',
-            }}>{M1[m]}</span>
           );
         })}
       </div>
@@ -245,8 +245,13 @@ export default function ExpenseCompare({ spends, today }: Props) {
             </span>
           </div>
 
+          {/* ΤΟ ΙΔΙΟ ΝΟΥΜΕΡΟ ΔΥΟ ΦΟΡΕΣ, ΣΕ ΔΥΟ ΓΡΑΜΜΕΣ ΑΠΟΣΤΑΣΗ. Η πρόταση
+              απαριθμούσε τις κατηγορίες («Κυρίως από «Άλλο» 751,00 €») και
+              αμέσως από κάτω το «Πού πήγε η διαφορά» τις έδειχνε ξανά, με
+              ράβδο και ποσό. Όταν υπάρχει το γράφημα, η πρόταση κρατά μόνο την
+              επικεφαλίδα· η ειδοποίηση, που δεν έχει γράφημα, κρατά την πλήρη. */}
           <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)', fontFamily: T.font.sans, margin: '0 0 12px' }}>
-            {c.sentence}
+            {c.drivers.length > 0 ? c.headline : c.sentence}
           </p>
 
           {c.caveats.length > 0 && (

@@ -313,7 +313,7 @@ export default function AccountantDossier({
 
         {error && (
           <p style={{ fontSize: 12, color: 'var(--negative)', margin: '12px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-            Οι σημειώσεις δεν αποθηκεύτηκαν: {error}. Θα χαθούν αν κλείσεις τη σελίδα — έλεγξε ότι έχει εφαρμοστεί το migration accountant_dossier.
+            Οι σημειώσεις δεν αποθηκεύτηκαν: {error}. Θα χαθούν αν κλείσεις τη σελίδα. Έλεγξε ότι έχει εφαρμοστεί το migration accountant_dossier.
           </p>
         )}
       </div>

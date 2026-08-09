@@ -7,7 +7,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
-import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable } from '@/components/Theme'
+import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable, formGrid } from '@/components/Theme'
 import { PackageOpen, SearchX, ClipboardCheck, Archive } from 'lucide-react'
 import { downloadTableXlsx } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
@@ -784,7 +784,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
       <Field d={f('inv.name')}>
         <TextInput ariaLabel={fl('inv.name')} value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
       </Field>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+      <div style={{...formGrid(200, 270),gap:12}}>
         <Field d={f('inv.category')}>
           <CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={[...INVENTORY_CATEGORIES].map(c=>({value:c,label:c}))}/>
         </Field>
@@ -796,7 +796,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
 
       {/* Αγορά */}
       <SectionLabel label="Αγορά"/>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+      <div style={{...formGrid(200, 270),gap:12}}>
         <Field d={f('inv.purchase_date')}><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></Field>
         <Field d={f('inv.value')}><NumberInput ariaLabel={fl('inv.value')} value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></Field>
       </div>
@@ -847,7 +847,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
       )}
       {showMore&&(<>
         <Field d={f('inv.warranty')}><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></Field>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+        <div style={{...formGrid(200, 270),gap:12}}>
           <Field d={f('inv.brand_model')}>
             <div style={{display:'flex',gap:8}}>
               <TextInput ariaLabel="Μάρκα" value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Bosch"/>
@@ -865,7 +865,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
             <CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/>
           </Field>
           <Field d={f('inv.power_use')}>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:12}}>
+            <div style={{...formGrid(160, 220),gap:12}}>
               <NumberInput ariaLabel="Ισχύς σε βατ" value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/>
               <NumberInput ariaLabel="Ώρες χρήσης ανά ημέρα" value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες/ημέρα" min={0} max={24}/>
             </div>
@@ -959,7 +959,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
         </div>
       )}
       <SectionLabel label="Νέα επισκευή"/>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+      <div style={{...formGrid(200, 270),gap:12}}>
         <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={form.repair_date} onChange={v=>setForm(f=>({...f,repair_date:v}))}/></div>
         <div><label htmlFor={costId} style={labelStyle}>Κόστος</label><NumberInput id={costId} value={String(form.cost)} onChange={v=>setForm(f=>({...f,cost:parseFloat(v)||0}))} suffix="€" min={0}/></div>
         <div style={{gridColumn:'1/-1'}}>
@@ -1504,7 +1504,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
           <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Σύγκριση πρωτοκόλλων</p>
           <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Πίσω</button>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+        <div style={{...formGrid(200, 270),gap:12}}>
           {[{v:cmpA,sv:setCmpA},{v:cmpB,sv:setCmpB}].map(({v,sv},i)=>(
             <div key={i}>
               <label style={labelStyle}>Πρωτόκολλο {i===0?'Α':'Β'}</label>
@@ -1547,14 +1547,14 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
           <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Προσυμπληρώθηκε από την καρτέλα ενοικιαστή για <strong style={{color:'var(--text-primary)'}}>{fromTenant}</strong>. Έλεγξε την κατάσταση κάθε αντικειμένου πριν αποθηκεύσεις.</p>
         </div>
       )}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
+      <div style={{...formGrid(200, 270),gap:10}}>
         {(['check_in','check_out'] as const).map(t=>(
           <button key={t} onClick={()=>setType(t)} style={{padding:'14px',borderRadius:T.radius.card,cursor:'pointer',fontWeight:500,fontFamily:T.font.sans,fontSize:13,border:`1px solid ${type===t?'var(--accent)':'var(--border-subtle)'}`,background:type===t?'var(--accent)':'var(--bg-elevated)',color:type===t?'var(--accent-text)':'var(--text-secondary)',transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s'}}>
             {t==='check_in'?'Είσοδος ενοικιαστή':'Έξοδος ενοικιαστή'}
           </button>
         ))}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+      <div style={{...formGrid(200, 270),gap:12}}>
         <div><label htmlFor={nameId} style={labelStyle}>Ονοματεπώνυμο *</label><TextInput id={nameId} value={tenantName} onChange={setTenantName} placeholder="Παράδειγμα: Ιωάννης Παπαδόπουλος"/></div>
         <div><label htmlFor={phoneId} style={labelStyle}>Τηλέφωνο</label><TextInput id={phoneId} value={tenantPhone} onChange={setTenantPhone} placeholder="6912345678"/></div>
         <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={handoverDate} onChange={setHandoverDate}/></div>
@@ -1767,7 +1767,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
       {adding&&(
         <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
           <SectionLabel label="Νέα εργασία συντήρησης"/>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+          <div style={{...formGrid(200, 270),gap:12}}>
             <div style={{gridColumn:'1/-1'}}><label htmlFor={taskId} style={labelStyle}>Εργασία *</label><TextInput id={taskId} value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="Παράδειγμα: Ετήσιος έλεγχος λέβητα"/></div>
             <div><label style={labelStyle}>Αντικείμενο</label><CustomSelect value={form.item_id} onChange={v=>{const it=items.find(i=>i.id===v);setForm(f=>({...f,item_id:v,item_name:it?.name||''}))}} options={[{value:'',label:'Γενική εργασία'},...items.map(i=>({value:i.id,label:i.name}))]}/></div>
             <div><label htmlFor={intervalId} style={labelStyle}>Επανάληψη κάθε</label><NumberInput id={intervalId} value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>

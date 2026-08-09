@@ -44,9 +44,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Users, SearchX } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import {
-  T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, ABSENT_DATE,
-} from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, ABSENT_DATE, formGrid } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import { downloadTableXlsx } from './exportCsv';
@@ -1104,7 +1102,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {tot.unresolved > 0 && (
               <InfoBanner tone="warning">
-                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount)}): καταγράφηκαν πριν η εφαρμογή ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης — χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
+                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount)}): καταγράφηκαν πριν η εφαρμογή ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης. Χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
               </InfoBanner>
             )}
 
@@ -1314,7 +1312,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <SecHdr label="Διαμονές" right={!stayFormOpen ? <Btn variant="secondary" onClick={openStayNew}>Νέα διαμονή</Btn> : undefined} />
               {stayFormOpen && (
                 <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: 'var(--well-inset)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                  <div style={{ ...formGrid(200, 270), gap: 14 }}>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <CustomSelect label="Ακίνητο" value={stayForm.property_id} onChange={v => setStayForm(f => ({ ...f, property_id: v }))} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Χωρίς ακίνητο" />
                     </div>
@@ -1344,7 +1342,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       γέμιζε με payout, η φορολογική μηχανή το διάβαζε ως
                       ακαθάριστο, και ο φάκελος του λογιστή ζητούσε ακαθάριστο. */}
                   {secHead('Ποσά')}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                  <div style={{ ...formGrid(200, 270), gap: 14 }}>
                     {/* ΚΑΜΙΑ ΚΟΥΚΚΙΔΑ ΕΠΕΞΗΓΗΣΗΣ ΕΔΩ. Ήταν τρεις, μία σε κάθε
                         πεδίο, και έλεγαν ακριβώς ό,τι λέει η σύνοψη δύο σειρές
                         πιο κάτω με πραγματικούς αριθμούς: τι πλήρωσε ο
@@ -1377,7 +1375,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     if (g <= 0) {
                       return stayForm.basis === 'unknown' && (parseFloat(stayForm.legacyTotal) || 0) > 0 ? (
                         <InfoBanner tone="warning">
-                          Αυτή η διαμονή έχει καταγεγραμμένο ποσό <strong>{fe(parseFloat(stayForm.legacyTotal))}</strong> αλλά <strong>δεν ξέρουμε τι είναι</strong>: ακαθάριστο ή καθαρή είσπραξη. Καταγράφηκε πριν η εφαρμογή τα ξεχωρίσει και δεν μαντεύουμε. Συμπλήρωσε «Πλήρωσε ο επισκέπτης» και το ακαθάριστο θα υπολογιστεί σωστά — ή δήλωσε παρακάτω τι σημαίνει το ποσό.
+                          Αυτή η διαμονή έχει καταγεγραμμένο ποσό <strong>{fe(parseFloat(stayForm.legacyTotal))}</strong> αλλά <strong>δεν ξέρουμε τι είναι</strong>: ακαθάριστο ή καθαρή είσπραξη. Καταγράφηκε πριν η εφαρμογή τα ξεχωρίσει και δεν μαντεύουμε. Συμπλήρωσε «Πλήρωσε ο επισκέπτης» και το ακαθάριστο θα υπολογιστεί σωστά, ή δήλωσε παρακάτω τι σημαίνει το ποσό.
                         </InfoBanner>
                       ) : null;
                     }
@@ -1410,7 +1408,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
                   {/* ── ΔΗΛΩΣΗ ΒΡΑΧΥΧΡΟΝΙΑΣ ΔΙΑΜΟΝΗΣ (μία ανά κράτηση) ───── */}
                   {secHead('Δήλωση βραχυχρόνιας διαμονής')}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, alignItems: 'end' }}>
+                  <div style={{ ...formGrid(200, 270), gap: 14, alignItems: 'end' }}>
                     <Toggle on={stayForm.declared}
                       onChange={v => setStayForm(f => ({ ...f, declared: v, declared_at: v ? (f.declared_at || todayStr()) : '' }))}
                       label="Δηλώθηκε στο myAADE" />
@@ -1419,7 +1417,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
                   {/* ── ΦΘΟΡΕΣ, ΣΥΝΔΕΔΕΜΕΝΕΣ ΜΕ ΤΗΝ ΑΠΟΓΡΑΦΗ ────────────── */}
                   {secHead('Φθορές και σημειώσεις')}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                  <div style={{ ...formGrid(200, 270), gap: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
                       <Toggle on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} label="Καταγράφηκαν φθορές" />
                     </div>
@@ -1687,7 +1685,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           εξηγούσαν πράγματα που φαίνονται μόνα τους μόλις γίνει η εισαγωγή.
           Έμεινε το ένα που πρέπει να ξέρεις ΠΡΙΝ: τι δεν θα έρθει. */}
       <InfoBanner tone="info">Το iCal φέρνει μόνο ημερομηνίες, χωρίς όνομα επισκέπτη ή ποσό.</InfoBanner>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
+      <div style={{ ...formGrid(220, 297), gap: 14 }}>
         <CustomSelect label="Ακίνητο" value={icalPropertyId} onChange={setIcalPropertyId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επίλεξε ακίνητο" />
         <CustomSelect label="Κανάλι" value={icalChannel} onChange={v => setIcalChannel(v as 'airbnb' | 'booking' | 'other')} options={[{ value: 'airbnb', label: 'Airbnb' }, { value: 'booking', label: 'Booking' }, { value: 'other', label: 'Άλλο' }]} />
       </div>

@@ -12,12 +12,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Spinner, EmptyState, Modal, fp } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState, Modal, fp, formGrid } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { saved } from '@/components/dbWrite';
-import DateField from './DateField';
-import { CustomSelect as Select } from './UIComponents';
+
+import { CustomSelect as Select, DatePicker } from './UIComponents';
 import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
 import { grDate, todayIso, num, archivePdfToProperty, askByVoice, speechSupported } from './docUtils';
@@ -310,17 +310,17 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+              <div style={{ ...formGrid(200, 270), gap: 12 }}>
                 <div><div style={lbl}>Εκμισθωτής</div><input value={landlord} onChange={e => setLandlord(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
                 <div><div style={lbl}>ΑΦΜ εκμισθωτή</div><input value={landlordAfm} onChange={e => setLandlordAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
                 <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο" style={field} /></div>
                 <div><div style={lbl}>ΑΦΜ μισθωτή</div><input value={tenantAfm} onChange={e => setTenantAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
+              <div style={{ ...formGrid(150, 210), gap: 12 }}>
                 <div><div style={lbl}>Μηνιαίο μίσθωμα</div>{money(rent, setRent, '€')}</div>
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Εγγύηση<InfoHint>Συνήθως ένα ή δύο μισθώματα. Δεν συμψηφίζεται με μισθώματα και επιστρέφεται ατόκως στη λήξη, εφόσον δεν υπάρχουν φθορές ή οφειλές.</InfoHint></div>{money(deposit, setDeposit, '€')}</div>
-                <div><div style={lbl}>Έναρξη</div><DateField value={start} onChange={setStart} /></div>
+                <div><div style={lbl}>Έναρξη</div><DatePicker value={start} onChange={setStart} /></div>
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Διάρκεια<InfoHint>Στις μισθώσεις κατοικίας ισχύει η κατά νόμο ελάχιστη τριετής διάρκεια, ακόμη και αν συμφωνηθεί μικρότερη.</InfoHint></div>{money(years, setYears, 'έτη')}</div>
                 <div><div style={lbl}>Αναπροσαρμογή</div>{money(adjust, setAdjust, '%')}</div>
                 <div><div style={lbl}>Ημέρα πληρωμής</div>{money(payDay, setPayDay, 'ημ.')}</div>

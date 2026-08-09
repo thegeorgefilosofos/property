@@ -241,7 +241,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {/* Ο μήνας γραφόταν δύο φορές: μια σειρά ετικετών κάτω από τις στήλες
             και άλλη μια πάνω από κάθε πεδίο, τέσσερα εικονοστοιχεία πιο κάτω.
             Έμεινε η ετικέτα του πεδίου — αυτή έχει και λειτουργία. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
+        <div style={{ ...formGrid(62, 122), gap: 5, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}>
               {/* Ίδιος λόγος με το BillsCommon: η ετικέτα περιτυλίγει το πεδίο
@@ -375,7 +375,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       <div style={card}>
         {secHdr('Άλλες Υπηρεσίες')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, marginBottom: 12 }}>
+          <div style={{ ...formGrid(150, 210), gap: 12, marginBottom: 12 }}>
             <TextInput label="Υπηρεσία"         value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή, Υδραυλικός…"/>
             <TextInput label="Τεχνικός ή εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο ή Εταιρεία"/>
             <TextInput label="Τηλέφωνο"          value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>

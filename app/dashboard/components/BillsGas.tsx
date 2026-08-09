@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, feRate, Spinner } from '@/components/Theme';
+import { T, fe, feRate, Spinner, formGrid } from '@/components/Theme';
 import { RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -380,7 +380,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       {/* ── Στοιχεία σύνδεσης ── */}
       <div style={card}>
         {secHdr('Στοιχεία σύνδεσης και πάροχος')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+        <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Διαχειριστής δικτύου" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
           <CustomSelect label="Τύπος θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })}
             options={[
@@ -389,18 +389,18 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
               { value: 'combi',          label: 'Συνδυαστικό, αέριο και άλλη πηγή' },
             ]}/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+        <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Πάροχος" value={s.gasProvider}
             onChange={v => upd({ gasProvider: v, gasTariffId: GAS_PROVIDERS.find(p => p.value === v)?.tariffs[0]?.id || '' })}
             options={providerOptions}/>
           <CustomSelect label="Πρόγραμμα" value={s.gasTariffId || provider?.tariffs[0]?.id || ''} onChange={v => upd({ gasTariffId: v })} options={tariffOptions}/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+        <div style={{ ...formGrid(200, 270), gap: 14 }}>
           <NumberInput label="Μηνιαία κατανάλωση" value={s.gasKwhMonthly} onChange={v => upd({ gasKwhMonthly: v })} suffix="kWh"/>
           <NumberInput label="Πραγματικό κόστος τον μήνα" labelInfo="Ολόκληρο το ποσό του λογαριασμού, με δίκτυο, ΕΦΚ και ΦΠΑ. Χρησιμοποιείται για την παρακολούθηση κόστους, ΟΧΙ για τη σύγκριση παρόχων: εκεί συγκρίνεται προμήθεια με προμήθεια."
             value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginTop: 14 }}>
+        <div style={{ ...formGrid(200, 270), gap: 14, marginTop: 14 }}>
           <DatePicker label="Έναρξη σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
           <NumberInput label="Διάρκεια σύμβασης" value={s.gasContractMonths} onChange={v => upd({ gasContractMonths: v })} suffix="μήνες"/>
         </div>

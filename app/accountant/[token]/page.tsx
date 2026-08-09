@@ -129,7 +129,7 @@ export default function AccountantPortal() {
               {row('Συνολικές καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
               {row('Εκτιμώμενος φόρος εισοδήματος (ενδεικτικά)', feAuto(estTax), true)}
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
-                Τα ενοίκια είναι οι ΕΙΣΠΡΑΞΕΙΣ που καταχώρησε ο ιδιοκτήτης για το {year} — όχι το συμβατικό μίσθωμα επί δώδεκα. Εφαρμόστηκε η {bracketsLabelForYear(year)} για εισοδήματα {year}. {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
+                Τα ενοίκια είναι οι ΕΙΣΠΡΑΞΕΙΣ που καταχώρησε ο ιδιοκτήτης για το {year}, όχι το συμβατικό μίσθωμα επί δώδεκα. Εφαρμόστηκε η {bracketsLabelForYear(year)} για εισοδήματα {year}. {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
               </div>
             </Card>
 

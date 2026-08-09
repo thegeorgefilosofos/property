@@ -24,7 +24,7 @@ import { OBJECTIVE_VALUES } from '@/lib/tax/aade';
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
-import { T, feAuto } from '@/components/tokens';
+import { T, feAuto, formGrid } from '@/components/tokens';
 import { parseAmount } from '@/lib/core/greek';
 import { estimateENFIA, zoneKeyFromPricePerSqm, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 
@@ -85,7 +85,7 @@ export function EnfiaCalculator() {
 
   return (
     <div style={{ fontFamily: T.font.sans }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+      <div style={{ ...formGrid(160, 230), gap: 14 }}>
         <div>
           <label htmlFor={ids.sqm} style={label}>Τετραγωνικά</label>
           <input id={ids.sqm} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} style={numField}/>
@@ -153,7 +153,7 @@ export function EnfiaCalculator() {
           θα διαφέρει. Δεν περιλαμβάνει απαλλαγές με εισοδηματικά κριτήρια (χαμηλό
           εισόδημα, τρίτεκνοι, αναπηρία, ασφαλισμένη κατοικία), ούτε τους ειδικούς
           συντελεστές οικοπέδου και πρόσοψης. Είναι <strong>εκτίμηση</strong> για να ξέρεις
-          την τάξη μεγέθους — όχι φορολογική συμβουλή.
+          την τάξη μεγέθους, όχι φορολογική συμβουλή.
         </p>
       </div>
 

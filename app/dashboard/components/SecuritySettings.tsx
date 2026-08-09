@@ -11,7 +11,7 @@
 
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, settingsField, Spinner, ABSENT } from '@/components/Theme';
+import { T, Btn, settingsField, Spinner, ABSENT, formGrid } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
 import { checkPassword } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
@@ -240,7 +240,7 @@ export default function SecuritySettings() {
       <div style={group}>
         <div style={subLabel}>Κωδικός πρόσβασης</div>
         <div style={desc}>Όρισε έναν νέο κωδικό για τον λογαριασμό σου. Τουλάχιστον 8 χαρακτήρες, με πεζό, κεφαλαίο, αριθμό και σύμβολο.</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginTop: 12 }}>
+        <div style={{ ...formGrid(220, 297), gap: 12, marginTop: 12 }}>
           <div>
             <label htmlFor="sec-new-pass" style={fieldLabel}>Νέος κωδικός</label>
             <input

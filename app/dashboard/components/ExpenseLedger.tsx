@@ -43,7 +43,7 @@ import { priceChanges } from '@/lib/expenses/priceChange';
 import { planBillPayment } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
-import { CustomSelect } from './UIComponents';
+import { CustomSelect, DatePicker, Toggle } from './UIComponents';
 import { athensToday, athensMonth } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 
@@ -436,7 +436,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
                   Φωτογράφισε ή ανέβασε αρχείο
                 </span>
                 <span style={{ display: 'block', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                  Απόδειξη, λογαριασμός ή PDF — συμπληρώνεται μόνο του
+                  Απόδειξη, λογαριασμός ή PDF: συμπληρώνεται μόνο του
                 </span>
               </span>
             </button>
@@ -611,7 +611,17 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
   // Μόλις την αγγίξει, σταματάμε να μαντεύουμε: τίποτα πιο εκνευριστικό από
   // πεδίο που αλλάζει μόνο του αφού το διόρθωσες.
   const slug = touched ? picked : (resolveCategory(what) || '');
-  const suggestions = useMemo(() => searchCategories(touched ? '' : what, 6), [what, touched]);
+  // Η ΕΠΙΛΕΓΜΕΝΗ ΚΑΤΗΓΟΡΙΑ ΕΞΑΦΑΝΙΖΟΤΑΝ. Οι προτάσεις έβγαιναν από το κείμενο,
+  // και μόλις ο χρήστης άγγιζε ένα πλακίδιο η αναζήτηση μηδενιζόταν: έμεναν οι
+  // έξι πρώτες κατηγορίες του καταλόγου. Αν είχε διαλέξει «Υδραυλικός», η
+  // επιλογή του δεν φαινόταν πουθενά — η φόρμα έδειχνε έξι πλακίδια, κανένα
+  // αναμμένο, και ο χρήστης δεν είχε τρόπο να ξέρει τι θα αποθηκευτεί.
+  const suggestions = useMemo(() => {
+    const base = searchCategories(touched ? '' : what, 6);
+    if (!slug || base.some(c => c.slug === slug)) return base;
+    const chosen = BY_SLUG[slug];
+    return chosen ? [chosen, ...base.slice(0, 5)] : base;
+  }, [what, touched, slug]);
 
   const save = async () => {
     const amt = parseFloat(amount.replace(',', '.'));
@@ -689,30 +699,67 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
 
   return (
     <Card pad="sm" style={{ marginBottom: T.sp.md }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 12 }}>
-        <label style={{ gridColumn: 'span 2', minWidth: 0 }}>
+      {/* ── ΤΑ ΠΕΔΙΑ ΕΧΟΥΝ ΦΥΣΙΚΟ ΠΛΑΤΟΣ ────────────────────────────────────
+          Ήταν `repeat(auto-fit, minmax(160px, 1fr))`: σε οθόνη 1.500 το πεδίο
+          του ποσού γινόταν 350 εικονοστοιχείων για τέσσερα ψηφία, και ο
+          επιλογέας «Ποιος πληρώνει» έπιανε ολόκληρη τη γραμμή για τέσσερις
+          λέξεις. Το μέγεθος ενός πεδίου είναι υπόσχεση για το περιεχόμενό του.
+
+          Οι ΙΔΙΕΣ στήλες στις δύο σειρές, ώστε το «Ποιος πληρώνει» να πέφτει
+          ακριβώς κάτω από το «Τι ήταν;» και το μερίδιο κάτω από το ποσό. */}
+      <style>{`
+        /* ΕΝΑ ΜΕΤΡΟ ΓΙΑ ΟΛΗ ΤΗ ΦΟΡΜΑ. Τα πεδία πιάνουν 824 εικονοστοιχεία
+           (460+12+150+12+190) και το κουμπί καθόταν στο δεξί άκρο μιας κάρτας
+           1.100: η γραμμή της ενέργειας δεν είχε καμία σχέση με τη γραμμή των
+           πεδίων. Τώρα κάθε σειρά τελειώνει στην ίδια κάθετη. */
+        .qa-form { max-width: 824px; }
+        .qa-grid { display: grid; gap: 12px; align-items: end;
+          grid-template-columns: minmax(200px, 460px) minmax(110px, 150px) minmax(150px, 190px); }
+        @media (max-width: 760px) { .qa-grid { grid-template-columns: 1fr 1fr; }
+          .qa-grid > .qa-wide { grid-column: 1 / -1; } }
+        @media (max-width: 420px) { .qa-grid { grid-template-columns: 1fr; } }
+      `}</style>
+
+      <div className="qa-form">
+      <div className="qa-grid">
+        <label className="qa-wide" style={{ minWidth: 0 }}>
           <span style={lab}>Τι ήταν;</span>
           <input ref={first} value={what} onChange={e => setWhat(e.target.value)} style={field}
             placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
         </label>
-        <label>
+        {/* Το ευρώ ζει ΜΕΣΑ στο πεδίο, δεξιά, όπως σε κάθε άλλο ποσό της
+            εφαρμογής. Χωρίς αυτό, ένα κενό κουτί δίπλα στη λέξη «Πόσο;» δεν
+            έλεγε καν σε τι μονάδα απαντά ο χρήστης. */}
+        <label style={{ minWidth: 0, position: 'relative' }}>
           <span style={lab}>Πόσο;</span>
-          <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" style={field} placeholder="" />
+          <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal"
+            style={{ ...field, paddingRight: 34, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+            placeholder="0,00" />
+          <span aria-hidden style={{ position: 'absolute', right: 14, bottom: 0, height: T.h.lg, display: 'flex', alignItems: 'center', fontSize: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }}>€</span>
         </label>
-        <label>
+        {/* ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΤΟΥ ΠΕΡΙΗΓΗΤΗ ΕΙΝΑΙ ΑΓΓΛΙΚΟ. Εδώ ζούσε ένα
+            `<input type="date">`: άνοιγε «August 2026», με «Su Mo Tu», «Clear»
+            και «Today», μέσα σε ελληνική οθόνη — και η γραμμή 08/09/2026 δεν
+            έλεγε καν αν είναι 8 Σεπτεμβρίου ή 9 Αυγούστου, γιατί τη μορφή την
+            επιλέγει η γλώσσα του περιηγητή. Ο επιλογέας της εφαρμογής είναι
+            ελληνικός, με Δευτέρα πρώτη, και ο ίδιος σε κάθε οθόνη. */}
+        <div style={{ minWidth: 0 }}>
           <span style={lab}>{paid ? 'Πότε;' : 'Λήγει;'}</span>
-          <input type="date" value={paid ? date : (due || date)}
-            onChange={e => (paid ? setDate(e.target.value) : setDue(e.target.value))} style={field} />
-        </label>
+          <DatePicker value={paid ? date : (due || date)}
+            onChange={v => (paid ? setDate(v) : setDue(v))} />
+        </div>
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        <span style={lab}>Κατηγορία</span>
+      {/* ΜΙΑ ΓΛΩΣΣΑ. Οι μισές ετικέτες ρωτούσαν («Τι ήταν;», «Πόσο;») και οι
+          άλλες μισές ονόμαζαν («Κατηγορία», «Πληρωμένη»): δύο ύφη στην ίδια
+          φόρμα, έξι γραμμές απόσταση. Ρωτούν όλες. */}
+      <div style={{ marginTop: 16 }}>
+        <span style={lab}>Τι κατηγορία;</span>
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           {suggestions.map(c => {
             const on = slug === c.slug;
             return (
-              <button key={c.slug} type="button"
+              <button key={c.slug} type="button" aria-pressed={on}
                 onClick={() => { setPicked(c.slug); setTouched(true); }}
                 style={{
                   appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
@@ -729,38 +776,54 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
         </div>
       </div>
 
-      {/* ── ΠΟΙΟΣ ΠΛΗΡΩΝΕΙ ────────────────────────────────────────────────
+      {/* ── ΠΟΙΟΣ ΠΛΗΡΩΝΕΙ, ΚΑΙ ΑΝ ΠΛΗΡΩΘΗΚΕ ──────────────────────────────
           Δεν είναι πάντα ο ιδιοκτήτης: κοινόχρηστα που βαραίνουν τον ενοικιαστή
           δεν είναι δικό του κόστος, και ένα διαμέρισμα με συνιδιοκτήτη μοιράζει
-          κάθε λογαριασμό. Η επιλογή είναι ΜΙΑ γραμμή και μένει στο «Μόνο εγώ»
-          όσο δεν την αγγίξει κανείς — το ποσοστό εμφανίζεται μόνο όταν αποκτά
-          νόημα, δηλαδή όταν όντως μοιράζεται. */}
-      <div style={{ display: 'grid', gridTemplateColumns: SHARED_SCOPES.has(paidBy) ? 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))' : '1fr', gap: 12, marginTop: 14 }}>
+          κάθε λογαριασμό. Το ποσοστό εμφανίζεται μόνο όταν αποκτά νόημα.
+
+          Ο ΔΙΑΚΟΠΤΗΣ ΗΤΑΝ ΤΕΤΡΑΓΩΝΑΚΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ΜΟΝΟ ΤΟΥ ΣΤΟ ΑΡΙΣΤΕΡΟ
+          ΑΚΡΟ, και έλεγε «Δεν το έχω πληρώσει ακόμη»: διπλή άρνηση, που ο
+          χρήστης έπρεπε να λύσει στο μυαλό του για να καταλάβει τι σημαίνει
+          τσεκαρισμένο. Τώρα είναι πεδίο σαν τα άλλα, με θετική διατύπωση, και
+          στέκεται δίπλα στα υπόλοιπα αντί να αιωρείται. */}
+      <div className="qa-grid" style={{ marginTop: 14 }}>
         {/* Η ετικέτα μένει η τοπική `lab`, όχι αυτή του CustomSelect: όλη η φόρμα
-            χρησιμοποιεί την ίδια, και η ενσωματωμένη έχει minHeight 32 — θα
-            ξεχώριζε η μία γραμμή από τις άλλες πέντε ακριβώς δίπλα της. */}
-        <div style={{ minWidth: 0 }}>
-          <span style={lab}>Ποιος πληρώνει</span>
+            χρησιμοποιεί την ίδια, και η ενσωματωμένη έχει minHeight 32, οπότε θα
+            ξεχώριζε η μία γραμμή από τις άλλες ακριβώς δίπλα της. */}
+        <div className="qa-wide" style={{ minWidth: 0 }}>
+          <span style={lab}>Ποιος πληρώνει;</span>
           <CustomSelect value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
         </div>
         {SHARED_SCOPES.has(paidBy) && (
           <label style={{ minWidth: 0 }}>
-            <span style={lab}>Το δικό μου μερίδιο</span>
+            <span style={lab}>Πόσο δικό μου;</span>
             <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
-              style={field} placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
+              style={{ ...field, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+              placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
           </label>
         )}
+        <div style={{ minWidth: 0 }}>
+          <span style={lab}>Πληρώθηκε;</span>
+          <div style={{ height: T.h.lg, display: 'flex', alignItems: 'center' }}>
+            <Toggle on={paid} onChange={setPaid} ariaLabel="Πληρώθηκε" />
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text-secondary)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={!paid} onChange={e => setPaid(!e.target.checked)} />
-          Δεν το έχω πληρώσει ακόμη
-        </label>
-        <div style={{ flex: 1 }} />
+      {/* Η ΓΡΑΜΜΗ ΤΗΣ ΕΝΕΡΓΕΙΑΣ ΛΕΕΙ ΤΙ ΘΑ ΓΙΝΕΙ. Ήταν ένα κουμπί καρφωμένο
+          δεξιά και τίποτα άλλο σε ολόκληρο το πλάτος. Η απλήρωτη δαπάνη ΔΕΝ
+          γράφεται στις δαπάνες: γίνεται υποχρέωση με προθεσμία, και αυτό είναι
+          ακριβώς η πληροφορία που λείπει τη στιγμή της απόφασης. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 16, flexWrap: 'wrap' }}>
+        <span style={{ ...TT.caption, minWidth: 0, flex: '1 1 260px' }}>
+          {paid
+            ? 'Μπαίνει στις δαπάνες του μήνα που διάλεξες.'
+            : 'Μπαίνει στα απλήρωτα και εμφανίζεται στο Ημερολόγιο μέχρι να πληρωθεί.'}
+        </span>
         <Btn variant="primary" onClick={save} disabled={saving || !what.trim() || !amount}>
           {saving ? 'Γίνεται…' : 'Καταχώρησε'}
         </Btn>
+      </div>
       </div>
     </Card>
   );

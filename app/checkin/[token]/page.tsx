@@ -10,7 +10,7 @@ import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { T } from '@/components/Theme';
+import { T, formGrid } from '@/components/Theme';
 
 interface CheckinContext { property: { name: string; address: string | null } }
 
@@ -100,7 +100,7 @@ export default function GuestCheckin() {
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>Χρειάζονται για τη νόμιμη δήλωση διαμονής. Μένουν ιδιωτικά, τα βλέπει μόνο ο οικοδεσπότης.</div>
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div><label style={label}>Ονοματεπώνυμο *</label><input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Όπως στην ταυτότητα/διαβατήριο" style={field} /></div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                  <div style={{ ...formGrid(200, 270), gap: 14 }}>
                     <div><label style={label}>Αριθμός ταυτότητας / διαβατηρίου</label><input value={idNumber} onChange={e => setIdNumber(e.target.value)} style={field} /></div>
                     <div><label style={label}>Εθνικότητα</label><input value={nationality} onChange={e => setNationality(e.target.value)} placeholder="Παράδειγμα: Ελληνική" style={field} /></div>
                     <div><label style={label}>Ημερομηνία γέννησης</label><input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} style={field} /></div>

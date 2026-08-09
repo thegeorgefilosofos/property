@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
-import { T, fe, feAuto, fp } from '@/components/tokens';
+import { T, fe, feAuto, fp, formGrid } from '@/components/tokens';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate, RENTAL_TAX_ROWS_2026,
 } from '@/lib/billing/greekTax';
@@ -78,7 +78,7 @@ export function RentTaxCalculator() {
           Ο επισκέπτης δεν έχει λόγο να μας εμπιστευτεί ακόμη. Κάθε επιπλέον
           πεδίο είναι μια αφορμή να φύγει, οπότε ζητάμε το ελάχιστο που δίνει
           σωστή απάντηση. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+      <div style={{ ...formGrid(180, 250), gap: 14 }}>
         <div>
           <label htmlFor={monthlyId} style={label}>Μηνιαίο ενοίκιο</label>
           <div style={{ position: 'relative' }}>
@@ -168,7 +168,7 @@ export function RentTaxCalculator() {
           εισοδήματά σου, ΕΝΦΙΑ, τέλος επιτηδεύματος, εισφορά αλληλεγγύης, ούτε
           ειδικές περιπτώσεις (βραχυχρόνια μίσθωση, συνιδιοκτησία, νομικό πρόσωπο,
           κενά διαστήματα, ανείσπρακτα). Είναι <strong>εκτίμηση</strong> για να ξέρεις
-          την τάξη μεγέθους — όχι φορολογική συμβουλή.
+          την τάξη μεγέθους, όχι φορολογική συμβουλή.
         </p>
       </div>
 

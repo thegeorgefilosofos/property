@@ -542,7 +542,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>{friendBase.isSlot ? '+1 ακίνητο' : `+${friendBase.months} μήνες`}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες — ένα ΕΠΙΠΛΕΟΝ ακίνητο, πάνω από το πρώτο που είναι δωρεάν για όλους. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει δωρεάν τους επόμενους {REFEREE_OWNER_MONTHS} μήνες.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες: ένα ΕΠΙΠΛΕΟΝ ακίνητο, πάνω από το πρώτο που είναι δωρεάν για όλους. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει δωρεάν τους επόμενους {REFEREE_OWNER_MONTHS} μήνες.</div>
             </div>
           </div>
 

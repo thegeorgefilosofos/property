@@ -1,5 +1,5 @@
 'use client'
-import { T, TT } from '@/components/Theme'
+import { T, TT, formGrid } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
@@ -87,7 +87,7 @@ export default function ApprovalPanel({
       {/* Είσοδοι */}
       {/* Το ελάχιστο πλάτος ήταν 190 και η μεγαλύτερη επιλογή («Μισθωτός αορίστου
           χρόνου») χρειάζεται περισσότερα: το πεδίο έγραφε «Μισθωτός αορίστ…». */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 215px), 1fr))',gap:10}}>
+      <div style={{...formGrid(215, 290),gap:10}}>
         <NumberInput label="Ηλικία" value={age} onChange={setAge} suffix="ετών"/>
         <NumberInput label="Καθαρό μηνιαίο εισόδημα" value={income} onChange={setIncome} suffix="€"/>
         <NumberInput label="Υφιστάμενες μηνιαίες δόσεις" value={existing} onChange={setExisting} suffix="€"/>
