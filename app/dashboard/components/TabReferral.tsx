@@ -109,6 +109,61 @@ type Overview = {
 type Reward = { kind: string; months: number; tier: string; reason: string; status: string; created_at: string };
 type Referee = { created_at: string; activated_at: string | null };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΚΑΡΤΑ ΜΗΝΙΑΙΟΥ ΣΤΟΧΟΥ — ΟΡΙΖΕΤΑΙ ΕΞΩ ΑΠΟ ΤΟ COMPONENT
+// ─────────────────────────────────────────────────────────────────────────
+// Ήταν δηλωμένη ΜΕΣΑ στο σώμα του TabReferral. Κάθε render έφτιαχνε ΝΕΑ
+// συνάρτηση, άρα η React έβλεπε νέο τύπο συστατικού και ΞΑΝΑΠΡΟΣΑΡΤΟΥΣΕ
+// ολόκληρο το υποδέντρο: η κίνηση εμφάνισης («ref-rise») ξανάπαιζε από την
+// αρχή, ο μετρητής ξεκινούσε πάλι από το μηδέν, και κάθε κατάσταση μέσα του
+// χανόταν — σε κάθε πάτημα πλήκτρου αλλού στην οθόνη.
+//
+// Ό,τι χρειάζεται και δεν είναι σταθερό (η κατάσταση διεκδίκησης και η ενέργεια)
+// περνά ως prop. Όλα τα υπόλοιπα ήταν ήδη module-level.
+// ═══════════════════════════════════════════════════════════════════════════
+type ClaimState = 'idle' | 'saving' | 'done' | 'error';
+
+function Milestone({ title, count, target, kind, reward, claimState, onClaim }: {
+  title: string; count: number; target: number; kind: string; reward: string;
+  claimState: ClaimState; onClaim: (kind: string) => void;
+}) {
+    const pr = progress(count, target);
+    const st = claimState;
+    const dleft = daysLeftInMonth();
+    return (
+      <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible', ...(pr.reached ? { borderColor: 'color-mix(in srgb, var(--positive) 38%, var(--border-raised))', background: 'linear-gradient(180deg, color-mix(in srgb, var(--positive) 8%, var(--surface-raised)), var(--surface-raised) 62%)' } : {}) }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ ...TT.h2 }}>{title}</span>
+          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
+        </div>
+        <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
+        <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
+          {pr.reached
+            ? `Μπράβο, το πέτυχες. Κέρδισες ${reward}.`
+            : pr.count === 0
+              ? `Προσκάλεσε ${target} μέσα στον ίδιο μήνα και κέρδισε ${reward}.`
+              : pr.remaining === 1
+                ? `Σου λείπει μόλις ένας ακόμη για ${reward}. Είσαι ένα βήμα πριν τον στόχο.`
+                : `Σου λείπουν ${pr.remaining} ακόμη για ${reward}. Συνέχισε.`}
+        </p>
+        {!pr.reached && (
+          <div style={{ ...TT.caption, marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, color: dleft <= 5 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
+            <Ic d="M12 8v4l3 2|M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" s={13} c="currentColor" />
+            {dleft <= 1 ? 'Τελευταία ημέρα του μήνα' : `Απομένουν ${dleft} ημέρες ως το τέλος του μήνα`}
+          </div>
+        )}
+        {pr.reached && (
+          <div style={{ marginTop: 12 }}>
+            {st === 'done'
+              ? <span role="status" style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
+              : <button onClick={() => onClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: T.h.md, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Πάρ’ το δώρο σου'}</button>}
+            {st === 'error' && <div role="alert" style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Το δώρο δεν καταχωρήθηκε. Δοκίμασε ξανά.</div>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
 export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
 }) {
@@ -251,45 +306,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover, .ref-lift:hover { transform: none; } .ref-rise { animation: none; } }
     `}</style>
   );
-
-  // ── Κάρτα μηνιαίου milestone με μπάρα + διεκδίκηση ──
-  const Milestone = ({ title, count, target, kind, reward }: { title: string; count: number; target: number; kind: string; reward: string }) => {
-    const pr = progress(count, target);
-    const st = claim[kind] || 'idle';
-    const dleft = daysLeftInMonth();
-    return (
-      <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible', ...(pr.reached ? { borderColor: 'color-mix(in srgb, var(--positive) 38%, var(--border-raised))', background: 'linear-gradient(180deg, color-mix(in srgb, var(--positive) 8%, var(--surface-raised)), var(--surface-raised) 62%)' } : {}) }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <span style={{ ...TT.h2 }}>{title}</span>
-          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
-        </div>
-        <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
-        <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
-          {pr.reached
-            ? `Μπράβο, το πέτυχες. Κέρδισες ${reward}.`
-            : pr.count === 0
-              ? `Προσκάλεσε ${target} μέσα στον ίδιο μήνα και κέρδισε ${reward}.`
-              : pr.remaining === 1
-                ? `Σου λείπει μόλις ένας ακόμη για ${reward}. Είσαι ένα βήμα πριν τον στόχο.`
-                : `Σου λείπουν ${pr.remaining} ακόμη για ${reward}. Συνέχισε.`}
-        </p>
-        {!pr.reached && (
-          <div style={{ ...TT.caption, marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, color: dleft <= 5 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
-            <Ic d="M12 8v4l3 2|M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" s={13} c="currentColor" />
-            {dleft <= 1 ? 'Τελευταία ημέρα του μήνα' : `Απομένουν ${dleft} ημέρες ως το τέλος του μήνα`}
-          </div>
-        )}
-        {pr.reached && (
-          <div style={{ marginTop: 12 }}>
-            {st === 'done'
-              ? <span role="status" style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
-              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: T.h.md, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Πάρ’ το δώρο σου'}</button>}
-            {st === 'error' && <div role="alert" style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι δεν πήγε καλά. Δοκίμασε ξανά.</div>}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
@@ -454,8 +470,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
           <SectionLabel>Οι στόχοι του μήνα</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
-            <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${PRO_PAID_BONUS_MONTHS} μήνες Επαγγελματία`} />
-            <Milestone title="Δωρεάν χρήστες" count={stats?.m_free ?? 0} target={PRO_FREE_TARGET} kind="pro_free" reward={`${PRO_FREE_BONUS_MONTHS} μήνα Επαγγελματία`} />
+            <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${PRO_PAID_BONUS_MONTHS} μήνες Επαγγελματία`} claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
+            <Milestone title="Δωρεάν χρήστες" count={stats?.m_free ?? 0} target={PRO_FREE_TARGET} kind="pro_free" reward={`${PRO_FREE_BONUS_MONTHS} μήνα Επαγγελματία`} claimState={claim.pro_free || 'idle'} onClaim={doClaim} />
           </div>
 
           {/* Συνεργάτης */}
@@ -542,7 +558,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Κι εκείνος παίρνει δώρο τον δεύτερο μήνα ως Επαγγελματίας.</div>
             </div>
             {/* Μπόνους όγκου: 5 νέοι τον μήνα */}
-            <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτη`} />
+            <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτη`} claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
           </div>
         </>
       )}

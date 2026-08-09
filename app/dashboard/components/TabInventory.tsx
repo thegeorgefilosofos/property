@@ -24,6 +24,7 @@ import { navLabel } from '@/lib/nav/labels';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { downloadCsv } from '@/lib/core/download';
 import { failed, MSG } from '@/lib/core/dbError';
+import { uploadPath } from '@/lib/core/uploadPath';
 
 const supabase = createSupabaseClient()
 
@@ -660,7 +661,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
   // Οι αποδείξεις πάνε σε ΙΔΙΩΤΙΚΟ bucket, με path ανά ακίνητο· αποθηκεύουμε το PATH και ανοίγουμε με signed URL.
   const uploadReceiptDoc = async(file:File) => {
     setDocUp(true)
-    const path=`receipts/${propertyId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
+    const path=uploadPath(file.name,`receipts/${propertyId}`)
     // ΤΟ `upsert:true` ΔΕΝ ΕΙΧΕ ΠΟΛΙΤΙΚΗ ΝΑ ΤΟ ΣΤΗΡΙΞΕΙ. Ο κάδος έχει πολιτικές
     // μόνο για εισαγωγή, ανάγνωση και διαγραφή — καμία για ενημέρωση, οπότε κάθε
     // αντικατάσταση θα έσκαγε με σφάλμα δικαιωμάτων. Ούτως ή άλλως η διαδρομή
@@ -714,7 +715,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
   const [photoBusy,setPhotoBusy] = useState(false)
   const addPhotoFile = async(file:File) => {
     setPhotoBusy(true)
-    const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
+    const {path,error}=await uploadUserScoped(supabase,'inventory-photos',uploadPath(file.name),file,{upsert:true})
     if(!error){ const {data:u}=supabase.storage.from('inventory-photos').getPublicUrl(path); setForm(f=>{const photos=[...(f.photos||[]),u.publicUrl]; return {...f,photos,photo_url:f.photo_url||u.publicUrl}}) }
     else notifyError(failed(MSG.upload))
     setPhotoBusy(false)
@@ -1423,7 +1424,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const [fromTenant,setFromTenant] = useState('')
   const uploadCondPhoto = async(itemId:string,file:File) => {
     setUploadingId(itemId)
-    const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`handover/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
+    const {path,error}=await uploadUserScoped(supabase,'inventory-photos',uploadPath(file.name,'handover'),file,{upsert:true})
     if(error){notifyError(failed(MSG.upload));setUploadingId(null);return}
     const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
     setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))

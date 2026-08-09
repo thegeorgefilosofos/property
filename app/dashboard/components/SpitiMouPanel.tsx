@@ -74,7 +74,10 @@ export default function SpitiMouPanel({
     { applicationDeadline: SPITI_MOU.applicationDeadline, deadline: SPITI_MOU.contractDeadline },
     new Date())
   const deadline = new Date(SPITI_MOU.contractDeadline + 'T23:59:59')
-  const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / 86400000)
+  // Η αντίστροφη μέτρηση διαβάζει το ρολόι ΜΙΑ φορά, στην προσάρτηση: αλλιώς
+  // κάθε απόδοση δίνει άλλη τιμή και ο διακομιστής διαφωνεί με τον περιηγητή.
+  const [nowMs] = useState(() => Date.now())
+  const daysLeft = Math.ceil((deadline.getTime() - nowMs) / 86400000)
   const deadlineStr = deadline.toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const tri = (s: Crit['status']) => s === 'pass' ? 'var(--accent)' : s === 'fail' ? 'var(--negative)' : 'var(--text-tertiary)'

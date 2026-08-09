@@ -26,6 +26,7 @@ import { T, Btn, fd } from '@/components/Theme';
 import { saved } from '@/components/dbWrite';
 import { TextInput } from './UIComponents';
 import { amaState, amaSummary, cleanAma, isValidAmaFormat, amaLengthLooksUnusual, AMA_COPY, type AmaRow } from '@/lib/property/ama';
+import { randomSuffix } from '@/lib/core/uploadPath';
 
 interface AmaProperty extends AmaRow { id: string; name: string }
 
@@ -59,7 +60,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
   useEffect(() => {
     // Το μοναδικό επίθεμα παράγεται ΜΕΣΑ στο effect. Στο σώμα του component θα
     // ήταν ακάθαρτη κλήση κατά την απόδοση — και ο ίδιος ο έλεγχος lint το πιάνει.
-    const unique = Math.random().toString(36).slice(2, 10);
+    const unique = randomSuffix(8);
     const ch = supabase.channel(`ama-strip-${userId}${propertyId || ''}-${unique}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_properties', filter: `user_id=eq.${userId}` }, () => load())
       .subscribe();

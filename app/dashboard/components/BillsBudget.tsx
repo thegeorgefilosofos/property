@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput } from './UIComponents';
 import { T, fe, feAuto, fp, fn, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
+import { randomSuffix } from '@/lib/core/uploadPath';
 import { notify } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
@@ -115,7 +116,12 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
   const GAP = segs.length > 1 ? 6 : 0;   // κενό μεταξύ τόξων (σε μονάδες περιμέτρου)
   const shade = (i: number, on: boolean) => `color-mix(in srgb, var(--accent) ${Math.min(100, Math.max(32, 94 - i * 13) + (on ? 6 : 0))}%, transparent)`;
   const active = hi != null ? segs[hi] : null;
-  let off = 0;
+  // ΤΑ ΞΕΚΙΝΗΜΑΤΑ ΤΩΝ ΤΟΞΩΝ ΥΠΟΛΟΓΙΖΟΝΤΑΙ ΠΡΙΝ ΤΗΝ ΑΠΟΔΟΣΗ. Ήταν συσσωρευτής
+  // `let off` που άλλαζε ΜΕΣΑ στο .map(): τιμή που γράφεται αφού έχει ξεκινήσει
+  // η απόδοση, δηλαδή αν η React διακόψει και ξαναρχίσει τη λίστα, τα τόξα
+  // ξεκινούν από λάθος γωνία και το δαχτυλίδι βγαίνει με κενά ή επικαλύψεις.
+  const starts = segs.reduce<number[]>((acc, sgm, i) =>
+    [...acc, i === 0 ? 0 : acc[i - 1] + (segs[i - 1].value / total) * C], []);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 26, flexWrap: 'wrap' }}>
       <svg width="152" height="152" viewBox="0 0 152 152" style={{ flexShrink: 0, overflow: 'visible' }}>
@@ -128,11 +134,10 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
             const len = Math.max(0.5, raw - GAP);
             const el = (
               <circle key={i} cx="76" cy="76" r={r} fill="none" stroke={shade(i, on)} strokeWidth={sw} strokeLinecap="round"
-                strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)}
+                strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-starts[i]).toFixed(2)}
                 onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
                 style={{ transition: 'stroke 0.18s ease', cursor: 'default' }} />
             );
-            off += raw;
             return el;
           })}
         </g>
@@ -716,7 +721,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     // Αν ταιριάζει με κρυμμένη βασική κατηγορία, απλώς επανάφερέ την (αντί για διπλότυπη custom).
     const hiddenMatch = hiddenBaseCats.find(c => norm(c.label) === norm(name));
     if (hiddenMatch) { restoreCategory(hiddenMatch.key); return; }
-    const key = `c_${Date.now().toString(36)}`;
+    // Ήταν `Date.now().toString(36)`: δύο κατηγορίες που προστίθενται μέσα στο
+    // ίδιο χιλιοστό του δευτερολέπτου έπαιρναν το ΙΔΙΟ κλειδί, και η δεύτερη
+    // αντικαθιστούσε την πρώτη. Και ήταν ακάθαρτη κλήση σε σώμα συστατικού.
+    const key = `c_${randomSuffix(8)}`;
     persistCats({ __custom: JSON.stringify([...customCats.map(c => ({ key: c.key, label: c.label })), { key, label: name }]), [key]: '0' });
   };
   const removeCategory = (key: string) => {

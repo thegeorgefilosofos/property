@@ -71,7 +71,11 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const supabase = createClient();
   const branding = useReportBranding(userId);
   // Σταθερό «τώρα» ανά mount, ώστε τα useMemo να μην ξαναϋπολογίζονται σε κάθε render.
-  const nowMs = useMemo(() => Date.now(), []);
+  // ΤΟ «ΤΩΡΑ» ΚΛΕΙΔΩΝΕΙ ΣΤΗΝ ΠΡΟΣΑΡΤΗΣΗ. Ήταν `useMemo(() => Date.now(), [])`,
+  // που δεν εγγυάται μοναδική εκτέλεση: η React επιτρέπεται να πετάξει το memo
+  // και να το ξαναϋπολογίσει, οπότε η ώρα άλλαζε στη μέση της απόδοσης. Το
+  // `useState` με αρχικοποιητή συνάρτησης τρέχει ΜΙΑ φορά, εγγυημένα.
+  const [nowMs] = useState(() => Date.now());
   const now = useMemo(() => new Date(nowMs), [nowMs]);
   // Χρονιά και μήνας ΑΠΟ ΤΗΝ ΩΡΑ ΕΛΛΑΔΑΣ. Πριν βγαίναν από το ρολόι του
   // περιηγητή: ο ιδιοκτήτης που άνοιγε το χαρτοφυλάκιο από αλλού (ή τα

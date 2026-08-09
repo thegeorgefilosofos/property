@@ -252,7 +252,9 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const daysLeft = changedAt ? Math.max(0, 30 - Math.floor((Date.now() - new Date(changedAt).getTime()) / 86400000)) : 0;
+  // Το ρολόι διαβάζεται ΜΙΑ φορά, στην προσάρτηση — όχι σε κάθε απόδοση.
+  const [nowMs] = useState(() => Date.now());
+  const daysLeft = changedAt ? Math.max(0, 30 - Math.floor((nowMs - new Date(changedAt).getTime()) / 86400000)) : 0;
   const nameLocked = daysLeft > 0;
 
   const saveEmail = async () => {

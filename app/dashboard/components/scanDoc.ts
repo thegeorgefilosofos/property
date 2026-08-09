@@ -26,6 +26,7 @@ import {
 import { fillOnlyEmpty } from '@/lib/core/prefill';
 import { athensToday } from '@/lib/core/time';
 import { saved, savedData } from '@/components/dbWrite';
+import { uploadPath } from '@/lib/core/uploadPath';
 import {
   matchPaymentToBills, providerFromBillName,
   type MatchCandidate, type MatchResult,
@@ -288,8 +289,7 @@ const OPTIONAL_DOC_COLS = ['amount', 'provider_afm', 'period_from', 'period_to',
 export async function archiveScannedFile(input: ArchiveInput): Promise<{ ok: boolean; error?: string }> {
   const supabase = createClient();
   const { file, propertyId, userId, kind } = input;
-  const safe = file.name.replace(/[^\w.\-]+/g, '_');
-  const path = `${userId}/${propertyId}/${kind}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safe}`;
+  const path = uploadPath(file.name, `${userId}/${propertyId}/${kind}`);
   const { error: upErr } = await supabase.storage.from('property-files')
     .upload(path, file, { upsert: false, contentType: file.type || undefined });
   if (upErr) return { ok: false, error: upErr.message };
