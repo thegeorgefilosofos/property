@@ -659,7 +659,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       if (c.email) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο για ${CH_HUMAN[a.channel]}. Έχει όμως email, να το ετοιμάσω;`, action: { type: 'reach', name: c.name, channel: 'email', text: a.text } }]);
       else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο ούτε email. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
     } else {
-      if (c.phone) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email. Έχει τηλέφωνο, να ανοίξω WhatsApp αντ' αυτού;`, action: { type: 'reach', name: c.name, channel: 'whatsapp', text: a.text } }]);
+      if (c.phone) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email. Έχει τηλέφωνο, να ανοίξω WhatsApp αντ’ αυτού;`, action: { type: 'reach', name: c.name, channel: 'whatsapp', text: a.text } }]);
       else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email ούτε τηλέφωνο. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
     }
   };
@@ -791,7 +791,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       if (data?.token) {
         const url = `${window.location.origin}/checkin/${data.token}`;
         try { await navigator.clipboard.writeText(url); } catch { /* το εμφανίζουμε ούτως ή άλλως */ }
-        setMsgs(m => [...m, { role: 'assistant', text: `Έτοιμο. Αντέγραψα τον σύνδεσμο check-in για τον/την «${c.name}». Στείλ' τον στον επισκέπτη σε WhatsApp ή Viber:\n${url}`, action: { type: 'go', tab: 'clients' } }]);
+        setMsgs(m => [...m, { role: 'assistant', text: `Έτοιμο. Αντέγραψα τον σύνδεσμο check-in για τον/την «${c.name}». Στείλ’ τον στον επισκέπτη σε WhatsApp ή Viber:\n${url}`, action: { type: 'go', tab: 'clients' } }]);
       } else throw new Error('no token');
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: `Δεν μπόρεσα να φτιάξω τον σύνδεσμο τώρα. Δοκίμασε από την καρτέλα του πελάτη στους ${navLabel('clients')}.`, action: { type: 'go', tab: 'clients' } }]);

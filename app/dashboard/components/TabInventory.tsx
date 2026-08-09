@@ -1600,7 +1600,12 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
         </div>
       </div>
       {handovers.length===0
-        ?<div className="card"><EmptyState icon={<ClipboardCheck size={20}/>} title="Κανένα πρωτόκολλο ακόμη" hint="Στην είσοδο ενός ενοικιαστή κατέγραψε την κατάσταση κάθε αντικειμένου· στην έξοδο συγκρίνεις και τεκμηριώνεις φθορές." action={<Btn variant="primary" onClick={()=>setMode('new')}>Νέο πρωτόκολλο</Btn>} /></div>
+        ?/* ΧΩΡΙΣ ΚΑΡΤΑ ΓΥΡΩ ΑΠΟ ΤΟ ΤΙΠΟΤΑ. Δύο από τις σαράντα πέντε κενές
+           καταστάσεις της εφαρμογής τυλίγονταν σε κάρτα, οι σαράντα τρεις όχι:
+           ο χρήστης έβλεπε την ίδια κατάσταση με δύο διαφορετικά βάρη ανάλογα
+           με την καρτέλα. Ένα περίγραμμα γύρω από την απουσία της δίνει σώμα
+           που δεν έχει. */
+        <EmptyState icon={<ClipboardCheck size={20}/>} title="Κανένα πρωτόκολλο ακόμη" hint="Στην είσοδο ενός ενοικιαστή κατέγραψε την κατάσταση κάθε αντικειμένου· στην έξοδο συγκρίνεις και τεκμηριώνεις φθορές." action={<Btn variant="primary" onClick={()=>setMode('new')}>Νέο πρωτόκολλο</Btn>} />
         :<div style={{display:'flex',flexDirection:'column',gap:10}}>
           {handovers.sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).map(h=>{
             const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length

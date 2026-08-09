@@ -422,7 +422,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 2px', borderTop: '1px solid var(--border-subtle)' }}>
               <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{l.label}</span>
               {/* Το λογιστικό μείον γραφόταν με το χέρι, δίπλα σε `feAuto`, ενώ το
-                  `feSigned` υπάρχει στο `lib/core/format` ακριβώς γι' αυτό, με δικό
+                  `feSigned` υπάρχει στο `lib/core/format` ακριβώς γι’ αυτό, με δικό
                   του test — και δεν το καλούσε ΚΑΝΕΝΑ σημείο της εφαρμογής. Μια
                   συνάρτηση που κανείς δεν χρησιμοποιεί δεν φυλάει τίποτα. */}
               <span style={{ ...TT.mono, fontSize: 13, color: 'var(--text-primary)' }}>{feSigned(-l.amount)}</span>
@@ -442,7 +442,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
       {/* ── ΠΟΙΟΣ ΜΠΟΡΕΙ ΝΑ ΠΛΗΡΩΣΕΙ ΤΙ (ανακαίνιση) ─────────────────────── */}
       {plan.funding.length > 0 && (
         <Section label="Ποιος μπορεί να πληρώσει τι"
-          sub="Τα προγράμματα υπάρχουν. Οι όροι τους αλλάζουν σε κάθε κύκλο, γι' αυτό δεν γράφεται εδώ κανένα ποσοστό.">
+          sub="Τα προγράμματα υπάρχουν. Οι όροι τους αλλάζουν σε κάθε κύκλο, γι’ αυτό δεν γράφεται εδώ κανένα ποσοστό.">
           {plan.funding.map((f, i) => (
             <div key={f.id} style={{ padding: '16px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>

@@ -926,9 +926,14 @@ export default function TabDocuments({
           {[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} h={120} r={12}/>)}
         </div>
       ) : items.length === 0 ? (
-        <div className="card"><EmptyState icon={<FolderOpen size={20}/>} title="Κανένα έγγραφο ακόμη"
+        /* ΧΩΡΙΣ ΚΑΡΤΑ ΓΥΡΩ ΑΠΟ ΤΟ ΤΙΠΟΤΑ. Δύο από τις σαράντα πέντε κενές
+           καταστάσεις της εφαρμογής τυλίγονταν σε κάρτα, οι σαράντα τρεις όχι:
+           ο χρήστης έβλεπε την ίδια κατάσταση με δύο διαφορετικά βάρη ανάλογα
+           με την καρτέλα. Ένα περίγραμμα γύρω από την απουσία της δίνει σώμα
+           που δεν έχει. */
+        <EmptyState icon={<FolderOpen size={20}/>} title="Κανένα έγγραφο ακόμη"
           hint="Από κάθε λογαριασμό, απόδειξη ή συμβόλαιο αναγνωρίζονται πάροχος, ΑΦΜ, ποσό, ημερομηνία και περίοδος — και το έγγραφο αρχειοθετείται στην κατηγορία του."
-          action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Καταχώριση πρώτου αρχείου</Btn>}/></div>
+          action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Καταχώριση πρώτου αρχείου</Btn>}/>
       ) : (
         <FileList items={visible} groups={groups} a={fileActions(true)}
           empty={<EmptyState icon={<SearchX size={20}/>}

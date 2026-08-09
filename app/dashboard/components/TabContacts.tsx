@@ -1636,7 +1636,20 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               { key: 'vcf', label: 'Επαφές στο κινητό', description: 'Αρχείο vCard για το τηλεφωνικό σου ευρετήριο.', onClick: () => downloadVcf(contacts, 'epafes.vcf') },
             ] : []),
           ]} />
-          <Btn variant="primary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωση κάρτας'}</Btn>
+          {/* Η ΙΔΙΑ ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ ΔΥΟ ΦΟΡΕΣ, ΚΑΙ ΟΙ ΔΥΟ ΜΠΛΕ, ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ.
+              Με άδειο κατάλογο, ο χρήστης έβλεπε «Σάρωση κάρτας» πάνω δεξιά ΚΑΙ
+              «Φωτογράφισε κάρτα» στο κέντρο — δύο γεμάτα γαλάζια κουμπιά που
+              καλούν το ΙΔΙΟ `cardRef.current?.click()`. Το μάτι δεν ξέρει πού να
+              πάει, και το σχόλιο τρεις γραμμές πιο πάνω υπόσχεται ρητά «μένει
+              ΜΙΑ κύρια ενέργεια».
+
+              Όταν δεν υπάρχει τίποτα, η κενή κατάσταση ΕΙΝΑΙ η πρόσκληση: δίνει
+              και τους δύο δρόμους, με εξήγηση τι διαβάζεται από την κάρτα. Το
+              κουμπί της κεφαλίδας εμφανίζεται μόλις υπάρχει κατάλογος, όπου
+              πραγματικά χρειάζεται συντόμευση. */}
+          {contacts.length > 0 && (
+            <Btn variant="primary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωση κάρτας'}</Btn>
+          )}
         </div>;
       return embedded
         ? <SecHdr label="Επαφές του ακινήτου" sub="Πάροχοι, τεχνικοί, τράπεζες, ασφαλιστές" right={actions}/>
@@ -1844,7 +1857,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           hint="Φωτογράφισε την επαγγελματική κάρτα ή ένα τιμολόγιό του: διαβάζονται όνομα, ειδικότητα, τηλέφωνο, ΑΦΜ και IBAN, και τα ελέγχεις πριν αποθηκευτούν."
           action={<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
             <ContactActionTile Icon={Camera} label="Φωτογράφισε κάρτα" sub={scanning ? 'Ανάλυση…' : 'ή τιμολόγιο του συνεργάτη'} onClick={() => cardRef.current?.click()} primary />
-            <ContactActionTile Icon={UserPlus} label="Γράψ' την με το χέρι" sub="Τέσσερα πεδία" onClick={openAdd} />
+            <ContactActionTile Icon={UserPlus} label="Γράψ’ την με το χέρι" sub="Τέσσερα πεδία" onClick={openAdd} />
           </div>}
         />
       ) : processed.length === 0 ? (
