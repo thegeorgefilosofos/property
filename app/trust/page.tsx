@@ -16,6 +16,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { IDENTITY, identityIsPublished, orPending } from '@/lib/legal/identity';
+import { SUBPROCESSORS as SUBPROCESSORS_SOURCE } from '@/lib/legal/subprocessors';
 
 export const metadata: Metadata = {
   title: 'Ποιοι είμαστε · Property OS',
@@ -34,20 +35,13 @@ const IDENTITY_ROWS: { label: string; value: string }[] = [
   { label: 'Ηλεκτρονικό ταχυδρομείο υποστήριξης', value: IDENTITY.supportEmail },
 ];
 
-// ── Πού πάνε τα δεδομένα: ο κατάλογος υπεργολάβων, σε απλά ελληνικά ────────
-// Πηγή: docs/compliance/subprocessors.md — κρατείται συγχρονισμένο.
-const SUBPROCESSORS: { name: string; what: string; where: string; planned?: boolean }[] = [
-  { name: 'Supabase', what: 'Η βάση δεδομένων, η σύνδεση και τα αρχεία σου· η κύρια πλατφόρμα', where: 'ΕΕ · Φρανκφούρτη' },
-  { name: 'Vercel', what: 'Φιλοξενία και παράδοση της εφαρμογής', where: 'ΗΠΑ · παγκόσμιο δίκτυο' },
-  { name: 'Resend', what: 'Αποστολή όλων των email: λειτουργικά, υπενθυμίσεις, μηνιαίες καταστάσεις με ονόματα και ποσά, ενημερωτικά', where: 'ΗΠΑ' },
-  { name: 'Anthropic', what: 'Ο βοηθός και η ανάγνωση εγγράφων: οι ερωτήσεις σου, τα συμφραζόμενα του ακινήτου και όποιο έγγραφο ή φωτογραφία ανεβάζεις για αυτόματη καταχώρηση', where: 'ΗΠΑ' },
-  { name: 'GitHub', what: 'Κώδικας και κρυπτογραφημένα αντίγραφα ασφαλείας', where: 'ΗΠΑ' },
-  { name: 'Google', what: 'Σύνδεση με λογαριασμό Google, αν την επιλέξεις, και ο ενσωματωμένος χάρτης στο φάκελο επαφής· εκεί γίνεται γνωστή η διεύθυνση IP σου. Οι γραμματοσειρές των αναφορών φιλοξενούνται πλέον από εμάς', where: 'ΗΠΑ' },
-  { name: 'OpenStreetMap', what: 'Πρόταση διευθύνσεων καθώς πληκτρολογείς επαφή (Nominatim)', where: 'ΕΕ' },
-  { name: 'Sentry', what: 'Καταγραφή σφαλμάτων της εφαρμογής· ενεργοποιείται μόνο αν οριστεί κλειδί· σήμερα δεν είναι ενεργό', where: 'ΗΠΑ / ΕΕ', planned: true },
-  { name: 'Stripe', what: 'Χρέωση συνδρομής· ΔΕΝ έχει ενεργοποιηθεί ακόμη', where: 'ΗΠΑ / ΕΕ', planned: true },
-  { name: 'Viber, WhatsApp, Apple', what: 'Ειδοποιήσεις σε κινητό· ΔΕΝ έχουν ενεργοποιηθεί ακόμη', where: 'Διάφορες', planned: true },
-];
+// ── Πού πάνε τα δεδομένα ──────────────────────────────────────────────────
+// Ο κατάλογος ΔΕΝ γράφεται εδώ. Ζει στο lib/legal/subprocessors.ts και τον
+// διαβάζει και η Πολιτική απορρήτου: δύο νομικά κείμενα που απαριθμούν τους
+// ίδιους παρόχους δεν επιτρέπεται να διαφωνούν, και διαφωνούσαν.
+const SUBPROCESSORS = SUBPROCESSORS_SOURCE.map(s => ({
+  name: s.name, what: s.purpose, where: s.where, planned: !s.active,
+}));
 
 const SECTION: React.CSSProperties = { marginTop: 44, scrollMarginTop: 76 };
 const H2: React.CSSProperties = { fontSize: 20, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 10px', color: 'var(--text-primary)' };
