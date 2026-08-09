@@ -121,7 +121,7 @@ export const PROXIMITY_EFFECTS = [
   { key: 'metro', label: 'Κοντά σε στάση Μετρό', impact: '+8% έως +15% στην αξία και ταχύτερη μίσθωση· ισχυρότερο σε Αθήνα/Πειραιά.', positive: true },
   { key: 'airport', label: 'Κοντά σε αεροδρόμιο', impact: 'Θετικό για βραχυχρόνια/εργαζόμενους· η υπερβολική εγγύτητα (θόρυβος) μπορεί να μειώνει την αξία κατοικίας.', positive: true },
   { key: 'port', label: 'Κοντά σε λιμάνι', impact: 'Ζήτηση από εργαζόμενους/επαγγελματική χρήση· ανάπλαση (για παράδειγμα Πειραιάς) ανεβάζει αξίες.', positive: true },
-  { key: 'sea', label: 'Θέα / πρόσβαση στη θάλασσα', impact: 'Σημαντικό premium αξίας και ενοικίου, ιδίως νότια προάστια & νησιά.', positive: true },
+  { key: 'sea', label: 'Θέα / πρόσβαση στη θάλασσα', impact: 'Σημαντικό premium αξίας και ενοικίου, ιδίως νότια προάστια και νησιά.', positive: true },
 ]
 
 // ── Ιστορική διαδρομή τιμών & ενοικίων (δείκτης, 2007 = 100, ονομαστικά) ─────
@@ -216,7 +216,7 @@ export const SHORT_TERM: ShortTermStat[] = [
   { key: 'ath_riviera', label: 'Αθηναϊκή Ριβιέρα', occupancy: 55, adr: 70, annualRevenue: 14000, grossYield: 6, longTermYield: 3.8, note: 'Εκτός κόκκινης ζώνης — επιτρέπονται νέα μητρώα ακινήτων· βασικός διαφοροποιητής έναντι του κέντρου.' },
   { key: 'thess', label: 'Θεσσαλονίκη', occupancy: 62, adr: 62, annualRevenue: 14000, grossYield: 7, longTermYield: 4.4, redZone: true, note: 'Πάγωμα μητρώου ακινήτων στο 1ο διαμέρισμα από 1/7/2026.' },
   { key: 'mykonos_santorini', label: 'Μύκονος / Σαντορίνη', occupancy: 62, adr: 221, annualRevenue: 50000, grossYield: 5, longTermYield: 3.5, note: 'Τεράστια έσοδα (Αύγ. ADR €360+) αλλά πολύ υψηλή τιμή αγοράς → η % απόδοση μέτρια. Ακραία εποχικότητα (5–6 μήνες).' },
-  { key: 'paros_naxos', label: 'Πάρος / Νάξος', occupancy: 75, adr: 117, annualRevenue: 32000, grossYield: 7, longTermYield: 3.0, note: 'Υψηλή πληρότητα & ταχεία άνοδος ADR στη βραχυχρόνια· η μακροχρόνια απόδοση χαμηλή λόγω τιμών.' },
+  { key: 'paros_naxos', label: 'Πάρος / Νάξος', occupancy: 75, adr: 117, annualRevenue: 32000, grossYield: 7, longTermYield: 3.0, note: 'Υψηλή πληρότητα και ταχεία άνοδος ADR στη βραχυχρόνια· η μακροχρόνια απόδοση χαμηλή λόγω τιμών.' },
   { key: 'crete', label: 'Κρήτη (Χανιά/Ηράκλειο)', occupancy: 74, adr: 85, annualRevenue: 23000, grossYield: 6.5, longTermYield: 4.5, note: 'Μεγάλη σεζόν, υψηλότερο RevPAR πανελλαδικά· Ηράκλειο κορυφή μακροχρόνιας απόδοσης (~5,7%).' },
   { key: 'rhodes', label: 'Ρόδος', occupancy: 72, adr: 126, annualRevenue: 33000, grossYield: 6.5, longTermYield: 5.0, note: 'Νησί πακέτων, ισχυρή σεζόν Ιουν–Σεπ.' },
 ]

@@ -1388,7 +1388,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
     { label:'Ετήσιο Ακαθάριστο Ενοίκιο', value:fe(annualRent), tone:'accent' },
     { label:'Φόρος για ΑΥΤΟ το ακίνητο', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${fp((effRate*100))} επί των ακαθάριστων`:undefined },
     ...(isCommercial?[{ label:'Ψηφιακό Τέλος Συναλλαγής (3,6%)', value:fe(stampDuty), tone:'warning' as const }]:[]),
-    { label:'Καθαρό μετά Φόρο & Τέλη', value:fe(net), tone:'positive' },
+    { label:'Καθαρό μετά Φόρο και Τέλη', value:fe(net), tone:'positive' },
   ];
 
 
@@ -2387,9 +2387,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
   const DTABS:{id:DossierTab;label:string;badge?:number}[]=dc?[
     {id:'overview',label:'Επισκόπηση'},
-    {id:'lease',label:'Μίσθωση & Εγγύηση',badge:(dcOverdue.count+(declaredByTenant.get(dc.id)||0))||undefined},
-    {id:'condition',label:'Φθορές & Βλάβες',badge:(dcDamages.filter(d=>!d.repaired).length+dcMaint.filter(m=>m.status!=='done').length)||undefined},
-    {id:'legal',label:'Νομικά & Φόρος'},
+    {id:'lease',label:'Μίσθωση και Εγγύηση',badge:(dcOverdue.count+(declaredByTenant.get(dc.id)||0))||undefined},
+    {id:'condition',label:'Φθορές και Βλάβες',badge:(dcDamages.filter(d=>!d.repaired).length+dcMaint.filter(m=>m.status!=='done').length)||undefined},
+    {id:'legal',label:'Νομικά και Φόρος'},
     {id:'comm',label:'Επικοινωνία'},
     {id:'docs',label:'Έγγραφα'},
   ]:[];

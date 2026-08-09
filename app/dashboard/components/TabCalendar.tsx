@@ -629,7 +629,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
   },[mode])
 
   const META:Record<SyncKey,{label:string;icon:React.ReactNode;unit:(n:number)=>string}>={
-    leases:     {label:'Ενοίκιο & μισθώσεις', icon:<Euro size={15}/>,     unit:n=>n===1?'1 ενοικιαστής':`${n} ενοικιαστές`},
+    leases:     {label:'Ενοίκιο και μισθώσεις', icon:<Euro size={15}/>,     unit:n=>n===1?'1 ενοικιαστής':`${n} ενοικιαστές`},
     bookings:   {label:'Κρατήσεις',            icon:<User size={15}/>,     unit:n=>n===1?'1 κράτηση':`${n} κρατήσεις`},
     tax:        {label:'Φορολογικά (ΑΑΔΕ)',    icon:<FileText size={15}/>, unit:n=>n===1?'1 προθεσμία':`${n} προθεσμίες`},
     loans:      {label:'Δόσεις δανείου',        icon:<TrendingUp size={15}/>,unit:n=>n===1?'1 δάνειο':`${n} δάνεια`},
@@ -1420,7 +1420,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   async function maybeCreateExpense(){
     const amt=parseFloat(form.amount)
     if(!form.add_expense||!(amt>0))return
-    const catMap:Record<string,string>={maintenance:'Συντήρηση & Επισκευές',bills:'Λογαριασμοί',contract:'Ασφάλιση & Νομικά',financial:'Λοιπά έξοδα',tenant:'Λοιπά έξοδα',reminder:'Λοιπά έξοδα'}
+    const catMap:Record<string,string>={maintenance:'Συντήρηση & Επισκευές',bills:'Λογαριασμοί',contract:'Ασφάλιση και Νομικά',financial:'Λοιπά έξοδα',tenant:'Λοιπά έξοδα',reminder:'Λοιπά έξοδα'}
     // ΤΟ `try{}catch{}` ΕΔΩ ΗΤΑΝ ΔΙΠΛΑ ΑΟΡΑΤΟ: ο Supabase δεν πετά, οπότε δεν
     // έπιανε τίποτα· και το κενό `catch` θα κατάπινε ό,τι έπιανε. Ο χρήστης
     // τσέκαρε ρητά «καταχώρησέ το και στις Δαπάνες» και δεν μάθαινε ποτέ αν έγινε.

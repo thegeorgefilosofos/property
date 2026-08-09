@@ -28,7 +28,7 @@ interface ExpRow { property_id: string | null; date: string | null; amount: numb
 const SECTIONS = [
   { key: 'summary', label: 'Σύνοψη (δείκτες)', hint: 'Έσοδα, εισπράξεις, δαπάνες, καθαρό' },
   { key: 'byProperty', label: 'Ανά ακίνητο', hint: 'Εισπράξεις / δαπάνες / καθαρό ανά ακίνητο' },
-  { key: 'charts', label: 'Γραφήματα (B&W)', hint: 'Εισπράξεις ανά μήνα & καθαρό ανά ακίνητο' },
+  { key: 'charts', label: 'Γραφήματα (B&W)', hint: 'Εισπράξεις ανά μήνα και καθαρό ανά ακίνητο' },
   { key: 'rent', label: 'Συμφωνία ενοικίων', hint: 'Αναμενόμενα / εισπραχθέντα ανά μήνα' },
   { key: 'expenses', label: 'Δαπάνες ανά κατηγορία', hint: 'Σύνολα δαπανών ανά κατηγορία' },
 ] as const;

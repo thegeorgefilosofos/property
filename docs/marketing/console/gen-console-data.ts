@@ -65,22 +65,22 @@ const IP: Plan[] = ['individual', 'professional']
 const FI: Plan[] = ['free', 'individual']
 type Prog = { id: string; title: string; subtitle: string; plans: Plan[]; trigger: string; cadence: string; goal: string; rec: Record<string, CopyFn> }
 const PROGRAMS: Prog[] = [
-  { id: 'onboarding', title: 'Onboarding', subtitle: 'Ενεργοποίηση νέων χρηστών', plans: A, trigger: 'Εγγραφή & πρώτες μέρες', cadence: 'Ροή', goal: 'Ενεργοποίηση', rec: C.ONBOARDING },
-  { id: 'engagement', title: 'Engagement', subtitle: 'Διατήρηση & συνήθεια', plans: A, trigger: 'Περιοδικό & συμβάντα', cadence: 'Μηνιαίο / Εβδομαδιαίο', goal: 'Διατήρηση', rec: C.ENGAGEMENT },
-  { id: 'upsell', title: 'Upsell', subtitle: 'Μετατροπή σε συνδρομή', plans: FI, trigger: 'Χρήση & όρια', cadence: 'Κατά συμβάν', goal: 'Μετατροπή', rec: C.UPSELL },
+  { id: 'onboarding', title: 'Onboarding', subtitle: 'Ενεργοποίηση νέων χρηστών', plans: A, trigger: 'Εγγραφή και πρώτες μέρες', cadence: 'Ροή', goal: 'Ενεργοποίηση', rec: C.ONBOARDING },
+  { id: 'engagement', title: 'Engagement', subtitle: 'Διατήρηση και συνήθεια', plans: A, trigger: 'Περιοδικό και συμβάντα', cadence: 'Μηνιαίο / Εβδομαδιαίο', goal: 'Διατήρηση', rec: C.ENGAGEMENT },
+  { id: 'upsell', title: 'Upsell', subtitle: 'Μετατροπή σε συνδρομή', plans: FI, trigger: 'Χρήση και όρια', cadence: 'Κατά συμβάν', goal: 'Μετατροπή', rec: C.UPSELL },
   { id: 'seasonal', title: 'Εποχικά', subtitle: 'Αιχμές πωλήσεων', plans: FI, trigger: 'Ημερολόγιο', cadence: 'Εποχικό', goal: 'Μετατροπή', rec: C.SEASONAL },
   { id: 'referral', title: 'Συστάσεις', subtitle: 'Ανάπτυξη (viral)', plans: IP, trigger: 'Ενεργός χρήστης', cadence: 'Κατά συμβάν', goal: 'Ανάπτυξη', rec: C.REFERRAL },
-  { id: 'lifecycle', title: 'Lifecycle', subtitle: 'Νομικά & συναλλαγές', plans: A, trigger: 'Συμβάν λογαριασμού', cadence: 'Κατά συμβάν', goal: 'Εμπιστοσύνη', rec: C.LIFECYCLE },
+  { id: 'lifecycle', title: 'Lifecycle', subtitle: 'Νομικά και συναλλαγές', plans: A, trigger: 'Συμβάν λογαριασμού', cadence: 'Κατά συμβάν', goal: 'Εμπιστοσύνη', rec: C.LIFECYCLE },
   { id: 'winback', title: 'Win-back', subtitle: 'Επιστροφή χαμένων', plans: A, trigger: 'Αδράνεια 30/60/90', cadence: 'Ροή', goal: 'Επιστροφή', rec: C.WINBACK },
   { id: 'operations', title: 'Λειτουργικά', subtitle: 'Αξία καθημερινότητας', plans: IP, trigger: 'Δεδομένα ακινήτου', cadence: 'Κατά συμβάν', goal: 'Αξία', rec: C.OPERATIONS },
-  { id: 'shortterm', title: 'Βραχυχρόνια', subtitle: 'STR hosts', plans: IP, trigger: 'Κρατήσεις & σεζόν', cadence: 'Κατά συμβάν', goal: 'Αξία', rec: C.SHORTTERM },
-  { id: 'product', title: 'Προϊόν & Εξέλιξη', subtitle: 'Αφοσίωση', plans: A, trigger: 'Κυκλοφορίες & ορόσημα', cadence: 'Περιοδικό', goal: 'Αφοσίωση', rec: C.PRODUCT },
+  { id: 'shortterm', title: 'Βραχυχρόνια', subtitle: 'STR hosts', plans: IP, trigger: 'Κρατήσεις και σεζόν', cadence: 'Κατά συμβάν', goal: 'Αξία', rec: C.SHORTTERM },
+  { id: 'product', title: 'Προϊόν και Εξέλιξη', subtitle: 'Αφοσίωση', plans: A, trigger: 'Κυκλοφορίες και ορόσημα', cadence: 'Περιοδικό', goal: 'Αφοσίωση', rec: C.PRODUCT },
   { id: 'conversion', title: 'Μετατροπή', subtitle: 'Αξία με απόδειξη', plans: FI, trigger: 'Ενεργός δωρεάν', cadence: 'Κατά συμβάν', goal: 'Μετατροπή', rec: C.CONVERSION },
-  { id: 'compliance', title: 'Συμμόρφωση', subtitle: 'Ελληνικές υποχρεώσεις', plans: IP, trigger: 'Υποχρέωση & προθεσμία', cadence: 'Κατά συμβάν', goal: 'Συμμόρφωση', rec: C.COMPLIANCE },
+  { id: 'compliance', title: 'Συμμόρφωση', subtitle: 'Ελληνικές υποχρεώσεις', plans: IP, trigger: 'Υποχρέωση και προθεσμία', cadence: 'Κατά συμβάν', goal: 'Συμμόρφωση', rec: C.COMPLIANCE },
   { id: 'billing', title: 'Συνδρομή', subtitle: 'Έσοδα χωρίς διαρροές', plans: IP, trigger: 'Κατάσταση συνδρομής', cadence: 'Κατά συμβάν', goal: 'Έσοδα', rec: C.BILLING },
-  { id: 'relationship', title: 'Σχέσεις', subtitle: 'Ενοικιαστές & συνιδιοκτήτες', plans: IP, trigger: 'Ενοικιαστής / συνιδιοκτήτης', cadence: 'Κατά συμβάν', goal: 'Σχέση', rec: C.RELATIONSHIP },
-  { id: 'value', title: 'Αξία & Εξοικονόμηση', subtitle: 'Χρήματα στην τσέπη', plans: A, trigger: 'Ευκαιρία αξίας', cadence: 'Κατά συμβάν', goal: 'Αξία', rec: C.VALUE },
-  { id: 'news', title: 'Επικαιρότητα', subtitle: 'Με αφορμή τα γεγονότα', plans: A, trigger: 'Πραγματικό γεγονός', cadence: 'Editorial', goal: 'Αξία & εμπιστοσύνη', rec: C.NEWS },
+  { id: 'relationship', title: 'Σχέσεις', subtitle: 'Ενοικιαστές και συνιδιοκτήτες', plans: IP, trigger: 'Ενοικιαστής / συνιδιοκτήτης', cadence: 'Κατά συμβάν', goal: 'Σχέση', rec: C.RELATIONSHIP },
+  { id: 'value', title: 'Αξία και Εξοικονόμηση', subtitle: 'Χρήματα στην τσέπη', plans: A, trigger: 'Ευκαιρία αξίας', cadence: 'Κατά συμβάν', goal: 'Αξία', rec: C.VALUE },
+  { id: 'news', title: 'Επικαιρότητα', subtitle: 'Με αφορμή τα γεγονότα', plans: A, trigger: 'Πραγματικό γεγονός', cadence: 'Editorial', goal: 'Αξία και εμπιστοσύνη', rec: C.NEWS },
 ]
 const PLAN_OVERRIDE: Record<string, Plan[]> = {
   welcome_free: ['free'], welcome_individual: ['individual'], welcome_professional: ['professional'],

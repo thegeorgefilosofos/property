@@ -90,7 +90,7 @@ ok('booked set = 3 νύχτες (checkout exclusive)', bd.size === 3 && bd.has('
 // ── indicativeMonthly ───────────────────────────────────────────────────────
 const im = indicativeMonthly(100);
 ok('12 μήνες', im.length === 12);
-ok('Αύγουστος (7) αιχμή & > Ιανουάριος (0)', im[7].season === 'peak' && im[7].weekday > im[0].weekday);
+ok('Αύγουστος (7) αιχμή και > Ιανουάριος (0)', im[7].season === 'peak' && im[7].weekday > im[0].weekday);
 ok('Σαββατοκύριακο > καθημερινή', im.every(r => r.weekend >= r.weekday));
 
 // ── Το επινοημένο ΕΦΥΓΕ: καμία πρόβλεψη εσόδων/κέρδους, κανένα fallback βάσης ──

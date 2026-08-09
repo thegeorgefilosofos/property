@@ -7,8 +7,8 @@ function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed+
 // ── Ακεραιότητα δεδομένων ────────────────────────────────────────────────────
 ok('υπάρχουν επίκαιροι κανόνες', REGULATORY_UPDATES_2026.length >= 10)
 ok('μοναδικά ids', new Set(REGULATORY_UPDATES_2026.map(u => u.id)).size === REGULATORY_UPDATES_2026.length)
-ok('κάθε κανόνας έχει τίτλο & περίληψη', REGULATORY_UPDATES_2026.every(u => u.title.length > 5 && u.summary.length > 30))
-ok('κάθε κανόνας έχει νομική βάση & ισχύ', REGULATORY_UPDATES_2026.every(u => u.legalBasis.length > 0 && u.effective.length > 0))
+ok('κάθε κανόνας έχει τίτλο και περίληψη', REGULATORY_UPDATES_2026.every(u => u.title.length > 5 && u.summary.length > 30))
+ok('κάθε κανόνας έχει νομική βάση και ισχύ', REGULATORY_UPDATES_2026.every(u => u.legalBasis.length > 0 && u.effective.length > 0))
 ok('κάθε κανόνας έχει τουλάχιστον ένα audience', REGULATORY_UPDATES_2026.every(u => u.audiences.length > 0))
 ok('έγκυρα severity', REGULATORY_UPDATES_2026.every(u => ['info', 'action', 'warning'].includes(u.severity)))
 ok('όσα έχουν sourceHref είναι https', REGULATORY_UPDATES_2026.every(u => !u.sourceHref || u.sourceHref.startsWith('https://')))
@@ -21,7 +21,7 @@ ok('long_term → περιλαμβάνει την τραπεζική πληρω�
 const shortTerm = updatesForAudience('short_term')
 ok('short_term → περιλαμβάνει τις κόκκινες ζώνες ΑΜΑ', shortTerm.some(u => u.id === 'ama-red-zones'))
 const borrower = updatesForAudience('borrower')
-ok('borrower → περιλαμβάνει servicers & DSTI', borrower.some(u => u.id === 'servicers-5072') && borrower.some(u => u.id === 'dsti-ltv-limits'))
+ok('borrower → περιλαμβάνει servicers και DSTI', borrower.some(u => u.id === 'servicers-5072') && borrower.some(u => u.id === 'dsti-ltv-limits'))
 ok('all-audience κανόνας φαίνεται παντού', updatesForAudience('long_term').some(u => u.audiences.includes('all')))
 
 // ── Φιλτράρισμα ανά περιοχή ──────────────────────────────────────────────────

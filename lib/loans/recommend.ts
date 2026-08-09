@@ -148,7 +148,7 @@ export function spitiMouEligibility(n: UserLoanNeeds): SpitiMouResult {
     } else reasons.push(`Ηλικία ${n.age} εντός ορίου`)
   } else reasons.push('Ηλικία: προς επιβεβαίωση (25-50)')
 
-  if (n.firstHome === false) { eligible = false; reasons.push('Απαιτείται πρώτη & κύρια κατοικία') }
+  if (n.firstHome === false) { eligible = false; reasons.push('Απαιτείται πρώτη και κύρια κατοικία') }
 
   if (n.propertyValue > SPITI_MOU.maxPropertyValue) {
     eligible = false

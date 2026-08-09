@@ -140,7 +140,7 @@ export function downloadJournalWorkbook(opts: {
     const NC = 3, HR = 3;
     const audit = auditJournal(lines, { year: opts.year, month: opts.month });
     const mark = (s: string) => (s === 'pass' ? '✓' : s === 'warn' ? '⚠' : '✗');
-    const header = ['Έλεγχος', 'Κατάσταση', 'Λεπτομέρεια & πρόταση'];
+    const header = ['Έλεγχος', 'Κατάσταση', 'Λεπτομέρεια και πρόταση'];
     const aoa: (string | number)[][] = [
       [`ΕΛΕΓΧΟΣ ΙΣΟΖΥΓΙΟΥ · ${periodLabel}`],
       [`Αποτέλεσμα: ${audit.summary}`],

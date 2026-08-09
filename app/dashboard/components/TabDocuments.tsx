@@ -68,7 +68,7 @@ type FolderKey =
 const FOLDERS: { key: FolderKey; label: string }[] = [
   { key: 'contracts',  label: 'Συμβόλαια' },
   { key: 'property',   label: 'Έγγραφα ακινήτου' },
-  { key: 'taxes',      label: 'Φόροι & ΕΝΦΙΑ' },
+  { key: 'taxes',      label: 'Φόροι και ΕΝΦΙΑ' },
   { key: 'bills',      label: 'Λογαριασμοί' },
   { key: 'providers',  label: 'Πάροχοι' },
   { key: 'warranties', label: 'Εγγυήσεις' },
@@ -117,7 +117,7 @@ const BILL_CAT_FOLDER: Record<string, FolderKey> = {
 const BILL_PROVIDER_LABEL: Record<string, string> = {
   electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο', internet: 'Internet & Τηλεφωνία',
   common: 'Κοινόχρηστα', streaming: 'Συνδρομές', enfia: 'ΕΝΦΙΑ', dimotika: 'Δημοτικά Τέλη',
-  insurance: 'Ασφάλεια', security: 'Ασφάλεια & Φύλαξη', cleaning: 'Καθαρισμός',
+  insurance: 'Ασφάλεια', security: 'Ασφάλεια και Φύλαξη', cleaning: 'Καθαρισμός',
   garden: 'Κήπος', pool: 'Πισίνα', elevator: 'Ανελκυστήρας', ac_service: 'Κλιματισμός',
   pest: 'Απεντόμωση', renovation: 'Ανακαίνιση', other: 'Λοιπά',
 };

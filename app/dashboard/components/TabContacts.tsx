@@ -155,7 +155,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'telecom', label: 'Τηλεφωνία & Internet', color: 'var(--accent)', Icon: Wifi,
+    id: 'telecom', label: 'Τηλεφωνία και Internet', color: 'var(--accent)', Icon: Wifi,
     roles: [
       { value: 'tel_ote', label: 'Cosmote (OTE)' },
       { value: 'tel_vodafone', label: 'Vodafone' },
@@ -165,7 +165,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: 'var(--accent)', Icon: Landmark,
+    id: 'banks', label: 'Τράπεζες και Χρηματοδότηση', color: 'var(--accent)', Icon: Landmark,
     roles: [
       { value: 'bank_alpha', label: 'Alpha Bank' },
       { value: 'bank_eurobank', label: 'Eurobank' },
@@ -198,7 +198,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'real_estate', label: 'Μεσιτεία & Αξιολόγηση', color: 'var(--accent)', Icon: Building2,
+    id: 'real_estate', label: 'Μεσιτεία και Αξιολόγηση', color: 'var(--accent)', Icon: Building2,
     roles: [
       { value: 'agent', label: 'Μεσίτης Ακινήτων' },
       { value: 'appraiser', label: 'Εκτιμητής Ακινήτων' },
@@ -208,7 +208,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'technical', label: 'Τεχνικοί & Μάστορες', color: 'var(--accent)', Icon: Wrench,
+    id: 'technical', label: 'Τεχνικοί και Μάστορες', color: 'var(--accent)', Icon: Wrench,
     roles: [
       { value: 'plumber', label: 'Υδραυλικός' },
       { value: 'electrician', label: 'Ηλεκτρολόγος' },
@@ -229,7 +229,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: 'var(--accent)', Icon: Trees,
+    id: 'outdoor', label: 'Εξωτερικοί Χώροι και Υπηρεσίες', color: 'var(--accent)', Icon: Trees,
     roles: [
       { value: 'gardener', label: 'Κηπουρός' },
       { value: 'pool', label: 'Συντηρητής Πισίνας' },
@@ -240,7 +240,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: 'var(--accent)', Icon: UserCheck,
+    id: 'tenants', label: 'Ενοικιαστές και Γείτονες', color: 'var(--accent)', Icon: UserCheck,
     roles: [
       { value: 'tenant', label: 'Ενοικιαστής' },
       { value: 'prev_tenant', label: 'Πρώην Ενοικιαστής' },

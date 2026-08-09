@@ -96,8 +96,8 @@ const INSURANCE_COMPANIES: InsuranceCompany[] = [
     plans: [
       { id: 'hd_ktirio',    name: 'Κτίριο',                monthly: 5.50,  annual: 55,  covers: ['Πυρκαγιά','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'hd_perieh',   name: 'Περιεχόμενο',            monthly: 4.00,  annual: 40,  covers: ['Κλοπή','Βραχυκύκλωμα','Τυχαίες Ζημιές Περιεχομένου'], earthquake: false, flood: false, natural: false },
-      { id: 'hd_full',     name: 'Κτίριο & Περιεχόμενο',   monthly: 8.50,  annual: 85,  covers: ['Πυρκαγιά','Κλοπή','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη','Τυχαίες Ζημιές'], earthquake: false, flood: true,  natural: true  },
-      { id: 'hd_full_eq',  name: 'Κτίριο & Περιεχόμενο + Σεισμός', monthly: 12.00, annual: 120, covers: ['Πλήρης Κάλυψη','Σεισμός','Κλοπή','Αστική Ευθύνη'], earthquake: true, flood: true, natural: true },
+      { id: 'hd_full',     name: 'Κτίριο και Περιεχόμενο',   monthly: 8.50,  annual: 85,  covers: ['Πυρκαγιά','Κλοπή','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη','Τυχαίες Ζημιές'], earthquake: false, flood: true,  natural: true  },
+      { id: 'hd_full_eq',  name: 'Κτίριο και Περιεχόμενο + Σεισμός', monthly: 12.00, annual: 120, covers: ['Πλήρης Κάλυψη','Σεισμός','Κλοπή','Αστική Ευθύνη'], earthquake: true, flood: true, natural: true },
     ] },
   { value: 'interamerican', label: 'Interamerican',             url: 'https://www.interamerican.gr/idiotes/proionta-ypiresies/katoikia', agent_label: 'Ασφαλιστής Interamerican',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Κατοικία με Δάνειο'],

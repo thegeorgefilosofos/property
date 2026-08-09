@@ -670,10 +670,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     // συνδρομής, χωρίς κανέναν τρόπο να ολοκληρώσει το βήμα από εκεί.
     // Τα πεδία ζουν στην «Επεξεργασία στοιχείων ακινήτου», που ως τώρα άνοιγε
     // μόνο από ένα μενού της πάνω μπάρας.
-    { key:'details', weight:10, label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'edit' },
-    { key:'tenant',  weight:8, label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
+    { key:'details', weight:10, label:'Συμπλήρωσε αξία και ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'edit' },
+    { key:'tenant',  weight:8, label:'Πρόσθεσε ενοικιαστή και ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
     { key:'expense', weight:6, label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
-    { key:'bills',   weight:5, label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
+    { key:'bills',   weight:5, label:'Ρύθμισε ρεύμα και αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
     { key:'pricing', weight:3, label:'Δες την προτεινόμενη τιμή σου', hint:'Δυναμική τιμή ανά νύχτα και φορολογική εικόνα βραχυχρόνιας μίσθωσης', done: hostStays.length>0, nav:'pricing' },
     { key:'inv',     weight:2, label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
     // Βήμα που δείχνει σε καρτέλα η οποία δεν αφορά τον χρήστη είναι νεκρός
@@ -1837,9 +1837,9 @@ export default function Dashboard() {
               <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή, όλα σε ένα σημείο.</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12,marginBottom:28,textAlign:'left'}}>
                 {[
-                  {t:'Αποδόσεις & Φόρος 2026',d:'Μεικτή/καθαρή απόδοση, φόρος βάσει κλίμακας'},
-                  {t:'Λογαριασμοί & Ενέργεια',d:'Σύγκριση 11 παρόχων ρεύματος/αερίου'},
-                  {t:'Ενοικιαστής & Συμβόλαιο',d:'Πληρωμές, λήξεις, εγγύηση, ιστορικό'},
+                  {t:'Αποδόσεις και Φόρος 2026',d:'Μεικτή/καθαρή απόδοση, φόρος βάσει κλίμακας'},
+                  {t:'Λογαριασμοί και Ενέργεια',d:'Σύγκριση 11 παρόχων ρεύματος/αερίου'},
+                  {t:'Ενοικιαστής και Συμβόλαιο',d:'Πληρωμές, λήξεις, εγγύηση, ιστορικό'},
                 ].map((f,i)=>(
                   <div key={i} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'14px 16px'}}>
                     <div style={{fontFamily: T.font.sans,fontSize:13,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>{f.t}</div>

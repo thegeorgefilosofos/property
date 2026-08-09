@@ -66,7 +66,7 @@ ok('άγνωστο insight δεν συγχωνεύεται με τίποτα', i
   const a = buildAgenda({
     today: TODAY,
     insights: [ins({ id: 'profile-incomplete', title: 'Λείπουν στοιχεία του ακινήτου', action: { label: 'Επεξεργασία', tab: 'settings' } })],
-    setup: [setup({ key: 'details', label: 'Συμπλήρωσε αξία & ενοίκιο', weight: 10 })],
+    setup: [setup({ key: 'details', label: 'Συμπλήρωσε αξία και ενοίκιο', weight: 10 })],
   })
   ok('ένα μήνυμα για τα ελλιπή στοιχεία', a.length === 1)
   ok('νικά η διατύπωση του insight (πιο πλούσια από το βήμα)', a[0].title === 'Λείπουν στοιχεία του ακινήτου')

@@ -74,7 +74,7 @@ ok('channel unresolved', byCh.every(r => r.unresolved === r.count));
 const explicit = totals([{ channel: 'airbnb', check_in: '2026-07-01', check_out: '2026-07-05', total: 818, amount_basis: 'gross', gross_guest_paid: 1000, climate_levy: 32, platform_fee: 150, declared_at: '2026-07-06T09:00:00Z' }]);
 ok('ρητή ανάλυση → έσοδα 968 (1000 − 32 τέλος)', explicit.revenue === 968);
 ok('ρητή ανάλυση → 0 απροσδιόριστες, 0 αδήλωτες', explicit.unresolved === 0 && explicit.undeclared === 0);
-ok('ρητή ανάλυση → προμήθεια & τέλος χωριστά', explicit.platformFees === 150 && explicit.climateLevy === 32);
+ok('ρητή ανάλυση → προμήθεια και τέλος χωριστά', explicit.platformFees === 150 && explicit.climateLevy === 32);
 
 // ── ical ─────────────────────────────────────────────────────────────────────
 const ics = [

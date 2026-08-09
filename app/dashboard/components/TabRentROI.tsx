@@ -810,7 +810,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       : [['Το ακίνητό σου', rPct(y.grossYield)], [reg?.label || 'Περιοχή', rPct(reg?.grossYield || 0)], ['Μέσος όρος Αθήνας', rPct(ATHENS_AVG_GROSS_YIELD)], ['Εθνικός μέσος όρος', rPct(GREECE_AVG_GROSS_YIELD)]];
 
     // Χρηματοδότηση & μόχλευση (μόνο επαγγελματικό προφίλ).
-    const finBlock = pro ? reportSection('Χρηματοδότηση & μόχλευση') + `<table><tbody>
+    const finBlock = pro ? reportSection('Χρηματοδότηση και μόχλευση') + `<table><tbody>
         ${R('Ίδια κεφάλαια', rEur(deal.equity))}
         ${R('Δάνειο', rEur(deal.loan))}
         ${R('Ετήσια δόση δανείου', rEur(deal.annualDebtService))}
@@ -861,7 +861,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         + reportKpi('Καθαρή απόδοση', rPct(y.netYield))
         + reportKpi('Βαθμός απόδοσης', `${grade.grade} · ${grade.score}/100`)
       + `</div>`
-      + reportSection('Ανάλυση εσόδων & εξόδων (ετήσια)') + `<table><tbody>${incRows}</tbody></table>`
+      + reportSection('Ανάλυση εσόδων και εξόδων (ετήσια)') + `<table><tbody>${incRows}</tbody></table>`
       + reportSection('Δείκτες απόδοσης') + `<table><tbody>${yieldRows}</tbody></table>`
       + reportSection('Σύγκριση με την αγορά') + `<table><tbody>${regionRows.map(r => R(r[0], r[1])).join('')}</tbody></table>`
       + finBlock
@@ -869,7 +869,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       + beBlock
       + reportSection(`Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`)
         + `<table><tbody>${compare.map(c => R(c.label, `${rEur(c.futureValue)} · ${rPct(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table>`
-      + reportSection('Παραδοχές & μεθοδολογία')
+      + reportSection('Παραδοχές και μεθοδολογία')
         + `<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:${INK_MUTED};line-height:1.7">${asmpItems}</ul>`
         + `<div class="note" style="font-size:10px;color:${INK_FAINT};margin-top:10px">Πηγές: ${MARKET_SOURCES.map(s => rEsc(s.label)).join(' · ')}</div>`
       + reportDisclaimer(disclaimer, branding)
@@ -931,7 +931,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           { label: 'Καθαρή απόδοση', value: pPct(y.netYield) },
           { label: 'Βαθμός απόδοσης', value: `${grade.grade} · ${grade.score}/100` },
         ] },
-        { type: 'rows', title: 'Ανάλυση εσόδων & εξόδων (ετήσια)', rows: [
+        { type: 'rows', title: 'Ανάλυση εσόδων και εξόδων (ετήσια)', rows: [
           { label: 'Ακαθάριστα έσοδα (ετήσια)', value: pEur(grossAnnual) },
           { label: 'Λειτουργικά έξοδα ακινήτου', value: pSigned(-nOpex) },
           ...(term === 'short' && stCosts > 0 ? [{ label: 'Κόστη βραχυχρόνιας (πλατφόρμα, καθαρισμός, ΤΑΚΚ, τέλος παρεπιδημούντων)', value: pSigned(-stCosts) }] : []),
@@ -951,7 +951,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       ];
 
       if (pro) {
-        sections.push({ type: 'rows', title: 'Χρηματοδότηση & μόχλευση', rows: [
+        sections.push({ type: 'rows', title: 'Χρηματοδότηση και μόχλευση', rows: [
           { label: 'Ίδια κεφάλαια', value: pEur(deal.equity) },
           { label: 'Δάνειο', value: pEur(deal.loan) },
           { label: 'Ετήσια δόση δανείου', value: pEur(deal.annualDebtService) },
@@ -975,7 +975,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
       sections.push({ type: 'rows', title: `Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`,
         rows: compare.map(c => ({ label: c.label, value: `${pEur(c.futureValue)} · ${pPct(c.annualReturnPct)} ετησίως` })) });
-      sections.push({ type: 'note', title: 'Παραδοχές & μεθοδολογία', text: asmpItems.map(t => `· ${t}`).join('\n') });
+      sections.push({ type: 'note', title: 'Παραδοχές και μεθοδολογία', text: asmpItems.map(t => `· ${t}`).join('\n') });
       sections.push({ type: 'note', text: `Πηγές: ${MARKET_SOURCES.map(s => s.label).join(' · ')}` });
 
       const issued = await issueDocument(supabase, {

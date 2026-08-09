@@ -144,14 +144,14 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
     return Math.abs(implied - r.grossYield) <= 2.5
   }))
   ok('εθνικός μέσος 4,4%', GREECE_AVG_GROSS_YIELD === 4.4)
-  ok('benchmarks πλήρη (10ετία & 20ετία)', BENCHMARKS.length >= 4 && BENCHMARKS.every(b => Number.isFinite(b.ret10) && Number.isFinite(b.ret20)))
+  ok('benchmarks πλήρη (10ετία και 20ετία)', BENCHMARKS.length >= 4 && BENCHMARKS.every(b => Number.isFinite(b.ret10) && Number.isFinite(b.ret20)))
   // Ειλικρίνεια: το Χρηματιστήριο Αθηνών έχει σχεδόν μηδενική 20ετία (κρίση).
   ok('ΧΑ 20ετία ~μηδενική', BENCHMARKS.find(b => b.key === 'athex')!.ret20 < 3)
   ok('ιστορικό 2007–2026', HISTORY_INDEX[0].year === 2007 && HISTORY_INDEX[HISTORY_INDEX.length - 1].year === 2026)
   ok('ιστορικό: έτη αύξοντα, τιμές θετικές', HISTORY_INDEX.every((p, i) => p.price > 0 && (i === 0 || p.year > HISTORY_INDEX[i - 1].year)))
   ok('πυθμένας 2017', HISTORY_ANCHORS.troughYear === 2017)
   ok('βραχυχρόνια δεδομένα', SHORT_TERM.length >= 5 && SHORT_TERM.every(s => s.grossYield > 0 && s.longTermYield > 0))
-  ok('μοχλοί με ρίσκο & πηγή', YIELD_LEVERS.length >= 5 && YIELD_LEVERS.every(l => l.impact && l.risk))
+  ok('μοχλοί με ρίσκο και πηγή', YIELD_LEVERS.length >= 5 && YIELD_LEVERS.every(l => l.impact && l.risk))
   // yieldVerdict λογική.
   ok('verdict καλό ≥5,5', yieldVerdict(6).tone === 'good' && yieldVerdict(4).tone === 'ok' && yieldVerdict(3).tone === 'low')
   ok('midPricePerSqm', midPricePerSqm(REGIONS[0]) > 0)

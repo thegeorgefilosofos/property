@@ -1210,7 +1210,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
   }, [items, showNeedsAction, filterCat, filterRoom, search, sortKey, sortDir, kwhPrice])
   const itemActions = (item:InventoryItem):OverflowAction[] => [
     {label:'Επεξεργασία',icon:IconEdit,onClick:()=>onEdit(item)},
-    {label:'Επισκευές & ιστορικό',icon:IconRepair,onClick:()=>onRepair(item)},
+    {label:'Επισκευές και ιστορικό',icon:IconRepair,onClick:()=>onRepair(item)},
     {label:'Κωδικός QR',icon:IconQR,onClick:()=>onQR(item)},
     ...(item.warranty_expiry?[{label:'Υπενθύμιση εγγύησης',icon:IconCal,onClick:()=>onWarrantyReminder(item)}]:[]),
     // Ο διάλογος είναι ασύγχρονος και ζει σε global host, όχι μέσα στο μενού: το
@@ -2209,7 +2209,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
               {[
                 {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/></svg>,t:'Φωτογράφισε ή σάρωσε',d:'Το AI διαβάζει μάρκα, μοντέλο, αξία και εγγύηση'},
                 {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>,t:'Παρακολούθησε εγγυήσεις',d:'Υπενθύμιση πριν λήξουν, χωρίς να το ξεχνάς'},
-                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>,t:'Υπολόγισε κατανάλωση',d:'Κόστος ρεύματος ανά συσκευή & εξοικονόμηση'},
+                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>,t:'Υπολόγισε κατανάλωση',d:'Κόστος ρεύματος ανά συσκευή και εξοικονόμηση'},
               ].map((s,i)=>(
                 <div key={i} style={{display:'flex',gap:11,padding:'13px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
                   <div style={{color:'var(--accent)',flexShrink:0,marginTop:1}}>{s.icon}</div>

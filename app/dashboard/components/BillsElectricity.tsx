@@ -861,7 +861,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         // ── Insurance gap, only if VNM/solar is relevant (cross-tab context) ──
         if (insData && kwhNum > 200) {
           if (!insData.eq) {
-            hints.push({ text: 'Η ασφάλειά σου δεν καλύπτει σεισμό. Δες τις καλύψεις σου.', severity: 'warning', action: 'Ασφάλεια & συνδρομές', tab: 'insurance' });
+            hints.push({ text: 'Η ασφάλειά σου δεν καλύπτει σεισμό. Δες τις καλύψεις σου.', severity: 'warning', action: 'Ασφάλεια και συνδρομές', tab: 'insurance' });
           }
         }
 

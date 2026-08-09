@@ -113,7 +113,7 @@ export function transferCosts(input: TransferInput): TransferResult {
     if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: round2(taxBase * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός, έλεγχος τίτλων/βαρών.' })
     if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: round2(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
     lines.push({ key: 'cadastre', label: 'Τέλη Κτηματολογίου', amount: round2(taxBase * CADASTRE_RATE + CADASTRE_FIXED), note: 'Αναλογικό 5‰ + πάγιο (ΦΕΚ Β\'64/2026). Σε περιοχές με ενεργό κτηματολόγιο ~6‰.' })
-    lines.push({ key: 'certs', label: 'Πιστοποιητικά & παράβολα', amount: CERTS_COST, note: 'Ενδεικτικό πάγιο.' })
+    lines.push({ key: 'certs', label: 'Πιστοποιητικά και παράβολα', amount: CERTS_COST, note: 'Ενδεικτικό πάγιο.' })
 
     const totalCosts = round2(lines.reduce((s, l) => s + l.amount, 0))
     return { side: 'buy', price, lines, totalCosts, costPct: price > 0 ? totalCosts / price : 0, cashOut: round2(price + totalCosts) }

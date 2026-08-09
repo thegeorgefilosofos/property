@@ -38,9 +38,9 @@ const KOIN_PLATFORMS: { name: string; price: string; note: string; url: string }
   { name: 'Billys',            price: 'Δωρεάν – 29 €/μήνα', note: 'Δωρεάν έκδοση. Smart: τραπεζικός λογ. πολυκατοικίας, ψηφοφορίες, ειδοποιήσεις οφειλών. Safe: αστική ευθύνη διαχειριστή.', url: 'https://billys.gr' },
   { name: 'Proper',            price: 'Δωρεάν',             note: 'Δωρεάν έκδοση κοινοχρήστων + υπηρεσίες διαχείρισης στην Αττική.', url: 'https://proper.gr' },
   { name: 'Outgo',             price: 'Δωρεάν – ~86 €/έτος', note: '1 δωρεάν έκδοση/μήνα. Συνδρομή ανάλογα με τα διαμερίσματα.', url: 'https://outgo.gr' },
-  { name: 'Κοινόχρηστα24',     price: 'Οικονομικό',         note: '35+ χρόνια στον χώρο. Online υπολογισμός & έκδοση.', url: 'https://www.koinoxrista24.gr' },
+  { name: 'Κοινόχρηστα24',     price: 'Οικονομικό',         note: '35+ χρόνια στον χώρο. Online υπολογισμός και έκδοση.', url: 'https://www.koinoxrista24.gr' },
   { name: 'e-apps Κοινόχρηστα', price: 'από 19,90 €/έτος',   note: 'Χαμηλό ετήσιο κόστος, online συνδρομή.', url: 'https://e-apps.gr/app-review/koino' },
-  { name: 'Κοινόχρηστα.online', price: 'Δωρεάν',            note: 'Δωρεάν online υπολογισμός & εκτύπωση, χωρίς εγγραφή.', url: 'https://koinoxrista.online' },
+  { name: 'Κοινόχρηστα.online', price: 'Δωρεάν',            note: 'Δωρεάν online υπολογισμός και εκτύπωση, χωρίς εγγραφή.', url: 'https://koinoxrista.online' },
 ];
 
 // Ανάλυση κοινοχρήστων ανά κατηγορία, λογική κατανομής με χιλιοστά (Billys-style).

@@ -66,7 +66,7 @@ export const CATEGORIES: Category[] = [
   { slug: 'broker_fee',  label: 'Μεσιτικά',       family: 'official', deductible: true,  aliases: ['broker', 'μεσιτεια', 'μεσιτεια ενοικιασης', 'μεσιτεια πωλησης', 'μεσιτικα'] },
 
   // ── Εξοπλισμός και ανακαίνιση ───────────────────────────────────────────
-  { slug: 'renovation',  label: 'Ανακαίνιση',     family: 'setup', deductible: false, aliases: ['renovation', 'ανακαινιση', 'βαφες & χρωματα', 'βαφες', 'πλακακια', 'ξυλουργικα'] },
+  { slug: 'renovation',  label: 'Ανακαίνιση',     family: 'setup', deductible: false, aliases: ['renovation', 'ανακαινιση', 'βαφες & χρωματα', 'βαφες και χρωματα', 'βαφες', 'πλακακια', 'ξυλουργικα'] },
   { slug: 'appliance',   label: 'Συσκευές',       family: 'setup', deductible: false, aliases: ['appliances', 'συσκευες', 'ψυγειο', 'πλυντηριο ρουχων', 'στεγνωτηριο', 'κουζινα', 'κλιματιστικο (αγορα)'] },
   { slug: 'furniture',   label: 'Έπιπλα',         family: 'setup', deductible: false, aliases: ['furniture', 'επιπλα', 'κρεβατι', 'καναπες', 'τραπεζι'] },
 

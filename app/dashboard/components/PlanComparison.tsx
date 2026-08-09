@@ -65,9 +65,9 @@ const forAll = (label: string): FeatureRow => ({
 
 const MATRIX: FeatureRow[] = [
   { label: 'Ακίνητα', values: Object.fromEntries(COMPARED.map(p => [p, limitLabel(p)])) as Record<ComparedPlan, CellValue> },
-  forAll('Σάρωση εγγράφων & βοηθός με φωνή'),
-  forAll('Αποδόσεις, δαπάνες, ενέργεια & φόρος 2026'),
-  forAll('Έξυπνες ειδοποιήσεις & υπενθυμίσεις'),
+  forAll('Σάρωση εγγράφων και βοηθός με φωνή'),
+  forAll('Αποδόσεις, δαπάνες, ενέργεια και φόρος 2026'),
+  forAll('Έξυπνες ειδοποιήσεις και υπενθυμίσεις'),
   gated('e2_export'),
   gated('rent_collection'),
   gated('multi_property'),

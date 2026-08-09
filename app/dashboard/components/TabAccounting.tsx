@@ -736,7 +736,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, letterSpacing:'0.1px' }}>Ξεκίνα τη λογιστική σου για το {year}</p>
               <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.6, fontFamily: T.font.sans, maxWidth:520 }}>Καταχώρησε ενοίκια και έξοδα και όλα εδώ υπολογίζονται αυτόματα: έσοδα, φόρος, καθαρό ταμείο και έτοιμες αναφορές για τον λογιστή σου.</p>
               <div style={{ display:'flex', alignItems:'center', gap:16, margin:'14px 0 0', flexWrap:'wrap' }}>
-                {['Έσοδα & πρόβλεψη φόρου','Καθαρό ταμείο','Αναφορές & PDF'].map(t=>(
+                {['Έσοδα και πρόβλεψη φόρου','Καθαρό ταμείο','Αναφορές και PDF'].map(t=>(
                   <span key={t} style={{ display:'inline-flex', alignItems:'center', gap:7, fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
                     <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--border-default)', flexShrink:0 }}/>{t}
                   </span>

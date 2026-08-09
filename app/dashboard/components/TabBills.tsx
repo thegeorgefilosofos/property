@@ -110,7 +110,7 @@ const TOOLS: ToolDef[] = [
   { id: 'gas',         label: 'Φυσικό αέριο',         icon: 'flame',    desc: 'Πάροχος αερίου και σύγκριση τιμολογίων' },
   { id: 'common',      label: 'Κοινόχρηστα',          icon: 'building', desc: 'Διαχείριση κτηρίου, ταμείο, ιστορικό' },
   { id: 'providers',   label: 'Πάροχοι',              icon: 'wifi',     desc: 'Internet, νερό, θέρμανση, security' },
-  { id: 'insurance',   label: 'Ασφάλεια & συνδρομές', icon: 'shield',   desc: 'Ασφάλεια κατοικίας, streaming, cloud' },
+  { id: 'insurance',   label: 'Ασφάλεια και συνδρομές', icon: 'shield',   desc: 'Ασφάλεια κατοικίας, streaming, cloud' },
   { id: 'services',    label: 'Υπηρεσίες',            icon: 'wrench',   desc: 'ΕΝΦΙΑ, δημοτικά τέλη, καθαρισμός, κηπουρός' },
 ];
 

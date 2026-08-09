@@ -255,7 +255,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Internet & TV',                   value: fe(internetCost + tvCost), accent: false },
-          { label: 'Νερό & Θέρμανση',                 value: fe(waterM + heatingM),     accent: false },
+          { label: 'Νερό και Θέρμανση',                 value: fe(waterM + heatingM),     accent: false },
           { label: 'Security',                          value: fe(securityM),             accent: false },
           { label: 'Σύνολο Παρόχων / μήνα',           value: fe(totalM),                accent: totalM > 0 },
         ].map((k, i) => (

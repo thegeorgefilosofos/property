@@ -909,7 +909,7 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 
 <div class="notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Αυτό το πρωτόκολλο αποτελεί νομικά δεσμευτικό αποδεικτικό παράδοσης/παραλαβής ακινήτου. Κρατήστε αντίγραφο και οι δύο πλευρές. Εκτυπώστε σε 2 αντίτυπα.</span></div>
 
-${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων', `
+${sectionHtml(1, 'Στοιχεία Ακινήτου και Συμβαλλομένων', `
   <div class="field-grid">
     ${fieldRow('Διεύθυνση Ακινήτου', '')}
     ${fieldRow('Διαμέρισμα / Όροφος', '')}
@@ -953,7 +953,7 @@ ${sectionHtml(2, 'Κατάσταση Χώρων ανά Δωμάτιο', `
   </table>
 `)}
 
-${sectionHtml(3, 'Κατάσταση Τοίχων, Δαπέδων & Οροφής', `
+${sectionHtml(3, 'Κατάσταση Τοίχων, Δαπέδων και Οροφής', `
   <table class="room-table">
     <thead><tr><th>Στοιχείο</th><th>Κατάσταση</th><th>Περιγραφή</th></tr></thead>
     <tbody>
@@ -988,7 +988,7 @@ ${sectionHtml(4, 'Μετρητές Παροχών', `
   </div>
 `)}
 
-${sectionHtml(5, 'Κλειδιά & Κλειδαριές', `
+${sectionHtml(5, 'Κλειδιά και Κλειδαριές', `
   <div class="key-grid">
     <div class="key-card">
       <div class="key-num"></div>
@@ -1015,7 +1015,7 @@ ${sectionHtml(5, 'Κλειδιά & Κλειδαριές', `
   </div>
 `)}
 
-${sectionHtml(6, 'Συσκευές & Έπιπλα', `
+${sectionHtml(6, 'Συσκευές και Έπιπλα', `
   <table class="app-table">
     <thead><tr><th>Είδος</th><th>Περιλαμβάνεται</th><th>Μάρκα / Μοντέλο</th><th>Κατάσταση</th><th>Εγγύηση</th></tr></thead>
     <tbody>
@@ -1024,7 +1024,7 @@ ${sectionHtml(6, 'Συσκευές & Έπιπλα', `
   </table>
 `)}
 
-${sectionHtml(7, 'Parking & Αποθήκη', `
+${sectionHtml(7, 'Parking και Αποθήκη', `
   <div class="field-grid">
     ${fieldRow('Parking, Θέση Νο', '')}
     ${fieldRow('Parking, Τύπος', '')}
@@ -1034,7 +1034,7 @@ ${sectionHtml(7, 'Parking & Αποθήκη', `
   <div class="field-area"></div>
 `)}
 
-${sectionHtml(8, 'Κοινόχρηστοι Χώροι & Εγκαταστάσεις', `
+${sectionHtml(8, 'Κοινόχρηστοι Χώροι και Εγκαταστάσεις', `
   <div class="commons-grid">
     <div>
       ${['Ανελκυστήρας', 'Γεννήτρια / UPS', 'Σύστημα Ασφαλείας / CCTV', 'Πόρτα Εισόδου (αυτόματη)'].map(c => `<div class="commons-row"><div class="commons-dot"></div><div class="commons-label">${esc(c)}</div><div class="commons-val"></div></div>`).join('')}
@@ -1049,7 +1049,7 @@ ${sectionHtml(9, 'Λίστα Ελέγχου Εκκρεμοτήτων', `
   ${taskRows || `<div style="text-align:center;padding:20px;color:${INK_FAINT};font-size:12px">Δεν υπάρχουν tasks στην κατηγορία ${type === 'checkin' ? 'παράδοσης' : 'αποχώρησης'}</div>`}
 `)}
 
-${sectionHtml(10, 'Καταγεγραμμένες Ζημιές & Αποκλίσεις', `
+${sectionHtml(10, 'Καταγεγραμμένες Ζημιές και Αποκλίσεις', `
   <div style="font-size:12px;color:${INK_MUTED};margin-bottom:10px">Καταγράψτε κάθε ζημιά, φθορά ή απόκλιση από την αρχική κατάσταση. Συνημμένα: φωτογραφίες με ημερομηνία.</div>
   <div class="damage-box"></div>
   <div class="photo-grid">
@@ -1057,7 +1057,7 @@ ${sectionHtml(10, 'Καταγεγραμμένες Ζημιές & Αποκλίσ�
   </div>
 `)}
 
-${sectionHtml(11, 'Λοιπές Συμφωνίες & Σημειώσεις', `
+${sectionHtml(11, 'Λοιπές Συμφωνίες και Σημειώσεις', `
   <div class="damage-box" style="min-height:80px"></div>
   <div class="field-grid" style="margin-top:10px">
     ${fieldRow('Συμφωνημένη ημ. επιστροφής εγγύησης', '')}
@@ -1065,7 +1065,7 @@ ${sectionHtml(11, 'Λοιπές Συμφωνίες & Σημειώσεις', `
   </div>
 `)}
 
-${sectionHtml(12, 'Δηλώσεις & Υπογραφές', `
+${sectionHtml(12, 'Δηλώσεις και Υπογραφές', `
   <div style="padding:12px;background:${PAPER_ALT};border-radius:8px;border:1px solid ${RULE};font-size:11px;color:${INK_MUTED};line-height:1.6;margin-bottom:16px">
     Οι υπογράφοντες βεβαιώνουν ότι έχουν λάβει γνώση και αποδέχονται το σύνολο των παραπάνω καταγεγραμμένων στοιχείων. Η παρούσα αποτελεί αναπόσπαστο παράρτημα της μισθωτικής σύμβασης.
   </div>
@@ -1599,7 +1599,7 @@ const EXPENSE_BY_TASK_CATEGORY: Record<string, { cat: string; group: string }> =
   renovation:  { cat: 'Ανακαίνιση / Βελτιώσεις', group: 'improvement' },
   airbnb:      { cat: 'Λειτουργικά βραχυχρόνιας', group: 'operating' },
   legal:       { cat: 'Νομικά / Λογιστικά', group: 'professional' },
-  financial:   { cat: 'Φόροι & Τέλη', group: 'taxes' },
+  financial:   { cat: 'Φόροι και Τέλη', group: 'taxes' },
   purchase:    { cat: 'Έξοδα Απόκτησης', group: 'acquisition' },
   other:       { cat: 'Λοιπά έξοδα', group: 'general' },
 }
@@ -1813,7 +1813,7 @@ function ExportMenu({ onExcel, onPdf, onHandover }: { onExcel: () => void; onPdf
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [open])
   const opts = [
-    { label: 'Αναλυτικό Excel', sub: 'Σύνοψη, ανάλυση & εκκρεμότητες', fn: onExcel },
+    { label: 'Αναλυτικό Excel', sub: 'Σύνοψη, ανάλυση και εκκρεμότητες', fn: onExcel },
     { label: 'Αναφορά PDF', sub: 'Εκτυπώσιμη λίστα ανά κατηγορία', fn: onPdf },
     ...(onHandover ? [{ label: 'Πρωτόκολλο παράδοσης', sub: 'Έντυπο 12 ενοτήτων παράδοσης/αποχώρησης', fn: onHandover }] : []),
   ]
