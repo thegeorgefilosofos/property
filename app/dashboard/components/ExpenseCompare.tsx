@@ -16,7 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useMemo, useState } from 'react';
-import { T, Card } from '@/components/Theme';
+import { T, Card, fe, fn } from '@/components/Theme';
 import {
   compareMonth, history, monthKey, monthPhrase,
   type Basis, type Comparison, type MonthPoint, type Spend,
@@ -36,11 +36,13 @@ const CENTS_DIM = 'color-mix(in srgb, currentColor 52%, transparent)';
 
 function Eur({ value, sign = false }: { value: number; sign?: boolean }) {
   const abs = Math.abs(value);
-  const [int, dec] = abs.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split(',');
+  // Τα λεπτά γράφονται πιο σβηστά από τα ευρώ — τυπογραφική επιλογή, όχι δεύτερη
+  // μορφοποίηση: ο αριθμός παράγεται από τον κοινό `fn` και μετά χωρίζεται.
+  const [int, dec] = fn(abs, 2).split(',');
   const pre = sign ? (value > 0 ? '+' : value < 0 ? '−' : '') : '';
   return (
     <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-      {pre}{int}<span style={{ color: CENTS_DIM }}>,{dec}</span>{' €'}
+      {pre}{int}<span style={{ color: CENTS_DIM }}>,{dec}</span>{'\u00A0€'}
     </span>
   );
 }
@@ -166,7 +168,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
             <div key={p.key}
               onMouseEnter={() => setHover(p.key)} onMouseLeave={() => setHover(null)}
               onFocus={() => setHover(p.key)} onBlur={() => setHover(null)}
-              tabIndex={0} title={`${p.label}: ${p.total.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
+              tabIndex={0} title={`${p.label}: ${fe(p.total)}`}
               style={{ width: 14, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', outline: 'none', cursor: 'default' }}>
               <span style={{
                 display: 'block', width: 14, height: `${h}%`, minHeight: p.total > 0 ? 3 : 0,

@@ -24,6 +24,7 @@
 import { isValidAfm } from '../core/greek';
 import { athensToday } from '../core/time'
 import { MYAADE, aadePath } from './aade';
+import { fe } from '../core/format';
 
 // ── Κανόνες που αλλάζουν με τον νόμο — ΜΙΑ θέση για ενημέρωση ───────────────
 // Αν αλλάξει η νομοθεσία, αλλάζει ΜΟΝΟ αυτό το μπλοκ.
@@ -109,7 +110,8 @@ export function isValidPostalCode(tk: unknown): boolean {
 
 const isIsoDate = (s: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(String(s ?? ''));
 const fmtDate = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m ? `${m[3]}/${m[2]}/${m[1]}` : iso; };
-const eur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+// Η δήλωση μίσθωσης γράφει τα ποσά όπως η οθόνη.
+const eur = fe;
 
 /** Ημέρες μεταξύ δύο ISO ημερομηνιών (UTC, χωρίς ώρες). */
 function daysBetween(fromIso: string, toIso: string): number {

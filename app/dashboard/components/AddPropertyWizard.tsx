@@ -631,11 +631,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
           {grossYield != null && (
             <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16 }}>
               <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
-              <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield, 1)}</div>
+              <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield)}</div>
               <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                 {airbnb
-                  ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
-                  : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!, 0)}`}
+                  ? `Ετήσια έσοδα ${fe(annualRent!)} με εκτιμώμενη πληρότητα 60%`
+                  : `Ετήσια έσοδα ${fe(annualRent!)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!)}`}
               </div>
             </div>
           )}
@@ -751,14 +751,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               isLandLike ? null : (heating ? ['Θέρμανση', HEATING_OPTS.find(h => h[0] === heating)?.[1] || heating] : null),
               isLandLike ? null : (parking.trim() ? ['Θέσεις Στάθμευσης', parking.trim()] : null),
               isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
-              ['Εμπορική Αξία', valueN != null ? fe(valueN, 0) : fe(0)],
-              num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
-              num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
-              ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : fe(0)],
+              ['Εμπορική Αξία', valueN != null ? fe(valueN) : fe(0)],
+              num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!)] : null,
+              num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!)} / έτος`] : null,
+              ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!) : fe(0)],
               purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
-              [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : fe(0)],
+              [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN) : `${fe(rentN)} / μήνα`) : fe(0)],
               ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
-              ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield, 1)}` : fp(0)],
+              ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield)}` : fp(0)],
             ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                 <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>

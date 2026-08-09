@@ -75,7 +75,7 @@ export function computeYields(monthlyRent: number, propertyValue: number, annual
 }
 
 // Στρογγυλοποίηση ποσοστού απόδοσης (ενιαία μορφή παντού: 1 δεκαδικό).
-export const fmtYield = (y: number): string => `${fp((isFinite(y) ? y : 0), 1)}`;
+export const fmtYield = (y: number): string => `${fp((isFinite(y) ? y : 0))}`;
 
 // ── Τρόπος μίσθωσης & πληρότητα στοιχείων (καθαρά, δοκιμάσιμα) ────────────────
 /** Airbnb/εποχιακό ⇒ βραχυχρόνια· αλλιώς μακροχρόνια. */

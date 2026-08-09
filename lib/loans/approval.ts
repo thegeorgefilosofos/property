@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { annuityMonthly } from './recommend'
 import { maxMonthlyPayment, principalForPayment, DSTI_LIMIT } from './affordability'
-import { fe } from '../core/format';
+import { fe, fp } from '../core/format';
 
 export type EmploymentType =
   | 'employee_permanent'   // μισθωτός αορίστου
@@ -62,12 +62,13 @@ export interface ApprovalResult {
   suggestions: string[]            // συγκεκριμένες, ποσοτικοποιημένες προτάσεις
 }
 
-function r0(n: number): number { return Number.isFinite(n) ? Math.round(n) : 0 }
 // Ο ΜΟΡΦΟΠΟΙΗΤΗΣ ΕΥΡΩ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ. Αυτός εδώ στρογγυλοποιούσε στο ακέραιο
 // («1.200 €» αντί για «1.200,00 €»), δηλαδή παραβίαζε τον κανόνα των δύο
 // δεκαδικών σε κάθε πρόταση που παρήγαγε. Ο κανονικός ζει στο lib/core/format.ts
 // και δεν εξαρτάται από React, ακριβώς ώστε να τον βλέπουν και οι βιβλιοθήκες.
+// Το ίδιο ισχύει και για τα ποσοστά: ένας μορφοποιητής, δύο δεκαδικά.
 const eur = fe;
+const pct = fp;
 
 const VERDICT_LABEL: Record<ApprovalVerdict, string> = {
   high: 'Υψηλή πιθανότητα έγκρισης',
@@ -98,7 +99,11 @@ export function assessApproval(input: ApprovalInput): ApprovalResult {
   const hasGuarantor = !!input.hasGuarantor
 
   const limit = input.firstHome ? DSTI_LIMIT.firstHome : DSTI_LIMIT.other
-  const requestedMonthly = r0(annuityMonthly(amount, rate, years))
+  // Η ΔΟΣΗ ΔΕΝ ΣΤΡΟΓΓΥΛΟΠΟΙΕΙΤΑΙ ΕΔΩ. Ήταν `Math.round(...)`, οπότε η ίδια οθόνη
+  // έδειχνε «750,94 €» στον δείκτη και «751,00 €» εδώ, για το ίδιο δάνειο. Η
+  // στρογγυλοποίηση είναι απόφαση εμφάνισης, όχι υπολογισμού — και ο δείκτης
+  // δόσης μετακινείται λιγότερο από 0,01 μονάδα από τη διαφορά.
+  const requestedMonthly = annuityMonthly(amount, rate, years)
   const dsti = income > 0 ? (requestedMonthly + existing) / income : 1
   const ltv = pv > 0 ? (amount / pv) * 100 : 0
   const ageAtEnd = age + years
@@ -109,27 +114,27 @@ export function assessApproval(input: ApprovalInput): ApprovalResult {
   let hardBlock = false
 
   // ── Δείκτης δόσης προς εισόδημα (DSTI) ────────────────────────────────────
-  const dstiPct = Math.round(dsti * 1000) / 10
-  const limitPct = Math.round(limit * 100)
+  const dstiPct = dsti * 100
+  const limitPct = limit * 100
   if (income <= 0) {
     factors.push({ kind: 'block', label: 'Εισόδημα', detail: 'Δεν έχει δηλωθεί μηνιαίο εισόδημα.' })
     hardBlock = true
   } else if (dsti <= limit) {
-    factors.push({ kind: 'pass', label: 'Δείκτης δόσης', detail: `Η δόση δεσμεύει ${dstiPct}% του εισοδήματος, εντός του ορίου ${limitPct}%.` })
+    factors.push({ kind: 'pass', label: 'Δείκτης δόσης', detail: `Η δόση δεσμεύει ${pct(dstiPct)} του εισοδήματος, εντός του ορίου ${pct(limitPct)}.` })
   } else if (dsti <= limit + 0.05) {
     score -= 18
-    factors.push({ kind: 'warn', label: 'Δείκτης δόσης οριακός', detail: `${dstiPct}% έναντι ορίου ${limitPct}%. Οριακή υπέρβαση.` })
+    factors.push({ kind: 'warn', label: 'Δείκτης δόσης οριακός', detail: `${pct(dstiPct)} έναντι ορίου ${pct(limitPct)}. Οριακή υπέρβαση.` })
   } else {
     score -= 40
     if (dsti > limit + 0.15) hardBlock = true
-    factors.push({ kind: 'block', label: 'Δείκτης δόσης πάνω από το όριο', detail: `${dstiPct}% έναντι ορίου ${limitPct}%. Η δόση υπερβαίνει τη δανειοληπτική ικανότητα.` })
+    factors.push({ kind: 'block', label: 'Δείκτης δόσης πάνω από το όριο', detail: `${pct(dstiPct)} έναντι ορίου ${pct(limitPct)}. Η δόση υπερβαίνει τη δανειοληπτική ικανότητα.` })
   }
   // Πρόταση: μείωση ποσού / επιμήκυνση διάρκειας ώστε να πέσει ο δείκτης.
   if (income > 0 && dsti > limit) {
     const maxMonthly = maxMonthlyPayment(income, input.firstHome, existing)
     const targetLoan = principalForPayment(maxMonthly, rate, years)
     if (targetLoan > 0 && targetLoan < amount) {
-      suggestions.push(`Μείωσε το ποσό κατά ${eur(amount - targetLoan)} (σε ${eur(targetLoan)}) ώστε ο δείκτης δόσης να πέσει στο ${limitPct}%.`)
+      suggestions.push(`Μείωσε το ποσό κατά ${eur(amount - targetLoan)} (σε ${eur(targetLoan)}) ώστε ο δείκτης δόσης να πέσει στο ${pct(limitPct)}.`)
     }
     // Ελάχιστη διάρκεια ώστε η δόση να χωρά στο όριο (αν εφικτό).
     if (maxMonthly > 0) {
@@ -144,23 +149,22 @@ export function assessApproval(input: ApprovalInput): ApprovalResult {
   }
 
   // ── Δείκτης δανείου προς αξία (LTV) ───────────────────────────────────────
-  const ltvPct = Math.round(ltv * 10) / 10
   if (pv <= 0) {
     factors.push({ kind: 'warn', label: 'Αξία ακινήτου', detail: 'Δεν έχει δηλωθεί αξία ακινήτου, ο δείκτης δανείου προς αξία δεν ελέγχθηκε.' })
     score -= 5
   } else if (ltv <= maxLtv) {
-    factors.push({ kind: 'pass', label: 'Δάνειο προς αξία', detail: `${ltvPct}% της αξίας, εντός του ορίου ${maxLtv}%.` })
+    factors.push({ kind: 'pass', label: 'Δάνειο προς αξία', detail: `${pct(ltv)} της αξίας, εντός του ορίου ${pct(maxLtv)}.` })
   } else if (ltv <= maxLtv + 5) {
     score -= 12
-    factors.push({ kind: 'warn', label: 'Δάνειο προς αξία οριακό', detail: `${ltvPct}% έναντι ορίου ${maxLtv}%. Χρειάζεται μεγαλύτερη προκαταβολή.` })
+    factors.push({ kind: 'warn', label: 'Δάνειο προς αξία οριακό', detail: `${pct(ltv)} έναντι ορίου ${pct(maxLtv)}. Χρειάζεται μεγαλύτερη προκαταβολή.` })
   } else {
     score -= 25
     if (ltv > maxLtv + 15) hardBlock = true
-    factors.push({ kind: 'block', label: 'Δάνειο προς αξία πάνω από το όριο', detail: `${ltvPct}% έναντι ορίου ${maxLtv}%.` })
+    factors.push({ kind: 'block', label: 'Δάνειο προς αξία πάνω από το όριο', detail: `${pct(ltv)} έναντι ορίου ${pct(maxLtv)}.` })
   }
   if (pv > 0 && ltv > maxLtv) {
     const maxLoanByLtv = pv * maxLtv / 100
-    suggestions.push(`Αύξησε την προκαταβολή κατά ${eur(amount - maxLoanByLtv)} ή μείωσε το ποσό σε ${eur(maxLoanByLtv)} (${maxLtv}% της αξίας).`)
+    suggestions.push(`Αύξησε την προκαταβολή κατά ${eur(amount - maxLoanByLtv)} ή μείωσε το ποσό σε ${eur(maxLoanByLtv)} (${pct(maxLtv)} της αξίας).`)
   }
 
   // ── Ηλικία στη λήξη ───────────────────────────────────────────────────────
@@ -231,7 +235,7 @@ export function assessApproval(input: ApprovalInput): ApprovalResult {
   return {
     verdict, score,
     dstiPct, dstiLimitPct: limitPct,
-    ltvPct, maxLtv,
+    ltvPct: ltv, maxLtv,
     ageAtEnd,
     requestedMonthly,
     factors, suggestions,

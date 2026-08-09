@@ -499,8 +499,8 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const docsTotal = docs.reduce((s, d) => s + (d.amount || 0), 0)
   const timeline = [
-    ...expenses.map(e => ({ date: e.date, title: e.description, sub: e.amount?.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }), color: 'var(--text-secondary)' })),
-    ...docs.map(d => ({ date: (d.issue_date || d.doc_date || '').slice(0, 10), title: d.title || d.category || 'Παραστατικό', sub: d.amount ? d.amount.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }) : 'Παραστατικό', color: 'var(--accent)' })),
+    ...expenses.map(e => ({ date: e.date, title: e.description, sub: fe(e.amount ?? 0), color: 'var(--text-secondary)' })),
+    ...docs.map(d => ({ date: (d.issue_date || d.doc_date || '').slice(0, 10), title: d.title || d.category || 'Παραστατικό', sub: d.amount ? fe(d.amount) : 'Παραστατικό', color: 'var(--accent)' })),
     ...notesLog.map(n => ({ date: n.ts.split('T')[0], title: n.text, sub: 'Σημείωση', color: 'var(--accent)' })),
   ].filter(x => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20)
   return (

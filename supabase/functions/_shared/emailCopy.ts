@@ -17,12 +17,12 @@
 // 14) Σχέσεις 15) Αξία & Εξοικονόμηση 16) Επικαιρότητα. Στρατηγική: docs/marketing/email-strategy.md.
 // ═══════════════════════════════════════════════════════════════════════════
 import { emailShell, eyebrow, h, p, bullets, button, greeting, note, heroStat, gv, PLAN_LABEL, type Personal } from './emailTemplates.ts'
+import { eur } from './format.ts'
 
 const app = (c: Personal) => c.appUrl || 'https://propertyos.gr'
 const dash = (c: Personal) => `${app(c)}/dashboard`
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch] || ch))
 const has = (n: unknown): n is number => typeof n === 'number' && isFinite(n) && n > 0
-const eur = (n: number) => `${(Number(n) || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString('el-GR')} ${n === 1 ? one : many}`
 
 // Τυποποιημένες, ομοιογενείς ρήτρες κλεισίματος (μία φωνή σε όλο το catalog).

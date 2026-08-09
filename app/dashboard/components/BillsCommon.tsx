@@ -165,7 +165,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
     // Ο τόνος (θετικό/αρνητικό) δηλώνεται πια ρητά. Πριν, η επιτυχία ξεχώριζε από
     // την αποτυχία με `transferMsg.startsWith('Σφάλμα')` — αν άλλαζε η διατύπωση
     // του μηνύματος, η αποτυχία εμφανιζόταν ουδέτερη και διαβαζόταν ως επιτυχία.
-    notifyOk(`«${e.reason}», ${fe(parseFloat(e.amount), 2)} προστέθηκε στις Δαπάνες`);
+    notifyOk(`«${e.reason}», ${fe(parseFloat(e.amount))} προστέθηκε στις Δαπάνες`);
   };
 
   const mgmtInfo    = MGMT_INFO[mgmtType];
@@ -235,7 +235,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <NumberInput label="Τα χιλιοστά μου (‰)" value={millesimi} onChange={sMill} suffix="‰" step={1} max={1000}/>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Το μερίδιό μου</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fp((millRatio * 100), 2)}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fp((millRatio * 100))}</div>
           </div>
         </div>
 

@@ -272,17 +272,17 @@ export default function TabComparison({ properties, userId }: Props) {
     v == null || !(sqm > 0) ? null : Math.round((v / sqm) * 100) / 100;
 
   const allMetrics: { label: string; tip?: string; get: (r: typeof rowsData[number]) => number | null; fmt: (n: number) => string; dir: Dir }[] = [
-    { label: 'Μηνιαίο ενοίκιο', get: r => r.rent, fmt: n => fe(n, 0), dir: 'high',
+    { label: 'Μηνιαίο ενοίκιο', get: r => r.rent, fmt: n => fe(n), dir: 'high',
       tip: 'Από το μισθωτήριο· αν δεν υπάρχει, ο στόχος ενοικίου του ακινήτου.' },
     { label: 'Μεικτή απόδοση', get: r => r.grossYield, fmt: n => fp(n), dir: 'high',
       tip: 'Ετήσιο ενοίκιο ÷ αξία ακινήτου. Χρησιμοποιείται η εμπορική αξία· αν λείπει, η αντικειμενική (Ε9) — ίδιος κανόνας με την Επισκόπηση.' },
-    { label: 'Δαπάνες έτους', get: r => r.expensesYTD, fmt: n => fe(n, 0), dir: 'none',
+    { label: 'Δαπάνες έτους', get: r => r.expensesYTD, fmt: n => fe(n), dir: 'none',
       tip: 'Κάθε ευρώ μία φορά: ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ίδιο γεγονός. Ίδιος υπολογισμός με τις Δαπάνες και τον Προϋπολογισμό.' },
-    { label: 'Πάγια ανά μήνα', get: r => r.recurringMonthly, fmt: n => fe(n, 0), dir: 'none',
+    { label: 'Πάγια ανά μήνα', get: r => r.recurringMonthly, fmt: n => fe(n), dir: 'none',
       tip: 'Ο μέσος μήνας σε επαναλαμβανόμενες δαπάνες, από ό,τι όντως καταχωρήθηκε φέτος. Είναι υποσύνολο των δαπανών του έτους, γι\u2019 αυτό δεν αφαιρείται ξεχωριστά.' },
-    { label: 'Μερίδιο φόρου', get: r => r.taxShare, fmt: n => fe(n, 0), dir: 'none',
+    { label: 'Μερίδιο φόρου', get: r => r.taxShare, fmt: n => fe(n), dir: 'none',
       tip: 'Ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ των ακινήτων σου (Ε1), όχι ανά ακίνητο. Εδώ φαίνεται το μερίδιο κάθε ακινήτου από τον ένα φόρο.' },
-    { label: 'Καθαρό ανά μήνα (εκτίμηση)', get: r => r.netMonthly, fmt: n => fe(n, 0), dir: 'high',
+    { label: 'Καθαρό ανά μήνα (εκτίμηση)', get: r => r.netMonthly, fmt: n => fe(n), dir: 'high',
       tip: 'Εκτίμηση: ενοίκιο − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.' },
     // ── ΟΙ ΤΡΕΙΣ ΓΡΑΜΜΕΣ ΠΟΥ ΔΕΝ ΕΞΑΡΤΩΝΤΑΙ ΑΠΟ ΜΕΓΕΘΟΣ ───────────────────
     { label: 'Ενοίκιο ανά τετραγωνικό', get: r => perSqmOf(r.rent, r.sqm), fmt: n => fe(n), dir: 'high',
@@ -415,7 +415,7 @@ export default function TabComparison({ properties, userId }: Props) {
                         δεν γράφεται παύλα για κάθε πεδίο χωριστά. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
                       style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                      {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τετραγωνικά` : null, r.value != null ? fe(r.value, 0) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
+                      {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τετραγωνικά` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
                     </div>
                   </th>
                 ))}

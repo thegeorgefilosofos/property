@@ -1596,7 +1596,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
         </div>
         <div style={{display:'flex',gap:8,flexShrink:0}}>
           {handovers.length>=2&&<button onClick={()=>setMode('compare')} style={{padding:'0 14px',height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>Σύγκριση εισόδου/εξόδου</button>}
-          <button onClick={()=>setMode('new')} style={{padding:'0 18px',height:T.h.md,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>Νέο πρωτόκολλο</button>
+          {handovers.length>0&&<button onClick={()=>setMode('new')} style={{padding:'0 18px',height:T.h.md,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>Νέο πρωτόκολλο</button>}
         </div>
       </div>
       {handovers.length===0
@@ -2152,7 +2152,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             ...otherProps.map(op=>({key:`clone${op.id}`,label:`Αντιγραφή από «${op.label}»`,description:'Προσθέτει τα αντικείμενα του άλλου ακινήτου σε αυτό.',onClick:()=>cloneFromProperty(op.id),busy:cloning})),
             ...exportActions.map(a=>({...a,disabled:items.length===0})),
           ]}/>
-          <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>
+          {/* Με άδεια απογραφή, το «Νέο αντικείμενο» λέγεται από την κενή κατάσταση.
+              Εδώ εμφανιζόταν και στα δύο σημεία, σε απόσταση μιας ματιάς. */}
+          {items.length>0&&<Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>}
         </div>}
       />}
 

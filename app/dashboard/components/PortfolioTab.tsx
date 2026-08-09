@@ -38,7 +38,7 @@ interface PropLite { id: string; name: string; prop_type: string | null; address
 type RentPay = Pick<RentPaymentsRow, 'property_id' | 'amount' | 'paid' | 'period_month'>;
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
 
-const eur = (n: number) => fe(n, 0);
+const eur = (n: number) => fe(n);
 type Mode = 'short' | 'long' | 'vacant';
 
 interface Row {
@@ -313,7 +313,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         ? `Εκτίμηση, όχι είσπραξη: μηνιαίο ενοίκιο × ${monthsElapsed} ${monthsElapsed === 1 ? 'μήνας' : 'μήνες'} που πέρασαν. Δεν υπάρχει καμία καταχωρημένη δόση ενοικίου για το ${year}.`
         : r.mode === 'long'
           ? (r.rentExpected > 0
-            ? `Εισπράχθηκαν ${fe(r.revenue, 0)} από ${fe(r.rentExpected, 0)} δεδουλευμένα ως σήμερα, βάσει των δόσεων που έχεις καταχωρήσει.`
+            ? `Εισπράχθηκαν ${fe(r.revenue)} από ${fe(r.rentExpected)} δεδουλευμένα ως σήμερα, βάσει των δόσεων που έχεις καταχωρήσει.`
             : 'Από τις δόσεις ενοικίου που έχεις καταχωρήσει και έχουν σημανθεί ως εισπραγμένες.')
           : undefined;
 
@@ -568,7 +568,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                         // ακίνητο χρωστά 60 € ή 1.800 € — και αυτή είναι όλη η
                         // διαφορά στο τι θα κάνει ο ιδιοκτήτης σήμερα το πρωί.
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}
-                              title={r.owed > 0 ? `${r.pending} εκκρεμή, από τα οποία ${fe(r.owed, 0)} σε απλήρωτους λογαριασμούς` : `${r.pending} εκκρεμή`}>
+                              title={r.owed > 0 ? `${r.pending} εκκρεμή, από τα οποία ${fe(r.owed)} σε απλήρωτους λογαριασμούς` : `${r.pending} εκκρεμή`}>
                           <span style={{ display: 'inline-flex', minWidth: 22, height: 22, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 12, fontWeight: 700, alignItems: 'center', justifyContent: 'center', padding: '0 7px' }}>{r.pending}</span>
                           {r.owed > 0 && <span style={{ fontFamily: T.font.num, fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fe(r.owed)}</span>}
                         </span>

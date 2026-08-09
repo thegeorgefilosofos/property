@@ -539,11 +539,11 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('gating: free plan named', /«Δωρεάν»/.test(p));
   ok('gating: owner plan named', /«Ιδιοκτήτης»/.test(p));
   ok('gating: agency plan named', /«Επαγγελματίας»/.test(p));
-  ok('gating: free = 0€ / 1 property', /0€/.test(p) && /1 ακίνητο/.test(p));
+  ok('gating: free = 0,00 € / 1 property', p.includes('0,00\u00A0€') && /1 ακίνητο/.test(p));
   // Οι τιμές/όρια διαβάζονται από τα PLANS: το τεστ πιάνει απόκλιση prompt↔τιμολόγησης.
-  ok('gating: owner price from PLANS', p.includes(`${PLANS.owner.priceMonthly.toFixed(2).replace('.', ',')}€/μήνα`));
+  ok('gating: owner price from PLANS', p.includes(`${PLANS.owner.priceMonthly.toFixed(2).replace('.', ',')}\u00A0€/μήνα`));
   ok('gating: owner limit from PLANS', p.includes(`έως ${PLANS.owner.maxProperties} ακίνητα`));
-  ok('gating: agency price from PLANS', p.includes(`${PLANS.agency.priceMonthly.toFixed(2).replace('.', ',')}€/μήνα`));
+  ok('gating: agency price from PLANS', p.includes(`${PLANS.agency.priceMonthly.toFixed(2).replace('.', ',')}\u00A0€/μήνα`));
   ok('gating: agency limit from PLANS', p.includes(`έως ${PLANS.agency.maxProperties} ακίνητα`));
   ok('gating: αναφέρει τη δωρεάν δοκιμή', p.includes(`${TRIAL_DAYS} ΗΜΕΡΕΣ ΔΩΡΕΑΝ ΔΟΚΙΜΗ`));
 

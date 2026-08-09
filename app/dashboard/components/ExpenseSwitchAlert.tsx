@@ -83,7 +83,7 @@ export default function ExpenseSwitchAlert({ propertyId, onOpen }: {
               {' — διαφορά '}
               <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(r.savingsMonthly)}</strong>
               {' τον μήνα, '}
-              <span style={{ color: 'var(--text-secondary)' }}>{feAuto(r.savingsMonthly * 12, 0)} τον χρόνο.</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{feAuto(r.savingsMonthly * 12)} τον χρόνο.</span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>
               Βάσει: {r.basedOn}

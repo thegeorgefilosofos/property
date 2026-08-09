@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { declarationDeadline as taxDeclarationDeadline } from '../tax/leaseDeclaration';
+import { fe, fp } from '../core/format';
 
 export type LeaseUse = 'residence' | 'professional';
 
@@ -104,7 +105,9 @@ export function computeLease(i: LeaseInput): LeaseResult {
 }
 
 const grDate = (iso: string) => { const d = parseIso(iso); return d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : iso; };
-const eur = (n: number) => `${(Number(n) || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+// Το συμφωνητικό γράφει τα ποσά όπως η οθόνη — και με αδιάσπαστο κενό, ώστε
+// το «€» να μη μείνει μόνο του σε αλλαγή γραμμής μέσα σε νομικό κείμενο.
+const eur = fe;
 
 export interface LeaseParties {
   landlordName?: string; landlordAfm?: string; landlordAddress?: string;
@@ -136,7 +139,7 @@ export function leaseTerms(r: LeaseResult, use: LeaseUse = 'residence'): LeaseTe
       + `Η καταβολή γίνεται αποκλειστικά με τραπεζικό ή ηλεκτρονικό μέσο πληρωμής, σε λογαριασμό που υποδεικνύει ο εκμισθωτής.` },
   ];
   if (r.adjustmentPct > 0) {
-    terms.push({ title: 'Αναπροσαρμογή', text: `Το μίσθωμα αναπροσαρμόζεται ετησίως κατά ${r.adjustmentPct.toLocaleString('el-GR', { maximumFractionDigits: 2 })} %, `
+    terms.push({ title: 'Αναπροσαρμογή', text: `Το μίσθωμα αναπροσαρμόζεται ετησίως κατά ${fp(r.adjustmentPct)}, `
       + `με ισχύ από την αντίστοιχη επέτειο έναρξης της μίσθωσης.` });
   }
   if (r.deposit > 0) {

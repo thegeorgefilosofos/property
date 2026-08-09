@@ -23,6 +23,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { ASSISTANT_NAME } from './identity';
+import { fe } from '../core/format';
 
 export interface OpenerContext {
   /** Όνομα του επιλεγμένου ακινήτου (π.χ. «Διαμέρισμα Κυψέλης»). */
@@ -47,14 +48,12 @@ export interface OpenerContext {
 
 const MAX = 4;
 
-/** Ευρώ σε ελληνική μορφή, χωρίς άσκοπα δεκαδικά. */
-export function eur(n: number): string {
-  const rounded = Math.round(n * 100) / 100;
-  const s = Number.isInteger(rounded)
-    ? rounded.toLocaleString('el-GR')
-    : rounded.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `${s} €`;
-}
+/**
+ * Ευρώ σε ελληνική μορφή. Ήταν «χωρίς άσκοπα δεκαδικά» — δηλαδή ακριβώς τα
+ * «έξυπνα» δεκαδικά που η εφαρμογή έχει καταργήσει: ο βοηθός έλεγε «450 €» για
+ * το ίδιο ποσό που η καρτέλα δίπλα του έγραφε «450,00 €».
+ */
+export const eur = fe;
 
 /** Θετικός αριθμός με νόημα; (το 0 και το null δεν είναι δεδομένο) */
 const has = (n: number | null | undefined): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0;

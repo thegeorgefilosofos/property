@@ -401,6 +401,6 @@ export function taxableRental(annualRental:number, rentsPaidViaBank=true):number
   return Math.max(0, annualRental) * (1 - presumptiveDeductionRate(rentsPaidViaBank))
 }
 
-export const fmtEur=(n:number)=>fe(n,0)
-export const fmtPct=(n:number)=>`${fp(n, 2)}`
-export const fmtPct1=(n:number)=>`${fp(n, 1)}`
+export const fmtEur=(n:number)=>fe(n)
+export const fmtPct=(n:number)=>`${fp(n)}`
+export const fmtPct1=(n:number)=>`${fp(n)}`

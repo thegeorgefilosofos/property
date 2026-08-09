@@ -30,9 +30,14 @@ const finite = (n: unknown): number => (typeof n === 'number' && Number.isFinite
 // κλήσεις `fe(x, 0)` και οι 134 `feAuto` δεν χρειάστηκε να αλλάξουν μία-μία —
 // άλλαξε ο τύπος, και άλλαξαν όλες. Αυτός είναι ο λόγος που υπάρχει ένα σημείο.
 //
-// Το δεύτερο όρισμα κρατιέται στην υπογραφή ώστε να μη σπάσει καμία κλήση, αλλά
-// ΑΓΝΟΕΙΤΑΙ: αν το τιμούσαμε, η τυποποίηση θα κρατούσε ακριβώς μέχρι το πρώτο
-// σημείο που θα ξανάγραφε `fe(x, 0)`.
+// ΚΑΙ ΤΟ ΔΕΥΤΕΡΟ ΟΡΙΣΜΑ ΕΦΥΓΕ ΑΠΟ ΤΗΝ ΥΠΟΓΡΑΦΗ. Κρατήθηκε αρχικά για να μη
+// σπάσει καμία κλήση, αλλά αγνοούνταν — και μια σιωπηλή παράμετρος είναι χειρότερη
+// από μια σπασμένη κλήση: είκοσι σημεία έγραφαν `fe(x, 0)` ή `fe(x, 4)` και
+// πίστευαν ότι διάλεγαν ακρίβεια. Δύο φορές έκρυψε πραγματικό σφάλμα — οι τιμές
+// ρεύματος και οι τιμές αερίου, που θέλουν τέσσερα δεκαδικά, στρογγυλοποιούνταν
+// στα δύο και δώδεκα διαφορετικά τιμολόγια εμφανίζονταν με ΙΔΙΑ τιμή.
+// Τώρα ο μεταγλωττιστής δείχνει κάθε τέτοιο σημείο. Για μοναδιαίες τιμές
+// υπάρχει το `feRate`.
 const MONEY = { minimumFractionDigits: 2, maximumFractionDigits: 2 } as const;
 
 /**
@@ -49,7 +54,7 @@ const MONEY = { minimumFractionDigits: 2, maximumFractionDigits: 2 } as const;
  *
  * `fe(1234.5)` → «1.234,50 €». Πάντα δύο δεκαδικά.
  */
-export const fe = (n: number, _d?: number) =>
+export const fe = (n: number) =>
   `${finite(n).toLocaleString(LOCALE, MONEY)}\u00A0€`;
 
 /**
@@ -60,7 +65,7 @@ export const fe = (n: number, _d?: number) =>
 export const feAuto = fe;
 
 /** Ποσοστό: `fp(4.25)` → «4,25%». Πάντα δύο δεκαδικά, για τον ίδιο λόγο. */
-export const fp = (n: number, _d?: number) =>
+export const fp = (n: number) =>
   `${finite(n).toLocaleString(LOCALE, MONEY)}%`;
 
 // ── ΤΟ ΛΟΓΙΣΤΙΚΟ ΠΡΟΣΗΜΟ ───────────────────────────────────────────────────
@@ -95,6 +100,27 @@ export const feSigned = (n: number | null | undefined): string => {
 export const feRate = (n: number) =>
   `${finite(n).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}\u00A0€`;
 
+/**
+ * ΣΥΜΠΑΓΕΣ ΠΟΣΟ ΓΙΑ ΣΤΕΝΟ ΧΩΡΟ — ετικέτες ράβδων, tooltips, άξονες γραφημάτων.
+ *
+ * Υπήρχαν δύο, με διαφορετική γλώσσα: η οθόνη απόδοσης έγραφε «1,2 εκατ. €»,
+ * και η αναφορά PDF «1.2k €» — λατινικό σύμβολο μέσα σε ελληνικό έγγραφο που
+ * παραδίδεται σε λογιστή. Και η μία δεν χειριζόταν καθόλου τις χιλιάδες.
+ *
+ * Οι μονάδες γράφονται συντετμημένες ΜΟΝΟ εδώ, και μόνο επειδή ο χώρος είναι
+ * κυριολεκτικά μια ετικέτα ράβδου: οπουδήποτε αλλού γράφεται το πλήρες ποσό.
+ */
+export const feCompact = (n: number): string => {
+  const v = finite(n), a = Math.abs(v);
+  const u = (x: number, label: string) =>
+    `${(v / x).toLocaleString(LOCALE, { maximumFractionDigits: 1 })}\u00A0${label}\u00A0€`;
+  if (a >= 1e12) return u(1e12, 'τρισ.');
+  if (a >= 1e9) return u(1e9, 'δισ.');
+  if (a >= 1e6) return u(1e6, 'εκατ.');
+  if (a >= 1e4) return u(1e3, 'χιλ.');
+  return fe(v);
+};
+
 /** Αριθμός χωρίς μονάδα: `fn(1234.5, 1)` → «1.234,5». */
 export const fn = (n: number, d = 0) =>
   finite(n).toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -128,9 +154,9 @@ export const ABSENT_DATE = 'Χωρίς ημερομηνία';
 /** Για στενά κελιά πίνακα, όπου η πλήρης φράση θα έσπαγε τη στήλη. */
 export const ABSENT_SHORT = 'Εκκρεμεί';
 
-export const feOr = (n: number | null | undefined, _d?: number) =>
+export const feOr = (n: number | null | undefined) =>
   fe(n == null || !Number.isFinite(n) ? 0 : n);
-export const fpOr = (n: number | null | undefined, _d?: number) =>
+export const fpOr = (n: number | null | undefined) =>
   fp(n == null || !Number.isFinite(n) ? 0 : n);
 
 /**

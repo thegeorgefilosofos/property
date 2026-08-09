@@ -187,8 +187,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
       if (!await persist({ base, min, max, wknd, minStay })) return;
       // Το μήνυμα λέει ΤΙ ΙΣΧΥΕΙ, όχι τι θα κερδίσεις: η πρόβλεψη εσόδων έφυγε
       // επειδή ήταν ταυτολογία, και μαζί της κάθε υπόσχεση ποσού.
-      const range = `${fe(min || base, 0)}–${fe(max || base, 0)}`;
-      setSaveNote(`Αποθηκεύτηκε. Βάση ${fe(base, 0)}, εύρος ${range}, Σαββατοκύριακο +${wknd}%, ελάχιστη διαμονή ${minStay} ${minStay === 1 ? 'νύχτα' : 'νύχτες'}.`);
+      const range = `${fe(min || base)}–${fe(max || base)}`;
+      setSaveNote(`Αποθηκεύτηκε. Βάση ${fe(base)}, εύρος ${range}, Σαββατοκύριακο +${wknd}%, ελάχιστη διαμονή ${minStay} ${minStay === 1 ? 'νύχτα' : 'νύχτες'}.`);
     }, 700);
     return () => clearTimeout(t);
   }, [base, min, max, wknd, minStay, touched, persist]);
@@ -319,7 +319,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     const { error } = await supabase.from('calendar_events').insert({
       property_id: propertyId, user_id: userId, title,
       category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'pricing_gap',
-      notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice, 0)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
+      notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
     });
     if (error) { notifyError(`Σφάλμα: ${error.message}`); return; }
     setGapTitles(prev => new Set(prev).add(title));
@@ -327,7 +327,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   };
   // Ενέργεια: αντιγραφή κειμένου προσφοράς last minute.
   const copyOffer = (g: Gap) => {
-    const txt = `Τελευταία διαθεσιμότητα ${fd(g.start)} - ${fd(g.end)} (${g.nights} ${g.nights === 1 ? 'νύχτα' : 'νύχτες'}) σε ειδική τιμή ${fe(g.fillPrice, 0)} ανά νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}. Κλείσε τώρα, οι ημερομηνίες είναι περιορισμένες.`;
+    const txt = `Τελευταία διαθεσιμότητα ${fd(g.start)} - ${fd(g.end)} (${g.nights} ${g.nights === 1 ? 'νύχτα' : 'νύχτες'}) σε ειδική τιμή ${fe(g.fillPrice)} ανά νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}. Κλείσε τώρα, οι ημερομηνίες είναι περιορισμένες.`;
     navigator.clipboard?.writeText(txt);
     notifyOk('Το κείμενο προσφοράς αντιγράφηκε');
   };
@@ -421,7 +421,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         </div>
       </div>
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, minHeight: 16 }}>
-        {adr > 0 && <>Μέση πραγματική τιμή (ADR): <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(adr, 0)}</strong> / νύχτα από {stays.length} διαμονές. </>}
+        {adr > 0 && <>Μέση πραγματική τιμή (ADR): <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(adr)}</strong> / νύχτα από {stays.length} διαμονές. </>}
         {saveNote && <span style={{ color: 'var(--text-secondary)' }}>{saveNote}</span>}
       </div>
 
@@ -439,7 +439,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                 <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                {median > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num }}>διάμεση {fe(median, 0)}</span>}
+                {median > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num }}>διάμεση {fe(median)}</span>}
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: compsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
               </div>
             </div>
@@ -453,7 +453,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                 {compBase > 0 ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-                      Προτεινόμενη βάση <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(compBase, 0)}</strong> / νύχτα
+                      Προτεινόμενη βάση <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(compBase)}</strong> / νύχτα
                       <span style={{ color: 'var(--text-tertiary)' }}> (διάμεση − 10%, αφού η βάση αφορά καθημερινή εκτός αιχμής· η εποχή/ΣΚ προστίθενται από πάνω)</span>
                     </div>
                     <Btn variant="secondary" onClick={() => { mark(setBase)(compBase); const g = suggestGuardrails(compBase); mark(setMin)(g.min); mark(setMax)(g.max); }}>Χρησιμοποίησε αυτή τη βάση</Btn>
@@ -572,7 +572,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                           {g.hard && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '1px 6px' }}>δύσκολο κενό</span>}
                           {g.soon && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '1px 6px' }}>άμεσα</span>}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice, 0)}</strong>/νύχτα</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice)}</strong>/νύχτα</div>
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         <Btn variant="secondary" onClick={() => copyOffer(g)}>Αντιγραφή προσφοράς</Btn>
@@ -666,13 +666,13 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Εποχή {SEASON_LABELS[sel.season]}{sel.isWeekend ? ' · Σαββατοκύριακο' : ''}{sel.booked ? ' · Ήδη κλεισμένη' : ''}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div className="po-fig" data-tone="accent" style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num }}>{fe(sel.price, 0)}</div>
+                  <div className="po-fig" data-tone="accent" style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num }}>{fe(sel.price)}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ανά νύχτα</div>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)' }}>
-                  <span>Βάση</span><span className="po-fig" style={{ fontFamily: T.font.num }}>{fe(sel.base, 0)}</span>
+                  <span>Βάση</span><span className="po-fig" style={{ fontFamily: T.font.num }}>{fe(sel.base)}</span>
                 </div>
                 {/* Κάθε πολλαπλασιαστής με ΤΗΝ ΠΗΓΗ ΤΟΥ: ο χρήστης βλέπει ποιο
                     νούμερο είναι μέτρηση, ποιο ημερολόγιο και ποιο παραδοχή μας. */}
@@ -689,7 +689,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                   );
                 })}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, borderTop: '1px solid var(--border-subtle)', paddingTop: 8, marginTop: 2 }}>
-                  <span>Προτεινόμενη τιμή</span><span className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(sel.price, 0)}</span>
+                  <span>Προτεινόμενη τιμή</span><span className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(sel.price)}</span>
                 </div>
               </div>
               {priceLine(sel.date, sel.price)}

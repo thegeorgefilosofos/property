@@ -3,6 +3,7 @@ import { authorizeCron } from '../_shared/auth.ts'
 // Οι τύποι των γραμμών βγαίνουν από τα ίδια τα migrations (npm run db-types).
 // Η εισαγωγή είναι μόνο τύπων: σβήνεται στη μεταγλώττιση και δεν φτάνει στο Deno.
 import type { CalendarEventsRow, NotificationLogRow, RentPaymentsRow, TenantsRow, UserPropertiesRow } from '../../../lib/supabase/tables.ts'
+import { eur } from '../_shared/format.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -57,7 +58,7 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
           </span>
         </td>
         <td style="padding:12px 0;border-bottom:1px solid #e8eaed;text-align:right;vertical-align:middle;">
-          ${e.amount ? `<span style="font-family:monospace;font-size:14px;color:#202124;font-weight:600;">${Number(e.amount).toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>` : '<span style="color:#bdc1c6;">—</span>'}
+          ${e.amount ? `<span style="font-family:monospace;font-size:14px;color:#202124;font-weight:600;">${eur(e.amount)}</span>` : '<span style="color:#bdc1c6;">—</span>'}
         </td>
       </tr>`
   }).join('')
@@ -78,7 +79,7 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
       <div style="background:${isUrgent ? 'rgba(217,48,37,0.08)' : 'rgba(26,115,232,0.08)'};border:1px solid ${isUrgent ? 'rgba(217,48,37,0.25)' : 'rgba(26,115,232,0.22)'};border-radius:10px;padding:16px 20px;margin-bottom:20px;">
         <p style="margin:0 0 4px;font-size:11px;color:${isUrgent ? '#d93025' : '#1a73e8'};font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${isUrgent ? 'Απαιτείται Δράση' : 'Υπενθύμιση'}</p>
         <p style="margin:0;font-size:15px;color:#202124;font-weight:500;">${events.length} γεγονότα ${reminderType === 'overdue' ? 'είναι εκπρόθεσμα' : reminderType === 'today' ? 'πρέπει να διεκπεραιωθούν σήμερα' : `λήγουν σε ${typeLabel[reminderType]}`}</p>
-        ${totalAmount > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#1a73e8;font-family:monospace;font-weight:600;">Σύνολο: ${totalAmount.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</p>` : ''}
+        ${totalAmount > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#1a73e8;font-family:monospace;font-weight:600;">Σύνολο: ${eur(totalAmount)}</p>` : ''}
       </div>
       <table style="width:100%;border-collapse:collapse;">${eventRows}</table>
       <div style="text-align:center;margin-top:24px;">
@@ -117,7 +118,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
           </span>
         </td>
         <td style="padding:12px 0;border-bottom:1px solid #e8eaed;text-align:right;vertical-align:middle;">
-          <span style="font-family:monospace;font-size:14px;color:#202124;font-weight:600;">${Number(r.amount || 0).toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>
+          <span style="font-family:monospace;font-size:14px;color:#202124;font-weight:600;">${eur(r.amount || 0)}</span>
           <span style="display:block;font-size:11px;color:#d93025;font-family:monospace;font-weight:700;">${daysOverdue} ${daysOverdue === 1 ? 'μέρα' : 'μέρες'} καθυστέρηση</span>
         </td>
       </tr>`
@@ -139,7 +140,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
         <p style="margin:0 0 4px;font-size:11px;color:#d93025;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Ληξιπρόθεσμο Ενοίκιο</p>
         <p style="margin:0;font-size:15px;color:#202124;font-weight:500;">${n} ${n === 1 ? 'δόση ενοικίου είναι ληξιπρόθεσμη' : 'δόσεις ενοικίου είναι ληξιπρόθεσμες'}</p>
         <p style="margin:6px 0 0;font-size:12px;color:#80868b;font-family:monospace;font-weight:600;">${noticeLabel} (ειδοποίηση Νο ${noticeNumber})</p>
-        ${total > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#d93025;font-family:monospace;font-weight:600;">Σύνολο ληξιπρόθεσμων: ${total.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</p>` : ''}
+        ${total > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#d93025;font-family:monospace;font-weight:600;">Σύνολο ληξιπρόθεσμων: ${eur(total)}</p>` : ''}
       </div>
       <table style="width:100%;border-collapse:collapse;">${rowsHtml}</table>
       <div style="text-align:center;margin-top:24px;">

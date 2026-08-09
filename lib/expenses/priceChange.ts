@@ -29,6 +29,7 @@
 
 import { expectedSeries } from './expected';
 import type { LedgerEntry } from './ledger';
+import { fe } from '../core/format';
 
 /**
  * Κατηγορίες όπου το ποσό ΔΕΝ εξαρτάται από κατανάλωση.
@@ -73,7 +74,8 @@ const median = (nums: number[]): number => {
 };
 
 const monthOf = (iso: string) => iso.slice(0, 7);
-const eur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+// Αντίγραφο του fe με απλό κενό.
+const eur = fe;
 
 /**
  * Ποιες επαναλαμβανόμενες χρεώσεις άλλαξαν ποσό στην τελευταία τους εμφάνιση.

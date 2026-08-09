@@ -407,7 +407,7 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
         {payments.length>0&&(
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginTop:20 }}>
             <KpiCard label="Πληρωμές" value={`${paidPay.length}/${payments.length}`} color="var(--text-primary)"/>
-            <KpiCard label="Ποσοστό εξόφλησης" value={`${fp(((paidPay.length/payments.length)*100), 0)}`} color="var(--text-primary)"/>
+            <KpiCard label="Ποσοστό εξόφλησης" value={`${fp(((paidPay.length/payments.length)*100))}`} color="var(--text-primary)"/>
             <KpiCard label="Μέση καθυστέρηση" value={avgLate>0?`${avgLate.toFixed(0)} ημέρες`:'Χωρίς'} color={avgLate>7?'var(--warning)':'var(--positive)'}/>
             <KpiCard label="Εισπραχθέντα σύνολο" value={fmt(totalReceived)} color="var(--text-primary)"/>
           </div>
@@ -545,7 +545,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
           <div style={{ marginBottom:16 }}>
             <div style={{ ...labelStyle, marginBottom:8 }}>Έτος Αναπροσαρμογής</div>
             <SelectField value={yr} onChange={v=>{ setYr(v); setUseCustom(cpiFor(parseInt(v))===null); }}
-              options={years.map(y=>{ const v=cpiFor(y); return { value:String(y), label:`${y}${v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${fp(v, 1)}`}` }; })}/>
+              options={years.map(y=>{ const v=cpiFor(y); return { value:String(y), label:`${y}${v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${fp(v)}`}` }; })}/>
           </div>
 
           {/* Έτος χωρίς δείκτη: το λέμε, δεν το μπαλώνουμε */}
@@ -575,7 +575,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
               return (
                 <div key={year} {...pressable(()=>{setYr(year);setUseCustom(false);})}
                   style={{ background:active?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`, borderRadius:T.radius.badge, padding:'7px 4px', textAlign:'center' as const, cursor:'pointer', transition:'all 0.15s' }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{fp(rate, 1)}</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{fp(rate)}</div>
                   <div style={{ fontSize:9, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{year}</div>
                 </div>
               );
@@ -598,7 +598,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
               </div>
 
               <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:18, marginBottom:14 }}>
-                {[{label:hasCustom?'Ποσοστό σύμβασης':`ΔΤΚ ${yr}`,value:`${pct>=0?'+':''}${fp(pct, 1)}`},
+                {[{label:hasCustom?'Ποσοστό σύμβασης':`ΔΤΚ ${yr}`,value:`${pct>=0?'+':''}${fp(pct)}`},
                   {label:'Μεταβολή ανά Μήνα',value:`${diff>=0?'+':''}${fmtE(diff)}`},
                   {label:'Μεταβολή ανά Έτος',value:`${diff>=0?'+':''}${fmtE(diff*12)}`}
                 ].map((row,i)=>(
@@ -1014,8 +1014,13 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     openReport(html);
   };
 
-  const reminderText=(p:RentPayment)=>`Υπενθύμιση ενοικίου, ${propLabel()||'ακίνητο'}: μίσθωμα ${p.amount.toLocaleString('el-GR')} € για ${monthLabel(p)}${p.due_date?`, λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}`:''}. Ευχαριστώ.`;
-  const receiptText=(p:RentPayment)=>`Εξοφλήθη το ενοίκιο ${monthLabel(p)} (${p.amount.toLocaleString('el-GR')} €)${p.method?`, ${p.method}`:''}. Ευχαριστώ.`;
+  // ΤΑ ΜΗΝΥΜΑΤΑ ΠΡΟΣ ΤΟΝ ΕΝΟΙΚΙΑΣΤΗ ΓΡΑΦΟΥΝ ΤΟ ΠΟΣΟ ΟΠΩΣ Η ΟΘΟΝΗ. Έγραφαν
+  // «μίσθωμα 450 €» με τοπικό μορφοποιητή χωρίς δεκαδικά, ενώ ο ίδιος αριθμός
+  // στην καρτέλα από πάνω έγραφε «450,00 €». Είναι το κείμενο που φεύγει σε
+  // WhatsApp και SMS — εκεί η ασυνέπεια δεν φαίνεται ως στιλ, φαίνεται ως λάθος
+  // ποσό.
+  const reminderText=(p:RentPayment)=>`Υπενθύμιση ενοικίου, ${propLabel()||'ακίνητο'}: μίσθωμα ${fe(p.amount)} για ${monthLabel(p)}${p.due_date?`, λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}`:''}. Ευχαριστώ.`;
+  const receiptText=(p:RentPayment)=>`Εξοφλήθη το ενοίκιο ${monthLabel(p)} (${fe(p.amount)})${p.method?`, ${p.method}`:''}. Ευχαριστώ.`;
 
   // ── Αίτημα πληρωμής (IBAN / QR / κοινοποίηση) ──
   const landlordName=branding?.companyName?brandName(branding):'Ιδιοκτήτης';
@@ -1027,9 +1032,9 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
   const qrSrc=(data:string)=>qrDataUrl(data,{ size:240 });
   const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
   const paymentRequestText=(p:RentPayment)=>{
-    const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${(p.base_rent||0).toLocaleString('el-GR')} € + υπηρεσίες ${(p.services_charge||0).toLocaleString('el-GR')} €)`:'';
+    const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${fe(p.base_rent||0)} + υπηρεσίες ${fe(p.services_charge||0)})`:'';
     const ibanPart=tenant.rent_iban?` Πληρωμή σε IBAN ${tenant.rent_iban} (${landlordName}).`:'';
-    return `Αίτημα πληρωμής, ${propLabel()||'ακίνητο'}: ${p.amount.toLocaleString('el-GR')} € για ${monthLabel(p)}${br}.${ibanPart}${p.due_date?` Λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}.`:''}`;
+    return `Αίτημα πληρωμής, ${propLabel()||'ακίνητο'}: ${fe(p.amount)} για ${monthLabel(p)}${br}.${ibanPart}${p.due_date?` Λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}.`:''}`;
   };
 
   // ── Μηνιαία κατάσταση προς τον μισθωτή: «Τι περιλαμβάνει / τι χρεώνεται» ──
@@ -1381,7 +1386,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
 
   const kpis:KPIItem[]=[
     { label:'Ετήσιο Ακαθάριστο Ενοίκιο', value:fe(annualRent), tone:'accent' },
-    { label:'Φόρος για ΑΥΤΟ το ακίνητο', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${fp((effRate*100), 1)} επί των ακαθάριστων`:undefined },
+    { label:'Φόρος για ΑΥΤΟ το ακίνητο', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${fp((effRate*100))} επί των ακαθάριστων`:undefined },
     ...(isCommercial?[{ label:'Ψηφιακό Τέλος Συναλλαγής (3,6%)', value:fe(stampDuty), tone:'warning' as const }]:[]),
     { label:'Καθαρό μετά Φόρο & Τέλη', value:fe(net), tone:'positive' },
   ];
@@ -1398,7 +1403,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
           : 'Αν αποκτήσεις δεύτερο ακίνητο που αποδίδει, το άθροισμα μπορεί να ανεβάσει κλιμάκιο και ο φόρος να μη είναι το άθροισμα των δύο εκτιμήσεων.'}{' '}
         Ενοίκιο {fe(tenant.monthly_rent||0)}/μήνα, τύπος μίσθωσης «{tenant.lease_category?LEASE_CATEGORY_LABELS[tenant.lease_category]:ABSENT}»
         {viaBank
-          ? `, με τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} (φορολογητέο ${fe(taxable)}) επειδή το ενοίκιο εισπράττεται μέσω τραπέζης.`
+          ? `, με τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))} (φορολογητέο ${fe(taxable)}) επειδή το ενοίκιο εισπράττεται μέσω τραπέζης.`
           : '. Επειδή το ενοίκιο ΔΕΝ δηλώνεται ως ηλεκτρονική είσπραξη, η τεκμαρτή έκπτωση 5% δεν εφαρμόζεται και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.'}
       </InfoBanner>
 
@@ -1422,7 +1427,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
             </tbody>
           </table>
           </div>
-          <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>Ο φόρος υπολογίζεται προοδευτικά ανά κλιμάκιο επί του φορολογητέου ({fe(taxable)} = ακαθάριστα {fe(annualRent)}{viaBank?` μείον τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)}`:''}), σύνολο {fe(tax)} για αυτό το ακίνητο. Επιβεβαίωσε την τελική δήλωση με λογιστή ή την ΑΑΔΕ.</div>
+          <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>Ο φόρος υπολογίζεται προοδευτικά ανά κλιμάκιο επί του φορολογητέου ({fe(taxable)} = ακαθάριστα {fe(annualRent)}{viaBank?` μείον τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))}`:''}), σύνολο {fe(tax)} για αυτό το ακίνητο. Επιβεβαίωσε την τελική δήλωση με λογιστή ή την ΑΑΔΕ.</div>
         </div>
 
         {/* Νομικές υποχρεώσεις */}
@@ -1433,8 +1438,8 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
           </InfoBlock>
           <InfoBlock title="Είσπραξη μέσω τραπέζης" tone={viaBank?'var(--positive)':'var(--negative)'}>
             {viaBank
-              ? `Το ενοίκιο εισπράττεται μέσω τραπέζης, οπότε ισχύει η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} και φορολογείται το ${fe(taxable)} αντί του ${fe(annualRent)}.`
-              : `Προσοχή: το ενοίκιο δηλώνεται ως μη τραπεζική είσπραξη. Από 1/1/2026 η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} προϋποθέτει είσπραξη μέσω τραπέζης — χωρίς αυτήν φορολογείται το 100% των ακαθάριστων, δηλαδή ${fe(annualRent)} αντί ${fe(annualRent*(1-PRESUMPTIVE_DEDUCTION_RATE))}. Συμπλήρωσε IBAN είσπραξης στα στοιχεία της μίσθωσης.`}
+              ? `Το ενοίκιο εισπράττεται μέσω τραπέζης, οπότε ισχύει η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))} και φορολογείται το ${fe(taxable)} αντί του ${fe(annualRent)}.`
+              : `Προσοχή: το ενοίκιο δηλώνεται ως μη τραπεζική είσπραξη. Από 1/1/2026 η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))} προϋποθέτει είσπραξη μέσω τραπέζης — χωρίς αυτήν φορολογείται το 100% των ακαθάριστων, δηλαδή ${fe(annualRent)} αντί ${fe(annualRent*(1-PRESUMPTIVE_DEDUCTION_RATE))}. Συμπλήρωσε IBAN είσπραξης στα στοιχεία της μίσθωσης.`}
           </InfoBlock>
           <InfoBlock title="Αναπροσαρμογή ΔΤΚ">
             Η αναπροσαρμογή μισθώματος γίνεται μία φορά τον χρόνο, βάσει Δείκτη Τιμών Καταναλωτή (ΕΛΣΤΑΤ), εφόσον προβλέπεται στη σύμβαση. Χρησιμοποίησε την καρτέλα «Αναπροσαρμογή Ενοικίου».{!isCommercial&&' Αν η κατοικία μισθώθηκε για διάρκεια μικρότερη της τριετίας χωρίς όρο αναπροσαρμογής, ο νόμος (άρθρο 2 ν.1703/1987) προβλέπει ετήσια αναπροσαρμογή ίση με το 75% της μεταβολής του ΔΤΚ έως τη συμπλήρωση της τριετίας — με χαμηλό ή αρνητικό ΔΤΚ το ενοίκιο ουσιαστικά μένει σταθερό. Επιβεβαίωσε την εφαρμογή στη σύμβασή σου.'}
@@ -1958,7 +1963,7 @@ function RenewalView({ tenant, userId, comps, sqm }:{ tenant:Tenant; userId:stri
           <SectionTitle>Με βάση τον νόμο (ΔΤΚ)</SectionTitle>
           <DataRow label="Τρέχον μίσθωμα" value={<span style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(rent)}</span>}/>
           {legalNew!==null&&cpiPct!==null
-            ?<DataRow label={`Με ΔΤΚ ${CPI_LATEST_YEAR} (${cpiPct>=0?'+':''}${fp(cpiPct, 1)})`} value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(legalNew)}</span>}/>
+            ?<DataRow label={`Με ΔΤΚ ${CPI_LATEST_YEAR} (${cpiPct>=0?'+':''}${fp(cpiPct)})`} value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(legalNew)}</span>}/>
             :<DataRow label="Με ΔΤΚ" value="δεν υπάρχει επιβεβαιωμένος δείκτης"/>}
           <div style={{ marginTop:10, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
             Ετήσια αναπροσαρμογή βάσει ΔΤΚ, <strong>εφόσον προβλέπεται στη σύμβαση</strong>. Δεν είναι πλαφόν: για το 2026 δεν ισχύει γενικό κρατικό όριο στα ενοίκια κατοικίας. {cpiConfirmedLabel()}.
@@ -1970,7 +1975,7 @@ function RenewalView({ tenant, userId, comps, sqm }:{ tenant:Tenant; userId:stri
             <>
               <DataRow label={`Μέση τιμή ανά τ.μ. (${fn(perSqmValues.length)} συγκρίσιμα)`} value={<span style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(avgPerSqm)}</span>}/>
               <DataRow label={`× ${fn(sqm||0)} τ.μ. δικά σου`} value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(marketRent)}</span>}/>
-              <DataRow label="Απόκλιση τρέχοντος" value={<span style={{ color:marketDiff>0?'var(--positive)':marketDiff<0?'var(--warning)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{marketDiff>0?'+':''}{fmt(marketDiff)} ({fp(marketDiffPct, 1)})</span>}/>
+              <DataRow label="Απόκλιση τρέχοντος" value={<span style={{ color:marketDiff>0?'var(--positive)':marketDiff<0?'var(--warning)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{marketDiff>0?'+':''}{fmt(marketDiff)} ({fp(marketDiffPct)})</span>}/>
               {variance&&<div style={{ marginTop:12 }}><AlertBar text={variance} level="warning"/></div>}
               <div style={{ marginTop:10, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
                 {marketDiff<0?'Το τρέχον μίσθωμα είναι κάτω από την εκτίμηση της περιοχής για το μέγεθός σου. Οποιαδήποτε αύξηση σε ενεργή μίσθωση κατοικίας γίνεται μόνο με όρο αναπροσαρμογής ή νέα συμφωνία.':'Το τρέχον μίσθωμα είναι στο ή πάνω από την εκτίμηση της περιοχής για το μέγεθός σου.'}
@@ -2414,7 +2419,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       <PageTitle title="Ενοικιαστής" sub="Τρέχουσα και προηγούμενες μισθώσεις, με πλήρη φάκελο ανά ενοικιαστή"
         right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
           <ExportButton onClick={exportRoster}/>
-          <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Μισθωτήριο</Btn>
+          {/* Η ίδια ενέργεια λεγόταν «Μισθωτήριο» εδώ και «Σύνταξη μισθωτηρίου» στην
+              κενή κατάσταση. Ο χρήστης μαθαίνει το ένα όνομα και συναντά το άλλο. */}
+          <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Σύνταξη μισθωτηρίου</Btn>
           <Btn variant="secondary" onClick={()=>setDeclOpen(true)}>Δήλωση Μίσθωσης</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
         </div>:undefined}/>
@@ -2732,7 +2739,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 <Why id="tenant.rent_iban"/>
                 {!form.e_payment&&(
                   <div style={{ marginTop:10 }}>
-                    <AlertBar level="warning" text={`Με είσπραξη σε μετρητά χάνεται η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100), 0)} και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.`}/>
+                    <AlertBar level="warning" text={`Με είσπραξη σε μετρητά χάνεται η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))} και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.`}/>
                   </div>
                 )}
               </>

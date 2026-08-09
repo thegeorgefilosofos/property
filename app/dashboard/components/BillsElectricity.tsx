@@ -476,7 +476,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   </span>
                 )}
                 <span style={FACT}>
-                  Μηνιαίο πάγιο:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed), 2)} / μήνα`}</strong>
+                  Μηνιαίο πάγιο:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed))} / μήνα`}</strong>
                 </span>
               </div>
             )}
@@ -878,7 +878,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         } else if (kwhNum > 0 && kwhNum < 100) {
           const noFixed = allTariffs.find(t => t.no_fixed && t.type !== 'dynamic');
           if (noFixed && noFixed.monthly < costNum) {
-            hints.push({ text: `Χαμηλή κατανάλωση (${kwhNum} kWh). Τιμολόγιο χωρίς πάγιο (${noFixed.providerLabel} ${noFixed.name}) εξοικονομεί ${fe((costNum - noFixed.monthly), 0)}/μήνα.`, severity: 'tip' });
+            hints.push({ text: `Χαμηλή κατανάλωση (${kwhNum} kWh). Τιμολόγιο χωρίς πάγιο (${noFixed.providerLabel} ${noFixed.name}) εξοικονομεί ${fe((costNum - noFixed.monthly))}/μήνα.`, severity: 'tip' });
           }
         }
 

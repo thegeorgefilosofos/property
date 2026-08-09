@@ -22,10 +22,10 @@ ok('παύλα με κενά', isBlankMetric(` ${DASH} `))
 // ── Κενό: μετρήσαμε, δεν υπάρχει τίποτα ───────────────────────────────────
 ok('σκέτο μηδέν', isBlankMetric('0'))
 ok('ευρώ μηδέν', isBlankMetric(fe(0)))
-ok('ευρώ μηδέν χωρίς δεκαδικά', isBlankMetric(fe(0, 0)))
+ok('ευρώ μηδέν χωρίς δεκαδικά', isBlankMetric(fe(0)))
 ok('ποσοστό μηδέν', isBlankMetric(fp(0)))
 ok('αριθμός μηδέν', isBlankMetric(fn(0)))
-ok('σύνθετο μηδέν', isBlankMetric(`0 · ${fe(0, 0)}`))
+ok('σύνθετο μηδέν', isBlankMetric(`0 · ${fe(0)}`))
 ok('κλάσμα μηδέν', isBlankMetric('0/0'))
 ok('μηδέν με μονάδα', isBlankMetric('0 τ.μ.'))
 

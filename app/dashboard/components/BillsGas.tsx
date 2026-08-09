@@ -4,13 +4,20 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, Spinner } from '@/components/Theme';
+import { T, fe, feRate, Spinner } from '@/components/Theme';
 import { RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { athensToday } from '@/lib/core/time';
 
-const fk = (n: number) => `${fe(n, 4)}`;
+/**
+ * Η ΤΙΜΗ ΤΗΣ ΚΙΛΟΒΑΤΩΡΑΣ ΑΕΡΙΟΥ, ΜΕ ΤΑ ΔΕΚΑΔΙΚΑ ΠΟΥ ΤΗΝ ΞΕΧΩΡΙΖΟΥΝ.
+ * Το ίδιο σφάλμα με το ρεύμα, στην επόμενη οθόνη: ήταν `fe(n, 4)`, που
+ * διαβάζεται σαν «τέσσερα δεκαδικά» ενώ το δεύτερο όρισμα αγνοούνταν. Οι
+ * χρεώσεις αερίου κινούνται στα 0,0850–0,0899 €/kWh — στα δύο δεκαδικά όλες
+ * γίνονταν «0,09 €», δηλαδή η στήλη σύγκρισης έδειχνε τα πάντα ίδια.
+ */
+const fk = feRate;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ΠΗΓΕΣ & ΗΜΕΡΟΜΗΝΙΑ ΕΠΑΛΗΘΕΥΣΗΣ

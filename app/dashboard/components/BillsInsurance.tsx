@@ -709,7 +709,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     : INSURANCE_COMPANIES;
 
   const insOptions     = relevantCompanies.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
-  const insPlanOptions = (insCompany?.plans ?? []).map(p => ({ value: p.id, label: `${p.name}, ~${p.monthly > 0 ? `${fe(p.monthly, 2)}` : 'Χειροκίνητο'}` }));
+  const insPlanOptions = (insCompany?.plans ?? []).map(p => ({ value: p.id, label: `${p.name}, ~${p.monthly > 0 ? `${fe(p.monthly)}` : 'Χειροκίνητο'}` }));
 
   // ── Sync-back στο ακίνητο: μία πηγή αλήθειας για το υπόλοιπο app ──────────
   // Η κάρτα ακινήτου διαβάζει insurance_company / insurance_amount /

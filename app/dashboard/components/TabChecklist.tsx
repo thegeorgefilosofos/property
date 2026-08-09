@@ -2543,8 +2543,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         <EmptyState
           icon={<SearchX size={20} />}
           title="Δεν βρέθηκαν εκκρεμότητες"
-          hint="Δοκίμασε διαφορετικά φίλτρα ή καθάρισε την αναζήτηση."
-          action={<Btn variant="secondary" onClick={clearFilters}>Καθαρισμός φίλτρων</Btn>}
+          /* Το «Καθαρισμός φίλτρων» βρίσκεται ήδη στη μπάρα φίλτρων, λίγο πιο
+             πάνω και πάντα ορατό όσο υπάρχει φίλτρο. Δεύτερο ίδιο κουμπί σε
+             απόσταση σαράντα εικονοστοιχείων δεν βοηθά, ρωτά ποιο είναι ποιο. */
+          hint="Δοκίμασε διαφορετικά φίλτρα, ή πάτησε «Καθαρισμός φίλτρων» πιο πάνω."
         />
       ) : viewMode === 'timeline' ? (
         <TimelineView items={filtered} onEdit={item => { setEditItem(item); setShowAddModal(true) }} />

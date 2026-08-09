@@ -918,7 +918,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {props.length > 0 && <Btn variant="secondary" onClick={openIcal}>Σύνδεση ημερολογίου</Btn>}
             {clients.length > 0 && <Btn variant="secondary" onClick={() => setComposeOpen(true)}>Μαζικό μήνυμα</Btn>}
             {allStays.length > 0 && <ExportButton onClick={exportCsv} label="Εξαγωγή διαμονών" />}
-            <Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>
+            {/* Με μηδέν επισκέπτες, η κύρια ενέργεια λέγεται από την κενή κατάσταση
+                λίγο πιο κάτω — δύο ίδια κουμπιά στην ίδια οθόνη δεν είναι έμφαση.
+                Οι δύο εισαγωγές μένουν: η κενή κατάσταση τις ονομάζει. */}
+            {clients.length > 0 && <Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>}
           </div>
         ) : undefined} />
 
@@ -989,8 +992,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     {([
                       { l: 'Διαμονές', v: String(st.stayCount) },
                       { l: 'Νύχτες', v: String(st.nights) },
-                      { l: 'Ακαθάριστα', v: fe(totals(cStays).revenue, 0), strong: true, t: 'Δηλωτέο ακαθάριστο, χωρίς το τέλος ανθεκτικότητας' },
-                      { l: 'Μέση νύχτα', v: fe(st.adr, 0), t: 'Δηλωτέο ακαθάριστο διά τις νύχτες' },
+                      { l: 'Ακαθάριστα', v: fe(totals(cStays).revenue), strong: true, t: 'Δηλωτέο ακαθάριστο, χωρίς το τέλος ανθεκτικότητας' },
+                      { l: 'Μέση νύχτα', v: fe(st.adr), t: 'Δηλωτέο ακαθάριστο διά τις νύχτες' },
                     ] as { l: string; v: string; strong?: boolean; t?: string }[]).map((m, i) => (
                       <div key={i} title={m.t} style={{ flex: 1, minWidth: 0, paddingLeft: i ? 12 : 0, borderLeft: i ? '1px solid var(--border-subtle)' : 'none' }}>
                         <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.l}</div>
@@ -1101,7 +1104,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {tot.unresolved > 0 && (
               <InfoBanner tone="warning">
-                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount, 0)}): καταγράφηκαν πριν η εφαρμογή ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης — χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
+                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount)}): καταγράφηκαν πριν η εφαρμογή ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης — χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
               </InfoBanner>
             )}
 
@@ -1109,9 +1112,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 υψηλή περίοδο. Πριν διαιρούσε με 365 και το εποχιακό εξοχικό
                 εμφανιζόταν στο «16%». */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
-              {statTile('Δηλωτέα ακαθάριστα', fe(tot.revenue, 0))}
-              {statTile('Τέλος ανθεκτικότητας', tot.climateLevy > 0 ? fe(tot.climateLevy, 0) : fe(0), { title: 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
-              {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees, 0) : fe(0), { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}
+              {statTile('Δηλωτέα ακαθάριστα', fe(tot.revenue))}
+              {statTile('Τέλος ανθεκτικότητας', tot.climateLevy > 0 ? fe(tot.climateLevy) : fe(0), { title: 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
+              {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees) : fe(0), { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}
               {statTile(
                 'Πληρότητα',
                 occ.availableDays > 0 ? `${occ.pct}%` : 'Χωρίς κρατήσεις',
@@ -1132,7 +1135,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     <div key={r.channel}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</span>
-                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(r.revenue, 0)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{r.nights} νύχτες · {r.count} διαμονές</span></span>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(r.revenue)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{r.nights} νύχτες · {r.count} διαμονές</span></span>
                       </div>
                       <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
                         <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--series-in)', borderRadius: 6 }} />
@@ -1148,7 +1151,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
                     {months.map((v, i) => (
-                      <div key={i} title={`${MONTHS_NOM[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                      <div key={i} title={`${MONTHS_NOM[i]}: ${fe(v)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
                         <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--series-in)', borderRadius: '3px 3px 0 0' }} />
                       </div>
                     ))}
@@ -1292,17 +1295,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 Τα ποσά είναι διακριτά: ακαθάριστο ≠ payout ≠ τι πλήρωσε ο επισκέπτης. */}
             {dcStats.stayCount > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 116px), 1fr))', gap: 10 }}>
-                {statTile('Ακαθάριστα', fe(dcTotals.revenue, 0), { title: 'Δηλωτέο ακαθάριστο: τι πλήρωσε ο επισκέπτης μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται.' })}
-                {dcTotals.platformFees > 0 && statTile('Προμήθειες', fe(dcTotals.platformFees, 0), { title: 'Δαπάνη που εκπίπτει, όχι μείωση εσόδου' })}
-                {dcTotals.climateLevy > 0 && statTile('Τέλος ανθεκτικότητας', fe(dcTotals.climateLevy, 0), { title: 'Εισπράχθηκε για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
+                {statTile('Ακαθάριστα', fe(dcTotals.revenue), { title: 'Δηλωτέο ακαθάριστο: τι πλήρωσε ο επισκέπτης μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται.' })}
+                {dcTotals.platformFees > 0 && statTile('Προμήθειες', fe(dcTotals.platformFees), { title: 'Δαπάνη που εκπίπτει, όχι μείωση εσόδου' })}
+                {dcTotals.climateLevy > 0 && statTile('Τέλος ανθεκτικότητας', fe(dcTotals.climateLevy), { title: 'Εισπράχθηκε για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
                 {statTile('Νύχτες', String(dcStats.nights))}
                 {statTile('Διαμονές', String(dcStats.stayCount))}
-                {statTile('Μέση τιμή νύχτας', fe(dcStats.adr, 0), { title: 'Δηλωτέο ακαθάριστο διά τις νύχτες' })}
+                {statTile('Μέση τιμή νύχτας', fe(dcStats.adr), { title: 'Δηλωτέο ακαθάριστο διά τις νύχτες' })}
                 {/* Η παύλα σε θέση τιμής δεν λέει «καμία»· λέει «κάτι έσπασε».
                     Η πλακέτα εμφανίζεται μόνο όταν υπάρχει ημερομηνία να δείξει. */}
                 {dcStats.lastVisit && statTile('Τελευταία επίσκεψη', fd(dcStats.lastVisit))}
                 {dcUndeclared > 0 && statTile('Αδήλωτες', String(dcUndeclared), { neg: true, title: 'Διαμονές χωρίς Δήλωση Βραχυχρόνιας Διαμονής' })}
-                {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal, 0), { neg: true })}
+                {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal), { neg: true })}
               </div>
             )}
 
@@ -1362,7 +1365,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     if (!sug || parseFloat(stayForm.climate_levy) > 0) return null;
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                        <span>Με βάση τους συντελεστές της ΑΑΔΕ και το ακίνητο, το τέλος για αυτή τη διαμονή βγαίνει <strong style={{ fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{fe(sug, 0)}</strong>. Επιβεβαίωσε το ακριβές ποσό στο myAADE.</span>
+                        <span>Με βάση τους συντελεστές της ΑΑΔΕ και το ακίνητο, το τέλος για αυτή τη διαμονή βγαίνει <strong style={{ fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{fe(sug)}</strong>. Επιβεβαίωσε το ακριβές ποσό στο myAADE.</span>
                         <Btn variant="secondary" onClick={() => setStayForm(f => ({ ...f, climate_levy: String(sug) }))}>Χρησιμοποίησέ το</Btn>
                       </div>
                     );
@@ -1374,7 +1377,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     if (g <= 0) {
                       return stayForm.basis === 'unknown' && (parseFloat(stayForm.legacyTotal) || 0) > 0 ? (
                         <InfoBanner tone="warning">
-                          Αυτή η διαμονή έχει καταγεγραμμένο ποσό <strong>{fe(parseFloat(stayForm.legacyTotal), 0)}</strong> αλλά <strong>δεν ξέρουμε τι είναι</strong>: ακαθάριστο ή καθαρή είσπραξη. Καταγράφηκε πριν η εφαρμογή τα ξεχωρίσει και δεν μαντεύουμε. Συμπλήρωσε «Πλήρωσε ο επισκέπτης» και το ακαθάριστο θα υπολογιστεί σωστά — ή δήλωσε παρακάτω τι σημαίνει το ποσό.
+                          Αυτή η διαμονή έχει καταγεγραμμένο ποσό <strong>{fe(parseFloat(stayForm.legacyTotal))}</strong> αλλά <strong>δεν ξέρουμε τι είναι</strong>: ακαθάριστο ή καθαρή είσπραξη. Καταγράφηκε πριν η εφαρμογή τα ξεχωρίσει και δεν μαντεύουμε. Συμπλήρωσε «Πλήρωσε ο επισκέπτης» και το ακαθάριστο θα υπολογιστεί σωστά — ή δήλωσε παρακάτω τι σημαίνει το ποσό.
                         </InfoBanner>
                       ) : null;
                     }
@@ -1383,11 +1386,11 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     const gross = Math.max(0, g - levy);
                     return (
                       <div style={{ marginTop: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                        Πλήρωσε ο επισκέπτης <strong style={{ fontFamily: T.font.num }}>{fe(g, 0)}</strong>
-                        {' − '}τέλος <strong style={{ fontFamily: T.font.num }}>{fe(levy, 0)}</strong>
-                        {' = '}<strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>δηλωτέο ακαθάριστο {fe(gross, 0)}</strong>
+                        Πλήρωσε ο επισκέπτης <strong style={{ fontFamily: T.font.num }}>{fe(g)}</strong>
+                        {' − '}τέλος <strong style={{ fontFamily: T.font.num }}>{fe(levy)}</strong>
+                        {' = '}<strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>δηλωτέο ακαθάριστο {fe(gross)}</strong>
                         <br />
-                        {fe(gross, 0)} − προμήθεια <strong style={{ fontFamily: T.font.num }}>{fe(fee, 0)}</strong> (δαπάνη, <strong>όχι</strong> μείωση εσόδου) = μένει σε εσένα <strong style={{ fontFamily: T.font.num }}>{fe(Math.max(0, gross - fee), 0)}</strong>
+                        {fe(gross)} − προμήθεια <strong style={{ fontFamily: T.font.num }}>{fe(fee)}</strong> (δαπάνη, <strong>όχι</strong> μείωση εσόδου) = μένει σε εσένα <strong style={{ fontFamily: T.font.num }}>{fe(Math.max(0, gross - fee))}</strong>
                       </div>
                     );
                   })()}
@@ -1395,7 +1398,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {/* Ρητή δήλωση βάσης για τις ιστορικές γραμμές που δεν έχουν ανάλυση. */}
                   {(parseFloat(stayForm.gross_guest_paid) || 0) <= 0 && (parseFloat(stayForm.legacyTotal) || 0) > 0 && (
                     <div style={{ marginTop: 12, maxWidth: 340 }}>
-                      <CustomSelect label={`Τι σημαίνει το ποσό ${fe(parseFloat(stayForm.legacyTotal), 0)};`}
+                      <CustomSelect label={`Τι σημαίνει το ποσό ${fe(parseFloat(stayForm.legacyTotal))};`}
                         value={stayForm.basis} onChange={v => setStayForm(f => ({ ...f, basis: v as AmountBasis }))}
                         options={[
                           { value: 'unknown', label: AMOUNT_BASIS_LABELS.unknown },
@@ -1480,22 +1483,22 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num }}>{fe(gross ?? stayTotal(s), 0)}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num }}>{fe(gross ?? stayTotal(s))}</div>
                             <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{gross != null ? 'δηλωτέο ακαθάριστο' : 'ποσό απροσδιόριστο'}</div>
-                            {pay != null && pay !== gross && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(pay, 0)} σε εσένα</div>}
+                            {pay != null && pay !== gross && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(pay)} σε εσένα</div>}
                           </div>
                         </div>
                         {/* Η ανάλυση, ρητά, όπου υπάρχει. */}
                         {(s.gross_guest_paid != null || s.climate_levy != null || s.platform_fee != null) && (
                           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.6 }}>
-                            {s.gross_guest_paid != null && <>πλήρωσε ο επισκέπτης {fe(s.gross_guest_paid, 0)}</>}
-                            {(s.climate_levy || 0) > 0 && <> · τέλος {fe(s.climate_levy || 0, 0)} (όχι έσοδό σου)</>}
-                            {(s.platform_fee || 0) > 0 && <> · προμήθεια {fe(s.platform_fee || 0, 0)} (δαπάνη)</>}
+                            {s.gross_guest_paid != null && <>πλήρωσε ο επισκέπτης {fe(s.gross_guest_paid)}</>}
+                            {(s.climate_levy || 0) > 0 && <> · τέλος {fe(s.climate_levy || 0)} (όχι έσοδό σου)</>}
+                            {(s.platform_fee || 0) > 0 && <> · προμήθεια {fe(s.platform_fee || 0)} (δαπάνη)</>}
                           </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                            {s.damages && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--negative)' }}>Φθορά {fe(s.damage_cost || 0, 0)}{dmgItem ? ` · ${dmgItem.name}` : s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
+                            {s.damages && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--negative)' }}>Φθορά {fe(s.damage_cost || 0)}{dmgItem ? ` · ${dmgItem.name}` : s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
                           </div>
                           <div style={{ display: 'flex', gap: 10 }}>
                             {/* Ένα κλικ. Η προθεσμία της δήλωσης δεν περιμένει φόρμα. */}
@@ -1659,7 +1662,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           </div>
           {(parseFloat(emailDraft.gross) || 0) > 0 && (
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              Δηλωτέο ακαθάριστο: <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(Math.max(0, (parseFloat(emailDraft.gross) || 0) - (parseFloat(emailDraft.levy) || 0)), 0)}</strong>
+              Δηλωτέο ακαθάριστο: <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(Math.max(0, (parseFloat(emailDraft.gross) || 0) - (parseFloat(emailDraft.levy) || 0)))}</strong>
             </div>
           )}
         </>

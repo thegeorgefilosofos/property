@@ -181,7 +181,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
     label: [
       p.name,
       p.speed,
-      p.price > 0 ? `${fe(p.price, 2)}/μήνα` : '',
+      p.price > 0 ? `${fe(p.price)}/μήνα` : '',
       p.student ? '(Φοιτητικό)' : '',
       p.backup ? '(Backup 5G)' : '',
       p.hasTV ? '+ TV' : '',
@@ -232,7 +232,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 10, fontFamily: T.font.sans }}>
           <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
           <span style={{ fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
-            {isHigh ? `+${fp(((current / avg - 1) * 100), 0)} πάνω από τον μέσο όρο` : isLow ? `-${fp(((1 - current / avg) * 100), 0)} κάτω από τον μέσο όρο` : 'Στο μέσο όρο'}
+            {isHigh ? `+${fp(((current / avg - 1) * 100))} πάνω από τον μέσο όρο` : isLow ? `-${fp(((1 - current / avg) * 100))} κάτω από τον μέσο όρο` : 'Στο μέσο όρο'}
           </span>
         </div>
         <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
@@ -240,7 +240,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--series-in)', borderRadius: 3 }}/>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{fe((avg * 2), 0)}</span>
+          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{fe((avg * 2))}</span>
         </div>
       </div>
     );
@@ -310,7 +310,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             <button
               onClick={() => upd({ dimotika: (parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1) })}
               style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-              Εφαρμογή {fp((parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100), 1)}
+              Εφαρμογή {fp((parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100))}
             </button>
           )}
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>

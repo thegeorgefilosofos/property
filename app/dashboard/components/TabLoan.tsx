@@ -35,9 +35,9 @@ import { MONTHS_SHORT } from '@/lib/core/months';
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
 // Πρώτος αριθμός (επιτόκιο «από») ενός εύρους ή μονής τιμής → number.
 const rateNum = (v:unknown):number|null => { const m = String(v ?? '').match(/-?\d+[.,]?\d*/); return m ? parseFloat(m[0].replace(',','.')) : null }
-// Δύο δεκαδικά με κόμμα, τυποποιημένα: 3.4 → «3,40», 2 → «2,00».
-const fmtRate2 = (n:number):string => n.toFixed(2).replace('.',',')
-// Κελί πίνακα/κάρτας: πάντα ενιαία μορφή «X,XX%» (επιτόκιο εκκίνησης).
+// Κελί πίνακα/κάρτας: ενιαία μορφή, από τον ΕΝΑ μορφοποιητή της εφαρμογής.
+// Εδώ ζούσε τρίτος τοπικός («n.toFixed(2).replace»), που έβγαζε το ίδιο
+// αποτέλεσμα με το fp() για τιμές κάτω από χίλια και διαφορετικό από πάνω.
 const NO_RATE = 'Χωρίς στοιχεία'
 
 // ── ΤΑ ΒΑΣΙΚΑ ΣΤΟΙΧΕΙΑ ΕΝΟΣ ΠΡΟΓΡΑΜΜΑΤΟΣ ───────────────────────────────────
@@ -52,7 +52,7 @@ function programFacts(p: ComparisonProgram): ProgramFact[] {
   const facts: ProgramFact[] = []
   const add = (label: string, value: string, color: string, size: number) => facts.push({ label, value, color, size })
   if (p.maxAmount) add('Μέγιστο ποσό', fmtEur(p.maxAmount), 'var(--text-primary)', 16)
-  if (p.maxLtv)    add('Μέγιστο δάνειο προς αξία', `${p.maxLtv}%`, 'var(--text-primary)', 14)
+  if (p.maxLtv)    add('Μέγιστο δάνειο προς αξία', fp(p.maxLtv), 'var(--text-primary)', 14)
   if (p.maxSqm)    add('Μέγιστα τετραγωνικά', `${p.maxSqm} τετραγωνικά μέτρα`, 'var(--text-primary)', 12)
   if (p.ageMax)    add('Ηλικία δικαιούχου', `${p.ageMin}–${p.ageMax} ετών`, 'var(--text-primary)', 12)
   if (p.duration)  add('Διάρκεια', p.duration, 'var(--text-secondary)', 12)
@@ -60,7 +60,7 @@ function programFacts(p: ComparisonProgram): ProgramFact[] {
   if (p.totalBudget) add('Προϋπολογισμός', p.totalBudget, 'var(--text-primary)', 13)
   return facts
 }
-const cellRate = (v:unknown):string => { const n = rateNum(v); return n===null ? NO_RATE : `${fmtRate2(n)}%` }
+const cellRate = (v:unknown):string => { const n = rateNum(v); return n===null ? NO_RATE : fp(n) }
 
 // Επικεφαλίδα ενεργού φακού — ο τίτλος τον οποίο το LensBar έχει επιλέξει.
 function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:string;right?:React.ReactNode;children:React.ReactNode}) {
@@ -206,9 +206,9 @@ function EuriborArea({data}:{data:{date:string;val:number}[]}) {
         <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
         {hi==null&&(<>
           <circle cx={X(maxI)} cy={Y(maxV)} r="3" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
-          <text x={X(maxI)} y={Y(maxV)-7} textAnchor="middle" style={{fontSize:10,fontFamily: T.font.sans,fill:'var(--text-secondary)',fontWeight:600}}>{fp(maxV, 2)}</text>
+          <text x={X(maxI)} y={Y(maxV)-7} textAnchor="middle" style={{fontSize:10,fontFamily: T.font.sans,fill:'var(--text-secondary)',fontWeight:600}}>{fp(maxV)}</text>
           <circle cx={X(minI)} cy={Y(minRaw)} r="3" fill="var(--text-tertiary)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
-          <text x={X(minI)} y={Y(minRaw)+13} textAnchor="middle" style={{fontSize:10,fontFamily: T.font.sans,fill:'var(--text-tertiary)'}}>{fp(minRaw, 2)}</text>
+          <text x={X(minI)} y={Y(minRaw)+13} textAnchor="middle" style={{fontSize:10,fontFamily: T.font.sans,fill:'var(--text-tertiary)'}}>{fp(minRaw)}</text>
         </>)}
         {/* Τρέχον σημείο (ζωντανό) */}
         <circle cx={X(n-1)} cy={Y(vals[n-1])} r="4" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="2"/>
@@ -221,7 +221,7 @@ function EuriborArea({data}:{data:{date:string;val:number}[]}) {
       {hi!=null&&(
         <div style={{position:'absolute',top:0,left:`${leftPct}%`,transform:'translateX(-50%)',pointerEvents:'none',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'7px 12px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const,textAlign:'center' as const}}>
           <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:3,fontFamily: T.font.sans}}>{euFmtDate(data[hi].date)}</p>
-          <p style={{fontSize:15,color:'var(--accent)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1}}>{fp(vals[hi], 2)}</p>
+          <p style={{fontSize:15,color:'var(--accent)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1}}>{fp(vals[hi])}</p>
         </div>
       )}
     </div>
@@ -808,9 +808,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
                   {[
-                    {label:'Κυμαινόμενο περιθώριο',value:bank.variable_spread_min!==undefined?`+${fmtRate2(bank.variable_spread_min)}–${fmtRate2(bank.variable_spread_max)}%`:'—',sub:varRate?`≈ ${varRate} σήμερα`:null},
+                    {label:'Κυμαινόμενο περιθώριο',value:bank.variable_spread_min!==undefined?`+${fp(bank.variable_spread_min)} έως +${fp(bank.variable_spread_max)}`:NO_RATE,sub:varRate?`≈ ${varRate} σήμερα`:null},
                     {label:'Εκτιμώμενη δόση',value: myM !== null ? fmtEur(myM) : fe(0),sub: myM !== null ? `${fmtEur(LA)} · ${Y} έτη` : bankRate === null ? 'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο' : 'Συμπλήρωσε ποσό δανείου για υπολογισμό'},
-                    {label:'Μέγιστο δάνειο προς αξία',value:bank.max_ltv?`${bank.max_ltv}%`:'—',sub:bank.max_amount?`έως ${fmtEur(bank.max_amount)}`:null},
+                    {label:'Μέγιστο δάνειο προς αξία',value:bank.max_ltv?fp(bank.max_ltv):NO_RATE,sub:bank.max_amount?`έως ${fmtEur(bank.max_amount)}`:null},
                     {label:'Σπίτι μου ΙΙ',value:bank.spiti_mou?'Ναι':'Όχι',sub:bank.spiti_mou?'Συμμετέχει στο πρόγραμμα':'Δεν συμμετέχει'},
                   ].map(s=>(
                     <div key={s.label} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
@@ -845,8 +845,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                       {FIXED_TERM_COLUMNS.map(k=>(
                         <td key={k} style={{padding:'10px 12px',textAlign:'right' as const,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,color:bank[k]?(hoverBankRow===i?'var(--accent)':'var(--text-primary)'):'var(--text-tertiary)',fontWeight:500,transition:'color 0.12s'}}>{cellRate(bank[k])}</td>
                       ))}
-                      <td style={{padding:'10px 12px',textAlign:'right' as const,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,color:hoverBankRow===i?'var(--accent)':'var(--text-primary)',transition:'color 0.12s'}}>{bank.variable_spread_min!==undefined?`+${fmtRate2(bank.variable_spread_min)}–${fmtRate2(bank.variable_spread_max)}%`:'—'}</td>
-                      <td style={{padding:'10px 12px',textAlign:'right' as const,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,color:bank.max_ltv?(hoverBankRow===i?'var(--accent)':'var(--text-primary)'):'var(--text-tertiary)',fontWeight:500,transition:'color 0.12s'}}>{bank.max_ltv?`${bank.max_ltv}%`:'—'}</td>
+                      <td style={{padding:'10px 12px',textAlign:'right' as const,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,color:hoverBankRow===i?'var(--accent)':'var(--text-primary)',transition:'color 0.12s'}}>{bank.variable_spread_min!==undefined?`+${fp(bank.variable_spread_min)} έως +${fp(bank.variable_spread_max)}`:NO_RATE}</td>
+                      <td style={{padding:'10px 12px',textAlign:'right' as const,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontSize:13,color:bank.max_ltv?(hoverBankRow===i?'var(--accent)':'var(--text-primary)'):'var(--text-tertiary)',fontWeight:500,transition:'color 0.12s'}}>{bank.max_ltv?fp(bank.max_ltv):NO_RATE}</td>
                       <td style={{padding:'10px 12px'}}>
                         {bank.spiti_mou
                           ?<span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500}}>Ναι</span>
@@ -1230,14 +1230,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   </div>
                   <div>
                     <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:3}}>
-                      Δάνειο προς αξία: {fp(ltv, 1)}. {ltv>85?'Υψηλό, απαιτείται προσοχή':ltv>70?'Μέτριο, αποδεκτό':'Καλό, εντός ορίων'}
+                      Δάνειο προς αξία: {fp(ltv)}. {ltv>85?'Υψηλό, απαιτείται προσοχή':ltv>70?'Μέτριο, αποδεκτό':'Καλό, εντός ορίων'}
                     </p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
                       {ltv>85
-                        ?`Χρηματοδοτείς το ${fp(ltv, 0)} της αξίας, οι τράπεζες είναι επιφυλακτικές άνω του 80%.`
+                        ?`Χρηματοδοτείς το ${fp(ltv)} της αξίας, οι τράπεζες είναι επιφυλακτικές άνω του 80%.`
                         :ltv>70
-                        ?`Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv), 0)} της αξίας). Εντός αποδεκτών ορίων.`
-                        :`Άριστη αναλογία, ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv), 0)}). Ενισχύει τη διαπραγματευτική σου θέση.`
+                        ?`Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv))} της αξίας). Εντός αποδεκτών ορίων.`
+                        :`Άριστη αναλογία, ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv))}). Ενισχύει τη διαπραγματευτική σου θέση.`
                       }
                     </p>
                   </div>
@@ -1269,7 +1269,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   </div>
                   <div>
                     <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:3}}>
-                      Συνολικοί τόκοι {fmtEur(cs.totalInterest)}, {fp((interestRatio*100), 0)} επί κεφαλαίου
+                      Συνολικοί τόκοι {fmtEur(cs.totalInterest)}, {fp((interestRatio*100))} επί κεφαλαίου
                     </p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
                       Για {fmtEur(cs.loanAmount)} θα αποπληρώσεις συνολικά {fmtEur(totalCost)}.

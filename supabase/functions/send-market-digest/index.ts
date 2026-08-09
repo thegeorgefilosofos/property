@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
+import { pct } from '../_shared/format.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
@@ -20,7 +21,6 @@ const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
-const pct = (n: number | null | undefined) => n == null ? '—' : `${Number(n).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 
 // Εξουσιοδότηση cron (zero-config): δέχεται (α) το service-role key (Bearer),
 // (β) το προαιρετικό x-cron-secret env, ή (γ) το κοινό μυστικό cron από τη ΒΔ
@@ -39,7 +39,11 @@ const METRICS: { key: string; label: string }[] = [
 ]
 
 function rowHtml(label: string, cur: number | null, prev: number | null): string {
-  const d = (cur != null && prev != null) ? cur - prev : null
+  // ΧΩΡΙΣ ΤΙΜΗ, ΧΩΡΙΣ ΓΡΑΜΜΗ. Ο τοπικός μορφοποιητής έγραφε «—» στη θέση της
+  // τιμής· ο κοινός θα έγραφε «0,00%», που είναι χειρότερο — λέει ότι το
+  // επιτόκιο ΕΙΝΑΙ μηδέν. Η απουσία λέγεται με απουσία, όπως και στην οθόνη.
+  if (cur == null) return ''
+  const d = prev != null ? cur - prev : null
   const arrow = d == null || Math.abs(d) < 0.001 ? '<span style="color:#80868b;">—</span>'
     : d > 0 ? `<span style="color:#d93025;">▲ ${pct(Math.abs(d))}</span>` : `<span style="color:#188038;">▼ ${pct(Math.abs(d))}</span>`
   return `<tr>

@@ -967,7 +967,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div>
               <NumberInput label="Ποσό δανείου" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>
-                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Δάνειο προς αξία {fp(ltv, 1)}</span>
+                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Δάνειο προς αξία {fp(ltv)}</span>
                 <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>Ίδια κεφάλαια: {fmtEur(PV-LA)}</span>
               </div>
             </div>
@@ -1005,9 +1005,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:14}}>
         {[
           {k:'Μηνιαία δόση',v:fmtEur(monthly),s:`${rateType==='variable'?'κυμαινόμενο':'σταθερό'} ${fmtPct(effRate)} · ${Y} έτη`,neg:false},
-          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${fp(((totalInt/Math.max(LA,1))*100), 0)} επί κεφαλαίου`,neg:false},
+          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${fp(((totalInt/Math.max(LA,1))*100))} επί κεφαλαίου`,neg:false},
           {k:'Συνολική αποπληρωμή',v:fmtEur(total),s:`κεφάλαιο ${fmtEur(LA)}`,neg:false},
-          {k:'Δάνειο προς αξία',v:`${fp(ltv, 1)}`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,neg:ltv>90},
+          {k:'Δάνειο προς αξία',v:`${fp(ltv)}`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,neg:ltv>90},
         ].map((t,i)=>{
           const on=hoverKpi===i
           return (

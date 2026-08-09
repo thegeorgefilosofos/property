@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { T, TT, Btn, Spinner, EmptyState, Modal } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState, Modal, fp } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { saved } from '@/components/dbWrite';
@@ -151,7 +151,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
             { label: 'Λήξη', value: grDate(res.end) },
             { label: 'Διάρκεια', value: `${res.months} μήνες` },
             { label: 'Ημέρα καταβολής', value: `${res.paymentDay}η κάθε μήνα` },
-            ...(res.adjustmentPct > 0 ? [{ label: 'Ετήσια αναπροσαρμογή', value: `${res.adjustmentPct.toLocaleString('el-GR', { maximumFractionDigits: 2 })} %` }] : []),
+            ...(res.adjustmentPct > 0 ? [{ label: 'Ετήσια αναπροσαρμογή', value: fp(res.adjustmentPct) }] : []),
           ] },
           ...leaseTerms(res, use).map(t => ({ type: 'note' as const, text: `${t.title}\n${t.text}` })),
           { type: 'sign', signers: [

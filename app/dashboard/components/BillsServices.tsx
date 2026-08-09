@@ -430,11 +430,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                             νούμερο που παράγει μοντέλο από ζώνη, όροφο και παλαιότητα.
                             Το πραγματικά τελικό ποσό το ορίζει μόνο η ΑΑΔΕ. */}
                         <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων — υπολογισμός με βάση τα στοιχεία που έδωσες, όχι το εκκαθαριστικό της ΑΑΔΕ" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Εκτίμηση ΕΝΦΙΑ</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final)}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Δόση (~6 δόσεις)</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment, 0)}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment)}</div>
                       </div>
                     </div>
                     {[
@@ -462,7 +462,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                       return (
                         <div key={i} style={{ background: isNext ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
                           <div style={{ fontSize: 9, fontWeight: 600, fontFamily: T.font.sans, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'var(--text-tertiary)' }}>{d.label}{isPast ? ' ✓' : ''}</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment, 0)}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment)}</div>
                           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>{d.month}</div>
                         </div>
                       );
@@ -509,7 +509,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {dimotikaPct > 0 ? `${fp(dimotikaPct, 1)}` : fp(0)}
+                {dimotikaPct > 0 ? `${fp(dimotikaPct)}` : fp(0)}
               </span>
               <div>
                 <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό Δημοτικών Τελών</div>

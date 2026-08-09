@@ -3,6 +3,7 @@ import { T, TT } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
+import { fp } from '@/lib/core/format'
 import type { BorrowerType } from './TabLoanData'
 
 // «Θα εγκριθώ;» — διαδραστική εκτίμηση πιθανότητας έγκρισης. Καθαρό, μονόχρωμο·
@@ -57,10 +58,12 @@ export default function ApprovalPanel({
     propertyValue, age:Number(age)||0, firstHome, employment, credit, hasGuarantor:guarantor,
   })
 
-  const dec = (n:number)=>String(n).replace('.',',')
+  // ΤΟ ΠΑΝΕΛ ΕΙΧΕ ΔΙΚΟ ΤΟΥ ΜΟΡΦΟΠΟΙΗΤΗ ΠΟΣΟΣΤΟΥ («37,6%», «75%»), δίπλα στον
+  // δείκτη της ίδιας οθόνης που έγραφε «75,00%». Δύο συστήματα αρίθμησης σε μια
+  // απόσταση ματιάς. Ένας μορφοποιητής, ο ίδιος με όλη την εφαρμογή.
   const metrics = [
-    { l:'Δείκτης δόσης', v:`${dec(res.dstiPct)}%`, sub:`όριο ${dec(res.dstiLimitPct)}%`, over:res.dstiPct>res.dstiLimitPct },
-    { l:'Δάνειο προς αξία', v:`${dec(res.ltvPct)}%`, sub:`όριο ${res.maxLtv}%`, over:res.ltvPct>res.maxLtv },
+    { l:'Δείκτης δόσης', v:fp(res.dstiPct), sub:`όριο ${fp(res.dstiLimitPct)}`, over:res.dstiPct>res.dstiLimitPct },
+    { l:'Δάνειο προς αξία', v:fp(res.ltvPct), sub:`όριο ${fp(res.maxLtv)}`, over:res.ltvPct>res.maxLtv },
     { l:'Ηλικία στη λήξη', v:`${res.ageAtEnd}`, sub:'όριο 75', over:res.ageAtEnd>75 },
     { l:'Δόση', v:fmtEur(res.requestedMonthly), sub:'τον μήνα', over:false },
   ]
@@ -68,7 +71,9 @@ export default function ApprovalPanel({
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       {/* Είσοδοι */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',gap:10}}>
+      {/* Το ελάχιστο πλάτος ήταν 190 και η μεγαλύτερη επιλογή («Μισθωτός αορίστου
+          χρόνου») χρειάζεται περισσότερα: το πεδίο έγραφε «Μισθωτός αορίστ…». */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 215px), 1fr))',gap:10}}>
         <NumberInput label="Ηλικία" value={age} onChange={setAge} suffix="ετών"/>
         <NumberInput label="Καθαρό μηνιαίο εισόδημα" value={income} onChange={setIncome} suffix="€"/>
         <NumberInput label="Υφιστάμενες μηνιαίες δόσεις" value={existing} onChange={setExisting} suffix="€"/>
@@ -120,7 +125,11 @@ export default function ApprovalPanel({
                   ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
                   : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
               </span>
-              <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:f.kind==='block'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
+              {/* ΤΟ ΟΝΟΜΑ ΤΟΥ ΚΡΙΤΗΡΙΟΥ ΔΕΝ ΚΟΒΕΤΑΙ. Ήταν σε μία γραμμή με αποσιωπητικά,
+                  και σε πλάτος οθόνης 1180 έγραφε «Σταθερότητα εισοδήμ…»: ο χρήστης
+                  δεν μάθαινε ποιο κριτήριο πέρασε. Δύο λέξεις σε δεύτερη σειρά
+                  κοστίζουν δεκαέξι εικονοστοιχεία ύψους. */}
+              <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:f.kind==='block'?'var(--negative)':'var(--text-primary)',lineHeight:1.35}}>{f.label}</span>
               <InfoDot text={f.detail}/>
             </div>
           ))}

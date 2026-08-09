@@ -1,3 +1,4 @@
+import { fe } from '../core/format';
 // ═══════════════════════════════════════════════════════════════════════════
 // journal — Καθαρή double-entry (διπλογραφική) μηχανή για το λογιστικό handoff.
 //
@@ -229,7 +230,8 @@ export function journalToCsv(lines: JournalLine[], format: JournalFormat, narrat
 // ισοσκελισμένο (Χρέωση = Πίστωση), έγκυροι λογαριασμοί ομάδων, ταμειακή συμφωνία
 // (Ταμείο = Έσοδα − Έξοδα), μονομερή θετικά ποσά, ημερομηνίες εντός περιόδου.
 // Ισχύει ΤΟ ΙΔΙΟ για ολόκληρο έτος, για μεμονωμένο μήνα και για προηγούμενα έτη.
-const money = (n: number) => `${(Number(n) || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+// Αντίγραφο του fe με απλό κενό. Ένα σημείο, το lib/core/format.ts.
+const money = fe;
 const KNOWN_CODES = new Set<string>([...Object.values(ACCOUNTS).map(a => a.code), ...Object.values(EXPENSE_ACCOUNTS).map(a => a.code)]);
 
 export type AuditStatus = 'pass' | 'warn' | 'fail';

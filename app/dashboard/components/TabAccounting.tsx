@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { T, Skeleton, SkeletonKPIs, fe } from '@/components/Theme'
+import { T, Skeleton, SkeletonKPIs, fe, fp } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
 import { ChevronLeft, ChevronRight, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
@@ -53,9 +53,12 @@ import { Printer, ShieldCheck } from 'lucide-react'
 import { notifyError } from '@/components/Toast';
 import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 
-const eur = (n:number)=>fe(n,0)
-const eur2 = (n:number)=>fe(n)
-const pct = (n:number)=>`${(n*100).toLocaleString('el-GR',{maximumFractionDigits:1})}%`
+// ΔΥΟ ΟΝΟΜΑΤΑ ΓΙΑ ΤΗΝ ΙΔΙΑ ΣΥΝΑΡΤΗΣΗ. Ήταν `eur = fe(n,0)` και `eur2 = fe(n)`,
+// δηλαδή «στρογγυλό» και «ακριβές» — αλλά το δεύτερο όρισμα του `fe` αγνοούνταν,
+// οπότε οι δύο ήταν πανομοιότυπες και η πρόθεση είχε χαθεί σιωπηλά.
+const eur = fe
+// Το ποσοστό ερχόταν από τέταρτο τοπικό μορφοποιητή, με ένα δεκαδικό.
+const pct = (n:number)=>fp(n*100)
 function athensNow(){ return new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Athens'})) }
 function athensYear(){ return athensNow().getFullYear() }
 function todayAthens(){ const d=athensNow(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
@@ -788,7 +791,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               return (
                 <div key={l.key} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderTop:l.kind==='result'?'1px solid var(--border-subtle)':'none' }}>
                   <span style={{ flex:1, fontSize:strong?13.5:13, fontFamily: T.font.sans, fontWeight:strong?600:400, color:l.kind==='result'?'var(--text-primary)':'var(--text-secondary)' }}>{l.label}</span>
-                  <span className="po-fig" data-tone={l.kind==='result'?(l.amount>=0?'accent':'negative'):undefined} style={{ fontSize:strong?14:13, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', fontWeight:strong?700:500 }}>{l.negative?'−':''}{eur2(l.amount)}</span>
+                  <span className="po-fig" data-tone={l.kind==='result'?(l.amount>=0?'accent':'negative'):undefined} style={{ fontSize:strong?14:13, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', fontWeight:strong?700:500 }}>{l.negative?'−':''}{eur(l.amount)}</span>
                 </div>
               )
             })}
@@ -854,7 +857,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:10, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)' }}>
                   {/* Η κουκκίδα έφυγε: έλεγε με χρώμα ό,τι λέει η λέξη δίπλα της. */}
                   <span style={{ flex:1, fontSize:13, fontWeight:m.strong?600:400, color:'var(--text-primary)', fontFamily: T.font.sans }}>{r.expected.label}</span>
-                  <span style={{ fontSize:13, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur2(r.paidAmount)} / {eur2(r.expected.amount)}</span>
+                  <span style={{ fontSize:13, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(r.paidAmount)} / {eur(r.expected.amount)}</span>
                   <span style={{ fontSize:11, fontWeight:600, color:'var(--text-primary)', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:18, padding:'2px 9px', fontFamily: T.font.sans, minWidth:78, textAlign:'center' }}>{m.label}</span>
                 </div>
               )})}
@@ -881,7 +884,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', width:74, flexShrink:0 }}>{e.date.split('-').reverse().join('/')}</span>
                   <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</span>
                   {mode==='professional'&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', width:80, textAlign:'right' }}>{eur(e.balance)}</span>}
-                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, width:92, textAlign:'right' }}>{e.type==='income'?'+':'−'}{eur2(e.amount)}</span>
+                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, width:92, textAlign:'right' }}>{e.type==='income'?'+':'−'}{eur(e.amount)}</span>
                 </div>
               ))}
             </div>
@@ -1240,18 +1243,18 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <div key={r.code} style={{ display:'grid', gridTemplateColumns:'72px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
                   <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>{r.code}</span>
                   <span style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={r.account}>{r.account}</span>
-                  <span style={{ fontSize:13, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur2(r.debit):fe(0)}</span>
-                  <span style={{ fontSize:13, color:r.credit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.credit?eur2(r.credit):fe(0)}</span>
-                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(r.balance)}</span>
+                  <span style={{ fontSize:13, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur(r.debit):fe(0)}</span>
+                  <span style={{ fontSize:13, color:r.credit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.credit?eur(r.credit):fe(0)}</span>
+                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(r.balance)}</span>
                 </div>
               ))}
               <div style={{ display:'grid', gridTemplateColumns:'72px minmax(0,1fr) 92px 92px 100px', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', borderTop:'1px solid var(--border-default)', alignItems:'center' }}>
                 <span/>
                 <span style={{ fontSize:11, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, textTransform:'uppercase', letterSpacing:'0.05em' }}>Σύνολα</span>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.debit)}</span>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur2(jTotals.credit)}</span>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(jTotals.debit)}</span>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(jTotals.credit)}</span>
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:5, fontSize:11, fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>
-                  {jTotals.balanced?<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M20 6 9 17l-5-5"/></svg>Ισοσκελισμένο</>:<>Διαφορά {eur2(jTotals.debit-jTotals.credit)}</>}
+                  {jTotals.balanced?<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M20 6 9 17l-5-5"/></svg>Ισοσκελισμένο</>:<>Διαφορά {eur(jTotals.debit-jTotals.credit)}</>}
                 </span>
               </div>
             </div>

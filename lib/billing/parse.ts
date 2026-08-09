@@ -6,6 +6,7 @@
 
 // Ο έλεγχος ΑΦΜ και η ανάγνωση ελληνικών ποσών/ημερομηνιών υπάρχουν ΜΙΑ φορά
 // στο app, στο lib/core/greek.ts. Τα εισάγουμε — δεν τα αντιγράφουμε.
+import { fe } from '../core/format';
 import {
   isValidAfm,
   parseAmount as coreParseAmount,
@@ -393,7 +394,8 @@ const MIN_CONFIDENT = 34;
 /** Πόσο πιο ψηλά πρέπει να είναι ο πρώτος από τον δεύτερο ώστε να μη ρωτήσουμε. */
 const MIN_MARGIN = 12;
 
-const fmtEur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+// Αντίγραφο του fe με απλό κενό.
+const fmtEur = fe;
 
 /**
  * Ταιριάζει μια απόδειξη πληρωμής με τους εκκρεμείς λογαριασμούς και επιστρέφει

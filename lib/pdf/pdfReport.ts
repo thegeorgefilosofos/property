@@ -13,6 +13,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, type ReportBranding } from '@/lib/reportBranding';
 import { localDay } from '@/lib/core/time';
+import { fp, fn, feCompact } from '@/lib/core/format';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE, RULE_SOFT } from '@/lib/print/ink';
 import { BRAND_MARK_INK } from '@/components/BrandMark';
 
@@ -179,12 +180,14 @@ function headedTable(head: string[], rows: string[][], align?: ('l' | 'r')[], re
   };
 }
 
-// Συμπαγής ετικέτα τιμής για γραφήματα (μικρός χώρος): 1.2k, 45%, 320.
+// Συμπαγής ετικέτα τιμής για γραφήματα (μικρός χώρος).
+// Έγραφε «1.2k €»: λατινικό σύμβολο συντομογραφίας μέσα σε ελληνική αναφορά που
+// παραδίδεται σε λογιστή — και «45,0 %», με κενό πριν το σύμβολο. Και τα δύο
+// έχουν πλέον ένα σημείο, κοινό με την οθόνη.
 function chartLabel(v: number, unit?: 'eur' | 'pct' | 'num'): string {
-  if (unit === 'pct') return `${(v ?? 0).toLocaleString('el-GR', { maximumFractionDigits: 1 })} %`;
-  const a = Math.abs(v);
-  const s = a >= 1000 ? `${(v / 1000).toLocaleString('el-GR', { maximumFractionDigits: 1 })}k` : `${Math.round(v).toLocaleString('el-GR')}`;
-  return unit === 'eur' ? `${s} €` : s;
+  if (unit === 'pct') return fp(v ?? 0);
+  if (unit === 'eur') return feCompact(v);
+  return fn(Math.round(v));
 }
 
 // Ασπρόμαυρο διάγραμμα ράβδων (vector): μαύρη ράβδος σε ανοιχτόγκρι διαδρομή, με

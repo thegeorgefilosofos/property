@@ -156,8 +156,8 @@ export function computeInsights(input: InsightInput): Insight[] {
   const YIELD_STRONG_PCT = 5;   // κατώφλι ΕΜΦΑΝΙΣΗΣ, όχι ισχυρισμός για την αγορά
   const YIELD_LOW_PCT = 3;
   if (netYield > 0 && propValue > 0) {
-    if (netYield >= YIELD_STRONG_PCT) out.push({ id: 'yield-strong', kind: 'positive', title: 'Δυνατή απόδοση', detail: `Με τα στοιχεία που έχεις καταχωρίσει, το ακίνητο αποδίδει καθαρά ${fp(netYield, 1)} τον χρόνο. Στις Αποδόσεις βλέπεις πώς συγκρίνεται με την περιοχή σου και με άλλες επενδύσεις, με αναγραφόμενες πηγές.`, metric: `${fp(netYield, 1)}`, action: { label: navLabel('roi'), tab: 'roi' } });
-    else if (netYield < YIELD_LOW_PCT) out.push({ id: 'yield-low', kind: 'opportunity', title: 'Υπάρχει περιθώριο στην απόδοση', detail: `Η καθαρή απόδοση είναι ${fp(netYield, 1)}. Δες στις Αποδόσεις τι πιάνει η περιοχή σου και ποιες δαπάνες τη μειώνουν.`, metric: `${fp(netYield, 1)}`, action: { label: navLabel('roi'), tab: 'roi' } });
+    if (netYield >= YIELD_STRONG_PCT) out.push({ id: 'yield-strong', kind: 'positive', title: 'Δυνατή απόδοση', detail: `Με τα στοιχεία που έχεις καταχωρίσει, το ακίνητο αποδίδει καθαρά ${fp(netYield)} τον χρόνο. Στις Αποδόσεις βλέπεις πώς συγκρίνεται με την περιοχή σου και με άλλες επενδύσεις, με αναγραφόμενες πηγές.`, metric: `${fp(netYield)}`, action: { label: navLabel('roi'), tab: 'roi' } });
+    else if (netYield < YIELD_LOW_PCT) out.push({ id: 'yield-low', kind: 'opportunity', title: 'Υπάρχει περιθώριο στην απόδοση', detail: `Η καθαρή απόδοση είναι ${fp(netYield)}. Δες στις Αποδόσεις τι πιάνει η περιοχή σου και ποιες δαπάνες τη μειώνουν.`, metric: `${fp(netYield)}`, action: { label: navLabel('roi'), tab: 'roi' } });
   }
 
   // ── 10. Έλλειψη στοιχείων → ανακριβή νούμερα ──────────────────────────────
