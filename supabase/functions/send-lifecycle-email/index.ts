@@ -38,6 +38,52 @@ async function authorized(req: Request): Promise<boolean> {
   return authorizeCron(req, { serviceKey: SERVICE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΕΜΠΟΡΙΚΟ Η ΣΥΝΑΛΛΑΚΤΙΚΟ: Η ΔΙΑΚΡΙΣΗ ΠΟΥ ΔΕΝ ΥΠΗΡΧΕ
+//
+// Η συνάρτηση έστελνε ΚΑΘΕ email το ίδιο: ούτε ρωτούσε αν ο παραλήπτης έχει
+// απεγγραφεί, ούτε έβαζε σύνδεσμο απεγγραφής. Η απεγγραφή υπήρχε, δούλευε, και
+// την τηρούσε ΜΟΝΟ το newsletter — δηλαδή ο χρήστης πατούσε «απεγγραφή», η βάση
+// το κατέγραφε, και τα υπόλοιπα εμπορικά μηνύματα συνέχιζαν να φτάνουν.
+//
+// Ο νόμος δεν ζητά απεγγραφή από ΟΛΑ τα μηνύματα. Το «ο κωδικός σου άλλαξε» και
+// το «η συνδρομή σου ανανεώθηκε» είναι συναλλακτικά: ο χρήστης ΠΡΕΠΕΙ να τα
+// λάβει, και ένας σύνδεσμος απεγγραφής εκεί είναι επικίνδυνος.
+//
+// Άρα η διάκριση γράφεται ρητά, μία φορά, εδώ:
+//   ΣΥΝΑΛΛΑΚΤΙΚΟ  → φεύγει πάντα, χωρίς σύνδεσμο απεγγραφής.
+//   ΕΜΠΟΡΙΚΟ      → φεύγει ΜΟΝΟ σε όποιον δεν έχει απεγγραφεί, ΠΑΝΤΑ με
+//                    σύνδεσμο απεγγραφής.
+//
+// ΚΑΙ Η ΚΑΤΕΥΘΥΝΣΗ ΤΗΣ ΑΠΟΤΥΧΙΑΣ. Αν η ανάγνωση των προτιμήσεων αποτύχει, το
+// συναλλακτικό φεύγει (η σιωπή θα ήταν χειρότερη: κανείς δεν παίρνει τον κωδικό
+// του) και το εμπορικό ΔΕΝ φεύγει. Το λάθος προς τα εκεί κοστίζει ένα χαμένο
+// διαφημιστικό· προς την άλλη κατεύθυνση κοστίζει παραβίαση.
+// ═══════════════════════════════════════════════════════════════════════════
+const COMMERCIAL = new Set([
+  'upsell', 'seasonal', 'legislation', 'feedback', 'referral_invite', 'mobile_launch',
+]);
+
+/** Εμπορικό είναι και κάθε ενοποιημένη ενημέρωση (digest) του καταλόγου. */
+const isCommercial = (event: string, copyId: string): boolean =>
+  COMMERCIAL.has(event) || (!!copyId && copyId in DIGESTS);
+
+/**
+ * Οι προτιμήσεις του παραλήπτη από τη διεύθυνσή του.
+ *
+ * Επιστρέφει `null` όταν δεν βρεθεί χρήστης ή αποτύχει η ανάγνωση: ο καλών
+ * αποφασίζει τι σημαίνει αυτό ανά είδος μηνύματος.
+ */
+async function marketingPrefs(email: string): Promise<{ optedIn: boolean; unsubUrl: string } | null> {
+  try {
+    const { data, error } = await supabase.rpc('marketing_prefs_for_email', { p_email: email });
+    if (error || !data) return null;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row?.unsubscribe_token) return null;
+    return { optedIn: row.product_news !== false, unsubUrl: `${APP_URL}/unsubscribe/${row.unsubscribe_token}` };
+  } catch { return null; }
+}
+
 // Επιλογή template από το event. Επιστρέφει { subject, html } ή null αν άγνωστο.
 // Οι παράμετροι έρχονται από τη βάση ως jsonb: το σχήμα τους δεν ζει στον
 // τύπο. `unknown` αντί για `any` — κάθε ανάγνωση περνά ήδη από ρητή μετατροπή
@@ -80,12 +126,22 @@ Deno.serve(async (req) => {
   // Πλούσιο πλαίσιο εξατομίκευσης: όλα τα params περνούν ζωντανά στο κείμενο
   // (amount, deadlineDate, period, tenantName, cardLast4, digestItems, κ.λπ.),
   // με το appUrl/όνομα να υπερισχύουν από τον φάκελο.
+  // ── Η ΑΠΕΓΓΡΑΦΗ, ΠΡΙΝ ΑΠΟ ΟΤΙΔΗΠΟΤΕ ΑΛΛΟ ────────────────────────────────
+  const commercial = isCommercial(event, copyId);
+  const prefs = commercial ? await marketingPrefs(email) : null;
+  if (commercial) {
+    if (!prefs) return json({ skipped: 'no_prefs', event, copyId }, 200);
+    if (!prefs.optedIn) return json({ skipped: 'unsubscribed', event, copyId }, 200);
+  }
+
   const recipientName = name || (params.name as string) || undefined
   const personal: Personal = {
     ...(params as Personal),
     name: recipientName,
     appUrl: APP_URL,
-    unsubUrl: params.unsubUrl == null ? undefined : String(params.unsubUrl),
+    // Ο σύνδεσμος απεγγραφής δεν εξαρτάται από το τι θυμήθηκε να στείλει ο
+    // καλών: στο εμπορικό μπαίνει πάντα, από τη βάση.
+    unsubUrl: prefs?.unsubUrl ?? (params.unsubUrl == null ? undefined : String(params.unsubUrl)),
     // Φύλο από το όνομα, αν δεν δόθηκε ρητά — για σωστή προσφώνηση.
     gender: (params.gender as Personal['gender']) || guessGender(recipientName),
     tenantGender: (params.tenantGender as Personal['tenantGender']) || guessGender(params.tenantName as string),
