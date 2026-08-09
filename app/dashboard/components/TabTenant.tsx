@@ -2411,7 +2411,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
       {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
 
-      <PageTitle title="Ενοικιαστής" sub="Τρέχουσα και προηγούμενες μισθώσεις, με πλήρες ντοσιέ"
+      <PageTitle title="Ενοικιαστής" sub="Τρέχουσα και προηγούμενες μισθώσεις, με πλήρη φάκελο ανά ενοικιαστή"
         right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
           <ExportButton onClick={exportRoster}/>
           <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Μισθωτήριο</Btn>
@@ -2422,10 +2422,20 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       <KPIGrid items={kpis}/>
 
       <div style={{ display:'flex', gap:10, flexWrap:'wrap' as const, alignItems:'center', marginBottom:16 }}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"
+        {/* ΤΟ ΚΕΙΜΕΝΟ ΔΕΝ ΧΩΡΟΥΣΕ ΚΑΙ ΚΟΒΟΤΑΝ ΣΤΗ ΜΕΣΗ ΛΕΞΗΣ: ο χρήστης διάβαζε
+            «Αναζήτηση ονόματος, ΑΦΜ, τηλεφύ». Ένα πεδίο που δεν μπορεί να δείξει
+            ούτε τη δική του οδηγία δεν εμπνέει εμπιστοσύνη για τα υπόλοιπα.
+            Η υπόδειξη λέει τώρα μόνο ΤΙ ψάχνεται — που είναι και η χρήσιμη
+            πληροφορία — και το «Αναζήτηση» μετακόμισε στην ετικέτα για τον
+            αναγνώστη οθόνης, όπου ανήκει. */}
+        <input value={search} onChange={e=>setSearch(e.target.value)}
+          aria-label="Αναζήτηση ενοικιαστή" placeholder="Όνομα, ΑΦΜ ή τηλέφωνο"
           style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:40, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
-          {([['all','Όλοι'],['current','Τρέχων'],['past','Προηγούμενοι']] as [typeof segment,string][]).map(([v,l])=>(
+          {/* «Όλοι», «Τρέχων», «Προηγούμενοι»: δύο πληθυντικοί και ένας ενικός, σε
+              τρία διπλανά κουμπιά που φιλτράρουν ΛΙΣΤΑ. Το «Τρέχων» είναι σωστό
+              στη σήμανση ΕΝΟΣ ενοικιαστή — και εκεί μένει· εδώ μετρά πόσοι. */}
+          {([['all','Όλοι'],['current','Τρέχοντες'],['past','Προηγούμενοι']] as [typeof segment,string][]).map(([v,l])=>(
             <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius:18, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
           ))}
         </div>
@@ -2568,7 +2578,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
           </>}>
           {dossierTab==='overview'&&(
             <>
-              {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?`: αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Το ντοσιέ διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
+              {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?`: αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Το φάκελος διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
               <DashboardView tenant={dc} payments={dcPayments} propertyCount={propertyCount}/>
             </>
           )}
