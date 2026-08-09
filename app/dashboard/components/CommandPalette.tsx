@@ -66,7 +66,13 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
   }, [q, items, recentIds]);
 
   useEffect(() => { if (open) { setQ(''); setActive(0); setRecentIds(loadRecent()); setTimeout(() => inputRef.current?.focus(), 20); } }, [open]);
-  useEffect(() => { setActive(0); }, [q]);
+  // Ο δείκτης της επιλεγμένης γραμμής μηδενιζόταν με effect: σε κάθε γράμμα που
+  // πληκτρολογεί ο χρήστης, η παλέτα αποδιδόταν ΔΥΟ φορές — μία με τα νέα
+  // αποτελέσματα και τον παλιό δείκτη (που μπορεί να δείχνει σε γραμμή που δεν
+  // υπάρχει πια), και μία με τον μηδενισμένο. Η προσαρμογή γίνεται στην ίδια
+  // απόδοση, μόλις αλλάξει το ερώτημα.
+  const [lastQ, setLastQ] = useState(q);
+  if (q !== lastQ) { setLastQ(q); setActive(0); }
 
   const run = (it: CommandItem) => { pushRecent(it.id); it.action(); onClose(); };
 

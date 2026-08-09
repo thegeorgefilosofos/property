@@ -433,8 +433,13 @@ export default function TabDocuments({
   }, [propertyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
-  // Καθάρισε την επιλογή όταν αλλάζει το πλαίσιο πλοήγησης (φάκελος/υποφάκελος/αναζήτηση).
-  useEffect(() => { setSelected(new Set()); }, [sel, query]);
+  // Καθάρισε την επιλογή όταν αλλάζει το πλαίσιο πλοήγησης (φάκελος, αναζήτηση).
+  // Ήταν effect, άρα έτρεχε και στη φόρτωση — καθαρίζοντας ένα σύνολο που ήταν
+  // ήδη άδειο — και σε κάθε αλλαγή φακέλου απέδιδε τη λίστα δύο φορές: μία με
+  // τα νέα αρχεία και τις παλιές επιλογές, μία καθαρή.
+  const ctx = `${sel}\u0000${query}`;
+  const [lastCtx, setLastCtx] = useState(ctx);
+  if (ctx !== lastCtx) { setLastCtx(ctx); setSelected(new Set()); }
   // Esc: κλείσιμο lightbox.
   useEffect(() => {
     if (!lightbox) return;

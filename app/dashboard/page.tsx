@@ -1066,7 +1066,15 @@ export default function Dashboard() {
   const [handoverIntent, setHandoverIntent] = useState<{tenantName?:string;tenantPhone?:string;type?:'check_in'|'check_out'}|null>(null);
   // Ομαδοποιημένη πλοήγηση (accordion): ανοιχτή μένει η ομάδα του ενεργού tab.
   const [openGroup, setOpenGroup] = useState('Οικονομικά');
-  useEffect(() => { const g = NAV_GROUPS.find(gr => gr.ids.includes(nav)); if (g?.label) setOpenGroup(g.label); }, [nav]);
+  // Η ομάδα ανοίγει στην ίδια απόδοση με την αλλαγή καρτέλας, όχι σε effect μετά
+  // από αυτήν: αλλιώς η μπάρα ζωγραφιζόταν μία φορά με την παλιά ομάδα ανοιχτή
+  // και αμέσως μετά με τη νέα, δηλαδή ένα ορατό τίναγμα σε κάθε πλοήγηση.
+  const [lastNav, setLastNav] = useState(nav);
+  if (nav !== lastNav) {
+    setLastNav(nav);
+    const g = NAV_GROUPS.find(gr => gr.ids.includes(nav));
+    if (g?.label) setOpenGroup(g.label);
+  }
   // Σταδιακή αποκάλυψη: ποιες καρτέλες έχει ήδη ανοίξει ο χρήστης και αν ζήτησε
   // να τις βλέπει όλες. Φορτώνονται από τη βάση ώστε να τον ακολουθούν παντού.
   const [revealedTabs, setRevealedTabs] = useState<string[]>([]);

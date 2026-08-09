@@ -91,7 +91,17 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const yearsAvail = useMemo(() => Array.from({ length: 7 }, (_, i) => nowYear - i), [nowYear]);
   const selIds = useMemo(() => props.filter(p => propIds.has(p.id)).map(p => p.id), [props, propIds]);
 
-  useEffect(() => { setPreview(null); setTotals(null); setAudit(null); setShowChecks(false); }, [year, month, propIds]);
+  // Η προεπισκόπηση ακυρώνεται μόλις αλλάξει η περίοδος ή τα ακίνητα: αλλιώς ο
+  // χρήστης βλέπει σύνολα άλλου μήνα κάτω από επιλογή αυτού. Ήταν effect, άρα
+  // έτρεχε και στο άνοιγμα του παραθύρου, μηδενίζοντας τέσσερα ήδη μηδενικά
+  // πεδία, και σε κάθε αλλαγή απέδιδε την οθόνη δύο φορές — μία με τα παλιά
+  // σύνολα δίπλα στη νέα περίοδο.
+  const scope = `${year}\u0000${month}\u0000${[...propIds].sort().join(',')}`;
+  const [lastScope, setLastScope] = useState(scope);
+  if (scope !== lastScope) {
+    setLastScope(scope);
+    setPreview(null); setTotals(null); setAudit(null); setShowChecks(false);
+  }
 
   const periodLabel = month === 0 ? `${year}` : `${MONTHS_NOM[month - 1]} ${year}`;
 

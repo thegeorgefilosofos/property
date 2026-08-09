@@ -42,11 +42,25 @@ export default function ApprovalPanel({
   const [hm,setHm] = useState<number|null>(null)
   const [vh,setVh] = useState(false)
   const [age,setAge] = useState<string>('35')
-  const [income,setIncome] = useState<string>(incomeMonthly && incomeMonthly>0 ? String(Math.round(incomeMonthly)) : '2000')
-  // Ενιαία πηγή εισοδήματος: όταν αλλάζει το εισόδημα στον Υπολογιστή, συγχρονίζεται
-  // εδώ ώστε ο δείκτης δόσης (DSTI) να μη διαφωνεί σιωπηλά μεταξύ των δύο πάνελ.
-  // (Ο χρήστης μπορεί να το τροποποιήσει τοπικά για σενάρια «τι-αν».)
-  useEffect(()=>{ if(incomeMonthly && incomeMonthly>0) setIncome(String(Math.round(incomeMonthly))) },[incomeMonthly])
+  // ── ΤΟ ΕΙΣΟΔΗΜΑ ΕΧΑΝΕ ΤΑ ΛΕΠΤΑ ΤΟΥ, ΚΑΙ ΤΑ ΕΧΑΝΕ ΣΕ ΚΑΘΕ ΑΠΟΔΟΣΗ ──────────
+  //
+  // Δύο σφάλματα στην ίδια γραμμή. Το `Math.round` πετούσε τα λεπτά: εισόδημα
+  // 1.850,50 € γινόταν 1.851 και ο δείκτης δόσης υπολογιζόταν πάνω σε νούμερο
+  // που ο χρήστης δεν έδωσε ποτέ. Και ο συγχρονισμός ζούσε σε `useEffect`, άρα
+  // η οθόνη αποδιδόταν ΔΥΟ φορές σε κάθε αλλαγή του Υπολογιστή: μία με το παλιό
+  // εισόδημα και τον παλιό δείκτη, μία με τα νέα.
+  //
+  // Η προσαρμογή κατάστασης όταν αλλάζει ένα prop δεν είναι δουλειά του effect:
+  // γίνεται στην ίδια απόδοση, κρατώντας την προηγούμενη τιμή του prop. Έτσι
+  // τρέχει ΜΟΝΟ όταν το εισόδημα όντως άλλαξε, και όχι στη φόρτωση, και η
+  // τοπική τιμή του χρήστη («τι-αν») επιβιώνει μέχρι να αλλάξει η πηγή.
+  const incomeStr = (n?:number) => n && n>0 ? String(n) : '2000'
+  const [income,setIncome] = useState<string>(() => incomeStr(incomeMonthly))
+  const [lastIncome,setLastIncome] = useState(incomeMonthly)
+  if (incomeMonthly !== lastIncome) {
+    setLastIncome(incomeMonthly)
+    if (incomeMonthly && incomeMonthly > 0) setIncome(incomeStr(incomeMonthly))
+  }
   const [existing,setExisting] = useState<string>('0')
   const [employment,setEmployment] = useState<EmploymentType>(defaultEmployment(borrowerType))
   const [credit,setCredit] = useState<CreditHistory>('clean')
