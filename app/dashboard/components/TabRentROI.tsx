@@ -8,6 +8,7 @@
 import { useState, useEffect, useMemo, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses';
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
 import { readStatus, type StatusRow } from '@/lib/property/status'
@@ -485,7 +486,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       setLoading(true);
       try {
         const [pr, rc, exp, ln, allPr, allRc] = await Promise.all([
-          supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type,name,postal_code').eq('id', propertyId).maybeSingle(),
+          properties.one(supabase, propertyId, 'value,target_rent,rental_mode,sqm,prop_type,name,postal_code', userId),
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id', propertyId).maybeSingle(),
           // ΓΙΑΤΙ ΜΕ ΗΜΕΡΟΜΗΝΙΑ. Το ερώτημα ήταν χωρίς φίλτρο έτους και το άθροισμα
           // έμπαινε στο πεδίο με ετικέτα «Ετήσια έξοδα». Δηλαδή στον δεύτερο χρόνο
@@ -499,7 +500,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           // χρήστες με 2+ ακίνητα — δηλαδή ακριβώς εκεί όπου ο ανά-ακίνητο φόρος
           // είναι λάθος. Χωρίς τα υπόλοιπα ενοίκια δεν υπάρχει τρόπος να βγει ο
           // σωστός φόρος: η κλίμακα είναι προοδευτική στο σύνολο του Ε1.
-          supabase.from('user_properties').select('id,target_rent,rental_mode').eq('user_id', userId),
+          properties.list<{ id: string; target_rent: number | null; rental_mode: string | null }>(supabase, userId, { columns: 'id,target_rent,rental_mode' }),
           supabase.from('rent_config').select('property_id,actual_rent,target_rent').eq('user_id', userId),
         ]);
         // ΤΑ ΔΥΟ ΣΧΗΜΑΤΑ, ΟΠΩΣ ΤΑ ΖΗΤΑ ΤΟ ΕΡΩΤΗΜΑ. Ήταν `any`, δηλαδή κάθε πεδίο
@@ -511,9 +512,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           status_detail: string | null; rental_mode: string | null;
         };
         type RentCfgRow = { actual_rent: number | null; target_rent: number | null };
-        const p = (pr.data || {}) as Partial<PropRow>; const c = (rc.data || {}) as Partial<RentCfgRow>;
+        const p = (pr || {}) as Partial<PropRow>; const c = (rc.data || {}) as Partial<RentCfgRow>;
         const rcRows = (allRc.data || []) as { property_id: string; actual_rent: number | null; target_rent: number | null }[];
-        const prRows = (allPr.data || []) as { id: string; target_rent: number | null; rental_mode: string | null }[];
+        const prRows = allPr;
         const rcMap = new Map(rcRows.map(r => [r.property_id, r]));
         setOtherRents(prRows.filter(x => x.id !== propertyId).map(x => {
           const cfg = rcMap.get(x.id);

@@ -17,6 +17,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import { T, Btn, Chip, EmptyState, Skeleton, settingsField, ABSENT } from '@/components/Theme';
 import { Users } from 'lucide-react';
 import { logActivity } from '@/lib/activity';
@@ -148,8 +149,8 @@ export default function OrgTeam({ userId }: { userId: string }) {
   const [rowError, setRowError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.from('user_properties').select('id,name').eq('user_id', userId).order('name')
-      .then(({ data }) => setOrgProps((data ?? []) as { id: string; name: string }[]));
+    properties.list<{ id: string; name: string }>(supabase, userId, { columns: 'id,name', orderBy: 'name' })
+      .then(setOrgProps);
   }, [userId, supabase]);
 
   // ΤΟ ΣΧΗΜΑ ΤΩΝ ΔΥΟ ΕΡΩΤΗΜΑΤΩΝ, ΓΡΑΜΜΕΝΟ ΜΙΑ ΦΟΡΑ.

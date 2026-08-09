@@ -19,6 +19,7 @@
 // 100% δοκιμασμένη. Εδώ μένουν μόνο οι κλήσεις δικτύου/βάσης.
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar';
 import {
@@ -525,11 +526,10 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
     // έγραψε ο χρήστης (fillOnlyEmpty — lib/billing/documents.ts).
     if (plan.property) {
       const cols = Object.keys(plan.property);
-      const { data: curProp } = await supabase.from('user_properties')
-        .select(cols.join(',')).eq('id', propertyId).maybeSingle();
+      const curProp = await properties.one(supabase, propertyId, cols.join(','), userId);
       const patch = fillOnlyEmpty(plan.property, curProp as Record<string, unknown> | null);
       if (Object.keys(patch).length) {
-        const { error: pErr } = await supabase.from('user_properties').update(patch).eq('id', propertyId);
+        const { error: pErr } = await properties.update(supabase, propertyId, patch, userId);
         if (!pErr) add('Στοιχεία ακινήτου');
       }
     }

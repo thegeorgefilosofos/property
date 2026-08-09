@@ -12,6 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as properties from '@/lib/data/properties';
 import { T, TT, Btn, Spinner, EmptyState, Modal, fp, formGrid } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
@@ -67,9 +68,8 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   // αλυσιδωτά renders.
   useEffect(() => {
     if (!open) return;
-    supabase.from('user_properties').select('id,name,address,sqm,atak').eq('user_id', userId).order('name')
-      .then(({ data }) => {
-        const ps = (data || []) as Prop[];
+    properties.list<Prop>(supabase, userId, { columns: properties.LIST_COLUMNS, orderBy: 'name' })
+      .then(ps => {
         setProps(ps);
         setPropId(prev => prev || propertyId || ps[0]?.id || '');
         if (branding?.companyName) setLandlord(prev => prev || branding.companyName || '');

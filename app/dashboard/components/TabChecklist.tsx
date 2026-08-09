@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { downloadWorkbook } from './xlsxStyle'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { DatePicker, CustomSelect } from './UIComponents'
@@ -1946,10 +1947,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // best-effort: αν δεν διαβαστούν, το προφίλ πέφτει στο ασφαλέστερο
     // («ιδιοκτήτης», φυσικό πρόσωπο) και εμφανίζονται ΛΙΓΟΤΕΡΑ, ποτέ περισσότερα.
     try {
-      const [{ data: propRow }, { data: bp }, { count }] = await Promise.all([
-        supabase.from('user_properties').select('status_detail,rental_mode').eq('id', propertyId).maybeSingle(),
+      const [propRow, { data: bp }, count] = await Promise.all([
+        properties.one<StatusRow>(supabase, propertyId, 'status_detail,rental_mode', userId),
         supabase.from('billing_profiles').select('legal_form,bookkeeping').eq('user_id', userId).maybeSingle(),
-        supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        properties.count(supabase, userId),
       ])
       setStatusRow((propRow as StatusRow | null) || null)
       setLegalForm((bp as { legal_form?: string | null } | null)?.legal_form || 'individual')

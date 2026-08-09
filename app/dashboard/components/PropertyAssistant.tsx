@@ -18,6 +18,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import * as expenseStore from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
@@ -262,7 +263,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [exp, { data: bil }, { data: ten }, { data: st }, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
+    const [exp, { data: bil }, { data: ten }, st, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
       expenseStore.ledger(supabase, propertyId, { userId, from: `${year}-01-01`, columns: `${expenseStore.LEDGER_COLUMNS},payment_method` }),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
@@ -270,7 +271,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       // insurance_amount / insurance_expiry), ΟΧΙ στο property_settings — που έχει
       // μόνο company/policy/expiry και καθόλου ποσό. Το ερώτημα απορριπτόταν
       // ολόκληρο, οπότε ο βοηθός δεν ήξερε ΠΟΤΕ για ασφάλιση.
-      supabase.from('user_properties').select('insurance_company,insurance_expiry,insurance_amount').eq('id', propertyId).maybeSingle(),
+      properties.one<{ insurance_company: string | null; insurance_expiry: string | null; insurance_amount: number | null }>(supabase, propertyId, 'insurance_company,insurance_expiry,insurance_amount', userId),
       calendar.upcoming(supabase, { propertyId, userId }, athensToday(), 10),
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId),

@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as properties from '@/lib/data/properties';
 import * as expenseStore from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
@@ -85,8 +86,8 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    supabase.from('user_properties').select('id,name').eq('user_id', userId).order('name')
-      .then(({ data }) => { const ps = (data || []) as Prop[]; setProps(ps); setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id))); setLoading(false); });
+    properties.list<Prop>(supabase, userId, { columns: 'id,name', orderBy: 'name' })
+      .then(ps => { setProps(ps); setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id))); setLoading(false); });
   }, [open, userId, supabase]);
 
   const yearsAvail = useMemo(() => Array.from({ length: 7 }, (_, i) => nowYear - i), [nowYear]);

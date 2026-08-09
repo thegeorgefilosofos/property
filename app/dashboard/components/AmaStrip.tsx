@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import { T, Btn, fd } from '@/components/Theme';
 import { saved } from '@/components/dbWrite';
 import { TextInput } from './UIComponents';
@@ -39,9 +40,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    let q = supabase.from('user_properties')
-      .select('id,name,status_detail,rental_mode,ama,ama_listed_confirmed_at')
-      .eq('user_id', userId);
+    let q = properties.query(supabase, userId, 'id,name,status_detail,rental_mode,ama,ama_listed_confirmed_at');
     if (propertyId) q = q.eq('id', propertyId);
     const { data } = await q.order('created_at');
     setProps((data || []) as AmaProperty[]);
@@ -74,9 +73,8 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
     if (!isValidAmaFormat(v)) return;
     setBusy(true);
     // Νέος ΑΜΑ ⇒ η προηγούμενη επιβεβαίωση αγγελίας ΔΕΝ ισχύει πια.
-    const ok = await saved('Ο αριθμός μητρώου δεν αποθηκεύτηκε', supabase.from('user_properties')
-      .update({ ama: v, ama_listed_confirmed_at: v === (p.ama || '') ? p.ama_listed_confirmed_at : null })
-      .eq('id', p.id));
+    const ok = await saved('Ο αριθμός μητρώου δεν αποθηκεύτηκε', properties.update(supabase, p.id,
+      { ama: v, ama_listed_confirmed_at: v === (p.ama || '') ? p.ama_listed_confirmed_at : null }, userId));
     setBusy(false);
     if (!ok) return;
     setEditing(null); setDraft('');
@@ -85,9 +83,8 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
 
   const confirmListed = async (p: AmaProperty, on: boolean) => {
     setBusy(true);
-    await saved('Η επιβεβαίωση αγγελίας δεν αποθηκεύτηκε', supabase.from('user_properties')
-      .update({ ama_listed_confirmed_at: on ? new Date().toISOString() : null })
-      .eq('id', p.id));
+    await saved('Η επιβεβαίωση αγγελίας δεν αποθηκεύτηκε', properties.update(supabase, p.id,
+      { ama_listed_confirmed_at: on ? new Date().toISOString() : null }, userId));
     setBusy(false);
     load();
   };

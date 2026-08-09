@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import { T, fe, fn, fp, fd, ABSENT, Modal, TT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
@@ -336,10 +337,10 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     let propertyId: string | null = savedId;
     let err: { message?: string } | null = null;
     if (savedId) {
-      const { error: uErr } = await supabase.from('user_properties').update(payload).eq('id', savedId);
+      const { error: uErr } = await properties.update(supabase, savedId, payload, userId);
       err = uErr;
     } else {
-      const { data: created, error: iErr } = await supabase.from('user_properties').insert({ user_id: userId, ...payload }).select('id').single();
+      const { data: created, error: iErr } = await properties.add(supabase, { user_id: userId, ...payload });
       err = iErr;
       propertyId = created?.id ?? null;
       // Το κρατάμε ΠΡΙΝ από το δεύτερο βήμα: από εδώ και πέρα κάθε νέα

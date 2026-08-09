@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as propertyStore from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses'
 import { CustomSelect } from './UIComponents';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
@@ -135,7 +136,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [genOfficial, setGenOfficial] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: st }, { data: bl }, ex, { data: tn }, { data: ci }, { data: po }, { data: cl }, { data: rp }] = await Promise.all([
+    const [{ data: st }, { data: bl }, ex, { data: tn }, { data: ci }, po, { data: cl }, { data: rp }] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
       // `total` για ΚΑΘΕ γραμμή — δηλαδή σιωπηλά ξαναγυρίζει το payout.
@@ -144,7 +145,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       expenses.ledgerOfUser(supabase, userId, `${year}-01-01`),
       supabase.from('tenants').select('property_id,monthly_rent,updated_at').eq('user_id', userId).order('updated_at', { ascending: false }),
       supabase.from('checklist_items').select('property_id,status,priority,due_date').eq('user_id', userId).neq('status', 'done').neq('status', 'skipped'),
-      supabase.from('user_properties').select('id,client_id').eq('user_id', userId),
+      propertyStore.list<{ id: string; client_id: string | null }>(supabase, userId, { columns: 'id,client_id' }),
       supabase.from('clients').select('id,full_name').eq('user_id', userId),
       // Οι ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ δόσεις ενοικίου της χρήσης — από εδώ βγαίνει το έσοδο
       // της μακροχρόνιας, ίδια πηγή με ReportBuilder/OwnerSplit/Λογιστική.

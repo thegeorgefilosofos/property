@@ -16,6 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as properties from '@/lib/data/properties';
 import { T, TT, Btn, Modal, Spinner } from '@/components/Theme';
 import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide-react';
 import { notifyError } from '@/components/Toast';
@@ -64,7 +65,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           // με οδηγία να πάει να τα συμπληρώσει στην καρτέλα Ακίνητο. Ήταν ήδη
           // συμπληρωμένα. Ξανάβρισκε το 11ψήφιο ΑΤΑΚ από το Ε9 για να ξεμπλοκάρει
           // κάτι που δεν ήταν ποτέ κενό.
-          must(supabase.from('user_properties').select('name,atak,address,postal_code,sqm,floor,prop_type,ownership').eq('id', propertyId).maybeSingle()),
+          properties.one(supabase, propertyId, 'name,atak,address,postal_code,sqm,floor,prop_type,ownership', userId),
           // Ίδιο σφάλμα, δεύτερο σκέλος: ο πίνακας `tenants` ΔΕΝ έχει `created_at`,
           // έχει `updated_at`. Η ταξινόμηση σε ανύπαρκτη στήλη ρίχνει το ερώτημα
           // ακριβώς όπως η ανύπαρκτη στήλη στο select, οπότε «έλειπαν» και το

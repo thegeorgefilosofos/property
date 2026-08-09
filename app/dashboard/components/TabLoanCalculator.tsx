@@ -11,6 +11,7 @@ import { T, Badge, ABSENT, TT, formGrid } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
+import * as properties from '@/lib/data/properties';
 import { useReportBranding } from '@/lib/reportBranding'
 import { generateReportPdf, pEur, pPct, type PdfReportModel, type PdfSection } from '@/lib/pdf/pdfReport'
 import { issueDocument } from '@/lib/documents/issue'
@@ -621,11 +622,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       try{
         const [rc, pr] = await Promise.all([
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id',propertyId).maybeSingle(),
-          supabase.from('user_properties').select('target_rent').eq('id',propertyId).maybeSingle(),
+          properties.one<{ target_rent: number | null }>(supabase, propertyId, 'target_rent'),
         ])
         if(!alive) return
         const c = rc.data as { actual_rent:number|null; target_rent:number|null } | null
-        const p = pr.data as { target_rent:number|null } | null
+        const p = pr
         setActualRent(Number(c?.actual_rent) || Number(c?.target_rent) || Number(p?.target_rent) || 0)
       }catch{ /* χωρίς δεδομένα, μένει το τεκμηριωμένο ενοίκιο-αναφορά */ }
     })()

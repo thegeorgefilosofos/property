@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import * as properties from '@/lib/data/properties';
 import * as expenseStore from '@/lib/data/expenses';
 import { T, Skeleton, SkeletonKPIs, fe, fp } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
@@ -250,15 +251,15 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         supabase.from('rent_payments').select('period_year,period_month,amount,paid,paid_date,due_date').eq('property_id',propertyId),
         supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('property_id',propertyId),
         supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId),
-        supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value,year_built,floor').eq('id',propertyId).maybeSingle(),
-        supabase.from('user_properties').select('id,name,rental_mode,status_detail,enfia,sqm').eq('user_id',userId),
+        properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor', userId),
+        properties.list<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
         supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date').eq('user_id',userId),
         supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('user_id',userId),
         supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
       ])
       setExpenses(ex as ExpenseRow[]); setRent((rp.data||[]) as RentRow[])
       setStays((st.data||[]) as StayRow[]); setLoans(toLoanViews(ln.data))
-      setProp((pr.data||null) as PropRow|null); setAllProps((aps.data||[]) as PropListRow[])
+      setProp(pr); setAllProps(aps)
       setAllRent((arp.data||[]) as PortfolioRentRow[]); setAllStays((ast.data||[]) as PortfolioStayRow[])
       setInventory((inv.data||[]) as InventoryRow[])
     }catch(_){ /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }

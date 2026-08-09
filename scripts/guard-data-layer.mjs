@@ -27,6 +27,7 @@ import { findSources } from './lib/find-tests.mjs'
 const OWNED = {
   calendar_events: 'lib/data/calendar.ts',
   expenses: 'lib/data/expenses.ts',
+  user_properties: 'lib/data/properties.ts',
 }
 
 const findings = []

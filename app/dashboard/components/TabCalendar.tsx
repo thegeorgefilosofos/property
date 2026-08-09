@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { isoDate } from '@/lib/core/time'
 import { createClient } from '@/lib/supabase/client'
+import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
@@ -603,8 +604,8 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
   const cnt=async(table:string,extra?:(q:CountQuery)=>CountQuery)=>{ let q=countQuery(table); if(extra)q=extra(q); const{count}=await q; return count||0 }
   useEffect(()=>{
     (async()=>{
-      const[{data:prop},bills,maintenance,leases,bookings,loans]=await Promise.all([
-        supabase.from('user_properties').select('status_detail,rental_mode').eq('id',propertyId).maybeSingle(),
+      const[prop,bills,maintenance,leases,bookings,loans]=await Promise.all([
+        properties.one<{ status_detail: string | null; rental_mode: string | null }>(supabase, propertyId, 'status_detail,rental_mode', userId),
         cnt('bills'), cnt('maintenance_tasks'),
         cnt('tenants',q=>q.neq('status','past')), cnt('client_stays'), cnt('loans'),
       ])

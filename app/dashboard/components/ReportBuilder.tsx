@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
@@ -63,9 +64,8 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    supabase.from('user_properties').select('id,name,address').eq('user_id', userId).order('name')
-      .then(({ data }) => {
-        const ps = (data || []) as Prop[];
+    properties.list<Prop>(supabase, userId, { orderBy: 'name' })
+      .then(ps => {
         setProps(ps);
         setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id)));
         setLoading(false);

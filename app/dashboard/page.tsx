@@ -3,6 +3,7 @@
 import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as propertyStore from '@/lib/data/properties';
 import * as expenseStore from '@/lib/data/expenses'
 import type { User } from '@supabase/supabase-js';
 import TabFinances  from './components/TabFinances';
@@ -1264,10 +1265,9 @@ export default function Dashboard() {
     // κενό χαρτοφυλάκιο: ο ιδιοκτήτης τριών ακινήτων, με κακό δίκτυο ή ληγμένο
     // token, έβλεπε «Καλωσήρθες — πρόσθεσε το πρώτο σου ακίνητο». Το χειρότερο
     // δεν είναι η λάθος οθόνη· είναι ότι πιστεύει πως έχασε τα δεδομένα του.
-    const { data, error } = await supabase.from('user_properties').select('*').eq('user_id', uid).order('created_at');
+    const { rows: props, error } = await propertyStore.listWithError<Property>(supabase, uid, { columns: '*', orderBy: 'created_at' });
     if (error) { setLoadError(true); return; }
     setLoadError(false);
-    const props = data || [];
     setProperties(props);
     if (props.length > 0 && !selected) setSelected(props[0]);
     else if (selected) setSelected(props.find(p => p.id === selected.id) || props[0] || null);
@@ -1360,7 +1360,7 @@ export default function Dashboard() {
   const updateStatus = async (status: PropertyStatus) => {
     if (!selected||!user) return;
     if (!await saved('Η κατάσταση του ακινήτου δεν άλλαξε',
-      supabase.from('user_properties').update(writeStatus(status)).eq('id', selected.id))) return;
+      propertyStore.update(supabase, selected.id, writeStatus(status), user.id))) return;
     setStatusDropdown(false);
     await fetchProperties(user.id);
   };
@@ -1389,7 +1389,7 @@ export default function Dashboard() {
     // Το ακίνητο είναι η τελευταία γραμμή που φεύγει. Αν μείνει, ο χρήστης το
     // βλέπει άδειο στη λίστα και νομίζει ότι κάτι χάλασε μόνο του.
     if (!await saved('Το ακίνητο δεν διαγράφηκε',
-      supabase.from('user_properties').delete().eq('id', pid).eq('user_id', user.id))) return;
+      propertyStore.remove(supabase, pid, user.id))) return;
     // Σβήσε τη συνομιλία/μνήμη του βοηθού για το συγκεκριμένο ακίνητο (τοπικά στον browser).
     try { clearAssistantHistory(pid); } catch {}
     if (selected?.id === pid) setSelected(null);
@@ -1409,7 +1409,7 @@ export default function Dashboard() {
     for (const p of demoProps) {
       await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', p.id)));
       if (!await saved('Το δείγμα ακινήτου δεν αφαιρέθηκε',
-        supabase.from('user_properties').delete().eq('id', p.id).eq('user_id', user.id))) return;
+        propertyStore.remove(supabase, p.id, user.id))) return;
       try { clearAssistantHistory(p.id); } catch {}
     }
     // Σβήσε και τους demo πελάτες (και τις διαμονές τους μέσω cascade στη βάση).
@@ -1436,7 +1436,7 @@ export default function Dashboard() {
       const { count } = await supabase.from('property_documents').select('id', { count: 'exact', head: true }).eq('property_id', draft);
       if ((count || 0) === 0) {
         if (!await saved('Το κενό προσχέδιο δεν καθαρίστηκε',
-          supabase.from('user_properties').delete().eq('id', draft).eq('user_id', user.id))) return;
+          propertyStore.remove(supabase, draft, user.id))) return;
         if (selected?.id === draft) setSelected(null);
         await fetchProperties(user.id);
       }
@@ -2112,7 +2112,7 @@ export default function Dashboard() {
         onScanCreate={async()=>{
           setShowWelcome(false);
           const data = await savedData<Property>('Το ακίνητο δεν δημιουργήθηκε',
-            supabase.from('user_properties').insert({ user_id:user.id, name:'Νέο ακίνητο', prop_type:'apartment', status_detail:'vacant' }).select('*').single());
+            propertyStore.addFull<Property>(supabase, { user_id:user.id, name:'Νέο ακίνητο', prop_type:'apartment', status_detail:'vacant' }));
           await fetchProperties(user.id);
           if (!data) return;
           setSelected(data); setScanDraftId(data.id);

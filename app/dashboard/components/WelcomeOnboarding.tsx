@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import { T } from '@/components/Theme';
 import { isoDate } from '@/lib/core/time';
 import { saved } from '@/components/dbWrite';
@@ -95,10 +96,10 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   const startDemo = async () => {
     setBusy(true);
     try {
-      const { data: prop, error: pe } = await supabase.from('user_properties').insert({
+      const { data: prop, error: pe } = await properties.add(supabase, {
         user_id: userId, name: 'Demo: Διαμέρισμα, Κουκάκι', prop_type: 'apartment', status_detail: 'seasonal',
         address: 'Δείγμα, Αθήνα', postal_code: '11742', sqm: 62, value: 195000, target_rent: 850, year_built: 2006, bedrooms: 1,
-      }).select('id').single();
+      });
       if (pe || !prop) throw new Error(pe?.message || 'demo property');
       const pid = prop.id as string;
 

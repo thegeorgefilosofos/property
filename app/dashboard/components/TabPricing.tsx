@@ -29,6 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable, formGrid } from '@/components/Theme';
@@ -104,7 +105,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // υψηλότερο (15/4 €) ισχύει ΜΟΝΟ για μονοκατοικίες άνω των 80 τ.μ., όχι για
   // κάθε ακίνητο άνω των 80 τ.μ. Χωρίς αυτό, η ανάλυση τιμής θα ήταν λάθος.
   const loadPropType = useCallback(async () => {
-    const { data } = await supabase.from('user_properties').select('prop_type').eq('id', propertyId).maybeSingle();
+    const data = await properties.one<{ prop_type: string }>(supabase, propertyId, 'prop_type', userId);
     setIsHouse(['house', 'villa'].includes(String(data?.prop_type || '').toLowerCase()));
   }, [propertyId]);
 
@@ -125,11 +126,11 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // Οι λειτουργικές δαπάνες της χρονιάς, και πόσα ακίνητα έχει ο φορολογούμενος
   // (κρίνει την εξαίρεση του τέλους παρεπιδημούντων: ισχύει έως δύο ακίνητα).
   const loadCashflowInputs = useCallback(async () => {
-    const [exp, { data: bil }, { count }] = await Promise.all([
+    const [exp, { data: bil }, count] = await Promise.all([
       expenses.ledger(supabase, propertyId, { userId }),
       supabase.from('bills').select('id,name,category,amount,due_date,paid,paid_at,recurring,created_at')
         .eq('property_id', propertyId).eq('user_id', userId),
-      supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      properties.count(supabase, userId),
     ]);
     // ΚΑΘΕ ΕΥΡΩ ΜΙΑ ΦΟΡΑ. Ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ΙΔΙΟ
     // γεγονός: αθροίζοντας και τα δύο, τα λειτουργικά έξοδα θα έβγαιναν διπλά και

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useId, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
 import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
@@ -392,8 +393,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       .then(({ data }) => { if (data) { setPlan((data.plan as string) || 'free'); setCompPlan((data.comp_plan as string) || null); setCompUntil((data.comp_until as string) || null); } });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
-    supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId)
-      .then(({ count }) => setPropertyCount(count ?? 0));
+    properties.count(supabase, userId).then(setPropertyCount);
     supabase.from('organization_members').select('id').eq('user_id', userId).eq('status', 'active').limit(1)
       .then(({ data }) => setInOrg((data?.length ?? 0) > 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps

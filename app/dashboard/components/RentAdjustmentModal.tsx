@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as properties from '@/lib/data/properties';
 import { T, TT, Btn, Spinner, EmptyState, Modal, formGrid } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
@@ -52,8 +53,8 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    supabase.from('user_properties').select('id,name,address').eq('user_id', userId).order('name')
-      .then(({ data }) => { const ps = (data || []) as Prop[]; setProps(ps); setPropId(prev => prev || ps[0]?.id || ''); setLoading(false); });
+    properties.list<Prop>(supabase, userId, { orderBy: 'name' })
+      .then(ps => { setProps(ps); setPropId(prev => prev || ps[0]?.id || ''); setLoading(false); });
     if (branding?.companyName && !ownerName) setOwnerName(branding.companyName);
   }, [open, userId, supabase]);
 

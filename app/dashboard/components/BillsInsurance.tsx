@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -658,10 +659,8 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
         // κατασκευής και ο τρόπος εκμετάλλευσης — ακριβώς τα δεδομένα πάνω στα
         // οποία στηρίζεται η πρόταση ασφάλισης. Η περιοχή έρχεται τώρα από τη
         // διεύθυνση, και το «επιπλωμένο» από τη μίσθωση, όπου όντως ζει.
-        const [{ data: prop }, { data: loans }, { data: tenants }] = await Promise.all([
-          supabase.from('user_properties')
-            .select('address,sqm,prop_type,status_detail,year_built,rental_mode,target_rent,insurance_company,insurance_expiry,insurance_amount')
-            .eq('id', propertyId).maybeSingle(),
+        const [prop, { data: loans }, { data: tenants }] = await Promise.all([
+          properties.one(supabase, propertyId, 'address,sqm,prop_type,status_detail,year_built,rental_mode,target_rent,insurance_company,insurance_expiry,insurance_amount', userId),
           supabase.from('loans').select('status').eq('property_id', propertyId),
           supabase.from('tenants').select('monthly_rent,status,move_out_date,furnishing').eq('property_id', propertyId),
         ]);
@@ -917,7 +916,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       if (insCost > 0) patch.insurance_amount = insCost;
       if (insRenewalDate) patch.insurance_expiry = insRenewalDate;
       if (!Object.keys(patch).length) return;
-      const { error } = await supabase.from('user_properties').update(patch).eq('id', propertyId);
+      const { error } = await properties.update(supabase, propertyId, patch, userId);
       setSyncError(!!error);
     }, 1200); // debounce, αποφυγή write σε κάθε keystroke
     return () => { if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current); };

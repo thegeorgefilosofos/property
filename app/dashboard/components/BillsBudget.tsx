@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
@@ -383,18 +384,18 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
       const [propRes, loansRes, tenantsRes, staysRes] = await Promise.all([
-        supabase.from('user_properties').select('rental_mode,target_rent,value,year_built,enfia,purchase_price,sqm,prop_type').eq('id', propertyId).maybeSingle(),
+        properties.one(supabase, propertyId, 'rental_mode,target_rent,value,year_built,enfia,purchase_price,sqm,prop_type'),
         supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId),
         supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
         // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
         // για ετησιοποίηση (πρόβλεψη φόρου βραχυχρόνιας χωρίς εποχική στρέβλωση).
         supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', `${y}-01-01`).lte('check_in', dateEnd),
       ]);
-      const rMode = (propRes.data?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
+      const rMode = (propRes?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
       setRentalMode(rMode);
-      setPropSqm(Number(propRes.data?.sqm) || null);
+      setPropSqm(Number(propRes?.sqm) || null);
       // «Μονοκατοικία» κατά την έννοια του ΤΑΚΚ: ό,τι δεν είναι διαμέρισμα σε πολυκατοικία.
-      setPropIsHouse(/house|maisonette|villa|μονοκατοικ|μεζονέτ|βίλα/i.test(String(propRes.data?.prop_type ?? '')));
+      setPropIsHouse(/house|maisonette|villa|μονοκατοικ|μεζονέτ|βίλα/i.test(String(propRes?.prop_type ?? '')));
       // Οι δύο σχήματα γραμμών, όπως ακριβώς τα ζητά το ερώτημα από πάνω. Ήταν
       // `any`, οπότε ένα λάθος όνομα στήλης (`nightlyRate` αντί για
       // `nightly_rate`) θα έδινε αθόρυβα μηδέν έσοδα αντί για σφάλμα.
@@ -414,7 +415,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         const rentSum = ((tenantsRes.data ?? []) as TenantRow[])
           .filter(t => t.status !== 'past' && !t.move_out_date)
           .reduce((s, t) => s + (Number(t.monthly_rent) || 0), 0);
-        inc = rentSum > 0 ? rentSum : (Number(propRes.data?.target_rent) || 0);
+        inc = rentSum > 0 ? rentSum : (Number(propRes?.target_rent) || 0);
       }
       setIncome(Math.round(inc));
       // Έσοδα από την αρχή του έτους: βραχυχρόνια → πραγματικά καταλύματα YTD· μακροχρόνια
@@ -621,11 +622,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         const remain = Math.max(1, 12 - monthsElapsed + 1);
         taxPerMonth = Math.ceil(taxTargetAnnual / remain);
       }
-      const propValue = Number(propRes.data?.value) || 0;
+      const propValue = Number(propRes?.value) || 0;
 
       // ── Απόδοση επένδυσης (μόνο επαγγελματίας) — NOI/cap rate/cash-on-cash από τον πυρήνα ──
-      if (isPro && annualGross > 0 && (propValue > 0 || (Number(propRes.data?.purchase_price) || 0) > 0)) {
-        const purchase = Number(propRes.data?.purchase_price) || propValue;
+      if (isPro && annualGross > 0 && (propValue > 0 || (Number(propRes?.purchase_price) || 0) > 0)) {
+        const purchase = Number(propRes?.purchase_price) || propValue;
         const loanBalance = activeLoans.reduce((s: number, l) => s + l.amount, 0);
         const equity = Math.max(0, purchase - loanBalance);
         setInvReturns(investmentReturns({ annualIncome: annualGross, annualOpEx: annualOpex, annualLoanPayment: Math.round(loanM * 12), purchasePrice: purchase, equityInvested: equity }));
@@ -634,8 +635,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       }
       // ── Όριο 3+ βραχυχρόνιων (μόνο ιδιώτης) — προειδοποίηση επιχειρηματικής δραστηριότητας ──
       if (!isPro && userId) {
-        const { count } = await supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('rental_mode', 'short_term');
-        setStrPropCount(count || 0);
+        setStrPropCount(await properties.countShortTerm(supabase, userId));
       } else {
         setStrPropCount(0);
       }

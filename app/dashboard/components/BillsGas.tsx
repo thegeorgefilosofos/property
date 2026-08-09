@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -278,7 +279,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     propertyHeatingSyncTimer.current = setTimeout(() => {
       // Ανύπαρκτος πίνακας + `.then(() => {})` που καταπίνει το σφάλμα: ο τύπος
       // θέρμανσης δεν αποθηκευόταν ΠΟΤΕ στο ακίνητο, σιωπηλά.
-      supabase.from('user_properties').update({ heating: s.heatingType }).eq('id', propertyId)
+      Promise.resolve(properties.update(supabase, propertyId, { heating: s.heatingType }, userId))
         .then(({ error }) => { if (error) notifyError(failed('Ο τύπος θέρμανσης δεν αποθηκεύτηκε', error)); });
     }, 1200);
     return () => { if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current); };

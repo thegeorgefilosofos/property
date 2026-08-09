@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, formGrid } from '@/components/Theme';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
@@ -50,9 +51,8 @@ export default function Billing({ userId }: { userId: string }) {
         if (!String(base[k] || '').trim() && v && String(v).trim()) { base[k] = String(v).trim(); did = true; }
       };
       try {
-        const { data: prop } = await supabase
-          .from('user_properties').select('id, address, postal_code')
-          .eq('user_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle();
+        const prop = (await properties.list<{ id: string; address: string | null; postal_code: string | null }>(
+          supabase, userId, { columns: 'id, address, postal_code', orderBy: 'created_at' }))[0] || null;
         let ps: { owner_name?: string; owner_afm?: string; owner_phone?: string } | null = null;
         if (prop?.id) {
           const { data: s } = await supabase

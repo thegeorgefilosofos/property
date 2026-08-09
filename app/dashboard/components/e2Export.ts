@@ -1,5 +1,6 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as propertyStore from '@/lib/data/properties';
 import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
 import { E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary, type E2Stay, E1_HEADERS, E2_INSTRUCTIONS, type E2Property, type E2Tenant, type E2Payment, type E2Row } from '@/lib/billing/e2';
 
@@ -92,10 +93,10 @@ export async function loadE2Rows(
 ): Promise<{ properties: E2Property[]; rows: E2Row[]; ownerAfm: string;
             tenantByProp: Map<string, E2Tenant>; paymentsByProp: Map<string, E2Payment[]>;
             afmByProp: Map<string, string>; staysByProp: Map<string, E2Stay[]> }> {
-  const { data: props } = await supabase.from('user_properties')
-    .select('id, atak, address, postal_code, ownership, prop_type, status_detail, rental_mode, target_rent, sqm, floor')
-    .eq('user_id', userId).order('created_at');
-  const properties = (props || []) as E2Property[];
+  const properties = await propertyStore.list<E2Property>(supabase, userId, {
+    columns: 'id, atak, address, postal_code, ownership, prop_type, status_detail, rental_mode, target_rent, sqm, floor',
+    orderBy: 'created_at',
+  });
   if (!properties.length) {
     return { properties: [], rows: [], ownerAfm: '', tenantByProp: new Map(), paymentsByProp: new Map(), afmByProp: new Map(), staysByProp: new Map() };
   }

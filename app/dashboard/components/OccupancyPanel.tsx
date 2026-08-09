@@ -32,6 +32,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as properties from '@/lib/data/properties';
 import { T, fe, Skeleton, Btn, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
@@ -55,8 +56,8 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
 
   const load = useCallback(async () => {
     try {
-      const [{ data: p }, { data: s }] = await Promise.all([
-        supabase.from('user_properties').select('status_detail,rental_mode,prop_type,sqm').eq('id', propertyId).maybeSingle(),
+      const [p, { data: s }] = await Promise.all([
+        properties.one(supabase, propertyId, 'status_detail,rental_mode,prop_type,sqm'),
         supabase.from('client_stays')
           .select('check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at')
           .eq('user_id', userId).eq('property_id', propertyId),
