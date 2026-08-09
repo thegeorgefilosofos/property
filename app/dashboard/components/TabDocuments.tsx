@@ -115,7 +115,7 @@ const BILL_CAT_FOLDER: Record<string, FolderKey> = {
 // Ομαδοποίηση λογαριασμών «ανά πάροχο»: κατηγορία → σταθερή ετικέτα (όχι το μοναδικό
 // όνομα κάθε λογαριασμού, που θα δημιουργούσε έναν υποφάκελο ανά λογαριασμό).
 const BILL_PROVIDER_LABEL: Record<string, string> = {
-  electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο', internet: 'Internet & Τηλεφωνία',
+  electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό αέριο', internet: 'Internet & Τηλεφωνία',
   common: 'Κοινόχρηστα', streaming: 'Συνδρομές', enfia: 'ΕΝΦΙΑ', dimotika: 'Δημοτικά Τέλη',
   insurance: 'Ασφάλεια', security: 'Ασφάλεια και Φύλαξη', cleaning: 'Καθαρισμός',
   garden: 'Κήπος', pool: 'Πισίνα', elevator: 'Ανελκυστήρας', ac_service: 'Κλιματισμός',

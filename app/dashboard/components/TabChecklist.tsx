@@ -899,7 +899,7 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 <div class="hdr">
   <div>
     ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
-    <div class="logo-sub">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
+    <div class="logo-sub">Επαγγελματικό εργαλείο διαχείρισης ακινήτων</div>
   </div>
   <div class="hdr-right">
     <div class="hdr-title">${esc(title)}</div>
@@ -978,7 +978,7 @@ ${sectionHtml(4, 'Μετρητές Παροχών', `
       <div class="meter-serial">Αριθμός σειράς: ____________________</div>
     </div>
     <div class="meter-card">
-      <div class="meter-title">Φυσικό Αέριο</div>
+      <div class="meter-title">Φυσικό αέριο</div>
       <div class="meter-val"></div>
       <div class="meter-unit">m³</div>
       <div class="meter-serial">Αριθμός σειράς: ____________________</div>

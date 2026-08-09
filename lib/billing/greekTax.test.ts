@@ -66,7 +66,7 @@ ok('rows count == brackets', RENTAL_TAX_ROWS_2026.length === RENTAL_TAX_BRACKETS
 ok('rows boundaries match', RENTAL_TAX_ROWS_2026.every((r, i) => r.from === RENTAL_TAX_BRACKETS_2026[i].from && r.to === RENTAL_TAX_BRACKETS_2026[i].to));
 ok('rows include 25% band', RENTAL_TAX_ROWS_2026.some(r => r.rate === '25%' && r.from === 12000 && r.to === 24000));
 
-// ── Τέλος Ανθεκτικότητας (ΤΑΚΚ) βραχυχρόνιας ─────────────────────────────────
+// ── Τέλος ανθεκτικότητας (ΤΑΚΚ) βραχυχρόνιας ─────────────────────────────────
 ok('high season Απρ–Οκτ', [3,4,5,6,7,8,9].every(isHighSeasonMonth) && ![0,1,2,10,11].some(isHighSeasonMonth));
 // 10 νύχτες Ιανουάριο (χαμηλή) = 20 €· 10 νύχτες Ιούλιο (υψηλή) = 80 €
 ok('levy low month', climateLevyForNights([10,0,0,0,0,0,0,0,0,0,0,0]) === 20);

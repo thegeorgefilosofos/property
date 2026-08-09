@@ -113,7 +113,7 @@ const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTa
     ],
   },
   {
-    value: 'fysiko_aerio', label: 'Φυσικό Αέριο ΕΕΕ (ΔΕΠΑ)', url: 'https://fysikoaerioellados.gr',
+    value: 'fysiko_aerio', label: 'Φυσικό αέριο ΕΕΕ (ΔΕΠΑ)', url: 'https://fysikoaerioellados.gr',
     tariffs: [
       { id: 'fae_extra',   name: 'Οικιακό Πλήρες Extra', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'verified',
         kwh: 0.03794, fixed: 4.50, vat: 6,
@@ -132,7 +132,7 @@ const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTa
   {
     value: 'dei', label: 'ΔΕΗ', url: 'https://www.dei.gr',
     tariffs: [
-      { id: 'dei_gas',     name: 'myHome Φυσικό Αέριο', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
+      { id: 'dei_gas',     name: 'myHome Φυσικό αέριο', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
         kwh: 0.0480, fixed: 5.00, vat: 6, dual_fuel_discount: 0.003,
         desc: 'Κυμαινόμενο, η τιμή ανακοινώνεται μηνιαίως στο dei.gr. Έκπτωση dual fuel με ρεύμα ΔΕΗ.', sourceNote: 'Ενδεικτική τιμή, μηνιαία ανακοίνωση στο dei.gr' },
       { id: 'dei_gas_biz', name: 'myBusiness Αέριο',    badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'indicative',
@@ -152,7 +152,7 @@ const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTa
       { id: 'prot_koin',   name: 'Οικιακό Κοινόχρηστο', badge: 'ΕΙΔΙΚΟ',  type: 'special',  segment: 'residential', priceStatus: 'indicative',
         kwh: 0.0460, fixed: 5.00, vat: 6,
         desc: 'Για κεντρική θέρμανση πολυκατοικίας (κοινόχρηστος μετρητής).', sourceNote: 'Ενδεικτική, δες protergia.gr' },
-      { id: 'prot_biz',    name: 'Φυσικό Αέριο Εμπορικό', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'indicative',
+      { id: 'prot_biz',    name: 'Φυσικό αέριο Εμπορικό', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'indicative',
         kwh: 0.0550, fixed: 5.00, vat: 24,
         desc: 'Επαγγελματικό.', sourceNote: 'Ενδεικτική, δες protergia.gr' },
     ],

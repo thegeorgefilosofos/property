@@ -138,7 +138,7 @@ const DEFAULTS = {
   internetSpeed: '', internetPrice: '', internetPhone: false,
   internetContractEnd: '', internetSpeedReal: '',
   phoneLocal: true, phoneMobile: false, phoneIntl: false, phoneVoip: false, phoneNotes: '',
-  // FIX: "Συνδρομητική Τηλεόραση" label
+  // FIX: "Συνδρομητική τηλεόραση" label
   hasTV: false, tvProvider: 'cosmote', tvPlan: '', tvPrice: '', tvHasSports: false,
   waterProvider: 'eydap', waterBiMonthly: '', waterMonthly: '', waterPersons: '2', waterPeriodMonths: '2',
   heatingType: 'autonomous_gas', heatingMonthly: '',
@@ -257,7 +257,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           { label: 'Internet & TV',                   value: fe(internetCost + tvCost), accent: false },
           { label: 'Νερό και Θέρμανση',                 value: fe(waterM + heatingM),     accent: false },
           { label: 'Security',                          value: fe(securityM),             accent: false },
-          { label: 'Σύνολο Παρόχων / μήνα',           value: fe(totalM),                accent: totalM > 0 },
+          { label: 'Σύνολο παρόχων / μήνα',           value: fe(totalM),                accent: totalM > 0 },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -444,10 +444,10 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         )}
         {benchmarkBar(internetCost, BENCHMARKS.internet.avg, BENCHMARKS.internet.label)}
 
-        {/* FIX: "Συνδρομητική Τηλεόραση" (was "PAY TV") */}
+        {/* FIX: "Συνδρομητική τηλεόραση" (was "PAY TV") */}
         <div style={{ marginTop: 16, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική Τηλεόραση</span>
+            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική τηλεόραση</span>
             <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} label="Ενεργό" labelOff="Δεν έχω"/>
           </div>
           {s.hasTV && (
@@ -539,13 +539,13 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {benchmarkBar(heatingM, BENCHMARKS.heating.avg, BENCHMARKS.heating.label)}
       </div>
 
-      {/* ── Φυσικό Αέριο → μετακόμισε σε αφιερωμένο tab ─────────────────────── */}
+      {/* ── Φυσικό αέριο → μετακόμισε σε αφιερωμένο tab ─────────────────────── */}
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 32, height: 32, borderRadius: T.radius.inner, background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><path d="M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z"/></svg>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>Το Φυσικό Αέριο έχει το δικό του tab</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>Το φυσικό αέριο έχει τη δική του καρτέλα</div>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Σύγκριση 7 παρόχων με πραγματικά τιμολόγια, διαχειριστές δικτύου (ΕΔΑ Αττικής/ΘΕΣΣ/ΔΕΔΑ) και ζωντανές ειδοποιήσεις σύμβασης.</div>
         </div>
       </div>
@@ -596,7 +596,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο Παρόχων</span>
+            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο παρόχων</span>
             <div style={{ textAlign: 'right' as const }}>
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(totalM)} / μήνα</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(totalM * 12)} / έτος</div>

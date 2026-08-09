@@ -95,7 +95,7 @@ export default function AccountantPortal() {
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <BrandMark />
-            <span style={{ fontSize: 16, fontWeight: 700 }}>Πύλη Λογιστή</span>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>Πύλη λογιστή</span>
           </div>
           {state === 'ok' && (
             <div style={{ minWidth: 120 }}>

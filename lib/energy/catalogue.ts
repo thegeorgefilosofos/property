@@ -277,7 +277,7 @@ export const PROVIDERS: ProviderGroup[] = [
     ],
   },
   {
-    value: 'fysiko_aerio', label: 'Φυσικό Αέριο Ελλάδος', url: 'https://www.fysikoaerioellados.gr',
+    value: 'fysiko_aerio', label: 'Φυσικό αέριο Ελλάδος', url: 'https://www.fysikoaerioellados.gr',
     tariffs: [
       { id: 'fa_oikia',         name: 'Oikia Green',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.14265, kwh_night: null, fixed: 5.00, contract_months: 0, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Ανακοινώνεται κάθε 1η μήνα.' },
     ],

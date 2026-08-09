@@ -201,11 +201,11 @@ export default function SignupPage() {
                 {/* Ο έλεγχος δεν τυλίγει τους συνδέσμους (χωρίς ένθετα διαδραστικά)· το checkbox
                     περιγράφεται με aria-label και οι σύνδεσμοι είναι διπλανό κείμενο. */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 2 }}>
-                  <input id="su-consent" type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής Απορρήτου" style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+                  <input id="su-consent" type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου" style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     Αποδέχομαι τους{' '}
-                    <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους Χρήσης</Link>{' '}και την{' '}
-                    <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική Απορρήτου</Link>.
+                    <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}
+                    <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική απορρήτου</Link>.
                   </span>
                 </div>
 

@@ -166,7 +166,7 @@ ok(canAddProperty(compOwner, 3) === false, 'comp owner σταματά στα 3')
   ok(trialState(mk(31)).active === false, 'μετά τις 30 ημέρες → δοκιμή έληξε');
   ok(trialState({ now }).active === false, 'χωρίς createdAt → καμία δοκιμή');
 
-  // Η δοκιμή δίνει ΠΑΝΤΑ «Ιδιοκτήτης» — ίδιο με τον server και τους Όρους Χρήσης.
+  // Η δοκιμή δίνει ΠΑΝΤΑ «Ιδιοκτήτης» — ίδιο με τον server και τους Όρους χρήσης.
   ok(effectivePlan(mk(5)) === 'owner', 'δοκιμή ιδιώτη → owner');
   ok(effectivePlan(mk(5, { profileType: 'professional' })) === 'owner', 'δοκιμή επαγγελματία → ΕΠΙΣΗΣ owner (όχι agency)');
   ok(propertyLimit(mk(5, { profileType: 'professional' })) === 3, 'το όριο δοκιμής είναι 3, όσο και του server');

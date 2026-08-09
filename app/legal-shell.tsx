@@ -2,7 +2,7 @@ import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import { T } from '@/components/tokens';
 
-// Κοινό «κέλυφος» για νομικές σελίδες (Πολιτική Απορρήτου, Όροι), theme-aware.
+// Κοινό «κέλυφος» για νομικές σελίδες (Πολιτική απορρήτου, Όροι), theme-aware.
 // Κάθε ενότητα: παράγραφοι (p), προαιρετική λίστα (list) και προαιρετική σημείωση (note).
 export interface LegalSection {
   h: string; p?: string[]; list?: string[]; note?: string;
@@ -71,8 +71,8 @@ export function LegalShell({ title, updated, intro, sections, disclaimer }: {
 
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           <Link href="/trust" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Ποιοι είμαστε</Link>
-          <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Πολιτική Απορρήτου</Link>
-          <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Όροι Χρήσης</Link>
+          <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Πολιτική απορρήτου</Link>
+          <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Όροι χρήσης</Link>
           <Link href="/" style={{ color: 'var(--text-tertiary)', textDecoration: 'none', fontSize: 13 }}>Αρχική</Link>
         </div>
       </main>

@@ -1274,7 +1274,7 @@ export default function Dashboard() {
       // τον referrer, ώστε η σύσταση να προσμετράται σωστά στον συστήνοντα.
       const refBy = (user.user_metadata as { referred_by?: string } | null)?.referred_by;
       if (refBy) { supabase.rpc('redeem_referral', { p_code: String(refBy) }).then(() => {}); }
-      // Ιδιότητα Συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
+      // Ιδιότητα συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
       supabase.from('billing_profiles').select('plan, profile_type, comp_plan, comp_until, legal_form').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); const raw = (data as { legal_form?: string|null } | null)?.legal_form ?? '';

@@ -182,7 +182,7 @@ export default function TenantPortal() {
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
           <BrandMark />
-          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Πύλη Ενοικιαστή</span>
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Πύλη ενοικιαστή</span>
         </div>
       </header>
 

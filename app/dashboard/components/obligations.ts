@@ -155,7 +155,7 @@ export function computeObligations(
       note: 'Ξεκίνα συζήτηση ανανέωσης ή αναπροσαρμογής ενοικίου ~2 μήνες πριν.',
     });
   }
-  // Δήλωση Μίσθωσης στην ΑΑΔΕ — Η ΔΙΚΗ ΜΑΣ ημερομηνία, από τη δική του υπογραφή.
+  // Δήλωση μίσθωσης στην ΑΑΔΕ — Η ΔΙΚΗ ΜΑΣ ημερομηνία, από τη δική του υπογραφή.
   if (tenant?.lease_start) {
     const start = new Date(tenant.lease_start);
     if (!isNaN(start.getTime())) {

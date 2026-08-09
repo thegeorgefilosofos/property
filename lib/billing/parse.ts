@@ -37,7 +37,7 @@ export const MATCHERS: { keywords: string[]; category: Category; label: string; 
   { keywords: ['ICLOUD','APPLE ICLOUD','GOOGLE ONE','GOOGLE STORAGE','MICROSOFT 365','MICROSOFT ONLINE','DROPBOX','ADOBE SYSTEMS','CANVA'], category: 'streaming', label: 'Cloud & Λογισμικό', confidence: 'high' },
   { keywords: ['ΑΑΔΕ','AADE','ENFIA','ΕΝΦΙΑ','ΕΦΟΡΙΑ ΑΘΗΝΩΝ','ΔΗΜΟΣΙΑ ΕΣΟΔΑ','ΕΦΚΑ','ΙΚΑ','ΤΕΒΕ'], category: 'taxes', label: 'ΕΝΦΙΑ & Φόροι', confidence: 'high' },
   { keywords: ['ΔΗΜΟΣ ΑΘΗΝΑΙΩΝ','ΔΗΜΟΤΙΚΑ ΤΕΛΗ','ΔΗΜΟΤΙΚΗ','ΔΗΜΟΣ ΘΕΣΣΑΛΟΝΙΚΗΣ','ΔΗΜΟΤΙΚΗ ΑΡΧΗ','ΔΗΜΟΣ'], category: 'municipal', label: 'Δημοτικά Τέλη', confidence: 'medium' },
-  { keywords: ['EDA ATTIKIS','ΕΔΑ ΑΤΤΙΚΗΣ','EDA THESS','DEPA','ΦΥΣΙΚΟ ΑΕΡΙΟ','GAS DISTRIBUTION','HERON GAS','PROTERGIA GAS','ZENITH GAS','ΑΕΡΙΟ ΑΤΤΙΚΗΣ'], category: 'gas', label: 'Φυσικό Αέριο', confidence: 'high' },
+  { keywords: ['EDA ATTIKIS','ΕΔΑ ΑΤΤΙΚΗΣ','EDA THESS','DEPA','ΦΥΣΙΚΟ ΑΕΡΙΟ','GAS DISTRIBUTION','HERON GAS','PROTERGIA GAS','ZENITH GAS','ΑΕΡΙΟ ΑΤΤΙΚΗΣ'], category: 'gas', label: 'Φυσικό αέριο', confidence: 'high' },
   { keywords: ['HELLAS DIRECT','INTERAMERICAN','EUROLIFE FFH','EUROLIFE','GENERALI HELLAS','AXA ASFALISTIKI','ΕΘΝΙΚΗ ΑΣΦΑΛΙΣΤΙΚΗ','ALLIANZ HELLAS','ERGO ΑΣΦΑΛΙΣΤΙΚΗ','GROUPAMA','ΑΣΦΑΛΕΙΑ','ΑΣΦΑΛΙΣΤΗΡΙΟ'], category: 'insurance', label: 'Ασφάλεια', confidence: 'high' },
   { keywords: ['ELTRAK SECURITY','G4S HELLAS','VANINFO','DSP SECURITY','SECURITAS','ΕΤΑΙΡΕΙΑ ΑΣΦΑΛΕΙΑΣ','ALARM','ΣΥΝΑΓΕΡΜ'], category: 'security', label: 'Ασφάλεια & Security', confidence: 'medium' },
   { keywords: ['ΚΟΙΝΟΧΡΗΣΤΑ','ΔΙΑΧΕΙΡΙΣΗΣ','MYBILLYS','BILLYS','MY CONDO','COMFY','ΠΟΛΥΚΑΤΟΙΚΙΑ'], category: 'common', label: 'Κοινόχρηστα', confidence: 'medium' },
@@ -64,7 +64,7 @@ export function categorizeTransaction(desc: string): { category: string; label: 
 export const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
   electricity: { group: 'fixed',       cat: 'Ρεύμα' },
   water:       { group: 'fixed',       cat: 'Νερό' },
-  gas:         { group: 'fixed',       cat: 'Φυσικό Αέριο' },
+  gas:         { group: 'fixed',       cat: 'Φυσικό αέριο' },
   internet:    { group: 'fixed',       cat: 'Internet' },
   streaming:   { group: 'fixed',       cat: 'Άλλη Πάγια' },
   insurance:   { group: 'fixed',       cat: 'Ασφάλεια Κτιρίου' },

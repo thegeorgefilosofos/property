@@ -434,7 +434,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       {step === 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
-            <label style={labelStyle}>Τύπος Ακινήτου</label>
+            <label style={labelStyle}>Τύπος ακινήτου</label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
               {PROP_TYPES.map(t => {
                 const sel = propType === t;
@@ -517,7 +517,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       {/* STEP 2, Βασικά Στοιχεία */}
       {step === 1 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Field label="Ονομασία Ακινήτου *">
+          <Field label="Ονομασία ακινήτου *">
             <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />
           </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
@@ -550,7 +550,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 </Field>
               </div>
               <div style={grid3}>
-                <Field label="Ενεργειακή Κλάση (ΠΕΑ)">
+                <Field label="Ενεργειακή κλάση (ΠΕΑ)">
                   <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε"
                     options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />
                 </Field>
@@ -579,15 +579,15 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={grid2}>
-            <Field label="Εμπορική Αξία (€)">
+            <Field label="Εμπορική αξία (€)">
               <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
-            <Field label="Αντικειμενική Αξία (€)">
+            <Field label="Αντικειμενική αξία (€)">
               <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
           </div>
           <div style={grid2}>
-            <Field label="Τιμή Αγοράς (€)">
+            <Field label="Τιμή αγοράς (€)">
               <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
             </Field>
             <Field label="Ημερομηνία αγοράς">
@@ -604,7 +604,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             </Field>
           </div>
           <div style={grid2}>
-            <Field label="Ποσοστό Ιδιοκτησίας (%)">
+            <Field label="Ποσοστό ιδιοκτησίας (%)">
               <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} max={100} onFocus={onFocus} onBlur={onBlur} />
             </Field>
             {isShared && (
@@ -631,7 +631,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
           {grossYield != null && (
             <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16 }}>
-              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
+              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη μεικτή απόδοση</div>
               <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield)}</div>
               <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                 {airbnb
@@ -759,7 +759,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
               [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN) : `${fe(rentN)} / μήνα`) : fe(0)],
               ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
-              ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${fp(grossYield)}` : fp(0)],
+              ['Εκτιμώμενη μεικτή απόδοση', grossYield != null ? `${fp(grossYield)}` : fp(0)],
             ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                 <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>

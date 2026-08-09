@@ -475,7 +475,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </div>
 
           {/* Συνεργάτης */}
-          <SectionLabel>Ιδιότητα Συνεργάτη</SectionLabel>
+          <SectionLabel>Ιδιότητα συνεργάτη</SectionLabel>
           <div className="ref-hover-accent" style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
             {partner ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
@@ -633,7 +633,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               const title = r.kind === 'slot'
                 ? `1 δωρεάν ακίνητο για ${r.months === 1 ? 'έναν μήνα' : `${r.months} μήνες`}`
                 : `${r.months} ${monthsWord} ${tierLabel} δωρεάν`;
-              const reasonLabel = ({ per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία', indiv_volume: '5 νέοι μέσα στον μήνα', pro_paid: '5 συνδρομητές μέσα στον μήνα', pro_free: '10 δωρεάν χρήστες μέσα στον μήνα', milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα Συνεργάτη' } as Record<string, string>)[r.reason] || 'Μπόνους';
+              const reasonLabel = ({ per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία', indiv_volume: '5 νέοι μέσα στον μήνα', pro_paid: '5 συνδρομητές μέσα στον μήνα', pro_free: '10 δωρεάν χρήστες μέσα στον μήνα', milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα συνεργάτη' } as Record<string, string>)[r.reason] || 'Μπόνους';
               return (
                 <div key={i} className="ref-lift" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
                   <div style={{ width: 38, height: 38, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

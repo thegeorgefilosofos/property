@@ -1,12 +1,12 @@
 import { LegalShell } from '../legal-shell';
 import { IDENTITY, identityIsPublished } from '@/lib/legal/identity';
 
-export const metadata = { title: 'Πολιτική Απορρήτου, Property OS' };
+export const metadata = { title: 'Πολιτική απορρήτου, Property OS' };
 
 export default function PrivacyPage() {
   return (
     <LegalShell
-      title="Πολιτική Απορρήτου"
+      title="Πολιτική απορρήτου"
       updated="Ιούλιος 2026"
       intro="Στο Property OS η προστασία των προσωπικών σου δεδομένων είναι θεμελιώδης προτεραιότητα. Η παρούσα Πολιτική εξηγεί με διαφάνεια ποια δεδομένα συλλέγουμε, για ποιους σκοπούς, σε ποια νομική βάση, με ποιους τα μοιραζόμαστε και ποια δικαιώματα έχεις. Συντάσσεται με βάση τον Γενικό Κανονισμό Προστασίας Δεδομένων (GDPR, Καν. ΕΕ 2016/679) και τον ελληνικό νόμο 4624/2019, και βρίσκεται υπό νομικό έλεγχο πριν την εμπορική κυκλοφορία."
       sections={[

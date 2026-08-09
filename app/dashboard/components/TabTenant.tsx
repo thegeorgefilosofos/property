@@ -403,7 +403,7 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
       </div>
 
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24, marginBottom:16 }}>
-        <SectionTitle>Ιστορικό Πληρωμών, Τελευταίοι 12 Μήνες</SectionTitle>
+        <SectionTitle>Ιστορικό πληρωμών, τελευταίοι 12 μήνες</SectionTitle>
         <PaymentBars payments={payments}/>
         {payments.length>0&&(
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginTop:20 }}>
@@ -416,7 +416,7 @@ function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenant; paym
       </div>
 
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-        <SectionTitle>Οικονομική Ανάλυση Ενοικιαστή</SectionTitle>
+        <SectionTitle>Οικονομική ανάλυση ενοικιαστή</SectionTitle>
         <DataRow label="Ακαθάριστα ενοίκια ανά έτος" value={<span style={{ color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(annualRent)}</span>}/>
         <DataRow label="Κόστη ιδιοκτήτη ανά έτος" value={<span style={{ color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>-{fmt(totalCosts)}</span>}/>
         <DataRow label="Καθαρό εισόδημα ανά έτος" value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(netIncome)}</span>}/>
@@ -476,10 +476,10 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
     const basisLine=hasCustom
       ? `Σας γνωστοποιούμε ότι το μηνιαίο μίσθωμα αναπροσαρμόζεται με ποσοστό <strong>${rPct(pct)}</strong>, όπως προβλέπεται στη σύμβαση μίσθωσης, ως εξής:`
       : `Σας γνωστοποιούμε ότι, βάσει της μέσης ετήσιας μεταβολής του Δείκτη Τιμών Καταναλωτή (ΔΤΚ) έτους <strong>${rEsc(yr)}</strong> (${rEsc(cpiConfirmedLabel())}), το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:`;
-    const html=reportHead('Ειδοποίηση Αναπροσαρμογής Μισθώματος')
+    const html=reportHead('Ειδοποίηση αναπροσαρμογής μισθώματος')
       + `<body><div class="page">`
       + reportHeader(branding, 'Αναπροσαρμογή μισθώματος', { rightLabel:'Ημερομηνία', rightValue:today_str, rightNote:hasCustom?'Συμβατικό ποσοστό':`ΔΤΚ ${yr}` })
-      + `<h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>`
+      + `<h1>Ειδοποίηση αναπροσαρμογής μισθώματος</h1>`
       + `<div class="sub">${hasCustom?'Βάσει του ποσοστού αναπροσαρμογής της σύμβασης':`Βάσει Δείκτη Τιμών Καταναλωτή (ΔΤΚ) ${rEsc(yr)}`}${rEsc(brandTag)}</div>`
       + `<div class="note"><strong>Ημερομηνία:</strong> ${rEsc(today_str)}</div>`
       + `<div class="note">Προς: <strong>${rEsc(tenant.full_name)}</strong>${rEsc(afmInline)}</div>`
@@ -535,16 +535,16 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16 }}>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-          <SectionTitle>Υπολογιστής Αναπροσαρμογής</SectionTitle>
+          <SectionTitle>Υπολογιστής αναπροσαρμογής</SectionTitle>
 
           <div style={{ background:'var(--bg-elevated)', borderRadius:T.radius.inner, padding:'16px 18px', marginBottom:18 }}>
-            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον Μηνιαίο Μίσθωμα</div>
+            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον μηνιαίο μίσθωμα</div>
             <div style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{fmtE(rent)}</div>
             {tenant.lease_end&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:4 }}>Λήξη: {fmtDate(tenant.lease_end)}</div>}
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <div style={{ ...labelStyle, marginBottom:8 }}>Έτος Αναπροσαρμογής</div>
+            <div style={{ ...labelStyle, marginBottom:8 }}>Έτος αναπροσαρμογής</div>
             <SelectField value={yr} onChange={v=>{ setYr(v); setUseCustom(cpiFor(parseInt(v))===null); }}
               options={years.map(y=>{ const v=cpiFor(y); return { value:String(y), label:`${y}${v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${fp(v)}`}` }; })}/>
           </div>
@@ -562,7 +562,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
           </div>
           {useCustom&&(
             <div style={{ marginBottom:16 }}>
-              <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό Αναπροσαρμογής (%)</div>
+              <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό αναπροσαρμογής (%)</div>
               <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="Παράδειγμα: 3.5" step="0.1"
                 style={{ ...selectStyle, border:'1px solid var(--border-default)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:14 }}/>
             </div>
@@ -589,11 +589,11 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
             <>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:10, marginBottom:14 }}>
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'18px 16px' }}>
-                  <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον Μίσθωμα</div>
+                  <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον μίσθωμα</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fmtE(rent)}</div>
                 </div>
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'18px 16px' }}>
-                  <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Νέο Μίσθωμα</div>
+                  <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Νέο μίσθωμα</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'var(--accent)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fmtE(newRent)}</div>
                 </div>
               </div>
@@ -704,7 +704,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   return (
     <div>
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24, marginBottom:16 }}>
-        <SectionTitle>Γρήγορη Επικοινωνία</SectionTitle>
+        <SectionTitle>Γρήγορη επικοινωνία</SectionTitle>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10, marginBottom:14 }}>
           {tenant.phone&&(
             <a href={`tel:${tenant.phone}`} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:'16px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none', color:'var(--text-primary)', transition:'border-color 0.15s' }}>
@@ -736,7 +736,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
 
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-          <SectionTitle>Ιστορικό Επικοινωνίας</SectionTitle>
+          <SectionTitle>Ιστορικό επικοινωνίας</SectionTitle>
           <button style={s.btnSm} onClick={()=>setShowAdd(v=>!v)}>{showAdd?'Κλείσιμο':'+ Νέα Καταχώρηση'}</button>
         </div>
 
@@ -744,7 +744,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12, marginBottom:12 }}>
               <div>
-                <div style={{ ...labelStyle, marginBottom:8 }}>Τύπος Επικοινωνίας</div>
+                <div style={{ ...labelStyle, marginBottom:8 }}>Τύπος επικοινωνίας</div>
                 <SelectField value={form.type} onChange={v=>{ if(isCommType(v)) setForm(f=>({...f,type:v})); }}
                   options={(Object.keys(TYPE_LABELS) as CommLog['type'][]).map(k=>({ value:k, label:TYPE_LABELS[k] }))}/>
               </div>
@@ -758,7 +758,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
             </div>
             <div style={{ marginBottom:14 }}>
-              <div style={{ ...labelStyle, marginBottom:8 }}>Σύνοψη Επικοινωνίας *</div>
+              <div style={{ ...labelStyle, marginBottom:8 }}>Σύνοψη επικοινωνίας *</div>
               <textarea value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))} placeholder="Περιγραφή επικοινωνίας…" rows={3}
                 style={{ width:'100%', background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, letterSpacing:0, fontFamily:T.font.sans, outline:'none', boxSizing:'border-box' as const, resize:'vertical' as const, lineHeight:1.6 }}/>
             </div>
@@ -895,7 +895,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     // ευρετήριο για το onConflict), το σφάλμα καταπινόταν εδώ, και ένα
     // notifyOk('Δημιουργήθηκαν N δόσεις') ακολουθούσε αμέσως μετά. Ο ιδιοκτήτης
     // δεν είχε κανέναν τρόπο να μάθει ότι ο πίνακας έμενε κενός — και μαζί του
-    // η Πύλη Ενοικιαστή, η οφειλή και το Ε2.
+    // η Πύλη ενοικιαστή, η οφειλή και το Ε2.
     if(error) { notifyError(failed('Οι δόσεις δεν δημιουργήθηκαν', error)); return false; }
     return true;
   },[tenant,propertyId,userId]);
@@ -993,7 +993,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     const html=reportHead(`Απόδειξη Ενοικίου ${num}`)
       + `<body><div class="page">`
       + reportHeader(branding, 'Απόδειξη ενοικίου', { rightLabel:'Αριθμός', rightValue:num, rightNote:`Έκδοση ${rDate()}` })
-      + `<h1>Απόδειξη Είσπραξης Ενοικίου</h1>`
+      + `<h1>Απόδειξη είσπραξης ενοικίου</h1>`
       + `<div class="sub">${rEsc(landlord)} · Περίοδος ${rEsc(monthLabel(p))}</div>`
       + reportSection('Στοιχεία απόδειξης')
       + `<table><tbody>`
@@ -1053,7 +1053,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     const html=reportHead(`Μηνιαία Κατάσταση ${num}`)
       + `<body><div class="page">`
       + reportHeader(branding, 'Μηνιαία κατάσταση', { rightLabel:'Περίοδος', rightValue:monthLabel(p), rightNote:`Έκδοση ${rDate()}` })
-      + `<h1>Μηνιαία Κατάσταση Ενοικίου</h1>`
+      + `<h1>Μηνιαία κατάσταση ενοικίου</h1>`
       + `<div class="sub">${rEsc(landlord)}</div>`
       + reportSection('Στοιχεία μισθωτή')
       + `<table><tbody>`
@@ -1138,7 +1138,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
 
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12, flexWrap:'wrap' as const }}>
-          <SectionTitle>Καρτέλα Ενοικίου</SectionTitle>
+          <SectionTitle>Καρτέλα ενοικίου</SectionTitle>
           <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' as const }}>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ημέρα λήξης</span>
@@ -1411,7 +1411,7 @@ function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; propertyCount:n
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16, marginTop:16 }}>
         {/* Φόρος εισοδήματος από ενοίκια */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-          <SectionTitle>Φόρος Εισοδήματος από Ενοίκια (2026)</SectionTitle>
+          <SectionTitle>Φόρος εισοδήματος από ενοίκια (2026)</SectionTitle>
           <div className="table-wrap">
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead><tr>{['Κλιμάκιο Εισοδήματος','Συντελεστής'].map((h,i)=><th key={i} style={{ ...s.th, textAlign:i?'right' as const:'left' as const }}>{h}</th>)}</tr></thead>
@@ -1518,7 +1518,7 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
   return (
     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16 }}>
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-        <SectionTitle>Στοιχεία Εγγύησης</SectionTitle>
+        <SectionTitle>Στοιχεία εγγύησης</SectionTitle>
         <DataRow label="Ποσό εγγύησης" value={<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(deposit)}</span>}/>
         <DataRow label="Τρόπος καταβολής" value={methodLabel}/>
         <DataRow label="Ημερομηνία καταβολής" value={fmtD(tenant.deposit_paid_on)}/>
@@ -1678,7 +1678,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
   );
 }
 
-// ─── Αιτήματα Βλάβης (Maintenance View) ─────────────────────────────────────────
+// ─── Αιτήματα βλάβης (Maintenance View) ─────────────────────────────────────────
 // Αιτήματα από την πύλη ενοικιαστή → ιδιοκτήτης → επίλυση, δεμένα με φθορές/απογραφή.
 const MAINT_STATUS:Record<string,{label:string;c:string;bg:string}>={
   new:{label:'Νέο',c:'var(--accent)',bg:'var(--accent-dim)'},
@@ -1774,7 +1774,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
   return (
     <div>
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-        <SectionTitle>Αιτήματα Βλάβης</SectionTitle>
+        <SectionTitle>Αιτήματα βλάβης</SectionTitle>
         <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6, margin:'6px 0 18px' }}>
           Αιτήματα που στέλνει ο ενοικιαστής μέσω της πύλης. Διαχειρίσου την κατάστασή τους και, αν πρόκειται για φθορά, κατέγραψέ τα στο ιστορικό φθορών.
         </div>
@@ -1997,7 +1997,7 @@ function RenewalView({ tenant, userId, comps, sqm }:{ tenant:Tenant; userId:stri
 
       {/* Πρόταση ανανέωσης προς αποστολή */}
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24, marginBottom:16 }}>
-        <SectionTitle>Πρόταση Ανανέωσης προς Αποστολή</SectionTitle>
+        <SectionTitle>Πρόταση ανανέωσης προς αποστολή</SectionTitle>
         {suggested===null?(
           <InfoBanner tone="neutral">Δεν υπάρχει βάση για πρόταση ποσού: ούτε τιμή ανά τ.μ. από συγκρίσιμα, ούτε επιβεβαιωμένος ΔΤΚ. Δώσε ποσοστό στον υπολογιστή πιο κάτω για να συντάξεις ειδοποίηση.</InfoBanner>
         ):(
@@ -2423,7 +2423,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
           {/* Η ίδια ενέργεια λεγόταν «Μισθωτήριο» εδώ και «Σύνταξη μισθωτηρίου» στην
               κενή κατάσταση. Ο χρήστης μαθαίνει το ένα όνομα και συναντά το άλλο. */}
           <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Σύνταξη μισθωτηρίου</Btn>
-          <Btn variant="secondary" onClick={()=>setDeclOpen(true)}>Δήλωση Μίσθωσης</Btn>
+          <Btn variant="secondary" onClick={()=>setDeclOpen(true)}>Δήλωση μίσθωσης</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
         </div>:undefined}/>
 
@@ -2640,11 +2640,11 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 )}
               </div>
               <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-                <SectionTitle>Εξωτερικός Σύνδεσμος</SectionTitle>
+                <SectionTitle>Εξωτερικός σύνδεσμος</SectionTitle>
                 {dc.lease_doc_external_url?(
                   <div>
                     <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:14, wordBreak:'break-all' as const, lineHeight:1.6 }}>{dc.lease_doc_external_url}</div>
-                    <a href={dc.lease_doc_external_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none' }}>Άνοιγμα Συνδέσμου</a>
+                    <a href={dc.lease_doc_external_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none' }}>Άνοιγμα συνδέσμου</a>
                   </div>
                 ):(
                   <div style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.7 }}>Δεν έχει οριστεί εξωτερικός σύνδεσμος. Πρόσθεσέ τον από την «Επεξεργασία», στα «Έγγραφα» (Google Drive, Dropbox κ.ά.).</div>

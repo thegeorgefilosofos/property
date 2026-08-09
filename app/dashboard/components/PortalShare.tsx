@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PortalShare, πλευρά ιδιοκτήτη για την Πύλη Ενοικιαστή. Δημιουργεί/κοινοποιεί
+// PortalShare, πλευρά ιδιοκτήτη για την Πύλη ενοικιαστή. Δημιουργεί/κοινοποιεί
 // τον σύνδεσμο και εμφανίζει τα εισερχόμενα αιτήματα βλάβης (cross-tab).
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -183,7 +183,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setOpen(o => !o))}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Πύλη Ενοικιαστή</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Πύλη ενοικιαστή</div>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Κοινοποίησε σύνδεσμο & δες αιτήματα βλάβης</div>
           </div>
         </div>

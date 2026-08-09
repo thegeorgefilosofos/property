@@ -147,7 +147,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
               : <div style={{ width: 34, height: 34, borderRadius: 8, background: sanitizeAccent(accent), color: PAPER, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: INK, fontFamily: T.font.sans }}>{previewName}</div>
-              <div style={{ fontSize: 11, color: INK_MUTED, fontFamily: T.font.sans }}>Αναφορά Ακινήτου</div>
+              <div style={{ fontSize: 11, color: INK_MUTED, fontFamily: T.font.sans }}>Αναφορά ακινήτου</div>
               {contact && <div style={{ fontSize: 10, color: INK_MUTED, fontFamily: T.font.sans, marginTop: 2 }}>{contact}</div>}
             </div>
           </div>

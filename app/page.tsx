@@ -136,7 +136,7 @@ const AUDIENCE = [
 // εύρος, διαβάζεται ως γέμισμα. Ζευγαρωμένα, το μάτι πιάνει και τα τέσσερα
 // ονόματα και τη μία υπόσχεση που τα ενώνει.
 const WORKS_WITH = [
-  { t: 'myAADE', d: 'Δήλωση Μίσθωσης με έλεγχο πληρότητας πριν την υποβολή' },
+  { t: 'myAADE', d: 'Δήλωση μίσθωσης με έλεγχο πληρότητας πριν την υποβολή' },
   { t: 'Έντυπο Ε2', d: 'εξαγωγή με αντιστοίχιση κωδικών, έτοιμη για τον λογιστή' },
   { t: 'SoftOne, Epsilon', d: 'λογιστικό ημερολόγιο εγγραφών, έτοιμο για εισαγωγή' },
   { t: 'QuickBooks, Xero', d: 'λογιστικό ημερολόγιο εγγραφών, έτοιμο για εισαγωγή' },
@@ -743,7 +743,7 @@ export default async function Landing() {
             διεθνές εργαλείο διαχείρισης: ότι ξέρει την ελληνική πραγματικότητα.
             Το «Ό,τι χρειάζεται το ακίνητό σου» ήταν αληθές και εντελώς άχρωμο,
             γιατί το ίδιο ακριβώς θα έγραφε και ο κάθε ανταγωνιστής. */}
-        <SectionHead over="Δυνατότητες" title="Σχεδιασμένο για την ελληνική αγορά ακινήτων" sub="ΕΝΦΙΑ, κοινόχρηστα, Δήλωση Μίσθωσης, κλίμακα ενοικίων 2026. Ένα διεθνές εργαλείο δεν τα ξέρει." />
+        <SectionHead over="Δυνατότητες" title="Σχεδιασμένο για την ελληνική αγορά ακινήτων" sub="ΕΝΦΙΑ, κοινόχρηστα, Δήλωση μίσθωσης, κλίμακα ενοικίων 2026. Ένα διεθνές εργαλείο δεν τα ξέρει." />
         {/* ΡΗΤΑ ΤΡΕΙΣ ΣΤΗΛΕΣ ΓΙΑ ΕΞΙ ΚΑΡΤΕΣ. Με επτά κάρτες και auto-fit, η έβδομη
             έμενε ΜΟΝΗ ΤΗΣ σε τρίτη σειρά, με δύο κενά δίπλα της. Ένα ορφανό κελί
             είναι το πιο ορατό λάθος διάταξης που υπάρχει: δεν χρειάζεται να ξέρεις
@@ -838,7 +838,7 @@ export default async function Landing() {
           </p>
           <p style={{ fontSize: 15, lineHeight: 1.65, color: MUTED, margin: '0 0 18px', maxWidth: 820 }}>
             Τα φύλλα Excel και οι εφαρμογές σημειώσεων δεν φταίνε: απλώς δεν ξέρουν τι είναι τα κοινόχρηστα,
-            το Ε2 ή η Δήλωση Μίσθωσης, και δεν πρόκειται να μάθουν. Από εκεί ακριβώς ξεκίνησε το Property OS.
+            το Ε2 ή η Δήλωση μίσθωσης, και δεν πρόκειται να μάθουν. Από εκεί ακριβώς ξεκίνησε το Property OS.
           </p>
           <Link href="/trust" className="lp-link" style={{ color: ACCENT, textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>
             Ποιοι είμαστε και πού βρίσκονται τα δεδομένα σου{' '}→
@@ -985,7 +985,7 @@ export default async function Landing() {
                 <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 2 }}>Εμπιστοσύνη</span>
                 <Link href="/trust" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Ποιοι είμαστε</Link>
                 <Link href="/privacy" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Απόρρητο</Link>
-                <Link href="/terms" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Όροι Χρήσης</Link>
+                <Link href="/terms" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Όροι χρήσης</Link>
               </div>
             </div>
           </div>

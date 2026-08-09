@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LeaseDeclaration — «Δήλωση Μίσθωσης», ο φάκελος που δεν σε αφήνει να κάνεις
+// LeaseDeclaration — «Δήλωση μίσθωσης», ο φάκελος που δεν σε αφήνει να κάνεις
 // λάθος.
 //
 // Ο ιδιοκτήτης δεν χάνει χρόνο στο κλικ της υποβολής· χάνει χρόνο επειδή φτάνει
@@ -59,7 +59,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           // (42703). Δηλαδή δεν χανόταν ο τύπος του ακινήτου· χάνονταν ΜΑΖΙ ΤΟΥ το
           // ΑΤΑΚ, η διεύθυνση, ο ΤΚ και τα τετραγωνικά.
           //
-          // Τι έβλεπε ο ιδιοκτήτης: ανοίγει τη Δήλωση Μίσθωσης —διαδικασία με νομική
+          // Τι έβλεπε ο ιδιοκτήτης: ανοίγει τη Δήλωση μίσθωσης —διαδικασία με νομική
           // προθεσμία και πρόστιμο— και ΟΛΑ τα πεδία του ακινήτου έγραφαν «λείπει»,
           // με οδηγία να πάει να τα συμπληρώσει στην καρτέλα Ακίνητο. Ήταν ήδη
           // συμπληρωμένα. Ξανάβρισκε το 11ψήφιο ΑΤΑΚ από το Ε9 για να ξεμπλοκάρει
@@ -130,7 +130,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
     const w = window.open('', '_blank');
     if (!w) { notifyError('Επίτρεψε τα αναδυόμενα παράθυρα.'); return; }
     const esc = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c));
-    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Δήλωση Μίσθωσης</title><style>body{font-family:'Inter',system-ui,sans-serif;padding:40px;max-width:760px;margin:0 auto;color:${INK}}pre{font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.9;white-space:pre-wrap}@media print{body{padding:0}@page{margin:16mm}}</style></head><body><pre>${esc(declarationSheet(decl))}</pre><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`);
+    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Δήλωση μίσθωσης</title><style>body{font-family:'Inter',system-ui,sans-serif;padding:40px;max-width:760px;margin:0 auto;color:${INK}}pre{font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.9;white-space:pre-wrap}@media print{body{padding:0}@page{margin:16mm}}</style></head><body><pre>${esc(declarationSheet(decl))}</pre><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`);
     w.document.close();
   };
 
@@ -178,7 +178,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
 
   return (
     <Modal open={open} onClose={onClose} width={720}
-      title="Δήλωση Μίσθωσης"
+      title="Δήλωση μίσθωσης"
       subtitle="Έλεγχος πληρότητας πριν την υποβολή στο myAADE"
       icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>}
       footerInfo={<>{decl.fields.filter(f => f.status === 'ok').length} από {decl.fields.length} πεδία έτοιμα</>}
