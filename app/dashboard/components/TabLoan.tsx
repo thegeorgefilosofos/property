@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import * as calendar from '@/lib/data/calendar'
 import { must } from '@/lib/supabase/must'
 import { saved } from '@/components/dbWrite'
 import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
@@ -342,7 +343,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     }
   }
   async function handleSaveCal(monthly:number,years:number,startDate:string,bankName:string,loanAmount?:number,silent=false){
-    const d=new Date(startDate),events=[]
+    const d=new Date(startDate),events:calendar.EventDraft[]=[]
     const n=Math.min(years*12,60)
     // Ξεχωριστή, ιδιότυπη πηγή ανά τράπεζα → idempotent (δεν διπλογράφεται στο
     // ξαναπάτημα, ούτε μπερδεύεται με χειροκίνητα γεγονότα). Ρητές δόσεις, όχι
@@ -357,13 +358,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
       // Ίδιο σφάλμα με τις προτάσεις: τοπικά μεσάνυχτα σε UTC = χθες. Οι δόσεις
       // έμπαιναν στο ημερολόγιο μία μέρα ΝΩΡΙΤΕΡΑ από την πραγματική τους.
       const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate())
-      events.push({property_id:propertyId,user_id:userId,title,category:'financial',event_date:isoDate(ev),amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:note,source:src})
+      events.push({title,category:'financial',event_date:isoDate(ev),amount:Math.round(monthly),priority:'high',notes:note})
     }
-    if(!await saved('Οι παλιές δόσεις δεν καθαρίστηκαν',supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src))) return
-    // Οι δόσεις γράφονται σε παρτίδες. Αν σπάσει μία, οι υπόλοιπες δεν έχουν
-    // νόημα: το ημερολόγιο θα έδειχνε μισό δάνειο και θα το έλεγε ολόκληρο.
-    for(let i=0;i<events.length;i+=20)
-      if(!await saved('Οι δόσεις δεν αποθηκεύτηκαν στο ημερολόγιο',supabase.from('calendar_events').insert(events.slice(i,i+20)))) return
+    // Οι δόσεις γράφονται πρώτα και οι παλιές σβήνονται μετά: αν σπάσει κάτι στη
+    // μέση, το ημερολόγιο δείχνει διπλά, όχι μισό δάνειο.
+    if(!await saved('Οι δόσεις δεν αποθηκεύτηκαν στο ημερολόγιο',calendar.replaceSource(supabase,{propertyId,userId},{source:src},events))) return
     if(!silent) notifyOk(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){

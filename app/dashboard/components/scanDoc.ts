@@ -19,6 +19,7 @@
 // 100% δοκιμασμένη. Εδώ μένουν μόνο οι κλήσεις δικτύου/βάσης.
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar';
 import {
   classifyDocType, planDocSave, normalizeScannedDoc, archiveCategoryFor,
   type ScannedDoc, type ArchivePlan,
@@ -464,7 +465,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
       const updExp = await savedData<{ id: string }[]>('Η συνδεδεμένη δαπάνη δεν σημειώθηκε πληρωμένη',
         supabase.from('expenses').update({ paid: true }).eq('bill_id', payOff).select('id'));
       await saved('Το γεγονός ημερολογίου δεν ενημερώθηκε',
-        supabase.from('calendar_events').update({ status: 'paid' }).eq('bill_id', payOff));
+        calendar.updateByBill(supabase, payOff, { status: 'paid' }));
       // Αν ο εξοφλημένος λογαριασμός δεν είχε συνδεδεμένο έξοδο, δημιούργησέ το
       // τώρα ώστε η πληρωμή να φαίνεται στις Δαπάνες.
       if ((!updExp || !updExp.length) && plan.expense) {
@@ -503,11 +504,9 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
 
     // ── 3) Ημερολόγιο → calendar_events.
     if (plan.calendar && !reconciled) {
-      for (const ev of plan.calendar) {
-        const { error: cErr } = await supabase.from('calendar_events')
-          .insert({ property_id: propertyId, user_id: userId, bill_id: billId, ...ev });
-        if (!cErr) add('Ημερολόγιο');
-      }
+      const { error: cErr } = await calendar.insert(supabase,
+        plan.calendar.map(ev => calendar.row({ propertyId, userId }, 'scan', { ...ev, bill_id: billId })));
+      if (!cErr) add('Ημερολόγιο');
     }
 
     // ── 4) Ενοικιαστής → tenants (ίδιο όνομα → συμπλήρωση, αλλιώς νέα εγγραφή).

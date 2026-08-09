@@ -3,6 +3,7 @@
 // Χωρίς I/O ώστε να δοκιμάζεται ντετερμινιστικά· η άντληση/εγγραφή γίνεται στο UI.
 
 import { nightsBetween } from '../core/greek'
+import type { EventDraft } from '../data/calendar'
 
 export interface StayInput {
   id: string
@@ -13,12 +14,6 @@ export interface StayInput {
   guests?: number | null
   channel?: string | null          // airbnb | booking | other
   guest_name?: string | null       // από clients.full_name (ή null)
-}
-
-export interface BookingCalRow {
-  property_id: string; user_id: string; title: string; category: string
-  event_date: string; amount: number | null; priority: string; status: string
-  recurring: boolean; recurring_interval: string | null; source: string; notes: string | null
 }
 
 const CHANNELS: Record<string, string> = { airbnb: 'Airbnb', booking: 'Booking.com', vrbo: 'Vrbo', other: 'Κράτηση' }
@@ -44,8 +39,13 @@ function validDate(s?: string | null): s is string {
 
 // Δύο γεγονότα ανά κράτηση (check-in με ποσό/λεπτομέρειες, check-out). Ολοήμερα.
 // source: `booking:{id}:in|out` για idempotent αντικατάσταση.
-export function buildBookingEvents(stays: StayInput[], propertyId: string, userId: string): BookingCalRow[] {
-  const rows: BookingCalRow[] = []
+//
+// ΧΩΡΙΣ ΑΚΙΝΗΤΟ ΚΑΙ ΧΩΡΙΣ ΧΡΗΣΤΗ. Η συνάρτηση δεχόταν `propertyId` και `userId`
+// μόνο και μόνο για να τα σφραγίσει σε κάθε γραμμή — δουλειά του στρώματος
+// δεδομένων, όχι μιας καθαρής μετατροπής. Τώρα γυρίζει προσχέδια· την εμβέλεια
+// τη βάζει το `lib/data/calendar`, μία φορά και για όλες τις πηγές.
+export function buildBookingEvents(stays: StayInput[]): EventDraft[] {
+  const rows: EventDraft[] = []
   for (const s of stays || []) {
     if (!s || !validDate(s.check_in)) continue
     const guest = guestLabel(s)
@@ -54,7 +54,6 @@ export function buildBookingEvents(stays: StayInput[], propertyId: string, userI
     const detail = [ch, nights ? `${nights} ${nights === 1 ? 'νύχτα' : 'νύχτες'}` : '', s.guests ? `${s.guests} άτομα` : '']
       .filter(Boolean).join(' · ')
     rows.push({
-      property_id: propertyId, user_id: userId,
       title: `Άφιξη, ${guest}`, category: 'tenant', event_date: s.check_in,
       amount: s.total ?? null, priority: 'medium', status: 'pending',
       recurring: false, recurring_interval: null, source: `booking:${s.id}:in`,
@@ -62,7 +61,6 @@ export function buildBookingEvents(stays: StayInput[], propertyId: string, userI
     })
     if (validDate(s.check_out) && s.check_out !== s.check_in) {
       rows.push({
-        property_id: propertyId, user_id: userId,
         title: `Αναχώρηση, ${guest}`, category: 'tenant', event_date: s.check_out,
         amount: null, priority: 'low', status: 'pending',
         recurring: false, recurring_interval: null, source: `booking:${s.id}:out`,

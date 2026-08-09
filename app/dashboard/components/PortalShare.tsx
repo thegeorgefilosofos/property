@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar'
 import { T, fd, fe, EmptyState, Skeleton, pressable } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
@@ -143,12 +144,11 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   // Cross-tab: αίτημα βλάβης → Ημερολόγιο (προγραμματισμός επισκευής)
   const toCalendar = async (r: Req) => {
     const today = athensToday();
-    const { error } = await supabase.from('calendar_events').insert({
-      property_id: propertyId, user_id: userId,
+    const { error } = await calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'portal', {
       title: `Επισκευή: ${r.title}`, category: 'maintenance',
-      event_date: today, amount: null, priority: 'high', status: 'pending',
-      recurring: false, notes: r.description ? `Αίτημα ενοικιαστή, ${r.description}` : 'Αίτημα ενοικιαστή', source: 'portal',
-    });
+      event_date: today, priority: 'high',
+      notes: r.description ? `Αίτημα ενοικιαστή, ${r.description}` : 'Αίτημα ενοικιαστή',
+    })]);
     if (error) { notifyError('Σφάλμα μεταφοράς στο Ημερολόγιο'); return; }
     setSynced(prev => new Set(prev).add(r.id));
     if (r.status === 'new') setStatus(r.id, 'in_progress');

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, feRate, Spinner } from '@/components/Theme';
@@ -296,30 +297,22 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     const expiryStr = expiry.toISOString().slice(0, 10);
 
     (async () => {
-      const { data: existing } = await supabase
-        .from('calendar_events').select('id')
-        .eq('property_id', propertyId).eq('category', 'gas_contract')
-        .eq('event_date', expiryStr).limit(1);
-      if (existing?.length) { setCalendarSynced(true); return; }
+      // Η κατηγορία είναι το κλειδί της μοναδικότητας: η πηγή 'system' τη
+      // μοιράζονται και η ασφάλιση και το αέριο.
+      if (await calendar.exists(supabase, propertyId, { category: 'gas_contract', eventDate: expiryStr })) { setCalendarSynced(true); return; }
 
       // Το `.then(() => setCalendarSynced(true))` δήλωνε επιτυχία χωρίς να
       // κοιτάξει: ο Supabase δεν πετά, οπότε μια απόρριψη από πολιτική RLS
       // κατέληγε σε «συγχρονίστηκε», η υπενθύμιση λήξης δεν έμπαινε ποτέ στο
       // ημερολόγιο, και ο χρήστης το μάθαινε όταν είχε λήξει η σύμβαση.
       if (await saved('Η υπενθύμιση λήξης δεν μπήκε στο ημερολόγιο',
-        supabase.from('calendar_events').insert({
-          property_id: propertyId,
-          user_id: userId,
+        calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'system', {
           title: `Λήξη σύμβασης φυσικού αερίου, ${provider?.label ?? ''}`,
           category: 'gas_contract',
           event_date: expiryStr,
           amount: effective > 0 ? effective : null,
-          priority: 'medium',
-          status: 'pending',
-          recurring: false,
           notes: `Η σύμβαση ${tariff?.name ?? ''} λήγει. Σύγκρινε νέα τιμολόγια πριν ανανεώσεις.`,
-          source: 'system',
-        }))) setCalendarSynced(true);
+        })]))) setCalendarSynced(true);
     })();
   }, [propertyId, s.gasContractStart, s.gasContractMonths]);
 

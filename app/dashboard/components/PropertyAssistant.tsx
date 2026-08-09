@@ -18,6 +18,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar'
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
 import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
 import { T, TT, Modal, feAuto, fp } from '@/components/Theme';
@@ -260,7 +261,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
+    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
       supabase.from('expenses').select('id,bill_id,amount,category,date,description,paid,expense_group,is_recurring,store_vendor,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
@@ -269,7 +270,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       // μόνο company/policy/expiry και καθόλου ποσό. Το ερώτημα απορριπτόταν
       // ολόκληρο, οπότε ο βοηθός δεν ήξερε ΠΟΤΕ για ασφάλιση.
       supabase.from('user_properties').select('insurance_company,insurance_expiry,insurance_amount').eq('id', propertyId).maybeSingle(),
-      supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', athensToday()).order('event_date').limit(10),
+      calendar.upcoming(supabase, { propertyId, userId }, athensToday(), 10),
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
@@ -853,7 +854,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       // εκδοχή ονόματος κατηγορίας, και η ομάδα του δίπλα του ήταν ανεξάρτητη.
       const taskCat = classifyExpense(d);
       let calId: string | null = null;
-      if (newId && due) { const data = await must(supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: d, event_date: due, category: 'maintenance', amount: est, priority: priority === 'normal' ? 'medium' : priority, status: 'pending', recurring: false, source: 'checklist' }).select('id').single()); calId = (data as { id?: string } | null)?.id || null; }
+      if (newId && due) { const data = await must(calendar.add(supabase, { propertyId, userId }, 'checklist', { title: d, event_date: due, category: 'maintenance', amount: est, priority: priority === 'normal' ? 'medium' : priority as calendar.EventPriority })); calId = data?.id || null; }
       // ΜΙΑ ΕΚΤΙΜΗΣΗ ΔΕΝ ΓΙΝΕΤΑΙ ΔΑΠΑΝΗ. Εδώ γραφόταν γραμμή στον πίνακα
       // `expenses` με ποσό που είχε βγάλει το ΜΟΝΤΕΛΟ («θα κοστίσει γύρω στα
       // 150 ευρώ»). Στην επόμενη ερώτηση το ίδιο ποσό επέστρεφε στα συμφραζόμενα
@@ -901,17 +902,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       : 'reminder';
     try {
       // Αποφυγή διπλοεγγραφής: ίδιο ακίνητο + τίτλος + ημερομηνία υπάρχει ήδη.
-      const { data: dup } = await supabase.from('calendar_events').select('id').eq('property_id', propertyId).eq('event_date', date).eq('title', title).limit(1);
-      if (dup && dup.length) {
+      if (await calendar.exists(supabase, propertyId, { eventDate: date, title })) {
         setMsgs(m => [...m, { role: 'assistant', text: `Υπάρχει ήδη «${title}» για εκείνη την ημερομηνία στο Ημερολόγιο, δεν το ξαναπρόσθεσα. Θέλεις να το δεις;`, action: { type: 'go', tab: 'calendar' } }]);
         return;
       }
-      await must(supabase.from('calendar_events').insert({
-        property_id: propertyId, user_id: userId, title, category,
+      await must(calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'assistant', {
+        title, category,
         event_date: date, event_time: time || null, duration_minutes: time ? 60 : null,
-        priority: 'high', status: 'pending', source: 'assistant',
+        priority: 'high',
         notes: `Ραντεβού που προγραμμάτισε ${ASSISTANT_NAME}. Θα σταλεί υπενθύμιση πριν λήξει (email, εφόσον είναι ενεργές οι ειδοποιήσεις· με ένα άγγιγμα και σε Viber/WhatsApp).`,
-      }));
+      })]));
       const whenStr = `${new Date(date).toLocaleDateString('el-GR')}${time ? ` στις ${time}` : ''}`;
       setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για ${whenStr} στο Ημερολόγιο και θα σου θυμίσω πριν λήξει. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
     } catch {

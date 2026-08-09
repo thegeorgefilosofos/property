@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, useId } from 'react'
 import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import * as calendar from '@/lib/data/calendar'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable } from '@/components/Theme'
 import { PackageOpen, SearchX, ClipboardCheck, Archive } from 'lucide-react'
@@ -1669,9 +1670,9 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   // το πλαίσιο πάνω από το κουμπί αποθήκευσης. Σιωπηλή αποτυχία εκεί σημαίνει ότι
   // ο χρήστης βασίζεται σε υπενθύμιση που δεν υπάρχει.
   const makeCalEvent=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
-    const {data,error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:taskTitle(task,item_name),category:'maintenance',event_date:due,amount:est||0,priority:'medium',status:'pending',source:'inventory-maint',notes:est>0?`Αυτόματο από Συντήρηση Απογραφής · εκτιμώμενο κόστος ${fe(est)}`:'Αυτόματο από Συντήρηση Απογραφής'}).select('id').single()
+    const {data,error}=await calendar.add(supabase,{propertyId,userId},'inventory-maint',{title:taskTitle(task,item_name),category:'maintenance',event_date:due,amount:est||0,notes:est>0?`Αυτόματο από Συντήρηση Απογραφής · εκτιμώμενο κόστος ${fe(est)}`:'Αυτόματο από Συντήρηση Απογραφής'})
     if(error){notifyError(failed('Η υπενθύμιση δεν μπήκε στο ημερολόγιο',error));return undefined}
-    return (data as {id?:string}|null)?.id
+    return data?.id
   }
   const makePlannedExpense=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
     if(!(est>0)) return undefined
@@ -1686,7 +1687,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     // Η προγραμματισμένη δαπάνη γίνεται πραγματοποιημένη (πληρωμένη)· αν δεν υπήρχε, καταγράφεται τώρα.
     if(s.expense_id) await supabase.from('expenses').update({paid:true,date:t}).eq('id',s.expense_id)
     else if(est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(s.task,s.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:t,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
-    if(s.calendar_event_id) await supabase.from('calendar_events').update({status:'paid'}).eq('id',s.calendar_event_id)
+    if(s.calendar_event_id) await calendar.update(supabase,s.calendar_event_id,{status:'paid'})
     // Ρολάρισμα + νέο κύκλωμα για την επόμενη φορά.
     const calId=await makeCalEvent(s.task,s.item_name,newDue,est)
     const expId=await makePlannedExpense(s.task,s.item_name,newDue,est)
@@ -1698,7 +1699,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     onSaved()
   }
   const deleteSched=async(s:MaintenanceSchedule)=>{
-    if(s.calendar_event_id) await supabase.from('calendar_events').delete().eq('id',s.calendar_event_id)
+    if(s.calendar_event_id) await calendar.remove(supabase,s.calendar_event_id)
     if(s.expense_id) await supabase.from('expenses').delete().eq('id',s.expense_id).eq('paid',false)
     const {error}=await supabase.from('inventory_maintenance').delete().eq('id',s.id)
     if(error){notifyError(failed('Η εργασία δεν διαγράφηκε',error));return}
@@ -2080,12 +2081,8 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleWarrantyReminder=async(item:InventoryItem):Promise<boolean>=>{
     if(!item.warranty_expiry){notifyError('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return false}
     const title=`Εγγύηση: ${item.name}`
-    const {data:existing,error:lookupErr}=await supabase.from('calendar_events')
-      .select('id').eq('property_id',propertyId).eq('source','inventory')
-      .eq('title',title).eq('event_date',item.warranty_expiry).limit(1)
-    if(lookupErr){notifyError(failed('Δεν μπόρεσα να ελέγξω το ημερολόγιο',lookupErr));return false}
-    if(existing&&existing.length>0){notifyOk(`Η υπενθύμιση για «${item.name}» υπάρχει ήδη στο ημερολόγιο.`);return true}
-    const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title,notes:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
+    if(await calendar.exists(supabase,propertyId,{source:'inventory',title,eventDate:item.warranty_expiry})){notifyOk(`Η υπενθύμιση για «${item.name}» υπάρχει ήδη στο ημερολόγιο.`);return true}
+    const {error}=await calendar.insert(supabase,[calendar.row({propertyId,userId},'inventory',{title,notes:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium'})])
     if(error){notifyError(failed('Δεν μπόρεσα να προσθέσω την υπενθύμιση',error));return false}
     // ΗΤΑΝ notifyError: μήνυμα ΕΠΙΤΥΧΙΑΣ σε κόκκινο toast. Ο χρήστης νόμιζε ότι απέτυχε
     // και το ξαναπατούσε, φτιάχνοντας διπλές εγγραφές ημερολογίου.

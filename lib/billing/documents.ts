@@ -15,6 +15,7 @@
 
 import { EXPENSE_MAP, categorizeTransaction, derivePeriod, digitsOnly, isValidAfm } from './parse';
 import { navLabel } from '../nav/labels';
+import type { EventDraft } from '../data/calendar';
 
 // Ο προορισμός γράφεται ΜΙΑ φορά, από το μητρώο ονομάτων. Ήταν έξι φορές η
 // σταθερά «Αρχείο», και όταν η καρτέλα μετονομάστηκε σε «Φάκελος ακινήτου» η
@@ -352,7 +353,7 @@ export interface SavePlan {
   targets: string[];                        // ετικέτες για την οθόνη «Αποθηκεύτηκε»
   bill?:     Record<string, unknown>;        // → bills (το component βάζει property_id/user_id)
   expense?:  Record<string, unknown>;        // → expenses (link bill_id αν υπάρχει)
-  calendar?: Record<string, unknown>[];      // → calendar_events (link bill_id αν υπάρχει)
+  calendar?: EventDraft[];                   // → calendar_events (link bill_id αν υπάρχει)
   tenant?:   Record<string, unknown>;        // → tenants (upsert ανά property)
   property?: Record<string, unknown>;        // → user_properties (ΜΟΝΟ ασφαλείς στήλες)
   settings?: Record<string, unknown>;        // → property_settings (π.χ. ασφάλεια — καρτέλα Ρυθμίσεις)
@@ -449,8 +450,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
       plan.calendar = [{
         title: `Πληρωμή: ${provider || map.cat}`, category: 'bills',
         event_date: iso(doc.due_date), amount: doc.amount || 0,
-        priority: 'medium', status: 'pending', recurring: false,
-        notes: `Από σάρωση${cons ? ` · ${cons}` : ''}`, source: 'scan',
+        notes: `Από σάρωση${cons ? ` · ${cons}` : ''}`,
       }];
       plan.targets.push('Ημερολόγιο');
     }
@@ -505,12 +505,15 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
     }
     // Υπενθύμιση ανανέωσης πριν τη λήξη.
     if (iso(doc.expiry_date)) {
+      // Η ΚΑΤΗΓΟΡΙΑ ΗΤΑΝ 'insurance', ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ. Δεν είναι μία από τις
+      // επτά του ημερολογίου ούτε στον πίνακα ψευδωνύμων, οπότε η υπενθύμιση
+      // λήξης ασφαλιστηρίου κατέληγε «Υπενθύμιση» αντί για «Συμβόλαιο» — και
+      // κανένα φίλτρο συμβολαίων δεν την έβρισκε. Ο τύπος το πιάνει πλέον.
       plan.calendar = [{
-        title: `Λήξη ασφάλισης: ${provider || 'ακίνητο'}`, category: 'insurance',
+        title: `Λήξη ασφάλισης: ${provider || 'ακίνητο'}`, category: 'contract',
         event_date: iso(doc.expiry_date), amount: doc.premium || null,
-        priority: 'high', status: 'pending', recurring: false,
+        priority: 'high',
         notes: [`Ανανέωση ασφαλιστηρίου`, doc.policy_number ? `Αρ. ${doc.policy_number}` : '', baseNote].filter(Boolean).join(' · '),
-        source: 'scan',
       }];
       plan.targets.push('Ημερολόγιο');
     }
@@ -565,8 +568,8 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
         plan.calendar = [{
           title: `Πληρωμή ${map.cat}${doc.tax_year ? ` ${doc.tax_year}` : ''}`, category: 'tax',
           event_date: iso(doc.due_date), amount: doc.amount,
-          priority: 'high', status: 'pending', recurring: false,
-          notes: `Από σάρωση φορολογικού εγγράφου`, source: 'scan',
+          priority: 'high',
+          notes: `Από σάρωση φορολογικού εγγράφου`,
         }];
         plan.targets.push('Ημερολόγιο');
       }

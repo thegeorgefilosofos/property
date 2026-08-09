@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, TT, fe, formGrid, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
@@ -926,32 +927,22 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   useEffect(() => {
     if (!propertyId || !insRenewalDate || calendarSynced) return;
     (async () => {
-      const { data: existing } = await supabase
-        .from('calendar_events')
-        .select('id')
-        .eq('property_id', propertyId)
-        .eq('category', 'insurance_renewal')
-        .eq('event_date', insRenewalDate)
-        .limit(1);
-      if (existing?.length) { setCalendarSynced(true); return; }
+      // Η ΚΑΤΗΓΟΡΙΑ ΕΙΝΑΙ ΤΟ ΚΛΕΙΔΙ ΤΗΣ ΜΟΝΑΔΙΚΟΤΗΤΑΣ ΕΔΩ, και γι' αυτό μένει
+      // 'insurance_renewal': η πηγή είναι 'system' και τη μοιράζεται με το
+      // φυσικό αέριο, οπότε δεν ξεχωρίζει τις δύο υπενθυμίσεις.
+      if (await calendar.exists(supabase, propertyId, { category: 'insurance_renewal', eventDate: insRenewalDate })) { setCalendarSynced(true); return; }
 
       // Το `.then(() => setCalendarSynced(true))` δήλωνε «καταχωρήθηκε» ακόμη κι
       // όταν το insert γύριζε σφάλμα. Η υπενθύμιση μαρκαριζόταν ως συγχρονισμένη
       // και δεν ξαναδοκίμαζε ποτέ, οπότε ο ιδιοκτήτης δεν έπαιρνε ειδοποίηση
       // λήξης — ούτε μάθαινε ποτέ ότι δεν πρόκειται να την πάρει.
-      const { error } = await supabase.from('calendar_events').insert({
-        property_id: propertyId,
-        user_id: userId,
+      const { error } = await calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'system', {
         title: `Ανανέωση Ασφάλειας Κατοικίας, ${insCompany?.label ?? ''}`,
         category: 'insurance_renewal',
         event_date: insRenewalDate,
         amount: insCost > 0 ? insCost : null,
-        priority: 'medium',
-        status: 'pending',
-        recurring: false,
         notes: `Πρόγραμμα: ${(insCompany?.plans ?? []).find(p => p.id === insPlanId)?.name ?? ''}. Σύγκρινε εναλλακτικές πριν ανανεώσεις.`,
-        source: 'system',
-      });
+      })]);
       if (!error) setCalendarSynced(true);
     })();
   }, [propertyId, insRenewalDate]);

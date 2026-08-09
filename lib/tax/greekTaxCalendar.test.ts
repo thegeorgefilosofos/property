@@ -71,9 +71,11 @@ ok('μητρώο κοντά στην 20ή', st.filter(o => o.id.startsWith('str-
 ok('μοναδικά ids (short_term)', new Set(st.map(o => o.id)).size === st.length)
 
 // ── taxObligationToEvent ─────────────────────────────────────────────────────
-const ev = taxObligationToEvent(owner[0], 'prop1', 'user1')
-ok('event property/user', ev.property_id === 'prop1' && ev.user_id === 'user1')
-ok('event source tax:*', ev.source.startsWith('tax:'))
+const ev = taxObligationToEvent(owner[0])
+// Το ακίνητο και ο χρήστης ΔΕΝ μπαίνουν εδώ: τη σφραγίδα εμβέλειας τη βάζει το
+// στρώμα δεδομένων, μία φορά για κάθε πηγή γεγονότων.
+ok('προσχέδιο χωρίς εμβέλεια', !('property_id' in ev) && !('user_id' in ev))
+ok('event source tax:*', (ev.source || '').startsWith('tax:'))
 ok('event source = taxEventSource(id)', ev.source === taxEventSource(owner[0].id))
 // Η κατηγορία ΔΕΝ είναι 'contract': αλλιώς το φίλτρο του ημερολογίου δεν μπορούσε
 // ΠΟΤΕ να απομονώσει τις φορολογικές προθεσμίες.
@@ -81,15 +83,15 @@ ok('event category = tax', ev.category === TAX_EVENT_CATEGORY)
 ok('event category ΟΧΙ contract', (ev.category as string) !== 'contract')
 ok('event pending', ev.status === 'pending')
 ok('event date = obligation date', ev.event_date === owner[0].date)
-ok('event notes περιέχουν το κείμενο της υποχρέωσης', ev.notes.startsWith(owner[0].notes))
+ok('event notes περιέχουν το κείμενο της υποχρέωσης', (ev.notes || '').startsWith(owner[0].notes))
 ok('event notes = taxObligationNotes', ev.notes === taxObligationNotes(owner[0]))
 // Το confidence δεν πετάγεται: ταξιδεύει ως priority (και ως κείμενο στις σημειώσεις).
 ok('statutory → priority high', greekPropertyTaxObligations(2026, 'short_term')
   .filter(o => o.confidence === 'statutory')
-  .every(o => taxObligationToEvent(o, 'p', 'u').priority === 'high'))
+  .every(o => taxObligationToEvent(o).priority === 'high'))
 ok('announced → priority medium', owner
   .filter(o => o.confidence === 'announced')
-  .every(o => taxObligationToEvent(o, 'p', 'u').priority === 'medium'))
+  .every(o => taxObligationToEvent(o).priority === 'medium'))
 ok('notes λένε ποιος το κάνει', owner.every(o => taxObligationNotes(o).includes(WHO_LABEL[o.who])))
 ok('notes λένε πόσο σίγουρη είναι η ημερομηνία, με την πλήρη εξήγηση',
    owner.every(o => taxObligationNotes(o).includes(CONFIDENCE_HINT[o.confidence])))

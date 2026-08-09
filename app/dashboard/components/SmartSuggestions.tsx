@@ -18,6 +18,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar'
 import { Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
 import { isoDate } from '@/lib/core/time';
 import { T, TT, fe, EmptyState } from '@/components/Theme';
@@ -134,14 +135,16 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
     // προηγούμενη μέρα. Δηλαδή η «1η του επόμενου μήνα» γινόταν η ΤΕΛΕΥΤΑΙΑ
     // του τρέχοντος, και η πρόταση έμπαινε στο ημερολόγιο σε λάθος μήνα.
     const eventDate = isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 1));
-    const ok = await saved('Η πρόταση δεν μπήκε στο ημερολόγιο', supabase.from('calendar_events').insert({
-      property_id: propertyId, user_id: userId,
-      title: s.title, category: s.category,
+    const ok = await saved('Η πρόταση δεν μπήκε στο ημερολόγιο', calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'manual', {
+      // Η ΠΡΟΤΑΣΗ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ ΔΙΚΤΥΟ, ΟΧΙ ΑΠΟ ΕΜΑΣ. Η κατηγορία και η
+      // προτεραιότητα γράφονταν αυτούσιες: ό,τι κι αν επέστρεφε η συνάρτηση
+      // κατέληγε στη βάση, και το ημερολόγιο δεν ήξερε τι να το κάνει.
+      title: s.title, category: calendar.canonicalCategory(s.category),
       event_date: eventDate, amount: s.amount || null,
-      priority: s.priority || 'medium', status: 'pending',
+      priority: calendar.eventPriority(s.priority),
       recurring: s.recurring, recurring_interval: s.recurring_interval || null,
-      notes: `Πρόταση: ${s.reason}`, source: 'manual',
-    }));
+      notes: `Πρόταση: ${s.reason}`,
+    })]));
     setAddingId(null);
     // Η πρόταση φεύγει από τη λίστα ΜΟΝΟ αν μπήκε κάπου αλλού. Αλλιώς χάνεται
     // και από τα δύο σημεία.

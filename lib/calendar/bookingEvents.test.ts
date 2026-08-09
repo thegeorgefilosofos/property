@@ -33,7 +33,7 @@ const stays: StayInput[] = [
   { id: 's3', check_in: '', check_out: '2026-08-20', total: 100, channel: 'airbnb' },                    // άκυρη check_in → skip
   { id: 's4', check_in: '2026-08-15', check_out: '2026-08-15', total: 0, channel: 'other', guest_name: 'X' }, // ίδια μέρα → μόνο check-in
 ]
-const rows = buildBookingEvents(stays, 'prop1', 'user1')
+const rows = buildBookingEvents(stays)
 
 // s1: check-in + check-out
 const s1in = rows.find(r => r.source === 'booking:s1:in')!
@@ -57,7 +57,7 @@ ok('s2 notes 1 νύχτα (υπολογισμένο)', (s2in.notes || '').includ
 ok('s2 έχει και check-out', rows.some(r => r.source === 'booking:s2:out'))
 
 // s3: άκυρη check_in → κανένα γεγονός
-ok('s3 skip', !rows.some(r => r.source.startsWith('booking:s3')))
+ok('s3 skip', !rows.some(r => (r.source || '').startsWith('booking:s3')))
 
 // s4: ίδια μέρα check-in/out → μόνο check-in, όχι check-out
 ok('s4 check-in υπάρχει', rows.some(r => r.source === 'booking:s4:in'))
@@ -68,8 +68,8 @@ ok('s4 ποσό 0 → null (falsy)', rows.find(r => r.source === 'booking:s4:in'
 ok('σύνολο γεγονότων = 5', rows.length === 5)
 
 // ανθεκτικότητα
-ok('κενό input', buildBookingEvents([], 'p', 'u').length === 0)
-ok('null στοιχεία', buildBookingEvents([null as never, stays[0]], 'p', 'u').length === 2)
+ok('κενό input', buildBookingEvents([]).length === 0)
+ok('null στοιχεία', buildBookingEvents([null as never, stays[0]]).length === 2)
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nbookingEvents.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

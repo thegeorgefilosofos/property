@@ -59,7 +59,7 @@ const panelRows = calendarWritable(obls).map(o => ({
   source: o.source, event_date: o.date, category: oblToCalendarCategory(o.category),
 }))
 // Πλευρά Β: το κουμπί «Φορολογικά (ΑΑΔΕ)» του Ημερολογίου.
-const calendarRows = horizon.map(o => taxObligationToEvent(o, 'prop-1', 'user-1'))
+const calendarRows = horizon.map(o => taxObligationToEvent(o))
 
 ok('όλες οι θεσμικές έχουν κλειδί tax:<id>', taxObls.every(o => o.source === taxEventSource(o.id)))
 const calBySource = new Map(calendarRows.map(r => [r.source, r]))

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } f
 import { downloadWorkbook } from './xlsxStyle'
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import * as calendar from '@/lib/data/calendar'
 import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
@@ -638,7 +639,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
   const save = async () => {
     if (!title || !date) return
     setSaving(true)
-    const ok = await saved('Το ραντεβού δεν αποθηκεύτηκε', supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: date, category: 'tenant', priority: 'medium', status: 'pending', recurring: false, source: 'manual' }))
+    const ok = await saved('Το ραντεβού δεν αποθηκεύτηκε', calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'manual', { title, event_date: date, category: 'tenant' })]))
     setSaving(false)
     if (!ok) return
     onSaved(date); onClose()
@@ -1428,11 +1429,11 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   // Συγχρονισμός υπενθύμισης/ραντεβού επαφής στο ημερολόγιο, ώστε να στέλνεται ειδοποίηση.
   const syncContactReminder = async (contactId: string, name: string) => {
     const src = `contact:${contactId}:reminder`
-    await saved('Η παλιά υπενθύμιση δεν καθαρίστηκε', supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', src))
     // ΜΟΝΟ το ραντεβού. Η «Υπενθύμιση επικοινωνίας» υποσχόταν ρυθμό (κάθε 30
     // ημέρες) και έγραφε μία παγωμένη ημερομηνία, υπολογισμένη μία φορά στο κλικ.
     const date = form.extra.next_appointment || ''
-    if (date) await saved('Η υπενθύμιση δεν μπήκε στο ημερολόγιο', supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: `Επικοινωνία: ${name}`, category: 'reminder', event_date: date, amount: null, priority: 'medium', status: 'pending', recurring: false, source: src, notes: form.extra.specialty || null }))
+    await saved('Η υπενθύμιση δεν μπήκε στο ημερολόγιο', calendar.replaceSource(supabase, { propertyId, userId }, { source: src },
+      date ? [{ title: `Επικοινωνία: ${name}`, category: 'reminder', event_date: date, notes: form.extra.specialty || null }] : []))
   }
 
   const persist = async (mode: 'update' | 'insert' | 'merge', target?: Contact) => {
@@ -1469,7 +1470,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
   const handleDelete = async (id: string) => {
     if (!await saved('Η επαφή δεν διαγράφηκε', supabase.from('contacts').delete().eq('id', id))) return
-    await saved('Η υπενθύμιση της επαφής δεν καθαρίστηκε', supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`))
+    await saved('Η υπενθύμιση της επαφής δεν καθαρίστηκε', calendar.clearSource(supabase, { propertyId, userId }, { source: `contact:${id}:reminder` }))
     fetchContacts(); notify('Επαφή διαγράφηκε')
   }
   // ΜΙΑ ΕΡΩΤΗΣΗ ΓΙΑ ΤΕΣΣΕΡΑ ΚΟΥΜΠΙΑ. Το «Διαγραφή» της κάρτας, της γραμμής
@@ -1493,8 +1494,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     if (!await saved(`${n === 1 ? 'Η επαφή δεν διαγράφηκε' : 'Οι επαφές δεν διαγράφηκαν'}`,
       supabase.from('contacts').delete().in('id', ids))) return
     // Καθαρισμός των υπενθυμίσεων ημερολογίου (ισοτιμία με τη μεμονωμένη διαγραφή).
-    await saved('Οι υπενθυμίσεις των επαφών δεν καθαρίστηκαν', supabase.from('calendar_events')
-      .delete().eq('property_id', propertyId).in('source', ids.map(id => `contact:${id}:reminder`)))
+    await saved('Οι υπενθυμίσεις των επαφών δεν καθαρίστηκαν', calendar.clearSource(supabase, { propertyId, userId }, { sources: ids.map(id => `contact:${id}:reminder`) }))
     setSelected(new Set()); setBulkMode(false); fetchContacts(); notify(`${n} ${n === 1 ? 'επαφή διαγράφηκε' : 'επαφές διαγράφηκαν'}`)
   }
   const bulkEmail = () => { const emails = contacts.filter(c => selected.has(c.id) && c.email).map(c => c.email).join(','); if (emails) window.open('mailto:' + emails); else notify('Καμία από τις επιλεγμένες δεν έχει email', { tone: 'warning' }) }
@@ -1508,9 +1508,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       supabase.from('contacts').update({ notes: serializeNotes(extra, c._freeNotes || '') }).eq('id', c.id))) return
     // Υπενθύμιση ημερολογίου μία ημέρα πριν (idempotent ανά επαφή).
     const src = `contact:${c.id}:reminder`
-    await saved('Η παλιά υπενθύμιση δεν καθαρίστηκε', supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', src))
     const remind = new Date(date + 'T00:00:00'); remind.setDate(remind.getDate() - 1)
-    await saved('Η υπενθύμιση ραντεβού δεν δημιουργήθηκε', supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: `Υπενθύμιση ραντεβού: ${c.full_name}`, category: 'reminder', event_date: isoDate(remind), priority: 'medium', status: 'pending', recurring: false, source: src }))
+    await saved('Η υπενθύμιση ραντεβού δεν δημιουργήθηκε', calendar.replaceSource(supabase, { propertyId, userId }, { source: src },
+      [{ title: `Υπενθύμιση ραντεβού: ${c.full_name}`, category: 'reminder', event_date: isoDate(remind) }]))
     fetchContacts()
   }
 

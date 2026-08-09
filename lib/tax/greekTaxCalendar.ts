@@ -18,6 +18,7 @@
 // ίδιο κλειδί ταυτότητας γεγονότος (`taxEventSource`), ώστε η ίδια υποχρέωση να
 // μην μπορεί να υπάρξει δύο φορές με δύο ημερομηνίες.
 import { isNonWorkingDay } from '../calendar/greekHolidays'
+import type { EventDraft } from '../data/calendar'
 import { readStatus, type StatusRow } from '../property/status'
 import { WHO_LABEL, type Who } from '../accounting/dossier'
 import { AADE_CALENDAR, AADE_DESTINATIONS, aadePath, destinationForKind } from './aade'
@@ -325,13 +326,14 @@ export function taxProfileOf(row: StatusRow | null | undefined): PropertyTaxProf
  *  • `who` μέσα στις σημειώσεις — ώστε να ταξιδεύει και στην εκτύπωση, στο .ics
  *    και στο Excel, όχι μόνο στην οθόνη.
  */
-export function taxObligationToEvent(o: TaxObligation, propertyId: string, userId: string) {
+// ΧΩΡΙΣ ΑΚΙΝΗΤΟ ΚΑΙ ΧΩΡΙΣ ΧΡΗΣΤΗ: την εμβέλεια τη σφραγίζει το στρώμα δεδομένων.
+export function taxObligationToEvent(o: TaxObligation): EventDraft {
   return {
-    property_id: propertyId, user_id: userId, title: o.title,
+    title: o.title,
     category: TAX_EVENT_CATEGORY,
     event_date: o.date, amount: null,
-    priority: (o.confidence === 'statutory' ? 'high' : 'medium') as 'high' | 'medium',
-    status: 'pending' as const,
+    priority: o.confidence === 'statutory' ? 'high' : 'medium',
+    status: 'pending',
     recurring: false, recurring_interval: null,
     notes: taxObligationNotes(o), source: taxEventSource(o.id),
   }

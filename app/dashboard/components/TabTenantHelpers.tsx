@@ -8,6 +8,7 @@ import {
 } from './UIComponents';
 import { T, feAuto, Btn, localDay } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar';
 import { rentDueOccurrence, applyExdate } from '@/lib/calendar/rentDue';
 import { saved } from '@/components/dbWrite';
 
@@ -333,10 +334,14 @@ export function tenantScheduleRows(
 ) {
   const name = (t.full_name || 'ενοικιαστή').trim();
   const key = (suffix: string) => `tenant:${t.id}:${suffix}`;
-  const events: Record<string, unknown>[] = [];
+  const events: calendar.EventDraft[] = [];
   const tasks: Record<string, unknown>[] = [];
 
-  const evBase = { property_id: propertyId, user_id: userId, status: 'pending' as const };
+  // ΟΙ ΚΑΤΗΓΟΡΙΕΣ ΓΡΑΦΟΝΤΑΝ ΜΕ ΟΝΟΜΑΤΑ ΠΟΥ ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΔΕΝ ΞΕΡΕΙ. Εδώ
+  // αποθηκευόταν 'rent_due', 'lease_end', 'deposit', 'rent_adjustment' — καμία
+  // από τις επτά κατηγορίες του ημερολογίου. Η οθόνη τις μετέφραζε στην
+  // ΑΝΑΓΝΩΣΗ, με πίνακα ψευδωνύμων, δηλαδή έγραφε λάθος και διάβαζε σωστά.
+  // Γράφονται πλέον κανονικά· ο πίνακας ψευδωνύμων μένει για τις παλιές γραμμές.
   const ckBase = {
     property_id: propertyId, user_id: userId, status: 'pending' as const, completed: false,
     note: null as string | null, estimated_cost: 0, actual_cost: 0, sort_order: 0,
@@ -345,10 +350,10 @@ export function tenantScheduleRows(
   // 1) Μηνιαία λήξη πληρωμής ενοικίου (επαναλαμβανόμενο, με υπενθύμιση).
   if (t.monthly_rent && t.monthly_rent > 0) {
     events.push({
-      ...evBase, source: key('rent_due'), category: 'rent_due',
+      source: key('rent_due'), category: 'financial',
       title: `Λήξη πληρωμής ενοικίου, ${name}`,
       event_date: nextRentDueISO(opts.rentDueDay ?? 1),
-      amount: t.monthly_rent, priority: 'medium', recurring: true, recurring_interval: 'monthly',
+      amount: t.monthly_rent, recurring: true, recurring_interval: 'monthly',
       notes: 'Μηνιαία υπενθύμιση είσπραξης ενοικίου. Κατέγραψε την πληρωμή στην καρτέλα «Ενοικιαστής», στις Πληρωμές».',
     });
   }
@@ -356,29 +361,28 @@ export function tenantScheduleRows(
   // 2) Λήξη μίσθωσης + ειδοποιήσεις 60/30 ημέρες πριν.
   if (t.lease_end) {
     events.push({
-      ...evBase, source: key('lease_end'), category: 'lease_end',
+      source: key('lease_end'), category: 'contract',
       title: `Λήξη μίσθωσης, ${name}`, event_date: t.lease_end,
-      amount: null, priority: 'high', recurring: false, recurring_interval: null,
+      priority: 'high',
       notes: 'Λήξη συμβολαίου μίσθωσης. Ανανέωση ή διαδικασία αποχώρησης.',
     });
     events.push({
-      ...evBase, source: key('lease_end_60'), category: 'lease_end',
+      source: key('lease_end_60'), category: 'contract',
       title: `Λήξη μίσθωσης σε 60 ημέρες, ${name}`, event_date: shiftISO(t.lease_end, -60),
-      amount: null, priority: 'medium', recurring: false, recurring_interval: null,
       notes: 'Ξεκίνα διαπραγμάτευση ανανέωσης μίσθωσης εγκαίρως.',
     });
     events.push({
-      ...evBase, source: key('lease_end_30'), category: 'lease_end',
+      source: key('lease_end_30'), category: 'contract',
       title: `Λήξη μίσθωσης σε 30 ημέρες, ${name}`, event_date: shiftISO(t.lease_end, -30),
-      amount: null, priority: 'high', recurring: false, recurring_interval: null,
+      priority: 'high',
       notes: 'Κρίσιμο: απόφαση ανανέωσης ή αποχώρησης εντός 30 ημερών.',
     });
     // 3) Επιστροφή εγγύησης στη λήξη.
     if (t.deposit_amount && t.deposit_amount > 0) {
       events.push({
-        ...evBase, source: key('deposit_return'), category: 'deposit',
+        source: key('deposit_return'), category: 'financial',
         title: `Επιστροφή εγγύησης, ${name}`, event_date: t.lease_end,
-        amount: t.deposit_amount, priority: 'medium', recurring: false, recurring_interval: null,
+        amount: t.deposit_amount,
         notes: 'Επιστροφή εγγύησης στη λήξη, μετά από έλεγχο για φθορές.',
       });
     }
@@ -387,9 +391,9 @@ export function tenantScheduleRows(
   // 4) Επέτειος αναπροσαρμογής ΔΤΚ (ετήσια, από lease_start).
   if (t.lease_start && t.monthly_rent && t.monthly_rent > 0) {
     events.push({
-      ...evBase, source: key('rent_adjust'), category: 'rent_adjustment',
+      source: key('rent_adjust'), category: 'contract',
       title: `Αναπροσαρμογή ενοικίου (ΔΤΚ), ${name}`, event_date: nextAnniversaryISO(t.lease_start),
-      amount: null, priority: 'low', recurring: true, recurring_interval: 'yearly',
+      priority: 'low', recurring: true, recurring_interval: 'yearly',
       notes: 'Ετήσια αναπροσαρμογή μισθώματος βάσει ΔΤΚ (ΕΛΣΤΑΤ). Δες «Αναπροσαρμογή Ενοικίου».',
     });
   }
@@ -435,26 +439,14 @@ export async function syncTenantSchedule(
     const prefix = `tenant:${t.id}:`;
 
     // ── calendar_events ──
-    const { data: exEv } = await supabase
-      .from('calendar_events').select('id,source')
-      .eq('property_id', propertyId).like('source', `${prefix}%`);
-    const evById = new Map<string, string>();
-    (exEv || []).forEach((r: { id: string; source: string | null }) => { if (r.source) evById.set(r.source, r.id); });
-    const evInsert = events.filter(e => !evById.has(e.source as string));
     // «Best-effort» σημαίνει ότι δεν μπλοκάρει την αποθήκευση του ενοικιαστή, όχι
     // ότι η αποτυχία μένει κρυφή: ένα ημερολόγιο που δεν γέμισε φαίνεται άδειο
     // χωρίς λόγο. Η `saved` λέει το γιατί και συνεχίζει.
-    if (evInsert.length) await saved('Οι υπενθυμίσεις του ενοικιαστή δεν μπήκαν στο ημερολόγιο',
-      supabase.from('calendar_events').insert(evInsert));
-    if (mode === 'save') {
-      for (const e of events) {
-        const id = evById.get(e.source as string);
-        if (!id) continue;
-        await saved('Η υπενθύμιση του ενοικιαστή δεν ενημερώθηκε', supabase.from('calendar_events').update({
-          event_date: e.event_date, amount: e.amount, title: e.title, notes: e.notes,
-        }).eq('id', id));
-      }
-    }
+    //
+    // ΔΕΝ ΣΒΗΝΕΙ ΚΑΙ ΔΕΝ ΞΑΝΑΓΡΑΦΕΙ: η υπενθύμιση ενοικίου κουβαλά τις ημέρες
+    // που ο χρήστης έχει σημειώσει ως πληρωμένες, και θα χάνονταν.
+    await saved('Οι υπενθυμίσεις του ενοικιαστή δεν μπήκαν στο ημερολόγιο',
+      calendar.upsertBySource(supabase, { propertyId, userId }, prefix, events, { refresh: mode === 'save' }));
 
     // ── checklist_items (dedup μέσω template_id) ──
     const { data: exCk } = await supabase
@@ -481,16 +473,12 @@ export async function setRentDueOccurrencePaid(
 ): Promise<void> {
   if (!tenantId) return;
   try {
-    const { data } = await supabase
-      .from('calendar_events').select('id,event_date,recurrence_exdates')
-      .eq('property_id', propertyId).eq('source', `tenant:${tenantId}:rent_due`).maybeSingle();
-    const row = data as { id: string; event_date: string; recurrence_exdates: string[] | null } | null;
-    if (!row?.event_date) return;
-    const occ = rentDueOccurrence(row.event_date, year, month);
-    const next = applyExdate(row.recurrence_exdates, occ, paid);
-    if (!next) return; // no-op
-    await saved('Η υπενθύμιση ενοικίου δεν ενημερώθηκε', supabase.from('calendar_events')
-      .update({ recurrence_exdates: next }).eq('id', row.id));
+    const ev = await calendar.bySource(supabase, propertyId, `tenant:${tenantId}:rent_due`, 'id,event_date,recurrence_exdates');
+    if (!ev?.event_date || !ev.id) return;
+    const occ = rentDueOccurrence(ev.event_date, year, month);
+    const next = applyExdate(ev.recurrence_exdates as string[] | null, occ, paid);
+    if (!next) return; // δεν άλλαξε τίποτα
+    await saved('Η υπενθύμιση ενοικίου δεν ενημερώθηκε', calendar.update(supabase, ev.id, { recurrence_exdates: next }));
   } catch {
     /* best-effort */
   }

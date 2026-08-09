@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
 import { T, fe, feAuto, fp, fn, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { randomSuffix } from '@/lib/core/uploadPath';
@@ -984,29 +985,26 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const mEnd   = `${y}-${p2(mo + 1)}-${new Date(y, mo + 1, 0).getDate()}`;
       // Διαβάζουμε ΟΛΑ τα φετινομηνιάτικα 'budget' γεγονότα (όχι limit 1) ώστε τυχόν
       // διπλότυπα από ταυτόχρονες εγγραφές να καθαρίζονται αντί να μένουν να στέλνουν email.
-      const { data: existing } = await supabase.from('calendar_events')
-        .select('id').eq('property_id', propertyId).eq('source', 'budget')
-        .gte('event_date', mStart).lte('event_date', mEnd).order('event_date');
+      const ids = await calendar.ids(supabase, propertyId, { source: 'budget' }, { from: mStart, to: mEnd });
       if (cancelled) return;
-      const ids = ((existing ?? []) as { id: string }[]).map(e => e.id).filter(Boolean);
       if (notifyOn && overBudget.length > 0) {
         const total = overBudget.reduce((s, c) => s + ((actuals[c.key] || 0) - catBudget(c.key)), 0);
         const title = `Υπέρβαση προϋπολογισμού: ${overBudget.map(c => c.label).join(', ')}`;
         if (ids.length > 0) {
           await saved('Η ειδοποίηση υπέρβασης δεν ενημερώθηκε',
-            supabase.from('calendar_events').update({ title, amount: Math.round(total) }).eq('id', ids[0]));
+            calendar.update(supabase, ids[0], { title, amount: Math.round(total) }));
           if (ids.length > 1 && !cancelled) await saved('Οι διπλές ειδοποιήσεις δεν καθαρίστηκαν',
-            supabase.from('calendar_events').delete().in('id', ids.slice(1)));
+            calendar.remove(supabase, ids.slice(1)));
         } else if (!cancelled) {
-          await saved('Η ειδοποίηση υπέρβασης δεν δημιουργήθηκε', supabase.from('calendar_events').insert({
-            property_id: propertyId, user_id: userId, title, category: 'financial',
+          await saved('Η ειδοποίηση υπέρβασης δεν δημιουργήθηκε', calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'budget', {
+            title, category: 'financial',
             event_date: `${y}-${p2(mo + 1)}-${p2(_now.getDate())}`, priority: 'high',
-            status: 'pending', source: 'budget', amount: Math.round(total), recurring: false,
-          }));
+            amount: Math.round(total),
+          })]));
         }
       } else if (ids.length > 0) {
         await saved('Η ειδοποίηση υπέρβασης δεν αφαιρέθηκε',
-          supabase.from('calendar_events').delete().in('id', ids));
+          calendar.remove(supabase, ids));
       }
     })();
     return () => { cancelled = true; };

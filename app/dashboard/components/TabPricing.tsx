@@ -29,6 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as calendar from '@/lib/data/calendar'
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable } from '@/components/Theme';
 import { navLabel } from '@/lib/nav/labels';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
@@ -142,8 +143,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
   // Ποια κενά έχουν ήδη υπενθύμιση στο Ημερολόγιο (για toggle προσθήκη/αφαίρεση).
   const loadGapEvents = useCallback(async () => {
-    const { data } = await supabase.from('calendar_events').select('title').eq('property_id', propertyId).eq('source', 'pricing_gap');
-    setGapTitles(new Set((data || []).map(r => r.title as string)));
+    setGapTitles(new Set(await calendar.titles(supabase, propertyId, { source: 'pricing_gap' })));
   }, [propertyId]);
 
   useEffect(() => {
@@ -310,19 +310,17 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   const toggleGap = async (g: Gap) => {
     const title = gapTitle(g);
     if (gapTitles.has(title)) {
-      const { error } = await supabase.from('calendar_events').delete()
-        .eq('property_id', propertyId).eq('source', 'pricing_gap').eq('title', title);
+      const { error } = await calendar.clearSource(supabase, { propertyId, userId }, { source: 'pricing_gap', title });
       if (error) { notifyError(failed('Οι ρυθμίσεις τιμολόγησης δεν αποθηκεύτηκαν', error)); return; }
       setGapTitles(prev => { const n = new Set(prev); n.delete(title); return n; });
       notify('Αφαιρέθηκε από το Ημερολόγιο');
       return;
     }
     const rd = (() => { const wanted = addDaysIso(g.start, -5); return wanted < todayIso() ? todayIso() : wanted; })();
-    const { error } = await supabase.from('calendar_events').insert({
-      property_id: propertyId, user_id: userId, title,
-      category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'pricing_gap',
+    const { error } = await calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'pricing_gap', {
+      title, category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium',
       notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
-    });
+    })]);
     if (error) { notifyError(failed('Οι ρυθμίσεις τιμολόγησης δεν αποθηκεύτηκαν', error)); return; }
     setGapTitles(prev => new Set(prev).add(title));
     notifyOk('Προστέθηκε στο Ημερολόγιο');
