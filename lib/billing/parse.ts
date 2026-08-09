@@ -7,6 +7,7 @@
 // Ο έλεγχος ΑΦΜ και η ανάγνωση ελληνικών ποσών/ημερομηνιών υπάρχουν ΜΙΑ φορά
 // στο app, στο lib/core/greek.ts. Τα εισάγουμε — δεν τα αντιγράφουμε.
 import { fe } from '../core/format';
+import { greekWord } from '../core/greek';
 import {
   isValidAfm,
   parseAmount as coreParseAmount,
@@ -313,7 +314,10 @@ export function periodsOverlap(a: PeriodRange, b: PeriodRange): boolean {
 // πάροχος. Ούτε χρησιμοποιούμε καινούργια λίστα εταιρειών: τα ονόματα
 // αναγνωρίζονται με τους ΥΠΑΡΧΟΝΤΕΣ MATCHERS (ο ίδιος κατάλογος που κατηγοριοποιεί
 // τραπεζικές κινήσεις). Έτσι «ΔΕΗ» ≠ «PROTERGIA» παρότι και τα δύο είναι ρεύμα.
-const LEGAL_SUFFIX = /\b(α\.?ε\.?|αβεε|αεβε|επε|ικε|ο\.?ε\.?|ε\.?ε\.?|sa|ltd|plc|inc)\b/g;
+// ΤΟ «\b» ΔΕΝ ΕΠΙΑΝΕ ΤΙΣ ΕΛΛΗΝΙΚΕΣ ΜΟΡΦΕΣ. Είναι ASCII-only, οπότε από τη λίστα
+// δούλευαν ΜΟΝΟ τα «sa|ltd|plc|inc»: το «ΔΕΗ ΑΒΕΕ» κρατούσε το «αβεε» ως λέξη
+// του ονόματος και δεν ταύτιζε με το «ΔΕΗ». Ο ίδιος πάροχος, δύο ταυτότητες.
+const LEGAL_SUFFIX = greekWord('α\\.?ε\\.?|αβεε|αεβε|επε|ικε|ο\\.?ε\\.?|ε\\.?ε\\.?|sa|ltd|plc|inc', 'g');
 const providerTokens = (name?: string | null): string[] =>
   stripAccents(String(name ?? '')).replace(LEGAL_SUFFIX, ' ')
     .split(/[^α-ωa-z0-9]+/).filter(w => w.length >= 3);

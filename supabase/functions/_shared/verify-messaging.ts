@@ -44,7 +44,10 @@ console.log('\n2b) Privacy — no euro amounts or tenant/guest names in glanceab
 {
   for (const key of ['subscription_receipt', 'tenant_rent_receipt', 'payout_received', 'monthly_statement']) {
     const b = MSG[key](rich).body;
-    ok(!/€|\bΓιώργος\b|\b480\b|\b4\.?200\b/.test(b), `${key} body exposes no amount or tenant name (${b})`);
+    // Το «\bΓιώργος\b» δεν ταίριαζε ΠΟΤΕ (το «\b» είναι ASCII-only), οπότε ο
+    // έλεγχος διαρροής ονόματος ενοικιαστή ήταν ανενεργός — μόνο τα ποσά
+    // ελέγχονταν πραγματικά.
+    ok(!/€|(?<![\p{L}\p{N}])Γιώργος(?![\p{L}\p{N}])|\b480\b|\b4\.?200\b/u.test(b), `${key} body exposes no amount or tenant name (${b})`);
   }
   // checkin_today is glanceable (obligation) → the guest name must stay behind the
   // tap, never on the lock screen.

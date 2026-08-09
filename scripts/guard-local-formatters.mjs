@@ -40,7 +40,7 @@ const ALLOWED = [
 
 // Ποσό ή ποσοστό — όχι ημερομηνία, όχι σκέτος ακέραιος.
 const MONEY_LOCALE = /toLocaleString\([^)]*(?:FractionDigits|currency)/i
-const FIXED_UNIT = /toFixed\(\s*\d+\s*\)[^\n]{0,40}(?:%|€|\bευρώ\b)/
+const FIXED_UNIT = /toFixed\(\s*\d+\s*\)[^\n]{0,40}(?:%|€|(?<![\p{L}\p{N}])ευρώ(?![\p{L}\p{N}]))/u
 
 const files = findSources().filter(f => !f.includes('.test.') && !ALLOWED.includes(f))
 const findings = []

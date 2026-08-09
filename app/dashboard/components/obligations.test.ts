@@ -181,7 +181,9 @@ const ALLOWED = new Set<string>([
   'app/dashboard/components/BillsBudget.tsx',
   'app/dashboard/components/assistantPersona.ts',
 ])
-const NAMES = /ΕΝΦΙΑ|\bΕ1\b|\bΕ2\b|βραχυχρόνιας διαμονής/
+// Το «\b» είναι ASCII: τα /\bΕ1\b/ και /\bΕ2\b/ δεν ταίριαζαν ΠΟΤΕ, οπότε ο
+// έλεγχος βασιζόταν σιωπηλά μόνο στο «ΕΝΦΙΑ».
+const NAMES = /ΕΝΦΙΑ|(?<![\p{L}\p{N}])Ε[12](?![\p{L}\p{N}])|βραχυχρόνιας διαμονής/u
 const DATES = /month:\s*\d|nextAnnual\(|Μαΐου|Σεπτεμβρίου|Ιουνίου|Ιουλίου|Μαρτίου|Φεβρουαρίου|-0[1-9]-\d\d/
 function walk(dir: string, out: string[]) {
   for (const entry of readdirSync(dir)) {

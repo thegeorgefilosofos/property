@@ -304,5 +304,42 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
   ok('βραχυχρόνια: εξηγεί τα ακαθάριστα της πλατφόρμας', /ΑΚΑΘΑΡΙΣΤΑ/.test(short?.trap || ''));
 }
 
+// ── Η ΣΥΜΦΩΝΙΑ ΑΡΙΘΜΟΥ ΤΗΣ ΕΠΙΚΕΦΑΛΙΔΑΣ ────────────────────────────────────
+// Η οθόνη έγραφε «Ένα πράγμα λείπει για να κλείσει η δήλωση, και το ένα είναι
+// ΔΙΚΑ σου»: το «δικά σου» ήταν έξω από το ερώτημα ενικού/πληθυντικού, οπότε
+// έβγαινε σε κάθε ενικό. Ο υπάρχων έλεγχος δεχόταν και τα δύο («δικά σου» Ή
+// «δικό σου»), δηλαδή δεν μπορούσε να το πιάσει. Εδώ ελέγχεται η ΣΥΜΦΩΝΙΑ.
+{
+  // ΤΟ \b ΤΗΣ JAVASCRIPT ΕΙΝΑΙ ASCII. Η πρώτη γραφή ήταν /\b(ένα|το ένα) είναι
+  // δικά σου/ και ΔΕΝ έπιανε τίποτα: το όριο λέξης δεν αναγνωρίζεται δίπλα σε
+  // ελληνικό γράμμα, οπότε ο έλεγχος περνούσε ακόμη και με το σφάλμα μέσα.
+  // Επαληθεύτηκε επαναφέροντας το σφάλμα — γι' αυτό ελέγχεται η φράση αυτούσια.
+  const singularOk = 'ένα είναι δικό σου';
+  const pluralWrong = 'ένα είναι δικά σου';
+  // Κάθε δυνατός συνδυασμός καταστάσεων και προφίλ, ώστε να περάσουν όλοι οι κλάδοι.
+  const cases: DossierContext[] = [
+    ctx({ statuses: ['rent_long'] }), ctx({ statuses: ['rent_short'] }),
+    ctx({ statuses: ['rent_long', 'rent_short'] }), ctx({ statuses: ['vacant'] }),
+    ctx({ form: 'company', books: 'double_entry' }),
+  ];
+  let checked = 0;
+  for (const c of cases) {
+    const reqs = requirementsFor(c);
+    // Και με διάφορα υποσύνολα ήδη ολοκληρωμένα, ώστε να αλλάζουν τα πλήθη.
+    for (let n = 0; n <= reqs.length; n++) {
+      const msg = readiness(reqs, reqs.slice(0, n).map(x => x.id)).message;
+      ok(`καμία ασυμφωνία αριθμού («${msg.slice(0, 46)}…»)`, !msg.includes(pluralWrong));
+      checked++;
+    }
+  }
+  ok(`ελέγχθηκαν πολλοί συνδυασμοί (${checked})`, checked > 20);
+  // Και ότι ο ενικός ΟΝΤΩΣ παράγεται κάπου — αλλιώς ο έλεγχος από πάνω είναι κενός.
+  const anySingular = cases.flatMap(c => {
+    const reqs = requirementsFor(c);
+    return reqs.map((_, n) => readiness(reqs, reqs.slice(0, n).map(x => x.id)).message);
+  }).some(m => m.includes(singularOk));
+  ok('ο ενικός παράγεται όντως, άρα ο έλεγχος δεν είναι κενός', anySingular);
+}
+
 console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);

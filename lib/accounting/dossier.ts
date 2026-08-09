@@ -523,7 +523,9 @@ export function readiness(reqs: readonly Requirement[], haveIds: readonly string
   } else if (blocking.length === 0) {
     message = yours === 0
       ? `Λείπουν ${pending.length}, κανένα δεν σε αφορά. Τα ετοιμάζουμε εμείς ή ο λογιστής.`
-      : `Λείπουν ${missing.length}, από τα οποία ${yours === 1 ? 'ένα είναι' : `${yours} είναι`} δικά σου.`;
+      // ΣΥΜΦΩΝΙΑ ΑΡΙΘΜΟΥ. Το «δικά σου» ήταν έξω από το ερώτημα, οπότε ο ενικός
+      // έβγαζε «ένα είναι δικά σου». Ο αριθμός αλλάζει ΟΛΟΚΛΗΡΗ τη φράση.
+      : `Λείπουν ${missing.length}, από τα οποία ${yours === 1 ? 'ένα είναι δικό σου' : `${yours} είναι δικά σου`}.`;
   } else {
     // ΠΡΟΣΟΧΗ ΣΤΟ ΥΠΟΣΥΝΟΛΟ. Η φράση λέει «Χ λείπουν, και τα Υ είναι δικά σου»,
     // άρα το Υ ΠΡΕΠΕΙ να είναι υποσύνολο του Χ. Το γενικό `yours` μετράει όλα τα
@@ -533,7 +535,7 @@ export function readiness(reqs: readonly Requirement[], haveIds: readonly string
     const bYours = blocking.filter(r => r.who === 'owner').length;
     const b = blocking.length === 1 ? 'Ένα πράγμα λείπει' : `${blocking.length} πράγματα λείπουν`;
     if (bYours > 0) {
-      message = `${b} για να κλείσει η δήλωση, και ${bYours === 1 ? 'το ένα είναι' : `τα ${bYours} είναι`} δικά σου.`;
+      message = `${b} για να κλείσει η δήλωση, και ${bYours === 1 ? 'το ένα είναι δικό σου' : `τα ${bYours} είναι δικά σου`}.`;
     } else if (yours > 0) {
       // Κανένα από τα επείγοντα δεν είναι δικό του, αλλά έχει άλλα εκκρεμή. Το
       // «δεν χρειάζεται κάτι από εσένα» θα ήταν ψέμα και θα το ανακάλυπτε μόνος του.

@@ -1,0 +1,69 @@
+#!/usr/bin/env node
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ «\b» ΔΙΠΛΑ ΣΕ ΕΛΛΗΝΙΚΑ ΔΕΝ ΤΑΙΡΙΑΖΕΙ ΠΟΤΕ
+// ─────────────────────────────────────────────────────────────────────────
+// Το όριο λέξης της JavaScript ορίζεται πάνω στο `\w`, που είναι [A-Za-z0-9_]
+// — ASCII, ακόμη και με το flag /u. Άρα:
+//
+//   /\bακόμα\b/.test('δεν βρέθηκε ακόμα τίποτα')   →  false
+//   /\bακόμα\b/.test('ακόμα')                      →  false
+//   /\bfoo\b/.test('a foo b')                      →  true
+//
+// ΓΙΑΤΙ ΕΙΝΑΙ ΧΕΙΡΟΤΕΡΟ ΑΠΟ ΣΦΑΛΜΑ: δεν σπάει τίποτα, ΠΕΡΝΑΕΙ. Ο έλεγχος
+// γυρίζει πράσινο, ο φύλακας λέει «όλα καλά», και κανείς δεν κοιτάζει ξανά.
+//
+// ΒΡΕΘΗΚΕ ΣΕ ΤΕΣΣΕΡΑ ΣΗΜΕΙΑ, ΚΑΙ ΤΑ ΤΕΣΣΕΡΑ ΤΟ ΙΔΙΟ ΣΙΩΠΗΛΑ:
+//
+//   guard-empty-states     /\bακόμα\b/ — ο κανόνας ορθογραφίας που η ίδια η
+//                          κεφαλίδα του αρχείου διαφήμιζε, ανενεργός
+//   guard-local-formatters /\bευρώ\b/ — μερικώς, το «%» και το «€» δούλευαν
+//   lib/billing/parse.ts   /\b(α.ε.|αβεε|επε|ικε|…)\b/ — από όλη τη λίστα
+//                          δούλευαν ΜΟΝΟ τα λατινικά «sa|ltd|plc|inc», οπότε
+//                          το «ΔΕΗ ΑΒΕΕ» κρατούσε το «αβεε» ως λέξη του
+//                          ονόματος και δεν ταύτιζε με το «ΔΕΗ»
+//   obligations.test       /\bΕ1\b/, /\bΕ2\b/ — ο έλεγχος στηριζόταν σιωπηλά
+//                          μόνο στο «ΕΝΦΙΑ»
+//
+// Η ΣΩΣΤΗ ΓΡΑΦΗ: lookaround σε κατηγορίες Unicode, με flag `u`.
+//   (?<![\p{L}\p{N}]) … (?![\p{L}\p{N}])
+// Υπάρχει έτοιμο ως `greekWord()` στο lib/core/greek.ts.
+// ═══════════════════════════════════════════════════════════════════════════
+import { readFileSync } from 'node:fs'
+import { globSync } from 'node:fs'
+
+const FILES = globSync(['app/**/*.ts', 'app/**/*.tsx', 'components/**/*.ts', 'components/**/*.tsx',
+  'lib/**/*.ts', 'lib/**/*.tsx', 'scripts/**/*.mjs', 'supabase/functions/**/*.ts'])
+
+// Κυριολεκτικό regex ή κατασκευή RegExp με συμβολοσειρά.
+const LITERAL = /\/(?![/*])(?:\\.|\[(?:\\.|[^\]])*\]|[^/\n\\])+\/[gimsuyvd]*/g
+const CTOR = /new RegExp\(\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g
+const GREEK = /[Α-Ωα-ωΆ-Ώά-ώ]/
+
+const findings = []
+for (const f of FILES) {
+  readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+    const t = line.trim()
+    if (t.startsWith('//') || t.startsWith('*')) return
+    const found = []
+    for (const m of line.matchAll(LITERAL)) found.push(m[0])
+    for (const m of line.matchAll(CTOR)) found.push(m[2])
+    for (const re of found) {
+      if (!re.includes('\\b') || !GREEK.test(re)) continue
+      // Το «\b» πρέπει να γειτονεύει με ελληνικό γράμμα για να είναι νεκρό.
+      if (/\\b[^\w\s\\]{0,3}[Α-Ωα-ωΆ-Ώά-ώ]|[Α-Ωα-ωΆ-Ώά-ώ][^\w\s\\]{0,3}\\b/.test(re)) {
+        findings.push(`${f}:${i + 1}  ${re.slice(0, 78)}`)
+      }
+    }
+  })
+}
+
+if (findings.length) {
+  console.error(`✗ ${findings.length} φορές το «\\b» δίπλα σε ελληνικό γράμμα:\n`)
+  for (const x of findings) console.error('  ' + x)
+  console.error('\n  Το «\\b» της JavaScript είναι ASCII-only και ΔΕΝ ταιριάζει ποτέ εκεί.')
+  console.error('  Ο έλεγχος δεν αποτυγχάνει — περνάει, και δεν προστατεύει από τίποτα.')
+  console.error('  Γράψε: (?<![\\p{L}\\p{N}]) … (?![\\p{L}\\p{N}]) με flag «u»,')
+  console.error('  ή χρησιμοποίησε το greekWord() από το lib/core/greek.ts.')
+  process.exit(1)
+}
+console.log('✓ κανένα ASCII όριο λέξης δίπλα σε ελληνικά')
