@@ -60,7 +60,8 @@
     "form-grid": "node scripts/guard-form-grid.mjs",
     "decimal-comma": "node scripts/guard-decimal-comma.mjs",
     "data-layer": "node scripts/guard-data-layer.mjs",
-    "rls-coverage": "node scripts/guard-rls-coverage.mjs"
+    "rls-coverage": "node scripts/guard-rls-coverage.mjs",
+    "csv-injection": "node scripts/guard-csv-injection.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

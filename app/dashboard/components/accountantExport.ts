@@ -16,6 +16,7 @@
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
 import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell } from './xlsxStyle';
+import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
 import { downloadFile } from '@/lib/core/download';
@@ -174,11 +175,8 @@ export interface DossierExportInput extends AccountantBundleInput {
 
 const CRLF = '\r\n';
 const BOM = '﻿';                                   // ώστε το ελληνικό Excel να ανοίγει σωστά τα CSV
-const csvCell = (v: string | number): string => {
-  const s = String(v ?? '');
-  return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-const csv = (rows: (string | number)[][]): string => BOM + rows.map(r => r.map(csvCell).join(';')).join(CRLF) + CRLF;
+
+const csv = (rows: (string | number)[][]): string => BOM + rows.map(r => r.map(v => csvCell(v, ';')).join(';')).join(CRLF) + CRLF;
 const txt = (lines: string[]): string => BOM + lines.join(CRLF) + CRLF;
 const grDate = (d: string): string => { const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
 const grNum = (n: number): string => (n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -1,4 +1,5 @@
 import { fe } from '../core/format';
+import { csvCell } from '../core/csv';
 // ═══════════════════════════════════════════════════════════════════════════
 // journal — Καθαρή double-entry (διπλογραφική) μηχανή για το λογιστικό handoff.
 //
@@ -158,10 +159,8 @@ export function trialBalance(lines: JournalLine[]): TrialRow[] {
 }
 
 // ── CSV formatters ───────────────────────────────────────────────────────────
-const csvField = (v: unknown, sep: string) => {
-  const s = String(v ?? '');
-  return new RegExp(`["${sep === '\t' ? '\\t' : sep}\\n]`).test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
+// Ο έλεγχος ζει στο lib/core/csv: ο ίδιος για κάθε αρχείο που ανοίγει σε φύλλο.
+const csvField = (v: unknown, sep: string) => csvCell(v, sep);
 const n2 = (n: number) => (Number(n) || 0).toFixed(2);                 // dot decimal
 const n2gr = (n: number) => (Number(n) || 0).toFixed(2).replace('.', ','); // comma decimal
 const dmy = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || ''); }; // DD/MM/YYYY (EU / Xero / Ελλάδα)
