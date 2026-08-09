@@ -68,7 +68,7 @@ import { syncTenantSchedule } from './TabTenantHelpers'
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
-import { MONTHS_GEN, MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
+import { MONTHS_GEN, MONTHS_NOM, MONTHS_SHORT, DAY_NAMES_SHORT, mondayFirst } from '@/lib/core/months';
 import { INK, INK_MUTED } from '@/lib/print/ink';
 import { reportHead, reportHeader, reportDisclaimer, openReport, rEsc, rEur } from './reportPdf';
 import { downloadFile } from '@/lib/core/download'
@@ -177,7 +177,9 @@ export const loanEventTitle = (bank: string | null | undefined): string => {
   const b = cleanBank(bank)
   return b ? `Δόση δανείου, ${b}` : 'Δόση δανείου'
 }
-const DAY_NAMES_GR    = ['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ']
+// Τα ονόματα των ημερών και ο κανόνας «η εβδομάδα ξεκινά Δευτέρα» ζουν στο
+// lib/core/months.ts, με ελέγχους πάνω σε πραγματικές ημερομηνίες.
+const DAY_NAMES_GR    = DAY_NAMES_SHORT
 
 const EMPTY_FORM: FormState = {
   title: '', category: 'reminder', event_date: '', event_time: '', duration: '', amount: '',
@@ -439,7 +441,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
   events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
 }) {
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
-  const firstDay=new Date(year,month,1).getDay()
+  const firstDay=mondayFirst(new Date(year,month,1).getDay())
   const daysInMonth=new Date(year,month+1,0).getDate()
   const today=todayStr()
   const cells:(number|null)[] = []
@@ -477,7 +479,11 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                 Και «1 γεγονότα». Ο πληθυντικός ήταν σταθερός. */}
             <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length===1?'1 γεγονός':`${events.length} γεγονότα`}</span>
             {monthPendingAmt>0&&<span title={`Άθροισμα των εκκρεμών ποσών ${MONTHS_GEN[month]} ${year}, μόνο αυτού του μήνα`} style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{fe(monthPendingAmt)} εκκρεμή</span>}
-            <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{monthPaid.length===1?'1 πληρωμένο':`${monthPaid.length} πληρωμένα`}</span>
+            {/* ΤΟ «0 ΠΛΗΡΩΜΕΝΑ» ΔΙΠΛΑ ΣΤΟ «0 ΓΕΓΟΝΟΤΑ» ΔΕΝ ΛΕΕΙ ΤΙΠΟΤΑ. Σε άδειο
+                μήνα η γραμμή έγραφε δύο μηδενικά στη σειρά — δύο μετρήσεις για το
+                ίδιο κενό. Ο αριθμός των πληρωμένων έχει νόημα μόνο όταν υπάρχει
+                κάτι πληρωμένο· αλλιώς μιλά η κενή κατάσταση από κάτω. */}
+            {monthPaid.length>0&&<span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{monthPaid.length===1?'1 πληρωμένο':`${monthPaid.length} πληρωμένα`}</span>}
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--border-subtle)' }}>
             {DAY_NAMES_GR.map(d=>(
@@ -547,7 +553,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
             κάτω. */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
           <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα</p>
-          {upcomingRows.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα εκκρεμές</p>}
+          {upcomingRows.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Καμία εκκρεμότητα</p>}
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {upcomingRows.map(row=>{
               const ev=row.kind==='series'?row.lead:row.event

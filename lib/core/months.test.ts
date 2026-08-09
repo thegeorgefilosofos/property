@@ -7,7 +7,7 @@
 // `Intl.DateTimeFormat('el-GR')` — το πρότυπο CLDR, το ίδιο που χρησιμοποιεί το
 // λειτουργικό του χρήστη. Αν κάποιος τον ξαναγράψει «με το μάτι», πέφτει εδώ.
 // ═══════════════════════════════════════════════════════════════════════════
-import { MONTHS_NOM, MONTHS_GEN, MONTHS_SHORT, monthNom, monthGen, monthShort, monthYearLabel } from './months';
+import { MONTHS_NOM, MONTHS_GEN, MONTHS_SHORT, monthNom, monthGen, monthShort, monthYearLabel, mondayFirst, DAY_NAMES_SHORT } from './months';
 
 let pass = 0, fail = 0;
 const ok = (name: string, cond: boolean) => { if (cond) pass++; else { fail++; console.error(`✗ ${name}`); } };
@@ -55,6 +55,28 @@ ok('«2026-12» → «Δεκέμβριος 2026»', monthYearLabel('2026-12') ==
 // Άγνωστη μορφή επιστρέφεται αυτούσια: καλύτερα να δει ο χρήστης «2026» παρά κενό.
 ok('άγνωστη μορφή επιστρέφεται αυτούσια', monthYearLabel('2026') === '2026');
 ok('κενό επιστρέφεται αυτούσιο', monthYearLabel('') === '');
+
+
+// ═══ Η ΕΒΔΟΜΑΔΑ ΞΕΚΙΝΑ ΔΕΥΤΕΡΑ ═══════════════════════════════════════════
+// Το ημερολόγιο άρχιζε Κυριακή, επειδή το `Date.getDay()` επιστρέφει 0 για
+// Κυριακή και το πλέγμα το χρησιμοποιούσε αυτούσιο. Οι έλεγχοι δένουν τον
+// κανόνα σε ΠΡΑΓΜΑΤΙΚΕΣ ημερομηνίες, όχι στη φόρμουλα: αν κάποιος «διορθώσει»
+// το +6 σε -1, οι ημέρες θα πέσουν σε λάθος στήλη και θα φανεί εδώ.
+{
+  ok('Κυριακή είναι η έβδομη', mondayFirst(0) === 6);
+  ok('Δευτέρα είναι η πρώτη', mondayFirst(1) === 0);
+  ok('Σάββατο είναι η έκτη', mondayFirst(6) === 5);
+  // 1 Αυγούστου 2026: Σάββατο. 15 Αυγούστου 2026 (Κοίμηση): Σάββατο.
+  ok('η 1η Αυγούστου 2026 πέφτει Σάββατο', mondayFirst(new Date(2026, 7, 1).getDay()) === 5);
+  ok('η 15η Αυγούστου 2026 πέφτει Σάββατο', mondayFirst(new Date(2026, 7, 15).getDay()) === 5);
+  ok('η 1η Ιανουαρίου 2026 πέφτει Πέμπτη', mondayFirst(new Date(2026, 0, 1).getDay()) === 3);
+  ok('επτά ονόματα ημερών', DAY_NAMES_SHORT.length === 7);
+  ok('πρώτη η Δευτέρα', DAY_NAMES_SHORT[0] === 'Δευ');
+  ok('τελευταία η Κυριακή', DAY_NAMES_SHORT[6] === 'Κυρ');
+  // Το Σαββατοκύριακο ΜΑΖΙ στο τέλος: αυτός είναι όλος ο λόγος της αλλαγής.
+  ok('το Σαββατοκύριακο κάθεται μαζί',
+    DAY_NAMES_SHORT.indexOf('Κυρ') - DAY_NAMES_SHORT.indexOf('Σαβ') === 1);
+}
 
 console.log(fail === 0 ? `months: ✓ ${pass}` : `months: ✓ ${pass} · ✗ ${fail}`);
 if (fail > 0) process.exit(1);
