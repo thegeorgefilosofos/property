@@ -351,7 +351,13 @@ export default function AccountantDossier({
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '5px 0 14px', fontFamily: T.font.sans, lineHeight: 1.5 }}>
             {warnings.length === 1 ? 'Ένα σημείο που κοστίζει, όταν πάει στραβά.' : `${warnings.length} σημεία που κοστίζουν, όταν πάνε στραβά.`}
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 12, alignItems: 'start' }}>
+          {/* ΤΡΙΑ ΠΑΝΩ, ΕΝΑ ΚΑΤΩ. Το ελάχιστο πλάτος ήταν 300 εικονοστοιχεία,
+              δηλαδή τέσσερις στήλες ζητούσαν 1.236 και δεν χωρούσαν σχεδόν
+              πουθενά: τα τέσσερα σημεία έσπαγαν σε τρία και ένα, και το ένα
+              κάτω κάτω έμοιαζε ξεχασμένο αντί για ισότιμο. Με 210 οι τέσσερις
+              στήλες χωρούν από τα 876, δηλαδή σε κάθε οθόνη υπολογιστή, και
+              συνεχίζουν να πέφτουν σε δύο και σε μία όπου πρέπει. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))', gap: 14, alignItems: 'start' }}>
             {warnings.map(t => (
               <div key={t.title} style={{ paddingLeft: 12, borderLeft: '2px solid var(--border-default)' }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{t.title}</p>

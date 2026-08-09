@@ -52,17 +52,37 @@ export const T = {
 // ── Τυπογραφική κλίμακα, ΜΙΑ πηγή αλήθειας για μεγέθη/βάρη/spacing.
 // Στόχος: «Google οπτική» ομοιομορφία, ίδιοι τίτλοι/ετικέτες/τιμές παντού.
 // Χρήση: <div style={{ ...TT.label }}>…</div>  ή  style={TT.kpi}
+// ═══ ΤΟ ΚΕΙΜΕΝΟ ΠΟΥ ΔΕΝ ΠΑΕΙ ΠΕΡΑ ΠΕΡΑ ═══════════════════════════════════
+//
+// Μια επικεφαλίδα δύο γραμμών που αφήνει μία λέξη μόνη της στη δεύτερη
+// («…και από ποια ημερομηνία / μετράει.») δεν διαβάζεται ως τίτλος· διαβάζεται
+// ως λάθος. Το ίδιο και μια παράγραφος που τελειώνει με ορφανή λέξη.
+//
+// Ο περιηγητής ξέρει να το λύσει μόνος του, και η αρχική σελίδα το ζητούσε ήδη
+// σε δεκατρία σημεία με `textWrap` γραμμένο στο χέρι. Ο πίνακας ελέγχου δεν το
+// ζητούσε πουθενά — γι᾽ αυτό η αρχική έδειχνε δουλεμένη και οι οθόνες μέσα
+// πρόχειρες. Δηλώνεται εδώ, στην κλίμακα, ώστε να ισχύει σε ΚΑΘΕ επικεφαλίδα
+// και κάθε παράγραφο της εφαρμογής χωρίς να το θυμάται κανείς:
+//
+//   balance  για τίτλους — μοιράζει τις λέξεις σε ίσες γραμμές
+//   pretty   για κείμενο — δεν αφήνει ποτέ μία λέξη μόνη της στο τέλος
+//
+// Είναι σταδιακή βελτίωση: όπου δεν υποστηρίζεται, το κείμενο αναδιπλώνεται
+// όπως πριν. Καμία αλλαγή σε μέγεθος, βάρος ή χρώμα.
+const BALANCE = { textWrap: 'balance' as const };
+const PRETTY  = { textWrap: 'pretty'  as const };
+
 export const TT = {
-  display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
+  display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)', ...BALANCE },
   // Μικρότερο display για μεγάλους αριθμούς μέσα σε κάρτες (π.χ. ανταμοιβές).
-  displaySm: { fontFamily: T.font.sans, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
-  h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)' },
-  h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)' },
+  displaySm: { fontFamily: T.font.sans, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)', ...BALANCE },
+  h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)', ...BALANCE },
+  h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)', ...BALANCE },
   // Ετικέτα ενότητας, η uppercase «τελεία» των Bills, τυποποιημένη.
-  label:   { fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)' },
-  body:    { fontFamily: T.font.sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)' },
-  bodySm:  { fontFamily: T.font.sans, fontSize: 12, fontWeight: 400, lineHeight: 1.5,  color: 'var(--text-secondary)' },
-  caption: { fontFamily: T.font.sans, fontSize: 11, fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)' },
+  label:   { fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', ...BALANCE },
+  body:    { fontFamily: T.font.sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)', ...PRETTY },
+  bodySm:  { fontFamily: T.font.sans, fontSize: 12, fontWeight: 400, lineHeight: 1.5,  color: 'var(--text-secondary)', ...PRETTY },
+  caption: { fontFamily: T.font.sans, fontSize: 11, fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)', ...PRETTY },
   // Μεγάλοι αριθμοί KPI: σφιχτή sans (num) + tabular. Το πυκνό mono μένει για πίνακες.
   kpi:     { fontFamily: T.font.num, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, letterSpacing: '-0.01em', lineHeight: 1, color: 'var(--text-primary)' },
   mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },

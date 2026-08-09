@@ -14,6 +14,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { EXPENSE_MAP, categorizeTransaction, derivePeriod, digitsOnly, isValidAfm } from './parse';
+import { navLabel } from '../nav/labels';
+
+// Ο προορισμός γράφεται ΜΙΑ φορά, από το μητρώο ονομάτων. Ήταν έξι φορές η
+// σταθερά «Αρχείο», και όταν η καρτέλα μετονομάστηκε σε «Φάκελος ακινήτου» η
+// οθόνη επιβεβαίωσης θα έστελνε τον χρήστη σε όνομα που δεν υπάρχει στο μενού.
+const FOLDER = navLabel('documents');
 
 export type DocType =
   | 'bill'        // λογαριασμός κοινής ωφέλειας/υπηρεσίας → Λογαριασμοί + Δαπάνες + Ημερολόγιο
@@ -35,12 +41,12 @@ export interface DocTypeMeta {
 export const DOC_TYPES: DocTypeMeta[] = [
   { id: 'bill',       label: 'Λογαριασμός',          hint: 'Ρεύμα, νερό, αέριο, internet, κοινόχρηστα, υπηρεσίες', targets: ['Λογαριασμοί', 'Δαπάνες', 'Ημερολόγιο'] },
   { id: 'payment',    label: 'Απόδειξη πληρωμής',     hint: 'Βεβαίωση/απόδειξη ότι πληρώθηκε κάτι',                 targets: ['Δαπάνες', 'Λογαριασμοί'] },
-  { id: 'lease',      label: 'Μισθωτήριο',            hint: 'Συμφωνητικό ενοικίασης · ενοίκιο, διάρκεια, εγγύηση', targets: ['Ενοικιαστής', 'Αρχείο'] },
-  { id: 'deed',       label: 'Τίτλος / Συμβόλαιο',    hint: 'Τίτλος ιδιοκτησίας ή συμβόλαιο αγοράς',                targets: ['Στοιχεία ακινήτου', 'Αρχείο'] },
-  { id: 'insurance',  label: 'Ασφαλιστήριο',          hint: 'Ασφάλεια ακινήτου · ασφάλιστρο, κάλυψη, λήξη',        targets: ['Ασφάλεια', 'Ημερολόγιο', 'Αρχείο'] },
+  { id: 'lease',      label: 'Μισθωτήριο',            hint: 'Συμφωνητικό ενοικίασης · ενοίκιο, διάρκεια, εγγύηση', targets: ['Ενοικιαστής', FOLDER] },
+  { id: 'deed',       label: 'Τίτλος / Συμβόλαιο',    hint: 'Τίτλος ιδιοκτησίας ή συμβόλαιο αγοράς',                targets: ['Στοιχεία ακινήτου', FOLDER] },
+  { id: 'insurance',  label: 'Ασφαλιστήριο',          hint: 'Ασφάλεια ακινήτου · ασφάλιστρο, κάλυψη, λήξη',        targets: ['Ασφάλεια', 'Ημερολόγιο', FOLDER] },
   { id: 'tax',        label: 'Φορολογικό / ΕΝΦΙΑ',     hint: 'ΕΝΦΙΑ, Ε9, δηλώσεις, φόροι ακινήτου',                 targets: ['Στοιχεία ακινήτου', 'Δαπάνες', 'Ημερολόγιο'] },
-  { id: 'government', label: 'Κρατικό έγγραφο',        hint: 'ΑΜΑ, πολεοδομία, βεβαιώσεις, δημόσια έγγραφα',        targets: ['Αρχείο'] },
-  { id: 'other',      label: 'Άλλο έγγραφο',          hint: 'Οτιδήποτε άλλο · αρχειοθετείται με ασφάλεια',         targets: ['Αρχείο'] },
+  { id: 'government', label: 'Κρατικό έγγραφο',        hint: 'ΑΜΑ, πολεοδομία, βεβαιώσεις, δημόσια έγγραφα',        targets: [FOLDER] },
+  { id: 'other',      label: 'Άλλο έγγραφο',          hint: 'Οτιδήποτε άλλο · αρχειοθετείται με ασφάλεια',         targets: [FOLDER] },
 ];
 
 export const DOC_TYPE_LABELS: Record<DocType, string> =
@@ -458,7 +464,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
 
   if (t === 'lease') {
     return {
-      targets: ['Ενοικιαστής', 'Αρχείο'],
+      targets: ['Ενοικιαστής', FOLDER],
       tenant: {
         full_name: (doc.tenant_name || '').trim(),
         monthly_rent: doc.monthly_rent || null,
@@ -538,14 +544,14 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
       provider ? `Συμβολαιογράφος/Πηγή: ${provider}` : '',
       baseNote,
     ].filter(Boolean).join(' · ');
-    const plan: SavePlan = { targets: ['Αρχείο'], archive: { ...archive, note: extras || undefined } };
+    const plan: SavePlan = { targets: [FOLDER], archive: { ...archive, note: extras || undefined } };
     if (Object.keys(property).length) { plan.property = property; plan.targets.unshift('Στοιχεία ακινήτου'); }
     return plan;
   }
 
   if (t === 'tax') {
     // Δεν υπάρχει στήλη ΕΝΦΙΑ στο ακίνητο: το ποσό γίνεται έξοδο + υπενθύμιση.
-    const plan: SavePlan = { targets: ['Αρχείο'], archive: { ...archive, note: baseNote || undefined } };
+    const plan: SavePlan = { targets: [FOLDER], archive: { ...archive, note: baseNote || undefined } };
     if (doc.amount) {
       const map = EXPENSE_MAP.taxes;
       plan.expense = {
@@ -569,7 +575,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
   }
 
   // government / other → μόνο αρχειοθέτηση (με ό,τι σημείωσε το AI/ο χρήστης).
-  return { targets: ['Αρχείο'], archive: { ...archive, note: baseNote || undefined } };
+  return { targets: [FOLDER], archive: { ...archive, note: baseNote || undefined } };
 }
 
 // Σύντομη περίληψη για την οθόνη επιβεβαίωσης.

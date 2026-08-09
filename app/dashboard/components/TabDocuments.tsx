@@ -156,7 +156,7 @@ type RawItem = Omit<Item, 'categoryLabel' | 'sourceLabel' | 'afm'>;
 const enrich = (i: RawItem): Item => ({
   ...i,
   categoryLabel: FOLDER_LABEL[i.folder],
-  sourceLabel: ORIGIN_LABEL[i.source] ?? 'Αρχείο',
+  sourceLabel: ORIGIN_LABEL[i.source] ?? navLabel('documents'),
   afm: i.raw?.provider_afm ?? null,
 });
 
@@ -505,7 +505,7 @@ export default function TabDocuments({
         category: d.category, title: (d.photoTitle || '').trim() || d.file.name,
       });
       patch(d.id, r.ok
-        ? { status: 'saved', saved: ['Αρχείο'], open: false, ask: undefined }
+        ? { status: 'saved', saved: [navLabel('documents')], open: false, ask: undefined }
         : { status: 'error', errorText: 'Δεν αποθηκεύτηκε. Δοκίμασε ξανά.' });
       return r.ok;
     }
@@ -664,7 +664,7 @@ export default function TabDocuments({
     rows: items.slice().sort(byDateDesc).map(i => [
       i.title, FOLDER_LABEL[i.folder], i.provider || '', i.raw?.provider_afm || '',
       i.date ? fd(i.date) : '', i.raw?.period_from || '', i.raw?.period_to || '',
-      i.value ?? '', ORIGIN_LABEL[i.source] || 'Αρχείο',
+      i.value ?? '', ORIGIN_LABEL[i.source] || navLabel('documents'),
     ]),
   });
 
@@ -690,9 +690,15 @@ export default function TabDocuments({
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
+      {/* ΤΟ ΟΝΟΜΑ ΕΛΕΓΕ ΤΟ ΕΝΑ ΤΡΙΤΟ. Η καρτέλα λεγόταν «Αρχείο», και κάτω από
+          τα χαρτιά στέκουν οι επαφές του ακινήτου και ο εξοπλισμός του: ο
+          συνεργάτης που άλλαξε τον λέβητα, η εγγύηση του πλυντηρίου, το
+          πρωτόκολλο παράδοσης. Κανένα από τα δύο δεν είναι «αρχείο».
+          Ο φάκελος του ακινήτου είναι ο όρος που χρησιμοποιεί ήδη η αγορά για
+          ακριβώς αυτό: τα χαρτιά, οι άνθρωποι και τα πράγματά του. */}
       {!embedded && (
-        <PageTitle title="Αρχείο"
-          sub="Κάθε χαρτί του ακινήτου, αναγνωρισμένο και ταξινομημένο μόνο του"
+        <PageTitle title={navLabel('documents')}
+          sub="Τα χαρτιά, οι άνθρωποι και τα πράγματα του ακινήτου, σε ένα σημείο"
           right={headerActions}/>
       )}
 

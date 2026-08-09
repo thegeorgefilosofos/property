@@ -1,5 +1,6 @@
 // Τεστ για την καθολική δρομολόγηση εγγράφων (lib/billing/documents.ts).
 // Τρέξε με: npx tsx lib/billing/documents.test.ts
+import { navLabel } from '../nav/labels';
 import {
   classifyDocType, validateDoc, planDocSave, docSummaryLine,
   DOC_TYPES, DOC_TYPE_LABELS, DOC_FIELD_LABELS, ARCHIVE_CATEGORIES,
@@ -167,7 +168,7 @@ eq('validate payment: amount blocking', validateDoc(doc({ doc_type: 'payment' })
 {
   const p = planDocSave(doc({ doc_type: 'deed', title: 'Τίτλος' }), TODAY);
   check('deed empty: no property write', p.property === undefined);
-  check('deed empty: targets = Αρχείο only', p.targets.length === 1 && p.targets[0] === 'Αρχείο');
+  check('deed empty: targets = φάκελος μόνο', p.targets.length === 1 && p.targets[0] === navLabel('documents'));
 }
 
 // ── planDocSave: tax → expense + calendar, no property ───────────────────────
@@ -183,10 +184,10 @@ eq('validate payment: amount blocking', validateDoc(doc({ doc_type: 'payment' })
 // ── planDocSave: government/other → archive only ─────────────────────────────
 {
   const g = planDocSave(doc({ doc_type: 'government', title: 'ΑΜΑ' }), TODAY);
-  eq('gov: targets Αρχείο only', g.targets, ['Αρχείο']);
+  eq('gov: targets φάκελος μόνο', g.targets, [navLabel('documents')]);
   check('gov: only archive', !g.bill && !g.expense && !g.tenant && !g.property && !g.settings && !!g.archive);
   const o = planDocSave(doc({ doc_type: 'other', title: 'κάτι' }), TODAY);
-  eq('other: targets Αρχείο only', o.targets, ['Αρχείο']);
+  eq('other: targets φάκελος μόνο', o.targets, [navLabel('documents')]);
 }
 
 // ── custom fields flow into notes ────────────────────────────────────────────

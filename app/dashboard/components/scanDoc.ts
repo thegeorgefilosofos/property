@@ -27,6 +27,7 @@ import { fillOnlyEmpty } from '@/lib/core/prefill';
 import { athensToday } from '@/lib/core/time';
 import { saved, savedData } from '@/components/dbWrite';
 import { uploadPath } from '@/lib/core/uploadPath';
+import { navLabel } from '@/lib/nav/labels';
 import {
   matchPaymentToBills, providerFromBillName,
   type MatchCandidate, type MatchResult,
@@ -563,7 +564,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
         : plan.archive;
       const r = await archiveScannedFile(
         archiveInputFrom(archivePlan, file, propertyId, userId, doc.title || doc.provider));
-      if (r.ok) add('Αρχείο');
+      if (r.ok) add(navLabel('documents'));
     }
 
     if (!written.length) return { saved: [], error: 'save' };

@@ -321,8 +321,8 @@ export function SecHdr({ label, sub, right }: { label: string; sub?: string; rig
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</div>
-        {sub && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{sub}</div>}
+        <div style={{ ...TT.label, fontSize: 10 }}>{label}</div>
+        {sub && <div style={{ ...TT.caption, fontSize: 10, marginTop: 2 }}>{sub}</div>}
       </div>
       {right}
     </div>
@@ -334,8 +334,8 @@ export function PageTitle({ title, sub, right, titleHint }: { title: string; sub
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: T.sp.xxl, flexWrap: 'wrap' as const }}>
       <div>
-        <h1 title={titleHint} style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.15, margin: 0 }}>{title}</h1>
-        {sub && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>{sub}</div>}
+        <h1 title={titleHint} style={{ ...TT.display, margin: 0 }}>{title}</h1>
+        {sub && <div style={{ ...TT.caption, fontSize: 12, marginTop: 4 }}>{sub}</div>}
       </div>
       {right && <div style={{ display: 'flex', gap: 8 }}>{right}</div>}
     </div>

@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { T, TT, Card, SecHdr, Badge, Btn, settingsField, feAuto } from '@/components/Theme';
+import { T, TT, SecHdr, Badge, settingsField, feAuto } from '@/components/Theme';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
@@ -72,12 +72,24 @@ function Section({ label, sub, right, tight, children }: {
   );
 }
 
-/** Γραμμή «ετικέτα: κείμενο», για τα μικρά μεταδεδομένα κάθε βήματος. */
+/**
+ * Γραμμή «ετικέτα: κείμενο», για τα μικρά μεταδεδομένα κάθε βήματος.
+ *
+ * ΗΤΑΝ FLEX ΜΕ ΔΥΟ ΕΛΑΧΙΣΤΑ ΠΛΑΤΗ, ΚΑΙ ΓΙ᾽ ΑΥΤΟ ΧΟΡΟΠΗΔΟΥΣΕ. Η ετικέτα κρατούσε
+ * 98 εικονοστοιχεία και το κείμενο ζητούσε 220: σε στενή στήλη το κείμενο έπεφτε
+ * κάτω από την ετικέτα, σε φαρδιά έμενε δίπλα της — δηλαδή δύο διαφορετικές
+ * διατάξεις στην ίδια οθόνη, ανάλογα με το πόσο μακρύ ήταν το κείμενο.
+ *
+ * Πλέγμα δύο στηλών: η ετικέτα έχει ΣΤΑΘΕΡΗ στήλη, το κείμενο ξεκινά πάντα από
+ * το ίδιο σημείο, και οι δύο σειρές («Πού», «Γιατί αλλάζει») στοιχίζονται μεταξύ
+ * τους. Σε κινητό η στήλη χάνεται και οι δύο σειρές πέφτουν η μία κάτω από την
+ * άλλη — αλλά το κάνουν ΠΑΝΤΑ, όχι πότε ναι και πότε όχι.
+ */
 function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
-      <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0, minWidth: 98 }}>{label}</span>
-      <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1, minWidth: 220 }}>{children}</span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 104px) minmax(0, 1fr)', gap: '0 10px', marginTop: 6, alignItems: 'baseline' }}>
+      <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
+      <span style={{ ...TT.caption, color: 'var(--text-secondary)' }}>{children}</span>
     </div>
   );
 }
@@ -200,10 +212,18 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
 
   const stepRow = (s: Step, first: boolean) => {
     const on = checked.has(s.id);
+    // ΤΟ ΕΠΟΜΕΝΟ ΒΗΜΑ ΞΕΧΩΡΙΖΕΙ ΜΕΣΑ ΣΤΗ ΣΕΙΡΑ, ΟΧΙ ΣΕ ΔΙΚΗ ΤΟΥ ΚΑΡΤΑ.
+    // Η έμφαση είναι θέση και βάρος: μια λεπτή ετικέτα και ένα ήρεμο φόντο.
+    // Χωρίς σημασιολογικό χρώμα, χωρίς δεύτερο κουμπί.
+    const isNext = plan.next?.id === s.id;
     return (
       <div key={s.id} style={{
         display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 14,
-        padding: '14px 2px', borderTop: first ? 'none' : '1px solid var(--border-subtle)',
+        padding: isNext ? '14px 14px' : '14px 2px',
+        marginLeft: isNext ? -12 : 0, marginRight: isNext ? -12 : 0,
+        borderRadius: isNext ? T.radius.inner : 0,
+        background: isNext ? 'var(--bg-elevated)' : 'transparent',
+        borderTop: first || isNext ? 'none' : '1px solid var(--border-subtle)',
       }}>
         <button onClick={() => toggle(s.id)} aria-pressed={on}
           aria-label={on ? `Αναίρεση: ${s.title}` : `Ολοκληρώθηκε: ${s.title}`}
@@ -211,6 +231,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           <Check on={on} />
         </button>
         <div style={{ minWidth: 0, opacity: on ? 0.55 : 1 }}>
+          {isNext && <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4 }}>Το επόμενο</div>}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textDecoration: on ? 'line-through' : 'none' }}>{s.title}</span>
             <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{ACTOR_LABEL[s.who]}</span>
@@ -294,12 +315,18 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           πάνω στη γραμμή του περιγράμματος: η πρόοδος είναι μέτρηση, δεν είναι
           «καλά νέα». Το μπλε μένει αποκλειστικά στην κύρια ενέργεια. */}
       <div style={{ marginTop: T.sp.xl, maxWidth: 380 }}>
-        <div style={{ height: 3, borderRadius: 2, background: 'var(--border-subtle)', overflow: 'hidden' }}>
-          <div style={{
-            width: `${plan.progress.pct}%`, height: '100%',
-            background: 'var(--text-primary)', transition: `width .3s ${T.ease.standard}`,
-          }} />
-        </div>
+        {/* ΣΤΟ ΜΗΔΕΝ Η ΜΠΑΡΑ ΔΕΝ ΕΙΝΑΙ ΜΠΑΡΑ, ΕΙΝΑΙ ΜΙΑ ΓΚΡΙΖΑ ΓΡΑΜΜΗ. Δεν
+            δείχνει πρόοδο, γιατί δεν υπάρχει· δείχνει ένα άδειο αυλάκι πάνω από
+            μια πρόταση που λέει ήδη «0 από 6». Εμφανίζεται μόλις υπάρχει κάτι
+            να δείξει. */}
+        {plan.progress.done > 0 && (
+          <div style={{ height: 3, borderRadius: 2, background: 'var(--border-subtle)', overflow: 'hidden' }}>
+            <div style={{
+              width: `${plan.progress.pct}%`, height: '100%',
+              background: 'var(--text-primary)', transition: `width .3s ${T.ease.standard}`,
+            }} />
+          </div>
+        )}
         <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>
           {plan.progress.done} από {plan.progress.total} βήματα ολοκληρωμένα
         </div>
@@ -335,33 +362,17 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         </div>
       )}
 
-      {/* ── ΤΟ ΕΝΑ ΕΠΟΜΕΝΟ ΒΗΜΑ: η μόνη επιφάνεια με περίγραμμα στην οθόνη ── */}
-      <Card pad="lg" style={{ marginTop: T.sp.xxl, marginBottom: 0 }}>
-        {/* Η μέτρηση προόδου έφυγε από εδώ: λέγεται πλέον μία φορά, στην
-            κεφαλίδα, όπου και φαίνεται. */}
-        <div style={{ ...TT.label, color: 'var(--text-secondary)' }}>Το επόμενο βήμα</div>
+      {/* ═══ Η ΚΑΡΤΑ «ΤΟ ΕΠΟΜΕΝΟ ΒΗΜΑ» ΕΦΥΓΕ ══════════════════════════════════
+          Έλεγε ΑΚΡΙΒΩΣ ό,τι και η πρώτη ατσέκαρη γραμμή της «Σειράς», εκατόν
+          πενήντα εικονοστοιχεία πιο κάτω: ίδιος τίτλος, ίδια περιγραφή, ίδιο
+          «Πότε», ίδιο «Αν παραλειφθεί», ίδιο πρόσωπο που το κάνει. Και το
+          κουμπί «Έγινε» έκανε ό,τι και το κουτάκι της γραμμής — δύο χειριστήρια
+          για την ίδια πράξη, σε δύο σημεία, με διαφορετικό σχήμα.
 
-        {plan.next ? (
-          <>
-            <div style={{ ...TT.h1, marginTop: 10 }}>{plan.next.title}</div>
-            <div style={{ ...TT.body, color: 'var(--text-secondary)', marginTop: 8 }}>{plan.next.detail}</div>
-            {plan.next.when && <Meta label="Πότε">{plan.next.when}</Meta>}
-            {plan.next.cost && <Meta label="Αν παραλειφθεί">{plan.next.cost}</Meta>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: T.sp.xl, flexWrap: 'wrap' }}>
-              <Btn variant="primary" onClick={() => { if (plan.next) toggle(plan.next.id); }}>Έγινε</Btn>
-              <span style={{ ...TT.caption, color: 'var(--text-tertiary)' }}>{ACTOR_LABEL[plan.next.who]}</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ ...TT.h1, marginTop: 10 }}>Δεν μένει κάτι ανοιχτό.</div>
-            <div style={{ ...TT.body, color: 'var(--text-secondary)', marginTop: 8 }}>
-              Πέρασες όλη τη σειρά. Αν άλλαξε κάτι στο ακίνητο, άλλαξε και την κατάστασή του: αυτή η καρτέλα
-              υπάρχει για όσο διαρκεί η μεταβατική περίοδος, όχι για πάντα.
-            </div>
-          </>
-        )}
-      </Card>
+          Ο χρήστης διάβαζε το ίδιο κείμενο δύο φορές και δεν καταλάβαινε αν
+          είναι δύο βήματα ή ένα. Το επόμενο βήμα δεν χρειάζεται δική του κάρτα:
+          χρειάζεται να ΞΕΧΩΡΙΖΕΙ μέσα στη σειρά, εκεί όπου φαίνεται και τι
+          προηγείται και τι ακολουθεί. */}
 
       {/* ── ΤΟ ΝΟΥΜΕΡΟ ΤΟΥ ΚΕΝΟΥ: χωρίς αυτό, οι επιλογές μοιάζουν ίδιες ─── */}
       {plan.status === 'vacant' && (
@@ -405,6 +416,15 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             {g.items.map((s, i) => stepRow(s, i === 0))}
           </div>
         ))}
+        {!plan.next && (
+          <div style={{ marginTop: T.sp.lg, paddingTop: T.sp.lg, borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ ...TT.h2 }}>Δεν μένει κάτι ανοιχτό.</div>
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 6 }}>
+              Πέρασες όλη τη σειρά. Αν άλλαξε κάτι στο ακίνητο, άλλαξε και την κατάστασή του: αυτή η καρτέλα
+              υπάρχει για όσο διαρκεί η μεταβατική περίοδος, όχι για πάντα.
+            </div>
+          </div>
+        )}
       </Section>
 
       {/* ── Η ΣΥΓΚΡΙΣΗ ───────────────────────────────────────────────────── */}
@@ -532,13 +552,17 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             ))}
           </Section>
 
+          {/* ΤΟ ΠΟΡΤΟΚΑΛΙ ΣΗΜΑ ΜΕ ΤΟ «3» ΕΦΥΓΕ. Δύο γραμμές πιο πάνω η ίδια
+              οθόνη γράφει «από εδώ και κάτω δεν υπάρχει κάτι να κάνεις» — και
+              δίπλα στον τίτλο στεκόταν ένας μετρητής σε χρώμα προειδοποίησης,
+              δηλαδή το σήμα που η εφαρμογή χρησιμοποιεί για εκκρεμότητες. Ένα
+              γυμνό «3» δεν λέει καν τρία τι· το πλήθος φαίνεται από τη λίστα. */}
           <Section tight
             label="Προς επιβεβαίωση"
-            sub="Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού."
-            right={<Badge tone="warning">{plan.verify.length}</Badge>}>
+            sub="Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού.">
             {plan.verify.map((v, i) => (
               <div key={v.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                <div style={{ ...TT.body, color: 'var(--text-primary)' }}>{v.what}</div>
+                <div style={{ ...TT.body, fontWeight: 600, color: 'var(--text-primary)' }}>{v.what}</div>
                 <Meta label="Πού">{v.where}</Meta>
                 <Meta label="Γιατί αλλάζει">{v.why}</Meta>
               </div>

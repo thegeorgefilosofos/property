@@ -2,6 +2,7 @@
 
 import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/Theme';
+import { navLabel } from '@/lib/nav/labels';
 // ═══════════════════════════════════════════════════════════════════════════
 // Τα τρία «πάνελ προϊόντος» (Σάρωση · Πίνακας · Βοηθός), ΜΙΑ πηγή αλήθειας
 // για το showcase του hero ΚΑΙ το scrollytelling «Πώς δουλεύει». Μαζί τους
@@ -88,7 +89,7 @@ export function PanelDashboard() {
 
 // ── Πάνελ: Σάρωση ────────────────────────────────────────────────────────────
 export function PanelScan() {
-  const filed = ['Λογαριασμοί', 'Δαπάνες', 'Ημερολόγιο', 'Αρχείο'];
+  const filed = ['Λογαριασμοί', 'Δαπάνες', 'Ημερολόγιο', navLabel('documents')];
   return (
     <div style={{ maxWidth: 440, margin: '0 auto', textAlign: 'left' }}>
       <div className="lp-live" style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
