@@ -105,7 +105,7 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
   const seg = (m: 'draw' | 'type'): React.CSSProperties => ({
     fontSize: 12, fontWeight: 600, height: T.h.sm, padding: '0 14px', borderRadius: 8, cursor: 'pointer', border: 'none',
     background: mode === m ? 'var(--accent)' : 'transparent', color: mode === m ? 'var(--accent-text)' : 'var(--text-secondary)',
-    fontFamily: T.font.sans, transition: 'all 0.15s',
+    fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
   });
 
   const surface: React.CSSProperties = {

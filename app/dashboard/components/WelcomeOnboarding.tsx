@@ -171,14 +171,14 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
     border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
     background: on ? 'var(--accent-soft)' : 'var(--surface-raised)',
     boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none',
-    transition: 'all 0.15s', fontFamily: T.font.sans,
+    transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', fontFamily: T.font.sans,
   });
   const pill = (on: boolean): React.CSSProperties => ({
     flex: 1, minWidth: 88, cursor: 'pointer', borderRadius: T.radius.pill, padding: '7px 12px',
     border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
     background: on ? 'var(--accent-soft)' : 'var(--surface-raised)',
     color: on ? 'var(--accent)' : 'var(--text-secondary)',
-    fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, transition: 'all 0.15s',
+    fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
   });
 
   const press = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.985)'; };
@@ -272,7 +272,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
         {/* Δείκτες βημάτων */}
         <div style={{ display: 'flex', gap: 7, justifyContent: 'center', padding: '20px 0 22px' }}>
           {SLIDES.map((_, i) => (
-            <span key={i} style={{ width: i === step ? 24 : 7, height: 7, borderRadius: 6, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: 'all 0.28s cubic-bezier(0.2,0,0,1)' }} />
+            <span key={i} style={{ width: i === step ? 24 : 7, height: 7, borderRadius: 6, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: 'background-color 0.28s cubic-bezier(0.2,0,0,1), border-color 0.28s cubic-bezier(0.2,0,0,1), color 0.28s cubic-bezier(0.2,0,0,1), box-shadow 0.28s cubic-bezier(0.2,0,0,1), transform 0.28s cubic-bezier(0.2,0,0,1), opacity 0.28s cubic-bezier(0.2,0,0,1)' }} />
           ))}
         </div>
 

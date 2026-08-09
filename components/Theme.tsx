@@ -605,7 +605,7 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
     padding: '9px 18px', borderRadius: T.radius.btn,
     fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
-    transition: 'all 0.15s cubic-bezier(0.2,0,0,1)',
+    transition: 'background-color 0.15s cubic-bezier(0.2,0,0,1), border-color 0.15s cubic-bezier(0.2,0,0,1), color 0.15s cubic-bezier(0.2,0,0,1), box-shadow 0.15s cubic-bezier(0.2,0,0,1), transform 0.15s cubic-bezier(0.2,0,0,1), opacity 0.15s cubic-bezier(0.2,0,0,1)',
     border: '1px solid transparent',
   };
   const variants: Record<string, CSSProperties> = {

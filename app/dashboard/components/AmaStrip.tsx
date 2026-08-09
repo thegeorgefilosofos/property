@@ -143,7 +143,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
                   {isEditing ? (
                     <>
                       <div style={{ flex: '1 1 190px', minWidth: 150 }}>
-                        <TextInput value={draft} onChange={v => setDraft(cleanAma(v))} placeholder="Αριθμός Μητρώου Ακινήτου" />
+                        <TextInput ariaLabel={`Αριθμός Μητρώου Ακινήτου: ${p.name}`} value={draft} onChange={v => setDraft(cleanAma(v))} placeholder="Αριθμός Μητρώου Ακινήτου" />
                       </div>
                       <Btn variant="primary" onClick={() => saveAma(p, draft)} disabled={busy || !isValidAmaFormat(draft)}>Αποθήκευση</Btn>
                       <Btn variant="ghost" onClick={() => { setEditing(null); setDraft(''); }}>Ακύρωση</Btn>

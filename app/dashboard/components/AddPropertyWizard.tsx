@@ -420,7 +420,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   background: on ? 'var(--accent)' : 'var(--bg-overlay)', color: on ? 'var(--accent-text)' : 'var(--text-tertiary)',
                   border: active ? '2px solid var(--accent)' : '2px solid transparent',
                   boxShadow: active ? '0 0 0 4px var(--accent-soft)' : 'none',
-                  fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, transition: 'all 0.2s',
+                  fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s',
                 }}>{done ? '✓' : i + 1}</div>
                 <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
               </div>
@@ -441,7 +441,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 return (
                   <button key={t} onClick={() => setPropType(t)} style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 8px',
-                    borderRadius: 12, cursor: 'pointer', transition: 'all 0.15s',
+                    borderRadius: 12, cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
                     border: sel ? '2px solid var(--accent)' : '1px solid var(--border-default)',
                     background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
                     color: sel ? 'var(--accent)' : 'var(--text-secondary)',

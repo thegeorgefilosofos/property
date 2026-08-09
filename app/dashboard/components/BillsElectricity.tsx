@@ -644,7 +644,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     fontSize: 11, fontWeight: 700, fontFamily: T.font.sans,
                     background: segmentFilter === seg ? 'var(--accent)' : 'transparent',
                     color: segmentFilter === seg ? 'var(--accent-text)' : 'var(--text-secondary)',
-                    transition: 'all 0.15s',
+                    transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
                   }}>
                   {seg === 'residential' ? 'Οικιακό' : 'Επιχειρηματικό'}
                 </button>

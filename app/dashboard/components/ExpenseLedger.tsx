@@ -405,7 +405,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           /* Η υπόδειξη λέει ΤΙ ψάχνεται, όπως στις άλλες οθόνες· το «Αναζήτηση»
              ανήκει στην ετικέτα του αναγνώστη οθόνης, όπου και είναι. */
           placeholder="Περιγραφή, κατηγορία ή πάροχος"
-          aria-label="Αναζήτηση δαπανών"
+          className="po-field" aria-label="Αναζήτηση δαπανών"
           style={{
             width: 190, height: T.h.md, padding: '0 14px', boxSizing: 'border-box',
             borderRadius: T.radius.btn, border: '1px solid var(--border-default)',
@@ -723,7 +723,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
                   border: `1px solid ${on ? 'color-mix(in srgb, var(--accent) 50%, transparent)' : 'var(--border-default)'}`,
                   background: on ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
                   color: on ? 'var(--accent)' : 'var(--text-secondary)',
-                  fontWeight: on ? 700 : 500, transition: 'all .15s',
+                  fontWeight: on ? 700 : 500, transition: 'background-color .15s, border-color .15s, color .15s, box-shadow .15s, transform .15s, opacity .15s',
                 }}>
                 {c.label}
               </button>

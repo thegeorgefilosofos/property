@@ -405,7 +405,12 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 6px; border: 2px solid var(--bg-base); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
-/* ── Focus ring (Google blue) — αγκαλιάζει τη δική του ακτίνα του στοιχείου ── */
+/* ── Focus ring (Google blue) — αγκαλιάζει τη δική του ακτίνα του στοιχείου ──
+   ΚΑΙ ΔΕΝ ΚΑΝΕΙ ΚΙΝΗΣΗ. Ογδόντα σημεία δήλωναν `transition: all`, που
+   περιλαμβάνει και το `outline-width`: μετρήθηκε στον φυλλομετρητή ότι στα 0ms
+   μετά το Tab το πλάτος ήταν 0px και στα 250ms 2px. Δηλαδή το δαχτυλίδι
+   έμπαινε με καθυστέρηση, και σε γρήγορη πλοήγηση με Tab φαινόταν να «κυνηγά»
+   την εστίαση. Οι ιδιότητες ονομάζονται πλέον ρητά, παντού. */
 :focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
   outline-offset: 2px;
@@ -1023,7 +1028,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   width: 20px; height: 20px;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s;
   border: 2px solid transparent;
   position: relative;
 }

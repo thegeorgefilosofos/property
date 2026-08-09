@@ -201,7 +201,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <style>{`
-        .mgmt-card { transition: all 0.15s; }
+        .mgmt-card { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s; }
         .mgmt-card:hover { border-color: var(--border-default) !important; background: var(--bg-surface) !important; }
         .mgmt-card.active:hover { border-color: var(--accent) !important; background: var(--accent-soft) !important; }
         .hist-bar { transition: opacity 0.15s; }
@@ -445,7 +445,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(e.amount))}</span>
               {!e.transferredToExpenses && (
                 <button onClick={() => transferToExpenses(i)} disabled={transferring === i}
-                  style={{ fontSize: 10, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  style={{ fontSize: 10, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
                   {transferring === i ? 'Μεταφορά…' : 'Μεταφορά στις Δαπάνες'}
                 </button>
               )}
@@ -512,7 +512,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}
-              style={{ flex: 1, fontSize: 9, textAlign: 'center', fontFamily: T.font.sans, cursor: 'pointer', padding: '2px 0', borderRadius: 3, transition: 'all 0.15s', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, background: hoveredMonth === i && i !== currentMonth ? 'var(--bg-elevated)' : 'transparent' }}
+              style={{ flex: 1, fontSize: 9, textAlign: 'center', fontFamily: T.font.sans, cursor: 'pointer', padding: '2px 0', borderRadius: 3, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, background: hoveredMonth === i && i !== currentMonth ? 'var(--bg-elevated)' : 'transparent' }}
               onMouseEnter={() => setHoveredMonth(i)}
               onMouseLeave={() => setHoveredMonth(null)}>
               {m}

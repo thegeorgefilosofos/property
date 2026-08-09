@@ -326,7 +326,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             const isNext = d === nextDeadline;
             const dLeft  = daysUntil(d.date) ?? 0;
             return (
-              <div key={i} style={{ background: isNext ? 'var(--accent-soft)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
+              <div key={i} style={{ background: isNext ? 'var(--accent-soft)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
                 <div style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>
                   {isPast ? 'ΠΛΗΡΩΜΕΝΗ' : isNext ? 'ΕΠΟΜΕΝΗ' : ''}
                 </div>
@@ -366,10 +366,10 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <CustomSelect label="Παλαιότητα" value={s.enfiaAge}  onChange={v => upd({ enfiaAge: v })}  options={AGE_OPTIONS}/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Συνολική αξία ακινήτων (€), για προσαύξηση άνω των 500.000 €" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
+                <NumberInput label="Συνολική αξία όλων των ακινήτων" labelInfo="Η συμπληρωματική προσαύξηση του ΕΝΦΙΑ ξεκινά πάνω από τις 500.000 € συνολικής αξίας." value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Αντικειμενική Αξία αυτού του ακινήτου (€), για πρόσθετο φόρο >400.000€" value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"/>
+                <NumberInput label="Αντικειμενική αξία αυτού του ακινήτου" labelInfo="Πρόσθετος φόρος επιβάλλεται όταν η αξία του ενός ακινήτου ξεπερνά τις 400.000 €." value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"/>
               </div>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Μειώσεις</div>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
@@ -379,7 +379,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   const eligible = r.key === 'insurance' && (crossTabData.insuranceEq || crossTabData.insuranceFlood);
                   return (
                     <div key={r.key} {...pressable(() => toggleReduction(r.key))}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', background: active ? 'var(--accent-soft)' : eligible ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', background: active ? 'var(--accent-soft)' : eligible ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
                       <div style={{ width: 16, height: 16, borderRadius: 6, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                       </div>

@@ -383,7 +383,7 @@ export default function AccountantDossier({
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {(Object.keys(LEGAL_FORM_LABEL) as LegalForm[]).map(f => (
                   <button key={f} onClick={() => setProfile({ form: f })}
-                    style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'all 0.15s',
+                    style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
                       fontWeight: profile.form === f ? 600 : 500,
                       border: `1px solid ${profile.form === f ? 'var(--accent)' : 'var(--border-subtle)'}`,
                       background: profile.form === f ? 'var(--accent)' : 'var(--bg-surface)',
@@ -399,7 +399,7 @@ export default function AccountantDossier({
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {(['single_entry', 'double_entry'] as BookKeeping[]).map(b => (
                     <button key={b} onClick={() => setProfile({ books: b })}
-                      style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'all 0.15s',
+                      style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
                         fontWeight: profile.books === b ? 600 : 500,
                         border: `1px solid ${profile.books === b ? 'var(--accent)' : 'var(--border-subtle)'}`,
                         background: profile.books === b ? 'var(--accent)' : 'var(--bg-surface)',

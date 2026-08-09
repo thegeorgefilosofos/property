@@ -5,7 +5,7 @@
 // εργαλεία, με διάκριση φυσικού/νομικού προσώπου όπου έχει σημασία.
 // Πραγματικά δεδομένα αγοράς (lib/market/greekMarket) + μηχανή (lib/market/returns).
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
@@ -331,7 +331,7 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
   return (
     <div style={{ display: 'flex', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 2, gap: 2 }}>
       {options.map(([v, label]) => (
-        <button key={v} onClick={() => onChange(v)} style={{ height: T.h.sm, padding: '0 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: SANS, fontWeight: value === v ? 600 : 500, background: value === v ? 'var(--accent)' : 'transparent', color: value === v ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'all 0.15s' }}>{label}</button>
+        <button key={v} onClick={() => onChange(v)} style={{ height: T.h.sm, padding: '0 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: SANS, fontWeight: value === v ? 600 : 500, background: value === v ? 'var(--accent)' : 'transparent', color: value === v ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>{label}</button>
       ))}
     </div>
   );
@@ -409,6 +409,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // υπάρχει αποτέλεσμα. Το `null` σημαίνει «δεν έχει αποφασίσει ο χρήστης»· μόλις
   // πατήσει, η επιλογή του καρφώνεται και δεν την ξαναγυρίζει κανείς.
   const [inputsPinned, setInputsPinned] = useState<boolean | null>(null);
+  const apprId = useId();
   const pro = profileType === 'professional';
 
   // ── ΔΥΟ ΔΙΑΚΟΠΤΕΣ ΠΟΥ ΞΑΝΑΡΩΤΟΥΣΑΝ Ο,ΤΙ Η ΕΦΑΡΜΟΓΗ ΗΔΗ ΞΕΡΕΙ ─────────────
@@ -1208,8 +1209,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal)}) με τις πραγματικές αποδόσεις ${cmpYears}ετίας`} info={G.total_return}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</span>
-              <div style={{ width: 90 }}><NumberInput label="" value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
+              <label htmlFor={apprId} style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</label>
+              <div style={{ width: 90 }}><NumberInput id={apprId} value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
               {apprTouched
                 ? <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δική σου υπόθεση</span>
                 : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δείκτης ΤτΕ</span>}

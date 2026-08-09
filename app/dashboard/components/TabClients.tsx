@@ -930,7 +930,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       <ClientCompose open={composeOpen} onClose={() => setComposeOpen(false)} clients={clients} supabase={supabase} />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} aria-label="Αναζήτηση επισκέπτη" placeholder="Όνομα, τηλέφωνο ή email"
+        <input value={search} onChange={e => setSearch(e.target.value)} className="po-field" aria-label="Αναζήτηση επισκέπτη" placeholder="Όνομα, τηλέφωνο ή email"
           style={{ ...inp, maxWidth: 280, width: 'auto', flex: '1 1 220px' }} />
         {/* Ένα φίλτρο, και είναι το χρήσιμο. Τα «VIP / Επαναλαμβανόμενοι /
             Με επισήμανση» έφυγαν: το πρώτο είχε επινοημένο κατώφλι 1.000 €, το
@@ -1589,10 +1589,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <SecHdr label="Χρονολόγιο" sub="Σχόλια, τηλεφωνήματα, επισκέψεις" />
               <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ width: 150 }}>
-                  <CustomSelect value={noteForm.kind} onChange={v => setNoteForm(f => ({ ...f, kind: v }))} options={noteKindOptions} />
+                  <CustomSelect ariaLabel="Είδος σχολίου" value={noteForm.kind} onChange={v => setNoteForm(f => ({ ...f, kind: v }))} options={noteKindOptions} />
                 </div>
                 <div style={{ flex: '1 1 200px' }}>
-                  <TextInput value={noteForm.body} onChange={v => setNoteForm(f => ({ ...f, body: v }))} placeholder="Νέο σχόλιο…" />
+                  <TextInput ariaLabel="Νέο σχόλιο" value={noteForm.body} onChange={v => setNoteForm(f => ({ ...f, body: v }))} placeholder="Νέο σχόλιο…" />
                 </div>
                 <Btn variant="primary" onClick={saveNote} disabled={!noteForm.body.trim()}>Προσθήκη</Btn>
               </div>

@@ -112,6 +112,19 @@ const infoNode = (info: ReactNode): ReactNode =>
 // ─── Number Input ─────────────────────────────────────────────────────────────
 interface NumberInputProps {
   label?: string;
+  /**
+   * Το όνομα του πεδίου όταν η ετικέτα δεν μπαίνει μέσα στο component — επειδή
+   * τη γράφει ο γονιός (πλέγμα με δύο πεδία, ετικέτα δίπλα και όχι από πάνω).
+   * Χωρίς αυτό ο αναγνώστης οθόνης λέει σκέτο «πλαίσιο κειμένου»: το πεδίο
+   * υπάρχει, αλλά δεν λέγεται τίποτα.
+   */
+  ariaLabel?: string;
+  /**
+   * Όταν την ετικέτα τη γράφει ο γονιός σε δικό του <label>, δίνει εδώ το ίδιο
+   * `id` και εκεί `htmlFor`. Τότε η ετικέτα δεν είναι απλώς διπλανό κείμενο:
+   * κάνει και εστίαση με το κλικ, όπως σε κάθε άλλο πεδίο της εφαρμογής.
+   */
+  id?: string;
   labelInfo?: ReactNode;
   value: string;
   onChange: (v: string) => void;
@@ -143,12 +156,13 @@ interface NumberInputProps {
  * δηλώνει ρητά — και τότε είναι υπόδειξη, όχι τιμή.
  */
 export function NumberInput({
-  label, labelInfo, value, onChange, placeholder = '', suffix, prefix,
+  label, ariaLabel, id, labelInfo, value, onChange, placeholder = '', suffix, prefix,
   min = 0, max, step = 1, disabled, className,
 }: NumberInputProps) {
   const [focused, setFocused] = useState(false);
   const [local, setLocal] = useState(String(value ?? ''));
-  const inputId = useId();
+  const autoId = useId();
+  const inputId = id ?? autoId;
 
   useEffect(() => {
     if (!focused) setLocal(String(value ?? ''));
@@ -227,6 +241,7 @@ export function NumberInput({
         )}
         <input
           id={inputId}
+          aria-label={label ? undefined : ariaLabel}
           type="text"
           inputMode="decimal"
           value={local}
@@ -283,6 +298,13 @@ interface SelectOption {
 
 interface CustomSelectProps {
   label?: string;
+  /**
+   * Χωρίς ετικέτα, ο επιλογέας ονομάζεται από την ΤΙΜΗ του — δηλαδή αλλάζει
+   * όνομα κάθε φορά που ο χρήστης επιλέγει κάτι, και σε λίστα με μία γραμμή
+   * ανά αντικείμενο ακούγονται είκοσι επιλογείς που λένε «Καλή», «Καλή»…
+   * Το `ariaLabel` δίνει σταθερό όνομα που λέει ΤΙ ρυθμίζει, όχι τι δείχνει.
+   */
+  ariaLabel?: string;
   labelInfo?: ReactNode;
   value: string;
   onChange: (v: string) => void;
@@ -292,7 +314,7 @@ interface CustomSelectProps {
 }
 
 export function CustomSelect({
-  label, labelInfo, value, onChange, options, placeholder = 'Επιλογή…', disabled,
+  label, ariaLabel, labelInfo, value, onChange, options, placeholder = 'Επιλογή…', disabled,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -419,7 +441,7 @@ export function CustomSelect({
         aria-controls={listId}
         aria-disabled={disabled || undefined}
         aria-labelledby={label ? labelId : undefined}
-        aria-label={label ? undefined : (selected?.label || placeholder)}
+        aria-label={label ? undefined : (ariaLabel || selected?.label || placeholder)}
         aria-activedescendant={open && activeIndex >= 0 ? `${baseId}-opt-${activeIndex}` : undefined}
         onClick={() => !disabled && (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
@@ -785,7 +807,7 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
           top: '50%',
           transform: 'translateY(-50%)',
           left: on ? `calc(100% - ${on ? thumbOn : thumbOff}px - 2px)` : '2px',
-          transition: 'all 0.2s cubic-bezier(0.2,0,0,1)',
+          transition: 'background-color 0.2s cubic-bezier(0.2,0,0,1), border-color 0.2s cubic-bezier(0.2,0,0,1), color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1), transform 0.2s cubic-bezier(0.2,0,0,1), opacity 0.2s cubic-bezier(0.2,0,0,1)',
           boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         }}/>
       </button>
@@ -807,6 +829,10 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
 // ─── Text Input ───────────────────────────────────────────────────────────────
 interface TextInputProps {
   label?: string;
+  // Όπως στο NumberInput: `ariaLabel` όταν δεν υπάρχει ορατή ετικέτα, `id`
+  // όταν την ετικέτα τη γράφει ο γονιός και θέλει να συνδεθεί με `htmlFor`.
+  ariaLabel?: string;
+  id?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -817,9 +843,10 @@ interface TextInputProps {
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-export function TextInput({ label, value, onChange, placeholder, type='text', disabled, prefix, suffix, onKeyDown }: TextInputProps) {
+export function TextInput({ label, ariaLabel, id, value, onChange, placeholder, type='text', disabled, prefix, suffix, onKeyDown }: TextInputProps) {
   const [focused, setFocused] = useState(false);
-  const inputId = useId();
+  const autoId = useId();
+  const inputId = id ?? autoId;
   return (
     <div>
       {label && <label htmlFor={inputId} style={mdLabelBase}>{label}</label>}
@@ -841,6 +868,7 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
         )}
         <input
           id={inputId}
+          aria-label={label ? undefined : ariaLabel}
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
@@ -940,7 +968,7 @@ export function ServiceBySelect({ label, value, onChange }: { label: string; val
               border: `1px solid ${value === v ? SB_COLORS[v] : 'var(--border-default)'}`,
               background: value === v ? `var(--accent-dim)` : 'transparent',
               color: value === v ? SB_COLORS[v] : 'var(--text-secondary)',
-              transition: 'all 0.15s',
+              transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
             }}
           >
             {SB_LABELS[v]}
@@ -991,7 +1019,7 @@ export function SegmentControl({ options, value, onChange }: { options: SegmentO
             border: 'none',
             background: value === o.value ? 'var(--bg-surface)' : 'transparent',
             color: value === o.value ? 'var(--accent)' : 'var(--text-secondary)',
-            transition: 'all 0.15s',
+            transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
             whiteSpace: 'nowrap',
             boxShadow: value === o.value ? 'var(--shadow-sm)' : 'none',
           }}
