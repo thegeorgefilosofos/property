@@ -22,7 +22,7 @@ import { Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
 import { isoDate } from '@/lib/core/time';
 import { T, TT, fe, EmptyState } from '@/components/Theme';
 import { saved } from '@/components/dbWrite';
-import { ASSISTANT_INITIAL, suggestionsTitle, suggestionsSub } from '@/lib/assistant/identity';
+import { ASSISTANT_INITIAL, suggestionsTitle, suggestionsSub, suggestionsTeaser } from '@/lib/assistant/identity';
 
 interface Suggestion {
   title: string;
@@ -163,7 +163,10 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   if (!hasSomethingToSay || collapsed) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ ...TT.caption }}>{suggestionsSub()}</span>
+        {/* Η συμπτυγμένη μορφή ΔΕΝ αποδίδει τον τίτλο «Νόα · Προτάσεις», οπότε ο
+            υπότιτλος έμενε χωρίς υποκείμενο: «Διαβάζει τα δεδομένα σου» — ποιος;
+            Εδώ μπαίνει η εκδοχή που κουβαλά το όνομα μαζί της. */}
+        <span style={{ ...TT.caption }}>{suggestionsTeaser()}</span>
         <button onClick={() => { setCollapsed(false); generateSuggestions(); }} style={{
           background: 'none', border: 'none', padding: 0, cursor: 'pointer',
           color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,

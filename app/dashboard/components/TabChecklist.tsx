@@ -5,7 +5,7 @@ import { downloadWorkbook } from './xlsxStyle'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, fn, fe, fp, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, localDay, pressable } from '@/components/Theme'
+import { T, fn, fe, fp, fd, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, fdLong, pressable } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
@@ -39,6 +39,7 @@ import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import SmartSuggestions from './SmartSuggestions';
 import { TASK_CATEGORIES, TASK_PRIORITIES, TASK_STATUSES } from '@/lib/checklist/taxonomy'
 import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
+import { navLabel } from '@/lib/nav/labels'
 
 const supabase = createSupabaseClient()
 
@@ -316,10 +317,13 @@ const TEMPLATES: Record<string, Template> = {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function fmtDate(d: string | null) {
-  if (!d) return ''
-  try { return localDay(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
-}
+// ΔΕΥΤΕΡΗ ΜΟΡΦΗ ΗΜΕΡΟΜΗΝΙΑΣ, ΜΟΝΟ ΓΙ' ΑΥΤΗ ΤΗΝ ΟΘΟΝΗ. Έγραφε «26/02/2027» ενώ
+// ολόκληρη η εφαρμογή γράφει «26 Φεβ 2027» μέσω του κοινού `fd` — τριάντα πέντε
+// σημεία με τη μία μορφή, δεκατρία εδώ με την άλλη. Ο ιδιοκτήτης που βλέπει την
+// ίδια προθεσμία σε δύο καρτέλες τη διαβάζει δύο φορές διαφορετικά, και η
+// αριθμητική μορφή είναι και η πιο αμφίσημη: «26/02» ή «02/26»;
+// Το τύλιγμα μένει ΜΟΝΟ για το κενό: το `fd` δέχεται ημερομηνία, όχι `null`.
+const fmtDate = (d: string | null) => (d ? fd(d) : '')
 function isOverdue(due: string | null, status: string) {
   if (!due || status === 'done' || status === 'skipped') return false
   return new Date(due) < new Date()
@@ -739,12 +743,17 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
   const accent = reportAccent(branding)
   const relevant = items.filter(i => i.category === type || (type === 'checkin' && i.category === 'legal'))
   const title = type === 'checkin' ? 'Πρωτόκολλο Παράδοσης Ακινήτου' : 'Πρωτόκολλο Αποχώρησης Ενοικιαστή'
-  const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
+  // ΕΝΑ ΕΠΙΣΗΜΟ ΕΓΓΡΑΦΟ ΜΕ ΔΥΟ ΜΟΡΦΕΣ ΗΜΕΡΟΜΗΝΙΑΣ. Το πρωτόκολλο παράδοσης
+  // έγραφε τη σημερινή ως «09 Αυγούστου 2026» και τη λήξη μίσθωσης ως «9/8/2026»,
+  // δύο γραμμές μακριά, μέσα στο ίδιο χαρτί που υπογράφουν δύο άνθρωποι. Και οι
+  // δύο περνούν πλέον από το `fdLong`, την πλήρη μορφή χωρίς συντομογραφία —
+  // αυτή ταιριάζει σε έγγραφο, όχι η αριθμητική.
+  const today = fdLong(new Date())
 
   const tenantName = tenant?.full_name || '______________________________'
   const tenantPhone = tenant?.phone || '______________________________'
   const tenantAfm = tenant?.afm || '______________________________'
-  const leaseEnd = tenant?.lease_end ? localDay(tenant.lease_end).toLocaleDateString('el-GR') : '______________________________'
+  const leaseEnd = tenant?.lease_end ? fdLong(tenant.lease_end) : '______________________________'
 
   const sectionHtml = (num: number, title: string, content: string) => `
     <div class="sec">
@@ -2379,11 +2388,21 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </div>
       )}
 
+      {/* ΤΡΕΙΣ ΚΑΤΑΣΤΑΣΕΙΣ ΣΥΜΠΙΕΣΜΕΝΕΣ ΣΕ ΔΥΟ, ΚΑΙ Η ΤΡΙΤΗ ΕΒΓΑΖΕ ΑΣΥΝΤΑΚΤΟ.
+          Το `openCount === 0` είναι αληθές ΚΑΙ όταν όλα ολοκληρώθηκαν ΚΑΙ όταν
+          δεν υπάρχει τίποτα. Με άδεια λίστα ο υπότιτλος έγραφε «Ολοκληρώθηκαν
+          και οι 0»: γραμματικά σπασμένο, και ψέμα — τίποτα δεν ολοκληρώθηκε,
+          τίποτα δεν υπάρχει. Ο ενικός έβγαζε «Ολοκληρώθηκαν και οι 1».
+
+          Ο τίτλος διαβάζεται από το μενού, για τον ίδιο λόγο με την Απόδοση:
+          ό,τι γράφεται δεύτερη φορά, αποκλίνει. */}
       {!embedded && <PageTitle
-        title="Εκκρεμότητες"
+        title={navLabel('checklist')}
         titleHint="Λίστα ελέγχου εργασιών ακινήτου"
-        sub={openCount === 0
-          ? `Ολοκληρώθηκαν και οι ${fn(stats.total)}`
+        sub={stats.total === 0
+          ? 'Καμία εργασία ακόμη'
+          : openCount === 0
+          ? (stats.total === 1 ? 'Ολοκληρώθηκε η μοναδική εργασία' : `Ολοκληρώθηκαν και οι ${fn(stats.total)}`)
           : `${fn(openCount)} ${openCount === 1 ? 'ανοιχτή' : 'ανοιχτές'}`
             + (attention > 0 ? ` · ${fn(attention)} ${attention === 1 ? 'χρειάζεται' : 'χρειάζονται'} προσοχή` : '')
             + ` · ${fn(stats.done)} από ${fn(stats.total)} ολοκληρωμένες`}

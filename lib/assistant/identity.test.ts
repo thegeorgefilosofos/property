@@ -9,7 +9,7 @@ import {
   ASSISTANT_NAME, ASSISTANT_INITIAL, ASSISTANT_ACC, ASSISTANT_TO,
   PERSONA_BRIEF, RULES, normalizeGreek, identityProblems, isCleanCopy,
   tagline, askCta, askPlaceholder, openAria, speakingLabel, settingsTitle,
-  suggestionsTitle, suggestionsSub, noKeyNotice,
+  suggestionsTitle, suggestionsSub, suggestionsTeaser, noKeyNotice,
 } from './identity';
 
 let pass = 0, fail = 0;
@@ -36,6 +36,7 @@ for (const formal of [false, true]) {
   UI_STRINGS.push([`askCta (${f})`, askCta(formal)]);
   UI_STRINGS.push([`askPlaceholder (${f})`, askPlaceholder(formal)]);
   UI_STRINGS.push([`suggestionsSub (${f})`, suggestionsSub(formal)]);
+  UI_STRINGS.push([`suggestionsTeaser (${f})`, suggestionsTeaser(formal)]);
   UI_STRINGS.push([`noKeyNotice (${f})`, noKeyNotice(formal)]);
 }
 UI_STRINGS.push(['openAria', openAria()]);
