@@ -7,6 +7,7 @@ import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
 import { STATUSES, BY_KEY, readStatus, writeStatus, type PropertyStatus } from '@/lib/property/status';
 import { fillOnlyEmpty, firstFilled } from '@/lib/core/prefill';
+import { failed } from '@/lib/core/dbError';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
 const PEA_CLASSES = ['A+', 'A', 'B+', 'B', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η'];
@@ -345,7 +346,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       // προσπάθεια ενημερώνει αυτό το ακίνητο αντί να φτιάχνει άλλο.
       if (propertyId) setCreatedId(propertyId);
     }
-    if (err) { setSaving(false); setError(`Δεν αποθηκεύτηκε το ακίνητο. Δοκίμασε ξανά. ${err.message ?? ''}`.trim()); return; }
+    if (err) { setSaving(false); setError(failed('Το ακίνητο δεν αποθηκεύτηκε', err)); return; }
 
     // property_settings: αποθήκευση μόνο αν έχει συμπληρωθεί κάτι (αποφυγή κενής γραμμής)
     if (propertyId && Object.values(settings).some(v => (v ?? '').toString().trim() !== '')) {
@@ -353,7 +354,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         .upsert({ ...settings, property_id: propertyId, user_id: userId }, { onConflict: 'property_id' });
       // Το ακίνητο έχει ήδη αποθηκευτεί — λέμε ρητά τι έμεινε πίσω, ώστε το
       // «δοκίμασε ξανά» να μη διαβάζεται ως «ξαναφτιάξ' το από την αρχή».
-      if (sErr) { setSaving(false); setError(`Το ακίνητο αποθηκεύτηκε, αλλά οι ρυθμίσεις του δεν καταχωρίστηκαν. Δοκίμασε ξανά. ${sErr.message ?? ''}`.trim()); return; }
+      if (sErr) { setSaving(false); setError(failed('Το ακίνητο αποθηκεύτηκε, αλλά οι ρυθμίσεις του δεν καταχωρίστηκαν', sErr)); return; }
     }
 
     setSaving(false);

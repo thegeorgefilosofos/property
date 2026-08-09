@@ -16,6 +16,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Btn, Badge, Modal, ABSENT } from '@/components/Theme';
 import { escHtml as esc } from '@/lib/reportBranding';
 import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
+import { failed } from '@/lib/core/dbError';
 
 // Ελάχιστο σχήμα πελάτη που χρειάζεται η σύνθεση (το Client του TabClients το ικανοποιεί).
 export interface ComposeClient {
@@ -150,7 +151,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
         setResults(recips.map(r => ({ email: r.email, name: r.name, status: 'sent' })));
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Η αποστολή απέτυχε.');
+      setErr(failed('Η αποστολή δεν ολοκληρώθηκε', e));
     } finally { setSending(false); }
   };
 

@@ -48,6 +48,7 @@ import { guestPriceBreakdown } from '@/lib/tax/shortTermTax';
 import { platformFeeRate, type StayAmountLike } from '@/lib/clients/stayAmounts';
 import { athensToday } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
+import { failed } from '@/lib/core/dbError';
 
 interface Props {
   propertyId: string; userId: string; propertyName?: string; propertySqm?: number;
@@ -311,7 +312,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     if (gapTitles.has(title)) {
       const { error } = await supabase.from('calendar_events').delete()
         .eq('property_id', propertyId).eq('source', 'pricing_gap').eq('title', title);
-      if (error) { notifyError(`Σφάλμα: ${error.message}`); return; }
+      if (error) { notifyError(failed('Οι ρυθμίσεις τιμολόγησης δεν αποθηκεύτηκαν', error)); return; }
       setGapTitles(prev => { const n = new Set(prev); n.delete(title); return n; });
       notify('Αφαιρέθηκε από το Ημερολόγιο');
       return;
@@ -322,7 +323,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
       category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'pricing_gap',
       notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
     });
-    if (error) { notifyError(`Σφάλμα: ${error.message}`); return; }
+    if (error) { notifyError(failed('Οι ρυθμίσεις τιμολόγησης δεν αποθηκεύτηκαν', error)); return; }
     setGapTitles(prev => new Set(prev).add(title));
     notifyOk('Προστέθηκε στο Ημερολόγιο');
   };

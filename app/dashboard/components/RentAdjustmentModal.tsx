@@ -22,6 +22,7 @@ import { generateReportPdf, reportPdfBlob, pEur, pPct, type PdfReportModel } fro
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MYAADE } from '@/lib/tax/aade';
 import { aadeTitle } from '@/components/AadeLink';
+import { failed } from '@/lib/core/dbError';
 
 interface Prop { id: string; name: string; address: string | null }
 
@@ -111,7 +112,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     // Το `catch (e: any)` άφηνε το `e?.message` να γραφτεί σε ΟΤΙΔΗΠΟΤΕ, χωρίς
     // εγγύηση ότι το πεδίο υπάρχει ή ότι είναι κείμενο. Το `e` είναι `unknown`
     // εξ ορισμού: μόνο ο έλεγχος `instanceof Error` δικαιολογεί το `.message`.
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας.'); }
+    } catch (e) { setErr(failed('Η αναπροσαρμογή δεν δημιουργήθηκε', e)); }
     finally { setBusy(false); }
   };
 

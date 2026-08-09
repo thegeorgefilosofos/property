@@ -19,6 +19,7 @@ import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MONTHS_NOM } from '@/lib/core/months';
+import { failed } from '@/lib/core/dbError';
 
 interface Prop { id: string; name: string; address: string | null }
 const LS = (pid: string) => `po_owner_split_${pid}`;
@@ -134,7 +135,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
       };
       await generateReportPdf(model, `Κατανομή_${prop.name}_${periodLabel}`.replace(/\s+/g, '_'));
       onClose();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας.'); }
+    } catch (e) { setErr(failed('Η κατανομή δεν δημιουργήθηκε', e)); }
     finally { setBusy(false); }
   };
 

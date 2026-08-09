@@ -31,6 +31,7 @@ import {
 } from '@/lib/accounting/dossier'
 import type { PropertyStatus } from '@/lib/property/status'
 import { exportAccountantDossier, type AccountantStatementLine, type AccountantMovement } from './accountantExport'
+import { failed } from '@/lib/core/dbError';
 
 // ── Οι παραδοχές που ορίζουν τη λίστα ──────────────────────────────────────
 export interface DossierProfile {
@@ -108,7 +109,7 @@ export function useAccountantDossier(userId: string, year: number, seed?: Partia
         // δάνειο), χωρίς να γράψουμε τίποτα πριν αγγίξει ο χρήστης κάτι.
         setProfileState({ ...DEFAULTS, ...seedRef.current })
         setHave([])
-        if (err) setError(err.message)
+        if (err) setError(failed('Τα στοιχεία δεν φορτώθηκαν', err))
       }
       setLoaded(true)
     })()
@@ -123,7 +124,7 @@ export function useAccountantDossier(userId: string, year: number, seed?: Partia
       has_renovation: next.hasRenovation, has_loan: next.hasLoan, ownership_changed: next.ownershipChanged,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,year' })
-    setError(err ? (err.message || 'άγνωστο σφάλμα') : null)
+    setError(err ? failed('Τα στοιχεία δεν φορτώθηκαν', err) : null)
   }, [supabase, userId, year])
 
   useEffect(() => {

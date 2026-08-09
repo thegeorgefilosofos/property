@@ -30,6 +30,7 @@ import { InfoDot } from './UIComponents'
 import { KPI, LensBar, labelStyle } from './LoanShared'
 import { athensToday, isoDate } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
+import { failed } from '@/lib/core/dbError';
 
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
@@ -324,7 +325,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     try {
       await must(supabase.from('loans').insert({...toLoanRow(loan),property_id:propertyId,user_id:userId}))
     } catch (e) {
-      notifyError('Το δάνειο ΔΕΝ αποθηκεύτηκε: ' + (e instanceof Error ? e.message : 'άγνωστο σφάλμα'))
+      notifyError(failed('Το δάνειο δεν αποθηκεύτηκε', e))
       return
     }
     await loadSaved()

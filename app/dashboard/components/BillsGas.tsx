@@ -9,6 +9,7 @@ import { RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { athensToday } from '@/lib/core/time';
+import { failed } from '@/lib/core/dbError';
 
 /**
  * Η ΤΙΜΗ ΤΗΣ ΚΙΛΟΒΑΤΩΡΑΣ ΑΕΡΙΟΥ, ΜΕ ΤΑ ΔΕΚΑΔΙΚΑ ΠΟΥ ΤΗΝ ΞΕΧΩΡΙΖΟΥΝ.
@@ -277,7 +278,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       // Ανύπαρκτος πίνακας + `.then(() => {})` που καταπίνει το σφάλμα: ο τύπος
       // θέρμανσης δεν αποθηκευόταν ΠΟΤΕ στο ακίνητο, σιωπηλά.
       supabase.from('user_properties').update({ heating: s.heatingType }).eq('id', propertyId)
-        .then(({ error }) => { if (error) notifyError('Ο τύπος θέρμανσης δεν αποθηκεύτηκε: ' + error.message); });
+        .then(({ error }) => { if (error) notifyError(failed('Ο τύπος θέρμανσης δεν αποθηκεύτηκε', error)); });
     }, 1200);
     return () => { if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current); };
   }, [propertyId, s.heatingType]);

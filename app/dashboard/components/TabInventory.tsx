@@ -23,6 +23,7 @@ import { addMonths as addCalendarMonths } from '@/lib/loans/progress';
 import { navLabel } from '@/lib/nav/labels';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { downloadCsv } from '@/lib/core/download';
+import { failed, MSG } from '@/lib/core/dbError';
 
 const supabase = createSupabaseClient()
 
@@ -557,7 +558,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const handleImport=async()=>{
     setImporting(true)
     const {error}=await supabase.from('inventory_items').insert(rows.map(r=>({...r,property_id:propertyId,user_id:userId,photos:[]})))
-    if(error){notifyError('Σφάλμα: '+error.message);setImporting(false);return}
+    if(error){notifyError(failed('Η μαζική εισαγωγή δεν ολοκληρώθηκε',error));setImporting(false);return}
     onImported();onClose()
   }
   // Τίτλος + περιεχόμενο δύο βημάτων + ενέργειες, κεντραρισμένο: κανονικό Modal.
@@ -665,7 +666,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
     // αντικατάσταση θα έσκαγε με σφάλμα δικαιωμάτων. Ούτως ή άλλως η διαδρομή
     // περιέχει χρόνο και τυχαίο, άρα δεν υπάρχει τίποτα να αντικατασταθεί.
     const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:false})
-    if(error){notifyError('Η μεταφόρτωση δεν ολοκληρώθηκε. Δοκίμασε ξανά.');setDocUp(false);return}
+    if(error){notifyError(failed(MSG.upload));setDocUp(false);return}
     const prev=form.receipt_doc_url
     setForm(f=>({...f,receipt_doc_url:path,receipt_doc_name:file.name}))
     // Καθάρισε τυχόν προηγούμενο ΑΝΕΒΑΣΜΑ αυτής της συνεδρίας (όχι το αρχικά αποθηκευμένο).
@@ -715,7 +716,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
     setPhotoBusy(true)
     const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
     if(!error){ const {data:u}=supabase.storage.from('inventory-photos').getPublicUrl(path); setForm(f=>{const photos=[...(f.photos||[]),u.publicUrl]; return {...f,photos,photo_url:f.photo_url||u.publicUrl}}) }
-    else notifyError('Η μεταφόρτωση δεν ολοκληρώθηκε. Δοκίμασε ξανά.')
+    else notifyError(failed(MSG.upload))
     setPhotoBusy(false)
   }
   const removePhoto = (url:string) => { const p=(form.photos||[]).filter(x=>x!==url); set('photos',p); if(form.photo_url===url) set('photo_url',p[0]||'') }
@@ -910,7 +911,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
       const {error}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||athensToday(),paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από ${navLabel('inventory')}, ${item.name}`})
       // Ο διακόπτης υπόσχεται ρητά ότι η επισκευή περνά στις δαπάνες. Αν δεν
       // περάσει, ο χρήστης πρέπει να το μάθει ΤΩΡΑ, όχι στη φορολογική δήλωση.
-      if(error) notifyError('Η επισκευή καταχωρήθηκε, αλλά η δαπάνη δεν πέρασε στα έξοδα: '+error.message)
+      if(error) notifyError(failed('Η επισκευή καταχωρήθηκε, αλλά η δαπάνη δεν πέρασε στα έξοδα',error))
     }
     setForm({repair_date:'',cost:0,technician:'',description:''})
     setSaving(false)
@@ -1423,7 +1424,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const uploadCondPhoto = async(itemId:string,file:File) => {
     setUploadingId(itemId)
     const {path,error}=await uploadUserScoped(supabase,'inventory-photos',`handover/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`,file,{upsert:true})
-    if(error){notifyError('Η μεταφόρτωση δεν ολοκληρώθηκε. Δοκίμασε ξανά.');setUploadingId(null);return}
+    if(error){notifyError(failed(MSG.upload));setUploadingId(null);return}
     const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
     setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))
     setUploadingId(null)
@@ -1456,7 +1457,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     const nowIso=new Date().toISOString()
     const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||'',condition_photo:itemConds[i.id]?.photo||'',captured_at:itemConds[i.id]?.photo?nowIso:''}))
     const {error} = await supabase.from('inventory_handovers').insert({property_id:propertyId,user_id:userId,handover_type:type,tenant_name:tenantName,tenant_phone:tenantPhone,handover_date:handoverDate||athensToday(),notes,items_snapshot:snap})
-    if(error){notifyError('Σφάλμα: '+error.message);setSaving(false);return}
+    if(error){notifyError(failed('Το πρωτόκολλο δεν αποθηκεύτηκε',error));setSaving(false);return}
     setMode('list');onSaved();setSaving(false)
   }
   // ΤΟ ΠΡΩΤΟΚΟΛΛΟ ΕΙΝΑΙ ΕΝΤΥΠΟ ΠΟΥ ΥΠΟΓΡΑΦΕΤΑΙ, άρα κρατά πλέγμα με περιγράμματα
@@ -1661,13 +1662,13 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   // ο χρήστης βασίζεται σε υπενθύμιση που δεν υπάρχει.
   const makeCalEvent=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
     const {data,error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:taskTitle(task,item_name),category:'maintenance',event_date:due,amount:est||0,priority:'medium',status:'pending',source:'inventory-maint',notes:est>0?`Αυτόματο από Συντήρηση Απογραφής · εκτιμώμενο κόστος ${fe(est)}`:'Αυτόματο από Συντήρηση Απογραφής'}).select('id').single()
-    if(error){notifyError('Η υπενθύμιση δεν μπήκε στο ημερολόγιο: '+error.message);return undefined}
+    if(error){notifyError(failed('Η υπενθύμιση δεν μπήκε στο ημερολόγιο',error));return undefined}
     return (data as {id?:string}|null)?.id
   }
   const makePlannedExpense=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
     if(!(est>0)) return undefined
     const {data,error}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(task,item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:due,paid_by:'owner',paid:false,notes:'Προγραμματισμένη δαπάνη συντήρησης (εκκρεμεί)'}).select('id').single()
-    if(error){notifyError('Η προγραμματισμένη δαπάνη δεν καταχωρήθηκε: '+error.message);return undefined}
+    if(error){notifyError(failed('Η προγραμματισμένη δαπάνη δεν καταχωρήθηκε',error));return undefined}
     return (data as {id?:string}|null)?.id
   }
   const markDone=async(s:MaintenanceSchedule)=>{
@@ -1685,14 +1686,14 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     setDoneBusy(null)
     // Αν αυτό αποτύχει, η εργασία μένει στην ίδια ημερομηνία και ο χρήστης βλέπει
     // το κουμπί «Έγινε» να μην κάνει τίποτα. Χωρίς μήνυμα, το ξαναπατάει.
-    if(error){notifyError('Η εκτέλεση δεν καταγράφηκε: '+error.message);return}
+    if(error){notifyError(failed('Η εκτέλεση δεν καταγράφηκε',error));return}
     onSaved()
   }
   const deleteSched=async(s:MaintenanceSchedule)=>{
     if(s.calendar_event_id) await supabase.from('calendar_events').delete().eq('id',s.calendar_event_id)
     if(s.expense_id) await supabase.from('expenses').delete().eq('id',s.expense_id).eq('paid',false)
     const {error}=await supabase.from('inventory_maintenance').delete().eq('id',s.id)
-    if(error){notifyError('Η εργασία δεν διαγράφηκε: '+error.message);return}
+    if(error){notifyError(failed('Η εργασία δεν διαγράφηκε',error));return}
     onSaved()
   }
   // «Προτεινόμενη εργασία» → ανοίγει την επεξεργάσιμη φόρμα προ-συμπληρωμένη (διάστημα/αντικείμενο/κόστος),
@@ -1708,14 +1709,14 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     const base=form.last_done||today(); const nextDue=addMonths(base,form.interval_months); const est=form.est_cost||0
     const {data:sched,error:schedErr}=await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:nextDue,notes:form.notes,est_cost:est}).select('id').single()
     // Αν αποτύχει η εγγραφή (π.χ. δεν έχει τρέξει η migration), μην δημιουργήσεις ορφανές εγγραφές στο κύκλωμα.
-    if(schedErr){notifyError('Σφάλμα αποθήκευσης: '+schedErr.message);setSaving(false);return}
+    if(schedErr){notifyError(failed('Η συντήρηση δεν προγραμματίστηκε',schedErr));setSaving(false);return}
     // Αν έχει ήδη γίνει (δηλωμένη τελευταία εκτέλεση) κατέγραψε πληρωμένη δαπάνη για το ιστορικό.
     if(form.last_done&&est>0) await saved('Η πραγματοποιημένη συντήρηση δεν καταγράφηκε στις δαπάνες',supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'}))
     // Κύκλωμα για την επόμενη προγραμματισμένη εκτέλεση.
     const calId=await makeCalEvent(form.task,form.item_name,nextDue,est)
     const expId=await makePlannedExpense(form.task,form.item_name,nextDue,est)
     const sid=(sched as {id?:string}|null)?.id
-    if(sid&&(calId||expId)) await saved('Η σύνδεση με το ημερολόγιο δεν αποθηκεύτηκε',supabase.from('inventory_maintenance').update({calendar_event_id:calId||null,expense_id:expId||null}).eq('id',sid))
+    if(sid&&(calId||expId)) await saved(MSG.calendarLink,supabase.from('inventory_maintenance').update({calendar_event_id:calId||null,expense_id:expId||null}).eq('id',sid))
     setAdding(false);setForm({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:'',est_cost:0});setSaving(false);onSaved()
   }
   const SchedRow=({s}:{s:MaintenanceSchedule})=>{
@@ -1994,7 +1995,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       .upsert({property_id:propertyId,user_id:userId,kwh_price:price},{onConflict:'property_id'})
     // Το σφάλμα ΔΙΑΒΑΖΕΤΑΙ. Ο Supabase δεν πετά ποτέ — επιστρέφει {data,error} —
     // οπότε χωρίς αυτόν τον έλεγχο η αποτυχία ήταν κυριολεκτικά αόρατη.
-    if(error){notifyError('Η τιμή ρεύματος δεν αποθηκεύτηκε: '+error.message);return}
+    if(error){notifyError(failed('Η τιμή ρεύματος δεν αποθηκεύτηκε',error));return}
     notifyOk('Η τιμή ρεύματος αποθηκεύτηκε')
   }
   const handleSaveItem=async(data:Partial<InventoryItem>)=>{
@@ -2002,15 +2003,15 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     // βάση (provenance, discount_pct, smart_device, standby_watts…) δεν αγγίζονται:
     // τα παλιά δεδομένα μένουν ακέραια, απλώς δεν παράγονται καινούργια.
     const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,replacement_cost:data.replacement_cost||0,receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
-    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)notifyError('Σφάλμα: '+error.message)
+    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)notifyError(failed('Το αντικείμενο δεν αποθηκεύτηκε',error))
       // Καθάρισε την ΠΑΛΙΑ απόδειξη αν αντικαταστάθηκε/αφαιρέθηκε (αποφυγή orphan στο storage).
       else{const oldDoc=editingItem.receipt_doc_url;if(oldDoc&&oldDoc!==payload.receipt_doc_url&&!/^https?:\/\//.test(oldDoc))await supabase.storage.from(DOCS_BUCKET).remove([oldDoc])}}
-    else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)notifyError('Σφάλμα: '+error.message)}
+    else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)notifyError(failed('Το αντικείμενο δεν καταχωρήθηκε',error))}
     setShowItemForm(false);setEditingItem(null);fetchData()
   }
   // Καθαρισμός συνημμένων αποδείξεων (private bucket) ώστε να μη μένουν orphan αρχεία.
   const cleanupDocs=async(its:InventoryItem[])=>{const paths=its.map(i=>i.receipt_doc_url).filter((p):p is string=>!!p&&!/^https?:\/\//.test(p));if(paths.length)await supabase.storage.from(DOCS_BUCKET).remove(paths)}
-  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){notifyError('Σφάλμα: '+error.message);return};if(it)await cleanupDocs([it]);fetchData()}
+  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){notifyError(failed('Το αντικείμενο δεν διαγράφηκε',error));return};if(it)await cleanupDocs([it]);fetchData()}
   // ΤΡΙΑ ΓΡΑΨΙΜΑΤΑ ΠΟΥ ΔΕΝ ΔΙΑΒΑΖΑΝ ΤΟ ΣΦΑΛΜΑ ΤΟΥΣ. Ο Supabase δεν πετά ποτέ
   // εξαίρεση — επιστρέφει {data,error}. Χωρίς έλεγχο, η επισκευή που απορρίφθηκε
   // από RLS, η κατάσταση που δεν αποθηκεύτηκε και το δωμάτιο που δεν άλλαξε
@@ -2019,7 +2020,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleAddRepair=async(data:Partial<InventoryRepair>)=>{
     if(!repairItem)return
     const {error}=await supabase.from('inventory_repairs').insert({...data,item_id:repairItem.id,user_id:userId})
-    if(error){notifyError('Η επισκευή δεν καταχωρήθηκε: '+error.message);return}
+    if(error){notifyError(failed('Η επισκευή δεν καταχωρήθηκε',error));return}
     fetchData()
   }
   const handleUpdateCondition=async(id:string,condition:string)=>{
@@ -2028,13 +2029,13 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     const {error}=await supabase.from('inventory_items').update({condition,updated_at:new Date().toISOString()}).eq('id',id)
     // Επαναφορά της οθόνης στην πραγματικότητα: αλλιώς ο χρήστης βλέπει «Κακή»,
     // φεύγει, γυρίζει, και το αντικείμενο είναι πάλι «Καλή» χωρίς εξήγηση.
-    if(error){setItems(prev=>prev.map(i=>i.id===id&&prevCondition?{...i,condition:prevCondition}:i));notifyError('Η κατάσταση δεν αποθηκεύτηκε: '+error.message)}
+    if(error){setItems(prev=>prev.map(i=>i.id===id&&prevCondition?{...i,condition:prevCondition}:i));notifyError(failed('Η κατάσταση δεν αποθηκεύτηκε',error))}
   }
-  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){notifyError('Σφάλμα: '+error.message);return}await cleanupDocs(its);fetchData()}
+  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){notifyError(failed('Τα αντικείμενα δεν διαγράφηκαν',error));return}await cleanupDocs(its);fetchData()}
   const handleBulkRoom=async(ids:string[],room:string)=>{
     if(!ids.length)return
     const {error}=await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids)
-    if(error){notifyError('Το δωμάτιο δεν αποθηκεύτηκε: '+error.message);return}
+    if(error){notifyError(failed('Το δωμάτιο δεν αποθηκεύτηκε',error));return}
     fetchData()
   }
   const [cloning,setCloning] = useState(false)
@@ -2044,7 +2045,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     const rows=STARTER_PACK.map(s=>({property_id:propertyId,user_id:String(userId),name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],purchase_value:0}))
     const {error}=await supabase.from('inventory_items').insert(rows)
     setCloning(false)
-    if(error){notifyError('Σφάλμα: '+error.message);return}
+    if(error){notifyError(failed('Τα αντικείμενα του πακέτου δεν προστέθηκαν',error));return}
     fetchData()
   }
   const cloneFromProperty = async(sourceId:string) => {
@@ -2054,7 +2055,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     const rows=data.map((i:any)=>{const {id,created_at,updated_at,property_id,...rest}=i;return {...rest,property_id:propertyId,user_id:String(userId)}})
     const {error}=await supabase.from('inventory_items').insert(rows)
     setCloning(false)
-    if(error){notifyError('Σφάλμα: '+error.message);return}
+    if(error){notifyError(failed('Η αντιγραφή από το άλλο ακίνητο δεν ολοκληρώθηκε',error));return}
     fetchData()
   }
   // ═══ ΜΙΑ ΥΠΕΝΘΥΜΙΣΗ ΕΓΓΥΗΣΗΣ, ΕΝΑ ΣΗΜΕΙΟ ═══════════════════════════════════
@@ -2072,10 +2073,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     const {data:existing,error:lookupErr}=await supabase.from('calendar_events')
       .select('id').eq('property_id',propertyId).eq('source','inventory')
       .eq('title',title).eq('event_date',item.warranty_expiry).limit(1)
-    if(lookupErr){notifyError('Δεν μπόρεσα να ελέγξω το ημερολόγιο: '+lookupErr.message);return false}
+    if(lookupErr){notifyError(failed('Δεν μπόρεσα να ελέγξω το ημερολόγιο',lookupErr));return false}
     if(existing&&existing.length>0){notifyOk(`Η υπενθύμιση για «${item.name}» υπάρχει ήδη στο ημερολόγιο.`);return true}
     const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title,notes:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
-    if(error){notifyError('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return false}
+    if(error){notifyError(failed('Δεν μπόρεσα να προσθέσω την υπενθύμιση',error));return false}
     // ΗΤΑΝ notifyError: μήνυμα ΕΠΙΤΥΧΙΑΣ σε κόκκινο toast. Ο χρήστης νόμιζε ότι απέτυχε
     // και το ξαναπατούσε, φτιάχνοντας διπλές εγγραφές ημερολογίου.
     notifyOk(`Προστέθηκε υπενθύμιση εγγύησης στο ημερολόγιο για «${item.name}».`)

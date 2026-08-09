@@ -7,6 +7,7 @@ import Link from 'next/link'
 import AuthAside from '../AuthAside'
 import { checkPassword } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
+import { failed } from '@/lib/core/dbError';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Επαναφορά κωδικού, δύο καταστάσεις:
@@ -37,18 +38,13 @@ export default function ResetPasswordPage() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const trans = (m: string) =>
-    /rate limit|too many/i.test(m) ? 'Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.'
-    : /at least|weak|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος (τουλάχιστον 8 χαρακτήρες).'
-    : m
-
   async function sendReset(e: React.FormEvent) {
     e.preventDefault(); setError(''); setLoading(true)
     const supabase = createClient()
     const redirectTo = `${window.location.origin}/reset-password`
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
     setLoading(false)
-    if (error) setError(trans(error.message)); else setMode('sent')
+    if (error) setError(failed('Το μήνυμα επαναφοράς δεν στάλθηκε', error)); else setMode('sent')
   }
 
   const [leakedPw, setLeakedPw] = useState<string | null>(null)
@@ -66,7 +62,7 @@ export default function ResetPasswordPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
-    if (error) setError(trans(error.message)); else setMode('done')
+    if (error) setError(failed('Ο κωδικός δεν άλλαξε', error)); else setMode('done')
   }
 
   const field: React.CSSProperties = {

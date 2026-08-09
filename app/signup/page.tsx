@@ -8,6 +8,7 @@ import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
 import { checkPassword } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
+import { failed } from '@/lib/core/dbError';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Εγγραφή, στα χρώματα του app (design tokens, theme-aware). Κοινό marketing
@@ -62,7 +63,7 @@ export default function SignupPage() {
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/dashboard` },
     })
-    if (error) setError(error.message)
+    if (error) setError(failed('Η εγγραφή δεν ολοκληρώθηκε', error))
   }
 
   async function resend() {
@@ -102,7 +103,7 @@ export default function SignupPage() {
         },
       },
     })
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError(failed('Η εγγραφή δεν ολοκληρώθηκε', error)); setLoading(false) }
     else setDone(true)
   }
 

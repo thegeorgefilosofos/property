@@ -51,7 +51,8 @@
     "greek-case": "node scripts/guard-greek-case.mjs",
     "dangling-refs": "node scripts/guard-dangling-refs.mjs",
     "local-formatters": "node scripts/guard-local-formatters.mjs",
-    "ampersand": "node scripts/guard-ampersand.mjs"
+    "ampersand": "node scripts/guard-ampersand.mjs",
+    "raw-errors": "node scripts/guard-raw-errors.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

@@ -27,6 +27,7 @@ import { generateReportPdf, reportPdfBlob, pEur, type PdfReportModel } from '@/l
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MYAADE } from '@/lib/tax/aade';
 import { aadeTitle } from '@/components/AadeLink';
+import { failed } from '@/lib/core/dbError';
 
 interface Prop { id: string; name: string; address: string | null; sqm?: number | null; atak?: string | null }
 
@@ -164,7 +165,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
       const fname = `Μισθωτήριο_${prop.name}_${grDate(res.start)}`.replace(/[\/\s]+/g, '_');
       await generateReportPdf(model, fname);
       setPending({ model, fname });
-    } catch (e) { setErr((e as Error)?.message || 'Αποτυχία δημιουργίας.'); }
+    } catch (e) { setErr(failed('Το μισθωτήριο δεν δημιουργήθηκε', e)); }
     finally { setBusy(false); }
   };
 

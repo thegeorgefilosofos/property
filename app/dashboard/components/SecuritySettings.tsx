@@ -15,6 +15,7 @@ import { T, Btn, settingsField, Spinner, ABSENT } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
 import { checkPassword } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
+import { failed } from '@/lib/core/dbError';
 
 // ── Κοινά στυλ, ευθυγραμμισμένα με τις υπόλοιπες κάρτες ρυθμίσεων ──────────
 const group: CSSProperties = { padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' };
@@ -115,15 +116,15 @@ export default function SecuritySettings() {
         if (msg.includes('disabled') || msg.includes('not enabled') || msg.includes('unsupported') || msg.includes('mfa')) {
           setMfaUnavailable(true);
         } else {
-          setMfaErr('Κάτι πήγε στραβά. Δοκίμασε ξανά.');
+          setMfaErr(failed('Η επαλήθευση δύο βημάτων δεν ενεργοποιήθηκε', error));
         }
         return;
       }
       setEnrollFactor({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
       setCode('');
       setMfaState('enrolling');
-    } catch {
-      setMfaErr('Κάτι πήγε στραβά. Δοκίμασε ξανά.');
+    } catch (e) {
+      setMfaErr(failed('Η επαλήθευση δύο βημάτων δεν ενεργοποιήθηκε', e));
     } finally {
       setMfaBusy(false);
     }

@@ -40,6 +40,7 @@ import { athensToday, daysUntil } from '@/lib/core/time';
 import { MONTHS_NOM, MONTHS_SHORT, monthNom } from '@/lib/core/months';
 import { INK, INK_MUTED, RULE } from '@/lib/print/ink';
 import { AadeLinks } from '@/components/AadeLink';
+import { failed } from '@/lib/core/dbError';
 import {
   instalmentPeriods, monthsPerInstalment, periodLabel,
   PAYMENT_FREQ_LABELS, isPaymentFreq, type InstalmentPeriod,
@@ -895,7 +896,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     // notifyOk('Δημιουργήθηκαν N δόσεις') ακολουθούσε αμέσως μετά. Ο ιδιοκτήτης
     // δεν είχε κανέναν τρόπο να μάθει ότι ο πίνακας έμενε κενός — και μαζί του
     // η Πύλη Ενοικιαστή, η οφειλή και το Ε2.
-    if(error) { notifyError('Οι δόσεις ΔΕΝ δημιουργήθηκαν: ' + error.message); return false; }
+    if(error) { notifyError(failed('Οι δόσεις δεν δημιουργήθηκαν', error)); return false; }
     return true;
   },[tenant,propertyId,userId]);
 
@@ -967,7 +968,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     const{error:payErr}=await supabase.from('rent_payments').upsert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_month:payF.period_month,period_year:payF.period_year,amount:Math.max(0,parseFloat(payF.amount)),paid:payF.paid,paid_date:paidDate,method:payF.paid?payF.method:null,days_late:daysLate,due_date:due,notes:payF.notes||null},{onConflict:'tenant_id,period_year,period_month'});
     // Ίδιο σφάλμα, δεύτερο σημείο: η καταχώρηση πληρωμής απορριπτόταν και το
     // «Πληρωμή καταχωρήθηκε» εμφανιζόταν ούτως ή άλλως.
-    if(payErr){ setBusy(false); notifyError('Η πληρωμή ΔΕΝ καταχωρήθηκε: ' + payErr.message); return; }
+    if(payErr){ setBusy(false); notifyError(failed('Η πληρωμή δεν καταχωρήθηκε', payErr)); return; }
     await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,payF.period_year,payF.period_month,payF.paid);
     setBusy(false);setAddOpen(false);setPayF({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',method:'Τραπεζική κατάθεση',paid:true,paid_date:todayISO(),notes:''});
     onRefresh();notifyOk('Πληρωμή καταχωρήθηκε');
@@ -2245,11 +2246,11 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       const safe=file.name.replace(/[^\w.\-]+/g,'_');
       const path=`${userId}/${propertyId}/document/${Date.now()}_${safe}`;
       const{error:upErr}=await supabase.storage.from('property-files').upload(path,file,{upsert:false,contentType:file.type||undefined});
-      if(upErr){ setError(upErr.message); setDocBusy(false); return; }
+      if(upErr){ setError(failed('Το αρχείο δεν ανέβηκε', upErr)); setDocBusy(false); return; }
       const label=tag==='id'?'Έγγραφο ταυτοποίησης':'Μισθωτήριο / έγγραφο';
       const title=`${label} · ${form.full_name.trim()||file.name}`.slice(0,200);
       const{data:ins,error:insErr}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',supplier:editId?('tenant:'+editId):null,title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id,file_name').single();
-      if(insErr){ setError(insErr.message); setDocBusy(false); return; }
+      if(insErr){ setError(failed('Το έγγραφο δεν καταχωρήθηκε', insErr)); setDocBusy(false); return; }
       if(ins) setFormDocs(prev=>[...prev,{id:ins.id as string,file_name:ins.file_name as string,tag}]);
       notifyOk('Το έγγραφο ανέβηκε');
     }catch{ setError('Σφάλμα ανεβάσματος εγγράφου'); }
@@ -2328,7 +2329,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     setUploading(true);
     const path=`${userId}/${t.id}/${file.name}`;
     const{error:upErr}=await supabase.storage.from('lease-documents').upload(path,file,{upsert:true});
-    if(upErr){setError(upErr.message);setUploading(false);return;}
+    if(upErr){setError(failed('Το αρχείο δεν ανέβηκε', upErr));setUploading(false);return;}
     // Το αρχείο ανέβηκε ήδη. Αν δεν καταγραφεί το όνομά του, ο ενοικιαστής δεν
     // έχει συμβόλαιο πουθενά στην οθόνη — και το αρχείο υπάρχει, αόρατο.
     if(!await saved('Το συμβόλαιο ανέβηκε, αλλά δεν συνδέθηκε με τον ενοικιαστή',supabase.from('tenants').update({lease_doc_name:file.name}).eq('id',t.id))){setUploading(false);return;}

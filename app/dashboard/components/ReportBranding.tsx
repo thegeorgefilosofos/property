@@ -7,6 +7,7 @@ import { TextInput, Toggle } from './UIComponents';
 import { normalizePlan } from '@/lib/billing/plans';
 import { sanitizeAccent, sanitizeLogo, DEFAULT_ACCENT } from '@/lib/reportBranding';
 import { INK, INK_MUTED, PAPER } from '@/lib/print/ink';
+import { failed } from '@/lib/core/dbError';
 
 const MAX_LOGO_BYTES = 500_000;
 
@@ -79,7 +80,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
       phone: phone.trim() || null, email: email.trim() || null, updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
     setSaving(false);
-    if (err) { setError('Σφάλμα αποθήκευσης: ' + (err.message || '')); return; }
+    if (err) { setError(failed('Η επωνυμία δεν αποθηκεύτηκε', err)); return; }
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
 

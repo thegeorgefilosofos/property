@@ -40,6 +40,7 @@ import SmartSuggestions from './SmartSuggestions';
 import { TASK_CATEGORIES, TASK_PRIORITIES, TASK_STATUSES } from '@/lib/checklist/taxonomy'
 import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { navLabel } from '@/lib/nav/labels'
+import { failed, MSG } from '@/lib/core/dbError';
 
 const supabase = createSupabaseClient()
 
@@ -1654,7 +1655,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
     const safe = file.name.replace(/[^\w.\-]+/g, '_')
     const path = `${userId}/${propertyId}/document/${Date.now()}_${safe}`
     const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined })
-    if (upErr) { setStage('confirm'); setErr('Το αρχείο δεν ανέβηκε: ' + upErr.message); return }
+    if (upErr) { setStage('confirm'); setErr(failed('Το αρχείο δεν ανέβηκε', upErr)); return }
 
     // Η δρομολόγηση του παραστατικού είναι ΤΟΥ documents.ts, όχι δική μας: ίδιος
     // φάκελος Αρχείου, ίδια πεδία (ποσό, ΑΦΜ, περίοδος) με κάθε άλλη σάρωση.
@@ -2106,7 +2107,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         else if (await saved('Η υπενθύμιση δεν αφαιρέθηκε από το ημερολόγιο', supabase.from('calendar_events').delete().eq('id', editItem.calendar_event_id))) {
           await saved('Ο σύνδεσμος με το ημερολόγιο δεν καθαρίστηκε', supabase.from('checklist_items').update({ calendar_event_id: null }).eq('id', editItem.id))
         }
-      } else if (payload.due_date && !isGeneratedRef(editItem._ref)) { const c = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost }); if (c) await saved('Ο σύνδεσμος με το ημερολόγιο δεν αποθηκεύτηκε', supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id)) }
+      } else if (payload.due_date && !isGeneratedRef(editItem._ref)) { const c = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost }); if (c) await saved(MSG.calendarLink, supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id)) }
     } else {
       const ins = await savedData<{ id?: string }>('Η εκκρεμότητα δεν προστέθηκε',
         supabase.from('checklist_items').insert(payload).select('id').single())
@@ -2114,7 +2115,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       const newId = ins.id
       if (newId && payload.due_date) {
         const calId = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost })
-        if (calId) await saved('Ο σύνδεσμος με το ημερολόγιο δεν αποθηκεύτηκε', supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId))
+        if (calId) await saved(MSG.calendarLink, supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId))
       }
     }
     setShowAddModal(false); setEditItem(null); fetchAll()
@@ -2150,7 +2151,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
           }).select('id').single())
           const recId = rec?.id
-          if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await saved('Ο σύνδεσμος με το ημερολόγιο δεν αποθηκεύτηκε', supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId)) }
+          if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await saved(MSG.calendarLink, supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId)) }
           if (recId) notifyOk(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
         }
       } else if (item.calendar_event_id) {
@@ -2200,7 +2201,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const calId = data?.id
     if (!calId) return
     // Χωρίς τον σύνδεσμο, η επόμενη προσθήκη θα έφτιαχνε δεύτερο γεγονός για το ίδιο.
-    if (!await saved('Η σύνδεση με το ημερολόγιο δεν αποθηκεύτηκε',
+    if (!await saved(MSG.calendarLink,
       supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', item.id))) return
     fetchAll()
     notifyOk(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο: ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')

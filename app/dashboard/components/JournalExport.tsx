@@ -22,6 +22,7 @@ import { askCta } from '@/lib/assistant/identity';
 import { askAssistant } from './AssistantStrip';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { downloadCsv } from '@/lib/core/download';
+import { failed } from '@/lib/core/dbError';
 
 // Δόση δανείου (από περιγραφή/κατηγορία εξόδου) — ελληνικά & αγγλικά.
 const LOAN_RE = /δάνει|δόσ\w*\s*δάν|τοκοχρε|χρεολ|loan|installment|mortgage|στεγαστ/i;
@@ -149,7 +150,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
       if (!lines.length) { setErr('Δεν υπάρχουν εγγραφές εσόδων/εξόδων για την περίοδο.'); setPreview(null); setTotals(null); setAudit(null); return; }
       applyChecks(lines);
     }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία υπολογισμού.'); }
+    catch (e) { setErr(failed('Ο υπολογισμός δεν ολοκληρώθηκε', e)); }
     finally { setBusy(false); }
   };
 
@@ -166,7 +167,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
         downloadCsv(csv, `Ημερολόγιο_${format}_${periodLabel}.csv`);
       }
       applyChecks(lines);
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Αποτυχία εξαγωγής.'); }
+    } catch (e) { setErr(failed('Η εξαγωγή δεν ολοκληρώθηκε', e)); }
     finally { setBusy(false); }
   };
 

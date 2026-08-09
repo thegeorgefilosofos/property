@@ -23,6 +23,7 @@ import { must } from '@/lib/supabase/must';
 import { saved } from '@/components/dbWrite';
 import { INK } from '@/lib/print/ink';
 import { aadePath } from '@/lib/tax/aade';
+import { failed } from '@/lib/core/dbError';
 import {
   buildLeaseDeclaration, declarationSheet, RULES,
   type LeaseDeclarationInput, type DeclField,
@@ -111,7 +112,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         // «λείπει» σε όλα. Ο ιδιοκτήτης νόμιζε ότι φταίει η δική του καταχώρηση και
         // πήγαινε να την ξαναγράψει. Αν ξαναμετονομαστεί στήλη, τώρα θα φανεί ως
         // σφάλμα αντί για ψεύτικα κενά πεδία.
-        if (alive) notifyError(`Δεν φορτώθηκαν τα στοιχεία της δήλωσης: ${e instanceof Error ? e.message : 'άγνωστο σφάλμα'}`);
+        if (alive) notifyError(failed('Δεν φορτώθηκαν τα στοιχεία της δήλωσης', e));
       } finally {
         if (alive) setLoading(false);
       }

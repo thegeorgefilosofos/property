@@ -26,6 +26,7 @@ import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
 import { PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate'
 import { regionByKey, GREECE_AVG_GROSS_YIELD, MARKET_DATA_ASOF } from '@/lib/market/greekMarket'
 import { athensToday } from '@/lib/core/time';
+import { failed, MSG } from '@/lib/core/dbError';
 
 // ── MD3 tokens ────────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = { ...TT.label, display:'block', marginBottom:6 }
@@ -901,7 +902,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         disclaimer:'Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.',
       }
       await generateReportPdf(model, 'Τοκοχρεολύσιο_'+(bankLabel||'δάνειο'))
-    } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
+    } catch { notifyError(failed(MSG.pdf)) }
     finally { setGenOfficial(false) }
   }
 

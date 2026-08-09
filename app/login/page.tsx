@@ -7,6 +7,7 @@ import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
+import { failed } from '@/lib/core/dbError';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Σύνδεση, στα χρώματα του app (design tokens, theme-aware light/dark).
@@ -47,7 +48,7 @@ export default function LoginPage() {
     setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError(failed('Η σύνδεση δεν έγινε', error)); setLoading(false) }
     else router.push('/dashboard')
   }
 

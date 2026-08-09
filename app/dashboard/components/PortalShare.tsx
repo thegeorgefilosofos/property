@@ -12,6 +12,7 @@ import { T, fd, fe, EmptyState, Skeleton, pressable } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
 import { saved } from '@/components/dbWrite';
+import { failed } from '@/lib/core/dbError';
 
 interface Req { id: string; title: string; description: string | null; contact: string | null; status: string; created_at: string; photos?: string[] | null; }
 
@@ -97,7 +98,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     const { data, error } = await supabase.from('portal_links').insert({ property_id: propertyId, user_id: userId, tenant_id: tenant?.id ?? null }).select('token, tenant_id').single();
     setBusy(false);
     if (!error && data) { setToken(data.token); setLinkTenant(data.tenant_id || null); }
-    else if (error) notifyError('Σφάλμα: ' + error.message);
+    else if (error) notifyError(failed('Η ρύθμιση της πύλης δεν αποθηκεύτηκε', error));
   };
 
   // Δέσιμο σε ενοικιαστή που δεν είχε δεθεί ποτέ. Ο σύνδεσμος ήδη έδειχνε αυτόν
@@ -108,7 +109,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     setBusy(true);
     const { error } = await supabase.from('portal_links').update({ tenant_id: tenant.id }).eq('property_id', propertyId).eq('user_id', userId);
     setBusy(false);
-    if (error) { notifyError('Σφάλμα: ' + error.message); return; }
+    if (error) { notifyError(failed('Η ρύθμιση της πύλης δεν αποθηκεύτηκε', error)); return; }
     setLinkTenant(tenant.id);
     notifyOk('Ο σύνδεσμος δέθηκε στον τρέχοντα ενοικιαστή');
   };
@@ -122,7 +123,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     const t = newToken();
     const { error } = await supabase.from('portal_links').update({ token: t, tenant_id: tenant.id }).eq('property_id', propertyId).eq('user_id', userId);
     setBusy(false);
-    if (error) { notifyError('Σφάλμα: ' + error.message); return; }
+    if (error) { notifyError(failed('Η ρύθμιση της πύλης δεν αποθηκεύτηκε', error)); return; }
     setToken(t); setLinkTenant(tenant.id); setCopied(false);
     notifyOk('Νέος σύνδεσμος. Ο παλιός έπαψε να ισχύει — στείλε τον νέο στον ενοικιαστή.');
   };

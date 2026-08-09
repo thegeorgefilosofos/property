@@ -21,6 +21,7 @@ import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } fro
 import { athensToday, isoDate, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { downloadFile } from '@/lib/core/download';
+import { failed } from '@/lib/core/dbError';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -1443,19 +1444,19 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       const mergedNotes = [target._freeNotes, form.freeNotes].filter(Boolean).join('\n').trim()
       const mergedRole = (finalRole && finalRole !== 'other') ? finalRole : target.role
       const { error: e } = await supabase.from('contacts').update({ full_name: name || target.full_name, role: mergedRole, phone: form.phone.trim() || target.phone, email: form.email.trim() || target.email, notes: serializeNotes(mergedExtra, mergedNotes) }).eq('id', target.id)
-      if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
+      if (e) { setError(failed('Η επαφή δεν αποθηκεύτηκε', e)); setSaving(false); return }
       await syncContactReminder(target.id, name || target.full_name)
       setSaving(false); setDup(null); closeModal(); fetchContacts(); notifyOk('Οι επαφές συγχωνεύθηκαν'); return
     }
     const payload = { full_name: name, role: finalRole, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
     if (mode === 'update' && editContact) {
       const { error: e } = await supabase.from('contacts').update(payload).eq('id', editContact.id)
-      if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
+      if (e) { setError(failed('Η επαφή δεν αποθηκεύτηκε', e)); setSaving(false); return }
       await syncContactReminder(editContact.id, name)
       setSaving(false); closeModal(); fetchContacts(); notifyOk('Επαφή ενημερώθηκε'); return
     }
     const { data: ins, error: e } = await supabase.from('contacts').insert({ ...payload, property_id: propertyId, user_id: userId }).select('id').single()
-    if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
+    if (e) { setError(failed('Η επαφή δεν αποθηκεύτηκε', e)); setSaving(false); return }
     if (ins?.id) await syncContactReminder(ins.id, name)
     setSaving(false); setDup(null); closeModal(); fetchContacts(); notifyOk('Επαφή προστέθηκε')
   }

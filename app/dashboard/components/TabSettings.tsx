@@ -26,6 +26,7 @@ import { PLANS, normalizePlan } from '@/lib/billing/plans';
 import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState } from '@/lib/billing/entitlements';
 import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
+import { failed } from '@/lib/core/dbError';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -176,7 +177,7 @@ function DeleteAccount() {
     if (!ready || busy) return;
     setBusy(true); setError(null);
     const { error } = await supabase.rpc('delete_my_account');
-    if (error) { setError(error.message || 'Κάτι πήγε στραβά. Δοκίμασε ξανά.'); setBusy(false); return; }
+    if (error) { setError(failed('Ο λογαριασμός δεν διαγράφηκε', error)); setBusy(false); return; }
     await supabase.auth.signOut();
     window.location.href = '/login';
   };
@@ -271,7 +272,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
     const nowIso = new Date().toISOString();
     const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, full_name: v, full_name_changed_at: nowIso }, { onConflict: 'user_id' });
     setNameBusy(false);
-    if (error) { setNameErr('Κάτι πήγε στραβά. Δοκίμασε ξανά.'); return; }
+    if (error) { setNameErr(failed('Το όνομα δεν αποθηκεύτηκε', error)); return; }
     setName(v); setChangedAt(nowIso); setNameEdit(false);
   };
 

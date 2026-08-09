@@ -20,6 +20,7 @@ import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection 
 import { downloadPortfolioComparison, type PortfolioRow } from './portfolioXlsx';
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MONTHS_NOM } from '@/lib/core/months';
+import { failed } from '@/lib/core/dbError';
 
 interface Prop { id: string; name: string; address: string | null }
 interface RentRow { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid: boolean | null }
@@ -202,7 +203,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     // `unknown` + `instanceof Error`. Το `e: any` εδώ άφηνε το `e?.message` να
     // περάσει σε οτιδήποτε — ένα `throw` που δεν είναι Error έδινε `undefined`.
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας αναφοράς.');
+      setErr(failed('Η αναφορά δεν δημιουργήθηκε', e));
     } finally { setBusy(false); }
   };
 
@@ -234,7 +235,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       downloadPortfolioComparison({ rows, periodLabel });
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας Excel.');
+      setErr(failed('Το αρχείο Excel δεν δημιουργήθηκε', e));
     } finally { setXlsxBusy(false); }
   };
 

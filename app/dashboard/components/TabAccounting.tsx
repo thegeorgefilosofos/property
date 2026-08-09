@@ -52,6 +52,7 @@ import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
 import { Printer, ShieldCheck } from 'lucide-react'
 import { notifyError } from '@/components/Toast';
 import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
+import { failed, MSG } from '@/lib/core/dbError';
 
 // ΔΥΟ ΟΝΟΜΑΤΑ ΓΙΑ ΤΗΝ ΙΔΙΑ ΣΥΝΑΡΤΗΣΗ. Ήταν `eur = fe(n,0)` και `eur2 = fe(n)`,
 // δηλαδή «στρογγυλό» και «ακριβές» — αλλά το δεύτερο όρισμα του `fe` αγνοούνταν,
@@ -503,7 +504,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     setGenOfficialCert(true)
     try {
       await downloadOfficialRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address??undefined, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding }, { supabase, userId })
-    } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
+    } catch { notifyError(failed(MSG.pdf)) }
     finally { setGenOfficialCert(false) }
   }
   // Υπογραφή από ΜΟΝΙΜΑ δεδομένα (όχι από επιλογές εμφάνισης όπως ιδιώτης/επιχείρηση,
@@ -521,8 +522,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     await supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year)
     const { error } = await supabase.from('book_closings').insert({ user_id:userId, property_id:propertyId, year, snapshot, locked_at })
     // Αν η αποθήκευση αποτύχει, ΔΕΝ κρύβουμε το πρόβλημα: επαναφέρουμε την κατάσταση και
-    // δείχνουμε τον ΠΡΑΓΜΑΤΙΚΟ λόγο (εμπιστοσύνη + διάγνωση).
-    if(error){ setClosing(null); setLockErr(error.message||'άγνωστο σφάλμα'); console.warn('Αποτυχία αποθήκευσης κλειδώματος:', error) }
+    // λέμε τον λόγο. «Τον πραγματικό λόγο» σήμαινε ως τώρα το αγγλικό κείμενο της
+    // Postgres — που δεν είναι εμπιστοσύνη, είναι θόρυβος. Ο λόγος λέγεται στα
+    // ελληνικά όταν αναγνωρίζεται, και το πρωτότυπο μένει στην κονσόλα από κάτω,
+    // για όποιον το ψάχνει.
+    if(error){ setClosing(null); setLockErr(failed('Το κλείδωμα της χρήσης δεν αποθηκεύτηκε', error)); console.warn('Αποτυχία αποθήκευσης κλειδώματος:', error) }
   }
   async function unlockYear(){
     setLockErr(null); setClosing(null)
@@ -606,7 +610,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         enfiaEstimated,
         branding,
       }, { supabase, userId })
-    } catch { notifyError('Η δημιουργία του επίσημου PDF απέτυχε. Δοκίμασε ξανά.') }
+    } catch { notifyError(failed(MSG.pdf)) }
     finally { setGenOfficial(false) }
   }
 
