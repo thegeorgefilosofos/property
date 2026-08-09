@@ -28,6 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { readStatus, type PropertyStatus, type StatusRow } from '@/lib/property/status';
+import { type AadeAction } from '@/lib/tax/aade';
 
 /** Ποιος φέρνει το κάθε πράγμα. Το σημαντικότερο πεδίο του αρχείου. */
 export type Who =
@@ -97,6 +98,16 @@ export interface Requirement {
   who: Who;
   /** Πού βρίσκεται, όταν δεν το έχει ο ίδιος. */
   source?: string;
+  /**
+   * Ο ΑΚΡΙΒΗΣ ΠΡΟΟΡΙΣΜΟΣ ΣΤΟ myAADE, ΟΤΑΝ ΥΠΑΡΧΕΙ.
+   *
+   * Το `source` έλεγε «myAADE» — σωστό και άχρηστο: η πύλη έχει δεκάδες
+   * εφαρμογές και ο ιδιοκτήτης που ψάχνει το εκκαθαριστικό ΕΝΦΙΑ δεν ξέρει ότι
+   * είναι κάτω από «Εφαρμογές». Η εφαρμογή ΞΕΡΕΙ ήδη τη διαδρομή κλικ κάθε
+   * υποχρέωσης (lib/tax/aade.ts, AADE_DESTINATIONS) και τη δείχνει σε άλλες
+   * οθόνες· εδώ έλειπε η σύνδεση, όχι η πληροφορία.
+   */
+  aade?: AadeAction;
   /** Χωρίς αυτό ΔΕΝ γίνεται η δήλωση. Ξεχωρίζει από το «καλό να υπάρχει». */
   blocking: boolean;
   /** Προειδοποίηση για παγίδα που κοστίζει χρήματα. */
@@ -121,6 +132,7 @@ export interface DossierContext {
 const COMMON: Requirement[] = [
   {
     id: 'atak',
+    aade: 'e9',
     title: 'ΑΤΑΚ του ακινήτου',
     why: 'Ο μοναδικός αριθμός που ταυτοποιεί το ακίνητο. Χωρίς αυτόν δεν συνδέεται τίποτα.',
     who: 'owner',
@@ -129,6 +141,7 @@ const COMMON: Requirement[] = [
   },
   {
     id: 'enfia',
+    aade: 'enfia',
     title: 'Εκκαθαριστικό ΕΝΦΙΑ',
     why: 'Επαληθεύει ότι τα στοιχεία του ακινήτου είναι σωστά, και είναι δαπάνη.',
     who: 'owner',
@@ -172,6 +185,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
       // χωρίς να μπορεί να το ελέγξει, γιατί δεν κρατά δικό του αρχείο — και το
       // λάθος του κράτους γίνεται δικό του λάθος.
       id: 'e2_prefilled',
+      aade: 'income',
       title: 'Το προσυμπληρωμένο Ε2 σου, τυπωμένο',
       why: 'Για να συγκρίνουμε τι λέει η ΑΑΔΕ με τι λένε τα δικά σου στοιχεία, πριν το υπογράψεις.',
       who: 'owner',
@@ -181,6 +195,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
     },
     {
       id: 'lease_declaration',
+      aade: 'lease',
       title: 'Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης',
       why: 'Πρέπει να έχει υποβληθεί όταν έγινε η μίσθωση, όχι τώρα.',
       who: 'owner',
@@ -217,6 +232,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
   rent_short: [
     {
       id: 'e2_prefilled',
+      aade: 'income',
       title: 'Το προσυμπληρωμένο Ε2 σου, τυπωμένο',
       why: 'Οι πλατφόρμες στέλνουν τα στοιχεία σου στην ΑΑΔΕ. Συγκρίνουμε τι έστειλαν με τι κατέγραψες εσύ.',
       who: 'owner',
@@ -226,7 +242,8 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
     },
     {
       id: 'ama',
-      title: 'ΑΜΑ — Αριθμός Μητρώου Ακινήτου',
+      aade: 'str-registry',
+      title: 'ΑΜΑ, ο Αριθμός Μητρώου Ακινήτου',
       why: 'Χωρίς αυτόν δεν επιτρέπεται νόμιμα καμία κράτηση.',
       who: 'owner',
       source: 'Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής, myAADE',
@@ -235,6 +252,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
     },
     {
       id: 'short_stays',
+      aade: 'str-declaration',
       title: 'Δηλώσεις Βραχυχρόνιας Διαμονής',
       why: 'Μία ανά μίσθωση, μέσα στην προθεσμία.',
       who: 'owner',
@@ -252,6 +270,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
     },
     {
       id: 'climate_levy',
+      aade: 'climate-fee',
       title: 'Τέλος ανθεκτικότητας στην κλιματική κρίση',
       why: 'Εισπράττεται από τον επισκέπτη και αποδίδεται στο κράτος.',
       who: 'owner',

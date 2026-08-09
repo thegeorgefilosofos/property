@@ -32,6 +32,8 @@ import {
 import type { PropertyStatus } from '@/lib/property/status'
 import { exportAccountantDossier, type AccountantStatementLine, type AccountantMovement } from './accountantExport'
 import { failed } from '@/lib/core/dbError';
+import { AadePill } from '@/components/AadeLink';
+import { aadePath } from '@/lib/tax/aade';
 
 // ── Οι παραδοχές που ορίζουν τη λίστα ──────────────────────────────────────
 export interface DossierProfile {
@@ -185,7 +187,15 @@ function Row({ r, checked, onToggle, interactive }: { r: Requirement; checked: b
           {r.blocking && !checked && <Badge>Απαραίτητο</Badge>}
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '3px 0 0', lineHeight: 1.5, fontFamily: T.font.sans }}>{r.why}</p>
-        {r.source && <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '3px 0 0', fontFamily: T.font.sans }}>Πού: {r.source}</p>}
+        {/* ΤΟ «ΠΟΥ» ΕΓΙΝΕ ΔΡΟΜΟΣ, ΟΧΙ ΟΝΟΜΑ ΠΥΛΗΣ. Έγραφε «Πού: myAADE» — σωστό
+            και άχρηστο: η πύλη έχει δεκάδες εφαρμογές, και ο ιδιοκτήτης που
+            ψάχνει το εκκαθαριστικό ΕΝΦΙΑ δεν ξέρει ότι κρύβεται κάτω από τις
+            «Εφαρμογές». Η διαδρομή κλικ υπήρχε ήδη γραμμένη στο lib/tax/aade.ts
+            και φαινόταν σε άλλες οθόνες· εδώ έλειπε μόνο η σύνδεση. Τώρα το
+            πλακίδιο ανοίγει την πύλη και δείχνει τα βήματα στο title. */}
+        {r.aade
+          ? <div style={{ margin: '5px 0 0' }}><AadePill action={r.aade} label={`Πού: ${aadePath(r.aade)}`} /></div>
+          : r.source && <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '3px 0 0', fontFamily: T.font.sans }}>Πού: {r.source}</p>}
       </div>
     </div>
   )

@@ -308,8 +308,12 @@ export function CustomSelect({
   const optRefs = useRef<(HTMLDivElement | null)[]>([]);
   // useId(): σταθερό αναγνωριστικό σε server και client (χωρίς hydration mismatch).
   const baseId = useId();
-  const idRef = { current: baseId };
+  // ΨΕΥΤΙΚΟ REF. Ήταν `const idRef = { current: baseId }` — αντικείμενο που
+  // ξαναφτιαχνόταν σε κάθε απόδοση και του οποίου το `.current` ήταν ΠΑΝΤΑ το
+  // `baseId`. Δεν έκανε τίποτα, αλλά ο μεταγλωττιστής της React το διάβαζε ως
+  // πρόσβαση σε ref κατά την απόδοση και το σημείωνε τρεις φορές.
   const listId = `${baseId}-list`;
+  const labelId = `${baseId}-label`;
   const selected = options.find(o => o.value === value);
 
   useEffect(() => {
@@ -405,7 +409,7 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={mdLabelBase} id={`${idRef.current}-label`}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label style={mdLabelBase} id={labelId}>{label}{infoNode(labelInfo)}</label>}
       <div
         ref={triggerRef}
         role="combobox"
@@ -414,7 +418,7 @@ export function CustomSelect({
         aria-expanded={open}
         aria-controls={listId}
         aria-disabled={disabled || undefined}
-        aria-labelledby={label ? `${idRef.current}-label` : undefined}
+        aria-labelledby={label ? labelId : undefined}
         aria-label={label ? undefined : (selected?.label || placeholder)}
         aria-activedescendant={open && activeIndex >= 0 ? `${baseId}-opt-${activeIndex}` : undefined}
         onClick={() => !disabled && (open ? setOpen(false) : openList())}
@@ -453,7 +457,7 @@ export function CustomSelect({
         </svg>
       </div>
       {open && createPortal(
-        <div ref={menuRef} role="listbox" id={listId} aria-labelledby={label ? `${idRef.current}-label` : undefined} style={{
+        <div ref={menuRef} role="listbox" id={listId} aria-labelledby={label ? labelId : undefined} style={{
           // Portal + fixed: το μενού δεν «κόβεται» ποτέ από modal/scroll container.
           position: 'fixed',
           top: menuPos.top,

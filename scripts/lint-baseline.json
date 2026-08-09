@@ -1,5 +1,5 @@
 {
   "_comment": "Lint-debt ceiling enforced by scripts/lint-ratchet.mjs in CI. The count may only go DOWN. When you fix lint errors, lower maxErrors to the new count so the gain is locked in. Never raise it.",
-  "maxErrors": 123,
+  "maxErrors": 120,
   "note": "Κατέβηκε από 529 στις 30/07/2026, μετά τη σάρωση επτά agents. Μόνο προς τα κάτω."
 }

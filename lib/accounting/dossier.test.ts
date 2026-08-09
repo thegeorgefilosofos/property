@@ -5,6 +5,7 @@ import {
   type DossierContext, type Requirement, type LegalForm,
 } from './dossier';
 import type { PropertyStatus } from '../property/status';
+import { aadePath } from '@/lib/tax/aade';
 
 let pass = 0, fail = 0;
 function eq(name: string, got: unknown, want: unknown) {
@@ -339,6 +340,26 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
     return reqs.map((_, n) => readiness(reqs, reqs.slice(0, n).map(x => x.id)).message);
   }).some(m => m.includes(singularOk));
   ok('ο ενικός παράγεται όντως, άρα ο έλεγχος δεν είναι κενός', anySingular);
+}
+
+
+// ── ΚΑΘΕ ΔΙΚΑΙΟΛΟΓΗΤΙΚΟ ΤΟΥ myAADE ΞΕΡΕΙ ΤΟΝ ΔΡΟΜΟ ΤΟΥ ─────────────────────
+// Το «Πού: myAADE» είναι σωστό και άχρηστο. Αν ένα δικαιολογητικό λέει ότι
+// βρίσκεται στο myAADE, οφείλει να λέει και ΠΟΥ μέσα σε αυτό — η διαδρομή
+// υπάρχει ήδη στο lib/tax/aade.ts.
+{
+  const all = [
+    ...requirementsFor(ctx({ statuses: ['rent_long'] })),
+    ...requirementsFor(ctx({ statuses: ['rent_short'] })),
+    ...requirementsFor(ctx({ statuses: ['rent_long', 'rent_short'] })),
+    ...requirementsFor(ctx({ form: 'company', books: 'double_entry' })),
+  ];
+  const orphans = all.filter(r => /myAADE/i.test(r.source || '') && !r.aade);
+  ok(`κανένα «Πού: myAADE» χωρίς διαδρομή (${orphans.map(r => r.id).join(', ') || 'κανένα'})`, orphans.length === 0);
+  const withPath = all.filter(r => r.aade);
+  ok(`υπάρχουν όντως δικαιολογητικά με διαδρομή (${withPath.length})`, withPath.length >= 4);
+  // Και κάθε προορισμός που δηλώνεται πρέπει να υπάρχει στον χάρτη.
+  ok('κάθε προορισμός υπάρχει', withPath.every(r => aadePath(r.aade!).includes('→')));
 }
 
 console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);

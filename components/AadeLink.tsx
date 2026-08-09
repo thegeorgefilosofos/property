@@ -35,7 +35,13 @@ export function aadeTitle(action: AadeAction): string {
 }
 
 /**
- * Καρτέλα προορισμού: ετικέτα, διαδρομή σε λέξεις, βέλος.
+ * ΔΥΟ ΣΗΜΑΣΙΕΣ, ΔΥΟ ΣΧΗΜΑΤΑ. Το «→» είναι ο διαχωριστής των βημάτων μέσα στη
+ * διαδρομή («myAADE → Εφαρμογές → ΕΝΦΙΑ»). Ο σύνδεσμος τελείωνε ΚΑΙ αυτός σε
+ * «→», οπότε στο πλακίδιο του φακέλου δικαιολογητικών φαίνονταν τέσσερα ίδια
+ * βέλη στη σειρά, από τα οποία το τελευταίο σήμαινε άλλο πράγμα. Το άνοιγμα σε
+ * νέα καρτέλα γράφεται πλέον «↗», που είναι και η καθιερωμένη ένδειξη.
+ *
+ * Καρτέλα προορισμού: ετικέτα, διαδρομή σε λέξεις, ένδειξη εξόδου.
  * Το `emphasis` σηκώνει μόνο την αριστερή γραμμή — καμία αλλαγή χρώματος
  * κειμένου, καμία σημασιολογία σε πράσινο ή κόκκινο.
  */
@@ -50,7 +56,7 @@ export function AadeLink({ action, emphasis = false }: { action: AadeAction; emp
           {aadePath(action)}{d.login ? ` · ${LOGIN_NOTE}` : ''}
         </div>
       </div>
-      <span style={{ fontSize: 14, color: 'var(--accent)' }}>→</span>
+      <span aria-hidden style={{ fontSize: 14, color: 'var(--accent)' }}>↗</span>
     </a>
   );
 }
@@ -69,7 +75,7 @@ export function AadePill({ action, label }: { action: AadeAction; label?: string
   return (
     <a href={d.url} target="_blank" rel="noopener noreferrer" title={aadeTitle(action)}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-      {label ?? d.label} <span style={{ color: 'var(--accent)' }}>→</span>
+      {label ?? d.label} <span aria-hidden style={{ color: 'var(--accent)' }}>↗</span>
     </a>
   );
 }
