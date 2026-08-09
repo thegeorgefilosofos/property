@@ -56,7 +56,8 @@
     "ascii-boundary": "node scripts/guard-ascii-boundary.mjs",
     "no-arrows": "node scripts/guard-no-arrows.mjs",
     "field-name": "node scripts/guard-field-name.mjs",
-    "em-dash": "node scripts/guard-em-dash.mjs"
+    "em-dash": "node scripts/guard-em-dash.mjs",
+    "form-grid": "node scripts/guard-form-grid.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

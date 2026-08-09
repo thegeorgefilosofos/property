@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, TT, fe, formGrid, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay } from '@/components/Theme';
+import { T, TT, fe, formGrid, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -120,8 +120,12 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
     const n = [...history]; n[i] = v; setHistory(n); upd({ history: n });
   };
   const sMill    = (v: string) => { setMillesimi(v); upd({ millesimi: v }); };
+  // ΚΑΝΕΝΑ ΑΡΝΗΤΙΚΟ ΚΟΙΝΟΧΡΗΣΤΟ. Το `min={0}` του HTML εμποδίζει τα βελάκια,
+  // όχι την πληκτρολόγηση: το «-50» γραφόταν κανονικά, αποθηκευόταν, και έβγαζε
+  // αρνητικό μερίδιο σε πίνακα δαπανών. Το κτήριο δεν σου δίνει χρήματα.
   const sCat     = (key: string, v: string) => {
-    const n = { ...catData, [key]: v }; setCatData(n); upd({ catData: n });
+    const clean = v.replace(/-/g, '');
+    const n = { ...catData, [key]: clean }; setCatData(n); upd({ catData: n });
   };
 
   const addExtra = () => {
@@ -197,12 +201,21 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         .hist-bar:hover { opacity: 0.85; }
       `}</style>
 
-      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
+      {/* ═══ ΤΡΙΑ ΜΗΔΕΝΙΚΑ ΠΡΙΝ Ο ΧΡΗΣΤΗΣ ΓΡΑΨΕΙ ΤΙΠΟΤΑ ═══════════════════════
+          Η σειρά άνοιγε την οθόνη με «Δωρεάν · 0,00 € · 0,00 €», δηλαδή τρεις
+          μεγάλες κάρτες που δεν μετρούσαν τίποτα: τα νούμερα παράγονται από τα
+          πεδία ΠΙΟ ΚΑΤΩ, που είναι ακόμη άδεια. Ένα «0,00 €» σε θέση μετρικής
+          δεν διαβάζεται «δεν ξέρω ακόμη»· διαβάζεται «μηδέν», και είναι το ίδιο
+          σφάλμα με τα μηδενικά του πίνακα κατηγοριών.
+
+          Εμφανίζεται μόλις υπάρχει έστω ένα μετρημένο νούμερο, και κάθε κάρτα
+          δείχνει μόνο τη δική της γνωστή τιμή. */}
+      {(mgmtMonthly > 0 || parseFloat(fundMonthly) > 0 || monthlyAvg > 0) && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
-          { label: 'Διαχείριση / μήνα',  value: mgmtMonthly > 0 ? fe(mgmtMonthly) : 'Δωρεάν' },
-          { label: 'Ταμείο / μήνα',      value: parseFloat(fundMonthly) > 0 ? fe(parseFloat(fundMonthly)) : fe(0) },
-          { label: 'Μέσος Όρος Κοινοχρήστων',  value: monthlyAvg > 0 ? fe(monthlyAvg) : fe(0) },
+          { label: 'Διαχείριση τον μήνα',  value: mgmtMonthly > 0 ? fe(mgmtMonthly) : 'Δωρεάν' },
+          { label: 'Ταμείο τον μήνα',      value: parseFloat(fundMonthly) > 0 ? fe(parseFloat(fundMonthly)) : ABSENT_SHORT },
+          { label: 'Μέσος όρος κοινοχρήστων',  value: monthlyAvg > 0 ? fe(monthlyAvg) : ABSENT_SHORT },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -210,6 +223,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           </div>
         ))}
       </div>
+      )}
 
       {/* ── Οδηγός ευθύνης: ποιος πληρώνει τι (ελληνικό πλαίσιο) ──────────── */}
       <InfoBanner tone="neutral">
@@ -258,9 +272,16 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {rows.map(r => (
           <div key={r.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 150px 110px', gap: 14, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 500 }}>{r.label}</div>
+            {/* ΤΟ ΣΚΟΥΡΟ «ΧΑΠΙ» ΕΓΙΝΕ ΠΕΔΙΟ. Ήταν `background: bg-base` με ακτίνα
+                σήματος: μέσα σε σκούρο θέμα διαβαζόταν ως τρύπα, όχι ως κουτί
+                που δέχεται γράψιμο, και δεν έμοιαζε με κανένα άλλο πεδίο της
+                εφαρμογής. Ίδια επιφάνεια, ίδιο περίγραμμα, ίδια ακτίνα, ίδιο
+                δαχτυλίδι εστίασης με τα υπόλοιπα. */}
             <input
-              type="number" min={0} inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)} placeholder=""
-              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
+              aria-label={`${r.label}, μηνιαίο σύνολο κτηρίου σε ευρώ`}
+              type="number" min={0} inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)}
+              className="po-field"
+              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '8px 12px', fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
             <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : ''}</div>
           </div>
         ))}
@@ -358,7 +379,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <Card pad="lg">
         {secHdr('Έκτακτες Εισφορές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ ...formGrid(190, 320), marginBottom: 12 }}>
+          <div style={{ ...formGrid(150, 230), marginBottom: 12 }}>
             <TextInput   label="Αιτία"       value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
             <NumberInput label="Ποσό"    value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
             <DatePicker  label="Ημερομηνία" value={extraDate}   onChange={setExtraDate}/>
@@ -469,7 +490,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
 
         {/* Πλέγμα πεδίων, με ύφος περάσματος δείκτη και εστίασης */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}>
               {/* Η ΕΤΙΚΕΤΑ ΠΕΡΙΤΥΛΙΓΕΙ ΤΟ ΠΕΔΙΟ, ΔΕΝ ΚΑΘΕΤΑΙ ΑΠΛΩΣ ΑΠΟ ΠΑΝΩ.
