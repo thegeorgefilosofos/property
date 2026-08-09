@@ -521,7 +521,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const name = emailDraft.name.trim();
     let clientId = clients.find(c => c.full_name.trim().toLowerCase() === name.toLowerCase())?.id || null;
     if (!clientId) {
-      const data = await savedData<{ id?: string }>('Ο πελάτης δεν δημιουργήθηκε',
+      const data = await savedData<{ id?: string }>('Ο επισκέπτης δεν δημιουργήθηκε',
         supabase.from('clients').insert({ user_id: userId, type: 'client', full_name: name }).select('id').maybeSingle());
       clientId = data?.id || null;
     }
@@ -770,7 +770,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     if (existing) return existing.id;
     const { data, error } = await supabase.from('clients').insert({
       user_id: userId, type: 'client', full_name: name,
-      notes: 'Συγκεντρωτικός πελάτης για κρατήσεις που εισάγονται από iCal (χωρίς στοιχεία επισκέπτη).',
+      notes: 'Συγκεντρωτικός επισκέπτης για κρατήσεις που εισάγονται από iCal (χωρίς στοιχεία επισκέπτη).',
     }).select('id').single();
     if (error || !data) return null;
     return (data as { id: string }).id;
@@ -782,7 +782,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       .filter(d => icalIncludeBlocked || !d.blocked);
     if (drafts.length === 0) { setIcalMsg({ text: 'Δεν υπάρχουν κρατήσεις προς εισαγωγή (μόνο μπλοκαρίσματα ημερομηνιών).', error: true }); setIcalBusy(false); return; }
     const clientId = await ensureChannelClient(icalChannel);
-    if (!clientId) { setIcalMsg({ text: 'Σφάλμα δημιουργίας πελάτη καναλιού.', error: true }); setIcalBusy(false); return; }
+    if (!clientId) { setIcalMsg({ text: 'Σφάλμα δημιουργίας επισκέπτη καναλιού.', error: true }); setIcalBusy(false); return; }
     // Αποφυγή διπλοεγγραφών: κλειδί ακίνητο+άφιξη+αναχώρηση απέναντι στις υπάρχουσες.
     const existingKeys = new Set(stays.map(s => stayKey(s.property_id || '', s.check_in || '', s.check_out || '')));
     const fresh = drafts.filter(d => !existingKeys.has(stayKey(d.property_id, d.check_in, d.check_out)));
@@ -918,7 +918,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {props.length > 0 && <Btn variant="secondary" onClick={openIcal}>Σύνδεση ημερολογίου</Btn>}
             {clients.length > 0 && <Btn variant="secondary" onClick={() => setComposeOpen(true)}>Μαζικό μήνυμα</Btn>}
             {allStays.length > 0 && <ExportButton onClick={exportCsv} label="Εξαγωγή διαμονών" />}
-            <Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>
+            <Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>
           </div>
         ) : undefined} />
 
@@ -927,7 +927,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       <ClientCompose open={composeOpen} onClose={() => setComposeOpen(false)} clients={clients} supabase={supabase} />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, τηλεφώνου, email…"
+        <input value={search} onChange={e => setSearch(e.target.value)} aria-label="Αναζήτηση επισκέπτη" placeholder="Όνομα, τηλέφωνο ή email"
           style={{ ...inp, maxWidth: 280, width: 'auto', flex: '1 1 220px' }} />
         {/* Ένα φίλτρο, και είναι το χρήσιμο. Τα «VIP / Επαναλαμβανόμενοι /
             Με επισήμανση» έφυγαν: το πρώτο είχε επινοημένο κατώφλι 1.000 €, το
@@ -936,7 +936,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       </div>
 
       {clients.length === 0 ? (
-        <EmptyState icon={<Users size={20} />} title="Κανένας επισκέπτης ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb/Booking με «Εισαγωγή iCal» ή επικόλλησε ένα email κράτησης — και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
+        <EmptyState icon={<Users size={20} />} title="Κανένας επισκέπτης ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb ή Booking με τη «Σύνδεση ημερολογίου», ή επικόλλησε ένα email κράτησης με την «Εισαγωγή από email» — και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>} />
       ) : filtered.length === 0 ? (
         // Ο έλεγχος από πάνω κοιτούσε τα `clients`, αλλά το πλέγμα αποδίδει τα
         // `filtered`: με αναζήτηση ή φίλτρο που δεν ταιριάζει σε κανέναν, ο χρήστης
@@ -1780,7 +1780,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           (…13, 14, 16…). Το κουτί του εικονιδίου το δίνει τώρα το Modal και τα
           αρχικά κάθονται στο 14. */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} width={680}
-        title={editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}
+        title={editing ? (form.full_name.trim() || 'Επεξεργασία επισκέπτη') : 'Νέος επισκέπτης'}
         ariaLabel="Στοιχεία επισκέπτη"
         subtitle={editing ? 'Επεξεργασία στοιχείων επισκέπτη' : 'Νέος επισκέπτης'}
         icon={<span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.02em', fontFamily: T.font.sans }}>{initials}</span>}

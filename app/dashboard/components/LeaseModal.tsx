@@ -289,7 +289,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
       <>
           {loading ? <Spinner size={18} label="Φόρτωση…" /> : props.length === 0 ? <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε ακίνητο για να συντάξεις μισθωτήριο." /> : (
             <>
-              <ScanButton label="Συμπλήρωσε από φωτογραφία" hint="Διαβάζει τα στοιχεία και γεμίζει τη φόρμα. Δεν καταχωρεί τίποτα μόνο του." onExtract={doc => {
+              <ScanButton onExtract={doc => {
                 if (doc.tenant_name) setTenant(doc.tenant_name);
                 if (doc.landlord_name) setLandlord(doc.landlord_name);
                 if (doc.afm) setTenantAfm(String(doc.afm));
