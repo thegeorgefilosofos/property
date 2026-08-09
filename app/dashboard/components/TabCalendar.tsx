@@ -477,7 +477,12 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                 με λέξεις πάνω σε κάθε γεγονός, εκεί που χρειάζεται.
 
                 Και «1 γεγονότα». Ο πληθυντικός ήταν σταθερός. */}
-            <span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length===1?'1 γεγονός':`${events.length} γεγονότα`}</span>
+            {/* ΤΟ «0 ΓΕΓΟΝΟΤΑ» ΠΑΝΩ ΑΠΟ ΑΔΕΙΟ ΠΛΕΓΜΑ. Σε μήνα χωρίς τίποτα, η ίδια
+                απουσία λεγόταν ΤΡΕΙΣ φορές: εδώ ως αριθμός, μετά με το κενό πλέγμα,
+                και από κάτω με ολόκληρη κενή κατάσταση. Ο ίδιος συλλογισμός που
+                έβγαλε το «0 πληρωμένα» δίπλα του — η μέτρηση έχει νόημα όταν
+                υπάρχει κάτι να μετρηθεί. */}
+            {events.length>0&&<span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length===1?'1 γεγονός':`${events.length} γεγονότα`}</span>}
             {monthPendingAmt>0&&<span title={`Άθροισμα των εκκρεμών ποσών ${MONTHS_GEN[month]} ${year}, μόνο αυτού του μήνα`} style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{fe(monthPendingAmt)} εκκρεμή</span>}
             {/* ΤΟ «0 ΠΛΗΡΩΜΕΝΑ» ΔΙΠΛΑ ΣΤΟ «0 ΓΕΓΟΝΟΤΑ» ΔΕΝ ΛΕΕΙ ΤΙΠΟΤΑ. Σε άδειο
                 μήνα η γραμμή έγραφε δύο μηδενικά στη σειρά — δύο μετρήσεις για το

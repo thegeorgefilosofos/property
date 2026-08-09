@@ -1340,7 +1340,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
         {secHdr('Άλλες πάγιες συνδρομές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus..."/>
+            <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus…"/>
             <NumberInput label="Κόστος τον μήνα" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
             <DatePicker  label="Ημερομηνία ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
           </div>
