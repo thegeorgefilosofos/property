@@ -10,7 +10,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, pressable } from '@/components/Theme';
+import { T, fe } from '@/components/Theme';
 import { CustomSelect } from './UIComponents';
 import {
   validateDoc, docSummaryLine,
@@ -118,7 +118,6 @@ const TYPE_FIELDS: Record<DocType, FieldDef[]> = {
     { key: 'issue_date', label: 'Ημερομηνία', type: 'date' },
   ],
 };
-
 
 // Πεδίο εισόδου. Τρεις καταστάσεις, όχι δύο: εντάξει · «λείπει» (η OCR δεν το
 // διάβασε και το ζητάμε) · «δεν είναι έγκυρο» (το διαβάσαμε αλλά δεν βγάζει

@@ -12,10 +12,10 @@ import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
 import { readStatus, type StatusRow } from '@/lib/property/status'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
-import { EmptyState, Skeleton, SkeletonKPIs, fe, fn, T } from '@/components/Theme';
+import { Skeleton, SkeletonKPIs, fe, fn, T } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
-import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
+import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
 import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
 import {
   REGIONS, BENCHMARKS, BENCHMARKS_ASOF, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS, AUCTION_FACTS,
@@ -25,6 +25,7 @@ import {
 import { incomeStatement } from '@/lib/accounting/statement';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
 import { GLOSSARY as G } from '@/lib/market/glossary';
+import { navLabel } from '@/lib/nav/labels';
 import { useReportBranding } from '@/lib/reportBranding';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc } from './reportPdf';
 import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel, type PdfSection, type PdfRow } from '@/lib/pdf/pdfReport';
@@ -1018,7 +1019,18 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontFamily: SANS, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Αποδόσεις</h2>
+          {/* ΤΟ ΟΝΟΜΑ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ ΜΕΝΟΥ, ΚΑΙ ΑΥΤΗ Η ΟΘΟΝΗ ΕΙΝΑΙ ΤΟ ΠΑΡΑΔΕΙΓΜΑ.
+              Το `lib/nav/labels.ts` γράφτηκε ακριβώς για αυτό το σφάλμα, και
+              ονομάζει ΑΥΤΗ την περίπτωση στην κεφαλίδα του:
+
+                  κωδικός  μενού        βοηθός        ατζέντα
+                  roi      «Απόδοση»    «Αποδόσεις»   «Αποδόσεις»
+
+              Ο βοηθός και η ατζέντα διορθώθηκαν. Ο τίτλος της ίδιας της οθόνης
+              έμεινε «Αποδόσεις», δηλαδή ο χρήστης πατούσε «Απόδοση» στο μενού
+              και έφτανε σε σελίδα με άλλο όνομα. Τώρα διαβάζεται από την πηγή
+              και δεν μπορεί να ξαναποκλίνει. */}
+          <h2 style={{ fontFamily: SANS, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{navLabel('roi')}</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: SANS }}>{regimeLabel} · πραγματική απόδοση του ακινήτου και σύγκριση με την αγορά.</p>
         </div>
         {/* ΔΥΟ ΚΟΥΜΠΙΑ, ΙΔΙΟ ΣΧΗΜΑ, ΙΔΙΟ ΜΕΓΕΘΟΣ, ΚΑΙ Η ΔΙΑΦΟΡΑ ΜΟΝΟ ΣΕ TOOLTIP.
@@ -1363,7 +1375,6 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             )}
           </Section>
         )}
-
 
         {/* ═══ Η ΦΟΡΟΛΟΓΙΑ ΕΙΝΑΙ ΕΞΗΓΗΣΗ, ΟΧΙ ΠΡΟΫΠΟΘΕΣΗ ══════════════════════
             Δύο μπλοκ πυκνού κειμένου —τα τέλη της βραχυχρόνιας και οι φορολογικές

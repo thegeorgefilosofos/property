@@ -10,7 +10,6 @@ import { T, feAuto, Btn, localDay } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import { rentDueOccurrence, applyExdate } from '@/lib/calendar/rentDue';
 import { saved } from '@/components/dbWrite';
-import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 
 // ─── Re-exports for TabTenant ─────────────────────────────────────────────────
 export { Toggle, NumberInput, TextInput, Textarea, FREQ_OPTIONS };

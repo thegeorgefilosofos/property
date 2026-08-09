@@ -19,10 +19,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { computeObligations, calendarWritable, oblToCalendarCategory, type Obligation } from './obligations'
-import {
-  taxObligationsHorizon, taxObligationToEvent, taxEventSource, taxKindOfEventSource,
-  taxObligationNotes, lastWorkingDayOfMonth, nextWorkingDay, TAX_EVENT_CATEGORY, CONFIDENCE_LABEL, CONFIDENCE_HINT,
-} from '@/lib/tax/greekTaxCalendar'
+import { taxObligationsHorizon, taxObligationToEvent, taxEventSource, taxKindOfEventSource, taxObligationNotes, lastWorkingDayOfMonth, nextWorkingDay, TAX_EVENT_CATEGORY, CONFIDENCE_HINT } from '@/lib/tax/greekTaxCalendar'
 import { declarationDeadline } from '@/lib/tax/leaseDeclaration'
 import { WHO_LABEL } from '@/lib/accounting/dossier'
 import { AADE_DESTINATIONS, destinationForKind } from '@/lib/tax/aade'

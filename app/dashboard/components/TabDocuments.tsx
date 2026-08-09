@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE, pressable } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
-import { SearchX, FolderOpen, FileText } from 'lucide-react';
+import { SearchX, FolderOpen } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
 import { downloadTableXlsx } from './exportCsv';
@@ -25,11 +25,7 @@ import {
 } from './scanDoc';
 import { isValidAfm } from '@/lib/billing/parse';
 import { navLabel } from '@/lib/nav/labels';
-import {
-  applyFilters, facetOptions, toggleValue, clearAll, groupByMonth, sumValues,
-  activeFacetCount, isSelectionEmpty, FACET_KEYS, FACET_LABEL,
-  type Selection, type TimeGroup,
-} from '@/lib/archive/facets';
+import { applyFilters, facetOptions, toggleValue, clearAll, groupByMonth, sumValues, isSelectionEmpty, FACET_KEYS, FACET_LABEL, type Selection, type TimeGroup } from '@/lib/archive/facets';
 
 /* ════════════════════════════════════════════════════════════════════════
    ΑΡΧΕΙΟ — μία επίπεδη λίστα με όψεις, ΧΩΡΙΣ φακέλους.
@@ -549,7 +545,6 @@ export default function TabDocuments({
 
   const clearDrafts = () => { setDrafts([]); setMsg(null); };
 
-
   const del = async (it: Item) => {
     if (!it.raw) return;
     // Ο έλεγχος της σημαίας ΠΡΕΠΕΙ να μείνει ΠΡΙΝ το await: αν ο διάλογος καλούνταν
@@ -801,7 +796,6 @@ export default function TabDocuments({
         </div>
       )}
 
-
       {/* ── Γραμμή εργαλείων: σύνοψη + αναζήτηση + προβολή ────────────
           Κρύβεται όταν δεν υπάρχει ούτε ένα χαρτί: αναζήτηση μέσα στο τίποτα και
           εναλλαγή προβολής του τίποτα είναι χειριστήρια χωρίς αντικείμενο. */}
@@ -1005,9 +999,7 @@ function byDateDesc(a: Item, b: Item) {
 
 /* ── Κάρτα φακέλου (πλέγμα) ── εμφανίζονται μόνο φάκελοι με περιεχόμενο ──────── */
 
-
 /* ── Υποφάκελος (πάροχος ή έτος) ─────────────────────────────────────────── */
-
 
 /* ── Λίστα αρχείων ───────────────────────────────────────────────────────── */
 interface FileActions {

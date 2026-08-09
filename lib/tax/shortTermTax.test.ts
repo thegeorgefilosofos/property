@@ -1,8 +1,5 @@
 // Δοκιμές φορολογικής σύνοψης βραχυχρόνιας. Τρέξε: npx tsx lib/tax/shortTermTax.test.ts
-import {
-  nightsByMonthForYear, channelBreakdownForYear, shortTermYearSummary, yearsWithStays,
-  guestPriceBreakdown, collectedLevyForYear, type TaxStay,
-} from './shortTermTax';
+import { nightsByMonthForYear, channelBreakdownForYear, shortTermYearSummary, yearsWithStays, guestPriceBreakdown, type TaxStay } from './shortTermTax';
 import { climateLevyForNights, rentalIncomeTax, CLIMATE_LEVY_STR_2025 } from '../billing/greekTax';
 
 let passed = 0, failed = 0; const fails: string[] = [];

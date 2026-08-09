@@ -1,12 +1,7 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
-import {
-  E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary,
-  type E2Stay,
-  E1_HEADERS, e1LineToCells, E2_INSTRUCTIONS,
-  type E2Property, type E2Tenant, type E2Payment, type E2Row,
-} from '@/lib/billing/e2';
+import { E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary, type E2Stay, E1_HEADERS, E2_INSTRUCTIONS, type E2Property, type E2Tenant, type E2Payment, type E2Row } from '@/lib/billing/e2';
 
 const NCOLS = E2_OFFICIAL_HEADERS.length; // 19
 // Πλάτη στηλών (χαρακτήρες) — με αναδιπλωμένες επικεφαλίδες χωράνε άνετα δεδομένα+τίτλοι.

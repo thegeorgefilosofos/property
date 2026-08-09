@@ -16,7 +16,7 @@
 // και να το μοιράζονται client (UI gating) και server (RLS/trigger έχει δικό του).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLANS, propertyAllowance, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
+import { propertyAllowance, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
 
 export type ProfileType = 'individual' | 'professional';
 

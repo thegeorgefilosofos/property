@@ -30,7 +30,7 @@
 // Κάθε component γράφει δικές του κλάσεις με δικό του πρόθεμα (εδώ: ls-).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { PanelFX, PanelScan } from './ShowcasePanels';
 
 export default function LandingShowcase() {

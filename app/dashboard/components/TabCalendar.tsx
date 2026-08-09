@@ -56,7 +56,7 @@ import { parseQuickAdd } from '@/lib/calendar/quickAdd'
 import { groupSeries, rowCount, type SeriesRow } from '@/lib/calendar/series'
 import { dueReminders, notifyBody } from '@/lib/calendar/notify'
 import { buildBookingEvents } from '@/lib/calendar/bookingEvents'
-import { toStaySpan, staysOnDay, segMeta, channelColor, CHANNEL_COLORS, type StaySpan } from '@/lib/calendar/stayBars'
+import { toStaySpan, staysOnDay, segMeta, channelColor, type StaySpan } from '@/lib/calendar/stayBars'
 import { buildInviteICS, inviteMailto, inviteWhatsApp, inviteViber, canInvite } from '@/lib/calendar/invite'
 import {
   taxObligationsHorizon, taxObligationToEvent, taxProfileOf, taxKindMeta, taxKindOfEventSource,
@@ -227,7 +227,6 @@ function StatusDot({ status }: { status: EventStatus }) {
     </span>
   )
 }
-
 
 // Μετατροπή γεγονότος σε είσοδο για τους συνδέσμους εξωτερικών ημερολογίων.
 function toCalInput(e: CalEvent) {
@@ -576,7 +575,6 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
     </div>
   )
 }
-
 
 // Έξυπνος συγχρονισμός: αναγνωρίζει τον τύπο μίσθωσης του ακινήτου και τραβά ΜΟΝΟ
 // ό,τι έχει νόημα — μακροχρόνια → ενοίκιο & λήξεις μίσθωσης· βραχυχρόνια → κρατήσεις
@@ -1205,7 +1203,6 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
     </Modal>
   )
 }
-
 
 export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenTasks }: {
   propertyId:string; userId:string;

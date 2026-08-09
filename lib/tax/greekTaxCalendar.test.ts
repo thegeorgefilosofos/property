@@ -1,11 +1,6 @@
 // Αυστηρά τεστ για το φορολογικό ημερολόγιο ακινήτων (greekTaxCalendar.ts).
 // Τρέξε: npx tsx lib/tax/greekTaxCalendar.test.ts
-import {
-  greekPropertyTaxObligations, taxObligationToEvent, taxObligationNotes, nextWorkingDay, lastWorkingDayOfMonth,
-  taxObligationsHorizon, taxProfileOf, taxEventSource, taxKindOfEventSource, taxKindMeta,
-  isTaxEventSource, TAX_KINDS, TAX_EVENT_CATEGORY, CONFIDENCE_LABEL, CONFIDENCE_HINT,
-  type TaxObligation,
-} from './greekTaxCalendar'
+import { greekPropertyTaxObligations, taxObligationToEvent, taxObligationNotes, nextWorkingDay, lastWorkingDayOfMonth, taxObligationsHorizon, taxProfileOf, taxEventSource, taxKindOfEventSource, taxKindMeta, isTaxEventSource, TAX_KINDS, TAX_EVENT_CATEGORY, CONFIDENCE_HINT, type TaxObligation } from './greekTaxCalendar'
 import { isNonWorkingDay } from '../calendar/greekHolidays'
 import { AADE_DESTINATIONS, destinationForKind } from './aade'
 import { requirementsFor, WHO_LABEL, type Who } from '../accounting/dossier'
@@ -103,7 +98,6 @@ ok('notes λένε πόσο σίγουρη είναι η ημερομηνία, �
 const y2027 = greekPropertyTaxObligations(2027, 'owner')
 ok('2027 Ε9 στο 2027', y2027.find(o => o.id.startsWith('e9-'))!.date.startsWith('2027-0'))
 ok('2027 ΕΝΦΙΑ τελευταία στο 2028', y2027.find(o => o.id.startsWith('enfia-last'))!.date.startsWith('2028-02'))
-
 
 // ── ΕΙΔΟΣ ΥΠΟΧΡΕΩΣΗΣ (kind) — η αναλλοίωτη σχέση id ↔ kind ────────────────────
 const everything: TaxObligation[] = [

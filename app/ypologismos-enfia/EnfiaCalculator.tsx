@@ -26,10 +26,7 @@ import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
 import { T, feAuto } from '@/components/tokens';
 import { parseAmount } from '@/lib/core/greek';
-import {
-  estimateENFIA, zoneKeyFromPricePerSqm,
-  ENFIA_FLOOR_COEF, ENFIA_AGE_COEF, ENFIA_AGE_BANDS,
-} from '@/lib/billing/enfia';
+import { estimateENFIA, zoneKeyFromPricePerSqm, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 

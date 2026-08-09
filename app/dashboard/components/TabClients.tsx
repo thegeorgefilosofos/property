@@ -51,7 +51,7 @@ import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import { downloadTableXlsx } from './exportCsv';
 import { saved, savedData } from '@/components/dbWrite';
-import { money } from './xlsxStyle';
+
 import ClientCompose from './ClientCompose';
 import {
   stayNights, stayTotal, clientStats, normalizePhone,

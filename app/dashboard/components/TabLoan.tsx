@@ -17,13 +17,7 @@ import { Gift } from 'lucide-react'
 import { downloadXlsx } from './exportXlsx'
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
-import {
-  BANKS_NORM, PROGRAMS_NORM, normBank, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER,
-  type ComparisonBank, type ComparisonProgram,
-  LOAN_TYPES, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE,
-  calcMonthly, fmtEur, fmtPct,
-  LoanType, RateType, BorrowerType, SavedLoan, MARKET_FALLBACK
-} from './TabLoanData'
+import { BANKS_NORM, PROGRAMS_NORM, normBank, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
@@ -1405,7 +1399,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             ))}
           </MiniSection>
 
-
           <MiniSection title="Γιατί απορρίπτεται μια αίτηση">
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
@@ -1567,7 +1560,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
         </div>
       </LensPanel>)}
-
 
     </div>
   )

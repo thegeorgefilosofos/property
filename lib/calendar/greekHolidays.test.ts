@@ -1,5 +1,5 @@
 // Τεστ για τις ελληνικές αργίες (greekHolidays.ts). Τρέξε: npx tsx lib/calendar/greekHolidays.test.ts
-import { orthodoxEaster, greekHolidays, holidayName, isHoliday, isWeekend, isNonWorkingDay, upcomingHolidays } from './greekHolidays'
+import { orthodoxEaster, holidayName, isHoliday, isWeekend, isNonWorkingDay, upcomingHolidays } from './greekHolidays'
 
 let passed = 0, failed = 0
 const fails: string[] = []

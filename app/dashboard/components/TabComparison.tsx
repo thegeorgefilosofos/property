@@ -7,7 +7,7 @@ import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { downloadTableXlsx } from './exportCsv';
-import { money, dec2, percent } from './xlsxStyle';
+import { money } from './xlsxStyle';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import { resolveValue } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, recurringMonthly } from '@/lib/expenses/ledger';
@@ -71,7 +71,6 @@ const TYPE_LABELS: Record<string, string> = {
   warehouse: 'Αποθήκες', land: 'Οικόπεδα', parking: 'Θέσεις parking',
   storage: 'Αποθήκες κτιρίου', villa: 'Βίλες', other: 'Άλλα',
 };
-
 
 export default function TabComparison({ properties, userId }: Props) {
   const supabase = createClient();
@@ -193,7 +192,6 @@ export default function TabComparison({ properties, userId }: Props) {
     annualRent: ((agg[p.id]?.monthlyRent || p.target_rent || 0)) * 12,
     shortTerm: p.rental_mode === 'short_term',
   }))), [properties, agg]);
-
 
   if (!group) {
     // Δύο διαφορετικές ελλείψεις, δύο διαφορετικές απαντήσεις: άλλο «δεν έχεις

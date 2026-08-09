@@ -11,7 +11,7 @@ import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { rentalIncomeTax, rentalBracketsForYear, bracketsLabelForYear, RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
+import { rentalIncomeTax, rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax';
 import { presumptiveDeductionRate, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
 import { T, feAuto, Card } from '@/components/Theme';
 

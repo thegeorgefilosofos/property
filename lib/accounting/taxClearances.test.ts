@@ -13,8 +13,7 @@
 // taxheaven.gr, ΝΟΜΙΚΗ ΒΙΒΛΙΟΘΗΚΗ.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { rentalIncomeTax } from '../billing/greekTax'
-import { incomeStatement, consolidateIndividual, taxProvision } from './statement'
+import { incomeStatement, consolidateIndividual } from './statement'
 import { estimateENFIA } from '../billing/enfia'
 
 let passed = 0, failed = 0

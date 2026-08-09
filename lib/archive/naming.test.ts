@@ -1,12 +1,7 @@
 // Τεστ για το τυποποιημένο όνομα αρχείου.
 // Ο κεντρικός ισχυρισμός: ΚΑΘΕ όνομα έχει ακριβώς το ίδιο μήκος, ό,τι κι αν
 // λείπει — γιατί πάνω σε αυτό στηρίζεται η ταξινόμηση στον φάκελο του λογιστή.
-import {
-  buildName, billName, paymentName, contractName, assignSequences,
-  sanitizeSegment, fit, slotDate, slotAmount, slotYear,
-  NAME_LENGTH, SLOT_WIDTH, PROVIDER_WIDTH, EMPTY_SLOT, KIND_TAG, SLOT_LABELS,
-  type DocKind,
-} from './naming'
+import { buildName, billName, paymentName, contractName, assignSequences, sanitizeSegment, fit, slotDate, slotAmount, slotYear, NAME_LENGTH, SLOT_WIDTH, EMPTY_SLOT, KIND_TAG, SLOT_LABELS, type DocKind } from './naming'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
