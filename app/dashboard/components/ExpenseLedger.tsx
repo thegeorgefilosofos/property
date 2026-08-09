@@ -390,14 +390,21 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           Τώρα: μία κύρια ενέργεια, πάνω από όλα. Μέσα της διαλέγεις τον δρόμο —
           φωτογραφία, αρχείο ή πληκτρολόγιο — αντί να διαλέγεις από τη γραμμή
           εργαλείων πριν καν ξέρεις τι θέλεις. */}
-      <div style={{ display: 'flex', gap: T.sp.sm, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.lg }}>
+      {/* ΜΕ ΜΗΔΕΝ ΔΑΠΑΝΕΣ, Η ΓΡΑΜΜΗ ΔΕΝ ΕΧΕΙ ΤΙ ΝΑ ΚΑΝΕΙ. Το «Νέα δαπάνη»
+          εμφανιζόταν ΚΑΙ εδώ ΚΑΙ στην κενή κατάσταση από κάτω — δύο πανομοιότυπα
+          γεμάτα κουμπιά στην ίδια οθόνη — και δίπλα του ένα πεδίο αναζήτησης που
+          θα έψαχνε σε τίποτα. Όσο η φόρμα είναι ανοιχτή η γραμμή μένει, γιατί
+          κρατά την «Ακύρωση». */}
+      {(entries.length > 0 || adding) && <div style={{ display: 'flex', gap: T.sp.sm, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.lg }}>
         <Btn variant="primary" onClick={() => setAdding(v => !v)}>{adding ? 'Ακύρωση' : 'Νέα δαπάνη'}</Btn>
         <div style={{ flex: 1 }} />
         {/* Ίδιο ύψος και ίδιο σχήμα με τα κουμπιά δίπλα του. Πριν ήταν ψηλότερο
             και πιο στρογγυλό, και η σειρά έμοιαζε στοιχισμένη κατά λάθος. */}
         <input
           value={q} onChange={ev => setQ(ev.target.value)}
-          placeholder="Αναζήτηση"
+          /* Η υπόδειξη λέει ΤΙ ψάχνεται, όπως στις άλλες οθόνες· το «Αναζήτηση»
+             ανήκει στην ετικέτα του αναγνώστη οθόνης, όπου και είναι. */
+          placeholder="Περιγραφή, κατηγορία ή πάροχος"
           aria-label="Αναζήτηση δαπανών"
           style={{
             width: 190, height: T.h.md, padding: '0 14px', boxSizing: 'border-box',
@@ -406,7 +413,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
             fontSize: 13, fontFamily: T.font.sans, outline: 'none',
           }}
         />
-      </div>
+      </div>}
 
       {adding && (
         <>
