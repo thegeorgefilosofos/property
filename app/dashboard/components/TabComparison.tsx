@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses';
 import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
@@ -96,10 +97,8 @@ export default function TabComparison({ properties, userId }: Props) {
     const year = new Date().getFullYear();
     // Τα πεδία είναι αυτά που ζητά ο κοινός πυρήνας (lib/expenses/ledger.ts): ο
     // λογαριασμός δίνει πρόγραμμα και προθεσμία, η δαπάνη το γεγονός και το ποσό.
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: bud }] = await Promise.all([
-      supabase.from('expenses')
-        .select('id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor,property_id')
-        .in('property_id', ids).eq('user_id', userId).gte('date', `${year}-01-01`),
+    const [exp, { data: bil }, { data: ten }, { data: bud }] = await Promise.all([
+      expenses.ledgerOfProperties(supabase, ids, userId, `${year}-01-01`),
       supabase.from('bills')
         .select('id,name,amount,paid,paid_at,due_date,created_at,category,recurring,property_id')
         .in('property_id', ids).eq('user_id', userId),
@@ -135,7 +134,7 @@ export default function TabComparison({ properties, userId }: Props) {
     // `undefined` και έβγαινε ως μηδέν δαπάνες — δηλαδή «φθηνό» ακίνητο.
     // Κομμένα με `Pick` από το παραγόμενο σχήμα: το όνομα κάθε στήλης ελέγχεται
     // μία φορά, στη μεταγλώττιση.
-    const expRows: Pick<ExpensesRow, 'id' | 'bill_id' | 'amount' | 'date' | 'description' | 'category' | 'paid' | 'expense_group' | 'is_recurring' | 'store_vendor' | 'property_id'>[] = exp || [];
+    const expRows: expenses.LedgerRowWithProperty[] = exp || [];
     const bilRows: Pick<BillsRow, 'id' | 'name' | 'amount' | 'paid' | 'paid_at' | 'due_date' | 'created_at' | 'category' | 'recurring' | 'property_id'>[] = bil || [];
     const tenRows: Pick<TenantsRow, 'monthly_rent' | 'property_id' | 'updated_at'>[] = ten || [];
     const budRows: Pick<BillsSettingsRow, 'property_id' | 'data'>[] = bud || [];

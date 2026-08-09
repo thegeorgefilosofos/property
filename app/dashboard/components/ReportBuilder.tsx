@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as expenses from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
 import { CustomSelect as Select } from './UIComponents';
@@ -105,12 +106,12 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       if (month > 0) rentQ = rentQ.eq('period_month', month);
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
       const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
-      const [{ data: rentData }, { data: expData }] = await Promise.all([
+      const [{ data: rentData }, expData] = await Promise.all([
         rentQ,
-        supabase.from('expenses').select('property_id,date,amount,category').in('property_id', ids).gte('date', from).lte('date', to),
+        expenses.inRange(supabase, ids, from, to, 'property_id,date,amount,category'),
       ]);
       const rents = (rentData || []) as RentRow[];
-      const exps = (expData || []) as ExpRow[];
+      const exps = expData as unknown as ExpRow[];
 
       // ── Συγκεντρωτικά ─────────────────────────────────────────────────────
       const expected = rents.reduce((s, r) => s + num(r.amount), 0);
@@ -220,12 +221,12 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       if (month > 0) rentQ = rentQ.eq('period_month', month);
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
       const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
-      const [{ data: rentData }, { data: expData }] = await Promise.all([
+      const [{ data: rentData }, expData] = await Promise.all([
         rentQ,
-        supabase.from('expenses').select('property_id,date,amount,category').in('property_id', ids).gte('date', from).lte('date', to),
+        expenses.inRange(supabase, ids, from, to, 'property_id,date,amount,category'),
       ]);
       const rents = (rentData || []) as RentRow[];
-      const exps = (expData || []) as ExpRow[];
+      const exps = expData as unknown as ExpRow[];
       const rows: PortfolioRow[] = selProps.map(p => ({
         name: p.name,
         expected: rents.filter(r => r.property_id === p.id).reduce((s, r) => s + num(r.amount), 0),

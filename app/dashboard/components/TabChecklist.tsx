@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { downloadWorkbook } from './xlsxStyle'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { DatePicker, CustomSelect } from './UIComponents'
 import { T, fn, fe, fp, fd, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, fdLong, pressable } from '@/components/Theme'
@@ -1695,7 +1696,7 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
     const expenseRow = expenseFromReceipt(entry)
     if (!expenseRow) { setStage('confirm'); setErr('Χωρίς έγκυρο ποσό και παραστατικό δεν καταχωρείται δαπάνη.'); return }
     const expIns = await savedData<{ id?: string }>('Η δαπάνη από το παραστατικό δεν καταχωρήθηκε',
-      supabase.from('expenses').insert({ ...expenseRow, property_id: propertyId, user_id: userId }).select('id').single())
+      expenses.addRow(supabase, { ...expenseRow, property_id: propertyId, user_id: userId }))
     const expenseId = expIns?.id || item.expense_id || null
 
     // 3) Η ΕΚΚΡΕΜΟΤΗΤΑ ΚΛΕΙΝΕΙ ΜΕ ΠΡΑΓΜΑΤΙΚΟ ΚΟΣΤΟΣ, και το παραστατικό μένει

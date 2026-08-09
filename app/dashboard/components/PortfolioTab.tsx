@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses'
 import { CustomSelect } from './UIComponents';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
@@ -134,13 +135,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [genOfficial, setGenOfficial] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: st }, { data: bl }, { data: ex }, { data: tn }, { data: ci }, { data: po }, { data: cl }, { data: rp }] = await Promise.all([
+    const [{ data: st }, { data: bl }, ex, { data: tn }, { data: ci }, { data: po }, { data: cl }, { data: rp }] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
       // `total` για ΚΑΘΕ γραμμή — δηλαδή σιωπηλά ξαναγυρίζει το payout.
       supabase.from('client_stays').select('property_id,check_in,check_out,total,nights,nightly_rate,gross_guest_paid,platform_fee,climate_levy,amount_basis').eq('user_id', userId),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring,property_id').eq('user_id', userId),
-      supabase.from('expenses').select('id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor,property_id').eq('user_id', userId).gte('date', `${year}-01-01`),
+      expenses.ledgerOfUser(supabase, userId, `${year}-01-01`),
       supabase.from('tenants').select('property_id,monthly_rent,updated_at').eq('user_id', userId).order('updated_at', { ascending: false }),
       supabase.from('checklist_items').select('property_id,status,priority,due_date').eq('user_id', userId).neq('status', 'done').neq('status', 'skipped'),
       supabase.from('user_properties').select('id,client_id').eq('user_id', userId),

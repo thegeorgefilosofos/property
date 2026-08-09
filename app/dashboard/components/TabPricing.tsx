@@ -29,6 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable } from '@/components/Theme';
 import { navLabel } from '@/lib/nav/labels';
@@ -124,9 +125,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // Οι λειτουργικές δαπάνες της χρονιάς, και πόσα ακίνητα έχει ο φορολογούμενος
   // (κρίνει την εξαίρεση του τέλους παρεπιδημούντων: ισχύει έως δύο ακίνητα).
   const loadCashflowInputs = useCallback(async () => {
-    const [{ data: exp }, { data: bil }, { count }] = await Promise.all([
-      supabase.from('expenses').select('id,bill_id,description,category,expense_group,amount,date,paid,is_recurring')
-        .eq('property_id', propertyId).eq('user_id', userId),
+    const [exp, { data: bil }, { count }] = await Promise.all([
+      expenses.ledger(supabase, propertyId, { userId }),
       supabase.from('bills').select('id,name,category,amount,due_date,paid,paid_at,recurring,created_at')
         .eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),

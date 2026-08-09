@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } f
 import { downloadWorkbook } from './xlsxStyle'
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import * as expenseStore from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
@@ -489,8 +490,8 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
       // 2) όνομα: εφεδρεία για παλιές δαπάνες, γι' αυτό και δεν είναι μόνη της.
       const nm = (contact.full_name || '').replace(/[,()*%\\]/g, ' ').trim()
       const filter = nm.length >= 3 ? `contact_id.eq.${contact.id},description.ilike.*${nm}*` : `contact_id.eq.${contact.id}`
-      const [{ data }, d] = await Promise.all([
-        supabase.from('expenses').select('id,description,amount,date').eq('property_id', propertyId).or(filter).order('date', { ascending: false }).limit(20),
+      const [data, d] = await Promise.all([
+        expenseStore.ledger<{ id: string; description: string; amount: number; date: string }>(supabase, propertyId, { columns: 'id,description,amount,date', or: filter, order: { column: 'date', ascending: false }, limit: 20 }),
         fetchSupplierDocs(afm, propertyId),
       ])
       setExpenses(data || []); setDocs(d); setLoading(false)
@@ -614,7 +615,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
   const save = async () => {
     if (!amount) return
     setSaving(true)
-    const ok = await saved('Η δαπάνη δεν αποθηκεύτηκε', supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, contact_id: contact.id, amount: parseFloat(amount), description, date: athensToday(), category: 'Αμοιβές Συνεργατών' }))
+    const ok = await saved('Η δαπάνη δεν αποθηκεύτηκε', expenseStore.insert(supabase, [expenseStore.row({ propertyId, userId }, { contact_id: contact.id, amount: parseFloat(amount), description, date: athensToday(), category: 'Αμοιβές Συνεργατών' })]))
     setSaving(false)
     if (!ok) return
     onSaved(); onClose()
@@ -1065,11 +1066,11 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
     const nm = (contact.full_name || '').replace(/[,()*%\\]/g, ' ').trim()
     const filter = nm.length >= 3 ? `contact_id.eq.${contact.id},description.ilike.*${nm}*` : `contact_id.eq.${contact.id}`
     Promise.all([
-      supabase.from('expenses').select('amount').eq('property_id', propertyId).or(filter),
+      expenseStore.ledger<{ amount: number }>(supabase, propertyId, { columns: 'amount', or: filter }),
       fetchSupplierDocs(afm, propertyId),
-    ]).then(([{ data }, docs]) => {
-      if (!live || !data) return
-      setExp({ total: data.reduce((s: number, e: { amount: number }) => s + (e.amount || 0), 0), count: data.length, docs: docs.length })
+    ]).then(([rows, docs]) => {
+      if (!live) return
+      setExp({ total: rows.reduce((s, e) => s + (e.amount || 0), 0), count: rows.length, docs: docs.length })
     })
     return () => { live = false }
   }, [contact.id, contact.full_name, propertyId, refreshKey, afm])

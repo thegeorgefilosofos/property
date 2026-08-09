@@ -18,6 +18,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenseStore from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
 import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
@@ -261,8 +262,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
-      supabase.from('expenses').select('id,bill_id,amount,category,date,description,paid,expense_group,is_recurring,store_vendor,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
+    const [exp, { data: bil }, { data: ten }, { data: st }, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
+      expenseStore.ledger(supabase, propertyId, { userId, from: `${year}-01-01`, columns: `${expenseStore.LEDGER_COLUMNS},payment_method` }),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
       // Τα στοιχεία ασφάλισης ζουν στο `user_properties` (insurance_company /
@@ -718,17 +719,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // δαπάνη της 1ης Ιανουαρίου ονομαζόταν «Δεκεμβρίου» σε αρνητική ζώνη ώρας.
     const monthLbl = useDate !== today ? ` (${MON_GR[(isoMonth(useDate) ?? 1) - 1]})` : '';
     try {
-      await must(supabase.from('expenses').insert({
-        property_id: propertyId, user_id: userId,
+      // ΤΟ «ΜΕΤΡΗΤΑ» ΔΕΝ ΤΟ ΕΙΠΕ ΚΑΝΕΙΣ. Ο τρόπος πληρωμής έχει φορολογική
+      // σημασία στην εφαρμογή (τα ενοίκια κατοικίας θέλουν τράπεζα για την
+      // τεκμαρτή έκπτωση), και εδώ γραφόταν σταθερά «μετρητά» επειδή έτσι
+      // βολεύει τη φόρμα. Μένει κενό: ο χρήστης το συμπληρώνει αν χρειαστεί.
+      await must(expenseStore.insert(supabase, [expenseStore.row({ propertyId, userId }, {
         description: description.slice(0, 120), amount,
         category, expense_group: group,
         date: useDate,
-        // ΤΟ «ΜΕΤΡΗΤΑ» ΔΕΝ ΤΟ ΕΙΠΕ ΚΑΝΕΙΣ. Ο τρόπος πληρωμής έχει φορολογική
-        // σημασία στην εφαρμογή (τα ενοίκια κατοικίας θέλουν τράπεζα για την
-        // τεκμαρτή έκπτωση), και εδώ γραφόταν σταθερά «μετρητά» επειδή έτσι
-        // βολεύει τη φόρμα. Μένει κενό: ο χρήστης το συμπληρώνει αν χρειαστεί.
-        paid_by: 'owner', paid: true,
-      }));
+        paid: true,
+      })]));
       setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα δαπάνη
       loadContext();
       setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'finances' } }]);
@@ -769,7 +769,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       if (billHits.length === 1) {
         const b = billHits[0];
         await must(supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', b.id));
-        await must(supabase.from('expenses').update({ paid: true }).eq('bill_id', b.id));
+        await must(expenseStore.updateByBill(supabase, b.id, { paid: true }));
         setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τον λογαριασμό «${b.name}» ${eur(b.amount)} ως πληρωμένο.`, action: { type: 'go', tab: 'finances' } }]);
       } else {
         const r = rentHits[0];

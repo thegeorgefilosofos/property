@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
 import { T, fe, feAuto, fp, fn, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
@@ -377,7 +378,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         // λογαριασμός καταχωρημένος νωρίτερα μπορεί να ανήκει μέσα στο παράθυρο.
         // Το τελικό κόψιμο γίνεται μετά τη συγχώνευση, όπου η ημερομηνία είναι μία.
         supabase.from('bills').select('id,name,category,amount,paid,paid_at,due_date,recurring,created_at').eq('property_id', propertyId).gte('created_at', wideStart),
-        supabase.from('expenses').select('id,bill_id,description,category,expense_group,amount,date,paid,store_vendor,is_recurring').eq('property_id', propertyId).gte('date', histStart),
+        expenses.ledger(supabase, propertyId, { from: histStart }),
       ]);
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
@@ -460,7 +461,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // ── Η ΕΝΙΑΙΑ ΛΙΣΤΑ ────────────────────────────────────────────────────
       const { entries: ledger } = mergeLedger(
         (allBillsRes.data ?? []) as LedgerBill[],
-        (allExpRes.data ?? []) as LedgerExpense[],
+        allExpRes as unknown as LedgerExpense[],
       );
       // Ταυτότητα γραμμής για τις εξαιρέσεις. Προτεραιότητα στον λογαριασμό,
       // γιατί πριν τη συγχώνευση η γραμμή του μήνα ΗΤΑΝ ο λογαριασμός: όποιος
@@ -760,7 +761,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         { d: 20, desc: 'Είδη καθαριότητας',   amount: 25.00, category: 'other',       grp: 'other' },
       ];
       const payload = samples.map(s => ({ property_id: propertyId, user_id: userId || null, amount: s.amount, date: day(s.d), description: s.desc, category: s.category, expense_group: s.grp, bill_id: null }));
-      const { data, error } = await supabase.from('expenses').insert(payload).select('id');
+      const { data, error } = await expenses.insertReturning(supabase, payload);
       if (!error && data) persistCats({ __demo: JSON.stringify((data as { id: string }[]).map(r => String(r.id))) });
       await loadData();
     } finally { setDemoBusy(false); }
@@ -768,7 +769,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const removeDemo = async () => {
     if (!propertyId || demoBusy || demoIds.length === 0) return;
     setDemoBusy(true);
-    const gone = await saved('Τα δείγματα δεν διαγράφηκαν', supabase.from('expenses').delete().in('id', demoIds));
+    const gone = await saved('Τα δείγματα δεν διαγράφηκαν', expenses.remove(supabase, demoIds));
     if (gone) { persistCats({ __demo: '[]' }); await loadData(); }
     setDemoBusy(false);
   };

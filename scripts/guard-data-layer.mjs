@@ -26,6 +26,7 @@ import { findSources } from './lib/find-tests.mjs'
 /** Πίνακες που έχουν στρώμα, και το αρχείο που τους ανήκει. */
 const OWNED = {
   calendar_events: 'lib/data/calendar.ts',
+  expenses: 'lib/data/expenses.ts',
 }
 
 const findings = []
@@ -36,7 +37,10 @@ for (const f of findSources()) {
   // στρώμα ούτε αν το θέλαμε. Και δεν έχουν και τον λόγο — καμία τους δεν κάνει
   // τον συγχρονισμό που το στρώμα ήρθε να ενοποιήσει· διαβάζουν και στέλνουν.
   if (f.startsWith('supabase/functions/')) continue
-  const src = readFileSync(f, 'utf8')
+  // Το σχόλιο που ΔΕΙΧΝΕΙ πώς γραφόταν κάτι δεν είναι κλήση: η `must` εξηγεί
+  // τον εαυτό της με παράδειγμα σε `expenses`, και δεν το πληρώνει.
+  const src = readFileSync(f, 'utf8').split('\n')
+    .map(l => (l.trim().startsWith('//') || l.trim().startsWith('*')) ? '' : l).join('\n')
   for (const [table, home] of Object.entries(OWNED)) {
     if (f.endsWith(home)) continue
     const re = new RegExp(`\\.from\\(\\s*['"\`]${table}['"\`]`, 'g')

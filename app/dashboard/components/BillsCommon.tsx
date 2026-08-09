@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
 import { T, TT, fe, formGrid, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
@@ -144,13 +145,15 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
     // Το try/catch που ήταν εδώ δεν έπιανε ποτέ τίποτα: το Supabase επιστρέφει
     // σφάλμα, δεν το πετά. Η δαπάνη μπορούσε να μη γραφτεί και η έκτακτη να
     // σημειωθεί «μεταφέρθηκε» — χαμένη και από τις δύο πλευρές.
-    const ok = await saved('Η έκτακτη δαπάνη δεν καταχωρήθηκε', supabase.from('expenses').insert({
-      property_id: propertyId, user_id: String(userId),
-      amount: parseFloat(e.amount),
-      description: `Κοινόχρηστα, ${e.reason}`,
-      date: e.date || athensToday(),
-      category: 'Κοινόχρηστα',
-    }));
+    const ok = await saved('Η έκτακτη δαπάνη δεν καταχωρήθηκε', expenses.insert(supabase, [expenses.row(
+      { propertyId, userId: String(userId) },
+      {
+        amount: parseFloat(e.amount),
+        description: `Κοινόχρηστα, ${e.reason}`,
+        date: e.date || athensToday(),
+        category: 'Κοινόχρηστα',
+      },
+    )]));
     setTransferring(null);
     if (!ok) return;
     const n = extras.map((ex, j) => j === i ? { ...ex, transferredToExpenses: true } : ex);

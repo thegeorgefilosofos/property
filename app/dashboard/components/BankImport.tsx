@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import * as expenseStore from '@/lib/data/expenses'
 import { Check, ArrowRight, Landmark, SearchX } from 'lucide-react'
 import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
 import { feAuto, T, EmptyState, Modal, Spinner } from '@/components/Theme'
@@ -58,7 +59,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       }}
       const toAdd = expenses.filter(e=>e.confirm)
       if(toAdd.length){
-        const { error } = await supabase.from('expenses').insert(toAdd.map(e=>({ property_id:propertyId, user_id:userId, amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||athensToday(), category:'Τραπεζική κίνηση' })))
+        const { error } = await expenseStore.insert(supabase, toAdd.map(e=>expenseStore.row({ propertyId, userId }, { amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||athensToday(), category:'Τραπεζική κίνηση' })))
         if(error) throw error
         for(const e of toAdd) rows.push({ user_id:userId, property_id:propertyId, txn_date:e.txn.date||null, description:e.txn.description, amount:e.txn.amount, dedup_hash:hashOf(e.txn) })
       }

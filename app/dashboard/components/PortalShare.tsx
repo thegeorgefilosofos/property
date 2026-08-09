@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { T, fd, fe, EmptyState, Skeleton, pressable } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
@@ -159,13 +160,12 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   const toExpense = async (r: Req) => {
     const amt = parseFloat(cost.replace(',', '.'));
     if (!amt || amt <= 0) { notify('Βάλε έγκυρο ποσό', { tone: 'warning' }); return; }
-    const { error } = await supabase.from('expenses').insert({
-      property_id: propertyId, user_id: userId,
+    const { error } = await expenses.insert(supabase, [expenses.row({ propertyId, userId }, {
       description: `Επισκευή: ${r.title}`, amount: amt,
-      category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance',
-      date: athensToday(), paid_by: 'owner', paid: true,
+      category: 'Συντήρηση & Επισκευές',
+      date: athensToday(), paid: true,
       notes: r.description ? `Από αίτημα ενοικιαστή, ${r.description}` : 'Από αίτημα ενοικιαστή',
-    });
+    })]);
     if (error) { notifyError('Σφάλμα καταχώρησης δαπάνης'); return; }
     setCostFor(null); setCost('');
     notifyOk(`Δαπάνη ${fe(amt)} καταχωρήθηκε στις Δαπάνες.`);

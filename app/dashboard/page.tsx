@@ -3,6 +3,7 @@
 import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenseStore from '@/lib/data/expenses'
 import type { User } from '@supabase/supabase-js';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
@@ -385,8 +386,8 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
-      supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
+    const [exp,{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },allExp,{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
+      expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
       // ατζέντα, που τις ταξινομεί μαζί με όλα τα υπόλοιπα κατά προθεσμία.
@@ -398,7 +399,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       supabase.from('client_stays').select('check_in,check_out,total,nights,nightly_rate').eq('property_id',prop.id).eq('user_id',userId),
       // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους.
       // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
-      supabase.from('expenses').select('amount,date,category,is_recurring,recurring_frequency').eq('property_id',prop.id).eq('user_id',userId),
+      expenseStore.ledger(supabase,prop.id,{ userId, columns:'amount,date,category,is_recurring,recurring_frequency' }),
       // Μόνο πλήθη (head) για τα πλακίδια-σύνοψη Επαφές / Αρχείο.
       // ΟΛΟ το χαρτοφυλάκιο: ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ (Ε1),
       // οπότε δεν αρκούν τα δεδομένα του επιλεγμένου ακινήτου. Ίδια σειρά
@@ -410,9 +411,9 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       supabase.from('rent_payments').select('amount,due_date,paid,period_year,period_month').eq('property_id',prop.id).eq('user_id',userId).eq('paid',false),
       supabase.from('inventory_maintenance').select('task,item_name,next_due,est_cost').eq('property_id',prop.id),
     ]);
-    setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
+    setExpenses((exp||[]) as Expense[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
-    setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses(allExp||[]);
+    setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
     // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν
     // ελεγχόταν καν ως όνομα στήλης.

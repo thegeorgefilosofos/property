@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { isoDate } from '@/lib/core/time'
 import { createClient } from '@/lib/supabase/client'
+import * as expenses from '@/lib/data/expenses'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
 // Ο πίνακας των γεγονότων έχει ένα σπίτι: lib/data/calendar.
@@ -1413,8 +1414,11 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
     // ΤΟ `try{}catch{}` ΕΔΩ ΗΤΑΝ ΔΙΠΛΑ ΑΟΡΑΤΟ: ο Supabase δεν πετά, οπότε δεν
     // έπιανε τίποτα· και το κενό `catch` θα κατάπινε ό,τι έπιανε. Ο χρήστης
     // τσέκαρε ρητά «καταχώρησέ το και στις Δαπάνες» και δεν μάθαινε ποτέ αν έγινε.
+    // Η ΟΜΑΔΑ ΠΑΡΑΓΟΤΑΝ ΑΠΟ ΤΗΝ ΚΑΤΗΓΟΡΙΑ ΤΟΥ ΓΕΓΟΝΟΤΟΣ, ΟΧΙ ΤΗΣ ΔΑΠΑΝΗΣ, και
+    // η τιμή 'general' δεν υπάρχει καν στην ταξινομία: ασφάλιστρο καταχωρημένο
+    // από εδώ έπαυε να εκπίπτει. Την παράγει πλέον το στρώμα, από την κατηγορία.
     await saved('Η δαπάνη δεν καταχωρήθηκε στα έξοδα',
-      supabase.from('expenses').insert({property_id:propertyId,user_id:userId,amount:amt,description:form.title,date:form.event_date,category:catMap[form.category]||'Λοιπά έξοδα',expense_group:form.category==='maintenance'?'maintenance':'general',paid:form.status==='paid'}))
+      expenses.insert(supabase,[expenses.row({propertyId,userId},{amount:amt,description:form.title,date:form.event_date,category:catMap[form.category]||'Λοιπά έξοδα',paid:form.status==='paid'})]))
   }
   // Μετακίνηση με σύρσιμο (drag): αλλάζει ημερομηνία (και ώρα σε προβολή ωρών). Οι
   // εικονικές εμφανίσεις σειράς ΔΕΝ σύρονται (θα άλλαζαν όλη τη σειρά αμφίσημα).

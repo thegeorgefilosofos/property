@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { qrDataUrl } from '@/lib/qr';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
   ServicesEditor, serviceLinesFrom, servicesTenantCharge, servicesOwnerCost,
@@ -1743,10 +1744,12 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
     setBusy(true);
     await saved('Το αίτημα δεν κλείστηκε', supabase.from('maintenance_requests').update({ status:'done', resolved_at:new Date().toISOString() }).eq('id',m.id));
     if(Number.isFinite(cost)&&cost>0){
-      await saved('Το αίτημα έκλεισε, αλλά το κόστος δεν καταχωρήθηκε στις δαπάνες', supabase.from('expenses').insert({
-        property_id:propertyId, user_id:userId, amount:cost, date:todayISO(),
-        category:'maintenance', description:[m.title,m.assignee_name].filter(Boolean).join(' · ').slice(0,120),
-      }));
+      // Η ομάδα ΔΕΝ γραφόταν: το κόστος της επισκευής που πλήρωσε ο ιδιοκτήτης
+      // δεν εξέπιπτε ποτέ. Το στρώμα την παράγει από την κατηγορία.
+      await saved('Το αίτημα έκλεισε, αλλά το κόστος δεν καταχωρήθηκε στις δαπάνες', expenses.insert(supabase, [expenses.row({ propertyId, userId }, {
+        amount:cost, date:todayISO(), paid:true,
+        category:'Συντήρηση & Επισκευές', description:[m.title,m.assignee_name].filter(Boolean).join(' · ').slice(0,120),
+      })]));
     }
     setBusy(false); setDoneFor(null); setDoneCost(''); onRefresh();
     notifyOk(Number.isFinite(cost)&&cost>0?'Ολοκληρώθηκε και καταχωρήθηκε στις δαπάνες':'Ολοκληρώθηκε');

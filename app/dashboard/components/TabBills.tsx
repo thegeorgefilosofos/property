@@ -31,6 +31,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenseStore from '@/lib/data/expenses'
 import { T, fe, Skeleton } from '@/components/Theme';
 import { mergeLedger, type LedgerEntry } from '@/lib/expenses/ledger';
 import { contractOverview, totalMonthly, CONTRACT_EMPTY_HINT, CONTRACT_LABEL, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
@@ -158,12 +159,12 @@ export default function TabBills({
     try {
       // Οι δαπάνες χρειάζονται για να μη μετρηθεί δύο φορές ο πληρωμένος πάγιος:
       // ο λογαριασμός είναι το πρόγραμμα, η δαπάνη το γεγονός, δεμένα με bill_id.
-      const [{ data: bills }, { data: expenses }] = await Promise.all([
+      const [{ data: bills }, rows] = await Promise.all([
         supabase.from('bills').select('id,name,amount,paid,paid_at,due_date,created_at,category,recurring').eq('property_id', propertyId),
-        supabase.from('expenses').select('id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor').eq('property_id', propertyId),
+        expenseStore.ledger(supabase, propertyId),
       ]);
 
-      const { entries } = mergeLedger((bills ?? []) as never[], (expenses ?? []) as never[]);
+      const { entries } = mergeLedger((bills ?? []) as never[], rows as never[]);
       const cards = contractOverview(entries as LedgerEntry[], new Date());
       // Το σύνολο βγαίνει από τις ΙΔΙΕΣ κάρτες που βλέπει ο χρήστης. Πριν, το
       // νούμερο της κεφαλίδας ερχόταν από άλλη συνάρτηση (`recurringMonthly`)

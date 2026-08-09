@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses';
 import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE, pressable } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
@@ -333,7 +334,7 @@ export default function TabDocuments({
     setLoading(true);
     const [docsRes, expRes, billsRes, invRes] = await Promise.all([
       supabase.from('property_documents').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
-      supabase.from('expenses').select('*').eq('property_id', propertyId),
+      expenses.ledger(supabase, propertyId, { columns: '*' }),
       supabase.from('bills').select('*').eq('property_id', propertyId),
       supabase.from('inventory_items').select('*').eq('property_id', propertyId),
     ]);
@@ -370,7 +371,7 @@ export default function TabDocuments({
     });
 
     // 2) expenses με επισυναπτόμενο αρχείο (πραγματικές αποδείξεις/τιμολόγια)
-    const exp: ExpensesRow[] = expRes.data ?? [];
+    const exp = expRes as ExpensesRow[];
     const hasAttachCol = exp.length === 0 || exp.some(e => 'attachment_url' in e);
     setColWarn(exp.length > 0 && !hasAttachCol);
     exp.forEach(e => {

@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as expenses from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, EmptyState, Modal, Spinner, ABSENT } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
@@ -68,15 +69,15 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
       const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
       let rentQ = supabase.from('rent_payments').select('amount,paid,period_year,period_month').eq('property_id', propId).eq('paid', true).eq('period_year', year);
       if (month > 0) rentQ = rentQ.eq('period_month', month);
-      const [{ data: r }, { data: e }] = await Promise.all([
+      const [{ data: r }, e] = await Promise.all([
         rentQ,
-        supabase.from('expenses').select('amount,date').eq('property_id', propId).gte('date', from).lte('date', to),
+        expenses.inRangeOfProperty(supabase, propId, from, to),
       ]);
       // Και τα δύο ερωτήματα ζητούν `amount`: αυτό είναι ό,τι χρειάζεται εδώ, και
       // αυτό δηλώνεται. Το `any` έκρυβε ότι ένα λάθος όνομα στήλης θα έδινε μηδέν.
       const sumAmount = (rows: { amount: number | string | null }[] | null) =>
         (rows || []).reduce((s, x) => s + num(x.amount), 0);
-      setFigures({ gross: sumAmount(r), expenses: sumAmount(e) });
+      setFigures({ gross: sumAmount(r), expenses: sumAmount(e as { amount: number | null }[]) });
     })();
   }, [open, propId, year, month, supabase]);
 

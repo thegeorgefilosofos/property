@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as expenseStore from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
 import { CustomSelect } from './UIComponents';
@@ -113,9 +114,9 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     let rentQ = supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date')
       .in('property_id', selIds).eq('paid', true).eq('period_year', year);
     if (month > 0) rentQ = rentQ.eq('period_month', month);
-    const [{ data: rentData }, { data: expData }, { data: loanData }] = await Promise.all([
+    const [{ data: rentData }, expData, { data: loanData }] = await Promise.all([
       rentQ,
-      supabase.from('expenses').select('property_id,date,amount,category,description').in('property_id', selIds).gte('date', from).lte('date', to),
+      expenseStore.inRange(supabase, selIds, from, to),
       supabase.from('loans').select('property_id,loan_amount,rate_type,fixed_rate,euribor,spread,years,start_date').eq('user_id', userId),
     ]);
     type RentRow = { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid_date: string | null; due_date: string | null };

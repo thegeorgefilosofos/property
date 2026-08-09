@@ -165,10 +165,12 @@ eq('υπέρ του χρήστη', costVariance(200, 143), -57);
   const src = raw.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
 
   // Ο κεντρικός κανόνας: ΜΙΑ εγγραφή δαπάνης, και περνά από τον φύλακα.
-  const inserts = src.match(/from\('expenses'\)\s*\.insert\(/g) || []
+  // Ο πίνακας έχει πλέον στρώμα (lib/data/expenses.ts): η καρτέλα δεν τον
+  // αγγίζει απευθείας, οπότε ο φρουρός μετρά τις κλήσεις του στρώματος.
+  const inserts = src.match(/expenses\.(addRow|insert|insertReturning|add)\(/g) || []
   eq('μία και μόνο εγγραφή στα expenses', inserts.length, 1);
   ok('η εγγραφή δαπάνης περνά από το expenseFromReceipt',
-    /expenseFromReceipt\(/.test(src) && /from\('expenses'\)\.insert\(\{ \.\.\.expenseRow/.test(src))
+    /expenseFromReceipt\(/.test(src) && /expenses\.addRow\(supabase, \{ \.\.\.expenseRow/.test(src))
   ok('σβήστηκε το makeTaskExpense', !/makeTaskExpense/.test(src));
   ok('σβήστηκε η «Προγραμματισμένη εκκρεμότητα»', !/Προγραμματισμένη εκκρεμότητα/.test(src));
 

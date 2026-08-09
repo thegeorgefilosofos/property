@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { must } from '@/lib/supabase/must'
 import { saved } from '@/components/dbWrite'
@@ -366,7 +367,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     if(!silent) notifyOk(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){
-    if(!await saved('Η δόση δεν καταχωρήθηκε στις δαπάνες',supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:athensToday()}))) return
+    if(!await saved('Η δόση δεν καταχωρήθηκε στις δαπάνες',expenses.insert(supabase,[expenses.row({propertyId,userId},{description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:athensToday()})]))) return
     notifyOk('Δόση καταχωρήθηκε στις Δαπάνες')
   }
   async function deleteLoan(id:string){

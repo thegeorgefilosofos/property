@@ -19,6 +19,7 @@
 // 100% δοκιμασμένη. Εδώ μένουν μόνο οι κλήσεις δικτύου/βάσης.
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar';
 import {
   classifyDocType, planDocSave, normalizeScannedDoc, archiveCategoryFor,
@@ -463,14 +464,13 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
       await saved('Ο λογαριασμός δεν σημειώθηκε εξοφλημένος',
         supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', payOff));
       const updExp = await savedData<{ id: string }[]>('Η συνδεδεμένη δαπάνη δεν σημειώθηκε πληρωμένη',
-        supabase.from('expenses').update({ paid: true }).eq('bill_id', payOff).select('id'));
+        expenses.markBillPaid(supabase, payOff));
       await saved('Το γεγονός ημερολογίου δεν ενημερώθηκε',
         calendar.updateByBill(supabase, payOff, { status: 'paid' }));
       // Αν ο εξοφλημένος λογαριασμός δεν είχε συνδεδεμένο έξοδο, δημιούργησέ το
       // τώρα ώστε η πληρωμή να φαίνεται στις Δαπάνες.
       if ((!updExp || !updExp.length) && plan.expense) {
-        const { error: expErr } = await supabase.from('expenses')
-          .insert({ property_id: propertyId, user_id: userId, bill_id: payOff, ...plan.expense, paid: true });
+        const { error: expErr } = await expenses.insert(supabase, [{ property_id: propertyId, user_id: userId, bill_id: payOff, ...plan.expense, paid: true }]);
         add(expErr ? 'Λογαριασμός εξοφλήθηκε' : 'Δαπάνες');
       } else { add('Δαπάνες'); }
       reconciled = true;
@@ -491,13 +491,11 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
       const cat = plan.expense.category as string;
       const d = plan.expense.date as string;
       const desc = plan.expense.description as string;
-      const { data: dup } = await supabase.from('expenses').select('id,description')
-        .eq('property_id', propertyId).eq('category', cat).eq('amount', amt).eq('date', d).limit(5);
-      const isDup = (dup || []).some(x => nrm(x.description as string) === nrm(desc));
+      const dup = await expenses.similar(supabase, propertyId, cat, amt, d);
+      const isDup = dup.some(x => nrm(x.description as string) === nrm(desc));
       if (isDup) { add('Δαπάνες (υπάρχει ήδη)'); }
       else {
-        const { error: expErr } = await supabase.from('expenses')
-          .insert({ property_id: propertyId, user_id: userId, bill_id: billId, ...plan.expense });
+        const { error: expErr } = await expenses.insert(supabase, [{ property_id: propertyId, user_id: userId, bill_id: billId, ...plan.expense }]);
         if (!expErr) add('Δαπάνες');
       }
     }

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenses from '@/lib/data/expenses';
 import { T, feAuto } from '@/components/Theme';
 import { CustomSelect } from './UIComponents';
 import { parseCSV } from '@/lib/billing/parse';
@@ -85,7 +86,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
         category: r.catKey, expense_group: r.catKey === 'maintenance' ? 'maintenance' : 'other',
         bill_id: null,
       }));
-      const { error } = await supabase.from('expenses').insert(payload);
+      const { error } = await expenses.insert(supabase, payload);
       if (error) { setErr('Η εισαγωγή απέτυχε. Δοκίμασε ξανά.'); return; }
       setRows(null); setFileName('');
       onImported?.();

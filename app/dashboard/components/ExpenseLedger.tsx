@@ -28,6 +28,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as expenseStore from '@/lib/data/expenses'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
 import { T, TT, fe, Btn, Card, EmptyState, Skeleton } from '@/components/Theme';
@@ -98,14 +99,11 @@ async function fetchLedger(
     supabase.from('bills')
       .select('id,name,category,amount,due_date,paid,paid_at,recurring,created_at')
       .eq('property_id', propertyId),
-    supabase.from('expenses')
-      .select('id,bill_id,description,category,expense_group,amount,date,paid,store_vendor,is_recurring')
-      .eq('property_id', propertyId).eq('user_id', userId)
-      .neq('category', 'tenant_extra'),
+    expenseStore.ledger(supabase, propertyId, { userId, excludeCategory: 'tenant_extra' }),
   ]);
   return {
     bills: (b.data ?? []) as LedgerBill[],
-    expenses: (e.data ?? []) as LedgerExpense[],
+    expenses: e as unknown as LedgerExpense[],
   };
 }
 
@@ -233,27 +231,27 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
         // Εδώ η δαπάνη γραφόταν ΧΩΡΙΣ expense_group — και το isGroupDeductible
         // επιστρέφει false για κενή ομάδα. Ο ίδιος λογαριασμός εξέπιπτε αν τον
         // πλήρωνες από τους Λογαριασμούς και ΔΕΝ εξέπιπτε από εδώ.
-        const { data: linked } = await supabase.from('expenses').select('id').eq('bill_id', e.billId).limit(1);
+        const linked = await expenseStore.existsForBill(supabase, e.billId);
         const { data: billRow } = await supabase.from('bills')
           .select('id,name,amount,category,paid_by,share_percent,share_note').eq('id', e.billId).maybeSingle();
         const plan = planBillPayment(
           billRow ?? { id: e.billId, name: e.title, amount: e.amount, category: e.category },
-          { propertyId, userId, nowIso: new Date().toISOString(), hasLinkedExpense: !!(linked && linked.length) },
+          { propertyId, userId, nowIso: new Date().toISOString(), hasLinkedExpense: linked },
         );
         const { error: bErr } = await supabase.from('bills').update(plan.bill).eq('id', e.billId);
         if (bErr) throw bErr;
         if (plan.linkedExpenseUpdate) {
-          const { error } = await supabase.from('expenses').update(plan.linkedExpenseUpdate).eq('bill_id', e.billId);
+          const { error } = await expenseStore.updateByBill(supabase, e.billId, plan.linkedExpenseUpdate);
           if (error) throw error;
         } else if (plan.newExpense) {
-          const { error } = await supabase.from('expenses').insert(plan.newExpense);
+          const { error } = await expenseStore.insert(supabase, [plan.newExpense]);
           if (error) throw error;
         }
       } else if (e.expenseId) {
         // Το try/catch από πάνω κάνει τη δουλειά του μόνο αν κάτι ΠΕΤΑΞΕΙ, και το
         // Supabase δεν πετά. Χωρίς αυτή τη γραμμή, η δαπάνη έμενε απλήρωτη και η
         // οθόνη έλεγε «Μπήκε ως πληρωμένο».
-        const { error } = await supabase.from('expenses').update({ paid: true }).eq('id', e.expenseId);
+        const { error } = await expenseStore.update(supabase, e.expenseId, { paid: true });
         if (error) throw error;
       }
       notify('Μπήκε ως πληρωμένο');
@@ -660,21 +658,20 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('expenses').insert({
-          property_id: propertyId, user_id: userId,
-          description: what.trim(),
-          amount: amt,
-          date,
-          category: cat ? cat.label : 'Άλλο',
-          // Η ΟΜΑΔΑ ΕΙΝΑΙ ΤΟ ΠΕΔΙΟ ΠΟΥ ΚΡΙΝΕΙ ΤΗΝ ΕΚΠΤΩΣΗ, ΚΑΙ ΔΕΝ ΓΡΑΦΟΤΑΝ.
-          // Η κύρια, διαφημισμένη διαδρομή καταχώρισης παρήγαγε δαπάνες με κενή
-          // ομάδα — που το isGroupDeductible θεωρεί ΜΗ εκπεστέες. Ο υδραυλικός
-          // των 60 € δεν μετρούσε, ενώ ο ίδιος υδραυλικός από άλλη οθόνη
-          // μετρούσε. Παράγεται τώρα από την κατηγορία, με έλεγχο συνέπειας.
-          expense_group: groupForCategory(cat),
-          paid: true,
+        // Η ΟΜΑΔΑ ΕΙΝΑΙ ΤΟ ΠΕΔΙΟ ΠΟΥ ΚΡΙΝΕΙ ΤΗΝ ΕΚΠΤΩΣΗ, ΚΑΙ ΔΕΝ ΓΡΑΦΟΤΑΝ. Η
+        // κύρια, διαφημισμένη διαδρομή καταχώρισης παρήγαγε δαπάνες με κενή
+        // ομάδα — που το isGroupDeductible θεωρεί ΜΗ εκπεστέες. Την παράγει
+        // πλέον το στρώμα, από την κατηγορία, για κάθε οθόνη το ίδιο.
+        const { error } = await expenseStore.insert(supabase, [{
+          ...expenseStore.row({ propertyId, userId }, {
+            description: what.trim(),
+            amount: amt,
+            date,
+            category: cat ? cat.label : 'Άλλο',
+            paid: true,
+          }),
           ...sharing,
-        });
+        }]);
         if (error) throw error;
       }
       notify(paid ? 'Καταχωρήθηκε' : 'Καταχωρήθηκε ως εκκρεμής υποχρέωση');

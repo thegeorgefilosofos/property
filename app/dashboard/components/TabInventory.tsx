@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, useId } from 'react'
 import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable } from '@/components/Theme'
@@ -915,7 +916,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
     setSaving(true)
     await onAdd(form)
     if(pushExpenses&&form.cost>0){
-      const {error}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||athensToday(),paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από ${navLabel('inventory')}, ${item.name}`})
+      const {error}=await expenses.insert(supabase,[expenses.row({propertyId,userId},{description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',date:form.repair_date||athensToday(),paid:true,notes:`Αυτόματη εισαγωγή από ${navLabel('inventory')}, ${item.name}`})])
       // Ο διακόπτης υπόσχεται ρητά ότι η επισκευή περνά στις δαπάνες. Αν δεν
       // περάσει, ο χρήστης πρέπει να το μάθει ΤΩΡΑ, όχι στη φορολογική δήλωση.
       if(error) notifyError(failed('Η επισκευή καταχωρήθηκε, αλλά η δαπάνη δεν πέρασε στα έξοδα',error))
@@ -1676,17 +1677,17 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   }
   const makePlannedExpense=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
     if(!(est>0)) return undefined
-    const {data,error}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(task,item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:due,paid_by:'owner',paid:false,notes:'Προγραμματισμένη δαπάνη συντήρησης (εκκρεμεί)'}).select('id').single()
+    const {data,error}=await expenses.add(supabase,{propertyId,userId},{description:taskTitle(task,item_name),amount:est,category:'Συντήρηση & Επισκευές',date:due,notes:'Προγραμματισμένη δαπάνη συντήρησης (εκκρεμεί)'})
     if(error){notifyError(failed('Η προγραμματισμένη δαπάνη δεν καταχωρήθηκε',error));return undefined}
-    return (data as {id?:string}|null)?.id
+    return data?.id
   }
   const markDone=async(s:MaintenanceSchedule)=>{
     if(doneBusy) return
     setDoneBusy(s.id)
     const t=today(); const newDue=addMonths(t,s.interval_months); const est=s.est_cost||0
     // Η προγραμματισμένη δαπάνη γίνεται πραγματοποιημένη (πληρωμένη)· αν δεν υπήρχε, καταγράφεται τώρα.
-    if(s.expense_id) await supabase.from('expenses').update({paid:true,date:t}).eq('id',s.expense_id)
-    else if(est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(s.task,s.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:t,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
+    if(s.expense_id) await expenses.update(supabase,s.expense_id,{paid:true,date:t})
+    else if(est>0) await expenses.insert(supabase,[expenses.row({propertyId,userId},{description:taskTitle(s.task,s.item_name),amount:est,category:'Συντήρηση & Επισκευές',date:t,paid:true,notes:'Πραγματοποιημένη συντήρηση'})])
     if(s.calendar_event_id) await calendar.update(supabase,s.calendar_event_id,{status:'paid'})
     // Ρολάρισμα + νέο κύκλωμα για την επόμενη φορά.
     const calId=await makeCalEvent(s.task,s.item_name,newDue,est)
@@ -1700,7 +1701,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   }
   const deleteSched=async(s:MaintenanceSchedule)=>{
     if(s.calendar_event_id) await calendar.remove(supabase,s.calendar_event_id)
-    if(s.expense_id) await supabase.from('expenses').delete().eq('id',s.expense_id).eq('paid',false)
+    if(s.expense_id) await expenses.removeIfUnpaid(supabase,s.expense_id)
     const {error}=await supabase.from('inventory_maintenance').delete().eq('id',s.id)
     if(error){notifyError(failed('Η εργασία δεν διαγράφηκε',error));return}
     onSaved()
@@ -1720,7 +1721,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     // Αν αποτύχει η εγγραφή (π.χ. δεν έχει τρέξει η migration), μην δημιουργήσεις ορφανές εγγραφές στο κύκλωμα.
     if(schedErr){notifyError(failed('Η συντήρηση δεν προγραμματίστηκε',schedErr));setSaving(false);return}
     // Αν έχει ήδη γίνει (δηλωμένη τελευταία εκτέλεση) κατέγραψε πληρωμένη δαπάνη για το ιστορικό.
-    if(form.last_done&&est>0) await saved('Η πραγματοποιημένη συντήρηση δεν καταγράφηκε στις δαπάνες',supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'}))
+    if(form.last_done&&est>0) await saved('Η πραγματοποιημένη συντήρηση δεν καταγράφηκε στις δαπάνες',expenses.insert(supabase,[expenses.row({propertyId,userId},{description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',date:form.last_done,paid:true,notes:'Πραγματοποιημένη συντήρηση'})]))
     // Κύκλωμα για την επόμενη προγραμματισμένη εκτέλεση.
     const calId=await makeCalEvent(form.task,form.item_name,nextDue,est)
     const expId=await makePlannedExpense(form.task,form.item_name,nextDue,est)
