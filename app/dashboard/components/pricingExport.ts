@@ -68,7 +68,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     if (realizedAdr > 0) resultLines.push({ label: 'Πραγματοποιημένη μέση τιμή (ιστορικό)', value: Math.round(realizedAdr), z: FMT.eur, kind: 'result' });
 
     const aoa: (string | number)[][] = [
-      [`ΔΥΝΑΜΙΚΗ ΤΙΜΟΛΟΓΗΣΗ — ΣΥΝΟΨΗ ${year}`],
+      [`ΔΥΝΑΜΙΚΗ ΤΙΜΟΛΟΓΗΣΗ · ΣΥΝΟΨΗ ${year}`],
       [idLine],
       [],
       ['ΡΥΘΜΙΣΕΙΣ'],

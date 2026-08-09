@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
   if (!recipients.length) return json({ message: 'no_subscribers' })
 
   const inner = METRICS.map(m => rowHtml(m.label, cur[m.key], prev[m.key])).join('')
-  const subject = 'Property OS — Εβδομαδιαία ενημέρωση επιτοκίων'
+  const subject = 'Property OS · Εβδομαδιαία ενημέρωση επιτοκίων'
 
   let sent = 0, failed = 0
   for (let i = 0; i < recipients.length; i += 100) {

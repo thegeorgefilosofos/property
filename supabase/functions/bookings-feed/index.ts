@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const lines = [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Property OS//Bookings Feed//EL', 'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH', 'X-WR-CALNAME:Property OS — Κρατήσεις', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H',
+    'METHOD:PUBLISH', 'X-WR-CALNAME:Property OS · Κρατήσεις', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H',
   ]
   for (const s of stays || []) lines.push(...veventLines(s, now))
   lines.push('END:VCALENDAR')

@@ -205,7 +205,7 @@ export function journalCsvQuickBooks(lines: JournalLine[]): string {
  * άρθρου (έτσι το Xero τις ομαδοποιεί σε ΕΝΑ journal· αν διαφέρει ανά γραμμή, σπάει σε
  * χωριστά journals), *Date DD/MM/YYYY, *AccountCode, *TaxRate, *Amount ΠΡΟΣΗΜΑΣΜΕΝΟ
  * (θετικό=χρέωση, αρνητικό=πίστωση· κάθε άρθρο αθροίζει στο 0). */
-export function journalCsvXero(lines: JournalLine[], narration = 'Property OS — Ημερολόγιο'): string {
+export function journalCsvXero(lines: JournalLine[], narration = 'Property OS · Ημερολόγιο'): string {
   const head = ['*Narration', '*Date', 'Description', '*AccountCode', '*TaxRate', '*Amount', 'TrackingName1', 'TrackingOption1'];
   // Η αιτιολογία του ΠΡΩΤΟΥ σκέλους κάθε άρθρου γίνεται η κοινή narration του άρθρου.
   const artNarration = new Map<number, string>();

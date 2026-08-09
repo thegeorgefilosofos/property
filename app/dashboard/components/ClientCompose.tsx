@@ -289,7 +289,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
 
                 {aiOpen && (
                   <div style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', borderRadius: 12, padding: 14, marginBottom: 12 }}>
-                    <div style={{ ...TT.bodySm, marginBottom: 8 }}>Πες μου με λίγα λόγια τι θέλεις να πεις — θα το γράψω επαγγελματικά.</div>
+                    <div style={{ ...TT.bodySm, marginBottom: 8 }}>Πες μου με λίγα λόγια τι θέλεις να πεις· θα το γράψω επαγγελματικά.</div>
                     <textarea value={aiBrief} onChange={e => setAiBrief(e.target.value)} rows={2}
                       placeholder="Παράδειγμα: Ευχαριστήριο μετά τη διαμονή + κάλεσμα για κράτηση με 10% έκπτωση την επόμενη φορά"
                       style={{ ...field, resize: 'vertical', marginBottom: 10 }} />

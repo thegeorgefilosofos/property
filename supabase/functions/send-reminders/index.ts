@@ -64,8 +64,8 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
   }).join('')
 
   const subject = isUrgent
-    ? `Property OS — ${events.length} ${reminderType === 'overdue' ? 'εκπρόθεσμα γεγονότα' : 'γεγονότα ΣΗΜΕΡΑ'}`
-    : `Property OS — ${events.length} γεγονότα σε ${typeLabel[reminderType]}`
+    ? `Property OS · ${events.length} ${reminderType === 'overdue' ? 'εκπρόθεσμα γεγονότα' : 'γεγονότα ΣΗΜΕΡΑ'}`
+    : `Property OS · ${events.length} γεγονότα σε ${typeLabel[reminderType]}`
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
@@ -125,7 +125,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
   }).join('')
 
   const n = rows.length
-  const subject = `Property OS — ${noticeLabel}: ληξιπρόθεσμο ενοίκιο (${n} ${n === 1 ? 'δόση' : 'δόσεις'})`
+  const subject = `Property OS · ${noticeLabel}: ληξιπρόθεσμο ενοίκιο (${n} ${n === 1 ? 'δόση' : 'δόσεις'})`
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">

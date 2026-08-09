@@ -114,7 +114,7 @@ export function buildE2Row(p: E2Property, tenant: E2Tenant | null, payments: E2P
     grossFull = stayYear.grossRevenue;
     // Ιστορικές γραμμές που δεν ξέρουμε αν είναι ακαθάριστα ή payout: το ποσό
     // μπαίνει, αλλά ο χρήστης οφείλει να το δει πριν το δώσει στον λογιστή.
-    if (stayYear.unresolvedCount > 0) flags.push(`Ακαθάριστο βραχυχρόνιας: ${stayYear.unresolvedCount} ${stayYear.unresolvedCount === 1 ? 'διαμονή' : 'διαμονές'} χωρίς ρητή βάση ποσού (ακαθάριστο ή payout) — επιβεβαίωσέ τες`);
+    if (stayYear.unresolvedCount > 0) flags.push(`Ακαθάριστο βραχυχρόνιας: ${stayYear.unresolvedCount} ${stayYear.unresolvedCount === 1 ? 'διαμονή' : 'διαμονές'} χωρίς ρητή βάση ποσού (ακαθάριστο ή payout)· επιβεβαίωσέ τες`);
   }
   else if (yearRows.length) { grossFull = yearRows.reduce((s, x) => s + (x.amount || 0), 0); }
   else { grossFull = (tenant?.monthly_rent ?? p.target_rent ?? 0) * mm.months; grossEstimated = true; }
@@ -134,8 +134,8 @@ export function buildE2Row(p: E2Property, tenant: E2Tenant | null, payments: E2P
     const consultedStays = ownStays.length > 0;
     flags.push(shortTerm
       ? (consultedStays
-          ? 'Ακαθάριστο βραχυχρόνιας: εκτίμηση από τον στόχο μισθώματος — καμία καταγεγραμμένη διαμονή για το έτος'
-          : 'Ακαθάριστο βραχυχρόνιας: εκτίμηση από τον στόχο μισθώματος — οι καταγεγραμμένες διαμονές ΔΕΝ ελήφθησαν υπόψη')
+          ? 'Ακαθάριστο βραχυχρόνιας: εκτίμηση από τον στόχο μισθώματος· καμία καταγεγραμμένη διαμονή για το έτος'
+          : 'Ακαθάριστο βραχυχρόνιας: εκτίμηση από τον στόχο μισθώματος· οι καταγεγραμμένες διαμονές ΔΕΝ ελήφθησαν υπόψη')
       : 'Ακαθάριστο εισόδημα: εκτίμηση (μηνιαίο × μήνες)');
   }
   const grossIncome = Math.round(grossFull * ownershipPct / 100); // μερίδιο συνιδιοκτήτη
@@ -183,7 +183,7 @@ export function buildE1Summary(rows: E2Row[]): E1Summary {
   }
   const lines = [...byCode.values()].map(l => ({ ...l, amount: Math.round(l.amount) })).sort((a, b) => b.amount - a.amount)
   const totalGross = lines.reduce((s, l) => s + l.amount, 0)
-  return { lines, totalGross, note: 'Οι κωδικοί Ε1 είναι ενδεικτικοί — επιβεβαίωσε στο έντυπο του τρέχοντος έτους (myAADE).' }
+  return { lines, totalGross, note: 'Οι κωδικοί Ε1 είναι ενδεικτικοί· επιβεβαίωσε στο έντυπο του τρέχοντος έτους (myAADE).' }
 }
 
 export const E1_HEADERS = ['Κωδικός Ε1', 'Περιγραφή', 'Κατηγορία', 'Ακαθάριστο Εισόδημα']
@@ -219,13 +219,13 @@ export function leaseWindowInYear(leaseStart: string | null, leaseEnd: string | 
 // Επικεφαλίδες πίνακα I με την επίσημη αρίθμηση στηλών (για αντιστοίχιση στο myAADE).
 export const E2_OFFICIAL_HEADERS = [
   'α/α',
-  'Τοποθεσία — Οδός/Αριθ./Πόλη/Τ.Κ. (στ. 2)',
-  'Θέση — όροφος (στ. 3)',
+  'Τοποθεσία · Οδός/Αριθ./Πόλη/Τ.Κ. (στ. 2)',
+  'Θέση · όροφος (στ. 3)',
   'Κατηγορία ακινήτου (στ. 4)',
   'Επιφάνεια τ.μ. (στ. 5)',
   'Είδος μίσθωσης / χρήση (στ. 17)',
   'Αρ. παροχής ρεύματος (στ. 18)',
-  'Ενοικιαστής — Ονοματεπώνυμο/Επωνυμία (στ. 6)',
+  'Ενοικιαστής · Ονοματεπώνυμο/Επωνυμία (στ. 6)',
   'ΑΦΜ ενοικιαστή (στ. 7)',
   'Αρ. δήλωσης μίσθωσης (στ. 19)',
   'Έναρξη μίσθωσης (στ. 8)',

@@ -18,7 +18,7 @@ import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { EnfiaCalculator } from './EnfiaCalculator';
 
-const TITLE = 'Υπολογισμός ΕΝΦΙΑ 2026 — δωρεάν, χωρίς εγγραφή';
+const TITLE = 'Υπολογισμός ΕΝΦΙΑ 2026 · δωρεάν, χωρίς εγγραφή';
 const DESC =
   'Υπολόγισε τον ΕΝΦΙΑ του ακινήτου σου από τα τετραγωνικά, την τιμή ζώνης, τον όροφο '
   + 'και την παλαιότητα. Δωρεάν, χωρίς εγγραφή, ο υπολογισμός γίνεται στη συσκευή σου.';

@@ -266,7 +266,7 @@ async function createProgramReminders(prog: ProgramRow, daysLeft: number) {
     await supabase.from('calendar_events').insert({
       user_id:     loan.user_id,
       property_id: loan.property_id,
-      title:       `${prog.name} — Λήγει σε ${daysLeft} ημέρες`,
+      title:       `${prog.name} · Λήγει σε ${daysLeft} ημέρες`,
       category:    'financial',
       event_date:  prog.deadline,
       priority:    daysLeft <= 14 ? 'high' : daysLeft <= 30 ? 'medium' : 'low',

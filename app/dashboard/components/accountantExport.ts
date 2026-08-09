@@ -292,7 +292,7 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     rule(),
     missing.length === 0 && gaps.length === 0
       ? 'Ο φάκελος είναι πλήρης.'
-      : 'Τα παραπάνω δεν βρέθηκαν στην εφαρμογή. Δεν σημαίνει ότι δεν υπάρχουν —',
+      : 'Τα παραπάνω δεν βρέθηκαν στην εφαρμογή. Δεν σημαίνει ότι δεν υπάρχουν:',
     ...(missing.length === 0 && gaps.length === 0 ? [] : ['σημαίνει ότι δεν συνοδεύουν αυτόν τον φάκελο.']),
   ]);
 

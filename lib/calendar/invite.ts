@@ -174,14 +174,14 @@ export function inviteMailto(input: InviteInput): string {
 }
 
 // ── (ε) απλό κείμενο πρόσκλησης ───────────────────────────────────────────────
-// «<title>» — <ημέρα> <ημερομηνία>[ στις <ώρα>][, <location>]. Θα ήθελα να το
-// κλείσουμε — επιβεβαιώνεις;
+// «<title>»: <ημέρα> <ημερομηνία>[ στις <ώρα>][, <location>]. Θα ήθελα να το
+// κλείσουμε· επιβεβαιώνεις;
 export function inviteText(input: InviteInput): string {
   const title = trimOr(input.title) || 'Γεγονός'
   const location = trimOr(input.location)
-  let s = `«${title}» — ${humanWhen(input)}`
+  let s = `«${title}»: ${humanWhen(input)}`
   if (location) s += `, ${location}`
-  s += '. Θα ήθελα να το κλείσουμε — επιβεβαιώνεις;'
+  s += '. Θα ήθελα να το κλείσουμε· επιβεβαιώνεις;'
   return s
 }
 

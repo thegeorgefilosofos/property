@@ -33,7 +33,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, Skeleton } from '@/components/Theme';
 import { mergeLedger, type LedgerEntry } from '@/lib/expenses/ledger';
-import { contractOverview, totalMonthly, CONTRACT_EMPTY_HINT, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
+import { contractOverview, totalMonthly, CONTRACT_EMPTY_HINT, CONTRACT_LABEL, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
 
 // ── Static imports, all components must be static for Next.js App Router ────
 import BillsElectricity  from './BillsElectricity';
@@ -49,23 +49,6 @@ interface Props {
   propertyId:       string;
   userId:           string;
 }
-
-/** Τα εργαλεία που ζουν πίσω από το «Περισσότερα». */
-type ToolId = 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'services';
-
-interface ToolDef { id: ToolId; label: string; icon: string; desc: string }
-
-/**
- * Ποιο εργαλείο ανοίγει κάθε κάρτα.
- *
- * Οι κατηγορίες συμβολαίου είναι επτά και τα εργαλεία έξι: το νερό και το
- * internet ζουν και τα δύο στους «Παρόχους», οι συνδρομές μαζί με την ασφάλεια.
- * Ο χάρτης γράφεται μία φορά εδώ αντί να μαντεύεται στην απόδοση.
- */
-const TOOL_OF: Record<ContractKind, ToolId> = {
-  electricity: 'electricity', gas: 'gas', water: 'providers', internet: 'providers',
-  insurance: 'insurance', subscriptions: 'insurance', common: 'common',
-};
 
 interface StripData {
   /**
@@ -87,33 +70,14 @@ interface StripData {
   // σύγκριση τιμολογίου: πόσο τρέχουν τα πάγια τον μήνα.
 }
 
-// ─── SVG icons ────────────────────────────────────────────────────────────────
-const ICONS: Record<string, string> = {
-  bolt:     'M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z',
-  flame:    'M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z M12 13a2 2 0 1 1-2-2c.5 0 1 .5 1 1.5 0 1-.5.5-.5 1.5a1.5 1.5 0 0 0 1.5 1.5z',
-  building: 'M3 21h18M5 21V7l8-4 8 4v14M9 21V15h6v6M9 11h1m4 0h1M9 7h1m4 0h1',
-  wifi:     'M12 18h.01M8.5 14.5A5.5 5.5 0 0 1 12 13a5.5 5.5 0 0 1 3.5 1.5M5 11a9 9 0 0 1 14 0M1.5 7.5a14 14 0 0 1 21 0',
-  shield:   'M12 3l8 4v5c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z',
-  wrench:   'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
-};
-
-const TabIcon = ({ name, size = 13 }: { name: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d={ICONS[name] ?? ICONS.bolt}/>
-  </svg>
-);
-
-// ─── Τα εργαλεία ──────────────────────────────────────────────────────────────
-const TOOLS: ToolDef[] = [
-  { id: 'electricity', label: 'Ρεύμα',                icon: 'bolt',     desc: 'Πάροχος, κατανάλωση, σύγκριση τιμολογίων' },
-  { id: 'gas',         label: 'Φυσικό αέριο',         icon: 'flame',    desc: 'Πάροχος αερίου και σύγκριση τιμολογίων' },
-  { id: 'common',      label: 'Κοινόχρηστα',          icon: 'building', desc: 'Διαχείριση κτηρίου, ταμείο, ιστορικό' },
-  { id: 'providers',   label: 'Πάροχοι',              icon: 'wifi',     desc: 'Internet, νερό, θέρμανση, security' },
-  { id: 'insurance',   label: 'Ασφάλεια και συνδρομές', icon: 'shield',   desc: 'Ασφάλεια κατοικίας, streaming, cloud' },
-  { id: 'services',    label: 'Υπηρεσίες',            icon: 'wrench',   desc: 'ΕΝΦΙΑ, δημοτικά τέλη, καθαρισμός, κηπουρός' },
-];
-
+// ΤΟ ΔΕΥΤΕΡΟ ΣΥΝΟΛΟ ΟΝΟΜΑΤΩΝ ΕΦΥΓΕ. Ο πίνακας `TOOLS` κρατούσε έξι δικές του
+// ετικέτες («Πάροχοι», «Ασφάλεια και συνδρομές», «Υπηρεσίες») δίπλα στις οκτώ
+// του `CONTRACT_LABEL` — και οι δύο κατάλογοι έδειχναν τα ίδια πράγματα με
+// άλλα λόγια. Δύο ονόματα για ένα πράγμα δεν είναι ευελιξία· είναι η αιτία που
+// η κεφαλίδα του πάνελ διαφωνούσε με την κάρτα που μόλις πάτησες.
+//
+// Το εικονίδιο της κεφαλίδας έφυγε μαζί: η κάρτα από πάνω δεν έχει εικονίδιο,
+// άρα δεν το αναγνώριζε κανείς ως τη συνέχειά της.
 
 // ─── Η κάρτα ενός συμβολαίου ──────────────────────────────────────────────────
 /**
@@ -139,7 +103,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
       aria-pressed={active}
       style={{
         textAlign: 'left', width: '100%', cursor: 'pointer', display: 'flex',
-        flexDirection: 'column', justifyContent: 'space-between', gap: 12, minHeight: 104,
+        flexDirection: 'column', justifyContent: 'space-between', gap: 10, minHeight: 92,
         padding: '14px 16px', borderRadius: T.radius.card, fontFamily: T.font.sans,
         background: raised ? 'var(--bg-surface)' : 'var(--bg-elevated)',
         border: `1px solid ${active ? 'var(--border-default)' : 'var(--border-subtle)'}`,
@@ -160,11 +124,15 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
           </span>
         )}
       </span>
+      {/* ΤΟ ΚΟΥΜΠΙ ΜΕΣΑ ΣΤΟ ΚΟΥΜΠΙ ΕΦΥΓΕ. Κάτω από κάθε κάρτα στεκόταν μια
+          γραμμή «Άνοιγμα» ή «Σύγκριση και λεπτομέρειες», βαμμένη σαν σύνδεσμος
+          — μέσα σε ένα <button> που είναι ΟΛΟΚΛΗΡΟ πατήσιμο. Οκτώ κάρτες, οκτώ
+          ψεύτικοι σύνδεσμοι που δεν πρόσθεταν ούτε προορισμό ούτε ενέργεια: το
+          μόνο που έκαναν ήταν να λένε δεύτερη φορά αυτό που λέει ήδη ο δείκτης
+          του ποντικιού και η ίδια η κάρτα. Ο τίτλος, το ποσό και ο πάροχος
+          μένουν· ο θόρυβος όχι. */}
       <span style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
         {meta}
-      </span>
-      <span style={{ fontSize: 11, fontWeight: 600, color: card.known ? 'var(--accent)' : 'var(--text-tertiary)' }}>
-        {card.known ? 'Σύγκριση και λεπτομέρειες' : 'Άνοιγμα'}
       </span>
     </button>
   );
@@ -178,7 +146,7 @@ export default function TabBills({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const toolsRef   = useRef<HTMLDivElement | null>(null);
 
-  const [tool,       setTool]       = useState<ToolId | null>(null);
+  const [tool,       setTool]       = useState<ContractKind | null>(null);
   const [strip,      setStrip]      = useState<StripData>({ recurringPerMonth: null, cards: [] });
   // Το `strip` ξεκινά με μηδενικά, οπότε η κεφαλίδα δεν έδειχνε κανένα chip και
   // μετά τα chips εμφανίζονταν μονομιάς και έσπρωχναν τη γραμμή. Δύο σκελετοί
@@ -218,7 +186,7 @@ export default function TabBills({
   }, [propertyId, loadStrip]);
 
   // Άνοιγμα εργαλείου από αλλού (π.χ. από την ειδοποίηση «πληρώνεις παραπάνω»).
-  const openTool = useCallback((id: ToolId) => {
+  const openTool = useCallback((id: ContractKind) => {
     setTool(id);
     // Το requestAnimationFrame περιμένει να αποδοθεί το πάνελ πριν κυλήσει σε αυτό.
     requestAnimationFrame(() => toolsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -228,7 +196,6 @@ export default function TabBills({
   // περιμένει ο σκελετός. Παράγωγη τιμή, ώστε το effect να μην γράφει state.
   const showSkeleton = stripLoading && !!propertyId;
 
-  const activeTool = TOOLS.find(t => t.id === tool) ?? null;
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -238,7 +205,7 @@ export default function TabBills({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3, fontFamily: T.font.sans }}>
-            Λογαριασμοί & πάγιες δαπάνες
+            Λογαριασμοί και πάγιες δαπάνες
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
             Τι έχεις, τι πληρώνεις. Οι καταχωρήσεις γίνονται στις Δαπάνες.
@@ -273,35 +240,65 @@ export default function TabBills({
           ρωτήσει: ζει ακέραιη ένα κλικ πιο μέσα. */}
       <div ref={toolsRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
         {showSkeleton
-          ? [0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} h={104} r={T.radius.card} />)
+          ? [0, 1, 2, 3, 4, 5, 6, 7].map(i => <Skeleton key={i} h={92} r={T.radius.card} />)
           : strip.cards.map(c => (
-            <ContractTile key={c.kind} card={c} active={tool === TOOL_OF[c.kind]}
-              onOpen={() => openTool(TOOL_OF[c.kind])} />
+            <ContractTile key={c.kind} card={c} active={tool === c.kind}
+              onOpen={() => openTool(c.kind)} />
           ))}
       </div>
 
-      {activeTool && (
+      {tool && (
         <div style={{ marginTop: 16 }}>
-          {/* Η κεφαλίδα του πάνελ λέει ΠΟΥ βρίσκεσαι και πώς βγαίνεις. Πριν, το
-              πάνελ άνοιγε χωρίς τίτλο κάτω από μια σειρά chips, και ο μόνος
-              τρόπος να κλείσει ήταν να ξαναπατήσεις το ίδιο chip. */}
+          {/*
+
+            ΤΟ ΟΝΟΜΑ ΤΗΣ ΚΑΡΤΑΣ ΚΑΙ ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΑΝΕΛ ΗΤΑΝ ΔΙΑΦΟΡΕΤΙΚΑ.
+
+            Επτά κάρτες οδηγούσαν σε έξι πάνελ, και τα ονόματα δεν συνέπιπταν: πατούσες
+            «Νερό» και άνοιγε «Πάροχοι», με internet, τηλεόραση, θέρμανση, συναγερμό και
+            δημοτικά τέλη μπροστά σου· πατούσες «Συνδρομές» και άνοιγε «Ασφάλεια και
+            συνδρομές», με το ασφαλιστήριο πρώτο. Ο χρήστης δεν έκανε λάθος: η οθόνη
+            τού υποσχόταν ένα και του έδινε άλλο.
+
+            Και μία ολόκληρη ενότητα δεν είχε κάρτα καθόλου. Ο υπολογιστής ΕΝΦΙΑ, το
+            ιστορικό δημοτικών τελών και οι υπηρεσίες του ακινήτου ήταν το έβδομο πάνελ
+            μιας αντιστοίχισης έξι θέσεων: δουλεύοντας εργαλείο, χωρίς πόρτα.
+
+            Τώρα η αντιστοίχιση είναι ένα προς ένα. Κάθε κάρτα ανοίγει πάνελ με το ΙΔΙΟ
+            όνομα και ΜΟΝΟ τα δικά της πεδία — αυτό είναι όλο το περιεχόμενο αυτού του
+            χάρτη. Οι δύο περιπτώσεις που χρειάζονται δύο πάνελ τα δηλώνουν ρητά: η
+            θέρμανση με το αέριο (ο ίδιος λογαριασμός ζεσταίνει το σπίτι), ο συναγερμός
+            με τις συνδρομές (είναι μηνιαία συνδρομή σε εταιρεία, όχι πάροχος δικτύου).
+ 
+          */}
+          {/* Η κεφαλίδα λέει ΤΟ ΟΝΟΜΑ ΤΗΣ ΚΑΡΤΑΣ ΠΟΥ ΠΑΤΗΘΗΚΕ, από την ίδια
+              πηγή με την κάρτα. Πριν διάβαζε ένα δεύτερο, δικό της λεξιλόγιο —
+              και γι᾽ αυτό το «Νερό» άνοιγε «Πάροχοι». */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-              <span style={{ color: 'var(--text-tertiary)', display: 'flex' }}><TabIcon name={activeTool.icon} size={15}/></span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{activeTool.label}</span>
-            </div>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, minWidth: 0 }}>{CONTRACT_LABEL[tool]}</span>
             <button type="button" onClick={() => setTool(null)}
               style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, flexShrink: 0 }}>
               Κλείσιμο
             </button>
           </div>
           <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-            {tool === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ToolId)}/>}
-            {tool === 'gas'         && <BillsGas         propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ToolId)}/>}
-            {tool === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
-            {tool === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId}/>}
-            {tool === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}
-            {tool === 'services'    && <BillsServices    propertyId={propertyId} userId={userId}/>}
+            {tool === 'electricity'   && <BillsElectricity propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ContractKind)}/>}
+            {/* Ο ίδιος λογαριασμός ζεσταίνει το σπίτι: το αέριο και ο τρόπος
+                θέρμανσης απαντούν στην ίδια ερώτηση και μπαίνουν μαζί. */}
+            {tool === 'gas'           && (<>
+              <BillsGas propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ContractKind)}/>
+              <BillsProviders propertyId={propertyId} userId={userId} only="heating"/>
+            </>)}
+            {tool === 'common'        && <BillsCommon    propertyId={propertyId} userId={userId}/>}
+            {tool === 'water'         && <BillsProviders propertyId={propertyId} userId={userId} only="water"/>}
+            {tool === 'internet'      && <BillsProviders propertyId={propertyId} userId={userId} only="internet"/>}
+            {tool === 'insurance'     && <BillsInsurance propertyId={propertyId} userId={userId} only="insurance"/>}
+            {/* Ο συναγερμός είναι μηνιαία συνδρομή σε εταιρεία, όχι πάροχος
+                δικτύου: στέκει με τις υπόλοιπες συνδρομές. */}
+            {tool === 'subscriptions' && (<>
+              <BillsInsurance propertyId={propertyId} userId={userId} only="subscriptions"/>
+              <BillsProviders propertyId={propertyId} userId={userId} only="security"/>
+            </>)}
+            {tool === 'services'      && <BillsServices  propertyId={propertyId} userId={userId}/>}
           </div>
         </div>
       )}

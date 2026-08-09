@@ -601,7 +601,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                         κανόνας είναι γραμμένος στη μηχανή (isActivated: ακίνητο +
                         σαρωμένο έγγραφο). Δύο λέξεις παραπάνω κλείνουν το χωνί. */}
                     <div style={{ ...TT.bodySm, marginTop: 2 }}>{pending
-                      ? `Λείπει ${ACTIVATION_MIN_PROPERTIES === 1 ? '1 ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και ${ACTIVATION_MIN_DOCUMENTS === 1 ? '1 σαρωμένο έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} σαρωμένα έγγραφα`}. Θύμισέ του — κερδίζετε κι οι δύο.`
+                      ? `Λείπει ${ACTIVATION_MIN_PROPERTIES === 1 ? '1 ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και ${ACTIVATION_MIN_DOCUMENTS === 1 ? '1 σαρωμένο έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} σαρωμένα έγγραφα`}. Θύμισέ του· κερδίζετε κι οι δύο.`
                       : `Ξεκίνησε ${when}`}</div>
                   </div>
                 </div>

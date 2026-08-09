@@ -414,7 +414,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               {enfia.source !== 'none' && (
                 <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                   {enfia.source === 'declared'
-                    ? 'Χρησιμοποιείται το ποσό του εκκαθαριστικού. Ο υπολογιστής δίπλα μένει για σύγκριση — δεν το αντικαθιστά.'
+                    ? 'Χρησιμοποιείται το ποσό του εκκαθαριστικού. Ο υπολογιστής δίπλα μένει για σύγκριση· δεν το αντικαθιστά.'
                     : 'Χρησιμοποιείται η εκτίμηση του υπολογιστή. Μόλις γράψεις το ποσό του εκκαθαριστικού, υπερισχύει αυτό.'}
                 </div>
               )}
@@ -429,7 +429,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                         {/* Έλεγε «Τελικός ΕΝΦΙΑ» — δηλαδή η λέξη «τελικός» πάνω σε
                             νούμερο που παράγει μοντέλο από ζώνη, όροφο και παλαιότητα.
                             Το πραγματικά τελικό ποσό το ορίζει μόνο η ΑΑΔΕ. */}
-                        <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων — υπολογισμός με βάση τα στοιχεία που έδωσες, όχι το εκκαθαριστικό της ΑΑΔΕ" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Εκτίμηση ΕΝΦΙΑ</div>
+                        <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων· υπολογισμός με βάση τα στοιχεία που έδωσες, όχι το εκκαθαριστικό της ΑΑΔΕ" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Εκτίμηση ΕΝΦΙΑ</div>
                         <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final)}</div>
                       </div>
                       <div>

@@ -16,7 +16,7 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/dashboard',
-    name: 'Property OS — Διαχείριση ακινήτων',
+    name: 'Property OS · Διαχείριση ακινήτων',
     short_name: 'Property OS',
     description: 'Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.',
     start_url: '/dashboard',

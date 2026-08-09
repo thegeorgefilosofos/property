@@ -387,7 +387,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const overdueTasks = openTasks.filter(i => i.due_date && i.due_date < todayStr);
     const taskCostSum = openTasks.reduce((s, i) => s + (Number(i.estimated_cost) || 0), 0);
     const checklistLine = openTasks.length
-      ? `Ανοιχτές εκκρεμότητες (${openTasks.length}${overdueTasks.length ? `, εκ των οποίων ${overdueTasks.length} ληξιπρόθεσμες` : ''}${taskCostSum > 0 ? `, εκτιμώμενο κόστος ${eur(Math.round(taskCostSum))}` : ''}): ${openTasks.slice(0, 15).map(i => `${i.description}${i.due_date ? ` [προθεσμία ${i.due_date}${i.due_date < todayStr ? ' — ΛΗΞΙΠΡΟΘΕΣΜΗ' : ''}]` : ''}${i.estimated_cost ? ` ~${eur(i.estimated_cost)}` : ''}${i.assigned_contact_name ? ` (ανάθεση: ${i.assigned_contact_name})` : ''}`).join('; ')}${openTasks.length > 15 ? ` (και ${openTasks.length - 15} ακόμη)` : ''}`
+      ? `Ανοιχτές εκκρεμότητες (${openTasks.length}${overdueTasks.length ? `, εκ των οποίων ${overdueTasks.length} ληξιπρόθεσμες` : ''}${taskCostSum > 0 ? `, εκτιμώμενο κόστος ${eur(Math.round(taskCostSum))}` : ''}): ${openTasks.slice(0, 15).map(i => `${i.description}${i.due_date ? ` [προθεσμία ${i.due_date}${i.due_date < todayStr ? ', ΛΗΞΙΠΡΟΘΕΣΜΗ' : ''}]` : ''}${i.estimated_cost ? ` ~${eur(i.estimated_cost)}` : ''}${i.assigned_contact_name ? ` (ανάθεση: ${i.assigned_contact_name})` : ''}`).join('; ')}${openTasks.length > 15 ? ` (και ${openTasks.length - 15} ακόμη)` : ''}`
       : 'Δεν υπάρχουν ανοιχτές εκκρεμότητες.';
 
     // Τα νούμερα που τροφοδοτούν τις προτάσεις εκκίνησης. Ό,τι δεν υπάρχει
@@ -446,7 +446,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const monthlyTarget: number | null = Number.isFinite(rawTarget) && rawTarget > 0 ? rawTarget : null;
     const notifyOverspend = String(bData.notifyOverspend) === 'true';
     const budgetLine = [
-      `Προϋπολογισμός: ${monthlyTarget !== null ? `μηνιαίος στόχος δαπανών ${eur(monthlyTarget)}` : 'δεν έχει οριστεί μηνιαίος στόχος δαπανών — μη μιλάς για στόχο σαν να υπάρχει, πρότεινε να τον ορίσει'}. Ειδοποίηση υπέρβασης: ${notifyOverspend ? 'ενεργή (email μέσω προτιμήσεων ειδοποιήσεων)' : 'ανενεργή'}.`,
+      `Προϋπολογισμός: ${monthlyTarget !== null ? `μηνιαίος στόχος δαπανών ${eur(monthlyTarget)}` : 'δεν έχει οριστεί μηνιαίος στόχος δαπανών· μη μιλάς για στόχο σαν να υπάρχει, πρότεινε να τον ορίσει'}. Ειδοποίηση υπέρβασης: ${notifyOverspend ? 'ενεργή (email μέσω προτιμήσεων ειδοποιήσεων)' : 'ανενεργή'}.`,
     ].join(' ');
 
     const lines = [
@@ -456,7 +456,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       propContext.status ? `Κατάσταση: ${propContext.status}` : '',
       `Ενοίκιο: ${eur(rent)}/μήνα (ετήσιο ${eur(rent * 12)})`,
       value ? `Απόδοση: μεικτή ${fp(grossY)}, καθαρή ${fp(netY)}` : '',
-      `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(owed)}). Κάθε ευρώ μετρημένο μία φορά· οι απλήρωτοι λογαριασμοί μετρούν στην ημερομηνία που λήγουν — ίδιος υπολογισμός με τις Δαπάνες και τη Σύγκριση.`,
+      `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(owed)}). Κάθε ευρώ μετρημένο μία φορά· οι απλήρωτοι λογαριασμοί μετρούν στην ημερομηνία που λήγουν· ίδιος υπολογισμός με τις Δαπάνες και τη Σύγκριση.`,
       topCats.length ? `Μεγαλύτερες κατηγορίες: ${topCats.map(([c, a]) => `${c} ${eur(a)}`).join(', ')}` : '',
       unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${b.name || 'λογαριασμός'} ${eur(b.amount)}${b.due_date ? ` λήξη ${b.due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
       openRentRef.current.length ? `Ανεξόφλητες δόσεις ενοικίου (${openRentRef.current.length}): ${openRentRef.current.slice(0, 12).map(r => `${r.label} ${eur(r.amount)}`).join('; ')}` : '',

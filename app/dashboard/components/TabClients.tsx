@@ -939,7 +939,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       </div>
 
       {clients.length === 0 ? (
-        <EmptyState icon={<Users size={20} />} title="Κανένας επισκέπτης ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb ή Booking με τη «Σύνδεση ημερολογίου», ή επικόλλησε ένα email κράτησης με την «Εισαγωγή από email» — και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>} />
+        <EmptyState icon={<Users size={20} />} title="Κανένας επισκέπτης ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb ή Booking με τη «Σύνδεση ημερολογίου», ή επικόλλησε ένα email κράτησης με την «Εισαγωγή από email», και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>} />
       ) : filtered.length === 0 ? (
         // Ο έλεγχος από πάνω κοιτούσε τα `clients`, αλλά το πλέγμα αποδίδει τα
         // `filtered`: με αναζήτηση ή φίλτρο που δεν ταιριάζει σε κανέναν, ο χρήστης
@@ -1059,7 +1059,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         const monthInitials = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
         return (
           <div style={{ marginTop: 26 }}>
-            <SecHdr label={`Ακαθάριστα ${reportYear}`} sub="Δηλωτέο ακαθάριστο ανά κανάλι και ανά μήνα — χωρίς το τέλος ανθεκτικότητας, χωρίς αφαίρεση προμήθειας"
+            <SecHdr label={`Ακαθάριστα ${reportYear}`} sub="Δηλωτέο ακαθάριστο ανά κανάλι και ανά μήνα, χωρίς το τέλος ανθεκτικότητας, χωρίς αφαίρεση προμήθειας"
               right={
                 /* Το Escape κλείνει το popover, και ο χρήστης πληκτρολογίου δεν
                    μένει παγιδευμένος μέσα σε τέσσερις χρονιές. Ο ακροατής κάθεται
@@ -1118,7 +1118,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {statTile(
                 'Πληρότητα',
                 occ.availableDays > 0 ? `${occ.pct}%` : 'Χωρίς κρατήσεις',
-                { title: occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]} ${reportYear}) — όχι σε 365` : 'Χωρίς κρατήσεις' },
+                { title: occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]} ${reportYear}), όχι σε 365` : 'Χωρίς κρατήσεις' },
               )}
               {occ.peak && statTile(
                 'Πληρότητα υψηλής περιόδου',
@@ -1656,8 +1656,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 Εκεί γεννιόταν η αντίφαση: ό,τι μπαινε εδώ ως payout
                 διαβαζόταν αλλού ως ακαθάριστο και φορολογούνταν. */}
             <NumberInput label="Πλήρωσε ο επισκέπτης" labelInfo="Το σύνολο που πλήρωσε ο επισκέπτης, πριν την προμήθεια." value={emailDraft.gross} onChange={v => setEmailDraft(d => d && { ...d, gross: v })} suffix="€" step={10} />
-            <NumberInput label="Τέλος ανθεκτικότητας" labelInfo="Δεν είναι έσοδό σου — αφαιρείται από το δηλωτέο ακαθάριστο." value={emailDraft.levy} onChange={v => setEmailDraft(d => d && { ...d, levy: v })} suffix="€" step={2} />
-            <NumberInput label="Προμήθεια πλατφόρμας" labelInfo="Δαπάνη που εκπίπτει — ΔΕΝ μειώνει το δηλωτέο ακαθάριστο." value={emailDraft.fee} onChange={v => setEmailDraft(d => d && { ...d, fee: v })} suffix="€" step={5} />
+            <NumberInput label="Τέλος ανθεκτικότητας" labelInfo="Δεν είναι έσοδό σου· αφαιρείται από το δηλωτέο ακαθάριστο." value={emailDraft.levy} onChange={v => setEmailDraft(d => d && { ...d, levy: v })} suffix="€" step={2} />
+            <NumberInput label="Προμήθεια πλατφόρμας" labelInfo="Δαπάνη που εκπίπτει· ΔΕΝ μειώνει το δηλωτέο ακαθάριστο." value={emailDraft.fee} onChange={v => setEmailDraft(d => d && { ...d, fee: v })} suffix="€" step={5} />
             <CustomSelect label="Κανάλι" value={emailDraft.channel} onChange={v => setEmailDraft(d => d && { ...d, channel: v })} options={channelOptions} />
           </div>
           {(parseFloat(emailDraft.gross) || 0) > 0 && (

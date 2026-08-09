@@ -763,7 +763,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     try{ n=await syncOne(k) }
     catch{
       failed=true
-      notifyError('Ο συγχρονισμός δεν ολοκληρώθηκε. Δοκίμασε ξανά — τα στοιχεία ξαναχτίζονται από την πηγή τους.')
+      notifyError('Ο συγχρονισμός δεν ολοκληρώθηκε. Δοκίμασε ξανά· τα στοιχεία ξαναχτίζονται από την πηγή τους.')
     }
     finally{
       if(!failed){

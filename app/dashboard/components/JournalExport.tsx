@@ -163,7 +163,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
       if (format === 'excel') {
         downloadJournalWorkbook({ lines, periodLabel, entityName: 'Property OS', year, month });
       } else {
-        const csv = journalToCsv(lines, format, `Property OS — Ημερολόγιο ${periodLabel}`);
+        const csv = journalToCsv(lines, format, `Property OS · Ημερολόγιο ${periodLabel}`);
         downloadCsv(csv, `Ημερολόγιο_${format}_${periodLabel}.csv`);
       }
       applyChecks(lines);

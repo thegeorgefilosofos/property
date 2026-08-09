@@ -141,7 +141,7 @@ export const TENANT_FIELDS: readonly FieldRule[] = [
   // ── Τι υπογράψατε ───────────────────────────────────────────────────────
   { id: 'tenant.lease_category', label: 'Κατοικία ή επαγγελματική', why: 'Στην επαγγελματική μίσθωση οφείλεται Ψηφιακό Τέλος Συναλλαγής 3,6% επί του μισθώματος. Στην κατοικία δεν οφείλεται.', when: isLong, critical: true },
   { id: 'tenant.lease_type', label: 'Διάρκεια', why: 'Από τη διάρκεια βγαίνει η λήξη. Στην κατοικία ισχύει τριετής ελάχιστη προστασία ακόμη κι αν συμφωνήσετε λιγότερο.', when: isLong },
-  { id: 'tenant.lease_start', label: 'Έναρξη μίσθωσης', why: 'Από εδώ βγαίνει η προθεσμία δήλωσης του μισθωτηρίου — 30 ημέρες.', when: isLong, critical: true },
+  { id: 'tenant.lease_start', label: 'Έναρξη μίσθωσης', why: 'Από εδώ βγαίνει η προθεσμία δήλωσης του μισθωτηρίου: 30 ημέρες.', when: isLong, critical: true },
   { id: 'tenant.lease_end', label: 'Λήξη μίσθωσης', why: 'Για να σου θυμίσουμε πριν λήξει, όχι μετά.', when: isLong },
 
   // ── Τι πληρώνει ─────────────────────────────────────────────────────────
@@ -151,7 +151,7 @@ export const TENANT_FIELDS: readonly FieldRule[] = [
   { id: 'tenant.payment_frequency', label: 'Συχνότητα εξόφλησης', why: 'Με αυτόν τον ρυθμό δημιουργούνται οι δόσεις. Σχεδόν πάντα μηνιαία.', when: isLong, rare: true },
 
   // ── Τι κρατάς ───────────────────────────────────────────────────────────
-  { id: 'tenant.deposit', label: 'Εγγύηση', why: 'Δεν είναι έσοδό σου — την επιστρέφεις. Την κρατάμε χωριστά για να μη μπει στον φόρο.', when: isLong },
+  { id: 'tenant.deposit', label: 'Εγγύηση', why: 'Δεν είναι έσοδό σου· την επιστρέφεις. Την κρατάμε χωριστά για να μη μπει στον φόρο.', when: isLong },
   { id: 'tenant.deposit_method', label: 'Τρόπος καταβολής εγγύησης', why: 'Εγγύηση σε μετρητά δεν αφήνει ίχνος: σε διαφωνία στην αποχώρηση δεν αποδεικνύεται ότι δόθηκε.', when: isLong, rare: true },
   { id: 'tenant.deposit_paid_on', label: 'Ημερομηνία καταβολής εγγύησης', why: 'Μαζί με τον τρόπο, είναι η απόδειξη ότι το ποσό μπήκε και πότε.', when: isLong, rare: true },
   { id: 'tenant.deposit_returned', label: 'Επεστράφη η εγγύηση', why: 'Όσο δεν έχει επιστραφεί, είναι ποσό που κρατάς για λογαριασμό άλλου και φαίνεται στα KPI χωριστά.', when: isLong, rare: true },
@@ -175,13 +175,13 @@ export const TENANT_FIELDS: readonly FieldRule[] = [
 export const CLIENT_FIELDS: readonly FieldRule[] = [
   { id: 'client.full_name', label: 'Όνομα', why: 'Για να ξεχωρίζεις τις διαμονές.', when: isShort },
   { id: 'client.contact', label: 'Τηλέφωνο ή email', why: 'Ένα από τα δύο αρκεί.', when: isShort },
-  { id: 'client.channel', label: 'Κανάλι', why: 'Airbnb, Booking ή απευθείας — αλλάζει την προμήθεια.', when: isShort },
+  { id: 'client.channel', label: 'Κανάλι', why: 'Airbnb, Booking ή απευθείας· αλλάζει την προμήθεια.', when: isShort },
   { id: 'client.dates', label: 'Ημερομηνίες', why: 'Από αυτές βγαίνει η δήλωση βραχυχρόνιας διαμονής.', when: isShort, critical: true },
-  { id: 'client.gross_guest_paid', label: 'Ποσό που πλήρωσε ο επισκέπτης', why: 'ΑΚΑΘΑΡΙΣΤΑ, πριν την προμήθεια. Αυτό δηλώνεται — όχι το ποσό που μπήκε στον λογαριασμό σου.', when: isShort, critical: true },
+  { id: 'client.gross_guest_paid', label: 'Ποσό που πλήρωσε ο επισκέπτης', why: 'ΑΚΑΘΑΡΙΣΤΑ, πριν την προμήθεια. Αυτό δηλώνεται, όχι το ποσό που μπήκε στον λογαριασμό σου.', when: isShort, critical: true },
   { id: 'client.platform_fee', label: 'Προμήθεια πλατφόρμας', why: 'Είναι δαπάνη σου, όχι μείωση του εσόδου. Μπαίνει χωριστά.', when: isShort, critical: true },
   { id: 'client.climate_levy', label: 'Τέλος ανθεκτικότητας', why: 'Το πληρώνει ο επισκέπτης και το αποδίδεις. ΔΕΝ είναι έσοδό σου.', when: isShort, critical: true },
   { id: 'client.declared_at', label: 'Δηλώθηκε', why: 'Μία δήλωση ανά κράτηση. Εδώ βλέπεις ποιες λείπουν.', when: isShort, critical: true },
-  { id: 'client.damages', label: 'Φθορές', why: 'Δαπάνη με παραστατικό — και συνδέεται με το αντικείμενο που έσπασε.', when: isShort, rare: true },
+  { id: 'client.damages', label: 'Φθορές', why: 'Δαπάνη με παραστατικό, και συνδέεται με το αντικείμενο που έσπασε.', when: isShort, rare: true },
   { id: 'client.notes', label: 'Σημείωση', why: 'Ό,τι θέλεις να θυμάσαι. Ιδιωτική.', when: isShort, rare: true },
 ];
 
@@ -211,7 +211,7 @@ export const INVENTORY_FIELDS: readonly FieldRule[] = [
   { id: 'inv.warranty', label: 'Εγγύηση έως', why: 'Για να σου θυμίσουμε πριν λήξει.', when: equipped, rare: true },
   { id: 'inv.energy_class', label: 'Ενεργειακή κλάση', why: 'Δείχνει τι σου κοστίζει τον μήνα, στην τιμή ρεύματος που δήλωσες.', when: equipped, rare: true },
   { id: 'inv.power_use', label: 'Ισχύς και ώρες χρήσης', why: 'Χωρίς αυτά δεν υπάρχει κόστος ρεύματος: βγαίνει από Watt × ώρες × την τιμή του δικού σου λογαριασμού.', when: equipped, rare: true },
-  { id: 'inv.replacement_cost', label: 'Κόστος αντικατάστασης', why: 'Η ασφαλιστέα αξία είναι το κόστος να το πάρεις καινούργιο — όχι η αποσβεσμένη αξία.', when: equipped, rare: true },
+  { id: 'inv.replacement_cost', label: 'Κόστος αντικατάστασης', why: 'Η ασφαλιστέα αξία είναι το κόστος να το πάρεις καινούργιο, όχι η αποσβεσμένη αξία.', when: equipped, rare: true },
   { id: 'inv.notes', label: 'Σημείωση', why: 'Ό,τι θέλεις να θυμάσαι για αυτό το αντικείμενο.', when: equipped, rare: true },
 ];
 

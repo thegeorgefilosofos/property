@@ -795,7 +795,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   </div>
                   <div style={{display:'flex',gap:8}}>
                     {bank.url&&<a href={bank.url} target="_blank" rel="noreferrer" style={{padding:'0 16px',height:T.h.md,borderRadius:18,border:'1px solid var(--border-default)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily: T.font.sans,textDecoration:'none',fontWeight:500,display:'flex',alignItems:'center'}}>Επίσκεψη</a>}
-                    <button disabled={bankRate===null} title={bankRate===null?'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο — δεν υπάρχει τιμή να εφαρμοστεί':undefined} onClick={()=>{ if(bankRate!==null) applyBank(bankRate, 'fixed', bank.name) }} style={{padding:'0 16px',height:T.h.md,borderRadius:18,background:bankRate===null?'var(--bg-elevated)':'var(--accent)',border:bankRate===null?'1px solid var(--border-subtle)':'none',color:bankRate===null?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontFamily: T.font.sans,cursor:bankRate===null?'not-allowed':'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
+                    <button disabled={bankRate===null} title={bankRate===null?'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο· δεν υπάρχει τιμή να εφαρμοστεί':undefined} onClick={()=>{ if(bankRate!==null) applyBank(bankRate, 'fixed', bank.name) }} style={{padding:'0 16px',height:T.h.md,borderRadius:18,background:bankRate===null?'var(--bg-elevated)':'var(--accent)',border:bankRate===null?'1px solid var(--border-subtle)':'none',color:bankRate===null?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontFamily: T.font.sans,cursor:bankRate===null?'not-allowed':'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
                   </div>
                 </div>
                 <p style={{...labelStyle,marginBottom:10}}>Σταθερά επιτόκια «από», ανά διάρκεια</p>
@@ -1344,13 +1344,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   {issues.includes('Κυμαινόμενο')&&(
                     <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                       <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily: T.font.sans}}>Κίνδυνος</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Σκέψου σταθερό:</strong> +2% Euribor → δόση {fmtEur(stressMonthly2)} (+{fmtEur(stressMonthly2-cs.monthly)} τον μήνα).</p>
+                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Σκέψου σταθερό:</strong> με το Euribor δύο μονάδες ψηλότερα, η δόση γίνεται {fmtEur(stressMonthly2)}, δηλαδή {fmtEur(stressMonthly2-cs.monthly)} παραπάνω τον μήνα.</p>
                     </div>
                   )}
                   {issues.includes('Διάρκεια')&&cs.years>20&&(
                     <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                       <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily: T.font.sans}}>Χρόνια</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Μείωσε τη διάρκεια:</strong> 20 χρόνια → δόση {fmtEur(shortMonthly20)} → εξοικονόμηση {fmtEur(savedByShortening)} τόκοι.</p>
+                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Μείωσε τη διάρκεια:</strong> στα 20 χρόνια η δόση γίνεται {fmtEur(shortMonthly20)} και γλιτώνεις {fmtEur(savedByShortening)} σε τόκους.</p>
                     </div>
                   )}
                 </div>

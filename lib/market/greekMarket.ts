@@ -54,7 +54,7 @@ export const REGIONS: RegionYield[] = [
   { key: 'edessa', label: 'Έδεσσα / Γιαννιτσά', region: 'Κεντρική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city', 'tourist'], note: 'Πρωτεύουσα Πέλλας, καταρράκτες/τουρισμός. Χαμηλές τιμές, σταθερή τοπική ζήτηση.' },
   { key: 'veroia', label: 'Βέροια / Ημαθία', region: 'Κεντρική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city'], note: 'Ιστορική πόλη, χαμηλές τιμές, σταθερή τοπική ζήτηση.' },
   // ── Δυτική Μακεδονία ──
-  { key: 'kozani', label: 'Κοζάνη', region: 'Δυτική Μακεδονία', pricePerSqm: [900, 1300], rentPerSqm: [5, 6], grossYield: 6.0, tags: ['city'], note: 'Πανεπιστήμιο Δυτικής Μακεδονίας. Μετάβαση από τη λιγνιτική οικονομία — προσοχή στη ζήτηση μεσοπρόθεσμα.' },
+  { key: 'kozani', label: 'Κοζάνη', region: 'Δυτική Μακεδονία', pricePerSqm: [900, 1300], rentPerSqm: [5, 6], grossYield: 6.0, tags: ['city'], note: 'Πανεπιστήμιο Δυτικής Μακεδονίας. Μετάβαση από τη λιγνιτική οικονομία· προσοχή στη ζήτηση μεσοπρόθεσμα.' },
   { key: 'kastoria', label: 'Καστοριά', region: 'Δυτική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 5], grossYield: 5.4, tags: ['city', 'tourist'], note: 'Λίμνη, γουνοποιία, τουρισμός. Μικρή αγορά με εποχική ζήτηση.' },
   { key: 'florina', label: 'Φλώρινα', region: 'Δυτική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city', 'tourist'], note: 'Πανεπιστημιακό τμήμα + Πρέσπες/χιονοδρομικά. Χαμηλό κόστος, φοιτητική και εποχική ζήτηση.' },
   { key: 'grevena', label: 'Γρεβενά', region: 'Δυτική Μακεδονία', pricePerSqm: [700, 1100], rentPerSqm: [4, 5], grossYield: 6.0, tags: ['city'], note: 'Ορεινή πρωτεύουσα νομού (Βασιλίτσα). Πολύ προσιτές τιμές, τοπική ζήτηση.' },
@@ -191,7 +191,7 @@ export function historyPriceCagr(years: number): { pct: number; fromYear: number
 // Τράπεζα Ελλάδος (καταθέσεις)· Global Property Guide/ΤτΕ (κατοικία)· World Bank (πληθωρισμός).
 export interface Benchmark { key: string; label: string; ret10: number; ret20: number; note: string; taxFree?: boolean }
 export const BENCHMARKS: Benchmark[] = [
-  { key: 'deposit', label: 'Προθεσμιακή κατάθεση', ret10: 0.5, ret20: 1.9, note: 'Μέσο επιτόκιο προθεσμιακής. Η τελευταία 10ετία σχεδόν μηδενική (~0,5%), κάτω από τον πληθωρισμό — αρνητική πραγματική απόδοση.' },
+  { key: 'deposit', label: 'Προθεσμιακή κατάθεση', ret10: 0.5, ret20: 1.9, note: 'Μέσο επιτόκιο προθεσμιακής. Η τελευταία 10ετία σχεδόν μηδενική (~0,5%), κάτω από τον πληθωρισμό· αρνητική πραγματική απόδοση.' },
   { key: 'bond', label: 'Ελληνικό 10ετές ομόλογο', ret10: 6.0, ret20: 1.0, note: 'Ισχυρή 10ετία από τη συμπίεση των αποδόσεων· η 20ετία σχεδόν μηδενική λόγω του PSI 2012 (ονομαστικό κούρεμα 53,5%).' },
   { key: 'gold', label: 'Χρυσός', ret10: 14.5, ret20: 11.4, note: 'Χρυσός σε ευρώ. Ισχυρές και οι δύο περίοδοι, με έντονη όμως μεταβλητότητα και χωρίς εισόδημα.' },
   { key: 'athex', label: 'Χρηματιστήριο Αθηνών', ret10: 17.0, ret20: 0.5, note: 'Γενικός Δείκτης με επανεπένδυση μερισμάτων. Εκρηκτική 10ετία μετά την κρίση, αλλά 20ετία σχεδόν μηδενική: ο δείκτης τιμών παραμένει κάτω από το 2005.' },
@@ -212,8 +212,8 @@ export interface ShortTermStat {
   grossYield: number; longTermYield: number; redZone?: boolean; note: string
 }
 export const SHORT_TERM: ShortTermStat[] = [
-  { key: 'ath_center', label: 'Κέντρο Αθήνας', occupancy: 58, adr: 76, annualRevenue: 16000, grossYield: 8, longTermYield: 5.0, redZone: true, note: 'Κόκκινη ζώνη μητρώου ακινήτων (1ο–3ο διαμέρισμα) ως 31/12/2026: κανένα νέο μητρώο — για νέους αγοραστές η βραχυχρόνια δεν είναι επιλογή.' },
-  { key: 'ath_riviera', label: 'Αθηναϊκή Ριβιέρα', occupancy: 55, adr: 70, annualRevenue: 14000, grossYield: 6, longTermYield: 3.8, note: 'Εκτός κόκκινης ζώνης — επιτρέπονται νέα μητρώα ακινήτων· βασικός διαφοροποιητής έναντι του κέντρου.' },
+  { key: 'ath_center', label: 'Κέντρο Αθήνας', occupancy: 58, adr: 76, annualRevenue: 16000, grossYield: 8, longTermYield: 5.0, redZone: true, note: 'Κόκκινη ζώνη μητρώου ακινήτων (1ο–3ο διαμέρισμα) ως 31/12/2026: κανένα νέο μητρώο· για νέους αγοραστές η βραχυχρόνια δεν είναι επιλογή.' },
+  { key: 'ath_riviera', label: 'Αθηναϊκή Ριβιέρα', occupancy: 55, adr: 70, annualRevenue: 14000, grossYield: 6, longTermYield: 3.8, note: 'Εκτός κόκκινης ζώνης· επιτρέπονται νέα μητρώα ακινήτων· βασικός διαφοροποιητής έναντι του κέντρου.' },
   { key: 'thess', label: 'Θεσσαλονίκη', occupancy: 62, adr: 62, annualRevenue: 14000, grossYield: 7, longTermYield: 4.4, redZone: true, note: 'Πάγωμα μητρώου ακινήτων στο 1ο διαμέρισμα από 1/7/2026.' },
   { key: 'mykonos_santorini', label: 'Μύκονος / Σαντορίνη', occupancy: 62, adr: 221, annualRevenue: 50000, grossYield: 5, longTermYield: 3.5, note: 'Τεράστια έσοδα (Αύγ. ADR €360+) αλλά πολύ υψηλή τιμή αγοράς, άρα η % απόδοση μέτρια. Ακραία εποχικότητα (5–6 μήνες).' },
   { key: 'paros_naxos', label: 'Πάρος / Νάξος', occupancy: 75, adr: 117, annualRevenue: 32000, grossYield: 7, longTermYield: 3.0, note: 'Υψηλή πληρότητα και ταχεία άνοδος ADR στη βραχυχρόνια· η μακροχρόνια απόδοση χαμηλή λόγω τιμών.' },
@@ -228,10 +228,10 @@ export const SEASONALITY_CITY = [45, 48, 65, 80, 85, 70, 60, 55, 85, 90, 55, 50]
 
 // ── Πηγές (για εμφάνιση/διαφάνεια) ──────────────────────────────────────────
 export const MARKET_SOURCES: { label: string; href: string }[] = [
-  { label: 'Τράπεζα της Ελλάδος — Δείκτες τιμών ακινήτων', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
-  { label: 'ΕΛΣΤΑΤ — Δείκτης Τιμών Καταναλωτή (ενοίκια)', href: 'https://www.statistics.gr/en/statistics/-/publication/DKT87/-' },
+  { label: 'Τράπεζα της Ελλάδος · Δείκτες τιμών ακινήτων', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
+  { label: 'ΕΛΣΤΑΤ · Δείκτης Τιμών Καταναλωτή (ενοίκια)', href: 'https://www.statistics.gr/en/statistics/-/publication/DKT87/-' },
   { label: 'Global Property Guide — Greece rental yields', href: 'https://www.globalpropertyguide.com/europe/greece/rental-yields' },
-  { label: 'AirDNA / AirROI — βραχυχρόνια Ελλάδας', href: 'https://www.airroi.com/airbnb-data/greece' },
+  { label: 'AirDNA / AirROI · βραχυχρόνια Ελλάδας', href: 'https://www.airroi.com/airbnb-data/greece' },
 ]
 
 // ── Βοηθητικά ───────────────────────────────────────────────────────────────
@@ -263,7 +263,7 @@ export function estimatePropertyValue(regionKey: string, sqm?: number | null, pr
 export function yieldVerdict(grossYieldPct: number): { label: string; tone: 'good' | 'ok' | 'low' } {
   if (grossYieldPct >= 5.5) return { label: 'Πάνω από τον μέσο όρο αγοράς', tone: 'good' }
   if (grossYieldPct >= 3.8) return { label: 'Κοντά στον μέσο όρο αγοράς', tone: 'ok' }
-  return { label: 'Κάτω από τον μέσο όρο — έμφαση στην ανατίμηση', tone: 'low' }
+  return { label: 'Κάτω από τον μέσο όρο· έμφαση στην ανατίμηση', tone: 'low' }
 }
 
 /** Τυπική ελληνική μεικτή απόδοση αναφοράς (μακροχρόνια, Global Property Guide Q4 2025). */
@@ -327,6 +327,6 @@ export const AUCTION_FACTS = {
   systemFee: 50, guaranteePct: 30,
   reductions: [{ after: 2, toPct: 80 }, { after: 3, toPct: 65 }],
   completionRate: 14, // ~1 στους 7 βρίσκει αγοραστή
-  note: 'Η μείωση τιμής είναι νομικό κατώφλι, όχι εγγυημένο πραγματικό discount — εξαρτάται από τον ανταγωνισμό των προσφορών και την ακρίβεια της εκτίμησης.',
+  note: 'Η μείωση τιμής είναι νομικό κατώφλι, όχι εγγυημένο πραγματικό discount· εξαρτάται από τον ανταγωνισμό των προσφορών και την ακρίβεια της εκτίμησης.',
   href: 'https://www.eauction.gr/Home/HowTo',
 }

@@ -3,7 +3,7 @@
 import { daysUntil } from '@/lib/core/time';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fp, Spinner, pressable } from '@/components/Theme';
+import { T, fe, feRate, fp, Spinner, pressable } from '@/components/Theme';
 
 const INTERNET_PROVIDERS = [
   { value: 'cosmote',   label: 'Cosmote',   url: 'https://www.cosmote.gr',    color: '#009fe3' },
@@ -151,9 +151,18 @@ const DEFAULTS = {
   dimotika: '4.8', dimotikaCalcCons: '', dimotikaCalcAmount: '',
 };
 
-interface Props { propertyId: string; userId?: string; }
+/**
+ * ΜΙΑ ΚΑΡΤΑ, ΜΙΑ ΕΝΟΤΗΤΑ. Το πάνελ κρατούσε πέντε άσχετα θέματα μαζί (internet,
+ * τηλεόραση, νερό, θέρμανση, συναγερμό) και άνοιγε ολόκληρο όποια κάρτα κι αν
+ * πατούσες. Το `only` λέει ποιο θέμα ζήτησε ο χρήστης· τα υπόλοιπα δεν
+ * αποδίδονται καθόλου.
+ */
+export type ProviderScope = 'internet' | 'water' | 'heating' | 'security';
 
-export default function BillsProviders({ propertyId, userId = '' }: Props) {
+interface Props { propertyId: string; userId?: string; only?: ProviderScope; }
+
+export default function BillsProviders({ propertyId, userId = '', only }: Props) {
+  const show = (k: ProviderScope) => !only || only === k;
   const [s, upd, loading] = useBillsSettings(propertyId, userId, 'providers', DEFAULTS);
 
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
@@ -251,359 +260,280 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
-      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
-        {[
-          { label: 'Internet & TV',                   value: fe(internetCost + tvCost), accent: false },
-          { label: 'Νερό και Θέρμανση',                 value: fe(waterM + heatingM),     accent: false },
-          { label: 'Security',                          value: fe(securityM),             accent: false },
-          { label: 'Σύνολο παρόχων / μήνα',           value: fe(totalM),                accent: totalM > 0 },
-        ].map((k, i) => (
-          <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: k.accent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
-          </div>
-        ))}
-      </div>
+      {/* ΤΕΣΣΕΡΑ ΤΜΗΜΑΤΑ ΕΦΥΓΑΝ ΑΠΟ ΑΥΤΗ ΤΗΝ ΟΘΟΝΗ.
 
-      {/* ── Δημοτικά Τέλη ─────────────────────────────────────────────────
-          FIX: compact result, inline pill, not a large box
-      ─────────────────────────────────────────────────────────────────────── */}
-      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 16 }}>
-        {secHdr('Δημοτικά Τέλη, Υπολογισμός Ποσοστού')}
+          Η σειρά τεσσάρων μεγάλων αριθμών στην κορυφή («Internet & TV», «Νερό
+          και Θέρμανση», «Security», «Σύνολο παρόχων») έλεγε αθροίσματα
+          κατηγοριών που ο χρήστης δεν άνοιξε: μπαίνεις για το νερό και το πρώτο
+          που διαβάζεις είναι πόσο πληρώνεις internet. Με μία κατηγορία ανά
+          πάνελ, το άθροισμα κατηγοριών το λέει ήδη η ίδια η σειρά καρτών.
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
-          <NumberInput
-            label="Ποσοστό % (αν το γνωρίζεις)"
-            value={s.dimotika}
-            onChange={v => upd({ dimotika: v })}
-            suffix="%" step={0.1}
-          />
-          <NumberInput
-            label="Κατανάλωση λογαριασμού ρεύματος"
-            value={s.dimotikaCalcCons}
-            onChange={v => upd({ dimotikaCalcCons: v })}
-            suffix="€" step={1}
-          />
-          <NumberInput
-            label="Δημοτικά τέλη στον λογαριασμό"
-            value={s.dimotikaCalcAmount}
-            onChange={v => upd({ dimotikaCalcAmount: v })}
-            suffix="€" step={0.5}
-          />
-        </div>
+          Η «Σύνοψη Παρόχων» στο τέλος επαναλάμβανε τα ίδια πέντε νούμερα μια
+          τρίτη φορά, μετά τα πλακίδια και μετά τις ενότητες.
 
-        {/* FIX: compact result row, no big box, just a clean info strip */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: s.dimotika ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${s.dimotika ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-              {s.dimotika ? `${s.dimotika}%` : '—'}
-            </span>
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ενεργό ποσοστό</div>
-              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Αθήνα: ~5% · Τυπικό: 3–6%</div>
-            </div>
-          </div>
+          Η κάρτα «Το φυσικό αέριο έχει τη δική του καρτέλα» ήταν διαφήμιση
+          άλλης οθόνης μέσα σε αυτήν, τη στιγμή που η καρτέλα του αερίου στέκει
+          δίπλα, στην ίδια σειρά καρτών.
 
-          {/* Το κουμπί εφαρμογής εμφανίζεται μόνο όταν τα πεδία του υπολογισμού είναι συμπληρωμένα */}
-          {s.dimotikaCalcCons && s.dimotikaCalcAmount && parseFloat(s.dimotikaCalcCons) > 0 && (
-            <button
-              onClick={() => upd({ dimotika: (parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1) })}
-              style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-              Εφαρμογή {fp((parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100))}
-            </button>
-          )}
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Χρησιμοποιείται αυτόματα στον υπολογισμό ρεύματος (tab Ρεύμα).
-          </span>
-        </div>
-      </div>
+          Ο «Υπολογισμός Ποσοστού» δημοτικών τελών ήταν ΔΕΥΤΕΡΟ αντίγραφο: η
+          πραγματική δουλειά (δωδεκάμηνο ιστορικό, μέσος όρος, ποσοστό από τον
+          τελευταίο λογαριασμό) ζει στους «Φόρους και υπηρεσίες». Και έγραφε σε
+          πεδίο που δεν διάβαζε κανείς — ούτε ο προϋπολογισμός, ούτε η ίδια η
+          οθόνη των τελών, που έψαχνε το ποσοστό σε άλλο σημείο των ρυθμίσεων. */}
 
-      {/* ── Internet & Σταθερό Τηλέφωνο ──────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Internet και σταθερό τηλέφωνο', { url: 'https://www.eett.gr/opencms/opencms/EETT/Electronic_Communications/Market360/', text: 'ΕΕΤΤ 360° Σύγκριση' })}
-        <div style={g2}>
-          <CustomSelect label="Πάροχος" value={s.internetProvider}
-            onChange={v => upd({ internetProvider: v, internetPlanId: '', internetPrice: '', internetSpeed: '' })}
-            options={INTERNET_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
-          {planOptions.length > 0 ? (
-            <CustomSelect label="Πρόγραμμα (επίσημες τιμές)" value={s.internetPlanId}
-              onChange={v => {
-                const plan = (INTERNET_PLANS[s.internetProvider] || []).find(p => p.id === v);
-                upd({ internetPlanId: v, internetPlan: plan?.name || '', internetSpeed: plan?.speed || '', internetPrice: plan ? String(plan.price) : '', internetPhone: plan?.hasPhone || false });
-              }}
-              options={[{ value: '', label: '— Επιλογή προγράμματος —' }, ...planOptions]}/>
-          ) : (
-            <TextInput label="Ονομασία προγράμματος" value={s.internetPlan} onChange={v => upd({ internetPlan: v })} placeholder="Παράδειγμα: Fiber 500"/>
-          )}
-          <TextInput   label="Ταχύτητα"            value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="Παράδειγμα: 500/200 Mbps"/>
-          <NumberInput label="Μηνιαίο κόστος"  value={s.internetPrice} onChange={v => upd({ internetPrice: v })} suffix="€" step={1}/>
-        </div>
-
-        {selectedPlan && (
-          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-default)', flexShrink: 0 }}/>
-            <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{selectedPlan.note} · {selectedPlan.hasPhone ? 'Περιλαμβάνει σταθερό τηλέφωνο' : 'Χωρίς σταθερό τηλέφωνο'}</span>
-            {provData?.url && (
-              <a href={provData.url} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-                Επίσημη σελίδα {provData.label} →
-              </a>
-            )}
-          </div>
-        )}
-
-        <div style={g3}>
-          <DatePicker  label="Λήξη συμβολαίου"                      value={s.internetContractEnd || ''} onChange={v => upd({ internetContractEnd: v })}/>
-          <NumberInput label="Πραγματική ταχύτητα λήψης (Mbps)"   value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
-          <div style={{ display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', paddingBottom: 2 }}>
-            {s.internetSpeedReal && s.internetSpeed && (() => {
-              const pct = parseFloat(s.internetSpeed) > 0 ? Math.round((parseFloat(s.internetSpeedReal) / parseFloat(s.internetSpeed)) * 100) : 0;
-              const good = pct >= 80;
-              return (
-                <div style={{ background: good ? 'rgba(52,168,83,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${good ? 'rgba(52,168,83,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 14px' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: good ? 'var(--positive)' : 'var(--warning)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct}%</div>
-                  <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{good ? 'Καλή απόδοση' : 'Μειωμένη ταχύτητα'}</div>
-                </div>
-              );
-            })()}
-            {(!s.internetSpeedReal || !s.internetSpeed) && (
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                Μέτρησε στο{' '}<a href="https://www.speedtest.net" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>speedtest.net</a>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Ειδοποίηση ανανέωσης συμβολαίου */}
-        {s.internetContractEnd && (() => {
-          const days = daysUntil(s.internetContractEnd) ?? 0;
-          if (days > 90 || days < 0) return null;
-          return (
-            <div style={{ background: days <= 14 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${days <= 14 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: days <= 14 ? 'var(--negative)' : 'var(--warning)', flexShrink: 0 }}/>
-              <span style={{ color: 'var(--text-secondary)' }}>
-                Λήξη συμβολαίου Internet σε{' '}
-                <strong style={{ color: days <= 14 ? 'var(--negative)' : 'var(--warning)' }}>{days} ημέρες</strong>
-                {' '}— Σύγκρινε στο ΕΕΤΤ 360° για καλύτερη τιμή.
-              </span>
-            </div>
-          );
-        })()}
-
-        <div style={{ marginBottom: 12 }}>
-          <Toggle on={s.internetPhone} onChange={v => upd({ internetPhone: v })} label="Περιλαμβάνει σταθερό τηλέφωνο" labelOff="Χωρίς σταθερό τηλέφωνο"/>
-        </div>
-
-        {s.internetPhone && (
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12, border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Τι περιλαμβάνει το σταθερό τηλέφωνο</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 10 }}>
-              {phoneFeatures.map(f => (
-                <div key={f.key} {...pressable(f.toggle)} title={f.tip}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
-                  <span style={{ fontSize: 11, color: f.val ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>
-                </div>
-              ))}
-            </div>
-            <TextInput label="Σημειώσεις πακέτου" value={s.phoneNotes} onChange={v => upd({ phoneNotes: v })} placeholder="Παράδειγμα: 100 λεπτά διεθνή, αποκλείονται premium…"/>
-          </div>
-        )}
-
-        {(INTERNET_PLANS[s.internetProvider] || []).length > 0 && (
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Διαθέσιμα Προγράμματα {provData?.label}</div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 500 }}>
-                <thead>
-                  <tr>{['Πρόγραμμα','Ταχύτητα','Σταθερό Τηλέφωνο','Δέσμευση','Μηνιαίο','Ετήσιο'].map((h, i) => (
-                    <th key={i} style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
-                  ))}</tr>
-                </thead>
-                <tbody>
-                  {(INTERNET_PLANS[s.internetProvider] || []).map(plan => {
-                    const isCur = plan.id === s.internetPlanId;
-                    return (
-                      <tr key={plan.id}
-                        onClick={() => upd({ internetPlanId: plan.id, internetPlan: plan.name, internetSpeed: plan.speed, internetPrice: String(plan.price), internetPhone: plan.hasPhone })}
-                        style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
-                        <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
-                        <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{plan.speed}</td>
-                        <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? '✓' : '—'}</td>
-                        <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontSize: 10, fontFamily: T.font.sans }}>{plan.contract || 'Χωρίς δέσμευση'}</td>
-                        <td style={{ padding: '7px 10px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(plan.price)}</td>
-                        <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10, whiteSpace: 'nowrap' as const }}>{fe(plan.price * 12)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        {benchmarkBar(internetCost, BENCHMARKS.internet.avg, BENCHMARKS.internet.label)}
-
-        {/* FIX: "Συνδρομητική τηλεόραση" (was "PAY TV") */}
-        <div style={{ marginTop: 16, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική τηλεόραση</span>
-            <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} label="Ενεργό" labelOff="Δεν έχω"/>
-          </div>
-          {s.hasTV && (
-            <>
-              {/* FIX: 3 cols + separate toggle row, avoids Sports Package label truncation */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
-                <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
-                  options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
-                <TextInput   label="Πρόγραμμα ή πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
-                <NumberInput label="Μηνιαίο κόστος"   value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
-              </div>
-              <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package ενεργό" labelOff="Χωρίς Sports Package"/>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* ── Νερό ─────────────────────────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Νερό')}
-        {/* FIX: 2+2 layout, prevents label overflow on narrow screens */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
-          <CustomSelect
-            label="Συχνότητα χρέωσης"
-            value={s.waterPeriodMonths || '2'}
-            onChange={v => upd({ waterPeriodMonths: v })}
-            options={[
-              { value: '1', label: 'Μηνιαίος' },
-              { value: '2', label: 'Διμηνιαίος (κάθε 2 μήνες)' },
-              { value: '3', label: 'Τριμηνιαίος (κάθε 3 μήνες)' },
-              { value: '4', label: 'Τετραμηνιαίος (κάθε 4 μήνες)' },
-              { value: '6', label: 'Εξαμηνιαίος (κάθε 6 μήνες)' },
-            ]}
-          />
-          <NumberInput  label="Λογαριασμός νερού" value={s.waterBiMonthly}
-            onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2)).toFixed(2)) : '' })}
-            suffix="€" step={5}/>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-          <NumberInput  label="Μηνιαία αναγωγή"   value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€"      step={2}/>
-          <NumberInput  label="Άτομα στο ακίνητο"      value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα"  step={1}/>
-        </div>
-        {waterM > 0 && (
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
-            Μηνιαίο: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterM)}</strong>
-            {s.waterPersons && parseInt(s.waterPersons) > 0 && (
-              <span style={{ marginLeft: 14 }}>Ανά άτομο: <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterM / parseInt(s.waterPersons))}</strong> / μήνα</span>
-            )}
-            {waterData?.url && <a href={waterData.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 14, fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επίσημη σελίδα {waterData.label} →</a>}
-          </div>
-        )}
-        {benchmarkBar(waterM * 2, 24, BENCHMARKS.water.label)}
-      </div>
-
-      {/* ── Θέρμανση ─────────────────────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Θέρμανση')}
-        <div style={g3}>
-          <CustomSelect label="Τύπος θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })} options={HEATING_TYPES}/>
-          {['autonomous_gas','central_gas','district','autonomous_heat_pump','autonomous_ac','autonomous_wood'].includes(s.heatingType) && (
-            <NumberInput label="Μέσο μηνιαίο κόστος" value={s.heatingMonthly} onChange={v => upd({ heatingMonthly: v })} suffix="€" step={5}/>
-          )}
-          {s.heatingType === 'autonomous_oil' && (
-            <><NumberInput label="Λίτρα τον χρόνο"     value={s.heatingLitersPerYear}    onChange={v => upd({ heatingLitersPerYear: v })}    suffix="L"   step={50}/><NumberInput label="Τιμή ανά λίτρο" value={s.heatingOilPricePerLiter} onChange={v => upd({ heatingOilPricePerLiter: v })} suffix="€" step={0.01}/></>
-          )}
-          {s.heatingType === 'autonomous_pellet' && (
-            <><NumberInput label="Kg / έτος"     value={s.heatingKgPellet}    onChange={v => upd({ heatingKgPellet: v })}    suffix="kg" step={50}/><NumberInput label="Τιμή ανά κιλό" value={s.heatingPelletPrice} onChange={v => upd({ heatingPelletPrice: v })} suffix="€" step={0.01}/></>
-          )}
-          {['central_oil','central_gas'].includes(s.heatingType) && (
-            <NumberInput label="Μερίδιο ιδιοκτησίας" value={s.heatingCentralShare} onChange={v => upd({ heatingCentralShare: v })} suffix="%" step={1}/>
-          )}
-        </div>
-        {heatingM > 0 && (
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 16px', border: '1px solid var(--border-subtle)', marginBottom: 10 }}>
-            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' as const, marginBottom: 6 }}>
-              {[{ label: 'Μέσο Μηνιαίο', value: fe(heatingM) },{ label: 'Εκτιμώμενο Ετήσιο', value: fe(heatingM * 12) }].map((k, i) => (
-                <div key={i}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: T.font.sans }}>{k.label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-              Μέσος Όρος: Φυσικό αέριο ~0.08 €/<span title="Κιλοβατώρα — μονάδα ενέργειας">kWh</span> · Πετρέλαιο ~0.10 €/<span title="Κιλοβατώρα — μονάδα ενέργειας">kWh</span> · Αντλία θερμότητας ~0.06 €/<span title="Κιλοβατώρα — μονάδα ενέργειας">kWh</span>, 2026
-            </div>
-          </div>
-        )}
-        {benchmarkBar(heatingM, BENCHMARKS.heating.avg, BENCHMARKS.heating.label)}
-      </div>
-
-      {/* ── Φυσικό αέριο → μετακόμισε σε αφιερωμένο tab ─────────────────────── */}
-      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 32, height: 32, borderRadius: T.radius.inner, background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><path d="M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z"/></svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>Το φυσικό αέριο έχει τη δική του καρτέλα</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Σύγκριση 7 παρόχων με πραγματικά τιμολόγια, διαχειριστές δικτύου (ΕΔΑ Αττικής/ΘΕΣΣ/ΔΕΔΑ) και ζωντανές ειδοποιήσεις σύμβασης.</div>
-        </div>
-      </div>
-
-      {/* ── Security & Συναγερμός ─────────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Συναγερμός και ασφάλεια χώρου')}
-        <div style={g3}>
-          <CustomSelect label="Εταιρεία"            value={s.securityCompany}  onChange={v => upd({ securityCompany: v })}  options={SECURITY_COMPANIES.map(c => ({ value: c.value, label: c.label }))}/>
-          <TextInput    label="Πρόγραμμα ή πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="Παράδειγμα: Basic Monitor"/>
-          <NumberInput  label="Μηνιαίο κόστος" value={s.securityMonthly} onChange={v => upd({ securityMonthly: v })} suffix="€" step={2}/>
-        </div>
-        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 12 }}>
-          <Toggle on={s.securityHasRemote} onChange={v => upd({ securityHasRemote: v })} label="Τηλεχειρισμός μέσω App" labelOff="Χωρίς τηλεχειρισμό"/>
-          <Toggle on={s.securityHasCamera} onChange={v => upd({ securityHasCamera: v })} label="Κάμερες"                 labelOff="Χωρίς κάμερες"/>
-          <Toggle on={s.securityHasDoor}   onChange={v => upd({ securityHasDoor: v })}   label="Αυτόματη πόρτα"         labelOff="Χωρίς αυτόματη πόρτα"/>
-        </div>
-        {securityM > 0 && secData?.url && (
-          <a href={secData.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-            Επίσημη σελίδα {secData.label} →
-          </a>
-        )}
-        {benchmarkBar(securityM, BENCHMARKS.security.avg, BENCHMARKS.security.label)}
-      </div>
-
-      {/* ── Σύνοψη Παρόχων ───────────────────────────────────────────────── */}
-      {totalM > 0 && (
+      {show('internet') && (<>
+        {/* ── Internet & Σταθερό Τηλέφωνο ──────────────────────────────────── */}
         <div style={card}>
-          {secHdr('Σύνοψη Παρόχων')}
-          {[
-            { label: 'Internet',               amount: internetCost, skip: !internetCost },
-            { label: s.tvProvider === 'cosmote' ? 'Cosmote TV' : 'Συνδρομητική TV', amount: tvCost, skip: !s.hasTV },
-            { label: 'Νερό',                   amount: waterM,       skip: !waterM      },
-            { label: 'Θέρμανση',               amount: heatingM,     skip: !heatingM    },
-            { label: 'Security',               amount: securityM,    skip: !securityM   },
-          ].filter(r => !r.skip && r.amount > 0).map((r, i) => (
-            <div key={i} style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{r.label}</span>
-                <div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount)} / μήνα</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
-                </div>
-              </div>
-              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${totalM > 0 ? (r.amount / totalM) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 3 }}/>
-              </div>
+          {secHdr('Internet και σταθερό τηλέφωνο', { url: 'https://www.eett.gr/opencms/opencms/EETT/Electronic_Communications/Market360/', text: 'ΕΕΤΤ 360° Σύγκριση' })}
+          <div style={g2}>
+            <CustomSelect label="Πάροχος" value={s.internetProvider}
+              onChange={v => upd({ internetProvider: v, internetPlanId: '', internetPrice: '', internetSpeed: '' })}
+              options={INTERNET_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
+            {planOptions.length > 0 ? (
+              <CustomSelect label="Πρόγραμμα (επίσημες τιμές)" value={s.internetPlanId}
+                onChange={v => {
+                  const plan = (INTERNET_PLANS[s.internetProvider] || []).find(p => p.id === v);
+                  upd({ internetPlanId: v, internetPlan: plan?.name || '', internetSpeed: plan?.speed || '', internetPrice: plan ? String(plan.price) : '', internetPhone: plan?.hasPhone || false });
+                }}
+                options={[{ value: '', label: '— Επιλογή προγράμματος —' }, ...planOptions]}/>
+            ) : (
+              <TextInput label="Ονομασία προγράμματος" value={s.internetPlan} onChange={v => upd({ internetPlan: v })} placeholder="Παράδειγμα: Fiber 500"/>
+            )}
+            <TextInput   label="Ταχύτητα"            value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="Παράδειγμα: 500/200 Mbps"/>
+            <NumberInput label="Μηνιαίο κόστος"  value={s.internetPrice} onChange={v => upd({ internetPrice: v })} suffix="€" step={1}/>
+          </div>
+
+          {selectedPlan && (
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-default)', flexShrink: 0 }}/>
+              <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{selectedPlan.note} · {selectedPlan.hasPhone ? 'Περιλαμβάνει σταθερό τηλέφωνο' : 'Χωρίς σταθερό τηλέφωνο'}</span>
+              {provData?.url && (
+                <a href={provData.url} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
+                  Επίσημη σελίδα {provData.label}
+                </a>
+              )}
             </div>
-          ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο παρόχων</span>
-            <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(totalM)} / μήνα</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(totalM * 12)} / έτος</div>
+          )}
+
+          <div style={g3}>
+            <DatePicker  label="Λήξη συμβολαίου"                      value={s.internetContractEnd || ''} onChange={v => upd({ internetContractEnd: v })}/>
+            <NumberInput label="Πραγματική ταχύτητα λήψης (Mbps)"   value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', paddingBottom: 2 }}>
+              {s.internetSpeedReal && s.internetSpeed && (() => {
+                const pct = parseFloat(s.internetSpeed) > 0 ? Math.round((parseFloat(s.internetSpeedReal) / parseFloat(s.internetSpeed)) * 100) : 0;
+                const good = pct >= 80;
+                return (
+                  <div style={{ background: good ? 'rgba(52,168,83,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${good ? 'rgba(52,168,83,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 14px' }}>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: good ? 'var(--positive)' : 'var(--warning)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct}%</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{good ? 'Καλή απόδοση' : 'Μειωμένη ταχύτητα'}</div>
+                  </div>
+                );
+              })()}
+              {(!s.internetSpeedReal || !s.internetSpeed) && (
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                  Μέτρησε στο{' '}<a href="https://www.speedtest.net" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>speedtest.net</a>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Ειδοποίηση ανανέωσης συμβολαίου */}
+          {s.internetContractEnd && (() => {
+            const days = daysUntil(s.internetContractEnd) ?? 0;
+            if (days > 90 || days < 0) return null;
+            return (
+              <div style={{ background: days <= 14 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${days <= 14 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: days <= 14 ? 'var(--negative)' : 'var(--warning)', flexShrink: 0 }}/>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  Λήξη συμβολαίου Internet σε{' '}
+                  <strong style={{ color: days <= 14 ? 'var(--negative)' : 'var(--warning)' }}>{days} ημέρες</strong>
+                  {' '}— Σύγκρινε στο ΕΕΤΤ 360° για καλύτερη τιμή.
+                </span>
+              </div>
+            );
+          })()}
+
+          <div style={{ marginBottom: 12 }}>
+            <Toggle on={s.internetPhone} onChange={v => upd({ internetPhone: v })} label="Περιλαμβάνει σταθερό τηλέφωνο" labelOff="Χωρίς σταθερό τηλέφωνο"/>
+          </div>
+
+          {s.internetPhone && (
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12, border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Τι περιλαμβάνει το σταθερό τηλέφωνο</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 10 }}>
+                {phoneFeatures.map(f => (
+                  <div key={f.key} {...pressable(f.toggle)} title={f.tip}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
+                    <span style={{ fontSize: 11, color: f.val ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>
+                  </div>
+                ))}
+              </div>
+              <TextInput label="Σημειώσεις πακέτου" value={s.phoneNotes} onChange={v => upd({ phoneNotes: v })} placeholder="Παράδειγμα: 100 λεπτά διεθνή, αποκλείονται premium…"/>
+            </div>
+          )}
+
+          {(INTERNET_PLANS[s.internetProvider] || []).length > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Διαθέσιμα Προγράμματα {provData?.label}</div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 500 }}>
+                  <thead>
+                    <tr>{['Πρόγραμμα','Ταχύτητα','Σταθερό Τηλέφωνο','Δέσμευση','Μηνιαίο','Ετήσιο'].map((h, i) => (
+                      <th key={i} style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {(INTERNET_PLANS[s.internetProvider] || []).map(plan => {
+                      const isCur = plan.id === s.internetPlanId;
+                      return (
+                        <tr key={plan.id}
+                          onClick={() => upd({ internetPlanId: plan.id, internetPlan: plan.name, internetSpeed: plan.speed, internetPrice: String(plan.price), internetPhone: plan.hasPhone })}
+                          style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
+                          <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{plan.speed}</td>
+                          <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? '✓' : '—'}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontSize: 10, fontFamily: T.font.sans }}>{plan.contract || 'Χωρίς δέσμευση'}</td>
+                          <td style={{ padding: '7px 10px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(plan.price)}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10, whiteSpace: 'nowrap' as const }}>{fe(plan.price * 12)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {benchmarkBar(internetCost, BENCHMARKS.internet.avg, BENCHMARKS.internet.label)}
+
+          {/* FIX: "Συνδρομητική τηλεόραση" (was "PAY TV") */}
+          <div style={{ marginTop: 16, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική τηλεόραση</span>
+              <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} label="Ενεργό" labelOff="Δεν έχω"/>
+            </div>
+            {s.hasTV && (
+              <>
+                {/* FIX: 3 cols + separate toggle row, avoids Sports Package label truncation */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
+                  <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
+                    options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
+                  <TextInput   label="Πρόγραμμα ή πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
+                  <NumberInput label="Μηνιαίο κόστος"   value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
+                </div>
+                <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package ενεργό" labelOff="Χωρίς Sports Package"/>
+              </>
+            )}
+          </div>
         </div>
-      )}
+
+      </>)}
+
+      {show('water') && (<>
+        {/* ── Νερό ─────────────────────────────────────────────────────────── */}
+        <div style={card}>
+          {secHdr('Νερό')}
+          {/* FIX: 2+2 layout, prevents label overflow on narrow screens */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+            <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
+            <CustomSelect
+              label="Συχνότητα χρέωσης"
+              value={s.waterPeriodMonths || '2'}
+              onChange={v => upd({ waterPeriodMonths: v })}
+              options={[
+                { value: '1', label: 'Μηνιαίος' },
+                { value: '2', label: 'Διμηνιαίος (κάθε 2 μήνες)' },
+                { value: '3', label: 'Τριμηνιαίος (κάθε 3 μήνες)' },
+                { value: '4', label: 'Τετραμηνιαίος (κάθε 4 μήνες)' },
+                { value: '6', label: 'Εξαμηνιαίος (κάθε 6 μήνες)' },
+              ]}
+            />
+            <NumberInput  label="Λογαριασμός νερού" value={s.waterBiMonthly}
+              onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2)).toFixed(2)) : '' })}
+              suffix="€" step={5}/>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+            <NumberInput  label="Μηνιαία αναγωγή"   value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€"      step={2}/>
+            <NumberInput  label="Άτομα στο ακίνητο"      value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα"  step={1}/>
+          </div>
+          {waterM > 0 && (
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
+              Μηνιαίο: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterM)}</strong>
+              {s.waterPersons && parseInt(s.waterPersons) > 0 && (
+                <span style={{ marginLeft: 14 }}>Ανά άτομο: <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterM / parseInt(s.waterPersons))}</strong> / μήνα</span>
+              )}
+              {waterData?.url && <a href={waterData.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 14, fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επίσημη σελίδα {waterData.label}</a>}
+            </div>
+          )}
+          {benchmarkBar(waterM * 2, 24, BENCHMARKS.water.label)}
+        </div>
+
+      </>)}
+
+      {show('heating') && (<>
+        {/* ── Θέρμανση ─────────────────────────────────────────────────────── */}
+        <div style={card}>
+          {secHdr('Θέρμανση')}
+          <div style={g3}>
+            <CustomSelect label="Τύπος θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })} options={HEATING_TYPES}/>
+            {['autonomous_gas','central_gas','district','autonomous_heat_pump','autonomous_ac','autonomous_wood'].includes(s.heatingType) && (
+              <NumberInput label="Μέσο μηνιαίο κόστος" value={s.heatingMonthly} onChange={v => upd({ heatingMonthly: v })} suffix="€" step={5}/>
+            )}
+            {s.heatingType === 'autonomous_oil' && (
+              <><NumberInput label="Λίτρα τον χρόνο"     value={s.heatingLitersPerYear}    onChange={v => upd({ heatingLitersPerYear: v })}    suffix="L"   step={50}/><NumberInput label="Τιμή ανά λίτρο" value={s.heatingOilPricePerLiter} onChange={v => upd({ heatingOilPricePerLiter: v })} suffix="€" step={0.01}/></>
+            )}
+            {s.heatingType === 'autonomous_pellet' && (
+              <><NumberInput label="Kg / έτος"     value={s.heatingKgPellet}    onChange={v => upd({ heatingKgPellet: v })}    suffix="kg" step={50}/><NumberInput label="Τιμή ανά κιλό" value={s.heatingPelletPrice} onChange={v => upd({ heatingPelletPrice: v })} suffix="€" step={0.01}/></>
+            )}
+            {['central_oil','central_gas'].includes(s.heatingType) && (
+              <NumberInput label="Μερίδιο ιδιοκτησίας" value={s.heatingCentralShare} onChange={v => upd({ heatingCentralShare: v })} suffix="%" step={1}/>
+            )}
+          </div>
+          {heatingM > 0 && (
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 16px', border: '1px solid var(--border-subtle)', marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' as const, marginBottom: 6 }}>
+                {[{ label: 'Μέσο Μηνιαίο', value: fe(heatingM) },{ label: 'Εκτιμώμενο Ετήσιο', value: fe(heatingM * 12) }].map((k, i) => (
+                  <div key={i}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: T.font.sans }}>{k.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                Τυπικό κόστος ενέργειας 2026, ανά <span title="Κιλοβατώρα, μονάδα ενέργειας">κιλοβατώρα</span>: φυσικό αέριο περίπου {feRate(0.08)} · πετρέλαιο περίπου {feRate(0.10)} · αντλία θερμότητας περίπου {feRate(0.06)}
+              </div>
+            </div>
+          )}
+          {benchmarkBar(heatingM, BENCHMARKS.heating.avg, BENCHMARKS.heating.label)}
+        </div>
+
+      </>)}
+
+      {show('security') && (<>
+        {/* ── Security & Συναγερμός ─────────────────────────────────────────── */}
+        <div style={card}>
+          {secHdr('Συναγερμός και ασφάλεια χώρου')}
+          <div style={g3}>
+            <CustomSelect label="Εταιρεία"            value={s.securityCompany}  onChange={v => upd({ securityCompany: v })}  options={SECURITY_COMPANIES.map(c => ({ value: c.value, label: c.label }))}/>
+            <TextInput    label="Πρόγραμμα ή πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="Παράδειγμα: Basic Monitor"/>
+            <NumberInput  label="Μηνιαίο κόστος" value={s.securityMonthly} onChange={v => upd({ securityMonthly: v })} suffix="€" step={2}/>
+          </div>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 12 }}>
+            <Toggle on={s.securityHasRemote} onChange={v => upd({ securityHasRemote: v })} label="Τηλεχειρισμός μέσω App" labelOff="Χωρίς τηλεχειρισμό"/>
+            <Toggle on={s.securityHasCamera} onChange={v => upd({ securityHasCamera: v })} label="Κάμερες"                 labelOff="Χωρίς κάμερες"/>
+            <Toggle on={s.securityHasDoor}   onChange={v => upd({ securityHasDoor: v })}   label="Αυτόματη πόρτα"         labelOff="Χωρίς αυτόματη πόρτα"/>
+          </div>
+          {securityM > 0 && secData?.url && (
+            <a href={secData.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+              Επίσημη σελίδα {secData.label}
+            </a>
+          )}
+          {benchmarkBar(securityM, BENCHMARKS.security.avg, BENCHMARKS.security.label)}
+        </div>
+
+      </>)}
+
     </div>
   );
 }

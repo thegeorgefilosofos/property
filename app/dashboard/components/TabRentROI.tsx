@@ -840,8 +840,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       `Αξία ακινήτου: ${rEur(nVal)} (καταχώρηση ή εκτίμηση χρήστη)`,
       term === 'short' ? `Έσοδα: εκτιμώμενη πληρότητα ${rPct(occEff)} × τιμή/νύχτα ${rEur(adrEff)}` : `Έσοδα: μηνιαίο ενοίκιο ${rEur(nRent)}`,
       apprTouched
-        ? `Ετήσια ανατίμηση: ${rPct(nAppr)} — υπόθεση του χρήστη (η τεκμηριωμένη τιμή είναι ${rPct(apprRef.pct)})`
-        : `Ετήσια ανατίμηση: ${rPct(nAppr)} — δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear}–${apprRef.toYear}`,
+        ? `Ετήσια ανατίμηση: ${rPct(nAppr)}· υπόθεση του χρήστη (η τεκμηριωμένη τιμή είναι ${rPct(apprRef.pct)})`
+        : `Ετήσια ανατίμηση: ${rPct(nAppr)}· δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear}–${apprRef.toYear}`,
       `Φορολογικό καθεστώς: ${regimeLabel}`,
       ...(pro ? [] : [`Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`]),
       ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${rEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${rEur(portfolioTax.totalTax)})`] : []),
@@ -914,8 +914,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         `Αξία ακινήτου: ${pEur(nVal)} (καταχώρηση ή εκτίμηση χρήστη)`,
         term === 'short' ? `Έσοδα: εκτιμώμενη πληρότητα ${pPct(occEff)} × τιμή/νύχτα ${pEur(adrEff)}` : `Έσοδα: μηνιαίο ενοίκιο ${pEur(nRent)}`,
         apprTouched
-          ? `Ετήσια ανατίμηση: ${pPct(nAppr)} — υπόθεση του χρήστη (η τεκμηριωμένη τιμή είναι ${pPct(apprRef.pct)})`
-          : `Ετήσια ανατίμηση: ${pPct(nAppr)} — δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear}–${apprRef.toYear}`,
+          ? `Ετήσια ανατίμηση: ${pPct(nAppr)}· υπόθεση του χρήστη (η τεκμηριωμένη τιμή είναι ${pPct(apprRef.pct)})`
+          : `Ετήσια ανατίμηση: ${pPct(nAppr)}· δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear}–${apprRef.toYear}`,
         `Φορολογικό καθεστώς: ${regimeLabel}`,
         ...(pro ? [] : [`Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`]),
         ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${pEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${pEur(portfolioTax.totalTax)})`] : []),
@@ -1041,7 +1041,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ArrowUpRight size={14} /> Για μένα
             </button>
-            <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης — κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης· κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Για τράπεζα ή λογιστή'}
             </button>
           </>)}

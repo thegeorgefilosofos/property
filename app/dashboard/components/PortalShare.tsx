@@ -125,7 +125,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     setBusy(false);
     if (error) { notifyError(failed('Η ρύθμιση της πύλης δεν αποθηκεύτηκε', error)); return; }
     setToken(t); setLinkTenant(tenant.id); setCopied(false);
-    notifyOk('Νέος σύνδεσμος. Ο παλιός έπαψε να ισχύει — στείλε τον νέο στον ενοικιαστή.');
+    notifyOk('Νέος σύνδεσμος. Ο παλιός έπαψε να ισχύει· στείλε τον νέο στον ενοικιαστή.');
   };
 
   // Δεμένος σε ΑΛΛΟΝ από αυτόν που μένει τώρα: ο παλιός σύνδεσμος δείχνει σε

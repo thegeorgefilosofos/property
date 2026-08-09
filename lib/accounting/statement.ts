@@ -233,7 +233,7 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   }
   if (loanPrincipal > 0) lines.push({ key: 'principal', label: business ? 'Χρεολύσιο δανείου (κεφάλαιο)' : 'Δόσεις δανείου', amount: loanPrincipal, kind: 'deduction', negative: true })
   if (otherCash > 0) lines.push({ key: 'otherCash', label: 'Λοιπές ταμειακές δαπάνες', amount: otherCash, kind: 'deduction', negative: true })
-  if (uncollected > 0) lines.push({ key: 'uncollected', label: input.legallyClaimedUncollected ? 'Ανείσπρακτα ενοίκια (διεκδικημένα — αφορολόγητα)' : 'Ανείσπρακτα ενοίκια', amount: uncollected, kind: 'deduction', negative: true })
+  if (uncollected > 0) lines.push({ key: 'uncollected', label: input.legallyClaimedUncollected ? 'Ανείσπρακτα ενοίκια (διεκδικημένα, αφορολόγητα)' : 'Ανείσπρακτα ενοίκια', amount: uncollected, kind: 'deduction', negative: true })
   lines.push({ key: 'netCash', label: 'Ταμειακό υπόλοιπο', amount: netCash, kind: 'result' })
 
   return {

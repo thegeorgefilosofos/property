@@ -115,14 +115,27 @@ export interface LeaseParties {
   propertyAddress?: string; sqm?: number; atak?: string; floor?: string;
 }
 
+/**
+ * ΤΟ ΚΕΝΟ ΕΝΟΣ ΣΥΜΦΩΝΗΤΙΚΟΥ ΔΕΝ ΕΙΝΑΙ ΠΑΥΛΑ.
+ *
+ * Ήταν «—» σε τρεις θέσεις: όνομα εκμισθωτή, όνομα μισθωτή, περιγραφή μισθίου.
+ * Δηλαδή ένα συμφωνητικό που τυπωνόταν «αφενός ο εκμισθωτής —» και δινόταν σε
+ * άλλον άνθρωπο να το υπογράψει. Η παύλα σε αυτή τη θέση δεν διαβάζεται ως
+ * «λείπει»· διαβάζεται ως τυπογραφικό λάθος, και το κείμενο χάνει την αξία του.
+ *
+ * Στα έντυπα το κενό που περιμένει συμπλήρωση γράφεται με αποσιωπητικά. Είναι
+ * η μόνη σήμανση που κανείς δεν προσπερνά κατά λάθος.
+ */
+const BLANK = '……………………';
+
 /** Εισαγωγικό κείμενο συμφωνητικού (συμβαλλόμενοι, μίσθιο, σκοπός). */
 export function leasePreamble(p: LeaseParties, r: LeaseResult, use: LeaseUse = 'residence'): string {
-  const L = [p.landlordName || '—', p.landlordAfm ? `ΑΦΜ ${p.landlordAfm}` : ''].filter(Boolean).join(', ');
-  const T = [p.tenantName || '—', p.tenantAfm ? `ΑΦΜ ${p.tenantAfm}` : ''].filter(Boolean).join(', ');
+  const L = [p.landlordName || BLANK, p.landlordAfm ? `ΑΦΜ ${p.landlordAfm}` : ''].filter(Boolean).join(', ');
+  const T = [p.tenantName || BLANK, p.tenantAfm ? `ΑΦΜ ${p.tenantAfm}` : ''].filter(Boolean).join(', ');
   const where = [p.propertyAddress, p.floor ? `όροφος ${p.floor}` : '', p.sqm ? `${p.sqm} τ.μ.` : '', p.atak ? `ΑΤΑΚ ${p.atak}` : ''].filter(Boolean).join(', ');
   const purpose = use === 'residence' ? 'ως κύρια κατοικία του μισθωτή' : 'για επαγγελματική χρήση';
   return `Σήμερα, ${grDate(isoOf(new Date()))}, οι κάτωθι συμβαλλόμενοι, αφενός ο εκμισθωτής ${L} και αφετέρου ο μισθωτής ${T}, `
-    + `συμφώνησαν και έκαναν αμοιβαία αποδεκτά τα ακόλουθα: ο εκμισθωτής εκμισθώνει στον μισθωτή το ακίνητο ${where || '—'}, `
+    + `συμφώνησαν και έκαναν αμοιβαία αποδεκτά τα ακόλουθα: ο εκμισθωτής εκμισθώνει στον μισθωτή το ακίνητο ${where || BLANK}, `
     + `${purpose}, με τους παρακάτω όρους.`;
 }
 

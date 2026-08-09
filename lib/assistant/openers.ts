@@ -85,11 +85,11 @@ export function suggestedOpeners(ctx: OpenerContext | null = {}): string[] {
 
   // 1. ΕΠΕΙΓΟΝ — ό,τι κοστίζει τώρα ή έχει προθεσμία.
   if (has(ctx.overdueRent)) {
-    out.push(`Μου χρωστάει ${eur(ctx.overdueRent)} ενοίκιο — τι κάνω;`);
+    out.push(`Μου χρωστάει ${eur(ctx.overdueRent)} ενοίκιο· τι κάνω;`);
   }
   if ((ctx.openTasks ?? 0) > 0) {
     const n = ctx.openTasks as number;
-    out.push(n === 1 ? 'Ποια είναι η εκκρεμότητά μου και πότε λήγει;' : `Έχω ${n} εκκρεμότητες — ποια είναι η πιο επείγουσα;`);
+    out.push(n === 1 ? 'Ποια είναι η εκκρεμότητά μου και πότε λήγει;' : `Έχω ${n} εκκρεμότητες· ποια είναι η πιο επείγουσα;`);
   }
 
   // 2. ΧΡΗΜΑ — το νούμερο που τον απασχολεί πραγματικά.
@@ -97,7 +97,7 @@ export function suggestedOpeners(ctx: OpenerContext | null = {}): string[] {
     out.push(`Από τα ${eur(ctx.monthlyRent)} τον μήνα, πόσο μου μένει καθαρά;`);
   }
   if (has(ctx.expensesYtd)) {
-    out.push(`Ξόδεψα ${eur(ctx.expensesYtd)} φέτος${forProp} — πού πήγαν;`);
+    out.push(`Ξόδεψα ${eur(ctx.expensesYtd)} φέτος${forProp}· πού πήγαν;`);
   }
 
   // 3. ΦΟΡΟΣ & ΑΠΟΔΟΣΗ — ο λόγος που έψαξε λύση.
@@ -172,5 +172,5 @@ export function greeting(assistantName: string = ASSISTANT_NAME, ctx: OpenerCont
   }
 
   const list = knows.length === 1 ? knows[0] : `${knows.slice(0, -1).join(', ')} και ${knows[knows.length - 1]}`;
-  return `${hi}! Είμαι ${assistantName}. Βλέπω ${list} ${scope}. ${you} για ${yours} — όχι γενικά.`;
+  return `${hi}! Είμαι ${assistantName}. Βλέπω ${list} ${scope}. ${you} για ${yours}, όχι γενικά.`;
 }

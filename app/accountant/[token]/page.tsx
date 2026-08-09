@@ -144,7 +144,7 @@ export default function AccountantPortal() {
                 {x.rentAnnual === 0 && x.shortGross === 0 && (
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                     Καμία καταχωρημένη είσπραξη ενοικίου για το {year}
-                    {x.p.rent_monthly ? ` — σήμερα νοικιάζεται ${feAuto(x.p.rent_monthly)} τον μήνα` : ''}.
+                    {x.p.rent_monthly ? `· σήμερα νοικιάζεται ${feAuto(x.p.rent_monthly)} τον μήνα` : ''}.
                   </div>
                 )}
                 {x.shortGross > 0 && row('Βραχυχρόνια (καταγεγραμμένο ποσό)', feAuto(x.shortGross))}

@@ -71,7 +71,7 @@ export const askPlaceholder = (formal = false): string =>
   `${formal ? 'Ρωτήστε' : 'Ρώτα'} για τα δικά ${formal ? 'σας' : 'σου'} δεδομένα…`;
 
 /** aria-label του πλωτού κουμπιού (και μόνο αυτού). */
-export const openAria = (): string => `${askCta()} — άνοιγμα συνομιλίας`;
+export const openAria = (): string => `${askCta()} · άνοιγμα συνομιλίας`;
 
 /** Ένδειξη ότι εκφωνείται απάντηση. Υποκείμενο χωρίς άρθρο. */
 export const speakingLabel = (): string => `${ASSISTANT_NAME} μιλάει…`;

@@ -35,7 +35,7 @@ ok('VERSION:2.0', ics.includes('VERSION:2.0'))
 ok('PRODID υπάρχει', /\r\nPRODID:/.test(ics))
 ok('CALSCALE:GREGORIAN', ics.includes('CALSCALE:GREGORIAN'))
 ok('METHOD:PUBLISH', ics.includes('METHOD:PUBLISH'))
-ok('X-WR-CALNAME με τίτλο + Κρατήσεις', ics.includes('X-WR-CALNAME:Βίλα Ελιά — Κρατήσεις'))
+ok('X-WR-CALNAME με τίτλο + Κρατήσεις', ics.includes('X-WR-CALNAME:Βίλα Ελιά · Κρατήσεις'))
 
 // 4 έγκυρα stays (s1,s2,s4,s5) → 4 VEVENT
 ok('4 VEVENT (ένα ανά έγκυρο stay)', count(ics, 'BEGIN:VEVENT') === 4)
@@ -72,7 +72,7 @@ ok('ξεκινά με BEGIN:VCALENDAR\\r\\n', ics.startsWith('BEGIN:VCALENDAR\r\
 
 // ── Escaping ειδικών χαρακτήρων στο X-WR-CALNAME ───────────────────────────────
 const icsEsc = buildBusyICS([], 'A,B;C\\D')
-ok('escape κόμμα/;/\\ στο calname', icsEsc.includes('X-WR-CALNAME:A\\,B\\;C\\\\D — Κρατήσεις'))
+ok('escape κόμμα/;/\\ στο calname', icsEsc.includes('X-WR-CALNAME:A\\,B\\;C\\\\D · Κρατήσεις'))
 ok('κενό stays → κανένα VEVENT', count(icsEsc, 'BEGIN:VEVENT') === 0)
 
 // ── Line folding στα 75 octets ────────────────────────────────────────────────

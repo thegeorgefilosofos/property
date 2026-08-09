@@ -327,7 +327,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   const occupancyTitle = (r: Row): string | undefined =>
     r.occupancy == null ? undefined
-      : `${r.nights} νύχτες σε ${r.availableDays} διαθέσιμες ημέρες — ο ίδιος υπολογισμός με την «Πληρότητα» της Επισκόπησης. Διαθέσιμες = οι μήνες από την πρώτη ως την τελευταία κράτηση του έτους.`;
+      : `${r.nights} νύχτες σε ${r.availableDays} διαθέσιμες ημέρες· ο ίδιος υπολογισμός με την «Πληρότητα» της Επισκόπησης. Διαθέσιμες = οι μήνες από την πρώτη ως την τελευταία κράτηση του έτους.`;
 
   // ── Μαζική επιλογή ──────────────────────────────────────────────────────
   const allSelected = rows.length > 0 && selected.size === rows.length;

@@ -329,10 +329,10 @@ function useChecklistAlerts(propertyId: string | null) {
 // μόνες όπου εμφανίζεται. Σε μισθωμένο ακίνητο δεν υπάρχει σχέδιο να φτιαχτεί:
 // υπάρχει ενοίκιο να εισπραχθεί.
 const PLAN_SUB: Record<string, string> = {
-  vacant:     'Κενό — πώς θα μισθωθεί ή θα αξιοποιηθεί',
-  for_sale:   'Προς πώληση — τιμή, χρονισμός, φόρος υπεραξίας',
-  renovation: 'Σε ανακαίνιση — κόστος, χρονοδιάγραμμα, επιδοτήσεις',
-  disputed:   'Νομική εκκρεμότητα — βήματα και προθεσμίες',
+  vacant:     'Κενό· πώς θα μισθωθεί ή θα αξιοποιηθεί',
+  for_sale:   'Προς πώληση· τιμή, χρονισμός, φόρος υπεραξίας',
+  renovation: 'Σε ανακαίνιση· κόστος, χρονοδιάγραμμα, επιδοτήσεις',
+  disputed:   'Νομική εκκρεμότητα· βήματα και προθεσμίες',
 };
 
 
@@ -946,7 +946,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
         if (loans.length > 0) extra.push({
           label:'Δόση δανείου / μήνα', value:fmtEur(Math.round(monthlyDebt)),
           sub: debtLtv>0 ? `δάνειο προς αξία ${fp(debtLtv)}` : undefined,
-          title:'Εκτιμώμενη τοκοχρεολυτική δόση. ΔΕΝ αφαιρείται από το καθαρό αποτέλεσμα παραπάνω — το κεφάλαιο δεν είναι δαπάνη.' });
+          title:'Εκτιμώμενη τοκοχρεολυτική δόση. ΔΕΝ αφαιρείται από το καθαρό αποτέλεσμα παραπάνω· το κεφάλαιο δεν είναι δαπάνη.' });
         if (hostStays.length > 0) extra.push({
           label:`Έσοδα φιλοξενίας ${year}`, value:fmtEur(Math.round(hostingYTD)),
           sub: [hostingNights>0?`${hostingNights} διανυκτερεύσεις`:null, nextArrival?`επόμενη άφιξη ${fd(nextArrival)}`:null].filter(Boolean).join(' · ') || undefined,
@@ -1452,7 +1452,7 @@ export default function Dashboard() {
       // duration 0 = μένει ώσπου να το κλείσει ο χρήστης, ίδιο βάρος με το alert που
       // αντικατέστησε. Οι δύο προτάσεις ενώθηκαν σε μία παράγραφο: το toast δεν
       // αποδίδει αλλαγές γραμμής και το «\n\n» θα κολλούσε τις προτάσεις μεταξύ τους.
-      notifyError('Δεν έγινε η αποσύνδεση — δες τη σύνδεσή σου στο δίκτυο και δοκίμασε ξανά. Τα δεδομένα σου στη συσκευή δεν πειράχτηκαν.', { duration: 0 });
+      notifyError('Δεν έγινε η αποσύνδεση. Δες τη σύνδεσή σου στο δίκτυο και δοκίμασε ξανά. Τα δεδομένα σου στη συσκευή δεν πειράχτηκαν.', { duration: 0 });
       return;
     }
     clearLocalPersonalData();
@@ -1861,7 +1861,16 @@ export default function Dashboard() {
                 σφάλμα σε μία να μην κρατά κλειδωμένες τις υπόλοιπες. */}
             <TabBoundary name={nav} key={nav}>
             <div className="app-content">
-              {['contacts','documents','checklist','inventory','calendar'].includes(navSafe) && (
+              {/* Ο κανόνας ήταν ήδη γραμμένη αρχή — «η έξοδος είναι πάντα ένα
+                  επίπεδο πάνω, δηλαδή η Επισκόπηση» — αλλά εφαρμοζόταν σε πέντε
+                  καρτέλες από τις είκοσι δύο, γραμμένες με το χέρι. Δηλαδή στην
+                  Αξιοποίηση, στη Λογιστική, στο Δάνειο, στις Δαπάνες, στην
+                  Πρόσκληση και στον Λογαριασμό ο μόνος δρόμος πίσω ήταν η πλαϊνή
+                  μπάρα — που σε κινητό είναι κλειστή.
+                  Τώρα το ερώτημα δεν είναι «ποια καρτέλα το δείχνει» αλλά
+                  «υπάρχει επίπεδο από πάνω;». Δεν υπάρχει σε δύο: στην ίδια την
+                  Επισκόπηση, και στο Χαρτοφυλάκιο που στέκει πάνω από αυτήν. */}
+              {navSafe !== 'overview' && navSafe !== 'portfolio' && (
                 <button onClick={()=>setNav(backTab)} title={`Πίσω: ${backLabel}`} aria-label={`Πίσω: ${backLabel}`}
                   style={{display:'inline-flex',alignItems:'center',gap:6,marginBottom:14,padding:'4px 4px 4px 0',border:'none',background:'transparent',color:'var(--text-tertiary)',fontFamily: T.font.sans,fontSize:13,fontWeight:600,cursor:'pointer'}}
                   onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}>

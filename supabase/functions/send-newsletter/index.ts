@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
   if (!recipients.length) return json({ message: 'no_subscribers' })
 
   const inner = (updates as Update[]).map(updateBlock).join('')
-  const subject = updates.length === 1 ? `Property OS — ${updates[0].title}` : `Property OS — ${updates.length} νέες δυνατότητες`
+  const subject = updates.length === 1 ? `Property OS — ${updates[0].title}` : `Property OS · ${updates.length} νέες δυνατότητες`
 
   let sent = 0, failed = 0
   for (let i = 0; i < recipients.length; i += 100) {

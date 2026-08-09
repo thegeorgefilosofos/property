@@ -174,7 +174,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
   rent_long: [
     {
       id: 'e2',
-      title: 'Ε2 — Αναλυτική κατάσταση μισθωμάτων',
+      title: 'Ε2 · Αναλυτική κατάσταση μισθωμάτων',
       why: 'Το βασικό έντυπο για κάθε εισόδημα από ακίνητο.',
       who: 'app',
       blocking: true,
@@ -191,7 +191,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
       who: 'owner',
       source: 'myAADE',
       blocking: true,
-      trap: 'Το προσυμπληρωμένο είναι συχνά λάθος — γι\' αυτό ακριβώς η ΑΑΔΕ σου επιτρέπει να το διορθώσεις. Αν το υπογράψεις χωρίς έλεγχο, το λάθος γίνεται δικό σου.',
+      trap: 'Το προσυμπληρωμένο είναι συχνά λάθος· γι\' αυτό ακριβώς η ΑΑΔΕ σου επιτρέπει να το διορθώσεις. Αν το υπογράψεις χωρίς έλεγχο, το λάθος γίνεται δικό σου.',
     },
     {
       id: 'lease_declaration',
@@ -238,7 +238,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
       who: 'owner',
       source: 'myAADE',
       blocking: true,
-      trap: 'Η πλατφόρμα δηλώνει ΑΚΑΘΑΡΙΣΤΑ, πριν την προμήθειά της. Αν κατέγραψες το ποσό που μπήκε στον λογαριασμό σου, το προσυμπληρωμένο θα δείχνει μεγαλύτερο νούμερο — και θα έχει δίκιο.',
+      trap: 'Η πλατφόρμα δηλώνει ΑΚΑΘΑΡΙΣΤΑ, πριν την προμήθειά της. Αν κατέγραψες το ποσό που μπήκε στον λογαριασμό σου, το προσυμπληρωμένο θα δείχνει μεγαλύτερο νούμερο, και θα έχει δίκιο.',
     },
     {
       id: 'ama',
@@ -369,7 +369,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
 const SINGLE_ENTRY: Requirement[] = [
   {
     id: 'e3',
-    title: 'Ε3 — Κατάσταση Οικονομικών Στοιχείων',
+    title: 'Ε3 · Κατάσταση Οικονομικών Στοιχείων',
     why: 'Τα έσοδα και τα έξοδα της δραστηριότητας.',
     who: 'accountant',
     blocking: true,
@@ -429,7 +429,7 @@ const DOUBLE_ENTRY: Requirement[] = [
   },
   {
     id: 'form_n',
-    title: 'Έντυπο Ν — δήλωση νομικού προσώπου',
+    title: 'Έντυπο Ν · δήλωση νομικού προσώπου',
     why: 'Η φορολογική δήλωση της εταιρείας.',
     who: 'accountant',
     blocking: true,
@@ -460,7 +460,7 @@ const DOUBLE_ENTRY: Requirement[] = [
 const EXTRAS: Requirement[] = [
   {
     id: 'e9',
-    title: 'Ε9 — Δήλωση Στοιχείων Ακινήτων',
+    title: 'Ε9 · Δήλωση Στοιχείων Ακινήτων',
     why: 'Υποβάλλεται μόνο όταν αλλάζει κάτι στην ιδιοκτησία.',
     who: 'accountant',
     blocking: true,

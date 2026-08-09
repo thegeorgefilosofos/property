@@ -100,7 +100,7 @@ function foldLine(line: string): string {
 
 // Χτίζει το busy VCALENDAR από τα stays του ακινήτου.
 export function buildBusyICS(stays: BusyStay[], propertyTitle: string): string {
-  const calName = `${(propertyTitle || '').trim()} — Κρατήσεις`
+  const calName = `${(propertyTitle || '').trim()} · Κρατήσεις`
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',

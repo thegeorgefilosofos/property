@@ -407,7 +407,7 @@ export function insuranceSwitchFinding(
   return {
     current, best: cheaper.monthlyEstimate, savingsMonthly: savings,
     bestLabel: `${cheaper.companyLabel} ${cheaper.planLabel}`,
-    basedOn: `${sqm} τ.μ., ίδιες ή καλύτερες καλύψεις — εκτίμηση, όχι προσφορά`,
+    basedOn: `${sqm} τ.μ., ίδιες ή καλύτερες καλύψεις· εκτίμηση, όχι προσφορά`,
   };
 }
 
@@ -458,7 +458,14 @@ function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, 
   ];
 }
 
-export default function BillsInsurance({ propertyId, userId = '' }: { propertyId: string; userId?: string }) {
+/**
+ * Η ασφάλεια κατοικίας και οι συνδρομές streaming δεν είναι ίδιο πράγμα, και
+ * δεν τα ανοίγει κανείς μαζί. Το `only` δηλώνει ποια κάρτα πατήθηκε.
+ */
+export type InsuranceScope = 'insurance' | 'subscriptions';
+
+export default function BillsInsurance({ propertyId, userId = '', only }: { propertyId: string; userId?: string; only?: InsuranceScope }) {
+  const show = (k: InsuranceScope) => !only || only === k;
   const supabase = createClient();
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
   const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
@@ -927,461 +934,461 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       )}
 
       {/* ── Standalone coverage gap notification (σεισμός/πλημμύρα) ───────── */}
-      {insCompany && (() => {
-        const hasEq = effectiveEarthquake;
-        const hasFl = effectiveFloodState;
-        if (hasEq && hasFl) return null;
-        return (
-          <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }}/>
-            <span style={{ color: 'var(--text-secondary)' }}>
-              {!hasEq && !hasFl ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό ούτε πλημμύρα.' : !hasEq ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό.' : 'Το πρόγραμμά σου δεν καλύπτει πλημμύρα.'}
-              {' '}Εξετάστε αναβάθμιση κάλυψης.
-            </span>
-          </div>
-        );
-      })()}
+      {/* ΟΙ ΕΙΔΟΠΟΙΗΣΕΙΣ ΑΝΗΚΟΥΝ ΣΤΗΝ ΑΣΦΑΛΕΙΑ, ΟΧΙ ΣΤΙΣ ΣΥΝΔΡΟΜΕΣ. Η λήξη
+          ασφαλιστηρίου και η ελλιπής κάλυψη σεισμού δεν έχουν καμία σχέση με το
+          Netflix· εμφανίζονταν όμως και στις δύο, γιατί το πάνελ ήταν ένα.
 
-      {/* Αν η ασφάλεια δεν έφτασε στο ακίνητο, ο χρήστης πρέπει να το μάθει από
-          την οθόνη. Πριν, η αποτυχία ήταν αόρατη και η υπενθύμιση λήξης απλώς
-          δεν ερχόταν ποτέ. */}
-      {syncError && (
-        <InfoBanner tone="warning">
-          Τα στοιχεία ασφάλισης δεν αποθηκεύτηκαν στο ακίνητο. Η υπενθύμιση λήξης δεν θα λειτουργήσει μέχρι να ξαναδοκιμάσεις.
-        </InfoBanner>
-      )}
+          Η σειρά τεσσάρων μεγάλων αριθμών στην κορυφή έφυγε για τον ίδιο λόγο
+          με τους Παρόχους: αθροίσματα κατηγοριών που ο χρήστης δεν ζήτησε,
+          μπροστά από αυτό που ζήτησε. Το σύνολο των συνδρομών μένει, κάτω από
+          τις συνδρομές, όπου το διαβάζει όποιος τις κοιτάζει. */}
 
-      {/* ── Renewal alerts ──────────────────────────────────────────────── */}
-      {renewalAlerts.map((a, i) => (
-        <div key={i} style={{ background: a.type === 'danger' ? 'var(--negative-soft)' : a.type === 'warning' ? 'var(--warning-soft)' : 'var(--accent-soft)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)', flexShrink: 0 }}/>
-          <strong>{a.name}</strong>: {a.daysLeft === 0 ? 'Λήγει ΣΗΜΕΡΑ' : `Λήγει σε ${a.daysLeft} ημέρες`}
-        </div>
-      ))}
+      {show('insurance') && (<>
+        {insCompany && (() => {
+          const hasEq = effectiveEarthquake;
+          const hasFl = effectiveFloodState;
+          if (hasEq && hasFl) return null;
+          return (
+            <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }}/>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {!hasEq && !hasFl ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό ούτε πλημμύρα.' : !hasEq ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό.' : 'Το πρόγραμμά σου δεν καλύπτει πλημμύρα.'}
+                {' '}Εξετάστε αναβάθμιση κάλυψης.
+              </span>
+            </div>
+          );
+        })()}
 
-      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
-        {[
-          { label: 'Ασφάλεια Κατοικίας', value: hasPolicy ? fe(insCost) : ABSENT_SHORT },
-          { label: 'Streaming & Media',   value: fe(streamingCost) },
-          { label: 'Cloud & Λογισμικό',   value: fe(cloudCost)     },
-          { label: 'Σύνολο / μήνα',       value: fe(total)         },
-        ].map((k, i) => (
-          <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: i === 3 && total > 0 ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+        {/* Αν η ασφάλεια δεν έφτασε στο ακίνητο, ο χρήστης πρέπει να το μάθει από
+            την οθόνη. Πριν, η αποτυχία ήταν αόρατη και η υπενθύμιση λήξης απλώς
+            δεν ερχόταν ποτέ. */}
+        {syncError && (
+          <InfoBanner tone="warning">
+            Τα στοιχεία ασφάλισης δεν αποθηκεύτηκαν στο ακίνητο. Η υπενθύμιση λήξης δεν θα λειτουργήσει μέχρι να ξαναδοκιμάσεις.
+          </InfoBanner>
+        )}
+
+        {/* ── Renewal alerts ──────────────────────────────────────────────── */}
+        {renewalAlerts.map((a, i) => (
+          <div key={i} style={{ background: a.type === 'danger' ? 'var(--negative-soft)' : a.type === 'warning' ? 'var(--warning-soft)' : 'var(--accent-soft)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)', flexShrink: 0 }}/>
+            <strong>{a.name}</strong>: {a.daysLeft === 0 ? 'Λήγει ΣΗΜΕΡΑ' : `Λήγει σε ${a.daysLeft} ημέρες`}
           </div>
         ))}
-      </div>
 
-      {/* ── Ασφάλεια Κατοικίας ───────────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Ασφάλεια κατοικίας')}
+        {/* ── Ασφάλεια Κατοικίας ───────────────────────────────────────────── */}
+        <div style={card}>
+          {secHdr('Ασφάλεια κατοικίας')}
 
-        {/* ── ΤΟ ΔΙΚΟ ΣΟΥ ΑΣΦΑΛΙΣΤΗΡΙΟ, ΠΡΩΤΑ ────────────────────────────────
-            ΗΤΑΝ ΤΕΛΕΥΤΑΙΟ, ΜΕΤΑ ΑΠΟ ~150 ΓΡΑΜΜΕΣ ΚΑΤΑΛΟΓΟΥ ΑΓΟΡΑΣ: στοιχεία
-            ακινήτου, φίλτρα, «τι χρειάζεται αυτό το ακίνητο», προτεινόμενο,
-            τρεις κάρτες προσφορών και πλήρης πίνακας — και μετά, στο τέλος, το
-            συμβόλαιο που ΕΧΕΙ ο ιδιοκτήτης.
+          {/* ── ΤΟ ΔΙΚΟ ΣΟΥ ΑΣΦΑΛΙΣΤΗΡΙΟ, ΠΡΩΤΑ ────────────────────────────────
+              ΗΤΑΝ ΤΕΛΕΥΤΑΙΟ, ΜΕΤΑ ΑΠΟ ~150 ΓΡΑΜΜΕΣ ΚΑΤΑΛΟΓΟΥ ΑΓΟΡΑΣ: στοιχεία
+              ακινήτου, φίλτρα, «τι χρειάζεται αυτό το ακίνητο», προτεινόμενο,
+              τρεις κάρτες προσφορών και πλήρης πίνακας — και μετά, στο τέλος, το
+              συμβόλαιο που ΕΧΕΙ ο ιδιοκτήτης.
 
-            Η ίδια ανάποδη ιεραρχία που διορθώθηκε ένα επίπεδο πιο πάνω, στα
-            Συμβόλαια: κανείς δεν ανοίγει την Ασφάλεια για να μελετήσει την
-            αγορά, την ανοίγει για να δει τι έχει και πότε λήγει. Η αγορά είναι
-            η ΔΕΥΤΕΡΗ ερώτηση, και μένει ακέραιη από κάτω. */}
-        {/* ── Current plan selection ────────────────────────────────────── */}
-        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 4 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον πρόγραμμα</div>
-          <div style={g3}>
-            <CustomSelect label="Ασφαλιστική εταιρεία" value={insProvider}
-              onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
-              options={insOptions}/>
-            <CustomSelect label="Πρόγραμμα ασφάλισης" value={insPlanId}
-              onChange={v => u({ insPlanId: v, insEditCovers: false })}
-              options={insPlanOptions}/>
-            <NumberInput label="Πραγματικό κόστος τον μήνα" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
-          </div>
-          <div style={g4}>
-            <TextInput   label={insCompany?.agent_label || 'Ασφαλιστής'} value={insAgentName}    onChange={v => u({ insAgentName: v })}    placeholder="Ονοματεπώνυμο"/>
-            <TextInput   label="Τηλέφωνο ασφαλιστή"                      value={insAgentPhone}   onChange={v => u({ insAgentPhone: v })}   placeholder="69xxxxxxxx"/>
-            <DatePicker  label="Ημερομηνία ανανέωσης"                     value={insRenewalDate}  onChange={v => u({ insRenewalDate: v })}/>
-            {insCompany?.url && (
-              <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
-                <a href={insCompany.url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '9px 14px', fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                  Επίσημη σελίδα →
-                </a>
-              </div>
-            )}
-          </div>
-
-          {insPlan && (
-            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις προγράμματος</div>
-                <button onClick={() => { u({ insEditCovers: !insEditCovers }); if (!insEditCovers) { u({ insCustomCovers: effectiveCovers.join(', '), insCustomEarthquake: effectiveEarthquake, insCustomFlood: effectiveFloodState, insCustomNatural: effectiveNatural }); } }}
-                  style={{ fontSize: 10, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
-                  {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
-                </button>
-              </div>
-              {/* Δυναμικός πίνακας καλύψεων, ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
-                {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? '✓' : '—'}</span>
-                    <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
-                  </div>
-                ))}
-              </div>
-              {insEditCovers && (
-                <div>
-                  <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός…"
-                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς σεισμό"/>
-                    <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς πλημμύρα"/>
-                    <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές" labelOff="Χωρίς"/>
-                  </div>
-                </div>
-              )}
-              {effectiveEarthquake && effectiveFloodState && (
-                <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
-                  Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
+              Η ίδια ανάποδη ιεραρχία που διορθώθηκε ένα επίπεδο πιο πάνω, στα
+              Συμβόλαια: κανείς δεν ανοίγει την Ασφάλεια για να μελετήσει την
+              αγορά, την ανοίγει για να δει τι έχει και πότε λήγει. Η αγορά είναι
+              η ΔΕΥΤΕΡΗ ερώτηση, και μένει ακέραιη από κάτω. */}
+          {/* ── Current plan selection ────────────────────────────────────── */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον πρόγραμμα</div>
+            <div style={g3}>
+              <CustomSelect label="Ασφαλιστική εταιρεία" value={insProvider}
+                onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
+                options={insOptions}/>
+              <CustomSelect label="Πρόγραμμα ασφάλισης" value={insPlanId}
+                onChange={v => u({ insPlanId: v, insEditCovers: false })}
+                options={insPlanOptions}/>
+              <NumberInput label="Πραγματικό κόστος τον μήνα" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
+            </div>
+            <div style={g4}>
+              <TextInput   label={insCompany?.agent_label || 'Ασφαλιστής'} value={insAgentName}    onChange={v => u({ insAgentName: v })}    placeholder="Ονοματεπώνυμο"/>
+              <TextInput   label="Τηλέφωνο ασφαλιστή"                      value={insAgentPhone}   onChange={v => u({ insAgentPhone: v })}   placeholder="69xxxxxxxx"/>
+              <DatePicker  label="Ημερομηνία ανανέωσης"                     value={insRenewalDate}  onChange={v => u({ insRenewalDate: v })}/>
+              {insCompany?.url && (
+                <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+                  <a href={insCompany.url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '9px 14px', fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+                    Επίσημη σελίδα
+                  </a>
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* ── Property details for live quotes ──────────────────────────── */}
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
-            Στοιχεία Ακινήτου, για Συγκριτική Εκτίμηση Ασφαλίστρων
-          </div>
-          {crossProperty.sqm && !insSqm && (
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>
-              ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από {crossProperty.sqmFrom === 'property' ? 'την καρτέλα του ακινήτου' : 'tab Υπηρεσίες (ΕΝΦΙΑ)'}, μπορείς να τα επεξεργαστείς
-            </div>
-          )}
-          {/* FIX: 2+2 grid, Πόλη label doesn't overflow */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-            <NumberInput label="Εμβαδόν"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
-            <TextInput   label="Πόλη ή περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη…"/>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
-            <NumberInput label="Αξία κτηρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
-            <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
-          </div>
-        </div>
-
-        {/* ── Live Quotes Engine ────────────────────────────────────────── */}
-        {(parseFloat(effectiveSqm) > 0 && parseFloat(insPropValue) > 0) && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: quotesLoading ? 'var(--text-tertiary)' : liveQuotes.length > 0 ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.3s' }}/>
-                <span title="Εκτιμήσεις ασφαλίστρων ανά εταιρεία και πρόγραμμα" style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                  {quotesLoading
-                    ? 'Υπολογισμός…'
-                    : `${liveQuotes.length} προγράμματα από ${distinctInsurers(liveQuotes.map(q => q.company))} ασφαλιστικές`}
-                </span>
-                {/* Η λέξη «ενδεικτικές» δεν είναι νομικίστικη προφύλαξη, είναι
-                    η αλήθεια: πραγματική τιμή ασφάλισης κατοικίας δεν υπάρχει
-                    δημοσιευμένη, παράγεται από τα στοιχεία του συγκεκριμένου
-                    ακινήτου και προσώπου και τη δίνει μόνο η ασφαλιστική. */}
-                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
-                  Ενδεικτικές τιμές, όχι προσφορές
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {QUOTE_FILTERS.map(f => (
-                  <button key={f.key} onClick={() => setQuotesFilter(f.key)}
-                    style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'var(--accent-soft)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
-                    {f.label}
+            {insPlan && (
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις προγράμματος</div>
+                  <button onClick={() => { u({ insEditCovers: !insEditCovers }); if (!insEditCovers) { u({ insCustomCovers: effectiveCovers.join(', '), insCustomEarthquake: effectiveEarthquake, insCustomFlood: effectiveFloodState, insCustomNatural: effectiveNatural }); } }}
+                    style={{ fontSize: 10, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
+                    {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
                   </button>
-                ))}
-                <button onClick={() => setShowQuotes(v => !v)}
-                  style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
-                  {showQuotes ? '▲ Σύμπτυξη' : '▼ Ανάπτυξη'}
-                </button>
-              </div>
-            </div>
-
-            {/* ── ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ ────────────────────────────
-                Πριν από κάθε τιμή. Η κατάταξη βγαίνει από εδώ και ο χρήστης
-                πρέπει να μπορεί να δει τα κριτήρια και να διαφωνήσει: αν η
-                μηχανή λέει «απαραίτητος ο σεισμός επειδή έχεις δάνειο», αυτό
-                είναι ελέγξιμο. Ένα σκορ χωρίς αιτιολογία δεν είναι. */}
-            {!quotesLoading && needs.length > 0 && (
-              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 10 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, marginBottom: 8 }}>
-                  Τι χρειάζεται αυτό το ακίνητο
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
-                  {needs.filter(n => n.weight === 'required' || n.weight === 'important').map(n => (
-                    <div key={n.need} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11, fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                      <span style={{
-                        flexShrink: 0, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
-                        padding: '2px 7px', borderRadius: T.radius.pill,
-                        color: n.weight === 'required' ? 'var(--accent-text)' : 'var(--text-secondary)',
-                        background: n.weight === 'required' ? 'var(--accent)' : 'var(--bg-surface)',
-                        border: n.weight === 'required' ? 'none' : '1px solid var(--border-subtle)',
-                      }}>
-                        {n.weight === 'required' ? 'ΑΠΑΡΑΙΤΗΤΟ' : 'ΚΑΛΟ ΝΑ ΥΠΑΡΧΕΙ'}
-                      </span>
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, flexShrink: 0 }}>{NEED_LABEL[n.need]}</span>
-                      <span style={{ color: 'var(--text-tertiary)', minWidth: 0 }}>{n.reason}</span>
+                {/* Δυναμικός πίνακας καλύψεων, ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
+                  {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? '✓' : '—'}</span>
+                      <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Προτεινόμενο πρόγραμμα βάσει ακινήτου */}
-            {!quotesLoading && recommended && (
-              <div {...pressable(() => u({ insProvider: recommended.q.company, insPlanId: recommended.q.plan, insEditCovers: false }))}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10, cursor: 'pointer' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', padding: '3px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.04em' }}>ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{recommended.q.companyLabel}, {recommended.q.planLabel}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{recommended.reason}</div>
-                </div>
-                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(recommended.q.monthlyEstimate)}</div>
-                  <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκτίμηση / μήνα</div>
-                </div>
-              </div>
-            )}
-
-            {!quotesLoading && filteredQuotes.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8, marginBottom: showQuotes ? 12 : 0 }}>
-                {filteredQuotes.slice(0, 3).map((q, i) => {
-                  const isCurrent = q.company === insProvider && q.plan === insPlanId;
-                  const isBest    = i === 0;
-                  return (
-                    <div key={q.plan}
-                      onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
-                      style={{ background: isCurrent ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', position: 'relative' as const }}>
-                      {/* ΟΧΙ «ΚΑΛΥΤΕΡΗ ΤΙΜΗ». Η πρώτη θέση ανήκει στο πιο
-                          ΚΑΤΑΛΛΗΛΟ, που συχνά δεν είναι το φθηνότερο. Η παλιά
-                          ετικέτα έλεγε ψέματα για το ίδιο το κριτήριο. */}
-                      {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΤΑΛΛΗΛΟΤΕΡΟ</div>}
-                      {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>εκτίμηση / μήνα</div>
-                      {q.savings !== undefined && q.savings > 0 && (
-                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)} τον μήνα</div>
-                      )}
-                      <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' as const }}>
-                        {q.earthquake && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
-                        {q.flood     && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
-                        {q.natural   && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές καταστροφές</span>}
-                      </div>
-                      {/* ΤΙ ΤΟΥ ΛΕΙΠΕΙ, ΓΡΑΜΜΕΝΟ ΠΑΝΩ ΣΤΗΝ ΚΑΡΤΑ. Ένα φθηνό
-                          πρόγραμμα χωρίς σεισμό δεν κρύβεται, αλλά ούτε
-                          παρουσιάζεται σαν ισοδύναμο. */}
-                      {(matchOf.get(q.plan)?.missingRequired.length ?? 0) > 0 && (
-                        <div style={{ fontSize: 9, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.4, fontWeight: 600 }}>
-                          Δεν καλύπτει {matchOf.get(q.plan)!.missingRequired.map(n => NEED_LABEL[n].toLowerCase()).join(', ')}
-                        </div>
-                      )}
+                {insEditCovers && (
+                  <div>
+                    <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός…"
+                      style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
+                    <div style={{ display: 'flex', gap: 16 }}>
+                      <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς σεισμό"/>
+                      <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς πλημμύρα"/>
+                      <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές" labelOff="Χωρίς"/>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {showQuotes && !quotesLoading && filteredQuotes.length > 0 && (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 700 }}>
-                  <thead>
-                    <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσικές καταστροφές','Εκτιμώμενο Μηνιαίο','Εκτιμώμενο Ετήσιο','Εξοικονόμηση/μήνα'].map((h, i) => (
-                      <th key={i} style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
-                    ))}</tr>
-                  </thead>
-                  <tbody>
-                    {filteredQuotes.map(q => {
-                      const isCur = q.company === insProvider && q.plan === insPlanId;
-                      return (
-                        <tr key={q.plan} onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
-                          style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
-                          <td style={{ padding: '6px 8px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{q.companyLabel}{isCur ? ' ✓' : ''}</td>
-                          <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 9 }}>{q.planLabel}</td>
-                          <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? '✓' : '—'}</td>
-                          <td style={{ padding: '6px 8px', color: q.flood     ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.flood     ? '✓' : '—'}</td>
-                          <td style={{ padding: '6px 8px', color: q.natural   ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.natural   ? '✓' : '—'}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(q.monthlyEstimate)}</td>
-                          <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 9, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: 'var(--text-secondary)' }}>
-                            {q.savings !== undefined && q.savings !== 0 ? `${q.savings > 0 ? '+' : ''}${fe(q.savings)}` : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div style={{ marginTop: 8, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge }}>
-                  * Εκτιμώμενες τιμές βάσει στοιχείων ακινήτου, Χρησιμοποίησε <a href="https://www.insurancemarket.gr/katoikia/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>insurancemarket.gr</a> για ακριβή προσφορά · Πάτα γραμμή για επιλογή
-                </div>
+                  </div>
+                )}
+                {effectiveEarthquake && effectiveFloodState && (
+                  <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
+                    Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
 
-        {(!parseFloat(effectiveSqm) || !parseFloat(insPropValue)) && (
-          // Τα σκληροκωδικοποιημένα rgba(26,115,232,…) αγνοούσαν τα tokens: στο σκούρο
-          // θέμα το πλαίσιο έμενε γαλάζιο-σε-γαλάζιο. Το InfoBanner παίρνει χρώμα από τον τόνο.
-          <InfoBanner tone="info">Συμπλήρωσε εμβαδόν και αξία κτηρίου για συγκριτική εκτίμηση ασφαλίστρων.</InfoBanner>
-        )}
+          {/* ── Property details for live quotes ──────────────────────────── */}
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
+              Στοιχεία Ακινήτου, για Συγκριτική Εκτίμηση Ασφαλίστρων
+            </div>
+            {crossProperty.sqm && !insSqm && (
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>
+                ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από {crossProperty.sqmFrom === 'property' ? 'την καρτέλα του ακινήτου' : 'tab Υπηρεσίες (ΕΝΦΙΑ)'}, μπορείς να τα επεξεργαστείς
+              </div>
+            )}
+            {/* FIX: 2+2 grid, Πόλη label doesn't overflow */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+              <NumberInput label="Εμβαδόν"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
+              <TextInput   label="Πόλη ή περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη…"/>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+              <NumberInput label="Αξία κτηρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
+              <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
+            </div>
+          </div>
 
-      </div>
+          {/* ── Live Quotes Engine ────────────────────────────────────────── */}
+          {(parseFloat(effectiveSqm) > 0 && parseFloat(insPropValue) > 0) && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: quotesLoading ? 'var(--text-tertiary)' : liveQuotes.length > 0 ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.3s' }}/>
+                  <span title="Εκτιμήσεις ασφαλίστρων ανά εταιρεία και πρόγραμμα" style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                    {quotesLoading
+                      ? 'Υπολογισμός…'
+                      : `${liveQuotes.length} προγράμματα από ${distinctInsurers(liveQuotes.map(q => q.company))} ασφαλιστικές`}
+                  </span>
+                  {/* Η λέξη «ενδεικτικές» δεν είναι νομικίστικη προφύλαξη, είναι
+                      η αλήθεια: πραγματική τιμή ασφάλισης κατοικίας δεν υπάρχει
+                      δημοσιευμένη, παράγεται από τα στοιχεία του συγκεκριμένου
+                      ακινήτου και προσώπου και τη δίνει μόνο η ασφαλιστική. */}
+                  <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
+                    Ενδεικτικές τιμές, όχι προσφορές
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {QUOTE_FILTERS.map(f => (
+                    <button key={f.key} onClick={() => setQuotesFilter(f.key)}
+                      style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'var(--accent-soft)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
+                      {f.label}
+                    </button>
+                  ))}
+                  <button onClick={() => setShowQuotes(v => !v)}
+                    style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+                    {showQuotes ? '▲ Σύμπτυξη' : '▼ Ανάπτυξη'}
+                  </button>
+                </div>
+              </div>
 
-      {/* ── Streaming & Ψυχαγωγία ────────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Streaming και ψυχαγωγία')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
-          {STREAMING.map(svc => {
-            const active  = (activeStreaming || []).find(a => a.service === svc.value);
-            const plan    = svc.plans.find(p => p.id === active?.planId);
-            const cost    = parseFloat(active?.customPrice || '') || plan?.price || 0;
-            const myShare = active?.splitActive && (active?.splitPeople || 2) > 1 ? cost / (active.splitPeople || 2) : cost;
-            return (
-              <div key={svc.value} style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 14, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', minHeight: 68, display: 'flex', flexDirection: 'column' as const }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: active ? 10 : 0 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value), `${active ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}: ${svc.label}`)}/>
-                  <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}>{svc.label}</span>
-                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--text-tertiary)', textDecoration: 'none', padding: '2px 4px' }}>Επίσημη σελίδα</a>}
-                  {active ? (
-                    <button onClick={() => toggleStreaming(svc.value)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0, padding: 0 }}>✕</button>
-                  ) : (
-                    <span style={{ fontSize: 9, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: T.font.sans }} onClick={() => toggleStreaming(svc.value)}>+ Προσθήκη</span>
+              {/* ── ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ ────────────────────────────
+                  Πριν από κάθε τιμή. Η κατάταξη βγαίνει από εδώ και ο χρήστης
+                  πρέπει να μπορεί να δει τα κριτήρια και να διαφωνήσει: αν η
+                  μηχανή λέει «απαραίτητος ο σεισμός επειδή έχεις δάνειο», αυτό
+                  είναι ελέγξιμο. Ένα σκορ χωρίς αιτιολογία δεν είναι. */}
+              {!quotesLoading && needs.length > 0 && (
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, marginBottom: 8 }}>
+                    Τι χρειάζεται αυτό το ακίνητο
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                    {needs.filter(n => n.weight === 'required' || n.weight === 'important').map(n => (
+                      <div key={n.need} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11, fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                        <span style={{
+                          flexShrink: 0, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
+                          padding: '2px 7px', borderRadius: T.radius.pill,
+                          color: n.weight === 'required' ? 'var(--accent-text)' : 'var(--text-secondary)',
+                          background: n.weight === 'required' ? 'var(--accent)' : 'var(--bg-surface)',
+                          border: n.weight === 'required' ? 'none' : '1px solid var(--border-subtle)',
+                        }}>
+                          {n.weight === 'required' ? 'ΑΠΑΡΑΙΤΗΤΟ' : 'ΚΑΛΟ ΝΑ ΥΠΑΡΧΕΙ'}
+                        </span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600, flexShrink: 0 }}>{NEED_LABEL[n.need]}</span>
+                        <span style={{ color: 'var(--text-tertiary)', minWidth: 0 }}>{n.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Προτεινόμενο πρόγραμμα βάσει ακινήτου */}
+              {!quotesLoading && recommended && (
+                <div {...pressable(() => u({ insProvider: recommended.q.company, insPlanId: recommended.q.plan, insEditCovers: false }))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10, cursor: 'pointer' }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', padding: '3px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.04em' }}>ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{recommended.q.companyLabel}, {recommended.q.planLabel}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{recommended.reason}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(recommended.q.monthlyEstimate)}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκτίμηση / μήνα</div>
+                  </div>
+                </div>
+              )}
+
+              {!quotesLoading && filteredQuotes.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8, marginBottom: showQuotes ? 12 : 0 }}>
+                  {filteredQuotes.slice(0, 3).map((q, i) => {
+                    const isCurrent = q.company === insProvider && q.plan === insPlanId;
+                    const isBest    = i === 0;
+                    return (
+                      <div key={q.plan}
+                        onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
+                        style={{ background: isCurrent ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', position: 'relative' as const }}>
+                        {/* ΟΧΙ «ΚΑΛΥΤΕΡΗ ΤΙΜΗ». Η πρώτη θέση ανήκει στο πιο
+                            ΚΑΤΑΛΛΗΛΟ, που συχνά δεν είναι το φθηνότερο. Η παλιά
+                            ετικέτα έλεγε ψέματα για το ίδιο το κριτήριο. */}
+                        {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΤΑΛΛΗΛΟΤΕΡΟ</div>}
+                        {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
+                        <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>εκτίμηση / μήνα</div>
+                        {q.savings !== undefined && q.savings > 0 && (
+                          <div style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)} τον μήνα</div>
+                        )}
+                        <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' as const }}>
+                          {q.earthquake && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
+                          {q.flood     && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
+                          {q.natural   && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές καταστροφές</span>}
+                        </div>
+                        {/* ΤΙ ΤΟΥ ΛΕΙΠΕΙ, ΓΡΑΜΜΕΝΟ ΠΑΝΩ ΣΤΗΝ ΚΑΡΤΑ. Ένα φθηνό
+                            πρόγραμμα χωρίς σεισμό δεν κρύβεται, αλλά ούτε
+                            παρουσιάζεται σαν ισοδύναμο. */}
+                        {(matchOf.get(q.plan)?.missingRequired.length ?? 0) > 0 && (
+                          <div style={{ fontSize: 9, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.4, fontWeight: 600 }}>
+                            Δεν καλύπτει {matchOf.get(q.plan)!.missingRequired.map(n => NEED_LABEL[n].toLowerCase()).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {showQuotes && !quotesLoading && filteredQuotes.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 700 }}>
+                    <thead>
+                      <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσικές καταστροφές','Εκτιμώμενο Μηνιαίο','Εκτιμώμενο Ετήσιο','Εξοικονόμηση/μήνα'].map((h, i) => (
+                        <th key={i} style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {filteredQuotes.map(q => {
+                        const isCur = q.company === insProvider && q.plan === insPlanId;
+                        return (
+                          <tr key={q.plan} onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
+                            style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
+                            <td style={{ padding: '6px 8px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{q.companyLabel}{isCur ? ' ✓' : ''}</td>
+                            <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 9 }}>{q.planLabel}</td>
+                            <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? '✓' : '—'}</td>
+                            <td style={{ padding: '6px 8px', color: q.flood     ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.flood     ? '✓' : '—'}</td>
+                            <td style={{ padding: '6px 8px', color: q.natural   ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.natural   ? '✓' : '—'}</td>
+                            <td style={{ padding: '6px 8px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(q.monthlyEstimate)}</td>
+                            <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 9, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
+                            <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: 'var(--text-secondary)' }}>
+                              {q.savings !== undefined && q.savings !== 0 ? `${q.savings > 0 ? '+' : ''}${fe(q.savings)}` : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div style={{ marginTop: 8, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge }}>
+                    * Εκτιμώμενες τιμές βάσει στοιχείων ακινήτου, Χρησιμοποίησε <a href="https://www.insurancemarket.gr/katoikia/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>insurancemarket.gr</a> για ακριβή προσφορά · Πάτα γραμμή για επιλογή
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(!parseFloat(effectiveSqm) || !parseFloat(insPropValue)) && (
+            // Τα σκληροκωδικοποιημένα rgba(26,115,232,…) αγνοούσαν τα tokens: στο σκούρο
+            // θέμα το πλαίσιο έμενε γαλάζιο-σε-γαλάζιο. Το InfoBanner παίρνει χρώμα από τον τόνο.
+            <InfoBanner tone="info">Συμπλήρωσε εμβαδόν και αξία κτηρίου για συγκριτική εκτίμηση ασφαλίστρων.</InfoBanner>
+          )}
+
+        </div>
+
+      </>)}
+
+      {show('subscriptions') && (<>
+        {/* ── Streaming & Ψυχαγωγία ────────────────────────────────────────── */}
+        <div style={card}>
+          {secHdr('Streaming και ψυχαγωγία')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
+            {STREAMING.map(svc => {
+              const active  = (activeStreaming || []).find(a => a.service === svc.value);
+              const plan    = svc.plans.find(p => p.id === active?.planId);
+              const cost    = parseFloat(active?.customPrice || '') || plan?.price || 0;
+              const myShare = active?.splitActive && (active?.splitPeople || 2) > 1 ? cost / (active.splitPeople || 2) : cost;
+              return (
+                <div key={svc.value} style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 14, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', minHeight: 68, display: 'flex', flexDirection: 'column' as const }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: active ? 10 : 0 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value), `${active ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}: ${svc.label}`)}/>
+                    <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}>{svc.label}</span>
+                    {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--text-tertiary)', textDecoration: 'none', padding: '2px 4px' }}>Επίσημη σελίδα</a>}
+                    {active ? (
+                      <button onClick={() => toggleStreaming(svc.value)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0, padding: 0 }}>✕</button>
+                    ) : (
+                      <span style={{ fontSize: 9, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: T.font.sans }} onClick={() => toggleStreaming(svc.value)}>+ Προσθήκη</span>
+                    )}
+                  </div>
+                  {!active && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 15, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value))}>από {fe(svc.plans[0].price)} / μήνα</div>}
+                  {active && (
+                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
+                      <CustomSelect value={active.planId} onChange={v => updateS(svc.value, 'planId', v)}
+                        options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
+                        <div {...pressable(() => updateS(svc.value, 'splitActive', !active.splitActive))}
+                          style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+                          <div style={{ position: 'absolute', top: 2.5, left: active.splitActive ? 14 : 2.5, width: 12, height: 12, borderRadius: '50%', background: active.splitActive ? 'var(--accent-text)' : '#fff', transition: 'left 0.2s' }}/>
+                        </div>
+                        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Διαμοιρασμός κόστους</span>
+                        {active.splitActive && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <input type="number" min="2" max="10" value={active.splitPeople || 2} onChange={e => updateS(svc.value, 'splitPeople', Math.max(2, parseInt(e.target.value) || 2))}
+                              style={{ width: 44, background: 'var(--bg-elevated)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center' }}/>
+                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>άτομα</span>
+                          </div>
+                        )}
+                      </div>
+                      <NumberInput label="Τιμή αν διαφέρει" value={active.customPrice} onChange={v => updateS(svc.value, 'customPrice', v)} suffix="€" step={0.5}/>
+                      <DatePicker label="Ημερομηνία ανανέωσης" value={active.renewalDate} onChange={v => updateS(svc.value, 'renewalDate', v)}/>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{active.splitActive && (active.splitPeople || 2) > 1 ? `Μερίδιό σου (÷${active.splitPeople})` : 'Μηνιαίο κόστος'}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</span>
+                      </div>
+                    </div>
                   )}
                 </div>
-                {!active && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 15, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value))}>από {fe(svc.plans[0].price)} / μήνα</div>}
-                {active && (
-                  <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
-                    <CustomSelect value={active.planId} onChange={v => updateS(svc.value, 'planId', v)}
-                      options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
-                      <div {...pressable(() => updateS(svc.value, 'splitActive', !active.splitActive))}
-                        style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
-                        <div style={{ position: 'absolute', top: 2.5, left: active.splitActive ? 14 : 2.5, width: 12, height: 12, borderRadius: '50%', background: active.splitActive ? 'var(--accent-text)' : '#fff', transition: 'left 0.2s' }}/>
-                      </div>
-                      <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Διαμοιρασμός κόστους</span>
-                      {active.splitActive && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <input type="number" min="2" max="10" value={active.splitPeople || 2} onChange={e => updateS(svc.value, 'splitPeople', Math.max(2, parseInt(e.target.value) || 2))}
-                            style={{ width: 44, background: 'var(--bg-elevated)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center' }}/>
-                          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>άτομα</span>
-                        </div>
-                      )}
-                    </div>
-                    <NumberInput label="Τιμή αν διαφέρει" value={active.customPrice} onChange={v => updateS(svc.value, 'customPrice', v)} suffix="€" step={0.5}/>
-                    <DatePicker label="Ημερομηνία ανανέωσης" value={active.renewalDate} onChange={v => updateS(svc.value, 'renewalDate', v)}/>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{active.splitActive && (active.splitPeople || 2) > 1 ? `Μερίδιό σου (÷${active.splitPeople})` : 'Μηνιαίο κόστος'}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {(activeStreaming || []).length > 0 && (
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>{(activeStreaming || []).length} υπηρεσίες ενεργές</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{(activeStreaming || []).map(a => STREAMING.find(s => s.value === a.service)?.label).join(' · ')}</div>
-            </div>
-            <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(streamingCost)}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>ανά μήνα</div>
-            </div>
+              );
+            })}
           </div>
-        )}
-      </div>
-
-      {/* ── Cloud & Λογισμικό ────────────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Cloud και λογισμικό')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: 8, marginBottom: 14 }}>
-          {CLOUD.map(svc => {
-            const active  = (activeCloud || []).find(a => a.service === svc.value);
-            const plan    = svc.plans.find(p => p.id === active?.planId);
-            const cost    = parseFloat(active?.customPrice || '') || plan?.price || 0;
-            const myShare = active?.splitActive && (active?.splitPeople || 2) > 1 ? cost / (active.splitPeople || 2) : cost;
-            return (
-              <div key={svc.value} {...pressable(() => toggleCloud(svc.value))}
-                style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 10, cursor: 'pointer', transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s', minHeight: 56, display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>{svc.label}</span>
-                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, color: 'var(--text-tertiary)', textDecoration: 'none' }}>Επίσημη σελίδα</a>}
-                </div>
-                {active ? (
-                  <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>
-                    <CustomSelect value={active.planId} onChange={v => updateC(svc.value, 'planId', v)}
-                      options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>από {fe(svc.plans[0].price)}</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Άλλες Πάγιες Συνδρομές ───────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Άλλες πάγιες συνδρομές')}
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus…"/>
-            <NumberInput label="Κόστος τον μήνα" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
-            <DatePicker  label="Ημερομηνία ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => { if (newSubName && newSubPrice) { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); } }}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: T.h.lg, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
-              + Προσθήκη
-            </button>
-          </div>
-        </div>
-        {(otherSubs || []).map((s, i) => {
-          const daysLeft = s.renewalDate ? daysUntil(s.renewalDate) ?? 0 : null;
-          return (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+          {(activeStreaming || []).length > 0 && (
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
               <div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.name}</span>
-                {s.renewalDate && <span style={{ fontSize: 10, color: daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{localDay(s.renewalDate).toLocaleDateString('el-GR')}{daysLeft !== null && daysLeft <= 7 ? `, σε ${daysLeft} ημέρες` : ''}</span>}
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>{(activeStreaming || []).length} υπηρεσίες ενεργές</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{(activeStreaming || []).map(a => STREAMING.find(s => s.value === a.service)?.label).join(' · ')}</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.price))} / μήνα</span>
-                <button onClick={() => u({ otherSubs: (otherSubs || []).filter((_, j) => j !== i) })}
-                  style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-              </div>
-            </div>
-          );
-        })}
-        {total > 0 && (
-          <div style={{ marginTop: 16, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο, ασφάλεια + streaming + cloud + άλλα</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
-                {[insCost > 0 && `Ασφάλεια ${fe(insCost)}`, streamingCost > 0 && `Streaming ${fe(streamingCost)}`, cloudCost > 0 && `Cloud ${fe(cloudCost)}`, otherCost > 0 && `Άλλα ${fe(otherCost)}`].filter(Boolean).join(' + ')}
+              <div style={{ textAlign: 'right' as const }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(streamingCost)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>ανά μήνα</div>
               </div>
             </div>
-            <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(total)} / μήνα</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(total * 12)} / έτος</div>
+          )}
+        </div>
+
+        {/* ── Cloud & Λογισμικό ────────────────────────────────────────────── */}
+        <div style={card}>
+          {secHdr('Cloud και λογισμικό')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: 8, marginBottom: 14 }}>
+            {CLOUD.map(svc => {
+              const active  = (activeCloud || []).find(a => a.service === svc.value);
+              const plan    = svc.plans.find(p => p.id === active?.planId);
+              const cost    = parseFloat(active?.customPrice || '') || plan?.price || 0;
+              const myShare = active?.splitActive && (active?.splitPeople || 2) > 1 ? cost / (active.splitPeople || 2) : cost;
+              return (
+                <div key={svc.value} {...pressable(() => toggleCloud(svc.value))}
+                  style={{ background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 10, cursor: 'pointer', transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s', minHeight: 56, display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>{svc.label}</span>
+                    {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, color: 'var(--text-tertiary)', textDecoration: 'none' }}>Επίσημη σελίδα</a>}
+                  </div>
+                  {active ? (
+                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>
+                      <CustomSelect value={active.planId} onChange={v => updateC(svc.value, 'planId', v)}
+                        options={(svc.plans ?? []).map(p => ({ value: p.id, label: p.name }))} />
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>από {fe(svc.plans[0].price)}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Άλλες Πάγιες Συνδρομές ───────────────────────────────────────── */}
+        <div style={card}>
+          {secHdr('Άλλες πάγιες συνδρομές')}
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus…"/>
+              <NumberInput label="Κόστος τον μήνα" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
+              <DatePicker  label="Ημερομηνία ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => { if (newSubName && newSubPrice) { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); } }}
+                style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: T.h.lg, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+                + Προσθήκη
+              </button>
             </div>
           </div>
-        )}
-      </div>
+          {(otherSubs || []).map((s, i) => {
+            const daysLeft = s.renewalDate ? daysUntil(s.renewalDate) ?? 0 : null;
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.name}</span>
+                  {s.renewalDate && <span style={{ fontSize: 10, color: daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{localDay(s.renewalDate).toLocaleDateString('el-GR')}{daysLeft !== null && daysLeft <= 7 ? `, σε ${daysLeft} ημέρες` : ''}</span>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.price))} / μήνα</span>
+                  <button onClick={() => u({ otherSubs: (otherSubs || []).filter((_, j) => j !== i) })}
+                    style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                </div>
+              </div>
+            );
+          })}
+          {total > 0 && (
+            <div style={{ marginTop: 16, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο, ασφάλεια + streaming + cloud + άλλα</div>
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
+                  {[insCost > 0 && `Ασφάλεια ${fe(insCost)}`, streamingCost > 0 && `Streaming ${fe(streamingCost)}`, cloudCost > 0 && `Cloud ${fe(cloudCost)}`, otherCost > 0 && `Άλλα ${fe(otherCost)}`].filter(Boolean).join(' + ')}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' as const }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(total)} / μήνα</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(total * 12)} / έτος</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </>)}
+
     </div>
   );
 }

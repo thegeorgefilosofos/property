@@ -115,7 +115,7 @@ ok('canInvite neither', JSON.stringify(canInvite(noContact)) === JSON.stringify(
 ok('canInvite rejects bad email', canInvite({ ...timed, attendeeEmail: 'χωρίς-παπάκι' }).email === false)
 
 // ── inviteText: μορφοποίηση ημέρας/ώρας/τοποθεσίας ───────────────────────────
-ok('inviteText timed full', inviteText(timed) === '«Ραντεβού με υδραυλικό» — Σάββατο 11/07/2026 στις 09:30, Διαμέρισμα. Θα ήθελα να το κλείσουμε — επιβεβαιώνεις;')
+ok('inviteText timed full', inviteText(timed) === '«Ραντεβού με υδραυλικό»: Σάββατο 11/07/2026 στις 09:30, Διαμέρισμα. Θα ήθελα να το κλείσουμε· επιβεβαιώνεις;')
 ok('inviteText weekday Σάββατο', inviteText(timed).includes('Σάββατο 11/07/2026'))
 ok('inviteText all-day omits ώρα', !inviteText(allDay).includes('στις'))
 ok('inviteText all-day has weekday', inviteText(allDay).includes('Τρίτη 01/09/2026'))

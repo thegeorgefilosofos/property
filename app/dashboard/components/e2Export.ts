@@ -22,7 +22,7 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
   for (const c of GROSS_COLS) totalRow[c] = sumCol(c);
 
   const aoa: (string | number)[][] = [
-    [`ΑΝΑΛΥΤΙΚΗ ΚΑΤΑΣΤΑΣΗ ΜΙΣΘΩΜΑΤΩΝ ΑΚΙΝΗΤΗΣ ΠΕΡΙΟΥΣΙΑΣ — ΦΟΡΟΛΟΓΙΚΟ ΕΤΟΣ ${year}`],
+    [`ΑΝΑΛΥΤΙΚΗ ΚΑΤΑΣΤΑΣΗ ΜΙΣΘΩΜΑΤΩΝ ΑΚΙΝΗΤΗΣ ΠΕΡΙΟΥΣΙΑΣ · ΦΟΡΟΛΟΓΙΚΟ ΕΤΟΣ ${year}`],
     ['Έντυπο Ε2 · προσυμπληρωμένο από το Property OS · συμπληρώστε τα πεδία στο myAADE (τα εκτιμώμενα ελέγχονται πριν την υποβολή)'],
     [],
     ['ΣΤΟΙΧΕΙΑ ΥΠΟΧΡΕΟΥ'],
@@ -30,7 +30,7 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
     ['Αριθμός υποβολής / Ημερομηνία', ''],
     ['Στοιχεία Λογιστή', ''],
     [],
-    [`ΠΙΝΑΚΑΣ I — ΕΚΜΙΣΘΟΥΜΕΝΑ / ΛΟΙΠΑ ΑΚΙΝΗΤΑ (${officialRows.length} ${officialRows.length === 1 ? 'ακίνητο' : 'ακίνητα'})`],
+    [`ΠΙΝΑΚΑΣ I · ΕΚΜΙΣΘΟΥΜΕΝΑ / ΛΟΙΠΑ ΑΚΙΝΗΤΑ (${officialRows.length} ${officialRows.length === 1 ? 'ακίνητο' : 'ακίνητα'})`],
     [...E2_OFFICIAL_HEADERS],
     ...officialRows,
     totalRow,
@@ -218,7 +218,7 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   const e1 = buildE1Summary(e2rows);
   if (e1.lines.length) {
     const e1aoa: (string | number)[][] = [
-      ['ΣΥΝΟΨΗ Ε1 (Πίνακας 4Δ1) — άθροισμα ακαθάριστου εισοδήματος ανά κωδικό'], [],
+      ['ΣΥΝΟΨΗ Ε1 (Πίνακας 4Δ1) · άθροισμα ακαθάριστου εισοδήματος ανά κωδικό'], [],
       // Αριθμητικά ποσά (όχι κείμενο) → ομοιόμορφη μορφή ευρώ, ίδια με το σύνολο.
       [...E1_HEADERS], ...e1.lines.map(l => [l.code, l.label, l.category, l.amount]), ['Σύνολο ακαθάριστου', '', '', e1.totalGross], [], [e1.note],
     ];

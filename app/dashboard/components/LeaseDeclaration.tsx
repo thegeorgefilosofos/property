@@ -163,7 +163,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
             ? <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, marginTop: 1 }}>{f.value}</div>
             : <div style={{ fontSize: 13, color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>Λείπει</div>}
           {f.hint && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>
-            {f.hint}{f.fixIn && <> <span style={{ color: 'var(--accent)', fontWeight: 600 }}>→ καρτέλα {TAB_LABEL[f.fixIn]}</span></>}
+            {f.hint}{f.fixIn && <> <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Συμπληρώνεται στην καρτέλα {TAB_LABEL[f.fixIn]}</span></>}
           </div>}
         </span>
         {f.value && f.status === 'ok' && (
