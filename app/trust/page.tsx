@@ -208,7 +208,7 @@ export default function TrustPage() {
           <h2 style={H2}>Τα δικαιώματά σου, στην πράξη</h2>
           <p style={P}>
             Ο GDPR σου δίνει δικαιώματα. Εμείς τα κάνουμε κουμπιά, όχι γραφειοκρατία — τα βρίσκεις όλα
-            στον <strong style={{ color: 'var(--text-primary)' }}>Λογαριασμό → Δεδομένα &amp; Απόρρητο</strong>.
+            στον <strong style={{ color: 'var(--text-primary)' }}>Λογαριασμό · Δεδομένα &amp; Απόρρητο</strong>.
           </p>
           <ul style={{ margin: '4px 0 0', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <li style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}><strong style={{ color: 'var(--text-primary)' }}>Πρόσβαση &amp; φορητότητα:</strong> κατεβάζεις όλες τις καταχωρήσεις σου σε ένα αρχείο JSON που διαβάζεται από οποιοδήποτε εργαλείο. Τα έγγραφα που έχεις ανεβάσει τα κατεβάζεις από το Αρχείο.</li>
@@ -263,7 +263,7 @@ export default function TrustPage() {
         <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Πολιτική Απορρήτου</Link>
           <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Όροι Χρήσης</Link>
-          <Link href="/" style={{ color: 'var(--text-tertiary)', textDecoration: 'none', fontSize: 13 }}>← Αρχική</Link>
+          <Link href="/" style={{ color: 'var(--text-tertiary)', textDecoration: 'none', fontSize: 13 }}>Αρχική</Link>
         </div>
       </main>
     </div>

@@ -366,7 +366,7 @@ function consumptionNote(d: ScannedDoc): string {
   return [
     d.kwh ? `${d.kwh} kWh` : '',
     d.cubic_meters ? `${d.cubic_meters} m³` : '',
-    (d.meter_prev != null && d.meter_current != null) ? `Ένδειξη ${d.meter_prev}→${d.meter_current}` : '',
+    (d.meter_prev != null && d.meter_current != null) ? `Ένδειξη από ${d.meter_prev} σε ${d.meter_current}` : '',
     d.millesimi ? `${d.millesimi}‰` : '',
   ].filter(Boolean).join(' · ');
 }
@@ -416,7 +416,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
     // έμενε κενή). Χωρίς αυτό, η επόμενη απόδειξη δεν έχει με τι να συγκρίνει την
     // περίοδό της και δύο μήνες ίδιου ποσού ξαναγίνονται διφορούμενοι.
     const periodText = (doc.period || '').trim()
-      || (iso(doc.period_from) && iso(doc.period_to) ? `${iso(doc.period_from)} → ${iso(doc.period_to)}` : '');
+      || (iso(doc.period_from) && iso(doc.period_to) ? `${iso(doc.period_from)} έως ${iso(doc.period_to)}` : '');
 
     const plan: SavePlan = {
       targets: paid ? ['Δαπάνες', 'Λογαριασμοί'] : ['Λογαριασμοί', 'Δαπάνες'],

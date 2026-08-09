@@ -46,7 +46,7 @@ export const eyebrow = (text: string): string =>
 export const bullets = (items: string[]): string =>
   `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;">${items.map(it => `<tr><td style="vertical-align:top;padding:5px 10px 5px 0;width:18px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${ACCENT};"></span></td><td style="font-size:14px;color:#3c4043;line-height:1.6;padding:3px 0;">${it}</td></tr>`).join('')}</table>`;
 export const button = (label: string, url: string): string =>
-  `<div style="text-align:center;margin:24px 0 8px;"><a href="${esc(url)}" style="display:inline-block;background:${ACCENT};color:#fff;text-decoration:none;padding:12px 26px;border-radius:100px;font-weight:700;font-size:14px;">${esc(label)} →</a></div>`;
+  `<div style="text-align:center;margin:24px 0 8px;"><a href="${esc(url)}" style="display:inline-block;background:${ACCENT};color:#fff;text-decoration:none;padding:12px 26px;border-radius:100px;font-weight:700;font-size:14px;">${esc(label)}</a></div>`;
 export const note = (html: string): string =>
   `<p style="margin:16px 0 0;font-size:12px;color:${MUTE};line-height:1.6;">${html}</p>`;
 // Οπτικό «ήρωας»: ένα μεγάλο νούμερο (ποσό, ποσοστό, πληρότητα). Email-safe (table +
@@ -202,7 +202,7 @@ export function planUpgradedEmail(c: Ctx & { plan: Plan }): Out {
     + p('Ευχαριστούμε για την εμπιστοσύνη. Μόλις ξεκλείδωσες:')
     + bullets(perks[c.plan])
     + button('Δες τι νέο έχεις', `${app(c)}/dashboard`)
-    + note('Η απόδειξη της συνδρομής σου είναι διαθέσιμη στις Ρυθμίσεις → Συνδρομή.');
+    + note('Η απόδειξη της συνδρομής σου είναι διαθέσιμη στις Ρυθμίσεις, στη Συνδρομή.');
   return { subject: `Καλωσόρισες στο πλάνο ${PLAN_LABEL[c.plan]}`, html: emailShell({ bodyHtml: body, preheader: 'Ευχαριστούμε · να τι ξεκλείδωσες.' }) };
 }
 

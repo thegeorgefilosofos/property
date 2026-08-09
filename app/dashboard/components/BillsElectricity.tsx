@@ -393,7 +393,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         </div>
         <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer" title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων"
           style={{ fontSize: 11, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
-          Σύγκριση ΡΑΑΕΥ →
+          Σύγκριση ΡΑΑΕΥ
         </a>
       </div>
 
@@ -447,7 +447,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               <div style={{ marginTop: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                 <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                  <strong>ΜΔΚΑ</strong> = Μέσο Μηνιαίο Κόστος Κύκλου Αγοράς. Πρόσθετη χρέωση σε κυμαινόμενα τιμολόγια («κίτρινα») που αντανακλά τη διακύμανση της τιμής χονδρικής ηλεκτρισμού στην αγορά ενέργειας, αντικαθιστά παλαιότερες ρήτρες αναπροσαρμογής. Ανακοινώνεται κάθε 1η του μήνα από τον πάροχο. <a href="https://www.raaey.gr" target="_blank" title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων" style={{ color: "var(--accent)", fontWeight: 600 }}>ΡΑΑΕΥ →</a>
+                  <strong>ΜΔΚΑ</strong> = Μέσο Μηνιαίο Κόστος Κύκλου Αγοράς. Πρόσθετη χρέωση σε κυμαινόμενα τιμολόγια («κίτρινα») που αντανακλά τη διακύμανση της τιμής χονδρικής ηλεκτρισμού στην αγορά ενέργειας, αντικαθιστά παλαιότερες ρήτρες αναπροσαρμογής. Ανακοινώνεται κάθε 1η του μήνα από τον πάροχο. <a href="https://www.raaey.gr" target="_blank" title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων" style={{ color: "var(--accent)", fontWeight: 600 }}>ΡΑΑΕΥ</a>
                 </span>
               </div>
             )}

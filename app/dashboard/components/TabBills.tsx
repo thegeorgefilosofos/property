@@ -164,7 +164,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
         {meta}
       </span>
       <span style={{ fontSize: 11, fontWeight: 600, color: card.known ? 'var(--accent)' : 'var(--text-tertiary)' }}>
-        {card.known ? 'Σύγκριση και λεπτομέρειες →' : 'Άνοιγμα →'}
+        {card.known ? 'Σύγκριση και λεπτομέρειες' : 'Άνοιγμα'}
       </span>
     </button>
   );

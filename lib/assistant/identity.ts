@@ -143,19 +143,19 @@ export const RULES: IdentityRule[] = [
     // \w είναι ASCII-only: για ελληνικές καταλήξεις χρειάζεται \p{L}.
     test: /εξυπν\p{L}*\s+προτασ\p{L}*/u,
     why: '«Έξυπνες Προτάσεις» είναι δεύτερο brand για το ίδιο πράγμα.',
-    instead: `suggestionsTitle() → «${suggestionsTitle()}»`,
+    instead: `suggestionsTitle(): «${suggestionsTitle()}»`,
   },
   {
     id: 'ai-assistant',
     test: new RegExp(`(?:\\bai\\s+assistant\\b|\\bai\\s+${HELPER_NOUN}|${HELPER_NOUN}\\s+ai\\b|\\bassistant\\s+ai\\b)`, 'u'),
     why: '«AI Assistant» / «Βοηθός AI»: τεχνολογία αντί για ταυτότητα.',
-    instead: `ASSISTANT_NAME → «${ASSISTANT_NAME}»`,
+    instead: `ASSISTANT_NAME: «${ASSISTANT_NAME}»`,
   },
   {
     id: 'gendered-assistant',
     test: new RegExp(`(?:(?<![\\p{L}])${GENDERED_ARTICLE}\\s+${HELPER_NOUN}|${HELPER_NOUN}\\s+(?:σου|σας|μου|μας)(?![\\p{L}]))`, 'u'),
     why: 'Το «ο/η βοηθός» δίνει γένος και σβήνει το όνομα.',
-    instead: `ASSISTANT_NAME ή askCta() → «${askCta()}»`,
+    instead: `ASSISTANT_NAME ή askCta(): «${askCta()}»`,
   },
   {
     id: 'gendered-noa',

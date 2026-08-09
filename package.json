@@ -53,7 +53,8 @@
     "local-formatters": "node scripts/guard-local-formatters.mjs",
     "ampersand": "node scripts/guard-ampersand.mjs",
     "raw-errors": "node scripts/guard-raw-errors.mjs",
-    "ascii-boundary": "node scripts/guard-ascii-boundary.mjs"
+    "ascii-boundary": "node scripts/guard-ascii-boundary.mjs",
+    "no-arrows": "node scripts/guard-no-arrows.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

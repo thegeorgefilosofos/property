@@ -155,7 +155,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     notifyOk(`«${r.title}» προστέθηκε στο Ημερολόγιο (σήμερα), άλλαξε ημερομηνία από την καρτέλα Ημερολόγιο.`);
   };
 
-  // Cross-tab: ολοκληρωμένο αίτημα → Δαπάνη (κόστος επισκευής)
+  // Cross-tab: ολοκληρωμένο αίτημα ως Δαπάνη (κόστος επισκευής)
   const toExpense = async (r: Req) => {
     const amt = parseFloat(cost.replace(',', '.'));
     if (!amt || amt <= 0) { notify('Βάλε έγκυρο ποσό', { tone: 'warning' }); return; }
@@ -295,7 +295,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                           {r.status === 'new' && <button onClick={() => setStatus(r.id, 'in_progress')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ξεκίνησε</button>}
                           {r.status === 'in_progress' && <button onClick={() => setStatus(r.id, 'done')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ολοκλήρωση</button>}
                           {!done && <button onClick={() => toCalendar(r)} disabled={synced.has(r.id)} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: synced.has(r.id) ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: synced.has(r.id) ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: synced.has(r.id) ? 0.6 : 1 }}>{synced.has(r.id) ? 'Στο Ημερολόγιο' : 'Ημερολόγιο'}</button>}
-                          {done && costFor !== r.id && <button onClick={() => { setCostFor(r.id); setCost(''); }} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>→ Δαπάνη</button>}
+                          {done && costFor !== r.id && <button onClick={() => { setCostFor(r.id); setCost(''); }} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>ως Δαπάνη</button>}
                           {done && costFor === r.id && (
                             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                               <input autoFocus value={cost} onChange={e => setCost(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') toExpense(r); if (e.key === 'Escape') setCostFor(null); }} placeholder="€" inputMode="decimal" style={{ width: 56, height: T.h.sm, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '0 8px', fontSize: 11, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none', textAlign: 'right' }} />

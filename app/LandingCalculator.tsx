@@ -113,9 +113,7 @@ export default function LandingCalculator() {
           Ενδεικτικός υπολογισμός με την κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση 5%. Δεν υποκαθιστά τον λογιστή σου.
         </p>
         <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>
-          {/* Αχώριστο διάστημα πριν το βέλος: στα 320px η ετικέτα σπάει σε δύο
-              γραμμές και χωρίς αυτό το βέλος έμενε ΜΟΝΟ του στη δεύτερη. */}
-          Δες τα δικά σου δεδομένα, αυτόματα →
+          Δες τα δικά σου δεδομένα, αυτόματα
         </Link>
       </div>
     </div>

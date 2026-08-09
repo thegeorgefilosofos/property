@@ -52,7 +52,7 @@ function launchEmail(): { subject: string; html: string } {
         <a href="${ANDROID_URL}" style="display:inline-block;background:#202124;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:100px;font-weight:700;font-size:14px;margin:4px;">Google Play</a>
       </div>
       <div style="text-align:center;margin-top:16px;">
-        <a href="${APP_URL}" style="font-size:13px;color:#1a73e8;text-decoration:none;font-weight:600;">ή συνέχισε από τον υπολογιστή →</a>
+        <a href="${APP_URL}" style="font-size:13px;color:#1a73e8;text-decoration:none;font-weight:600;">ή συνέχισε από τον υπολογιστή</a>
       </div>
     </div>
     <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Λαμβάνεις αυτό το email επειδή ζήτησες ειδοποίηση για την εφαρμογή.</p>

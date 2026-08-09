@@ -1425,7 +1425,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
               {/* Είσοδος */}
               <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--border-subtle)', alignItems: 'center' }}>
                 <input ref={imgRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) askImage(f); e.currentTarget.value = ''; }} />
-                <button onClick={() => { if (!busy) imgRef.current?.click(); }} disabled={busy} aria-label="Φωτογραφία απόδειξης, λογαριασμού ή αντικειμένου" title={`Φωτογράφισε απόδειξη ή λογαριασμό (→ προϋπολογισμός), ή αντικείμενο (→ ${navLabel('inventory')})`}
+                <button onClick={() => { if (!busy) imgRef.current?.click(); }} disabled={busy} aria-label="Φωτογραφία απόδειξης, λογαριασμού ή αντικειμένου" title={`Φωτογράφισε απόδειξη ή λογαριασμό (πάει στον προϋπολογισμό), ή αντικείμενο (πάει στην ${navLabel('inventory')})`}
                   style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3.2" /></svg>
                 </button>

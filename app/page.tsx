@@ -168,7 +168,7 @@ const REFERRAL = [
     tag: 'Επαγγελματίες', t: 'Πρόγραμμα Συνεργατών',
     i: 'M3 7h18v13H3zM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18',
     d: 'Για λογιστές, μεσίτες και διαχειριστές ακινήτων.',
-    items: ['5 συνδρομητές → 2 δωρεάν μήνες', '20% επαναλαμβανόμενη προμήθεια ως Συνεργάτης'],
+    items: ['5 συνδρομητές, 2 δωρεάν μήνες', '20% επαναλαμβανόμενη προμήθεια ως Συνεργάτης'],
   },
 ];
 
@@ -579,7 +579,7 @@ export default async function Landing() {
             <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
           </div>
           {loggedIn ? (
-            <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς σου →</Link>
+            <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς σου</Link>
           ) : (<>
             {/* ΧΩΡΙΣ lp-hide-xs: κάτω από 520px το «Σύνδεση» εξαφανιζόταν εντελώς και
                 ο επιστρέφων χρήστης έβλεπε ΜΟΝΟ «Ξεκίνα δωρεάν» — δηλαδή του
@@ -669,9 +669,9 @@ export default async function Landing() {
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
-              <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
+              <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου</Link>
             ) : (<>
-              <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
+              <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
               <Link href="/login" style={{ background: 'transparent', color: 'var(--text-primary)', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: '1px solid var(--border-strong)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
             </>)}
           </div>
@@ -886,7 +886,7 @@ export default async function Landing() {
                 // Το «30 ημέρες δωρεάν δοκιμή» ήταν ΚΑΙ τελευταία γραμμή χαρακτηριστικών
                 // ΚΑΙ το ίδιο το κουμπί από κάτω. Μία περιττή γραμμή σε κάθε κάρτα.
                 items={plan.features.filter(f => !f.includes('δωρεάν δοκιμή'))}
-                cta={`${plan.trialDays} ημέρες δωρεάν →`}
+                cta={`${plan.trialDays} ημέρες δωρεάν`}
                 ctaGhost={id !== FEATURED_PLAN}
                 featured={id === FEATURED_PLAN}
               />
@@ -951,7 +951,7 @@ export default async function Landing() {
         <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: GAP_ACT, paddingBottom: GAP_ACT }}>
           <h2 style={{ fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.1, margin: '0 auto 16px', maxWidth: 720, color: 'var(--text-primary)' }}>Το ακίνητό σου, υπό έλεγχο.</h2>
           <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>Φωτογράφισε το πρώτο έγγραφο. Δωρεάν, χωρίς δέσμευση.</p>
-          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta lp-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Ξεκίνα δωρεάν →'}</Link>
+          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta lp-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου' : 'Ξεκίνα δωρεάν'}</Link>
         </div>
       </section>
 

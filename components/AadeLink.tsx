@@ -35,13 +35,13 @@ export function aadeTitle(action: AadeAction): string {
 }
 
 /**
- * ΔΥΟ ΣΗΜΑΣΙΕΣ, ΔΥΟ ΣΧΗΜΑΤΑ. Το «→» είναι ο διαχωριστής των βημάτων μέσα στη
- * διαδρομή («myAADE → Εφαρμογές → ΕΝΦΙΑ»). Ο σύνδεσμος τελείωνε ΚΑΙ αυτός σε
- * «→», οπότε στο πλακίδιο του φακέλου δικαιολογητικών φαίνονταν τέσσερα ίδια
- * βέλη στη σειρά, από τα οποία το τελευταίο σήμαινε άλλο πράγμα. Το άνοιγμα σε
- * νέα καρτέλα γράφεται πλέον «↗», που είναι και η καθιερωμένη ένδειξη.
+ * ΧΩΡΙΣ ΒΕΛΗ. Είχε «→» ως διαχωριστή βημάτων ΚΑΙ «→» στο τέλος ως ένδειξη
+ * συνδέσμου — τέσσερα ίδια σύμβολα στη σειρά, με το τελευταίο να σημαίνει άλλο
+ * πράγμα. Τα βέλη σε κείμενο μοιάζουν μηχανικά και δεν ανήκουν σε ελληνικό
+ * κείμενο· τα βήματα χωρίζονται με «·», όπως παντού αλλού στην εφαρμογή, και ο
+ * σύνδεσμος αναγνωρίζεται από το χρώμα του.
  *
- * Καρτέλα προορισμού: ετικέτα, διαδρομή σε λέξεις, ένδειξη εξόδου.
+ * Καρτέλα προορισμού: ετικέτα και διαδρομή σε λέξεις.
  * Το `emphasis` σηκώνει μόνο την αριστερή γραμμή — καμία αλλαγή χρώματος
  * κειμένου, καμία σημασιολογία σε πράσινο ή κόκκινο.
  */
@@ -56,7 +56,6 @@ export function AadeLink({ action, emphasis = false }: { action: AadeAction; emp
           {aadePath(action)}{d.login ? ` · ${LOGIN_NOTE}` : ''}
         </div>
       </div>
-      <span aria-hidden style={{ fontSize: 14, color: 'var(--accent)' }}>↗</span>
     </a>
   );
 }
@@ -75,7 +74,7 @@ export function AadePill({ action, label }: { action: AadeAction; label?: string
   return (
     <a href={d.url} target="_blank" rel="noopener noreferrer" title={aadeTitle(action)}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-      {label ?? d.label} <span aria-hidden style={{ color: 'var(--accent)' }}>↗</span>
+      {label ?? d.label}
     </a>
   );
 }

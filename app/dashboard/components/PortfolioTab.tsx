@@ -751,7 +751,18 @@ function Th({ label, k, sort, asc, onSort, align = 'right' }: { label: string; k
   return (
     <th onClick={k && onSort ? () => onSort(k) : undefined}
       style={{ padding: '11px 14px', textAlign: align, fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-tertiary)', cursor: k ? 'pointer' : 'default', whiteSpace: 'nowrap', userSelect: 'none' }}>
-      {label}{active ? (asc ? ' ↑' : ' ↓') : ''}
+      {/* Ο ΔΕΙΚΤΗΣ ΤΑΞΙΝΟΜΗΣΗΣ ΕΙΝΑΙ ΣΧΗΜΑ, ΟΧΙ ΧΑΡΑΚΤΗΡΑΣ. Ήταν «↑» και «↓»
+          μέσα στο κείμενο της επικεφαλίδας: άλλαζε το πλάτος της στήλης όταν
+          εμφανιζόταν, δεν κληρονομούσε το βάρος της γραμματοσειράς, και σε
+          κείμενο μοιάζει με σημείωση αντί για χειριστήριο. */}
+      {label}
+      {active && (
+        <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"
+          strokeLinecap="round" strokeLinejoin="round" aria-hidden
+          style={{ marginLeft: 5, verticalAlign: 'middle', transform: asc ? 'rotate(180deg)' : 'none' }}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      )}
     </th>
   );
 }

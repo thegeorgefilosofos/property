@@ -130,7 +130,7 @@ body{margin:0}
 .c-body{font-size:13px;color:var(--mute);line-height:1.5;margin-top:4px;flex:1}
 .cta{align-self:flex-start;margin-top:11px;font-size:12.5px;font-weight:650;color:var(--accent);text-decoration:none}
 .cta:hover{text-decoration:underline}
-.cta::after{content:' →'}
+
 .c-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:13px;padding-top:11px;border-top:1px solid var(--line)}
 .cid{font-family:var(--mono);font-size:10.5px;color:var(--faint);background:var(--chip);padding:2px 7px;border-radius:5px}
 .cat{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--faint)}

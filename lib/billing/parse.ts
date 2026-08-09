@@ -457,7 +457,7 @@ export function matchPaymentToBills<T extends MatchCandidate>(
       if (!periodsOverlap(pPeriod, bPeriod)) continue;    // ΣΥΓΚΡΟΥΣΗ
       const exact = pPeriod.from === bPeriod.from && pPeriod.to === bPeriod.to;
       score += exact ? W.periodExact : W.periodOverlap;
-      reasons.push({ field: 'period', ok: true, detail: exact ? `Ίδια περίοδος ${bPeriod.from} → ${bPeriod.to}` : `Επικάλυψη περιόδου ${bPeriod.from} → ${bPeriod.to}` });
+      reasons.push({ field: 'period', ok: true, detail: exact ? `Ίδια περίοδος ${bPeriod.from} έως ${bPeriod.to}` : `Επικάλυψη περιόδου ${bPeriod.from} έως ${bPeriod.to}` });
     }
 
     // ── Ημερομηνία. Όταν η περίοδος συμφωνεί, δεν απαιτούμε χρονική εγγύτητα

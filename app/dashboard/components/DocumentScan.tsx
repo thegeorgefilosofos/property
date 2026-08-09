@@ -443,7 +443,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong style={{ color: 'var(--accent)' }}>Claude AI</strong> αναγνωρίζει το έγγραφο…</div>
                 </div>
               )}
-              <button onClick={reset} style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 14px', cursor: 'pointer', fontFamily: T.font.sans }}>← Νέα σάρωση</button>
+              <button onClick={reset} style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 14px', cursor: 'pointer', fontFamily: T.font.sans }}>Νέα σάρωση</button>
 
               {error && (() => {
                 const title = error === 'unreadable' ? 'Δεν διάβασα καθαρά το έγγραφο'
@@ -600,7 +600,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
               </div>
               <button onClick={() => save()} disabled={saving || !canSave || !!ask}
                 style={{ background: canSave && !ask ? 'var(--accent)' : 'var(--bg-elevated)', color: canSave && !ask ? 'var(--accent-text)' : 'var(--text-tertiary)', border: canSave && !ask ? 'none' : '1px solid var(--border-default)', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: canSave && !ask ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
-                {saving ? 'Αποθήκευση…' : ask ? 'Διάλεξε παραπάνω' : !canSave ? 'Συμπλήρωσε τα βασικά' : 'Καταχώρηση →'}
+                {saving ? 'Αποθήκευση…' : ask ? 'Διάλεξε παραπάνω' : !canSave ? 'Συμπλήρωσε τα βασικά' : 'Καταχώρηση'}
               </button>
             </div>
           </div>

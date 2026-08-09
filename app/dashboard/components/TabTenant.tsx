@@ -2647,7 +2647,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     <a href={dc.lease_doc_external_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none' }}>Άνοιγμα Συνδέσμου</a>
                   </div>
                 ):(
-                  <div style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.7 }}>Δεν έχει οριστεί εξωτερικός σύνδεσμος. Πρόσθεσέ τον από την «Επεξεργασία → Έγγραφα» (Google Drive, Dropbox κ.ά.).</div>
+                  <div style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.7 }}>Δεν έχει οριστεί εξωτερικός σύνδεσμος. Πρόσθεσέ τον από την «Επεξεργασία», στα «Έγγραφα» (Google Drive, Dropbox κ.ά.).</div>
                 )}
               </div>
             </div>

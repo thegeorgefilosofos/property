@@ -65,7 +65,7 @@ function statementHtml(ownerRows: { primary: string; secondary: string; expected
         <tr><td style="padding:12px 0 0;font-size:13px;font-weight:700;color:#111;">Σύνολο</td><td style="padding:12px 0 0;text-align:right;font-size:13px;font-weight:700;color:#111;">${eur(collected)} / ${eur(expected)}</td><td></td></tr>
       </table>
       <div style="text-align:center;margin-top:22px;">
-        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:11px 24px;border-radius:100px;font-weight:700;font-size:13px;">Άνοιγμα στο Property OS →</a>
+        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:11px 24px;border-radius:100px;font-weight:700;font-size:13px;">Άνοιγμα στο Property OS</a>
       </div>
     </div>
     <p style="text-align:center;font-size:11px;color:#5f6368;margin:16px 0 0;line-height:1.6;">Ενημερωτική κατάσταση με βάση τα δεδομένα σου. Δεν αποτελεί επίσημο λογιστικό ή φορολογικό έγγραφο.</p>

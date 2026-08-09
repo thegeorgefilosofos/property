@@ -108,10 +108,10 @@ const ALL = Object.keys(AADE_DESTINATIONS) as AadeAction[]
 
 // ═══ Η ΔΙΑΔΡΟΜΗ ΣΕ ΛΕΞΕΙΣ ═════════════════════════════════════════════════
 {
-  ok('η διαδρομή ξεκινά από την πύλη', aadePath('lease').startsWith('myAADE →'))
+  ok('η διαδρομή ξεκινά από την πύλη', aadePath('lease').startsWith('myAADE ·'))
   ok('και περιέχει το όνομα της υπηρεσίας', /Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης/.test(aadePath('lease')))
   let bad = ''
-  for (const a of ALL) if (!aadePath(a).includes('→')) bad += a + ' '
+  for (const a of ALL) if (!aadePath(a).includes(' · ')) bad += a + ' '
   eq('κάθε διαδρομή έχει τουλάχιστον ένα βήμα μετά την πύλη', bad, '')
 }
 

@@ -931,7 +931,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:14}}>
                 {prog.banks.map(b=><span key={b} style={{fontSize:11,padding:'3px 9px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily: T.font.sans}}>{b}</span>)}
               </div>
-              <SourceLinkPill href={prog.url}>Επίσημη σελίδα προγράμματος →</SourceLinkPill>
+              <SourceLinkPill href={prog.url}>Επίσημη σελίδα προγράμματος</SourceLinkPill>
             </MiniSection>
             )
           })}
@@ -1257,7 +1257,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                       {cs.rateType==='variable'
                         ?`Τρέχον Euribor ${fmtPct(market.euribor_3m)}. Αν ανέβει +2%, η δόση γίνεται ${fmtEur(stressMonthly2)}, αύξηση ${fmtEur(stressMonthly2-cs.monthly)} τον μήνα.`
                         :bestBank&&savingVsBestBank>0
-                        ?`Σταθερό, ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.name}) → δόση ${fmtEur(bestBankMonthly)} → εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
+                        ?`Σταθερό, ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.name}), δόση ${fmtEur(bestBankMonthly)}, εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
                         :`Σταθερό ${fmtPct(cs.effectiveRate)}, προστατευμένος. Euribor τριμήνου: ${fmtPct(market.euribor_3m)}.`
                       }
                     </p>
@@ -1275,8 +1275,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
                       Για {fmtEur(cs.loanAmount)} θα αποπληρώσεις συνολικά {fmtEur(totalCost)}.
                       {cs.years>20&&savedByShortening>0
-                        ?` Σε 20 χρόνια: δόση ${fmtEur(shortMonthly20)} τον μήνα (+${fmtEur(shortMonthly20-cs.monthly)}) → εξοικονόμηση ${fmtEur(savedByShortening)} τόκοι.`
-                        :` Έκτακτη πληρωμή 100€ τον μήνα → -${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια διάρκεια.`
+                        ?` Σε 20 χρόνια: δόση ${fmtEur(shortMonthly20)} τον μήνα (+${fmtEur(shortMonthly20-cs.monthly)}), εξοικονόμηση ${fmtEur(savedByShortening)} τόκοι.`
+                        :` Έκτακτη πληρωμή 100€ τον μήνα: μείον ${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια διάρκεια.`
                       }
                     </p>
                   </div>
@@ -1332,7 +1332,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   {issues.includes('LTV')&&(
                     <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                       <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily: T.font.sans}}>Αξία</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Αύξησε την προκαταβολή:</strong> δάνειο προς αξία κάτω από 80% → καλύτερο επιτόκιο και αποδοχή.</p>
+                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Αύξησε την προκαταβολή:</strong> δάνειο προς αξία κάτω από 80%: καλύτερο επιτόκιο και αποδοχή.</p>
                     </div>
                   )}
                   {issues.includes('Επιτόκιο')&&(
@@ -1483,7 +1483,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                       </div>
                     ))}
                   </div>
-                  <span style={{marginTop:'auto',fontSize:12,fontFamily: T.font.sans}}><InlineLink href={t.url}>Επίσημη πηγή →</InlineLink></span>
+                  <span style={{marginTop:'auto',fontSize:12,fontFamily: T.font.sans}}><InlineLink href={t.url}>Επίσημη πηγή</InlineLink></span>
                 </div>
               ))}
             </div>

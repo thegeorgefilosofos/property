@@ -131,10 +131,10 @@ export default function ResetPasswordPage() {
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 </div>
                 {errBox}
-                <button type="submit" disabled={loading} style={btn}>{loading ? 'Αποστολή…' : 'Στείλε σύνδεσμο →'}</button>
+                <button type="submit" disabled={loading} style={btn}>{loading ? 'Αποστολή…' : 'Στείλε σύνδεσμο'}</button>
               </form>
               <p style={{ fontSize: 13, marginTop: 22 }}>
-                <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>← Επιστροφή στη σύνδεση</Link>
+                <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επιστροφή στη σύνδεση</Link>
               </p>
             </>
           )}
@@ -144,7 +144,7 @@ export default function ResetPasswordPage() {
               {mailIcon}
               <h1 style={h2s}>Έλεγξε το email σου</h1>
               <p style={subs}>Αν υπάρχει λογαριασμός με αυτό το email, θα λάβεις σύνδεσμο επαναφοράς. Δες και τον φάκελο ανεπιθύμητων.</p>
-              <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>← Επιστροφή στη σύνδεση</Link>
+              <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>Επιστροφή στη σύνδεση</Link>
             </div>
           )}
 
@@ -168,7 +168,7 @@ export default function ResetPasswordPage() {
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 </div>
                 {errBox}
-                <button type="submit" disabled={loading || !pwOk} style={{ ...btn, cursor: (loading || !pwOk) ? 'not-allowed' : 'pointer', opacity: (loading || !pwOk) ? 0.6 : 1 }}>{loading ? 'Αποθήκευση…' : 'Αποθήκευση κωδικού →'}</button>
+                <button type="submit" disabled={loading || !pwOk} style={{ ...btn, cursor: (loading || !pwOk) ? 'not-allowed' : 'pointer', opacity: (loading || !pwOk) ? 0.6 : 1 }}>{loading ? 'Αποθήκευση…' : 'Αποθήκευση κωδικού'}</button>
               </form>
             </>
           )}
@@ -178,7 +178,7 @@ export default function ResetPasswordPage() {
               {successIcon}
               <h1 style={h2s}>Ο κωδικός άλλαξε</h1>
               <p style={subs}>Μπορείς τώρα να συνδεθείς με τον νέο σου κωδικό.</p>
-              <button onClick={() => router.push('/dashboard')} style={btn}>Μετάβαση στον πίνακα →</button>
+              <button onClick={() => router.push('/dashboard')} style={btn}>Μετάβαση στον πίνακα</button>
             </div>
           )}
         </div>

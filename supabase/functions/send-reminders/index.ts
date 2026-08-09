@@ -83,7 +83,7 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
       </div>
       <table style="width:100%;border-collapse:collapse;">${eventRows}</table>
       <div style="text-align:center;margin-top:24px;">
-        <a href="https://propertyos-psi.vercel.app/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα Property OS →</a>
+        <a href="https://propertyos-psi.vercel.app/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα Property OS</a>
       </div>
     </div>
     <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Αυτόματη ειδοποίηση ημερολογίου</p>
@@ -144,7 +144,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
       </div>
       <table style="width:100%;border-collapse:collapse;">${rowsHtml}</table>
       <div style="text-align:center;margin-top:24px;">
-        <a href="https://propertyos-psi.vercel.app/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα Property OS →</a>
+        <a href="https://propertyos-psi.vercel.app/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα Property OS</a>
       </div>
     </div>
     <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Αυτόματη ειδοποίηση ληξιπρόθεσμου ενοικίου</p>

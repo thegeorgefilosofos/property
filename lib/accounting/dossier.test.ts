@@ -359,7 +359,7 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
   const withPath = all.filter(r => r.aade);
   ok(`υπάρχουν όντως δικαιολογητικά με διαδρομή (${withPath.length})`, withPath.length >= 4);
   // Και κάθε προορισμός που δηλώνεται πρέπει να υπάρχει στον χάρτη.
-  ok('κάθε προορισμός υπάρχει', withPath.every(r => aadePath(r.aade!).includes('→')));
+  ok('κάθε προορισμός υπάρχει', withPath.every(r => aadePath(r.aade!).includes(' · ')));
 }
 
 console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);

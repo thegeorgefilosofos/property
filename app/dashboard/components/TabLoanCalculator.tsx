@@ -1028,8 +1028,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         {[
           {label:saving?'Αποθήκευση…':'Αποθήκευση δανείου',fn:handleSave,disabled:saving,color:'var(--accent)',bg:'var(--accent-dim)',border:'var(--border-accent)'},
-          {label:'Δόσεις → Ημερολόγιο',fn:async()=>{await onSaveToCalendar(monthly,Y,startDate,bankName);notifyOk('Οι δόσεις προστέθηκαν στο ημερολόγιο')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
-          {label:'Δόση → Δαπάνες',fn:async()=>{await onSaveToExpenses(monthly,bankName);notifyOk('Η δόση προστέθηκε στις δαπάνες')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
+          {label:'Δόσεις στο Ημερολόγιο',fn:async()=>{await onSaveToCalendar(monthly,Y,startDate,bankName);notifyOk('Οι δόσεις προστέθηκαν στο ημερολόγιο')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
+          {label:'Δόση στις Δαπάνες',fn:async()=>{await onSaveToExpenses(monthly,bankName);notifyOk('Η δόση προστέθηκε στις δαπάνες')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
           {label:'+ Προσθήκη σεναρίου',fn:addScen,disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
           {label:'Επαναφορά',fn:resetAll,disabled:false,color:'var(--text-tertiary)',bg:'transparent',border:'var(--border-subtle)'},
         ].map(a=>(
@@ -1202,7 +1202,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <p style={{fontSize:28,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:700}}>{fmtEur(spitiSv)}</p>
           <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:6,fontFamily: T.font.sans}}>{fmtEur(spitiSv/Math.max(Y*12,1))} τον μήνα εξοικονόμηση</p>
         </div>
-        <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.6,fontFamily: T.font.sans}}>Εκτίμηση βάσει μέσου επιδοτούμενου επιτοκίου. → <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
+        <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.6,fontFamily: T.font.sans}}>Εκτίμηση βάσει μέσου επιδοτούμενου επιτοκίου. <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
         </>):(
         <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'16px 18px'}}>
           <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.7,marginBottom:12}}>Το πρόγραμμα «Σπίτι μου ΙΙ» αφορά αποκλειστικά την αγορά πρώτης κατοικίας. Με τα τρέχοντα στοιχεία δεν πληρούνται τα βασικά κριτήρια, οπότε δεν εμφανίζεται εκτίμηση εξοικονόμησης για να μη σου δώσουμε παραπλανητικό νούμερο.</p>
@@ -1219,7 +1219,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               </div>
             ))}
           </div>
-          <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:14,lineHeight:1.6,fontFamily: T.font.sans}}>Αναλυτικά κριτήρια και δικαιολογητικά → <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
+          <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:14,lineHeight:1.6,fontFamily: T.font.sans}}>Αναλυτικά κριτήρια και δικαιολογητικά <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
         </div>
         )}
       </Section>

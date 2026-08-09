@@ -521,7 +521,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                       {(()=>{ const ds=staysOnDay(stays,dateStr); if(!ds.length)return null; const col=idx%7; return (
                         <div style={{ margin:'0 -6px 3px', display:'flex', flexDirection:'column', gap:2 }}>
                           {ds.slice(0,3).map(s=>{ const m=segMeta(s,dateStr,col); const cc=channelColor(s.channel); const nights=Math.max(1,Math.round((Date.UTC(+s.end.slice(0,4),+s.end.slice(5,7)-1,+s.end.slice(8,10))-Date.UTC(+s.start.slice(0,4),+s.start.slice(5,7)-1,+s.start.slice(8,10)))/86400000)); return (
-                            <Tooltip key={s.id} text={`${s.guest} · ${cc.label}\n${s.start} → ${s.end}${s.total?`\n${fe(s.total)}`:''}`}>
+                            <Tooltip key={s.id} text={`${s.guest} · ${cc.label}\n${s.start} έως ${s.end}${s.total?`\n${fe(s.total)}`:''}`}>
                               <div onClick={e=>e.stopPropagation()} style={{ height:17, display:'flex', alignItems:'center', background:`color-mix(in srgb, ${cc.solid} 90%, var(--bg-elevated))`, color:'var(--on-tone)', fontSize:11, fontWeight:600, fontFamily: T.font.sans, letterSpacing:'0.2px', paddingLeft:m.showLabel?8:0, paddingRight:m.roundRight?6:0, borderTopLeftRadius:m.roundLeft?8:0, borderBottomLeftRadius:m.roundLeft?8:0, borderTopRightRadius:m.roundRight?8:0, borderBottomRightRadius:m.roundRight?8:0, marginLeft:m.roundLeft?4:0, marginRight:m.roundRight?4:0, overflow:'hidden', whiteSpace:'nowrap', cursor:'default' }}>
                                 {m.showLabel&&<span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{m.isStart&&<User size={9} style={{ marginRight:3, verticalAlign:'-1px', opacity:0.85 }}/>}{s.guest}{m.isStart&&nights>1?` · ${nights} ν.`:''}</span>}
                               </div>
@@ -1199,7 +1199,7 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
         </div>
         <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:T.radius.inner }}>
           <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
-          <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός, μην τον μοιράζεσαι.</p>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Στο Google Calendar: «Άλλα ημερολόγια», μετά «Από URL»: επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός, μην τον μοιράζεσαι.</p>
         </div>
         {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
         <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>

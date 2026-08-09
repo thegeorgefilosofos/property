@@ -1093,7 +1093,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
           {i.value != null && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
           <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>
         </div>
-        {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα →</a>}
+        {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα</a>}
       </div>
     </div>
   );
@@ -1220,7 +1220,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
             {STAGE_TEXT[d.status] || (d.kind === 'photo'
               ? `Φωτογραφία χώρου · ${d.category}`
-              : `${DOC_TYPE_LABELS[doc?.doc_type || 'other']} · ${d.category} → ${folder}`)}
+              : `${DOC_TYPE_LABELS[doc?.doc_type || 'other']} · ${d.category} · ${folder}`)}
           </div>
         </div>
         {d.status === 'saved' && (d.saved || []).map(t => (
@@ -1289,7 +1289,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
             )}
             <div style={g2x}>
               <CustomSelect label="Κατηγορία (φάκελος)" value={d.category} onChange={c => onPatch({ category: c })}
-                options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
+                options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c} · ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
               <TextInput label="Τίτλος" value={doc.title || ''} onChange={t => onPatchDoc({ title: t })} placeholder="Σύντομη περιγραφή"/>
             </div>
             <div style={g2x}>
@@ -1402,7 +1402,7 @@ function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => 
       </>}>
       {/* Χωρίς δικό μας flex wrapper: το Modal βάζει ήδη τα παιδιά σε στήλη με κενό. */}
       <CustomSelect label="Κατηγορία" value={cat} onChange={setCat}
-        options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
+        options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c} · ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
       {one && (<>
         <div style={g2x}>
           <TextInput label="Πάροχος ή εκδότης" value={supplier} onChange={setSupplier} placeholder="Όπως γράφεται στο παραστατικό"/>

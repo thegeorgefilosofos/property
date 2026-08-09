@@ -1251,7 +1251,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: active ? 10 : 0 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, cursor: 'pointer' }} {...pressable(() => toggleStreaming(svc.value), `${active ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}: ${svc.label}`)}/>
                   <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1, cursor: 'pointer' }} onClick={() => toggleStreaming(svc.value)}>{svc.label}</span>
-                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--text-tertiary)', textDecoration: 'none', padding: '2px 4px' }}>↗</a>}
+                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--text-tertiary)', textDecoration: 'none', padding: '2px 4px' }}>Επίσημη σελίδα</a>}
                   {active ? (
                     <button onClick={() => toggleStreaming(svc.value)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0, padding: 0 }}>✕</button>
                   ) : (
@@ -1318,7 +1318,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
                   <span style={{ fontSize: 10, fontWeight: 600, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>{svc.label}</span>
-                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, color: 'var(--text-tertiary)', textDecoration: 'none' }}>↗</a>}
+                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, color: 'var(--text-tertiary)', textDecoration: 'none' }}>Επίσημη σελίδα</a>}
                 </div>
                 {active ? (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>

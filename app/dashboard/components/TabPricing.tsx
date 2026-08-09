@@ -659,7 +659,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               })}
             </div>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', alignItems: 'center' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 44, height: 10, borderRadius: 3, background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--accent))' }} />χαμηλή → υψηλή τιμή</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 44, height: 10, borderRadius: 3, background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--accent))' }} />από χαμηλή σε υψηλή τιμή</span>
               {/* «υψηλή ζήτηση» έφυγε: το σημάδι δηλώνει ΑΡΓΙΑ, που είναι
                   ημερολογιακό γεγονός. Δεδομένο ζήτησης δεν έχουμε. */}
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία</span>

@@ -161,7 +161,7 @@ export const AADE_DESTINATIONS: Record<AadeAction, AadeDestination> = {
 /** Η διαδρομή σε μία γραμμή: «myAADE → Μητρώο & Επικοινωνία → …». */
 export function aadePath(action: AadeAction): string {
   const d = AADE_DESTINATIONS[action];
-  return [d.portal, ...d.steps].join(' → ');
+  return [d.portal, ...d.steps].join(' · ');
 }
 
 /** Ο προορισμός για μια φορολογική υποχρέωση του `greekTaxCalendar`. */

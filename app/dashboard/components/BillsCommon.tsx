@@ -307,7 +307,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans, flex: 1 }}>{mgmtInfo?.desc}</div>
           {mgmtInfo?.url && (
             <a href={mgmtInfo.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
-              Επίσκεψη →
+              Επίσκεψη
             </a>
           )}
         </div>
@@ -339,7 +339,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 {opt.url && isCur && (
                   <a href={opt.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                     style={{ fontSize: 9, color: 'var(--accent)', textDecoration: 'none', fontFamily: T.font.sans, marginTop: 5, display: 'block', fontWeight: 600 }}>
-                    Επίσκεψη →
+                    Επίσκεψη
                   </a>
                 )}
               </div>
@@ -362,7 +362,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{p.price}</span>
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{p.note}</div>
-                  <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, fontFamily: T.font.sans, marginTop: 6, display: 'inline-block' }}>Επίσκεψη →</span>
+                  <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, fontFamily: T.font.sans, marginTop: 6, display: 'inline-block' }}>Επίσκεψη</span>
                 </a>
               ))}
             </div>
@@ -446,7 +446,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               {!e.transferredToExpenses && (
                 <button onClick={() => transferToExpenses(i)} disabled={transferring === i}
                   style={{ fontSize: 10, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
-                  {transferring === i ? 'Μεταφορά…' : 'Μεταφορά στις Δαπάνες →'}
+                  {transferring === i ? 'Μεταφορά…' : 'Μεταφορά στις Δαπάνες'}
                 </button>
               )}
               <button onClick={() => delExtra(i)}

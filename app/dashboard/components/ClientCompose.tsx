@@ -304,7 +304,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Προσωποποίηση:</span>
                   <code style={{ fontSize: 11, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '2px 6px', fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>{'{{name}}'}</code>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>→ το όνομα κάθε παραλήπτη</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>γίνεται το όνομα κάθε παραλήπτη</span>
                 </div>
               </div>
 
