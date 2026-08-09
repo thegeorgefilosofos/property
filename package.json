@@ -48,7 +48,8 @@
     "keyboard": "node scripts/guard-keyboard.mjs",
     "password-leak": "node scripts/guard-password-leak.mjs",
     "number-fields": "node scripts/guard-number-fields.mjs",
-    "greek-case": "node scripts/guard-greek-case.mjs"
+    "greek-case": "node scripts/guard-greek-case.mjs",
+    "dangling-refs": "node scripts/guard-dangling-refs.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

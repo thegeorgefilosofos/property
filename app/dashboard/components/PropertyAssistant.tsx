@@ -81,7 +81,7 @@ type ClientLite = { id: string; name: string; phone: string; afm: string };
 type ContactLite = { name: string; role: string; phone: string; email: string };
 
 import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from '@/lib/assistant/openers';
-import { scanFile, commitScannedDoc, type ReconcileQuestion } from './scanDoc';
+import { scanFile, commitScannedDoc, RECONCILE_NONE_LABEL, RECONCILE_NONE_HINT, type ReconcileQuestion } from './scanDoc';
 import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
@@ -90,7 +90,7 @@ const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
 // Η ερώτηση συμφωνίας σε μία πρόταση. Οι ίδιοι λόγοι που δείχνει και η οθόνη
 // σάρωσης — δεν εφευρίσκεται δεύτερη διατύπωση για την ίδια απόφαση.
 const reconcilePrompt = (q: { question: string; options: { label: string; reasons: string[] }[] }): string =>
-  `${q.question} Βρήκα ${q.options.length === 1 ? 'έναν λογαριασμό που ταιριάζει' : `${q.options.length} λογαριασμούς που ταιριάζουν`}. Διάλεξε παρακάτω, ή «Κανέναν» για νέα εγγραφή.`;
+  `${q.question} Βρήκα ${q.options.length === 1 ? 'έναν λογαριασμό που ταιριάζει' : `${q.options.length} λογαριασμούς που ταιριάζουν`}. Διάλεξε παρακάτω, ή «${RECONCILE_NONE_LABEL}» για νέα εγγραφή.`;
 const navLabel = (id: string) => NAV_MAP.find(n => n.id === id)?.label || id;
 const onlyDigits = (p: string) => (p || '').replace(/\D/g, '');
 // Ετικέτα κουμπιού επικοινωνίας ανά κανάλι (χωρίς emoji, ελληνικά).
@@ -1391,7 +1391,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                 ))}
                 {/* ── Η ΑΠΑΝΤΗΣΗ ΣΤΗΝ ΕΡΩΤΗΣΗ ΣΥΜΦΩΝΙΑΣ ─────────────────────────
                     Μία στήλη επιλογών με τον λόγο κάθε μιας από κάτω, και το
-                    «Κανέναν» τελευταίο. Δεν χρωματίζεται καμία: η μηχανή έχει
+                    «Κανέναν από αυτούς» τελευταίο. Δεν χρωματίζεται καμία: η μηχανή έχει
                     ήδη πει ότι ΔΕΝ είναι σίγουρη, και ένα τονισμένο κουμπί θα
                     ήταν ακριβώς η εικασία που απέφυγε. */}
                 {reconcile && !busy && (
@@ -1405,7 +1405,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     ))}
                     <button type="button" onClick={() => commitPendingDoc(null)}
                       style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, cursor: 'pointer', minHeight: T.h.md }}>
-                      Κανέναν, κράτησέ το ως νέα εγγραφή
+                      <span style={{ fontWeight: 650 }}>{RECONCILE_NONE_LABEL}</span>
+                      <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{RECONCILE_NONE_HINT}</span>
                     </button>
                   </div>
                 )}

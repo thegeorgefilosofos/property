@@ -21,7 +21,8 @@ import type { BillsRow, ExpensesRow, InventoryItemsRow } from '@/lib/supabase/ta
 import { ARCHIVE_CATEGORIES, validateDoc, DOC_FIELD_LABELS, DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import {
   scanFile, commitScannedDoc, archiveScannedFile, archiveCategoryFor,
-  PHOTO_CATEGORIES, MAX_SCAN_MB, type ScanError, type ReconcileQuestion,
+  PHOTO_CATEGORIES, MAX_SCAN_MB, RECONCILE_NONE_LABEL, RECONCILE_NONE_HINT,
+  type ScanError, type ReconcileQuestion,
 } from './scanDoc';
 import { isValidAfm } from '@/lib/billing/parse';
 import { navLabel } from '@/lib/nav/labels';
@@ -1262,7 +1263,8 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
             ))}
             <button onClick={() => onCommit(null)}
               style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν — νέα, ξεχωριστή εγγραφή</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{RECONCILE_NONE_LABEL}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{RECONCILE_NONE_HINT}</div>
             </button>
           </div>
         </div>

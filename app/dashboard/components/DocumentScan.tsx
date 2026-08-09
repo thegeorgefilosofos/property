@@ -18,7 +18,7 @@ import {
 } from '@/lib/billing/documents';
 import {
   scanDocument, commitScannedDoc, MAX_SCAN_MB, SYSTEM_PROMPT as SCAN_SYSTEM_PROMPT,
-  type ReconcileQuestion,
+  RECONCILE_NONE_LABEL, RECONCILE_NONE_HINT, type ReconcileQuestion,
 } from './scanDoc';
 import { inferRole } from '@/lib/contacts/roles';
 
@@ -583,8 +583,8 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
                   ))}
                   <button onClick={() => save(null)} disabled={saving}
                     style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, padding: '10px 14px', cursor: saving ? 'default' : 'pointer', fontFamily: T.font.sans }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Κανέναν από αυτούς</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>Θα καταχωρηθεί ως νέα, ξεχωριστή πληρωμή</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{RECONCILE_NONE_LABEL}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>{RECONCILE_NONE_HINT}</div>
                   </button>
                 </div>
               </div>
