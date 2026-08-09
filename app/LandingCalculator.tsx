@@ -75,7 +75,7 @@ export default function LandingCalculator() {
         input[type=range]::-webkit-slider-thumb { cursor: pointer; }
       `}</style>
 
-      {/* Αριστερά: τα δικά σου νούμερα */}
+      {/* Αριστερά: τα δικά σου δεδομένα */}
       <div className="calc-panel" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
         <Control label="Μηνιαίο ενοίκιο" hint="Το μεικτό μηνιαίο μίσθωμα" value={rent} set={setRent} min={100} max={5000} step={10} format={eur} />
         <Control label="Αξία ακινήτου" hint="Τρέχουσα εμπορική αξία, για τον υπολογισμό απόδοσης" value={value} set={setValue} min={2000} max={1000000} step={1000} format={eur} />
@@ -115,7 +115,7 @@ export default function LandingCalculator() {
         <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>
           {/* Αχώριστο διάστημα πριν το βέλος: στα 320px η ετικέτα σπάει σε δύο
               γραμμές και χωρίς αυτό το βέλος έμενε ΜΟΝΟ του στη δεύτερη. */}
-          Δες τα δικά σου νούμερα, αυτόματα →
+          Δες τα δικά σου δεδομένα, αυτόματα →
         </Link>
       </div>
     </div>

@@ -87,7 +87,7 @@ ok('κενό όνομα δεν αφήνει κενά', !suggestedOpeners({ prope
   const g = greeting(ASSISTANT_NAME, FULL)
   ok('χαιρετισμός με το όνομα', g.includes(ASSISTANT_NAME))
   ok('χαιρετισμός λέει τι βλέπει', /Βλέπω/.test(g))
-  ok('χαιρετισμός τονίζει «τα δικά σου»', /δικά σου νούμερα/.test(g))
+  ok('χαιρετισμός τονίζει «τα δικά σου»', /δικά σου δεδομένα και αριθμούς/.test(g))
   ok('χαιρετισμός αναφέρει πλήθος ακινήτων', g.includes('2 ακινήτων'))
 }
 {
@@ -114,7 +114,7 @@ ok('hasWord: αρνητικό όταν λείπει', !hasWord('Γεια σας'
   const f = greeting(ASSISTANT_NAME, FULL, true)
   ok('ευγενικός τύπος: ρήμα', f.includes('Ρωτήστε με'))
   ok('ευγενικός τύπος: χαιρετισμός', f.includes('Γεια σας'))
-  ok('ευγενικός τύπος: κτητικό', f.includes('τα δικά σας νούμερα'))
+  ok('ευγενικός τύπος: κτητικό', f.includes('τα δικά σας δεδομένα και αριθμούς'))
   ok('ευγενικός τύπος: κανένα «σου»', !hasWord(f, 'σου'))
   const inf = greeting(ASSISTANT_NAME, FULL, false)
   ok('οικείος τύπος: ρήμα', inf.includes('Ρώτα με'))
