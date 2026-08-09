@@ -69,7 +69,7 @@ ok('σύνολο γεγονότων = 5', rows.length === 5)
 
 // ανθεκτικότητα
 ok('κενό input', buildBookingEvents([], 'p', 'u').length === 0)
-ok('null στοιχεία', buildBookingEvents([null as any, stays[0]], 'p', 'u').length === 2)
+ok('null στοιχεία', buildBookingEvents([null as never, stays[0]], 'p', 'u').length === 2)
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nbookingEvents.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

@@ -65,7 +65,7 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
 
 // ── Ασφάλεια εισόδου ────────────────────────────────────────────────────────
 {
-  const r = transferCosts({ side: 'buy', price: NaN as any })
+  const r = transferCosts({ side: 'buy', price: NaN as never })
   ok('NaN price → 0 costs safe', r.price === 0 && r.totalCosts >= 0)
 }
 

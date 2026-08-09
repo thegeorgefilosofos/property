@@ -249,7 +249,7 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
 
 // ── Στρογγυλοποίηση/ασφάλεια εισόδου ────────────────────────────────────────
 {
-  const st = incomeStatement({ regime: 'individual_longterm', grossIncome: NaN as any })
+  const st = incomeStatement({ regime: 'individual_longterm', grossIncome: NaN as never })
   ok('NaN gross → 0', st.grossIncome === 0 && st.incomeTax === 0)
   const st2 = incomeStatement({ regime: 'individual_longterm', grossIncome: -500 })
   ok('negative gross → 0', st2.grossIncome === 0)

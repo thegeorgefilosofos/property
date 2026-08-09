@@ -15,7 +15,7 @@ ok('span total', s1.total === 400)
 const s2 = toStaySpan({ id: 'b', check_in: '2026-08-10', check_out: null, channel: 'booking' })!
 ok('χωρίς check_out → end=start', s2.end === '2026-08-10')
 ok('χωρίς όνομα → κανάλι', s2.guest === 'Booking.com κράτηση')
-ok('άκυρη check_in → null', toStaySpan({ id: 'c', check_in: 'bad' } as any) === null)
+ok('άκυρη check_in → null', toStaySpan({ id: 'c', check_in: 'bad' } as never) === null)
 ok('end<start → κανονικοποίηση', toStaySpan({ id: 'd', check_in: '2026-08-10', check_out: '2026-08-01' })!.end === '2026-08-10')
 
 // ── staysOnDay ───────────────────────────────────────────────────────────────

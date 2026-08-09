@@ -255,10 +255,19 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
   const ranked = needs ? rankLoans(needs, banks, euribor) : []
   const best = ranked.find(r => r.eligible) || ranked[0]
 
+  // ── ΤΟ «v» ΕΙΝΑΙ ΚΛΕΙΔΙ ΑΛΛΑΓΗΣ, ΟΧΙ ΧΡΟΝΟΣ ───────────────────────────────
+  // Ο υπολογιστής ακούει `[applied?.v]` για να ξέρει ότι ήρθε ΝΕΑ εφαρμογή. Το
+  // κλειδί βγαινε από `Date.now() % 1e9 + confidence`: ρολόι μέσα σε τιμή που
+  // δεν έχει καμία σχέση με χρόνο, και δύο εφαρμογές στο ίδιο χιλιοστό με ίδια
+  // βεβαιότητα θα έδιναν το ΙΔΙΟ κλειδί, δηλαδή η δεύτερη δεν θα περνούσε.
+  // Ένας μετρητής που ανεβαίνει λέει ακριβώς αυτό που θέλουμε και δεν μπορεί
+  // ποτέ να συμπέσει.
+  const applyCount = useRef(0)
+
   const applyToCalc = () => {
     if (!needs) return
     onApply?.({
-      v: Date.now() % 1e9 + Math.round((ex?.confidence || 0)),
+      v: ++applyCount.current,
       loanAmount: needs.amount, propValue: needs.propertyValue, years: needs.years,
       rate: best?.effectiveRatePct ?? ex?.current_rate,
       rateType: needs.ratePreference,

@@ -59,7 +59,7 @@ ok('όριο +11 έξω', dueReminders(e11, NOW, 10).length === 0)
 
 // κενή/χαλασμένη είσοδος δεν πετάει
 ok('κενός πίνακας', dueReminders([], NOW).length === 0)
-ok('null στοιχεία ανθεκτικά', dueReminders([null as any, evs[0]], NOW, 10).length === 1)
+ok('null στοιχεία ανθεκτικά', dueReminders([null as never, evs[0]], NOW, 10).length === 1)
 
 // ── notifyBody ───────────────────────────────────────────────────────────────
 ok('body «τώρα»', notifyBody(evs[6], NOW) === '09:00 · τώρα')

@@ -60,7 +60,8 @@ ok('Β: ΕΝΦΙΑ σε owner', greekPropertyTaxObligations(2026, 'owner').some(
 function loanRows(amount: number, rate: number, years: number, start: string, bank: string) {
   const monthly = annuityMonthly(amount, rate, years)
   const src = 'loan_schedule:' + (bank || 'γενικό').toLowerCase().replace(/\s+/g, '_').slice(0, 40)
-  const d = new Date(start), n = Math.min(years * 12, 60), rows: any[] = []
+  const d = new Date(start), n = Math.min(years * 12, 60)
+  const rows: { event_date: string; amount: number; source: string }[] = []
   for (let i = 0; i < n; i++) { const ev = new Date(d.getFullYear(), d.getMonth() + i + 1, d.getDate()); rows.push({ event_date: ev.toISOString().split('T')[0], amount: Math.round(monthly), source: src }) }
   return rows
 }

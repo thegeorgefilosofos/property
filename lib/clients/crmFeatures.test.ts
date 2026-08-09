@@ -17,7 +17,7 @@ for (const t of MSG_TEMPLATES) {
   ok(`msg ${t.id} no em-dash`, !body.includes('—'));
 }
 ok('buildMessage welcome', buildMessage('welcome', ctx).includes('Καλωσόρισες') || buildMessage('welcome', ctx).length > 0);
-ok('buildMessage unknown → empty', buildMessage('nope' as any, ctx) === '');
+ok('buildMessage unknown → empty', buildMessage('nope' as never, ctx) === '');
 ok('welcome without name still works', buildMessage('welcome', { propertyName: 'Βίλα' }).length > 5);
 ok('whatsappLink encodes text', whatsappLink('306941234567', 'Γεια σου!').startsWith('https://wa.me/306941234567?text=') && whatsappLink('306941234567', 'Γεια σου!').includes('%'));
 ok('viberLink forward', viberLink('Γεια').startsWith('viber://forward?text='));

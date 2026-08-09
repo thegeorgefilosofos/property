@@ -23,10 +23,10 @@ const monthly = [{ id: 'a', event_date: '2026-01-10', recurring: true, recurring
 const occ = expandRecurring(monthly, '2026-01-01', '2026-06-30')
 ok('monthly count Jan–Jun = 6', occ.length === 6)
 ok('monthly dates', occ.map(o => o.event_date).join(',') === '2026-01-10,2026-02-10,2026-03-10,2026-04-10,2026-05-10,2026-06-10')
-ok('base not virtual', (occ[0] as any)._virtual === undefined)
-ok('later are virtual', (occ[1] as any)._virtual === true)
+ok('base not virtual', occ[0]._virtual === undefined)
+ok('later are virtual', occ[1]._virtual === true)
 ok('virtual has synthetic id', occ[1].id === 'a__2026-02-10')
-ok('virtual keeps seriesId', (occ[1] as any)._seriesId === 'a')
+ok('virtual keeps seriesId', occ[1]._seriesId === 'a')
 
 // range that starts AFTER base still yields occurrences in-range
 const mid = expandRecurring(monthly, '2026-04-01', '2026-05-31')

@@ -104,7 +104,7 @@ ok('μόνο κενά → Γεγονός', p('   ').title === 'Γεγονός')
 ok('ποτέ κενός τίτλος (μόνο σύνδεσμος)', p('με').title.length > 0)
 
 // ανθεκτικότητα σε null είσοδο (δεν πρέπει να πετάξει)
-ok('null input δεν πετάει', (() => { try { const r = parseQuickAdd(null as any, NOW); return r.title === 'Γεγονός' } catch { return false } })())
+ok('null input δεν πετάει', (() => { try { const r = parseQuickAdd(null as never, NOW); return r.title === 'Γεγονός' } catch { return false } })())
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nquickAdd.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

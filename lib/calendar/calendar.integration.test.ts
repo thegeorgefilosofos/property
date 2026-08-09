@@ -30,9 +30,9 @@ for (const base of BASES) {
     ok(`rec ${base}/${interval}: base first`, occ.length > 0 && occ[0].event_date === base)
     ok(`rec ${base}/${interval}: strictly increasing`, occ.every((o, i) => i === 0 || cmp(o.event_date, occ[i - 1].event_date) > 0))
     ok(`rec ${base}/${interval}: all >= base`, occ.every(o => o.event_date >= base))
-    ok(`rec ${base}/${interval}: base not virtual`, !(occ[0] as any)._virtual)
-    ok(`rec ${base}/${interval}: rest virtual`, occ.slice(1).every(o => (o as any)._virtual === true))
-    ok(`rec ${base}/${interval}: seriesId set`, occ.slice(1).every(o => (o as any)._seriesId === 'x'))
+    ok(`rec ${base}/${interval}: base not virtual`, !occ[0]._virtual)
+    ok(`rec ${base}/${interval}: rest virtual`, occ.slice(1).every(o => o._virtual === true))
+    ok(`rec ${base}/${interval}: seriesId set`, occ.slice(1).every(o => o._seriesId === 'x'))
     // nextOccurrence συμφωνεί με το πρώτο βήμα
     const nx = nextOccurrence(base, interval)
     ok(`rec ${base}/${interval}: nextOccurrence matches`, occ.length < 2 || occ[1].event_date === nx)
@@ -134,7 +134,7 @@ for (const date of EV_DATES) {
       ok(`gcal has dates ${date}/${time}`, g.includes('dates='))
       if (!time) ok(`gcal all-day end+1 ${date}`, g.includes(`${date.replace(/-/g, '')}%2F${addDaysCompact(date, 1)}`))
       const bundle = allCalendarLinks(e)
-      ok(`bundle 7 keys ${date}/${time}`, ['google', 'outlook', 'office', 'yahoo', 'ics', 'whatsapp', 'viber'].every(k => !!(bundle as any)[k]))
+      ok(`bundle 7 keys ${date}/${time}`, ([ 'google', 'outlook', 'office', 'yahoo', 'ics', 'whatsapp', 'viber' ] as (keyof typeof bundle)[]).every(k => !!bundle[k]))
       // ICS roundtrip
       const ics = buildICS(e)
       const parsed = parseICS(ics)
@@ -174,7 +174,7 @@ for (const rel of [['σήμερα', '2026-07-10'], ['αύριο', '2026-07-11'],
   ok(`qa rel ${rel[0]}`, parseQuickAdd(`Δουλειά ${rel[0]}`, NOW).date === rel[1])
 }
 ok('qa never empty title', parseQuickAdd('   ', NOW).title.length > 0)
-ok('qa null safe', (() => { try { return parseQuickAdd(null as any, NOW).title.length > 0 } catch { return false } })())
+ok('qa null safe', (() => { try { return parseQuickAdd(null as never, NOW).title.length > 0 } catch { return false } })())
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log(`calendar.integration, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

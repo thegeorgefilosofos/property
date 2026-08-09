@@ -77,7 +77,11 @@ ok('whatsapp encodes', whatsappShareUrl('a b').includes('a%20b'))
 
 // ── allCalendarLinks bundle ─────────────────────────────────────────────────
 const bundle = allCalendarLinks(timed)
-ok('bundle keys', ['google','outlook','office','yahoo','ics','whatsapp','viber'].every(k => (bundle as any)[k]))
+// Ο κατάλογος δηλώνεται ΩΣ ΚΛΕΙΔΙΑ ΤΟΥ ΤΥΠΟΥ, όχι ως συμβολοσειρές πίσω από
+// `any`. Έτσι, αν το allCalendarLinks μετονομάσει ή χάσει ένα κλειδί, ο έλεγχος
+// δεν «περνά σιωπηλά»: δεν μεταγλωττίζεται καν.
+const BUNDLE_KEYS: (keyof typeof bundle)[] = ['google','outlook','office','yahoo','ics','whatsapp','viber']
+ok('bundle keys', BUNDLE_KEYS.every(k => bundle[k]))
 
 // invalid time → treated as all-day (δεν σκάει)
 ok('invalid time falls back to all-day', googleCalendarUrl({ title: 'X', date: '2026-05-05', time: '99:99' }).includes('dates=20260505%2F20260506'))
