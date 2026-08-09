@@ -19,7 +19,11 @@ function addDay(dateStr: string, days: number): string {
   return `${nd.getUTCFullYear()}${pad(nd.getUTCMonth() + 1)}${pad(nd.getUTCDate())}`
 }
 
-function veventLines(s: any, stamp: string): string[] {
+/** Η διαμονή, όσο τη χρειάζεται η ροή. Ήταν `any`: ένα ορθογραφικό σε όνομα
+ *  πεδίου θα παρήγαγε σιωπηλά ημερολόγιο με λάθος ημερομηνίες. */
+interface StayRow { id: string; check_in: string | null; check_out: string | null; channel?: string | null }
+
+function veventLines(s: StayRow, stamp: string): string[] {
   if (!isDate(s.check_in)) return []
   const startYmd = String(s.check_in).replace(/-/g, '')
   // DTEND ολοήμερου = EXCLUSIVE (η ημέρα αναχώρησης) — hotel-style μπλοκάρισμα.

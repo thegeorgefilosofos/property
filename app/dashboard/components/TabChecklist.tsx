@@ -1933,8 +1933,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         .eq('property_id', propertyId)
       setLoanPayment(
         toLoanViews(loanData)
-          .filter((l:any)=>l.status!=='inactive'&&l.status!=='closed')
-          .reduce((s:number,l:any)=>s+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
+          // Το toLoanViews επιστρέφει ήδη LoanView[]· το «any» έσβηνε τον τύπο
+          // που μόλις είχε παραχθεί, και μαζί τον έλεγχο των ονομάτων πεδίων.
+          .filter(l=>l.status!=='inactive'&&l.status!=='closed')
+          .reduce((sum,l)=>sum+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
       )
     } catch (_) {}
 

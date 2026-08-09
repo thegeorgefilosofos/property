@@ -6,7 +6,9 @@ import { saved } from '@/components/dbWrite';
 // Singleton, ένας client για όλο το hook
 const supabase = createClient();
 
-export function useBillsSettings<T extends Record<string, any>>(
+// `unknown` αντί για `any`: ο περιορισμός λέει «αντικείμενο με ό,τι κλειδιά
+// θέλεις», όχι «σβήσε τον έλεγχο τύπων για ό,τι βγει από εδώ».
+export function useBillsSettings<T extends Record<string, unknown>>(
   propertyId: string,
   userId: string,
   section: string,

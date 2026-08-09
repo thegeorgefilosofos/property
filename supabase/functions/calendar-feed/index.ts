@@ -20,10 +20,23 @@ function esc(s: string) { return String(s || '').replace(/\\/g, '\\\\').replace(
 function fold(line: string) { if (line.length <= 74) return line; const out: string[] = []; let s = line; while (s.length > 74) { out.push(s.slice(0, 74)); s = ' ' + s.slice(74) } out.push(s); return out.join('\r\n') }
 const pad = (n: number) => String(n).padStart(2, '0')
 
-function veventLines(e: any, stamp: string): string[] {
-  const cat = CAT_LABELS[e.category] || e.category || ''
+/** Το γεγονός, όσο το χρειάζεται η ροή. Ήταν `any`. */
+interface EventRow {
+  id: string; category?: string | null; event_date: string;
+  event_time?: string | null; duration_minutes?: number | null;
+  title?: string | null; notes?: string | null; amount?: number | null; status?: string | null;
+}
+
+function veventLines(e: EventRow, stamp: string): string[] {
+  // Χωρίς κατηγορία, ο δείκτης ήταν `null` — που σε JavaScript γίνεται σιωπηλά
+  // το κλειδί «null» και δεν βρίσκει ποτέ τίποτα. Ο τύπος το έδειξε.
+  const cat = (e.category && CAT_LABELS[e.category]) || e.category || ''
   const time: string | null = e.event_time || null
-  const dur: number = Number.isFinite(e.duration_minutes) && e.duration_minutes > 0 ? e.duration_minutes : 60
+  // Η διάρκεια μπορεί να λείπει. Ήταν γραμμένο με `Number.isFinite(...)`, που
+  // δεν στενεύει τον τύπο για τον μεταγλωττιστή — και με `any` κανείς δεν το
+  // έβλεπε: ένα `null` περνούσε ως διάρκεια και το γεγονός έβγαινε άκυρο.
+  const rawDur = Number(e.duration_minutes)
+  const dur: number = Number.isFinite(rawDur) && rawDur > 0 ? rawDur : 60
   const ymd = String(e.event_date).replace(/-/g, '')
   const lines = ['BEGIN:VEVENT', `UID:${e.id}@property-os`, `DTSTAMP:${stamp}`]
   if (time && /^\d{1,2}:\d{2}$/.test(time)) {

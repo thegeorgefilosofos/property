@@ -47,8 +47,12 @@ const SYSTEM = `Είσαι αναλυτής στεγαστικών δανείω�
 {"banks":[{"bank":"Εθνική","fixed_3yr":2.9,"fixed_5yr":3.3,"fixed_10yr":3.8,"fixed_15yr":4.1,"fixed_20yr":4.2,"variable_spread_min":1.6,"variable_spread_max":2.8,"max_ltv":90,"spiti_mou":true}]}
 Παρέλειψε όποιο πεδίο δεν βρίσκεις με ασφάλεια. Αριθμοί με τελεία δεκαδικό, χωρίς σύμβολα.`
 
-async function callAnthropic(): Promise<any[]> {
-  const messages: any[] = [{ role: 'user', content: 'Βρες τα τρέχοντα στεγαστικά επιτόκια και επίστρεψε μόνο το JSON.' }]
+/** Ό,τι επιστρέφει το μοντέλο ανά τράπεζα. Επικυρώνεται παρακάτω· ο τύπος
+ *  υπάρχει για να μη διαφεύγει ορθογραφικό σε όνομα πεδίου. */
+type RateRow = Record<string, unknown>
+
+async function callAnthropic(): Promise<RateRow[]> {
+  const messages: { role: 'user' | 'assistant'; content: string }[] = [{ role: 'user', content: 'Βρες τα τρέχοντα στεγαστικά επιτόκια και επίστρεψε μόνο το JSON.' }]
   let text = ''
   // Βρόχος για server-tool (web_search): συνέχισε σε pause_turn.
   for (let i = 0; i < 5; i++) {
@@ -69,7 +73,7 @@ async function callAnthropic(): Promise<any[]> {
     })
     if (!res.ok) throw new Error(`anthropic ${res.status}: ${await res.text()}`)
     const data = await res.json()
-    text += (data.content || []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
+    text += ((data.content || []) as { type: string; text?: string }[]).filter(c => c.type === 'text').map(c => c.text ?? '').join('\n')
     if (data.stop_reason === 'pause_turn') { messages.push({ role: 'assistant', content: data.content }); continue }
     break
   }
@@ -116,7 +120,11 @@ Deno.serve(async (req) => {
     // Κανονικοποίηση + επικύρωση: κράτα μόνο τράπεζες με έγκυρο id και ≥1 επιτόκιο.
     const updates: { id: string; row: Record<string, unknown> }[] = []
     for (const b of raw) {
-      const id = resolveBankId(b?.bank || b?.bank_id || '')
+      // Το μοντέλο επιστρέφει ό,τι θέλει· η στένωση γίνεται ΕΔΩ, ρητά, αντί να
+      // υποθέτουμε ότι το πεδίο είναι κείμενο. Με `any` περνούσε αντικείμενο
+      // ολόκληρο στο resolveBankId και έβγαινε πάντα κενό, σιωπηλά.
+      const nameOf = (v: unknown): string => (typeof v === 'string' ? v : '')
+      const id = resolveBankId(nameOf(b?.bank) || nameOf(b?.bank_id))
       if (!id) continue
       const row: Record<string, unknown> = {}
       const f3 = pctStr(b.fixed_3yr), f5 = pctStr(b.fixed_5yr), f10 = pctStr(b.fixed_10yr), f15 = pctStr(b.fixed_15yr), f20 = pctStr(b.fixed_20yr)

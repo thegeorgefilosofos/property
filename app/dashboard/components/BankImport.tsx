@@ -6,6 +6,7 @@ import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type 
 import { feAuto, T, EmptyState, Modal, Spinner } from '@/components/Theme'
 import { athensToday } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
+import type { RentPaymentsRow, BankTransactionsRow } from '@/lib/supabase/tables';
 
 const hashOf = (t:BankTxn)=>`${t.date}|${t.amount}|${t.description}`.slice(0,200)
 
@@ -27,12 +28,17 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     if(!txns.length){ setError('Δεν βρέθηκαν κινήσεις. Έλεγξε ότι το αρχείο έχει στήλες ημερομηνία, περιγραφή και ποσό.'); return }
     // Dedup: πέτα ό,τι έχει ξαναμπεί.
     const { data: existing } = await supabase.from('bank_transactions').select('dedup_hash').eq('user_id',userId)
-    const seen = new Set((existing||[]).map((r:any)=>r.dedup_hash))
+    const seen = new Set((existing||[]).map(r=>r.dedup_hash))
     const fresh = txns.filter(t=>!seen.has(hashOf(t)))
     setSkipped(txns.length - fresh.length)
     // Αναμενόμενα ενοίκια (ανεξόφλητα) του έτους.
     const { data: rp } = await supabase.from('rent_payments').select('id,period_year,period_month,amount,due_date,paid').eq('property_id',propertyId).eq('user_id',userId).eq('period_year',year)
-    const expected:ExpectedRent[] = (rp||[]).filter((p:any)=>!p.paid).map((p:any)=>({ id:p.id, label:`${MONTHS_NOM[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0, dueDate:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01` }))
+    // ΟΙ ΤΥΠΟΙ ΤΩΝ ΓΡΑΜΜΩΝ ΥΠΑΡΧΟΥΝ ΗΔΗ, ΠΑΡΑΓΟΜΕΝΟΙ ΑΠΟ ΤΑ MIGRATIONS. Ήταν
+    // γραμμένο `(p:any)` τρεις φορές: ένα ορθογραφικό σε όνομα στήλης θα περνούσε
+    // μέχρι την οθόνη, και το `period_month` θα γινόταν σιωπηλά «undefined» μέσα
+    // στην ετικέτα του μήνα.
+    type Row = Pick<RentPaymentsRow, 'id' | 'period_year' | 'period_month' | 'amount' | 'due_date' | 'paid'>
+    const expected:ExpectedRent[] = ((rp||[]) as Row[]).filter(p=>!p.paid).map(p=>({ id:p.id, label:`${MONTHS_NOM[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0, dueDate:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01` }))
     const res = matchTransactions(fresh, expected)
     const labelById = new Map(expected.map(e=>[e.id,e.label]))
     setRentMatches(res.rentMatches.map(m=>({ ...m, label:labelById.get(m.rentId)||'Ενοίκιο', confirm:true })))
@@ -43,7 +49,8 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
   async function save(){
     setStep('saving')
     try{
-      const rows:any[] = []
+      // Η γραμμή που γράφεται στον πίνακα κινήσεων, με τον τύπο του πίνακα.
+      const rows: Pick<BankTransactionsRow, 'user_id'|'property_id'|'txn_date'|'description'|'amount'|'dedup_hash'>[] = []
       for(const m of rentMatches){ if(m.confirm){
         const { error } = await supabase.from('rent_payments').update({ paid:true, paid_date:m.txn.date||null, method:'Τραπεζική κατάθεση' }).eq('id',m.rentId)
         if(error) throw error

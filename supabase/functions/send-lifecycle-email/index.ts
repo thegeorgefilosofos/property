@@ -39,7 +39,10 @@ async function authorized(req: Request): Promise<boolean> {
 }
 
 // Επιλογή template από το event. Επιστρέφει { subject, html } ή null αν άγνωστο.
-function render(event: string, ctx: Ctx, params: Record<string, any>): { subject: string; html: string } | null {
+// Οι παράμετροι έρχονται από τη βάση ως jsonb: το σχήμα τους δεν ζει στον
+// τύπο. `unknown` αντί για `any` — κάθε ανάγνωση περνά ήδη από ρητή μετατροπή
+// («as Plan», «String(...)»), οπότε τίποτα δεν χάνεται και ο έλεγχος μένει.
+function render(event: string, ctx: Ctx, params: Record<string, unknown>): { subject: string; html: string } | null {
   const plan = (params.plan as Plan) || 'free'
   switch (event) {
     case 'welcome':          return welcomeEmail({ ...ctx, plan })
@@ -49,7 +52,7 @@ function render(event: string, ctx: Ctx, params: Record<string, any>): { subject
     case 'feedback':         return feedbackRequestEmail(ctx)
     case 'mobile_launch':    return mobileLaunchEmail(ctx)
     case 'referral_invite':  return referralInviteEmail(ctx)
-    case 'upsell':           return upsellEmail({ ...ctx, toPlan: params.toPlan as Plan, discountPct: Number(params.discountPct) || 0, seasonLabel: params.seasonLabel })
+    case 'upsell':           return upsellEmail({ ...ctx, toPlan: params.toPlan as Plan, discountPct: Number(params.discountPct) || 0, seasonLabel: params.seasonLabel == null ? undefined : String(params.seasonLabel) })
     case 'legislation':      return legislationUpdateEmail({ ...ctx, headline: String(params.headline || ''), summaryHtml: String(params.summaryHtml || '') })
     case 'seasonal':         return seasonalCampaignEmail({ ...ctx, season: params.season as Season, toPlan: params.toPlan as Plan, discountPct: Number(params.discountPct) || undefined })
     default:                 return null
@@ -61,7 +64,7 @@ Deno.serve(async (req) => {
   if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401)
   if (!RESEND_API_KEY) return json({ error: 'no_resend_key' }, 500)
 
-  let event = '', copyId = '', email = '', name = '', params: Record<string, any> = {}
+  let event = '', copyId = '', email = '', name = '', params: Record<string, unknown> = {}
   try {
     const b = await req.json()
     event = String(b?.event || '').trim()
@@ -82,7 +85,7 @@ Deno.serve(async (req) => {
     ...(params as Personal),
     name: recipientName,
     appUrl: APP_URL,
-    unsubUrl: params.unsubUrl,
+    unsubUrl: params.unsubUrl == null ? undefined : String(params.unsubUrl),
     // Φύλο από το όνομα, αν δεν δόθηκε ρητά — για σωστή προσφώνηση.
     gender: (params.gender as Personal['gender']) || guessGender(recipientName),
     tenantGender: (params.tenantGender as Personal['tenantGender']) || guessGender(params.tenantName as string),

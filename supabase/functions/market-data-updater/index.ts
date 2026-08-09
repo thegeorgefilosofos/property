@@ -30,7 +30,7 @@ async function fetchECBSeries(seriesKey: string, lastN = 1): Promise<number | nu
     })
     if (!res.ok) return null
     const data = await res.json()
-    const seriesData = Object.values(data?.dataSets?.[0]?.series ?? {})?.[0] as any
+    const seriesData = Object.values(data?.dataSets?.[0]?.series ?? {})?.[0] as { observations?: Record<string, (number | null)[]> } | undefined
     const obs = seriesData?.observations ?? {}
     const lastKey = Object.keys(obs).map(Number).sort((a,b)=>b-a)[0]
     const val = obs[String(lastKey)]?.[0]
@@ -143,7 +143,7 @@ Deno.serve(async (req: Request) => {
   const { data: old } = await supabase
     .from('market_rates').select('id').order('updated_at', { ascending: true })
   if (old && old.length > 365) {
-    const toDelete = old.slice(0, old.length - 365).map((r: any) => r.id)
+    const toDelete = (old.slice(0, old.length - 365) as { id: string }[]).map(r => r.id)
     await supabase.from('market_rates').delete().in('id', toDelete)
   }
 
@@ -240,7 +240,16 @@ async function manageProgramDeadlines() {
   return results
 }
 
-async function createProgramReminders(prog: any, daysLeft: number) {
+/** Το πρόγραμμα, όσο το χρειάζει η υπενθύμιση. */
+interface ProgramRow {
+  program_id: string;
+  name: string;
+  deadline: string;
+  deadline_urgent?: boolean | null;
+  deadline_label?: string | null;
+}
+
+async function createProgramReminders(prog: ProgramRow, daysLeft: number) {
   const { data: loans } = await supabase
     .from('loans').select('user_id, property_id').eq('status', 'active')
 

@@ -25,6 +25,7 @@ import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { downloadCsv } from '@/lib/core/download';
 import { failed, MSG } from '@/lib/core/dbError';
 import { uploadPath } from '@/lib/core/uploadPath';
+import type { InventoryItemsRow } from '@/lib/supabase/tables';
 
 const supabase = createSupabaseClient()
 
@@ -2053,7 +2054,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     setCloning(true)
     const {data}=await supabase.from('inventory_items').select('*').eq('property_id',sourceId)
     if(!data||data.length===0){setCloning(false);notifyError('Το ακίνητο δεν έχει αντικείμενα προς αντιγραφή.');return}
-    const rows=data.map((i:any)=>{const {id,created_at,updated_at,property_id,...rest}=i;return {...rest,property_id:propertyId,user_id:String(userId)}})
+    // Η αντιγραφή κρατά ό,τι δεν ανήκει στο ακίνητο-πηγή: το κλειδί, οι σφραγίδες
+    // χρόνου και ο δεσμός ακινήτου ξαναγράφονται.
+    const rows=(data as InventoryItemsRow[]).map(({id,created_at,updated_at,property_id,...rest})=>({...rest,property_id:propertyId,user_id:String(userId)}))
     const {error}=await supabase.from('inventory_items').insert(rows)
     setCloning(false)
     if(error){notifyError(failed('Η αντιγραφή από το άλλο ακίνητο δεν ολοκληρώθηκε',error));return}
@@ -2094,7 +2097,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   // διαμέρισμα ανά νύχτα)· στη μακροχρόνια το κρίνει η δήλωση επίπλωσης της
   // καρτέλας ενοικιαστή. ΔΙΧΤΥ ΑΣΦΑΛΕΙΑΣ: αν υπάρχουν ήδη αντικείμενα, η καρτέλα
   // εμφανίζεται ΠΑΝΤΑ — δεν κρύβουμε ποτέ δεδομένα που ο χρήστης έχει καταχωρίσει.
-  const propRow = (properties as StatusRow[]).find((p:any)=>p?.id===propertyId) || null
+  // ΤΟ CAST ΕΚΡΥΒΕ ΤΟ ΛΑΘΟΣ. Ήταν `(properties as StatusRow[]).find((p:any)=>…)`:
+  // το StatusRow ΔΕΝ έχει `id`, οπότε το cast ήταν άκυρο και το `any` το έκρυβε.
+  // Ο σωστός τύπος λέει και τα δύο — ό,τι χρειάζεται η κατάσταση, και το κλειδί.
+  const propRow = (properties as (StatusRow & { id: string })[]).find(p => p?.id === propertyId) || null
   const status = readStatus(propRow)
   const declaredFurnished = status==='rent_short' || furnishing==='furnished' || furnishing==='turnkey'
   const fieldCtx: FieldContext = {

@@ -102,7 +102,9 @@ Deno.serve(async (req) => {
   if (!users.length) return json({ message: 'no_users' })
   await supabase.from('email_marketing_prefs').upsert(users.map(u => ({ user_id: u.id })), { onConflict: 'user_id', ignoreDuplicates: true })
   const { data: prefs } = await supabase.from('email_marketing_prefs').select('user_id,market_news,unsubscribe_token')
-  const prefMap = new Map((prefs || []).map((p: any) => [p.user_id, p]))
+  // Ο χάρτης προτιμήσεων ανά χρήστη. Το «any» έσβηνε τον έλεγχο του κλειδιού.
+  type PrefRow = { user_id: string } & Record<string, unknown>
+  const prefMap = new Map(((prefs || []) as PrefRow[]).map(p => [p.user_id, p]))
   const recipients = users.filter(u => prefMap.get(u.id)?.market_news !== false)
   if (!recipients.length) return json({ message: 'no_subscribers' })
 
