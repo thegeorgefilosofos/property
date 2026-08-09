@@ -1597,7 +1597,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <Btn variant="primary" onClick={saveNote} disabled={!noteForm.body.trim()}>Προσθήκη</Btn>
               </div>
               {notes.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '4px 0' }}>Δεν υπάρχουν σχόλια ακόμη.</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '4px 0' }}>Κανένα σχόλιο ακόμη</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {notes.map(nt => (

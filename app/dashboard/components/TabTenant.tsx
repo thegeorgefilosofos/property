@@ -1340,7 +1340,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
               </div>
               {scan.doc.doc_type!=='payment'&&<InfoBanner tone="warning">Το έγγραφο δεν αναγνωρίστηκε ως απόδειξη πληρωμής. Επίλεξε δόση χειροκίνητα πριν τη σήμανση.</InfoBanner>}
               {open.length===0?(
-                <InfoBanner tone="info">Δεν υπάρχουν ανοιχτές δόσεις για αντιστοίχιση.</InfoBanner>
+                <InfoBanner tone="info">Καμία ανοιχτή δόση για αντιστοίχιση. Η πληρωμή θα καταχωρηθεί ως νέα εγγραφή.</InfoBanner>
               ):(
                 <div>
                   <div style={{ ...labelStyle, marginBottom:8 }}>Αντιστοίχιση σε δόση</div>

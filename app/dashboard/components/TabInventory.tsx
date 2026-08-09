@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable } from '@/components/Theme'
-import { PackageOpen, SearchX, ClipboardCheck } from 'lucide-react'
+import { PackageOpen, SearchX, ClipboardCheck, Archive } from 'lucide-react'
 import { downloadTableXlsx } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
 import { depreciate, replacementSuggestion, portfolioSummary, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
@@ -2164,20 +2164,19 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           που το έχει κλειστό. Λέμε ΓΙΑΤΙ δεν την βλέπει και πού δηλώνεται η
           επίπλωση — δεν του ζητάμε να το ξαναδηλώσει εδώ. */}
       {!loading && !inventoryApplies && (
-        <div className="card" style={{marginTop:8,padding:'clamp(28px,5vw,44px) 24px',textAlign:'center'}}>
-          <div style={{width:56,height:56,borderRadius:16,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-tertiary)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
-            <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M10 12h4"/></svg>
-          </div>
-          {/* 17 δεν υπάρχει στην κλίμακα του έργου (9,10,11,12,13,14,16,18,20,22,24,28,32). */}
-          <p style={{fontSize:16,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>
-            {status==='rent_long' ? 'Το ακίνητο δεν έχει δηλωθεί επιπλωμένο' : `Δεν υπάρχει απογραφή εξοπλισμού σε ακίνητο «${statusLabel(propRow)}»`}
-          </p>
-          <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:520,margin:'0 auto',lineHeight:1.65}}>
-            {status==='rent_long'
-              ? 'Η απογραφή υπάρχει για να παραδίδεις και να παραλαμβάνεις εξοπλισμό με απόδειξη, και για να τον ασφαλίζεις. Σε γυμνό διαμέρισμα δεν υπάρχει τίποτα από τα δύο. Αν το νοικιάζεις επιπλωμένο, δήλωσέ το στην καρτέλα «Ενοικιαστής» → Επίπλωση, και η απογραφή εμφανίζεται εδώ αυτόματα.'
-              : 'Ο εξοπλισμός καταγράφεται όταν παραδίδεται σε κάποιον άλλον. Μόλις το ακίνητο μπει σε μίσθωση, η απογραφή εμφανίζεται εδώ με τα δικά της πεδία — χωρίς να ξαναδηλώσεις τίποτα.'}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Archive size={20}/>}
+          /* Ο ΤΙΤΛΟΣ ΕΒΑΖΕ ΤΗΝ ΚΑΤΑΣΤΑΣΗ ΣΤΗ ΘΕΣΗ ΤΟΥ ΟΝΟΜΑΤΟΣ: «Δεν υπάρχει
+             απογραφή εξοπλισμού σε ακίνητο «Κενό»» — σαν να λέγεται «Κενό» το
+             ακίνητο. Το «Κενό» είναι κατάσταση, και λέγεται ως κατάσταση, μέσα
+             στην εξήγηση. Επίσης ήταν χειρόγραφη κενή κατάσταση, τυλιγμένη σε
+             κάρτα: δύο παρεκκλίσεις από τις σαράντα πέντε άλλες της εφαρμογής,
+             σε μία οθόνη. Τώρα είναι το κοινό EmptyState. */
+          title={status==='rent_long' ? 'Το ακίνητο δεν έχει δηλωθεί επιπλωμένο' : 'Η απογραφή ξεκινά με τη μίσθωση'}
+          hint={status==='rent_long'
+            ? 'Η απογραφή υπάρχει για να παραδίδεις και να παραλαμβάνεις εξοπλισμό με απόδειξη, και για να τον ασφαλίζεις. Σε γυμνό διαμέρισμα δεν υπάρχει τίποτα από τα δύο. Αν το νοικιάζεις επιπλωμένο, δήλωσέ το στην καρτέλα «Ενοικιαστής» → Επίπλωση, και η απογραφή εμφανίζεται εδώ αυτόματα.'
+            : `Ο εξοπλισμός καταγράφεται όταν παραδίδεται σε κάποιον άλλον, και το ακίνητο είναι σήμερα σε κατάσταση «${statusLabel(propRow)}». Μόλις μπει σε μίσθωση, η απογραφή εμφανίζεται εδώ με τα δικά της πεδία, χωρίς να ξαναδηλώσεις τίποτα.`}
+        />
       )}
 
       {!loading&&inventoryApplies&&(items.length===0

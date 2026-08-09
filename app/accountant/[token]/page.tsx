@@ -163,7 +163,16 @@ export default function AccountantPortal() {
               </Card>
             ))}
 
-            {props.length === 0 && <Card style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Δεν υπάρχουν ακίνητα για αυτή τη χρονιά.</Card>}
+            {/* «Δεν υπάρχουν …» είναι η αόριστη μορφή που η εφαρμογή έχει καταργήσει: η
+                κενή κατάσταση λέει ΤΙ λείπει και για ΠΟΙΑ χρήση, χωρίς κάρτα γύρω από
+                την απουσία και χωρίς να αφήνει τον λογιστή να αναρωτιέται αν φταίει
+                το φίλτρο ή τα δεδομένα. */}
+            {props.length === 0 && (
+              <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: '26px 20px', lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Κανένα ακίνητο για τη χρήση {year}</div>
+                Διάλεξε άλλη χρονιά από πάνω.
+              </div>
+            )}
             <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Powered by Property OS · read-only · <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Απόρρητο</a></div>
           </>
         )}

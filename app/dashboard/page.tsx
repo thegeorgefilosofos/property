@@ -1813,7 +1813,7 @@ export default function Dashboard() {
               </button>
             </>
           ) : (
-            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμη</div></>
+            <><div style={{flex:1,fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)'}}>Κανένα ακίνητο ακόμη</div></>
           )}
         </header>
 

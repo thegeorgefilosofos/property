@@ -161,7 +161,7 @@ export default function BankRatesAdmin({ onSaved }:{
                 </div>
               )
             })}
-            {rows.length===0 && <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,padding:'4px 2px'}}>Δεν υπάρχουν ζωντανές εγγραφές επιτοκίων στη βάση ακόμη.</p>}
+            {rows.length===0 && <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,padding:'4px 2px'}}>Καμία ζωντανή εγγραφή επιτοκίων ακόμη</p>}
           </div>
         </div>
       )}
