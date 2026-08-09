@@ -38,7 +38,10 @@ interface PropLite { id: string; name: string; prop_type: string | null; address
 type RentPay = Pick<RentPaymentsRow, 'property_id' | 'amount' | 'paid' | 'period_month'>;
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
 
-const eur = (n: number) => fe(n);
+const eur = fe;
+// Ο υπότιτλος γράφεται ΜΙΑ φορά: εμφανίζεται σε δύο καταστάσεις (φόρτωση, καμία
+// καταχώρηση) και όταν υπάρχουν ακίνητα τον αντικαθιστά η μέτρηση.
+const SUB = 'Όλα τα ακίνητα στην ίδια σειρά: έσοδα, δαπάνες και απόδοση, το ένα δίπλα στο άλλο';
 type Mode = 'short' | 'long' | 'vacant';
 
 interface Row {
@@ -465,7 +468,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   if (loading) return (
     <div>
-      <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα του χαρτοφυλακίου" />
+      <PageTitle title="Χαρτοφυλάκιο" sub={SUB} />
       <SkeletonKPIs n={4} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2, 3].map(i => <Skeleton key={i} h={54} />)}</div>
     </div>
@@ -473,7 +476,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   if (!properties.length) return (
     <div>
-      <PageTitle title="Χαρτοφυλάκιο" sub="Συγκεντρωτική εικόνα του χαρτοφυλακίου" />
+      <PageTitle title="Χαρτοφυλάκιο" sub={SUB} />
       <EmptyState icon={<Building2 size={20} />} title="Κανένα ακίνητο ακόμη" hint="Πρόσθεσε το πρώτο σου ακίνητο για να δεις τη συγκεντρωτική εικόνα εδώ." />
     </div>
   );

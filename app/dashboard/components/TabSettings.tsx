@@ -512,7 +512,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 880, margin: '0 auto' }}>
 
-      <PageTitle title="Λογαριασμός" sub="Λογαριασμός, συνδρομή και προτιμήσεις" />
+      <PageTitle title="Λογαριασμός" sub="Προφίλ, συνδρομή, ειδοποιήσεις, ασφάλεια και τα δεδομένα σου" />
 
       {/* ── 1. ΠΡΟΦΙΛ ─────────────────────────────────────────────────── */}
       <ProfileCard userId={userId} email={accountEmail} />
