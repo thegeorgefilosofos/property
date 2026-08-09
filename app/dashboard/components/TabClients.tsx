@@ -1413,7 +1413,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, alignItems: 'end' }}>
                     <Toggle on={stayForm.declared}
                       onChange={v => setStayForm(f => ({ ...f, declared: v, declared_at: v ? (f.declared_at || todayStr()) : '' }))}
-                      label="Δηλώθηκε στο myAADE" labelOff="Αδήλωτη" />
+                      label="Δηλώθηκε στο myAADE" />
                     {stayForm.declared && <DatePicker label="Ημερομηνία δήλωσης" value={stayForm.declared_at} onChange={v => setStayForm(f => ({ ...f, declared_at: v }))} />}
                   </div>
 
@@ -1421,7 +1421,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {secHead('Φθορές και σημειώσεις')}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
-                      <Toggle on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} label="Καταγράφηκαν φθορές" labelOff="Χωρίς φθορές" />
+                      <Toggle on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} label="Καταγράφηκαν φθορές" />
                     </div>
                     {stayForm.damages && (
                       <>
@@ -1741,7 +1741,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           <Textarea label="Περιεχόμενο .ics" value={icalText} onChange={setIcalText} rows={5} placeholder="BEGIN:VCALENDAR ..." />
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>Ανάλυση επικόλλησης</Btn>
-            {icalEvents && <Toggle on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} label="Και μπλοκαρίσματα ημερομηνιών" labelOff="Μόνο κρατήσεις" />}
+            {icalEvents && <Toggle on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} label="Και τα μπλοκαρίσματα ημερομηνιών" />}
           </div>
           {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--text-secondary)', lineHeight: 1.5 }}>{icalMsg.text}</div>}
           {/* Η προεπισκόπηση υπολογίζεται ΜΟΝΟ με ανοιχτό το παράθυρο: το

@@ -147,7 +147,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           )}
         </div>
       </div>
-      <Toggle on={active} onChange={onToggle} label="Ενεργό" labelOff="Δεν έχω"/>
+      <Toggle on={active} onChange={onToggle} ariaLabel="Ενεργή υπηρεσία"/>
     </div>
   );
 

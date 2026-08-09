@@ -3,7 +3,7 @@
 import { daysUntil } from '@/lib/core/time';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, feRate, fp, Spinner, pressable } from '@/components/Theme';
+import { T, fe, feRate, formGrid, fp, Spinner, pressable } from '@/components/Theme';
 
 const INTERNET_PROVIDERS = [
   { value: 'cosmote',   label: 'Cosmote',   url: 'https://www.cosmote.gr',    color: '#009fe3' },
@@ -166,9 +166,9 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
   const [s, upd, loading] = useBillsSettings(propertyId, userId, 'providers', DEFAULTS);
 
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-  const g2: React.CSSProperties   = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
-  const g3: React.CSSProperties   = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 };
-  const g4: React.CSSProperties   = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };
+  const g2: React.CSSProperties   = { ...formGrid(200, 300), marginBottom: 14 };
+  const g3: React.CSSProperties   = { ...formGrid(170, 260), marginBottom: 14 };
+  const g4: React.CSSProperties   = { ...formGrid(140, 210), marginBottom: 14 };
 
   const internetCost = parseFloat(s.internetPrice) || 0;
   const tvCost       = s.hasTV ? (parseFloat(s.tvPrice) || 0) : 0;
@@ -355,7 +355,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
           })()}
 
           <div style={{ marginBottom: 12 }}>
-            <Toggle on={s.internetPhone} onChange={v => upd({ internetPhone: v })} label="Περιλαμβάνει σταθερό τηλέφωνο" labelOff="Χωρίς σταθερό τηλέφωνο"/>
+            <Toggle on={s.internetPhone} onChange={v => upd({ internetPhone: v })} label="Σταθερό τηλέφωνο"/>
           </div>
 
           {s.internetPhone && (
@@ -411,7 +411,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
           <div style={{ marginTop: 16, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική τηλεόραση</span>
-              <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} label="Ενεργό" labelOff="Δεν έχω"/>
+              <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} ariaLabel="Συνδρομητική τηλεόραση"/>
             </div>
             {s.hasTV && (
               <>
@@ -422,7 +422,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                   <TextInput   label="Πρόγραμμα ή πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
                   <NumberInput label="Μηνιαίο κόστος"   value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
                 </div>
-                <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package ενεργό" labelOff="Χωρίς Sports Package"/>
+                <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package"/>
               </>
             )}
           </div>
@@ -520,9 +520,9 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             <NumberInput  label="Μηνιαίο κόστος" value={s.securityMonthly} onChange={v => upd({ securityMonthly: v })} suffix="€" step={2}/>
           </div>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 12 }}>
-            <Toggle on={s.securityHasRemote} onChange={v => upd({ securityHasRemote: v })} label="Τηλεχειρισμός μέσω App" labelOff="Χωρίς τηλεχειρισμό"/>
-            <Toggle on={s.securityHasCamera} onChange={v => upd({ securityHasCamera: v })} label="Κάμερες"                 labelOff="Χωρίς κάμερες"/>
-            <Toggle on={s.securityHasDoor}   onChange={v => upd({ securityHasDoor: v })}   label="Αυτόματη πόρτα"         labelOff="Χωρίς αυτόματη πόρτα"/>
+            <Toggle on={s.securityHasRemote} onChange={v => upd({ securityHasRemote: v })} label="Τηλεχειρισμός από εφαρμογή"/>
+            <Toggle on={s.securityHasCamera} onChange={v => upd({ securityHasCamera: v })} label="Κάμερες"/>
+            <Toggle on={s.securityHasDoor}   onChange={v => upd({ securityHasDoor: v })}   label="Αυτόματη πόρτα"/>
           </div>
           {securityM > 0 && secData?.url && (
             <a href={secData.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>

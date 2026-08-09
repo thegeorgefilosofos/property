@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, TT, fe, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay } from '@/components/Theme';
+import { T, TT, fe, formGrid, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -220,7 +220,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <Card pad="lg">
         {secHdr('Ανάλυση Κοινοχρήστων ανά Κατηγορία')}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 16 }}>
+        <div style={{ ...formGrid(), marginBottom: 16 }}>
           <NumberInput label="Τα χιλιοστά μου (‰)" value={millesimi} onChange={sMill} suffix="‰" step={1} max={1000}/>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Το μερίδιό μου</div>
@@ -249,19 +249,19 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           if (!rows.length) return null;
           return (
         <div key={payer} style={{ marginTop: payer === 'owner' ? 20 : 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: 10, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4, alignItems: 'baseline' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 150px 110px', gap: 14, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4, alignItems: 'baseline' }}>
           <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)' }}>{payer === 'tenant' ? 'Βαρύνουν τον ενοικιαστή' : 'Βαρύνουν εσένα'}</div>
           <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Σύνολο κτηρίου</div>
           <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Μερίδιό μου</div>
         </div>
 
         {rows.map(r => (
-          <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: 10, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div key={r.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 150px 110px', gap: 14, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 500 }}>{r.label}</div>
             <input
               type="number" min={0} inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)} placeholder=""
               style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
-            <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : fe(0)}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : ''}</div>
           </div>
         ))}
         </div>
@@ -295,7 +295,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {secHdr('Διαχείριση Κτηρίου')}
 
         {/* FIX: 3 cols so DatePicker has enough room, was 4 cols causing overflow */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 }}>
+        <div style={{ ...formGrid(170, 240), marginBottom: 14 }}>
           <CustomSelect label="Τύπος διαχείρισης" labelInfo={mgmtInfo} value={mgmtType} onChange={sMgmt} options={MGMT_TYPES}/>
           <NumberInput  label="Μηνιαίο κόστος" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
           <NumberInput  label="Ημέρα χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
@@ -327,11 +327,11 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {secHdr('Ταμείο Κτηρίου')}
 
         {/* FIX: 2+2 grid layout so DatePicker label doesn't overflow */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+        <div style={{ ...formGrid(), marginBottom: 14 }}>
           <NumberInput label="Υπόλοιπο ταμείου" value={fundBalance}  onChange={sFundBal} suffix="€" step={100}/>
           <NumberInput label="Μερίδιό μου"        value={fundMyPct}    onChange={sFundPct} suffix="%" step={1} max={100}/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
+        <div style={{ ...formGrid(), marginBottom: 14 }}>
           <NumberInput label="Μηνιαία εισφορά"   value={fundMonthly}  onChange={sFundM}   suffix="€" step={5}/>
           <DatePicker  label="Τελευταία ενημέρωση"    value={fundLastDate} onChange={sFundD}/>
         </div>
@@ -358,7 +358,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <Card pad="lg">
         {secHdr('Έκτακτες Εισφορές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div style={{ ...formGrid(190, 320), marginBottom: 12 }}>
             <TextInput   label="Αιτία"       value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
             <NumberInput label="Ποσό"    value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
             <DatePicker  label="Ημερομηνία" value={extraDate}   onChange={setExtraDate}/>
@@ -457,17 +457,16 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           })}
         </div>
 
-        {/* Ετικέτες μηνών: πατιούνται, και τονίζονται στο πέρασμα του δείκτη */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
-          {MONTHS_SHORT.map((m, i) => (
-            <div key={i}
-              style={{ flex: 1, fontSize: 9, textAlign: 'center', fontFamily: T.font.sans, cursor: 'pointer', padding: '2px 0', borderRadius: 3, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, background: hoveredMonth === i && i !== currentMonth ? 'var(--bg-elevated)' : 'transparent' }}
-              onMouseEnter={() => setHoveredMonth(i)}
-              onMouseLeave={() => setHoveredMonth(null)}>
-              {m}
-            </div>
-          ))}
-        </div>
+        {/* ΟΙ ΜΗΝΕΣ ΓΡΑΦΟΝΤΑΝ ΔΥΟ ΦΟΡΕΣ, Η ΜΙΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΛΛΗ. Μία σειρά
+            ετικετών κάτω από τις στήλες του γραφήματος, και αμέσως από κάτω
+            δεύτερη ίδια σειρά πάνω από τα δώδεκα πεδία. Είκοσι τέσσερα
+            «Ιαν Φεβ Μαρ…» σε τριάντα εικονοστοιχεία ύψους.
+
+            Έμεινε η μία, αυτή που ανήκει στα πεδία: εκεί η ετικέτα ΕΙΝΑΙ
+            συνδεδεμένη με το κουτί της, οπότε κάνει και τη δουλειά της για τον
+            αναγνώστη οθόνης. Οι στήλες του γραφήματος πατάνε ακριβώς από πάνω,
+            στην ίδια θέση, άρα διαβάζονται από την ίδια ετικέτα. */}
+
 
         {/* Πλέγμα πεδίων, με ύφος περάσματος δείκτη και εστίασης */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>

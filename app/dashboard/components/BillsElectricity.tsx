@@ -541,7 +541,6 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   on={useEbill}
                   onChange={v => { setUseEbill(v); save({ useEbill: v }); }}
                   label="Ενεργό, μειωμένο πάγιο"
-                  labelOff="Ανενεργό"
                 />
               </div>
             </div>

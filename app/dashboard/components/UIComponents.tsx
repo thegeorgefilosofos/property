@@ -764,28 +764,49 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
 }
 
 // ─── Toggle, Google MD3 Switch ───────────────────────────────────────────────
+/**
+ * Ο ΔΙΑΚΟΠΤΗΣ ΑΛΛΑΖΕ ΤΟ ΙΔΙΟ ΤΟΥ ΤΟ ΟΝΟΜΑ, ΚΑΙ ΓΙ᾽ ΑΥΤΟ ΟΙ ΦΟΡΜΕΣ ΦΩΝΑΖΑΝ
+ * «ΧΩΡΙΣ».
+ *
+ * Υπήρχε `labelOff`: το κείμενο δίπλα στον διακόπτη άλλαζε ανάλογα με την
+ * κατάσταση. Τρεις κλειστοί διακόπτες στη σειρά διάβαζαν «Χωρίς τηλεχειρισμό ·
+ * Χωρίς κάμερες · Χωρίς αυτόματη πόρτα», δηλαδή μια οθόνη που απαριθμεί όσα
+ * ΔΕΝ έχει ο χρήστης. Και σε δεκατέσσερα σημεία το κείμενο ήταν σκέτο
+ * «Ναι»/«Όχι», δηλαδή έλεγε με λέξεις ακριβώς ό,τι δείχνει ήδη ο δείκτης με τη
+ * θέση και το χρώμα του.
+ *
+ * Υπήρχε και τρίτο, σοβαρότερο: το προσβάσιμο όνομα του διακόπτη ήταν το ίδιο
+ * κείμενο, άρα ΑΛΛΑΖΕ με την τιμή. Ένας αναγνώστης οθόνης άκουγε το χειριστήριο
+ * να μετονομάζεται κάθε φορά που το πατούσες. Το όνομα ενός χειριστηρίου είναι
+ * σταθερό· η κατάσταση λέγεται από το `aria-checked`.
+ *
+ * Τώρα: το κείμενο είναι το ΟΝΟΜΑ του πράγματος και δεν αλλάζει ποτέ. Όπου το
+ * όνομα το γράφει ήδη η ετικέτα από πάνω, ο διακόπτης μένει χωρίς κείμενο και
+ * παίρνει `ariaLabel`.
+ */
 interface ToggleProps {
   on: boolean;
   onChange: (v: boolean) => void;
+  /** Το όνομα του πράγματος. Σταθερό, ό,τι κι αν είναι η κατάσταση. */
   label?: string;
-  labelOff?: string;
+  /** Το όνομα όταν δεν υπάρχει ορατό κείμενο, γιατί το λέει η ετικέτα από πάνω. */
+  ariaLabel?: string;
   size?: 'sm' | 'md';
 }
 
-export function Toggle({ on, onChange, label, labelOff, size = 'md' }: ToggleProps) {
+export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: ToggleProps) {
   const w = size === 'sm' ? 36 : 52;
   const h = size === 'sm' ? 20 : 32;
   const thumbOff = size === 'sm' ? 12 : 16;
   const thumbOn  = size === 'sm' ? 16 : 24;
 
-  const text = on ? (label || 'Ναι') : (labelOff || label || 'Όχι');
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, userSelect: 'none' }}>
       <button
         type="button"
         role="switch"
         aria-checked={on}
-        aria-label={label || labelOff || 'Εναλλαγή'}
+        aria-label={label || ariaLabel || 'Εναλλαγή'}
         onClick={() => onChange(!on)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(!on); } }}
         style={{
@@ -817,9 +838,9 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
           επιτυχία και το «όχι, μετρητά» δεν είναι αποτυχία· είναι δύο νόμιμες
           επιλογές. Η κατάσταση φαίνεται ήδη από τη ΘΕΣΗ του δείκτη· η ένταση
           του κειμένου αρκεί για να ξεχωρίσει το ενεργό. */}
-      {(label || labelOff) && (
+      {label && (
         <span style={{ fontFamily: T.font.sans, fontSize: 14, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: on ? 600 : 400, letterSpacing: '0.25px', transition: 'color 0.15s' }}>
-          {text}
+          {label}
         </span>
       )}
     </span>

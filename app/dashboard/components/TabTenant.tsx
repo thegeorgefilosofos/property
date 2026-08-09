@@ -1197,7 +1197,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
               <SelectField label="Τρόπος πληρωμής" value={payF.method} onChange={v=>setPayF(f=>({...f,method:v as PayMethod}))} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
-              <div><div style={{ ...labelStyle, marginBottom:8 }}>Εξοφλήθη</div><Toggle on={payF.paid} onChange={v=>setPayF(f=>({...f,paid:v}))} label="Ναι" labelOff="Όχι"/></div>
+              <div><div style={{ ...labelStyle, marginBottom:8 }}>Εξοφλήθη</div><Toggle on={payF.paid} onChange={v=>setPayF(f=>({...f,paid:v}))} ariaLabel="Ναι ή όχι"/></div>
               {payF.paid&&<DateField label="Ημερομηνία πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
               <TextInput label="Σημείωση" value={payF.notes} onChange={v=>setPayF(f=>({...f,notes:v}))} placeholder="προαιρετικό"/>
             </div>
@@ -1622,13 +1622,13 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
             <div style={{ ...s.g3, marginBottom:14 }}>
               <DateField label="Ημερομηνία" value={f.occurred_on} onChange={v=>setF(x=>({...x,occurred_on:v}))}/>
               <NumberInput label="Κόστος" value={f.cost} onChange={v=>setF(x=>({...x,cost:v}))} suffix="€"/>
-              <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρέωση στον ενοικιαστή</div><Toggle on={f.charged_to_tenant} onChange={v=>setF(x=>({...x,charged_to_tenant:v}))} label="Ναι" labelOff="Όχι"/></div>
+              <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρέωση στον ενοικιαστή</div><Toggle on={f.charged_to_tenant} onChange={v=>setF(x=>({...x,charged_to_tenant:v}))} ariaLabel="Ναι ή όχι"/></div>
             </div>
             <div style={{ marginBottom:14 }}>
               <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="Παράδειγμα: Φθορά πάγκου κουζίνας"/>
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
-              <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} label="Ναι" labelOff="Όχι"/></div>
+              <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} ariaLabel="Ναι ή όχι"/></div>
               {f.repaired&&<DateField label="Ημερομηνία επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
               <TextInput label="Σημείωση" value={f.notes} onChange={v=>setF(x=>({...x,notes:v}))} placeholder="προαιρετικό"/>
             </div>
@@ -2735,7 +2735,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               <>
                 <div style={{ ...s.g2, marginBottom:6 }}>
                   <TextInput label="IBAN Είσπραξης Ενοικίου" value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR..."/>
-                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Εισπράττεται μέσω τραπέζης</div><Toggle on={form.e_payment} onChange={v=>sf('e_payment',v)} label="Ναι" labelOff="Όχι, μετρητά"/></div>
+                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Εισπράττεται μέσω τραπέζης</div><Toggle on={form.e_payment} onChange={v=>sf('e_payment',v)} ariaLabel="Εισπράττεται μέσω τραπέζης"/></div>
                 </div>
                 <Why id="tenant.rent_iban"/>
                 {!form.e_payment&&(
@@ -2883,7 +2883,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     {more('tenant.deposit_returned')&&(
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g2, marginBottom:6 }}>
-                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Επεστράφη η εγγύηση</div><Toggle on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)} label="Ναι" labelOff="Όχι"/></div>
+                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Επεστράφη η εγγύηση</div><Toggle on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)} ariaLabel="Ναι ή όχι"/></div>
                           {form.deposit_returned&&<DateField label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
                         </div>
                         <Why id="tenant.deposit_returned"/>
@@ -2892,8 +2892,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     {more('tenant.parking')&&(
                       <div style={{ marginBottom:16 }}>
                         <div style={{ ...s.g3, marginBottom:6 }}>
-                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Περιλαμβάνεται στο ενοίκιο</div><Toggle on={form.parking_included} onChange={v=>sf('parking_included',v)} label="Ναι" labelOff="Όχι"/></div>
-                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρεώνεται ξεχωριστά</div><Toggle on={form.parking_extra} onChange={v=>sf('parking_extra',v)} label="Ναι" labelOff="Όχι"/></div>
+                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Περιλαμβάνεται στο ενοίκιο</div><Toggle on={form.parking_included} onChange={v=>sf('parking_included',v)} ariaLabel="Ναι ή όχι"/></div>
+                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρεώνεται ξεχωριστά</div><Toggle on={form.parking_extra} onChange={v=>sf('parking_extra',v)} ariaLabel="Ναι ή όχι"/></div>
                           {form.parking_extra&&<NumberInput label="Μηνιαία τιμή στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
                         </div>
                         <Why id="tenant.parking"/>

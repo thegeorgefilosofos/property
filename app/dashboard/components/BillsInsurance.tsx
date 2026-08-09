@@ -5,7 +5,7 @@ import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, TT, fe, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, formGrid, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -531,22 +531,34 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
       <SecHdr label={label} sub={active.length === 0 ? 'Πάτησε ό,τι έχεις. Τα υπόλοιπα μένουν σβηστά.' : undefined}
         right={total > 0 ? <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(total)}</span> : undefined}/>
 
-      {/* Ο ΕΠΙΛΟΓΕΑΣ: ίδιο ύψος παντού, ένα κλικ, τίποτα άλλο μέσα. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 168px), 1fr))', gap: 8, alignItems: 'start' }}>
+      {/* Ο ΕΠΙΛΟΓΕΑΣ: ίδια ανατομία σε ΚΑΘΕ πλακίδιο, ένα κλικ, τίποτα άλλο μέσα.
+
+          Το πλέγμα έγινε γραμμή που αναδιπλώνεται. Με `auto-fill` και εννιά
+          υπηρεσίες, η τελευταία σειρά έμενε με μια τρύπα δεξιά και η οθόνη
+          διαβαζόταν σπασμένη. Τα πλακίδια πιάνουν τώρα το πλάτος του ονόματός
+          τους και πακετάρονται σφιχτά, όπως κάθε σειρά ετικετών.
+
+          Και το ποσό μπαίνει σε ΟΛΑ: πριν, το ενεργό πλακίδιο έχανε την τιμή
+          του ενώ το διπλανό ανενεργό την κρατούσε, οπότε στην ίδια σειρά δύο
+          πλακίδια είχαν διαφορετικό σχήμα. Στα ενεργά γράφεται η ΠΡΑΓΜΑΤΙΚΗ
+          τιμή που πληρώνει ο χρήστης, στα υπόλοιπα η τιμή εισόδου. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {catalog.map(svc => {
-          const on = isOn(svc.value);
+          const entry = active.find(a => a.service === svc.value);
+          const on = !!entry;
+          const amount = entry ? subShare(svc, entry) : svc.plans[0].price;
           return (
             <button key={svc.value} type="button" onClick={() => onToggle(svc.value)} aria-pressed={on}
               style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8,
-                width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'inline-flex', alignItems: 'baseline', gap: 10,
+                textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                 height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
                 background: on ? 'var(--accent-soft)' : 'var(--bg-elevated)',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border-subtle)'}`,
                 transition: 'background-color .15s, border-color .15s',
               }}>
-              <span style={{ ...TT.bodySm, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{svc.label}</span>
-              {!on && <span style={{ ...TT.caption, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fe(svc.plans[0].price)}</span>}
+              <span style={{ ...TT.bodySm, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap' }}>{svc.label}</span>
+              <span style={{ ...TT.caption, color: on ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fe(amount)}</span>
             </button>
           );
         })}
@@ -559,7 +571,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
             const svc = catalog.find(x => x.value === a.service);
             if (!svc) return null;
             return (
-              <div key={a.service} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, alignItems: 'end', paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
+              <div key={a.service} style={{ ...formGrid(160, 230), gap: 12, alignItems: 'end', paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
                 <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
                   <span style={{ ...TT.h2, fontSize: 15 }}>{svc.label}</span>
                   <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(subShare(svc, a))}</span>
@@ -1163,9 +1175,9 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός…"
                       style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
                     <div style={{ display: 'flex', gap: 16 }}>
-                      <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς σεισμό"/>
-                      <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς πλημμύρα"/>
-                      <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές" labelOff="Χωρίς"/>
+                      <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός"/>
+                      <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα"/>
+                      <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές"/>
                     </div>
                   </div>
                 )}
@@ -1377,7 +1389,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
         <div style={card}>
           {secHdr('Άλλες πάγιες συνδρομές')}
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div style={{ ...formGrid(190, 320), marginBottom: 12 }}>
               <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus…"/>
               <NumberInput label="Κόστος τον μήνα" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
               <DatePicker  label="Ημερομηνία ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
