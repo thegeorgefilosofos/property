@@ -1544,7 +1544,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Ασφάλεια κατοικίας 100–300 € τον χρόνο (υποχρεωτική) · Ασφάλεια ζωής ~{fmtEur(LA*0.001)} τον χρόνο</p>
         </div>
         <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
-          Εκτιμήσεις βάσει δεδομένων χρήστη. →{' '}
+          Εκτιμήσεις βάσει δεδομένων χρήστη. Πηγή:{' '}
           <a href={AADE_HOME} target="_blank" rel="noreferrer" title="ΑΑΔΕ: Ανεξάρτητη Αρχή Δημοσίων Εσόδων" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>ΑΑΔΕ</a>
         </p>
       </div>

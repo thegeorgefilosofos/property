@@ -1183,7 +1183,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 )}
                 {effectiveEarthquake && effectiveFloodState && (
                   <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
-                    Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
+                    Δικαιούσαι μείωση ΕΝΦΙΑ από 10% έως 20%, βάσει Α.1005/2026. Δήλωσέ την στη Λογιστική, στον Υπολογισμό ΕΝΦΙΑ.
                   </div>
                 )}
               </div>
@@ -1389,7 +1389,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
         <div style={card}>
           {secHdr('Άλλες πάγιες συνδρομές')}
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-            <div style={{ ...formGrid(190, 320), marginBottom: 12 }}>
+            <div style={{ ...formGrid(150, 240), marginBottom: 12 }}>
               <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus…"/>
               <NumberInput label="Κόστος τον μήνα" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
               <DatePicker  label="Ημερομηνία ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>

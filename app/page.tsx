@@ -841,7 +841,7 @@ export default async function Landing() {
             το Ε2 ή η Δήλωση μίσθωσης, και δεν πρόκειται να μάθουν. Από εκεί ακριβώς ξεκίνησε το Property OS.
           </p>
           <Link href="/trust" className="lp-link" style={{ color: ACCENT, textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>
-            Ποιοι είμαστε και πού βρίσκονται τα δεδομένα σου{' '}→
+            Ποιοι είμαστε και πού βρίσκονται τα δεδομένα σου
           </Link>
         </div>
       </section>

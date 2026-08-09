@@ -448,7 +448,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         )}
 
         {/* Ραβδόγραμμα, με τονισμό στο πέρασμα του δείκτη */}
-        <div style={{ position: 'relative', display: 'flex', gap: 4, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
+        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed color-mix(in srgb, var(--accent) 40%, transparent)', pointerEvents: 'none' }}>
               <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 9, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>

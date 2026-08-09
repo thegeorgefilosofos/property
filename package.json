@@ -57,7 +57,8 @@
     "no-arrows": "node scripts/guard-no-arrows.mjs",
     "field-name": "node scripts/guard-field-name.mjs",
     "em-dash": "node scripts/guard-em-dash.mjs",
-    "form-grid": "node scripts/guard-form-grid.mjs"
+    "form-grid": "node scripts/guard-form-grid.mjs",
+    "decimal-comma": "node scripts/guard-decimal-comma.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

@@ -63,8 +63,8 @@ const INTERNET_PLANS: Record<string, {
     { id:'v_ff1g',     name: 'Full Fiber 1 Gbps',           speed: '1 Gbps',    price: 49.00, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
     // ── Triple Play (+ Vodafone TV) ───────────────────────────────────────
     { id:'v_ff300_tv', name: 'Full Fiber 300 + Vodafone TV', speed: '300 Mbps', price: 44.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV (45 κανάλια, HBO).', networkType: 'Fiber', contract: '24 μήνες' },
-    { id:'v_ff500_tv', name: 'Full Fiber 500 + Vodafone TV', speed: '500 Mbps', price: 51.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2.50€.', networkType: 'Fiber', contract: '24 μήνες' },
-    { id:'v_ff1g_tv',  name: 'Full Fiber 1 Gbps + TV',       speed: '1 Gbps',   price: 58.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2.50€.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'v_ff500_tv', name: 'Full Fiber 500 + Vodafone TV', speed: '500 Mbps', price: 51.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2,50 €.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'v_ff1g_tv',  name: 'Full Fiber 1 Gbps + TV',       speed: '1 Gbps',   price: 58.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2,50 €.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
   dei: [
     { id:'dei_f500',   name: 'ΔΕΗ Fiber 500',              speed: '500 Mbps',  price: 17.90, hasPhone: false, note: 'Φθηνότερο fiber στην αγορά. Χωρίς τηλεφωνία.', networkType: 'Fiber', contract: '24 μήνες' },

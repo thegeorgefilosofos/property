@@ -435,7 +435,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
               </div>
               <a href={provider?.url} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: 10, color: 'var(--accent)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
-                Επίσημη σελίδα →
+                Επίσημη σελίδα
               </a>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>

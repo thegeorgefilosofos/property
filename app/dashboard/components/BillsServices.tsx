@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fp, Spinner, histInputStyle } from '@/components/Theme';
+import { T, fe, formGrid, fp, Spinner, histInputStyle } from '@/components/Theme';
 import { estimateENFIA, enfiaInUse, enfiaLastYearAnnual } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -133,21 +133,20 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
     </div>
   );
 
-  // ── FIX: svcHdr, "0" bug: only show cost if active AND cost > 0 ──────────
+  // Ο διακόπτης ήταν καρφωμένος στο δεξί άκρο της κάρτας: ένα «ΚΑΘΑΡΙΣΜΟΣ»
+  // δέκα εικονοστοιχείων αριστερά, ο διακόπτης εννιακόσια πιο πέρα, και τίποτα
+  // ανάμεσα. Τώρα ο διακόπτης έρχεται ΠΡΩΤΟΣ και μένει ακίνητος: το ποσό που
+  // εμφανίζεται όταν η υπηρεσία ενεργοποιείται δεν τον μετακινεί από κάτω.
+  //
+  // Η κουκκίδα κατάστασης έφυγε — ο διακόπτης λέει ήδη αν η υπηρεσία είναι
+  // ενεργή, και τίποτα δεν λέγεται δύο φορές.
   const svcHdr = (label: string, active: boolean, onToggle: (v: boolean) => void, cost?: number) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: active ? 16 : 0, paddingBottom: active ? 10 : 0, borderBottom: active ? '1px solid var(--border-subtle)' : 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
-        <div>
-          {/* FIX: label and cost are separate, no concatenation */}
-          <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
-          {/* FIX: only show if active AND cost is a positive number */}
-          {active && typeof cost === 'number' && cost > 0 && (
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginLeft: 8 }}>{fe(cost)} / μήνα</span>
-          )}
-        </div>
-      </div>
-      <Toggle on={active} onChange={onToggle} ariaLabel="Ενεργή υπηρεσία"/>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: active ? 16 : 0, paddingBottom: active ? 10 : 0, borderBottom: active ? '1px solid var(--border-subtle)' : 'none' }}>
+      <Toggle on={active} onChange={onToggle} ariaLabel={label}/>
+      <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
+      {active && typeof cost === 'number' && cost > 0 && (
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(cost)} / μήνα</span>
+      )}
     </div>
   );
 
@@ -197,28 +196,31 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans }}>Υπολογισμός ποσοστού από τελευταίο λογαριασμό ρεύματος</div>
           {/* FIX: 2 inputs + result, all in same grid, aligned at bottom, no marginBottom on result box */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 10 }}>
+          <div style={{ ...formGrid(190, 260), gap: 12, marginBottom: 10 }}>
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
           </div>
           {/* Το αποτέλεσμα ως συμπτυγμένη ενσωματωμένη πλάκα — ίδιο μοτίβο με Παρόχους και Ρεύμα */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {dimotikaPct > 0 ? `${fp(dimotikaPct)}` : fp(0)}
               </span>
               <div>
                 <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό δημοτικών τελών</div>
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Αθήνα: ~5% · Τυπικό: 3–6%</div>
+                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Συνήθως από 3% έως 6% του λογαριασμού</div>
               </div>
             </div>
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Συγχρονίζεται με tab Πάροχοι</span>
           </div>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
-          Ιστορικό Δημοτικών Τελών / μήνα, Μέσος Όρος: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
+          Ιστορικό ανά μήνα{dimotikaAvg > 0 ? `, μέσος όρος ${fe(dimotikaAvg)}` : ''}
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
+        {/* Ίδιο πλέγμα με τα πεδία από κάτω: η στήλη κάθε μήνα πρέπει να πέφτει
+            ΑΚΡΙΒΩΣ πάνω από το πεδίο του. Με flex και άλλο κενό οι δύο σειρές
+            ξέφευγαν λίγα εικονοστοιχεία η μία από την άλλη — αρκετά για να
+            φαίνεται πρόχειρο. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
           {MONTHS_SHORT.map((m, i) => {
             const val   = parseFloat((s.dimotikaHistory || [])[i]) || 0;
             const pct   = val / maxH;
@@ -236,13 +238,10 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             );
           })}
         </div>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
-          {MONTHS_SHORT.map((m, i) => (
-            <div key={i} style={{ flex: 1, fontSize: 9, color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: i === currentMonth ? 700 : hoveredMonth === i ? 600 : 400, fontFamily: T.font.sans, cursor: 'pointer', transition: 'color 0.15s' }}
-              onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}>{m}</div>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
+        {/* Ο μήνας γραφόταν δύο φορές: μια σειρά ετικετών κάτω από τις στήλες
+            και άλλη μια πάνω από κάθε πεδίο, τέσσερα εικονοστοιχεία πιο κάτω.
+            Έμεινε η ετικέτα του πεδίου — αυτή έχει και λειτουργία. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}>
               {/* Ίδιος λόγος με το BillsCommon: η ετικέτα περιτυλίγει το πεδίο

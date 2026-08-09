@@ -192,7 +192,7 @@ export function RentTaxCalculator() {
           borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--on-tone)',
           fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
         }}>
-          Ξεκίνα δωρεάν →
+          Ξεκίνα δωρεάν
         </Link>
       </div>
     </div>

@@ -861,7 +861,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               </div>
             </div>
             <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily: T.font.sans}}>
-              Εμφανίζονται τα χαμηλότερα («από») επιτόκια ανά διάρκεια. {RATES_DISCLAIMER} Επιβεβαιωμένα {banksUpdStr}. →{' '}
+              Εμφανίζονται τα χαμηλότερα («από») επιτόκια ανά διάρκεια. {RATES_DISCLAIMER} Επιβεβαιωμένα {banksUpdStr}. Πηγή:{' '}
               <a href="https://e-stegastiko.gr" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>e-stegastiko.gr</a>
             </p>
           </MiniSection>

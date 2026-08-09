@@ -24,7 +24,7 @@ export default function AlreadySignedIn({
       </p>
 
       <Link href="/dashboard" className="auth-cta" style={{ display: 'block', textAlign: 'center', padding: '12px', background: 'var(--accent)', borderRadius: 100, color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-        Άνοιξε τον πίνακά σου →
+        Άνοιξε τον πίνακά σου
       </Link>
 
       <button onClick={onSignOut} disabled={signingOut} className="auth-hov" style={{ width: '100%', marginTop: 12, padding: '12px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: signingOut ? 'not-allowed' : 'pointer', opacity: signingOut ? 0.6 : 1, fontFamily: 'inherit' }}>

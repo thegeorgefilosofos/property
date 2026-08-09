@@ -496,7 +496,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           </div>
           <a href={providerObj.url} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 10, color: 'var(--accent)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
-            Επίσκεψη →
+            Ιστοσελίδα
           </a>
         </div>
 
@@ -918,7 +918,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     <button
                       onClick={() => onNavigateTab?.(h.tab!)}
                       style={{ fontSize: 10, fontWeight: 700, color: s.text, background: 'transparent', border: `1px solid ${s.border}`, borderRadius: T.radius.pill, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>
-                      {h.action} →
+                      {h.action}
                     </button>
                   )}
                 </div>
