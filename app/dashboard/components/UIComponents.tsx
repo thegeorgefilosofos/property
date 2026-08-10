@@ -44,7 +44,7 @@ export const fieldRing = (active: boolean) => (active ? '0 0 0 3px var(--accent-
 export function ToggleField({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
     <div>
-      <label style={{ ...TT.label, display: 'block', marginBottom: 7 }}>{label}</label>
+      <label style={fieldLabelStyle}>{label}</label>
       {/* ΧΩΡΙΣ ΚΟΥΤΙ. Το πλαίσιο ενός πεδίου σημαίνει «εδώ γράφεις»· γύρω από
           διακόπτη είναι άδειο περίγραμμα που περικλείει ένα αντικείμενο μισού
           πλάτους και το κάνει να μοιάζει με πεδίο που δεν γέμισε κανείς. Μένει
@@ -98,7 +98,16 @@ const mdInputBase: React.CSSProperties = {
 // Η λύση δεν είναι να κονταίνουν όλες οι ετικέτες: είναι να κρατούν την ίδια
 // ΘΕΣΗ βάσης. Δύο γραμμές ύψους, στοιχισμένες στο κάτω μέρος, ώστε είτε μία
 // είτε δύο λέξεις, το πεδίο ξεκινά πάντα από το ίδιο σημείο.
-const mdLabelBase: React.CSSProperties = {
+/**
+ * Η ετικέτα ΠΕΔΙΟΥ, εξαγόμενη.
+ *
+ * Οθόνες που χτίζουν δικό τους «σαν πεδίο» κελί (ένα υπολογισμένο ποσό, έναν
+ * διακόπτη) έγραφαν την ετικέτα με το `TT.label` — που είναι ετικέτα ΕΝΟΤΗΤΑΣ:
+ * δέκα εικονοστοιχεία, βάρος επτακόσια, ΚΕΦΑΛΑΙΑ. Δίπλα σε «Τύπος ακινήτου»
+ * γραμμένο κανονικά, το «ΤΙΜΗ ΑΝΑ Τ.Μ.» διαβαζόταν ως άλλο είδος πράγματος.
+ * Ίδια ετικέτα, ίδια γραμμή βάσης, μία δήλωση.
+ */
+export const fieldLabelStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'flex-end',
   minHeight: 32,
@@ -273,7 +282,7 @@ export function NumberInput({
 
   return (
     <div className={className}>
-      {label && <label htmlFor={inputId} style={mdLabelBase}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
       <div style={{
         width: '100%',
         background: 'var(--bg-surface)',
@@ -494,7 +503,7 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={mdLabelBase} id={labelId}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label style={fieldLabelStyle} id={labelId}>{label}{infoNode(labelInfo)}</label>}
       <div
         ref={triggerRef}
         role="combobox"
@@ -698,7 +707,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={mdLabelBase}>{label}</label>}
+      {label && <label style={fieldLabelStyle}>{label}</label>}
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
@@ -933,7 +942,7 @@ export function TextInput({ label, ariaLabel, id, value, onChange, placeholder, 
   const inputId = id ?? autoId;
   return (
     <div>
-      {label && <label htmlFor={inputId} style={mdLabelBase}>{label}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}</label>}
       <div style={{
         display: 'flex', alignItems: 'center',
         background: 'var(--bg-surface)',
@@ -994,7 +1003,7 @@ export function Textarea({
   const inputId = useId();
   return (
     <div>
-      {label && <label htmlFor={inputId} style={mdLabelBase}>{label}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}</label>}
       <textarea
         id={inputId}
         value={value}
@@ -1034,7 +1043,7 @@ const SB_COLORS: Record<ServiceBy, string> = { owner: 'var(--warning)', tenant: 
 export function ServiceBySelect({ label, value, onChange }: { label: string; value: ServiceBy; onChange: (v: ServiceBy) => void }) {
   return (
     <div>
-      <label style={mdLabelBase}>{label}</label>
+      <label style={fieldLabelStyle}>{label}</label>
       <div style={{ display: 'flex', gap: 4 }}>
         {(['owner', 'tenant', 'split'] as ServiceBy[]).map(v => (
           <button

@@ -1,13 +1,13 @@
 'use client'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, InfoDot } from './UIComponents'
+import { CustomSelect, NumberInput, TextInput, DatePicker, InfoDot , ToggleField, fieldLabelStyle} from './UIComponents'
 import { KPI, LensBar, cardStyle } from './LoanShared'
 import { downloadTableXlsx } from './exportCsv'
 import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './xlsxStyle'
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge, ABSENT, TT, formGrid, fieldRow } from '@/components/Theme'
+import { T, Badge, ABSENT, TT, formGrid, fieldRow , fixedCols} from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
@@ -548,7 +548,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [fixedPeriod, setFixedPeriod] = useState('5')
   const [bankId,      setBankId]      = useState('')
   const [customBank,  setCustomBank]  = useState('')
-  const [notes,       setNotes]       = useState('')
   const [extraPay,    setExtraPay]    = useState('0')
   const [lens,        setLens]        = useState('amort')
   const [income,      setIncome]      = useState('2000')
@@ -780,7 +779,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     setLoanAmount(initial?.loanAmount||'150000');setPropValue(initial?.propValue||'185000');setSqm(initial?.sqm||'80')
     setPropType('residence');setArea('attica_center_std');setRate('3.50');setYears('25')
     setRateType('fixed');setLoanType('purchase');setBorrower('individual')
-    setFixedPeriod('5');setBankId('');setCustomBank('');setNotes('');setExtraPay('0')
+    setFixedPeriod('5');setBankId('');setCustomBank('');setExtraPay('0')
     setHasAgent(false);setAgentPct('2');setActivePreset(null)
     notify('Επαναφορά στις προεπιλογές')
   }
@@ -789,7 +788,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   // το όνομα, γινόταν το ίδιο δεδομένο. Από εκεί βγήκε στο ημερολόγιο ως «Δόση
   // δανείου, Μη καθορισμένη» σε εξήντα δόσεις, και σε κάθε αναφορά από κάτω.
   // Η απουσία λέγεται στην οθόνη, με τη λέξη της οθόνης.
-  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName.trim(),loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);notifyOk('Το δάνειο αποθηκεύτηκε')}
+  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName.trim(),loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM} τ.μ., ${areaLabel}`});setSaving(false);notifyOk('Το δάνειο αποθηκεύτηκε')}
 
   // ── Ημερομηνία δόσης i (1..n) με βάση την έναρξη ──────────────────────────────
   function installmentDate(i:number){
@@ -932,7 +931,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <div style={cardStyle}>
         <SectionLabel label="Ακίνητο και σκοπός δανείου"/>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          <div style={{...formGrid(220, 297),gap:12}}>
+          {/* Οκτώ κελιά, τέσσερα και τέσσερα. Ρητό πλήθος στηλών: το `auto-fit`
+              έδινε τρεις σε οθόνη με zoom 125% και τέσσερις στο 100%. */}
+          <div {...fixedCols(4)}>
             <CustomSelect label="Τύπος ακινήτου" value={propType} onChange={v=>{setPropType(v);setActivePreset(null)}} options={PROP_TYPE_OPTIONS}/>
             <CustomSelect label="Περιοχή" value={area} onChange={v=>{setArea(v);setActivePreset(null)}} options={AREA_OPTIONS}/>
             <NumberInput label="Τιμή αγοράς" value={propValue} onChange={v=>{setPropValue(v);setActivePreset(null)}} suffix="€"/>
@@ -942,7 +943,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             {/* Τιμή ανά τ.μ. — μέσα στο πλέγμα, δίπλα στον τύπο δανειολήπτη (πιο μαζεμένη κάρτα) */}
             {sqmPrice>0&&(
               <div>
-                <label style={labelStyle}>Τιμή ανά τ.μ.</label>
+                <label style={fieldLabelStyle}>Τιμή ανά τ.μ.</label>
                 {/* T.h.lg (40) = FIELD_HEIGHT των CustomSelect/NumberInput δίπλα. Το παλιό 44
                     έκανε αυτό το ένα κελί 4px ψηλότερο από τα υπόλοιπα του ίδιου πλέγματος. */}
                 <div style={{height:T.h.lg,display:'flex',alignItems:'center',justifyContent:'flex-end',padding:'0 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
@@ -950,17 +951,23 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 </div>
               </div>
             )}
+            {/* Η ΑΜΟΙΒΗ ΜΕΣΙΤΗ ΕΙΝΑΙ ΣΤΟΙΧΕΙΟ ΤΗΣ ΑΓΟΡΑΣ, ΟΧΙ ΠΑΡΑΡΤΗΜΑ. Κρεμόταν
+                σε δική της γραμμή κάτω από το πλέγμα, δηλαδή διαβαζόταν ως κάτι
+                που ήρθε μετά — ενώ είναι κόστος της ίδιας αγοράς με τον φόρο
+                μεταβίβασης και τα συμβολαιογραφικά. Κελί του πλέγματος. */}
+            <ToggleField label="Αμοιβή μεσίτη" on={hasAgent} onChange={setHasAgent}/>
+            {hasAgent&&<NumberInput label="Ποσοστό μεσίτη" value={agentPct} onChange={setAgentPct} suffix="%" step={0.5}/>}
+            {hasAgent&&(
+              <div>
+                <label style={fieldLabelStyle}>Αμοιβή μεσίτη</label>
+                <div style={{height:T.h.lg,display:'flex',alignItems:'center',justifyContent:'flex-end',padding:'0 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
+                  <span style={{fontSize:14,fontFamily:T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(AGNT)}</span>
+                </div>
+              </div>
+            )}
           </div>
           {isNewBuilding&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΠΑ: Φόρος Προστιθέμενης Αξίας · ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Νεόδμητο: ΦΠΑ 24% ({fmtEur(vatOwed)}) αντί ΦΜΑ</p></div>}
           {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% επί της αξίας)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Επαγγελματικό: ΦΜΑ 3% + Τέλη χαρτοσήμου 3,6% αν εκμισθωθεί</p></div>}
-          <div style={{display:'flex',alignItems:'flex-end',gap:12,flexWrap:'wrap'}}>
-            <button onClick={()=>setHasAgent(h=>!h)} style={{...pillBtn(hasAgent,'var(--accent)'),height:T.h.lg}}>
-              {hasAgent?<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
-              Αμοιβή μεσίτη
-            </button>
-            {hasAgent&&<div style={{width:150}}><NumberInput label="Ποσοστό μεσίτη" value={agentPct} onChange={setAgentPct} suffix="%" step={0.5}/></div>}
-            {hasAgent&&<div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',justifyContent:'flex-end',height:T.h.lg,padding:'0 4px'}}><span style={{fontSize:14,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(AGNT)}</span></div>}
-          </div>
         </div>
       </div>
 
@@ -968,13 +975,15 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <div style={cardStyle}>
         <SectionLabel label="Δάνειο, επιτόκιο και παράμετροι"/>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          {/* ΟΚΤΩ ΠΕΔΙΑ ΣΕ ΤΡΙΑ, ΤΡΙΑ ΚΑΙ ΔΥΟ. Το σταθερό μέγιστο στήλης κρατούσε
-              τρεις στήλες όσο πλατιά κι αν ήταν η κάρτα, οπότε η τελευταία
-              σειρά έμενε μισή.
-              ΤΟ ΕΛΑΧΙΣΤΟ ΕΙΝΑΙ ΑΥΤΟ ΠΟΥ ΟΡΙΖΕΙ ΤΟ ΠΛΗΘΟΣ: 300 σημαίνει τέσσερις
-              στήλες σε κάθε οθόνη υπολογιστή, δηλαδή δύο ΓΕΜΑΤΕΣ σειρές των
-              τεσσάρων — και τρεις ή δύο σε στενότερη. */}
-          <div style={{...fieldRow(300, 12), alignItems:'start'}}>
+          {/* ΟΚΤΩ ΠΕΔΙΑ ΣΕ ΤΡΙΑ, ΤΡΙΑ ΚΑΙ ΔΥΟ. Ούτε το σταθερό μέγιστο στήλης ούτε
+              το `auto-fit` το λύνουν: το πρώτο κρατούσε τρεις στήλες όσο πλατιά
+              κι αν ήταν η κάρτα, το δεύτερο δίνει άλλο πλήθος σε κάθε επίπεδο
+              zoom του περιηγητή. Τέσσερις στήλες, γραμμένες.
+              ΣΤΟΙΧΙΣΗ ΣΤΗΝ ΚΟΡΥΦΗ: το «Ποσό δανείου» κουβαλά σημείωση από κάτω
+              (δάνειο προς αξία, ίδια κεφάλαια). Με στοίχιση στο κάτω άκρο, το
+              κουτί του ανέβαινε για να χωρέσει η σημείωση και έφευγε από τη
+              γραμμή των τριών διπλανών του. */}
+          <div {...fixedCols(4, 12, 'start')}>
             <div>
               <NumberInput label="Ποσό δανείου" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>
@@ -1008,7 +1017,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               )}
             </div>
           </div>
-          <Textarea label="Σημειώσεις" value={notes} onChange={setNotes} placeholder="Παράδειγμα: 3ος όροφος, άποψη, ανακαινισμένο…" rows={2}/>
         </div>
       </div>
 

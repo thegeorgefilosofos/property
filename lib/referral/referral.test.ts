@@ -3,7 +3,7 @@ import {
   referralCode, referralLink, isValidReferral, isSelfOrDuplicate, normalizePhone,
   isActivated, REFEREE_TRIAL_MONTHS,
   individualReferrerReward, refereeWelcome,
-  FREE_REFERRER_SLOT_MONTHS, OWNER_REFERRER_MONTHS, INDIV_PRO_BONUS_MONTHS,
+  REFERRER_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS,
   REFEREE_FREE_SLOT_MONTHS, REFEREE_OWNER_MONTHS, REFEREE_AGENCY_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
@@ -42,22 +42,33 @@ ok(isActivated({ propertiesAdded: 1, documentsScanned: 1 }) === true, 'ενερ�
 ok(isActivated({ propertiesAdded: 1, documentsScanned: 0 }) === false, 'χωρίς σάρωση → όχι');
 
 // ── Πρόγραμμα Ιδιώτη: ανταμοιβή ανά σύσταση (συστήνων) ──
+// ΕΝΑΣ ΚΑΝΟΝΑΣ ΓΙΑ ΟΛΟΥΣ: ένα ακίνητο παραπάνω για έναν μήνα, ό,τι πλάνο κι αν
+// έχει ο συστήνων. Πριν έπαιρνε ακίνητο ο δωρεάν και μήνα ο συνδρομητής — δύο
+// κανόνες για την ίδια πράξη, που δεν εξηγούνταν σε μία πρόταση.
 const free2free = individualReferrerReward(false, 'free');
-ok(free2free.isSlot && free2free.months === FREE_REFERRER_SLOT_MONTHS && free2free.months === 1, 'δωρεάν→δωρεάν: εσύ +1 ακίνητο για 1 μήνα');
+ok(free2free.isSlot && free2free.months === REFERRER_SLOT_MONTHS && free2free.months === 1, 'δωρεάν συστήνων: +1 ακίνητο για 1 μήνα');
 const own2free = individualReferrerReward(true, 'free');
-ok(!own2free.isSlot && own2free.months === OWNER_REFERRER_MONTHS && own2free.months === 1, 'Ιδιώτης→δωρεάν: εσύ +1 μήνας Ιδιώτης');
+ok(own2free.isSlot && own2free.months === 1, 'συνδρομητής συστήνων: ΤΟ ΙΔΙΟ, +1 ακίνητο για 1 μήνα');
+// Η μόνη εξαίρεση, και έχει λόγο: η σύσταση Επαγγελματία αξίζει πολύ
+// περισσότερο από μία θέση ακινήτου.
 const any2pro = individualReferrerReward(false, 'agency');
-ok(!any2pro.isSlot && any2pro.months === INDIV_PRO_BONUS_MONTHS && any2pro.months === 2, 'νέος γίνεται Επαγγελματίας → εσύ +2 μήνες Ιδιώτης');
-ok(individualReferrerReward(true, 'agency').months === 2, 'ίδιο και για Ιδιώτη συστήνοντα');
-ok(INDIV_VOLUME_TARGET === 5 && INDIV_VOLUME_BONUS_MONTHS === 1, '5 νέοι ιδιώτες/μήνα → +1 μήνας');
+ok(!any2pro.isSlot && any2pro.months === INDIV_PRO_BONUS_MONTHS && any2pro.months === 1, 'νέος γίνεται Επαγγελματίας → εσύ +1 μήνας Ιδιώτης');
+ok(individualReferrerReward(true, 'agency').months === 1, 'ίδιο και για Ιδιώτη συστήνοντα');
+ok(INDIV_VOLUME_TARGET === 3 && INDIV_VOLUME_BONUS_MONTHS === 1, '3 νέοι ιδιώτες/μήνα → +1 μήνας');
 
 // ── Πρόγραμμα Ιδιώτη: δώρο νέου χρήστη ανά επιλογή πλάνου ──
+// ΕΝΑΣ ΜΗΝΑΣ ΔΩΡΕΑΝ, ΣΤΟ ΠΛΑΝΟ ΠΟΥ ΔΙΑΛΕΓΕΙ. Ο νέος χρήστης δεν χρειάζεται να
+// καταλάβει τρία διαφορετικά δώρα πριν καν μπει: διαλέγει πλάνο ανάλογα με τα
+// ακίνητά του, και ο πρώτος μήνας είναι δώρο — όποιο κι αν είναι.
 const wFree = refereeWelcome('free');
-ok(wFree.isSlot && wFree.months === REFEREE_FREE_SLOT_MONTHS && wFree.months === 2, 'νέος δωρεάν: +1 ακίνητο για 2 μήνες');
-ok(refereeWelcome('owner').months === REFEREE_OWNER_MONTHS && refereeWelcome('owner').months === 2 && !refereeWelcome('owner').isSlot, 'νέος στο Ιδιώτης: 2 μήνες δωρεάν');
+ok(wFree.isSlot && wFree.months === REFEREE_FREE_SLOT_MONTHS && wFree.months === 1, 'νέος δωρεάν: +1 ακίνητο για 1 μήνα');
+ok(refereeWelcome('owner').months === REFEREE_OWNER_MONTHS && refereeWelcome('owner').months === 1 && !refereeWelcome('owner').isSlot, 'νέος στο Ιδιώτης: 1 μήνας δωρεάν');
 const wPro = refereeWelcome('agency');
 ok(wPro.months === REFEREE_AGENCY_MONTHS && wPro.months === 1 && wPro.tier === 'agency', 'νέος Επαγγελματίας: 1 μήνας Επαγγελματία');
-ok(REFEREE_TRIAL_MONTHS === 2, 'δώρο καλωσορίσματος στο invite = 2 μήνες');
+ok(REFEREE_TRIAL_MONTHS === 1, 'δώρο καλωσορίσματος στο invite = 1 μήνας');
+// Και τα τρία μονοπάτια δίνουν ΤΟΝ ΙΔΙΟ αριθμό μηνών: αυτό είναι ολόκληρο το μήνυμα.
+ok([refereeWelcome('free'), refereeWelcome('owner'), refereeWelcome('agency')].every(w => w.months === 1),
+   'ένας μήνας δωρεάν, ό,τι πλάνο κι αν διαλέξει');
 
 // ── Πρόγραμμα Επαγγελματία: milestones ──
 ok(PRO_PAID_TARGET === 5 && PRO_PAID_BONUS_MONTHS === 2, '5 συνδρομητές/μήνα → 2 μήνες Επαγγελματία');

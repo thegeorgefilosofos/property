@@ -1432,10 +1432,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    Δέκα υπηρεσίες θέλουν δύο σειρές των πέντε, οκτώ θέλουν δύο των τεσσάρων:
    αυτό είναι απόφαση σχεδίασης, όχι αποτέλεσμα διαθέσιμου πλάτους. Γράφεται
    ρητά, και σπάει σε λιγότερες στήλες μόνο εκεί που πραγματικά δεν χωρά. */
-.sub-tiles { display: grid; gap: 10px; grid-template-columns: repeat(var(--sub-cols, 5), minmax(0, 1fr)); }
-@media (max-width: 1080px) { .sub-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 760px)  { .sub-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 440px)  { .sub-tiles { grid-template-columns: 1fr; } }
+.fixed-cols { display: grid; gap: var(--fc-gap, 12px); align-items: end; grid-template-columns: repeat(var(--fc), minmax(0, 1fr)); }
+@media (max-width: 1080px) { .fixed-cols { grid-template-columns: repeat(var(--fc-md, 3), minmax(0, 1fr)); } }
+@media (max-width: 760px)  { .fixed-cols { grid-template-columns: repeat(var(--fc-sm, 2), minmax(0, 1fr)); } }
+@media (max-width: 440px)  { .fixed-cols { grid-template-columns: 1fr; } }
 
 /* ΑΦΑΙΡΕΘΗΚΕ: η απόκρυψη μπάρας κύλισης των .app-tabs — έφυγε μαζί με την
    οριζόντια μπάρα καρτελών (βλ. σχόλιο πιο πάνω· η πλοήγηση είναι sidebar + bottom-nav). */

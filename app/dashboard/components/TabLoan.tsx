@@ -12,7 +12,7 @@ import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { programStatus, programDateLabel, PROGRAM_ORDER } from '@/lib/loans/programStatus'
-import { T, ExportButton, EmptyState } from '@/components/Theme'
+import { T, ExportButton, EmptyState , fixedCols} from '@/components/Theme'
 import { loanEventTitle, UNSET_BANK } from './TabCalendar'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
@@ -1459,7 +1459,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
             {/* Μαζεμένες σειρές· η επεξήγηση κρύβεται πίσω από ⓘ (όχι κατεβατό). */}
             <p style={{...labelStyle,marginBottom:10}}>Τα δικαιώματά σου</p>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',gap:6,marginBottom:18}}>
+            {/* Τέσσερα δικαιώματα, μία σειρά. Το `auto-fit` έβγαζε τρία και ένα
+                σε οθόνη με zoom, γιατί το πλήθος στηλών του το ορίζει το
+                διαθέσιμο πλάτος και όχι η λίστα. */}
+            <div {...fixedCols(4, 8)} style={{...fixedCols(4, 8).style, marginBottom:18}}>
               {SERVICERS_GUIDE.rights.map(r=>(
                 <div key={r.t} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0,marginTop:2}} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
@@ -1474,7 +1477,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </div>
 
             <p style={{...labelStyle,marginBottom:10}}>Εργαλεία ρύθμισης και προστασίας</p>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',gap:10,marginBottom:18}}>
+            {/* Τρία εργαλεία, τρεις στήλες: οι κάρτες πιάνουν όλο το πλάτος και
+                το κείμενό τους απλώνεται αντί να στριμώχνεται σε στήλη. */}
+            <div {...fixedCols(3, 12, 'start')} style={{...fixedCols(3, 12, 'start').style, marginBottom:18}}>
               {SERVICERS_GUIDE.tools.map(t=>(
                 <div key={t.name} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,display:'flex',flexDirection:'column'}}>
                   <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:6}}>{t.name}</p>

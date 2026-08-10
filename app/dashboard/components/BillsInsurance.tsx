@@ -12,7 +12,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, TT, fe, formGrid, fieldRow, tileGrid, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, formGrid, fieldRow, fixedCols, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -579,8 +579,8 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           δύο σειρές των πέντε, οκτώ δύο των τεσσάρων — και γράφεται ρητά, γιατί
           το `auto-fit` έδινε άλλο πλήθος σε κάθε επίπεδο zoom του περιηγητή:
           η ίδια οθόνη έβγαζε 5+5, 4+4+2 ή 3+3+3+1 ανάλογα με τη ρύθμιση.
-          Βλ. `.sub-tiles` στο globals.css. */}
-      <div className="sub-tiles" style={{ '--sub-cols': tileCols } as React.CSSProperties}>
+          Βλ. `fixedCols` στο components/tokens.ts. */}
+      <div {...fixedCols(tileCols, 10)}>
         {catalog.map(svc => {
           const entry = active.find(a => a.service === svc.value);
           const on = !!entry;

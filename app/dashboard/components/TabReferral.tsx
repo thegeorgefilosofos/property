@@ -4,12 +4,12 @@ import { createClient } from '@/lib/supabase/client';
 import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
-import { T, TT, Badge, TierBadge, ExportButton, EmptyState, Modal, SkeletonKPIs, fn } from '@/components/Theme';
+import { T, TT, Badge, TierBadge, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols } from '@/components/Theme';
 import { UserPlus } from 'lucide-react';
 import {
   referralCode, referralLink, progress,
   individualReferrerReward, refereeWelcome,
-  REFEREE_FREE_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS, REFEREE_OWNER_MONTHS,
+  INDIV_PRO_BONUS_MONTHS, REFEREE_OWNER_MONTHS, REFERRER_SLOT_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
   STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
@@ -29,9 +29,10 @@ import {
 //    ακίνητο), η ίδια η μηχανή έγραφε «όλα ΑΞΙΑ ΠΡΟΪΟΝΤΟΣ, όχι μετρητά», και η
 //    στρατηγική αποκλείει ρητά τις πληρωμές. Μένουν δωρεάν μήνες, που πληρώνονται
 //    από τις συνδρομές που έφερε ο ίδιος.
-// 2. Το μήνυμα πρόσκλησης έλεγε «2 μήνες δώρο για ένα ή παραπάνω ακίνητα». Η
-//    πραγματική ανταμοιβή είναι ΕΝΑ επιπλέον ακίνητο για 2 μήνες. Είναι το κείμενο
-//    που ο χρήστης στέλνει σε φίλο του — δεν επιτρέπεται να τον εκθέσει.
+// 2. Κάθε αριθμός της οθόνης διαβάζεται από τη μηχανή, κανένας δεν ξαναγράφεται
+//    εδώ. Το μήνυμα πρόσκλησης είναι κείμενο που ο χρήστης στέλνει σε φίλο του:
+//    αν πει άλλο πράγμα από όσα δίνει το `lib/referral/referral.ts`, εκτίθεται ο
+//    χρήστης μας, όχι εμείς.
 // 3. Έφυγαν ~180 γραμμές διακόσμησης (νόμισμα με ακτίνες σε canvas, odometer,
 //    κομφετί, PNG με καρφωμένα χρώματα εκτός συστήματος). Ένας ιδιοκτήτης που
 //    φοβάται τον ΕΝΦΙΑ δεν θέλει νόμισμα με ακτίνες· θέλει να ξέρει τι κερδίζει.
@@ -44,6 +45,24 @@ const Ic = ({ d, s = 18, c = 'currentColor', sw = 1.8 }: { d: string; s?: number
     {d.split('|').map((p, i) => <path key={i} d={p} />)}
   </svg>
 );
+
+// Η ΜΟΝΑΔΑ «ΜΗΝΑΣ» ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΚΑΙ ΚΛΙΝΕΤΑΙ. Τα κείμενα διαβάζουν τους
+// αριθμούς από τη μηχανή· χωρίς αυτό, κάθε αλλαγή κανόνα άφηνε πίσω της ένα
+// «1 μήνες» — δηλαδή ένα προϊόν που δεν ξέρει ελληνικά.
+const moAcc = (n: number) => (n === 1 ? 'έναν μήνα' : `${n} μήνες`);
+const moNom = (n: number) => `${n} ${n === 1 ? 'μήνας' : 'μήνες'}`;
+
+/**
+ * Πλέγμα καρτών με ΡΗΤΟ πλήθος στηλών και το κενό της ενότητας από κάτω.
+ *
+ * Ήταν τέσσερα χειρόγραφα `auto-fit` με τέσσερα διαφορετικά ελάχιστα (220, 260,
+ * 280), δηλαδή τέσσερις διατάξεις που άλλαζαν πλήθος στηλών με το zoom του
+ * περιηγητή: δύο κάρτες γίνονταν μία από κάτω, τρία βήματα γίνονταν δύο και ένα.
+ */
+const cardGrid = (n: number) => {
+  const g = fixedCols(n, 12, 'stretch');
+  return { className: g.className, style: { ...g.style, marginBottom: T.sp.xl } };
+};
 
 const card: React.CSSProperties = {
   background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
@@ -224,11 +243,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     return () => { alive = false; };
   }, [userId, code]);
 
-  // ΤΟ ΜΗΝΥΜΑ ΠΟΥ ΣΤΕΛΝΕΙ Ο ΧΡΗΣΤΗΣ ΣΕ ΦΙΛΟ ΤΟΥ. Έλεγε «2 μήνες δώρο για ένα ή
-  // παραπάνω ακίνητα». Η μηχανή δίνει refereeWelcome('free') = ΕΝΑ επιπλέον
-  // ακίνητο για 2 μήνες. Αν ο φίλος ανοίξει το app και δει άλλο πράγμα, εκτίθεται
-  // ο χρήστης μας — γι' αυτό το κείμενο διαβάζεται από τη μηχανή, όχι από τη διάθεση.
-  const friendGift = `ένα επιπλέον ακίνητο δωρεάν για ${REFEREE_FREE_SLOT_MONTHS} μήνες`;
+  // ΤΟ ΜΗΝΥΜΑ ΠΟΥ ΣΤΕΛΝΕΙ Ο ΧΡΗΣΤΗΣ ΣΕ ΦΙΛΟ ΤΟΥ. Αν ο φίλος ανοίξει το app και
+  // δει άλλο πράγμα από αυτό που του υποσχέθηκαν, εκτίθεται ο χρήστης μας — γι'
+  // αυτό το κείμενο διαβάζεται από τη μηχανή, όχι από τη διάθεση.
+  const friendGift = `${moAcc(REFEREE_OWNER_MONTHS)} δωρεάν στο πλάνο που θα διαλέξεις`;
   const invite = isPro
     ? `Για το ακίνητό σου, σου προτείνω το PropertyOS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
     : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
@@ -274,7 +292,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PropertyOS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${friendGift} κι εσύ ${referrerPaying ? 'έναν μήνα Ιδιώτη' : 'ένα δωρεάν ακίνητο για έναν μήνα'}.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${friendGift} κι εσύ ένα επιπλέον ακίνητο για ${moAcc(REFERRER_SLOT_MONTHS)}, στο πλάνο που ήδη έχεις.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
@@ -469,9 +487,9 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </div>
 
           <SectionLabel>Οι στόχοι του μήνα</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
-            <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${PRO_PAID_BONUS_MONTHS} μήνες Επαγγελματία`} claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
-            <Milestone title="Δωρεάν χρήστες" count={stats?.m_free ?? 0} target={PRO_FREE_TARGET} kind="pro_free" reward={`${PRO_FREE_BONUS_MONTHS} μήνα Επαγγελματία`} claimState={claim.pro_free || 'idle'} onClaim={doClaim} />
+          <div {...cardGrid(2)}>
+            <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${moAcc(PRO_PAID_BONUS_MONTHS)} Επαγγελματία`} claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
+            <Milestone title="Δωρεάν χρήστες" count={stats?.m_free ?? 0} target={PRO_FREE_TARGET} kind="pro_free" reward={`${moAcc(PRO_FREE_BONUS_MONTHS)} Επαγγελματία`} claimState={claim.pro_free || 'idle'} onClaim={doClaim} />
           </div>
 
           {/* Συνεργάτης */}
@@ -499,8 +517,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             )}
             <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
               {[
-                `Κάθε μήνα που πιάνεις τον στόχο, ο επόμενος είναι δωρεάν (${PARTNER_MONTHLY_FREE_MONTHS === 1 ? 'ένας μήνας' : `${PARTNER_MONTHLY_FREE_MONTHS} μήνες`} Επαγγελματία)`,
-                `Οι ${PRO_PAID_BONUS_MONTHS} μήνες κάθε μηνιαίου στόχου συσσωρεύονται στη συνδρομή σου`,
+                `Κάθε μήνα που πιάνεις τον στόχο, ο επόμενος είναι δωρεάν (${moNom(PARTNER_MONTHLY_FREE_MONTHS)} Επαγγελματία)`,
+                `Οι ${moNom(PRO_PAID_BONUS_MONTHS)} κάθε μηνιαίου στόχου συσσωρεύονται στη συνδρομή σου`,
                 'Σήμα Συνεργάτη και προτεραιότητα στην εξυπηρέτηση',
               ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -527,45 +545,47 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         /* ═══ ΙΔΙΩΤΗΣ — αξία ανά φίλο + μηνιαίο μπόνους όγκου ═══ */
         <>
           <SectionLabel>Τι κερδίζετε σε κάθε πρόσκληση</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+          <div {...cardGrid(2)}>
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${youBase.months} μήνας Ιδιώτη`}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot ? `δωρεάν για ${youBase.months} μήνα, για κάθε φίλο που προσκαλείς.` : 'για κάθε φίλο που προσκαλείς. Πιστώνεται αυτόματα στη συνδρομή σου.'}</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${moNom(youBase.months)} Ιδιώτη`}</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot
+                ? `δωρεάν για ${moAcc(youBase.months)}, στο πλάνο που ήδη έχεις, για κάθε φίλο που προσκαλείς. Προστίθεται στα ακίνητα του πλάνου σου και πιστώνεται μόλις εκείνος ενεργοποιήσει τον λογαριασμό του.`
+                : 'για κάθε φίλο που προσκαλείς. Πιστώνεται αυτόματα στη συνδρομή σου, μόλις εκείνος ενεργοποιήσει τον λογαριασμό του.'}</div>
             </div>
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{friendBase.isSlot ? '+1 ακίνητο' : `+${friendBase.months} μήνες`}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες: ένα ΕΠΙΠΛΕΟΝ ακίνητο, πάνω από το πρώτο που είναι δωρεάν για όλους. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει δωρεάν τους επόμενους {REFEREE_OWNER_MONTHS} μήνες.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(REFEREE_OWNER_MONTHS)} δωρεάν</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πλάνο που θα διαλέξει στην αρχή, Ιδιώτης ή Επαγγελματίας, ανάλογα με τα ακίνητά του. Κι αν προτιμήσει να μείνει στο δωρεάν, κερδίζει ένα επιπλέον ακίνητο για {moAcc(friendBase.months)}, πάνω από το πρώτο που είναι δωρεάν για όλους.</div>
             </div>
           </div>
 
           <SectionLabel>Επιπλέον μπόνους</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+          <div {...cardGrid(2)}>
             {/* Ποιοτικό μπόνους: φέρε έναν Επαγγελματία */}
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, minHeight: 22 }}>
                 <span style={{ ...TT.h2 }}>Προσκάλεσε έναν Επαγγελματία</span>
                 {(stats?.m_pro ?? 0) >= 1 && <Badge tone="positive">Το πέτυχες</Badge>}
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες Ιδιώτη</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Κι εκείνος παίρνει δώρο τον δεύτερο μήνα ως Επαγγελματίας.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(INDIV_PRO_BONUS_MONTHS)} Ιδιώτη</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη. Κι εκείνος ξεκινά με {moAcc(REFEREE_OWNER_MONTHS)} Επαγγελματία δωρεάν.</div>
             </div>
-            {/* Μπόνους όγκου: 5 νέοι τον μήνα */}
-            <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτη`} claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
+            {/* Μπόνους όγκου: ο στόχος διαβάζεται από τη μηχανή, δεν ξαναγράφεται. */}
+            <Milestone title={`${INDIV_VOLUME_TARGET} νέοι τον μήνα`} count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${moAcc(INDIV_VOLUME_BONUS_MONTHS)} επιπλέον Ιδιώτη`} claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
           </div>
         </>
       )}
 
       {/* ── Πώς λειτουργεί: τρία βήματα ── */}
       <SectionLabel>Πώς λειτουργεί</SectionLabel>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+      <div {...cardGrid(3)}>
         {steps.map((st, i) => (
           <div key={i} className="ref-step" style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -629,11 +649,16 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {rewards.map((r, i) => {
               const granted = r.status === 'granted';
               const tierLabel = r.tier === 'agency' ? 'Επαγγελματία' : 'Ιδιώτη';
-              const monthsWord = r.months === 1 ? 'μήνας' : 'μήνες';
               const title = r.kind === 'slot'
-                ? `1 δωρεάν ακίνητο για ${r.months === 1 ? 'έναν μήνα' : `${r.months} μήνες`}`
-                : `${r.months} ${monthsWord} ${tierLabel} δωρεάν`;
-              const reasonLabel = ({ per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία', indiv_volume: '5 νέοι μέσα στον μήνα', pro_paid: '5 συνδρομητές μέσα στον μήνα', pro_free: '10 δωρεάν χρήστες μέσα στον μήνα', milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα συνεργάτη' } as Record<string, string>)[r.reason] || 'Μπόνους';
+                ? `1 δωρεάν ακίνητο για ${moAcc(r.months)}`
+                : `${moNom(r.months)} ${tierLabel} δωρεάν`;
+              const reasonLabel = ({
+                per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία',
+                indiv_volume: `${INDIV_VOLUME_TARGET} νέοι μέσα στον μήνα`,
+                pro_paid: `${PRO_PAID_TARGET} συνδρομητές μέσα στον μήνα`,
+                pro_free: `${PRO_FREE_TARGET} δωρεάν χρήστες μέσα στον μήνα`,
+                milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα συνεργάτη',
+              } as Record<string, string>)[r.reason] || 'Μπόνους';
               return (
                 <div key={i} className="ref-lift" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
                   <div style={{ width: 38, height: 38, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -653,7 +678,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
       <p style={{ ...TT.caption, lineHeight: 1.6 }}>
         Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει {ACTIVATION_MIN_PROPERTIES === 1 ? 'ένα ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και σαρώσει {ACTIVATION_MIN_DOCUMENTS === 1 ? 'ένα έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} έγγραφα`} στο PropertyOS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
-        {' '}Όλες οι ανταμοιβές είναι δωρεάν μήνες ή δωρεάν ακίνητα στη δική σου συνδρομή — δεν διαχειριζόμαστε πληρωμές και δεν αποδίδουμε μετρητά.
+        {' '}Όλες οι ανταμοιβές είναι δωρεάν μήνες ή δωρεάν ακίνητα στη δική σου συνδρομή. Δεν διαχειριζόμαστε πληρωμές και δεν αποδίδουμε μετρητά.
       </p>
 
       {(list.length > 0 || rewards.length > 0) && (
