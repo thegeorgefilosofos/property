@@ -32,6 +32,7 @@ const OWNED = {
   checklist_items: 'lib/data/checklist.ts',
   rent_payments: 'lib/data/rent.ts',
   bills: 'lib/data/bills.ts',
+  client_stays: 'lib/data/stays.ts',
 }
 
 const findings = []

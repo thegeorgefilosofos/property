@@ -45,6 +45,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Users, SearchX } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, ABSENT_DATE, formGrid } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
@@ -280,7 +281,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   }, [userId]);
 
   const loadStays = useCallback(async () => {
-    const { data } = await supabase.from('client_stays').select('*').eq('user_id', userId);
+    const data = await stayStore.ofUser<Stay>(supabase, userId, '*');
     setStays((data || []) as Stay[]);
   }, [userId]);
 
@@ -529,7 +530,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       const gross = parseFloat(emailDraft.gross) || 0;
       const fee = parseFloat(emailDraft.fee) || 0;
       const levy = parseFloat(emailDraft.levy) || 0;
-      await saved('Η κράτηση δεν αποθηκεύτηκε', supabase.from('client_stays').insert({
+      await saved('Η κράτηση δεν αποθηκεύτηκε', stayStore.add(supabase, [{
         user_id: userId, client_id: clientId, check_in: emailDraft.check_in || null, check_out: emailDraft.check_out || null,
         nights, channel: emailDraft.channel || null,
         gross_guest_paid: gross || null, platform_fee: fee || null, climate_levy: levy || null,
@@ -537,7 +538,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         // επισκέπτης μείον το τέλος, που δεν είναι έσοδο του ιδιοκτήτη).
         total: gross ? Math.max(0, gross - levy) : null,
         amount_basis: gross ? 'gross' : 'unknown',
-      }));
+      }]));
     }
     setEmailBusy(false); setEmailOpen(false); setEmailText(''); setEmailDraft(null);
     load(); loadStays();
@@ -632,23 +633,22 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       notes: stayForm.notes.trim() || null,
     };
     const ok = await saved('Η διαμονή δεν αποθηκεύτηκε', stayForm.id
-      ? supabase.from('client_stays').update(payload).eq('id', stayForm.id)
-      : supabase.from('client_stays').insert(payload));
+      ? stayStore.update(supabase, stayForm.id, payload)
+      : stayStore.add(supabase, [payload]));
     setSavingStay(false);
     if (!ok) return;
     setStayFormOpen(false); loadStays();
   };
   const delStay = async (s: Stay) => {
     if (!(await confirmDialog('Να διαγραφεί η διαμονή;', { tone: 'negative' }))) return;
-    if (await saved('Η διαμονή δεν διαγράφηκε', supabase.from('client_stays').delete().eq('id', s.id))) loadStays();
+    if (await saved('Η διαμονή δεν διαγράφηκε', stayStore.remove(supabase, s.id))) loadStays();
   };
   // Ένα κλικ από τη λίστα: δηλώθηκε / δεν δηλώθηκε. Η δήλωση βραχυχρόνιας
   // διαμονής είναι μία ανά κράτηση και η προθεσμία τρέχει — δεν πρέπει να
   // απαιτεί άνοιγμα φόρμας.
   const toggleDeclared = async (s: Stay) => {
-    if (await saved('Η δήλωση της διαμονής δεν άλλαξε', supabase.from('client_stays')
-      .update({ declared_at: isDeclared(s) ? null : new Date().toISOString() })
-      .eq('id', s.id))) loadStays();
+    if (await saved('Η δήλωση της διαμονής δεν άλλαξε',
+      stayStore.update(supabase, s.id, { declared_at: isDeclared(s) ? null : new Date().toISOString() }))) loadStays();
   };
 
   // ── Σχόλια ────────────────────────────────────────────────────────────────
@@ -792,12 +792,11 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       check_in: d.check_in, check_out: d.check_out, nights: d.nights, channel: d.channel,
       notes: `Εισαγωγή iCal · ${d.uid}`,
     }));
-    let inserted = 0;
-    for (let i = 0; i < rows.length; i += 50) {
-      const { error } = await supabase.from('client_stays').insert(rows.slice(i, i + 50));
-      if (error) { setIcalMsg({ text: `Σφάλμα εισαγωγής: ${error.message}`, error: true }); setIcalBusy(false); loadStays(); return; }
-      inserted += rows.slice(i, i + 50).length;
-    }
+    // Η παρτίδα των πενήντα ήταν γραμμένη εδώ· είναι κανόνας του πίνακα, όχι
+    // της οθόνης, και ζει πλέον στο στρώμα μαζί με τη διακοπή στο πρώτο σφάλμα.
+    const { error } = await stayStore.addBatched(supabase, rows);
+    if (error) { setIcalMsg({ text: `Σφάλμα εισαγωγής: ${error.message}`, error: true }); setIcalBusy(false); loadStays(); return; }
+    const inserted = rows.length;
     setIcalBusy(false);
     setIcalMsg({ text: `Εισήχθησαν ${inserted} κρατήσεις${skipped > 0 ? ` · ${skipped} υπήρχαν ήδη` : ''}.` });
     setIcalEvents(null); setIcalText(''); setIcalUrl('');

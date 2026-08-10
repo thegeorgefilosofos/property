@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import { T } from '@/components/Theme';
 import { isoDate } from '@/lib/core/time';
 import { saved } from '@/components/dbWrite';
@@ -120,7 +121,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
           const co = new Date(ci); co.setDate(co.getDate() + nights);
           return { user_id: userId, client_id: clientId, property_id: pid, check_in: iso(ci), check_out: iso(co), nights, nightly_rate: rate, total: nights * rate, channel };
         };
-        await must(supabase.from('client_stays').insert([
+        await must(stayStore.add(supabase, [
           mk(-45, 4, 95, 'airbnb'), mk(-20, 3, 110, 'booking'), mk(8, 5, 120, 'airbnb'), mk(30, 2, 130, 'airbnb'),
         ]));
       }

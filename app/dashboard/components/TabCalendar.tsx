@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { isoDate } from '@/lib/core/time'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
@@ -690,7 +691,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     }
     // ── Κρατήσεις (με όνομα επισκέπτη) ──
     if(k==='bookings'){
-      const stays=await must(supabase.from('client_stays').select('id,check_in,check_out,total,nights,guests,channel,clients(full_name)').eq('property_id',propertyId))
+      const stays=await stayStore.withClientName(supabase,propertyId,'id,check_in,check_out,total,nights,guests,channel',userId)
       // Κράτηση χωρίς ημερομηνία άφιξης δεν γίνεται γεγονός: δεν υπάρχει μέρα να μπει.
       const rows=buildBookingEvents(((stays||[]) as StayWithGuest[]).filter((s):s is StayWithGuest&{check_in:string}=>!!s.check_in).map(s=>({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,nights:s.nights,guests:s.guests,channel:s.channel,guest_name:s.clients?.full_name??null})))
       await must(calendar.replaceSource(supabase,scope,{prefix:'booking:'},rows))
@@ -1354,7 +1355,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   }
   // Κρατήσεις βραχυχρόνιας (client_stays) → μπάρες διαμονής στην προβολή Μήνα.
   async function loadStays() {
-    const{data}=await supabase.from('client_stays').select('id,check_in,check_out,total,channel,clients(full_name)').eq('property_id',propertyId)
+    const data=await stayStore.withClientName<StayBarRow>(supabase,propertyId,'id,check_in,check_out,total,channel',userId)
     // ΤΟ check_in ΤΩΝ ΚΡΑΤΗΣΕΩΝ ΔΕΧΕΤΑΙ NULL. Το `(s:any)` το έκρυβε: η κράτηση χωρίς
     // άφιξη έμπαινε ολόκληρη στο `toStaySpan`, όπου το `regex.test(null)` δοκίμαζε τη
     // λέξη "null" και γύριζε null — σωστό αποτέλεσμα, αλλά κατά τύχη. Ο συγχρονισμός

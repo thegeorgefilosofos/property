@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
@@ -343,6 +344,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // ενώ ο χρήστης καταχωρούσε «Υδραυλικός» και «Ρεύμα» στα ελληνικά: κάθε
   // χειροκίνητη δαπάνη προσγειωνόταν στις «Λοιπές», η Συντήρηση έδειχνε μηδέν.
 
+  /** Ό,τι χρειάζεται το έσοδο βραχυχρόνιας: ποσό, νύχτες, τιμή, άφιξη. */
+  type StayRow = { total: number | null; nights: number | null; nightly_rate: number | null; check_in: string | null };
+
   const loadData = useCallback(async () => {
     if (!propertyId) return;
     try {
@@ -391,7 +395,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         tenantStore.currentAll<{ monthly_rent: number | null }>(supabase, propertyId, 'monthly_rent'),
         // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
         // για ετησιοποίηση (πρόβλεψη φόρου βραχυχρόνιας χωρίς εποχική στρέβλωση).
-        supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', `${y}-01-01`).lte('check_in', dateEnd),
+        stayStore.ofProperty<StayRow>(supabase, propertyId, 'total,nights,nightly_rate,check_in', userId, { from: `${y}-01-01`, to: dateEnd }),
       ]);
       const rMode = (propRes?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
       setRentalMode(rMode);
@@ -401,9 +405,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // Οι δύο σχήματα γραμμών, όπως ακριβώς τα ζητά το ερώτημα από πάνω. Ήταν
       // `any`, οπότε ένα λάθος όνομα στήλης (`nightlyRate` αντί για
       // `nightly_rate`) θα έδινε αθόρυβα μηδέν έσοδα αντί για σφάλμα.
-      type StayRow = { total: number | null; nights: number | null; nightly_rate: number | null; check_in: string | null };
       const stayGross = (st: StayRow) => Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0);
-      const staysAll  = (staysRes.data ?? []) as StayRow[];
+      const staysAll  = staysRes;
       const staysMonth = staysAll.filter(st => String(st.check_in ?? '') >= start);
       // Έσοδα μήνα: βραχυχρόνια → άθροισμα καταλυμάτων του μήνα· μακροχρόνια → ενεργό
       // ενοίκιο (ή στόχος). Ιδιοκατοίκηση/χωρίς mode → 0 (κανένα «φανταστικό» έσοδο).

@@ -19,6 +19,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
@@ -299,7 +300,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [exp, bil, ten, st, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, chk] = await Promise.all([
+    const [exp, bil, ten, st, cal, { data: rates }, { data: loans }, { data: clientRows }, stayRows, { data: contactRows }, chk] = await Promise.all([
       expenseStore.ledger(supabase, propertyId, { userId, from: `${year}-01-01`, columns: `${expenseStore.LEDGER_COLUMNS},payment_method` }),
       billStore.ofProperty<BillsRow>(supabase, propertyId, billStore.LEDGER_COLUMNS, userId),
       tenantStore.currentAll(supabase, propertyId, 'full_name,monthly_rent,lease_end,deposit_amount', userId),
@@ -312,7 +313,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
-      supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
+      stayStore.ofUser<ClientStaysRow>(supabase, userId, `client_id,rating,damages,damage_cost,notes,${stayStore.PORTFOLIO_COLUMNS}`),
       supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
       checklist.upcoming<ChecklistItemsRow>(supabase, propertyId, 'description,category,priority,due_date,status,estimated_cost,assigned_contact_name', userId),
     ]);
@@ -322,7 +323,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // κανείς μέχρι να μην εμφανιστεί το νούμερο στην οθόνη.
     const expenses = (exp || []) as ExpensesRow[];
     const billRows = bil;
-    const stays = (stayRows || []) as ClientStaysRow[];
+    const stays = stayRows;
     const contacts = (contactRows || []) as ContactsRow[];
     const insurance = st as Pick<UserPropertiesRow, 'insurance_company' | 'insurance_expiry' | 'insurance_amount'> | null;
 

@@ -33,6 +33,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import { T, fe, Skeleton, Btn, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
@@ -56,14 +57,12 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
 
   const load = useCallback(async () => {
     try {
-      const [p, { data: s }] = await Promise.all([
+      const [p, s] = await Promise.all([
         properties.one(supabase, propertyId, 'status_detail,rental_mode,prop_type,sqm'),
-        supabase.from('client_stays')
-          .select('check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at')
-          .eq('user_id', userId).eq('property_id', propertyId),
+        stayStore.ofProperty<StayRow>(supabase, propertyId, stayStore.ACCOUNTING_COLUMNS, userId),
       ]);
       setProp((p || null) as PropInfo | null);
-      setStays((s || []) as StayRow[]);
+      setStays(s);
     } finally { setLoading(false); }
   }, [propertyId, userId]);
   useEffect(() => { load(); }, [load]);

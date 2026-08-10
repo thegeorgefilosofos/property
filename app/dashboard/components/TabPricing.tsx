@@ -30,6 +30,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
@@ -94,12 +95,10 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
   // ── Φόρτωση διαμονών + αποθηκευμένων ρυθμίσεων ─────────────────────────────
   const loadStays = useCallback(async () => {
-    const { data } = await supabase.from('client_stays')
-      // Το `declared_at` και το `channel` χρειάζονται για τη φορολογική σύνοψη:
-      // πόσες διαμονές δεν έχουν Δήλωση Βραχυχρόνιας, και ανά ποιο κανάλι.
-      .select('check_in,check_out,nights,nightly_rate,total,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at,channel')
-      .eq('user_id', userId).eq('property_id', propertyId);
-    setStays((data || []) as PriceStay[]);
+    // Το `declared_at` και το `channel` χρειάζονται για τη φορολογική σύνοψη:
+    // πόσες διαμονές δεν έχουν Δήλωση Βραχυχρόνιας, και ανά ποιο κανάλι.
+    const data = await stayStore.ofProperty<PriceStay>(supabase, propertyId, stayStore.ACCOUNTING_COLUMNS, userId);
+    setStays(data);
   }, [userId, propertyId]);
 
   // Ο τύπος του ακινήτου κρίνει το κλιμάκιο του τέλους ανθεκτικότητας: το

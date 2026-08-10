@@ -1,6 +1,7 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as propertyStore from '@/lib/data/properties';
+import * as stayStore from '@/lib/data/stays';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
 import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
@@ -103,7 +104,7 @@ export async function loadE2Rows(
     return { properties: [], rows: [], ownerAfm: '', tenantByProp: new Map(), paymentsByProp: new Map(), afmByProp: new Map(), staysByProp: new Map() };
   }
   const ids = properties.map(p => p.id);
-  const [tenants, payments, { data: settings }, { data: stays }] = await Promise.all([
+  const [tenants, payments, { data: settings }, stays] = await Promise.all([
     tenantStore.currentByProperty<E2Tenant & { status?: string | null; move_out_date?: string | null }>(
       supabase, userId, 'property_id,afm,full_name,monthly_rent,lease_start,lease_end,lease_type,created_at'),
     rentStore.ofProperties<E2Payment>(supabase, ids, 'property_id,amount,period_year,period_month', userId, { year }),
@@ -115,7 +116,7 @@ export async function loadE2Rows(
     // και ομαδοποιούνται ΑΝΑ ΑΚΙΝΗΤΟ ακριβώς όπως πληρωμές και μισθωτές:
     // αν περνιόνταν ενιαία, κάθε ακίνητο θα δήλωνε τα έσοδα ΟΛΟΥ του
     // χαρτοφυλακίου.
-    supabase.from('client_stays').select('property_id, check_in, check_out, nights, nightly_rate, total, gross_guest_paid, platform_fee, climate_levy, amount_basis, channel, declared_at').in('property_id', ids).eq('user_id', userId),
+    stayStore.ofProperties<E2Stay & { property_id: string }>(supabase, ids, `${stayStore.PORTFOLIO_COLUMNS},declared_at`, userId),
   ]);
   // Ένας μισθωτής ανά ακίνητο, ο τρέχων. Εδώ κρατιόταν «ο πρώτος της λίστας»
   // ταξινομημένης κατά δημιουργία — δηλαδή ο πιο πρόσφατα καταχωρημένος, ακόμη
