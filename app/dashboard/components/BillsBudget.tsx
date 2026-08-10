@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
@@ -379,7 +380,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         // λογαριασμό (πληρωμή ή λήξη) δεν είναι το created_at, οπότε ένας
         // λογαριασμός καταχωρημένος νωρίτερα μπορεί να ανήκει μέσα στο παράθυρο.
         // Το τελικό κόψιμο γίνεται μετά τη συγχώνευση, όπου η ημερομηνία είναι μία.
-        supabase.from('bills').select('id,name,category,amount,paid,paid_at,due_date,recurring,created_at').eq('property_id', propertyId).gte('created_at', wideStart),
+        billStore.ofProperty(supabase, propertyId, billStore.LEDGER_COLUMNS, userId, { since: wideStart }),
         expenses.ledger(supabase, propertyId, { from: histStart }),
       ]);
 
@@ -461,7 +462,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       // ── Η ΕΝΙΑΙΑ ΛΙΣΤΑ ────────────────────────────────────────────────────
       const { entries: ledger } = mergeLedger(
-        (allBillsRes.data ?? []) as LedgerBill[],
+        allBillsRes as LedgerBill[],
         allExpRes as unknown as LedgerExpense[],
       );
       // Ταυτότητα γραμμής για τις εξαιρέσεις. Προτεραιότητα στον λογαριασμό,

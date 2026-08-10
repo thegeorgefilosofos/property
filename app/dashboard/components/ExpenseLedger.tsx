@@ -29,6 +29,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenseStore from '@/lib/data/expenses'
+import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
 import { T, TT, fe, Btn, Card, EmptyState, Skeleton } from '@/components/Theme';
@@ -40,7 +41,7 @@ import {
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
 import { missingThisMonth } from '@/lib/expenses/expected';
 import { priceChanges } from '@/lib/expenses/priceChange';
-import { planBillPayment } from '@/lib/expenses/pay';
+import { planBillPayment, type BillToPay } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
 import { CustomSelect, DatePicker, Toggle } from './UIComponents';
@@ -96,13 +97,11 @@ async function fetchLedger(
   supabase: ReturnType<typeof createClient>, propertyId: string, userId: string,
 ): Promise<{ bills: LedgerBill[]; expenses: LedgerExpense[] }> {
   const [b, e] = await Promise.all([
-    supabase.from('bills')
-      .select('id,name,category,amount,due_date,paid,paid_at,recurring,created_at')
-      .eq('property_id', propertyId),
+    billStore.ofProperty<LedgerBill>(supabase, propertyId, billStore.LEDGER_COLUMNS, userId),
     expenseStore.ledger(supabase, propertyId, { userId, excludeCategory: 'tenant_extra' }),
   ]);
   return {
-    bills: (b.data ?? []) as LedgerBill[],
+    bills: b,
     expenses: e as unknown as LedgerExpense[],
   };
 }
@@ -232,13 +231,12 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
         // επιστρέφει false για κενή ομάδα. Ο ίδιος λογαριασμός εξέπιπτε αν τον
         // πλήρωνες από τους Λογαριασμούς και ΔΕΝ εξέπιπτε από εδώ.
         const linked = await expenseStore.existsForBill(supabase, e.billId);
-        const { data: billRow } = await supabase.from('bills')
-          .select('id,name,amount,category,paid_by,share_percent,share_note').eq('id', e.billId).maybeSingle();
+        const billRow = await billStore.one<BillToPay>(supabase, e.billId, 'id,name,amount,category,paid_by,share_percent,share_note');
         const plan = planBillPayment(
           billRow ?? { id: e.billId, name: e.title, amount: e.amount, category: e.category },
           { propertyId, userId, nowIso: new Date().toISOString(), hasLinkedExpense: linked },
         );
-        const { error: bErr } = await supabase.from('bills').update(plan.bill).eq('id', e.billId);
+        const { error: bErr } = await billStore.update(supabase, e.billId, plan.bill);
         if (bErr) throw bErr;
         if (plan.linkedExpenseUpdate) {
           const { error } = await expenseStore.updateByBill(supabase, e.billId, plan.linkedExpenseUpdate);
@@ -656,8 +654,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
         //
         // Ο πυρήνας (lib/expenses/ledger.ts) ήδη ξέρει τι είναι: απλήρωτος
         // λογαριασμός που μετράει στην ημερομηνία λήξης του.
-        const { error } = await supabase.from('bills').insert({
-          property_id: propertyId, user_id: userId,
+        const { error } = await billStore.add(supabase, propertyId, userId, {
           name: what.trim(),
           amount: amt,
           category: slug || 'other',

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
+import * as billStore from '@/lib/data/bills';
 import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE, pressable } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
@@ -335,7 +336,7 @@ export default function TabDocuments({
     const [docsRes, expRes, billsRes, invRes] = await Promise.all([
       supabase.from('property_documents').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
       expenses.ledger(supabase, propertyId, { columns: '*' }),
-      supabase.from('bills').select('*').eq('property_id', propertyId),
+      billStore.ofProperty<BillsRow>(supabase, propertyId, '*', userId),
       supabase.from('inventory_items').select('*').eq('property_id', propertyId),
     ]);
 
@@ -391,7 +392,7 @@ export default function TabDocuments({
     });
 
     // 3) bills — εικονικές καρτέλες λογαριασμών (χωρίς αρχείο· ανά πάροχο/ημ/αξία)
-    const bills: BillsRow[] = billsRes.data ?? [];
+    const bills: BillsRow[] = billsRes;
     bills.forEach(b => {
       // Η ΣΤΗΛΗ `category` ΤΩΝ ΛΟΓΑΡΙΑΣΜΩΝ ΔΕΧΕΤΑΙ NULL. Με `any` τα δύο ευρετήρια
       // παρακάτω δέχονταν σιωπηλά `null` ως κλειδί — στην JS αυτό γίνεται η

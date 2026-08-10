@@ -4,6 +4,7 @@ import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as billStore from '@/lib/data/bills';
 import * as rentStore from '@/lib/data/rent';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
@@ -394,9 +395,9 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [exp,{ data:bil },{ data:tsk },ten,ci,{ data:iv },{ data:ln },{ data:hs },allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
+    const [exp,bil,{ data:tsk },ten,ci,{ data:iv },{ data:ln },{ data:hs },allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
-      supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
+      billStore.ofProperty<Bill>(supabase,prop.id,'*',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
       // ατζέντα, που τις ταξινομεί μαζί με όλα τα υπόλοιπα κατά προθεσμία.
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(60),
@@ -419,7 +420,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       rentStore.ofProperty<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }>(supabase,prop.id,'amount,due_date,paid,period_year,period_month',userId,{ paid:false }),
       supabase.from('inventory_maintenance').select('task,item_name,next_due,est_cost').eq('property_id',prop.id),
     ]);
-    setExpenses((exp||[]) as Expense[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
+    setExpenses((exp||[]) as Expense[]); setBills(bil); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setChk(ci); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι

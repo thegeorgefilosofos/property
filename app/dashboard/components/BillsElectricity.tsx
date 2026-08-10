@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as billStore from '@/lib/data/bills';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fn, feRate, Skeleton, histInputStyle, ABSENT_SHORT, formGrid } from '@/components/Theme';
@@ -272,9 +273,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     if (!propertyId) return;
     (async () => {
       try {
-        const { data } = await supabase.from('bills')
-          .select('kwh,created_at').eq('property_id', propertyId).eq('category', 'electricity')
-          .not('kwh', 'is', null).order('created_at', { ascending: false }).limit(12);
+        const data = await billStore.kwhHistory<{ kwh: number | null; created_at: string }>(supabase, propertyId, 'kwh,created_at', userId);
         setBillsKwh((data ?? []).map(b => Number((b as { kwh?: number }).kwh)).filter(n => Number.isFinite(n) && n > 0));
       } catch (_) {}
     })();

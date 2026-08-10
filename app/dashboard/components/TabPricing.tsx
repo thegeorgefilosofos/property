@@ -30,6 +30,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as billStore from '@/lib/data/bills';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable, formGrid } from '@/components/Theme';
@@ -126,10 +127,9 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // Οι λειτουργικές δαπάνες της χρονιάς, και πόσα ακίνητα έχει ο φορολογούμενος
   // (κρίνει την εξαίρεση του τέλους παρεπιδημούντων: ισχύει έως δύο ακίνητα).
   const loadCashflowInputs = useCallback(async () => {
-    const [exp, { data: bil }, count] = await Promise.all([
+    const [exp, bil, count] = await Promise.all([
       expenses.ledger(supabase, propertyId, { userId }),
-      supabase.from('bills').select('id,name,category,amount,due_date,paid,paid_at,recurring,created_at')
-        .eq('property_id', propertyId).eq('user_id', userId),
+      billStore.ofProperty(supabase, propertyId, billStore.LEDGER_COLUMNS, userId),
       properties.count(supabase, userId),
     ]);
     // ΚΑΘΕ ΕΥΡΩ ΜΙΑ ΦΟΡΑ. Ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ΙΔΙΟ
@@ -137,7 +137,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     // το «μένει σε εσένα» θα έδειχνε λιγότερα απ' όσα πραγματικά μένουν. Η
     // συγχώνευση γίνεται από τον κοινό πυρήνα, τον ίδιο που χρησιμοποιούν οι
     // Δαπάνες και ο Προϋπολογισμός — αλλιώς δύο οθόνες μετράνε αλλιώς το ίδιο.
-    const { entries } = mergeLedger((bil || []) as LedgerBill[], (exp || []) as LedgerExpense[]);
+    const { entries } = mergeLedger(bil as LedgerBill[], (exp || []) as LedgerExpense[]);
     setOpex(entries.filter(e => e.date.slice(0, 4) === String(nowYear)).reduce((sum, e) => sum + e.amount, 0));
     setPropCount(Math.max(1, count || 1));
   }, [propertyId, userId, nowYear]);

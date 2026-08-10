@@ -20,6 +20,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar';
@@ -387,11 +388,9 @@ const stripEmpty = (o: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== ''));
 
 /** Οι εκκρεμείς λογαριασμοί ενός ακινήτου, σε μορφή υποψηφίου ταιριάσματος. */
-async function pendingCandidates(propertyId: string): Promise<MatchCandidate[]> {
+async function pendingCandidates(propertyId: string, userId: string): Promise<MatchCandidate[]> {
   const supabase = createClient();
-  const { data } = await supabase.from('bills')
-    .select('id,category,amount,due_date,created_at,name,period')
-    .eq('property_id', propertyId).eq('paid', false);
+  const data = await billStore.ofProperty(supabase, propertyId, 'id,category,amount,due_date,created_at,name,period', userId, { paid: false });
   return (data || []).map(b => ({
     id: String(b.id),
     amount: typeof b.amount === 'number' ? b.amount : parseFloat(String(b.amount ?? 0)),
@@ -443,7 +442,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
       if (input.reconcileChoice !== undefined) {
         payOff = input.reconcileChoice;
       } else {
-        const cands = await pendingCandidates(propertyId);
+        const cands = await pendingCandidates(propertyId, userId);
         const r = matchPaymentToBills({
           amount: doc.amount,
           date: doc.issue_date || today,
@@ -464,7 +463,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
 
     if (payOff) {
       await saved('Ο λογαριασμός δεν σημειώθηκε εξοφλημένος',
-        supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', payOff));
+        billStore.markPaid(supabase, payOff));
       const updExp = await savedData<{ id: string }[]>('Η συνδεδεμένη δαπάνη δεν σημειώθηκε πληρωμένη',
         expenses.markBillPaid(supabase, payOff));
       await saved('Το γεγονός ημερολογίου δεν ενημερώθηκε',
@@ -481,9 +480,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
 
     // ── 1) Λογαριασμός → bills. Παραλείπεται αν έγινε συμφωνία.
     if (plan.bill && !reconciled) {
-      const { data: billRow, error: billErr } = await supabase.from('bills')
-        .insert({ property_id: propertyId, user_id: userId, ...plan.bill })
-        .select('id').single();
+      const { data: billRow, error: billErr } = await billStore.addReturning(supabase, propertyId, userId, plan.bill);
       if (!billErr) { billId = billRow?.id as string | undefined; add('Λογαριασμοί'); }
     }
 

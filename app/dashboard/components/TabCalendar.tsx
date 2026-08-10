@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { isoDate } from '@/lib/core/time'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
+import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
@@ -642,7 +643,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
   async function syncOne(k:SyncKey):Promise<number> {
     // ── Λογαριασμοί ──
     if(k==='bills'){
-      const bills=await must(supabase.from('bills').select('*').eq('property_id',propertyId))
+      const bills=await billStore.ofProperty(supabase,propertyId,'*',userId)
       const today=new Date()
       // ΔΥΟ ΝΕΚΡΑ ΕΝΑΛΛΑΚΤΙΚΑ ΠΕΔΙΑ. Το `next_due_date` δεν υπάρχει σε κανέναν
       // από τους πίνακες, και το `provider` υπάρχει μόνο στα τιμολόγια ρεύματος.

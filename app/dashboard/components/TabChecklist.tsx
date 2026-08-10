@@ -5,6 +5,7 @@ import { downloadWorkbook } from './xlsxStyle'
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
+import * as billStore from '@/lib/data/bills';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import * as checklist from '@/lib/data/checklist'
@@ -1999,12 +2000,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       // ερώτημα απορριπτόταν ολόκληρο και ο ΕΝΦΙΑ ΔΕΝ σημειωνόταν ποτέ ως
       // πληρωμένος στις εκκρεμότητες — ο ιδιοκτήτης έβλεπε για πάντα ανοιχτή
       // υποχρέωση που είχε ήδη πληρώσει.
-      const { data: enfiaBillData } = await supabase
-        .from('bills').select('id,paid')
-        .eq('property_id', propertyId)
-        .or('name.ilike.%ΕΝΦΙΑ%,name.ilike.%enfia%,notes.ilike.%ΕΝΦΙΑ%')
-        .limit(1)
-      const isPaid = enfiaBillData?.[0]?.paid === true
+      const enfiaBillData = await billStore.matchingText<{ id: string; paid: boolean | null }>(
+        supabase, propertyId, 'id,paid', 'name.ilike.%ΕΝΦΙΑ%,name.ilike.%enfia%,notes.ilike.%ΕΝΦΙΑ%', userId)
+      const isPaid = enfiaBillData[0]?.paid === true
       // Η ΓΡΑΦΗ ΕΙΝΑΙ ΤΟ ΣΟΒΑΡΟ: χωρίς αυτόν τον έλεγχο, η καθυστερημένη απάντηση
       // του προηγούμενου ακινήτου σημείωνε πληρωμένη εργασία άλλου ακινήτου.
       if (isPaid && itemData && fresh()) {

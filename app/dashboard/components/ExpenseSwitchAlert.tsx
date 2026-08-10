@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import * as billStore from '@/lib/data/bills';
 import { T, feAuto } from '@/components/Theme';
 import { electricitySwitchFinding, type SwitchFinding } from './BillsElectricity';
 import { insuranceSwitchFinding } from './BillsInsurance';
@@ -38,9 +39,9 @@ export default function ExpenseSwitchAlert({ propertyId, onOpen }: {
     let alive = true;
     (async () => {
       try {
-        const [{ data: setts }, { data: kwhRows }] = await Promise.all([
+        const [{ data: setts }, kwhRows] = await Promise.all([
           supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['electricity', 'insurance']),
-          supabase.from('bills').select('kwh').eq('property_id', propertyId).eq('category', 'electricity').not('kwh', 'is', null).limit(12),
+          billStore.kwhHistory<{ kwh: number | null }>(supabase, propertyId, 'kwh'),
         ]);
         if (!alive) return;
 

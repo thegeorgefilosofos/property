@@ -19,6 +19,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as billStore from '@/lib/data/bills';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
 import * as checklist from '@/lib/data/checklist';
@@ -298,9 +299,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [exp, { data: bil }, ten, st, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, chk] = await Promise.all([
+    const [exp, bil, ten, st, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, chk] = await Promise.all([
       expenseStore.ledger(supabase, propertyId, { userId, from: `${year}-01-01`, columns: `${expenseStore.LEDGER_COLUMNS},payment_method` }),
-      supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
+      billStore.ofProperty<BillsRow>(supabase, propertyId, billStore.LEDGER_COLUMNS, userId),
       tenantStore.currentAll(supabase, propertyId, 'full_name,monthly_rent,lease_end,deposit_amount', userId),
       // Τα στοιχεία ασφάλισης ζουν στο `user_properties` (insurance_company /
       // insurance_amount / insurance_expiry), ΟΧΙ στο property_settings — που έχει
@@ -320,7 +321,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // `as any` — δηλαδή ένα ορθογραφικό λάθος σε όνομα στήλης δεν το έπιανε
     // κανείς μέχρι να μην εμφανιστεί το νούμερο στην οθόνη.
     const expenses = (exp || []) as ExpensesRow[];
-    const billRows = (bil || []) as BillsRow[];
+    const billRows = bil;
     const stays = (stayRows || []) as ClientStaysRow[];
     const contacts = (contactRows || []) as ContactsRow[];
     const insurance = st as Pick<UserPropertiesRow, 'insurance_company' | 'insurance_expiry' | 'insurance_amount'> | null;
@@ -804,7 +805,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const today = athensToday();
       if (billHits.length === 1) {
         const b = billHits[0];
-        await must(supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', b.id));
+        await must(billStore.markPaid(supabase, b.id));
         await must(expenseStore.updateByBill(supabase, b.id, { paid: true }));
         setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τον λογαριασμό «${b.name}» ${eur(b.amount)} ως πληρωμένο.`, action: { type: 'go', tab: 'finances' } }]);
       } else {
