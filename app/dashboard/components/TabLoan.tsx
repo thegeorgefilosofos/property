@@ -6,7 +6,7 @@ import * as loanStore from '@/lib/data/loans'
 import * as calendar from '@/lib/data/calendar'
 import { must } from '@/lib/supabase/must'
 import { saved } from '@/components/dbWrite'
-import { LOAN_COLUMNS, toLoanViews, toLoanRow } from '@/lib/loans/shape'
+import { toLoanRow } from '@/lib/loans/shape'
 import { fp, fe } from '@/lib/core/format'
 import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
@@ -1377,24 +1377,33 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           </div>
           <MiniSection title="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα" defaultOpen={profile!=='business'}>
             {[
-              {step:1,title:'Προεπιλογή και προετοιμασία',time:'1–2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Έλεγξε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάνε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποίησε πρώτα.',url:null},
-              {step:2,title:'Συλλογή εγγράφων',time:'1–3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζήτησε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιώσου ότι είναι ενημερωμένα.',url:null},
-              {step:3,title:'Αίτηση στην τράπεζα',time:'1 ημέρα',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Για Σπίτι μου ΙΙ επίλεξε ΜΙΑ τράπεζα, δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επίλεξε προσεκτικά βάσει επιτοκίου.',tip:'Ζήτησε γραπτή προσφορά (τυποποιημένο ευρωπαϊκό δελτίο πληροφοριών, ESIS) από 2-3 τράπεζες πριν δεσμευτείς. Δικαιούσαι 7 εργάσιμες για απόφαση.',warning:'Μην υπογράφεις τίποτα την πρώτη μέρα. Μελέτησε το τυποποιημένο ευρωπαϊκό δελτίο πληροφοριών (ESIS).',url:'https://www.bankofgreece.gr'},
-              {step:4,title:'Εκτίμηση ακινήτου και νομικός έλεγχος',time:'1–3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το δάνειο προς αξία υπολογίζεται επί αυτής, ενδέχεται να χρειαστείς επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζήτησε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
-              {step:5,title:'Έγκριση δανείου',time:'3–10 εργάσιμες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Η τράπεζα αξιολογεί εισόδημα, Τειρεσία, εκτίμηση, νομικά. Η απόφαση ισχύει συνήθως 90 ημέρες.',tip:'Σε απόρριψη ζήτησε γραπτώς τον λόγο. Επανεξέτασε μετά από 6 μήνες ή άλλαξε τράπεζα.',warning:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών επηρεάζει τον Τειρεσία.',url:'https://www.tiresias.gr'},
-              {step:6,title:'Συμβόλαιο και εκταμίευση',time:'1–2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Αγοραπωλητήριο ενώπιον συμβολαιογράφου. Εκταμίευση μετά καταχώρηση στο Κτηματολόγιο.',tip:'Νεόδμητα: απαιτείται ΠΕΑ για τη μεταβίβαση.',warning:'Φορολογικές και ασφαλιστικές ενημερότητες λήγουν γρήγορα (15–30 μέρες), έχε τα μαζί σου.',url:null},
+              {step:1,title:'Προεπιλογή και προετοιμασία',time:'1 έως 2 εβδομάδες',desc:'Έλεγξε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάνε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποίησε πρώτα.',url:null},
+              {step:2,title:'Συλλογή εγγράφων',time:'1 έως 3 εβδομάδες',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζήτησε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιώσου ότι είναι ενημερωμένα.',url:null},
+              {step:3,title:'Αίτηση στην τράπεζα',time:'1 ημέρα',desc:'Για Σπίτι μου ΙΙ επίλεξε ΜΙΑ τράπεζα, δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επίλεξε προσεκτικά βάσει επιτοκίου.',tip:'Ζήτησε γραπτή προσφορά, το τυποποιημένο ευρωπαϊκό δελτίο πληροφοριών ESIS, από δύο ή τρεις τράπεζες πριν δεσμευτείς. Δικαιούσαι επτά εργάσιμες για να αποφασίσεις.',warning:'Μην υπογράφεις τίποτα την πρώτη μέρα. Μελέτησε το τυποποιημένο ευρωπαϊκό δελτίο πληροφοριών (ESIS).',url:'https://www.bankofgreece.gr'},
+              {step:4,title:'Εκτίμηση ακινήτου και νομικός έλεγχος',time:'1 έως 3 εβδομάδες',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το δάνειο προς αξία υπολογίζεται επί αυτής, ενδέχεται να χρειαστείς επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζήτησε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
+              {step:5,title:'Έγκριση δανείου',time:'3 έως 10 εργάσιμες',desc:'Η τράπεζα αξιολογεί εισόδημα, Τειρεσία, εκτίμηση, νομικά. Η απόφαση ισχύει συνήθως 90 ημέρες.',tip:'Σε απόρριψη ζήτησε γραπτώς τον λόγο. Επανεξέτασε μετά από 6 μήνες ή άλλαξε τράπεζα.',warning:'Ακόμη και μία ακάλυπτη επιταγή ή μία δόση με καθυστέρηση άνω των 90 ημερών επηρεάζει τον Τειρεσία.',url:'https://www.tiresias.gr'},
+              {step:6,title:'Συμβόλαιο και εκταμίευση',time:'1 έως 2 εβδομάδες',desc:'Αγοραπωλητήριο ενώπιον συμβολαιογράφου. Εκταμίευση μετά καταχώρηση στο Κτηματολόγιο.',tip:'Νεόδμητα: απαιτείται ΠΕΑ για τη μεταβίβαση.',warning:'Οι φορολογικές και ασφαλιστικές ενημερότητες λήγουν γρήγορα, σε 15 έως 30 ημέρες: έκδωσέ τις τελευταία στιγμή.',url:null},
             ].map((step,i,arr)=>(
               <div key={i} style={{display:'flex',gap:16,alignItems:'flex-start',paddingBottom:20,borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none',marginBottom:i<arr.length-1?20:0}}>
                 <div style={{width:32,height:32,borderRadius:'50%',background:'var(--bg-surface)',border:'1px solid var(--border-default)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                   <span style={{fontSize:13,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)',fontWeight:600}}>{step.step}</span>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
+                  {/* Η ΣΥΜΒΟΥΛΗ ΗΤΑΝ ΓΡΑΜΜΕΝΗ ΚΑΙ ΔΕΝ ΕΜΠΑΙΝΕ ΠΟΥΘΕΝΑ. Έξι
+                      συμβουλές, μία ανά βήμα, καμία στην οθόνη: ο κώδικας τις
+                      κουβαλούσε και ο χρήστης δεν τις έβλεπε. Ζουν πίσω από την
+                      κουκκίδα του τίτλου, χωρίς να προσθέτουν ύψος στη σειρά. */}
                   <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:6,flexWrap:'wrap'}}>
                     <p style={{fontSize:14,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',letterSpacing:'-0.01em'}}>{step.title}</p>
                     <span style={{fontSize:10,color:'var(--text-tertiary)',background:'var(--bg-surface)',padding:'2px 8px',borderRadius:8,border:'1px solid var(--border-subtle)',fontFamily: T.font.sans,fontWeight:500,whiteSpace:'nowrap' as const}}>{step.time}</span>
+                    <InfoDot text={step.tip}/>
                   </div>
                   <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.65,fontFamily: T.font.sans}}>{step.desc}</p>
-                  <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.55,marginTop:6,fontFamily: T.font.sans}}>{step.warning}{step.url&&<> · <InlineLink href={step.url}>πηγή</InlineLink></>}</p>
+                  {/* Η ΠΡΟΕΙΔΟΠΟΙΗΣΗ ΔΙΑΒΑΖΟΤΑΝ ΣΑΝ ΔΕΥΤΕΡΗ ΠΡΟΤΑΣΗ ΤΗΣ
+                      ΠΕΡΙΓΡΑΦΗΣ. Ίδιο γκρι, ίδια στοίχιση, ένα εικονοστοιχείο
+                      διαφορά στο μέγεθος: τίποτα δεν έλεγε ότι εδώ μπλοκάρει η
+                      αίτηση. Μία λέξη μπροστά κάνει τη διαφορά. */}
+                  <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.55,marginTop:6,fontFamily: T.font.sans}}><strong style={{color:'var(--text-secondary)',fontWeight:600}}>Προσοχή:</strong> {step.warning}{step.url&&<> · <InlineLink href={step.url}>πηγή</InlineLink></>}</p>
                 </div>
               </div>
             ))}
@@ -1403,12 +1412,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           <MiniSection title="Γιατί απορρίπτεται μια αίτηση">
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
-                {title:'Εγγραφή στον Τειρεσία',desc:'Μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών αρκεί. Τακτοποίησε οφειλές πριν την αίτηση.',url:'https://www.tiresias.gr'},
+                {title:'Εγγραφή στον Τειρεσία',desc:'Αρκεί μία ακάλυπτη επιταγή ή μία δόση με καθυστέρηση άνω των 90 ημερών. Τακτοποίησε τις οφειλές σου πριν την αίτηση.',url:'https://www.tiresias.gr'},
                 {title:'Χαμηλό εισόδημα ή υψηλός δείκτης δόσης',desc:'Όρια ΤτΕ: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους.',url:null},
                 {title:'Αυθαίρετα στο ακίνητο',desc:'Αλλαγές χωρίς άδεια (βεράντα, πατάρι, αλλαγή χρήσης) μπλοκάρουν τη μεταβίβαση ή μειώνουν την εκτίμηση.',url:'https://www.ktimatologio.gr'},
                 {title:'Προβλήματα τίτλων',desc:'Ακαθόριστοι τίτλοι, αδήλωτα σε Ε9, εκκρεμείς κληρονομιές. Ο νομικός έλεγχος διαρκεί εβδομάδες.',url:null},
                 {title:'Χρέη σε ΔΟΥ ή ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου.',url:AADE_HOME},
-                {title:'Δείκτης δανείου προς αξία πάνω από 80–90%',desc:'Συνήθως έως 80% (κανονικό) ή 90% (Σπίτι μου ΙΙ). Χρειάζεσαι ίδια κεφάλαια για τη διαφορά και τα έξοδα.',url:null},
+                {title:'Δείκτης δανείου προς αξία πάνω από 80% έως 90%',desc:'Συνήθως έως 80% (κανονικό) ή 90% (Σπίτι μου ΙΙ). Χρειάζεσαι ίδια κεφάλαια για τη διαφορά και τα έξοδα.',url:null},
               ].sort((a,b)=>a.title.localeCompare(b.title,'el')).map((item,i,a)=>(
                 <CatRow key={item.title} title={item.title} desc={item.desc} url={item.url} linkLabel="έλεγχος" last={i===a.length-1}/>
               ))}
@@ -1420,8 +1429,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη.',url:'https://www.tap.gr'},
-                {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55–70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
-                {title:'Νέοι 25–50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο. Εισόδημα άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Έως 150 τ.μ..',url:'https://greece20.gov.gr/home-loans/'},
+                {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55% ή 70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
+                {title:'Νέοι 25 έως 50 ετών',desc:'Σπίτι μου ΙΙ: το μισό δάνειο άτοκο. Εισόδημα έως 25.000,00 € για άγαμο και 35.000,00 € για έγγαμους, συν 5.000,00 € ανά τέκνο. Ακίνητο έως 150 τ.μ.',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65–70% της αξίας. Συνέπεια στις δηλώσεις.',url:AADE_HOME},
                 {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000€ (2 παιδιά) ή 50.000€ (3+).',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},
