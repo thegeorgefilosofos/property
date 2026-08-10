@@ -1,20 +1,26 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ΣΧΕΔΙΟ — η οθόνη που απαντά σε ΜΙΑ ερώτηση: «τι κάνω τώρα με αυτό το ακίνητο;»
+// ΑΞΙΟΠΟΙΗΣΗ — η οθόνη που απαντά σε ΜΙΑ ερώτηση: «τι κάνω τώρα με αυτό το
+// ακίνητο;». Τέσσερις μορφές, μία για κάθε κατάσταση όπου η απάντηση δεν είναι
+// προφανής: κενό, αμφισβητούμενο, προς πώληση, ανακαίνιση. Στη μακροχρόνια και
+// τη βραχυχρόνια μίσθωση δεν υπάρχει σχέδιο να φτιαχτεί — υπάρχει ενοίκιο να
+// εισπραχθεί — και στην ιδιοχρησία δεν υπάρχει καν ερώτηση. Ποια κατάσταση
+// δείχνει την καρτέλα το ορίζει το lib/property/visibility, όχι αυτό το αρχείο.
 //
-// ΓΙΑΤΙ ΜΙΑ ΚΑΡΤΑ ΚΑΙ ΟΧΙ ΔΕΚΑ
+// ΚΑΜΙΑ ΚΑΡΤΑ, ΚΑΙ ΑΥΤΟ ΕΙΝΑΙ Η ΑΠΟΦΑΣΗ
 // Ο χρήστης που ανοίγει αυτή την καρτέλα δεν έχει να καταχωρήσει κάτι — έχει να
 // αποφασίσει. Δέκα ισοδύναμες κάρτες σε άνθρωπο που δεν ξέρει από πού να πιάσει
-// είναι το ίδιο με μηδέν. Γι' αυτό υπάρχει ΜΙΑ επιφάνεια με περίγραμμα σε όλη
-// την οθόνη — το επόμενο βήμα — και όλα τα υπόλοιπα ζουν ως τυπογραφία πάνω στο
-// φόντο της σελίδας: ετικέτα ενότητας, τίτλος, κείμενο, λεπτή γραμμή.
+// είναι το ίδιο με μηδέν. Ολόκληρη η οθόνη είναι τυπογραφία πάνω στο φόντο της
+// σελίδας: ετικέτα ενότητας, τίτλος, κείμενο, λεπτή γραμμή. Το επόμενο βήμα
+// ξεχωρίζει ΜΕΣΑ στη σειρά, με ανασηκωμένο φόντο και μια ετικέτα, όχι με δικό
+// του πλαίσιο — δοκιμάστηκε ως κάρτα και έλεγε δύο φορές το ίδιο πράγμα.
 //
-// ΒΑΘΟΣ ΑΠΟ ΦΩΤΕΙΝΟΤΗΤΑ, ΟΧΙ ΑΠΟ ΣΚΙΑ. Η μόνη κάρτα χρησιμοποιεί το `Card` του
-// Theme, που δουλεύει με ανασηκωμένη επιφάνεια και φωτισμένη πάνω ακμή
-// (`--surface-raised` + `--highlight-inset`). Κανένα χειρόγραφο box-shadow,
-// κανένα διακοσμητικό χρώμα: το μπλε εμφανίζεται ΜΟΝΟ στην κύρια ενέργεια, ώστε
-// το μάτι να ξέρει πάντα πού να πάει.
+// ΤΟ ΧΡΩΜΑ ΛΕΕΙ ΕΝΑ ΠΡΑΓΜΑ: «ΕΔΩ ΠΑΤΑΣ». Το μπλε εμφανίζεται μόνο στο κουτάκι
+// που τσεκάρεις, όπως ακριβώς και στις Εργασίες. Καμία πράσινη επιβράβευση,
+// κανένα πορτοκαλί σήμα: η πρόοδος είναι μέτρηση, όχι καλά νέα, και ό,τι θέλει
+// επιβεβαίωση το λέει με λέξεις στη θέση που το λένε όλα τα άλλα μικρά στοιχεία
+// αυτής της οθόνης.
 //
 // ΤΙ ΚΡΑΤΑΕΙ ΑΥΤΟ ΤΟ ΑΡΧΕΙΟ ΚΑΙ ΤΙ ΟΧΙ
 // Καμία γνώση. Όλο το περιεχόμενο και όλη η λογική ζουν στο `lib/property/plan`
@@ -24,7 +30,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { T, TT, SecHdr, Badge, settingsField, feAuto } from '@/components/Theme';
+import { T, TT, SecHdr, PageTitle, fixedCols, settingsField, feAuto } from '@/components/Theme';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
@@ -94,15 +100,28 @@ function Meta({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/**
+ * ΤΟ ΙΔΙΟ ΧΕΙΡΙΣΤΗΡΙΟ ΜΕ ΤΙΣ ΕΡΓΑΣΙΕΣ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΙΔΙΑ ΠΡΑΞΗ.
+ *
+ * Ήταν ΠΡΑΣΙΝΟ (`--positive`) με περίγραμμα 1,5 εικονοστοιχείου, ενώ το
+ * αντίστοιχο κουμπί των Εργασιών είναι ΜΠΛΕ με περίγραμμα 2: δύο χρώματα και
+ * δύο πάχη για «το τσέκαρα», σε δύο οθόνες της ίδιας εφαρμογής.
+ *
+ * Και το πράσινο έλεγε κάτι που δεν ισχύει. Δέκα γραμμές πιο κάτω, η μπάρα
+ * προόδου της ίδιας οθόνης φέρει γραμμένο τον κανόνα: «η πρόοδος είναι μέτρηση,
+ * δεν είναι καλά νέα» — και γεμίζει με το χρώμα του κειμένου, όχι με χρώμα
+ * επιτεύγματος. Το κουτάκι δίπλα της γέμιζε πράσινο. Ο ίδιος κανόνας, δύο
+ * απαντήσεις, στο ίδιο αρχείο.
+ */
 const Check = ({ on }: { on: boolean }) => (
   <span aria-hidden style={{
-    width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+    width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 1, boxSizing: 'border-box',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: on ? 'var(--positive)' : 'transparent',
-    border: on ? 'none' : '1.5px solid var(--border-default)',
+    background: on ? 'var(--accent)' : 'transparent',
+    border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
   }}>
     {on && (
-      <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="var(--text-inverse)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+      <svg width={10} height={10} viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
     )}
   </span>
 );
@@ -297,12 +316,18 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
 
   return (
     <div style={{ fontFamily: T.font.sans, maxWidth: 900 }}>
-      {/* ── Η ΚΕΦΑΛΙΔΑ: κατάσταση, μία πρόταση, μία εισαγωγή ─────────────── */}
-      <div style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>
-        {plan.label} · {property.name}
-      </div>
-      <h1 style={{ ...TT.display, margin: 0 }}>{plan.headline}</h1>
-      <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0' }}>{plan.lede}</p>
+      {/* ── Η ΚΕΦΑΛΙΔΑ ────────────────────────────────────────────────────
+          ΗΤΑΝ ΔΥΟ ΚΕΦΑΛΙΔΕΣ, ΚΑΙ Η ΚΑΤΑΣΤΑΣΗ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ. Η σελίδα
+          τύπωνε από πάνω «ΑΞΙΟΠΟΙΗΣΗ ΑΚΙΝΗΤΟΥ / Κενό· πώς θα μισθωθεί ή θα
+          αξιοποιηθεί» και αμέσως μετά η καρτέλα τύπωνε «ΚΕΝΟ · Όνομα» και τον
+          δικό της τίτλο: τέσσερα μπλοκ επικεφαλίδας στη σειρά, με τη λέξη
+          «Κενό» δύο φορές μέσα σε εξήντα εικονοστοιχεία.
+
+          Μία κεφαλίδα, από το κοινό PageTitle που χρησιμοποιούν οι άλλες δέκα
+          καρτέλες — ίδιες αποστάσεις, ίδια μεγέθη, ίδια θέση. Η ετικέτα από
+          πάνω λέει πού είσαι, ο τίτλος λέει το μόνο που έχει σημασία για αυτή
+          την κατάσταση, και η εισαγωγή ακολουθεί. */}
+      <PageTitle over={`Αξιοποίηση · ${plan.label}`} title={plan.headline} lede={plan.lede} />
 
       {/* ── Η ΠΡΟΟΔΟΣ ΥΠΗΡΧΕ ΩΣ ΑΡΙΘΜΟΣ ΚΑΙ ΔΕΝ ΤΗΝ ΕΒΛΕΠΕ ΚΑΝΕΙΣ ──────────
           Το `plan.progress.pct` υπολογιζόταν στο `lib/property/plan` και δεν το
@@ -378,7 +403,14 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
       {plan.status === 'vacant' && (
         <Section label="Τι κοστίζει ο μήνας που περνάει"
           sub="Μόνο όσα φεύγουν από τον λογαριασμό σου. Το ενοίκιο που δεν εισπράττεις είναι άλλη συζήτηση.">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 14 }}>
+          {/* ΡΗΤΕΣ ΤΕΣΣΕΡΙΣ ΣΤΗΛΕΣ, ΟΧΙ auto-fit. Με ελάχιστο 170 το ίδιο
+              πλέγμα έβγαζε τέσσερα πεδία στο 100% zoom και «τρία και ένα» στο
+              125%: η ίδια οθόνη, άλλη διάταξη σε κάθε ρύθμιση περιηγητή. Το
+              `fixedCols` είναι η μία απάντηση της εφαρμογής σε αυτό (βλ.
+              components/tokens.ts) και το χρησιμοποιούν ήδη οι Λογαριασμοί, ο
+              Έλεγχος και οι Πάροχοι. Στοίχιση στην κορυφή: κάθε πεδίο κουβαλά
+              υπόδειξη ΑΠΟ ΚΑΤΩ, οπότε το κάτω άκρο δεν είναι το κουτί. */}
+          <div {...fixedCols(4, 14, 'start')}>
             {numField('ΕΝΦΙΑ (έτος)', 'enfiaYear', 'Από το εκκαθαριστικό')}
             {numField('Κοινόχρηστα (μήνας)', 'commonMonthly', 'Ό,τι πληρώνεις κλειστό')}
             {numField('Πάγια ρεύμα/νερό (μήνας)', 'utilitiesMonthly', 'Χωρίς κατανάλωση')}
@@ -452,10 +484,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             <span style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Καθαρό έσοδο</span>
             <span style={{ ...TT.kpi, fontSize: 18 }}>{feAuto(sale.net)}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12 }}>
-            <Badge tone="warning">Προς επιβεβαίωση</Badge>
-            <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1 }}>{sale.note}</span>
-          </div>
+          <Meta label="Επιβεβαίωσε">{sale.note}</Meta>
         </Section>
       )}
 
@@ -470,10 +499,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                 <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{FUNDING_KIND_LABEL[f.kind]}</span>
               </div>
               <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{f.what}</div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 10 }}>
-                <Badge tone="warning">Προς επιβεβαίωση</Badge>
-                <span style={{ ...TT.caption, color: 'var(--text-secondary)', flex: 1 }}>{f.confirm}</span>
-              </div>
+              <Meta label="Επιβεβαίωσε">{f.confirm}</Meta>
               {/* ΔΥΟ ΜΠΛΕ ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ, ΚΑΙ ΤΟ ΕΝΑ ΕΙΧΕ ΔΗΛΩΣΕΙ ΑΠΟΚΛΕΙΣΤΙΚΟΤΗΤΑ.
                   Το σχόλιο στην κορυφή αυτού του αρχείου γράφει: «το μπλε εμφανίζεται
                   ΜΟΝΟ στην κύρια ενέργεια, ώστε το μάτι να ξέρει πάντα πού να πάει».

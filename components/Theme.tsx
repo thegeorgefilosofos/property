@@ -330,12 +330,26 @@ export function SecHdr({ label, sub, right }: { label: string; sub?: string; rig
 }
 
 // ═══ PageTitle, τίτλος σελίδας/tab ════════════════════════════════════════
-export function PageTitle({ title, sub, right, titleHint }: { title: string; sub?: string; right?: ReactNode; titleHint?: string }) {
+//
+// ΤΟ `over` ΜΠΗΚΕ ΓΙΑ ΝΑ ΠΑΨΟΥΝ ΔΥΟ ΚΑΡΤΕΛΕΣ ΝΑ ΓΡΑΦΟΥΝ ΔΙΚΗ ΤΟΥΣ ΚΕΦΑΛΙΔΑ.
+// Δέκα καρτέλες χρησιμοποιούν αυτό το component. Η Αξιοποίηση και η Πρόσκληση
+// έστηναν στο χέρι το ίδιο ακριβώς σχήμα (ετικέτα από πάνω, μεγάλος τίτλος,
+// κείμενο από κάτω), με δικά τους περιθώρια — δηλαδή δώδεκα καρτέλες με το ίδιο
+// νόημα και τρεις διαφορετικές αποστάσεις. Ο τίτλος τους δεν είναι όνομα
+// σελίδας αλλά πρόταση, και χρειάζονταν μια γραμμή από πάνω που να λέει «πού
+// είσαι». Αυτή είναι η γραμμή.
+export function PageTitle({ over, title, sub, lede, right, titleHint }: { over?: string; title: string; sub?: string; lede?: string; right?: ReactNode; titleHint?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: T.sp.xxl, flexWrap: 'wrap' as const }}>
-      <div>
+      <div style={{ minWidth: 0 }}>
+        {over && <div style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>{over}</div>}
         <h1 title={titleHint} style={{ ...TT.display, margin: 0 }}>{title}</h1>
         {sub && <div style={{ ...TT.caption, fontSize: 12, marginTop: 4 }}>{sub}</div>}
+        {/* Η εισαγωγή είναι κείμενο σώματος, όχι λεζάντα: το `sub` των δέκα
+            καρτελών είναι 12 εικονοστοιχεία και μια παράγραφος τριών σειρών σε
+            αυτό το μέγεθος διαβάζεται ως ψιλά γράμματα. Το μέτρο των 640
+            κρατά τη γραμμή σε αναγνώσιμο μήκος όσο φαρδιά κι αν είναι η οθόνη. */}
+        {lede && <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0', maxWidth: 640 }}>{lede}</p>}
       </div>
       {right && <div style={{ display: 'flex', gap: 8 }}>{right}</div>}
     </div>

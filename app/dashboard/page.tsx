@@ -356,16 +356,6 @@ function useChecklistAlerts(propertyId: string | null) {
 // από ενοίκιο-στόχο που δεν εισπράχθηκε ποτέ. Κανένα τεστ δεν θα το έπιανε,
 // γιατί τίποτα δεν θα είχε «σπάσει». Τώρα η σήμανση είναι δεδομένο του
 // πλακιδίου (`incomeOnly`), όχι σύμπτωση κειμένου.
-// Οι καταστάσεις όπου το «Σχέδιο» είναι η ΚΥΡΙΑ δουλειά του ιδιοκτήτη — και οι
-// μόνες όπου εμφανίζεται. Σε μισθωμένο ακίνητο δεν υπάρχει σχέδιο να φτιαχτεί:
-// υπάρχει ενοίκιο να εισπραχθεί.
-const PLAN_SUB: Record<string, string> = {
-  vacant:     'Κενό· πώς θα μισθωθεί ή θα αξιοποιηθεί',
-  for_sale:   'Προς πώληση· τιμή, χρονισμός, φόρος υπεραξίας',
-  renovation: 'Σε ανακαίνιση· κόστος, χρονοδιάγραμμα, επιδοτήσεις',
-  disputed:   'Νομική εκκρεμότητα· βήματα και προθεσμίες',
-};
-
 
 function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
@@ -1959,12 +1949,14 @@ export default function Dashboard() {
                 <AmaStrip userId={user.id} propertyId={selected.id}/>
                 <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>
               </>)}
-              {navSafe==='plan'      && (
-                <>
-                  <SecHdr label="Αξιοποίηση ακινήτου" sub={PLAN_SUB[readStatus(selected)]}/>
-                  <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>
-                </>
-              )}
+              {/* Η ΚΕΦΑΛΙΔΑ ΤΗΣ ΑΞΙΟΠΟΙΗΣΗΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Γραφόταν δύο φορές:
+                  εδώ ως «ΑΞΙΟΠΟΙΗΣΗ ΑΚΙΝΗΤΟΥ / Κενό· πώς θα μισθωθεί…» και
+                  αμέσως μετά μέσα στην καρτέλα ως «ΚΕΝΟ · Όνομα» πάνω από τον
+                  δικό της τίτλο. Η κατάσταση εμφανιζόταν δύο φορές σε εξήντα
+                  εικονοστοιχεία, και ο υπότιτλος του PLAN_SUB έλεγε ό,τι λέει
+                  ήδη ο τίτλος της καρτέλας με καλύτερα λόγια. Η επικεφαλίδα ζει
+                  μέσα στο component, όπως σε κάθε άλλη καρτέλα. */}
+              {navSafe==='plan'      && <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>}
               {navSafe==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {/* ═══ ΑΠΟΔΟΣΗ — ΜΙΑ ΚΑΡΤΕΛΑ ΓΙΑ ΜΙΑ ΕΡΩΤΗΣΗ ═══════════════════════
                   Τρεις καρτέλες απαντούσαν στο ίδιο πράγμα από τρεις μεριές:
