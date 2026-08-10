@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { T, localDay } from '@/components/Theme';
+import { T, TT, localDay } from '@/components/Theme';
 import { athensToday, isoYear, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -34,6 +34,28 @@ export const fieldRing = (active: boolean) => (active ? '0 0 0 3px var(--accent-
  * και, με άδεια πεδία, το πάτημα δεν έκανε τίποτε: ο χρήστης δεν μάθαινε ποτέ
  * ότι κάτι έλειπε. Η ανενεργή μορφή το λέει πριν το πατήσει.
  */
+/**
+ * ΔΙΑΚΟΠΤΗΣ ΠΟΥ ΣΤΕΚΕΤΑΙ ΣΕ ΣΕΙΡΑ ΠΕΔΙΩΝ.
+ *
+ * Ο σκέτος `Toggle` δεν έχει ετικέτα από πάνω, οπότε μέσα σε μια σειρά πεδίων
+ * καθόταν ψηλότερα από τα διπλανά του και έσπαγε τη γραμμή βάσης. Εδώ παίρνει
+ * την ίδια γεωμετρία με ένα πεδίο: ετικέτα από πάνω, κουτί ύψους πεδίου.
+ */
+export function ToggleField({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div>
+      <label style={{ ...TT.label, display: 'block', marginBottom: 7 }}>{label}</label>
+      <div style={{
+        height: FIELD_HEIGHT, borderRadius: FIELD_RADIUS,
+        border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
+        display: 'flex', alignItems: 'center', padding: '0 14px', boxSizing: 'border-box',
+      }}>
+        <Toggle on={on} onChange={onChange} ariaLabel={label}/>
+      </div>
+    </div>
+  );
+}
+
 export const addBtn = (disabled = false): React.CSSProperties => ({
   height: FIELD_HEIGHT,
   width: '100%',

@@ -1,7 +1,7 @@
 'use client';
 
 import { daysUntil } from '@/lib/core/time';
-import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
+import { NumberInput, CustomSelect, TextInput, Toggle, ToggleField, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, feRate, fieldRow, fp, Spinner, pressable } from '@/components/Theme';
 
@@ -15,6 +15,32 @@ const INTERNET_PROVIDERS = [
   { value: 'dei',       label: 'ΔΕΗ Telecom', url: 'https://www.dei.gr',         color: '#1a7fe0' },
   { value: 'other',     label: 'Άλλος',       url: '',                           color: '#94a3b8' },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΑ ΠΑΚΕΤΑ ΣΥΝΔΡΟΜΗΤΙΚΗΣ ΤΗΛΕΟΡΑΣΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΕΙΝΑΙ ΑΔΕΙΟΣ: οι τιμές και τα ονόματα των πακέτων αλλάζουν, και το
+// μόνο που τα κάνει χρήσιμα είναι να είναι ΣΩΣΤΑ. Ένα επινοημένο «Cosmote TV
+// Full, 30 €» δεν είναι προσέγγιση — είναι λάθος νούμερο σε οθόνη που ο
+// ιδιοκτήτης θα συγκρίνει με τον λογαριασμό του. Ο κατάλογος γεμίζει από τις
+// επίσημες σελίδες των παρόχων, όχι από μνήμη.
+//
+// ΟΣΟ ΕΙΝΑΙ ΑΔΕΙΟΣ, το πεδίο μένει ελεύθερο κείμενο — ακριβώς όπως ήταν. Μόλις
+// μπει έστω ένας πάροχος, η οθόνη του δίνει μόνη της αναδιπλούμενη λίστα.
+//
+// ΤΟ `sports` ΕΙΝΑΙ Ο ΛΟΓΟΣ ΠΟΥ ΥΠΑΡΧΕΙ Ο ΠΙΝΑΚΑΣ: όταν το πακέτο περιέχει
+// αθλητικά κανάλια, ο διακόπτης ανάβει μόνος του. Ο χρήστης δεν ξαναδηλώνει
+// κάτι που ήδη είπε διαλέγοντας το πακέτο.
+const TV_PROVIDERS = [
+  { value: 'cosmote',     label: 'Cosmote TV',  url: 'https://www.cosmote.gr/static/residential/el/cosmote-tv-packs' },
+  { value: 'nova',        label: 'Nova / EON',  url: 'https://nova.gr/eon-tv/programmata/eon' },
+  { value: 'vodafone',    label: 'Vodafone TV', url: 'https://www.vodafone.gr/tv' },
+  { value: 'skyshowtime', label: 'SkyShowtime', url: 'https://www.skyshowtime.com/gr' },
+  { value: 'other',       label: 'Άλλος',       url: '' },
+];
+
+interface TvPack { id: string; name: string; price?: number; sports?: boolean }
+const TV_PACKS: Record<string, TvPack[]> = {};
 
 const INTERNET_PLANS: Record<string, {
   id: string; name: string; speed: string; price: number;
@@ -139,7 +165,7 @@ const DEFAULTS = {
   internetContractEnd: '', internetSpeedReal: '',
   phoneLocal: true, phoneMobile: false, phoneIntl: false, phoneVoip: false, phoneNotes: '',
   // FIX: "Συνδρομητική τηλεόραση" label
-  hasTV: false, tvProvider: 'cosmote', tvPlan: '', tvPrice: '', tvHasSports: false,
+  hasTV: false, tvProvider: 'cosmote', tvPlanId: '', tvPlan: '', tvPrice: '', tvHasSports: false,
   waterProvider: 'eydap', waterBiMonthly: '', waterMonthly: '', waterPersons: '2', waterPeriodMonths: '2',
   heatingType: 'autonomous_gas', heatingMonthly: '',
   heatingLitersPerYear: '', heatingOilPricePerLiter: '1.20',
@@ -191,6 +217,10 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
   const totalM    = internetCost + tvCost + waterM + heatingM + gasM + securityM;
 
   const provData     = INTERNET_PROVIDERS.find(p => p.value === s.internetProvider);
+  const tvPackOptions = (TV_PACKS[s.tvProvider] || []).map(p => ({
+    value: p.id,
+    label: p.price ? `${p.name} · ${fe(p.price)}` : p.name,
+  }));
   const planOptions  = (INTERNET_PLANS[s.internetProvider] || []).sort((a, b) => a.price - b.price).map(p => ({
     value: p.id,
     label: [
@@ -305,7 +335,6 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             ) : (
               <TextInput label="Ονομασία προγράμματος" value={s.internetPlan} onChange={v => upd({ internetPlan: v })} placeholder="Παράδειγμα: Fiber 500"/>
             )}
-            <TextInput   label="Ταχύτητα"            value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="Παράδειγμα: 500/200 Mbps"/>
             <NumberInput label="Μηνιαίο κόστος"  value={s.internetPrice} onChange={v => upd({ internetPrice: v })} suffix="€" step={1}/>
           </div>
 
@@ -322,10 +351,17 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             </div>
           )}
 
+          {/* ΔΥΟ ΣΕΙΡΕΣ ΤΩΝ ΤΡΙΩΝ, ΧΩΡΙΣΜΕΝΕΣ ΜΕ ΝΟΗΜΑ. Πάνω: ποιος, τι, πόσο.
+              Κάτω: η ταχύτητα που ΥΠΟΣΧΕΤΑΙ το συμβόλαιο, ακριβώς δίπλα σε αυτήν
+              που ΠΑΙΡΝΕΙΣ, και μέχρι πότε δεσμεύεσαι. Η σύγκριση των δύο
+              ταχυτήτων είναι όλο το νόημα του πεδίου — και ήταν σε άλλη σειρά
+              από το νούμερο με το οποίο συγκρίνεται. */}
           <div style={g3}>
+            <TextInput   label="Ταχύτητα συμβολαίου" value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="Παράδειγμα: 500/200 Mbps"/>
+            <NumberInput label="Πραγματική ταχύτητα λήψης" value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
             <DatePicker  label="Λήξη συμβολαίου"                      value={s.internetContractEnd || ''} onChange={v => upd({ internetContractEnd: v })}/>
-            <NumberInput label="Πραγματική ταχύτητα λήψης (Mbps)"   value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, justifyContent: 'flex-end', paddingBottom: 2 }}>
+          </div>
+          <div style={{ marginBottom: 14 }}>
               {s.internetSpeedReal && s.internetSpeed && (() => {
                 const pct = parseFloat(s.internetSpeed) > 0 ? Math.round((parseFloat(s.internetSpeedReal) / parseFloat(s.internetSpeed)) * 100) : 0;
                 const good = pct >= 80;
@@ -341,7 +377,6 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                   Μέτρησε στο{' '}<a href="https://www.speedtest.net" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>speedtest.net</a>
                 </div>
               )}
-            </div>
           </div>
 
           {/* Ειδοποίηση ανανέωσης συμβολαίου */}
@@ -419,16 +454,35 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική τηλεόραση</span>
               <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} ariaLabel="Συνδρομητική τηλεόραση"/>
             </div>
+            {/* ΤΑ ΑΘΛΗΤΙΚΑ ΕΙΝΑΙ ΙΔΙΟΤΗΤΑ ΤΟΥ ΠΑΚΕΤΟΥ, ΟΧΙ ΞΕΧΩΡΙΣΤΗ ΕΡΩΤΗΣΗ.
+                Ο διακόπτης κρεμόταν κάτω από τη σειρά, σαν να είναι άλλο θέμα.
+                Είναι η τέταρτη στήλη της ίδιας σειράς — και όταν το πακέτο που
+                διάλεξες ΠΕΡΙΕΧΕΙ αθλητικά, ανάβει μόνος του: το ξέρει ήδη ο
+                κατάλογος, δεν χρειάζεται να το ξαναπεί ο χρήστης. */}
             {s.hasTV && (
-              <>
-                <div style={{ ...fieldRow(180), marginBottom: 12 }}>
-                  <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
-                    options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
-                  <TextInput   label="Πρόγραμμα ή πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
-                  <NumberInput label="Μηνιαίο κόστος"   value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
-                </div>
-                <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package"/>
-              </>
+              <div style={fieldRow(170)}>
+                <CustomSelect label="Πάροχος" value={s.tvProvider}
+                  onChange={v => upd({ tvProvider: v, tvPlanId: '', tvPlan: '' })}
+                  options={TV_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
+                {tvPackOptions.length > 0 ? (
+                  <CustomSelect label="Πακέτο" value={s.tvPlanId || ''}
+                    onChange={v => {
+                      const pack = (TV_PACKS[s.tvProvider] || []).find(x => x.id === v);
+                      upd({
+                        tvPlanId: v, tvPlan: pack?.name || '',
+                        ...(pack?.price ? { tvPrice: String(pack.price) } : {}),
+                        // Ανάβει, δεν σβήνει: ένα πακέτο χωρίς αθλητικά δεν
+                        // σημαίνει ότι ο χρήστης δεν έχει ξεχωριστή συνδρομή.
+                        ...(pack?.sports ? { tvHasSports: true } : {}),
+                      });
+                    }}
+                    options={[{ value: '', label: '— Επιλογή πακέτου —' }, ...tvPackOptions]}/>
+                ) : (
+                  <TextInput label="Πακέτο" value={s.tvPlan} onChange={v => upd({ tvPlan: v })} placeholder="Ονομασία πακέτου"/>
+                )}
+                <NumberInput label="Μηνιαίο κόστος" value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
+                <ToggleField label="Αθλητικά" on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })}/>
+              </div>
             )}
           </div>
         </div>

@@ -200,14 +200,13 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {secHdr('Δημοτικά Τέλη')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans }}>Υπολογισμός ποσοστού από τελευταίο λογαριασμό ρεύματος</div>
-          {/* FIX: 2 inputs + result, all in same grid, aligned at bottom, no marginBottom on result box */}
-          <div style={{ ...fieldRow(190, 12), marginBottom: 10 }}>
+          {/* Το αποτέλεσμα ΑΝΗΚΕΙ ΣΤΗ ΣΕΙΡΑ, δεν κρέμεται από κάτω: είναι ό,τι
+              βγάζουν τα δύο πεδία δίπλα του, και όσο διαβαζόταν μια γραμμή
+              χαμηλότερα, η σύνδεση έπρεπε να ξαναβρεθεί με το μάτι κάθε φορά. */}
+          <div style={fieldRow(190, 12)}>
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
-          </div>
-          {/* Το αποτέλεσμα ως συμπτυγμένη ενσωματωμένη πλάκα — ίδιο μοτίβο με Παρόχους και Ρεύμα */}
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {dimotikaPct > 0 ? `${fp(dimotikaPct)}` : fp(0)}
               </span>

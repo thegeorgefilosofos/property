@@ -12,7 +12,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, TT, fe, formGrid, fieldRow, tileRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, formGrid, fieldRow, tileGrid, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -231,23 +231,23 @@ const INSURANCE_COMPANIES: InsuranceCompany[] = [
 ];
 
 export const STREAMING = [
-  { value: 'netflix',    label: 'Netflix',            color: '#e50914', url: 'https://www.netflix.com/gr',             plans: [{ id: 'n_basic', name: 'Βασικό, 8,99 €', price: 8.99 },{ id: 'n_standard', name: 'Standard, 12,49 €', price: 12.49 },{ id: 'n_premium', name: 'Premium 4K, 15,99 €', price: 15.99 }] },
-  { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard, 8,99 €', price: 8.99 },{ id: 'd_premium', name: 'Premium, 13,99 €', price: 13.99 }] },
-  { value: 'apple_tv',   label: 'Apple TV+',          color: '#555555', url: 'https://www.apple.com/gr/apple-tv-plus', plans: [{ id: 'a_std', name: 'Apple TV+, 9,99 €', price: 9.99 }] },
-  { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video, 8,99 €', price: 8.99 }] },
-  { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις, 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard, 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K, 15,99 €', price: 15.99 }] },
-  { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual, 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo, 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα), 17,99 €', price: 17.99 }] },
-  { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Individual, 13,99 €', price: 13.99 },{ id: 'y_family', name: 'Family, 22,99 €', price: 22.99 }] },
-  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία, 2,99 €', price: 2.99 }] },
-  { value: 'cosmote_tv', label: 'Cosmote TV',         color: '#00adef', url: 'https://www.cosmote.gr',                 plans: [{ id: 'cos_start', name: 'Start, 6,00 €', price: 6.00 },{ id: 'cos_full', name: 'Full, 30,00 €', price: 30.00 }] },
+  { value: 'netflix',    label: 'Netflix',            color: '#e50914', url: 'https://www.netflix.com/gr',             plans: [{ id: 'n_basic', name: 'Βασικό · 8,99 €', price: 8.99 },{ id: 'n_standard', name: 'Standard · 12,49 €', price: 12.49 },{ id: 'n_premium', name: 'Premium 4K · 15,99 €', price: 15.99 }] },
+  { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard · 8,99 €', price: 8.99 },{ id: 'd_premium', name: 'Premium · 13,99 €', price: 13.99 }] },
+  { value: 'apple_tv',   label: 'Apple TV+',          color: '#555555', url: 'https://www.apple.com/gr/apple-tv-plus', plans: [{ id: 'a_std', name: 'Apple TV+ · 9,99 €', price: 9.99 }] },
+  { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video · 8,99 €', price: 8.99 }] },
+  { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις · 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard · 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K · 15,99 €', price: 15.99 }] },
+  { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual · 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo · 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα) · 17,99 €', price: 17.99 }] },
+  { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Individual · 13,99 €', price: 13.99 },{ id: 'y_family', name: 'Family · 22,99 €', price: 22.99 }] },
+  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία · 2,99 €', price: 2.99 }] },
+  { value: 'cosmote_tv', label: 'Cosmote TV',         color: '#00adef', url: 'https://www.cosmote.gr',                 plans: [{ id: 'cos_start', name: 'Start · 6,00 €', price: 6.00 },{ id: 'cos_full', name: 'Full · 30,00 €', price: 30.00 }] },
 ];
 
 export const CLOUD = [
-  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',          plans: [{ id: 'ic_50', name: '50 GB, 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB, 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB, 9,99 €', price: 9.99 }] },
-  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',          plans: [{ id: 'g_100', name: '100 GB, 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB, 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB, 9,99 €', price: 9.99 }] },
-  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal, 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family, 9,99 €', price: 9.99 }] },
-  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB, 9,99 €', price: 9.99 }] },
-  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography, 12,29 €', price: 12.29 }] },
+  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',          plans: [{ id: 'ic_50', name: '50 GB · 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB · 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB · 9,99 €', price: 9.99 }] },
+  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',          plans: [{ id: 'g_100', name: '100 GB · 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB · 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB · 9,99 €', price: 9.99 }] },
+  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal · 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family · 9,99 €', price: 9.99 }] },
+  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB · 9,99 €', price: 9.99 }] },
+  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography · 12,29 €', price: 12.29 }] },
 ];
 
 
@@ -514,7 +514,7 @@ const SPLIT_OPTIONS = [
  * μοναδικά από μόνα τους σε κάθε υπηρεσία, και έτσι διαλέγει ο κόσμος:
  * «βασικό ή premium», όχι «8,99 ή 15,99».
  */
-const planLabel = (name: string) => name.replace(/,\s*[\d.,]+\s*€\s*$/, '').trim();
+const planLabel = (name: string) => name.replace(/\s*[,·]\s*[\d.,]+\s*€\s*$/, '').trim();
 
 /** Το ποσό που βαρύνει τον χρήστη: πακέτο ή δική του τιμή, διά τα άτομα. */
 function subShare(svc: SubService | undefined, a: SubscriptionEntry): number {
@@ -551,7 +551,11 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           του ενώ το διπλανό ανενεργό την κρατούσε, οπότε στην ίδια σειρά δύο
           πλακίδια είχαν διαφορετικό σχήμα. Στα ενεργά γράφεται η ΠΡΑΓΜΑΤΙΚΗ
           τιμή που πληρώνει ο χρήστης, στα υπόλοιπα η τιμή εισόδου. */}
-      <div style={tileRow(210)}>
+      {/* ΠΕΝΤΕ ΑΝΑ ΣΕΙΡΑ, ΙΣΑ. Η κεντραρισμένη σειρά έβγαζε τέσσερα, τέσσερα και
+          ένα μόνο του στη μέση — συμμετρικό μεν, αλλά το τελευταίο πλακίδιο
+          έμοιαζε με λάθος. Πλέγμα πέντε στηλών: δέκα υπηρεσίες γίνονται δύο
+          γεμάτες σειρές, πέντε γίνονται μία, και καμία σειρά δεν είναι μισή. */}
+      <div style={tileGrid(230, 10)}>
         {catalog.map(svc => {
           const entry = active.find(a => a.service === svc.value);
           const on = !!entry;
@@ -560,7 +564,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
             <button key={svc.value} type="button" onClick={() => onToggle(svc.value)} aria-pressed={on}
               style={{
                 display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10,
-                flex: '0 0 var(--tile-w)', maxWidth: '100%',
+                width: '100%',
                 textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                 height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
                 background: on ? 'var(--accent-soft)' : 'var(--bg-elevated)',
@@ -869,7 +873,16 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     : INSURANCE_COMPANIES;
 
   const insOptions     = relevantCompanies.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
-  const insPlanOptions = (insCompany?.plans ?? []).map(p => ({ value: p.id, label: `${p.name}, ~${p.monthly > 0 ? `${fe(p.monthly)}` : 'Χειροκίνητο'}` }));
+  // ΤΟ ΚΟΜΜΑ ΕΙΝΑΙ Η ΥΠΟΔΙΑΣΤΟΛΗ. «HOME EXTRA, ~14,50 €» έβαζε δύο κόμματα σε
+  // πέντε λέξεις, με δύο εντελώς διαφορετικές δουλειές: το ένα χώριζε όνομα από
+  // τιμή, το άλλο ευρώ από λεπτά. Ο διαχωριστής της εφαρμογής είναι το «·».
+  //
+  // Και η περισπωμένη έφυγε: το «περίπου» το λέει ήδη το πεδίο δίπλα, που ζητά
+  // ρητά το ΠΡΑΓΜΑΤΙΚΟ κόστος τον μήνα. Δύο φορές το ίδιο, με σύμβολο.
+  const insPlanOptions = (insCompany?.plans ?? []).map(p => ({
+    value: p.id,
+    label: p.monthly > 0 ? `${p.name} · ${fe(p.monthly)}` : `${p.name} · Χειροκίνητο`,
+  }));
 
   // ── Sync-back στο ακίνητο: μία πηγή αλήθειας για το υπόλοιπο app ──────────
   // Η κάρτα ακινήτου διαβάζει insurance_company / insurance_amount /
@@ -1134,8 +1147,12 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               αγορά, την ανοίγει για να δει τι έχει και πότε λήγει. Η αγορά είναι
               η ΔΕΥΤΕΡΗ ερώτηση, και μένει ακέραιη από κάτω. */}
           {/* ── Current plan selection ────────────────────────────────────── */}
-          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 4 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον πρόγραμμα</div>
+          {/* ΔΥΟ ΚΕΦΑΛΙΔΕΣ ΤΗ ΜΙΑ ΠΑΝΩ ΣΤΗΝ ΑΛΛΗ, ΜΕ ΜΙΑ ΓΡΑΜΜΗ ΑΝΑΜΕΣΑ ΚΑΙ
+              ΤΙΠΟΤΕ ΜΕΣΑ. «Ασφάλεια κατοικίας» και από κάτω «Τρέχον πρόγραμμα»:
+              η δεύτερη δεν πρόσθετε τίποτα που δεν έλεγε ήδη η πρώτη μαζί με το
+              πρώτο πεδίο («Ασφαλιστική εταιρεία»). Έφυγε, και μαζί ο διπλός
+              κανόνας που έκοβε την κάρτα στα δύο πριν αρχίσει. */}
+          <div>
             <div style={g3}>
               <CustomSelect label="Ασφαλιστική εταιρεία" value={insProvider}
                 onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
