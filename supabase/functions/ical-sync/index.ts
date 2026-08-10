@@ -170,6 +170,17 @@ async function assertResolvedSafe(hostname: string): Promise<void> {
     if (isBlockedIp(ip)) throw new Error('Το όνομα δείχνει σε εσωτερική διεύθυνση')
   }
 }
+// ── Πόσο μεγάλο και πόσο αργό επιτρέπεται να είναι το ξένο ημερολόγιο ───────
+// Ο προορισμός ελεγχόταν ήδη σωστά (`assertSafeUrl` + νέα ανάλυση DNS σε κάθε
+// ανακατεύθυνση), αλλά το ΜΕΓΕΘΟΣ και ο ΧΡΟΝΟΣ ήταν ελεύθερα: ένας διακομιστής
+// που στέλνει ατέρμονο ρεύμα, ή που απαντά με ρυθμό ενός byte το δευτερόλεπτο,
+// κρατούσε τη function ζωντανή όσο ήθελε. Δεν χρειάζεται κακόβουλος — αρκεί ένα
+// χαλασμένο ημερολόγιο.
+//
+// Ένα ημερολόγιο καταλυμάτων με πέντε χρόνια κρατήσεων μένει κάτω από 2 MB.
+const MAX_ICAL_BYTES = 5 * 1024 * 1024
+const ICAL_TIMEOUT_MS = 15_000
+
 async function fetchIcal(url: string): Promise<string> {
   let current = assertSafeUrl(url).toString()
   let res: Response | null = null
@@ -178,6 +189,7 @@ async function fetchIcal(url: string): Promise<string> {
     res = await fetch(current, {
       headers: { 'User-Agent': 'PropertyOS-iCal/1.0', 'Accept': 'text/calendar, text/plain, */*' },
       redirect: 'manual',
+      signal: AbortSignal.timeout(ICAL_TIMEOUT_MS),
     })
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get('location')
@@ -188,7 +200,35 @@ async function fetchIcal(url: string): Promise<string> {
     break
   }
   if (!res || !res.ok) throw new Error(`HTTP ${res?.status ?? 'redirect loop'}`)
-  const text = await res.text()
+
+  // Το `Content-Length` το δηλώνει ο ξένος διακομιστής, άρα είναι υπόδειξη και
+  // όχι εγγύηση: κόβει νωρίς όταν λέει την αλήθεια, και το ρεύμα από κάτω
+  // φυλάει την περίπτωση που λέει ψέματα ή δεν λέει τίποτα.
+  const declared = Number(res.headers.get('content-length') || 0)
+  if (declared > MAX_ICAL_BYTES) {
+    res.body?.cancel()
+    throw new Error('Το ημερολόγιο είναι μεγαλύτερο από 5 MB')
+  }
+
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('Κενή απάντηση')
+  const chunks: Uint8Array[] = []
+  let size = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > MAX_ICAL_BYTES) {
+      await reader.cancel()
+      throw new Error('Το ημερολόγιο είναι μεγαλύτερο από 5 MB')
+    }
+    chunks.push(value)
+  }
+  const buf = new Uint8Array(size)
+  let at = 0
+  for (const c of chunks) { buf.set(c, at); at += c.byteLength }
+  const text = new TextDecoder().decode(buf)
+
   if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error('Το URL δεν επέστρεψε ημερολόγιο iCal')
   return text
 }
@@ -273,6 +313,16 @@ Deno.serve(async (req) => {
     const userId = userData.user.id
 
     if (action === 'preview') {
+      // Η προεπισκόπηση είναι το ΜΟΝΟ σημείο όπου ο χρήστης δίνει διεύθυνση και ο
+      // διακομιστής μας τη ζητά. Ο προορισμός ελέγχεται, το μέγεθος και ο χρόνος
+      // επίσης — έμενε το πλήθος: εξήντα δοκιμές την ώρα φτάνουν και περισσεύουν
+      // για να συνδέσει κανείς ένα ημερολόγιο, και δεν φτάνουν για σαρωτή.
+      const { data: quota } = await authClient.rpc('bump_send_quota', {
+        p_kind: 'ical_preview', p_units: 1, p_max: 60, p_window: '1 hour',
+      })
+      if (!quota?.allowed) {
+        return json({ error: 'Πολλές δοκιμές σύνδεσης. Δοκίμασε ξανά σε λίγο.', resetsAt: quota?.resets_at ?? null }, 429)
+      }
       const url = String(body.url || '').trim()
       const text = await fetchIcal(url)
       const events = parseICal(text)

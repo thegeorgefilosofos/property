@@ -31,6 +31,19 @@ async function authorized(req: Request): Promise<boolean> {
   return authorizeCron(req, { serviceKey: SUPABASE_KEY, envSecret: CRON_SECRET, supabase })
 }
 
+// ── Κείμενο χρήστη μέσα σε HTML email ──────────────────────────────────────
+// Ο τίτλος γεγονότος, η κατηγορία, το όνομα μισθωτή και το όνομα ακινήτου τα
+// γράφει ο χρήστης και ΜΠΑΙΝΑΝ ΑΥΤΟΥΣΙΑ σε HTML που φεύγει από το domain μας.
+// Ένας τίτλος γεγονότος σαν
+//
+//     </span><a href="https://…">Πάτησε για να μη διακοπεί ο λογαριασμός σου</a>
+//
+// έφτιαχνε ολόκληρο μήνυμα ψαρέματος μέσα σε γνήσιο, υπογεγραμμένο email του
+// προϊόντος — με το λογότυπό μας από πάνω. Εδώ σταματά: το κείμενο μένει κείμενο.
+const esc = (s: unknown) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
 function buildEmail(events: CalendarEventsRow[], reminderType: string) {
   const typeLabel: Record<string, string> = {
     '7days': '7 μέρες', '3days': '3 μέρες', '1day': 'αύριο', 'today': 'ΣΗΜΕΡΑ', 'overdue': 'εκπρόθεσμα',
@@ -53,12 +66,12 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
         <td style="padding:12px 0;border-bottom:1px solid #e8eaed;">
           <span style="display:inline-block;width:4px;height:36px;background:${color};border-radius:2px;vertical-align:middle;margin-right:10px;"></span>
           <span style="vertical-align:middle;">
-            <span style="display:block;font-size:14px;color:#202124;font-weight:500;">${e.title}</span>
-            <span style="display:block;font-size:11px;color:#80868b;font-family:monospace;">${label} · ${dateStr}</span>
+            <span style="display:block;font-size:14px;color:#202124;font-weight:500;">${esc(e.title)}</span>
+            <span style="display:block;font-size:11px;color:#80868b;font-family:monospace;">${esc(label)} · ${dateStr}</span>
           </span>
         </td>
         <td style="padding:12px 0;border-bottom:1px solid #e8eaed;text-align:right;vertical-align:middle;">
-          ${e.amount ? `<span style="font-family:monospace;font-size:14px;color:#202124;font-weight:600;">${eur(e.amount)}</span>` : '<span style="color:#bdc1c6;">—</span>'}
+          ${e.amount ? `<span style="font-family:monospace;font-size:14px;color:#202124;font-weight:600;">${eur(e.amount)}</span>` : '<span style="color:#bdc1c6;font-size:12px;">Χωρίς ποσό</span>'}
         </td>
       </tr>`
   }).join('')
@@ -102,7 +115,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
   const rowsHtml = rows.map(r => {
     const tenant = r.tenant_id != null ? (tenantMap[r.tenant_id]?.full_name || null) : null
     const prop   = r.property_id != null ? (propMap[r.property_id]?.name || null) : null
-    const primary = tenant || prop || '—'
+    const primary = tenant || prop || 'Χωρίς όνομα'
     const period = (r.period_month != null && r.period_year != null)
       ? `${String(r.period_month).padStart(2, '0')}/${r.period_year}` : '—'
     const dueStr = r.due_date ? new Date(r.due_date).toLocaleDateString('el-GR') : '—'
@@ -113,8 +126,8 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
         <td style="padding:12px 0;border-bottom:1px solid #e8eaed;">
           <span style="display:inline-block;width:4px;height:36px;background:#d93025;border-radius:2px;vertical-align:middle;margin-right:10px;"></span>
           <span style="vertical-align:middle;">
-            <span style="display:block;font-size:14px;color:#202124;font-weight:500;">${primary}</span>
-            <span style="display:block;font-size:11px;color:#80868b;font-family:monospace;">${secondary}</span>
+            <span style="display:block;font-size:14px;color:#202124;font-weight:500;">${esc(primary)}</span>
+            <span style="display:block;font-size:11px;color:#80868b;font-family:monospace;">${esc(secondary)}</span>
           </span>
         </td>
         <td style="padding:12px 0;border-bottom:1px solid #e8eaed;text-align:right;vertical-align:middle;">

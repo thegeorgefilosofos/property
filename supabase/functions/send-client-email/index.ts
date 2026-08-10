@@ -84,13 +84,22 @@ Deno.serve(async (req) => {
     return json({ error: 'no_permitted_recipients', detail: 'Οι παραλήπτες πρέπει να είναι καταχωρημένοι πελάτες σου στο CRM.' }, 400)
   }
 
-  // ── Anti-abuse: per-user rolling 24h volume cap ──────────────────────────────
-  const since = new Date(Date.now() - 86_400_000).toISOString()
-  const { data: recentCamps } = await supabase.from('email_campaigns')
-    .select('recipient_count').eq('user_id', user.id).gte('created_at', since)
-  const sent24h = (recentCamps || []).reduce((s: number, c: { recipient_count: number | null }) => s + (c.recipient_count || 0), 0)
-  if (sent24h + recipients.length > 3000) {
-    return json({ error: 'daily_cap', detail: 'Ξεπεράστηκε το ημερήσιο όριο αποστολών (3.000 παραλήπτες / 24ω).' }, 429)
+  // ── Ταβάνι όγκου ανά χρήστη, 24 κυλιόμενες ώρες ──────────────────────────────
+  // ΤΟ ΜΕΤΡΟΥΣΕ Ο ΜΕΤΡΟΥΜΕΝΟΣ. Το άθροισμα έβγαινε από το `email_campaigns`, που
+  // ο χρήστης το διαγράφει (πολιτική `FOR ALL`, `GRANT ALL` στον authenticated):
+  // ένα `delete` μηδένιζε το ταβάνι, και η επανάληψη έδινε απεριόριστη μαζική
+  // αποστολή από το domain μας, με χρέωση στον λογαριασμό μας.
+  //
+  // Ο μετρητής ζει τώρα στο `send_quota`, που κανένας ρόλος πελάτη δεν αγγίζει.
+  const { data: quota } = await supabase.rpc('bump_send_quota', {
+    p_kind: 'client_email', p_units: recipients.length, p_max: 3000, p_window: '24 hours',
+  })
+  if (!quota?.allowed) {
+    return json({
+      error: 'daily_cap',
+      detail: 'Ξεπεράστηκε το ημερήσιο όριο αποστολών (3.000 παραλήπτες / 24ω).',
+      resetsAt: quota?.resets_at ?? null,
+    }, 429)
   }
 
   // Καμπάνια + παραλήπτες (RLS — γράφει μόνο δικές του εγγραφές).

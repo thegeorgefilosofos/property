@@ -67,6 +67,24 @@ Deno.serve(async (req) => {
 
   if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: 'Λείπει το RESEND_API_KEY στα secrets της function.' }, 500)
 
+  // ── Δέκα δοκιμές την ημέρα, και τέλος ────────────────────────────────────
+  // Ο παραλήπτης είναι πάντα η ίδια η διεύθυνση του λογαριασμού, άρα δεν είναι
+  // αναμεταδότης. Ήταν όμως ΑΠΕΡΙΟΡΙΣΤΟΣ: ένας βρόχος στην κονσόλα του
+  // φυλλομετρητή χρέωνε τον λογαριασμό Resend όσο αντέχει η γραμμή, και έκαιγε
+  // τη φήμη αποστολής του domain με χιλιάδες πανομοιότυπα μηνύματα.
+  //
+  // Δέκα είναι γενναιόδωρο για μια δοκιμή που ή δουλεύει ή δεν δουλεύει.
+  const { data: quota } = await supabase.rpc('bump_send_quota', {
+    p_kind: 'test_notification', p_units: 1, p_max: 10, p_window: '24 hours',
+  })
+  if (!quota?.allowed) {
+    return json({
+      error: 'daily_cap',
+      detail: 'Έφτασες τις 10 δοκιμαστικές ειδοποιήσεις για σήμερα. Αν δεν έφτασε καμία, το πρόβλημα δεν είναι η δοκιμή.',
+      resetsAt: quota?.resets_at ?? null,
+    }, 429)
+  }
+
   const { subject, html } = testEmailHtml()
   try {
     const res = await fetch('https://api.resend.com/emails', {
