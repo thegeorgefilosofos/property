@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
-import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, TT, fe, formGrid, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
+import { NumberInput, TextInput, DatePicker, CustomSelect, addBtn } from './UIComponents';
+import { T, TT, fe, formGrid, fieldRow, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -317,7 +317,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {secHdr('Διαχείριση Κτηρίου')}
 
         {/* FIX: 3 cols so DatePicker has enough room, was 4 cols causing overflow */}
-        <div style={{ ...formGrid(170, 240), marginBottom: 14 }}>
+        <div style={{ ...fieldRow(180), marginBottom: 14 }}>
           <CustomSelect label="Τύπος διαχείρισης" labelInfo={mgmtInfo} value={mgmtType} onChange={sMgmt} options={MGMT_TYPES}/>
           <NumberInput  label="Μηνιαίο κόστος" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
           <NumberInput  label="Ημέρα χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
@@ -348,14 +348,15 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <Card pad="lg">
         {secHdr('Ταμείο Κτηρίου')}
 
-        {/* FIX: 2+2 grid layout so DatePicker label doesn't overflow */}
-        <div style={{ ...formGrid(), marginBottom: 14 }}>
-          <NumberInput label="Υπόλοιπο ταμείου" value={fundBalance}  onChange={sFundBal} suffix="€" step={100}/>
-          <NumberInput label="Μερίδιό μου"        value={fundMyPct}    onChange={sFundPct} suffix="%" step={1} max={100}/>
-        </div>
-        <div style={{ ...formGrid(), marginBottom: 14 }}>
-          <NumberInput label="Μηνιαία εισφορά"   value={fundMonthly}  onChange={sFundM}   suffix="€" step={5}/>
-          <DatePicker  label="Τελευταία ενημέρωση"    value={fundLastDate} onChange={sFundD}/>
+        {/* Τα τέσσερα στοιχεία του ταμείου είναι ΕΝΑ πράγμα: υπόλοιπο, μερίδιο,
+            εισφορά, πότε ενημερώθηκε. Ήταν σπασμένα σε δύο σειρές των δύο, με
+            μισή κάρτα άδεια δεξιά — όχι επιλογή, αλλά ό,τι απέμενε από ένα
+            πλέγμα με σταθερό μέγιστο στήλης. Μία σειρά, ίσα μοιρασμένη. */}
+        <div style={{ ...fieldRow(180), marginBottom: 14 }}>
+          <NumberInput label="Υπόλοιπο ταμείου"    value={fundBalance}  onChange={sFundBal} suffix="€" step={100}/>
+          <NumberInput label="Μερίδιό μου"         value={fundMyPct}    onChange={sFundPct} suffix="%" step={1} max={100}/>
+          <NumberInput label="Μηνιαία εισφορά"     value={fundMonthly}  onChange={sFundM}   suffix="€" step={5}/>
+          <DatePicker  label="Τελευταία ενημέρωση" value={fundLastDate} onChange={sFundD}/>
         </div>
 
         {myFundShare > 0 && (
@@ -380,15 +381,15 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <Card pad="lg">
         {secHdr('Έκτακτες Εισφορές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ ...formGrid(150, 230), marginBottom: 12 }}>
-            <TextInput   label="Αιτία"       value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
-            <NumberInput label="Ποσό"    value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
+          {/* Η ενέργεια είναι η τέταρτη στήλη της σειράς, όχι κουμπί κρεμασμένο
+              από κάτω δεξιά. Και δεν φαίνεται πατήσιμη χωρίς αιτία και ποσό. */}
+          <div style={fieldRow(160)}>
+            <TextInput   label="Αιτία"      value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
+            <NumberInput label="Ποσό"       value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
             <DatePicker  label="Ημερομηνία" value={extraDate}   onChange={setExtraDate}/>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={addExtra}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: T.h.md, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
-              + Προσθήκη
+            <button type="button" disabled={!extraReason.trim() || !extraAmount} onClick={addExtra}
+              style={addBtn(!extraReason.trim() || !extraAmount)}>
+              Προσθήκη
             </button>
           </div>
         </div>

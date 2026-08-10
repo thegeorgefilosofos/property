@@ -21,6 +21,35 @@ export const FIELD_RADIUS = T.radius.inner;
 export const fieldBorderColor = (active: boolean) => (active ? 'var(--accent)' : 'var(--border-default)');
 export const fieldRing = (active: boolean) => (active ? '0 0 0 3px var(--accent-dim)' : 'none');
 
+/**
+ * ΤΟ ΚΟΥΜΠΙ ΠΟΥ ΣΤΕΚΕΤΑΙ ΔΙΠΛΑ ΣΕ ΠΕΔΙΑ, ΟΧΙ ΚΑΤΩ ΑΠΟ ΑΥΤΑ.
+ *
+ * Οι σειρές «τρία πεδία και μια προσθήκη» είχαν το κουμπί κρεμασμένο σε δική
+ * του γραμμή, δεξιά. Δύο γραμμές για ένα βήμα, και η ενέργεια μακριά από τα
+ * πεδία που την τροφοδοτούν. Μέσα στη σειρά, το κουμπί πρέπει να έχει ΑΚΡΙΒΩΣ
+ * τη γεωμετρία του πεδίου δίπλα του — ίδιο ύψος, ίδια ακτίνα — αλλιώς η ευθεία
+ * σπάει οπτικά ακόμη κι όταν το πλέγμα είναι σωστό.
+ *
+ * ΚΑΙ ΔΕΝ ΦΑΙΝΕΤΑΙ ΠΑΤΗΣΙΜΟ ΟΤΑΝ ΔΕΝ ΕΙΝΑΙ. Ήταν πάντα στο χρώμα της ενέργειας
+ * και, με άδεια πεδία, το πάτημα δεν έκανε τίποτε: ο χρήστης δεν μάθαινε ποτέ
+ * ότι κάτι έλειπε. Η ανενεργή μορφή το λέει πριν το πατήσει.
+ */
+export const addBtn = (disabled = false): React.CSSProperties => ({
+  height: FIELD_HEIGHT,
+  width: '100%',
+  borderRadius: FIELD_RADIUS,
+  border: disabled ? '1px solid var(--border-default)' : 'none',
+  background: disabled ? 'transparent' : 'var(--accent)',
+  color: disabled ? 'var(--text-tertiary)' : 'var(--accent-text)',
+  fontSize: 13,
+  fontWeight: 700,
+  fontFamily: T.font.sans,
+  letterSpacing: 0,
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  boxSizing: 'border-box',
+  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+});
+
 const mdInputBase: React.CSSProperties = {
   width: '100%',
   background: 'var(--bg-surface)',

@@ -10,9 +10,9 @@ import * as settings from '@/lib/data/settings';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
-import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
+import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, TT, fe, formGrid, tileRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, formGrid, fieldRow, tileRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -581,11 +581,18 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
             const svc = catalog.find(x => x.value === a.service);
             if (!svc) return null;
             return (
-              <div key={a.service} style={{ ...formGrid(160, 230), gap: 12, alignItems: 'end', paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+              /* Ο ΤΙΤΛΟΣ ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ, ΚΑΙ ΟΣΟ ΗΤΑΝ ΜΕΣΑ ΣΤΟ ΠΛΕΓΜΑ ΤΟ ΧΑΛΟΥΣΕ.
+                 Απλωνόταν σε όλες τις στήλες (`1 / -1`), και αυτό ακριβώς εμποδίζει
+                 το `auto-fit` να μαζέψει τις κενές: το πλέγμα κρατούσε οκτώ στήλες
+                 επειδή τόσες χωρούσαν, τα τέσσερα πεδία έπιαναν τις τέσσερις πρώτες
+                 και η μισή σειρά έμενε άδεια δεξιά. Έξω από το πλέγμα, οι τέσσερις
+                 στήλες μοιράζονται ολόκληρο το πλάτος. */
+              <div key={a.service} style={{ paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
                   <span style={{ ...TT.h2, fontSize: 15 }}>{svc.label}</span>
                   <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(subShare(svc, a))}</span>
                 </div>
+                <div style={fieldRow(150, 12)}>
                 <CustomSelect label="Πακέτο" value={a.planId} onChange={v => onUpdate(a.service, 'planId', v)}
                   options={svc.plans.map(p => ({ value: p.id, label: planLabel(p.name) }))}/>
                 <CustomSelect label="Μοιράζεται" value={String(a.splitActive && a.splitPeople > 1 ? a.splitPeople : 1)}
@@ -596,6 +603,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
                     έσπαγε τη στοίχιση της σειράς. Η ετικέτα λέει ήδη «Ανανέωση»·
                     το κενό λέει ότι είναι προαιρετικό. */}
                 <DatePicker label="Ανανέωση" placeholder="Προαιρετικό" value={a.renewalDate} onChange={v => onUpdate(a.service, 'renewalDate', v)}/>
+                </div>
               </div>
             );
           })}
@@ -1199,12 +1207,11 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από {crossProperty.sqmFrom === 'property' ? 'την καρτέλα του ακινήτου' : 'tab Υπηρεσίες (ΕΝΦΙΑ)'}, μπορείς να τα επεξεργαστείς
               </div>
             )}
-            {/* FIX: 2+2 grid, Πόλη label doesn't overflow */}
-            <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
-              <NumberInput label="Εμβαδόν"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
-              <TextInput   label="Πόλη ή περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη…"/>
-            </div>
-            <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
+            {/* Τέσσερα στοιχεία του ίδιου ακινήτου, σε μία σειρά ίσα μοιρασμένη
+                αντί για δύο σειρές των δύο με μισή κάρτα άδεια δεξιά. */}
+            <div style={{ ...fieldRow(180), marginBottom: 14 }}>
+              <NumberInput label="Εμβαδόν"           value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
+              <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα…"/>
               <NumberInput label="Αξία κτηρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
               <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
             </div>
@@ -1388,15 +1395,19 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
         <div style={card}>
           {secHdr('Άλλες πάγιες συνδρομές')}
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-            <div style={{ ...formGrid(150, 240), marginBottom: 12 }}>
-              <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus…"/>
-              <NumberInput label="Κόστος τον μήνα" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
-              <DatePicker  label="Ημερομηνία ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => { if (newSubName && newSubPrice) { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); } }}
-                style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: T.h.lg, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
-                + Προσθήκη
+            {/* Η ΕΝΕΡΓΕΙΑ ΕΙΝΑΙ Η ΤΕΤΑΡΤΗ ΣΤΗΛΗ ΤΗΣ ΣΕΙΡΑΣ, όχι κουμπί κρεμασμένο
+                από κάτω δεξιά. Τρία πεδία και μια ενέργεια είναι ΕΝΑ βήμα, και
+                διαβάζεται από αριστερά προς τα δεξιά σε μία ευθεία.
+                Και δεν φαίνεται πια πατήσιμο όταν δεν είναι: ήταν πάντα σε
+                χρώμα ενέργειας και, χωρίς ονομασία ή κόστος, δεν έκανε τίποτα. */}
+            <div style={fieldRow(160)}>
+              <TextInput   label="Ονομασία"             value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro…"/>
+              <NumberInput label="Κόστος τον μήνα"      value={newSubPrice}   onChange={setNewSubPrice}   suffix="€" step={1}/>
+              <DatePicker  label="Ημερομηνία ανανέωσης" value={newSubRenewal} onChange={setNewSubRenewal}/>
+              <button type="button" disabled={!newSubName.trim() || !newSubPrice}
+                onClick={() => { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); }}
+                style={addBtn(!newSubName.trim() || !newSubPrice)}>
+                Προσθήκη
               </button>
             </div>
           </div>

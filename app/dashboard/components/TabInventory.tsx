@@ -8,7 +8,7 @@ import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
 import * as calendar from '@/lib/data/calendar'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
-import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable, formGrid } from '@/components/Theme'
+import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable, formGrid, fieldRow } from '@/components/Theme'
 import { PackageOpen, SearchX, ClipboardCheck, Archive } from 'lucide-react'
 import { downloadTableXlsx } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
@@ -1559,7 +1559,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
           </button>
         ))}
       </div>
-      <div style={{...formGrid(200, 270),gap:12}}>
+      <div style={fieldRow(180, 12)}>
         <div><label htmlFor={nameId} style={labelStyle}>Ονοματεπώνυμο *</label><TextInput id={nameId} value={tenantName} onChange={setTenantName} placeholder="Παράδειγμα: Ιωάννης Παπαδόπουλος"/></div>
         <div><label htmlFor={phoneId} style={labelStyle}>Τηλέφωνο</label><TextInput id={phoneId} value={tenantPhone} onChange={setTenantPhone} placeholder="6912345678"/></div>
         <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={handoverDate} onChange={setHandoverDate}/></div>
