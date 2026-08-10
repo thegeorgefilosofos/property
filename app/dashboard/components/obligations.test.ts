@@ -172,9 +172,6 @@ const ALLOWED = new Set<string>([
   // «Ε2» στον μήνα 1) πρέπει να σβηστεί — η καρτέλα να διαβάζει από το
   // `lib/checklist/obligationTasks.ts`, που ήδη καταναλώνει τη μηχανή.
   'app/dashboard/components/TabChecklist.tsx',
-  // TabTenant.tsx: ο σύνδεσμος του Ε2 λέει «Έως 30 Ιουνίου κάθε έτους» — τρίτη
-  // ημερομηνία για την ίδια δήλωση. Να αντικατασταθεί από τη μηχανή.
-  'app/dashboard/components/TabTenant.tsx',
   // BillsBudget.tsx / assistantPersona.ts: ενημερωτικό κείμενο
   // με ρητή παραπομπή στην πηγή, όχι υπολογισμός προθεσμίας. Θα ήταν καλύτερα να
   // παίρνουν τη διατύπωση από τη μηχανή, δεν αντιφάσκουν όμως με αυτήν.
