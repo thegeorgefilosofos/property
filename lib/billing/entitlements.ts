@@ -174,8 +174,16 @@ export function activeComp(input: EntitlementInput): { plan: PlanId; until: stri
  */
 export interface TrialState { active: boolean; daysLeft: number; endsAt: string | null }
 
-/** Το επίπεδο που δίνει η δοκιμή. ΠΡΕΠΕΙ να ταυτίζεται με το `greatest(v_rank, 1)`
- *  του `public.user_plan_rank` και με τη διατύπωση των Όρων Χρήσης. */
+/**
+ * Το επίπεδο που δίνει η δοκιμή. ΠΡΕΠΕΙ να ταυτίζεται με το `greatest(v_rank, 2)`
+ * του `public.user_plan_rank` (rank 2 = «Ιδιοκτήτης+», μετά την είσοδο του
+ * `solo` στη θέση 1) και με τη διατύπωση των Όρων Χρήσης.
+ *
+ * ΟΙ ΔΥΝΑΤΟΤΗΤΕΣ ΤΗΣ ΔΟΚΙΜΗΣ ΔΕΝ ΕΙΝΑΙ ΤΟ ΠΑΚΕΤΟ ΕΡΩΤΗΣΕΩΝ ΤΗΣ. Το επίπεδο
+ * ανεβαίνει ώστε ο νέος χρήστης να δει τι αγοράζει· οι ερωτήσεις στον βοηθό
+ * κόβονται χωριστά, στο `TRIAL_LIMITS` του aiLimits.ts, γιατί κάθε μία από
+ * αυτές πληρώνεται από εμάς και όχι από τον δοκιμαστή.
+ */
 export const TRIAL_PLAN: PlanId = 'owner';
 
 export function trialState(input: EntitlementInput): TrialState {

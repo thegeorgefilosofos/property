@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   MAX_PER_MINUTE, PLAN_RANK_ORDER,
-  dailyLimitsByRank, monthlyLimitsByRank, FREE_POOL_PER_MONTH,
+  dailyLimitsByRank, monthlyLimitsByRank, FREE_POOL_PER_MONTH, TRIAL_LIMITS,
   dailyExhaustedMessage, monthlyExhaustedMessage, poolExhaustedMessage,
 } from '@/lib/billing/aiLimits';
 
@@ -90,6 +90,12 @@ export async function POST(req: NextRequest) {
       p_day:     dailyLimitsByRank(),
       p_month:   monthlyLimitsByRank(),
       p_pool:    FREE_POOL_PER_MONTH,
+      // ΤΟ ΠΑΚΕΤΟ ΤΗΣ ΔΟΚΙΜΗΣ. Χωρίς αυτό, κάθε ανυψωμένο αλλά μη πληρωμένο
+      // επίπεδο (δοκιμή, δωρεάν μήνες, Συνεργάτης) έπαιρνε τα όρια του πακέτου
+      // στο οποίο ανυψώθηκε — δυόμισι φορές περισσότερα από όσα δικαιούται ο
+      // συνδρομητής που πληρώνει το φθηνότερο.
+      p_trial_day:   TRIAL_LIMITS.perDay,
+      p_trial_month: TRIAL_LIMITS.perMonth,
     });
     const u = usage as { allowed?: boolean; reason?: string; rank?: number } | null;
     if (u && u.allowed === false) {

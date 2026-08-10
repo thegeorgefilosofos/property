@@ -14,7 +14,7 @@ import {
   aiLimitsFor, WARN_AT, dailyExhaustedMessage, monthlyExhaustedMessage,
   poolExhaustedMessage, COST_PER_REQUEST_USD, COST_PER_REQUEST_EUR, FREE_BUDGET_USD,
   FREE_POOL_PER_MONTH, dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
-  MAX_PER_MINUTE, MONTHLY_AI_SHARE, ANNUAL_AI_SHARE, monthlyQuestionBudget,
+  MAX_PER_MINUTE, AI_SHARE, monthlyQuestionBudget, TRIAL_LIMITS,
 } from './aiLimits'
 import { PLANS, PLAN_ORDER, type PlanId } from './plans'
 
@@ -79,7 +79,7 @@ const EUR_TO_USD = 1.08
   for (const id of PAID) {
     const l = aiLimitsFor(id)
     const worstEur = l.perMonth * COST_PER_REQUEST_EUR
-    const cap = PLANS[id].priceMonthly * MONTHLY_AI_SHARE
+    const cap = PLANS[id].priceMonthly * AI_SHARE
     ok(`${id}: το χειρότερο κόστος δεν ξεπερνά το 20% της μηνιαίας`, worstEur <= cap)
     // Και δεν είναι τσιγκούνικο: μία ερώτηση λιγότερη από το ταβάνι, όχι δέκα.
     ok(`${id}: αξιοποιεί τον προϋπολογισμό του (μία ερώτηση από το ταβάνι)`,
@@ -87,8 +87,12 @@ const EUR_TO_USD = 1.08
 
     // Το ετήσιο μετριέται στο ΕΤΟΣ, γιατί εκεί δίνεται.
     const annualYear = monthlyQuestionBudget(id, 'annual') * 12 * COST_PER_REQUEST_EUR
-    ok(`${id}: το ετήσιο δεν ξεπερνά το 15% της ετήσιας`,
-      annualYear <= PLANS[id].priceAnnual * ANNUAL_AI_SHARE)
+    ok(`${id}: το ετήσιο δεν ξεπερνά το 20% της ετήσιας`,
+      annualYear <= PLANS[id].priceAnnual * AI_SHARE)
+    // Ο ετήσιος πληρώνει δέκα μήνες αντί για δώδεκα, άρα παίρνει ΑΝΑΛΟΓΙΚΑ
+    // λιγότερα — ποτέ όμως λιγότερα από το πακέτο της δοκιμής.
+    ok(`${id}: το ετήσιο είναι το 20% όσων πληρώνει, όχι λιγότερο`,
+      annualYear + COST_PER_REQUEST_EUR * 12 > PLANS[id].priceAnnual * AI_SHARE)
   }
 
   // ΤΟ «ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ» ΔΕΝ ΜΠΟΡΕΙ ΝΑ ΠΑΙΡΝΕΙ ΠΑΝΩ ΑΠΟ ΤΟΝ ΣΥΝΔΡΟΜΗΤΗ.
@@ -96,6 +100,18 @@ const EUR_TO_USD = 1.08
   // πλήρωνε τίποτα έπαιρνε δυόμισι φορές περισσότερα από αυτόν που πλήρωνε.
   ok('η αναμονή παίρνει λιγότερα από το φθηνότερο πληρωμένο',
     aiLimitsFor('free').perMonth < aiLimitsFor('solo').perMonth)
+
+  // ── Η ΔΟΚΙΜΗ ΔΕΝ ΞΕΠΕΡΝΑ ΤΟΝ ΣΥΝΔΡΟΜΗΤΗ ────────────────────────────────
+  // Η δοκιμή ανεβάζει το επίπεδο στο «Ιδιοκτήτης+» για να δείξει τις
+  // δυνατότητες. Αν έπαιρνε και τις ερωτήσεις του, ο δοκιμαστής θα είχε
+  // δυόμισι φορές περισσότερες από όσες πληρώνει ο συνδρομητής.
+  ok('η δοκιμή παίρνει λιγότερα από το φθηνότερο πληρωμένο',
+    TRIAL_LIMITS.perMonth < aiLimitsFor('solo').perMonth)
+  ok('η δοκιμή παίρνει περισσότερα από την αναμονή χωρίς συνδρομή',
+    TRIAL_LIMITS.perMonth > aiLimitsFor('free').perMonth)
+  ok('η δοκιμή κοστίζει λιγότερο από ένα ευρώ ανά λογαριασμό',
+    TRIAL_LIMITS.perMonth * COST_PER_REQUEST_EUR < 1)
+  ok('το ημερήσιο της δοκιμής επιτρέπει μια ολόκληρη δουλειά', TRIAL_LIMITS.perDay >= 5)
 }
 
 // ── Κάθε πλάνο έχει όρια, και άγνωστο πλάνο πέφτει στο δωρεάν ─────────────

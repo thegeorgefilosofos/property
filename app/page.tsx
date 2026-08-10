@@ -768,34 +768,6 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* ── Για ποιον είναι: ο επισκέπτης βρίσκει τον εαυτό του πριν διαβάσει ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
-        <SectionHead over="Σε ποιον απευθύνεται" title="Τέσσερα πακέτα, τέσσερις διαφορετικές ανάγκες" sub="Ίδια βάση δεδομένων για όλους. Αλλάζουν τα εργαλεία, ανάλογα με το τι έχεις να λύσεις." />
-        <div className="lp-aud">
-          {AUDIENCE.map((a, i) => (
-            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, marginBottom: 12 }}>{a.tag}</span>
-              <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em' }}>{a.t}</h3>
-              {/* Το κατώφλι ύψους έφυγε: τη στοίχιση την κάνει πλέον το subgrid
-                  του πλέγματος, που δεν εξαρτάται από το πόσες σειρές έτυχε να
-                  πιάσει το κείμενο σε αυτό το πλάτος. */}
-              <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{a.d}</p>
-              {/* ΤΟ `marginTop: auto` ΕΥΘΥΓΡΑΜΜΙΖΕ ΤΟΝ ΠΑΤΟ, ΟΧΙ ΤΗΝ ΚΟΡΥΦΗ. Οι
-                  τρεις λίστες έχουν άνισο ύψος (άλλες γραμμές τυλίγουν, άλλες
-                  όχι), οπότε σπρωγμένες στο κάτω άκρο ξεκινούσαν σε τρία
-                  διαφορετικά ύψη — και το μάτι το πιάνει αμέσως, επειδή τα
-                  σημάδια ελέγχου είναι επαναλαμβανόμενο σχήμα. Ξεκινούν όλες
-                  αμέσως μετά την περιγραφή, στην ίδια γραμμή. */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {a.k.map((t, j) => (
-                  <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span className="lp-k" style={{ fontSize: 15, color: TEXT, lineHeight: 1.5 }}>{t}</span></div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── Scrollytelling: το προϊόν μένει sticky και αλλάζει πράξη όσο διαβάζεις.
              ΠΡΟΣΟΧΗ: χωρίς lp-reveal εδώ (transform στον πρόγονο σπάει το sticky). */}
       <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP_ACT }}>
@@ -930,9 +902,43 @@ export default async function Landing() {
         </div>
       </section>
 
+      {/* ── ΣΕ ΠΟΙΟΝ ΑΠΕΥΘΥΝΕΤΑΙ, ΑΚΡΙΒΩΣ ΠΡΙΝ ΤΗΝ ΤΙΜΗ ─────────────────────
+             Ήταν τρίτη ενότητα της σελίδας, πέντε ενότητες μακριά από τον
+             τιμοκατάλογο — και οι δύο έδειχναν τα ΙΔΙΑ τέσσερα πακέτα. Ο
+             επισκέπτης διάβαζε τα τέσσερα ονόματα, ξεχνούσε ποιο τον αφορούσε,
+             και τα ξανασυναντούσε αργότερα με τιμές δίπλα τους σαν να ήταν άλλο
+             πράγμα. Κολλητά, οι δύο ενότητες διαβάζονται ως μία κίνηση: «ποιος
+             είμαι» και αμέσως «τι κοστίζει». ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
+        <SectionHead over="Σε ποιον απευθύνεται" title="Τέσσερα πακέτα, τέσσερις διαφορετικές ανάγκες" sub="Ίδια βάση δεδομένων για όλους. Αλλάζουν τα εργαλεία, ανάλογα με το τι έχεις να λύσεις." />
+        <div className="lp-aud">
+          {AUDIENCE.map((a, i) => (
+            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, marginBottom: 12 }}>{a.tag}</span>
+              <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em' }}>{a.t}</h3>
+              {/* Το κατώφλι ύψους έφυγε: τη στοίχιση την κάνει πλέον το subgrid
+                  του πλέγματος, που δεν εξαρτάται από το πόσες σειρές έτυχε να
+                  πιάσει το κείμενο σε αυτό το πλάτος. */}
+              <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{a.d}</p>
+              {/* ΤΟ `marginTop: auto` ΕΥΘΥΓΡΑΜΜΙΖΕ ΤΟΝ ΠΑΤΟ, ΟΧΙ ΤΗΝ ΚΟΡΥΦΗ. Οι
+                  τρεις λίστες έχουν άνισο ύψος (άλλες γραμμές τυλίγουν, άλλες
+                  όχι), οπότε σπρωγμένες στο κάτω άκρο ξεκινούσαν σε τρία
+                  διαφορετικά ύψη — και το μάτι το πιάνει αμέσως, επειδή τα
+                  σημάδια ελέγχου είναι επαναλαμβανόμενο σχήμα. Ξεκινούν όλες
+                  αμέσως μετά την περιγραφή, στην ίδια γραμμή. */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {a.k.map((t, j) => (
+                  <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span className="lp-k" style={{ fontSize: 15, color: TEXT, lineHeight: 1.5 }}>{t}</span></div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
-        <SectionHead over="Τιμολόγηση" title="Διάλεξε πόσο μεγάλο είναι το χαρτοφυλάκιό σου" sub="Κάθε πακέτο περιλαμβάνει ό,τι έχει το προηγούμενο. Κάνε εγγραφή και απόλαυσε τριάντα ημέρες δωρεάν δοκιμή." />
+        <SectionHead over="Τιμολόγηση" title="Και τι κοστίζει το καθένα" sub="Κάθε πακέτο περιλαμβάνει ό,τι έχει το προηγούμενο. Κάνε εγγραφή και απόλαυσε τριάντα ημέρες δωρεάν δοκιμή." />
         {/* ΜΙΑ ΠΗΓΗ ΓΙΑ ΤΙΣ ΤΙΜΕΣ ΚΑΙ ΤΑ ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ.
             Οι κάρτες ήταν γραμμένες με το χέρι: τιμές, ετήσιες τιμές και λίστες
             χαρακτηριστικά αντιγραμμένα από το lib/billing/plans.ts. Είχαν ήδη

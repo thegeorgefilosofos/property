@@ -33,6 +33,10 @@ const AI_LIMITS = {
   perDayByRank: [5, 8, 20, 50, 161],
   perMonthByRank: [10, 23, 59, 150, 483],
   freePoolPerMonth: 518,
+  // Το πακέτο κάθε ανυψωμένου αλλά ΜΗ πληρωμένου λογαριασμού (δοκιμή, δωρεάν
+  // μήνες, Συνεργάτης). Το `least` της bump_ai_usage δεν το αφήνει να ξεπεραστεί.
+  trialPerDay: 7,
+  trialPerMonth: 20,
 }
 
 const CORS = {
@@ -89,6 +93,8 @@ Deno.serve(async (req) => {
       p_day:     AI_LIMITS.perDayByRank,
       p_month:   AI_LIMITS.perMonthByRank,
       p_pool:    AI_LIMITS.freePoolPerMonth,
+      p_trial_day:   AI_LIMITS.trialPerDay,
+      p_trial_month: AI_LIMITS.trialPerMonth,
     })
     // Ο μετρητής είναι ΓΡΑΨΙΜΟ: αν δεν αυξήθηκε, δεν ξέρουμε πόσα έχει ξοδέψει ο
     // χρήστης. Το app/api/anthropic αφήνει να περάσει σε σφάλμα RPC, αλλά μόνο
