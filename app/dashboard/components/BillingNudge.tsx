@@ -14,6 +14,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import { T, Btn } from '@/components/Theme';
 import { missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
 
@@ -29,13 +31,12 @@ export default function BillingNudge({ userId, onNavigate }: { userId: string; o
     (async () => {
       try {
         if (typeof window !== 'undefined' && localStorage.getItem(monthKey()) === '1') return;
-        const [{ data: prof }, count] = await Promise.all([
-          supabase.from('billing_profiles')
-            .select('doc_type, full_name, company_name, afm, doy, profession, address, city, postal_code, country, vat_number, plan, comp_plan, comp_until')
-            .eq('user_id', userId).maybeSingle(),
+        const [prof, count] = await Promise.all([
+          billing.profile<Record<string, string | null>>(supabase, userId,
+            'doc_type, full_name, company_name, afm, doy, profession, address, city, postal_code, country, vat_number, plan, comp_plan, comp_until'),
           properties.count(supabase, userId),
         ]);
-        const p = (prof || {}) as Record<string, string | null>;
+        const p = prof || {};
         const plan = p.plan || 'free';
         const compActive = !!p.comp_until && new Date(p.comp_until) > new Date();
         const paymentRelevant = plan === 'owner' || plan === 'agency' || compActive || (count || 0) > 1;

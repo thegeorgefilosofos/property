@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import { T, fe, fn, fp, fd, ABSENT, Modal, TT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
@@ -251,13 +253,13 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     if (existing?.id) return;
     let active = true;
     (async () => {
-      const [{ data: prof }, { data: auth }] = await Promise.all([
-        supabase.from('billing_profiles')
-          .select('owner_name, full_name, company_name, afm, phone').eq('user_id', userId).maybeSingle(),
+      const [prof, { data: auth }] = await Promise.all([
+        billing.profile<Record<string, string | null>>(
+          supabase, userId, 'owner_name, full_name, company_name, afm, phone'),
         supabase.auth.getUser(),
       ]);
       if (!active) return;
-      const p = prof as Record<string, string | null> | null;
+      const p = prof;
       const proposed = {
         owner_name:  firstFilled(p?.owner_name, p?.full_name, p?.company_name),
         owner_afm:   firstFilled(p?.afm),

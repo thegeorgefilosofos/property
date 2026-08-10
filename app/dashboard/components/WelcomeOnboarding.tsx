@@ -15,6 +15,8 @@ import { T } from '@/components/Theme';
 import { isoDate } from '@/lib/core/time';
 import { saved } from '@/components/dbWrite';
 import { must } from '@/lib/supabase/must';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import { defaultBookkeeping, type LegalForm, type BookKeeping } from '@/lib/accounting/dossier';
 
 interface Props {
@@ -54,7 +56,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   const chooseProfile = (v: 'individual' | 'professional') => {
     setProfile(v); onProfile?.(v);
     void saved('Ο τύπος προφίλ δεν αποθηκεύτηκε',
-      supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' }));
+      billing.save(supabase, userId, { profile_type: v }));
   };
 
   // ── Νομική μορφή ─────────────────────────────────────────────────────────
@@ -74,7 +76,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   const saveLegal = (form: LegalForm, bk: BookKeeping) => {
     setLegalForm(form); setBooks(bk);
     void saved('Η νομική μορφή δεν αποθηκεύτηκε',
-      supabase.from('billing_profiles').upsert({ user_id: userId, legal_form: form, bookkeeping: bk }, { onConflict: 'user_id' }));
+      billing.save(supabase, userId, { legal_form: form, bookkeeping: bk }));
   };
   // Η μορφή προτείνει βιβλία (ΙΚΕ → διπλογραφικά, ατομική/ΟΕ → απλογραφικά) αλλά
   // ο χρήστης έχει τον τελευταίο λόγο: μια Ο.Ε. μπορεί κάλλιστα να είναι διπλογραφικά.

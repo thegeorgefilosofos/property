@@ -9,6 +9,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, formGrid } from '@/components/Theme';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
@@ -36,8 +38,8 @@ export default function Billing({ userId }: { userId: string }) {
 
   useEffect(() => {
     (async () => {
-      const [{ data }, { data: u }] = await Promise.all([
-        supabase.from('billing_profiles').select('*').eq('user_id', userId).maybeSingle(),
+      const [data, { data: u }] = await Promise.all([
+        billing.profile<Partial<BillingData>>(supabase, userId, '*'),
         supabase.auth.getUser(),
       ]);
       const meta = (u.user?.user_metadata as Record<string, string> | undefined) || {};
@@ -77,11 +79,9 @@ export default function Billing({ userId }: { userId: string }) {
 
   const save = async () => {
     setSaving(true); setSaved(false); setSaveErr(false);
-    // Το plan/billing_cycle ορίζονται ΜΟΝΟ από τη χρέωση (Stripe), όχι από τον client·
-    // δεν τα στέλνουμε ώστε η αποθήκευση στοιχείων να μη φαίνεται ότι αλλάζει πλάνο.
-    const payload: Record<string, unknown> = { ...d, user_id: userId, updated_at: new Date().toISOString() };
-    delete payload.plan; delete payload.billing_cycle;
-    const { error } = await supabase.from('billing_profiles').upsert(payload, { onConflict: 'user_id' });
+    // Το πλάνο και ο κύκλος χρέωσης ορίζονται ΜΟΝΟ από τη χρέωση, όχι από τον
+    // πελάτη· το στρώμα τα αφαιρεί από κάθε εγγραφή, για όλες τις οθόνες.
+    const { error } = await billing.save(supabase, userId, d as billing.BillingPatch);
     setSaving(false);
     if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
     else setSaveErr(true);

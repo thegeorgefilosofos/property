@@ -22,6 +22,8 @@ import { annuityMonthly } from '@/lib/loans/recommend'
 import * as loanStore from '@/lib/data/loans'
 // Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
 import * as contactStore from '@/lib/data/contacts';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
@@ -1979,15 +1981,15 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // best-effort: αν δεν διαβαστούν, το προφίλ πέφτει στο ασφαλέστερο
     // («ιδιοκτήτης», φυσικό πρόσωπο) και εμφανίζονται ΛΙΓΟΤΕΡΑ, ποτέ περισσότερα.
     try {
-      const [propRow, { data: bp }, count] = await Promise.all([
+      const [propRow, bp, count] = await Promise.all([
         properties.one<StatusRow>(supabase, propertyId, 'status_detail,rental_mode', userId),
-        supabase.from('billing_profiles').select('legal_form,bookkeeping').eq('user_id', userId).maybeSingle(),
+        billing.profile<{ legal_form: string | null; bookkeeping: string | null }>(supabase, userId, 'legal_form,bookkeeping'),
         properties.count(supabase, userId),
       ])
       if (!fresh()) return
       setStatusRow((propRow as StatusRow | null) || null)
-      setLegalForm((bp as { legal_form?: string | null } | null)?.legal_form || 'individual')
-      setBookkeeping((bp as { bookkeeping?: string | null } | null)?.bookkeeping || 'none')
+      setLegalForm(bp?.legal_form || 'individual')
+      setBookkeeping(bp?.bookkeeping || 'none')
       setPropertyCount(Math.max(1, count || 1))
     } catch (_) {}
 

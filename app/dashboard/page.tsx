@@ -13,6 +13,8 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses'
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import type { User } from '@supabase/supabase-js';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
@@ -1338,7 +1340,7 @@ export default function Dashboard() {
       // Ιδιότητα συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan, profile_type, comp_plan, comp_until, legal_form').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); const raw = (data as { legal_form?: string|null } | null)?.legal_form ?? '';
+      billing.profile<{ plan?: string|null; profile_type?: string|null; comp_plan?: string|null; comp_until?: string|null; legal_form?: string|null }>(supabase, user.id, 'plan, profile_type, comp_plan, comp_until, legal_form').then((data) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); const raw = (data as { legal_form?: string|null } | null)?.legal_form ?? '';
         setLegalForm(HAS_BUSINESS.has(raw) ? 'company' : 'individual');
         setTaxForm(LEGAL_FORMS.includes(raw as DossierLegalForm) ? raw as DossierLegalForm : 'individual'); });
       // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,

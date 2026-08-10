@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
 import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
@@ -120,7 +122,8 @@ function MarketDataSharing({ userId }: { userId: string }) {
   const [decided, setDecided] = useState(true);   // αισιόδοξο: κρύβει το badge μέχρι να ξέρουμε
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    supabase.from('billing_profiles').select('share_market_data, share_market_data_decided_at').eq('user_id', userId).maybeSingle()
+    billing.profileOutcome<{ share_market_data: boolean | null; share_market_data_decided_at: string | null }>(
+      supabase, userId, 'share_market_data, share_market_data_decided_at')
       .then(({ data, error }) => {
         // Σφάλμα ανάγνωσης ⇒ μένουμε στο ΚΛΕΙΣΤΟ. Fail-closed: ένα πρόβλημα
         // δικτύου δεν επιτρέπεται να δείξει τον διακόπτη ανοιχτό και να
@@ -137,10 +140,8 @@ function MarketDataSharing({ userId }: { userId: string }) {
   }, [userId]);
   const toggle = async (v: boolean) => {
     setOn(v);
-    const { error } = await supabase.from('billing_profiles').upsert(
-      { user_id: userId, share_market_data: v, share_market_data_decided_at: new Date().toISOString() },
-      { onConflict: 'user_id' },
-    );
+    const { error } = await billing.save(supabase, userId,
+      { share_market_data: v, share_market_data_decided_at: new Date().toISOString() });
     if (error) { setOn(!v); return; }   // επαναφορά αν η αποθήκευση απέτυχε
     setDecided(true);
   };
@@ -250,8 +251,9 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
   const [nameBusy, setNameBusy] = useState(false);
 
   useEffect(() => {
-    supabase.from('billing_profiles').select('full_name, afm, full_name_changed_at').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => { if (data) { setName((data.full_name as string) || ''); setAfm((data.afm as string) || ''); setChangedAt((data.full_name_changed_at as string) || null); } });
+    billing.profile<{ full_name: string | null; afm: string | null; full_name_changed_at: string | null }>(
+      supabase, userId, 'full_name, afm, full_name_changed_at')
+      .then(data => { if (data) { setName(data.full_name || ''); setAfm(data.afm || ''); setChangedAt(data.full_name_changed_at || null); } });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -275,7 +277,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
     if (!v || v === name || nameLocked) { setNameEdit(false); return; }
     setNameBusy(true); setNameErr('');
     const nowIso = new Date().toISOString();
-    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, full_name: v, full_name_changed_at: nowIso }, { onConflict: 'user_id' });
+    const { error } = await billing.save(supabase, userId, { full_name: v, full_name_changed_at: nowIso });
     setNameBusy(false);
     if (error) { setNameErr(failed('Το όνομα δεν αποθηκεύτηκε', error)); return; }
     setName(v); setChangedAt(nowIso); setNameEdit(false);
@@ -391,8 +393,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   }, []);
 
   useEffect(() => {
-    supabase.from('billing_profiles').select('plan, comp_plan, comp_until').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => { if (data) { setPlan((data.plan as string) || 'free'); setCompPlan((data.comp_plan as string) || null); setCompUntil((data.comp_until as string) || null); } });
+    billing.profile<{ plan: string | null; comp_plan: string | null; comp_until: string | null }>(
+      supabase, userId, 'plan, comp_plan, comp_until')
+      .then(data => { if (data) { setPlan(data.plan || 'free'); setCompPlan(data.comp_plan || null); setCompUntil(data.comp_until || null); } });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
     properties.count(supabase, userId).then(setPropertyCount);
@@ -440,7 +443,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     // μόνο ποιο πλάνο μπορείς να αγοράσεις.
     const prev = profileType;
     onProfileChange?.(v);
-    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
+    const { error } = await billing.save(supabase, userId, { profile_type: v });
     if (error) { onProfileChange?.(prev); return; } // επαναφορά αν απέτυχε
     // Δηλώθηκε επαγγελματίας χωρίς το πλάνο: δείχνουμε αμέσως τι λείπει.
     if (v === 'professional' && !planAtLeast(effPlan, 'agency')) openComparison();

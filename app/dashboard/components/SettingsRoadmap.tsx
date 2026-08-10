@@ -9,6 +9,8 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import { T, Btn, Chip } from '@/components/Theme';
 
 type ChipTone = 'accent' | 'neutral';
@@ -60,9 +62,8 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
     let alive = true;
     (async () => {
       try {
-        const { data } = await supabase
-          .from('billing_profiles').select('wants_mobile').eq('user_id', userId).maybeSingle();
-        const wants = (data as { wants_mobile?: boolean } | null)?.wants_mobile;
+        const data = await billing.profile<{ wants_mobile?: boolean }>(supabase, userId, 'wants_mobile');
+        const wants = data?.wants_mobile;
         if (alive && wants) setConfirmed(true);
       } catch {
         /* σιωπηλά */

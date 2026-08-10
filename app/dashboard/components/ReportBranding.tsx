@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
+import * as billing from '@/lib/data/billing';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, formGrid } from '@/components/Theme';
 import { TextInput, Toggle } from './UIComponents';
 import { normalizePlan } from '@/lib/billing/plans';
@@ -28,11 +30,11 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
 
   useEffect(() => {
     (async () => {
-      const [{ data: bp }, { data: rb }] = await Promise.all([
-        supabase.from('billing_profiles').select('plan').eq('user_id', userId).maybeSingle(),
+      const [bp, { data: rb }] = await Promise.all([
+        billing.profile<{ plan: string | null }>(supabase, userId, 'plan'),
         supabase.from('report_branding').select('*').eq('user_id', userId).maybeSingle(),
       ]);
-      setPlan((bp?.plan as string) || 'free');
+      setPlan(bp?.plan || 'free');
       if (rb) {
         setEnabled(rb.enabled !== false);
         setCompanyName((rb.company_name as string) || '');
