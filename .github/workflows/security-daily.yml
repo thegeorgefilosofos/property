@@ -62,6 +62,11 @@ jobs:
         continue-on-error: true
         run: npm run --silent rls-coverage
 
+      - name: Καμία γραμμή σε ξένο ακίνητο
+        id: parent
+        continue-on-error: true
+        run: npm run --silent rls-parent-scope
+
       - name: Πίνακες μόνο-υπηρεσίας
         id: svc
         continue-on-error: true
@@ -107,6 +112,7 @@ jobs:
           fails=""
           add() { [ "$1" = "failure" ] && fails="${fails}- $2"$'\n' || true; }
           add "${{ steps.rls.outcome }}"      "Πολιτικές RLS"
+          add "${{ steps.parent.outcome }}"   "Γραμμή σε ξένο ακίνητο"
           add "${{ steps.svc.outcome }}"      "Πίνακες μόνο-υπηρεσίας"
           add "${{ steps.bridge.outcome }}"   "Γέφυρα pg_net"
           add "${{ steps.initplan.outcome }}" "Πολιτικές RLS ανά γραμμή"

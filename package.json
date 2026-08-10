@@ -61,7 +61,8 @@
     "decimal-comma": "node scripts/guard-decimal-comma.mjs",
     "data-layer": "node scripts/guard-data-layer.mjs",
     "rls-coverage": "node scripts/guard-rls-coverage.mjs",
-    "csv-injection": "node scripts/guard-csv-injection.mjs"
+    "csv-injection": "node scripts/guard-csv-injection.mjs",
+    "rls-parent-scope": "node scripts/guard-rls-parent-scope.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
