@@ -1045,6 +1045,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const system = buildSystemBlocks(prefs, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {
+        // ΤΙ ΓΝΩΣΗ ΝΑ ΦΟΡΤΩΘΕΙ. Οι τελευταίες έξι ερωτήσεις του χρήστη, όχι μόνο
+        // η τωρινή: το «και πόσο θα πληρώνω;» δεν λέει από μόνο του ότι μιλάμε
+        // για δάνειο. Έξι φτάνουν για να κρατηθεί το θέμα όσο διαρκεί η κουβέντα
+        // και λίγες για να μη σέρνεται ένα θέμα που τελείωσε πριν από ώρα.
+        topic: history.filter(m => m.role === 'user').slice(-6).map(m => m.text).join(' '),
         insights: insightsStr || undefined,
         market: marketStr || undefined,
         clients: clientsStr || undefined,
