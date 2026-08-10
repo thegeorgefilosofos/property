@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
@@ -15,7 +17,7 @@ import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billin
 import { resolveValue } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, recurringMonthly } from '@/lib/expenses/ledger';
 import { athensToday } from '@/lib/core/time';
-import type { ExpensesRow, BillsRow, TenantsRow, BillsSettingsRow } from '@/lib/supabase/tables';
+import type { ExpensesRow, BillsRow, TenantsRow } from '@/lib/supabase/tables';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -110,7 +112,7 @@ export default function TabComparison({ properties, userId }: Props) {
       // ενοποίηση. Τώρα ο ορισμός του «τρέχων» έρχεται από το στρώμα, ίδιος με
       // κάθε άλλη οθόνη: όποιος δεν έχει φύγει, νεότερη μίσθωση πρώτη.
       tenantStore.currentByProperty<{ property_id: string; monthly_rent: number | null }>(supabase, userId, 'monthly_rent'),
-      supabase.from('bills_settings').select('property_id,data').in('property_id', ids).eq('section', 'budgets'),
+      settings.acrossProperties(supabase, ids, 'budgets', userId),
     ]);
 
     // ΚΑΘΕ ΕΥΡΩ ΜΙΑ ΦΟΡΑ, ΑΝΑ ΑΚΙΝΗΤΟ.
@@ -137,7 +139,6 @@ export default function TabComparison({ properties, userId }: Props) {
     const expRows: expenses.LedgerRowWithProperty[] = exp || [];
     const bilRows = bil as Pick<BillsRow, 'id' | 'name' | 'amount' | 'paid' | 'paid_at' | 'due_date' | 'created_at' | 'category' | 'recurring' | 'property_id'>[];
 
-    const budRows: Pick<BillsSettingsRow, 'property_id' | 'data'>[] = bud || [];
     const expByProp = byProp(expRows);
     const bilByProp = byProp(bilRows);
 
@@ -162,11 +163,10 @@ export default function TabComparison({ properties, userId }: Props) {
     for (const [id, t] of currentTenants) {
       if (m[id]) m[id].monthlyRent = Number(t.monthly_rent) || 0;
     }
-    budRows.forEach(r => {
-      const id = r.property_id;
-      // Το `data` είναι jsonb: έρχεται απ' έξω, χωρίς σχήμα. Φύλακας πριν τη χρήση.
-      if (id && m[id]) m[id].budgetMonthly = budgetTotalOf(isRecord(r.data) ? r.data : null);
-    });
+    // Το `data` είναι jsonb: έρχεται απ' έξω, χωρίς σχήμα. Φύλακας πριν τη χρήση.
+    for (const [id, d] of Object.entries(bud)) {
+      if (m[id]) m[id].budgetMonthly = budgetTotalOf(isRecord(d) ? d : null);
+    }
     setAgg(m);
     setLoading(false);
   }, [properties, userId]);

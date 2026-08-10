@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
@@ -379,8 +381,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // οθόνη Δαπάνες, και τα τρία παράθυρα κόβονται από την ίδια λίστα. Ό,τι
       // δείχνουν οι Δαπάνες, αθροίζει ο Προϋπολογισμός.
       const [budgetRes, settRes, allBillsRes, allExpRes] = await Promise.all([
-        supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
-        supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
+        settings.section(supabase, propertyId, 'budgets', userId),
+        settings.sections(supabase, propertyId, ['providers','insurance','services','common'], userId),
         // Ευρύτερο παράθυρο κατά έναν χρόνο: η ημερομηνία που ΜΕΤΡΑ για έναν
         // λογαριασμό (πληρωμή ή λήξη) δεν είναι το created_at, οπότε ένας
         // λογαριασμός καταχωρημένος νωρίτερα μπορεί να ανήκει μέσα στο παράθυρο.
@@ -443,9 +445,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const customKeys = new Set<string>();
       const catLabels: Record<string, string> = {};
       CATS.forEach(c => { catLabels[c.key] = c.label; });
-      try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) (arr as CustomCatRaw[]).forEach(c => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
+      try { const arr = JSON.parse(String((budgetRes as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) (arr as CustomCatRaw[]).forEach(c => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
       // Μετονομασίες (override) βασικών/custom κατηγοριών — για σωστές ετικέτες στην ανάλυση.
-      try { const o = JSON.parse(String((budgetRes.data?.data as { __labels?: string } | null)?.__labels ?? '{}')); if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v) catLabels[k] = String(v); }); } catch { /* ignore */ }
+      try { const o = JSON.parse(String((budgetRes as { __labels?: string } | null)?.__labels ?? '{}')); if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v) catLabels[k] = String(v); }); } catch { /* ignore */ }
       // Προσαρμοσμένη κατηγορία του χρήστη μένει ως έχει· οτιδήποτε άλλο περνά
       // από το κοινό λεξιλόγιο, ελληνικά και αγγλικά μαζί.
       const catOf = (raw: string): string => { const r = String(raw ?? ''); return customKeys.has(r) ? r : budgetBucket(r); };
@@ -454,7 +456,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // Χωρίς 'amount' → εξαιρείται ΟΛΟ το ποσό· με 'amount' → εξαιρείται μόνο αυτό το μέρος
       // (π.χ. πλήρωσε 50 € ο ενοικιαστής και 50 € εγώ → εξαιρώ 50 €, μετρούν 50 €).
       let excluded: Record<string, ExclRule> = {};
-      try { const o = JSON.parse(String((budgetRes.data?.data as { __excluded?: string } | null)?.__excluded ?? '{}')); if (o && typeof o === 'object') excluded = o; } catch { /* ignore */ }
+      try { const o = JSON.parse(String((budgetRes as { __excluded?: string } | null)?.__excluded ?? '{}')); if (o && typeof o === 'object') excluded = o; } catch { /* ignore */ }
       const exclAmt = (id: string | null | undefined, full: number): number => {
         const e = id != null ? excluded[String(id)] : undefined;
         if (!e) return 0;
@@ -524,8 +526,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       });
       setWeekActuals(wk);
 
-      if (budgetRes.data?.data) {
-        const saved = budgetRes.data.data as Record<string, unknown>;
+      if (budgetRes) {
+        const saved = budgetRes;
         setBudgets(prev => { const n = { ...prev }; Object.entries(saved).forEach(([k, v]) => { if (k !== 'participants') n[k] = String(v); }); return n; });
       }
 
@@ -553,7 +555,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // και όχι το (μηδενισμένο από την εξαίρεση) billActuals.
       const recorded = new Set<string>(monthRows.map(bucketOf));
 
-      const getSett = (sec: string) => settRes.data?.find(x => x.section === sec)?.data as Record<string, unknown> | undefined;
+      const getSett = (sec: settings.Section) => settRes[sec];
       const prov = getSett('providers');
       if (prov) {
         if (!recorded.has('internet')) billActuals.internet = (parseFloat(String(prov.internetPrice)) || 0) + (prov.hasTV ? parseFloat(String(prov.tvPrice)) || 0 : 0);
@@ -673,10 +675,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       setSaving(true);
-      await saved('Οι στόχοι προϋπολογισμού δεν αποθηκεύτηκαν', supabase.from('bills_settings').upsert(
-        { property_id: propertyId, user_id: userId, section: 'budgets', data },
-        { onConflict: 'property_id,section' }
-      ));
+      await saved('Οι στόχοι προϋπολογισμού δεν αποθηκεύτηκαν',
+        settings.put(supabase, propertyId, userId, 'budgets', data));
       setSaving(false);
     }, 800);
   }, [propertyId, userId]);

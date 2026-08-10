@@ -20,6 +20,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as rentStore from '@/lib/data/rent';
@@ -479,8 +481,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // ── Προϋπολογισμός: μηνιαίος στόχος και ειδοποίηση υπέρβασης ─────────────
     // Οι «κουμπαράδες» αφαιρέθηκαν από το προϊόν: ο ιδιοκτήτης ακινήτου δεν
     // ήρθε εδώ για να αποταμιεύσει, ήρθε για δαπάνες, φόρους και ενοίκια.
-    const { data: budgetSet } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle();
-    const bData = (budgetSet?.data as Record<string, unknown> | null) || {};
+    const bData = (await settings.section(supabase, propertyId, 'budgets', userId)) || {};
     // ΧΩΡΙΣ ΟΡΙΣΜΕΝΟ ΣΤΟΧΟ, ΚΑΝΕΝΑΣ ΑΡΙΘΜΟΣ.
     // Ήταν `|| 390`. Ο χρήστης που δεν είχε ορίσει ποτέ προϋπολογισμό, έπαιρνε
     // από τη Νόα προτάσεις πάνω σε «μηνιαίο στόχο 390 €» — νούμερο που δεν

@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -253,10 +255,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
   useEffect(() => {
     if (!propertyId) return;
     (async () => {
-      const { data } = await supabase
-        .from('bills_settings').select('data')
-        .eq('property_id', propertyId).eq('section', 'electricity').maybeSingle();
-      const elecData = data?.data as Record<string, unknown> | undefined;
+      const elecData = await settings.section<{ elecProvider?: unknown }>(supabase, propertyId, 'electricity', userId);
       if (elecData?.elecProvider) setElecProvider(String(elecData.elecProvider));
     })();
   }, [propertyId]);

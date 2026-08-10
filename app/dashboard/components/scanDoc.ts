@@ -24,6 +24,8 @@ import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import {
   classifyDocType, planDocSave, normalizeScannedDoc, archiveCategoryFor,
   type ScannedDoc, type ArchivePlan,
@@ -543,14 +545,11 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
 
     // ── 7) Κοινόχρηστα → bills_settings section 'common'.
     if (plan.commonMonthAmount != null || plan.commonMillesimi != null) {
-      const { data: cur } = await supabase.from('bills_settings').select('data')
-        .eq('property_id', propertyId).eq('section', 'common').maybeSingle();
-      const dd = (cur?.data as Record<string, unknown>) || {};
+      const dd = (await settings.section(supabase, propertyId, 'common', userId)) || {};
       const history = Array.isArray(dd.history) ? [...(dd.history as string[])] : Array(12).fill('');
       if (plan.commonMonthAmount != null) history[new Date().getMonth()] = String(plan.commonMonthAmount);
       const nextData = { ...dd, history, ...(plan.commonMillesimi != null && !dd.millesimi ? { millesimi: String(plan.commonMillesimi) } : {}) };
-      const { error: kErr } = await supabase.from('bills_settings')
-        .upsert({ property_id: propertyId, user_id: String(userId), section: 'common', data: nextData, updated_at: new Date().toISOString() }, { onConflict: 'property_id,section' });
+      const { error: kErr } = await settings.put(supabase, propertyId, userId, 'common', nextData);
       if (!kErr) add('Κοινόχρηστα');
     }
 

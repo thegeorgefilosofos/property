@@ -1,6 +1,8 @@
 // app/dashboard/components/BillsSettings.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import { saved } from '@/components/dbWrite';
 
 // Singleton, ένας client για όλο το hook
@@ -11,7 +13,7 @@ const supabase = createClient();
 export function useBillsSettings<T extends Record<string, unknown>>(
   propertyId: string,
   userId: string,
-  section: string,
+  section: settings.Section,
   defaults: T
 ): [T, (patch: Partial<T>) => void, boolean] {
   const [data, setData]       = useState<T>(defaults);
@@ -24,11 +26,14 @@ export function useBillsSettings<T extends Record<string, unknown>>(
   // Χωρίς αυτό, μια αποθήκευση προγραμματισμένη για το ένα ακίνητο εκτελούνταν
   // αφού ο χρήστης είχε ήδη αλλάξει ακίνητο — και έγραφε τα δεδομένα του ενός
   // πάνω στο άλλο.
-  const boundKey = useRef(`${propertyId}::${section}`);
+  // ΖΕΥΓΟΣ, ΟΧΙ ΚΕΙΜΕΝΟ. Ήταν `«ακίνητο::ενότητα»` και ξανασπάγε με `split` στην
+  // εγγραφή — δηλαδή ο τύπος της ενότητας χανόταν στη μέση και ξαναγεννιόταν με
+  // `as`, ακριβώς εκεί που κρίνεται ΠΟΙΑ γραμμή θα γραφτεί.
+  const bound = useRef<{ propertyId: string; section: settings.Section }>({ propertyId, section });
 
   // ── Load ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    boundKey.current = `${propertyId}::${section}`;
+    bound.current = { propertyId, section };
 
     if (!propertyId) {
       // Επαναφορά στις προεπιλογές, αντί να μείνουν στην οθόνη τα δεδομένα του
@@ -43,17 +48,12 @@ export function useBillsSettings<T extends Record<string, unknown>>(
     setLoading(true);
 
     (async () => {
-      const { data: row } = await supabase
-        .from('bills_settings')
-        .select('data')
-        .eq('property_id', propertyId)
-        .eq('section', section)
-        .maybeSingle();
+      const row = await settings.section(supabase, propertyId, section, userId);
 
       if (aborted.current) return;
 
-      if (row?.data) {
-        const merged = { ...defaults, ...row.data } as T;
+      if (row) {
+        const merged = { ...defaults, ...row } as T;
         setData(merged);
         latest.current = merged;
       } else {
@@ -76,7 +76,7 @@ export function useBillsSettings<T extends Record<string, unknown>>(
         clearTimeout(timer.current);
         // Τελευταία προσπάθεια εγγραφής: μια αποθήκευση προγραμματισμένη λίγο πριν
         // (π.χ. αλλαγή καρτέλας) να μη χάνεται σιωπηλά.
-        doSaveRef.current?.(latest.current, boundKey.current);
+        doSaveRef.current?.(latest.current, bound.current);
       }
     };
   }, []);
@@ -85,18 +85,12 @@ export function useBillsSettings<T extends Record<string, unknown>>(
   // FIX C: accepts the propertyId/section the write was scheduled FOR,
   // so a timer that survives a property switch still writes to the
   // correct row instead of silently doing nothing or racing the new one.
-  const doSave = useCallback(async (snapshot: T, key: string) => {
-    const [savePropertyId, saveSection] = key.split('::');
-    if (!savePropertyId || !userId) return; // userId truly missing → nothing to attribute the write to
+  const doSave = useCallback(async (snapshot: T, target: { propertyId: string; section: settings.Section }) => {
+    if (!target.propertyId || !userId) return; // userId truly missing → nothing to attribute the write to
     // Η σιωπηλή αποτυχία που ήταν εδώ έκρυβε ακριβώς ό,τι έπρεπε να φανεί: ο
     // χρήστης γύριζε σε άλλο ακίνητο και οι ρυθμίσεις του δεν υπήρχαν.
-    await saved('Οι ρυθμίσεις λογαριασμών δεν αποθηκεύτηκαν', supabase.from('bills_settings').upsert({
-      property_id: savePropertyId,
-      user_id:     String(userId),
-      section:     saveSection,
-      data:        snapshot,
-      updated_at:  new Date().toISOString(),
-    }, { onConflict: 'property_id,section' }));
+    await saved('Οι ρυθμίσεις λογαριασμών δεν αποθηκεύτηκαν',
+      settings.put(supabase, target.propertyId, userId, target.section, snapshot));
   }, [userId]);
 
   // Κρατά αναφορά στην τελευταία doSave, ώστε το effect της αποπροσάρτησης (που
@@ -106,12 +100,12 @@ export function useBillsSettings<T extends Record<string, unknown>>(
 
   // ── Update ────────────────────────────────────────────────────────────────
   const update = useCallback((patch: Partial<T>) => {
-    const keyAtCallTime = boundKey.current; // FIX C continued: capture target before any switch can happen
+    const targetAtCallTime = bound.current; // FIX C continued: capture target before any switch can happen
     setData(prev => {
       const next = { ...prev, ...patch } as T;
       latest.current = next;
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => doSave(latest.current, keyAtCallTime), 800);
+      timer.current = setTimeout(() => doSave(latest.current, targetAtCallTime), 800);
       return next;
     });
   }, [doSave]);

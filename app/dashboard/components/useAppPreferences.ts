@@ -4,6 +4,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 
 export interface AppPreferences {
   // Ειδοποιήσεις
@@ -49,15 +51,10 @@ export function useAppPreferences(propertyId: string): { prefs: AppPreferences; 
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('bills_settings')
-      .select('data')
-      .eq('property_id', propertyId)
-      .eq('section', APP_PREFERENCES_SECTION)
-      .maybeSingle();
+    const data = await settings.section<Partial<AppPreferences>>(supabase, propertyId, APP_PREFERENCES_SECTION);
 
-    if (data?.data) {
-      setPrefs(prev => ({ ...prev, ...data.data }));
+    if (data) {
+      setPrefs(prev => ({ ...prev, ...data }));
     }
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps

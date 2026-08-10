@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
 import { T, TT, fe, formGrid, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
@@ -75,10 +77,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   useEffect(() => {
     if (!propertyId) return;
     (async () => {
-      const { data } = await supabase.from('bills_settings').select('data')
-        .eq('property_id', propertyId).eq('section', 'common').maybeSingle();
-      if (data?.data) {
-        const d = data.data as Record<string, unknown>;
+      const d = await settings.section(supabase, propertyId, 'common', userId);
+      if (d) {
         if (d.mgmtType)                  setMgmtType(d.mgmtType as string);
         if (d.mgmtCost !== undefined)    setMgmtCost(String(d.mgmtCost ?? ''));
         if (d.mgmtDueDay)                setMgmtDueDay(d.mgmtDueDay as string);
@@ -99,10 +99,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const save = useCallback((patch: Record<string, unknown>) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      await saved('Οι ρυθμίσεις κοινοχρήστων δεν αποθηκεύτηκαν', supabase.from('bills_settings').upsert({
-        property_id: propertyId, user_id: String(userId), section: 'common',
-        data: patch, updated_at: new Date().toISOString(),
-      }, { onConflict: 'property_id,section' }));
+      await saved('Οι ρυθμίσεις κοινοχρήστων δεν αποθηκεύτηκαν',
+        settings.put(supabase, propertyId, userId, 'common', patch));
     }, 800);
   }, [propertyId, userId]);
 

@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as billStore from '@/lib/data/bills';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fn, feRate, Skeleton, histInputStyle, ABSENT_SHORT, formGrid } from '@/components/Theme';
@@ -262,8 +264,8 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     if (!propertyId) return;
     (async () => {
       try {
-        const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'insurance').maybeSingle();
-        if (data?.data) { const d = data.data as Record<string, unknown>; setInsData({ eq: !!d.insCustomEarthquake, fl: !!d.insCustomFlood }); }
+        const d = await settings.section<{ insCustomEarthquake?: unknown; insCustomFlood?: unknown }>(supabase, propertyId, 'insurance', userId);
+        if (d) setInsData({ eq: !!d.insCustomEarthquake, fl: !!d.insCustomFlood });
       } catch (_) {}
     })();
   }, [propertyId]);

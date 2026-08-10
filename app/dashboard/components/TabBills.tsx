@@ -228,7 +228,7 @@ export default function TabBills({
       </div>
 
       {/* ── «Πληρώνεις παραπάνω» — μόνο όταν υπάρχει πραγματική διαφορά ── */}
-      <ExpenseSwitchAlert propertyId={propertyId} onOpen={openTool} />
+      <ExpenseSwitchAlert propertyId={propertyId} userId={userId} onOpen={openTool} />
 
       {/* ── ΟΙ ΚΑΡΤΕΣ: Η ΑΠΑΝΤΗΣΗ ΠΡΙΝ ΤΗΝ ΕΡΩΤΗΣΗ ────────────────────────
           ΠΡΙΝ: έξι κλειστά chips και η γραμμή «Διάλεξε κατηγορία για να δεις το

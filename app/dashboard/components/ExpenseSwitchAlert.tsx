@@ -18,6 +18,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as billStore from '@/lib/data/bills';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import { T, feAuto } from '@/components/Theme';
 import { electricitySwitchFinding, type SwitchFinding } from './BillsElectricity';
 import { insuranceSwitchFinding } from './BillsInsurance';
@@ -26,8 +28,9 @@ type Section = 'electricity' | 'insurance';
 
 interface Row extends SwitchFinding { section: Section; title: string }
 
-export default function ExpenseSwitchAlert({ propertyId, onOpen }: {
+export default function ExpenseSwitchAlert({ propertyId, userId, onOpen }: {
   propertyId: string;
+  userId: string;
   onOpen?: (section: Section) => void;
 }) {
   const supabase = createClient();
@@ -39,14 +42,13 @@ export default function ExpenseSwitchAlert({ propertyId, onOpen }: {
     let alive = true;
     (async () => {
       try {
-        const [{ data: setts }, kwhRows] = await Promise.all([
-          supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['electricity', 'insurance']),
+        const [setts, kwhRows] = await Promise.all([
+          settings.sections(supabase, propertyId, ['electricity', 'insurance'], userId),
           billStore.kwhHistory<{ kwh: number | null }>(supabase, propertyId, 'kwh'),
         ]);
         if (!alive) return;
 
-        const bySection = (name: string) =>
-          (setts ?? []).find((r: { section: string }) => r.section === name)?.data as Record<string, unknown> | undefined;
+        const bySection = (name: settings.Section) => setts[name];
         const billsKwh = (kwhRows ?? [])
           .map((b: { kwh?: number | null }) => Number(b.kwh))
           .filter((n: number) => Number.isFinite(n) && n > 0);
@@ -60,7 +62,7 @@ export default function ExpenseSwitchAlert({ propertyId, onOpen }: {
       } catch { /* σιωπηλά: μια ειδοποίηση που δεν ήρθε δεν χαλάει καμία οθόνη */ }
     })();
     return () => { alive = false; };
-  }, [propertyId]);
+  }, [propertyId, userId]);
 
   const visible = rows.filter(r => !dismissed.has(r.section));
   if (visible.length === 0) return null;

@@ -50,6 +50,8 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import { T, TT, fe, fp, SecHdr, Spinner } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -137,11 +139,9 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
   useEffect(() => {
     if (!propertyId) return;
     let live = true;
-    supabase.from('bills_settings').select('data')
-      .eq('property_id', propertyId).eq('section', 'insurance').maybeSingle()
-      .then(({ data }) => {
+    settings.section<{ insCustomEarthquake?: boolean; insCustomFlood?: boolean }>(supabase, propertyId, 'insurance', userId)
+      .then(d => {
         if (!live) return;
-        const d = data?.data as { insCustomEarthquake?: boolean; insCustomFlood?: boolean } | null;
         setInsured(!!(d?.insCustomEarthquake || d?.insCustomFlood));
       });
     return () => { live = false; };

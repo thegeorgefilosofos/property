@@ -5,6 +5,8 @@ import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
@@ -653,7 +655,7 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
         if (chk[0]) setChecklistRenewal({ daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null });
 
         // Property data from services (ΕΝΦΙΑ has sqm, zone, floor, age)
-        const { data: svc } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'services').maybeSingle();
+        const svcData = await settings.section(supabase, propertyId, 'services', userId);
         // ΤΟ ΑΚΙΝΗΤΟ ΔΕΝ ΔΙΑΒΑΖΟΤΑΝ ΠΟΤΕ. Η ερώτηση πήγαινε στον πίνακα
         // `properties`, που δεν υπάρχει στη βάση — τα ακίνητα ζουν στο
         // `user_properties`. Γύριζε πάντα σφάλμα, οπότε τα τετραγωνικά και η
@@ -696,10 +698,10 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
           insurance_expiry: p.insurance_expiry ?? null,
           insurance_amount: p.insurance_amount ?? null,
         });
-        if (svc?.data || prop) {
+        if (svcData || prop) {
           // Τα διασταυρούμενα στοιχεία έρχονται από τις ρυθμίσεις ΕΝΦΙΑ, όπου το `data`
         // είναι ελεύθερο jsonb. Δηλώνονται όσα πεδία διαβάζονται, και μόνο αυτά.
-        const d = (svc?.data ?? {}) as { enfiaSqm?: string; enfiaZone?: string; enfiaFloor?: string; enfiaAge?: string };
+        const d = (svcData ?? {}) as { enfiaSqm?: string; enfiaZone?: string; enfiaFloor?: string; enfiaAge?: string };
           const propSqm = p.sqm ? String(p.sqm) : '';
           setCrossProperty({
             sqm:          d.enfiaSqm       || propSqm         || '',

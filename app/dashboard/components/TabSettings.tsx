@@ -8,6 +8,8 @@
 import { useState, useEffect, useRef, useId, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+// Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
+import * as settings from '@/lib/data/settings';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
 import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
@@ -406,9 +408,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     if (data) setS(data);
   }
   async function loadPrefs() {
-    const { data } = await supabase.from('bills_settings').select('data')
-      .eq('property_id', propertyId).eq('section', 'app_preferences').maybeSingle();
-    if (data?.data) setPrefs(p => ({ ...p, ...data.data }));
+    const data = await settings.section<Partial<AppPreferences>>(supabase, propertyId, 'app_preferences', userId);
+    if (data) setPrefs(p => ({ ...p, ...data }));
     else setPrefs(DEFAULT_PREFERENCES);
   }
   function updatePrefs(partial: Partial<AppPreferences>) {
@@ -416,10 +417,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       const next = { ...prev, ...partial };
       if (prefsTimer.current) clearTimeout(prefsTimer.current);
       prefsTimer.current = setTimeout(async () => {
-        const { error } = await supabase.from('bills_settings').upsert({
-          property_id: propertyId, user_id: String(userId),
-          section: 'app_preferences', data: next, updated_at: new Date().toISOString(),
-        }, { onConflict: 'property_id,section' });
+        const { error } = await settings.put(supabase, propertyId, userId, 'app_preferences', next);
         if (error) { setPrefsErr(true); return; }
         setPrefsErr(false); setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 1800);
       }, 800);
