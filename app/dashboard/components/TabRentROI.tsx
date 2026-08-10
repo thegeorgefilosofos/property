@@ -14,7 +14,7 @@ import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
 import { readStatus, type StatusRow } from '@/lib/property/status'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
-import { Skeleton, SkeletonKPIs, fe, feCompact, fp, fn, ABSENT_SHORT, T, formGrid } from '@/components/Theme';
+import { Skeleton, SkeletonKPIs, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, formGrid } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -830,7 +830,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         ${R('Δείκτης κάλυψης χρέους (DSCR)', Number.isFinite(deal.dscr) ? num2(deal.dscr) : '∞')}
         ${R('Απόδοση ιδίων κεφαλαίων (cash-on-cash)', rPct(lev.cashOnCash))}
         ${R('Ετήσια ταμειακή ροή', rEur(lev.cashFlow))}
-        ${R('Εσωτερικός βαθμός απόδοσης (IRR)', Number.isFinite(deal.irrPct) ? rPct(deal.irrPct) : '—')}
+        ${R('Εσωτερικός βαθμός απόδοσης (IRR)', Number.isFinite(deal.irrPct) ? rPct(deal.irrPct) : ABSENT)}
         ${R('Καθαρή παρούσα αξία (NPV)', rEur(deal.npv))}
         ${R('Πολλαπλασιαστής ιδίων κεφαλαίων', `${num2(deal.equityMultiple)}×`)}
         ${R('Ορίζοντας κατοχής', `${parseInt(holdYears)} έτη`, 'sub')}
@@ -971,7 +971,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           { label: 'Δείκτης κάλυψης χρέους (DSCR)', value: Number.isFinite(deal.dscr) ? num2(deal.dscr) : '∞' },
           { label: 'Απόδοση ιδίων κεφαλαίων (cash-on-cash)', value: pPct(lev.cashOnCash) },
           { label: 'Ετήσια ταμειακή ροή', value: pEur(lev.cashFlow) },
-          { label: 'Εσωτερικός βαθμός απόδοσης (IRR)', value: Number.isFinite(deal.irrPct) ? pPct(deal.irrPct) : '—' },
+          { label: 'Εσωτερικός βαθμός απόδοσης (IRR)', value: Number.isFinite(deal.irrPct) ? pPct(deal.irrPct) : ABSENT },
           { label: 'Καθαρή παρούσα αξία (NPV)', value: pEur(deal.npv) },
           { label: 'Πολλαπλασιαστής ιδίων κεφαλαίων', value: `${num2(deal.equityMultiple)}×` },
           { label: 'Ορίζοντας κατοχής', value: `${parseInt(holdYears)} έτη`, kind: 'sub' },

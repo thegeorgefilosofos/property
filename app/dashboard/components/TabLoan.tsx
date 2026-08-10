@@ -851,7 +851,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                       <td style={{padding:'10px 12px'}}>
                         {bank.spiti_mou
                           ?<span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500}}>Ναι</span>
-                          :<span style={{fontSize:12,color:'var(--text-tertiary)'}}>—</span>
+                          :<span style={{fontSize:12,color:'var(--text-tertiary)'}}>Όχι</span>
                         }
                       </td>
                     </tr>

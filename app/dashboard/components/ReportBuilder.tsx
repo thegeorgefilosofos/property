@@ -169,11 +169,11 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           const mr = rents.filter(r => r.period_month === m);
           const exp = mr.reduce((s, r) => s + num(r.amount), 0);
           const col = mr.reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0);
-          const status = exp === 0 ? '—' : col >= exp ? 'Πλήρης' : col > 0 ? 'Μερική' : 'Εκκρεμεί';
+          const status = exp === 0 ? 'Χωρίς δόση' : col >= exp ? 'Πλήρης' : col > 0 ? 'Μερική' : 'Εκκρεμεί';
           return [MONTHS_NOM[m - 1], `${pEur(col)} / ${pEur(exp)}`, status];
         }).filter(r => r[1] !== `${pEur(0)} / ${pEur(0)}`);
         built.push({ type: 'table', title: 'Συμφωνία ενοικίων', head: ['Περίοδος', 'Εισπράχθηκε / Αναμενόμενο', 'Κατάσταση'], align: ['l', 'r', 'r'],
-          rows: rows.length ? rows : [['—', `${pEur(0)} / ${pEur(0)}`, '—']],
+          rows: rows.length ? rows : [['Καμία περίοδος', `${pEur(0)} / ${pEur(0)}`, 'Χωρίς δόση']],
           result: ['Σύνολο', `${pEur(collected)} / ${pEur(expected)}`, outstanding > 0 ? `Ανείσπρακτα ${pEur(outstanding)}` : 'Πλήρης'] });
       }
 
@@ -182,7 +182,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
         for (const e of exps) { const k = e.category || 'Λοιπά'; byCat.set(k, (byCat.get(k) || 0) + num(e.amount)); }
         const rows = [...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, pEur(v)]);
         built.push({ type: 'table', title: 'Δαπάνες ανά κατηγορία', head: ['Κατηγορία', 'Ποσό'], align: ['l', 'r'],
-          rows: rows.length ? rows : [['—', pEur(0)]], result: ['Σύνολο', pEur(expTotal)] });
+          rows: rows.length ? rows : [['Καμία δαπάνη', pEur(0)]], result: ['Σύνολο', pEur(expTotal)] });
       }
 
       const subject = selProps.length === 1 ? selProps[0].name : `${selProps.length} ακίνητα`;

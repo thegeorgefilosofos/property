@@ -10,7 +10,7 @@ import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, Modal, SideSheet, localDay, pressable } from '@/components/Theme'
+import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
@@ -514,8 +514,8 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
             {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : fe(0), color: 'var(--text-primary)' },
-              { label: 'Παραστατικά με το ΑΦΜ του', value: docs.length > 0 ? `${docs.length}${docsTotal > 0 ? ' · ' + fe(docsTotal) : ''}` : (afm.length === 9 ? '0' : '—'), color: 'var(--text-primary)' },
-              { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
+              { label: 'Παραστατικά με το ΑΦΜ του', value: docs.length > 0 ? `${docs.length}${docsTotal > 0 ? ' · ' + fe(docsTotal) : ''}` : (afm.length === 9 ? '0' : ABSENT_SHORT), color: 'var(--text-primary)' },
+              { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '0', color: 'var(--text-primary)' }].map(s => (
               <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
@@ -810,7 +810,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
           return `<tr>`
             + `<td><div style="font-weight:600;color:${INK}">${rEsc(c.full_name)}</div>`
             +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
-            + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}</td>`
+            + `<td class="tnum">${c.phone ? rEsc(c.phone) : ABSENT_SHORT}</td>`
             + `<td>${rEsc(c.email || ABSENT)}</td>`
             + `</tr>`
         }).join('')
@@ -821,13 +821,13 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
     const rows = byGroup[g.id].map(c => {
       const ex = c._extra || {}
       const role = ROLE_META[c.role]?.label || c.role
-      const iban = ex.iban ? `···${rEsc(ex.iban.slice(-4))}${mark(ex.iris, 'IRIS')}` : '—'
+      const iban = ex.iban ? `···${rEsc(ex.iban.slice(-4))}${mark(ex.iris, 'IRIS')}` : ABSENT_SHORT
       return `<tr>`
         + `<td><div style="font-weight:600;color:${INK}">${rEsc(c.full_name)}</div>`
         +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
-        + `<td class="tnum">${c.phone ? rEsc(c.phone) : '—'}${mark(ex.whatsapp, 'WA')}${mark(ex.viber, 'VB')}</td>`
+        + `<td class="tnum">${c.phone ? rEsc(c.phone) : ABSENT_SHORT}${mark(ex.whatsapp, 'WA')}${mark(ex.viber, 'VB')}</td>`
         + `<td>${rEsc(c.email || ABSENT)}</td>`
-        + `<td class="tnum">${ex.afm ? rEsc(ex.afm) : '—'}</td>`
+        + `<td class="tnum">${ex.afm ? rEsc(ex.afm) : ABSENT_SHORT}</td>`
         + `<td class="tnum">${iban}</td>`
         + `</tr>`
     }).join('')

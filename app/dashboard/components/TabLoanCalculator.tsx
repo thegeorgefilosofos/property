@@ -384,7 +384,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
             </div>
             <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:3}}>
               <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Αύξηση</span>
-              <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{hi===0?'—':diff>=0?`+${fmt(diff)}`:`-${fmt(-diff)}`}</span>
+              <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{hi===0?fmt(0):diff>=0?`+${fmt(diff)}`:`-${fmt(-diff)}`}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:14,paddingTop:5,marginTop:2,borderTop:'1px solid var(--border-subtle)'}}>
               <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Δόση προς εισόδημα</span>
@@ -1393,7 +1393,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 <td style={{padding:'8px 10px',color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:i===0?600:400}}>{s.label}</td>
                 <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtPct(s.rate)}</td>
                 <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(s.monthly)}</td>
-                <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:i===0?'var(--text-tertiary)':'var(--text-secondary)'}}>{i===0?'—':diff>=0?`+${fmtEur(diff)}`:`-${fmtEur(-diff)}`}</td>
+                <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:i===0?'var(--text-tertiary)':'var(--text-secondary)'}}>{i===0?fmtEur(0):diff>=0?`+${fmtEur(diff)}`:`-${fmtEur(-diff)}`}</td>
                 <td style={{padding:'8px 10px',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:"var(--text-primary)",fontWeight:dti>40?700:500}}>{fmtPct1(dti)}</td>
               </tr>
             })}
@@ -1415,7 +1415,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <KPI label="Τρέχουσα δόση" value={fmtEur(currM)}/>
           <KPI label="Νέα δόση" value={fmtEur(newM)} emphasis sub={`${fmtEur(mSav)} τον μήνα`}/>
           <KPI label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} emphasis={refSav>0} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
-          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'—'} emphasis={!!brkEven && brkEven < 24} sub="Απόσβεση εξόδων μεταφοράς"/>
+          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'Δεν αποσβένεται'} emphasis={!!brkEven && brkEven < 24} sub="Απόσβεση εξόδων μεταφοράς"/>
         </div>
       </Section>
       </>)}

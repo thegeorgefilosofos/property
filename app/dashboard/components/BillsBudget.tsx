@@ -1570,10 +1570,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <span style={{ flex: 1 }}/>
 
                   <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                    {actual > 0
-                      ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(actual)}</span>
-                      : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
-                    }
+                    {/* ΙΔΙΟ ΜΕΓΕΘΟΣ ΚΑΙ ΣΤΙΣ ΔΥΟ ΠΕΡΙΠΤΩΣΕΙΣ. Το «καμία δαπάνη» ήταν
+                        παύλα σε 11 στιγμές δίπλα σε ποσό των 14: δύο διαφορετικά ύψη
+                        στην ίδια στήλη, που δεν στοιχίζονται μεταξύ τους σε καμία
+                        σειρά. Τώρα είναι ποσό, γράφεται 0,00 €, και η απουσία λέγεται
+                        από το χρώμα και το βάρος. */}
+                    <span style={{ fontSize: 14, fontWeight: actual > 0 ? 700 : 500, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: actual > 0 ? (hov ? 'var(--accent)' : 'var(--text-primary)') : 'var(--text-tertiary)', transition: 'color 0.15s' }}>{feAuto(actual > 0 ? actual : 0)}</span>
                     {/* Στόχος — κλικ για επιτόπου αλλαγή */}
                     <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ <InlineNumber raw={budgets[cat.key] ?? String(cat.default)} display={feAuto(budget)} onCommit={v => updateBudget(cat.key, v)} width={58} ariaLabel={`Στόχος «${cat.label}»`} /></span>
                     {isOver && <span className="po-fig" data-tone="negative" title="Υπέρβαση του στόχου" style={{ fontSize: 10, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget)}</span>}

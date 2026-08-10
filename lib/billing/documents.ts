@@ -15,6 +15,7 @@
 
 import { EXPENSE_MAP, categorizeTransaction, derivePeriod, digitsOnly, isValidAfm } from './parse';
 import { navLabel } from '../nav/labels';
+import { fe } from '../core/format';
 import type { EventDraft } from '../data/calendar';
 
 // Ο προορισμός γράφεται ΜΙΑ φορά, από το μητρώο ονομάτων. Ήταν έξι φορές η
@@ -482,7 +483,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
     // Η ασφάλεια αποθηκεύεται στο property_settings (καρτέλα Ρυθμίσεις — εκεί που
     // ο χρήστης βλέπει τα στοιχεία ασφάλισης). Δεν υπάρχει στήλη ποσού εκεί, γι'
     // αυτό το ασφάλιστρο καταγράφεται ως έξοδο (Ασφάλεια Κτιρίου).
-    const coverageNote = doc.coverage ? `Κάλυψη: ${doc.coverage.toLocaleString('el-GR')} €` : '';
+    const coverageNote = doc.coverage ? `Κάλυψη: ${fe(doc.coverage)}` : '';
     const insNote = [coverageNote, baseNote].filter(Boolean).join(' · ');
     const plan: SavePlan = {
       targets: ['Ασφάλεια', 'Αρχείο'],
@@ -587,8 +588,8 @@ export function docSummaryLine(doc: ScannedDoc): string {
   if (doc.provider) parts.push(doc.provider);
   else if (doc.tenant_name) parts.push(doc.tenant_name);
   else if (doc.title) parts.push(doc.title);
-  if (doc.amount) parts.push(`${doc.amount.toLocaleString('el-GR')} €`);
-  else if (doc.monthly_rent) parts.push(`${doc.monthly_rent.toLocaleString('el-GR')} €/μήνα`);
-  else if (doc.premium) parts.push(`${doc.premium.toLocaleString('el-GR')} €`);
+  if (doc.amount) parts.push(fe(doc.amount));
+  else if (doc.monthly_rent) parts.push(`${fe(doc.monthly_rent)}/μήνα`);
+  else if (doc.premium) parts.push(fe(doc.premium));
   return parts.join(' — ') || DOC_TYPE_LABELS[doc.doc_type];
 }

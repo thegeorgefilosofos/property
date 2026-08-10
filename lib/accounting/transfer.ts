@@ -12,6 +12,8 @@
 //   (σε ΑΝΑΣΤΟΛΗ), και καθαρό τίμημα μετά τα κόστη.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { fe } from '../core/format';
+
 const round2 = (n: number): number => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100
 const pos = (n: number): number => Math.max(0, round2(n))
 const VAT = 0.24 // ΦΠΑ υπηρεσιών (συμβολαιογράφος/μεσίτης/δικηγόρος)
@@ -106,7 +108,7 @@ export function transferCosts(input: TransferInput): TransferResult {
       const exemption = input.firstHome ? firstHomeExemption(input) : 0
       const taxable = Math.max(0, taxBase - exemption)
       lines.push({ key: 'transferTax', label: 'Φόρος μεταβίβασης (3,09%)', amount: round2(taxable * TRANSFER_TAX_RATE),
-        note: input.firstHome ? `Μετά απαλλαγή πρώτης κατοικίας έως ${Math.round(exemption).toLocaleString('el-GR')} €.` : 'Επί της μεγαλύτερης μεταξύ τιμήματος και αντικειμενικής.' })
+        note: input.firstHome ? `Μετά απαλλαγή πρώτης κατοικίας έως ${fe(Math.round(exemption))}.` : 'Επί της μεγαλύτερης μεταξύ τιμήματος και αντικειμενικής.' })
     }
     // Συμβολαιογραφικά (κλιμακωτά ~0,8% + ΦΠΑ), δικηγόρος, μεσίτης, Κτηματολόγιο, πιστοποιητικά.
     lines.push({ key: 'notary', label: 'Συμβολαιογραφικά', amount: round2(taxBase * 0.008 * (1 + VAT)), note: 'Ενδεικτικά ~0,8% + ΦΠΑ (κλιμακωτά).' })
@@ -128,7 +130,7 @@ export function transferCosts(input: TransferInput): TransferResult {
   const gain = Math.max(0, price - pos(input.acquisitionCost ?? 0))
   const cgtActive = !!input.capitalGainsActive
   lines.push({ key: 'capitalGains', label: 'Φόρος υπεραξίας (15%)', amount: cgtActive ? round2(gain * CAPITAL_GAINS_RATE) : 0,
-    note: cgtActive ? `Επί υπεραξίας ${Math.round(gain).toLocaleString('el-GR')} €.` : 'Σε αναστολή, δεν επιβαρύνει επί του παρόντος.' })
+    note: cgtActive ? `Επί υπεραξίας ${fe(Math.round(gain))}.` : 'Σε αναστολή, δεν επιβαρύνει επί του παρόντος.' })
 
   const totalCosts = round2(lines.reduce((s, l) => s + l.amount, 0))
   return { side: 'sell', price, lines, totalCosts, costPct: price > 0 ? totalCosts / price : 0, netProceeds: round2(price - totalCosts) }

@@ -109,7 +109,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     const NC = 7, HR = 3;
     const header = ['Ημερομηνία', 'Ημέρα', 'Εποχή', 'Σαββατοκύριακο', 'Αργία', 'Τιμή/νύχτα', 'Κατάσταση'];
     const data: (string | number | Date)[][] = rows.map(r => [
-      toDate(r.date), wd(r.dow), SEASON_LABELS[r.season] || '', r.isWeekend ? 'Ναι' : '—',
+      toDate(r.date), wd(r.dow), SEASON_LABELS[r.season] || '', r.isWeekend ? 'Ναι' : 'Όχι',
       r.holidayName || '', r.price, r.booked ? 'Κλεισμένο' : 'Διαθέσιμο',
     ]);
     const aoa: (string | number | Date)[][] = [

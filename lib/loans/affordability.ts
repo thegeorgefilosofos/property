@@ -5,7 +5,7 @@
 //   50% για πρώτη κατοικία / πρώτη φορά δανειολήπτη, 40% για τους υπόλοιπους.
 // ═══════════════════════════════════════════════════════════════════════════
 import { annuityMonthly } from './recommend'
-import { fp } from '../core/format'
+import { fe, fp } from '../core/format'
 
 export const DSTI_LIMIT = { firstHome: 0.5, other: 0.4 } as const
 
@@ -182,7 +182,7 @@ export function euriborInsight(opts: {
       const other = base + delta
       const save = (annuityMonthly(amount, base, years) - annuityMonthly(amount, other, years)) * years * 12
       if (delta < 0 && save > 0) {
-        return `Το Euribor 3 μηνών υποχώρησε κατά ${fp(Math.abs(delta))}. Σε κυμαινόμενο δάνειο ${amount.toLocaleString('el-GR')}€, αυτό αντιστοιχεί σε εξοικονόμηση περίπου ${r0(save).toLocaleString('el-GR')}€ στη διάρκεια.`
+        return `Το Euribor 3 μηνών υποχώρησε κατά ${fp(Math.abs(delta))}. Σε κυμαινόμενο δάνειο ${fe(amount)}, αυτό αντιστοιχεί σε εξοικονόμηση περίπου ${r0(save).toLocaleString('el-GR')}€ στη διάρκεια.`
       }
       if (delta > 0) {
         return `Το Euribor 3 μηνών ανέβηκε κατά ${fp(delta)}. Αν το δάνειό σου είναι κυμαινόμενο, η δόση επιβαρύνεται· αξίζει να εξετάσεις σταθερό επιτόκιο.`

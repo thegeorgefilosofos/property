@@ -10,7 +10,7 @@ import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { T, feAuto, fdLong, ABSENT_DATE } from '@/components/Theme';
+import { T, feAuto, feOr, fdLong, ABSENT_DATE } from '@/components/Theme';
 import { MONTHS_NOM } from '@/lib/core/months';
 
 interface DueItem { id: string; year: number; month: number; amount: number; due_date: string | null; declared: boolean }
@@ -23,7 +23,7 @@ interface PortalData {
   payment_link: string | null;
 }
 
-const eur = (n: number | null) => (n == null ? '—' : feAuto(n));
+const eur = (n: number | null) => (n == null ? feOr(null) : feAuto(n));
 const gdate = (d: string | null) => (d ? fdLong(d) : ABSENT_DATE);
 const monthLabel = (month: number, year: number) => `${MONTHS_NOM[month - 1] ?? ''} ${year}`.trim();
 

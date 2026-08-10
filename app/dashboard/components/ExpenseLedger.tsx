@@ -32,7 +32,7 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, fe, Btn, Card, EmptyState, Skeleton } from '@/components/Theme';
+import { T, TT, fe, Btn, Card, EmptyState, Skeleton, ABSENT_DATE } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
 import {
   mergeLedger, ledgerTotal, groupByMonth,
@@ -68,7 +68,7 @@ const monthLabel = (m: string): string => {
 
 /** «24/07» για φέτος, «24/07/25» για παλιότερα. Η χρονιά μπαίνει μόνο όταν μετρά. */
 const shortDate = (d: string): string => {
-  if (!d) return '—';
+  if (!d) return ABSENT_DATE;
   const [y, m, day] = d.split('-');
   const sameYear = String(new Date().getFullYear()) === y;
   return sameYear ? `${day}/${m}` : `${day}/${m}/${y.slice(2)}`;

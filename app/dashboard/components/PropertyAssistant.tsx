@@ -28,7 +28,7 @@ import * as expenseStore from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
 import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
-import { T, TT, Modal, feAuto, fp } from '@/components/Theme';
+import { T, TT, Modal, feAuto, feOr, fp } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
@@ -94,7 +94,9 @@ import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
-const eur = (n?: number | null) => n == null ? '—' : feAuto(n);
+// Ο άγνωστος αριθμός γράφεται 0,00 €, όχι παύλα: η παύλα δεν στοιχίζεται με
+// τίποτα και σε στήλη ποσών διαβάζεται ως σφάλμα (lib/core/format.ts).
+const eur = (n?: number | null) => n == null ? feOr(null) : feAuto(n);
 // Η ερώτηση συμφωνίας σε μία πρόταση. Οι ίδιοι λόγοι που δείχνει και η οθόνη
 // σάρωσης — δεν εφευρίσκεται δεύτερη διατύπωση για την ίδια απόφαση.
 const reconcilePrompt = (q: { question: string; options: { label: string; reasons: string[] }[] }): string =>

@@ -6,7 +6,7 @@ import {
   Toggle, TextInput, Textarea, ServiceBySelect as UIServiceBySelect,
   SegmentControl, FREQ_OPTIONS,
 } from './UIComponents';
-import { T, feAuto, Btn, localDay } from '@/components/Theme';
+import { T, feAuto, feOr, Btn, localDay, ABSENT_DATE } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import * as calendar from '@/lib/data/calendar';
 import * as checklist from '@/lib/data/checklist';
@@ -113,9 +113,9 @@ export const cpiConfirmedLabel = (): string =>
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 export const fmt = (n: number | null | undefined) =>
-  n == null ? '—' : feAuto(n);
+  n == null ? feOr(null) : feAuto(n);
 export const fmtD = (d: string | null) =>
-  !d ? '—' : localDay(d).toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  !d ? ABSENT_DATE : localDay(d).toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' });
 export const daysLeft = (end: string | null) =>
   !end ? null : daysUntil(end);
 export const leaseSt = (d: number | null) => {

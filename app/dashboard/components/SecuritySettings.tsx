@@ -11,7 +11,7 @@
 
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, settingsField, Spinner, ABSENT, formGrid } from '@/components/Theme';
+import { T, Btn, settingsField, Spinner, ABSENT, ABSENT_DATE, formGrid } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
 import { checkPassword } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
@@ -231,7 +231,7 @@ export default function SecuritySettings() {
 
   const lastSignInText = lastSignIn
     ? new Date(lastSignIn).toLocaleString('el-GR', { dateStyle: 'medium', timeStyle: 'short' })
-    : '—';
+    : ABSENT_DATE;
 
   return (
     <div className="acc-section" style={{ display: 'flex', flexDirection: 'column' }}>

@@ -8,6 +8,7 @@
 // τόκους + έξοδα + υποχρεωτικές ασφάλειες, ώστε να συγκρίνονται προσφορές.
 // ═══════════════════════════════════════════════════════════════════════════
 import { annuityMonthly } from './recommend'
+import { fe } from '../core/format'
 
 export interface EsisFee { label: string; amount: number }
 
@@ -114,14 +115,14 @@ export function analyzeEsis(input: EsisInput, opts?: { benchmarkAprc?: number })
   const feePct = amount > 0 ? (totalFees / amount) * 100 : 0
   if (feePct >= 1) {
     score -= 12
-    flags.push({ kind: 'warn', label: 'Υψηλά αρχικά έξοδα', detail: `Έξοδα ${totalFees.toLocaleString('el-GR')}€ (${Math.round(feePct * 10) / 10}% του δανείου). Πολλά διαπραγματεύονται ή απαλείφονται.` })
+    flags.push({ kind: 'warn', label: 'Υψηλά αρχικά έξοδα', detail: `Έξοδα ${fe(totalFees)} (${Math.round(feePct * 10) / 10}% του δανείου). Πολλά διαπραγματεύονται ή απαλείφονται.` })
   } else if (totalFees > 0) {
-    flags.push({ kind: 'info', label: 'Αρχικά έξοδα', detail: `Συνολικά έξοδα ${totalFees.toLocaleString('el-GR')}€. Ζήτησε αναλυτική παράθεση και έκπτωση.` })
+    flags.push({ kind: 'info', label: 'Αρχικά έξοδα', detail: `Συνολικά έξοδα ${fe(totalFees)}. Ζήτησε αναλυτική παράθεση και έκπτωση.` })
   }
 
   // Ασφάλειες.
   if (insMonthly > 0) {
-    flags.push({ kind: 'info', label: 'Ασφάλειες', detail: `Ασφάλιστρα ${r0(insMonthly)}€ τον μήνα (≈ ${totalInsurance.toLocaleString('el-GR')}€ στη διάρκεια). Η ασφάλεια κατοικίας είναι υποχρεωτική· η ασφάλεια ζωής συχνά προαιρετική.` })
+    flags.push({ kind: 'info', label: 'Ασφάλειες', detail: `Ασφάλιστρα ${fe(insMonthly)} τον μήνα (≈ ${fe(totalInsurance)} στη διάρκεια). Η ασφάλεια κατοικίας είναι υποχρεωτική· η ασφάλεια ζωής συχνά προαιρετική.` })
   }
 
   // Ρήτρα πρόωρης εξόφλησης.

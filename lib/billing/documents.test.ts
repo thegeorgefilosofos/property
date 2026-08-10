@@ -199,8 +199,12 @@ eq('validate payment: amount blocking', validateDoc(doc({ doc_type: 'payment' })
 // ── metadata sanity ──────────────────────────────────────────────────────────
 check('DOC_TYPES has 8 entries', DOC_TYPES.length === 8);
 check('every DocType has a label', DOC_TYPES.every(t => !!DOC_TYPE_LABELS[t.id]));
-eq('summary line prefers provider+amount', docSummaryLine(doc({ doc_type: 'bill', provider: 'ΔΕΗ', amount: 88.5 })), 'ΔΕΗ — 88,5 €');
-eq('summary line lease rent', docSummaryLine(doc({ doc_type: 'lease', tenant_name: 'Α', monthly_rent: 600 })), 'Α — 600 €/μήνα');
+// ΤΑ ΠΟΣΑ ΤΗΣ ΣΥΝΟΨΗΣ ΓΡΑΦΟΝΤΑΙ ΟΠΩΣ ΠΑΝΤΟΥ ΑΛΛΟΥ: δύο δεκαδικά και αχώριστο
+// κενό πριν από το ευρώ. Εδώ έβγαινε «88,5 €» και «600 €/μήνα» από απευθείας
+// κλήση `toLocaleString`, δηλαδή τρίτη μορφή ευρώ δίπλα στις άλλες δύο της ίδιας
+// οθόνης. Ο κοινός τύπος `fe` είναι ο μόνος που γράφει ποσό.
+eq('η σύνοψη προτιμά πάροχο και ποσό', docSummaryLine(doc({ doc_type: 'bill', provider: 'ΔΕΗ', amount: 88.5 })), 'ΔΕΗ — 88,50 €');
+eq('η σύνοψη μίσθωσης γράφει το μίσθωμα', docSummaryLine(doc({ doc_type: 'lease', tenant_name: 'Α', monthly_rent: 600 })), 'Α — 600,00 €/μήνα');
 
 // Κάλυψη: κάθε τύπος εγγράφου κατατάσσεται στον εαυτό του όταν το σήμα είναι ισχυρό (κύκλος)
 const strong: Record<DocType, Partial<ScannedDoc>> = {

@@ -10,7 +10,7 @@ import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import * as checklist from '@/lib/data/checklist'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, fn, fe, fp, fd, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, fdLong, pressable, formGrid } from '@/components/Theme'
+import { T, fn, fe, fp, fd, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, ABSENT_SHORT, isOverlayOpen, fdLong, pressable, formGrid } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
@@ -659,9 +659,9 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
         item.description,
         getPri(item.priority).label,
         item.due_date ? fmtDate(item.due_date) : ABSENT_DATE,
-        d !== null ? (d < 0 ? `${Math.abs(d)} πριν` : `${d} ημέρες`) : '—',
+        d !== null ? (d < 0 ? `${Math.abs(d)} πριν` : `${d} ημέρες`) : ABSENT_DATE,
         item.assigned_contact_name || ABSENT,
-        item._who ? WHO_LABEL[item._who] : '—',
+        item._who ? WHO_LABEL[item._who] : ABSENT_SHORT,
         item.estimated_cost || '',
       ]
     }),

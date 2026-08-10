@@ -258,7 +258,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                   } else if (v === true) {
                     content = <Check tone="muted" />;
                   } else {
-                    content = <span style={{ color: 'var(--text-tertiary)', fontSize: 14, fontFamily: T.font.sans }}>—</span>;
+                    content = <span style={{ color: 'var(--text-tertiary)', fontSize: 13, fontFamily: T.font.sans }}>Όχι</span>;
                   }
                   return (
                     <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '13px 8px' }}>
