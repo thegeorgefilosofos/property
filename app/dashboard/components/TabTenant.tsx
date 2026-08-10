@@ -5,6 +5,7 @@ import { qrDataUrl } from '@/lib/qr';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
+import * as rentStore from '@/lib/data/rent';
 import * as expenses from '@/lib/data/expenses';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
@@ -892,7 +893,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     const services=tenantServicesCharge(tenant);
     const payload=rows.map(r=>({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_year:r.year,period_month:r.month,amount:r2(( base+services)*r.months),base_rent:r2(base*r.months),services_charge:r2(services*r.months),paid:false,due_date:r.due_date}));
     // UNIQUE(tenant_id,period_year,period_month) προστατεύει· αγνόησε διπλότυπα.
-    const{error}=await supabase.from('rent_payments').upsert(payload,{onConflict:'tenant_id,period_year,period_month',ignoreDuplicates:true});
+    const{error}=await rentStore.upsertPeriods(supabase,payload,{ignoreDuplicates:true});
     // ΤΟ /* swallow */ ΕΚΡΥΒΕ ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΑΔΕΙΑΖΕ ΤΟ ΛΟΓΙΣΤΗΡΙΟ.
     // Το upsert αποτύγχανε ΠΑΝΤΑ (payment_date NOT NULL, και κανένα μοναδικό
     // ευρετήριο για το onConflict), το σφάλμα καταπινόταν εδώ, και ένα
@@ -945,20 +946,21 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     const ids=staleUnpaid.map(p=>p.id); if(!ids.length) return;
     setBusy(true);
     // Ενημερώνει μόνο τις συγκεκριμένες εκκρεμείς δόσεις (όχι δηλωμένες/χειροκίνητες εκτός λίστας).
-    const okSync=await saved('Οι δόσεις δεν ενημερώθηκαν', supabase.from('rent_payments').update({amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}).in('id',ids));
+    const okSync=await saved('Οι δόσεις δεν ενημερώθηκαν', rentStore.updateMany(supabase,ids,{amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}));
     setBusy(false); if(!okSync) return;
     onRefresh(); notifyOk('Οι εκκρεμείς δόσεις ενημερώθηκαν');
   };
 
   const doMarkPaid=async(p:RentPayment,method:PayMethod,receipt:string,paidDate:string,docId?:string|null)=>{
-    const daysLate=p.due_date && paidDate>p.due_date ? Math.ceil((new Date(paidDate).getTime()-new Date(p.due_date).getTime())/86400000) : 0;
     // ΕΙΣΠΡΑΞΗ ΕΝΟΙΚΙΟΥ. Αν αυτό αποτύχει σιωπηλά, ο ιδιοκτήτης θεωρεί ότι
     // πληρώθηκε, η δόση μένει ανοιχτή, και το ξαναβλέπει μήνες μετά στη δήλωση.
-    if(!await saved('Η πληρωμή δεν καταχωρήθηκε', supabase.from('rent_payments').update({paid:true,paid_date:paidDate,method,receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null,days_late:daysLate}).eq('id',p.id))) return;
+    // Οι ημέρες καθυστέρησης υπολογίζονταν εδώ, με τον ίδιο τύπο γραμμένο και
+    // δέκα γραμμές πιο κάτω. Ο τύπος ζει τώρα στο στρώμα, μία φορά.
+    if(!await saved('Η πληρωμή δεν καταχωρήθηκε', rentStore.markPaid(supabase,p.id,p.due_date,paidDate,method,{receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null}))) return;
     await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,true);
     onRefresh(); notifyOk('Καταχωρήθηκε ως πληρωμένο');
   };
-  const doUnpay=async(p:RentPayment)=>{ if(!await saved('Η αναίρεση δεν αποθηκεύτηκε', supabase.from('rent_payments').update({paid:false,paid_date:null,days_late:null}).eq('id',p.id))) return; await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,false); onRefresh(); };
+  const doUnpay=async(p:RentPayment)=>{ if(!await saved('Η αναίρεση δεν αποθηκεύτηκε', rentStore.markUnpaid(supabase,p.id))) return; await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,false); onRefresh(); };
 
   const savePay=async()=>{
     // Ήταν ΠΡΑΣΙΝΟ ενώ πρόκειται για σφάλμα επικύρωσης — το παλιό banner είχε έναν
@@ -967,8 +969,12 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
     setBusy(true);
     const paidDate=payF.paid?payF.paid_date:null;
     const due=`${payF.period_year}-${String(payF.period_month).padStart(2,'0')}-${String(Math.min(Math.max(1,rentDueDay),28)).padStart(2,'0')}`;
-    const daysLate=payF.paid&&paidDate&&paidDate>due?Math.ceil((new Date(paidDate).getTime()-new Date(due).getTime())/86400000):0;
-    const{error:payErr}=await supabase.from('rent_payments').upsert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_month:payF.period_month,period_year:payF.period_year,amount:Math.max(0,parseFloat(payF.amount)),paid:payF.paid,paid_date:paidDate,method:payF.paid?payF.method:null,days_late:daysLate,due_date:due,notes:payF.notes||null},{onConflict:'tenant_id,period_year,period_month'});
+    const{error:payErr}=await rentStore.upsertPeriod(supabase,{
+      tenant_id:tenant.id,property_id:propertyId,user_id:userId,
+      period_month:payF.period_month,period_year:payF.period_year,
+      amount:Math.max(0,parseFloat(payF.amount)),due_date:due,notes:payF.notes||null,
+      ...(payF.paid&&paidDate ? rentStore.paidFields(due,paidDate,payF.method) : rentStore.unpaidFields()),
+    });
     // Ίδιο σφάλμα, δεύτερο σημείο: η καταχώρηση πληρωμής απορριπτόταν και το
     // «Πληρωμή καταχωρήθηκε» εμφανιζόταν ούτως ή άλλως.
     if(payErr){ setBusy(false); notifyError(failed('Η πληρωμή δεν καταχωρήθηκε', payErr)); return; }
@@ -1243,7 +1249,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
                       {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
                       {tenant.phone&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
                       {tenant.phone&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
-                      <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;if(await saved('Η πληρωμή δεν διαγράφηκε',supabase.from('rent_payments').delete().eq('id',p.id)))onRefresh();}}>Διαγραφή</button>
+                      <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;if(await saved('Η πληρωμή δεν διαγράφηκε',rentStore.remove(supabase,p.id)))onRefresh();}}>Διαγραφή</button>
                     </div>
                   </td>
                 </tr>
@@ -2089,8 +2095,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   const fetch_=useCallback(async()=>{
     setLoading(true);
     const list=await tenantStore.ofProperty<Tenant>(supabase,propertyId,'*',userId);
-    const[{data:pd},{data:dd},{data:cd},{data:md},own,pc]=await Promise.all([
-      supabase.from('rent_payments').select('*').eq('property_id',propertyId).eq('user_id',userId).order('period_year',{ascending:false}).order('period_month',{ascending:false}),
+    const[pd,{data:dd},{data:cd},{data:md},own,pc]=await Promise.all([
+      rentStore.ofProperty<RentPayment>(supabase,propertyId,'*',userId),
       supabase.from('tenant_damages').select('*').eq('property_id',propertyId).eq('user_id',userId).order('occurred_on',{ascending:false}),
       supabase.from('rent_comparables').select('id,property_id,title,area,sqm,rent,rent_per_sqm,listing_type,source,url').eq('property_id',propertyId),
       supabase.from('maintenance_requests').select('*').eq('user_id',userId).eq('property_id',propertyId).order('created_at',{ascending:false}),
@@ -2101,7 +2107,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       // ΑΘΡΟΙΣΜΑ και ότι το ποσό εδώ είναι μικρότερο από το πραγματικό.
       properties.count(supabase, userId),
     ]);
-    setTenants(list); setPayments((pd||[]) as RentPayment[]); setDamages((dd||[]) as TenantDamage[]); setComps((cd||[]) as RentComp[]); setMaint((md||[]) as MaintenanceReq[]);
+    setTenants(list); setPayments(pd); setDamages((dd||[]) as TenantDamage[]); setComps((cd||[]) as RentComp[]); setMaint((md||[]) as MaintenanceReq[]);
     const sq=Number((own as {sqm?:number|null}|null)?.sqm);
     setPropSqm(Number.isFinite(sq)&&sq>0?sq:null);
     setPropertyCount(Math.max(1, pc||1));
@@ -2326,7 +2332,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     // Η ΣΕΙΡΑ ΕΧΕΙ ΣΗΜΑΣΙΑ: πρώτα τα εξαρτημένα, τελευταίος ο ενοικιαστής. Αν
     // κάποιο βήμα αποτύχει, σταματάμε — αλλιώς μένουν ορφανές πληρωμές που δεν
     // φαίνονται πουθενά και εξακολουθούν να μετράνε σε αθροίσματα.
-    if(!await saved('Οι πληρωμές του ενοικιαστή δεν διαγράφηκαν', supabase.from('rent_payments').delete().eq('tenant_id',t.id))) return;
+    if(!await saved('Οι πληρωμές του ενοικιαστή δεν διαγράφηκαν', rentStore.removeOfTenant(supabase,t.id))) return;
     if(!await saved('Οι φθορές του ενοικιαστή δεν διαγράφηκαν', supabase.from('tenant_damages').delete().eq('tenant_id',t.id))) return;
     if(!await saved('Ο ενοικιαστής δεν διαγράφηκε', tenantStore.remove(supabase,t.id))) return;
     if(openId===t.id) setOpenId(null);

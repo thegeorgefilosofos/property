@@ -4,6 +4,7 @@ import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as rentStore from '@/lib/data/rent';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses'
@@ -393,7 +394,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [exp,{ data:bil },{ data:tsk },ten,ci,{ data:iv },{ data:ln },{ data:hs },allExp,allTen,{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
+    const [exp,{ data:bil },{ data:tsk },ten,ci,{ data:iv },{ data:ln },{ data:hs },allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
@@ -415,11 +416,11 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       supabase.from('rent_config').select('property_id,actual_rent,target_rent').in('property_id',propIds).eq('user_id',userId),
       // ΤΟ ΤΑΜΕΙΟ. Μόνο οι ΑΠΛΗΡΩΤΕΣ περίοδοι — οι πληρωμένες είναι ιστορικό και
       // ζουν στον Ενοικιαστή. Ό,τι δεν εμφανίζεται, δεν κατεβαίνει.
-      supabase.from('rent_payments').select('amount,due_date,paid,period_year,period_month').eq('property_id',prop.id).eq('user_id',userId).eq('paid',false),
+      rentStore.ofProperty<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }>(supabase,prop.id,'amount,due_date,paid,period_year,period_month',userId,{ paid:false }),
       supabase.from('inventory_maintenance').select('task,item_name,next_due,est_cost').eq('property_id',prop.id),
     ]);
     setExpenses((exp||[]) as Expense[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
-    setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
+    setRentPeriods(rp); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setChk(ci); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
     // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν

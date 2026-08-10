@@ -1,6 +1,7 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as propertyStore from '@/lib/data/properties';
+import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
 import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
 import { E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary, type E2Stay, E1_HEADERS, E2_INSTRUCTIONS, type E2Property, type E2Tenant, type E2Payment, type E2Row } from '@/lib/billing/e2';
@@ -102,10 +103,10 @@ export async function loadE2Rows(
     return { properties: [], rows: [], ownerAfm: '', tenantByProp: new Map(), paymentsByProp: new Map(), afmByProp: new Map(), staysByProp: new Map() };
   }
   const ids = properties.map(p => p.id);
-  const [tenants, { data: payments }, { data: settings }, { data: stays }] = await Promise.all([
+  const [tenants, payments, { data: settings }, { data: stays }] = await Promise.all([
     tenantStore.currentByProperty<E2Tenant & { status?: string | null; move_out_date?: string | null }>(
       supabase, userId, 'property_id,afm,full_name,monthly_rent,lease_start,lease_end,lease_type,created_at'),
-    supabase.from('rent_payments').select('property_id, amount, period_year, period_month').in('property_id', ids).eq('user_id', userId).eq('period_year', year),
+    rentStore.ofProperties<E2Payment>(supabase, ids, 'property_id,amount,period_year,period_month', userId, { year }),
     supabase.from('property_settings').select('property_id, owner_afm').in('property_id', ids).eq('user_id', userId),
     // ΟΙ ΔΙΑΜΟΝΕΣ ΕΙΝΑΙ ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΕΣΟΔΟ ΤΗΣ ΒΡΑΧΥΧΡΟΝΙΑΣ.
     // Μέχρι σήμερα δεν διαβάζονταν καθόλου εδώ, οπότε το Ε2 έβγαζε τα

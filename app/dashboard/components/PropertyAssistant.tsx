@@ -19,6 +19,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
 import * as checklist from '@/lib/data/checklist';
 import * as expenseStore from '@/lib/data/expenses';
@@ -150,7 +151,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const contactsRef = useRef<ContactLite[]>([]); // ευρετήριο επαφών για επικοινωνία (WhatsApp/Viber/email/κλήση)
   // Ανοιχτά στοιχεία προς πληρωμή, για τη σήμανση «πληρωμένο» ([[paid:…]]).
   const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
-  const openRentRef = useRef<{ id: string; label: string; amount: number }[]>([]);
+  // Η ΠΡΟΘΕΣΜΙΑ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ: ο βοηθός σημειώνει δόσεις πληρωμένες, και χωρίς
+  // αυτήν η καταχώρηση δεν μπορεί να πει πόσο άργησε ο μισθωτής.
+  const openRentRef = useRef<{ id: string; label: string; amount: number; due: string | null }[]>([]);
   // Το σαρωμένο παραστατικό που περιμένει έγκριση. Είναι ref και όχι κατάσταση:
   // δεν το ζωγραφίζει τίποτα — το μήνυμα δίπλα του το περιγράφει ήδη — και μία
   // σάρωση είναι σε εξέλιξη κάθε φορά.
@@ -352,8 +355,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // ΟΛΕΣ ΟΙ ΔΟΣΕΙΣ, ΟΧΙ ΜΟΝΟ ΟΙ ΑΠΛΗΡΩΤΕΣ. Το φίλτρο `paid=false` σήμαινε ότι ο
     // βοηθός δεν είχε καμία εικόνα συνέπειας πληρωμών, και ότι τα δεδουλευμένα
     // έσοδα της χρονιάς έπρεπε να μαντευτούν από το ενοίκιο επί δώδεκα.
-    const { data: rentAll } = await supabase.from('rent_payments').select('id,period_month,period_year,amount,paid').eq('property_id', propertyId).eq('user_id', userId).order('period_year').order('period_month');
-    openRentRef.current = ((rentAll || []) as RentPaymentsRow[]).filter(r => !r.paid).map(r => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0 }));
+    const rentAll = await rentStore.chronological<RentPaymentsRow>(supabase, propertyId, `id,due_date,${rentStore.PERIOD_COLUMNS}`, userId);
+    openRentRef.current = rentAll.filter(r => !r.paid).map(r => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0, due: r.due_date }));
     const t = ten?.[0];
     const rent = resolveRent({ tenantRent: t?.monthly_rent, targetRent: propContext.targetRent }).value;
     const value = resolveValue(propContext.value).value;
@@ -806,7 +809,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τον λογαριασμό «${b.name}» ${eur(b.amount)} ως πληρωμένο.`, action: { type: 'go', tab: 'finances' } }]);
       } else {
         const r = rentHits[0];
-        await must(supabase.from('rent_payments').update({ paid: true, paid_date: today }).eq('id', r.id));
+        // Δύο στήλες από τις τέσσερις γράφονταν εδώ: η μέθοδος έμενε κενή και οι
+        // ημέρες καθυστέρησης μηδέν, ακόμη και σε δόση τριών μηνών πίσω.
+        await must(rentStore.markPaid(supabase, r.id, r.due, today, null));
         setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τη δόση «${r.label}» ${eur(r.amount)} ως πληρωμένη.`, action: { type: 'go', tab: 'tenant' } }]);
       }
       setCtxStr(''); loadContext();

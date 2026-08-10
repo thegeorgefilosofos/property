@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as expenseStore from '@/lib/data/expenses'
+import * as rentStore from '@/lib/data/rent'
 import { Check, ArrowRight, Landmark, SearchX } from 'lucide-react'
 import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
 import { feAuto, T, EmptyState, Modal, Spinner } from '@/components/Theme'
@@ -17,7 +18,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
   const supabase = createClient()
   const [text,setText] = useState('')
   const [step,setStep] = useState<'input'|'review'|'saving'>('input')
-  const [rentMatches,setRentMatches] = useState<(RentMatch&{label:string;confirm:boolean})[]>([])
+  const [rentMatches,setRentMatches] = useState<(RentMatch&{label:string;due:string|null;confirm:boolean})[]>([])
   const [expenses,setExpenses] = useState<(ExpenseSuggestion&{confirm:boolean})[]>([])
   const [skipped,setSkipped] = useState(0)
   const [error,setError] = useState('')
@@ -33,7 +34,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     const fresh = txns.filter(t=>!seen.has(hashOf(t)))
     setSkipped(txns.length - fresh.length)
     // Αναμενόμενα ενοίκια (ανεξόφλητα) του έτους.
-    const { data: rp } = await supabase.from('rent_payments').select('id,period_year,period_month,amount,due_date,paid').eq('property_id',propertyId).eq('user_id',userId).eq('period_year',year)
+    const rp = await rentStore.ofProperty(supabase,propertyId,`id,${rentStore.LEDGER_COLUMNS}`,userId,{ year })
     // ΟΙ ΤΥΠΟΙ ΤΩΝ ΓΡΑΜΜΩΝ ΥΠΑΡΧΟΥΝ ΗΔΗ, ΠΑΡΑΓΟΜΕΝΟΙ ΑΠΟ ΤΑ MIGRATIONS. Ήταν
     // γραμμένο `(p:any)` τρεις φορές: ένα ορθογραφικό σε όνομα στήλης θα περνούσε
     // μέχρι την οθόνη, και το `period_month` θα γινόταν σιωπηλά «undefined» μέσα
@@ -41,8 +42,10 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     type Row = Pick<RentPaymentsRow, 'id' | 'period_year' | 'period_month' | 'amount' | 'due_date' | 'paid'>
     const expected:ExpectedRent[] = ((rp||[]) as Row[]).filter(p=>!p.paid).map(p=>({ id:p.id, label:`${MONTHS_NOM[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0, dueDate:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01` }))
     const res = matchTransactions(fresh, expected)
-    const labelById = new Map(expected.map(e=>[e.id,e.label]))
-    setRentMatches(res.rentMatches.map(m=>({ ...m, label:labelById.get(m.rentId)||'Ενοίκιο', confirm:true })))
+    // Η ΠΡΟΘΕΣΜΙΑ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΗΝ ΑΝΤΙΣΤΟΙΧΙΣΗ: χωρίς αυτήν, η καταχώρηση
+    // της είσπραξης δεν μπορεί να πει πόσο άργησε ο μισθωτής.
+    const byId = new Map(expected.map(e=>[e.id,e]))
+    setRentMatches(res.rentMatches.map(m=>({ ...m, label:byId.get(m.rentId)?.label||'Ενοίκιο', due:byId.get(m.rentId)?.dueDate||null, confirm:true })))
     setExpenses(res.expenseSuggestions.map(e=>({ ...e, confirm:false })))
     setStep('review')
   }
@@ -53,7 +56,11 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       // Η γραμμή που γράφεται στον πίνακα κινήσεων, με τον τύπο του πίνακα.
       const rows: Pick<BankTransactionsRow, 'user_id'|'property_id'|'txn_date'|'description'|'amount'|'dedup_hash'>[] = []
       for(const m of rentMatches){ if(m.confirm){
-        const { error } = await supabase.from('rent_payments').update({ paid:true, paid_date:m.txn.date||null, method:'Τραπεζική κατάθεση' }).eq('id',m.rentId)
+        // Η ΕΙΣΠΡΑΞΗ ΠΕΡΝΑ ΑΠΟ ΤΟ ΣΤΡΩΜΑ, που γράφει ΚΑΙ τις ημέρες καθυστέρησης.
+        // Εδώ γράφονταν τρεις στήλες από τις τέσσερις: μια δόση που εισπράχθηκε
+        // δύο μήνες αργότερα καταγραφόταν με μηδέν ημέρες καθυστέρησης, και ο
+        // λογιστής διάβαζε συνεπή μισθωτή που δεν ήταν.
+        const { error } = await rentStore.markPaid(supabase, m.rentId, m.due, m.txn.date || athensToday(), 'Τραπεζική κατάθεση')
         if(error) throw error
         rows.push({ user_id:userId, property_id:propertyId, txn_date:m.txn.date||null, description:m.txn.description, amount:m.txn.amount, dedup_hash:hashOf(m.txn) })
       }}

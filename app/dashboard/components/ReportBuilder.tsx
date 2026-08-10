@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
+import * as rentStore from '@/lib/data/rent';
 import * as expenses from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
@@ -102,15 +103,15 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       const nameById = new Map(selProps.map(p => [p.id, p.name]));
 
       // ── Άντληση δεδομένων περιόδου (RLS: μόνο του χρήστη) ──────────────────
-      let rentQ = supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid').in('property_id', ids).eq('period_year', year);
-      if (month > 0) rentQ = rentQ.eq('period_month', month);
+      const rentQ = rentStore.ofProperties<{ property_id: string; period_year: number; period_month: number; amount: number | null; paid: boolean | null }>(
+        supabase, ids, `property_id,${rentStore.PERIOD_COLUMNS}`, userId, { year, month });
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
       const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
-      const [{ data: rentData }, expData] = await Promise.all([
+      const [rentData, expData] = await Promise.all([
         rentQ,
         expenses.inRange(supabase, ids, from, to, 'property_id,date,amount,category'),
       ]);
-      const rents = (rentData || []) as RentRow[];
+      const rents = rentData as RentRow[];
       const exps = expData as unknown as ExpRow[];
 
       // ── Συγκεντρωτικά ─────────────────────────────────────────────────────
@@ -217,15 +218,15 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     setXlsxBusy(true);
     try {
       const ids = selProps.map(p => p.id);
-      let rentQ = supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid').in('property_id', ids).eq('period_year', year);
-      if (month > 0) rentQ = rentQ.eq('period_month', month);
+      const rentQ = rentStore.ofProperties<{ property_id: string; period_year: number; period_month: number; amount: number | null; paid: boolean | null }>(
+        supabase, ids, `property_id,${rentStore.PERIOD_COLUMNS}`, userId, { year, month });
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
       const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
-      const [{ data: rentData }, expData] = await Promise.all([
+      const [rentData, expData] = await Promise.all([
         rentQ,
         expenses.inRange(supabase, ids, from, to, 'property_id,date,amount,category'),
       ]);
-      const rents = (rentData || []) as RentRow[];
+      const rents = rentData as RentRow[];
       const exps = expData as unknown as ExpRow[];
       const rows: PortfolioRow[] = selProps.map(p => ({
         name: p.name,

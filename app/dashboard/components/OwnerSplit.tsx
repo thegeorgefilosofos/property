@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
+import * as rentStore from '@/lib/data/rent';
 import * as expenses from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, EmptyState, Modal, Spinner, ABSENT } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
@@ -68,10 +69,9 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     (async () => {
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
       const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
-      let rentQ = supabase.from('rent_payments').select('amount,paid,period_year,period_month').eq('property_id', propId).eq('paid', true).eq('period_year', year);
-      if (month > 0) rentQ = rentQ.eq('period_month', month);
-      const [{ data: r }, e] = await Promise.all([
-        rentQ,
+      const [r, e] = await Promise.all([
+        rentStore.ofProperties<{ amount: number | null; paid: boolean | null; period_year: number; period_month: number }>(
+          supabase, [propId], rentStore.PERIOD_COLUMNS, userId, { year, month, paid: true }),
         expenses.inRangeOfProperty(supabase, propId, from, to),
       ]);
       // Και τα δύο ερωτήματα ζητούν `amount`: αυτό είναι ό,τι χρειάζεται εδώ, και

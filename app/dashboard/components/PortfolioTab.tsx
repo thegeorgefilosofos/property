@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as rentStore from '@/lib/data/rent';
 import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
@@ -141,7 +142,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [genOfficial, setGenOfficial] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: st }, { data: bl }, ex, tn, ci, po, { data: cl }, { data: rp }] = await Promise.all([
+    const [{ data: st }, { data: bl }, ex, tn, ci, po, { data: cl }, rp] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
       // `total` για ΚΑΘΕ γραμμή — δηλαδή σιωπηλά ξαναγυρίζει το payout.
@@ -154,9 +155,9 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       supabase.from('clients').select('id,full_name').eq('user_id', userId),
       // Οι ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ δόσεις ενοικίου της χρήσης — από εδώ βγαίνει το έσοδο
       // της μακροχρόνιας, ίδια πηγή με ReportBuilder/OwnerSplit/Λογιστική.
-      supabase.from('rent_payments').select('property_id,amount,paid,period_month').eq('user_id', userId).eq('period_year', year),
+      rentStore.ofUser<RentPay>(supabase, userId, 'property_id,amount,paid,period_month', { year }),
     ]);
-    setStays((st || []) as StayRow[]); setBills((bl || []) as BillRow[]); setExp((ex || []) as ExpRow[]); setRentByTenant(tn); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays((rp || []) as RentPay[]); setLoading(false);
+    setStays((st || []) as StayRow[]); setBills((bl || []) as BillRow[]); setExp((ex || []) as ExpRow[]); setRentByTenant(tn); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays(rp); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year]);
 
