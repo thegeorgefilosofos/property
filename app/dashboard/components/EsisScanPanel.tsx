@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
-import { T, TT, fp, fn, formGrid } from '@/components/Theme'
+import { NumberInput, CustomSelect, Toggle, InfoChip } from './UIComponents'
+import { T, TT, fp, fn, fixedCols } from '@/components/Theme'
 import { useDocScan, scanNum, ScanUploadRow, ScanErrorNote } from './LoanDocScan'
 import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 
@@ -133,7 +133,9 @@ export default function EsisScanPanel({
       )}
 
       {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση (θαμπώνουν όσο τρέχει η ανάλυση AI) */}
-      <div style={{...formGrid(160, 220),gap:10,opacity:scanning?0.5:1,pointerEvents:scanning?'none':'auto',transition:'opacity 0.2s'}} aria-busy={scanning}>
+      {/* Επτά πεδία, τέσσερα και τρία. Ρητό πλήθος στηλών: με ελεύθερο πλάτος
+          στήλης το ίδιο παράθυρο έδινε άλλη διάταξη σε κάθε επίπεδο zoom. */}
+      <div {...fixedCols(4, 10)} style={{...fixedCols(4, 10).style,opacity:scanning?0.5:1,pointerEvents:scanning?'none':'auto',transition:'opacity 0.2s'}} aria-busy={scanning}>
         <NumberInput label="Ποσό δανείου" value={amount} onChange={setAmount} suffix="€"/>
         <NumberInput label="Διάρκεια" value={years} onChange={setYears} suffix="έτη"/>
         <NumberInput label="Ονομαστικό επιτόκιο" value={nominal} onChange={setNominal} suffix="%" step={0.1}/>
@@ -170,12 +172,11 @@ export default function EsisScanPanel({
       {res.flags.length>0 && (
         <div>
           <p style={{...TT.label,marginBottom:10}}>Τι να προσέξεις</p>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',gap:6}}>
+          {/* Όσες επισημάνσεις κι αν βγουν, σε μία σειρά. Το `auto-fit` τις
+              έβγαζε τρεις και μία, και η τέταρτη διαβαζόταν σαν υποσημείωση. */}
+          <div {...fixedCols(res.flags.length, 6, 'stretch')}>
             {res.flags.map((f,i)=>(
-              <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
-                <InfoDot text={f.detail}/>
-              </div>
+              <InfoChip key={i} label={f.label} detail={f.detail} tone={f.kind==='bad'?'negative':'default'}/>
             ))}
           </div>
         </div>

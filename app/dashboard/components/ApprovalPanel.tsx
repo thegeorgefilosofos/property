@@ -1,7 +1,7 @@
 'use client'
-import { T, TT, formGrid } from '@/components/Theme'
+import { T, TT, formGrid, fixedCols } from '@/components/Theme'
 import { useState, useEffect } from 'react'
-import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
+import { NumberInput, CustomSelect, Toggle, InfoChip } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
 import { fp } from '@/lib/core/format'
 import type { BorrowerType } from './TabLoanData'
@@ -129,23 +129,15 @@ export default function ApprovalPanel({
       {/* Ανάλυση κριτηρίων — μαζεμένες σειρές· η επεξήγηση κρύβεται πίσω από ⓘ */}
       <div>
         <p style={{...labelStyle,marginBottom:10}}>Ανάλυση κριτηρίων</p>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',gap:6}}>
+        {/* Πέντε κριτήρια, μία σειρά. Το `auto-fit` τα έβγαζε τρία και δύο. */}
+        <div {...fixedCols(res.factors.length, 6, 'stretch')}>
           {res.factors.map((f,i)=>(
-            <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-              <span style={{flexShrink:0,display:'inline-flex'}} aria-hidden="true">
-                {f.kind==='pass'
-                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  : f.kind==='warn'
-                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
-              </span>
-              {/* ΤΟ ΟΝΟΜΑ ΤΟΥ ΚΡΙΤΗΡΙΟΥ ΔΕΝ ΚΟΒΕΤΑΙ. Ήταν σε μία γραμμή με αποσιωπητικά,
-                  και σε πλάτος οθόνης 1180 έγραφε «Σταθερότητα εισοδήμ…»: ο χρήστης
-                  δεν μάθαινε ποιο κριτήριο πέρασε. Δύο λέξεις σε δεύτερη σειρά
-                  κοστίζουν δεκαέξι εικονοστοιχεία ύψους. */}
-              <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:f.kind==='block'?'var(--negative)':'var(--text-primary)',lineHeight:1.35}}>{f.label}</span>
-              <InfoDot text={f.detail}/>
-            </div>
+            <InfoChip key={i} label={f.label} detail={f.detail} tone={f.kind==='block'?'negative':'default'}
+              icon={f.kind==='pass'
+                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                : f.kind==='warn'
+                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}/>
           ))}
         </div>
       </div>

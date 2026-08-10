@@ -1,7 +1,8 @@
 // npx tsx lib/energy/tariff.test.ts
 import { ALL_TARIFFS, COMPARABLE_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from './catalogue';
 import {
-  monthlyCost, compareTariffs, estimateUsage, ERT, ETMEAR, type Tariff, type Usage,
+  monthlyCost, compareTariffs, estimateUsage, waterMonthly, waterMonthlyText,
+  ERT, ETMEAR, type Tariff, type Usage,
 } from './tariff';
 
 let pass = 0, fail = 0;
@@ -260,6 +261,25 @@ const simple: Tariff = {
   // σημαδεμένο — αλλιώς το επόμενο που θα προστεθεί θα ξαναγλιστρήσει.
   eq('κανένα φοιτητικό δεν ξέφυγε από τη σήμανση',
     all.filter(t => /student|φοιτητ/i.test(`${t.name} ${t.desc}`) && !t.studentOnly).map(t => t.id), []);
+}
+
+// ── ΝΕΡΟ: Ο ΛΟΓΑΡΙΑΣΜΟΣ ΔΕΝ ΕΙΝΑΙ ΜΗΝΙΑΙΟΣ ─────────────────────────────────
+// Η ΕΥΔΑΠ χρεώνει ανά δίμηνο, άλλες ΔΕΥΑ ανά τρίμηνο ή τετράμηνο. Ο ίδιος
+// λογαριασμός των 84 € σημαίνει 42 € τον μήνα ή 21 €, ανάλογα με τη συχνότητα.
+{
+  near('δίμηνος λογαριασμός γίνεται μισός', waterMonthly({ waterBiMonthly: '84', waterPeriodMonths: '2' }), 42);
+  near('τετράμηνος γίνεται τέταρτος', waterMonthly({ waterBiMonthly: '84', waterPeriodMonths: '4' }), 21);
+  near('χωρίς συχνότητα, το δίμηνο είναι η προεπιλογή', waterMonthly({ waterBiMonthly: '84' }), 42);
+  near('συχνότητα μηδέν δεν διαιρεί με το μηδέν', waterMonthly({ waterBiMonthly: '84', waterPeriodMonths: '0' }), 42);
+  // Ο παλιός τρόπος: αποθηκευμένος μηνιαίος χωρίς λογαριασμό. Δεν χάνεται.
+  near('χωρίς λογαριασμό μετρά ο αποθηκευμένος μηνιαίος', waterMonthly({ waterMonthly: '30' }), 30);
+  near('χωρίς τίποτα, μηδέν', waterMonthly({}), 0);
+  // Ο λογαριασμός ΥΠΕΡΙΣΧΥΕΙ: το πεδίο «Μηνιαία αναγωγή» άφηνε τιμή που δεν
+  // συμφωνούσε με τον λογαριασμό, και ο υπολογισμός την αγνοούσε ήδη.
+  near('ο λογαριασμός υπερισχύει του αποθηκευμένου μηνιαίου',
+    waterMonthly({ waterBiMonthly: '84', waterPeriodMonths: '2', waterMonthly: '999' }), 42);
+  eq('η μορφή αποθήκευσης έχει δύο δεκαδικά', waterMonthlyText('84.31', '2'), '42.16');
+  eq('χωρίς λογαριασμό δεν αποθηκεύεται τίποτα', waterMonthlyText('', '2'), '');
 }
 
 console.log(fail === 0 ? `✓ tariff: ${pass} έλεγχοι πέρασαν` : `✗ tariff: ${fail} απέτυχαν από ${pass + fail}`);

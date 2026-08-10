@@ -3,7 +3,8 @@
 import { daysUntil } from '@/lib/core/time';
 import { NumberInput, CustomSelect, TextInput, Toggle, ToggleField, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, feRate, fieldRow, fp, Spinner, pressable } from '@/components/Theme';
+import { T, fe, feRate, fieldRow, fixedCols, fp, Spinner, pressable } from '@/components/Theme';
+import { waterMonthly, waterMonthlyText } from '@/lib/energy/tariff';
 
 const INTERNET_PROVIDERS = [
   { value: 'cosmote',   label: 'Cosmote',   url: 'https://www.cosmote.gr',    color: '#009fe3' },
@@ -204,7 +205,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
 
   const internetCost = parseFloat(s.internetPrice) || 0;
   const tvCost       = s.hasTV ? (parseFloat(s.tvPrice) || 0) : 0;
-  const waterM       = s.waterBiMonthly ? (parseFloat(s.waterBiMonthly) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2) : (parseFloat(s.waterMonthly) || 0);
+  const waterM       = waterMonthly(s);
   const heatingM     = (() => {
     if (s.heatingType === 'autonomous_oil' && s.heatingLitersPerYear)
       return (parseFloat(s.heatingLitersPerYear) * parseFloat(s.heatingOilPricePerLiter)) / 12;
@@ -493,8 +494,9 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
         {/* ── Νερό ─────────────────────────────────────────────────────────── */}
         <div style={card}>
           {secHdr('Νερό')}
-          {/* Πέντε στοιχεία της ίδιας παροχής, σε μία σειρά ίσα μοιρασμένη. */}
-          <div style={{ ...fieldRow(190), marginBottom: 14 }}>
+          {/* ΤΕΣΣΕΡΑ ΣΤΟΙΧΕΙΑ ΤΗΣ ΙΔΙΑΣ ΠΑΡΟΧΗΣ, ΣΕ ΜΙΑ ΣΕΙΡΑ ΙΣΑ ΜΟΙΡΑΣΜΕΝΗ.
+              Ήταν πέντε, και το πέμπτο έπεφτε μόνο του σε δεύτερη γραμμή. */}
+          <div {...fixedCols(4, 14)} style={{ ...fixedCols(4, 14).style, marginBottom: 14 }}>
             <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
             {/* Η παρένθεση έλεγε ό,τι λέει ήδη η λέξη: «Διμηνιαίος (κάθε 2
                 μήνες)». Ίδιο πράγμα δύο φορές, και αρκετά μακρύ ώστε να κόβεται
@@ -502,7 +504,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             <CustomSelect
               label="Συχνότητα χρέωσης"
               value={s.waterPeriodMonths || '2'}
-              onChange={v => upd({ waterPeriodMonths: v })}
+              onChange={v => upd({ waterPeriodMonths: v, waterMonthly: waterMonthlyText(s.waterBiMonthly, v) })}
               options={[
                 { value: '1', label: 'Μηνιαίος' },
                 { value: '2', label: 'Διμηνιαίος' },
@@ -512,9 +514,14 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               ]}
             />
             <NumberInput  label="Λογαριασμός νερού" value={s.waterBiMonthly}
-              onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2)).toFixed(2)) : '' })}
+              onChange={v => upd({ waterBiMonthly: v, waterMonthly: waterMonthlyText(v, s.waterPeriodMonths) })}
               suffix="€" step={5}/>
-            <NumberInput  label="Μηνιαία αναγωγή"   value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€"      step={2}/>
+            {/* ΤΟ ΠΕΔΙΟ «ΜΗΝΙΑΙΑ ΑΝΑΓΩΓΗ» ΗΤΑΝ ΝΕΚΡΟ ΚΟΥΤΙ. Ήταν ο λογαριασμός
+                διά τους μήνες, δηλαδή τιμή που την ξέρει ήδη η οθόνη — και μόλις
+                υπήρχε λογαριασμός, ΚΑΙ ΟΙ ΔΥΟ αναγνώστες (η σύνοψη εδώ και ο
+                προϋπολογισμός) αγνοούσαν ό,τι πληκτρολογούσε ο χρήστης μέσα του.
+                Έγραφε άλλο νούμερο και δεν άλλαζε τίποτα πουθενά. Ο μηνιαίος
+                φαίνεται από κάτω, υπολογισμένος. */}
             <NumberInput  label="Άτομα στο ακίνητο"      value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα"  step={1}/>
           </div>
           {waterM > 0 && (

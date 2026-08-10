@@ -13,6 +13,7 @@ import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
 import { T, fe, feAuto, fp, fn, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
+import { waterMonthly } from '@/lib/energy/tariff';
 import { randomSuffix } from '@/lib/core/uploadPath';
 import { notify } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -559,7 +560,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const prov = getSett('providers');
       if (prov) {
         if (!recorded.has('internet')) billActuals.internet = (parseFloat(String(prov.internetPrice)) || 0) + (prov.hasTV ? parseFloat(String(prov.tvPrice)) || 0 : 0);
-        if (!recorded.has('water'))    billActuals.water    = prov.waterBiMonthly ? (parseFloat(String(prov.waterBiMonthly)) || 0) / (parseInt(String(prov.waterPeriodMonths)) || 2) : parseFloat(String(prov.waterMonthly)) || 0;
+        if (!recorded.has('water'))    billActuals.water    = waterMonthly(prov);
         if (!recorded.has('heating'))  billActuals.heating  = parseFloat(String(prov.heatingMonthly)) || 0;
       }
       const svc = getSett('services');

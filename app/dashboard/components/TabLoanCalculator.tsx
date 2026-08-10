@@ -408,7 +408,7 @@ const PROPERTY_TYPES = [
   {value:'parking',      label:'Θέση στάθμευσης',       desc:'Αυτοτελής ή παράρτημα'},
 ]
 
-function calcNotaryFees(propValue:number, propType:string):{notary:number;landReg:number;agent:number;legal:number;other:number;total:number;breakdown:string[]} {
+function calcNotaryFees(propValue:number):{notary:number;landReg:number;agent:number;legal:number;other:number;total:number;breakdown:{l:string;v:number}[]} {
   let notaryFee=0
   const bands=[{up:120000,rate:0.008},{up:380000,rate:0.007},{up:2000000,rate:0.0065},{up:Infinity,rate:0.006}]
   let remaining=propValue,prev=0
@@ -422,13 +422,19 @@ function calcNotaryFees(propValue:number, propType:string):{notary:number;landRe
   const legal=Math.min(Math.max(propValue*0.003,300),1500)
   const mortgageTax=propValue*0.001
   const total=notaryFee+mortgageDeed+landReg+legal+mortgageTax
-  const isCommercial=propType==='store'||propType==='warehouse'
+  // Η ΑΝΑΛΥΣΗ ΛΕΕΙ ΜΟΝΟ Ο,ΤΙ ΔΕΝ ΛΕΝΕ ΗΔΗ ΤΑ ΠΛΑΚΙΔΙΑ. Από τις πέντε γραμμές, οι
+  // τρεις (κτηματολόγιο, δικηγόρος, φόρος ενεγγύησης) ήταν αντιγραφή τριών
+  // πλακιδίων που κάθονται δέκα εικονοστοιχεία πιο πάνω, με το ίδιο νούμερο.
+  //
+  // ΚΑΙ Η ΠΕΜΠΤΗ ΗΤΑΝ ΛΑΘΟΣ. Σε επαγγελματικό ακίνητο έγραφε «Τέλη χαρτοσήμου
+  // μίσθωσης (3,6%)» μέσα στα έξοδα ΑΓΟΡΑΣ: τέλος που αφορά μίσθωση, όχι
+  // απόκτηση, με νούμερο που δεν έμπαινε ποτέ στο σύνολο. Σε κατάστημα 200.000 €
+  // εμφάνιζε 7.200 € κόστος που κανείς δεν πληρώνει στη μεταβίβαση.
+  //
+  // Μένει αυτό που ΜΟΝΟ εδώ φαίνεται: πώς σπάει η αμοιβή του συμβολαιογράφου.
   const breakdown=[
-    `Συμβολαιογραφικά αγοράς: ${fmtEur(notaryFee)}`,
-    `Συμβολαιογραφικά υποθήκης: ${fmtEur(mortgageDeed)}`,
-    `Κτηματολόγιο (0,475%): ${fmtEur(landReg)}`,
-    `Δικηγόρος ελέγχου τίτλων: ${fmtEur(legal)}`,
-    isCommercial?`Τέλη χαρτοσήμου μίσθωσης (3,6%): ${fmtEur(propValue*0.036)}`:`Φόρος ενεγγύησης υποθήκης: ${fmtEur(mortgageTax)}`,
+    {l:'Συμβολαιογραφικά αγοράς', v:notaryFee},
+    {l:'Συμβολαιογραφικά υποθήκης', v:mortgageDeed},
   ]
   return{notary:notaryFee+mortgageDeed,landReg,agent:0,legal,other:mortgageTax,total,breakdown}
 }
@@ -659,7 +665,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const sqmPrice  = PV>0&&SQM>0?PV/SQM:0
   const amort     = useMemo(()=>calcAmortization(LA,effRate,Y),[LA,effRate,Y])
 
-  const notaryCosts = useMemo(()=>calcNotaryFees(PV,propType),[PV,propType])
+  const notaryCosts = useMemo(()=>calcNotaryFees(PV),[PV])
   const fmaEx    = calcFmaExemption(marital,CH)
   const isNewBuilding = propType==='new_residence'
   const isCommercial  = propType==='store'||propType==='warehouse'
@@ -1525,7 +1531,16 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
       <div style={cardStyle}>
         <SectionLabel label="Πλήρης ανάλυση κόστους απόκτησης" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{propTypeLabel}{SQM>0?` · ${SQM}τ.μ.`:''} · {areaLabel}</span>}/>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8,marginBottom:14}}>
+        {/* ΟΚΤΩ ΚΟΣΤΗ, ΤΕΣΣΕΡΑ ΚΑΙ ΤΕΣΣΕΡΑ, ΚΑΙ ΟΛΑ ΜΕ ΤΗΝ ΙΔΙΑ ΓΕΩΜΕΤΡΙΑ.
+            Ήταν σειρές «ετικέτα αριστερά, ποσό δεξιά» με `space-between`: όταν η
+            ετικέτα τύλιγε σε δεύτερη γραμμή, το ποσό κολλούσε πάνω της χωρίς
+            κενό («Συμβολαιογραφικά2.128,00 €») και κάθε πλακίδιο έβγαινε άλλο
+            ύψος. Τα ποσά δεν ήταν ούτε σε κοινή κατακόρυφο: το μάτι τα διάβαζε
+            ένα-ένα αντί να τα συγκρίνει.
+
+            Στοιβαγμένο: ετικέτα, ποσό, εξήγηση. Οκτώ ίδια πλακίδια, οκτώ ποσά
+            στην ίδια κατακόρυφο, καμία σύγκρουση όσο κι αν τυλίξει η ετικέτα. */}
+        <div {...fixedCols(4, 8, 'stretch')} style={{...fixedCols(4, 8, 'stretch').style,marginBottom:14}}>
           {[
             {label:isNewBuilding?'ΦΠΑ 24%':'Φόρος μεταβίβασης (ΦΜΑ)',value:isNewBuilding?fmtEur(vatOwed):fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:isNewBuilding?'Νεόδμητο':fmaOwed===0?'Πρώτη κατοικία':'3% επί αξίας',hi:false},
             {label:'Συμβολαιογραφικά',value:fmtEur(totalCosts.notary),sub:'Κλιμακωτή αμοιβή',hi:false},
@@ -1541,25 +1556,30 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div key={item.label}
               onMouseEnter={()=>setHoverCost(i)} onMouseLeave={()=>setHoverCost(null)}
               onTouchStart={()=>setHoverCost(i)} onTouchEnd={()=>setHoverCost(null)}
-              style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,background:'var(--bg-elevated)',border:`1px solid ${(on||item.primary)?'var(--border-default)':'var(--border-subtle)'}`,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
+              style={{display:'flex',flexDirection:'column',gap:6,padding:'12px 14px',borderRadius:T.radius.inner,background:'var(--bg-elevated)',border:`1px solid ${(on||item.primary)?'var(--border-default)':'var(--border-subtle)'}`,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
               boxShadow:on?'var(--elev-2)':'none'}}>
-              <div style={{minWidth:0}}>
-                <p style={{fontSize:13,color:'var(--text-primary)',fontWeight:item.hi?600:500,fontFamily: T.font.sans}}>{item.label}</p>
-                <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:2,fontFamily: T.font.sans}}>{item.sub}</p>
-              </div>
-              <span style={{fontSize:13,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:item.hi?700:600,marginLeft:10,whiteSpace:'nowrap' as const,transition:'color 0.15s'}}>{item.value}</span>
+              <p style={{fontSize:12,color:'var(--text-secondary)',fontWeight:500,fontFamily: T.font.sans,lineHeight:1.35}}>{item.label}</p>
+              <p style={{fontSize:item.hi?17:15,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:item.hi?700:600,lineHeight:1,marginTop:'auto',transition:'color 0.15s'}}>{item.value}</p>
+              <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.35}}>{item.sub}</p>
             </div>
             )
           })}
         </div>
-        <div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,marginBottom:10}}>
+        {/* Πώς σπάει η αμοιβή του συμβολαιογράφου: ετικέτα αριστερά, ποσό στη
+            δεξιά άκρη, ίδια κατακόρυφος με τα ποσά των πλακιδίων από πάνω. */}
+        <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner,marginBottom:10}}>
           <p style={{...labelStyle,marginBottom:8}}>Ανάλυση συμβολαιογραφικών</p>
-          {notaryCosts.breakdown.map((line,i)=>(
-            <p key={i} style={{fontSize:12,color:'var(--text-secondary)',marginBottom:3,lineHeight:1.5,fontFamily: T.font.sans}}>· {line}</p>
+          {notaryCosts.breakdown.map(line=>(
+            <div key={line.l} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:14,marginTop:5}}>
+              <span style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>{line.l}</span>
+              <span style={{fontSize:12,color:'var(--text-primary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:600,whiteSpace:'nowrap' as const}}>{fmtEur(line.v)}</span>
+            </div>
           ))}
         </div>
-        <div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10,marginBottom:10}}>
-          <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Ασφάλεια κατοικίας 100–300 € τον χρόνο (υποχρεωτική) · Ασφάλεια ζωής ~{fmtEur(LA*0.001)} τον χρόνο</p>
+        {/* Οι ασφάλειες δεν είναι έξοδο αγοράς: τρέχουν κάθε χρόνο όσο ζει το
+            δάνειο. Η παύλα του εύρους («100–300 €») διαβαζόταν σαν αφαίρεση. */}
+        <div style={{padding:'12px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner,marginBottom:10}}>
+          <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.5}}>Ετήσιο κόστος ασφαλειών · Κατοικίας, υποχρεωτική: από {fmtEur(100)} έως {fmtEur(300)} · Ζωής: περίπου {fmtEur(LA*0.001)}</p>
         </div>
         <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
           Εκτιμήσεις βάσει δεδομένων χρήστη. Πηγή:{' '}

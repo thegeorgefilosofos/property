@@ -29,7 +29,7 @@ import SpitiMouPanel from './SpitiMouPanel'
 import ApprovalPanel from './ApprovalPanel'
 import EsisScanPanel from './EsisScanPanel'
 import BankRatesAdmin from './BankRatesAdmin'
-import { InfoDot } from './UIComponents'
+import { InfoDot, InfoChip } from './UIComponents'
 import { KPI, LensBar, labelStyle } from './LoanShared'
 import { athensToday, isoDate } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
@@ -1462,27 +1462,28 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             {/* Τέσσερα δικαιώματα, μία σειρά. Το `auto-fit` έβγαζε τρία και ένα
                 σε οθόνη με zoom, γιατί το πλήθος στηλών του το ορίζει το
                 διαθέσιμο πλάτος και όχι η λίστα. */}
-            <div {...fixedCols(4, 8)} style={{...fixedCols(4, 8).style, marginBottom:18}}>
+            {/* ΙΣΟ ΥΨΟΣ, ΟΧΙ ΙΣΟ ΚΕΙΜΕΝΟ. Με στοίχιση στο κάτω άκρο, ένα δικαίωμα
+                μιας γραμμής κάθεται χαμηλότερα από το διπλανό του των δύο, και
+                τα τέσσερα πλακίδια διαβάζονται σαν σκαλοπάτια. Τεντωμένα στο ίδιο
+                ύψος, το κείμενο κεντράρεται και η σειρά είναι μία ευθεία. */}
+            <div {...fixedCols(4, 8, 'stretch')} style={{...fixedCols(4, 8, 'stretch').style, marginBottom:18}}>
               {SERVICERS_GUIDE.rights.map(r=>(
-                <div key={r.t} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0,marginTop:2}} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                  {/* ΤΟ ΔΙΚΑΙΩΜΑ ΚΟΒΟΤΑΝ ΣΤΗ ΜΕΣΗ. «Δικαίωμα σε βιώσιμη πρόταση …»
-                      και «Καταγγελία και εξωτερική προ…»: μια γραμμή που δεν
-                      χωρά δεν γίνεται μισή, γίνεται δύο. Το κείμενο τυλίγεται
-                      και το πλακίδιο ψηλώνει όσο χρειάζεται. */}
-                  <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',lineHeight:1.4}}>{r.t}</span>
-                  <InfoDot text={r.d}/>
-                </div>
+                <InfoChip key={r.t} label={r.t} detail={r.d}
+                  icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>}/>
               ))}
             </div>
 
             <p style={{...labelStyle,marginBottom:10}}>Εργαλεία ρύθμισης και προστασίας</p>
-            {/* Τρία εργαλεία, τρεις στήλες: οι κάρτες πιάνουν όλο το πλάτος και
-                το κείμενό τους απλώνεται αντί να στριμώχνεται σε στήλη. */}
-            <div {...fixedCols(3, 12, 'start')} style={{...fixedCols(3, 12, 'start').style, marginBottom:18}}>
+            {/* Τρία εργαλεία, τρεις στήλες ίδιου ύψους: οι τρεις σύνδεσμοι
+                «Επίσημη πηγή» κάθονται στην ίδια γραμμή βάσης, όσο άνισο κι αν
+                είναι το κείμενο από πάνω τους. */}
+            <div {...fixedCols(3, 12, 'stretch')} style={{...fixedCols(3, 12, 'stretch').style, marginBottom:18}}>
               {SERVICERS_GUIDE.tools.map(t=>(
-                <div key={t.name} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,display:'flex',flexDirection:'column'}}>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:6}}>{t.name}</p>
+                <div key={t.name} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner,padding:14,display:'flex',flexDirection:'column'}}>
+                  {/* Τίτλος κάρτας σε βάρος τίτλου. Στο 500 διαβαζόταν ίδιος με
+                      το κείμενο από κάτω, και οι τρεις κάρτες έμοιαζαν με τρεις
+                      παραγράφους χωρίς επικεφαλίδα. */}
+                  <p style={{fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',lineHeight:1.4,marginBottom:6}}>{t.name}</p>
                   <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans,marginBottom:10}}>{t.d}</p>
                   <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:10}}>
                     {t.facts.map((f,i)=>(

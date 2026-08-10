@@ -252,3 +252,35 @@ export function estimateUsage(
 
   return { kwhMonthly: 0, source: 'unknown', months: 0, reliable: false };
 }
+
+// ── ΝΕΡΟ: Ο ΜΗΝΙΑΙΟΣ ΑΠΟ ΤΟΝ ΛΟΓΑΡΙΑΣΜΟ ───────────────────────────────────
+//
+// Η ίδια διαίρεση ήταν γραμμένη τρεις φορές: στη σύνοψη της κάρτας παροχών, στον
+// προϋπολογισμό και μέσα στο πεδίο του λογαριασμού. Και υπήρχε ΚΑΙ τέταρτο
+// σημείο — ένα πεδίο «Μηνιαία αναγωγή» που ο χρήστης μπορούσε να γράψει με το
+// χέρι, ενώ και οι δύο αναγνώστες το αγνοούσαν μόλις υπήρχε λογαριασμός.
+//
+// Ο λογαριασμός του νερού δεν είναι μηνιαίος στην Ελλάδα: η ΕΥΔΑΠ χρεώνει ανά
+// δίμηνο, άλλες ΔΕΥΑ ανά τρίμηνο ή τετράμηνο. Η συχνότητα είναι μέρος του
+// νούμερου, όχι λεπτομέρεια.
+
+/** Τα πεδία της κάρτας παροχών που ορίζουν τον μηνιαίο του νερού. */
+export interface WaterBilling {
+  waterBiMonthly?: unknown;
+  waterMonthly?: unknown;
+  waterPeriodMonths?: unknown;
+}
+
+const num = (v: unknown) => parseFloat(String(v ?? '')) || 0;
+
+/** Ο μηνιαίος του νερού: λογαριασμός διά τους μήνες της περιόδου χρέωσης. */
+export function waterMonthly(v: WaterBilling): number {
+  if (!v.waterBiMonthly) return num(v.waterMonthly);
+  const months = parseInt(String(v.waterPeriodMonths ?? '2')) || 2;
+  return num(v.waterBiMonthly) / months;
+}
+
+/** Η ίδια τιμή σε μορφή αποθήκευσης, ή κενό όταν δεν έχει δοθεί λογαριασμός. */
+export function waterMonthlyText(bill: unknown, periodMonths: unknown): string {
+  return bill ? waterMonthly({ waterBiMonthly: bill, waterPeriodMonths: periodMonths }).toFixed(2) : '';
+}

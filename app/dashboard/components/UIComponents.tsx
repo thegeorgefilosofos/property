@@ -158,6 +158,39 @@ export function InfoDot({ text }: { text: string }) {
   );
 }
 
+/**
+ * ΠΛΑΚΙΔΙΟ «ΕΤΙΚΕΤΑ ΚΑΙ ΕΠΕΞΗΓΗΣΗ» — ΜΙΑ ΦΟΡΑ, ΓΙΑ ΤΡΕΙΣ ΟΘΟΝΕΣ.
+ *
+ * Το ίδιο ακριβώς στοιχείο ήταν γραμμένο τρεις φορές, και τις τρεις αλλιώς: τα
+ * κριτήρια έγκρισης, οι επισημάνσεις της προσφοράς και τα δικαιώματα απέναντι
+ * σε servicer. Τρία padding, τρία μεγέθη γράμματος, τρεις στοιχίσεις — και,
+ * κυρίως, ΑΛΛΗ ΣΥΜΠΕΡΙΦΟΡΑ ΣΤΟ ΜΑΚΡΥ ΚΕΙΜΕΝΟ: το ένα τύλιγε, το άλλο έκοβε με
+ * αποσιωπητικά. Δηλαδή στην ίδια οθόνη, η ίδια πληροφορία άλλοτε φαινόταν
+ * ολόκληρη και άλλοτε γινόταν «Ακριβότερο από την αγο…».
+ *
+ * ΤΟ ΚΕΙΜΕΝΟ ΔΕΝ ΚΟΒΕΤΑΙ ΠΟΤΕ. Μια ετικέτα που δεν χωρά δεν γίνεται μισή,
+ * γίνεται δύο γραμμές· έτσι το πλήθος στηλών είναι απόφαση διάταξης και όχι
+ * απόφαση για το τι θα διαβάσει ο χρήστης.
+ */
+export function InfoChip({ label, detail, icon, tone = 'default' }: {
+  label: string; detail?: string; icon?: ReactNode; tone?: 'default' | 'negative';
+}) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+      background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+      borderRadius: T.radius.inner, height: '100%',
+    }}>
+      {icon && <span style={{ flexShrink: 0, display: 'inline-flex' }} aria-hidden="true">{icon}</span>}
+      <span style={{
+        flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
+        color: tone === 'negative' ? 'var(--negative)' : 'var(--text-primary)', lineHeight: 1.4,
+      }}>{label}</span>
+      {detail && <InfoDot text={detail} />}
+    </div>
+  );
+}
+
 // ── ΤΟ labelInfo ΠΟΥ ΕΓΙΝΕ ΠΑΡΑΓΡΑΦΟΣ ΜΕΣΑ ΣΤΗΝ ΕΤΙΚΕΤΑ ────────────────────
 // Ο τύπος είναι ReactNode, οπότε μια συμβολοσειρά περνά τον μεταγλωττιστή και
 // ΤΥΠΩΝΕΤΑΙ κολλητά στην ετικέτα. Το αποτέλεσμα στην οθόνη ήταν
