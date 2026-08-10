@@ -9,7 +9,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, TT, fe, formGrid, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, formGrid, tileGrid, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -537,16 +537,18 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
 
       {/* Ο ΕΠΙΛΟΓΕΑΣ: ίδια ανατομία σε ΚΑΘΕ πλακίδιο, ένα κλικ, τίποτα άλλο μέσα.
 
-          Το πλέγμα έγινε γραμμή που αναδιπλώνεται. Με `auto-fill` και εννιά
-          υπηρεσίες, η τελευταία σειρά έμενε με μια τρύπα δεξιά και η οθόνη
-          διαβαζόταν σπασμένη. Τα πλακίδια πιάνουν τώρα το πλάτος του ονόματός
-          τους και πακετάρονται σφιχτά, όπως κάθε σειρά ετικετών.
+          ΙΣΕΣ ΣΤΗΛΕΣ, ΟΧΙ ΓΡΑΜΜΗ ΠΟΥ ΑΝΑΔΙΠΛΩΝΕΤΑΙ. Όσο κάθε πλακίδιο έπαιρνε
+          το πλάτος του ονόματός του, το «Netflix» ήταν μισό από το «Amazon
+          Prime Video» και δεκαοκτώ άκρες κατέβαιναν σε τυχαία σημεία: η σειρά
+          δεν είχε στήλη να ακολουθήσει το μάτι, και η τελευταία έμενε μισή με
+          τρύπα δεξιά. Με ίσες στήλες τα ονόματα ξεκινούν στο ίδιο σημείο και τα
+          ποσά τελειώνουν στο ίδιο — δύο κάθετες γραμμές αντί για δεκαοκτώ άκρες.
 
           Και το ποσό μπαίνει σε ΟΛΑ: πριν, το ενεργό πλακίδιο έχανε την τιμή
           του ενώ το διπλανό ανενεργό την κρατούσε, οπότε στην ίδια σειρά δύο
           πλακίδια είχαν διαφορετικό σχήμα. Στα ενεργά γράφεται η ΠΡΑΓΜΑΤΙΚΗ
           τιμή που πληρώνει ο χρήστης, στα υπόλοιπα η τιμή εισόδου. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div style={tileGrid(190)}>
         {catalog.map(svc => {
           const entry = active.find(a => a.service === svc.value);
           const on = !!entry;
@@ -554,7 +556,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           return (
             <button key={svc.value} type="button" onClick={() => onToggle(svc.value)} aria-pressed={on}
               style={{
-                display: 'inline-flex', alignItems: 'baseline', gap: 10,
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10,
                 textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                 height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
                 background: on ? 'var(--accent-soft)' : 'var(--bg-elevated)',

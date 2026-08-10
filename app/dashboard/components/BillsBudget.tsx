@@ -1192,8 +1192,14 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
                 {isSTRmode ? (
                   <>
-                    <KPI label="Έσοδα μήνα" value={feAuto(income)} />
-                    <KPI label="Από την αρχή έτους" value={feAuto(incomeYtd)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
+                    {/* ΕΙΣΠΡΑΞΕΙΣ, ΟΧΙ ΕΣΟΔΑ: εδώ αθροίζεται ό,τι μπήκε στο ταμείο
+                        από τις διαμονές. Το ΔΗΛΩΤΕΟ ποσό είναι μεγαλύτερο, γιατί
+                        περιλαμβάνει την προμήθεια της πλατφόρμας — και το λέει η
+                        Λογιστική, ως «Μεικτά έσοδα». Δύο σωστά νούμερα για την
+                        ίδια διαμονή· η λέξη ξεχωρίζει ποιο είναι ποιο. */}
+                    <KPI label="Εισπράξεις μήνα" value={feAuto(income)}
+                      title="Ό,τι μπήκε στο ταμείο από διαμονές αυτόν τον μήνα. Το δηλωτέο ποσό είναι μεγαλύτερο: το βλέπεις στη Λογιστική ως «Μεικτά έσοδα»." />
+                    <KPI label="Από την αρχή έτους" value={feAuto(incomeYtd)} title="Εισπράξεις από διαμονές, από 1η Ιανουαρίου." />
                     <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
                     <KPI label="Μέση τιμή ανά βραδιά" value={strNights > 0 ? feAuto(Math.round(income / strNights)) : fe(0)} />
                   </>
