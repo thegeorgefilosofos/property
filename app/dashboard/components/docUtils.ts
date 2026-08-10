@@ -5,6 +5,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { speechRecognizer, type SpeechEvent } from '@/lib/core/speech';
+// Το Αρχείο έχει ένα σπίτι: lib/data/documents.
+import * as documents from '@/lib/data/documents';
 
 /** Ημερομηνία σε ελληνική μορφή ΗΗ/ΜΜ/ΕΕΕΕ (ανεκτικό σε άκυρη είσοδο). */
 export const grDate = (iso: string) => {
@@ -35,20 +37,19 @@ export interface ArchiveInput {
   supplier?: string;     // αντισυμβαλλόμενος (προαιρετικό σε παλιότερο schema)
 }
 
-/** Ανεβάζει το PDF και το καταχωρεί στα έγγραφα του ακινήτου. Σε παλιότερη βάση
- *  χωρίς τη στήλη supplier, ξαναδοκιμάζει χωρίς αυτήν. */
+/** Ανεβάζει το PDF και το καταχωρεί στα έγγραφα του ακινήτου. Η άμυνα για στήλη
+ *  που δεν υπάρχει ακόμη στη βάση ζει στο στρώμα — εδώ ήξερε μόνο το `supplier`. */
 export async function archivePdfToProperty(i: ArchiveInput): Promise<void> {
   const path = `${i.userId}/${i.propertyId}/document/${Date.now()}_${i.fileName}.pdf`;
   const { error: upErr } = await i.supabase.storage.from('property-files')
     .upload(path, i.blob, { upsert: false, contentType: 'application/pdf' });
   if (upErr) throw upErr;
-  const base = {
-    property_id: i.propertyId, user_id: i.userId, kind: 'document', category: i.category || 'document',
+  const { error } = await documents.add(i.supabase, i.propertyId, i.userId, {
+    kind: 'document', category: i.category || 'document',
     title: i.title.slice(0, 200), notes: i.notes || null, doc_date: i.docDate || null,
     file_path: path, file_name: `${i.fileName}.pdf`, mime: 'application/pdf', size_bytes: i.blob.size,
-  };
-  let { error } = await i.supabase.from('property_documents').insert({ ...base, supplier: i.supplier || null });
-  if (error && /supplier/i.test(error.message)) ({ error } = await i.supabase.from('property_documents').insert(base));
+    supplier: i.supplier || null,
+  });
   if (error) throw error;
 }
 

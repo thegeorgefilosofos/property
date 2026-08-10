@@ -80,6 +80,8 @@ import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
 import BillingNudge from './components/BillingNudge';
 import { athensToday, daysUntil as athensDaysUntil, isoYear, isoMonth } from '@/lib/core/time';
+// Το Αρχείο έχει ένα σπίτι: lib/data/documents.
+import * as documents from '@/lib/data/documents';
 import { saved, savedData } from '@/components/dbWrite';
 
 interface Property {
@@ -1487,7 +1489,7 @@ export default function Dashboard() {
     setQuickAddOpen(false);
     const draft = scanDraftId; setScanDraftId(null);
     if (draft && user) {
-      const { count } = await supabase.from('property_documents').select('id', { count: 'exact', head: true }).eq('property_id', draft);
+      const count = await documents.count(supabase, draft, user.id);
       if ((count || 0) === 0) {
         if (!await saved('Το κενό προσχέδιο δεν καθαρίστηκε',
           propertyStore.remove(supabase, draft, user.id))) return;

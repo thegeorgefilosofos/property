@@ -19,6 +19,8 @@ import { useAppPreferences } from './useAppPreferences';
 import type { BillsRow, ExpensesRow, InventoryItemsRow } from '@/lib/supabase/tables';
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
+// Το Αρχείο έχει ένα σπίτι: lib/data/documents.
+import * as documents from '@/lib/data/documents';
 // Η ΜΙΑ μηχανή σάρωσης/καταχώρισης. Το Αρχείο δεν έχει δική του λογική OCR, δικό
 // του prompt, ούτε δική του απόφαση για το ράφι: όλα ζουν στο scanDoc.ts και στο
 // lib/billing (δοκιμασμένα). Ό,τι φαίνεται εδώ είναι μόνο οθόνη.
@@ -336,13 +338,13 @@ export default function TabDocuments({
     if (!propertyId) return;
     setLoading(true);
     const [docsRes, expRes, billsRes, invRes] = await Promise.all([
-      supabase.from('property_documents').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+      documents.ofProperty<DocRow>(supabase, propertyId, '*', userId),
       expenses.ledger(supabase, propertyId, { columns: '*' }),
       billStore.ofProperty<BillsRow>(supabase, propertyId, '*', userId),
       inventory.ofProperty<InventoryItemsRow>(supabase, propertyId, '*', userId),
     ]);
 
-    const docs = (docsRes.data ?? []) as DocRow[];
+    const docs = docsRes;
     // Υπογεγραμμένα URL για τα ανεβασμένα αρχεία (bucket property-files)
     const paths = docs.map(r => r.file_path).filter(Boolean);
     const signedMap: Record<string, string> = {};
@@ -564,7 +566,7 @@ export default function TabDocuments({
     await supabase.storage.from('property-files').remove([it.raw.file_path]);
     // Αν χαθεί η γραμμή αλλά μείνει το αρχείο, ή το αντίστροφο, ο χρήστης βλέπει
     // το αρχείο να «επιστρέφει» στην επόμενη φόρτωση. Καλύτερα να το μάθει τώρα.
-    if (!await saved('Το αρχείο δεν διαγράφηκε', supabase.from('property_documents').delete().eq('id', it.raw.id))) return;
+    if (!await saved('Το αρχείο δεν διαγράφηκε', documents.remove(supabase, it.raw.id))) return;
     if (lightbox?.id === it.id) setLightbox(null);
     fetchAll();
   };
@@ -572,20 +574,10 @@ export default function TabDocuments({
   // ── Διαχείριση (μετονομασία / διόρθωση αναγνώρισης / μαζικές ενέργειες) ──
   // Ενημερώνει μόνο ανεβασμένα αρχεία (property_documents)· τα κατοπτρικά
   // στοιχεία (Έξοδα/Λογαριασμοί/Απογραφή) διαχειρίζονται στην πηγή τους.
-  // Αμυντικά: αν λείπει κάποια από τις νέες στήλες (βάση χωρίς το migration),
-  // ξαναδοκιμάζουμε χωρίς αυτήν, ώστε η διόρθωση να μη χάνεται σιωπηλά.
-  const FIX_COLS = ['amount', 'provider_afm', 'period_from', 'period_to', 'issue_date', 'supplier'];
+  // Η άμυνα για στήλη που δεν υπάρχει ακόμη στη βάση ζει στο στρώμα, μαζί με τη
+  // λίστα των προαιρετικών στηλών — ήταν γραμμένη εδώ, και άλλες τρεις φορές αλλού.
   const updateDocs = async (its: Item[], p: Record<string, unknown>) => {
-    const rawIds = its.filter(i => i.raw).map(i => i.raw!.id);
-    if (!rawIds.length) return;
-    const payload = { ...p };
-    for (let i = 0; i <= FIX_COLS.length; i++) {
-      const { error } = await supabase.from('property_documents').update(payload).in('id', rawIds);
-      if (!error) break;
-      const missing = FIX_COLS.find(c => c in payload && new RegExp(`\\b${c}\\b`, 'i').test(error.message));
-      if (!missing) break;
-      delete payload[missing];
-    }
+    await documents.update(supabase, its.filter(i => i.raw).map(i => i.raw!.id), p);
     fetchAll();
   };
   const applyRename = async (title: string) => { if (renameItem && title.trim()) await updateDocs([renameItem], { title: title.trim().slice(0, 200) }); setRenameItem(null); };
@@ -603,7 +595,7 @@ export default function TabDocuments({
     if (prefs.confirmBeforeDelete && !(await confirmDialog(`Να διαγραφούν οριστικά ${selRaw.length} ${selRaw.length === 1 ? 'αρχείο' : 'αρχεία'};`, { tone: 'negative' }))) return;
     await supabase.storage.from('property-files').remove(selRaw.map(i => i.raw!.file_path));
     if (!await saved('Τα αρχεία δεν διαγράφηκαν',
-      supabase.from('property_documents').delete().in('id', selRaw.map(i => i.raw!.id)))) return;
+      documents.removeMany(supabase, selRaw.map(i => i.raw!.id)))) return;
     setSelected(new Set()); fetchAll();
   };
   const bulkDownload = () => { selItems.filter(i => i.url).forEach(i => window.open(i.url!, '_blank', 'noopener')); };

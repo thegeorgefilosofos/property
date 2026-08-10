@@ -25,7 +25,7 @@ import type { LeaseType, LeaseCategory, PaymentFreq, IdDocType, ServiceLine } fr
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, Modal, SideSheet, fe, fn, fp, Spinner, Skeleton, SkeletonKPIs, ExportButton, type KPIItem, ABSENT, ABSENT_DATE, TT, localDay, pressable, formGrid } from '@/components/Theme';
 import { BarChart3, MessageSquare, Banknote, Hammer, Wrench, Users, SearchX } from 'lucide-react';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
-import { saved, savedData } from '@/components/dbWrite';
+import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import LeaseModal from './LeaseModal';
 import LeaseDeclaration from './LeaseDeclaration';
@@ -47,6 +47,8 @@ import { MONTHS_NOM, MONTHS_SHORT, monthNom } from '@/lib/core/months';
 import { INK, INK_MUTED, RULE } from '@/lib/print/ink';
 import { AadeLinks } from '@/components/AadeLink';
 import { failed } from '@/lib/core/dbError';
+// Το Αρχείο έχει ένα σπίτι: lib/data/documents.
+import * as documents from '@/lib/data/documents';
 import {
   instalmentPeriods, monthsPerInstalment, periodLabel,
   PAYMENT_FREQ_LABELS, isPaymentFreq, type InstalmentPeriod,
@@ -1104,7 +1106,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
       try{
         const safe=file.name.replace(/[^\w.\-]+/g,'_'); const path=`${userId}/${propertyId}/document/${Date.now()}_${safe}`;
         const{error:upErr}=await supabase.storage.from('property-files').upload(path,file,{upsert:false,contentType:file.type||undefined});
-        if(!upErr){ const ins=await savedData<{id?:string}>('Το έγγραφο δεν μπήκε στο Αρχείο',supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',title:(doc.title||file.name).slice(0,200),doc_date:doc.issue_date||todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id').single()); docId=ins?.id||null; }
+        if(!upErr){ const ins=await documents.add(supabase,propertyId,userId,{kind:'document',category:'tenant',title:(doc.title||file.name).slice(0,200),doc_date:doc.issue_date||todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}); if(ins.error)notifyError(failed('Το έγγραφο δεν μπήκε στο Αρχείο',ins.error)); docId=ins.id; }
       }catch{ /* archive optional */ }
       const amount=typeof doc.amount==='number'?doc.amount:0;
       const dateISO=doc.issue_date||doc.due_date||todayISO();
@@ -2251,8 +2253,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     setEditId(t.id); setIsForm(true);
     // Επαναφόρτωση των εγγράφων που έχουν ήδη ανέβει για ΑΥΤΟΝ τον ενοικιαστή
     // (ταυτότητα, μισθωτήρια — και προηγούμενα με τον ίδιο ενοικιαστή).
-    supabase.from('property_documents').select('id,file_name,title').eq('property_id',propertyId).eq('user_id',userId).eq('supplier','tenant:'+t.id)
-      .then(({data})=>{ setFormDocs((data||[]).map((d:{id:string;file_name:string|null;title:string|null})=>({ id:d.id, file_name:d.file_name||'έγγραφο', tag:(d.title||'').startsWith('Έγγραφο ταυτοποίησης')?'id':'lease' as 'id'|'lease' }))); });
+    documents.ofSupplier<{id:string;file_name:string|null;title:string|null}>(supabase,propertyId,'tenant:'+t.id,'id,file_name,title',userId)
+      .then(rows=>{ setFormDocs(rows.map(d=>({ id:d.id, file_name:d.file_name||'έγγραφο', tag:(d.title||'').startsWith('Έγγραφο ταυτοποίησης')?'id':'lease' as 'id'|'lease' }))); });
   };
 
   // Ανέβασμα εγγράφου φόρμας (ταυτοποίηση ή μισθωτήριο) — ίδιο μοτίβο με το
@@ -2266,9 +2268,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       if(upErr){ setError(failed('Το αρχείο δεν ανέβηκε', upErr)); setDocBusy(false); return; }
       const label=tag==='id'?'Έγγραφο ταυτοποίησης':'Μισθωτήριο / έγγραφο';
       const title=`${label} · ${form.full_name.trim()||file.name}`.slice(0,200);
-      const{data:ins,error:insErr}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',supplier:editId?('tenant:'+editId):null,title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id,file_name').single();
-      if(insErr){ setError(failed('Το έγγραφο δεν καταχωρήθηκε', insErr)); setDocBusy(false); return; }
-      if(ins) setFormDocs(prev=>[...prev,{id:ins.id as string,file_name:ins.file_name as string,tag}]);
+      const ins=await documents.add(supabase,propertyId,userId,{kind:'document',category:'tenant',supplier:editId?('tenant:'+editId):null,title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size});
+      if(ins.error){ setError(failed('Το έγγραφο δεν καταχωρήθηκε', ins.error)); setDocBusy(false); return; }
+      if(ins.id) setFormDocs(prev=>[...prev,{id:ins.id as string,file_name:file.name,tag}]);
       notifyOk('Το έγγραφο ανέβηκε');
     }catch{ setError('Σφάλμα ανεβάσματος εγγράφου'); }
     setDocBusy(false);
@@ -2316,7 +2318,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     const savedTenant=(savedRow||null) as unknown as (TenantScheduleInput&{rent_due_day?:number|null})|null;
     if(savedTenant?.id && !editId && formDocs.length){
       await saved('Τα έγγραφα δεν συνδέθηκαν με τον ενοικιαστή',
-        supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id)));
+        documents.update(supabase,formDocs.map(d=>d.id),{supplier:'tenant:'+savedTenant.id}));
     }
     if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
     setSaving(false);setIsForm(false);

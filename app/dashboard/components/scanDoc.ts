@@ -34,6 +34,8 @@ import { fillOnlyEmpty } from '@/lib/core/prefill';
 import { athensToday } from '@/lib/core/time';
 import { saved, savedData } from '@/components/dbWrite';
 import { uploadPath } from '@/lib/core/uploadPath';
+// Το Αρχείο έχει ένα σπίτι: lib/data/documents.
+import * as documents from '@/lib/data/documents';
 import { navLabel } from '@/lib/nav/labels';
 import {
   matchPaymentToBills, providerFromBillName,
@@ -288,11 +290,6 @@ export interface ArchiveInput {
   issue_date?: string | null;
 }
 
-// Στήλες που μπορεί να ΛΕΙΠΟΥΝ σε βάση όπου δεν έχει τρέξει ακόμη το migration
-// 20260730090000_document_fields.sql. Αν λείπει κάποια, ξαναδοκιμάζουμε χωρίς
-// αυτήν — το αρχείο του χρήστη δεν χάνεται ποτέ επειδή λείπει μια στήλη.
-const OPTIONAL_DOC_COLS = ['amount', 'provider_afm', 'period_from', 'period_to', 'issue_date', 'supplier'] as const;
-
 /** Ανεβάζει το πρωτότυπο και γράφει τη γραμμή του Αρχείου. */
 export async function archiveScannedFile(input: ArchiveInput): Promise<{ ok: boolean; error?: string }> {
   const supabase = createClient();
@@ -318,14 +315,8 @@ export async function archiveScannedFile(input: ArchiveInput): Promise<{ ok: boo
     issue_date: input.issue_date || null,
   };
 
-  for (let i = 0; i <= OPTIONAL_DOC_COLS.length; i++) {
-    const { error } = await supabase.from('property_documents').insert(payload);
-    if (!error) return { ok: true };
-    const missing = OPTIONAL_DOC_COLS.find(c => c in payload && new RegExp(`\\b${c}\\b`, 'i').test(error.message));
-    if (!missing) return { ok: false, error: error.message };
-    delete payload[missing];
-  }
-  return { ok: false, error: 'insert' };
+  const { error } = await documents.add(supabase, propertyId, userId, payload);
+  return error ? { ok: false, error: error.message ?? 'insert' } : { ok: true };
 }
 
 /** Από το σχέδιο αρχειοθέτησης (καθαρή λογική) στο input της βάσης. */

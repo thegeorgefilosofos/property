@@ -51,6 +51,8 @@ import { TASK_CATEGORIES, TASK_PRIORITIES, TASK_STATUSES } from '@/lib/checklist
 import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { navLabel } from '@/lib/nav/labels'
 import { failed, MSG } from '@/lib/core/dbError';
+// Το Αρχείο έχει ένα σπίτι: lib/data/documents.
+import * as documents from '@/lib/data/documents';
 
 const supabase = createSupabaseClient()
 
@@ -1702,18 +1704,15 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
       mime: file.type || null, size_bytes: file.size,
     }
     // Οι στήλες ποσού/ΑΦΜ/περιόδου προστέθηκαν με migration. Αν δεν έχει τρέξει
-    // ακόμη στη βάση, ξαναδοκιμάζουμε ΧΩΡΙΣ αυτές: το παραστατικό δεν χάνεται
-    // ποτέ επειδή λείπει μια στήλη.
-    const rich = {
+    // ακόμη στη βάση, το στρώμα αφαιρεί ΜΙΑ στήλη τη φορά — εδώ πετιόνταν και οι
+    // πέντε μαζί, οπότε ένα `issue_date` που έλειπε άφηνε το παραστατικό και
+    // χωρίς ποσό, χωρίς ΑΦΜ και χωρίς περίοδο.
+    const { id: docId } = await documents.add(supabase, propertyId, userId, {
       ...docBase, supplier: archive?.supplier || null, amount: amountNum,
       provider_afm: archive?.provider_afm || null,
       period_from: archive?.period_from || null, period_to: archive?.period_to || null,
       issue_date: date,
-    }
-    let docId: string | null = null
-    let ins = await supabase.from('property_documents').insert(rich).select('id').single()
-    if (ins.error) ins = await supabase.from('property_documents').insert(docBase).select('id').single()
-    docId = (ins.data as { id?: string } | null)?.id || null
+    })
 
     const evidence: ReceiptEvidence = { path, name: file.name, docId }
     const map = expenseCategoryFor(item.category)

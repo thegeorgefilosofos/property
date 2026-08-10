@@ -26,6 +26,8 @@ import { athensToday, isoDate, daysUntil as athensDaysUntil } from '@/lib/core/t
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { downloadFile } from '@/lib/core/download';
 import { failed } from '@/lib/core/dbError';
+// Το Αρχείο έχει ένα σπίτι: lib/data/documents.
+import * as documents from '@/lib/data/documents';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -472,13 +474,8 @@ const digitsOf = (v?: string | null) => (v || '').replace(/\D/g, '')
 async function fetchSupplierDocs(afm: string, propertyId: string) {
   if (digitsOf(afm).length !== 9) return []
   // Αμυντικά: αν η στήλη δεν υπάρχει ακόμη στη βάση, γυρνάμε κενό αντί να σκάσουμε.
-  const { data, error } = await supabase
-    .from('property_documents')
-    .select('id,title,category,doc_date,issue_date,amount,file_path')
-    .eq('property_id', propertyId).eq('provider_afm', digitsOf(afm))
-    .order('doc_date', { ascending: false }).limit(50)
-  if (error) return []
-  return (data || []) as SupplierDoc[]
+  return documents.ofSupplierAfm<SupplierDoc>(
+    supabase, propertyId, digitsOf(afm), 'id,title,category,doc_date,issue_date,amount,file_path')
 }
 interface SupplierDoc { id: string; title: string | null; category: string | null; doc_date: string | null; issue_date: string | null; amount: number | null; file_path: string }
 
