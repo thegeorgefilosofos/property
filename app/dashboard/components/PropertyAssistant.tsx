@@ -96,6 +96,7 @@ type ClientLite = { id: string; name: string; phone: string; afm: string };
 type ContactLite = { name: string; role: string; phone: string; email: string };
 
 import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from '@/lib/assistant/openers';
+import { modelFor } from '@/lib/assistant/model';
 import { scanFile, commitScannedDoc, RECONCILE_NONE_LABEL, RECONCILE_NONE_HINT, type ReconcileQuestion } from './scanDoc';
 import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
@@ -1078,7 +1079,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         // ΗΤΑΝ 900, ΜΕ ΤΟ ΤΑΒΑΝΙ ΤΟΥ ΔΙΑΚΟΜΙΣΤΗ ΣΤΑ 2000. Μια ανάλυση δανείου ή ένας
         // πίνακας τιμών ανά μήνα κοβόταν στη μέση, και ο χρήστης διάβαζε μισό
         // συλλογισμό χωρίς να ξέρει ότι λείπει κάτι.
-        body: JSON.stringify({ max_tokens: 1800, system, messages: history.map(m => ({ role: m.role, content: m.text })) }),
+        // ΤΟ ΜΟΝΤΕΛΟ ΔΙΑΛΕΓΕΤΑΙ ΑΠΟ ΤΗΝ ΕΡΩΤΗΣΗ, ΟΧΙ ΑΠΟ ΣΥΝΗΘΕΙΑ. Κάθε ερώτηση
+        // πήγαινε στο ακριβό μοντέλο, από το «καλημέρα» ως τον υπολογισμό ΣΕΠΠΕ,
+        // και επειδή το πακέτο ερωτήσεων κάθε συνδρομής βγαίνει από διαίρεση,
+        // αυτό σήμαινε λιγότερες ερωτήσεις για τον συνδρομητή (βλ. lib/assistant/model.ts).
+        body: JSON.stringify({ model: modelFor(q), max_tokens: 1800, system, messages: history.map(m => ({ role: m.role, content: m.text })) }),
       });
       const data = await res.json();
       if (!res.ok) {

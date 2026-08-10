@@ -20,7 +20,7 @@ export interface AppPreferences {
    * διαμερίσματος και άλλο το γραφείο με δεκαπέντε. Ρυθμίζεται.
    * Το ΕΚΠΡΟΘΕΣΜΟ δεν κρύβεται ποτέ, με καμία τιμή.
    */
-  agendaHorizonDays: 30 | 60 | 100 | 180 | 365;
+  agendaHorizonDays: 30 | 60 | 90 | 180 | 365;
   // Αρχείο & Καταχωρήσεις
   autoSuggestCategory: boolean;      // Αυτόματη πρόταση κατηγορίας βάσει παρόχου
   confirmBeforeDelete: boolean;      // Επιβεβαίωση πριν τη διαγραφή
@@ -34,7 +34,7 @@ export interface AppPreferences {
 export const DEFAULT_PREFERENCES: AppPreferences = {
   liveNotifications: true,
   deadlineAlerts: true,
-  agendaHorizonDays: 100,
+  agendaHorizonDays: 90,
   autoSuggestCategory: true,
   confirmBeforeDelete: true,
   compactView: false,

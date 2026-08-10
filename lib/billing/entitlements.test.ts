@@ -16,7 +16,7 @@ const daysFromNow = (d: number) => new Date(NOW + d * 86400000).toISOString();
 
 // ── Επιτρεπόμενα πλάνα ανά προφίλ ──
 ok(ALLOWED_PLANS.individual.join(',') === 'free,solo,owner', 'ιδιώτης → free,solo,owner');
-ok(ALLOWED_PLANS.professional.join(',') === 'agency', 'επαγγελματίας → agency');
+ok(ALLOWED_PLANS.professional.join(',') === 'agency,office', 'επαγγελματίας → agency,office');
 ok(isPlanAllowedForProfile('individual', 'free') === true, 'ιδιώτης μπορεί δωρεάν');
 ok(isPlanAllowedForProfile('individual', 'owner') === true, 'ιδιώτης μπορεί ιδιοκτήτης');
 ok(isPlanAllowedForProfile('individual', 'agency') === false, 'ιδιώτης ΔΕΝ μπορεί επαγγελματίας');
@@ -24,7 +24,7 @@ ok(isPlanAllowedForProfile('professional', 'agency') === true, 'επαγγελμ
 ok(isPlanAllowedForProfile('professional', 'free') === false, 'επαγγελματίας ΔΕΝ μένει δωρεάν');
 ok(isPlanAllowedForProfile('professional', 'owner') === false, 'επαγγελματίας ΔΕΝ παίρνει ιδιοκτήτη');
 ok(paidPlanForProfile('individual') === 'owner', 'πληρωμένο πλάνο ιδιώτη = owner');
-ok(paidPlanForProfile('professional') === 'agency', 'πληρωμένο πλάνο επαγγελματία = agency');
+ok(paidPlanForProfile('professional') === 'office', 'πληρωμένο πλάνο επαγγελματία = office');
 
 // ── Σειρά πλάνων ──
 ok(planAtLeast('agency', 'owner') === true, 'agency ≥ owner');

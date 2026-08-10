@@ -72,9 +72,13 @@ const MATRIX: FeatureRow[] = [
   gated('rent_collection'),
   gated('multi_property'),
   gated('comparison'),
+  gated('accounting_journal'),
+  gated('bank_import'),
+  gated('early_access'),
   gated('clients'),
   gated('portfolio'),
   gated('report_branding'),
+  gated('investment_analysis'),
 ];
 
 // Πλέγμα του πίνακα: ετικέτα + 3 στήλες πλάνων. Ελάχιστο πλάτος ώστε σε στενές

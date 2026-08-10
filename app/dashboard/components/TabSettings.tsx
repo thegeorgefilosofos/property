@@ -28,7 +28,7 @@ import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
 import { PLANS, normalizePlan } from '@/lib/billing/plans';
-import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState } from '@/lib/billing/entitlements';
+import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, EARLY_ACCESS_DAYS, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
 import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
 import { failed } from '@/lib/core/dbError';
@@ -622,6 +622,20 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           </div>
         </div>
 
+        {/* ═══ Η ΥΠΟΣΧΕΣΗ ΤΗΣ ΠΡΟΩΡΗΣ ΠΡΟΣΒΑΣΗΣ, ΕΚΕΙ ΠΟΥ ΤΗ ΔΙΑΒΑΖΕΙ ΚΑΠΟΙΟΣ ══
+            Δεν είναι διαφήμιση: είναι όρος του πακέτου, γραμμένος και στους
+            Όρους Χρήσης. Για όποιον την έχει, λέγεται ως γεγονός· για όποιον δεν
+            την έχει, ως ένα ακόμη πράγμα που παίρνει αν ανέβει — χωρίς λουκέτο,
+            χωρίς πίεση, γιατί δεν του λείπει τίποτα σήμερα. */}
+        <div style={{ ...divider, borderBottom: 'none', paddingBottom: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Πρόωρη πρόσβαση</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+            {planAtLeast(effPlan, FEATURE_MIN_PLAN.early_access)
+              ? `Το πακέτο σου παίρνει την εφαρμογή κινητού, στο App Store και στο Google Play, ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα από τα υπόλοιπα. Κάθε νέα δυνατότητα και βελτίωση ενσωματώνεται πρώτα εδώ.`
+              : `Με το πακέτο «${PLANS.owner.name}» και πάνω, η εφαρμογή κινητού έρχεται ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα, και κάθε νέα δυνατότητα ενσωματώνεται πρώτα εκεί.`}
+          </div>
+        </div>
+
       </Card>
 
       {/* Επωνυμία αναφορών (Επαγγελματίας): δική της ενότητα, χωρίς Card-in-Card. */}
@@ -677,7 +691,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               options={[
                 { value: '30',  label: 'Επόμενος μήνας (30 ημέρες)' },
                 { value: '60',  label: 'Δύο μήνες (60 ημέρες)' },
-                { value: '100', label: 'Τρεις μήνες (100 ημέρες)' },
+                { value: '90',  label: 'Τρίμηνο (90 ημέρες)' },
                 { value: '180', label: 'Εξάμηνο (180 ημέρες)' },
                 { value: '365', label: 'Ολόκληρο έτος (365 ημέρες)' },
               ]} />

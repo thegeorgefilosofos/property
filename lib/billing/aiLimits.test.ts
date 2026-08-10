@@ -12,8 +12,9 @@
 
 import {
   aiLimitsFor, WARN_AT, dailyExhaustedMessage, monthlyExhaustedMessage,
-  poolExhaustedMessage, COST_PER_REQUEST_USD, FREE_BUDGET_USD, FREE_POOL_PER_MONTH,
-  dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER, MAX_PER_MINUTE,
+  poolExhaustedMessage, COST_PER_REQUEST_USD, COST_PER_REQUEST_EUR, FREE_BUDGET_USD,
+  FREE_POOL_PER_MONTH, dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
+  MAX_PER_MINUTE, MONTHLY_AI_SHARE, ANNUAL_AI_SHARE, monthlyQuestionBudget,
 } from './aiLimits'
 import { PLANS, PLAN_ORDER, type PlanId } from './plans'
 
@@ -34,11 +35,12 @@ const EUR_TO_USD = 1.08
   ok('η δεξαμενή αξιοποιεί τον προϋπολογισμό (>85%), δεν τον αφήνει αχρησιμοποίητο',
     poolCost / FREE_BUDGET_USD > 0.85)
 
-  // Η δεξαμενή πρέπει να ΔΕΣΜΕΥΕΙ: αν χωρούσε δέκα χρήστες στο ατομικό μέγιστο,
-  // θα ήταν διακοσμητική και η εγγύηση θα ήταν ψεύτικη.
+  // Η δεξαμενή πρέπει να ΔΕΣΜΕΥΕΙ: αν δεν έπιανε ποτέ, η εγγύηση θα ήταν
+  // διακοσμητική. Με το πακέτο αναμονής στα 10, δεσμεύει στους 52 λογαριασμούς
+  // χωρίς συνδρομή — και αυτούς τους πληρώνουμε από την ίδια τσέπη.
   const free = aiLimitsFor('free')
-  ok('η δεξαμενή δεσμεύει πριν από τα ατομικά όρια',
-    FREE_POOL_PER_MONTH < free.perMonth * FREE_USERS_TARGET)
+  ok('η δεξαμενή δεσμεύει σε ρεαλιστικό πλήθος λογαριασμών',
+    FREE_POOL_PER_MONTH / free.perMonth < 100)
 
   // …αλλά ούτε τόσο σφιχτή ώστε να κόβει έναν μοναχικό χρήστη. Πέντε ενεργοί
   // δωρεάν χρήστες στο πλήρες μηνιαίο τους πρέπει να χωρούν άνετα.
@@ -67,21 +69,33 @@ const EUR_TO_USD = 1.08
     κλίμακα.every(l => l.perMinute === MAX_PER_MINUTE))
 }
 
-// ── Οι συνδρομητές ΕΠΙΔΟΤΟΥΝ, δεν κοστίζουν ───────────────────────────────
-// Ρητή επιθυμία: «οι πληρωμένοι να μπορούν αναλόγως να κάνουν περισσότερες
-// ερωτήσεις» και να καλύπτεται το κόστος του δωρεάν. Ελέγχουμε ότι το κόστος
-// στη ΧΕΙΡΟΤΕΡΗ περίπτωση μένει κάτω από τα έσοδα, με πραγματικό περιθώριο.
+// ── Ο ΚΑΝΟΝΑΣ ΤΟΥ ΠΡΟΫΠΟΛΟΓΙΣΜΟΥ, ΕΛΕΓΜΕΝΟΣ ΣΤΟ ΝΟΥΜΕΡΟ ──────────────────
+// Ο βοηθός δεν τρώει πάνω από το 20% της μηνιαίας συνδρομής, ούτε πάνω από το
+// 15% της ετήσιας. Αυτό ΔΕΝ είναι σχόλιο: αν κάποιος ανεβάσει ένα όριο με το
+// χέρι ή πέσει η ισοτιμία, το τεστ σπάει εδώ και όχι στον λογαριασμό της
+// Anthropic στο τέλος του μήνα.
 {
-  for (const id of ['owner', 'agency', 'office'] as PlanId[]) {
+  const PAID: PlanId[] = ['solo', 'owner', 'agency', 'office']
+  for (const id of PAID) {
     const l = aiLimitsFor(id)
-    const revenue = PLANS[id].priceMonthly * EUR_TO_USD
-    const worstCost = l.perMonth * COST_PER_REQUEST_USD
-    ok(`${id}: το χειρότερο κόστος μένει κάτω από τα έσοδα`, worstCost < revenue)
-    ok(`${id}: περιθώριο τουλάχιστον 40%`, worstCost / revenue <= 0.60)
-    // Και δεν πρέπει να είναι τσιγκούνικο: ένα πλάνο που ξοδεύει το 10% των
-    // εσόδων του σε AI απλώς δεν δίνει αρκετό στον συνδρομητή.
-    ok(`${id}: δίνει ουσιαστικό πακέτο (>30% των εσόδων σε αξία AI)`, worstCost / revenue > 0.30)
+    const worstEur = l.perMonth * COST_PER_REQUEST_EUR
+    const cap = PLANS[id].priceMonthly * MONTHLY_AI_SHARE
+    ok(`${id}: το χειρότερο κόστος δεν ξεπερνά το 20% της μηνιαίας`, worstEur <= cap)
+    // Και δεν είναι τσιγκούνικο: μία ερώτηση λιγότερη από το ταβάνι, όχι δέκα.
+    ok(`${id}: αξιοποιεί τον προϋπολογισμό του (μία ερώτηση από το ταβάνι)`,
+      worstEur + COST_PER_REQUEST_EUR > cap)
+
+    // Το ετήσιο μετριέται στο ΕΤΟΣ, γιατί εκεί δίνεται.
+    const annualYear = monthlyQuestionBudget(id, 'annual') * 12 * COST_PER_REQUEST_EUR
+    ok(`${id}: το ετήσιο δεν ξεπερνά το 15% της ετήσιας`,
+      annualYear <= PLANS[id].priceAnnual * ANNUAL_AI_SHARE)
   }
+
+  // ΤΟ «ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ» ΔΕΝ ΜΠΟΡΕΙ ΝΑ ΠΑΙΡΝΕΙ ΠΑΝΩ ΑΠΟ ΤΟΝ ΣΥΝΔΡΟΜΗΤΗ.
+  // Έπαιρνε 60 όταν το φθηνότερο πληρωμένο έπαιρνε 23: ο λογαριασμός που δεν
+  // πλήρωνε τίποτα έπαιρνε δυόμισι φορές περισσότερα από αυτόν που πλήρωνε.
+  ok('η αναμονή παίρνει λιγότερα από το φθηνότερο πληρωμένο',
+    aiLimitsFor('free').perMonth < aiLimitsFor('solo').perMonth)
 }
 
 // ── Κάθε πλάνο έχει όρια, και άγνωστο πλάνο πέφτει στο δωρεάν ─────────────
@@ -121,9 +135,11 @@ const EUR_TO_USD = 1.08
 // ── Η προειδοποίηση φτάνει ΠΡΙΝ τον τοίχο ─────────────────────────────────
 {
   ok('προειδοποιούμε στο 80%, όχι στο 100%', WARN_AT > 0.5 && WARN_AT < 1)
-  const free = aiLimitsFor('free')
-  const warnAt = Math.floor(free.perMonth * WARN_AT)
-  ok('μένουν πραγματικές ερωτήσεις μετά την προειδοποίηση', free.perMonth - warnAt >= 10)
+  // Μετριέται στο φθηνότερο ΠΛΗΡΩΜΕΝΟ πακέτο: εκεί το περιθώριο είναι πιο
+  // στενό, άρα εκεί κρίνεται αν η προειδοποίηση φτάνει έγκαιρα.
+  const solo = aiLimitsFor('solo')
+  const warnAt = Math.floor(solo.perMonth * WARN_AT)
+  ok('μένουν πραγματικές ερωτήσεις μετά την προειδοποίηση', solo.perMonth - warnAt >= 4)
 }
 
 // ── Τα μηνύματα: ποτέ αδιέξοδο, πάντα διέξοδος ────────────────────────────
