@@ -543,7 +543,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [years,       setYears]       = useState('25')
   const [rateType,    setRateType]    = useState<RateType>('fixed')
   const [loanType,    setLoanType]    = useState<LoanType>('purchase')
-  const [borrower,    setBorrower]    = useState<BorrowerType>('individual')
+  const [borrowerChoice, setBorrower] = useState<BorrowerType>('individual')
   const [startDate,   setStartDate]   = useState(athensToday())
   const [fixedPeriod, setFixedPeriod] = useState('5')
   const [bankId,      setBankId]      = useState('')
@@ -607,11 +607,14 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     ()=>BORROWER_OPTIONS.filter(o=>(profile==='business'?BUSINESS_BORROWERS:NATURAL_BORROWERS).includes(o.value as BorrowerType)),
     [profile]
   )
-  useEffect(()=>{
-    const allowed = profile==='business'?BUSINESS_BORROWERS:NATURAL_BORROWERS
-    if(!allowed.includes(borrower)) setBorrower(profile==='business'?'professional':'individual')
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[profile])
+  // ΤΟ ΕΠΙΤΡΕΠΤΟ ΔΕΝ ΑΠΟΘΗΚΕΥΕΤΑΙ, ΠΡΟΚΥΠΤΕΙ. Εδώ ένα effect διόρθωνε την
+  // αποθηκευμένη επιλογή μετά την απόδοση: για μία απόδοση η οθόνη έδειχνε
+  // δανειολήπτη που δεν υπήρχε καν στη λίστα, και όλοι οι υπολογισμοί από κάτω
+  // (όριο εισοδήματος, δικαιολογητικά, φορολογικά) έτρεχαν πάνω σε αυτόν.
+  // Τώρα το ασύμβατο δεν φτάνει ποτέ στην οθόνη.
+  const borrower = borrowerOptions.some(o=>o.value===borrowerChoice)
+    ? borrowerChoice
+    : (profile==='business'?'professional':'individual') as BorrowerType
 
   // Το ΠΡΑΓΜΑΤΙΚΟ ενοίκιο του ακινήτου (ίδια σειρά προτεραιότητας με όλη την
   // εφαρμογή: μισθωτήριο/ρύθμιση ενοικίου → στόχος ακινήτου). Όσο δεν υπάρχει,

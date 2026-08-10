@@ -207,7 +207,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [clients, setClients] = useState<Client[]>([]);
   const [props, setProps] = useState<PropRow[]>([]);
   const [stays, setStays] = useState<Stay[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notesOf, setNotesOf] = useState<{ clientId: string; rows: Note[] } | null>(null);
   const [inv, setInv] = useState<InvItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -215,8 +215,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [composeOpen, setComposeOpen] = useState(false);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportYearMenu, setReportYearMenu] = useState(false);
-  const [checkins, setCheckins] = useState<Checkin[]>([]);   // υποβολές pre-check-in του ανοιχτού πελάτη
-  const [checkinCopied, setCheckinCopied] = useState(false);
+  // ΟΙ ΥΠΟΒΟΛΕΣ ΚΟΥΒΑΛΟΥΝ ΤΟΝ ΠΕΛΑΤΗ ΤΟΥΣ. Πριν κρατούσαμε σκέτη λίστα και ένα
+  // effect την άδειαζε σε κάθε αλλαγή πελάτη — δηλαδή το «άδειο» ήταν
+  // αποθηκευμένη κατάσταση αντί για συμπέρασμα, και μια αργοπορημένη απάντηση
+  // του ΠΡΟΗΓΟΥΜΕΝΟΥ πελάτη προλάβαινε να γραφτεί πάνω στον νέο: ο ιδιοκτήτης
+  // έβλεπε στοιχεία ταυτότητας άλλου επισκέπτη κάτω από άλλο όνομα.
+  const [checkinsOf, setCheckinsOf] = useState<{ clientId: string; rows: Checkin[] } | null>(null);
+  const [copiedFor, setCopiedFor] = useState<string | null>(null);
   // Ποιο πρότυπο μηνύματος είναι επιλεγμένο. Πέντε πρότυπα επί τρία κουμπιά το
   // καθένα έκαναν δεκαπέντε κουμπιά σε μία ενότητα — και μόνο τρία από αυτά
   // χρησίμευαν κάθε φορά. Τώρα διαλέγεις πρότυπο, βλέπεις ΟΛΟ το κείμενο, και
@@ -262,10 +267,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [noteForm, setNoteForm] = useState<{ kind: string; body: string }>({ kind: 'note', body: '' });
 
   // Έγγραφα πελάτη (ταυτότητα, συμβόλαιο, αποδείξεις)
-  const [docs, setDocs] = useState<ClientDoc[]>([]);
-  const [docKind, setDocKind] = useState<string>('other');
+  const [docsOf, setDocsOf] = useState<{ clientId: string; rows: ClientDoc[] } | null>(null);
+  const [docKindOf, setDocKindOf] = useState<{ clientId: string; kind: string } | null>(null);
   const [docBusy, setDocBusy] = useState(false);
-  const [docMsg, setDocMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [docMsgOf, setDocMsgOf] = useState<{ clientId: string; msg: { text: string; error?: boolean } | null } | null>(null);
   const docFileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -289,7 +294,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   const loadNotes = useCallback(async (clientId: string) => {
     const { data } = await supabase.from('client_notes').select('*').eq('user_id', userId).eq('client_id', clientId).order('created_at', { ascending: false });
-    setNotes((data || []) as Note[]);
+    setNotesOf({ clientId, rows: (data || []) as Note[] });
   }, [userId]);
 
   const loadDocs = useCallback(async (clientId: string) => {
@@ -300,7 +305,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       const { data: signed } = await supabase.storage.from('property-files').createSignedUrls(paths, 60 * 60 * 24);
       if (signed) list.forEach((d, i) => { d.signedUrl = signed[i]?.signedUrl ?? undefined; });
     }
-    setDocs(list);
+    setDocsOf({ clientId, rows: list });
   }, [userId]);
 
   const loadIcalFeeds = useCallback(async () => {
@@ -323,10 +328,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     return () => { supabase.removeChannel(ch); };
   }, [userId, load, loadStays, loadNotes, loadDocs, loadIcalFeeds]);
 
+  // ΤΟ ΑΔΕΙΟ ΔΕΝ ΑΠΟΘΗΚΕΥΕΤΑΙ, ΠΡΟΚΥΠΤΕΙ. Εδώ ένα effect άδειαζε τέσσερις
+  // καταστάσεις σε κάθε αλλαγή πελάτη — και δεν προλάβαινε: μια αργοπορημένη
+  // απάντηση για τον ΠΡΟΗΓΟΥΜΕΝΟ πελάτη γραφόταν πάνω στον νέο, δηλαδή οι
+  // σημειώσεις και τα έγγραφα ενός επισκέπτη εμφανίζονταν κάτω από το όνομα
+  // άλλου. Τώρα κάθε λίστα κουβαλά τον πελάτη της και ταιριάζει ή αγνοείται.
+  const notes = notesOf?.clientId === openId ? notesOf.rows : [];
+  const docs  = docsOf?.clientId  === openId ? docsOf.rows  : [];
+  const docMsg = docMsgOf?.clientId === openId ? docMsgOf.msg : null;
+  const docKind = docKindOf?.clientId === openId ? docKindOf.kind : 'other';
   useEffect(() => {
     if (openId) { loadNotes(openId); loadDocs(openId); }
-    else { setNotes([]); setDocs([]); }
-    setDocMsg(null); setDocKind('other');
   }, [openId, loadNotes, loadDocs]);
 
   const propsByClient = useMemo(() => {
@@ -450,9 +462,11 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   };
 
   // Pre-check-in: φόρτωση υποβολών του ανοιχτού πελάτη + δημιουργία/αντιγραφή συνδέσμου
+  const checkins = checkinsOf?.clientId === openId ? checkinsOf.rows : [];
+  const checkinCopied = copiedFor !== null && copiedFor === openId;
   useEffect(() => {
-    if (!openId) { setCheckins([]); setCheckinCopied(false); return; }
-    supabase.from('guest_checkins').select('id,full_name,created_at,id_number,nationality,birth_date,phone,arrival_date,guests_count,accepts_rules').eq('client_id', openId).order('created_at', { ascending: false }).then(({ data }) => setCheckins((data || []) as Checkin[]));
+    if (!openId) return;
+    supabase.from('guest_checkins').select('id,full_name,created_at,id_number,nationality,birth_date,phone,arrival_date,guests_count,accepts_rules').eq('client_id', openId).order('created_at', { ascending: false }).then(({ data }) => setCheckinsOf({ clientId: openId, rows: (data || []) as Checkin[] }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);
   const copyCheckinLink = async () => {
@@ -460,7 +474,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const propId = (propsByClient.get(openId) || [])[0]?.id || null;
     const data = await savedData<{ token?: string }>('Ο σύνδεσμος προ-άφιξης δεν δημιουργήθηκε',
       supabase.from('checkin_links').upsert({ user_id: userId, client_id: openId, property_id: propId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle());
-    if (data?.token) { try { await navigator.clipboard.writeText(`${window.location.origin}/checkin/${data.token}`); } catch { /* ignore */ } setCheckinCopied(true); setTimeout(() => setCheckinCopied(false), 2600); }
+    if (data?.token) { try { await navigator.clipboard.writeText(`${window.location.origin}/checkin/${data.token}`); } catch { /* ignore */ } setCopiedFor(openId); setTimeout(() => setCopiedFor(null), 2600); }
   };
 
   // Εισαγωγή κράτησης από email: ανάλυση με AI → πρόχειρη διαμονή προς αποθήκευση.
@@ -667,21 +681,21 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   // ── Έγγραφα πελάτη ────────────────────────────────────────────────────────
   const onDocFile = async (file: File | null | undefined) => {
     if (!file || !openId) return;
-    setDocBusy(true); setDocMsg(null);
+    setDocBusy(true); setDocMsgOf(null);
     const safe = file.name.replace(/[^\w.\-]+/g, '_');
     const path = `${userId}/clients/${openId}/${Date.now()}_${safe}`;
     const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined });
-    if (upErr) { setDocMsg({ text: `Σφάλμα ανεβάσματος: ${upErr.message}`, error: true }); setDocBusy(false); return; }
+    if (upErr) { setDocMsgOf({ clientId: openId, msg: { text: `Σφάλμα ανεβάσματος: ${upErr.message}`, error: true } }); setDocBusy(false); return; }
     const { error: insErr } = await supabase.from('client_documents').insert({
       user_id: userId, client_id: openId, name: file.name, file_path: path,
       mime: file.type || null, size: file.size, kind: docKind,
     });
     if (insErr) {
       await supabase.storage.from('property-files').remove([path]);
-      setDocMsg({ text: `Σφάλμα καταχώρησης: ${insErr.message}`, error: true }); setDocBusy(false); return;
+      setDocMsgOf({ clientId: openId, msg: { text: `Σφάλμα καταχώρησης: ${insErr.message}`, error: true } }); setDocBusy(false); return;
     }
-    setDocBusy(false); setDocMsg({ text: 'Το έγγραφο προστέθηκε' });
-    setTimeout(() => setDocMsg(null), 3000);
+    setDocBusy(false); setDocMsgOf({ clientId: openId, msg: { text: 'Το έγγραφο προστέθηκε' } });
+    setTimeout(() => setDocMsgOf(null), 3000);
     if (docFileRef.current) docFileRef.current.value = '';
     loadDocs(openId);
   };
@@ -1553,7 +1567,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <SecHdr label="Έγγραφα" sub="Ταυτότητα, συμβόλαιο, αποδείξεις, ασφαλής αποθήκευση" />
               <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ minWidth: 200, flex: '1 1 200px' }}>
-                  <CustomSelect label="Είδος εγγράφου" value={docKind} onChange={setDocKind} options={DOC_KINDS.map(k => ({ value: k, label: DOC_KIND_LABELS[k] }))} />
+                  <CustomSelect label="Είδος εγγράφου" value={docKind} onChange={k => { if (openId) setDocKindOf({ clientId: openId, kind: k }) }} options={DOC_KINDS.map(k => ({ value: k, label: DOC_KIND_LABELS[k] }))} />
                 </div>
                 <input ref={docFileRef} type="file" style={{ display: 'none' }} onChange={e => onDocFile(e.target.files?.[0])} />
                 <Btn variant="secondary" onClick={() => docFileRef.current?.click()} disabled={docBusy}>{docBusy ? 'Ανέβασμα…' : 'Ανέβασμα αρχείου'}</Btn>
