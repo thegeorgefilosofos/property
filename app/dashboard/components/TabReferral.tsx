@@ -11,7 +11,7 @@ import {
   individualReferrerReward, refereeWelcome,
   INDIV_PRO_BONUS_MONTHS, REFEREE_OWNER_MONTHS, REFERRER_SLOT_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
-  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
+  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PARTNER_WELCOME_MONTHS,
   STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
   ACTIVATION_MIN_PROPERTIES, ACTIVATION_MIN_DOCUMENTS,
 } from '@/lib/referral/referral';
@@ -486,10 +486,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             </ul>
           </div>
 
-          <SectionLabel>Οι στόχοι του μήνα</SectionLabel>
-          <div {...cardGrid(2)}>
-            <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${moAcc(PRO_PAID_BONUS_MONTHS)} Επαγγελματία`} claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
-            <Milestone title="Δωρεάν χρήστες" count={stats?.m_free ?? 0} target={PRO_FREE_TARGET} kind="pro_free" reward={`${moAcc(PRO_FREE_BONUS_MONTHS)} Επαγγελματία`} claimState={claim.pro_free || 'idle'} onClaim={doClaim} />
+          {/* ΕΝΑΣ ΣΤΟΧΟΣ, ΟΧΙ ΤΡΕΙΣ. Ο δεύτερος μετρητής αντάμειβε «δωρεάν
+              χρήστες»: εγγραφές χωρίς έσοδο, σε προϊόν που δεν έχει πια δωρεάν
+              πακέτο. Ο επαγγελματίας κρατούσε τρία νούμερα στο μυαλό του για να
+              καταλάβει τι κερδίζει. Τώρα κρατά ένα. */}
+          <SectionLabel>Ο στόχος του μήνα</SectionLabel>
+          <div style={{ marginBottom: T.sp.xl }}>
+            <Milestone title="Συνδρομητές, σε οποιοδήποτε πακέτο" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward="τη συνδρομή του επόμενου μήνα δωρεάν" claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
           </div>
 
           {/* Συνεργάτης */}
@@ -512,14 +515,14 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
             {!partner && (
               <p style={{ ...TT.bodySm, marginBottom: 14, lineHeight: 1.55 }}>
-                Φτάσε τους {PRO_PAID_TARGET} συνδρομητές για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνε επίσημος Συνεργάτης. Να τι κερδίζεις:
+                Πιάσε τον στόχο των {PRO_PAID_TARGET} συνδρομητών {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνε επίσημος Συνεργάτης. Να τι κερδίζεις:
               </p>
             )}
             <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
               {[
-                `Κάθε μήνα που πιάνεις τον στόχο, ο επόμενος είναι δωρεάν (${moNom(PARTNER_MONTHLY_FREE_MONTHS)} Επαγγελματία)`,
-                `Οι ${moNom(PRO_PAID_BONUS_MONTHS)} κάθε μηνιαίου στόχου συσσωρεύονται στη συνδρομή σου`,
-                'Σήμα Συνεργάτη και προτεραιότητα στην εξυπηρέτηση',
+                `${moNom(PARTNER_WELCOME_MONTHS)} Επαγγελματίας+ δώρο, μόλις αποκτήσεις την ιδιότητα`,
+                'Κάθε μήνας που πιάνει τον στόχο κάνει τον επόμενο δωρεάν',
+                'Προτεραιότητα σε νέες κυκλοφορίες, αναβαθμίσεις και επικοινωνία',
               ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span style={{ color: partner ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
@@ -656,7 +659,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία',
                 indiv_volume: `${INDIV_VOLUME_TARGET} νέοι μέσα στον μήνα`,
                 pro_paid: `${PRO_PAID_TARGET} συνδρομητές μέσα στον μήνα`,
-                pro_free: `${PRO_FREE_TARGET} δωρεάν χρήστες μέσα στον μήνα`,
                 milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα συνεργάτη',
               } as Record<string, string>)[r.reason] || 'Μπόνους';
               return (

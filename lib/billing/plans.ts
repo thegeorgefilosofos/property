@@ -118,9 +118,10 @@ export const PLANS: Record<PlanId, Plan> = {
   // τρώει» είναι η ερώτηση που δεν απαντά κανένα φύλλο Excel.
   owner: {
     id: 'owner', name: 'Ιδιοκτήτης+', priceMonthly: 9.9, priceAnnual: 99, maxProperties: 3, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
-    tagline: 'Δύο και πάνω, σε σύγκριση μεταξύ τους',
+    tagline: 'Δύο και πάνω, σε σύγκριση',
     features: [
-      'Έως 3 ακίνητα · +2 € το καθένα παραπάνω',
+      'Έως 3 ακίνητα',
+      'Δυνατότητα προσθήκης: 2 € ανά ακίνητο τον μήνα',
       'Σύγκριση ακινήτων μεταξύ τους',
       'Απόδοση ανά ακίνητο, δίπλα-δίπλα',
       'Διπλάσιο πακέτο ερωτήσεων στη Νόα',
@@ -135,7 +136,8 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'agency', name: 'Επαγγελματίας', priceMonthly: 24.9, priceAnnual: 249, maxProperties: 15, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
     tagline: 'Διαχειριστές και μεσιτικά με ομάδα',
     features: [
-      'Έως 15 ακίνητα · +2 € το καθένα παραπάνω',
+      'Έως 15 ακίνητα',
+      'Δυνατότητα προσθήκης: 2 € ανά ακίνητο τον μήνα',
       'Πελατολόγιο και χαρτοφυλάκιο σε μία οθόνη',
       'Ομάδα: χρήστες, ρόλοι, δικαιώματα',
       'Αναφορές και PDF με τη δική σου επωνυμία',

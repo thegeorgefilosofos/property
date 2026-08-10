@@ -70,7 +70,7 @@ const FAQ = [
   { q: 'Ο βοηθός καταλαβαίνει και μιλάει ελληνικά;', a: 'Γράφει και καταλαβαίνει φυσικά ελληνικά, και σε Chrome ή Safari μπορείς να του μιλάς και να σου διαβάζει τις απαντήσεις. Έχει μπροστά του τα δικά σου ακίνητα, δαπάνες και προθεσμίες· για νομικά και λογιστικά ζητήματα σε παραπέμπει στον κατάλληλο επαγγελματία.' },
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε κάθε ιδιοκτήτη ακινήτου στην Ελλάδα, από τον ιδιώτη με ένα διαμέρισμα ως το μεσιτικό γραφείο που διαχειρίζεται χαρτοφυλάκιο τρίτων. Καλύπτει κατοικίες, επαγγελματικούς χώρους, αποθήκες και οικόπεδα, σε μακροχρόνια ή βραχυχρόνια μίσθωση.' },
   { q: 'Αντικαθιστά τον λογιστή ή τον φοροτεχνικό μου;', a: 'Όχι, και δεν το επιδιώκει. Κρατά τις υποχρεώσεις και τις προθεσμίες σου ενήμερες όλον τον χρόνο, ώστε να φτάνεις στον λογιστή σου με τα στοιχεία έτοιμα για εξαγωγή αντί να τα ψάχνεις τον Ιούνιο. Οι υπολογισμοί είναι υποστηρικτικοί, όχι δεσμευτικοί.' },
-  { q: 'Πόσο κοστίζει;', a: `Τέσσερα πακέτα, από ${fe(PLANS.solo.priceMonthly)} τον μήνα για ένα ακίνητο με όλα τα φορολογικά ως ${fe(PLANS.office.priceMonthly)} για απεριόριστα, και ${EXTRA_PROPERTY_PRICE} € για κάθε επιπλέον ακίνητο. Κάθε λογαριασμός ξεκινά με ${TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς κάρτα. Όταν λήξει διαλέγεις πακέτο: το φθηνότερο είναι ${fe(PLANS.solo.priceMonthly)} τον μήνα για ένα ακίνητο.` },
+  { q: 'Πόσο κοστίζει;', a: `Τέσσερα πακέτα, από ${fe(PLANS.solo.priceMonthly)} τον μήνα για ένα ακίνητο με όλα τα φορολογικά ως ${fe(PLANS.office.priceMonthly)} για απεριόριστα, και ${EXTRA_PROPERTY_PRICE} € για κάθε επιπλέον ακίνητο. Κάθε λογαριασμός ξεκινά με ${TRIAL_DAYS} ημέρες δωρεάν δοκιμή. Δηλώνεις κάρτα στην εγγραφή, δεν χρεώνεσαι τίποτα όσο διαρκεί, και μπορείς να ακυρώσεις με ένα κλικ πριν λήξει. Όταν λήξει διαλέγεις πακέτο: το φθηνότερο είναι ${fe(PLANS.solo.priceMonthly)} τον μήνα για ένα ακίνητο.` },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Η σύνδεση είναι πάντα κρυπτογραφημένη και κάθε λογαριασμός απομονώνεται σε επίπεδο βάσης: βλέπεις τα δικά σου δεδομένα και μόνο όσα εσύ μοιράζεσαι. Δεν εκπαιδεύουμε μοντέλα με τα έγγραφά σου. Η βάση και τα αρχεία βρίσκονται στην ΕΕ· αναλυτικά στο «Ποιοι είμαστε».' },
   { q: 'Τι γίνεται με τα δεδομένα μου αν σταματήσω;', a: 'Παραμένουν δικά σου. Τα εξάγεις όποτε θέλεις μέσα από την εφαρμογή και διαγράφεις τον λογαριασμό με ένα κουμπί, χωρίς να ζητήσεις τίποτα από κανέναν. Η οριστική διαγραφή ολοκληρώνεται μέσα σε 30 ημέρες, εκτός από όσα ο νόμος επιβάλλει να τηρηθούν.' },
   { q: 'Δουλεύει στο κινητό;', a: 'Παντού: η εφαρμογή προσαρμόζεται σε κινητό, tablet και υπολογιστή, και η σάρωση δουλεύει καλύτερα με την κάμερα του κινητού. Φωτογραφίζεις τον λογαριασμό εκεί που τον παραλαμβάνεις και έχει ήδη καταχωρηθεί πριν φτάσεις σπίτι.' },
@@ -175,7 +175,7 @@ const REFERRAL = [
     tag: 'Ιδιώτες', t: 'Πρόγραμμα Πρόσκλησης',
     i: 'M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S9 2 6.5 4.5 12 7 12 7zM12 7s3-5 5.5-2.5S12 7 12 7z',
     d: 'Με κάθε φίλο που ξεκινά, κερδίζετε και οι δύο.',
-    items: ['Ο φίλος σου παίρνει έναν μήνα δώρο στο πλάνο που διαλέγει', 'Εσύ κερδίζεις ένα επιπλέον ακίνητο για έναν μήνα'],
+    items: ['Ο φίλος σου παίρνει έναν μήνα δώρο στο πακέτο που επιλέγει', 'Εσύ κερδίζεις μία επιπλέον θέση ακινήτου για έναν μήνα'],
   },
   {
     tag: 'Επαγγελματίες', t: 'Πρόγραμμα Συνεργατών',
@@ -186,7 +186,7 @@ const REFERRAL = [
     // δέχεται μόνο μήνες ή θέση ακινήτου, και η στρατηγική αποκλείει ρητά την
     // επεξεργασία πληρωμών. Υπόσχεση χρημάτων που δεν πληρώνεται, σε προϊόν που
     // πουλάει ακρίβεια, κοστίζει ακριβώς αυτό που πουλάει.
-    items: ['5 συνδρομητές τον μήνα, 2 δωρεάν μήνες', 'Ως Συνεργάτης, κάθε μήνας που πιάνει τον στόχο κάνει τον επόμενο δωρεάν'],
+    items: ['5 συνδρομητές τον μήνα, ανεξαρτήτως πακέτου: ο επόμενος μήνας δωρεάν', 'Τρεις συνεχόμενοι μήνες με τον στόχο σε κάνουν Συνεργάτη'],
   },
 ];
 
@@ -526,6 +526,14 @@ export default async function Landing() {
            πίσω στη σημερινή συμπεριφορά — χειρότερη στοίχιση, ποτέ σπασμένη. */
         .lp-aud { grid-template-rows: auto auto auto 1fr; }
         .lp-aud > .lp-card { grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; }
+        /* Ο ίδιος κανόνας στις Δυνατότητες (εικονίδιο, τίτλος, κείμενο) και στη
+           Σύσταση (εικονίδιο, τίτλος, κείμενο, λίστα): ένας τίτλος που πιάνει
+           δύο σειρές κατέβαζε το κείμενό του σε άλλο ύψος από των διπλανών, και
+           οι έξι κάρτες διαβάζονταν σαν έξι ξεχωριστά κουτιά αντί για πλέγμα. */
+        .lp-feat { grid-template-rows: auto auto 1fr; }
+        .lp-feat > .lp-card { grid-row: span 3; display: grid; grid-template-rows: subgrid; gap: 0; }
+        .lp-duo { grid-template-rows: auto auto auto 1fr; }
+        .lp-duo > .lp-card { grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; }
         /* Οι τίτλοι και οι γραμμές ελέγχου κάθε κάρτας είναι σύντομα στοιχεία. */
         .lp-aud h3, .lp-aud .lp-k, .lp-feat h3, .lp-duo h3, .lp-duo .lp-k, .lp-plan-item { text-wrap: balance; }
 
@@ -737,7 +745,7 @@ export default async function Landing() {
               <Link href="/login" style={{ background: 'transparent', color: 'var(--text-primary)', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: '1px solid var(--border-strong)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
             </>)}
           </div>
-          <div className="lp-rise-4" style={{ marginTop: 18, fontSize: 13, color: 'var(--text-tertiary)' }}>{TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς κάρτα · Έτοιμο σε ένα λεπτό · Επιβεβαιώνεις εσύ κάθε καταχώρηση</div>
+          <div className="lp-rise-4" style={{ marginTop: 18, fontSize: 13, color: 'var(--text-tertiary)' }}>{TRIAL_DAYS} ημέρες δωρεάν δοκιμή · Ακυρώνεις με ένα κλικ · Επιβεβαιώνεις εσύ κάθε καταχώρηση</div>
 
           <LandingShowcase />
         </div>
@@ -971,7 +979,7 @@ export default async function Landing() {
                 price={fe(plan.priceMonthly)}
                 per="τον μήνα"
                 note={<>ή <strong style={{ color: TEXT }}>{plan.priceAnnual} € τον χρόνο</strong></>}
-                discount="2 μήνες δωρεάν"
+                discount="12 μήνες στην τιμή των 10"
                 inherits={prev ? `Ό,τι έχει το «${prev.name}», και:` : 'Περιλαμβάνει:'}
                 // Το «30 ημέρες δωρεάν δοκιμή» ήταν ΚΑΙ τελευταία γραμμή χαρακτηριστικών
                 // ΚΑΙ το ίδιο το κουμπί από κάτω. Μία περιττή γραμμή σε κάθε κάρτα.
@@ -984,14 +992,14 @@ export default async function Landing() {
           })}
         </div>
         <p style={{ fontSize: 13, color: FAINT, margin: '22px 0 0', maxWidth: 620, lineHeight: 1.6 }}>
-Κάθε πακέτο ξεκινά με 30 ημέρες δωρεάν δοκιμή, χωρίς κάρτα. Όταν λήξει διαλέγεις πακέτο, και ώσπου να διαλέξεις τα δεδομένα σου μένουν ανέπαφα. Χωρίς δέσμευση και χωρίς κρυφές χρεώσεις· οι τιμές περιλαμβάνουν ΦΠΑ.
+Κάθε πακέτο ξεκινά με 30 ημέρες δωρεάν δοκιμή. Δηλώνεις κάρτα στην εγγραφή και δεν χρεώνεσαι όσο διαρκεί: ακυρώνεις με ένα κλικ πριν λήξει και δεν πληρώνεις τίποτα. Χωρίς δέσμευση και χωρίς κρυφές χρεώσεις· οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
       {/* ── Σύσταση: δύο διακριτά προγράμματα, ιδιώτη και επαγγελματία ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
-        <SectionHead over="Σύσταση" title="Κάθε σύσταση ανταμείβει και τους δύο" sub="Ο φίλος σου παίρνει δώρο, εσύ ανταμείβεσαι. Για επαγγελματίες, δωρεάν μήνες που ανανεώνονται." />
-        <div className="lp-duo" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
+        <SectionHead over="Σύσταση" title="Κάθε σύσταση ανταμείβει και τους δύο" sub="Ο φίλος σου παίρνει δώρο, εσύ ανταμείβεσαι. Ένας στόχος, καθαρός, και για τους δύο." />
+        <div className="lp-duo" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
           {REFERRAL.map((r, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 30px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -1009,10 +1017,11 @@ export default async function Landing() {
           ))}
         </div>
         <p style={{ fontSize: 13, color: FAINT, margin: '22px 0 0', maxWidth: 620, lineHeight: 1.6 }}>
-          Ο φίλος σου διαλέγει στην αρχή πλάνο, Ιδιοκτήτης ή Επαγγελματίας, ανάλογα με τα ακίνητά του, και ο πρώτος
-          μήνας είναι δωρεάν. Η ανταμοιβή κλειδώνει όταν προσθέσει ακίνητο και σαρώσει ένα έγγραφο. Οι ανταμοιβές
-          είναι αξία προϊόντος, δωρεάν μήνες και θέσεις ακινήτων, και δεν εξαργυρώνονται σε μετρητά. Η ιδιότητα
-          Συνεργάτη ενεργοποιείται με 5 συνδρομητές για 3 συνεχόμενους μήνες, μαζί με τη χρέωση με κάρτα.
+          Ο φίλος σου επιλέγει πακέτο, Ιδιοκτήτη ή Επαγγελματία, ανάλογα με τα ακίνητά του, και ο πρώτος μήνας
+          είναι δωρεάν. Η ανταμοιβή κλειδώνει όταν προσθέσει ακίνητο και σαρώσει ένα έγγραφο. Ο Συνεργάτης κερδίζει
+          έναν μήνα Επαγγελματίας+ με την απόκτηση της ιδιότητας, κρατά τον επόμενο μήνα δωρεάν σε κάθε μήνα που
+          πιάνει τον στόχο, και έχει προτεραιότητα σε νέες κυκλοφορίες, αναβαθμίσεις και επικοινωνία. Όλες οι
+          ανταμοιβές είναι δωρεάν μήνες και θέσεις ακινήτων. Δεν αποδίδουμε μετρητά.
         </p>
       </section>
 
@@ -1041,7 +1050,7 @@ export default async function Landing() {
         <div className="lp-aurora" aria-hidden="true" />
         <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: GAP_ACT, paddingBottom: GAP_ACT }}>
           <h2 style={{ fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.1, margin: '0 auto 16px', maxWidth: 720, color: 'var(--text-primary)', textWrap: 'balance' }}>Το ακίνητό σου, υπό έλεγχο.</h2>
-          <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>Φωτογράφισε το πρώτο έγγραφο. Τριάντα ημέρες δωρεάν, χωρίς κάρτα και χωρίς δέσμευση.</p>
+          <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>Φωτογράφισε το πρώτο έγγραφο. Τριάντα ημέρες δωρεάν, χωρίς δέσμευση.</p>
           <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta lp-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου' : 'Ξεκίνα τη δοκιμή'}</Link>
         </div>
       </section>
@@ -1123,7 +1132,7 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
     <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(16px, 1.6vw, 20px)', display: 'flex', flexDirection: 'column', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
       {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
       <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 3 }}>{name}</div>
-      <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, minHeight: 32, lineHeight: 1.35 }}>{sub}</div>
+      <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, minHeight: 34, lineHeight: 1.35 }}>{sub}</div>
       {/* ΤΟ ΠΟΣΟ ΚΑΙ Η ΠΕΡΙΟΔΟΣ ΕΙΝΑΙ ΕΝΑ ΠΡΑΓΜΑ: «3,90 € τον μήνα» διαβάζεται
           σαν φράση, όχι σαν αριθμός με λεζάντα από κάτω. Το `baseline` τα
           στοιχίζει στη γραμμή γραφής, οπότε το μικρό «τον μήνα» κάθεται πάνω

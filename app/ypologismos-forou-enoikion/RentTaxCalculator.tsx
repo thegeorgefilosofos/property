@@ -184,7 +184,7 @@ export function RentTaxCalculator() {
           </p>
           <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
             Το Property OS κρατά ενοίκια, λογαριασμούς και δαπάνες όλη τη χρονιά και
-            βγάζει έτοιμα όσα ζητά ο λογιστής σου. Τριάντα ημέρες δωρεάν δοκιμή, χωρίς κάρτα.
+            βγάζει έτοιμα όσα ζητά ο λογιστής σου. Τριάντα ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
           </p>
         </div>
         <Link href="/signup" style={{

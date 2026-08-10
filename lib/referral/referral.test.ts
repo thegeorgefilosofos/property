@@ -6,7 +6,7 @@ import {
   REFERRER_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS,
   REFEREE_FREE_SLOT_MONTHS, REFEREE_OWNER_MONTHS, REFEREE_AGENCY_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
-  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
+  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PARTNER_WELCOME, PARTNER_WELCOME_MONTHS,
   progress, currentStreak, isPartner, streakProgress, partnerFreeMonths,
   STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
 } from './referral';
@@ -71,8 +71,12 @@ ok([refereeWelcome('free'), refereeWelcome('owner'), refereeWelcome('agency')].e
    'ένας μήνας δωρεάν, ό,τι πλάνο κι αν διαλέξει');
 
 // ── Πρόγραμμα Επαγγελματία: milestones ──
-ok(PRO_PAID_TARGET === 5 && PRO_PAID_BONUS_MONTHS === 2, '5 συνδρομητές/μήνα → 2 μήνες Επαγγελματία');
-ok(PRO_FREE_TARGET === 10 && PRO_FREE_BONUS_MONTHS === 1, '10 δωρεάν/μήνα → 1 μήνας Επαγγελματία');
+ok(PRO_PAID_TARGET === 5 && PRO_PAID_BONUS_MONTHS === 1, '5 συνδρομητές τον μήνα → ο επόμενος δωρεάν');
+// ΕΝΑΣ ΣΤΟΧΟΣ, ΟΧΙ ΤΡΕΙΣ. Ο δεύτερος μετρητής αντάμειβε «δωρεάν χρήστες» —
+// εγγραφές χωρίς έσοδο, σε προϊόν που δεν έχει πια δωρεάν πακέτο.
+ok(PRO_PAID_BONUS_MONTHS === 1, 'ο στόχος του μήνα δίνει ΕΝΑΝ μήνα, ποτέ δύο');
+ok(PARTNER_WELCOME_MONTHS === 1 && PARTNER_WELCOME.tier === 'agency' && !PARTNER_WELCOME.isSlot,
+  'η ιδιότητα Συνεργάτη δίνει έναν μήνα Επαγγελματίας+');
 
 // ── Γενική πρόοδος ──
 const pr = progress(3, 5);

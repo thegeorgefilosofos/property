@@ -27,7 +27,10 @@ import SecuritySettings from './SecuritySettings';
 import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
-import { PLANS, normalizePlan } from '@/lib/billing/plans';
+import { PLANS, PLAN_ORDER, normalizePlan, type PlanId } from '@/lib/billing/plans';
+
+/** Τα πακέτα που αγοράζονται. Το «χωρίς συνδρομή» είναι κατάσταση, όχι πακέτο. */
+const PAID_PLAN_ORDER = PLAN_ORDER.filter(id => PLANS[id].priceMonthly > 0) as PlanId[];
 import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, EARLY_ACCESS_DAYS, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
 import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
@@ -531,7 +534,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
               <span className={isProPlan ? 'acc-live-dot accent' : 'acc-live-dot'} style={{ width: 6, height: 6, background: isProPlan ? 'var(--accent)' : 'var(--positive)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Πλάνο {planMeta.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Πακέτο {planMeta.name}</span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>{planMeta.tagline}</div>
           </div>
@@ -540,6 +543,31 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               {showManage ? 'Κλείσιμο' : 'Διαχείριση συνδρομής'}
             </Btn>
           </div>
+        </div>
+
+        {/* ═══ ΤΑ ΤΕΣΣΕΡΑ ΠΑΚΕΤΑ, ΟΡΑΤΑ ΜΕΣΑ ΣΤΗΝ ΕΦΑΡΜΟΓΗ ══════════════════
+            Η οθόνη έλεγε μόνο ΠΟΙΟ πακέτο έχεις. Τα ονόματα των άλλων τριών
+            ζούσαν στην αρχική σελίδα και σε ένα παράθυρο που άνοιγε με κουμπί:
+            ο συνδρομητής δεν είχε τρόπο να δει τη σκάλα ολόκληρη, ούτε πού
+            βρίσκεται πάνω της. Τέσσερα ονόματα, μία σειρά, το δικό σου
+            σημαδεμένο. Χωρίς τιμές και χωρίς πίεση — η σύγκριση ανοίγει με το
+            «Διαχείριση συνδρομής» για όποιον τη θέλει. */}
+        <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+          {PAID_PLAN_ORDER.map(id => {
+            const on = id === effPlan;
+            return (
+              <div key={id} style={{
+                textAlign: 'center', padding: '9px 6px', borderRadius: T.radius.inner,
+                border: `1px solid ${on ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
+                background: on ? 'var(--accent-dim)' : 'var(--bg-surface)',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.3 }}>{PLANS[id].name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                  {PLANS[id].maxProperties === Infinity ? 'απεριόριστα' : `${PLANS[id].maxProperties} ${PLANS[id].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}`}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Μετρητής ακινήτων: προ-πουλά ήρεμα το όριο, χωρίς τοίχο-έκπληξη */}
@@ -564,7 +592,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           </div>
         )}
 
-        {/* Δωρεάν δοκιμή: πόσο απομένει, χωρίς κάρτα και χωρίς αυτόματη χρέωση.
+        {/* Δωρεάν δοκιμή: πόσο απομένει, χωρίς καμία χρέωση όσο διαρκεί.
             Λέμε ΚΑΙ τι γίνεται μετά, ώστε να μην υπάρχει έκπληξη. */}
         {trialShowing && (
           <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
