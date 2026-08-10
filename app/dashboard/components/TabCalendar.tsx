@@ -12,7 +12,8 @@ import * as expenses from '@/lib/data/expenses'
 import { must } from '@/lib/supabase/must'
 // Ο πίνακας των γεγονότων έχει ένα σπίτι: lib/data/calendar.
 import * as calendar from '@/lib/data/calendar'
-import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
+// Ο πίνακας των δανείων έχει ένα σπίτι: lib/data/loans.
+import * as loanStore from '@/lib/data/loans'
 import type { BillsRow, CalendarEventsRow, ClientStaysRow, MaintenanceTasksRow } from '@/lib/supabase/tables'
 import type { TenantScheduleInput } from './TabTenantHelpers'
 
@@ -717,12 +718,11 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
       // παρακάτω πετούσε ΚΑΘΕ δάνειο: ο συγχρονισμός δόσεων απαντούσε πάντα
       // «μηδέν» και κανείς δεν καταλάβαινε γιατί το ημερολόγιο έμενε άδειο.
       //
-      // Ο μεταφραστής υπάρχει ήδη και είναι ένας: lib/loans/shape.ts. Το `as any`
-      // ήταν ακριβώς αυτό που έκρυβε το λάθος από τον μεταγλωττιστή.
-      const loans=toLoanViews(await must(supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId)))
+      // Η μετατροπή και το φίλτρο του «ενεργού» ζουν πλέον στο στρώμα: εδώ
+      // ζητούνται ΜΟΝΟ τα ενεργά δάνεια του χρήστη, και η αποτυχία πετάει.
+      const loans=await loanStore.ofProperty(supabase,propertyId,userId,{activeOnly:true,strict:true})
       let n=0
       for(const l of loans){
-        if(!isActiveLoan(l))continue
         const amount=l.amount, rate=l.rate, years=Number(l.years)||0
         const start=l.start_date||todayStr(); const bank=cleanBank(l.bank)
         if(!amount||!years)continue

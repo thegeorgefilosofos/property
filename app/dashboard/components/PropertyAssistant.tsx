@@ -19,6 +19,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as loanStore from '@/lib/data/loans';
 import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as rentStore from '@/lib/data/rent';
@@ -302,7 +303,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [exp, bil, ten, st, cal, { data: rates }, { data: loans }, { data: clientRows }, stayRows, { data: contactRows }, chk] = await Promise.all([
+    const [exp, bil, ten, st, cal, { data: rates }, loans, { data: clientRows }, stayRows, { data: contactRows }, chk] = await Promise.all([
       expenseStore.ledger(supabase, propertyId, { userId, from: `${year}-01-01`, columns: `${expenseStore.LEDGER_COLUMNS},payment_method` }),
       billStore.ofProperty<BillsRow>(supabase, propertyId, billStore.LEDGER_COLUMNS, userId),
       tenantStore.currentAll(supabase, propertyId, 'full_name,monthly_rent,lease_end,deposit_amount', userId),
@@ -313,7 +314,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       properties.one<{ insurance_company: string | null; insurance_expiry: string | null; insurance_amount: number | null }>(supabase, propertyId, 'insurance_company,insurance_expiry,insurance_amount', userId),
       calendar.upcoming(supabase, { propertyId, userId }, athensToday(), 10),
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId),
+      loanStore.ofProperty(supabase, propertyId, userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       stayStore.ofUser<ClientStaysRow>(supabase, userId, `client_id,rating,damages,damage_cost,notes,${stayStore.PORTFOLIO_COLUMNS}`),
       supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
@@ -368,7 +369,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const leaseEnd = t?.lease_end || null;
     const daysLease = leaseEnd ? daysUntil(leaseEnd) ?? 0 : null;
 
-    const loanRows = toLoanViews(loans);
+    const loanRows = loans;
     const rateTypeGr = (rt?: string) => rt === 'variable' ? 'κυμαινόμενο' : rt === 'mixed' ? 'μεικτό' : 'σταθερό';
     const monthlyDebt = loanRows.reduce((s, l) => s + annuityMonthly(l.amount || 0, l.rate || 0, l.years || 0), 0);
     // Ο τόκος της φετινής χρήσης, ώστε το κεφάλαιο να ξεχωρίζει από τη δόση.

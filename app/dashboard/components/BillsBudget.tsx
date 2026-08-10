@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as loanStore from '@/lib/data/loans';
 import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
@@ -391,7 +392,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
       const [propRes, loansRes, tenantsRes, staysRes] = await Promise.all([
         properties.one(supabase, propertyId, 'rental_mode,target_rent,value,year_built,enfia,purchase_price,sqm,prop_type'),
-        supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId),
+        loanStore.ofProperty(supabase, propertyId, userId),
         tenantStore.currentAll<{ monthly_rent: number | null }>(supabase, propertyId, 'monthly_rent'),
         // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
         // για ετησιοποίηση (πρόβλεψη φόρου βραχυχρόνιας χωρίς εποχική στρέβλωση).
@@ -432,7 +433,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // loan_amount και το rate_type/fixed_rate/euribor/spread. Η μετάφραση
       // γίνεται ΜΙΑ φορά εδώ και τη μοιράζονται και οι τρεις καταναλωτές
       // παρακάτω (δόση, τόκοι έτους, υπόλοιπο κεφαλαίου).
-      const activeLoans = toLoanViews(loansRes.data).filter(isActiveLoan);
+      const activeLoans = loansRes.filter(isActiveLoan);
       const loanM = activeLoans
         .reduce((s: number, l) => s + annuityMonthly(l.amount, l.rate, Number(l.years) || 0), 0);
       setLoanMonthly(Math.round(loanM));

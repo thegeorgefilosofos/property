@@ -4,6 +4,7 @@ import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as loanStore from '@/lib/data/loans';
 import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as rentStore from '@/lib/data/rent';
@@ -409,7 +410,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [exp,bil,{ data:tsk },ten,ci,{ data:iv },{ data:ln },hs,allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
+    const [exp,bil,{ data:tsk },ten,ci,{ data:iv },ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       billStore.ofProperty<Bill>(supabase,prop.id,'*',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
@@ -418,7 +419,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       tenantStore.currentAll<Tenant & TenantFull>(supabase,prop.id,'id,monthly_rent,lease_start,lease_end,e_payment',userId),
       checklist.open<{ due_date:string|null; status:string; priority:string }>(supabase,prop.id,checklist.AGENDA_COLUMNS,userId),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
-      supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',prop.id).eq('user_id',userId),
+      loanStore.ofProperty(supabase,prop.id,userId),
       stayStore.ofProperty<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }>(supabase,prop.id,'check_in,check_out,total,nights,nightly_rate',userId),
       // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους.
       // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
@@ -436,7 +437,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     ]);
     setExpenses((exp||[]) as Expense[]); setBills(bil); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
-    setChk(ci); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
+    setChk(ci); setInv(iv||[]); setLoans(ln); setHostStays(hs); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
     // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν
     // ελεγχόταν καν ως όνομα στήλης.

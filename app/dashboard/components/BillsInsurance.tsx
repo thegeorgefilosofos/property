@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as loanStore from '@/lib/data/loans';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
@@ -665,12 +666,12 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
         // κατασκευής και ο τρόπος εκμετάλλευσης — ακριβώς τα δεδομένα πάνω στα
         // οποία στηρίζεται η πρόταση ασφάλισης. Η περιοχή έρχεται τώρα από τη
         // διεύθυνση, και το «επιπλωμένο» από τη μίσθωση, όπου όντως ζει.
-        const [prop, { data: loans }, activeTenants] = await Promise.all([
+        const [prop, activeLoan, activeTenants] = await Promise.all([
           properties.one(supabase, propertyId, 'address,sqm,prop_type,status_detail,year_built,rental_mode,target_rent,insurance_company,insurance_expiry,insurance_amount', userId),
-          supabase.from('loans').select('status').eq('property_id', propertyId),
+          loanStore.hasActive(supabase, propertyId, userId),
           tenantStore.currentAll<{ monthly_rent?: number | null; furnishing?: string | null }>(supabase, propertyId, 'monthly_rent,furnishing', userId),
         ]);
-        const activeLoan = (loans ?? []).some(l => (l as { status?: string }).status !== 'closed' && (l as { status?: string }).status !== 'inactive');
+        // Ο κανόνας του «ενεργό» ζει στο lib/loans/shape.ts, όχι σε δύο συγκρίσεις εδώ.
         // Το φιλτράρισμα «όχι past και χωρίς ημερομηνία αποχώρησης» ζούσε εδώ, και
         // σε άλλα τέσσερα αρχεία, γραμμένο κάθε φορά από την αρχή. Το στρώμα το κάνει.
         const activeRent = activeTenants

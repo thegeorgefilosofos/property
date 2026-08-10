@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
+import * as loanStore from '@/lib/data/loans';
 import * as rentStore from '@/lib/data/rent';
 import * as expenseStore from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
@@ -113,10 +114,10 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     const nameById = new Map(props.filter(p => propIds.has(p.id)).map(p => [p.id, p.name]));
     const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
     const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
-    const [rentData, expData, { data: loanData }] = await Promise.all([
+    const [rentData, expData, loanData] = await Promise.all([
       rentStore.ofProperties(supabase, selIds, `property_id,${rentStore.LEDGER_COLUMNS}`, userId, { year, month, paid: true }),
       expenseStore.inRange(supabase, selIds, from, to),
-      supabase.from('loans').select('property_id,loan_amount,rate_type,fixed_rate,euribor,spread,years,start_date').eq('user_id', userId),
+      loanStore.ofUser(supabase, userId),
     ]);
     type RentRow = { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid_date: string | null; due_date: string | null };
     const incomes: IncomeRec[] = ((rentData || []) as RentRow[]).map(r => ({

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as expenses from '@/lib/data/expenses'
+import * as loanStore from '@/lib/data/loans'
 import * as calendar from '@/lib/data/calendar'
 import { must } from '@/lib/supabase/must'
 import { saved } from '@/components/dbWrite'
@@ -313,8 +314,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
   async function loadSaved(){
     try{
-      const{data}=await supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false})
-      setSaved(toLoanViews(data) as SavedLoan[])
+      setSaved(await loanStore.ofProperty(supabase,propertyId,userId) as SavedLoan[])
     } finally { setLoadingSaved(false) }
   }
   async function handleSaveLoan(loan:Partial<SavedLoan>){
@@ -325,7 +325,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     // Τώρα: μετάφραση στις πραγματικές στήλες (toLoanRow) και `must`, ώστε η
     // αποτυχία να φτάνει στο catch που ήδη περιβάλλει την κλήση.
     try {
-      await must(supabase.from('loans').insert({...toLoanRow(loan),property_id:propertyId,user_id:userId}))
+      await must(loanStore.add(supabase,propertyId,userId,toLoanRow(loan)))
     } catch (e) {
       notifyError(failed('Το δάνειο δεν αποθηκεύτηκε', e))
       return
@@ -372,7 +372,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   }
   async function deleteLoan(id:string){
     if(!(await confirmDialog('Διαγραφή δανείου;',{tone:'negative'})))return
-    if(!await saved('Το δάνειο δεν διαγράφηκε',supabase.from('loans').delete().eq('id',id))) return
+    if(!await saved('Το δάνειο δεν διαγράφηκε',loanStore.remove(supabase,id))) return
     await loadSaved()
   }
 

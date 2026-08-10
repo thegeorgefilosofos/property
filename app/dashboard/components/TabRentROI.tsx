@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as loanStore from '@/lib/data/loans';
 import * as expenses from '@/lib/data/expenses';
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
 import { readStatus, type StatusRow } from '@/lib/property/status'
@@ -501,7 +502,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           // IRR. Κανένα σφάλμα, κανένα κρασάρισμα: απλώς το ίδιο ακίνητο έβγαζε
           // τριπλάσια έξοδα εδώ απ' ό,τι στη Λογιστική. Ίδιο φίλτρο με εκείνη.
           expenses.inRangeOfProperty(supabase, propertyId, `${new Date().getFullYear()}-01-01`, `${new Date().getFullYear()}-12-31`),
-          supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }),
+          loanStore.ofProperty(supabase, propertyId, userId),
           // ΤΑ ΑΛΛΑ ΑΚΙΝΗΤΑ. Αυτή η καρτέλα εμφανίζεται (disclosure.ts) ΜΟΝΟ σε
           // χρήστες με 2+ ακίνητα — δηλαδή ακριβώς εκεί όπου ο ανά-ακίνητο φόρος
           // είναι λάθος. Χωρίς τα υπόλοιπα ενοίκια δεν υπάρχει τρόπος να βγει ο
@@ -530,7 +531,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         }));
         // Το `amount`/`rate` δεν είναι στήλες: υπολογίζονται από το loan_amount
         // και το rate_type/fixed_rate/euribor/spread (lib/loans/shape.ts).
-        const activeLoan = toLoanViews(ln.data).find(l => isActiveLoan(l));
+        const activeLoan = ln.find(l => isActiveLoan(l));
         if (activeLoan) setSavedLoan({ amount: activeLoan.amount, rate: activeLoan.rate, property_value: Number(activeLoan.property_value) || 0, loan_type: activeLoan.loan_type ?? '' });
         setValue(String(propertyValue || p.value || localStorage.getItem(K('value')) || ''));
         setRent(String(c.actual_rent || c.target_rent || p.target_rent || localStorage.getItem(K('rent')) || ''));

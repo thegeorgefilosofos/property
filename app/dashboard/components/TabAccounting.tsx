@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
+import * as loanStore from '@/lib/data/loans';
 import * as stayStore from '@/lib/data/stays';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
@@ -259,7 +260,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         expenseStore.ledger(supabase,propertyId,{ columns:'date,amount,category,expense_group,description' }),
         rentStore.ofProperty<RentRow>(supabase,propertyId,rentStore.LEDGER_COLUMNS,userId),
         stayStore.ofProperty<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
-        supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',propertyId),
+        loanStore.ofProperty(supabase,propertyId,userId),
         properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor', userId),
         properties.list<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
         rentStore.ofUser<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
@@ -268,7 +269,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       ])
       if(!alive) return
       setExpenses(ex as ExpenseRow[]); setRent(rp)
-      setStays(st); setLoans(toLoanViews(ln.data))
+      setStays(st); setLoans(ln)
       setProp(pr); setAllProps(aps)
       setAllRent(arp); setAllStays(ast)
       setInventory((inv.data||[]) as InventoryRow[])

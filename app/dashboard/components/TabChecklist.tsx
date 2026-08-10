@@ -18,7 +18,8 @@ import type { ChecklistItemsRow } from '@/lib/supabase/tables'
 import { MessageSquare, ClipboardCheck, SearchX } from 'lucide-react'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
-import { LOAN_COLUMNS, toLoanViews } from '@/lib/loans/shape'
+// Ο πίνακας των δανείων έχει ένα σπίτι: lib/data/loans.
+import * as loanStore from '@/lib/data/loans'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
@@ -1965,16 +1966,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     try {
       // Η μηνιαία δόση υπολογίζεται από ποσό/επιτόκιο/διάρκεια (τοκοχρεολυτική
       // φόρμουλα) — ίδια πηγή με την Επισκόπηση, άθροισμα ενεργών δανείων.
-      const { data: loanData } = await supabase
-        .from('loans').select(LOAN_COLUMNS)
-        .eq('property_id', propertyId)
+      // Ποιο δάνειο είναι «ενεργό» δεν κρίνεται εδώ: ο κανόνας είναι ένας και
+      // ζει στο στρώμα, μαζί με τη μετατροπή σε ποσό και επιτόκιο.
+      const loans = await loanStore.ofProperty(supabase, propertyId, userId, { activeOnly: true })
       if (!fresh()) return
       setLoanPayment(
-        toLoanViews(loanData)
-          // Το toLoanViews επιστρέφει ήδη LoanView[]· το «any» έσβηνε τον τύπο
-          // που μόλις είχε παραχθεί, και μαζί τον έλεγχο των ονομάτων πεδίων.
-          .filter(l=>l.status!=='inactive'&&l.status!=='closed')
-          .reduce((sum,l)=>sum+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
+        loans.reduce((sum,l)=>sum+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
       )
     } catch (_) {}
 
