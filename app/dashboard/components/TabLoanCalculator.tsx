@@ -7,7 +7,7 @@ import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './xlsxStyle'
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge, ABSENT, TT, formGrid } from '@/components/Theme'
+import { T, Badge, ABSENT, TT, formGrid, fieldRow } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
@@ -968,7 +968,13 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <div style={cardStyle}>
         <SectionLabel label="Δάνειο, επιτόκιο και παράμετροι"/>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          <div style={{...formGrid(220, 297),gap:12,alignItems:'start'}}>
+          {/* ΟΚΤΩ ΠΕΔΙΑ ΣΕ ΤΡΙΑ, ΤΡΙΑ ΚΑΙ ΔΥΟ. Το σταθερό μέγιστο στήλης κρατούσε
+              τρεις στήλες όσο πλατιά κι αν ήταν η κάρτα, οπότε η τελευταία
+              σειρά έμενε μισή.
+              ΤΟ ΕΛΑΧΙΣΤΟ ΕΙΝΑΙ ΑΥΤΟ ΠΟΥ ΟΡΙΖΕΙ ΤΟ ΠΛΗΘΟΣ: 300 σημαίνει τέσσερις
+              στήλες σε κάθε οθόνη υπολογιστή, δηλαδή δύο ΓΕΜΑΤΕΣ σειρές των
+              τεσσάρων — και τρεις ή δύο σε στενότερη. */}
+          <div style={{...fieldRow(300, 12), alignItems:'start'}}>
             <div>
               <NumberInput label="Ποσό δανείου" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>

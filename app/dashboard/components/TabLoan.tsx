@@ -1461,9 +1461,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             <p style={{...labelStyle,marginBottom:10}}>Τα δικαιώματά σου</p>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',gap:6,marginBottom:18}}>
               {SERVICERS_GUIDE.rights.map(r=>(
-                <div key={r.t} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0}} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                  <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.t}</span>
+                <div key={r.t} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0,marginTop:2}} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  {/* ΤΟ ΔΙΚΑΙΩΜΑ ΚΟΒΟΤΑΝ ΣΤΗ ΜΕΣΗ. «Δικαίωμα σε βιώσιμη πρόταση …»
+                      και «Καταγγελία και εξωτερική προ…»: μια γραμμή που δεν
+                      χωρά δεν γίνεται μισή, γίνεται δύο. Το κείμενο τυλίγεται
+                      και το πλακίδιο ψηλώνει όσο χρειάζεται. */}
+                  <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',lineHeight:1.4}}>{r.t}</span>
                   <InfoDot text={r.d}/>
                 </div>
               ))}
@@ -1498,12 +1502,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               ))}
             </div>
 
-            <p style={{...labelStyle,marginBottom:8}}>Επίσημες πηγές</p>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',gap:8,marginBottom:12}}>
-              {SERVICERS_GUIDE.sources.map(s=>(
-                <LinkCard key={s.url} href={s.url} label={s.label} sub={s.sub}/>
-              ))}
-            </div>
+            {/* ΟΙ ΕΠΙΣΗΜΕΣ ΠΗΓΕΣ ΗΤΑΝ ΣΕ ΔΥΟ ΣΗΜΕΙΑ ΤΗΣ ΙΔΙΑΣ ΟΘΟΝΗΣ: πέντε εδώ,
+                δεκαέξι σε δική τους κάρτα λίγο πιο κάτω, με τον ίδιο τίτλο. Ο
+                χρήστης δεν ξέρει ποια από τις δύο λίστες είναι «οι πηγές», και
+                σε ποια να ψάξει. Μαζεύτηκαν όλες στη μία κάρτα, ταξινομημένες,
+                με τη ρύθμιση οφειλών πρώτη ενότητα. */}
             <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>Ενημερωτικές πληροφορίες με βάση το ισχύον πλαίσιο (Ιούλιος 2026), όχι νομική ή χρηματοοικονομική συμβουλή. Για την περίπτωσή σου συμβουλέψου δικηγόρο ή πιστοποιημένο σύμβουλο αναδιάρθρωσης.</p>
           </MiniSection>
 
@@ -1516,8 +1519,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             )}
           </MiniSection>
 
+          {/* ΜΙΑ ΚΑΡΤΑ ΠΗΓΩΝ, ΜΕ ΣΕΙΡΑ ΠΟΥ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΤΙ ΨΑΧΝΕΙ Ο ΧΡΗΣΤΗΣ.
+              Πρώτα ό,τι λύνει πρόβλημα που ΗΔΗ έχει (ρύθμιση οφειλών), μετά ό,τι
+              δίνει χρήματα (κρατικά προγράμματα), μετά ό,τι συγκρίνει (τράπεζες
+              και επιτόκια), μετά ό,τι ελέγχεται (φορολογικά και τίτλοι), και
+              τελευταία τα υπόλοιπα εργαλεία. */}
           <MiniSection title="Επίσημες πηγές">
             {[
+              {category:'Ρύθμιση οφειλών και διαχειριστές',links:SERVICERS_GUIDE.sources.map(x=>({label:x.label,sub:x.sub,url:x.url}))},
               {category:'Κρατικά προγράμματα',links:[
                 {label:'Σπίτι μου ΙΙ · επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
                 {label:'Αναβαθμίζω το Σπίτι μου',sub:'Ελληνική Αναπτυξιακή Τράπεζα, επίσημη πλατφόρμα',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},

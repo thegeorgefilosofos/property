@@ -256,6 +256,13 @@ export const CLOUD = [
   { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal · 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family · 9,99 €', price: 9.99 }] },
   { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB · 9,99 €', price: 9.99 }] },
   { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography · 12,29 €', price: 12.29 }] },
+  // ΤΡΕΙΣ ΣΥΝΔΡΟΜΕΣ ΤΕΧΝΗΤΗΣ ΝΟΗΜΟΣΥΝΗΣ, ΧΩΡΙΣ ΤΙΜΗ ΕΙΣΟΔΟΥ. Η τιμολόγησή τους
+  // αλλάζει συχνά και διαφέρει ανά χώρα και ανά τρόπο χρέωσης· ένα νούμερο από
+  // μνήμη σε πλακίδιο που ο ιδιοκτήτης θα συγκρίνει με την κάρτα του δεν είναι
+  // προσέγγιση, είναι λάθος. Γράφουν «Εκκρεμεί» ώσπου να μπει η δική του τιμή.
+  { value: 'claude',  label: 'Claude',  url: 'https://claude.ai',        plans: [{ id: 'cl_pro', name: 'Claude', price: 0 }] },
+  { value: 'chatgpt', label: 'ChatGPT', url: 'https://chatgpt.com',      plans: [{ id: 'gpt_plus', name: 'ChatGPT', price: 0 }] },
+  { value: 'gemini',  label: 'Gemini',  url: 'https://gemini.google.com', plans: [{ id: 'gem_pro', name: 'Gemini', price: 0 }] },
 ];
 
 
