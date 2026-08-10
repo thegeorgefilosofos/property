@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
@@ -643,8 +644,9 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
     if (!propertyId) return;
     (async () => {
       try {
-        const { data: chk } = await supabase.from('checklist_items').select('status,due_date').eq('property_id', propertyId).ilike('description', '%ασφαλιστήριο%').limit(1);
-        if (chk?.[0]) setChecklistRenewal({ daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null });
+        const chk = await checklist.matchingDescription<{ status: string | null; due_date: string | null }>(
+          supabase, propertyId, 'status,due_date', '%ασφαλιστήριο%', userId);
+        if (chk[0]) setChecklistRenewal({ daysLeft: chk[0].due_date ? daysUntil(chk[0].due_date) ?? 0 : null });
 
         // Property data from services (ΕΝΦΙΑ has sqm, zone, floor, age)
         const { data: svc } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'services').maybeSingle();

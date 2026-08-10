@@ -9,6 +9,7 @@ import {
 import { T, feAuto, Btn, localDay } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import * as calendar from '@/lib/data/calendar';
+import * as checklist from '@/lib/data/checklist';
 import { rentDueOccurrence, applyExdate } from '@/lib/calendar/rentDue';
 import { saved } from '@/components/dbWrite';
 
@@ -449,13 +450,10 @@ export async function syncTenantSchedule(
       calendar.upsertBySource(supabase, { propertyId, userId }, prefix, events, { refresh: mode === 'save' }));
 
     // ── checklist_items (dedup μέσω template_id) ──
-    const { data: exCk } = await supabase
-      .from('checklist_items').select('template_id')
-      .eq('property_id', propertyId).like('template_id', `${prefix}%`);
-    const haveCk = new Set((exCk || []).map((r: { template_id: string | null }) => r.template_id));
+    const haveCk = await checklist.templateIds(supabase, propertyId, userId, prefix);
     const ckInsert = tasks.filter(tk => !haveCk.has(tk.template_id as string));
     if (ckInsert.length) await saved('Οι εκκρεμότητες του ενοικιαστή δεν δημιουργήθηκαν',
-      supabase.from('checklist_items').insert(ckInsert));
+      checklist.addMany(supabase, ckInsert));
   } catch {
     /* best-effort: ο συγχρονισμός δεν πρέπει ποτέ να μπλοκάρει την αποθήκευση */
   }

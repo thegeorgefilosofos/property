@@ -4,6 +4,7 @@ import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses'
 import type { User } from '@supabase/supabase-js';
@@ -305,8 +306,8 @@ function useChecklistAlerts(propertyId: string | null) {
   useEffect(() => {
     if (!propertyId) return;
     const check = async () => {
-      const { data } = await supabase.from('checklist_items').select('due_date, status, priority').eq('property_id', propertyId).neq('status', 'done').neq('status', 'skipped');
-      if (!data) return;
+      const data = await checklist.open<{ due_date: string | null; status: string | null; priority: string | null }>(
+        supabase, propertyId, checklist.AGENDA_COLUMNS);
       const now = new Date(); let count = 0;
       data.forEach(item => {
         if (item.due_date && new Date(item.due_date) < now) count++;
@@ -392,14 +393,14 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [exp,{ data:bil },{ data:tsk },ten,{ data:ci },{ data:iv },{ data:ln },{ data:hs },allExp,allTen,{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
+    const [exp,{ data:bil },{ data:tsk },ten,ci,{ data:iv },{ data:ln },{ data:hs },allExp,allTen,{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
       // ατζέντα, που τις ταξινομεί μαζί με όλα τα υπόλοιπα κατά προθεσμία.
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(60),
       tenantStore.currentAll<Tenant & TenantFull>(supabase,prop.id,'id,monthly_rent,lease_start,lease_end,e_payment',userId),
-      supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
+      checklist.open<{ due_date:string|null; status:string; priority:string }>(supabase,prop.id,checklist.AGENDA_COLUMNS,userId),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('client_stays').select('check_in,check_out,total,nights,nightly_rate').eq('property_id',prop.id).eq('user_id',userId),
@@ -419,7 +420,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     ]);
     setExpenses((exp||[]) as Expense[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp||[]); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
-    setChk(ci||[]); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
+    setChk(ci); setInv(iv||[]); setLoans(toLoanViews(ln)); setHostStays(hs||[]); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
     // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν
     // ελεγχόταν καν ως όνομα στήλης.

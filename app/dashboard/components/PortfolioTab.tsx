@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect } from './UIComponents';
@@ -140,7 +141,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [genOfficial, setGenOfficial] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: st }, { data: bl }, ex, tn, { data: ci }, po, { data: cl }, { data: rp }] = await Promise.all([
+    const [{ data: st }, { data: bl }, ex, tn, ci, po, { data: cl }, { data: rp }] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
       // `total` για ΚΑΘΕ γραμμή — δηλαδή σιωπηλά ξαναγυρίζει το payout.
@@ -148,7 +149,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring,property_id').eq('user_id', userId),
       expenses.ledgerOfUser(supabase, userId, `${year}-01-01`),
       tenantStore.currentByProperty<TenantRow & { property_id: string }>(supabase, userId, 'monthly_rent'),
-      supabase.from('checklist_items').select('property_id,status,priority,due_date').eq('user_id', userId).neq('status', 'done').neq('status', 'skipped'),
+      checklist.openOfUser<ChkRow>(supabase, userId, `property_id,${checklist.AGENDA_COLUMNS}`),
       propertyStore.list<{ id: string; client_id: string | null }>(supabase, userId, { columns: 'id,client_id' }),
       supabase.from('clients').select('id,full_name').eq('user_id', userId),
       // Οι ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ δόσεις ενοικίου της χρήσης — από εδώ βγαίνει το έσοδο
@@ -351,7 +352,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       priority: bulkPriority, recurring: 'none', status: 'pending', completed: false,
       note: null as string | null, estimated_cost: 0, actual_cost: 0, sort_order: 0,
     }));
-    const { error } = await supabase.from('checklist_items').insert(inserts);
+    const { error } = await checklist.addMany(supabase, inserts);
     setBulkSaving(false);
     if (error) { notifyError('Κάτι πήγε στραβά, δοκίμασε ξανά'); return; }
     const n = inserts.length;

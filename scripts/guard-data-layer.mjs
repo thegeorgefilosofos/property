@@ -29,6 +29,7 @@ const OWNED = {
   expenses: 'lib/data/expenses.ts',
   user_properties: 'lib/data/properties.ts',
   tenants: 'lib/data/tenants.ts',
+  checklist_items: 'lib/data/checklist.ts',
 }
 
 const findings = []

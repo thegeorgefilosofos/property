@@ -7,6 +7,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
+import * as checklist from '@/lib/data/checklist'
 import { DatePicker, CustomSelect } from './UIComponents'
 import { T, fn, fe, fp, fd, Modal, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, ABSENT, ABSENT_DATE, isOverlayOpen, fdLong, pressable, formGrid } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
@@ -434,6 +435,28 @@ function parseItem(row: ChecklistItemsRow): ChecklistItem {
 }
 function serializeNote(d: NotePayload) {
   return JSON.stringify({ __cv: 2, ...d })
+}
+/**
+ * Η ΕΠΟΜΕΝΗ ΕΜΦΑΝΙΣΗ ΜΙΑΣ ΕΠΑΝΑΛΑΜΒΑΝΟΜΕΝΗΣ ΕΡΓΑΣΙΑΣ.
+ *
+ * Το ίδιο αντικείμενο δεκατεσσάρων πεδίων ήταν γραμμένο ΤΡΕΙΣ φορές μέσα στο
+ * αρχείο: στη μονή ολοκλήρωση, στη μαζική, και στην αντιγραφή. Τρία αντίγραφα
+ * που μπορούσαν να αποκλίνουν σιωπηλά — και μια νέα στήλη θα έπρεπε να θυμηθεί
+ * κανείς να την προσθέσει και στα τρία.
+ *
+ * ΤΙ ΔΕΝ ΜΕΤΑΦΕΡΕΤΑΙ, ΚΑΙ ΓΙΑΤΙ: οι υποεργασίες και τα σχόλια μένουν πίσω. Η
+ * νέα εμφάνιση είναι νέα δουλειά· τα τσεκαρισμένα βήματα του περασμένου εξαμήνου
+ * θα την έδειχναν μισοτελειωμένη από τη γέννησή της. Οι ετικέτες, η προέλευση
+ * και ο υπεύθυνος μεταφέρονται: περιγράφουν την εργασία, όχι την εκτέλεσή της.
+ */
+function nextOccurrence(item: ChecklistItem, due: string | null): Record<string, unknown> {
+  return {
+    property_id: item.property_id, user_id: item.user_id,
+    description: item.description, category: item.category, priority: item.priority,
+    recurring: item.recurring, due_date: due, status: 'pending', completed: false,
+    note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }),
+    estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
+  }
 }
 /** Ό,τι δεν επεξεργάζεται η φόρμα αλλά ΔΕΝ επιτρέπεται να χαθεί σε μια αποθήκευση. */
 function carryOver(item?: ChecklistItem | null): Pick<NotePayload, 'ref' | 'src' | 'who' | 'receipt'> {
@@ -1706,9 +1729,8 @@ function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }: {
       path, name: file.name, docId, amount: amountNum, date,
       provider: provider || null, scanned_at: new Date().toISOString(),
     }
-    if (!await saved('Η εκκρεμότητα δεν έκλεισε', supabase.from('checklist_items').update({
+    if (!await saved('Η εκκρεμότητα δεν έκλεισε', checklist.markDone(supabase, item.id, {
       actual_cost: amountNum, expense_id: expenseId,
-      status: 'done', completed: true, completed_at: new Date().toISOString(),
       note: serializeNote({
         note: item.note || '', subtasks: item._subtasks || [],
         comments: item._comments || [], tags: item._tags || [],
@@ -1903,8 +1925,8 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // πρόβλημα και δεν περνούν τίποτα.
   const fetchAll = useCallback(async (fresh: () => boolean = () => true) => {
     setLoading(true)
-    const [{ data: itemData }, { data: contactData }, { data: tenantData }] = await Promise.all([
-      supabase.from('checklist_items').select('*').eq('property_id', propertyId).order('sort_order').order('created_at'),
+    const [itemData, { data: contactData }, { data: tenantData }] = await Promise.all([
+      checklist.all<ChecklistItemsRow>(supabase, propertyId, '*', userId),
       supabase.from('contacts').select('id,full_name,role,phone,property_id').eq('user_id', userId).order('full_name'),
       supabase.from('contacts').select('id,full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
     ])
@@ -1989,7 +2011,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         const enfiaTask = rows.find(i => i.description?.toLowerCase().includes('ενφια') && i.status !== 'done')
         if (enfiaTask) {
           await saved('Ο ΕΝΦΙΑ δεν σημειώθηκε πληρωμένος',
-            supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', enfiaTask.id))
+            checklist.markDone(supabase, enfiaTask.id))
         }
       }
     } catch (_) {}
@@ -2121,24 +2143,24 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       // απορριπτόταν από RLS δεν έλεγε τίποτα: η φόρμα έκλεινε και το μήνυμα
       // «Η εκκρεμότητα ενημερώθηκε» εμφανιζόταν κανονικά.
       if (!await saved('Η εκκρεμότητα δεν ενημερώθηκε',
-          supabase.from('checklist_items').update(payload).eq('id', editItem.id))) return
+          checklist.update(supabase, editItem.id, payload))) return
       // Reconcile συνδεδεμένο event: ενημέρωση / δημιουργία / διαγραφή αν αφαιρέθηκε η προθεσμία.
       // Οι φορολογικές υποχρεώσεις ΔΕΝ αποκτούν δικό τους event από εδώ: το γράφει
       // η Επισκόπηση/Ημερολόγιο με κλειδί `tax:<id>` και θα ήταν διπλότυπο.
       if (editItem.calendar_event_id) {
         if (payload.due_date) await saved('Η υπενθύμιση στο ημερολόγιο δεν ενημερώθηκε', calendar.update(supabase, editItem.calendar_event_id, { title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), recurring: payload.recurring !== 'none' }))
         else if (await saved('Η υπενθύμιση δεν αφαιρέθηκε από το ημερολόγιο', calendar.remove(supabase, editItem.calendar_event_id))) {
-          await saved('Ο σύνδεσμος με το ημερολόγιο δεν καθαρίστηκε', supabase.from('checklist_items').update({ calendar_event_id: null }).eq('id', editItem.id))
+          await saved('Ο σύνδεσμος με το ημερολόγιο δεν καθαρίστηκε', checklist.linkEvent(supabase, editItem.id, null))
         }
-      } else if (payload.due_date && !isGeneratedRef(editItem._ref)) { const c = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost }); if (c) await saved(MSG.calendarLink, supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id)) }
+      } else if (payload.due_date && !isGeneratedRef(editItem._ref)) { const c = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost }); if (c) await saved(MSG.calendarLink, checklist.linkEvent(supabase, editItem.id, c)) }
     } else {
       const ins = await savedData<{ id?: string }>('Η εκκρεμότητα δεν προστέθηκε',
-        supabase.from('checklist_items').insert(payload).select('id').single())
+        checklist.addReturning(supabase, payload))
       if (!ins) return
       const newId = ins.id
       if (newId && payload.due_date) {
         const calId = await makeTaskCal({ ...payload, estimated_cost: payload.estimated_cost })
-        if (calId) await saved(MSG.calendarLink, supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId))
+        if (calId) await saved(MSG.calendarLink, checklist.linkEvent(supabase, newId, calId))
       }
     }
     setShowAddModal(false); setEditItem(null); fetchAll()
@@ -2154,7 +2176,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       // Το τσεκάρισμα είναι η πιο συχνή ενέργεια της οθόνης. Αν αποτύχει σιωπηλά,
       // ο χρήστης βλέπει το κουτάκι γεμάτο, φεύγει, γυρίζει και το βρίσκει άδειο.
       if (!await saved('Η κατάσταση δεν αποθηκεύτηκε',
-          supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id))) return
+          checklist.setStatus(supabase, item.id, newStatus))) return
       if (newStatus === 'done') {
         // ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΔΕΝ ΞΕ-ΠΛΗΡΩΝΕΤΑΙ ΚΑΙ ΔΕΝ ΞΑΝΑ-ΠΛΗΡΩΝΕΤΑΙ. Εδώ η
         // ολοκλήρωση έκανε `expenses.paid = true` και η αναίρεση `paid = false`.
@@ -2166,15 +2188,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           const newDue = nextDueDate(item.due_date, item.recurring)
           // Η επόμενη εμφάνιση ξεκινά ΧΩΡΙΣ παραστατικό και χωρίς πραγματικό
           // κόστος: το τιμολόγιο του περασμένου έτους δεν ισχύει για το επόμενο.
-          const rec = await savedData<{ id?: string }>('Η επόμενη επανάληψη δεν δημιουργήθηκε', supabase.from('checklist_items').insert({
-            property_id: item.property_id, user_id: item.user_id,
-            description: item.description, category: item.category, priority: item.priority,
-            recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
-            note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }),
-            estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-          }).select('id').single())
+          const rec = await savedData<{ id?: string }>('Η επόμενη επανάληψη δεν δημιουργήθηκε', checklist.addReturning(supabase, nextOccurrence(item, newDue)))
           const recId = rec?.id
-          if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await saved(MSG.calendarLink, supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId)) }
+          if (recId && !isGeneratedRef(item._ref)) { const c = await makeTaskCal({ ...item, due_date: newDue }); if (c) await saved(MSG.calendarLink, checklist.linkEvent(supabase, recId, c)) }
           if (recId) notifyOk(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
         }
       } else if (item.calendar_event_id) {
@@ -2188,7 +2204,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Το αντίγραφο ΔΕΝ κληρονομεί ούτε το παραστατικό ούτε την ταυτότητα
     // υποχρέωσης: ένα τιμολόγιο ανήκει σε μία δαπάνη, και δύο γραμμές με το ίδιο
     // `ref` θα σήμαιναν διπλή υποχρέωση.
-    if (!await saved('Η εργασία δεν αντιγράφηκε', supabase.from('checklist_items').insert({ property_id: item.property_id, user_id: item.user_id, description: item.description + ' (αντίγραφο)', category: item.category, priority: item.priority, recurring: item.recurring, due_date: item.due_date, status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: item._subtasks || [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }), estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: (item.sort_order || 0) + 1 }))) return
+    if (!await saved('Η εργασία δεν αντιγράφηκε', checklist.addMany(supabase, [{ ...nextOccurrence(item, item.due_date), description: item.description + ' (αντίγραφο)', note: serializeNote({ note: '', subtasks: item._subtasks || [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }), sort_order: (item.sort_order || 0) + 1 }]))) return
     fetchAll(); notifyOk('Η εργασία αντιγράφηκε')
   }
 
@@ -2206,7 +2222,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // πραγματικά και δεν παύει να ξοδεύτηκε όταν σβήνεται μια εργασία.
     // Η διαγραφή που «πέτυχε» χωρίς να πετύχει είναι η χειρότερη: ο χρήστης
     // βλέπει «διαγράφηκε», η γραμμή επιστρέφει στην επόμενη ανανέωση.
-    if (!await saved('Η εκκρεμότητα δεν διαγράφηκε', supabase.from('checklist_items').delete().eq('id', id))) return
+    if (!await saved('Η εκκρεμότητα δεν διαγράφηκε', checklist.remove(supabase, id))) return
     setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); notify('Η εκκρεμότητα διαγράφηκε')
   }
 
@@ -2225,7 +2241,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     if (!calId) return
     // Χωρίς τον σύνδεσμο, η επόμενη προσθήκη θα έφτιαχνε δεύτερο γεγονός για το ίδιο.
     if (!await saved(MSG.calendarLink,
-      supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', item.id))) return
+      checklist.linkEvent(supabase, item.id, calId))) return
     fetchAll()
     notifyOk(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο: ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
@@ -2256,7 +2272,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       estimated_cost: 0, actual_cost: 0, sort_order: i,
       template_id: isTaxTaskRef(d.ref) ? 'tax_calendar' : 'legal_updates',
     }))
-    const { error } = await supabase.from('checklist_items').insert(rows)
+    const { error } = await checklist.addMany(supabase, rows)
     if (error) { notify('Δεν προστέθηκαν οι υποχρεώσεις. Δοκίμασε ξανά.', { tone: 'negative' }); return }
     fetchAll()
     notifyOk(`Προστέθηκαν ${fresh.length} ${fresh.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}, με ημερομηνία και πηγή`)
@@ -2283,7 +2299,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       estimated_cost: 0, actual_cost: 0, sort_order: i, template_id: key, depends_on: null,
     }))
     const inserted = await savedData<{ id: string; sort_order: number }[]>('Το πρότυπο δεν φορτώθηκε',
-      supabase.from('checklist_items').insert(rows).select('id,sort_order'))
+      checklist.addManyReturning(supabase, rows))
     if (!inserted) { fetchAll(); return }
 
     // Η σειρά επιστροφής δεν είναι εγγυημένη· το `sort_order` είναι ο δείκτης
@@ -2296,7 +2312,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // συμπτύσσονται σε ένα update — τρέχουν όμως παράλληλα, όχι σε σειρά.
     if (links.length) {
       await Promise.all(links.map(l => saved('Μια εξάρτηση εργασίας δεν αποθηκεύτηκε',
-        supabase.from('checklist_items').update({ depends_on: l.dep }).eq('id', l.id))))
+        checklist.update(supabase, l.id, { depends_on: l.dep }))))
     }
     fetchAll(); notifyOk(`«${tpl.label}» φορτώθηκε, ${tpl.items.length} εργασίες`)
   }
@@ -2309,7 +2325,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Ένα ερώτημα αντί για ένα ανά γραμμή: λιγότερες διαδρομές, και ΕΝΑ σφάλμα
     // να ελεγχθεί αντί για δέκα που κανείς δεν κοίταζε.
     if (!await saved('Οι εργασίες δεν ολοκληρώθηκαν',
-      supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).in('id', ids))) return
+      checklist.markDoneMany(supabase, ids))) return
     // Κλείνουν τα γεγονότα του ημερολογίου. ΟΧΙ οι δαπάνες: κάθε συνδεδεμένη
     // δαπάνη έχει πλέον τιμολόγιο και είναι ήδη πληρωμένη. Το μαζικό
     // `expenses.paid = true` ανήκε στην εποχή των εκτιμήσεων.
@@ -2320,18 +2336,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const recurring = chosen.filter(it => it.recurring !== 'none' && !!it.due_date)
     for (const item of recurring) {
       const newDue = nextDueDate(item.due_date!, item.recurring)
-      const rec = await savedData<{ id?: string }>('Η επόμενη επανάληψη δεν δημιουργήθηκε', supabase.from('checklist_items').insert({
-        property_id: item.property_id, user_id: item.user_id,
-        description: item.description, category: item.category, priority: item.priority,
-        recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
-        note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [], ref: null, src: item._src || null, who: item._who || null, receipt: null }),
-        estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-      }).select('id').single())
+      const rec = await savedData<{ id?: string }>('Η επόμενη επανάληψη δεν δημιουργήθηκε', checklist.addReturning(supabase, nextOccurrence(item, newDue)))
       const recId = rec?.id
       if (recId && !isGeneratedRef(item._ref)) {
         const c = await makeTaskCal({ ...item, due_date: newDue })
         if (c) await saved('Η επανάληψη δεν συνδέθηκε με το ημερολόγιο',
-          supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', recId))
+          checklist.linkEvent(supabase, recId, c))
       }
     }
     setSelected(new Set()); fetchAll(); notifyOk(`${count} εργασίες ολοκληρώθηκαν${recurring.length ? `, ${recurring.length} επαναπρογραμματίστηκαν` : ''}`)
@@ -2348,7 +2358,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       calendar.remove(supabase, calIds))
     // Οι δαπάνες ΔΕΝ διαγράφονται μαζί: έχουν παραστατικό, δηλαδή συνέβησαν.
     if (!await saved('Οι εργασίες δεν διαγράφηκαν',
-      supabase.from('checklist_items').delete().in('id', [...selected]))) return
+      checklist.removeMany(supabase, [...selected]))) return
     setSelected(new Set()); fetchAll(); notify(`${count} εργασίες διαγράφηκαν`)
   }
 

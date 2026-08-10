@@ -20,6 +20,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
+import * as checklist from '@/lib/data/checklist';
 import * as expenseStore from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
@@ -294,7 +295,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [exp, { data: bil }, ten, st, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
+    const [exp, { data: bil }, ten, st, cal, { data: rates }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, chk] = await Promise.all([
       expenseStore.ledger(supabase, propertyId, { userId, from: `${year}-01-01`, columns: `${expenseStore.LEDGER_COLUMNS},payment_method` }),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring').eq('property_id', propertyId).eq('user_id', userId),
       tenantStore.currentAll(supabase, propertyId, 'full_name,monthly_rent,lease_end,deposit_amount', userId),
@@ -309,7 +310,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
       supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
-      supabase.from('checklist_items').select('description,category,priority,due_date,status,estimated_cost,assigned_contact_name').eq('property_id', propertyId).eq('user_id', userId).neq('status', 'done').neq('status', 'skipped').order('due_date', { ascending: true, nullsFirst: false }).limit(60),
+      checklist.upcoming<ChecklistItemsRow>(supabase, propertyId, 'description,category,priority,due_date,status,estimated_cost,assigned_contact_name', userId),
     ]);
     // Οι γραμμές παίρνουν τους τύπους τους από το σχήμα (lib/supabase/tables.ts,
     // παραγόμενο από τα migrations). Πριν, κάθε πρόσβαση σε στήλη περνούσε από
@@ -417,7 +418,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε Νόα
     // να απαντά «τι εκκρεμεί;» με στοιχεία, όχι υποθέσεις, και να ξεχωρίζει τις ληξιπρόθεσμες.
-    const openTasks = (chk || []) as ChecklistItemsRow[];
+    const openTasks = chk;
     const overdueTasks = openTasks.filter(i => i.due_date && i.due_date < todayStr);
     const taskCostSum = openTasks.reduce((s, i) => s + (Number(i.estimated_cost) || 0), 0);
     const checklistLine = openTasks.length
@@ -873,12 +874,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const est = a.est_cost || 0;
     const today = athensToday();
     try {
-      const ins = await must(supabase.from('checklist_items').insert({
+      const ins = await must(checklist.addReturning(supabase, {
         property_id: propertyId, user_id: userId, description: d,
         category, priority, recurring: 'none', due_date: due,
         status: 'pending', completed: false, note: null,
         estimated_cost: est, actual_cost: 0, sort_order: 0,
-      }).select('id').single());
+      }));
       const newId = (ins as { id?: string } | null)?.id;
       // Κύκλωμα: ημερολόγιο (email υπενθύμιση) + εκκρεμής δαπάνη.
       // Η κατηγορία της δαπάνης βγαίνει από την ταξινομία (μία πηγή), όχι από
@@ -896,7 +897,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       // Η ίδια η καρτέλα Εκκρεμότητες έχει ήδη αυτόν τον κανόνα γραμμένο: δαπάνη
       // υπάρχει μόνο όταν υπάρχει παραστατικό. Η εκτίμηση ζει στο
       // `estimated_cost` της εκκρεμότητας, όπου ΕΙΝΑΙ εκτίμηση και το λέει.
-      if (newId && calId) await must(supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', newId));
+      if (newId && calId) await must(checklist.linkEvent(supabase, newId, calId));
       const bits: string[] = [];
       if (due) bits.push('προθεσμία και υπενθύμιση με email');
       if (est > 0) bits.push(`εκτίμηση ${eur(est)}`);
