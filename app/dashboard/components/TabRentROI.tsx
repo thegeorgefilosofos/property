@@ -15,7 +15,7 @@ import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape'
 import { readStatus, type StatusRow } from '@/lib/property/status'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
-import { Skeleton, SkeletonKPIs, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, formGrid } from '@/components/Theme';
+import { Skeleton, SkeletonKPIs, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, formGrid, fieldRow } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -368,8 +368,12 @@ function MetricTile({ label, value, info, tone }: { label: string; value: string
   );
 }
 
-const g2: React.CSSProperties = { ...formGrid(200, 270), gap: 12 };
-const g4: React.CSSProperties = { ...formGrid(165, 225), gap: 12 };
+// ΤΟ ΣΤΑΘΕΡΟ ΜΕΓΙΣΤΟ ΣΤΗΛΗΣ ΕΚΟΒΕ ΤΟ ΤΕΤΑΡΤΟ ΠΕΔΙΟ ΚΑΤΩ. Τρία πάνω, ένα από
+// κάτω μόνο του, και μισή κάρτα άδεια δεξιά. Τα τέσσερα στοιχεία είναι ΕΝΑ
+// ερώτημα — τι αξίζει, τι αποδίδει, τι κοστίζει, πού είναι — και διαβάζονται
+// σε μία ευθεία.
+const g2: React.CSSProperties = { ...fieldRow(200, 12) };
+const g4: React.CSSProperties = { ...fieldRow(165, 12) };
 
 // ── Διακόπτης παραδοχής (ναι/όχι), με το κείμενο του κανόνα από κάτω ─────────
 function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange: (v: boolean) => void; label: string; note: string }) {

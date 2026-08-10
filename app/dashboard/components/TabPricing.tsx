@@ -34,7 +34,7 @@ import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
-import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable, formGrid } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable, formGrid , fieldRow} from '@/components/Theme';
 import { navLabel } from '@/lib/nav/labels';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 import { shortTermCashflow } from '@/lib/tax/shortTermCashflow';
@@ -396,7 +396,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
           προτάσεις, όχι αυτόματη αλλαγή. Το «από πού βγαίνει» το λέει η ίδια η
           ημέρα όταν την πατήσεις, ονομαστικά και με την πηγή της. */}
       {/* Ρυθμίσεις (τυποποιημένα πεδία, αποθηκεύονται αυτόματα) */}
-      <div style={{ ...formGrid(150, 210), gap: 14, margin: '18px 0 6px' }}>
+      <div style={{ ...fieldRow(150), margin: '18px 0 6px' }}>
         <NumberInput label="Βασική τιμή ανά νύχτα" value={base ? String(base) : ''} onChange={v => mark(setBase)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Κατώτατο όριο" value={min ? String(min) : ''} onChange={v => mark(setMin)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Ανώτατο όριο" value={max ? String(max) : ''} onChange={v => mark(setMax)(Number(v) || 0)} suffix="€" />
@@ -404,18 +404,23 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
             πεδίο το παρουσίαζε σαν δική του καταχώρηση. Λέγεται ρητά. */}
         <NumberInput label="Προσαύξηση σαββατοκύριακου" labelInfo="Πόσο ακριβότερη είναι η Παρασκευή και το Σάββατο από τις καθημερινές. Ξεκινά από την αφετηρία της εφαρμογής· άλλαξέ την και οι προτάσεις προσαρμόζονται." value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
         <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix="νύχτες" />
-        <div>
-          {/* Η ετικέτα γραφόταν στο χέρι, με άλλο βάρος και χωρίς το ύψος βάσης
-              των υπόλοιπων πεδίων: το χειριστήριο έπεφτε σε δική του σειρά και
-              δεν στοιχιζόταν με κανένα. Ίδιο στυλ, ίδια θέση. */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', minHeight: 32, lineHeight: 1.3, fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: 6 }}>Έτος</div>
-          {/* Τρέχον + επόμενο. Το nowYear+2 σήμαινε 1.096 υπολογισμένες ημέρες
-              για τιμές που κανείς δεν ορίζει δύο χρόνια μπροστά. */}
-          <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', height: 40 }}>
-            {[nowYear, nowYear + 1].map(y => (
-              <button key={y} onClick={() => setPyear(y)} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, background: pyear === y ? 'var(--accent)' : 'transparent', color: pyear === y ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{y}</button>
-            ))}
-          </div>
+      </div>
+      {/* ΤΟ ΕΤΟΣ ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ ΤΙΜΗΣ. Καθόταν έκτη στήλη μέσα στη σειρά, με
+          ύψος πεδίου και ίδιο βάρος με τη «Βασική τιμή ανά νύχτα» — και επειδή
+          έπιανε στήλη, τα πέντε πραγματικά πεδία στρίμωχναν και η «Προσαύξηση
+          σαββατοκύριακου» έσπαγε σε δύο γραμμές. Είναι επιλογή προβολής του
+          ημερολογίου από κάτω: μικρότερο, πιο διακριτικό, στη θέση του. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Έτος</span>
+        <div style={{ display: 'inline-flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', height: 28 }}>
+          {[nowYear, nowYear + 1].map(y => (
+            <button key={y} onClick={() => setPyear(y)} style={{
+              border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12,
+              fontWeight: pyear === y ? 700 : 500, padding: '0 14px',
+              background: pyear === y ? 'var(--accent-soft)' : 'transparent',
+              color: pyear === y ? 'var(--accent)' : 'var(--text-tertiary)',
+            }}>{y}</button>
+          ))}
         </div>
       </div>
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, minHeight: 16 }}>
@@ -637,15 +642,20 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                             {!d.booked && !past && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
                             <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
                             {/* Ακέραια ευρώ στο κελί, δύο δεκαδικά στην ανάλυση που
-                                ανοίγει με το πάτημα. Σε τετράγωνο σαράντα
-                                εικονοστοιχείων το «45,00» είναι πέντε χαρακτήρες
-                                για να πει αυτό που λένε δύο. Η ακριβής τιμή ζει
-                                στην ετικέτα προσβασιμότητας και στην ανάλυση. */}
+                                ανοίγει με το πάτημα: το «45,00» είναι πέντε
+                                χαρακτήρες για να πει αυτό που λένε δύο.
+                                ΤΟ ΣΥΜΒΟΛΟ ΟΜΩΣ ΕΛΕΙΠΕ, και ένα γυμνό «45» δίπλα
+                                σε ένα «45» της επόμενης ημέρας δεν λέει αν είναι
+                                ευρώ, ποσοστό ή νύχτες. Μπαίνει μικρότερο και
+                                πιο σβηστό: διαβάζεται ως μονάδα, όχι ως ψηφίο. */}
                             {/* Κλεισμένη ημέρα: δεν έχει προτεινόμενη τιμή, και η
                                 παύλα που έμπαινε στη θέση της διαβαζόταν ως
                                 «λείπει τιμή» αντί για «είναι πιασμένη». */}
                             <span style={{ position: 'relative', fontSize: d.booked ? 9 : 12, fontWeight: d.booked ? 600 : top ? 800 : 600, fontFamily: d.booked ? T.font.sans : T.font.num, fontVariantNumeric: 'tabular-nums', color: d.booked ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
-                              {d.booked ? 'πιασμένη' : fn(d.price)}
+                              {d.booked ? 'πιασμένη' : (<>
+                                {fn(d.price)}
+                                <span style={{ fontSize: 9, fontWeight: 600, marginLeft: 1.5, opacity: 0.55 }}>€</span>
+                              </>)}
                             </span>
                             {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: 'var(--text-secondary)' }} />}
                           </button>

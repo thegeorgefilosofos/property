@@ -238,8 +238,16 @@ export const STREAMING = [
   { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις · 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard · 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K · 15,99 €', price: 15.99 }] },
   { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual · 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo · 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα) · 17,99 €', price: 17.99 }] },
   { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Individual · 13,99 €', price: 13.99 },{ id: 'y_family', name: 'Family · 22,99 €', price: 22.99 }] },
+  // ΧΩΡΙΣ ΤΙΜΗ ΕΙΣΟΔΟΥ, ΕΠΙΤΗΔΕΣ. Οι δύο παρακάτω αλλάζουν τιμολόγηση συχνά και
+  // δεν επιβεβαιώθηκαν από την επίσημη σελίδα τους· ένα επινοημένο νούμερο σε
+  // πλακίδιο που ο ιδιοκτήτης θα συγκρίνει με την κάρτα του δεν είναι
+  // προσέγγιση, είναι λάθος. Το πλακίδιο γράφει «Εκκρεμεί» ώσπου να μπει η
+  // πραγματική τιμή — που έτσι κι αλλιώς είναι αυτή που μετράει.
+  { value: 'skroutz_plus', label: 'Skroutz Plus', color: '#f68b24', url: 'https://www.skroutz.gr',
+    plans: [{ id: 'sk_plus', name: 'Skroutz Plus', price: 0 }] },
+  { value: 'wolt_plus',    label: 'Wolt+',        color: '#00c2e8', url: 'https://wolt.com/el',
+    plans: [{ id: 'wp_std', name: 'Wolt+', price: 0 }] },
   { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία · 2,99 €', price: 2.99 }] },
-  { value: 'cosmote_tv', label: 'Cosmote TV',         color: '#00adef', url: 'https://www.cosmote.gr',                 plans: [{ id: 'cos_start', name: 'Start · 6,00 €', price: 6.00 },{ id: 'cos_full', name: 'Full · 30,00 €', price: 30.00 }] },
 ];
 
 export const CLOUD = [
@@ -560,6 +568,9 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           const entry = active.find(a => a.service === svc.value);
           const on = !!entry;
           const amount = entry ? subShare(svc, entry) : svc.plans[0].price;
+          // ΤΟ ΜΗΔΕΝ ΔΕΝ ΕΙΝΑΙ ΤΙΜΗ. Ένα «0,00 €» σε πλακίδιο υπηρεσίας λέει
+          // «δεν πληρώνω γι' αυτό», ενώ σημαίνει «δεν ξέρουμε ακόμη πόσο».
+          const priceLabel = amount > 0 ? fe(amount) : ABSENT_SHORT;
           return (
             <button key={svc.value} type="button" onClick={() => onToggle(svc.value)} aria-pressed={on}
               style={{
@@ -572,7 +583,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
                 transition: 'background-color .15s, border-color .15s',
               }}>
               <span style={{ ...TT.bodySm, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap' }}>{svc.label}</span>
-              <span style={{ ...TT.caption, color: on ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fe(amount)}</span>
+              <span style={{ ...TT.caption, color: on ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{priceLabel}</span>
             </button>
           );
         })}
@@ -1401,7 +1412,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       </>)}
 
       {show('subscriptions') && (<>
-        <SubscriptionSection label="Streaming και ψυχαγωγία" catalog={STREAMING}
+        <SubscriptionSection label="Συνδρομές ψυχαγωγίας και υπηρεσιών" catalog={STREAMING}
           active={activeStreaming || []} onToggle={toggleStreaming} onUpdate={updateS} total={streamingCost}/>
 
         <SubscriptionSection label="Cloud και λογισμικό" catalog={CLOUD}
