@@ -76,6 +76,7 @@ const ALLOW = [
   // στο όνομα και τη διεύθυνση της εταιρείας που την κατέχει.
   { re: /BillsProviders\.tsx$/, why: 'χρώματα σήματος παρόχων (Cosmote, Nova, ΕΥΔΑΠ, ΔΕΗ)' },
   { re: /TabLoanData\.tsx$/,    why: 'χρώματα σήματος τραπεζών (Eurobank, Alpha, Πειραιώς)' },
+  { re: /BillsInsurance\.tsx$/, why: 'χρώματα σήματος συνδρομών (Netflix, Disney+, Spotify)' },
   { re: /app\/GoogleG\.tsx$/,   why: 'το επίσημο λογότυπο Google — τέσσερα καθορισμένα χρώματα' },
 ]
 
