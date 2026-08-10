@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
       // όνομα, ΑΤΑΚ, διεύθυνση, ενοίκια, δαπάνες, διαμονές — και δεν ήταν στη
       // λίστα. Ούτε η κατάργηση συνδρομής, που φέρει διεύθυνση ηλεκτρονικού
       // ταχυδρομείου στη διεύθυνση της σελίδας.
-      disallow: ['/dashboard', '/portal/', '/checkin/', '/accountant/', '/unsubscribe/', '/verify/', '/reset-password'],
+      disallow: ['/dashboard', '/portal/', '/checkin/', '/accountant/', '/unsubscribe/', '/verify/', '/epivevaiosi-email/', '/reset-password'],
     },
     sitemap: 'https://propertyos.gr/sitemap.xml',
   }

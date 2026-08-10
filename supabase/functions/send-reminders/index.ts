@@ -192,10 +192,29 @@ Deno.serve(async (req) => {
     const { data: prefs } = await supabase.from('notification_preferences').select('*').eq('email_enabled', true)
     if (!prefs?.length) return new Response(JSON.stringify({ message: 'No users' }), { status: 200 })
 
+    // ── ΣΕ ΠΟΙΟΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΣΤΑΛΕΙ ────────────────────────────────────
+    // Η `reminder_email` είναι ελεύθερο κείμενο που γράφει ο χρήστης: μπορεί να
+    // είναι γείτονας, πρώην, άγνωστος. Το μήνυμα φεύγει από ΤΟ ΔΙΚΟ ΜΑΣ domain,
+    // με το δικό μας λογότυπο, σε άνθρωπο που δεν το ζήτησε ποτέ.
+    //
+    // Η απάντηση δεν κρίνεται εδώ. Τη δίνει η `reminder_recipients` της βάσης,
+    // που είναι η ΜΙΑ πηγή: η διεύθυνση του ίδιου του λογαριασμού περνά (την
+    // επαλήθευσε η εγγραφή), κάθε άλλη μόνο αφού επιβεβαιωθεί, και η αλλαγή
+    // διεύθυνσης ακυρώνει την επιβεβαίωση. Αν αύριο γραφτεί δεύτερος αποστολέας,
+    // θα ρωτήσει το ίδιο πράγμα και θα πάρει την ίδια απάντηση.
+    const { data: allowed } = await supabase.rpc('reminder_recipients')
+    const inbox = new Map<string, string>()
+    for (const r of ((allowed || []) as { user_id: string; email: string | null }[])) {
+      if (r.email) inbox.set(r.user_id, r.email)
+    }
+    /** Η επιτρεπτή διεύθυνση αυτού του ιδιοκτήτη, ή κενό: τότε δεν στέλνεται τίποτα. */
+    const mailbox = (userId: string) => inbox.get(userId) || ''
+
     let totalSent = 0
 
     for (const pref of prefs) {
-      if (!pref.reminder_email) continue
+      const to = mailbox(pref.user_id)
+      if (!to) continue
       const { data: events } = await supabase.from('calendar_events').select('*').eq('user_id', pref.user_id).eq('status', 'pending')
       if (!events?.length) continue
 
@@ -218,7 +237,7 @@ Deno.serve(async (req) => {
         const toSend  = matching.filter(e => !sentIds.has(e.id))
         if (!toSend.length) continue
         const { subject, html } = buildEmail(toSend, check.type)
-        const ok = await sendEmail(pref.reminder_email, subject, html)
+        const ok = await sendEmail(to, subject, html)
         if (ok) {
           await supabase.from('notification_log').insert(toSend.map(e => ({ user_id: pref.user_id, event_id: e.id, reminder_type: check.type })))
           totalSent++
@@ -233,7 +252,7 @@ Deno.serve(async (req) => {
         const toSendOD  = overdue.filter(e => !sentODIds.has(e.id))
         if (toSendOD.length) {
           const { subject, html } = buildEmail(toSendOD, 'overdue')
-          const ok = await sendEmail(pref.reminder_email, subject, html)
+          const ok = await sendEmail(to, subject, html)
           if (ok) {
             await supabase.from('notification_log').insert(toSendOD.map(e => ({ user_id: pref.user_id, event_id: e.id, reminder_type: 'overdue' })))
             totalSent++
@@ -256,7 +275,8 @@ Deno.serve(async (req) => {
     // βάσει του πλήθους/χρόνου των προηγούμενων ειδοποιήσεων ανά δόση.
     let dunningSent = 0
     for (const pref of prefs) {
-      if (!pref.reminder_email) continue
+      const to = mailbox(pref.user_id)
+      if (!to) continue
 
       // Per-owner dunning settings, ασφαλή defaults (columns may be null on old rows).
       const dunningEnabled = pref.dunning_enabled !== false
@@ -320,7 +340,7 @@ Deno.serve(async (req) => {
       }
 
       const { subject, html } = buildDunningEmail(toNotify, tenantMap, propMap, today, noticeLabel, noticeNumber)
-      const ok = await sendEmail(pref.reminder_email, subject, html)
+      const ok = await sendEmail(to, subject, html)
       if (ok) {
         await supabase.from('notification_log').insert(toNotify.map(r => ({
           user_id: pref.user_id, event_id: r.id, reminder_type: 'rent_overdue', created_at: new Date().toISOString(),

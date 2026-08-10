@@ -23,7 +23,7 @@ create or replace function public.marketing_prefs_for_email(p_email text)
 returns table (product_news boolean, market_news boolean, unsubscribe_token uuid)
 language plpgsql
 security definer
-set search_path = 'public, pg_temp'
+set search_path = 'public', 'pg_temp'
 as $$
 declare
   v_uid uuid;

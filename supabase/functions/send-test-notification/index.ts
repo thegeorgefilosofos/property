@@ -17,6 +17,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON  = Deno.env.get('SUPABASE_ANON_KEY')!
 const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +50,41 @@ function testEmailHtml(): { subject: string; html: string } {
   return { subject, html }
 }
 
+/**
+ * ΤΟ ΜΗΝΥΜΑ ΕΠΙΒΕΒΑΙΩΣΗΣ, ΟΤΑΝ Η ΔΙΕΥΘΥΝΣΗ ΔΕΝ ΕΙΝΑΙ Η ΔΙΚΗ ΣΟΥ.
+ *
+ * Ο παραλήπτης μπορεί να μην έχει ιδέα ποιοι είμαστε: το μήνυμα λέει ΠΟΙΟΣ το
+ * ζήτησε, ΤΙ θα λαμβάνει, και ότι αν δεν το περίμενε, δεν χρειάζεται να κάνει
+ * τίποτα. Ένα «αγνόησέ το» είναι πιο σεβαστικό από ένα κουμπί απόρριψης, γιατί
+ * χωρίς το πάτημα δεν στέλνεται ούτως ή άλλως τίποτα.
+ */
+function confirmEmailHtml(link: string, owner: string): { subject: string; html: string } {
+  const subject = 'Επιβεβαίωση διεύθυνσης για υπενθυμίσεις Property OS'
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
+    <div style="display:flex;align-items:center;margin-bottom:24px;">
+      <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
+        <span style="color:#ffffff;font-weight:800;font-size:18px;">P</span>
+      </div>
+      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">Property OS</span>
+    </div>
+    <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:28px 24px;">
+      <h1 style="margin:0 0 12px;font-size:22px;color:#202124;font-weight:800;letter-spacing:-0.5px;">Να στέλνουμε τις υπενθυμίσεις εδώ;</h1>
+      <p style="margin:0 0 16px;font-size:14px;color:#5f6368;line-height:1.6;">
+        Ο κάτοχος του λογαριασμού ${owner} όρισε αυτή τη διεύθυνση για τις υπενθυμίσεις του Property OS: λογαριασμοί, ενοίκια και γεγονότα ημερολογίου.
+      </p>
+      <p style="margin:0 0 22px;font-size:14px;color:#5f6368;line-height:1.6;">
+        Αν το περιμένεις, επιβεβαίωσέ το. <strong style="color:#202124;">Αν όχι, αγνόησε αυτό το μήνυμα</strong>: χωρίς επιβεβαίωση δεν στέλνεται τίποτα άλλο σε αυτή τη διεύθυνση.
+      </p>
+      <a href="${link}" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Επιβεβαίωση διεύθυνσης</a>
+      <p style="margin:18px 0 0;font-size:12px;color:#80868b;line-height:1.6;">Ο σύνδεσμος λήγει σε 48 ώρες.</p>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Το μήνυμα στάλθηκε επειδή ζητήθηκε επιβεβαίωση αυτής της διεύθυνσης.</p>
+  </div>
+  </body></html>`
+  return { subject, html }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
@@ -60,15 +96,31 @@ Deno.serve(async (req) => {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return json({ error: 'unauthorized' }, 401)
 
-  // The recipient is ALWAYS the authenticated user's own account address — never a
-  // body-supplied value — so this cannot be abused to email arbitrary people.
-  const email = String(userData.user.email || '').trim()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email' }, 400)
+  // ── ΠΟΤΕ ΔΕΝ ΣΤΕΛΝΕΤΑΙ ΔΙΕΥΘΥΝΣΗ ΑΠΟ ΤΟ ΣΩΜΑ ΤΟΥ ΑΙΤΗΜΑΤΟΣ ────────────────
+  // Δύο πράγματα μπορεί να ζητήσει αυτή η function, και κανένα από τα δύο δεν
+  // δέχεται παραλήπτη από τον πελάτη:
+  //
+  //   • ΔΟΚΙΜΗ, στη διεύθυνση του ΙΔΙΟΥ του λογαριασμού. Την επαλήθευσε η εγγραφή.
+  //   • ΕΠΙΒΕΒΑΙΩΣΗ, στη διεύθυνση που ο χρήστης ΑΠΟΘΗΚΕΥΣΕ στις ρυθμίσεις — και
+  //     τη διαβάζουμε από τη ΒΑΣΗ, όχι από το αίτημα.
+  //
+  // Έτσι ο πελάτης δεν μπορεί να διαλέξει παραλήπτη ούτε περιεχόμενο: το κείμενο
+  // και στις δύο περιπτώσεις είναι δικό μας και σταθερό.
+  const accountEmail = String(userData.user.email || '').trim()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail)) return json({ error: 'invalid_email' }, 400)
+
+  // Ποια διεύθυνση θέλει να επιβεβαιώσει; Το ερώτημα εκδίδει και το διακριτικό.
+  const { data: issued } = await supabase.rpc('issue_reminder_email_token')
+  const row = (Array.isArray(issued) ? issued[0] : issued) as { email?: string; token?: string } | null
+  const saved = String(row?.email || '').trim()
+  const needsConfirm = !!saved && saved.toLowerCase() !== accountEmail.toLowerCase()
+  const email = needsConfirm ? saved : accountEmail
 
   if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: 'Λείπει το RESEND_API_KEY στα secrets της function.' }, 500)
 
-  // ── Δέκα δοκιμές την ημέρα, και τέλος ────────────────────────────────────
-  // Ο παραλήπτης είναι πάντα η ίδια η διεύθυνση του λογαριασμού, άρα δεν είναι
+  // ── Δέκα μηνύματα την ημέρα, και τέλος ───────────────────────────────────
+  // Ο παραλήπτης είναι είτε η διεύθυνση του λογαριασμού είτε η αποθηκευμένη, και
+  // το κείμενο είναι δικό μας και στις δύο περιπτώσεις — άρα δεν είναι
   // αναμεταδότης. Ήταν όμως ΑΠΕΡΙΟΡΙΣΤΟΣ: ένας βρόχος στην κονσόλα του
   // φυλλομετρητή χρέωνε τον λογαριασμό Resend όσο αντέχει η γραμμή, και έκαιγε
   // τη φήμη αποστολής του domain με χιλιάδες πανομοιότυπα μηνύματα.
@@ -85,7 +137,9 @@ Deno.serve(async (req) => {
     }, 429)
   }
 
-  const { subject, html } = testEmailHtml()
+  const { subject, html } = needsConfirm
+    ? confirmEmailHtml(`${APP_URL}/epivevaiosi-email/${row?.token}`, accountEmail)
+    : testEmailHtml()
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -101,5 +155,5 @@ Deno.serve(async (req) => {
   } catch (err) {
     return json({ error: 'fetch_failed', detail: String(err) }, 500)
   }
-  return json({ sent: true })
+  return json({ sent: true, mode: needsConfirm ? 'confirm' : 'test', to: email })
 })

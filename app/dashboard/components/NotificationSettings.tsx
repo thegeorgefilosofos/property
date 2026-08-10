@@ -104,8 +104,13 @@ export default function NotificationSettings({ userId }: { userId: string }) {
     if (!email) { setTestMsg({ ok: false, text: 'Βάλε πρώτα το email σου.' }); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setTestMsg({ ok: false, text: 'Η μορφή του email δεν είναι σωστή.' }); return }
     setTesting(true); setTestMsg(null)
-    // Στέλνουμε πραγματικό δοκιμαστικό email, ώστε να επιβεβαιωθεί ότι φτάνει.
+    // ΤΟ ΙΔΙΟ ΚΟΥΜΠΙ, ΔΥΟ ΕΙΛΙΚΡΙΝΑ ΝΟΗΜΑΤΑ. Αν η διεύθυνση είναι η δική σου,
+    // φεύγει δοκιμαστικό. Αν είναι ΑΛΛΟΥ, φεύγει αίτημα επιβεβαίωσης — και οι
+    // υπενθυμίσεις ξεκινούν μόνο αφού ο παραλήπτης πει «ναι». Δεν προσθέτουμε
+    // δεύτερο κουμπί: η ενέργεια είναι μία, «στείλε το τώρα εκεί που έγραψα».
     let ok = false
+    let confirm = false
+    let sentTo = ''
     let reason = ''
     try {
       const { data, error } = await supabase.functions.invoke('send-test-notification', { body: { email } })
@@ -114,13 +119,20 @@ export default function NotificationSettings({ userId }: { userId: string }) {
         try { const body = await (error as { context?: Response }).context?.json?.(); reason = (body?.detail || body?.error || '') as string; } catch { /* ignore */ }
         console.error('Δοκιμαστικό email — σφάλμα function:', error, reason)
       } else {
-        const res = data as { sent?: boolean; error?: string; detail?: string } | null
+        const res = data as { sent?: boolean; mode?: string; to?: string; error?: string; detail?: string } | null
         ok = !!res?.sent
+        confirm = res?.mode === 'confirm'
+        sentTo = res?.to || ''
         if (!ok) { reason = res?.detail || res?.error || ''; console.error('Δοκιμαστικό email — δεν στάλθηκε:', res) }
       }
     } catch (e) { console.error('Δοκιμαστικό email — εξαίρεση:', e) }
     setTesting(false)
-    if (ok) { setTestMsg({ ok: true, text: `Στάλθηκε δοκιμαστικό email στο ${email}. Έλεγξε τα εισερχόμενά σου.` }); return }
+    if (ok) {
+      setTestMsg({ ok: true, text: confirm
+        ? `Στάλθηκε αίτημα επιβεβαίωσης στο ${sentTo || email}. Οι υπενθυμίσεις θα ξεκινήσουν μόλις πατηθεί ο σύνδεσμος μέσα στο μήνυμα. Ο σύνδεσμος λήγει σε 48 ώρες.`
+        : `Στάλθηκε δοκιμαστικό email στο ${sentTo || email}. Έλεγξε τα εισερχόμενά σου.` })
+      return
+    }
     // Σαφές, ειλικρινές μήνυμα ανάλογα με τον λόγο (χωρίς τεχνικό θόρυβο στον χρήστη).
     const low = reason.toLowerCase()
     const text = /testing emails|verify a domain|not allowed|403|only send/.test(low)
@@ -151,6 +163,12 @@ export default function NotificationSettings({ userId }: { userId: string }) {
 
         <div style={{ marginBottom: 14 }}>
           <label htmlFor="notif-email" style={lbl}>Ηλεκτρονικό ταχυδρομείο αποστολής</label>
+          {/* Ο ΚΑΝΟΝΑΣ ΛΕΓΕΤΑΙ ΠΡΙΝ, ΟΧΙ ΜΕΤΑ. Ο χρήστης που βάζει ξένη διεύθυνση
+              πρέπει να ξέρει από την αρχή ότι θα χρειαστεί το «ναι» του άλλου,
+              αλλιώς θα νομίζει ότι κάτι χάλασε όταν δεν φτάνει τίποτα. */}
+          <p style={{ fontSize: 11, fontFamily: T.font.sans, color: 'var(--text-tertiary)', margin: '0 0 6px', lineHeight: 1.5 }}>
+            Η δική σου διεύθυνση δουλεύει αμέσως. Σε οποιαδήποτε άλλη, το «Δοκιμή» στέλνει αίτημα επιβεβαίωσης και οι υπενθυμίσεις ξεκινούν μόλις το εγκρίνει ο παραλήπτης.
+          </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input id="notif-email" className="po-field" style={{ ...settingsField, flex: 1 }} type="email" placeholder="ονομα@email.com"
               value={prefs.reminder_email} onChange={e => setPrefs(p => ({ ...p, reminder_email: e.target.value }))}/>
