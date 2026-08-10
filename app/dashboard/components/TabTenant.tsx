@@ -7,6 +7,8 @@ import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
 import * as rentStore from '@/lib/data/rent';
 import * as expenses from '@/lib/data/expenses';
+// Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
+import * as contacts from '@/lib/data/contacts';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
   ServicesEditor, serviceLinesFrom, servicesTenantCharge, servicesOwnerCost,
@@ -1733,8 +1735,8 @@ function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefre
   // Αποθηκευμένοι τεχνικοί/συνεργεία του ακινήτου, για ανάθεση χωρίς πληκτρολόγηση.
   const [savedContacts,setSavedContacts]=useState<{id:string;full_name:string;phone:string|null;email:string|null;role:string|null}[]>([]);
   useEffect(()=>{ let alive=true;
-    supabase.from('contacts').select('id,full_name,phone,email,role').eq('property_id',propertyId).eq('user_id',userId).order('full_name')
-      .then(({data})=>{ if(alive) setSavedContacts((data||[]) as typeof savedContacts); });
+    contacts.ofProperty<typeof savedContacts[number]>(supabase,propertyId,'id,full_name,phone,email,role',userId)
+      .then(rows=>{ if(alive) setSavedContacts(rows); });
     return ()=>{ alive=false; };
   },[propertyId,userId,supabase]);
   // Ολοκλήρωση με κόστος: το ποσό γίνεται αυτόματα δαπάνη του ακινήτου.

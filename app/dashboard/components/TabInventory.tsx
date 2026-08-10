@@ -31,6 +31,8 @@ import { uploadPath } from '@/lib/core/uploadPath';
 import type { InventoryItemsRow } from '@/lib/supabase/tables';
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
+// Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
+import * as contactStore from '@/lib/data/contacts';
 
 const supabase = createSupabaseClient()
 
@@ -909,7 +911,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
   const [contacts,setContacts] = useState<{id:string;full_name:string}[]>([])
   const [showContactPicker,setShowContactPicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
-  useEffect(()=>{supabase.from('contacts').select('id,full_name').eq('property_id',propertyId).then(({data})=>setContacts(data||[]))},[propertyId])
+  useEffect(()=>{contactStore.ofProperty<{id:string;full_name:string}>(supabase,propertyId,'id,full_name',userId).then(setContacts)},[propertyId,userId])
   useEffect(()=>{const h=(e:MouseEvent)=>{if(pickerRef.current&&!pickerRef.current.contains(e.target as Node))setShowContactPicker(false)};document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h)},[])
   const itemRepairs = repairs.filter(r=>r.item_id===item.id)
   const totalCost = itemRepairs.reduce((s,r)=>s+(r.cost||0),0)

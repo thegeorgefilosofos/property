@@ -6,6 +6,8 @@ import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as expenseStore from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
+// Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
+import * as contactStore from '@/lib/data/contacts';
 import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
@@ -100,6 +102,9 @@ interface ContactExtra {
   // Πεδίο εμβέλειας (μόνο για επαγγελματικό προφίλ). Αποθηκεύεται εντός του JSON `notes`
   // αφού δεν υπάρχει διαθέσιμη ειδική στήλη — βλ. σημείωση στην αναφορά.
   scope?: 'property' | 'portfolio'; scope_property_id?: string
+  // Ο φάκελος του `notes` είναι ελεύθερος: τα δηλωμένα πεδία είναι όσα ΔΙΑΒΑΖΕΙ
+  // η οθόνη, όχι όσα υπάρχουν. Παλιές επαφές κουβαλούν και άλλα.
+  [key: string]: unknown
 }
 interface Contact {
   id: string; property_id: string; user_id: string; role: string; full_name: string
@@ -268,12 +273,12 @@ const ROLE_SELECT_OPTIONS = GROUPS.flatMap(g => [
 // ─── Serialize / Parse ────────────────────────────────────────────────────────
 function parseContact(c: Contact): Contact {
   let extra: ContactExtra = {}; let freeNotes = c.notes || ''
-  try { const p = JSON.parse(c.notes || '{}'); if (p?.__v === 2) { extra = p.extra || {}; freeNotes = p.notes || '' } } catch { /* noop */ }
+  const decoded = contactStore.decodeNotes(c.notes)
+  extra = decoded.extra as ContactExtra; freeNotes = decoded.notes
   return { ...c, _extra: extra, _freeNotes: freeNotes }
 }
-function serializeNotes(extra: ContactExtra, freeNotes: string): string {
-  return JSON.stringify({ __v: 2, extra, notes: freeNotes })
-}
+const serializeNotes = (extra: ContactExtra, freeNotes: string): string =>
+  contactStore.encodeNotes(extra, freeNotes)
 const EMPTY_EXTRA: ContactExtra = {
   phone2: '', whatsapp: false, viber: false, website: '', office_address: '',
   afm: '', iban: '', iris: false, preferred: false, next_appointment: '',
@@ -1345,8 +1350,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     // Φέρνουμε ΟΛΕΣ τις επαφές του χρήστη και δείχνουμε: αυτές του τρέχοντος ακινήτου
     // ΣΥΝ όσες έχουν οριστεί «όλο το χαρτοφυλάκιο» (ώστε οι επαγγελματικές επαφές
     // χαρτοφυλακίου να εμφανίζονται πραγματικά σε κάθε ακίνητο, όχι μόνο ως ετικέτα).
-    const { data } = await supabase.from('contacts').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-    const parsed = (data || []).map(parseContact)
+    const data = await contactStore.ofUser<Contact>(supabase, userId, '*', { orderBy: 'created_at', ascending: false })
+    const parsed = data.map(parseContact)
     setContacts(parsed.filter(c => c.property_id === propertyId || c._extra?.scope === 'portfolio'))
     setLoading(false)
   }, [propertyId, userId])
@@ -1445,19 +1450,19 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       const mergedExtra = { ...(target._extra || {}), ...cleanExtra(form.extra) }
       const mergedNotes = [target._freeNotes, form.freeNotes].filter(Boolean).join('\n').trim()
       const mergedRole = (finalRole && finalRole !== 'other') ? finalRole : target.role
-      const { error: e } = await supabase.from('contacts').update({ full_name: name || target.full_name, role: mergedRole, phone: form.phone.trim() || target.phone, email: form.email.trim() || target.email, notes: serializeNotes(mergedExtra, mergedNotes) }).eq('id', target.id)
+      const { error: e } = await contactStore.update(supabase, target.id, { full_name: name || target.full_name, role: mergedRole, phone: form.phone.trim() || target.phone, email: form.email.trim() || target.email, notes: serializeNotes(mergedExtra, mergedNotes) })
       if (e) { setError(failed('Η επαφή δεν αποθηκεύτηκε', e)); setSaving(false); return }
       await syncContactReminder(target.id, name || target.full_name)
       setSaving(false); setDup(null); closeModal(); fetchContacts(); notifyOk('Οι επαφές συγχωνεύθηκαν'); return
     }
     const payload = { full_name: name, role: finalRole, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
     if (mode === 'update' && editContact) {
-      const { error: e } = await supabase.from('contacts').update(payload).eq('id', editContact.id)
+      const { error: e } = await contactStore.update(supabase, editContact.id, payload)
       if (e) { setError(failed('Η επαφή δεν αποθηκεύτηκε', e)); setSaving(false); return }
       await syncContactReminder(editContact.id, name)
       setSaving(false); closeModal(); fetchContacts(); notifyOk('Επαφή ενημερώθηκε'); return
     }
-    const { data: ins, error: e } = await supabase.from('contacts').insert({ ...payload, property_id: propertyId, user_id: userId }).select('id').single()
+    const { data: ins, error: e } = await contactStore.addReturningId(supabase, propertyId, userId, payload)
     if (e) { setError(failed('Η επαφή δεν αποθηκεύτηκε', e)); setSaving(false); return }
     if (ins?.id) await syncContactReminder(ins.id, name)
     setSaving(false); setDup(null); closeModal(); fetchContacts(); notifyOk('Επαφή προστέθηκε')
@@ -1470,7 +1475,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   }
 
   const handleDelete = async (id: string) => {
-    if (!await saved('Η επαφή δεν διαγράφηκε', supabase.from('contacts').delete().eq('id', id))) return
+    if (!await saved('Η επαφή δεν διαγράφηκε', contactStore.remove(supabase, id))) return
     await saved('Η υπενθύμιση της επαφής δεν καθαρίστηκε', calendar.clearSource(supabase, { propertyId, userId }, { source: `contact:${id}:reminder` }))
     fetchContacts(); notify('Επαφή διαγράφηκε')
   }
@@ -1493,7 +1498,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     const n = ids.length
     if (!n || !(await confirmDialog(`Διαγραφή ${n} ${n === 1 ? 'επαφής' : 'επαφών'};`, { tone: 'negative' }))) return
     if (!await saved(`${n === 1 ? 'Η επαφή δεν διαγράφηκε' : 'Οι επαφές δεν διαγράφηκαν'}`,
-      supabase.from('contacts').delete().in('id', ids))) return
+      contactStore.removeMany(supabase, ids))) return
     // Καθαρισμός των υπενθυμίσεων ημερολογίου (ισοτιμία με τη μεμονωμένη διαγραφή).
     await saved('Οι υπενθυμίσεις των επαφών δεν καθαρίστηκαν', calendar.clearSource(supabase, { propertyId, userId }, { sources: ids.map(id => `contact:${id}:reminder`) }))
     setSelected(new Set()); setBulkMode(false); fetchContacts(); notify(`${n} ${n === 1 ? 'επαφή διαγράφηκε' : 'επαφές διαγράφηκαν'}`)
@@ -1506,7 +1511,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     if (!c || !date) return
     const extra = { ...EMPTY_EXTRA, ...(c._extra || {}), next_appointment: date }
     if (!await saved('Το ραντεβού δεν γράφτηκε στην επαφή',
-      supabase.from('contacts').update({ notes: serializeNotes(extra, c._freeNotes || '') }).eq('id', c.id))) return
+      contactStore.update(supabase, c.id, { notes: serializeNotes(extra, c._freeNotes || '') }))) return
     // Υπενθύμιση ημερολογίου μία ημέρα πριν (idempotent ανά επαφή).
     const src = `contact:${c.id}:reminder`
     const remind = new Date(date + 'T00:00:00'); remind.setDate(remind.getDate() - 1)

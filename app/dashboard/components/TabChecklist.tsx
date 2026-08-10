@@ -20,6 +20,8 @@ import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding
 import { annuityMonthly } from '@/lib/loans/recommend'
 // Ο πίνακας των δανείων έχει ένα σπίτι: lib/data/loans.
 import * as loanStore from '@/lib/data/loans'
+// Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
+import * as contactStore from '@/lib/data/contacts';
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from './reportPdf'
 import { escHtml as esc } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
@@ -1927,10 +1929,14 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // πρόβλημα και δεν περνούν τίποτα.
   const fetchAll = useCallback(async (fresh: () => boolean = () => true) => {
     setLoading(true)
-    const [itemData, { data: contactData }, { data: tenantData }] = await Promise.all([
+    // Ο ενοικιαστής-επαφή ζητιόταν ΔΥΟ φορές μέσα σε αυτή τη φόρτωση: μια εδώ
+    // για να κριθεί αν προτείνεται λίστα check-in, και μια παρακάτω για τηλέφωνο
+    // και email. Ίδια γραμμή, δύο ταξίδια. Τώρα μία, με όλες τις στήλες.
+    const [itemData, contactData, tenantContact] = await Promise.all([
       checklist.all<ChecklistItemsRow>(supabase, propertyId, '*', userId),
-      supabase.from('contacts').select('id,full_name,role,phone,property_id').eq('user_id', userId).order('full_name'),
-      supabase.from('contacts').select('id,full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
+      contactStore.ofUser<Contact>(supabase, userId, 'id,full_name,role,phone,property_id'),
+      contactStore.withRole<{ full_name?: string; phone?: string; email?: string }>(
+        supabase, propertyId, 'tenant', 'full_name,phone,email', userId),
     ])
     // Οι γραμμές παίρνουν τον τύπο του πίνακα· το `parseItem` είναι η μία πύλη
     // που τις μετατρέπει στο σχήμα της οθόνης, με τα κενά συμπληρωμένα.
@@ -1939,12 +1945,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     setItems(rows.map(parseItem))
     // Χαρτοφυλάκιο-wide λίστα επαφών ώστε να επιλέγεται π.χ. ο ψυκτικός όπου κι αν είναι
     // αποθηκευμένος· οι επαφές του τρέχοντος ακινήτου προηγούνται (σταθερή ταξινόμηση).
-    setContacts([...((contactData || []) as Contact[])].sort((a, b) =>
+    setContacts([...contactData].sort((a, b) =>
       (a.property_id === propertyId ? 0 : 1) - (b.property_id === propertyId ? 0 : 1)
     ))
     const existingTemplates = new Set(rows.map(i => i.template_id).filter(Boolean))
     const suggestions: SmartSuggestion[] = []
-    if (tenantData && tenantData.length > 0 && !existingTemplates.has('checkin'))
+    if (tenantContact && !existingTemplates.has('checkin'))
       suggestions.push({ title: 'Νέος Ενοικιαστής', reason: 'Βρέθηκε ενοικιαστής, δημιούργησε check-in checklist', templateKey: 'checkin' })
     if (!rows.some(i => i.category === 'maintenance') && !existingTemplates.has('maintenance'))
       suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Καμία εργασία συντήρησης ακόμη', templateKey: 'maintenance' })
@@ -1955,13 +1961,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       suggestions.push({ title: TEMPLATES.legal.label, reason: 'Ασφαλιστήριο, ΠΕΑ, βεβαίωση μηχανικού', templateKey: 'legal' })
     setSmartSuggestions(suggestions.slice(0, 2))
 
-    // Cross-tab: fetch tenant info, loan, ΕΝΦΙΑ bill status (safe, all errors caught)
-    try {
-      const { data: tenantContactData } = await supabase
-        .from('contacts').select('full_name,phone,email')
-        .eq('property_id', propertyId).eq('role', 'tenant').limit(1)
-      if (fresh()) setTenantInfo(tenantContactData?.[0] || null)
-    } catch (_) {}
+    setTenantInfo(tenantContact)
 
     try {
       // Η μηνιαία δόση υπολογίζεται από ποσό/επιτόκιο/διάρκεια (τοκοχρεολυτική

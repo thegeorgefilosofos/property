@@ -10,6 +10,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+// Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
+import * as contacts from '@/lib/data/contacts';
 import { T, fe, formGrid } from '@/components/Theme';
 import { CustomSelect } from './UIComponents';
 import {
@@ -260,14 +262,12 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
       const afm = digits(edited.provider_afm || edited.afm);
       // DEDUP: φέρνουμε τις επαφές του ακινήτου/χρήστη και ελέγχουμε στη JS (το
       // ΑΦΜ βρίσκεται μέσα στο JSON του notes, δεν κάνει εύκολα query).
-      const { data: existing } = await supabase.from('contacts')
-        .select('id, full_name, phone, notes')
-        .eq('property_id', propertyId).eq('user_id', userId);
-      const dup = (existing || []).some(c => {
-        let storedAfm = '';
-        try { storedAfm = digits((JSON.parse((c.notes as string) || '{}')?.extra?.afm) as string); } catch { /* αγνόησε άκυρο JSON */ }
+      const existing = await contacts.ofProperty<{ full_name: string; notes: string | null }>(
+        supabase, propertyId, 'id,full_name,phone,notes', userId);
+      const dup = existing.some(c => {
+        const storedAfm = digits(String(contacts.decodeNotes(c.notes).extra.afm ?? ''));
         if (afm && storedAfm && afm === storedAfm) return true;
-        if (nrm(fullName) && nrm(c.full_name as string) === nrm(fullName)) return true;
+        if (nrm(fullName) && nrm(c.full_name) === nrm(fullName)) return true;
         return false;
       });
       if (dup) { setContactState('exists'); return; }
@@ -280,10 +280,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
       // με το χέρι, ενώ ήταν τυπωμένα μπροστά του.
       const phone = (edited.provider_phone || '').trim() || null;
       const email = (edited.provider_email || '').trim() || null;
-      const { error: insErr } = await supabase.from('contacts').insert({
-        property_id: propertyId, user_id: userId, role,
-        full_name: fullName, phone, email,
-        notes: JSON.stringify({ __v: 2, extra, notes: '' }),
+      const { error: insErr } = await contacts.add(supabase, propertyId, userId, {
+        role, full_name: fullName, phone, email,
+        notes: contacts.encodeNotes(extra, ''),
       });
       if (insErr) { setContactState('error'); return; }
       setContactState('saved');

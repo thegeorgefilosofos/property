@@ -58,6 +58,8 @@ import { classifyExpense } from '@/lib/expenses/classify';
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει, ώστε τα
 // try/catch αυτού του αρχείου να λένε αλήθεια. Βλ. lib/supabase/must.ts.
 import { must } from '@/lib/supabase/must';
+// Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
+import * as contactStore from '@/lib/data/contacts';
 import { inferRole, roleLabel } from '@/lib/contacts/roles';
 import { upcomingHolidays, holidayName, isWeekend } from '@/lib/calendar/greekHolidays';
 
@@ -307,7 +309,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Το «σήμερα» της εφαρμογής είναι ώρα Ελλάδας, όχι UTC: αλλιώς για δύο ως
     // τρεις ώρες κάθε νύχτα η Νόα νόμιζε ότι είναι χθες.
     const todayStr = athensToday(now);
-    const [exp, bil, ten, st, cal, { data: rates }, loans, { data: clientRows }, stayRows, { data: contactRows }, chk] = await Promise.all([
+    const [exp, bil, ten, st, cal, { data: rates }, loans, { data: clientRows }, stayRows, contactRows, chk] = await Promise.all([
       expenseStore.ledger(supabase, propertyId, { userId, from: `${year}-01-01`, columns: `${expenseStore.LEDGER_COLUMNS},payment_method` }),
       billStore.ofProperty<BillsRow>(supabase, propertyId, billStore.LEDGER_COLUMNS, userId),
       tenantStore.currentAll(supabase, propertyId, 'full_name,monthly_rent,lease_end,deposit_amount', userId),
@@ -321,7 +323,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       loanStore.ofProperty(supabase, propertyId, userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       stayStore.ofUser<ClientStaysRow>(supabase, userId, `client_id,rating,damages,damage_cost,notes,${stayStore.PORTFOLIO_COLUMNS}`),
-      supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+      contactStore.ofUser<ContactsRow>(supabase, userId, 'full_name,role,phone,email', { orderBy: 'created_at', ascending: false, limit: 100 }),
       checklist.upcoming<ChecklistItemsRow>(supabase, propertyId, 'description,category,priority,due_date,status,estimated_cost,assigned_contact_name', userId),
     ]);
     // Οι γραμμές παίρνουν τους τύπους τους από το σχήμα (lib/supabase/tables.ts,
@@ -331,7 +333,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const expenses = (exp || []) as ExpensesRow[];
     const billRows = bil;
     const stays = stayRows;
-    const contacts = (contactRows || []) as ContactsRow[];
+    const contacts = contactRows;
     const insurance = st as Pick<UserPropertiesRow, 'insurance_company' | 'insurance_expiry' | 'insurance_amount'> | null;
 
     // ── ΤΑ ΝΟΥΜΕΡΑ ΠΟΥ ΘΑ ΠΕΙ Η ΝΟΑ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟΝ ΚΟΙΝΟ ΠΥΡΗΝΑ ────────────
@@ -849,11 +851,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const registerContact = async (name: string, phone?: string, role?: string) => {
     const roleValue = inferRole(role || name);
     try {
-      await must(supabase.from('contacts').insert({
-        property_id: propertyId, user_id: userId,
+      const { error } = await contactStore.add(supabase, propertyId, userId, {
         full_name: name.slice(0, 120), role: roleValue,
         phone: phone || null, email: null, notes: null,
-      }));
+      });
+      if (error) throw new Error(error.message ?? 'Σφάλμα βάσης');
       setMsgs(m => [...m, { role: 'assistant', text: `Την κράτησα. Πρόσθεσα τον/την «${name}»${phone ? ` (${phone})` : ''} στις Επαφές του ακινήτου. Θέλεις να ανοίξω τις Επαφές για να προσθέσεις κι άλλα;`, action: { type: 'go', tab: 'contacts' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω την επαφή τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Επαφές.' }]);
