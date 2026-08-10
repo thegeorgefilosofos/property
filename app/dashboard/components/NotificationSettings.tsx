@@ -69,8 +69,6 @@ export default function NotificationSettings({ userId }: { userId: string }) {
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [testing, setTesting] = useState(false)
 
-  useEffect(() => { load() }, [userId])
-
   async function load() {
     const { data } = await supabase
       .from('notification_preferences')
@@ -79,6 +77,9 @@ export default function NotificationSettings({ userId }: { userId: string }) {
       .maybeSingle()
     if (data) setPrefs(p => ({ ...p, ...data }))
   }
+
+  useEffect(() => { load() }, [userId])
+
 
   async function save() {
     setSaving(true); setSaveErr(false); setSaved(false)

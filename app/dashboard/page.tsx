@@ -517,7 +517,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // λογαριασμός χωρίς προθεσμία παίρνει την ημερομηνία δημιουργίας, κάτι που
   // ένα `gte('due_date')` στον διακομιστή θα το πετούσε σιωπηλά έξω.
   const entriesOfYear = useMemo(
-    () => ledger.entries.filter(e => e.date.startsWith(`${year}-`)), [ledger, year]);
+    () => ledger.entries.filter(e => e.date.startsWith(`${year}-`)), [ledger.entries, year]);
   const totalExpYTD = ledgerTotal(entriesOfYear);
   // Οι λογαριασμοί που ΔΕΝ έχουν ακόμη δαπάνη από πίσω τους (απλήρωτοι): είναι
   // πραγματικό κόστος του έτους και λείπουν από τον πίνακα `expenses`.

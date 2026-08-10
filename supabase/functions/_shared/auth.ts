@@ -34,8 +34,23 @@ export function timingSafeEqual(a: string, b: string): boolean {
  * so `ReturnType<>` instantiates it with `unknown`/`never` and every call site
  * fails with TS2345. One structural type, declared once, used by everyone.
  */
-// deno-lint-ignore no-explicit-any
-export type MinimalSupabaseClient = { from: (table: string) => any }
+// Η ΜΟΝΑΔΙΚΗ ΑΛΥΣΙΔΑ ΠΟΥ ΚΑΛΕΙΤΑΙ ΕΔΩ, ΔΗΛΩΜΕΝΗ ΑΝΤΙ ΓΙΑ `any`.
+//
+// ΓΙΑΤΙ `unknown` ΣΤΗΝ ΕΠΙΣΤΡΟΦΗ ΤΟΥ `from`, ΚΑΙ ΟΧΙ Η ΑΛΥΣΙΔΑ ΑΠΕΥΘΕΙΑΣ: αν ο
+// τύπος περιγράψει τα τρία βήματα εκεί, ο μεταγλωττιστής πρέπει να συγκρίνει
+// τους πλήρεις γενικούς τύπους του PostgREST με αυτόν — και σκάει με
+// «Type instantiation is excessively deep» σε δέκα συναρτήσεις ακρου. Με
+// `unknown` η ανάθεση δεν κοστίζει τίποτε, και ο ισχυρισμός γίνεται ΜΙΑ φορά,
+// εδώ, ακριβώς πάνω στις τρεις μεθόδους που πράγματι καλούνται.
+interface CronSecretFilter {
+  eq: (column: string, value: string) => CronSecretFilter
+  maybeSingle: () => PromiseLike<{ data: { secret?: string | null } | null }>
+}
+interface CronSecretTable {
+  select: (columns: string) => CronSecretFilter
+}
+
+export type MinimalSupabaseClient = { from: (table: string) => unknown }
 
 interface CronAuthOpts {
   serviceKey?: string        // SUPABASE_SERVICE_ROLE_KEY — accepted as Bearer
@@ -56,7 +71,8 @@ export async function authorizeCron(req: Request, opts: CronAuthOpts): Promise<b
   if (envSecret && timingSafeEqual(header, envSecret)) return true
   if (supabase && header) {
     try {
-      const { data } = await supabase.from('cron_secrets').select('secret').eq('name', dbSecretName).maybeSingle()
+      const table = supabase.from('cron_secrets') as CronSecretTable
+      const { data } = await table.select('secret').eq('name', dbSecretName).maybeSingle()
       const dbSecret = data?.secret || ''
       if (dbSecret && timingSafeEqual(header, dbSecret)) return true
     } catch { /* fall through to unauthorized */ }

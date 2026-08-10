@@ -688,12 +688,13 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   // διαδρομή προς τον διακομιστή στη μεταγλώττιση, όπου κοστίζει μηδέν.
   const isCommType=(v:string):v is CommLog['type']=>Object.prototype.hasOwnProperty.call(TYPE_LABELS,v);
 
-  useEffect(()=>{loadLogs();},[tenant.id]);
   const loadLogs=async()=>{
     setLoading(true);
     const{data}=await supabase.from('tenant_comm_log').select('*').eq('tenant_id',tenant.id).order('date',{ascending:false});
     setLogs(data||[]);setLoading(false);
   };
+
+  useEffect(()=>{loadLogs();},[tenant.id]);
   const saveLog=async()=>{
     if(!form.summary.trim())return;setSaving(true);
     await saved('Η καταγραφή επικοινωνίας δεν αποθηκεύτηκε', supabase.from('tenant_comm_log').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,type:form.type,summary:form.summary.trim(),date:form.date,outcome:form.outcome||null}));

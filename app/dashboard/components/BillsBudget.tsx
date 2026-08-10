@@ -681,11 +681,18 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     }, 800);
   }, [propertyId, userId]);
 
-  const updateBudget = (key: string, val: string) => {
-    const next = { ...budgets, [key]: val };
-    setBudgets(next);
-    saveBudgets(next);
-  };
+  // ΔΥΟ ΑΛΛΑΓΕΣ ΣΤΟΝ ΙΔΙΟ ΚΥΚΛΟ ΕΧΑΝΑΝ Η ΜΙΑ ΤΗΝ ΑΛΛΗ. Και οι δύο συναρτήσεις
+  // έγραφαν `{ ...budgets, … }` διαβάζοντας το `budgets` από το κλείσιμο της
+  // απόδοσης. Δύο στόχοι που ευθυγραμμίζονται μαζί —ακριβώς ό,τι κάνει η
+  // πρόταση «να τους ευθυγραμμίσω;»— κρατούσαν μόνο τον δεύτερο: ο πρώτος
+  // γραφόταν πάνω σε παλιό στιγμιότυπο και εξαφανιζόταν χωρίς μήνυμα.
+  //
+  // Με τον ενημερωτή, κάθε αλλαγή ξεκινά από την ΤΕΛΕΥΤΑΙΑ κατάσταση. Η
+  // αποθήκευση είναι ήδη με καθυστέρηση 800ms και ακυρώνει την προηγούμενη,
+  // οπότε δύο κλήσεις στον ίδιο κύκλο καταλήγουν σε μία εγγραφή.
+  const updateBudget = useCallback((key: string, val: string) => {
+    setBudgets(prev => { const next = { ...prev, [key]: val }; saveBudgets(next); return next });
+  }, [saveBudgets]);
 
   // ── Derived numbers ────────────────────────────────────────────────────────
   // Τιμή στόχου με σεβασμό στο ρητό 0 (μηδενικός στόχος ≠ «χωρίς στόχο») — μόνο
@@ -714,7 +721,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const overBudget    = activeCats.filter(c => (actuals[c.key] || 0) > catBudget(c.key));
 
   // Προσθήκη/απόκρυψη/επαναφορά κατηγορίας (αποθηκεύεται στις ρυθμίσεις budgets).
-  const persistCats = (patch: Record<string, string>) => { const next = { ...budgets, ...patch }; setBudgets(next); saveBudgets(next); };
+  const persistCats = (patch: Record<string, string>) => {
+    setBudgets(prev => { const next = { ...prev, ...patch }; saveBudgets(next); return next });
+  };
   // Το toast «Αναίρεση» πέρασε στον κοινό host: το τοπικό ζούσε σε z-index 60, δηλαδή
   // ΚΑΤΩ από κάθε παράθυρο και sticky header, οπότε η αναίρεση συχνά δεν πατιόταν.
   // Η διάρκεια δηλώνεται ρητά 6000ms — η προεπιλογή (3200ms) είναι πολύ σύντομη για

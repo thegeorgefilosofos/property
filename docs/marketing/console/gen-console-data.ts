@@ -33,10 +33,24 @@ const ctx: Personal = {
 
 const clean = (s: string) => s.replace(/<(?!\/?b\b)[^>]*>/g, '').trim()
 
-function parse(html: string): { preheader: string; blocks: any[] } {
+/**
+ * Τα μπλοκ που βγαίνουν από την ανάλυση του HTML. Ήταν `any[]`, δηλαδή το
+ * σχήμα της κονσόλας μάρκετινγκ δεν ελεγχόταν πουθενά: ένα `t: 'her'` αντί για
+ * `'hero'` περνούσε αθόρυβα και το μπλοκ απλώς δεν αποδιδόταν.
+ */
+type Block =
+  | { t: 'hero'; value: string; label: string }
+  | { t: 'h'; html: string }
+  | { t: 'ul'; items: string[] }
+  | { t: 'btn'; label: string }
+  | { t: 'eyebrow'; html: string }
+  | { t: 'note'; html: string }
+  | { t: 'p'; html: string }
+
+function parse(html: string): { preheader: string; blocks: Block[] } {
   const pre = (html.match(/display:none;max-height:0;overflow:hidden;opacity:0;">([\s\S]*?)<\/div>/) || [])[1] || ''
   let card = (html.match(/padding:26px 26px 28px;">([\s\S]*?)<\/div>\s*<p style="text-align:center/) || [])[1] || ''
-  const blocks: any[] = []
+  const blocks: Block[] = []
   const hm = card.match(/<table[^>]*>[\s\S]*?font-size:40px[^"]*">([\s\S]*?)<\/div>\s*<div style="[^"]*">([\s\S]*?)<\/div>[\s\S]*?<\/table>/)
   if (hm) { blocks.push({ t: 'hero', value: clean(hm[1]), label: clean(hm[2]) }); card = card.replace(hm[0], '') }
   const re = /<h1[^>]*>([\s\S]*?)<\/h1>|<table[\s\S]*?<\/table>|<div style="text-align:center[\s\S]*?<a [^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/div>|<p style="([^"]*)">([\s\S]*?)<\/p>/g

@@ -404,8 +404,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  useEffect(() => { loadSettings(); loadPrefs(); }, [propertyId]);
-
   async function loadSettings() {
     const { data } = await supabase.from('property_settings').select('*').eq('property_id', propertyId).maybeSingle();
     if (data) setS(data);
@@ -415,6 +413,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     if (data) setPrefs(p => ({ ...p, ...data }));
     else setPrefs(DEFAULT_PREFERENCES);
   }
+
+  useEffect(() => { loadSettings(); loadPrefs(); }, [propertyId]);
+
   function updatePrefs(partial: Partial<AppPreferences>) {
     setPrefs(prev => {
       const next = { ...prev, ...partial };

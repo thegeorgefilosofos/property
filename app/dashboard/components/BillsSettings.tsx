@@ -95,7 +95,7 @@ export function useBillsSettings<T extends Record<string, unknown>>(
 
   // Κρατά αναφορά στην τελευταία doSave, ώστε το effect της αποπροσάρτησης (που
   // runs once) always calls the current version, not a stale closure.
-  const doSaveRef = useRef(doSave);
+  const doSaveRef = useRef<typeof doSave | null>(null);
   useEffect(() => { doSaveRef.current = doSave; }, [doSave]);
 
   // ── Update ────────────────────────────────────────────────────────────────
