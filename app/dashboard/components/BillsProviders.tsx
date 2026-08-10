@@ -3,7 +3,7 @@
 import { daysUntil } from '@/lib/core/time';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, feRate, formGrid, fp, Spinner, pressable } from '@/components/Theme';
+import { T, fe, feRate, fieldRow, fp, Spinner, pressable } from '@/components/Theme';
 
 const INTERNET_PROVIDERS = [
   { value: 'cosmote',   label: 'Cosmote',   url: 'https://www.cosmote.gr',    color: '#009fe3' },
@@ -166,9 +166,15 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
   const [s, upd, loading] = useBillsSettings(propertyId, userId, 'providers', DEFAULTS);
 
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-  const g2: React.CSSProperties   = { ...formGrid(200, 300), marginBottom: 14 };
-  const g3: React.CSSProperties   = { ...formGrid(170, 260), marginBottom: 14 };
-  const g4: React.CSSProperties   = { ...formGrid(140, 210), marginBottom: 14 };
+  // ΤΡΕΙΣ ΡΥΘΜΙΣΕΙΣ ΠΛΕΓΜΑΤΟΣ ΣΤΟΝ ΙΔΙΟ ΚΑΤΑΛΟΓΟ ΕΔΙΝΑΝ ΤΡΕΙΣ ΔΕΞΙΕΣ ΑΚΡΕΣ.
+  // Το Internet σταματούσε στα 1.290, το Νερό στα 890, η Θέρμανση στα 590 — και
+  // καμία από τις τρεις δεν έφτανε στην άκρη της κάρτας. Το μάτι δεν διαβάζει
+  // «τρεις ενότητες», διαβάζει σκάλα. Τώρα κάθε σειρά πιάνει ΟΛΟ το πλάτος και
+  // μοιράζεται ίσα: μία αριστερή άκρη, μία δεξιά, όσες στήλες χρειάζεται η κάθε
+  // ενότητα. Το ελάχιστο κρατά τα στενά πεδία αναγνώσιμα.
+  const g2: React.CSSProperties   = { ...fieldRow(200), marginBottom: 14 };
+  const g3: React.CSSProperties   = { ...fieldRow(190), marginBottom: 14 };
+  const g4: React.CSSProperties   = { ...fieldRow(160), marginBottom: 14 };
 
   const internetCost = parseFloat(s.internetPrice) || 0;
   const tvCost       = s.hasTV ? (parseFloat(s.tvPrice) || 0) : 0;
@@ -415,8 +421,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             </div>
             {s.hasTV && (
               <>
-                {/* FIX: 3 cols + separate toggle row, avoids Sports Package label truncation */}
-                <div style={{ ...formGrid(150, 210), gap: 14, marginBottom: 12 }}>
+                <div style={{ ...fieldRow(180), marginBottom: 12 }}>
                   <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
                     options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
                   <TextInput   label="Πρόγραμμα ή πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
@@ -434,26 +439,27 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
         {/* ── Νερό ─────────────────────────────────────────────────────────── */}
         <div style={card}>
           {secHdr('Νερό')}
-          {/* FIX: 2+2 layout, prevents label overflow on narrow screens */}
-          <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
+          {/* Πέντε στοιχεία της ίδιας παροχής, σε μία σειρά ίσα μοιρασμένη. */}
+          <div style={{ ...fieldRow(190), marginBottom: 14 }}>
             <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
+            {/* Η παρένθεση έλεγε ό,τι λέει ήδη η λέξη: «Διμηνιαίος (κάθε 2
+                μήνες)». Ίδιο πράγμα δύο φορές, και αρκετά μακρύ ώστε να κόβεται
+                με αποσιωπητικά — δηλαδή το διπλό έδιωχνε το μισό. */}
             <CustomSelect
               label="Συχνότητα χρέωσης"
               value={s.waterPeriodMonths || '2'}
               onChange={v => upd({ waterPeriodMonths: v })}
               options={[
                 { value: '1', label: 'Μηνιαίος' },
-                { value: '2', label: 'Διμηνιαίος (κάθε 2 μήνες)' },
-                { value: '3', label: 'Τριμηνιαίος (κάθε 3 μήνες)' },
-                { value: '4', label: 'Τετραμηνιαίος (κάθε 4 μήνες)' },
-                { value: '6', label: 'Εξαμηνιαίος (κάθε 6 μήνες)' },
+                { value: '2', label: 'Διμηνιαίος' },
+                { value: '3', label: 'Τριμηνιαίος' },
+                { value: '4', label: 'Τετραμηνιαίος' },
+                { value: '6', label: 'Εξαμηνιαίος' },
               ]}
             />
             <NumberInput  label="Λογαριασμός νερού" value={s.waterBiMonthly}
               onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2)).toFixed(2)) : '' })}
               suffix="€" step={5}/>
-          </div>
-          <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
             <NumberInput  label="Μηνιαία αναγωγή"   value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€"      step={2}/>
             <NumberInput  label="Άτομα στο ακίνητο"      value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα"  step={1}/>
           </div>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
+import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, formGrid, fp, Spinner, histInputStyle } from '@/components/Theme';
+import { T, fe, fieldRow, fp, Spinner, histInputStyle } from '@/components/Theme';
 import { estimateENFIA, enfiaInUse, enfiaLastYearAnnual } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -63,6 +63,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
   const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
   const g4: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };
+  // Μία γραμμή υπηρεσίας μέσα στην ενιαία κάρτα. Η λεπτή γραμμή χωρίζει χωρίς
+  // να χτίζει έκτο πλαίσιο· η τελευταία δεν την έχει (`:last-child` δεν υπάρχει
+  // σε inline style, οπότε δίνεται από πάνω αντί για από κάτω και η πρώτη τη
+  // χάνει με το `firstOfList`).
+  const svcSection: React.CSSProperties = { borderTop: '1px solid var(--border-subtle)', paddingTop: 14, marginTop: 14 };
 
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
   const [newName, setNewName]       = useState('');
@@ -196,7 +201,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans }}>Υπολογισμός ποσοστού από τελευταίο λογαριασμό ρεύματος</div>
           {/* FIX: 2 inputs + result, all in same grid, aligned at bottom, no marginBottom on result box */}
-          <div style={{ ...formGrid(190, 260), gap: 12, marginBottom: 10 }}>
+          <div style={{ ...fieldRow(190, 12), marginBottom: 10 }}>
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
           </div>
@@ -241,7 +246,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {/* Ο μήνας γραφόταν δύο φορές: μια σειρά ετικετών κάτω από τις στήλες
             και άλλη μια πάνω από κάθε πεδίο, τέσσερα εικονοστοιχεία πιο κάτω.
             Έμεινε η ετικέτα του πεδίου — αυτή έχει και λειτουργία. */}
-        <div style={{ ...formGrid(62, 122), gap: 5, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
+        {/* Δώδεκα μήνες είναι ΕΝΑ έτος. Με σταθερό μέγιστο στήλης έσπαγαν σε
+            δέκα και δύο, δηλαδή το έτος διαβαζόταν σε δύο κομμάτια. */}
+        <div style={{ ...fieldRow(70, 5), borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}>
               {/* Ίδιος λόγος με το BillsCommon: η ετικέτα περιτυλίγει το πεδίο
@@ -258,8 +265,17 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         </div>
       </div>
 
-      {/* ── Καθαρισμός ───────────────────────────────────────────────────── */}
+      {/* ══ ΕΞΙ ΚΑΡΤΕΣ ΓΙΑ ΕΞΙ ΔΙΑΚΟΠΤΕΣ ══════════════════════════════════════
+          Καθεμιά από τις έξι υπηρεσίες είχε ΔΙΚΗ ΤΗΣ κάρτα, με δικό της πλαίσιο
+          και δικά της είκοσι pixel γέμισμα — και, όσο ήταν κλειστή, μέσα της
+          υπήρχε ΜΟΝΟ ένας διακόπτης. Πεντακόσια pixel σχεδόν κενά, και έξι
+          πανομοιότυπες σειρές να σαρώσει το μάτι για να βρει τη μία που θέλει.
+          Μία κάρτα, έξι γραμμές, μια λεπτή γραμμή ανάμεσα: η ίδια πληροφορία
+          στο ένα τρίτο του ύψους, και η απάντηση στο «τι έχω» με μία ματιά. */}
       <div style={card}>
+        {secHdr('Υπηρεσίες ακινήτου')}
+      {/* ── Καθαρισμός ───────────────────────────────────────────────────── */}
+      <div>
         {svcHdr('Καθαρισμός', s.hasCleaning, v => upd({ hasCleaning: v }), cleaningM)}
         {s.hasCleaning && (
           <>
@@ -286,7 +302,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Κηπουρός ─────────────────────────────────────────────────────── */}
-      <div style={card}>
+      <div style={svcSection}>
         {svcHdr('Κηπουρός', s.hasGarden, v => upd({ hasGarden: v }), gardenM)}
         {s.hasGarden && (
           <div style={g4}>
@@ -299,7 +315,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Πισίνα ───────────────────────────────────────────────────────── */}
-      <div style={card}>
+      <div style={svcSection}>
         {svcHdr('Πισίνα', s.hasPool, v => upd({ hasPool: v }), poolM)}
         {s.hasPool && (
           <>
@@ -318,7 +334,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Κλιματιστικά ─────────────────────────────────────────────────── */}
-      <div style={card}>
+      <div style={svcSection}>
         {svcHdr('Συντήρηση Κλιματιστικών', s.hasAC, v => upd({ hasAC: v }), acM)}
         {s.hasAC && (
           <>
@@ -343,7 +359,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Ανελκυστήρας ─────────────────────────────────────────────────── */}
-      <div style={card}>
+      <div style={svcSection}>
         {svcHdr('Ανελκυστήρας', s.hasElevator, v => upd({ hasElevator: v }), elevM)}
         {s.hasElevator && (
           <>
@@ -359,7 +375,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Απεντόμωση ───────────────────────────────────────────────────── */}
-      <div style={card}>
+      <div style={svcSection}>
         {svcHdr('Απεντόμωση', s.hasPest, v => upd({ hasPest: v }), pestM)}
         {s.hasPest && (
           <div style={g4}>
@@ -370,22 +386,24 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
         )}
       </div>
+      </div>
 
       {/* ── Άλλες Υπηρεσίες ──────────────────────────────────────────────── */}
       <div style={card}>
         {secHdr('Άλλες Υπηρεσίες')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ ...formGrid(150, 210), gap: 12, marginBottom: 12 }}>
-            <TextInput label="Υπηρεσία"         value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή, Υδραυλικός…"/>
-            <TextInput label="Τεχνικός ή εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο ή Εταιρεία"/>
-            <TextInput label="Τηλέφωνο"          value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'flex-end' }}>
-            <NumberInput  label="Κόστος" value={newCost} onChange={setNewCost} suffix="€" step={10}/>
-            <CustomSelect label="Συχνότητα"  value={newFreq} onChange={setNewFreq} options={FREQ}/>
-            <button onClick={addOther}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 20px', height: T.h.lg, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-              + Προσθήκη
+          {/* Πέντε πεδία και μια ενέργεια ήταν τρία μικρά πάνω, δύο πλατιά κάτω
+              και ένα κουμπί στριμωγμένο στην άκρη: τρία διαφορετικά πλάτη στο
+              ίδιο κουτί. Μία σειρά, ίσα μοιρασμένη, η ενέργεια τελευταία. */}
+          <div style={fieldRow(150, 12)}>
+            <TextInput    label="Υπηρεσία"           value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή…"/>
+            <TextInput    label="Τεχνικός ή εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο"/>
+            <TextInput    label="Τηλέφωνο"           value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>
+            <NumberInput  label="Κόστος"             value={newCost}    onChange={setNewCost}    suffix="€" step={10}/>
+            <CustomSelect label="Συχνότητα"          value={newFreq}    onChange={setNewFreq}    options={FREQ}/>
+            <button type="button" disabled={!newName.trim() || !newCost} onClick={addOther}
+              style={addBtn(!newName.trim() || !newCost)}>
+              Προσθήκη
             </button>
           </div>
         </div>
