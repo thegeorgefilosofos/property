@@ -199,7 +199,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
 
                 {/* Τιμή */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 12 }}>
-                  <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: isCurrent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{priceMain}</span>
+                  <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: isCurrent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{priceMain}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{priceUnit}</span>
                 </div>
 

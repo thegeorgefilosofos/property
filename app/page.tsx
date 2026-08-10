@@ -576,7 +576,7 @@ export default async function Landing() {
         <nav style={{ ...wrap, height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
             <BrandMark />
-            <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
+            <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
           </div>
           {loggedIn ? (
             <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς σου</Link>
@@ -713,7 +713,7 @@ export default async function Landing() {
           {AUDIENCE.map((a, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)', display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, marginBottom: 12 }}>{a.tag}</span>
-              <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em', textWrap: 'balance' }}>{a.t}</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em', textWrap: 'balance' }}>{a.t}</h3>
               {/* minHeight τριών γραμμών: οι τρεις περιγραφές πιάνουν τρεις γραμμές
                   η καθεμία, αλλά όχι πάντα. Χωρίς κατώφλι, οι τρεις λίστες από
                   κάτω ξεκινούσαν σε τρία διαφορετικά ύψη και το μάτι το έπιανε
@@ -753,7 +753,7 @@ export default async function Landing() {
           {FEATURES.map((f, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(20px, 2.2vw, 24px)' }}>
               <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>{ic(f.i)}</div>
-              <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 7px', letterSpacing: '-0.02em', textWrap: 'balance' }}>{f.t}</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 7px', letterSpacing: '-0.02em', textWrap: 'balance' }}>{f.t}</h3>
               <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0, textWrap: 'pretty' }}>{f.d}</p>
             </div>
           ))}
@@ -908,7 +908,7 @@ export default async function Landing() {
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ic(r.i)}</div>
                 <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT }}>{r.tag}</span>
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em', textWrap: 'balance' }}>{r.t}</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em', textWrap: 'balance' }}>{r.t}</h3>
               <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '0 0 18px', textWrap: 'pretty' }}>{r.d}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                 {r.items.map((t, j) => (
@@ -932,7 +932,7 @@ export default async function Landing() {
           {FAQ.map((f, i) => (
             <details key={i} className="lp-faq" style={{ borderTop: `1px solid ${LINE}` }}>
               <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '19px 0', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 21, fontWeight: 450, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
+                {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 20, fontWeight: 450, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
               </summary>
               {/* ΠΕΡΑ-ΠΕΡΑ, ΓΙΑΤΙ ΕΙΝΑΙ ΔΥΟ ΓΡΑΜΜΕΣ.
                   Το μέτρο των 680px υπήρχε για να μη χάνει το μάτι τη σειρά του σε
@@ -1020,7 +1020,7 @@ function SectionHead({ over, title, sub }: { over: string; title: string; sub?: 
       {/* Ο υπότιτλος παίρνει όλο το πλάτος της στήλης και ΚΑΘΕ κείμενο κόπηκε ώστε
           να χωρά σε μία γραμμή. Δύο γραμμές υπότιτλου κάτω από μονόγραμμο τίτλο
           δίνουν βαρύ, ασύμμετρο μπλοκ· μία και μία διαβάζονται ως ζευγάρι. */}
-      {sub && <p style={{ fontSize: 17, color: MUTED, lineHeight: 1.55, margin: '13px 0 0', textWrap: 'pretty' }}>{sub}</p>}
+      {sub && <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.55, margin: '13px 0 0', textWrap: 'pretty' }}>{sub}</p>}
     </div>
   );
 }

@@ -144,7 +144,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: `2px solid ${sanitizeAccent(accent)}` }}>
             {logoUrl
               ? <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 34, width: 'auto', maxWidth: 150, objectFit: 'contain' }} />
-              : <div style={{ width: 34, height: 34, borderRadius: 8, background: sanitizeAccent(accent), color: PAPER, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
+              : <div style={{ width: 34, height: 34, borderRadius: 8, background: sanitizeAccent(accent), color: PAPER, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: INK, fontFamily: T.font.sans }}>{previewName}</div>
               <div style={{ fontSize: 11, color: INK_MUTED, fontFamily: T.font.sans }}>Αναφορά ακινήτου</div>

@@ -575,7 +575,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:20,flexWrap:'wrap',marginBottom:14}}>
                 <div>
                   <p style={{...labelStyle,marginBottom:4}}>Υπόλοιπο σήμερα</p>
-                  <p style={{fontSize:32,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1.05,color:'var(--text-primary)',fontFamily:T.font.sans}}>{fe(prog.balance)}</p>
+                  <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1.05,color:'var(--text-primary)',fontFamily:T.font.sans}}>{fe(prog.balance)}</p>
                   <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>
                     από {fe(loan.amount)} · εκτίμηση με σταθερή δόση
                   </p>
@@ -1173,7 +1173,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   <div onMouseEnter={()=>setScoreHover(true)} onMouseLeave={()=>setScoreHover(false)}
                     onTouchStart={()=>setScoreHover(true)} onTouchEnd={()=>setScoreHover(false)}
                     style={{display:'flex',alignItems:'baseline',gap:5,flexShrink:0,cursor:'default'}}>
-                    <span style={{fontSize:46,fontWeight:700,color:scoreHover?'var(--accent)':'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.04em',fontVariantNumeric:'tabular-nums',lineHeight:1,transition:'color 0.15s'}}>{score}</span>
+                    <span style={{fontSize:28,fontWeight:700,color:scoreHover?'var(--accent)':'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.04em',fontVariantNumeric:'tabular-nums',lineHeight:1,transition:'color 0.15s'}}>{score}</span>
                     <span style={{fontSize:15,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontWeight:600}}>/ 100</span>
                   </div>
                   <div style={{flex:1,minWidth:220}}>
@@ -1442,7 +1442,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               ].map(item=>(
                 <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
                   <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily: T.font.sans,marginBottom:6}}>{item.l}</p>
-                  <p style={{fontSize:17,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{item.v}</p>
+                  <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{item.v}</p>
                   <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>{item.s}</p>
                 </div>
               ))}

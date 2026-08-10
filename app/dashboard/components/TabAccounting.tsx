@@ -792,13 +792,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div onMouseEnter={()=>setHoverStat('cash')} onMouseLeave={()=>setHoverStat(null)}
           style={{ ...card, padding:'18px 20px', borderColor:hoverStat==='cash'?'var(--border-default)':undefined, transition:'border-color 0.15s' }}>
           <p style={{ fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans }}>Καθαρό ταμείο · {year}</p>
-          <p style={{ fontSize:32, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:hoverStat==='cash'?(statement.netCash<0?'var(--negative)':'var(--accent)'):'var(--text-primary)', margin:'11px 0 0', lineHeight:1, transition:'color 0.15s' }}>{eur(statement.netCash)}</p>
+          <p style={{ fontSize:28, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:hoverStat==='cash'?(statement.netCash<0?'var(--negative)':'var(--accent)'):'var(--text-primary)', margin:'11px 0 0', lineHeight:1, transition:'color 0.15s' }}>{eur(statement.netCash)}</p>
           <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily: T.font.sans, lineHeight:1.5 }}>Ό,τι απομένει μετά από φόρους, τέλη και δόσεις δανείου.</p>
         </div>
         <div onMouseEnter={()=>setHoverStat('prov')} onMouseLeave={()=>setHoverStat(null)}
           style={{ ...card, padding:'18px 20px', borderColor:hoverStat==='prov'?'var(--border-default)':undefined, transition:'border-color 0.15s' }}>
           <p style={{ fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans }}>Πρόβλεψη φόρου · μήνα</p>
-          <p style={{ fontSize:32, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:hoverStat==='prov'?'var(--accent)':'var(--text-primary)', margin:'11px 0 0', lineHeight:1, transition:'color 0.15s' }}>{eur(provision.monthly)}</p>
+          <p style={{ fontSize:28, fontWeight:700, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', color:hoverStat==='prov'?'var(--accent)':'var(--text-primary)', margin:'11px 0 0', lineHeight:1, transition:'color 0.15s' }}>{eur(provision.monthly)}</p>
           <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily: T.font.sans, lineHeight:1.5 }}>Ποσό ανά μήνα για τον φόρο {year} · σύνολο {eur(provision.annualTaxTotal)} τον χρόνο.</p>
         </div>
       </div>

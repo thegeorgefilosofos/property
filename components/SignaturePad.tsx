@@ -129,7 +129,7 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
       ) : (
         <div style={{ ...surface, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <input value={typed} onChange={e => renderTyped(e.target.value)} placeholder="Πληκτρολόγησε το όνομά σου"
-            style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 34, fontStyle: 'italic', fontFamily: '"Brush Script MT","Segoe Script","Comic Sans MS",cursive', boxSizing: 'border-box' }} />
+            style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 28, fontStyle: 'italic', fontFamily: '"Brush Script MT","Segoe Script","Comic Sans MS",cursive', boxSizing: 'border-box' }} />
         </div>
       )}
       <div style={{ ...TT.caption, marginTop: 6 }}>{mode === 'draw' ? (hasInk ? 'Μπορείς να καθαρίσεις και να υπογράψεις ξανά.' : 'Υπόγραψε με το ποντίκι ή το δάχτυλο.') : 'Η υπογραφή δημιουργείται από το όνομά σου.'}</div>

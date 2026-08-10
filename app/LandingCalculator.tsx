@@ -32,7 +32,7 @@ function Control({ label, hint, value, set, min, max, step, format }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</label>
-        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{format(value)}</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{format(value)}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => set(Number(e.target.value))}
         aria-label={label} style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />

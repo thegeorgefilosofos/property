@@ -272,7 +272,7 @@ export default function AccountantDossier({
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 260 }}>
             <p style={eyebrow}>Τι πάει στον λογιστή · {year}</p>
-            <p style={{ fontSize: 19, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em', lineHeight: 1.45, margin: '10px 0 0' }}>
+            <p style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em', lineHeight: 1.45, margin: '10px 0 0' }}>
               {ready.message}
             </p>
           </div>
@@ -297,7 +297,7 @@ export default function AccountantDossier({
             return (
               <div key={w}>
                 <p style={{ ...eyebrow, fontSize: 10 }}>{WHO_LABEL[w]}</p>
-                <p style={{ ...num, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '5px 0 0', lineHeight: 1 }}>
+                <p style={{ ...num, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '5px 0 0', lineHeight: 1 }}>
                   {c.done}<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}> / {c.total}</span>
                 </p>
               </div>
