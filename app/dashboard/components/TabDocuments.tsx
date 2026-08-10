@@ -17,6 +17,8 @@ import { useAppPreferences } from './useAppPreferences';
 // Τα σχήματα των τριών πινάκων που διαβάζει το Αρχείο δίπλα στα δικά του αρχεία.
 // Και οι τρεις ερωτήσεις κάνουν `select('*')`, άρα η γραμμή επιστρέφεται ολόκληρη.
 import type { BillsRow, ExpensesRow, InventoryItemsRow } from '@/lib/supabase/tables';
+// Η απογραφή έχει ένα σπίτι: lib/data/inventory.
+import * as inventory from '@/lib/data/inventory';
 // Η ΜΙΑ μηχανή σάρωσης/καταχώρισης. Το Αρχείο δεν έχει δική του λογική OCR, δικό
 // του prompt, ούτε δική του απόφαση για το ράφι: όλα ζουν στο scanDoc.ts και στο
 // lib/billing (δοκιμασμένα). Ό,τι φαίνεται εδώ είναι μόνο οθόνη.
@@ -337,7 +339,7 @@ export default function TabDocuments({
       supabase.from('property_documents').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
       expenses.ledger(supabase, propertyId, { columns: '*' }),
       billStore.ofProperty<BillsRow>(supabase, propertyId, '*', userId),
-      supabase.from('inventory_items').select('*').eq('property_id', propertyId),
+      inventory.ofProperty<InventoryItemsRow>(supabase, propertyId, '*', userId),
     ]);
 
     const docs = (docsRes.data ?? []) as DocRow[];
@@ -414,7 +416,7 @@ export default function TabDocuments({
     });
 
     // 4) inventory_items — εγγυήσεις εξοπλισμού
-    const inv: InventoryItemsRow[] = invRes.data ?? [];
+    const inv = invRes;
     inv.forEach(i => {
       if (!i.warranty_expiry && !i.photo_url) return;
       const photo = i.photo_url || (Array.isArray(i.photos) ? i.photos[0] : null) || null;

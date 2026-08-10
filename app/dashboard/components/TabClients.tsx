@@ -46,6 +46,8 @@ import { Users, SearchX } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
+// Η απογραφή έχει ένα σπίτι: lib/data/inventory.
+import * as inventory from '@/lib/data/inventory';
 import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, ABSENT_DATE, formGrid } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
@@ -267,16 +269,16 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const docFileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    const [{ data: cl }, pr, { data: it }] = await Promise.all([
+    const [{ data: cl }, pr, it] = await Promise.all([
       supabase.from('clients').select('id,user_id,type,full_name,phone,email,notes,created_at,updated_at').eq('user_id', userId).order('created_at', { ascending: false }),
       properties.list<PropRow>(supabase, userId, { columns: 'id,name,prop_type,status_detail,client_id,sqm', orderBy: 'created_at' }),
       // Η απογραφή, για να δείχνει η φθορά σε ΑΝΤΙΚΕΙΜΕΝΟ και όχι σε κείμενο:
       // ο λογιστής χρειάζεται δαπάνη με παραστατικό, όχι «έσπασε κάτι».
-      supabase.from('inventory_items').select('id,name,property_id,current_value').eq('user_id', userId).order('name'),
+      inventory.ofUser<InvItem>(supabase, userId, 'id,name,property_id,current_value'),
     ]);
     setClients((cl || []) as Client[]);
     setProps(pr);
-    setInv((it || []) as InvItem[]);
+    setInv(it);
     setLoading(false);
   }, [userId]);
 

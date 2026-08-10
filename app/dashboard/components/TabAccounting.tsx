@@ -17,6 +17,8 @@ import { InfoHint } from './InfoHint'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { ClientStaysRow, ExpensesRow, InventoryItemsRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables'
+// Η απογραφή έχει ένα σπίτι: lib/data/inventory.
+import * as inventoryStore from '@/lib/data/inventory';
 import type { LoanView } from '@/lib/loans/shape'
 import type { TaxStay } from '@/lib/tax/shortTermTax'
 import { saved, savedData } from '@/components/dbWrite'
@@ -265,14 +267,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         properties.list<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
         rentStore.ofUser<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
         stayStore.ofUser<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
-        supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
+        inventoryStore.ofProperty<InventoryRow>(supabase,propertyId,'purchase_value,category,purchase_date',userId),
       ])
       if(!alive) return
       setExpenses(ex as ExpenseRow[]); setRent(rp)
       setStays(st); setLoans(ln)
       setProp(pr); setAllProps(aps)
       setAllRent(arp); setAllStays(ast)
-      setInventory((inv.data||[]) as InventoryRow[])
+      setInventory(inv)
     }catch(_){ /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
     finally{ if(alive) setLoading(false) }
   })(); return ()=>{ alive = false } },[propertyId,userId,refreshKey])

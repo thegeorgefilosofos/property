@@ -20,6 +20,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
+// Η απογραφή έχει ένα σπίτι: lib/data/inventory.
+import * as inventory from '@/lib/data/inventory';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
 import * as stayStore from '@/lib/data/stays';
@@ -861,12 +863,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Καταχώρηση αντικειμένου στην Απογραφή (από τη συνομιλία, με φωνή/κείμενο ή φωτο).
   const registerInventory = async (a: { name: string; category?: string; value?: number; brand?: string; model?: string; room?: string }) => {
     try {
-      await must(supabase.from('inventory_items').insert({
-        property_id: propertyId, user_id: userId,
+      const { error } = await inventory.add(supabase, propertyId, userId, [{
         name: a.name.slice(0, 120), category: a.category || 'Λοιπά',
         brand: a.brand || null, model: a.model || null, room: a.room || null,
         purchase_value: a.value || 0, condition: 'Καλή',
-      }));
+      }]);
+      if (error) throw new Error(error.message ?? 'Σφάλμα βάσης');
       setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα στα «${navLabel('inventory')}»: «${a.name}»${a.value ? ` (αξία ${eur(a.value)})` : ''}. Θέλεις να ανοίξω την καρτέλα για να προσθέσεις φωτογραφία, εγγύηση ή άλλες λεπτομέρειες;`, action: { type: 'go', tab: 'inventory' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: `Δεν μπόρεσα να το καταγράψω τώρα. Δοκίμασε από την καρτέλα «${navLabel('inventory')}».` }]);

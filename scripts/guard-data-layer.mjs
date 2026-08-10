@@ -34,6 +34,7 @@ const OWNED = {
   bills: 'lib/data/bills.ts',
   client_stays: 'lib/data/stays.ts',
   loans: 'lib/data/loans.ts',
+  inventory_items: 'lib/data/inventory.ts',
   bills_settings: 'lib/data/settings.ts',
 }
 

@@ -29,6 +29,8 @@ import { downloadCsv } from '@/lib/core/download';
 import { failed, MSG } from '@/lib/core/dbError';
 import { uploadPath } from '@/lib/core/uploadPath';
 import type { InventoryItemsRow } from '@/lib/supabase/tables';
+// Η απογραφή έχει ένα σπίτι: lib/data/inventory.
+import * as inventory from '@/lib/data/inventory';
 
 const supabase = createSupabaseClient()
 
@@ -562,7 +564,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const handleFile=(file:File)=>{const r=new FileReader();r.onload=e=>parseCSV(e.target?.result as string);r.readAsText(file,'UTF-8')}
   const handleImport=async()=>{
     setImporting(true)
-    const {error}=await supabase.from('inventory_items').insert(rows.map(r=>({...r,property_id:propertyId,user_id:userId,photos:[]})))
+    const {error}=await inventory.add(supabase,propertyId,userId,rows.map(r=>({...r,photos:[]})))
     if(error){notifyError(failed('Η μαζική εισαγωγή δεν ολοκληρώθηκε',error));setImporting(false);return}
     onImported();onClose()
   }
@@ -1965,7 +1967,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const fetchData = useCallback(async()=>{
     setLoading(true)
     const [iR,rR,hR,sR,bR,psR] = await Promise.all([
-      supabase.from('inventory_items').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
+      inventory.ofProperty<InventoryItem>(supabase,propertyId,'*',userId),
       supabase.from('inventory_repairs').select('*').eq('user_id',userId).order('repair_date',{ascending:false}),
       supabase.from('inventory_handovers').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
       supabase.from('inventory_maintenance').select('*').eq('property_id',propertyId).order('next_due'),
@@ -1985,12 +1987,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       supabase.from('property_settings').select('kwh_price').eq('property_id',propertyId).limit(1),
     ])
     setFurnishing(bR[0]?.furnishing ?? null)
-    if(iR.data){
-      // Καμία εγγραφή κατά την ανάγνωση: οι υπενθυμίσεις ημερολογίου δημιουργούνται
-      // ΜΟΝΟ με ρητή ενέργεια του χρήστη (κουμπί «Ημερολόγιο»), όχι αυτόματα σε κάθε load.
-      const loadedItems=(iR.data as InventoryItem[]).map(i=>({...i,photos:i.photos||[]}))
-      setItems(loadedItems)
-    }
+    // Καμία εγγραφή κατά την ανάγνωση: οι υπενθυμίσεις ημερολογίου δημιουργούνται
+    // ΜΟΝΟ με ρητή ενέργεια του χρήστη (κουμπί «Ημερολόγιο»), όχι αυτόματα σε κάθε load.
+    setItems(iR.map(i=>({...i,photos:i.photos||[]})))
     if(rR.data)setRepairs(rR.data)
     if(hR.data)setHandovers(hR.data as InventoryHandover[])
     if(sR.data)setSchedules(sR.data)
@@ -2016,16 +2015,16 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     // Γράφονται ΜΟΝΟ τα πεδία που ζητάει πλέον η φόρμα. Οι στήλες που έμειναν στη
     // βάση (provenance, discount_pct, smart_device, standby_watts…) δεν αγγίζονται:
     // τα παλιά δεδομένα μένουν ακέραια, απλώς δεν παράγονται καινούργια.
-    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,replacement_cost:data.replacement_cost||0,receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
-    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)notifyError(failed('Το αντικείμενο δεν αποθηκεύτηκε',error))
+    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,replacement_cost:data.replacement_cost||0,receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null}
+    if(editingItem){const {error}=await inventory.update(supabase,editingItem.id,payload);if(error)notifyError(failed('Το αντικείμενο δεν αποθηκεύτηκε',error))
       // Καθάρισε την ΠΑΛΙΑ απόδειξη αν αντικαταστάθηκε/αφαιρέθηκε (αποφυγή orphan στο storage).
       else{const oldDoc=editingItem.receipt_doc_url;if(oldDoc&&oldDoc!==payload.receipt_doc_url&&!/^https?:\/\//.test(oldDoc))await supabase.storage.from(DOCS_BUCKET).remove([oldDoc])}}
-    else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)notifyError(failed('Το αντικείμενο δεν καταχωρήθηκε',error))}
+    else{const {error}=await inventory.add(supabase,propertyId,userId,[payload]);if(error)notifyError(failed('Το αντικείμενο δεν καταχωρήθηκε',error))}
     setShowItemForm(false);setEditingItem(null);fetchData()
   }
   // Καθαρισμός συνημμένων αποδείξεων (private bucket) ώστε να μη μένουν orphan αρχεία.
   const cleanupDocs=async(its:InventoryItem[])=>{const paths=its.map(i=>i.receipt_doc_url).filter((p):p is string=>!!p&&!/^https?:\/\//.test(p));if(paths.length)await supabase.storage.from(DOCS_BUCKET).remove(paths)}
-  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){notifyError(failed('Το αντικείμενο δεν διαγράφηκε',error));return};if(it)await cleanupDocs([it]);fetchData()}
+  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await inventory.remove(supabase,id);if(error){notifyError(failed('Το αντικείμενο δεν διαγράφηκε',error));return};if(it)await cleanupDocs([it]);fetchData()}
   // ΤΡΙΑ ΓΡΑΨΙΜΑΤΑ ΠΟΥ ΔΕΝ ΔΙΑΒΑΖΑΝ ΤΟ ΣΦΑΛΜΑ ΤΟΥΣ. Ο Supabase δεν πετά ποτέ
   // εξαίρεση — επιστρέφει {data,error}. Χωρίς έλεγχο, η επισκευή που απορρίφθηκε
   // από RLS, η κατάσταση που δεν αποθηκεύτηκε και το δωμάτιο που δεν άλλαξε
@@ -2040,15 +2039,15 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleUpdateCondition=async(id:string,condition:string)=>{
     const prevCondition=items.find(i=>i.id===id)?.condition
     setItems(prev=>prev.map(i=>i.id===id?{...i,condition}:i))
-    const {error}=await supabase.from('inventory_items').update({condition,updated_at:new Date().toISOString()}).eq('id',id)
+    const {error}=await inventory.update(supabase,id,{condition})
     // Επαναφορά της οθόνης στην πραγματικότητα: αλλιώς ο χρήστης βλέπει «Κακή»,
     // φεύγει, γυρίζει, και το αντικείμενο είναι πάλι «Καλή» χωρίς εξήγηση.
     if(error){setItems(prev=>prev.map(i=>i.id===id&&prevCondition?{...i,condition:prevCondition}:i));notifyError(failed('Η κατάσταση δεν αποθηκεύτηκε',error))}
   }
-  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){notifyError(failed('Τα αντικείμενα δεν διαγράφηκαν',error));return}await cleanupDocs(its);fetchData()}
+  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await inventory.removeMany(supabase,ids);if(error){notifyError(failed('Τα αντικείμενα δεν διαγράφηκαν',error));return}await cleanupDocs(its);fetchData()}
   const handleBulkRoom=async(ids:string[],room:string)=>{
     if(!ids.length)return
-    const {error}=await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids)
+    const {error}=await inventory.updateMany(supabase,ids,{room})
     if(error){notifyError(failed('Το δωμάτιο δεν αποθηκεύτηκε',error));return}
     fetchData()
   }
@@ -2056,20 +2055,20 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const otherProps = properties.filter(p=>p.id!==propertyId).map(p=>({id:p.id,label:p.address||p.nickname||p.name||'Ακίνητο'}))
   const insertStarterPack = async() => {
     setCloning(true)
-    const rows=STARTER_PACK.map(s=>({property_id:propertyId,user_id:String(userId),name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],purchase_value:0}))
-    const {error}=await supabase.from('inventory_items').insert(rows)
+    const rows=STARTER_PACK.map(s=>({name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],purchase_value:0}))
+    const {error}=await inventory.add(supabase,propertyId,userId,rows)
     setCloning(false)
     if(error){notifyError(failed('Τα αντικείμενα του πακέτου δεν προστέθηκαν',error));return}
     fetchData()
   }
   const cloneFromProperty = async(sourceId:string) => {
     setCloning(true)
-    const {data}=await supabase.from('inventory_items').select('*').eq('property_id',sourceId)
-    if(!data||data.length===0){setCloning(false);notifyError('Το ακίνητο δεν έχει αντικείμενα προς αντιγραφή.');return}
+    const data=await inventory.ofProperty<InventoryItemsRow>(supabase,sourceId,'*',String(userId))
+    if(data.length===0){setCloning(false);notifyError('Το ακίνητο δεν έχει αντικείμενα προς αντιγραφή.');return}
     // Η αντιγραφή κρατά ό,τι δεν ανήκει στο ακίνητο-πηγή: το κλειδί, οι σφραγίδες
-    // χρόνου και ο δεσμός ακινήτου ξαναγράφονται.
-    const rows=(data as InventoryItemsRow[]).map(({id,created_at,updated_at,property_id,...rest})=>({...rest,property_id:propertyId,user_id:String(userId)}))
-    const {error}=await supabase.from('inventory_items').insert(rows)
+    // χρόνου και ο δεσμός ακινήτου ξαναγράφονται από το στρώμα.
+    const rows=data.map(({id,created_at,updated_at,property_id,user_id,...rest})=>rest)
+    const {error}=await inventory.add(supabase,propertyId,userId,rows)
     setCloning(false)
     if(error){notifyError(failed('Η αντιγραφή από το άλλο ακίνητο δεν ολοκληρώθηκε',error));return}
     fetchData()

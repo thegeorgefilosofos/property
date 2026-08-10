@@ -11,6 +11,8 @@ import * as rentStore from '@/lib/data/rent';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses'
+// Η απογραφή έχει ένα σπίτι: lib/data/inventory.
+import * as inventory from '@/lib/data/inventory';
 import type { User } from '@supabase/supabase-js';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
@@ -299,7 +301,7 @@ function useInventoryAlerts(propertyId: string | null, userId: string | null) {
   useEffect(() => {
     if (!propertyId || !userId) return;
     const check = async () => {
-      const { data: items } = await supabase.from('inventory_items').select('warranty_expiry, condition, purchase_date').eq('property_id', propertyId);
+      const items = await inventory.ofProperty<{ warranty_expiry: string | null; condition: string | null; purchase_date: string | null }>(supabase, propertyId, 'warranty_expiry,condition,purchase_date', userId);
       const { data: schedules } = await supabase.from('inventory_maintenance').select('next_due').eq('property_id', propertyId);
       if (!items) return;
       setItemCount(items.length);
@@ -410,7 +412,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [exp,bil,{ data:tsk },ten,ci,{ data:iv },ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
+    const [exp,bil,{ data:tsk },ten,ci,iv,ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       billStore.ofProperty<Bill>(supabase,prop.id,'*',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
@@ -418,7 +420,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(60),
       tenantStore.currentAll<Tenant & TenantFull>(supabase,prop.id,'id,monthly_rent,lease_start,lease_end,e_payment',userId),
       checklist.open<{ due_date:string|null; status:string; priority:string }>(supabase,prop.id,checklist.AGENDA_COLUMNS,userId),
-      supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
+      inventory.ofProperty<{ name?:string|null; warranty_expiry:string|null; condition:string|null }>(supabase,prop.id,'name,warranty_expiry,condition',userId),
       loanStore.ofProperty(supabase,prop.id,userId),
       stayStore.ofProperty<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }>(supabase,prop.id,'check_in,check_out,total,nights,nightly_rate',userId),
       // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους.
@@ -437,7 +439,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     ]);
     setExpenses((exp||[]) as Expense[]); setBills(bil); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
-    setChk(ci); setInv(iv||[]); setLoans(ln); setHostStays(hs); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
+    setChk(ci); setInv(iv); setLoans(ln); setHostStays(hs); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
     // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν
     // ελεγχόταν καν ως όνομα στήλης.
