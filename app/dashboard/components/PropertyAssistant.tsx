@@ -221,17 +221,47 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
 
-  // Μνήμη ανά ακίνητο: φόρτωσε προηγούμενη συζήτηση (αν το επιτρέπει ο χρήστης),
-  // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
-  // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
+  // ── Η ΣΥΖΗΤΗΣΗ ΑΛΛΑΖΕΙ ΜΕΣΑ ΣΤΗΝ ΑΠΟΔΟΣΗ, ΟΧΙ ΣΕ EFFECT ─────────────────
+  // Ήταν σε effect, και δίπλα του ζούσε δεύτερο effect που ΑΠΟΘΗΚΕΥΕΙ. Στην
+  // αλλαγή ακινήτου έτρεχαν και τα δύο στην ίδια απόδοση, με τη σειρά που είναι
+  // γραμμένα: το πρώτο έβαζε σε ουρά τη ΝΕΑ συζήτηση, και το δεύτερο εκτελούνταν
+  // ακόμη με την ΠΑΛΙΑ στα χέρια του και το ΝΕΟ αναγνωριστικό — δηλαδή έγραφε τη
+  // συζήτηση της Κυψέλης στο κλειδί της Γλυφάδας. Αν η Γλυφάδα δεν είχε δική της
+  // συζήτηση, το ψεύτικο ιστορικό έμενε εκεί μόνιμα, και την επόμενη φορά ο
+  // βοηθός διάβαζε τα οικονομικά ΑΛΛΟΥ ακινήτου και απαντούσε με βάση αυτά.
+  //
+  // Η προσαρμογή κατά την απόδοση ξαναποδίδει το component ΠΡΙΝ τρέξει
+  // οποιοδήποτε effect, οπότε το effect αποθήκευσης βλέπει και τη νέα συζήτηση
+  // και το νέο ακίνητο. Ίδιο μοτίβο με το CommandPalette και το TabDocuments.
+  //
+  // Η ΠΡΩΤΗ φόρτωση μένει στο effect από κάτω: το `localStorage` δεν υπάρχει στον
+  // διακομιστή, και μια ανάγνωσή του μέσα στην πρώτη απόδοση θα έδινε άλλο δέντρο
+  // στον διακομιστή και άλλο στον περιηγητή.
+  const [histPid, setHistPid] = useState(propertyId);
+  if (propertyId !== histPid) {
+    setHistPid(propertyId);
+    const mem = loadPrefs()?.memory !== false;
+    setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
+  }
+
+  // Ό,τι απλώς καθαρίζεται μένει σε effect: κανένα από αυτά δεν διαβάζεται από
+  // effect αποθήκευσης, άρα δεν έχει το ίδιο πρόβλημα σειράς. Εδώ μέσα γίνεται
+  // ΚΑΙ η πρώτη και μόνη φόρτωση ιστορικού, στην πρώτη προσάρτηση: το effect
+  // αποθήκευσης δεν κινδυνεύει, γιατί η άδεια συζήτηση δεν αποθηκεύεται ποτέ.
+  const firstRunRef = useRef(true);
   useEffect(() => {
     setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr(''); setOpenerCtx(null);
     // Το σαρωμένο παραστατικό ανήκει στο ακίνητο που ήταν ανοιχτό όταν
     // φωτογραφήθηκε. Χωρίς αυτό, ένα πάτημα «Καταχώρησε» μετά την αλλαγή
     // ακινήτου θα έγραφε τον λογαριασμό της Κυψέλης στη Γλυφάδα.
     pendingDocRef.current = null; setReconcile(null);
-    const mem = loadPrefs()?.memory !== false;
-    setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
+    if (firstRunRef.current) {
+      firstRunRef.current = false;
+      if (loadPrefs()?.memory !== false) {
+        const stored = loadHistory(propertyId);
+        if (stored.length) setMsgs(stored.map(m => ({ role: m.role, text: m.text })));
+      }
+    }
   }, [propertyId]);
 
   // Μόνιμη μνήμη (γεγονότα) ανά χρήστη, μόνο αν το επιτρέπει η ρύθμιση.

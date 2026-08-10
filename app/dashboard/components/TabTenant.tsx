@@ -2111,15 +2111,20 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   useEffect(()=>{fetch_();},[fetch_]);
 
   // Συγχρονισμός ημερολογίου/εργασιών για τους τρέχοντες ενοικιαστές (idempotent).
-  const syncedRef=React.useRef(false);
+  // Η ΣΗΜΑΙΑ ΚΡΑΤΑΕΙ ΤΟ ΑΚΙΝΗΤΟ, ΟΧΙ ΕΝΑ ΝΑΙ. Ήταν `useRef(false)` που γινόταν
+  // `true` μία φορά και δεν επανερχόταν ποτέ: ο συγχρονισμός έτρεχε για το πρώτο
+  // ακίνητο της συνεδρίας και για κανένα άλλο. Ο ιδιοκτήτης δύο ακινήτων έβλεπε
+  // τις δόσεις ενοικίου του ενός στο ημερολόγιο και του άλλου πουθενά, ώσπου να
+  // ανανεώσει τη σελίδα με ανοιχτό το δεύτερο.
+  const syncedFor=React.useRef<string|null>(null);
   useEffect(()=>{
-    if(syncedRef.current||loading) return;
-    syncedRef.current=true;
+    if(loading||syncedFor.current===propertyId) return;
+    syncedFor.current=propertyId;
     tenants.filter(t=>!isPastTenant(t)&&t.id).forEach(t=>{
       syncTenantSchedule(supabase,t,propertyId,userId,'open',{rentDueDay:t.rent_due_day??1});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[loading]);
+  },[loading,propertyId]);
 
 
   // ── Παράγωγα ────────────────────────────────────────────────────────────────

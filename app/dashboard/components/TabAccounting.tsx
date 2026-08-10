@@ -243,7 +243,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [allRent,setAllRent] = useState<PortfolioRentRow[]>([])
   const [allStays,setAllStays] = useState<PortfolioStayRow[]>([])
 
-  useEffect(()=>{ (async()=>{
+  // ΑΚΥΡΩΣΗ ΑΝΑ ΑΚΙΝΗΤΟ. Εννέα ερωτήματα φορτώνουν έσοδα, δαπάνες, δάνεια και
+  // στοιχεία ακινήτου. Με αλλαγή ακινήτου μέσα στο διάστημα φόρτωσης, η
+  // προηγούμενη απάντηση προσγειωνόταν πάνω στη νεότερη: ο ιδιοκτήτης έβλεπε
+  // φορολογητέο εισόδημα, φόρο και πρόβλεψη ΑΛΛΟΥ ακινήτου, με το όνομα του
+  // τρέχοντος από πάνω — και από αυτή την οθόνη βγαίνει βεβαίωση ενοικίου και
+  // PDF με αριθμό εγγράφου.
+  useEffect(()=>{ let alive = true; (async()=>{
     setLoading(true)
     try{
       const [ex, rp, st, ln, pr, aps, arp, ast, inv] = await Promise.all([
@@ -257,14 +263,15 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel,gross_guest_paid,platform_fee,climate_levy,amount_basis,declared_at').eq('user_id',userId),
         supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
       ])
+      if(!alive) return
       setExpenses(ex as ExpenseRow[]); setRent((rp.data||[]) as RentRow[])
       setStays((st.data||[]) as StayRow[]); setLoans(toLoanViews(ln.data))
       setProp(pr); setAllProps(aps)
       setAllRent((arp.data||[]) as PortfolioRentRow[]); setAllStays((ast.data||[]) as PortfolioStayRow[])
       setInventory((inv.data||[]) as InventoryRow[])
     }catch(_){ /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
-    finally{ setLoading(false) }
-  })() },[propertyId,userId,refreshKey])
+    finally{ if(alive) setLoading(false) }
+  })(); return ()=>{ alive = false } },[propertyId,userId,refreshKey])
 
   // ΩΜΟ `rental_mode` ΕΧΑΝΕ ΤΑ ΒΡΑΧΥΧΡΟΝΙΑ ΑΚΙΝΗΤΑ. Όσα σημάνθηκαν πριν από τη
   // μετάβαση κρατούν `status_detail: 'seasonal'` χωρίς `rental_mode` — και το
@@ -482,14 +489,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   }
   const [closing,setClosing] = useState<{ snapshot:BookSnapshot; locked_at:string }|null>(null)
   const [lockErr,setLockErr] = useState<string|null>(null)
-  useEffect(()=>{ (async()=>{
+  // Ίδιο κενό, ίδια λύση: χωρίς ακύρωση, το κλείδωμα χρήσης και το όνομα του
+  // μισθωτή του προηγούμενου ακινήτου τυπώνονταν στη βεβαίωση του νέου.
+  useEffect(()=>{ let alive = true; (async()=>{
     const { data } = await supabase.from('book_closings').select('snapshot,locked_at').eq('property_id',propertyId).eq('user_id',userId).eq('year',year).maybeSingle()
-    setClosing((data as { snapshot:BookSnapshot; locked_at:string }|null)||null)
-  })() },[propertyId,userId,year,refreshKey])
-  useEffect(()=>{ (async()=>{
+    if(alive) setClosing((data as { snapshot:BookSnapshot; locked_at:string }|null)||null)
+  })(); return ()=>{ alive = false } },[propertyId,userId,year,refreshKey])
+  useEffect(()=>{ let alive = true; (async()=>{
     const { data } = await supabase.from('tenants').select('full_name,afm').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ ascending:false }).limit(1).maybeSingle()
-    setTenant((data as { full_name?:string; afm?:string }|null)||null)
-  })() },[propertyId,userId,refreshKey])
+    if(alive) setTenant((data as { full_name?:string; afm?:string }|null)||null)
+  })(); return ()=>{ alive = false } },[propertyId,userId,refreshKey])
   // Ετήσια βεβαίωση ενοικίου: μόνο εισπραγμένα μισθώματα του έτους, ανά μήνα.
   function printCertificate(){
     const paid = rent.filter(p=>p.paid&&p.period_year===year).sort((a,b)=>(a.period_month||0)-(b.period_month||0))
@@ -532,9 +541,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(error){ setClosing(null); setLockErr(failed('Το κλείδωμα της χρήσης δεν αποθηκεύτηκε', error)); console.warn('Αποτυχία αποθήκευσης κλειδώματος:', error) }
   }
   async function unlockYear(){
-    setLockErr(null); setClosing(null)
-    await saved('Το κλείδωμα της χρήσης δεν άνοιξε',
+    // Η ΧΡΗΣΗ ΕΜΦΑΝΙΖΕΤΑΙ ΞΕΚΛΕΙΔΩΤΗ ΜΟΝΟ ΑΝ ΞΕΚΛΕΙΔΩΣΕ. Το `setClosing(null)`
+    // έτρεχε ΠΡΙΝ τη διαγραφή και δεν επανερχόταν σε αποτυχία: η οθόνη έλεγε
+    // «ανοιχτή χρήση» ενώ η γραμμή κλειδώματος ζούσε ακόμη στη βάση, και η
+    // επόμενη φόρτωση την ξαναέφερνε.
+    setLockErr(null)
+    const ok = await saved('Το κλείδωμα της χρήσης δεν άνοιξε',
       supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year))
+    if(ok) setClosing(null)
   }
 
   // Δημιουργεί/ανακτά τον σύνδεσμο της πύλης λογιστή και τον αντιγράφει. Ο λογιστής

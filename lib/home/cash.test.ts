@@ -15,7 +15,7 @@ const rent = (o: Partial<RentPeriod> = {}): RentPeriod =>
 const pay = (o: Partial<Payable> = {}): Payable =>
   ({ amount: 120, due: '2026-08-20', paid: false, label: 'ΔΕΗ', ...o })
 
-const empty = { rent: [], bills: [], expenses: [], today: TODAY }
+const empty = { rent: [], payables: [], today: TODAY }
 
 // ── Ημέρες ────────────────────────────────────────────────────────────────
 ok('σήμερα = 0', daysFromToday(TODAY, TODAY) === 0)
@@ -74,15 +74,28 @@ ok('πέρασμα θερινής ώρας: 28/3 → 30/3 = 2 ημέρες', day
 // ── ΧΡΩΣΤΑΩ: κάθε απλήρωτο, με ξεχωριστό το ληξιπρόθεσμο ──────────────────
 {
   const r = cashPosition({ ...empty,
-    bills: [pay({ amount: 120, due: '2026-07-20', label: 'ΔΕΗ' })],        // πέρασε
-    expenses: [pay({ amount: 300, due: '2026-09-15', label: 'Κοινόχρηστα' })],  // έρχεται
+    payables: [
+      pay({ amount: 120, due: '2026-07-20', label: 'ΔΕΗ' }),           // πέρασε
+      pay({ amount: 300, due: '2026-09-15', label: 'Κοινόχρηστα' }),   // έρχεται
+    ],
   })
   ok('το σύνολο περιλαμβάνει και τα μελλοντικά', r.owedByMe.total === 420 && r.owedByMe.count === 2)
   ok('το ληξιπρόθεσμο μετριέται χωριστά', r.owedByMe.overdue === 120 && r.owedByMe.overdueCount === 1)
 }
 {
-  const r = cashPosition({ ...empty, bills: [pay({ paid: true }), pay({ paid: null })] })
+  const r = cashPosition({ ...empty, payables: [pay({ paid: true }), pay({ paid: null })] })
   ok('πληρωμένο δεν χρεώνεται· άγνωστο ΟΥΤΕ (δεν μαντεύουμε)', r.owedByMe.count === 0)
+}
+
+// ── ΕΝΑ ΕΥΡΩ, ΜΙΑ ΦΟΡΑ ────────────────────────────────────────────────────
+// Η υπογραφή δεχόταν `bills` ΚΑΙ `expenses` και τα πρόσθετε. Η σάρωση
+// παραστατικού γράφει ΚΑΙ λογαριασμό ΚΑΙ δαπάνη με `bill_id`, και οι δύο
+// απλήρωτες: ένας λογαριασμός 84,50 € διαβαζόταν 169,00 €. Με μία λίστα, η
+// διπλομέτρηση δεν εκφράζεται πια — ο καλών περνά το ημερολόγιο, που έχει ήδη
+// ενώσει τον λογαριασμό με τη δαπάνη του.
+{
+  const r = cashPosition({ ...empty, payables: [pay({ amount: 84.5, label: 'ΔΕΗ', due: '2026-08-20' })] })
+  ok('ο σαρωμένος λογαριασμός μετριέται μία φορά', r.owedByMe.total === 84.5 && r.owedByMe.count === 1)
 }
 
 // ── ΤΑ ΔΥΟ ΣΚΕΛΗ ΔΕΝ ΣΥΜΨΗΦΙΖΟΝΤΑΙ ────────────────────────────────────────
@@ -90,13 +103,13 @@ ok('πέρασμα θερινής ώρας: 28/3 → 30/3 = 2 ημέρες', day
 // θέση = μου χρωστάνε − χρωστάω», θα δείχνει μηδέν σε ακίνητο με δύο ανοιχτά
 // μέτωπα — γι' αυτό οι δύο πλευρές μένουν χωριστές παντού.
 {
-  const r = cashPosition({ ...empty, rent: [rent({ amount: 500 })], bills: [pay({ amount: 500, due: '2026-07-01' })] })
+  const r = cashPosition({ ...empty, rent: [rent({ amount: 500 })], payables: [pay({ amount: 500, due: '2026-07-01' })] })
   ok('οι δύο πλευρές μένουν χωριστές', r.owedToMe.total === 500 && r.owedByMe.total === 500)
 }
 
 // ── ΣΕΙΡΑ ΠΙΕΣΗΣ ──────────────────────────────────────────────────────────
 {
-  const r = cashPosition({ ...empty, bills: [
+  const r = cashPosition({ ...empty, payables: [
     pay({ label: 'χωρίς-προθεσμία', due: null, amount: 900 }),
     pay({ label: 'σε-10-ημέρες',    due: '2026-08-15', amount: 50 }),
     pay({ label: 'πριν-30-ημέρες',  due: '2026-07-06', amount: 10 }),
@@ -111,8 +124,8 @@ ok('πέρασμα θερινής ώρας: 28/3 → 30/3 = 2 ημέρες', day
 {
   // Ίδια ημέρα → μεγαλύτερο ποσό πρώτο. Σταθερή σειρά, όχι σειρά της βάσης.
   const mk = (label: string, amount: number) => pay({ label, amount, due: '2026-07-01' })
-  const a = cashPosition({ ...empty, bills: [mk('μικρό', 10), mk('μεγάλο', 90)] }).owedByMe.lines.map(l => l.label)
-  const b = cashPosition({ ...empty, bills: [mk('μεγάλο', 90), mk('μικρό', 10)] }).owedByMe.lines.map(l => l.label)
+  const a = cashPosition({ ...empty, payables: [mk('μικρό', 10), mk('μεγάλο', 90)] }).owedByMe.lines.map(l => l.label)
+  const b = cashPosition({ ...empty, payables: [mk('μεγάλο', 90), mk('μικρό', 10)] }).owedByMe.lines.map(l => l.label)
   ok('ίδια σειρά ανεξάρτητα από τη σειρά εισόδου', a.join() === b.join() && a[0] === 'μεγάλο')
 }
 
@@ -131,18 +144,18 @@ ok('πέρασμα θερινής ώρας: 28/3 → 30/3 = 2 ημέρες', day
   ok('ενικός στη μία εκκρεμότητα', cashSideNote(one.owedToMe, 'in') === '1 εκκρεμότητα · η παλαιότερη 1 ημέρα πίσω')
   const two = cashPosition({ ...empty, rent: [rent({ due_date: '2026-07-05', period_month: 7 }), rent({ due_date: '2026-08-01', period_month: 8 })] })
   ok('πληθυντικός και σωστό «παλαιότερη»', cashSideNote(two.owedToMe, 'in') === '2 εκκρεμότητες · η παλαιότερη 31 ημέρες πίσω')
-  const today = cashPosition({ ...empty, bills: [pay({ due: TODAY })] })
+  const today = cashPosition({ ...empty, payables: [pay({ due: TODAY })] })
   ok('«λήγει σήμερα», όχι «σε 0 ημέρες»', cashSideNote(today.owedByMe, 'out') === '1 εκκρεμότητα · η πρώτη λήγει σήμερα')
-  const soon = cashPosition({ ...empty, bills: [pay({ due: '2026-08-06' })] })
+  const soon = cashPosition({ ...empty, payables: [pay({ due: '2026-08-06' })] })
   ok('ενικός και στην επερχόμενη', cashSideNote(soon.owedByMe, 'out') === '1 εκκρεμότητα · η πρώτη σε 1 ημέρα')
-  const noDue = cashPosition({ ...empty, bills: [pay({ due: null })] })
+  const noDue = cashPosition({ ...empty, payables: [pay({ due: null })] })
   ok('χωρίς προθεσμία, χωρίς εφευρημένη ημερομηνία', cashSideNote(noDue.owedByMe, 'out') === '1 εκκρεμότητα')
 }
 
 // ── Ο ΠΙΝΑΚΑΣ ΕΙΣΟΔΟΥ ΔΕΝ ΑΛΛΟΙΩΝΕΤΑΙ ─────────────────────────────────────
 {
   const bills = [pay({ label: 'β' }), pay({ label: 'α' })]
-  cashPosition({ ...empty, bills })
+  cashPosition({ ...empty, payables: bills })
   ok('καμία παρενέργεια στα δεδομένα', bills.map(b => b.label).join() === 'β,α')
 }
 

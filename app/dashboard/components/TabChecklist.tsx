@@ -1891,7 +1891,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // Το τοπικό toast έφευγε στον κοινό host: ο δικός του setTimeout δεν καθαριζόταν
   // ποτέ σε unmount (διαρροή) και το z-index 9998 έκανε αυτή την καρτέλα να απαντά
   // αλλιώς από κάθε άλλη.
-  const fetchAll = useCallback(async () => {
+  // ΜΙΑ ΦΟΡΤΩΣΗ ΤΗ ΦΟΡΑ, ΚΑΙ ΚΕΡΔΙΖΕΙ Η ΝΕΟΤΕΡΗ. Η `fetchAll` ξαναχτίζεται σε κάθε
+  // αλλαγή ακινήτου και το effect την ξανακαλεί, αλλά η ΠΡΟΗΓΟΥΜΕΝΗ εκτέλεση
+  // συνέχιζε: όποια απάντηση προσγειωνόταν δεύτερη, αυτή έγραφε. Ο χρήστης έβλεπε
+  // τις εκκρεμότητες, τις επαφές και τη δόση δανείου του άλλου ακινήτου, και ένα
+  // από τα ερωτήματα ΓΡΑΦΕΙ (σημειώνει τον ΕΝΦΙΑ πληρωμένο) — σε εργασία που
+  // μπορεί να ανήκε αλλού.
+  // Η ΑΚΥΡΩΣΗ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟΝ ΚΑΛΟΥΝΤΑ, γιατί εκεί ζει και ο ανταγωνισμός: το
+  // effect από κάτω ξέρει πότε η δική του εκτέλεση έπαψε να ισχύει. Οι
+  // χειροκίνητες ανανεώσεις (μετά από αποθήκευση ή διαγραφή) δεν έχουν τέτοιο
+  // πρόβλημα και δεν περνούν τίποτα.
+  const fetchAll = useCallback(async (fresh: () => boolean = () => true) => {
     setLoading(true)
     const [{ data: itemData }, { data: contactData }, { data: tenantData }] = await Promise.all([
       supabase.from('checklist_items').select('*').eq('property_id', propertyId).order('sort_order').order('created_at'),
@@ -1901,6 +1911,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Οι γραμμές παίρνουν τον τύπο του πίνακα· το `parseItem` είναι η μία πύλη
     // που τις μετατρέπει στο σχήμα της οθόνης, με τα κενά συμπληρωμένα.
     const rows = (itemData || []) as ChecklistItemsRow[]
+    if (!fresh()) return
     setItems(rows.map(parseItem))
     // Χαρτοφυλάκιο-wide λίστα επαφών ώστε να επιλέγεται π.χ. ο ψυκτικός όπου κι αν είναι
     // αποθηκευμένος· οι επαφές του τρέχοντος ακινήτου προηγούνται (σταθερή ταξινόμηση).
@@ -1925,7 +1936,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       const { data: tenantContactData } = await supabase
         .from('contacts').select('full_name,phone,email')
         .eq('property_id', propertyId).eq('role', 'tenant').limit(1)
-      setTenantInfo(tenantContactData?.[0] || null)
+      if (fresh()) setTenantInfo(tenantContactData?.[0] || null)
     } catch (_) {}
 
     try {
@@ -1934,6 +1945,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       const { data: loanData } = await supabase
         .from('loans').select(LOAN_COLUMNS)
         .eq('property_id', propertyId)
+      if (!fresh()) return
       setLoanPayment(
         toLoanViews(loanData)
           // Το toLoanViews επιστρέφει ήδη LoanView[]· το «any» έσβηνε τον τύπο
@@ -1952,6 +1964,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         supabase.from('billing_profiles').select('legal_form,bookkeeping').eq('user_id', userId).maybeSingle(),
         properties.count(supabase, userId),
       ])
+      if (!fresh()) return
       setStatusRow((propRow as StatusRow | null) || null)
       setLegalForm((bp as { legal_form?: string | null } | null)?.legal_form || 'individual')
       setBookkeeping((bp as { bookkeeping?: string | null } | null)?.bookkeeping || 'none')
@@ -1970,7 +1983,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         .or('name.ilike.%ΕΝΦΙΑ%,name.ilike.%enfia%,notes.ilike.%ΕΝΦΙΑ%')
         .limit(1)
       const isPaid = enfiaBillData?.[0]?.paid === true
-      if (isPaid && itemData) {
+      // Η ΓΡΑΦΗ ΕΙΝΑΙ ΤΟ ΣΟΒΑΡΟ: χωρίς αυτόν τον έλεγχο, η καθυστερημένη απάντηση
+      // του προηγούμενου ακινήτου σημείωνε πληρωμένη εργασία άλλου ακινήτου.
+      if (isPaid && itemData && fresh()) {
         const enfiaTask = rows.find(i => i.description?.toLowerCase().includes('ενφια') && i.status !== 'done')
         if (enfiaTask) {
           await saved('Ο ΕΝΦΙΑ δεν σημειώθηκε πληρωμένος',
@@ -1978,10 +1993,14 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         }
       }
     } catch (_) {}
-    setLoading(false)
+    if (fresh()) setLoading(false)
   }, [propertyId, userId])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    let alive = true
+    fetchAll(() => alive)
+    return () => { alive = false }
+  }, [fetchAll])
 
   // ── ΤΟ ESCAPE ΑΝΗΚΕΙ ΣΤΗΝ ΕΠΙΚΑΛΥΨΗ ΠΟΥ ΕΙΝΑΙ ΑΝΟΙΧΤΗ ─────────────────────
   // Όσο τα παράθυρα αυτής της οθόνης ήταν χειρόγραφα, ΚΑΝΕΝΑ δεν άκουγε Escape:

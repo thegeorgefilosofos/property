@@ -105,13 +105,23 @@ function side(lines: CashLine[]): CashSide {
 /**
  * Η ταμειακή θέση του ακινήτου σήμερα.
  *
+ * ΕΝΑ ΜΟΝΟ ΣΚΕΛΟΣ ΟΦΕΙΛΩΝ, ΚΑΙ ΟΧΙ ΔΥΟ. Εδώ έμπαιναν χωριστά οι λογαριασμοί και
+ * οι δαπάνες, και προστίθεντο. Ο απλήρωτος λογαριασμός όμως έχει ΚΑΙ δαπάνη από
+ * πίσω του όταν τον σάρωσε ο χρήστης: η σάρωση παραστατικού γράφει γραμμή στους
+ * λογαριασμούς ΚΑΙ γραμμή στις δαπάνες με `bill_id`, και οι δύο απλήρωτες. Ένας
+ * λογαριασμός ΔΕΗ 84,50 € διαβαζόταν 169,00 € — στο πρώτο νούμερο που βλέπει ο
+ * ιδιοκτήτης όταν ανοίγει το ακίνητο.
+ *
+ * Ο κανόνας «κάθε ευρώ μία φορά» ζει στο `lib/expenses/ledger.ts`. Αυτή η
+ * συνάρτηση δέχεται πλέον ΜΙΑ λίστα, ώστε να μην μπορεί να τη ρωτήσει κανείς με
+ * δύο επικαλυπτόμενες.
+ *
  * @param today ISO «YYYY-MM-DD» σε ΕΛΛΗΝΙΚΗ ώρα (athensToday()). Με UTC, μια
  *   δόση που λήγει σήμερα εμφανίζεται ληξιπρόθεσμη για δύο ώρες κάθε νύχτα.
  */
 export function cashPosition(input: {
   rent: RentPeriod[];
-  bills: Payable[];
-  expenses: Payable[];
+  payables: Payable[];
   today: string;
 }): CashPosition {
   const { today } = input;
@@ -138,7 +148,7 @@ export function cashPosition(input: {
   // Εδώ μετράει ΚΑΘΕ απλήρωτο, ληξιπρόθεσμο ή όχι: ο ιδιοκτήτης θέλει να ξέρει
   // τι τον περιμένει, όχι μόνο τι άργησε. Η διάκριση σώζεται στο `overdue`.
   const payLines: CashLine[] = [];
-  for (const p of [...input.bills, ...input.expenses]) {
+  for (const p of input.payables) {
     if (p.paid !== false) continue;           // null/undefined = δεν το ξέρουμε, δεν το χρεώνουμε
     const amount = num(p.amount);
     if (amount <= 0) continue;

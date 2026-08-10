@@ -849,7 +849,12 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   // Προσβασιμότητα: Cmd/Ctrl+Enter αποθηκεύει. Το Escape έφυγε από εδώ επειδή
   // το ίδιο το <Modal> το ακούει (useOverlayShell) — δύο listeners στο ίδιο
   // πλήκτρο σήμαινε δύο κλήσεις onClose στο ίδιο πάτημα.
-  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter'&&form.title.trim()&&form.event_date)onSave() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onSave,form.title,form.event_date])
+  // Ο ΙΔΙΟΣ ΕΛΕΓΧΟΣ ΜΕ ΤΟ ΚΟΥΜΠΙ. Το κουμπί κλείδωνε όσο έτρεχε το αίτημα, η
+  // συντόμευση όχι: δύο γρήγορα Cmd+Enter καταχωρούσαν δύο πανομοιότυπα γεγονότα,
+  // και σε νέο γεγονός με ποσό γράφονταν ΚΑΙ δύο δαπάνες. Ο πραγματικός φρουρός
+  // μπήκε μέσα στο ίδιο το `saveEvent`, ώστε να ισχύει για κάθε δρόμο εισόδου·
+  // εδώ μένει ο ίδιος έλεγχος για να μη φαίνεται καν να δέχεται το πάτημα.
+  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter'&&!saving&&form.title.trim()&&form.event_date)onSave() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onSave,saving,form.title,form.event_date])
   // ── Η ΕΣΤΙΑΣΗ ΣΤΟΝ ΤΙΤΛΟ, ΠΙΣΩ ────────────────────────────────────────────
   // Το `autoFocus` του πεδίου όντως δεν έκανε τίποτα μέσα στο <Modal>: το
   // πλαίσιο εστιάζει τον εαυτό του σε effect, που τρέχει ΜΕΤΑ το autoFocus.
@@ -1434,6 +1439,9 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
     if(!await saved('Η μετακίνηση δεν αποθηκεύτηκε', calendar.update(supabase,id,patch))) await load()
   }
   async function saveEvent(){
+    // ΕΝΑ ΓΕΓΟΝΟΣ ΑΝΑ ΠΑΤΗΜΑ, ΑΠΟ ΟΠΟΥ ΚΙ ΑΝ ΕΡΘΕΙ. Το κλείδωμα ζούσε μόνο στο
+    // `disabled` του κουμπιού, οπότε η συντόμευση πληκτρολογίου το παρέκαμπτε.
+    if(saving)return
     if(!form.title||!form.event_date)return
     // Επεξεργασία υπάρχουσας ΣΕΙΡΑΣ → ρώτα εμβέλεια (μόνο αυτό / επόμενα / όλα).
     if(editingEvent&&editingEvent.recurring){ setScopePrompt(true); return }

@@ -481,7 +481,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [otherRents, setOtherRents] = useState<{ id: string; annualRent: number; shortTerm: boolean }[]>([]);
 
   const K = (s: string) => `roi_${propertyId}_${s}`;
+  // ΑΚΥΡΩΣΗ ΑΝΑ ΑΚΙΝΗΤΟ. Έξι παράλληλα ερωτήματα γεμίζουν δώδεκα πεδία. Με αλλαγή
+  // ακινήτου στη διάρκειά τους, η παλιά απάντηση έγραφε αξία, ενοίκιο, ετήσια
+  // έξοδα, τετραγωνικά και τύπο του ΠΡΟΗΓΟΥΜΕΝΟΥ ακινήτου. Και επειδή αυτά τα
+  // πεδία αποθηκεύονται τοπικά με κλειδί ανά ακίνητο, τα λάθος νούμερα έμεναν και
+  // μετά την ανανέωση σελίδας — και από αυτά βγαίνουν απόδοση, βαθμός A–F και IRR.
   useEffect(() => {
+    let alive = true;
     (async () => {
       setLoading(true);
       try {
@@ -512,6 +518,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           status_detail: string | null; rental_mode: string | null;
         };
         type RentCfgRow = { actual_rent: number | null; target_rent: number | null };
+        if (!alive) return;
         const p = (pr || {}) as Partial<PropRow>; const c = (rc.data || {}) as Partial<RentCfgRow>;
         const rcRows = (allRc.data || []) as { property_id: string; actual_rent: number | null; target_rent: number | null }[];
         const prRows = allPr;
@@ -546,14 +553,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             // Το αποτέλεσμα της συνάρτησης της βάσης: τα πέντε πεδία που διαβάζονται.
             type CommRow = { postal_code: string | null; sample_count: number | null; median_gross_yield: number | null; p25_yield: number | null; p75_yield: number | null };
             const row = ((cs || []) as CommRow[]).find(r => String(r.postal_code || '').trim() === postal);
-            if (row && Number(row.sample_count) >= 5) {
+            if (alive && row && Number(row.sample_count) >= 5) {
               setCommStat({ postal, count: Number(row.sample_count), median: Number(row.median_gross_yield), p25: Number(row.p25_yield), p75: Number(row.p75_yield) });
             }
           } catch { /* λειτουργεί όταν υπάρχει αρκετό δείγμα */ }
         }
       } catch { /* keep defaults */ }
-      finally { setLoading(false); }
+      // Και ο δείκτης φόρτωσης κάτω από τον ίδιο έλεγχο: αλλιώς η παλιά εκτέλεση
+      // τον σβήνει ενώ η νέα φορτώνει ακόμη.
+      finally { if (alive) setLoading(false); }
     })();
+    return () => { alive = false };
   }, [propertyId, propertyValue]);
 
   // Persist ελαφριά (τοπικά) — δεν χρειάζεται νέος πίνακας.
