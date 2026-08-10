@@ -248,8 +248,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   // αυτό το κείμενο διαβάζεται από τη μηχανή, όχι από τη διάθεση.
   const friendGift = `${moAcc(REFEREE_OWNER_MONTHS)} δωρεάν στο πλάνο που θα διαλέξεις`;
   const invite = isPro
-    ? `Για το ακίνητό σου, σου προτείνω το PropertyOS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
-    : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
+    ? `Για το ακίνητό σου, σου προτείνω το PropertyOS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
+    : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const copyMsg = async () => { try { await navigator.clipboard.writeText(invite); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 1800); } catch { /* ignore */ } };
@@ -562,7 +562,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(REFEREE_OWNER_MONTHS)} δωρεάν</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πλάνο που θα διαλέξει στην αρχή, Ιδιώτης ή Επαγγελματίας, ανάλογα με τα ακίνητά του. Κι αν προτιμήσει να μείνει στο δωρεάν, κερδίζει ένα επιπλέον ακίνητο για {moAcc(friendBase.months)}, πάνω από το πρώτο που είναι δωρεάν για όλους.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πλάνο που θα διαλέξει στην αρχή, Ιδιώτης ή Επαγγελματίας, ανάλογα με τα ακίνητά του. Αν αργότερα χρειαστεί δεύτερο ακίνητο, το έχει δωρεάν για {moAcc(friendBase.months)}.</div>
             </div>
           </div>
 

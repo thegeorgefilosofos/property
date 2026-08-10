@@ -168,7 +168,7 @@ export function EnfiaCalculator() {
           </p>
           <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
             Το Property OS υπολογίζει τον ΕΝΦΙΑ για όλο το χαρτοφυλάκιο μαζί, με τη σωστή
-            μείωση, και σου θυμίζει τις δόσεις πριν λήξουν. Το πρώτο ακίνητο δωρεάν για πάντα.
+            μείωση, και σου θυμίζει τις δόσεις πριν λήξουν. Τριάντα ημέρες δωρεάν δοκιμή, χωρίς κάρτα.
           </p>
         </div>
         <Link href="/signup" style={{
